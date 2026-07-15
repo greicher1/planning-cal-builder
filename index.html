@@ -1,0 +1,3050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPT Planning Calendar Builder</title>
+<!-- PWA: install + theming. The manifest is inlined as a data: URI so the tool stays a
+     single self-contained HTML file (no separate manifest.json to pass around). Installing
+     the app in Chrome/Edge grants persistent file permissions, so the in-place "Save"
+     stops re-prompting. Opened as a local file, these are simply ignored. -->
+<meta name="theme-color" content="#E74C3C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Planning Calendar">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22SPT%20Planning%20Calendar%20Builder%22%2C%22short_name%22%3A%22Planning%20Cal%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%23E74C3C%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D'http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg'%2520viewBox%253D'0%25200%2520192%2520192'%253E%253Crect%2520x%253D'22'%2520y%253D'40'%2520width%253D'148'%2520height%253D'126'%2520rx%253D'16'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'55'%2520y%253D'16'%2520width%253D'13'%2520height%253D'36'%2520rx%253D'6.5'%2520fill%253D'%252395A5A6'%252F%253E%253Crect%2520x%253D'124'%2520y%253D'16'%2520width%253D'13'%2520height%253D'36'%2520rx%253D'6.5'%2520fill%253D'%252395A5A6'%252F%253E%253Crect%2520x%253D'22'%2520y%253D'34'%2520width%253D'148'%2520height%253D'126'%2520rx%253D'16'%2520fill%253D'%2523ECF0F1'%252F%253E%253Cpath%2520d%253D'M22%252050%2520a16%252016%25200%25200%25201%252016-16%2520h116%2520a16%252016%25200%25200%25201%252016%252016%2520v24%2520h-148%2520z'%2520fill%253D'%2523E74C3C'%252F%253E%253Ccircle%2520cx%253D'61.5'%2520cy%253D'50'%2520r%253D'10'%2520fill%253D'%2523C0392B'%252F%253E%253Ccircle%2520cx%253D'130.5'%2520cy%253D'50'%2520r%253D'10'%2520fill%253D'%2523C0392B'%252F%253E%253Crect%2520x%253D'55'%2520y%253D'16'%2520width%253D'13'%2520height%253D'26'%2520rx%253D'6.5'%2520fill%253D'%252395A5A6'%252F%253E%253Crect%2520x%253D'124'%2520y%253D'16'%2520width%253D'13'%2520height%253D'26'%2520rx%253D'6.5'%2520fill%253D'%252395A5A6'%252F%253E%253Crect%2520x%253D'40.0'%2520y%253D'88.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'64.5'%2520y%253D'88.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'89.0'%2520y%253D'88.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'113.5'%2520y%253D'88.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'138.0'%2520y%253D'88.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'40.0'%2520y%253D'110.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'64.5'%2520y%253D'110.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'89.0'%2520y%253D'110.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'113.5'%2520y%253D'110.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'138.0'%2520y%253D'110.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'40.0'%2520y%253D'132.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'64.5'%2520y%253D'132.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'89.0'%2520y%253D'132.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'113.5'%2520y%253D'132.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253Crect%2520x%253D'138.0'%2520y%253D'132.0'%2520width%253D'18'%2520height%253D'14'%2520rx%253D'2'%2520fill%253D'%2523BDC3C7'%252F%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%22%7D%5D%7D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F6F3;
+    --panel:#FFFFFF;
+    --border:#E3E1DA;
+    --border-strong:#CDCABF;
+    --text:#1E1D1B;
+    --text-muted:#726F68;
+    --text-faint:#9C988E;
+    --accent:#2C3E50;
+    --accent-hover:#1C2833;
+    --danger:#B3261E;
+    --radius:10px;
+    /* Height of the sticky header; measured at runtime so the sticky sidebar sits flush
+       beneath it at any window width (the toolbar wraps on narrow screens). */
+    --header-h:64px;
+
+    --c-writersRoom:#FFF2CC;      --c-writersRoom-text:#7A6215;
+    --c-prePrep:#DAE3F3;          --c-prePrep-text:#203864;
+    --c-prodPrep:#D6DCE5;         --c-prodPrep-text:#222A35;
+    --c-production:#E2F0D9;       --c-production-text:#375623;
+    --c-post:#FBE5D6;             --c-post-text:#8A4A1F;
+    --c-localization:#EDEDED;      --c-localization-text:#525252;
+    --c-hiatus:#FF0000;           --c-hiatus-text:#FFFFFF;
+    --c-simpost:#FFFF00;          --c-simpost-text:#5B5B00;
+    --c-milestone:#7030A0;        --c-milestone-text:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  header.app-header{
+    padding:14px 28px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    background:#fff; position:sticky; top:0; z-index:40;
+  }
+  .app-title{ flex:1; min-width:220px; }
+  header.app-header h1{font-size:19px; font-weight:600; margin:0;}
+  header.app-header p{margin:0; color:var(--text-muted); font-size:13px;}
+  .app-toolbar{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .tb-btn{
+    font-family:inherit; font-size:12px; font-weight:500; padding:7px 12px;
+    border:1px solid var(--border-strong); background:#fff; color:var(--text);
+    border-radius:7px; cursor:pointer; white-space:nowrap;
+  }
+  .tb-btn:hover:not(:disabled){ background:var(--bg); border-color:var(--text-faint); }
+  .tb-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .tb-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tb-btn.primary:hover:not(:disabled){ background:var(--accent-hover); border-color:var(--accent-hover); }
+  .tb-btn.danger{ color:var(--danger); border-color:#e5c3c3; margin-left:8px; }
+  .tb-btn.danger:hover:not(:disabled){ background:#fdf2f2; border-color:var(--danger); }
+  /* File dropdown */
+  .file-menu-wrap{ position:relative; }
+  .file-menu-btn{ display:flex; align-items:center; gap:6px; max-width:220px; }
+  .file-menu-btn #file-menu-label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-menu-btn .caret{ color:var(--text-faint); font-size:10px; }
+  .file-menu{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; min-width:240px; max-width:320px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:4px; z-index:60; max-height:320px; overflow-y:auto;
+  }
+  .file-menu.open{ display:block; }
+  .file-menu-item{
+    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px;
+    cursor:pointer; font-size:12px;
+  }
+  .file-menu-item:hover{ background:var(--bg); }
+  .file-menu-item.active{ background:#f6effb; color:#7030A0; font-weight:600; }
+  .file-menu-item .fm-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fm-remove{ border:none; background:transparent; color:var(--text-faint); font-size:14px; line-height:1; cursor:pointer; padding:0 3px; border-radius:4px; }
+  .fm-remove:hover{ color:var(--danger); background:rgba(0,0,0,.06); }
+  .file-menu-sep{ height:1px; background:var(--border); margin:4px 2px; }
+  .file-menu-empty{ padding:8px 9px; font-size:11px; color:var(--text-faint); }
+  .save-status{ font-size:11px; color:var(--text-faint); min-width:78px; white-space:nowrap; }
+  .save-status.dirty{ color:#b45309; }
+
+  /* Fill the available width at any window size (no artificial cap), so the calendar gets
+     as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
+     preview takes everything left over. */
+  .layout{display:flex; gap:0; align-items:flex-start; width:100%;}
+  @media (max-width:960px){ .layout{flex-direction:column;} }
+
+  .form-panel{
+    width:clamp(320px, 24vw, 420px); flex:none; padding:20px; border-right:1px solid var(--border);
+    /* Sits below the sticky header: offset by its height and shrink the scroll area to match. */
+    position:sticky; top:var(--header-h); align-self:flex-start;
+    max-height:calc(100vh - var(--header-h)); overflow-y:auto;
+  }
+  @media (max-width:960px){
+    .form-panel{ width:100%; border-right:none; border-bottom:1px solid var(--border);
+      max-height:none; position:static; }
+  }
+
+  .preview-panel{flex:1; min-width:0; padding:20px 28px;}
+
+  section.card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:14px;
+  }
+  section.card h2{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin:0 0 10px;}
+
+  .phase-row{
+    display:grid; grid-template-columns:16px 1fr; gap:8px 10px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .phase-row:last-child{border-bottom:none;}
+  .swatch{width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.12);}
+  .phase-name{font-weight:500; font-size:13.5px;}
+  .phase-fields{grid-column:2; display:flex; gap:8px; margin-top:6px;}
+  .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  .phase-meta{grid-column:2; font-size:11.5px; color:var(--text-faint); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
+  .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
+  .phase-name-input{font-weight:500; font-size:13.5px; font-family:inherit; border:1px solid transparent; border-radius:5px; padding:3px 5px; flex:1; background:transparent; color:var(--text); min-width:0;}
+  .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
+  .phase-name-input:hover{border-color:var(--border);}
+  .phase-name-input:focus{border-color:var(--border-strong); background:#fff; outline:none;}
+  .custom-phase-header .icon-btn{width:24px; height:24px; font-size:14px; flex:none;}
+  .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
+
+  input[type=date], input[type=number], select{
+    border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px;
+    font-family:inherit; font-size:13px; background:#fff; color:var(--text);
+    width:100%;
+  }
+  select{cursor:pointer;}
+  input[type=number]{font-family:'IBM Plex Mono',monospace;}
+  input[type=checkbox]{accent-color:var(--accent); width:15px; height:15px;}
+
+  .hiatus-entry{display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;}
+  .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  .icon-btn{
+    border:1px solid var(--border-strong); background:#fff; border-radius:7px; width:32px; height:32px;
+    cursor:pointer; font-size:15px; color:var(--text-muted); line-height:1; flex:none;
+  }
+  .icon-btn:hover{background:#F2F0EA;}
+
+  button.primary, button.secondary{
+    font-family:inherit; font-size:13px; font-weight:500; border-radius:8px; padding:9px 14px;
+    cursor:pointer; border:1px solid transparent;
+  }
+  button.primary{background:var(--accent); color:#fff;}
+  button.primary:hover{background:var(--accent-hover);}
+  button.primary:disabled{background:#B9C2CA; cursor:not-allowed;}
+  button.secondary{background:#fff; border-color:var(--border-strong); color:var(--text);}
+  button.secondary:hover{background:#F2F0EA;}
+  .btn-row{display:flex; gap:8px; margin-top:4px;}
+  .add-hiatus-btn{width:100%; margin-top:2px;}
+
+  .placeholder-note{
+    font-size:12px; color:var(--text-faint); font-style:italic; line-height:1.5;
+  }
+
+  .summary-row{display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:10px 16px; min-width:120px;}
+  .stat .num{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;}
+  .stat .lbl{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+
+  .timeline{display:flex; height:34px; border-radius:8px; overflow:hidden; border:1px solid var(--border-strong); margin-bottom:18px;}
+  .timeline .seg{display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:500; overflow:hidden; white-space:nowrap; border-right:1px solid rgba(0,0,0,.08); position:relative;}
+  .timeline .seg:last-child{border-right:none;}
+  .timeline .seg.hiatus-marker{background-image:repeating-linear-gradient(45deg,rgba(255,0,0,.35) 0 4px, transparent 4px 8px);}
+  .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
+
+  .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px; margin-bottom:14px;}
+  .view-toggle-btn{font-family:inherit; font-size:12.5px; font-weight:500; border:none; background:transparent; color:var(--text-muted); padding:6px 14px; border-radius:6px; cursor:pointer;}
+  .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .view-toggle-btn:hover:not(.active){color:var(--text);}
+
+  .sheet-scroll{overflow-x:auto; border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
+  .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
+  .cal-header-date{font-family:'Calibri','Carlito',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
+  .cal-header-center{flex:1; text-align:center; font-family:'Calibri','Carlito',sans-serif; line-height:1.4;}
+  .cal-header-center .cal-subtitle{font-size:11px; color:var(--text);}
+  .cal-header-right{min-width:120px; text-align:right;}
+  .cal-header-right-content{font-family:'Calibri','Carlito',sans-serif; font-size:11px; color:var(--text); line-height:1.5; text-align:right;}
+  /* Editable header lines: auto-filled, click any line to edit it in place */
+  .hdr-line{outline:none; border-radius:4px; padding:0 3px; min-height:14px;}
+  .hdr-line.hdr-title{font-size:13px; font-weight:700; color:var(--text);}
+  /* Only the manual-mode lines are interactive */
+  .hdr-line.hdr-editable{cursor:text;}
+  .hdr-line.hdr-editable:hover{ box-shadow:inset 0 0 0 1px var(--border-strong); }
+  .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px #7030A0; background:#faf5ff; }
+  .hdr-line.hdr-editable.hdr-empty:not(:focus):hover::before{ content:'edit'; color:var(--text-faint); font-size:10px; }
+  .cal-header-bar.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; }
+  .hdr-tools{display:flex; justify-content:flex-end; gap:6px; padding:4px 8px 0; background:#fff;}
+  #hdr-mode-btn, #notes-reset-btn{
+    font-size:10px; padding:3px 8px;
+    border:1px solid var(--border-strong); border-radius:6px; background:var(--bg);
+    color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  #hdr-mode-btn:hover, #notes-reset-btn:hover{ color:var(--text); background:#fff; }
+  #hdr-mode-btn.is-manual{ border-color:#7030A0; color:#7030A0; background:#f6effb; }
+  #union-country.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
+  /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
+     gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
+  table.sheet-table{
+    border-collapse:collapse; font-size:11px; white-space:nowrap;
+    font-family:'Calibri','Carlito','Segoe UI',-apple-system,sans-serif;
+    background:#fff; color:#000;
+  }
+  td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top; padding-left:4px; padding-right:4px;}
+  td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
+  td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
+  td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
+  .note-editor{display:flex; flex-direction:column; gap:2px; padding:2px; min-width:120px;}
+  .note-editor textarea{
+    font-family:'Calibri','Carlito','Segoe UI',sans-serif; font-size:11px; border:none; outline:none;
+    background:transparent; resize:none; width:100%; box-sizing:border-box;
+    color:#fff; padding:2px 3px; line-height:1.4;
+  }
+  .note-editor textarea::placeholder{opacity:.5; color:#fff;}
+  td.sheet-note-cell.editing{outline:2px solid #7030A0; outline-offset:-2px; cursor:text;}
+  td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
+  .note-color-row{display:flex; gap:3px; padding:3px 2px 1px; flex-wrap:wrap; justify-content:center;}
+  .color-swatch{
+    width:14px; height:14px; border-radius:3px; cursor:pointer; display:inline-block;
+    border:1px solid rgba(255,255,255,.55); box-shadow:0 0 0 1px rgba(0,0,0,.25);
+  }
+  .color-swatch:hover{ transform:scale(1.15); }
+  .color-swatch.selected{ outline:2px solid #fff; outline-offset:1px; box-shadow:0 0 0 1px #000; }
+  td.sheet-note-cell.has-note{cursor:text; text-align:center;}
+  /* Excel's gridlines are a soft light grey, thinner and lighter than a typical table border. */
+  table.sheet-table td, table.sheet-table th{
+    border:1px solid #D4D4D4; padding:2px 10px; text-align:center;
+    height:20px; line-height:1.35;
+  }
+  /* Excel column-header styling: light grey fill, subtle darker rule beneath. */
+  table.sheet-table th{
+    background:#F2F2F2; font-weight:600; font-size:11px;
+    font-family:'Calibri','Carlito','Segoe UI',sans-serif; color:#000;
+    border-color:#C6C6C6;
+  }
+  table.sheet-table td.sheet-date{font-weight:600; padding-left:5px; padding-right:5px; white-space:nowrap;}
+  table.sheet-table td.sheet-blockstart{border-left:2px solid var(--text);}
+  table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text);}
+  table.sheet-table td.sheet-blockend{border-right:2px solid var(--text);}
+  table.sheet-table th.sheet-blockend{border-right:2px solid var(--text);}
+  table.sheet-table tr:first-child th{border-top:2px solid var(--text);}
+  table.sheet-table tr:last-child td{border-bottom:2px solid var(--text);}
+  table.sheet-table td.sheet-empty{background:#fff;}
+  .gap-banner{background:#FFF4E5; border:1px solid #F0C36D; color:#7A5300; border-radius:var(--radius); padding:10px 14px; font-size:12.5px; margin-bottom:14px; line-height:1.6;}
+  .gap-banner strong{font-weight:500;}
+
+  table.week-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.week-table th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted);
+    border-bottom:1px solid var(--border-strong); padding:6px 8px; position:sticky; top:0; background:var(--bg);
+  }
+  table.week-table td{padding:5px 8px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  .block-divider td{padding:10px 8px 4px; font-weight:600; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border-strong); background:transparent;}
+  .date-cell{font-family:'IBM Plex Mono',monospace; white-space:nowrap; color:var(--text-muted);}
+  .badge{display:inline-block; padding:2px 8px; border-radius:5px; font-size:12px; margin:1px 4px 1px 0; font-weight:500;}
+  .badge.hiatus{background:var(--c-hiatus); color:var(--c-hiatus-text);}
+  .badge.simpost{background:var(--c-simpost); color:var(--c-simpost-text); font-size:11px;}
+  .badge.milestone{background:#7030A0; color:#FFFFFF; font-size:11px; display:block; margin-bottom:3px;}
+
+  footer.assumptions{margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faint); line-height:1.6;}
+  footer.assumptions strong{color:var(--text-muted);}
+
+  /* Help button + modal */
+  #help-fab{
+    position:fixed; right:22px; bottom:22px; z-index:60;
+    width:46px; height:46px; border-radius:50%;
+    border:1px solid var(--border-strong); background:var(--accent); color:#fff;
+    font-size:22px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.22); transition:transform .12s ease, background .12s ease;
+  }
+  #help-fab:hover{ background:var(--accent-hover); transform:translateY(-1px); }
+  #help-fab:active{ transform:translateY(0); }
+
+  #help-overlay{
+    display:none; position:fixed; inset:0; z-index:70;
+    background:rgba(20,19,17,.45); backdrop-filter:blur(2px);
+    align-items:center; justify-content:center; padding:24px;
+  }
+  #help-overlay.open{ display:flex; }
+  #help-modal{
+    background:var(--panel); border-radius:14px; width:min(720px,100%);
+    max-height:88vh; display:flex; flex-direction:column;
+    box-shadow:0 18px 50px rgba(0,0,0,.3); overflow:hidden;
+  }
+  #help-modal-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:18px 22px; border-bottom:1px solid var(--border); flex:none;
+  }
+  #help-title{ margin:0; font-size:17px; font-weight:600; }
+  #help-close{
+    border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+    font-size:26px; line-height:1; padding:0 4px; border-radius:6px;
+  }
+  #help-close:hover{ color:var(--text); background:var(--bg); }
+  #help-body{ padding:8px 22px 22px; overflow-y:auto; font-size:13.5px; line-height:1.6; }
+  #help-body h3{
+    font-size:14px; font-weight:600; color:var(--text); margin:20px 0 6px;
+    padding-bottom:4px; border-bottom:1px solid var(--border);
+  }
+  #help-body p{ margin:6px 0; color:var(--text); }
+  #help-body ul{ margin:6px 0 6px 2px; padding-left:18px; }
+  #help-body li{ margin:4px 0; }
+  #help-body code{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
+  #help-body .help-intro{ color:var(--text-muted); margin-top:12px; }
+  #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }
+</style>
+</head>
+<body>
+
+<script id="saved-state" type="application/json">null</script>
+
+<header class="app-header">
+  <div class="app-title">
+    <h1>SPT Planning Calendar Builder</h1>
+    <p>Enter phase date ranges, preview the schedule, export a styled Excel calendar.</p>
+  </div>
+  <div class="app-toolbar">
+    <div class="file-menu-wrap" id="file-menu-wrap" style="display:none;">
+      <button class="tb-btn file-menu-btn" id="file-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">
+        <span id="file-menu-label">Untitled</span> <span class="caret">&#9662;</span>
+      </button>
+      <div class="file-menu" id="file-menu" role="menu"></div>
+    </div>
+    <button class="tb-btn" id="new-file-btn" type="button">New</button>
+    <button class="tb-btn" id="save-file-btn" type="button">Save</button>
+    <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
+    <button class="tb-btn primary" id="export-btn" type="button" disabled>Export to Excel</button>
+    <span class="save-status" id="save-status"></span>
+    <button class="tb-btn danger" id="reset-btn" type="button">Reset</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="form-panel">
+
+    <button class="primary" id="install-app-btn" style="display:none; width:100%; margin-bottom:12px;">Install as app</button>
+
+    <section class="card">
+      <h2>Show Info</h2>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        Title / Season
+        <input type="text" id="show-title" placeholder="e.g. Show Title - Season 1" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        Shooting Days per Episode
+        <input type="number" id="shoot-days-per-ep" min="1" step="1" placeholder="e.g. 8" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
+        Number of Episodes
+        <input type="number" id="num-episodes" min="1" step="1" placeholder="e.g. 10" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Calendar range</h2>
+      <p class="placeholder-note" style="margin-bottom:8px;">Optional. By default the calendar shows the full year(s) your schedule touches (Jan–Dec), so every export is a consistent size. Set these to force a different start/end instead.</p>
+      <div class="phase-fields" style="grid-column:1; margin-top:0;">
+        <label>Show starting <input type="date" id="calendar-start"></label>
+        <label>Show ending <input type="date" id="calendar-end"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Phases</h2>
+      <div id="phase-rows"></div>
+      <div id="custom-phase-rows"></div>
+      <button class="secondary add-hiatus-btn" id="add-phase-btn">+ Add phase</button>
+    </section>
+
+    <section class="card">
+      <h2>Union holidays</h2>
+      <p class="placeholder-note" style="margin-bottom:8px;">Applies to Production (shooting) only. If a union holiday falls on what would be a shoot day, that day gets skipped and the schedule extends until the full day count is met.</p>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
+        Country
+        <select id="union-country">
+          <option value="">None</option>
+          <option value="US">United States</option>
+          <option value="CAN">Canada</option>
+          <option value="UK">United Kingdom</option>
+        </select>
+      </label>
+      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked — you&rsquo;ve edited comments/holidays/hiatus. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar to change the country again.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-top:8px;">
+        <input type="checkbox" id="show-union-holidays" checked>
+        Show union holidays in the notes column
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Simultaneous post</h2>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px;">
+        <input type="checkbox" id="simpost-enabled">
+        Auto-flag Simultaneous Post during Production
+      </label>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
+        Starts this many weeks after Production begins
+        <input type="number" id="simpost-offset" min="0" step="1" value="0" style="width:90px;">
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Holiday hiatus</h2>
+      <div id="hiatus-list"></div>
+      <button class="secondary add-hiatus-btn" id="add-hiatus">+ Add hiatus period</button>
+    </section>
+
+  </aside>
+
+  <main class="preview-panel">
+    <div id="gap-warning"></div>
+    <div class="summary-row" id="summary-row"></div>
+    <div id="timeline-wrap"></div>
+    <div class="view-toggle" id="view-toggle">
+      <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Spreadsheet view</button>
+      <button class="view-toggle-btn" data-mode="list" id="view-list-btn">List view</button>
+    </div>
+    <div id="table-wrap"></div>
+  </main>
+</div>
+
+<button id="help-fab" aria-label="Help" title="SPT Planning Calendar Builder Guide">?</button>
+
+<div id="help-overlay" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <div id="help-modal">
+    <div id="help-modal-head">
+      <h2 id="help-title">SPT Planning Calendar Builder Guide</h2>
+      <button id="help-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="help-body">
+
+      <p class="help-intro">Fill in the panel on the left and the schedule builds itself in the preview. Everything below explains what each control does and how the calendar is calculated. Nothing you enter leaves your computer &mdash; it all runs in your browser.</p>
+
+      <h3>Show Info</h3>
+      <p><strong>Title / Season</strong> names the project. It appears in the printed Excel header and becomes the file name when you export or save (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
+      <p><strong>Shooting Days per Episode</strong> is informational context for the shoot &mdash; it&rsquo;s shown in the header&rsquo;s production summary. The actual shoot length is driven by the total shooting-day count you set on the Production phase.</p>
+
+      <h3>Calendar range</h3>
+      <p>Optional. By default the calendar spans the full year(s) your schedule touches (January&ndash;December) so exports are a consistent size. Set a start and/or end date here to force a different window &mdash; useful if you want extra lead-in or trailing weeks.</p>
+
+      <h3>Phases</h3>
+      <p>Each phase is a block of the schedule &mdash; Writer&rsquo;s Room, Pre Prep, Prod Prep, Production, and Post are provided by default, each with its own color. For every phase you set:</p>
+      <ul>
+        <li><strong>Start date</strong> &mdash; any date snaps to the Monday of that week (weeks always run Monday&ndash;Sunday).</li>
+        <li><strong>Duration</strong> &mdash; in weeks for most phases. <strong>Production is special: it&rsquo;s measured in shooting days</strong>, not weeks, and is scheduled day-by-day (see Union holidays below).</li>
+        <li><strong>Name</strong> &mdash; click the phase name to rename it; the label carries through to every week of that phase and to the export.</li>
+      </ul>
+      <p><strong>+ Add phase</strong> creates a custom phase with its own name, color, start, and length. Phases can overlap &mdash; when two or more run in the same week, the preview and export add columns so they sit side by side. Columns follow a clear rule: the earliest-starting phase takes the leftmost column and keeps it, later overlapping phases sit to its right, and non-overlapping phases share a column to keep the sheet narrow. When only one phase is running in a week, it spans across the empty columns so there are no blank gaps.</p>
+      <p><strong>Header (Auto vs. Manual).</strong> By default the calendar header auto-fills from your inputs (title, production span, Principal Photography dates, episode count) and updates live. Click <strong>Header: Auto &mdash; Switch to Manual</strong> above the calendar to take control: it snapshots the current values into editable lines you can freely edit, and stops auto-updating. Switch back to Auto to discard the manual edits and resume live fill.</p>
+
+      <h3>Union holidays</h3>
+      <p>Applies to the <strong>Production</strong> phase only. Pick a country and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. The holiday is logged in the Notes column with its date.</p>
+      <p><strong>&ldquo;Show union holidays in the notes column&rdquo;</strong> is on by default. Uncheck it to hide the holiday names/dates from the notes everywhere &mdash; live view, list view, and the Excel export &mdash; without changing the schedule math.</p>
+      <p><strong>Editing locks the country.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the country selector locks &mdash; switching countries would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch countries again.</p>
+
+      <h3>Simultaneous post</h3>
+      <p>Check <strong>Auto-flag Simultaneous Post</strong> to mark weeks where post runs concurrently with the shoot. The <strong>offset</strong> field sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
+
+      <h3>Holiday hiatus</h3>
+      <p>Add one or more hiatus periods (a start date and a number of weeks). A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Holiday Hiatus&rdquo; band. Click any hiatus band in Spreadsheet view to rename it or change its highlight color for that week.</p>
+
+      <h3>Notes (in the preview)</h3>
+      <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
+      <p><strong>You can edit any note.</strong> In Spreadsheet view, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted.</p>
+
+      <h3>Spreadsheet view vs. List view</h3>
+      <p>Toggle at the top of the preview. <strong>Spreadsheet view</strong> mirrors the Excel export &mdash; a week-by-week grid with editable notes &mdash; and is the default. <strong>List view</strong> is a compact summary with each week&rsquo;s phases and notes as badges.</p>
+
+      <h3>Export to Excel</h3>
+      <p>Generates a styled <code>.xlsx</code> matching the Spreadsheet view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
+
+      <h3>Files, saving &amp; reopening</h3>
+      <p>All the main actions live in the toolbar at the top: the <strong>file menu</strong> (showing the calendar you&rsquo;re currently in), <strong>New</strong>, <strong>Save</strong>, <strong>Save As</strong>, <strong>Export to Excel</strong>, and <strong>Reset</strong>.</p>
+      <p><strong>Save</strong> writes a self-contained copy of this tool with all your entries baked in (title, dates, phases, custom phases, hiatuses, edited notes, header mode, and current view). In Chrome or Edge the first save asks where to put the file, and every save after that writes straight back to that same file with no dialog. Open the saved file later and everything comes back exactly as you left it.</p>
+      <p><strong>New</strong> clears everything and starts a blank calendar. <strong>Save As</strong> is different &mdash; it copies the calendar you&rsquo;re working on into a <em>new</em> file and switches you to it, which is handy for forking a schedule to try a variation without touching the original.</p>
+      <p>The <strong>file menu</strong> lists calendars you&rsquo;ve saved; click one to switch to it, use <strong>Open&hellip;</strong> to pull in a calendar file that isn&rsquo;t listed, or the &times; to drop a file from the list (that removes the shortcut only, never the file itself). Reopening a file may show a quick one-click permission prompt (&ldquo;Let this site edit the file?&rdquo;) &mdash; that&rsquo;s the browser protecting your disk. The file menu and in-place saving need Chrome or Edge; in other browsers each save downloads a new copy instead.</p>
+
+      <h3>Autosave &amp; recovering work</h3>
+      <p>The indicator beside <strong>Export</strong> shows <em>Unsaved changes</em> or the time of your last save. Once a calendar is linked to a file, it <strong>autosaves every 10 minutes</strong> in the background &mdash; no dialog, nothing to click.</p>
+      <p>Work that hasn&rsquo;t been saved to a file yet can&rsquo;t autosave (browsers won&rsquo;t create a file without you choosing where it goes), so the app keeps a rolling backup in your browser&rsquo;s local storage instead. If a session ends with unsaved changes, the next time you open the app it offers to recover that work. Closing the tab with unsaved changes also triggers your browser&rsquo;s &ldquo;leave site?&rdquo; warning.</p>
+      <p>The backup lives only in this browser on this computer &mdash; it&rsquo;s never uploaded anywhere, and clearing your browsing data removes it. Treat it as a safety net; the saved file on your disk is still the real copy.</p>
+
+      <h3>Reset</h3>
+      <p><strong>Reset</strong> (bottom of the panel) clears all your entries and returns every setting to its default state. Two narrower resets live above the calendar: <strong>Reset Notes &amp; Hiatus</strong> restores just the notes, holidays, and hiatus bands, and <strong>Header: Switch to Auto</strong> returns the header to live auto-fill.</p>
+
+      <p class="help-foot">Tip: any date you type snaps to the Monday of its week, and all durations are honored in full even when holidays or hiatuses interrupt them.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script>
+(function(){
+  const DAY_MS = 86400000;
+
+  const PHASES = [
+    { key:'writersRoom', label:"Writer's Rm",  color:'#FFF2CC', textColor:'#7A6215', template:n=>`Writer's Rm wk ${n}` },
+    { key:'prePrep',     label:'Pre Prep',      color:'#DAE3F3', textColor:'#203864', template:n=>`Pre Prep Wk ${n}` },
+    { key:'prodPrep',    label:'Prod Prep',     color:'#D6DCE5', textColor:'#222A35', template:n=>`Prod Prep wk ${n}` },
+    { key:'production',  label:'Production', color:'#E2F0D9', textColor:'#375623', template:n=>`Production wk ${n}`, inputMode:'days' },
+    { key:'post',        label:'Post',       color:'#FBE5D6', textColor:'#8A4A1F', template:n=>`Post wk ${n}` },
+    { key:'localization',label:'Localization',  color:'#EDEDED', textColor:'#525252', template:n=>`Localization wk ${n}` },
+  ];
+  const SHOOT_DAYS_PER_WEEK = 5;
+  const HIATUS_COLOR = '#FF0000', HIATUS_TEXT = '#FFFFFF';
+  const SIMPOST_COLOR = '#FFFF00', SIMPOST_TEXT = '#5B5B00';
+  const MILESTONE_COLOR = '#7030A0';
+  const MILESTONE_TEXT = '#FFFFFF';
+  const ROWS_PER_BLOCK = 53; // legacy fallback only, no longer used for grouping
+
+  // 2026-2027 transcribed from the Film Finances planning calendars; 2028-2029 computed from the
+  // same holiday rules (Nth-weekday-of-month, fixed dates, Easter via the standard algorithm, and
+  // weekend-observed shifts) and cross-checked against the transcribed years for consistency.
+  // "ALL" holidays are pre-merged into every country's list below. Add more years as needed --
+  // and double-check "observed" dates against your union agreements before relying on this.
+  const HOLIDAYS = {
+    US: [
+      {date:'2026-01-01', name:"New Year's Day"},
+      {date:'2026-01-19', name:'Martin Luther King Jr. Day'},
+      {date:'2026-02-16', name:"Presidents' Day"},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-05-25', name:'Memorial Day'},
+      {date:'2026-06-19', name:'Juneteenth'},
+      {date:'2026-07-03', name:'Independence Day (Observed)'},
+      {date:'2026-07-04', name:'Independence Day'},
+      {date:'2026-09-07', name:'Labor Day'},
+      {date:'2026-10-12', name:'Columbus Day'},
+      {date:'2026-11-11', name:'Veterans Day'},
+      {date:'2026-11-26', name:'Thanksgiving'},
+      {date:'2026-11-27', name:'Day after Thanksgiving'},
+      {date:'2026-12-25', name:'Christmas'},
+      {date:'2027-01-01', name:"New Year's Day"},
+      {date:'2027-01-18', name:'Martin Luther King Jr. Day'},
+      {date:'2027-02-15', name:"Presidents' Day"},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-05-31', name:'Memorial Day'},
+      {date:'2027-06-18', name:'Juneteenth (Observed)'},
+      {date:'2027-07-05', name:'Independence Day (Observed)'},
+      {date:'2027-09-06', name:'Labor Day'},
+      {date:'2027-10-11', name:'Columbus Day'},
+      {date:'2027-11-11', name:'Veterans Day'},
+      {date:'2027-11-25', name:'Thanksgiving'},
+      {date:'2027-11-26', name:'Day after Thanksgiving'},
+      {date:'2027-12-24', name:'Christmas (Observed)'},
+      {date:'2027-12-31', name:"New Year's Day (Observed)"},
+      {date:'2028-01-01', name:"New Year's Day"},
+      {date:'2028-01-17', name:'Martin Luther King Jr. Day'},
+      {date:'2028-02-21', name:"Presidents' Day"},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-05-29', name:'Memorial Day'},
+      {date:'2028-06-19', name:'Juneteenth'},
+      {date:'2028-07-04', name:'Independence Day'},
+      {date:'2028-09-04', name:'Labor Day'},
+      {date:'2028-10-09', name:'Columbus Day'},
+      {date:'2028-11-10', name:'Veterans Day (Observed)'},
+      {date:'2028-11-11', name:'Veterans Day'},
+      {date:'2028-11-23', name:'Thanksgiving'},
+      {date:'2028-11-24', name:'Day after Thanksgiving'},
+      {date:'2028-12-25', name:'Christmas'},
+      {date:'2029-01-01', name:"New Year's Day"},
+      {date:'2029-01-15', name:'Martin Luther King Jr. Day'},
+      {date:'2029-02-19', name:"Presidents' Day"},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-05-28', name:'Memorial Day'},
+      {date:'2029-06-19', name:'Juneteenth'},
+      {date:'2029-07-04', name:'Independence Day'},
+      {date:'2029-09-03', name:'Labor Day'},
+      {date:'2029-10-08', name:'Columbus Day'},
+      {date:'2029-11-11', name:'Veterans Day'},
+      {date:'2029-11-12', name:'Veterans Day (Observed)'},
+      {date:'2029-11-22', name:'Thanksgiving'},
+      {date:'2029-11-23', name:'Day after Thanksgiving'},
+      {date:'2029-12-25', name:'Christmas'},
+    ],
+    CAN: [
+      {date:'2026-01-01', name:"New Year's Day"},
+      {date:'2026-02-16', name:'Family Day'},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-04-06', name:'Easter Monday'},
+      {date:'2026-05-18', name:'Victoria Day'},
+      {date:'2026-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2026-06-24', name:'St-Jean-Baptiste Day'},
+      {date:'2026-07-01', name:'Canada Day'},
+      {date:'2026-08-03', name:'Civic Holiday'},
+      {date:'2026-09-07', name:'Labor Day'},
+      {date:'2026-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2026-10-12', name:'Thanksgiving'},
+      {date:'2026-11-11', name:'Remembrance Day'},
+      {date:'2026-12-25', name:'Christmas'},
+      {date:'2026-12-26', name:'Boxing Day'},
+      {date:'2027-01-01', name:"New Year's Day"},
+      {date:'2027-02-15', name:'Family Day'},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-03-29', name:'Easter Monday'},
+      {date:'2027-05-24', name:'Victoria Day'},
+      {date:'2027-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2027-06-24', name:'St-Jean-Baptiste Day'},
+      {date:'2027-07-01', name:'Canada Day'},
+      {date:'2027-08-02', name:'Civic Holiday'},
+      {date:'2027-09-06', name:'Labor Day'},
+      {date:'2027-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2027-10-11', name:'Thanksgiving'},
+      {date:'2027-11-11', name:'Remembrance Day'},
+      {date:'2027-12-27', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:"New Year's Day"},
+      {date:'2028-01-03', name:"New Year's Day (Observed)"},
+      {date:'2028-02-21', name:'Family Day'},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-04-17', name:'Easter Monday'},
+      {date:'2028-05-22', name:'Victoria Day'},
+      {date:'2028-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2028-06-24', name:'St-Jean-Baptiste Day'},
+      {date:'2028-07-01', name:'Canada Day'},
+      {date:'2028-08-07', name:'Civic Holiday'},
+      {date:'2028-09-04', name:'Labor Day'},
+      {date:'2028-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2028-10-09', name:'Thanksgiving'},
+      {date:'2028-11-11', name:'Remembrance Day'},
+      {date:'2028-12-25', name:'Christmas'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:"New Year's Day"},
+      {date:'2029-02-19', name:'Family Day'},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-04-02', name:'Easter Monday'},
+      {date:'2029-05-21', name:'Victoria Day'},
+      {date:'2029-06-21', name:'National Indigenous Peoples Day'},
+      {date:'2029-06-24', name:'St-Jean-Baptiste Day'},
+      {date:'2029-07-01', name:'Canada Day'},
+      {date:'2029-08-06', name:'Civic Holiday'},
+      {date:'2029-09-03', name:'Labor Day'},
+      {date:'2029-09-30', name:'National Day for Truth and Reconciliation'},
+      {date:'2029-10-08', name:'Thanksgiving'},
+      {date:'2029-11-11', name:'Remembrance Day'},
+      {date:'2029-12-25', name:'Christmas'},
+      {date:'2029-12-26', name:'Boxing Day'},
+    ],
+    UK: [
+      {date:'2026-01-01', name:"New Year's Day"},
+      {date:'2026-04-03', name:'Good Friday'},
+      {date:'2026-04-06', name:'Easter Monday'},
+      {date:'2026-05-04', name:'Early May Bank Holiday'},
+      {date:'2026-05-25', name:'Spring Bank Holiday'},
+      {date:'2026-08-03', name:'Summer Bank Holiday (Scotland)'},
+      {date:'2026-08-31', name:'Summer Bank Holiday'},
+      {date:'2026-12-25', name:'Christmas'},
+      {date:'2026-12-28', name:'Boxing Day (Observed)'},
+      {date:'2027-01-01', name:"New Year's Day"},
+      {date:'2027-03-26', name:'Good Friday'},
+      {date:'2027-03-29', name:'Easter Monday'},
+      {date:'2027-05-03', name:'Early May Bank Holiday'},
+      {date:'2027-05-31', name:'Spring Bank Holiday'},
+      {date:'2027-08-02', name:'Summer Bank Holiday (Scotland)'},
+      {date:'2027-08-30', name:'Summer Bank Holiday'},
+      {date:'2027-12-27', name:'Boxing Day (Observed)'},
+      {date:'2028-01-01', name:"New Year's Day"},
+      {date:'2028-01-03', name:"New Year's Day (Observed)"},
+      {date:'2028-04-14', name:'Good Friday'},
+      {date:'2028-04-17', name:'Easter Monday'},
+      {date:'2028-05-01', name:'Early May Bank Holiday'},
+      {date:'2028-05-29', name:'Spring Bank Holiday'},
+      {date:'2028-08-07', name:'Summer Bank Holiday (Scotland)'},
+      {date:'2028-08-28', name:'Summer Bank Holiday'},
+      {date:'2028-12-25', name:'Christmas'},
+      {date:'2028-12-26', name:'Boxing Day'},
+      {date:'2029-01-01', name:"New Year's Day"},
+      {date:'2029-03-30', name:'Good Friday'},
+      {date:'2029-04-02', name:'Easter Monday'},
+      {date:'2029-05-07', name:'Early May Bank Holiday'},
+      {date:'2029-05-28', name:'Spring Bank Holiday'},
+      {date:'2029-08-06', name:'Summer Bank Holiday (Scotland)'},
+      {date:'2029-08-27', name:'Summer Bank Holiday'},
+      {date:'2029-12-25', name:'Christmas'},
+      {date:'2029-12-26', name:'Boxing Day'},
+    ],
+  };
+
+  function computeYearBlocks(weeks){
+    const blocks = [];
+    let currentYear = null, start = 0;
+    weeks.forEach((w,i)=>{
+      const y = w.date.getUTCFullYear();
+      if(currentYear===null){ currentYear = y; start = i; }
+      else if(y!==currentYear){
+        blocks.push({year:currentYear, startIdx:start, count:i-start});
+        currentYear = y; start = i;
+      }
+    });
+    if(weeks.length>0) blocks.push({year:currentYear, startIdx:start, count:weeks.length-start});
+    return blocks;
+  }
+
+  // ---------- date helpers ----------
+  const MIN_YEAR = 1970, MAX_YEAR = 2100;
+  function parseDateUTC(str){
+    if(!str) return null;
+    const [y,m,d] = str.split('-').map(Number);
+    if(!y || y < MIN_YEAR || y > MAX_YEAR) return null; // guards against typo'd years (e.g. an extra digit) hanging the page
+    return new Date(Date.UTC(y, m-1, d));
+  }
+  function addDays(date, n){ return new Date(date.getTime() + n*DAY_MS); }
+  function mondayOf(date){
+    const dow = date.getUTCDay();
+    const back = (dow+6)%7;
+    return addDays(date, -back);
+  }
+  function fmtShort(date){
+    const mm = String(date.getUTCMonth()+1).padStart(2,'0');
+    const dd = String(date.getUTCDate()).padStart(2,'0');
+    const yy = String(date.getUTCFullYear()).slice(2);
+    return `${mm}/${dd}/${yy}`;
+  }
+  // Format the auto-generated notes for a week as inline "Label date" lines, e.g.
+  // "Writers Room Opens 7/20/26". Multiple notes in the same week are newline-separated.
+  function autoNotesText(autoNotes){
+    if(!autoNotes || !autoNotes.length) return '';
+    return autoNotes.map(n => n.date ? `${n.label} ${fmtShort(n.date)}` : n.label).join('\n');
+  }
+  // Resolve what a note cell should actually show. Priority:
+  //  - user has an override for this week -> use its text (may be '' = explicitly cleared)
+  //  - otherwise -> the inline auto-notes text
+  // Returns the string to display ('' means the cell is empty / no highlight).
+  function effectiveNoteText(weekKey, autoNotes){
+    const u = userNotes[weekKey];
+    if(u !== undefined) return (u.text || '');   // includes explicit-clear ('' suppresses auto)
+    return autoNotesText(autoNotes);
+  }
+  function colLetter(n){
+    let s='';
+    while(n>0){ const rem=(n-1)%26; s=String.fromCharCode(65+rem)+s; n=Math.floor((n-1)/26); }
+    return s;
+  }
+
+  // ---------- state ----------
+  const MAX_WEEKS = 600; // ~11.5 years - a generous ceiling that catches typo'd years before they hang the page
+
+  function rawInputToWeeks(p, rawValue){
+    if(p.inputMode==='days'){
+      return Math.ceil(rawValue / SHOOT_DAYS_PER_WEEK);
+    }
+    return rawValue;
+  }
+
+  function readState(){
+    const allDefs = getAllPhaseDefs();
+    const phases = {};
+    let hasInvalidYear = false;
+    allDefs.forEach(p=>{
+      const startStr = document.getElementById('start-'+p.key).value;
+      const rawValue = parseInt(document.getElementById('weeks-'+p.key).value, 10);
+      if(startStr && parseDateUTC(startStr)===null) hasInvalidYear = true;
+      const weeks = rawValue>0 ? rawInputToWeeks(p, rawValue) : NaN;
+      phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue} : null;
+    });
+    const hiatuses = [];
+    document.querySelectorAll('.hiatus-entry').forEach(el=>{
+      const start = el.querySelector('.hiatus-start').value;
+      const weeks = parseInt(el.querySelector('.hiatus-weeks').value, 10);
+      if(start && parseDateUTC(start)===null) hasInvalidYear = true;
+      if(start && weeks>0) hiatuses.push({start, weeks});
+    });
+    const calStartStr = document.getElementById('calendar-start').value;
+    const calEndStr = document.getElementById('calendar-end').value;
+    if(calStartStr && parseDateUTC(calStartStr)===null) hasInvalidYear = true;
+    if(calEndStr && parseDateUTC(calEndStr)===null) hasInvalidYear = true;
+    return {
+      phases,
+      allDefs,
+      hiatuses,
+      calendarStart: calStartStr || null,
+      calendarEnd: calEndStr || null,
+      hasInvalidYear,
+      unionCountry: document.getElementById('union-country').value || null,
+      showUnionHolidays: document.getElementById('show-union-holidays').checked,
+      simultaneousPost:{
+        enabled: document.getElementById('simpost-enabled').checked,
+        offsetWeeks: parseInt(document.getElementById('simpost-offset').value,10) || 0
+      }
+    };
+  }
+
+  // ---------- core scheduling ----------
+  function computeSchedule(state){
+    if(state.hasInvalidYear){
+      return {weeks:[], maxConcurrent:0, totalWeeks:0, error:'invalid-year'};
+    }
+
+    const hiatuses = (state.hiatuses||[]).filter(h=>h.start && h.weeks>0 && parseDateUTC(h.start)).map(h=>{
+      const start = mondayOf(parseDateUTC(h.start));
+      const end = addDays(start, h.weeks*7);
+      return {start, end};
+    });
+
+    // A hiatus pauses whatever phase it falls inside, so that phase still delivers its full
+    // requested week count -- it pushes the phase's end date out rather than quietly losing weeks.
+    // This can cascade: extending a phase's end can pull a second hiatus into range, so we
+    // repeat until nothing new gets absorbed.
+    function extendEndForHiatus(start, weeksRequested){
+      // Walk week-by-week from start: only non-hiatus weeks count toward the requested
+      // total, so the phase always delivers its full week count. This uses the exact
+      // predicate the renderer uses to mark a week as hiatus, which fixes two bugs the
+      // old sum-of-durations approach had: (1) overlapping hiatuses covering the same
+      // calendar week now extend the phase by that week ONCE (the union), not once per
+      // hiatus; (2) a hiatus that begins BEFORE the phase but overlaps its start now
+      // extends the phase too (previously only hiatuses starting inside the range did).
+      let delivered = 0, cur = start, safety = 0;
+      while(delivered < weeksRequested && safety++ < 2000){
+        const inHiatus = hiatuses.some(h => cur >= h.start && cur < h.end);
+        if(!inHiatus) delivered++;
+        cur = addDays(cur, 7);
+      }
+      return cur;
+    }
+
+    // Day-level simulation for Production only: walks day by day from start, skipping
+    // weekends, any Holiday Hiatus days, and any union holiday for the selected country,
+    // until enough actual shoot days have been counted. Returns the last real shoot day
+    // and the list of union holidays that landed on a would-be shoot day (for notes).
+    function simulateProductionSchedule(start, shootDaysRequested, holidayList){
+      let current = start;
+      let count = 0;
+      let lastShootDay = null;
+      const holidaysHit = [];
+      let safety = 0;
+      while(count < shootDaysRequested && safety < 5000){
+        safety++;
+        const dow = current.getUTCDay();
+        const isWeekday = dow>=1 && dow<=5;
+        const inHiatus = hiatuses.some(h=> current>=h.start && current<h.end);
+        if(isWeekday && !inHiatus){
+          const iso = current.toISOString().slice(0,10);
+          const holiday = holidayList.find(h=>h.date===iso);
+          if(holiday){
+            holidaysHit.push({date:current, name:holiday.name});
+          } else {
+            count++;
+            lastShootDay = current;
+          }
+        }
+        current = addDays(current, 1);
+      }
+      return {lastShootDay: lastShootDay || start, holidaysHit};
+    }
+
+    const segments = [];
+    let productionInfo = null;
+    state.allDefs.forEach(p=>{
+      const cfg = state.phases[p.key];
+      if(cfg && cfg.start && cfg.weeks>0){
+        const parsed = parseDateUTC(cfg.start);
+        if(!parsed) return;
+        const start = mondayOf(parsed);
+        let end, weeksForSegment = cfg.weeks;
+        if(p.key==='production'){
+          const holidayList = (state.unionCountry && HOLIDAYS[state.unionCountry]) || [];
+          const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
+          const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-start)/DAY_MS/7) + 1;
+          end = addDays(start, weeksNeeded*7);
+          weeksForSegment = weeksNeeded;
+          productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit};
+        } else {
+          end = extendEndForHiatus(start, cfg.weeks);
+        }
+        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed}));
+      }
+    });
+
+    const calStart = state.calendarStart ? parseDateUTC(state.calendarStart) : null;
+    const calEnd = state.calendarEnd ? parseDateUTC(state.calendarEnd) : null;
+
+    if(segments.length===0 && !calStart && !calEnd){
+      return {weeks:[], maxConcurrent:0, totalWeeks:0};
+    }
+
+    // A hiatus only affects the visible range if it actually overlaps something scheduled --
+    // otherwise the always-present default hiatus entries (which span years) would force the
+    // calendar to stretch across all of them even when nothing is scheduled nearby.
+    const relevantHiatuses = hiatuses.filter(h => segments.some(s => h.start < s.end && h.end > s.start));
+    const naturalStarts = segments.map(s=>s.start.getTime()).concat(relevantHiatuses.map(h=>h.start.getTime()));
+    const naturalEnds   = segments.map(s=>s.end.getTime()).concat(relevantHiatuses.map(h=>h.end.getTime()));
+
+    function firstMondayOfYear(year){
+      const jan1 = new Date(Date.UTC(year,0,1));
+      const daysToAdd = (8 - jan1.getUTCDay()) % 7;
+      return addDays(jan1, daysToAdd);
+    }
+
+    // Default (no explicit override): show the FULL calendar year(s) touched by the schedule --
+    // from the first Monday of the earliest year through the end of the latest year -- so every
+    // export is a consistent, familiar full-year shape instead of starting wherever the first
+    // phase happens to land. An explicit Calendar range value is still taken literally, and can
+    // only ever extend the range further, never clip a phase that's already scheduled.
+    const allStarts = [...naturalStarts];
+    const allEnds = [...naturalEnds];
+    if(naturalStarts.length){
+      const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
+      allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+    }
+    if(naturalEnds.length){
+      const lastActiveDay = addDays(new Date(Math.max.apply(null, naturalEnds)), -1);
+      allEnds.push(firstMondayOfYear(lastActiveDay.getUTCFullYear()+1).getTime());
+    }
+    if(calStart) allStarts.push(mondayOf(calStart).getTime());
+    if(calEnd) allEnds.push(addDays(mondayOf(calEnd), 7).getTime());
+
+    // fall back to whichever bound was actually supplied if one list is empty
+    if(allStarts.length===0) allStarts.push(allEnds[0]);
+    if(allEnds.length===0) allEnds.push(allStarts[0]);
+
+    const overallStart = new Date(Math.min.apply(null, allStarts));
+    const overallEnd   = new Date(Math.max.apply(null, allEnds));
+    const totalWeeks = Math.round((overallEnd-overallStart)/DAY_MS/7);
+
+    if(!Number.isFinite(totalWeeks) || totalWeeks < 0){
+      return {weeks:[], maxConcurrent:0, totalWeeks:0, error:'invalid-range'};
+    }
+    if(totalWeeks > MAX_WEEKS){
+      return {weeks:[], maxConcurrent:0, totalWeeks:0, error:'too-large', attemptedWeeks: totalWeeks};
+    }
+
+    const weekCounters = {};
+    state.allDefs.forEach(p=> weekCounters[p.key]=1);
+
+    // Assign each phase segment a STABLE column with strict start-order priority:
+    //   - Process segments in the order they start.
+    //   - Earliest-starting phase sits leftmost; each later phase sits to the RIGHT of every
+    //     phase that started before it and is still running when it begins. A later phase can
+    //     never slide left of an earlier one that's still going.
+    //   - A phase may REUSE a freed column (keeping the sheet narrow for linear schedules)
+    //     ONLY when that column is genuinely free AND the reuse doesn't place it left of any
+    //     still-running earlier phase. Concretely: the chosen column index must be greater
+    //     than the highest column occupied by any phase still running at this seg's start.
+    //   - Ties on start date keep their original phase order (stable sort by index).
+    const segCol = new Map();
+    {
+      const byStart = segments
+        .map((seg, i)=>({seg, i}))
+        .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
+        .map(o=>o.seg);
+      const colFreeAt = []; // colFreeAt[i] = timestamp when column i becomes free again
+      byStart.forEach(seg=>{
+        const startT = seg.start.getTime();
+        // Lowest column index this phase is allowed to occupy: it must sit to the right of
+        // every earlier phase that is still running now. Any column still busy at startT
+        // belongs to an earlier-starting phase (we go in start order), so the floor is one
+        // past the highest currently-busy column.
+        let minCol = 0;
+        for(let i=0;i<colFreeAt.length;i++){
+          if(colFreeAt[i] > startT) minCol = i + 1; // column i is busy -> must be right of it
+        }
+        // Among columns >= minCol, reuse the lowest one that's actually free; else open new.
+        let placedAt = -1;
+        for(let i=minCol;i<colFreeAt.length;i++){
+          if(colFreeAt[i] <= startT){ placedAt = i; break; }
+        }
+        if(placedAt===-1){
+          placedAt = Math.max(minCol, colFreeAt.length);
+          while(colFreeAt.length <= placedAt) colFreeAt.push(0);
+        }
+        colFreeAt[placedAt] = seg.end.getTime();
+        segCol.set(seg, placedAt);
+      });
+    }
+
+    const prodSeg = segments.find(s=>s.key==='production');
+    const weeks = [];
+    let maxConcurrent = 1;
+
+    for(let i=0;i<totalWeeks;i++){
+      const weekStart = addDays(overallStart, i*7);
+      const hiatus = hiatuses.find(h=> weekStart>=h.start && weekStart<h.end);
+      const cells = [];
+      let simPost = false;
+
+      if(hiatus){
+        cells.push({type:'hiatus', label:'Holiday Hiatus'});
+      } else {
+        const active = segments.filter(s=> weekStart>=s.start && weekStart<s.end).sort((a,b)=>a.start-b.start);
+        active.forEach(ph=>{
+          const num = weekCounters[ph.key]++;
+          cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
+        });
+        if(state.simultaneousPost.enabled && prodSeg && weekStart>=prodSeg.start && weekStart<prodSeg.end){
+          const weeksIntoProd = Math.round((weekStart-prodSeg.start)/DAY_MS/7);
+          if(weeksIntoProd >= state.simultaneousPost.offsetWeeks) simPost = true;
+        }
+      }
+      maxConcurrent = Math.max(maxConcurrent, cells.length);
+      weeks.push({date:weekStart, cells, simPost});
+    }
+    // flag interior gaps: blank stretches with real coverage on both sides (not lead-in/lead-out padding)
+    const gaps = [];
+    let gapStart = null;
+    for(let i=0;i<weeks.length;i++){
+      const blank = weeks[i].cells.length===0;
+      if(blank && gapStart===null) gapStart = i;
+      if(!blank && gapStart!==null){
+        if(gapStart>0) gaps.push({startDate: weeks[gapStart].date, endDate: addDays(weeks[i-1].date,6), weeks: i-gapStart});
+        gapStart = null;
+      }
+    }
+    // a trailing blank run only counts if the calendar didn't just end there naturally (i.e. never counted -- trailing edges are always padding, so we intentionally don't flag them)
+
+    // map each milestone/holiday note to the week index it falls in, shared by preview + export
+    const notesByIdx = {};
+    function addNote(date, label){
+      const idx = weeks.findIndex(w => date>=w.date && date<addDays(w.date,7));
+      if(idx===-1) return;
+      if(!notesByIdx[idx]) notesByIdx[idx] = [];
+      notesByIdx[idx].push({label, date});
+    }
+    if(productionInfo){
+      addNote(productionInfo.startDate, 'Start Principal Photography');
+      addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
+      if(state.showUnionHolidays){
+        productionInfo.holidaysHit.forEach(h=> addNote(h.date, h.name));
+      }
+    }
+    // "Writer's Room Opens" on the first week of the Writer's Room phase.
+    const wrSeg = segments.find(s=>s.key==='writersRoom');
+    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
+
+    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx};
+  }
+
+  // ---------- UI: phase rows ----------
+  function buildPhaseRows(){
+    const wrap = document.getElementById('phase-rows');
+    wrap.innerHTML = '';
+    PHASES.forEach(p=>{
+      const row = document.createElement('div');
+      row.className = 'phase-row';
+      const isDays = p.inputMode==='days';
+      const fieldLabel = isDays ? 'Total Shooting Days' : 'Weeks';
+      const placeholder = isDays ? 'e.g. 105' : 'e.g. 12';
+      row.innerHTML = `
+        <div class="swatch" style="background:${p.color||'#fff'}; ${p.color?'':'border-style:dashed;'}"></div>
+        <div class="custom-phase-header">
+          <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
+        </div>
+        <div class="phase-fields">
+          <label>Start date <input type="date" id="start-${p.key}"></label>
+          <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+        </div>
+        <div class="phase-meta" id="meta-${p.key}"></div>
+      `;
+      wrap.appendChild(row);
+      row.querySelector('.phase-name-input').addEventListener('input', update);
+    });
+  }
+
+  // Custom phases: user-named, always standard start-date + weeks (never shooting-days mode,
+  // never auto-noted). Color is pickable -- including matching one of the 6 standard categories,
+  // e.g. so a second "post-production" block for a prior season can look like Post while still
+  // being a fully independent, freely-overlapping phase.
+  const PHASE_COLOR_OPTIONS = [
+    {name:"Gray",                color:'#EDEDED', text:'#525252'},
+    {name:"Light blue",          color:'#DEEBF7', text:'#1F4E79'},
+    {name:"Light purple",        color:'#E4DFEC', text:'#5F497A'},
+    {name:"Light teal",          color:'#D5F0EE', text:'#1F6357'},
+    {name:"Gold (like Writer's Rm)",  color:'#FFF2CC', text:'#7A6215'},
+    {name:"Blue (like Pre Prep)",     color:'#DAE3F3', text:'#203864'},
+    {name:"Slate (like Prod Prep)",   color:'#D6DCE5', text:'#222A35'},
+    {name:"Green (like Production)",  color:'#E2F0D9', text:'#375623'},
+    {name:"Orange (like Post)",       color:'#FBE5D6', text:'#8A4A1F'},
+  ];
+  let customPhaseDefs = [];
+  let customPhaseCounter = 0;
+
+  function getAllPhaseDefs(){
+    const fixed = PHASES.map(p=>{
+      const nameEl = document.getElementById('name-'+p.key);
+      const typed = nameEl ? nameEl.value.trim() : '';
+      if(!typed || typed===p.label) return p; // unchanged -- keep its own original template
+      return Object.assign({}, p, { label:typed, template:n=>`${typed} wk ${n}` });
+    });
+    const custom = customPhaseDefs.map(cp=>{
+      const nameEl = document.getElementById('name-'+cp.key);
+      const name = (nameEl && nameEl.value.trim()) || 'Custom phase';
+      const colorEl = document.getElementById('color-'+cp.key);
+      const opt = PHASE_COLOR_OPTIONS[colorEl ? parseInt(colorEl.value,10) : cp.colorIndex] || PHASE_COLOR_OPTIONS[0];
+      return { key:cp.key, label:name, color:opt.color, textColor:opt.text, template:n=>`${name} wk ${n}` };
+    });
+    return fixed.concat(custom);
+  }
+
+  function addCustomPhaseRow(){
+    const key = 'custom' + (++customPhaseCounter);
+    const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
+    customPhaseDefs.push({key, colorIndex});
+    const opt = PHASE_COLOR_OPTIONS[colorIndex];
+    const wrap = document.getElementById('custom-phase-rows');
+    const row = document.createElement('div');
+    row.className = 'phase-row';
+    row.dataset.key = key;
+    const colorOptionsHtml = PHASE_COLOR_OPTIONS.map((o,i)=>`<option value="${i}" ${i===colorIndex?'selected':''}>${o.name}</option>`).join('');
+    row.innerHTML = `
+      <div class="swatch" id="swatch-${key}" style="background:${opt.color};"></div>
+      <div class="custom-phase-header">
+        <input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name">
+        <select class="color-select" id="color-${key}" title="Color">${colorOptionsHtml}</select>
+        <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
+      </div>
+      <div class="phase-fields">
+        <label>Start date <input type="date" id="start-${key}"></label>
+        <label>Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
+      </div>
+      <div class="phase-meta" id="meta-${key}"></div>
+    `;
+    row.querySelector('.remove-custom-phase').addEventListener('click', ()=>{
+      customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==key);
+      row.remove();
+      update();
+    });
+    row.querySelector('.color-select').addEventListener('change', (e)=>{
+      document.getElementById('swatch-'+key).style.background = PHASE_COLOR_OPTIONS[parseInt(e.target.value,10)].color;
+      update();
+    });
+    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
+    wrap.appendChild(row);
+  }
+
+  function addHiatusRow(prefillStart, prefillWeeks){
+    const list = document.getElementById('hiatus-list');
+    const row = document.createElement('div');
+    row.className = 'hiatus-entry';
+    row.innerHTML = `
+      <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
+      <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
+      <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
+    `;
+    row.querySelector('.remove-hiatus').addEventListener('click', ()=>{ row.remove(); update(); });
+    row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
+    list.appendChild(row);
+  }
+
+  const DEFAULT_HIATUSES = [
+    ['2026-12-21', 2],
+    ['2027-12-20', 2],
+    ['2028-12-25', 2],
+    ['2029-12-24', 2],
+  ];
+  function addDefaultHiatuses(){
+    document.getElementById('hiatus-list').innerHTML = '';
+    DEFAULT_HIATUSES.forEach(([s,w]) => addHiatusRow(s,w));
+  }
+
+  // ---------- rendering: summary + timeline + table ----------
+  function render(schedule){
+    const summaryEl = document.getElementById('summary-row');
+    const timelineEl = document.getElementById('timeline-wrap');
+    const tableEl = document.getElementById('table-wrap');
+    const exportBtn = document.getElementById('export-btn');
+
+    // update per-phase computed end-date hints
+    getAllPhaseDefs().forEach(p=>{
+      const startVal = document.getElementById('start-'+p.key).value;
+      const weeksVal = document.getElementById('weeks-'+p.key).value;
+      const cfg = readCfgForMeta(p.key);
+      const metaEl = document.getElementById('meta-'+p.key);
+      const unitWord = p.inputMode==='days' ? 'shooting day count' : 'week count';
+      if(cfg==='invalid'){
+        metaEl.textContent = `Check that year — doesn't look right`;
+        metaEl.style.color = 'var(--danger)';
+      } else if(cfg){
+        const start = mondayOf(parseDateUTC(cfg.start));
+        const end = addDays(start, cfg.weeks*7 - 1);
+        let note;
+        if(p.inputMode==='days'){
+          note = `${cfg.rawValue} shoot day${cfg.rawValue===1?'':'s'} \u2192 ${cfg.weeks} wk \u00b7 ${fmtShort(start)} \u2192 ${fmtShort(end)}`;
+        } else {
+          note = `${fmtShort(start)} \u2192 ${fmtShort(end)} (${cfg.weeks} wk)`;
+        }
+        if(cfg.start !== start.toISOString().slice(0,10)){
+          note += ` \u00b7 snapped to Mon ${fmtShort(start)}`;
+        }
+        metaEl.textContent = note;
+        metaEl.style.color = '';
+      } else if(startVal && !weeksVal){
+        metaEl.textContent = `Enter a ${unitWord} to include this phase`;
+        metaEl.style.color = 'var(--danger)';
+      } else if(!startVal && weeksVal){
+        metaEl.textContent = 'Enter a start date to include this phase';
+        metaEl.style.color = 'var(--danger)';
+      } else {
+        metaEl.textContent = '';
+      }
+    });
+
+    if(schedule.weeks.length===0){
+      summaryEl.innerHTML = '';
+      timelineEl.innerHTML = '';
+      document.getElementById('gap-warning').innerHTML = '';
+      let msg = 'Enter at least one phase\u2019s start date and week count to see a preview.';
+      if(schedule.error==='invalid-year'){
+        msg = 'One of the dates has a year that doesn\u2019t look right (expected between 1970\u20132100) \u2014 check the fields above for a typo.';
+      } else if(schedule.error==='too-large'){
+        msg = `That combination of dates spans about ${schedule.attemptedWeeks.toLocaleString()} weeks \u2014 that\u2019s almost certainly a typo in one of the years. (Capped at ${MAX_WEEKS} weeks / ~${Math.round(MAX_WEEKS/52)} years.)`;
+      } else if(schedule.error==='invalid-range'){
+        msg = 'That date range doesn\u2019t resolve to a valid span \u2014 double check the start and end dates.';
+      }
+      tableEl.innerHTML = `<div class="empty-state">${msg}</div>`;
+      exportBtn.disabled = true;
+      return;
+    }
+    exportBtn.disabled = false;
+
+    const gapWarningEl = document.getElementById('gap-warning');
+    if(schedule.gaps && schedule.gaps.length){
+      const items = schedule.gaps.map(g=>
+        `${fmtShort(g.startDate)}\u2013${fmtShort(g.endDate)} (${g.weeks} wk)`
+      ).join(', ');
+      gapWarningEl.innerHTML = `<div class="gap-banner"><strong>Unscheduled gap${schedule.gaps.length>1?'s':''} found:</strong> ${items}. No phase covers ${schedule.gaps.length>1?'these weeks':'this week range'} \u2014 check whether a start date needs adjusting.</div>`;
+    } else {
+      gapWarningEl.innerHTML = '';
+    }
+
+    const totalWeeks = schedule.weeks.length;
+    const start = schedule.weeks[0].date;
+    const lastWeek = schedule.weeks[totalWeeks-1].date;
+    const end = addDays(lastWeek, 6);
+    const yearBlocks = computeYearBlocks(schedule.weeks);
+    const blockCount = yearBlocks.length;
+
+    summaryEl.innerHTML = `
+      <div class="stat"><div class="num">${totalWeeks}</div><div class="lbl">Total weeks</div></div>
+      <div class="stat"><div class="num">${fmtShort(start)}</div><div class="lbl">Start</div></div>
+      <div class="stat"><div class="num">${fmtShort(end)}</div><div class="lbl">End</div></div>
+      <div class="stat"><div class="num">${blockCount}</div><div class="lbl">Year column${blockCount===1?'':'s'} in export</div></div>
+    `;
+
+    // timeline strip: one representative color per week, hiatus shown as a hatch overlay
+    let segHtml = '';
+    let i = 0;
+    while(i < totalWeeks){
+      const w = schedule.weeks[i];
+      const rep = w.cells[0];
+      const isHiatus = rep && rep.type==='hiatus';
+      const key = isHiatus ? 'hiatus' : (rep ? rep.key : 'blank');
+      let j = i;
+      while(j<totalWeeks){
+        const wj = schedule.weeks[j];
+        const repj = wj.cells[0];
+        const keyj = (repj && repj.type==='hiatus') ? 'hiatus' : (repj ? repj.key : 'blank');
+        if(keyj!==key) break;
+        j++;
+      }
+      const span = j - i;
+      const pct = (span/totalWeeks*100).toFixed(3);
+      const bg = isHiatus ? HIATUS_COLOR : (rep ? (rep.color||'#ffffff') : '#ffffff');
+      const txt = isHiatus ? HIATUS_TEXT : (rep ? rep.textColor : 'var(--text-faint)');
+      const label = isHiatus ? 'Hiatus' : (rep ? rep.label.replace(/ wk.*| Wk.*/,'') : '');
+      segHtml += `<div class="seg" style="width:${pct}%; background:${bg}; color:${txt};" title="${escHtml(label)} \u2014 ${span} wk">${span>=3?escHtml(label):''}</div>`;
+      i = j;
+    }
+    timelineEl.innerHTML = `<div class="timeline">${segHtml}</div>`;
+
+    tableEl.innerHTML = (viewMode==='sheet') ? renderSpreadsheetView(schedule) : renderListView(schedule);
+  }
+
+  function renderListView(schedule){
+    let rows = '';
+    let lastYear = null;
+    let blockNum = 0;
+    schedule.weeks.forEach((w, idx)=>{
+      const y = w.date.getUTCFullYear();
+      if(y!==lastYear){
+        blockNum++;
+        rows += `<tr class="block-divider"><td colspan="3">Year column ${blockNum} \u2014 ${y}</td></tr>`;
+        lastYear = y;
+      }
+      let cellsHtml = '';
+      if(w.cells.length===0){
+        cellsHtml = '<span style="color:var(--text-faint)">\u2014</span>';
+      } else {
+        w.cells.forEach(c=>{
+          if(c.type==='hiatus'){
+            const hKeyLV = w.date.toISOString().slice(0,10);
+            const hTxtLV = hiatusTextFor(hKeyLV) || 'Holiday Hiatus';
+            const hColLV = hiatusColorFor(hKeyLV);
+            const hStyleLV = hiatusColors[hKeyLV] ? ` style="background:${hColLV}; color:${textColorFor(hColLV)};"` : '';
+            cellsHtml += `<span class="badge hiatus"${hStyleLV}>${hTxtLV.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`;
+          } else {
+            const bg = c.color || '#ffffff';
+            const border = c.color ? 'none' : '1px dashed var(--border-strong)';
+            cellsHtml += `<span class="badge" style="background:${bg}; color:${c.textColor}; border:${border};">${escHtml(c.label)}</span>`;
+          }
+        });
+      }
+      const noteBadges = [];
+      if(w.simPost) noteBadges.push(`<span class="badge simpost">Simultaneous Post</span>`);
+      const weekKeyLV = w.date.toISOString().slice(0,10);
+      const ncLV = noteColorFor(weekKeyLV);
+      const badgeStyle = noteColors[weekKeyLV] ? ` style="background:${ncLV}; color:${textColorFor(ncLV)};"` : '';
+      const uNote = userNotes[weekKeyLV];
+      if(uNote !== undefined){
+        // user override (may be empty = cleared): show their text as a single badge
+        if(uNote.text){
+          const escLV = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+          noteBadges.push(`<span class="badge milestone"${badgeStyle}>${escLV(uNote.text).replace(/\n/g,' ')}</span>`);
+        }
+      } else {
+        const notesHere = schedule.notesByIdx && schedule.notesByIdx[idx];
+        if(notesHere) notesHere.forEach(n=>{
+          noteBadges.push(`<span class="badge milestone"${badgeStyle}>${n.label} ${fmtShort(n.date)}</span>`);
+        });
+      }
+      const noteHtml = noteBadges.join('');
+      rows += `<tr><td class="date-cell">${fmtShort(w.date)}</td><td>${cellsHtml}</td><td>${noteHtml}</td></tr>`;
+    });
+    return `
+      <table class="week-table">
+        <thead><tr><th style="width:105px;">Date</th><th>Phase(s)</th><th style="width:190px;">Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  // Mirrors the actual Excel export layout: year-blocks side by side, same column
+  // structure (Date | label sub-columns | Simultaneous Post | Milestone label | Milestone date),
+  // Holiday Hiatus spanning the full width of a row, same colors/borders.
+  function renderSpreadsheetView(schedule){
+    const yearBlocks = computeYearBlocks(schedule.weeks);
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
+    const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
+    const notesColspan = 1; // Notes only; Simultaneous Post now lives in the phase area
+    const maxRows = Math.max(...yearBlocks.map(b=>b.count));
+    const notesByIdx = schedule.notesByIdx || {};
+
+    let headerHtml = '';
+    yearBlocks.forEach((b, bi)=>{
+      const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
+      const mc = blockMaxConcurrent[bi];
+      headerHtml += `<th class="${isFirst?'sheet-blockstart':''}">Date</th>`;
+      headerHtml += `<th colspan="${mc}">${b.year}</th>`;
+      headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}">Notes</th>`;
+    });
+
+    let bodyHtml = '';
+    for(let r=0; r<maxRows; r++){
+      bodyHtml += '<tr>';
+      yearBlocks.forEach((b, bi)=>{
+        const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
+        const mc = blockMaxConcurrent[bi];
+        if(r >= b.count){
+          bodyHtml += `<td class="sheet-empty ${isFirst?'sheet-blockstart':''}"></td>`;
+          bodyHtml += `<td class="sheet-empty" colspan="${mc+notesColspan}" ${isLast?'style="border-right:2px solid var(--text);"':''}></td>`;
+          return;
+        }
+        const idx = b.startIdx + r;
+        const w = schedule.weeks[idx];
+        bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}">${fmtShort(w.date)}</td>`;
+
+        if(w.cells.length && w.cells[0].type==='hiatus'){
+          const hKey = w.date.toISOString().slice(0,10);
+          const hTxt = hiatusTextFor(hKey);
+          const hCol = hiatusColorFor(hKey);
+          const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
+        } else {
+          // Lay out the phase area: stable slots, lone phases span empty slots, and
+          // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
+          const layout = computePhaseRowLayout(w, mc, blockSlotMaps[bi], blockOccupancy[bi], r, blockSimSlot[bi]);
+          layout.forEach(cell=>{
+            const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
+            if(cell.kind==='phase'){
+              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};">${escHtml(cell.label)}</td>`;
+            } else if(cell.kind==='simpost'){
+              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">Simultaneous Post</td>`;
+            } else {
+              bodyHtml += `<td${cs}></td>`;
+            }
+          });
+          const autoNotes = notesByIdx[idx];
+          const weekDateKey = w.date.toISOString().slice(0,10);
+          const noteText = effectiveNoteText(weekDateKey, autoNotes);
+          const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+          if(noteText){
+            const nc = noteColorFor(weekDateKey);
+            bodyHtml += `<td class="sheet-note-cell has-note" data-week="${weekDateKey}" style="background:${nc}; color:${textColorFor(nc)}; white-space:pre-wrap; ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
+          } else {
+            bodyHtml += `<td class="sheet-note-cell" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
+          }
+        }
+      });
+      bodyHtml += '</tr>';
+    }
+
+    // --- Calendar header bar. In Auto mode every line mirrors the inputs and is read-only.
+    // In Manual mode the lines are a snapshot the user can freely edit.
+    const hdrDefaults = computeHeaderDefaults(schedule);
+    const escH = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const manual = headerMode === 'manual';
+    const hline = (id, cls, extraStyle) => {
+      const val = headerLine(id, hdrDefaults);
+      const empty = val ? '' : ' hdr-empty';
+      const editable = manual ? ' contenteditable="true"' : '';
+      const editCls = manual ? ' hdr-editable' : '';
+      return `<div class="hdr-line ${cls||''}${empty}${editCls}" data-hid="${id}"${editable} spellcheck="false" style="${extraStyle||''}">${escH(val)}</div>`;
+    };
+
+    const headerBar = `<div class="hdr-tools">
+      <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
+      <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?'Discard manual header edits and return to auto-filled values':'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
+    </div>
+    <div class="cal-header-bar${manual?' hdr-manual-mode':''}">
+      <div class="cal-header-date">${hline('left','')}</div>
+      <div class="cal-header-center">
+        ${hline('c1','hdr-title')}
+        ${hline('c2','cal-subtitle')}
+        ${hline('c3','cal-subtitle')}
+      </div>
+      <div class="cal-header-right"><div class="cal-header-right-content">
+        ${hline('r1','cal-subtitle','font-weight:600;')}
+        ${hline('r2','cal-subtitle')}
+        ${hline('r3','cal-subtitle')}
+      </div></div>
+    </div>`;
+
+    const html = `
+      <div class="sheet-scroll" id="sheet-scroll-container">
+        ${headerBar}
+        <table class="sheet-table">
+          <thead><tr>${headerHtml}</tr></thead>
+          <tbody>${bodyHtml}</tbody>
+        </table>
+      </div>
+    `;
+    return html;
+  }
+
+  // ---------- note-cell inline editor ----------
+  // Uses a single delegated listener on #table-wrap rather than per-cell handlers,
+  // so there are no RAF timing issues and no need to re-attach after every render.
+  let activeNoteEditor = null;
+
+  // --- Editable header lines ---
+  // Commit an edited line on blur: if the text differs from the auto default it becomes a
+  // per-line override (empty text = intentionally blank line); if it matches the default the
+  // override is removed so the line goes back to auto-updating.
+  document.getElementById('table-wrap').addEventListener('focusout', e=>{
+    if(headerMode !== 'manual') return;
+    const line = e.target.closest && e.target.closest('.hdr-line');
+    if(!line) return;
+    const id = line.dataset.hid;
+    const text = (line.textContent || '').replace(/\u00a0/g,' ').trim();
+    if((headerManual[id] || '') === text) return; // nothing changed
+    headerManual[id] = text;
+    render(currentSchedule);
+  });
+  // Enter commits (no newlines inside a header line)
+  document.getElementById('table-wrap').addEventListener('keydown', e=>{
+    if(e.key==='Enter' && e.target.closest && e.target.closest('.hdr-line')){
+      e.preventDefault(); e.target.blur();
+    }
+  });
+
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    if(e.target && e.target.id === 'hdr-mode-btn'){
+      if(headerMode === 'auto'){
+        // Switch to Manual: snapshot the current auto values into editable lines.
+        headerManual = computeHeaderDefaults(currentSchedule);
+        headerMode = 'manual';
+      } else {
+        // Switch to Auto: discard manual edits, go back to live auto-fill.
+        headerMode = 'auto';
+        headerManual = {};
+      }
+      render(currentSchedule);
+      return;
+    }
+    if(e.target && e.target.id === 'notes-reset-btn'){
+      // Wipe every manual note override (edits AND cleared-note tombstones, so suppressed
+      // holidays come back), plus all per-cell highlight colors and hiatus text/colors.
+      Object.keys(userNotes).forEach(k=>delete userNotes[k]);
+      noteColors = {}; hiatusTexts = {}; hiatusColors = {};
+      render(currentSchedule);
+      reflectCountryLock();
+      return;
+    }
+    if(viewMode !== 'sheet') return;
+    const td = e.target.closest('td.sheet-note-cell, td.sheet-hiatus-cell');
+    if(!td) return; // click wasn't on an editable cell
+    e.stopPropagation();
+    if(activeNoteEditor && activeNoteEditor.td === td) return; // already editing this cell
+    if(activeNoteEditor){
+      // Switching cells: fully commit the open editor (this re-renders), then re-locate
+      // the clicked cell in the fresh DOM by its week key + kind and open it.
+      const targetWeek = td.dataset.week;
+      const targetSel = td.classList.contains('sheet-hiatus-cell') ? 'td.sheet-hiatus-cell' : 'td.sheet-note-cell';
+      commitActiveNoteEditor();
+      const fresh = document.querySelector(`${targetSel}[data-week="${targetWeek}"]`);
+      if(fresh) openNoteEditor(fresh);
+      return;
+    }
+    openNoteEditor(td);
+  });
+
+  function openNoteEditor(td){
+    const weekKey = td.dataset.week;
+    const isHiatus = td.classList.contains('sheet-hiatus-cell');
+
+    let textVal, curColor;
+    let autoNotes = [];
+    if(isHiatus){
+      textVal = hiatusTextFor(weekKey);
+      curColor = hiatusColorFor(weekKey);
+    } else {
+      autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (() => {
+        const idx = currentSchedule.weeks.findIndex(w=>w.date.toISOString().slice(0,10)===weekKey);
+        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+      })() : [];
+      // Prefill with whatever the cell currently shows (user override if present, else the
+      // inline auto-note text) so pre-filled comments can be edited or cleared.
+      textVal = effectiveNoteText(weekKey, autoNotes);
+      curColor = noteColorFor(weekKey);
+    }
+
+    td.classList.add('editing');
+    td.style.background = curColor;
+    td.style.color = textColorFor(curColor);
+    const swatches = EXCEL_STANDARD_COLORS.map(c =>
+      `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
+    ).join('');
+    td.innerHTML = `<div class="note-editor">
+      <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
+      <div class="note-color-row" title="Highlight color">${swatches}</div>
+    </div>`;
+
+    const textarea = td.querySelector('textarea');
+    textarea.focus();
+    textarea.select();
+
+    // Auto-resize textarea
+    function resize(){ textarea.style.height='auto'; textarea.style.height=textarea.scrollHeight+'px'; }
+    textarea.addEventListener('input', resize);
+    resize();
+
+    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null};
+
+    // Swatch clicks: preview immediately on the cell, store as pending until commit.
+    td.querySelectorAll('.color-swatch').forEach(sw=>{
+      sw.addEventListener('mousedown', e=>{ e.preventDefault(); }); // keep textarea focus
+      sw.addEventListener('click', e=>{
+        e.stopPropagation();
+        const c = sw.dataset.color;
+        if(activeNoteEditor && activeNoteEditor.td === td){
+          activeNoteEditor.pendingColor = c;
+          td.style.background = c;
+          td.style.color = textColorFor(c);
+          td.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+        }
+      });
+    });
+  }
+
+  // Persist an edit. An override is only stored when the committed text actually DIFFERS
+  // from the auto-generated value -- merely opening a note and clicking away must not
+  // freeze it (a frozen holiday note would wrongly survive a union-country change).
+  // Typing a note back to its auto text likewise returns it to auto-updating.
+  // Empty text is stored as an explicit clear ('') ONLY when the week had an auto-note to
+  // suppress; a blank cell that never had an auto-note is simply removed from userNotes.
+  function saveNoteEdit(weekKey, rawText, autoNotes){
+    const text = rawText.trim();
+    const autoText = autoNotesText(autoNotes || []).trim();
+    if(text === autoText){
+      delete userNotes[weekKey]; // matches auto -> stay (or return to) auto
+    } else if(text){
+      userNotes[weekKey] = {text};
+    } else if(autoNotes && autoNotes.length){
+      userNotes[weekKey] = {text:''}; // explicit clear of an auto-note
+    } else {
+      delete userNotes[weekKey];
+    }
+  }
+
+  function commitActiveNoteEditor(){
+    if(!activeNoteEditor) return;
+    const {weekKey, textarea, autoNotes, isHiatus, pendingColor} = activeNoteEditor;
+    if(isHiatus){
+      const text = textarea.value.trim();
+      if(text === 'Holiday Hiatus') delete hiatusTexts[weekKey];
+      else hiatusTexts[weekKey] = text; // '' allowed = blank band
+      if(pendingColor){
+        if(pendingColor.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[weekKey];
+        else hiatusColors[weekKey] = pendingColor;
+      }
+    } else {
+      saveNoteEdit(weekKey, textarea.value, autoNotes);
+      if(pendingColor){
+        if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
+        else noteColors[weekKey] = pendingColor;
+      }
+      // A cell with no note has no highlight; drop any stored color with it.
+      if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+    }
+    activeNoteEditor = null;
+    render(currentSchedule);
+    reflectCountryLock();
+  }
+
+  function closeWithoutSaving(){
+    if(!activeNoteEditor) return;
+    activeNoteEditor = null;
+    render(currentSchedule);
+  }
+
+  // Save on clicking outside. e.stopPropagation() in the table-wrap delegated handler
+  // already prevents the cell-opening click from bubbling here, so no skip-flag needed.
+  document.addEventListener('click', e=>{
+    if(activeNoteEditor && !activeNoteEditor.td.contains(e.target)){
+      commitActiveNoteEditor();
+    }
+  });
+  document.addEventListener('keydown', e=>{
+    if(!activeNoteEditor) return;
+    if(e.key==='Escape'){ closeWithoutSaving(); return; }
+    if(e.key==='Tab'){ e.preventDefault(); commitActiveNoteEditor(); return; }
+    // Ctrl+Enter or Cmd+Enter commits (plain Enter adds a newline in the textarea)
+    if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){
+      e.preventDefault(); commitActiveNoteEditor();
+    }
+  });
+
+  function readCfgForMeta(key){
+    const start = document.getElementById('start-'+key).value;
+    const rawValue = parseInt(document.getElementById('weeks-'+key).value,10);
+    if(start && parseDateUTC(start)===null) return 'invalid';
+    if(!(start && rawValue>0)) return null;
+    const p = PHASES.find(ph=>ph.key===key) || {inputMode:'weeks'};
+    const weeks = rawInputToWeeks(p, rawValue);
+    return {start, weeks, rawValue};
+  }
+
+  // ---------- Excel export ----------
+  async function exportExcel(schedule){
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Planning Cal', {
+      views: [{ showGridLines: true, showRowColHeaders: true }],
+      pageSetup: {
+        orientation: 'portrait',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 1
+      }
+    });
+    const yearBlocks = computeYearBlocks(schedule.weeks);
+    const blockCount = yearBlocks.length;
+
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
+    const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
+    // Columns per block = date + phase slots (Simultaneous Post now lives inside the phase
+    // area, no dedicated column) + single Notes column.
+    const blockColsPerBlock = blockMaxConcurrent.map(mc => 1 + mc + 1);
+    const blockStartCols = [];
+    { let cum=1; for(let b=0;b<blockCount;b++){ blockStartCols.push(cum); cum += blockColsPerBlock[b]; } }
+
+    // Column widths are computed from the longest text that will actually appear in each column
+    // (with padding), rather than one fixed width for everything -- a renamed/custom phase like
+    // "Writers' Room Extended" needs much more room than "Post", and shouldn't look cramped.
+    function neededWidth(len, minW){
+      return Math.max(minW||10, len + 4);
+    }
+    // Notes columns are sized to hug their content: just the widest text in the column
+    // plus a small breathing margin on either side, rather than the generous padding
+    // used for the phase columns.
+    function tightWidth(len, minW){
+      return Math.max(minW||4, len + 2);
+    }
+    // Character count is a poor proxy for rendered width: "Start Principal Photography
+    // 11/02/26" has 36 chars but many are narrow (i, l, ., /, 1, spaces), so it renders
+    // far narrower than 36 average-width units. This estimates the actual rendered width
+    // in Excel column-width units by weighting each character, matching what you'd get by
+    // dragging the column to fit. Weights are relative to a typical digit/letter (~1.0).
+    function renderedTextWidth(str){
+      let w = 0;
+      for(const ch of str){
+        if('ilj.,:;\'|!'.includes(ch)) w += 0.34;
+        else if('ftI()[]/\\ '.includes(ch)) w += 0.45;
+        else if('rt1'.includes(ch)) w += 0.6;
+        else if('MW'.includes(ch)) w += 1.25;
+        else if('mw'.includes(ch)) w += 1.15;
+        else if(ch>='A' && ch<='Z') w += 1.05;   // caps a touch wider
+        else w += 0.92;                            // typical lowercase / digit
+      }
+      return w;
+    }
+    // Notes column width. renderedTextWidth() returns a per-character weighted estimate;
+    // the factor calibrates it to real Excel column-width units (from a known case where a
+    // 36-char note filled a ~37-unit cell). Estimation errs slightly generous, which is the
+    // safe direction given the requirement that the longest note stay on ONE line. This is
+    // still far tighter than raw character count, which reserved space for every char as if
+    // average-width and left big trailing gaps.
+    function notesWidth(renderedMax, minW){
+      return Math.max(minW||6, renderedMax * 1.40 + 0.6);
+    }
+    const blockColWidths = yearBlocks.map((b, bi)=>{
+      const mc = blockMaxConcurrent[bi];
+      const slotMap = blockSlotMaps[bi];
+      const labelWidths = new Array(mc).fill(0);
+      let notesMax = 0;
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        const week = schedule.weeks[i];
+        if(week.cells.length && week.cells[0].type==='hiatus') continue;
+        // Size each slot by what lands in it (phase label or the SimPost marker), using the
+        // same layout the cells are written with. Only the STARTING slot of a spanned/placed
+        // item is measured, since spanned items borrow width from the slots they cover.
+        const layout = computePhaseRowLayout(week, mc, slotMap, blockOccupancy[bi], i - b.startIdx, blockSimSlot[bi]);
+        let slot = 0;
+        layout.forEach(cell=>{
+          if(cell.kind==='phase') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth(cell.label));
+          else if(cell.kind==='simpost') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth('Simultaneous Post'));
+          slot += cell.colspan;
+        });
+        const weekKey = week.date.toISOString().slice(0,10);
+        const noteText = effectiveNoteText(weekKey, (schedule.notesByIdx||{})[i]);
+        noteText.split('\n').forEach(line=>{ notesMax = Math.max(notesMax, renderedTextWidth(line)); });
+      }
+      return {
+        date: 9,
+        // Phase columns hug their widest label tightly (same calibrated estimator as notes),
+        // rather than the old character-count + 4 padding.
+        labels: labelWidths.map(w=>notesWidth(w, 8)),
+        notes: notesWidth(notesMax, 8),
+      };
+    });
+
+    const HEADER_FILL = 'D9D9D9';
+    const thin = {style:'thin'};
+    const notesByIdx = schedule.notesByIdx || {};
+
+    // Use Excel's built-in page header (Page Layout view + printed pages)
+    // Excel header format: &L=left &C=center &R=right
+    // Line break inside a section: use char code 10 (LF)
+    // Strip any & characters from user text (they are escape codes in Excel headers)
+    const hdrSafe = s => String(s).replace(/&/g, '').trim();
+    const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
+
+    // Header lines come from the same auto defaults as the live view, with any per-line
+    // manual overrides applied on top (see computeHeaderDefaults / headerOverrides).
+    const hd = computeHeaderDefaults(schedule);
+    const todayStr = hdrSafe(headerLine('left', hd));
+    const cLines = ['c1','c2','c3'].map(id=>hdrSafe(headerLine(id, hd))).filter(Boolean);
+    const rLines = ['r1','r2','r3'].map(id=>hdrSafe(headerLine(id, hd))).filter(Boolean);
+
+    // Header size codes: &B turns on bold, then place &12 immediately before a font-name
+    // code (&"Calibri,Bold"). The quote after the size digits is a non-digit terminator, so
+    // Excel reads the size as 12 even when the section text itself starts with a digit
+    // (e.g. the date or a "40-Day" span). Leading with a bare &12 would let Excel swallow
+    // following digits into the size (e.g. &127.9.26 → size 127), which is the misparse to
+    // avoid.
+    const HSIZE = '&B&12&"Calibri,Bold"';
+    ws.headerFooter.oddHeader = [
+      `&L${HSIZE}${todayStr}`,
+      cLines.length ? `&C${HSIZE}${cLines.join('\n')}` : '',
+      rLines.length ? `&R${HSIZE}${rLines.join('\n')}` : '',
+    ].join('');
+    ws.pageSetup.margins = {
+      left: 0.25, right: 0.25,
+      top: 0.75, bottom: 0.75,
+      header: 0.3, footer: 0.3
+    };
+
+    function setFill(cell, hex){
+      if(!hex) return;
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex.replace('#','')}};
+    }
+    function baseStyle(cell, opts){
+      cell.font = Object.assign({name:'Calibri', size:12}, opts && opts.font);
+      cell.alignment = {horizontal:'center', vertical:'middle'};
+      if(opts && opts.numFmt) cell.numFmt = opts.numFmt;
+    }
+
+    for(let b=0; b<blockCount; b++){
+      const maxConcurrent = blockMaxConcurrent[b];
+      const startCol = blockStartCols[b];
+      const dateCol = startCol;
+      const labelColStart = startCol+1;
+      const labelColEnd = startCol+maxConcurrent;
+      const notesCol = labelColEnd + 1;
+
+      const widths = blockColWidths[b];
+      ws.getColumn(dateCol).width = widths.date;
+      for(let k=0;k<maxConcurrent;k++) ws.getColumn(labelColStart+k).width = widths.labels[k];
+      ws.getColumn(notesCol).width = widths.notes;
+
+      const rowsInBlock = yearBlocks[b].count;
+      const yearLabel = yearBlocks[b].year;
+
+      // header row
+      const hDate = ws.getRow(1).getCell(dateCol);
+      hDate.value = 'Date'; baseStyle(hDate, {font:{bold:true}}); setFill(hDate, HEADER_FILL);
+      hDate.border = {top:thin, left:thin};
+
+      if(labelColEnd>labelColStart) ws.mergeCells(1, labelColStart, 1, labelColEnd);
+      const hYear = ws.getRow(1).getCell(labelColStart);
+      hYear.value = yearLabel; baseStyle(hYear, {font:{bold:true}}); setFill(hYear, HEADER_FILL);
+      hYear.border = {top:thin};
+      for(let c=labelColStart+1;c<=labelColEnd;c++){ const cc=ws.getRow(1).getCell(c); setFill(cc,HEADER_FILL); cc.border={top:thin}; }
+
+      // Notes header over the single Notes column.
+      const hNotes = ws.getRow(1).getCell(notesCol);
+      hNotes.value = 'Notes'; baseStyle(hNotes, {font:{bold:true}}); setFill(hNotes, HEADER_FILL);
+      hNotes.border = {top:thin, right:thin};
+
+      for(let r=0;r<rowsInBlock;r++){
+        const excelRow = r+2;
+        const globalIdx = yearBlocks[b].startIdx + r;
+        const week = schedule.weeks[globalIdx];
+        const isLastRow = (r===rowsInBlock-1);
+
+        // date cell (hardcode very first cell; formula-chain everything else)
+        const dCell = ws.getRow(excelRow).getCell(dateCol);
+        baseStyle(dCell, {font:{bold:true}, numFmt:'mm-dd-yy'});
+        if(b===0 && r===0){
+          dCell.value = week.date;
+        } else if(r===0){
+          const prevBlockStartCol = blockStartCols[b-1];
+          const prevBlockRows = yearBlocks[b-1].count;
+          dCell.value = {formula:`${colLetter(prevBlockStartCol)}${prevBlockRows+1}+7`};
+        } else {
+          dCell.value = {formula:`${colLetter(dateCol)}${excelRow-1}+7`};
+        }
+        dCell.border = Object.assign({left:thin}, isLastRow?{bottom:thin}:{});
+
+        if(week.cells.length && week.cells[0].type==='hiatus'){
+          const hKey = week.date.toISOString().slice(0,10);
+          const hTxt = hiatusTextFor(hKey);
+          const hCol = hiatusColorFor(hKey);
+          ws.mergeCells(excelRow, labelColStart, excelRow, notesCol);
+          const hCell = ws.getRow(excelRow).getCell(labelColStart);
+          hCell.value = hTxt;
+          baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')}}});
+          setFill(hCell, hCol);
+          hCell.border = isLastRow ? {bottom:thin} : {};
+          // the rightmost cell of a merged range needs its own border set for the edge to render
+          const rightCell = ws.getRow(excelRow).getCell(notesCol);
+          rightCell.border = Object.assign({right:thin}, isLastRow?{bottom:thin}:{});
+        } else {
+          // Lay out the phase area exactly like the live view: stable slots, lone phases
+          // span empty slots (merged cells), and Simultaneous Post takes the leftmost free
+          // slot. `slot` tracks the local phase-slot index; `col` is its Excel column.
+          const layout = computePhaseRowLayout(week, maxConcurrent, blockSlotMaps[b], blockOccupancy[b], r, blockSimSlot[b]);
+          let slot = 0;
+          layout.forEach(item=>{
+            const col = labelColStart + slot;
+            const cell = ws.getRow(excelRow).getCell(col);
+            if(item.colspan > 1){
+              ws.mergeCells(excelRow, col, excelRow, col + item.colspan - 1);
+            }
+            if(item.kind === 'phase'){
+              baseStyle(cell);
+              cell.value = item.label;
+              setFill(cell, item.color);
+            } else if(item.kind === 'simpost'){
+              baseStyle(cell);
+              cell.value = 'Simultaneous Post';
+              setFill(cell, SIMPOST_COLOR);
+            } else {
+              baseStyle(cell);
+            }
+            // Border on the starting cell; the rightmost covered cell also needs its edge.
+            cell.border = (isLastRow)?{bottom:thin}:{};
+            if(item.colspan > 1){
+              const rc = ws.getRow(excelRow).getCell(col + item.colspan - 1);
+              rc.border = (isLastRow)?{bottom:thin}:{};
+            }
+            slot += item.colspan;
+          });
+          // Notes: a single cell containing the inline "Label date" text. User edits
+          // (including cleared auto-notes) win via effectiveNoteText. Tight horizontal
+          // padding so the column hugs its content.
+          const nCell = ws.getRow(excelRow).getCell(notesCol);
+          const nKey = week.date.toISOString().slice(0,10);
+          const noteText = effectiveNoteText(nKey, notesByIdx[globalIdx] || []);
+          if(noteText){
+            const nCol = noteColorFor(nKey);
+            baseStyle(nCell, {font:{color:{argb:'FF'+textColorFor(nCol).replace('#','')}}});
+            nCell.value = noteText;
+            setFill(nCell, nCol);
+            nCell.alignment = {horizontal:'center', vertical:'middle', wrapText:true, indent:0};
+          } else {
+            baseStyle(nCell);
+          }
+          nCell.border = Object.assign({right:thin}, isLastRow?{bottom:thin}:{});
+        }
+      }
+    }
+
+    // The sheet's own gridlines are drawn as light dashed cell borders (not the print
+    // gridline setting). Apply a light-gray dashed border to every cell in the used
+    // range; any existing structural border (block frames, header separators) is kept.
+    ws.pageSetup.showGridLines = false;
+    {
+      const dashed = {style:'dashed', color:{argb:'FFBFBFBF'}};
+      const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
+      const totalColsForGrid = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
+      for(let r=1;r<=totalRows;r++){
+        for(let c=1;c<=totalColsForGrid;c++){
+          const cell = ws.getRow(r).getCell(c);
+          const b = cell.border || {};
+          cell.border = {
+            top: b.top || dashed,
+            left: b.left || dashed,
+            bottom: b.bottom || dashed,
+            right: b.right || dashed,
+          };
+        }
+      }
+    }
+
+    // Orientation preference by number of year-columns: 2 or fewer years -> portrait,
+    // 3 or more years -> landscape (wider grids need the extra horizontal room). We honor
+    // that preference unless the preferred orientation can't fit the grid on a single page
+    // while the other can, in which case we use whichever one fits.
+    {
+      const m = ws.pageSetup.margins;
+      const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
+      let gridPx = 0;
+      for(let c=1;c<=totalCols;c++){ gridPx += (ws.getColumn(c).width || 8) * 7 + 5; }
+      const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
+      const gridHpx = totalRows * 20; // ~20px per row at 100%
+      // Limiting single-page fit scale for a given paper size (>=1 means it fits at 100%).
+      const fit = (paperW, paperH) => {
+        const pw = (paperW - m.left - m.right) * 96;
+        const ph = (paperH - m.top - m.bottom - m.header - m.footer) * 96;
+        return Math.min(pw / gridPx, ph / gridHpx);
+      };
+      const portraitScale  = fit(8.5, 11);
+      const landscapeScale = fit(11, 8.5);
+      const preferred = (blockCount >= 3) ? 'landscape' : 'portrait';
+      const prefScale = preferred === 'landscape' ? landscapeScale : portraitScale;
+      const otherScale = preferred === 'landscape' ? portraitScale : landscapeScale;
+      // fitToPage will scale down to fit regardless, so both always "fit" on one page; we
+      // only override the preference if the other orientation prints meaningfully larger AND
+      // the preferred one would require heavy shrinking (prints notably small).
+      let orientation = preferred;
+      if(otherScale > prefScale * 1.15){ orientation = (preferred === 'landscape') ? 'portrait' : 'landscape'; }
+      ws.pageSetup.orientation = orientation;
+    }
+
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const titleRaw = (document.getElementById('show-title').value || '').trim();
+    const safeTitle = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    const xlsxName = (safeTitle ? safeTitle + ' ' : '') + 'Planning Calendar.xlsx';
+    a.href = url; a.download = xlsxName;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- wire up ----------
+  let currentSchedule = {weeks:[], maxConcurrent:0};
+  let viewMode = 'sheet';
+  // User-editable notes for the spreadsheet view. Keyed by ISO date string (Monday of each week)
+  // so they survive schedule re-renders (week indices can shift when dates change, but the date itself doesn't).
+  const userNotes = {}; // { 'YYYY-MM-DD': {text: string} }  text:'' = auto-note explicitly cleared
+
+  // Per-cell highlight customization. All keyed by week 'YYYY-MM-DD'; absent = default.
+  let noteColors = {};   // note cell fill override (default MILESTONE_COLOR purple)
+  let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
+  let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
+
+  // The 10 "Standard Colors" from Microsoft Office / Excel's color picker.
+  const EXCEL_STANDARD_COLORS = [
+    '#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050',
+    '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'
+  ];
+  // Black or white text depending on the fill's luminance, so labels stay readable
+  // on light colors like yellow or light green.
+  function textColorFor(hex){
+    const h = hex.replace('#','');
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return (0.299*r + 0.587*g + 0.114*b) > 160 ? '#000000' : '#FFFFFF';
+  }
+  // Escape user-provided text for safe interpolation into HTML (labels, notes, titles).
+  function escHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Compute per-block slot maps (global column -> visual slot) and the phase-slot count for
+  // each year-block. Shared by the live view and the Excel export so they never drift.
+  // mc for a block accounts for Simultaneous Post needing its own slot in weeks where every
+  // phase slot is already occupied, so the SimPost marker always has room.
+  function computeBlockLayout(schedule, yearBlocks){
+    const blockSlotMaps = yearBlocks.map(b=>{
+      const firstAppear = new Map();
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        const local = i - b.startIdx;
+        schedule.weeks[i].cells.forEach(c=>{
+          if(c.col!==undefined && !firstAppear.has(c.col)) firstAppear.set(c.col, local);
+        });
+      }
+      const sortedSlots = Array.from(firstAppear.keys()).sort((a,bv)=>{
+        const fa = firstAppear.get(a), fb = firstAppear.get(bv);
+        return (fa - fb) || (a - bv);
+      });
+      const map = new Map();
+      sortedSlots.forEach((slot, localIdx) => map.set(slot, localIdx));
+      return map;
+    });
+    // Simultaneous Post gets ONE fixed column per block, immediately to the right of the
+    // Production column, and always renders there (never hopping columns week to week). It
+    // may share that column with a phase that has already ended. We compute that fixed slot
+    // and ensure the block has enough columns that the slot is free during every SimPost week.
+    const blockMaxConcurrent = [];
+    const blockSimSlot = [];
+    yearBlocks.forEach((b, bi)=>{
+      const slotMap = blockSlotMaps[bi];
+      const phaseSlots = slotMap.size;
+      const anySim = (()=>{ for(let i=b.startIdx;i<b.startIdx+b.count;i++){ if(schedule.weeks[i].simPost) return true; } return false; })();
+      if(!anySim){ blockMaxConcurrent[bi] = Math.max(1, phaseSlots); blockSimSlot[bi] = -1; return; }
+      // Production's local slot (SimPost sits just right of it; fall back to rightmost).
+      let prodSlot = -1;
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        const pc = schedule.weeks[i].cells.find(c=>c.key==='production');
+        if(pc && pc.col!==undefined && slotMap.has(pc.col)){ prodSlot = slotMap.get(pc.col); break; }
+      }
+      let simSlot = prodSlot>=0 ? prodSlot+1 : phaseSlots; // desired column for SimPost
+      // Check whether any phase occupies simSlot during a SimPost week; if so, SimPost needs
+      // its own extra lane (we widen the block by one and place SimPost in that new column).
+      let conflict = false;
+      for(let i=b.startIdx; i<b.startIdx+b.count && !conflict; i++){
+        const wk = schedule.weeks[i];
+        if(!wk.simPost || (wk.cells.length && wk.cells[0].type==='hiatus')) continue;
+        for(const c of wk.cells){
+          if(c.col!==undefined && slotMap.has(c.col) && slotMap.get(c.col)===simSlot){ conflict = true; break; }
+        }
+      }
+      let mc = phaseSlots;
+      if(simSlot >= phaseSlots || conflict){ mc = Math.max(phaseSlots + 1, simSlot + 1); if(conflict) simSlot = mc - 1; }
+      blockMaxConcurrent[bi] = Math.max(1, mc);
+      blockSimSlot[bi] = Math.min(simSlot, blockMaxConcurrent[bi]-1);
+    });
+    // For each block build an occupancy grid: occupied[slot] = Set of local week indices
+    // where that slot holds a phase OR the Simultaneous Post marker. Spanning is then decided
+    // per phase LIFETIME (not per block): a phase may span into a neighbor slot only if that
+    // neighbor is empty for every week the phase itself runs. Two phases that never share a
+    // week don't block each other, so a phase can fill a column its non-overlapping neighbor
+    // used at a different time.
+    const blockOccupancy = yearBlocks.map((b, bi)=>{
+      const slotMap = blockSlotMaps[bi];
+      const mc = blockMaxConcurrent[bi];
+      const simSlot = blockSimSlot[bi];
+      const occupied = Array.from({length:mc}, ()=>new Set());
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        const local = i - b.startIdx;
+        const wk = schedule.weeks[i];
+        // Hiatus weeks render as a full-width band and don't belong to any phase slot, so
+        // they must NOT mark slots as occupied -- otherwise they'd artificially extend a
+        // phase's run through the hiatus and block legitimate spanning around it.
+        if(wk.cells.length && wk.cells[0].type==='hiatus') continue;
+        wk.cells.forEach(c=>{ if(c.col!==undefined && slotMap.has(c.col)){ const s=slotMap.get(c.col); if(s<mc){ occupied[s].add(local); } } });
+        if(wk.simPost && simSlot>=0) occupied[simSlot].add(local); // SimPost's fixed lane
+      }
+      return occupied;
+    });
+    return { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot };
+  }
+
+  // Given a block's occupancy grid, the local week index, and a phase occupying slot `s`,
+  // return the phase's run [start,end] (contiguous weeks it occupies slot s) so we can test
+  // whether a neighbor slot is free for the phase's whole lifetime.
+  function phaseRunBounds(occupiedSlot, localWeek){
+    let start = localWeek, end = localWeek;
+    while(start-1 >= 0 && occupiedSlot.has(start-1)) start--;
+    while(occupiedSlot.has(end+1)) end++;
+    return [start, end];
+  }
+
+  // Compute how a single week's phase area (mc phase slots) should be laid out:
+  //  - Phases sit in their stable slots.
+  //  - A phase spans rightward into a neighbor slot only if that neighbor is empty for the
+  //    phase's ENTIRE run (its contiguous set of weeks). Non-overlapping phases don't block
+  //    each other; a phase stays narrow beside anything it actually overlaps.
+  //  - Simultaneous Post occupies ONE fixed slot for the whole block (simSlot, just right of
+  //    Production) and always renders there; a phase span stops before it.
+  // `occupancy` is the block's per-slot Set of occupied local week indices; `localWeek` is
+  // this row's index within the block; `fixedSimSlot` is the block's SimPost column (or -1).
+  function computePhaseRowLayout(week, mc, slotMap, occupancy, localWeek, fixedSimSlot){
+    const bySlot = new Array(mc).fill(null);
+    week.cells.forEach(c=>{
+      if(c.col!==undefined && slotMap.has(c.col)){
+        const s = slotMap.get(c.col);
+        if(s<mc) bySlot[s] = c;
+      }
+    });
+
+    // Simultaneous Post's slot this week: the fixed lane, only when this week flags it.
+    const simSlot = (week.simPost && fixedSimSlot!==undefined && fixedSimSlot>=0) ? fixedSimSlot : -1;
+
+    // Is neighbor slot `n` free for the whole run of the phase occupying slot `s` at this
+    // week? True only if `n` is empty across every week that slot `s` phase runs. The SimPost
+    // lane is treated like any other column here: a phase may span across it during weeks it
+    // isn't used, as long as SimPost never appears in that column during the phase's run.
+    const freeForRun = (s, n) => {
+      if(!occupancy) return false;
+      if(n === simSlot) return false; // don't overrun THIS week's active SimPost marker
+      const [rs, re] = phaseRunBounds(occupancy[s], localWeek);
+      for(let wk=rs; wk<=re; wk++){ if(occupancy[n].has(wk)) return false; }
+      return true;
+    };
+    // Are ALL slots from..to free for the whole run of the phase occupying slot `s`?
+    const freeForRunSpan = (s, from, to) => {
+      for(let n=from; n<=to; n++){ if(n===simSlot) return false; if(!freeForRun(s, n)) return false; }
+      return true;
+    };
+
+    const out = [];
+    let k = 0;
+    while(k < mc){
+      if(k === simSlot){
+        out.push({kind:'simpost', label:'Simultaneous Post', color:SIMPOST_COLOR, textColor:SIMPOST_TEXT, colspan:1});
+        k++;
+      } else if(bySlot[k]){
+        let span = 1;
+        while(k+span < mc && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
+        const c = bySlot[k];
+        out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c});
+        k += span;
+      } else {
+        // Empty slot(s). If the next phase to the right can legally span left across this
+        // empty run (each empty slot is free for that phase's whole run), let that phase
+        // left-extend to absorb them -- so a lone phase fills the width even when an earlier
+        // (non-overlapping) phase briefly held the column to its left.
+        let n = k;
+        while(n < mc && !bySlot[n] && n!==simSlot) n++;
+        if(n < mc && bySlot[n] && freeForRunSpan(n, k, n-1)){
+          // absorb slots k..n-1 into the phase at slot n, then span it rightward as usual.
+          let span = 1;
+          while(n+span < mc && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
+          const c = bySlot[n];
+          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n-k)+span, cell:c});
+          k = n + span;
+        } else {
+          // Plain empty run (merge consecutive empty non-SimPost slots).
+          let span = 1;
+          while(k+span < mc && !bySlot[k+span] && (k+span)!==simSlot){ span++; }
+          out.push({kind:'empty', colspan:span});
+          k += span;
+        }
+      }
+    }
+    return out;
+  }
+  function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
+  function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : 'Holiday Hiatus'; }
+  function hiatusColorFor(weekKey){ return hiatusColors[weekKey] || HIATUS_COLOR; }
+
+  // True if the user has made ANY manual edit to comments/holidays/hiatus (edited text,
+  // cleared a note, or changed a highlight color / hiatus label). Used to lock the union
+  // country selector so a country switch can't silently drop the user's customizations.
+  function hasNoteEdits(){
+    return Object.keys(userNotes).length > 0
+      || Object.keys(noteColors).length > 0
+      || Object.keys(hiatusTexts).length > 0
+      || Object.keys(hiatusColors).length > 0;
+  }
+
+  // Per-line header overrides. Keys: left, c1 (title), c2 ("Planning Calendar"),
+  // Header mode: 'auto' (lines mirror the inputs, not editable) or 'manual' (a snapshot of
+  // the auto values that the user can freely edit; stops auto-updating). headerManual holds
+  // the seven editable lines when in manual mode.
+  let headerMode = 'auto';
+  let headerManual = {}; // { left, c1, c2, c3, r1, r2, r3 }
+
+  // Compute the auto defaults for every header line from the current form inputs + schedule.
+  function computeHeaderDefaults(schedule){
+    const today = new Date();
+    const todayStr = `${today.getMonth()+1}.${today.getDate()}.${String(today.getFullYear()).slice(2)}`;
+    const showTitle = (document.getElementById('show-title').value || '').trim();
+    const wrStartRaw = document.getElementById('start-writersRoom') ? document.getElementById('start-writersRoom').value : '';
+    let wrLine = '';
+    if(wrStartRaw){
+      const parsed = parseDateUTC(wrStartRaw);
+      if(parsed){ const mon = mondayOf(parsed); wrLine = `Writer's Room Opens: ${mon.getUTCMonth()+1}.${mon.getUTCDate()}.${String(mon.getUTCFullYear()).slice(2)}`; }
+    }
+    let r1='', r2='', r3='';
+    const shootDaysPerEp = parseInt((document.getElementById('shoot-days-per-ep').value||'').trim(), 10);
+    if(schedule && schedule.productionInfo){
+      const prodInfo = schedule.productionInfo;
+      let prodWeeks = 0;
+      for(const w of schedule.weeks){
+        if(w.cells.some(c=>c.key==='production' || (c.label&&c.label.startsWith('Production')))) prodWeeks++;
+      }
+      const fmt = d => `${d.getUTCMonth()+1}.${d.getUTCDate()}.${String(d.getUTCFullYear()).slice(2)}`;
+      const parts = [
+        prodWeeks ? `${prodWeeks}-Week Production Span` : '',
+        !isNaN(shootDaysPerEp) && shootDaysPerEp > 0 ? `${shootDaysPerEp}-Day Shooting Schedule` : '',
+      ].filter(Boolean);
+      r1 = parts.join(' / ');
+      r2 = `Principal Photography ${fmt(prodInfo.startDate)} / Wrap: ${fmt(prodInfo.lastShootDay)}`;
+    }
+    const numEpisodes = parseInt((document.getElementById('num-episodes').value||'').trim(), 10);
+    if(!isNaN(numEpisodes) && numEpisodes > 0) r3 = `${numEpisodes} Episodes`;
+    return { left: todayStr, c1: showTitle, c2: 'Planning Calendar', c3: wrLine, r1, r2, r3 };
+  }
+  // Effective text for a header line: the manual value in manual mode, else the auto default.
+  function headerLine(id, defaults){
+    if(headerMode === 'manual') return (id in headerManual) ? headerManual[id] : (defaults[id] || '');
+    return defaults[id] || '';
+  }
+  function update(){
+    const state = readState();
+    currentSchedule = computeSchedule(state);
+    render(currentSchedule);
+    reflectCountryLock();
+    markDirty();
+  }
+
+  // Visually flag the union country selector as locked while note/hiatus edits exist.
+  function reflectCountryLock(){
+    const sel = document.getElementById('union-country');
+    if(!sel) return;
+    const locked = hasNoteEdits();
+    sel.classList.toggle('locked', locked);
+    sel.title = locked
+      ? 'Locked: reset Notes & Hiatus to change the country (you have manual edits).'
+      : '';
+    const hint = document.getElementById('union-lock-hint');
+    if(hint) hint.style.display = locked ? 'block' : 'none';
+  }
+
+  document.getElementById('view-list-btn').addEventListener('click', ()=>{
+    viewMode = 'list';
+    document.getElementById('view-list-btn').classList.add('active');
+    document.getElementById('view-sheet-btn').classList.remove('active');
+    render(currentSchedule);
+  });
+  document.getElementById('view-sheet-btn').addEventListener('click', ()=>{
+    viewMode = 'sheet';
+    document.getElementById('view-sheet-btn').classList.add('active');
+    document.getElementById('view-list-btn').classList.remove('active');
+    render(currentSchedule);
+  });
+
+  buildPhaseRows();
+  addDefaultHiatuses();
+  PHASES.forEach(p=>{
+    document.getElementById('start-'+p.key).addEventListener('input', update);
+    document.getElementById('weeks-'+p.key).addEventListener('input', update);
+  });
+  document.getElementById('simpost-enabled').addEventListener('input', update);
+  document.getElementById('simpost-offset').addEventListener('input', update);
+  document.getElementById('calendar-start').addEventListener('input', update);
+  document.getElementById('calendar-end').addEventListener('input', update);
+  // Union country is locked while any note/hiatus edit exists: switching countries would
+  // recompute holidays and discard the user's edits, so we block it until they reset.
+  let lastCountry = document.getElementById('union-country').value;
+  document.getElementById('union-country').addEventListener('change', e=>{
+    const sel = e.target;
+    if(sel.value !== lastCountry && hasNoteEdits()){
+      alert('The union country is locked because you\u2019ve edited the comments, holidays, or hiatus bands. Click \u201cReset Notes & Hiatus\u201d above the calendar to restore the defaults, then you can change the country again.');
+      sel.value = lastCountry; // revert the selection
+      return;
+    }
+    lastCountry = sel.value;
+    update();
+  });
+  document.getElementById('show-union-holidays').addEventListener('change', update);
+  document.getElementById('show-title').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); markDirty(); });
+  document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); });
+  document.getElementById('num-episodes').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); });
+  document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
+  document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
+  document.getElementById('reset-btn').addEventListener('click', ()=>{
+    PHASES.forEach(p=>{
+      document.getElementById('start-'+p.key).value='';
+      document.getElementById('weeks-'+p.key).value='';
+      document.getElementById('name-'+p.key).value=p.label;
+    });
+    customPhaseDefs = [];
+    document.getElementById('custom-phase-rows').innerHTML = '';
+    addDefaultHiatuses();
+    document.getElementById('simpost-enabled').checked = false;
+    document.getElementById('simpost-offset').value = 0;
+    document.getElementById('calendar-start').value = '';
+    document.getElementById('calendar-end').value = '';
+    document.getElementById('union-country').value = '';
+    lastCountry = '';
+    document.getElementById('show-union-holidays').checked = true;
+    document.getElementById('show-title').value = '';
+    document.getElementById('shoot-days-per-ep').value = '';
+    document.getElementById('num-episodes').value = '';
+    headerMode = 'auto'; headerManual = {};
+    Object.keys(userNotes).forEach(k=>delete userNotes[k]);
+    noteColors = {}; hiatusTexts = {}; hiatusColors = {};
+    update();
+  });
+  // ---------- Save to File: snapshot current data into a self-contained HTML copy ----------
+  // Reflect every live input/select/textarea value into its HTML attributes so that,
+  // when we serialize the DOM to a string, the user's entries are baked into the markup.
+  function reflectFieldsToAttributes(){
+    document.querySelectorAll('input').forEach(el=>{
+      if(el.type === 'checkbox' || el.type === 'radio'){
+        if(el.checked) el.setAttribute('checked',''); else el.removeAttribute('checked');
+      } else {
+        el.setAttribute('value', el.value);
+      }
+    });
+    document.querySelectorAll('select').forEach(sel=>{
+      Array.from(sel.options).forEach(opt=>{
+        if(opt.selected) opt.setAttribute('selected',''); else opt.removeAttribute('selected');
+      });
+    });
+    document.querySelectorAll('textarea').forEach(t=>{ t.textContent = t.value; });
+  }
+
+  function buildSavedFileName(){
+    const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
+    const d = new Date();
+    const stamp = d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+    // strip characters that are illegal in filenames
+    const safe = raw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    return `${safe} ${stamp}.html`;
+  }
+
+  function collectFieldValues(){
+    // Capture values keyed by element id (for id'd fields) plus the ordered
+    // list of hiatus rows (which have no ids). This is the source of truth that
+    // restoreSavedState() replays after the app rebuilds its dynamic rows on load.
+    const byId = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el=>{
+      if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
+      else byId[el.id] = {value: el.value};
+    });
+    const hiatuses = [];
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      hiatuses.push({
+        start: (row.querySelector('.hiatus-start')||{}).value || '',
+        weeks: (row.querySelector('.hiatus-weeks')||{}).value || ''
+      });
+    });
+    return {byId, hiatuses};
+  }
+
+  // Serialize the whole document (with current state embedded) into a self-contained HTML
+  // string. Used by both the direct-write ("Save") and download ("Save As" fallback) paths.
+  function buildSavedHtml(){
+    // 1. Commit any open note editor so its text isn't lost
+    if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
+      commitActiveNoteEditor();
+    }
+    // 2. Reflect current field values into attributes (covers the static markup)
+    reflectFieldsToAttributes();
+    // 3. Capture in-memory JS state + a full field map into the saved-state block
+    const stateSnapshot = {
+      customPhaseDefs: customPhaseDefs,
+      customPhaseCounter: customPhaseCounter,
+      userNotes: userNotes,
+      headerMode: headerMode,
+      headerManual: headerManual,
+      noteColors: noteColors,
+      hiatusTexts: hiatusTexts,
+      hiatusColors: hiatusColors,
+      viewMode: viewMode,
+      fields: collectFieldValues()
+    };
+    const stateEl = document.getElementById('saved-state');
+    const prevStateText = stateEl.textContent;
+    // Escape '<' as \u003c inside the JSON: a literal script-closing tag in any user text
+    // would otherwise terminate the state script element early and corrupt the whole saved
+    // file. JSON.parse treats \u003c identically to '<', so restore is unaffected.
+    stateEl.textContent = JSON.stringify(stateSnapshot).replace(/</g, '\\u003c');
+    let html;
+    try {
+      html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    } finally {
+      // restore the live block so the current page keeps working normally
+      stateEl.textContent = prevStateText;
+    }
+    return html;
+  }
+
+  // A handle to the file chosen on the first save, so later saves write back in place.
+  // The handle is also persisted in IndexedDB so that when this saved file is reopened, the
+  // app can reconnect to the same file on disk after a single permission click (the browser
+  // requires that click for security; it won't grant write access silently on page load).
+  let savedFileHandle = null;
+  let handleNeedsPermission = false; // true when we have a remembered handle but not yet permission
+  const supportsFsAccess = (typeof window.showSaveFilePicker === 'function');
+
+  // --- IndexedDB: a list of recent files (each { id, handle, name, savedAt }) plus a
+  // pointer to the currently-active file. Reusing the File System Access handles lets the
+  // app reopen, switch between, and update real files on disk. ---
+  const HANDLE_DB = 'spt-planning-cal', HANDLE_STORE = 'handles';
+  const RECENTS_KEY = 'recentFiles', ACTIVE_KEY = 'activeFileId', LEGACY_KEY = 'savedFile';
+  function idbOpen(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(HANDLE_DB, 1);
+      req.onupgradeneeded = ()=>{ req.result.createObjectStore(HANDLE_STORE); };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  function idbGet(key){
+    return idbOpen().then(db=> new Promise((res,rej)=>{ const tx=db.transaction(HANDLE_STORE,'readonly'); const r=tx.objectStore(HANDLE_STORE).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })).catch(()=>undefined);
+  }
+  function idbSet(key, val){
+    return idbOpen().then(db=> new Promise((res,rej)=>{
+      const tx=db.transaction(HANDLE_STORE,'readwrite');
+      const store=tx.objectStore(HANDLE_STORE);
+      if(val === undefined) store.delete(key); else store.put(val, key);
+      tx.oncomplete=res; tx.onerror=()=>rej(tx.error);
+    })).catch(()=>{});
+  }
+
+  // In-memory model of the recent list; each entry: { id, handle, name, savedAt }.
+  let recentFiles = [];
+  let activeFileId = null;
+
+  async function loadRecents(){
+    let list = await idbGet(RECENTS_KEY);
+    if(!Array.isArray(list)){
+      list = [];
+      // One-time migration: fold a legacy single-handle save into the new list.
+      const legacy = await idbGet(LEGACY_KEY);
+      if(legacy){ list.push({ id: 'legacy', handle: legacy, name: (legacy.name||'Saved Calendar'), savedAt: Date.now() }); }
+    }
+    recentFiles = list;
+    activeFileId = await idbGet(ACTIVE_KEY) || null;
+  }
+  async function persistRecents(){
+    await idbSet(RECENTS_KEY, recentFiles.map(f=>({ id:f.id, handle:f.handle, name:f.name, savedAt:f.savedAt })));
+    await idbSet(ACTIVE_KEY, activeFileId);
+  }
+  // Add or update an entry for a handle we just saved to, and make it active.
+  async function recordRecent(handle){
+    const name = handle.name || buildSavedFileName();
+    // De-dupe by comparing handles (isSameEntry when available).
+    let existing = null;
+    for(const f of recentFiles){
+      if(f.handle && handle.isSameEntry){ try { if(await handle.isSameEntry(f.handle)){ existing = f; break; } } catch(e){} }
+      else if(f.name === name){ existing = f; break; }
+    }
+    if(existing){ existing.handle = handle; existing.name = name; existing.savedAt = Date.now(); activeFileId = existing.id; }
+    else {
+      const id = 'f' + Date.now() + Math.random().toString(36).slice(2,6);
+      recentFiles.unshift({ id, handle, name, savedAt: Date.now() });
+      activeFileId = id;
+    }
+    // Keep the list tidy (most-recent first, cap at 12).
+    recentFiles.sort((a,b)=> b.savedAt - a.savedAt);
+    if(recentFiles.length > 12) recentFiles = recentFiles.slice(0,12);
+    await persistRecents();
+    renderRecents();
+  }
+
+  // Download fallback (browsers without the File System Access API): writes a new file.
+  function downloadSavedHtml(html){
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = buildSavedFileName();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  // Smart save. First save opens a "save as" dialog (or downloads on unsupported browsers);
+  // subsequent saves write back to the same file with no dialog. If we have a remembered
+  // handle from a previous session, the first save re-requests write permission (one prompt).
+  // Returns 'saved'|'saveas'|'download', or throws on real errors.
+  async function saveToFile(){
+    const html = buildSavedHtml();
+    if(!supportsFsAccess){
+      downloadSavedHtml(html);
+      markClean();
+      return 'download';
+    }
+    let isNew = false;
+    if(!savedFileHandle){
+      isNew = true;
+      savedFileHandle = await window.showSaveFilePicker({
+        suggestedName: buildSavedFileName(),
+        types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+      });
+    } else if(handleNeedsPermission){
+      // Reconnecting to a remembered file: ask for write permission (one click).
+      const perm = await savedFileHandle.requestPermission({ mode: 'readwrite' });
+      if(perm !== 'granted'){
+        // Permission denied -> fall back to a fresh Save As so the user can still save.
+        savedFileHandle = await window.showSaveFilePicker({
+          suggestedName: buildSavedFileName(),
+          types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+        });
+        isNew = true;
+      }
+      handleNeedsPermission = false;
+    }
+    const writable = await savedFileHandle.createWritable();
+    await writable.write(html);
+    await writable.close();
+    await recordRecent(savedFileHandle); // add/update in the recent-files list
+    markClean();
+    return isNew ? 'saveas' : 'saved';
+  }
+
+  // ---------- Unsaved-change tracking, autosave, and crash/close recovery ----------
+  // Three layers protect work in progress:
+  //  1. AUTOSAVE: if a file is linked, silently write to it every AUTOSAVE_MS.
+  //  2. LOCAL BACKUP: a rolling copy of the current state in IndexedDB (local to this
+  //     browser, never uploaded) covering work that has no file yet -- the browser won't let
+  //     us create a file without a click, so this is the safety net for unsaved calendars.
+  //  3. CLOSE WARNING: the browser's generic "leave site?" prompt when changes are unsaved.
+  //     (Browsers don't allow a custom Save button in that dialog, so it's a speed bump.)
+  const AUTOSAVE_MS = 10 * 60 * 1000; // 10 minutes
+  const BACKUP_KEY = 'unsavedBackup';
+  let isDirty = false;         // changes since the last successful save
+  let suppressDirty = true;    // ignore programmatic updates during load/restore
+  let lastSavedAt = null;
+  let autosaveTimer = null;
+
+  function markDirty(){
+    if(suppressDirty) return;
+    isDirty = true;
+    refreshSaveStatus();
+    scheduleBackup();
+  }
+  function markClean(){
+    isDirty = false;
+    lastSavedAt = new Date();
+    refreshSaveStatus();
+    idbSet(BACKUP_KEY, undefined); // saved to a real file; drop the recovery copy
+  }
+
+  function fmtTime(d){
+    let h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0');
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h === 0) h = 12;
+    return h + ':' + m + ' ' + ap;
+  }
+  function refreshSaveStatus(){
+    const el = document.getElementById('save-status');
+    if(!el) return;
+    if(isDirty){ el.textContent = 'Unsaved changes'; el.className = 'save-status dirty'; }
+    else if(lastSavedAt){ el.textContent = 'Saved ' + fmtTime(lastSavedAt); el.className = 'save-status'; }
+    else { el.textContent = ''; el.className = 'save-status'; }
+  }
+
+  // Rolling local backup (debounced so typing doesn't hammer IndexedDB).
+  let backupTimer = null;
+  function scheduleBackup(){
+    clearTimeout(backupTimer);
+    backupTimer = setTimeout(writeBackup, 3000);
+  }
+  function writeBackup(){
+    try {
+      const stateSnapshot = {
+        customPhaseDefs, customPhaseCounter, userNotes, headerMode, headerManual,
+        noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
+      };
+      idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+    } catch(e){ /* non-fatal */ }
+  }
+
+  // Autosave: only meaningful when a file is already linked (we can't create one silently).
+  function startAutosave(){
+    clearInterval(autosaveTimer);
+    autosaveTimer = setInterval(async ()=>{
+      if(!isDirty || !savedFileHandle || handleNeedsPermission) return;
+      try {
+        const html = buildSavedHtml();
+        const writable = await savedFileHandle.createWritable();
+        await writable.write(html);
+        await writable.close();
+        markClean();
+      } catch(e){ /* permission lost or file moved: stay dirty, user can save manually */ }
+    }, AUTOSAVE_MS);
+  }
+
+  // Warn before closing/reloading with unsaved changes. Browsers show their own generic
+  // message here; a custom prompt with a Save button isn't permitted.
+  window.addEventListener('beforeunload', (e)=>{
+    if(!isDirty) return;
+    writeBackup(); // last-chance recovery copy
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
+
+  // Offer to restore a backup if the last session ended with unsaved work.
+  async function offerBackupRecovery(){
+    const b = await idbGet(BACKUP_KEY);
+    if(!b || !b.state) return;
+    const when = new Date(b.at);
+    const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
+    if(!confirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?')){
+      await idbSet(BACKUP_KEY, undefined);
+      return;
+    }
+    const el = document.getElementById('saved-state');
+    if(!el) return;
+    suppressDirty = true;
+    el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
+    restoreSavedState();
+    lastCountry = document.getElementById('union-country').value;
+    update();
+    suppressDirty = false;
+    isDirty = true;          // recovered work still isn't in a file
+    refreshSaveStatus();
+  }
+  // "Save As…" — always pick a NEW file and write the current calendar to it, then make that
+  // new file the active one. This duplicates the current calendar (fork it to try a variation);
+  // distinct from "New", which clears the calendar and starts blank.
+  async function saveAsFile(){
+    const html = buildSavedHtml();
+    if(!supportsFsAccess){ downloadSavedHtml(html); return 'download'; }
+    const handle = await window.showSaveFilePicker({
+      suggestedName: buildSavedFileName(),
+      types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(html);
+    await writable.close();
+    savedFileHandle = handle;
+    handleNeedsPermission = false;
+    await recordRecent(handle);
+    markClean();
+    refreshSaveBtn();
+    return 'saveas';
+  }
+
+  const saveBtn = document.getElementById('save-file-btn');
+  const saveAsBtn = document.getElementById('save-as-btn');
+  const saveBtnLabel = () => supportsFsAccess ? 'Save' : 'Save to File';
+  function refreshSaveBtn(){
+    if(saveBtn) saveBtn.textContent = saveBtnLabel();
+    // "Save As…" only makes sense where we can pick a real file location.
+    if(saveAsBtn) saveAsBtn.style.display = supportsFsAccess ? '' : 'none';
+  }
+  refreshSaveBtn();
+  function flashSaveBtn(text, btn){
+    const b = btn || saveBtn;
+    if(!b) return;
+    const restore = b === saveBtn ? saveBtnLabel() : 'Save As\u2026';
+    b.textContent = text;
+    b.disabled = true;
+    setTimeout(()=>{ b.disabled = false; b.textContent = restore; }, 1200);
+  }
+
+  // Load a file's saved data INTO the running app: read its HTML, pull out the embedded
+  // <script id="saved-state"> JSON, inject it into the live document, and replay it.
+  async function openRecentFile(entry){
+    if(!entry || !entry.handle) return;
+    // Permission to READ the file (one click if not already granted this session).
+    try {
+      const q = await entry.handle.queryPermission({ mode: 'readwrite' });
+      if(q !== 'granted'){
+        const p = await entry.handle.requestPermission({ mode: 'readwrite' });
+        if(p !== 'granted'){ alert('Permission to open that file was declined.'); return; }
+      }
+    } catch(e){ /* some browsers: proceed and let read throw */ }
+
+    let text;
+    try { const file = await entry.handle.getFile(); text = await file.text(); }
+    catch(e){ alert('Could not read that file. It may have been moved or deleted.'); return; }
+
+    // Extract the embedded saved-state block from the file's HTML.
+    const m = text.match(/<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i);
+    if(!m){ alert('That file doesn\u2019t contain saved calendar data.'); return; }
+    const liveState = document.getElementById('saved-state');
+    if(liveState){
+      liveState.textContent = m[1].trim();
+      // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay.
+      suppressDirty = true;
+      restoreSavedState();
+      lastCountry = document.getElementById('union-country').value;
+      update();
+      suppressDirty = false;
+    }
+    // Make this the active, writable file so subsequent Save writes back to it.
+    savedFileHandle = entry.handle;
+    handleNeedsPermission = false;
+    activeFileId = entry.id;
+    entry.savedAt = Date.now();
+    recentFiles.sort((a,b)=> b.savedAt - a.savedAt);
+    await persistRecents();
+    isDirty = false; lastSavedAt = null; refreshSaveStatus();
+    refreshSaveBtn();
+    renderRecents();
+  }
+
+  // "Open…" — pick any .html calendar from disk and load + track it.
+  async function openFileViaPicker(){
+    if(!supportsFsAccess) return;
+    let handle;
+    try {
+      [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+        multiple: false,
+      });
+    } catch(e){ if(e && e.name === 'AbortError') return; throw e; }
+    const entry = { id: 'f'+Date.now()+Math.random().toString(36).slice(2,6), handle, name: handle.name, savedAt: Date.now() };
+    // De-dupe against existing recents.
+    let dup = null;
+    for(const f of recentFiles){ if(f.handle && handle.isSameEntry){ try{ if(await handle.isSameEntry(f.handle)){ dup=f; break; } }catch(e){} } }
+    const target = dup || entry;
+    if(!dup){ recentFiles.unshift(entry); }
+    await openRecentFile(target);
+  }
+
+  // "New" — clear the active file link and reset to a blank calendar.
+  function newFile(){
+    savedFileHandle = null;
+    handleNeedsPermission = false;
+    activeFileId = null;
+    persistRecents();
+    suppressDirty = true;
+    document.getElementById('reset-btn').click(); // reuse the full reset
+    suppressDirty = false;
+    isDirty = false; lastSavedAt = null; refreshSaveStatus();
+    idbSet(BACKUP_KEY, undefined);
+    refreshSaveBtn();
+    renderRecents();
+  }
+
+  async function removeRecent(id){
+    recentFiles = recentFiles.filter(f=>f.id !== id);
+    if(activeFileId === id){ activeFileId = null; savedFileHandle = null; }
+    await persistRecents();
+    renderRecents();
+    refreshSaveBtn();
+  }
+
+  // Render the file dropdown in the header: current file name on the button, recents +
+  // "Open…" inside the menu.
+  function renderRecents(){
+    const wrap = document.getElementById('file-menu-wrap');
+    const menu = document.getElementById('file-menu');
+    const label = document.getElementById('file-menu-label');
+    if(!wrap || !menu || !label) return;
+    if(!supportsFsAccess){ wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    const active = recentFiles.find(f=>f.id === activeFileId);
+    label.textContent = active ? active.name.replace(/\.html$/i,'') : 'Untitled';
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const items = recentFiles.length
+      ? recentFiles.map(f=>{
+          const cls = f.id === activeFileId ? ' active' : '';
+          const nm = esc(f.name);
+          return `<div class="file-menu-item${cls}" data-id="${f.id}" role="menuitem" title="${nm}">
+            <span class="fm-name">${nm}</span>
+            <button class="fm-remove" data-remove="${f.id}" title="Remove from list" aria-label="Remove">\u00d7</button>
+          </div>`;
+        }).join('')
+      : '<div class="file-menu-empty">No saved files yet</div>';
+    menu.innerHTML = items + '<div class="file-menu-sep"></div>' +
+      '<div class="file-menu-item" data-action="open" role="menuitem"><span class="fm-name">Open\u2026</span></div>';
+  }
+  function closeFileMenu(){
+    const m = document.getElementById('file-menu'); const b = document.getElementById('file-menu-btn');
+    if(m) m.classList.remove('open');
+    if(b) b.setAttribute('aria-expanded','false');
+  }
+
+  // On load: bring in the recent-files list, but do NOT adopt the last active file's handle.
+  // A freshly-loaded page shows a blank calendar, so silently pointing Save at the previous
+  // file would let someone type a brand-new schedule and overwrite that file without meaning
+  // to. Instead we start "Untitled": Save asks where to go, and picking a file from the menu
+  // both loads its data and links it, so what's on screen always matches the linked file.
+  if(supportsFsAccess){
+    loadRecents().then(()=>{
+      activeFileId = null;   // nothing is open yet in this session
+      savedFileHandle = null;
+      handleNeedsPermission = false;
+      renderRecents();
+      refreshSaveBtn();
+    });
+  }
+
+  if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    try {
+      const result = await saveToFile();
+      flashSaveBtn(result === 'download' ? 'Downloaded \u2713' : 'Saved \u2713');
+    } catch(err){
+      if(err && err.name === 'AbortError') return; // user cancelled the picker
+      console.error(err);
+      alert('Something went wrong saving the file: ' + err.message);
+    }
+  });
+
+  // Header toolbar wiring: file dropdown, New, Save As.
+  (function(){
+    const menuBtn = document.getElementById('file-menu-btn');
+    const menu = document.getElementById('file-menu');
+    const newBtn = document.getElementById('new-file-btn');
+
+    if(menuBtn && menu){
+      menuBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const open = menu.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      menu.addEventListener('click', async (e)=>{
+        const rm = e.target.closest('[data-remove]');
+        if(rm){ e.stopPropagation(); await removeRecent(rm.getAttribute('data-remove')); return; }
+        const item = e.target.closest('.file-menu-item');
+        if(!item) return;
+        closeFileMenu();
+        if(item.dataset.action === 'open'){
+          try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); alert('Could not open a file: '+err.message); } }
+          return;
+        }
+        const entry = recentFiles.find(f=>f.id === item.dataset.id);
+        if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); alert('Could not open that file: '+err.message); } }
+      });
+      // click-away / Escape closes the menu
+      document.addEventListener('click', (e)=>{ if(!e.target.closest('#file-menu-wrap')) closeFileMenu(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeFileMenu(); });
+    }
+
+    if(newBtn) newBtn.addEventListener('click', ()=>{
+      // Only warn if there's actually unsaved work to lose.
+      if(isDirty && !confirm('Start a new blank calendar? Your unsaved changes will be lost.')) return;
+      newFile();
+    });
+
+    if(saveAsBtn) saveAsBtn.addEventListener('click', async ()=>{
+      try {
+        const r = await saveAsFile();
+        flashSaveBtn(r === 'download' ? 'Downloaded \u2713' : 'Saved \u2713', saveAsBtn);
+      } catch(err){
+        if(err && err.name === 'AbortError') return;
+        console.error(err);
+        alert('Something went wrong saving the file: ' + err.message);
+      }
+    });
+  })();
+
+  // Help modal
+  (function(){
+    const overlay = document.getElementById('help-overlay');
+    const openHelp = ()=>{ overlay.classList.add('open'); };
+    const closeHelp = ()=>{ overlay.classList.remove('open'); };
+    document.getElementById('help-fab').addEventListener('click', openHelp);
+    document.getElementById('help-close').addEventListener('click', closeHelp);
+    overlay.addEventListener('click', e=>{ if(e.target === overlay) closeHelp(); });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
+  })();
+
+  document.getElementById('export-btn').addEventListener('click', async ()=>{
+    if(typeof ExcelJS === 'undefined'){
+      alert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
+      return;
+    }
+    const btn = document.getElementById('export-btn');
+    const original = btn.textContent;
+    btn.textContent = 'Building file...'; btn.disabled = true;
+    try{
+      await exportExcel(currentSchedule);
+    } catch(err){
+      console.error(err);
+      alert('Something went wrong building the Excel file: ' + err.message);
+    } finally {
+      btn.textContent = original; btn.disabled = false;
+    }
+  });
+
+  // ---------- Restore saved data when this file was produced by "Save to File" ----------
+  function restoreSavedState(){
+    const el = document.getElementById('saved-state');
+    if(!el) return;
+    let snap;
+    try { snap = JSON.parse(el.textContent); } catch(e){ return; }
+    if(!snap || typeof snap !== 'object') return;
+
+    // 1. Rebuild custom phase rows, then set their saved counter
+    if(Array.isArray(snap.customPhaseDefs) && snap.customPhaseDefs.length){
+      document.getElementById('custom-phase-rows').innerHTML = '';
+      customPhaseDefs = [];
+      customPhaseCounter = 0;
+      snap.customPhaseDefs.forEach(()=> addCustomPhaseRow());
+      // align the generated keys/colorIndex/counter with what was saved
+      customPhaseDefs = snap.customPhaseDefs.map(cp=>({key:cp.key, colorIndex:cp.colorIndex}));
+      if(typeof snap.customPhaseCounter === 'number') customPhaseCounter = snap.customPhaseCounter;
+      // re-key the freshly built rows to match saved keys
+      const rows = document.querySelectorAll('#custom-phase-rows .phase-row');
+      rows.forEach((row, i)=>{
+        const saved = snap.customPhaseDefs[i];
+        if(!saved) return;
+        row.dataset.key = saved.key;
+        row.querySelectorAll('[id]').forEach(node=>{
+          node.id = node.id.replace(/(name|color|start|weeks|meta|swatch)-.+$/, (m, pfx)=> pfx + '-' + saved.key);
+        });
+      });
+    }
+
+    // 2. Rebuild hiatus rows to match the saved set (replaces the defaults)
+    if(snap.fields && Array.isArray(snap.fields.hiatuses)){
+      document.getElementById('hiatus-list').innerHTML = '';
+      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks));
+    }
+
+    // 3. Apply saved values to every id'd field
+    if(snap.fields && snap.fields.byId){
+      Object.keys(snap.fields.byId).forEach(id=>{
+        const node = document.getElementById(id);
+        if(!node) return;
+        const v = snap.fields.byId[id];
+        if('checked' in v) node.checked = !!v.checked;
+        else if('value' in v){
+          node.value = v.value;
+          if(node.tagName === 'SELECT'){
+            // ensure the option reflects the value
+            Array.from(node.options).forEach(o=>{ o.selected = (o.value === v.value); });
+          }
+          if(id.indexOf('color-') === 0){
+            const sw = document.getElementById('swatch-' + id.slice(6));
+            const idx = parseInt(v.value, 10);
+            if(sw && PHASE_COLOR_OPTIONS[idx]) sw.style.background = PHASE_COLOR_OPTIONS[idx].color;
+          }
+        }
+      });
+    }
+
+    // 4. Restore user notes and view mode. Migrate any old-format entries
+    //    ({label, noteDate}) into the new single-text shape ({text}).
+    if(snap.userNotes && typeof snap.userNotes === 'object'){
+      Object.keys(snap.userNotes).forEach(k=>{
+        const v = snap.userNotes[k];
+        if(v && typeof v === 'object' && !('text' in v) && ('label' in v || 'noteDate' in v)){
+          const lbl = (v.label||'').trim();
+          const dt = (v.noteDate||'').trim();
+          userNotes[k] = {text: [lbl, dt].filter(Boolean).join(' ')};
+        } else {
+          userNotes[k] = v;
+        }
+      });
+    }
+    // 4b. Restore header mode + manual lines. Old saves used per-line headerOverrides;
+    //     migrate any of those into manual mode so they aren't lost.
+    if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
+      headerMode = 'manual';
+      headerManual = Object.assign({}, snap.headerManual || {});
+    } else if(snap.headerOverrides && Object.keys(snap.headerOverrides).length){
+      headerMode = 'manual';
+      headerManual = Object.assign(computeHeaderDefaults(currentSchedule), snap.headerOverrides);
+    } else {
+      headerMode = 'auto'; headerManual = {};
+    }
+    // 4c. Restore per-cell highlight colors and hiatus text/color overrides
+    if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
+    if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
+    if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
+    if(snap.viewMode === 'list'){
+      viewMode = 'list';
+      document.getElementById('view-list-btn').classList.add('active');
+      document.getElementById('view-sheet-btn').classList.remove('active');
+    } else if(snap.viewMode === 'sheet'){
+      viewMode = 'sheet';
+      document.getElementById('view-sheet-btn').classList.add('active');
+      document.getElementById('view-list-btn').classList.remove('active');
+    }
+  }
+
+  // Keep --header-h in sync with the real sticky header height so the sidebar sits flush
+  // beneath it and its scroll area is sized correctly at any window width (the toolbar
+  // wraps to a second line on narrow windows, changing the height).
+  (function(){
+    const hdr = document.querySelector('header.app-header');
+    if(!hdr) return;
+    const sync = ()=>{
+      const h = Math.round(hdr.getBoundingClientRect().height);
+      if(h > 0) document.documentElement.style.setProperty('--header-h', h + 'px');
+    };
+    sync();
+    if(typeof ResizeObserver !== 'undefined'){ try { new ResizeObserver(sync).observe(hdr); } catch(e){} }
+    window.addEventListener('resize', sync);
+  })();
+
+  restoreSavedState();
+  lastCountry = document.getElementById('union-country').value;
+  update();
+
+  // Initial load/restore is done -- from here on, changes are real user edits.
+  suppressDirty = false;
+  isDirty = false;
+  refreshSaveStatus();
+  startAutosave();
+  // If a previous session ended with unsaved work, offer to bring it back.
+  if(typeof indexedDB !== 'undefined'){ setTimeout(()=>{ offerBackupRecovery(); }, 400); }
+
+  // ---------- PWA: install prompt ----------
+  // Installability comes from the inline manifest, not a service worker, so there's no cache
+  // layer here: every load fetches the current version straight from the server. Updates
+  // therefore appear on a normal refresh, with no stale-cache dance and no background
+  // update-check traffic.
+  (function(){
+    // Clean up the caching service worker earlier versions registered. Without this, a browser
+    // that already installed it would keep serving the old cached app indefinitely.
+    if('serviceWorker' in navigator){
+      try {
+        navigator.serviceWorker.getRegistrations().then(regs=>{
+          regs.forEach(r=> r.unregister().catch(()=>{}));
+        }).catch(()=>{});
+        if(typeof caches !== 'undefined' && caches.keys){
+          caches.keys().then(keys=>{
+            keys.forEach(k=>{ if(/spt-planning-cal/.test(k)) caches.delete(k).catch(()=>{}); });
+          }).catch(()=>{});
+        }
+      } catch(_) { /* non-fatal */ }
+    }
+
+    // Install affordance: Chrome/Edge fire beforeinstallprompt when the app is installable.
+    // Installed PWAs get persistent file permissions, so the in-place Save stops re-prompting.
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('install-app-btn');
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      e.preventDefault();
+      deferredPrompt = e;
+      if(installBtn) installBtn.style.display = '';
+    });
+    if(installBtn){
+      installBtn.addEventListener('click', async ()=>{
+        if(!deferredPrompt) return;
+        deferredPrompt.prompt();
+        try { await deferredPrompt.userChoice; } catch(_){}
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      });
+    }
+    window.addEventListener('appinstalled', ()=>{ if(installBtn) installBtn.style.display = 'none'; });
+  })();
+})();
+</script>
+</body>
+</html>
