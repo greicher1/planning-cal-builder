@@ -185,6 +185,140 @@
   .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .view-toggle-btn:hover:not(.active){color:var(--text);}
 
+  /* ---------- Month view ---------- */
+  .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
+  .mv-header{ margin-bottom:14px; }
+  /* Title sits centred while the date is pinned right: the spacer mirrors the date's width so
+     the title stays optically centred on the page rather than being pushed left by it. */
+  .mv-titlebar{ display:flex; align-items:baseline; gap:12px; }
+  .mv-title{ flex:1; text-align:center; font-size:22px; font-weight:700; }
+  .mv-today{ font-size:20px; font-weight:700; color:#000; white-space:nowrap; }
+  .mv-titlebar::before{ content:''; flex:0 0 auto; width:var(--mv-today-w, 84px); }
+  .mv-nav{ display:flex; align-items:center; justify-content:center; gap:16px; }
+  .mv-monthyear{ font-size:17px; font-weight:600; min-width:190px; }
+  .mv-arrow{
+    font-family:inherit; font-size:13px; line-height:1; cursor:pointer;
+    border:1px solid var(--border-strong); background:#fff; color:var(--text-muted);
+    border-radius:6px; padding:6px 10px;
+  }
+  .mv-arrow:hover{ background:var(--bg); color:var(--text); }
+  .mv-dowrow{ display:grid; grid-template-columns:repeat(7,1fr); }
+  .mv-dow{
+    text-align:center; font-size:11px; font-weight:700; color:var(--text-muted);
+    padding:6px 0; text-transform:uppercase; letter-spacing:.04em;
+  }
+  /* Each week is a row: the day-number grid sits underneath, and phase pills are laid over it
+     in the same 7-column track so a bar can span multiple days as one continuous shape. */
+  .mv-body{ border:1px solid #D4D4D4; border-top:none; }
+  .mv-week{ position:relative; border-top:1px solid #D4D4D4; min-height:104px; }
+  .mv-week:first-child{ border-top:none; }
+  /* The day-number grid is the background layer: it fills the row so the cell shading and
+     dividers cover the full height, whatever that height ends up being. */
+  .mv-daygrid{
+    position:absolute; inset:0;
+    display:grid; grid-template-columns:repeat(7,1fr);
+  }
+  .mv-daycell{ border-left:1px solid #E8E8E8; padding:3px 5px; }
+  .mv-daycell:first-child{ border-left:none; }
+  .mv-daynum{ font-size:11px; font-weight:600; color:#333; }
+  .mv-out{ background:#FAFAF9; }
+  .mv-out .mv-daynum{ opacity:.35; }
+  .mv-weekend{ background:#F4F3F0; }
+  /* Bars sit in normal flow ON TOP of the day grid, so tall content (a wrapped note) grows
+     the week row rather than spilling over the week below. */
+  .mv-bars{
+    position:relative; z-index:1;
+    display:grid; grid-template-columns:repeat(7,1fr);
+    gap:2px 0; padding:20px 3px 6px;
+    pointer-events:none;
+  }
+  .mv-bar{
+    font-size:10px; font-weight:600; line-height:1.5; padding:1px 8px; margin:0 1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    border:1px solid rgba(0,0,0,.18);
+  }
+  /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
+  .mv-pill{ border-radius:9px; }
+  .mv-hiatus-bar{ border-radius:9px; text-align:center; }
+  /* Notes are deliberately square so they read as a different class of thing than phases,
+     and they sit on their exact day -- so instead of stealing width from neighbouring days,
+     longer text wraps onto extra lines and the block grows taller. */
+  .mv-note-block{
+    border-radius:0; font-weight:500;
+    white-space:normal; overflow:visible; text-overflow:clip;
+    line-height:1.3; padding:2px 4px; word-break:break-word; hyphens:auto;
+  }
+  .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
+
+  /* Episodes live inside the Production phase row (month view only). */
+  .ep-panel{
+    grid-column:1 / -1; margin-top:8px; padding:8px 10px;
+    border:1px dashed var(--border-strong); border-radius:8px; background:var(--bg);
+  }
+  .ep-panel-warn{
+    font-size:11px; color:#8a5a00; background:#fff8e6;
+    border:1px solid #f0d9a0; border-radius:6px; padding:6px 8px;
+  }
+  /* ---------- Calendar PDF export (browser print) ---------- */
+  #print-root{ display:none; }
+  @media print{
+    /* Landscape with minimal margins so the grid prints as large as the sheet allows. */
+    @page{ size:landscape; margin:8mm; }
+    /* Only the generated month pages print; the whole app UI is suppressed. */
+    body.printing-calendar > *:not(#print-root){ display:none !important; }
+    body.printing-calendar{ background:#fff; }
+    body.printing-calendar #print-root{ display:block; }
+    #print-root .print-page{
+      break-after:page; page-break-after:always;
+      height:100%;   /* fill the sheet */
+    }
+    #print-root .print-page:last-child{ break-after:auto; page-break-after:auto; }
+    /* The month grid is the whole page now -- drop the on-screen card chrome. */
+    #print-root .month-view{
+      border:none; border-radius:0; padding:0; height:100%;
+      display:flex; flex-direction:column;
+    }
+    #print-root .mv-body{ flex:1; display:flex; flex-direction:column; }
+    #print-root .mv-week{ flex:1; }
+    /* Month paging arrows are meaningless on paper. */
+    #print-root .mv-arrow{ display:none !important; }
+    /* Phase colours are the whole point of this document, so keep them. */
+    *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  }
+
+  /* Production's total is derived from the episode list, so it reads as a value, not a field. */
+  .prod-total-readout{
+    display:flex; align-items:baseline; gap:6px; flex:1;
+    font-size:12px; color:var(--text); align-self:flex-end; padding:6px 0;
+  }
+  .prod-total-readout strong{ font-size:14px; }
+  .prod-total-src{ font-size:10.5px; color:var(--text-faint); }
+  .prod-total-empty{ font-size:11px; color:var(--text-faint); font-style:italic; }
+  .show-info-note{
+    margin-top:10px; font-size:10.5px; line-height:1.45;
+    color:#1F4E79; background:#EAF3FB; border:1px solid #C5DDF0;
+    border-radius:6px; padding:6px 8px;
+  }
+  /* Episodes changed by hand, called out separately: this is what explains a total that
+     isn't a round episodes x days multiple. */
+  .show-info-flags{
+    margin-top:5px; padding-top:5px; border-top:1px solid #C5DDF0; color:#8a5a00;
+  }
+  /* A Production row that can't build episodes yet is visibly inert. */
+  .phase-row.phase-blocked > .swatch,
+  .phase-row.phase-blocked > .custom-phase-header,
+  .phase-row.phase-blocked > .phase-fields,
+  .phase-row.phase-blocked > .phase-meta{ opacity:.45; }
+  .episode-row{ display:flex; gap:6px; align-items:center; margin-bottom:5px; }
+  .episode-row .ep-name{
+    flex:1; min-width:0; font-family:inherit; font-size:12.5px;
+    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
+  }
+  .episode-row .ep-days{
+    width:62px; flex:none; font-family:inherit; font-size:12.5px;
+    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
+  }
+
   .sheet-scroll{overflow-x:auto; border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
   .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
   .cal-header-date{font-family:'Calibri','Carlito',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
@@ -351,7 +485,23 @@
       <h2>Show Info</h2>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
         Title / Season
-        <input type="text" id="show-title" placeholder="e.g. Show Title - Season 1" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
+        <input type="text" id="show-title" placeholder="e.g. Show Title" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        Season
+        <select id="season-num" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
+          <option value="">—</option>
+          <option value="1">Season 1</option>
+          <option value="2">Season 2</option>
+          <option value="3">Season 3</option>
+          <option value="4">Season 4</option>
+          <option value="5">Season 5</option>
+          <option value="6">Season 6</option>
+          <option value="7">Season 7</option>
+          <option value="8">Season 8</option>
+          <option value="9">Season 9</option>
+          <option value="10">Season 10</option>
+        </select>
       </label>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
         Shooting Days per Episode
@@ -361,6 +511,8 @@
         Number of Episodes
         <input type="number" id="num-episodes" min="1" step="1" placeholder="e.g. 10" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
       </label>
+      <div class="show-info-note" id="show-info-note" style="display:none;"></div>
+      <div class="show-info-note" id="show-info-note" style="display:none;"></div>
     </section>
 
     <section class="card">
@@ -423,8 +575,8 @@
     <div class="summary-row" id="summary-row"></div>
     <div id="timeline-wrap"></div>
     <div class="view-toggle" id="view-toggle">
-      <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Spreadsheet view</button>
-      <button class="view-toggle-btn" data-mode="list" id="view-list-btn">List view</button>
+      <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
+      <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
     </div>
     <div id="table-wrap"></div>
   </main>
@@ -453,11 +605,16 @@
       <p>Each phase is a block of the schedule &mdash; Writer&rsquo;s Room, Pre Prep, Prod Prep, Production, and Post are provided by default, each with its own color. For every phase you set:</p>
       <ul>
         <li><strong>Start date</strong> &mdash; any date snaps to the Monday of that week (weeks always run Monday&ndash;Sunday).</li>
-        <li><strong>Duration</strong> &mdash; in weeks for most phases. <strong>Production is special: it&rsquo;s measured in shooting days</strong>, not weeks, and is scheduled day-by-day (see Union holidays below).</li>
+        <li><strong>Duration</strong> &mdash; in weeks for most phases. <strong>Production is special: it&rsquo;s measured in shooting days</strong>, not weeks, and is scheduled day-by-day (see Union holidays below). Its total isn&rsquo;t typed &mdash; it&rsquo;s the sum of the episodes, which come from Show Info.</li>
         <li><strong>Name</strong> &mdash; click the phase name to rename it; the label carries through to every week of that phase and to the export.</li>
       </ul>
       <p><strong>+ Add phase</strong> creates a custom phase with its own name, color, start, and length. Phases can overlap &mdash; when two or more run in the same week, the preview and export add columns so they sit side by side. Columns follow a clear rule: the earliest-starting phase takes the leftmost column and keeps it, later overlapping phases sit to its right, and non-overlapping phases share a column to keep the sheet narrow. When only one phase is running in a week, it spans across the empty columns so there are no blank gaps.</p>
       <p><strong>Header (Auto vs. Manual).</strong> By default the calendar header auto-fills from your inputs (title, production span, Principal Photography dates, episode count) and updates live. Click <strong>Header: Auto &mdash; Switch to Manual</strong> above the calendar to take control: it snapshots the current values into editable lines you can freely edit, and stops auto-updating. Switch back to Auto to discard the manual edits and resume live fill.</p>
+
+      <h3>Episodes</h3>
+      <p>Fill in <strong>Season</strong>, <strong>Shooting Days per Episode</strong> and <strong>Number of Episodes</strong> in Show Info and the episode list builds itself under Production &mdash; named by the usual convention (season&nbsp;1 gives 101, 102&hellip;; season&nbsp;4 gives 401, 402&hellip;). Until those three are filled in, Production can&rsquo;t be scheduled and its row is greyed out.</p>
+      <p><strong>Production&rsquo;s Total Shooting Days is the sum of the episode list</strong>, so it&rsquo;s shown rather than typed. Change any episode&rsquo;s day count and the total follows &mdash; eight 8&#8209;day episodes is 64 shooting days, but bump one to 10 and it becomes 66. Show Info flags any episode you&rsquo;ve changed by hand, which is what explains a total that isn&rsquo;t a round multiple. Everything downstream &mdash; the Waterfall view, the Excel export, the day-by-day scheduling around weekends, holidays and hiatus &mdash; works off that single number exactly as before.</p>
+      <p>Episodes are added and removed only by changing <strong>Number of Episodes</strong>. Lowering it removes episodes from the end; if one of those had been edited by hand, the panel says so rather than dropping it silently. In <strong>Month view</strong> the episodes replace Production&rsquo;s bar, laid across its shooting days back to back &mdash; so an episode can end mid&#8209;week and the next start the same week.</p>
 
       <h3>Union holidays</h3>
       <p>Applies to the <strong>Production</strong> phase only. Pick a country and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. The holiday is logged in the Notes column with its date.</p>
@@ -468,17 +625,18 @@
       <p>Check <strong>Auto-flag Simultaneous Post</strong> to mark weeks where post runs concurrently with the shoot. The <strong>offset</strong> field sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
 
       <h3>Holiday hiatus</h3>
-      <p>Add one or more hiatus periods (a start date and a number of weeks). A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Holiday Hiatus&rdquo; band. Click any hiatus band in Spreadsheet view to rename it or change its highlight color for that week.</p>
+      <p>Add one or more hiatus periods (a start date and a number of weeks). A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Holiday Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>You can edit any note.</strong> In Spreadsheet view, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted.</p>
+      <p><strong>You can edit any note.</strong> In Waterfall view, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted.</p>
 
-      <h3>Spreadsheet view vs. List view</h3>
-      <p>Toggle at the top of the preview. <strong>Spreadsheet view</strong> mirrors the Excel export &mdash; a week-by-week grid with editable notes &mdash; and is the default. <strong>List view</strong> is a compact summary with each week&rsquo;s phases and notes as badges.</p>
+      <h3>Waterfall view vs. Month view</h3>
+      <p>Toggle at the top of the preview. <strong>Waterfall view</strong> mirrors the Excel export &mdash; a week-by-week grid with editable notes &mdash; and is the default. <strong>Month view</strong> is a day-by-day calendar where phases run as bars across the days they cover; Production shows as individual episodes.</p>
 
-      <h3>Export to Excel</h3>
-      <p>Generates a styled <code>.xlsx</code> matching the Spreadsheet view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
+      <h3>Exporting</h3>
+      <p><strong>In Month view the button becomes &ldquo;Export Calendar to PDF.&rdquo;</strong> It opens your browser&rsquo;s print dialog &mdash; choose <em>Save as PDF</em> as the destination. Every month from the first phase to the last prints, one per landscape page, in full colour with the header, month and date, exactly as it looks on screen (minus the paging arrows). If the colours come out grey, switch on &ldquo;Background graphics&rdquo; in the dialog&rsquo;s More settings.</p>
+      <p>Generates a styled <code>.xlsx</code> matching the Waterfall view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
 
       <h3>Files, saving &amp; reopening</h3>
       <p>All the main actions live in the toolbar at the top: the <strong>file menu</strong> (showing the calendar you&rsquo;re currently in), <strong>New</strong>, <strong>Save</strong>, <strong>Save As</strong>, <strong>Export to Excel</strong>, and <strong>Reset</strong>.</p>
@@ -755,9 +913,14 @@
     const allDefs = getAllPhaseDefs();
     const phases = {};
     let hasInvalidYear = false;
+    // Once Show Info is complete it is the source of truth for how long Production runs:
+    // episodes x days-per-episode replaces whatever shoot-day count was typed into the
+    // Production row, everywhere (spreadsheet, export and month view alike).
+    const info = showInfoStatus();
     allDefs.forEach(p=>{
       const startStr = document.getElementById('start-'+p.key).value;
-      const rawValue = parseInt(document.getElementById('weeks-'+p.key).value, 10);
+      let rawValue = parseInt(document.getElementById('weeks-'+p.key).value, 10);
+      if(p.key === 'production' && info.complete) rawValue = info.totalShootDays;
       if(startStr && parseDateUTC(startStr)===null) hasInvalidYear = true;
       const weeks = rawValue>0 ? rawInputToWeeks(p, rawValue) : NaN;
       phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue} : null;
@@ -831,6 +994,7 @@
       let count = 0;
       let lastShootDay = null;
       const holidaysHit = [];
+      const shootDays = [];   // the actual working days Production shoots (for the month view)
       let safety = 0;
       while(count < shootDaysRequested && safety < 5000){
         safety++;
@@ -845,11 +1009,12 @@
           } else {
             count++;
             lastShootDay = current;
+            shootDays.push(iso);
           }
         }
         current = addDays(current, 1);
       }
-      return {lastShootDay: lastShootDay || start, holidaysHit};
+      return {lastShootDay: lastShootDay || start, holidaysHit, shootDays};
     }
 
     const segments = [];
@@ -860,18 +1025,19 @@
         const parsed = parseDateUTC(cfg.start);
         if(!parsed) return;
         const start = mondayOf(parsed);
-        let end, weeksForSegment = cfg.weeks;
+        let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null;
         if(p.key==='production'){
           const holidayList = (state.unionCountry && HOLIDAYS[state.unionCountry]) || [];
           const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
           const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-start)/DAY_MS/7) + 1;
           end = addDays(start, weeksNeeded*7);
           weeksForSegment = weeksNeeded;
-          productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit};
+          productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
+          shootDaysForSegment = sim.shootDays;
         } else {
           end = extendEndForHiatus(start, cfg.weeks);
         }
-        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed}));
+        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment}));
       }
     });
 
@@ -1030,7 +1196,7 @@
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx};
+    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses};
   }
 
   // ---------- UI: phase rows ----------
@@ -1043,16 +1209,29 @@
       const isDays = p.inputMode==='days';
       const fieldLabel = isDays ? 'Total Shooting Days' : 'Weeks';
       const placeholder = isDays ? 'e.g. 105' : 'e.g. 12';
+      // Production's total is never typed: it's the sum of the episode list, which Show Info
+      // builds. The input still exists (hidden) because it remains the single place the rest
+      // of the app reads that number from -- it's just now written to rather than edited.
+      const fieldsHtml = (p.key === 'production')
+        ? `<label>Start date <input type="date" id="start-${p.key}"></label>
+           <input type="hidden" id="weeks-${p.key}">
+           <div class="prod-total-readout" id="prod-total-readout"></div>`
+        : `<label>Start date <input type="date" id="start-${p.key}"></label>
+           <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>`;
       row.innerHTML = `
         <div class="swatch" style="background:${p.color||'#fff'}; ${p.color?'':'border-style:dashed;'}"></div>
         <div class="custom-phase-header">
           <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
         </div>
         <div class="phase-fields">
-          <label>Start date <input type="date" id="start-${p.key}"></label>
-          <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+          ${fieldsHtml}
         </div>
         <div class="phase-meta" id="meta-${p.key}"></div>
+        ${p.key === 'production' ? `
+        <div class="ep-panel" id="ep-panel" style="display:none;">
+          <div class="ep-panel-warn" id="ep-panel-warn"></div>
+          <div id="episode-rows"></div>
+        </div>` : ''}
       `;
       wrap.appendChild(row);
       row.querySelector('.phase-name-input').addEventListener('input', update);
@@ -1076,6 +1255,14 @@
   ];
   let customPhaseDefs = [];
   let customPhaseCounter = 0;
+  // Episodes (month view). Each: {id, name, days, nameEdited, daysEdited}. The *Edited flags
+  // let autofill keep names/day-counts in sync with Show Info + Season until the user
+  // deliberately overrides one, at which point that field stops being managed.
+  let episodeDefs = [];
+  let episodeCounter = 0;
+  // Names of user-edited episodes discarded by lowering the episode count, shown once as a
+  // warning so the loss isn't silent.
+  let lastDroppedEpisodes = [];
 
   function getAllPhaseDefs(){
     const fixed = PHASES.map(p=>{
@@ -1161,6 +1348,12 @@
     const timelineEl = document.getElementById('timeline-wrap');
     const tableEl = document.getElementById('table-wrap');
     const exportBtn = document.getElementById('export-btn');
+    // The button does different things in each view, so it says which.
+    if(exportBtn){
+      exportBtn.textContent = (viewMode === 'month')
+        ? 'Export Calendar to PDF'
+        : 'Export Waterfall to Excel';
+    }
 
     // update per-phase computed end-date hints
     getAllPhaseDefs().forEach(p=>{
@@ -1265,65 +1458,430 @@
     }
     timelineEl.innerHTML = `<div class="timeline">${segHtml}</div>`;
 
-    tableEl.innerHTML = (viewMode==='sheet') ? renderSpreadsheetView(schedule) : renderListView(schedule);
+    tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
+                                             : renderSpreadsheetView(schedule);
   }
 
-  function renderListView(schedule){
+  // ---------- Month view ----------
+  // A traditional day-by-day month grid rendered from the SAME schedule data as the other
+  // views. Coloring rules mirror how the phases actually work:
+  //  - Production is measured in shoot days, and the engine already knows exactly which days
+  //    those are (weekends, hiatuses and holidays excluded), so we color precisely those.
+  //  - Every other phase is measured in weeks, so we color its weekdays (Mon-Fri) and leave
+  //    weekends blank -- a purely visual rule; the schedule math is untouched.
+  let monthCursor = null; // first-of-month currently displayed (UTC)
+
+  function isoOf(d){ return d.toISOString().slice(0,10); }
+
+  // Does this phase cover the given date? Encodes the two different phase models:
+  //  - Production is measured in shoot days; the engine knows exactly which days those are.
+  //  - Everything else is week-based: inside the range, weekdays only (visual rule).
+  function segCoversDate(s, date){
+    const dow = date.getUTCDay();
+    if(s.key === 'production'){
+      return !!(s.shootDays && s.shootDays.indexOf(isoOf(date)) !== -1);
+    }
+    if(dow===0 || dow===6) return false;         // weekends stay blank for week-based phases
+    return date >= s.start && date < s.end;
+  }
+
+  function isHiatusDate(schedule, date){
+    return (schedule.hiatuses||[]).some(h=> date>=h.start && date<h.end);
+  }
+
+  // The label a phase's pill shows for a given date, e.g. "Writers Room Week 3".
+  function segPillLabel(s, date){
+    const name = (s.name || s.label || '').replace(/\s*wk\s*\d+\s*$/i,'');
+    const weekNo = Math.floor((mondayOf(date) - mondayOf(s.start))/DAY_MS/7) + 1;
+    return weekNo > 0 ? `${name} Week ${weekNo}` : name;
+  }
+
+  // The run(s) of consecutive covered days for a phase within one week row, so each can be
+  // drawn as a single pill spanning those columns.
+  function pillRunsForWeek(schedule, weekStart, seg){
+    const runs = [];
+    let run = null;
+    for(let i=0;i<7;i++){
+      const d = addDays(weekStart, i);
+      const covered = segCoversDate(seg, d) && !isHiatusDate(schedule, d);
+      if(covered){
+        if(!run){ run = {startCol:i, endCol:i, date:d}; }
+        else run.endCol = i;
+      } else if(run){ runs.push(run); run = null; }
+    }
+    if(run) runs.push(run);
+    return runs;
+  }
+
+  // Notes are stored per WEEK (keyed by that week's Monday), but each auto-note also carries
+  // the real date it refers to. In a day-by-day month grid we place each note on its ACTUAL
+  // day -- otherwise e.g. a Thanksgiving note would sit on Monday, several days off.
+  // User-edited notes have no per-day date (the user edits the week's text as a whole), so
+  // those stay on the week's Monday.
+  function notesForDate(schedule, date){
+    const iso = isoOf(date);
+    const weekIso = isoOf(mondayOf(date));
+    const idx = (schedule.weeks||[]).findIndex(w=> isoOf(w.date) === weekIso);
+    const autoNotes = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
+
+    // If the user overrode this week's note text, show it on the week's Monday.
+    const override = userNotes[weekIso];
+    if(override !== undefined){
+      if(!override || date.getUTCDay() !== 1) return [];
+      return override.split('\n').filter(Boolean);
+    }
+    // Otherwise place each auto-note on the exact day it belongs to.
+    return autoNotes
+      .filter(n => n.date ? isoOf(n.date) === iso : date.getUTCDay() === 1)
+      .map(n => n.date ? `${n.label} ${fmtShort(n.date)}` : n.label);
+  }
+
+  function renderMonthView(schedule){
+    const segs = schedule.segments || [];
+    if(!segs.length && !(schedule.weeks||[]).length){
+      return '<div class="month-empty">Enter phase dates to see the calendar.</div>';
+    }
+    // Default the cursor to the month the schedule starts in.
+    if(!monthCursor){
+      const first = segs.length
+        ? new Date(Math.min.apply(null, segs.map(s=>s.start.getTime())))
+        : (schedule.overallStart || new Date());
+      monthCursor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1));
+    }
+    const year = monthCursor.getUTCFullYear();
+    const month = monthCursor.getUTCMonth();
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    // Header title carries the season as a short suffix, e.g. "Show Name S2".
+    const rawTitle = (document.getElementById('show-title').value || '').trim();
+    const seasonVal = (document.getElementById('season-num').value || '').trim();
+    const title = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
+    // Today's date for the header, in x.xx.xx form. Uses LOCAL date (not UTC): this is "today"
+    // for the person reading it, unlike the schedule dates which are deliberately UTC.
+    const now = new Date();
+    const todayStr = (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0')
+                     + '.' + String(now.getFullYear()).slice(2);
+
+    // Grid starts on the Monday on/before the 1st.
+    const first = new Date(Date.UTC(year, month, 1));
+    const lead = (first.getUTCDay() + 6) % 7; // Mon=0 ... Sun=6
+    const gridStart = addDays(first, -lead);
+    const daysInMonth = new Date(Date.UTC(year, month+1, 0)).getUTCDate();
+    const weekCount = Math.ceil((lead + daysInMonth)/7);
+    // Stable lane order: phases keep the same vertical position all month (earliest start on
+    // top), so the eye can track a bar across weeks instead of it hopping rows.
+    const laneSegs = segs.slice().sort((a,b)=> a.start - b.start);
+    const epSpans = episodeSpans(schedule);
+
+    const dowNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
+
     let rows = '';
-    let lastYear = null;
-    let blockNum = 0;
-    schedule.weeks.forEach((w, idx)=>{
-      const y = w.date.getUTCFullYear();
-      if(y!==lastYear){
-        blockNum++;
-        rows += `<tr class="block-divider"><td colspan="3">Year column ${blockNum} \u2014 ${y}</td></tr>`;
-        lastYear = y;
+    for(let wk=0; wk<weekCount; wk++){
+      const weekStart = addDays(gridStart, wk*7);
+
+      let dayCells = '';
+      for(let i=0;i<7;i++){
+        const d = addDays(weekStart, i);
+        const inMonth = d.getUTCMonth() === month;
+        const dow = d.getUTCDay();
+        const cls = ['mv-daycell'];
+        if(!inMonth) cls.push('mv-out');
+        if(dow===0 || dow===6) cls.push('mv-weekend');
+        dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
-      let cellsHtml = '';
-      if(w.cells.length===0){
-        cellsHtml = '<span style="color:var(--text-faint)">\u2014</span>';
-      } else {
-        w.cells.forEach(c=>{
-          if(c.type==='hiatus'){
-            const hKeyLV = w.date.toISOString().slice(0,10);
-            const hTxtLV = hiatusTextFor(hKeyLV) || 'Holiday Hiatus';
-            const hColLV = hiatusColorFor(hKeyLV);
-            const hStyleLV = hiatusColors[hKeyLV] ? ` style="background:${hColLV}; color:${textColorFor(hColLV)};"` : '';
-            cellsHtml += `<span class="badge hiatus"${hStyleLV}>${hTxtLV.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`;
-          } else {
-            const bg = c.color || '#ffffff';
-            const border = c.color ? 'none' : '1px dashed var(--border-strong)';
-            cellsHtml += `<span class="badge" style="background:${bg}; color:${c.textColor}; border:${border};">${escHtml(c.label)}</span>`;
-          }
-        });
+
+      let bars = '';
+
+      // Hiatus first: a full-width stop-work band across the days it covers.
+      const hiRuns = [];
+      let hrun = null;
+      for(let i=0;i<7;i++){
+        const d = addDays(weekStart, i);
+        if(isHiatusDate(schedule, d) && d.getUTCMonth()===month){
+          if(!hrun) hrun = {startCol:i, endCol:i, date:d}; else hrun.endCol = i;
+        } else if(hrun){ hiRuns.push(hrun); hrun = null; }
       }
-      const noteBadges = [];
-      if(w.simPost) noteBadges.push(`<span class="badge simpost">Simultaneous Post</span>`);
-      const weekKeyLV = w.date.toISOString().slice(0,10);
-      const ncLV = noteColorFor(weekKeyLV);
-      const badgeStyle = noteColors[weekKeyLV] ? ` style="background:${ncLV}; color:${textColorFor(ncLV)};"` : '';
-      const uNote = userNotes[weekKeyLV];
-      if(uNote !== undefined){
-        // user override (may be empty = cleared): show their text as a single badge
-        if(uNote.text){
-          const escLV = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-          noteBadges.push(`<span class="badge milestone"${badgeStyle}>${escLV(uNote.text).replace(/\n/g,' ')}</span>`);
+      if(hrun) hiRuns.push(hrun);
+      hiRuns.forEach(r=>{
+        const wkIso = isoOf(mondayOf(r.date));
+        const hc = hiatusColors[wkIso] || HIATUS_COLOR;
+        const ht = hiatusTexts[wkIso] || 'Holiday Hiatus';
+        bars += `<div class="mv-bar mv-hiatus-bar" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${hc}; color:${textColorFor(hc)};">${escHtml(ht)}</div>`;
+      });
+
+      // One rounded pill per phase per contiguous run of covered days.
+      laneSegs.forEach(s=>{
+        // In the month view, episodes REPLACE the Production bar: the individual episodes are
+        // the useful detail at day resolution, and a "Production Week N" bar above them would
+        // just restate the same span. If Show Info is incomplete there are no episodes to
+        // draw, so Production falls back to its own bar.
+        const replacedByEpisodes = (s.key === 'production' && epSpans.length > 0);
+        if(!replacedByEpisodes){
+          pillRunsForWeek(schedule, weekStart, s).forEach(r=>{
+            let anyInMonth = false;
+            for(let i=r.startCol;i<=r.endCol;i++){ if(addDays(weekStart,i).getUTCMonth()===month){ anyInMonth = true; break; } }
+            if(!anyInMonth) return;
+            const bg = s.color || '#eee';
+            const fg = s.textColor || textColorFor(bg);
+            const lbl = segPillLabel(s, r.date);
+            bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${bg}; color:${fg};" title="${escHtml(lbl)}">${escHtml(lbl)}</div>`;
+          });
         }
-      } else {
-        const notesHere = schedule.notesByIdx && schedule.notesByIdx[idx];
-        if(notesHere) notesHere.forEach(n=>{
-          noteBadges.push(`<span class="badge milestone"${badgeStyle}>${n.label} ${fmtShort(n.date)}</span>`);
+
+        // Episode pills occupy Production's lane.
+        if(s.key === 'production' && epSpans.length){
+          const bg = s.color || '#eee';
+          const fg = s.textColor || textColorFor(bg);
+          epSpans.forEach(ep=>{
+            let run = null;
+            const runs = [];
+            for(let i=0;i<7;i++){
+              const d = addDays(weekStart, i);
+              if(ep.days.has(isoOf(d))){
+                if(!run) run = {startCol:i, endCol:i}; else run.endCol = i;
+              } else if(run){ runs.push(run); run = null; }
+            }
+            if(run) runs.push(run);
+            runs.forEach(r=>{
+              let anyInMonth = false;
+              for(let i=r.startCol;i<=r.endCol;i++){ if(addDays(weekStart,i).getUTCMonth()===month){ anyInMonth = true; break; } }
+              if(!anyInMonth) return;
+              bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${bg}; color:${fg};" title="${escHtml(ep.name)}">${escHtml(ep.name)}</div>`;
+            });
+          });
+        }
+      });
+
+      // Notes last: square purple blocks under the phase pills.
+      for(let i=0;i<7;i++){
+        const d = addDays(weekStart, i);
+        if(d.getUTCMonth() !== month) continue;
+        const notes = notesForDate(schedule, d);
+        if(!notes.length) continue;
+        // Note highlight colours are stored per WEEK (keyed by that week's Monday).
+        const nc = noteColors[isoOf(mondayOf(d))] || MILESTONE_COLOR;
+        const ntc = textColorFor(nc);
+        notes.forEach(n=>{
+          bars += `<div class="mv-bar mv-note-block" style="grid-column:${i+1} / ${i+2}; background:${nc}; color:${ntc};" title="${escHtml(n)}">${escHtml(n)}</div>`;
         });
       }
-      const noteHtml = noteBadges.join('');
-      rows += `<tr><td class="date-cell">${fmtShort(w.date)}</td><td>${cellsHtml}</td><td>${noteHtml}</td></tr>`;
+
+      rows += `<div class="mv-week">
+        <div class="mv-daygrid">${dayCells}</div>
+        <div class="mv-bars">${bars}</div>
+      </div>`;
+    }
+
+    return `<div class="month-view">
+      <div class="mv-header">
+        <div class="mv-titlebar">
+          <div class="mv-title">${title ? escHtml(title) + ' ' : ''}Planning Calendar</div>
+          <div class="mv-today">${escHtml(todayStr)}</div>
+        </div>
+        <div class="mv-nav">
+          <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month">&#9664;</button>
+          <div class="mv-monthyear">${MONTHS[month]} ${year}</div>
+          <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month">&#9654;</button>
+        </div>
+      </div>
+      <div class="mv-dowrow">${head}</div>
+      <div class="mv-body">${rows}</div>
+    </div>`;
+  }
+
+  // ---------- Episodes ----------
+  // Show Info drives Production once it's complete. Episodes are simply a better way to enter
+  // the shoot-day total: the total is the SUM of the individual episode day-counts, so an
+  // episode manually bumped to 10 days pushes the total up by 2 rather than being averaged
+  // away. Everything downstream (waterfall view, Excel export) then works exactly as before
+  // off that single number -- 5-day weeks, holidays and hiatus all handled by the same engine.
+  // "Complete" means the three fields that are load-bearing for that math and for episode
+  // numbering; the show title is cosmetic (header text only) and deliberately isn't required.
+  function showInfoStatus(){
+    const seasonEl = document.getElementById('season-num');
+    const perEpEl = document.getElementById('shoot-days-per-ep');
+    const numEpEl = document.getElementById('num-episodes');
+    const season = seasonEl ? seasonEl.value : '';
+    const perEp = parseInt(perEpEl ? perEpEl.value : '', 10);
+    const numEp = parseInt(numEpEl ? numEpEl.value : '', 10);
+    const missing = [];
+    if(!season) missing.push('Season');
+    if(!Number.isFinite(perEp) || perEp <= 0) missing.push('Shooting Days per Episode');
+    if(!Number.isFinite(numEp) || numEp <= 0) missing.push('Number of Episodes');
+    const complete = missing.length === 0;
+
+    // Sum the actual episode rows. Falls back to the flat multiply before rows exist (e.g.
+    // during the first render pass, or if the list somehow hasn't been built yet).
+    let totalShootDays = 0;
+    let hasRows = false;
+    if(episodeDefs.length){
+      hasRows = true;
+      episodeDefs.forEach(e=>{
+        const n = parseInt(e.days, 10);
+        if(Number.isFinite(n) && n > 0) totalShootDays += n;
+      });
+    }
+    if(!hasRows && Number.isFinite(perEp) && Number.isFinite(numEp)) totalShootDays = perEp * numEp;
+
+    // Which episodes the user has personally overridden, for the Show Info flag.
+    const overrides = episodeDefs
+      .filter(e => e.daysEdited && parseInt(e.days,10) > 0)
+      .map(e => ({ name: e.name || '', days: parseInt(e.days,10) }));
+
+    return { complete, missing, season,
+      perEp: Number.isFinite(perEp) ? perEp : 0,
+      numEp: Number.isFinite(numEp) ? numEp : 0,
+      totalShootDays, overrides };
+  }
+
+  // Episode numbering follows the industry convention: season 1 -> 101, 102...; season 5 ->
+  // 501, 502... Falls back to plain 1, 2, 3 when no season is chosen.
+  function episodeNumberFor(seasonVal, index){
+    const s = parseInt(seasonVal, 10);
+    if(!s || s < 1) return String(index + 1);
+    return String(s * 100 + index + 1);
+  }
+  function defaultEpisodeName(index){
+    return 'Episode ' + episodeNumberFor(document.getElementById('season-num').value, index);
+  }
+  function defaultEpisodeDays(){
+    const v = parseInt(document.getElementById('shoot-days-per-ep').value, 10);
+    return (Number.isFinite(v) && v > 0) ? v : '';
+  }
+
+  // Keep the episode list in step with Show Info: grow/shrink to "Number of Episodes", and
+  // refresh any name/day value the user hasn't personally overridden.
+  // Returns the names of any user-edited episodes that were discarded, so the caller can warn.
+  function syncEpisodesFromShowInfo(){
+    const wanted = parseInt(document.getElementById('num-episodes').value, 10);
+    const dropped = [];
+    if(Number.isFinite(wanted) && wanted > 0){
+      while(episodeDefs.length < wanted){
+        episodeDefs.push({ id:'ep'+(++episodeCounter), name:'', days:'', nameEdited:false, daysEdited:false });
+      }
+      // The episode count is the only control now, so it wins -- but note anything customised
+      // that got dropped rather than deleting someone's work silently.
+      while(episodeDefs.length > wanted){
+        const last = episodeDefs.pop();
+        if(last.nameEdited || last.daysEdited) dropped.push(last.name || 'an episode');
+      }
+    }
+    episodeDefs.forEach((e, i)=>{
+      if(!e.nameEdited) e.name = defaultEpisodeName(i);
+      if(!e.daysEdited) e.days = defaultEpisodeDays();
     });
-    return `
-      <table class="week-table">
-        <thead><tr><th style="width:105px;">Date</th><th>Phase(s)</th><th style="width:190px;">Notes</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
+    return dropped;
+  }
+
+  function renderEpisodeRows(){
+    const wrap = document.getElementById('episode-rows');
+    if(!wrap) return;
+    wrap.innerHTML = episodeDefs.map(e=>`
+      <div class="episode-row" data-id="${e.id}">
+        <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name">
+        <input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':e.days}" placeholder="Days">
+      </div>`).join('');
+  }
+
+  // Update everything derived from the episode list (the locked total, the hints/flags) WITHOUT
+  // rebuilding the episode inputs -- rebuilding them mid-keystroke would blow away focus and
+  // the caret while someone is typing a day count.
+  function refreshDerivedInfo(){
+    const info = showInfoStatus();
+    const daysField = document.getElementById('weeks-production');
+    const prodRow = daysField ? daysField.closest('.phase-row') : null;
+    // The total is written, never typed: it's the sum of the episode list.
+    if(daysField) daysField.value = info.complete ? info.totalShootDays : '';
+
+    const readout = document.getElementById('prod-total-readout');
+    if(readout){
+      readout.innerHTML = info.complete
+        ? 'Total Shooting Days <strong>' + info.totalShootDays + '</strong>'
+          + '<span class="prod-total-src">from ' + episodeDefs.length + ' episode'
+          + (episodeDefs.length===1?'':'s') + '</span>'
+        : '<span class="prod-total-empty">Total Shooting Days \u2014 set by Show Info</span>';
+    }
+
+    // Grey the Production row until Show Info can produce a total: with no manual field left,
+    // there's genuinely no other way to schedule it.
+    if(prodRow) prodRow.classList.toggle('phase-blocked', !info.complete);
+
+    // Show Info note + manual-override flags
+    const infoNote = document.getElementById('show-info-note');
+    if(infoNote){
+      if(info.complete){
+        infoNote.style.display = '';
+        let html = '<strong>Production\u2019s Total Shooting Days: ' + info.totalShootDays + '</strong>'
+          + ' \u2014 the sum of the episode list in the Production phase. Used by the Waterfall'
+          + ' view and the Excel export.';
+        if(info.overrides.length){
+          html += '<div class="show-info-flags">Manually changed: '
+            + info.overrides.map(o=> escHtml(o.name || 'Episode') + ' \u2192 <strong>' + o.days + ' days</strong>').join('; ')
+            + ' (default is ' + info.perEp + ').</div>';
+        }
+        infoNote.innerHTML = html;
+      } else { infoNote.style.display = 'none'; }
+    }
+    return info;
+  }
+
+  function refreshEpisodesUI(){
+    // Keep the underlying episode list correct even when the panel isn't on screen: the
+    // shoot-day total is derived from it in every view, so it can't wait for the UI.
+    const dropped = syncEpisodesFromShowInfo();
+    if(dropped.length) lastDroppedEpisodes = dropped;
+    const panel = document.getElementById('ep-panel');
+    const info = refreshDerivedInfo();
+
+    if(!panel) return;
+    // The episode list is the input for Production's shoot-day total, which drives BOTH views,
+    // so it stays visible in either one -- only the month view renders episodes as pills.
+    panel.style.display = '';
+
+    const warn = document.getElementById('ep-panel-warn');
+    const rowsWrap = document.getElementById('episode-rows');
+    if(!info.complete){
+      if(warn){
+        warn.style.display = '';
+        warn.innerHTML = 'Complete <strong>Show Info</strong> to schedule Production \u2014 missing: ' +
+                         info.missing.map(m=>escHtml(m)).join(', ') + '.';
+      }
+      if(rowsWrap) rowsWrap.innerHTML = '';
+      return;
+    }
+    if(warn){
+      // Warn once about episodes discarded by a lowered episode count.
+      if(lastDroppedEpisodes.length){
+        warn.style.display = '';
+        warn.innerHTML = 'Removed ' + lastDroppedEpisodes.map(n=>'<strong>'+escHtml(n)+'</strong>').join(', ')
+          + ' \u2014 lowering the episode count discarded '
+          + (lastDroppedEpisodes.length===1?'an episode you had edited':'episodes you had edited') + '.';
+        lastDroppedEpisodes = [];
+      } else {
+        warn.style.display = 'none';
+      }
+    }
+    renderEpisodeRows();
+  }
+
+  // Lay episodes out across Production's shoot days, back to back: the first episode takes the
+  // first N shoot days, the next takes the following N, and so on. Episodes without a day
+  // count are skipped rather than guessed at.
+  function episodeSpans(schedule){
+    if(!showInfoStatus().complete) return [];   // nothing reliable to lay out
+    const prod = (schedule.segments||[]).find(s=>s.key==='production');
+    if(!prod || !prod.shootDays || !prod.shootDays.length) return [];
+    const spans = [];
+    let cursor = 0;
+    episodeDefs.forEach(e=>{
+      const n = parseInt(e.days, 10);
+      if(!Number.isFinite(n) || n <= 0) return;
+      const days = prod.shootDays.slice(cursor, cursor + n);
+      if(!days.length) return;
+      spans.push({ name:e.name || '', days: new Set(days) });
+      cursor += n;
+    });
+    return spans;
   }
 
   // Mirrors the actual Excel export layout: year-blocks side by side, same column
@@ -1949,7 +2507,6 @@
       ws.pageSetup.orientation = orientation;
     }
 
-
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const url = URL.createObjectURL(blob);
@@ -2234,16 +2791,48 @@
     if(hint) hint.style.display = locked ? 'block' : 'none';
   }
 
-  document.getElementById('view-list-btn').addEventListener('click', ()=>{
-    viewMode = 'list';
-    document.getElementById('view-list-btn').classList.add('active');
-    document.getElementById('view-sheet-btn').classList.remove('active');
-    render(currentSchedule);
-  });
-  document.getElementById('view-sheet-btn').addEventListener('click', ()=>{
-    viewMode = 'sheet';
-    document.getElementById('view-sheet-btn').classList.add('active');
-    document.getElementById('view-list-btn').classList.remove('active');
+  function setViewMode(mode){
+    viewMode = mode;
+    ['sheet','month'].forEach(m=>{
+      const b = document.getElementById('view-'+m+'-btn');
+      if(b) b.classList.toggle('active', m===mode);
+    });
+    refreshEpisodesUI();
+    update();
+  }
+
+  // Episodes panel wiring. Delegated from the phase-rows container because the panel lives
+  // inside the Production row, which is rebuilt by buildPhaseRows().
+  (function(){
+    const host = document.getElementById('phase-rows');
+    if(!host) return;
+    host.addEventListener('input', (e)=>{
+      const row = e.target.closest('.episode-row');
+      if(!row) return;
+      const def = episodeDefs.find(x=>x.id === row.dataset.id);
+      if(!def) return;
+      // Typing in a field marks it user-owned so autofill stops managing it.
+      if(e.target.classList.contains('ep-name')){ def.name = e.target.value; def.nameEdited = true; }
+      if(e.target.classList.contains('ep-days')){ def.days = e.target.value; def.daysEdited = true; }
+      // Episode day-counts sum into Production's shoot-day total, so this changes the whole
+      // schedule -- recompute rather than just re-rendering.
+      refreshDerivedInfo();
+      update();
+    });
+
+  })();
+
+  document.getElementById('view-sheet-btn').addEventListener('click', ()=> setViewMode('sheet'));
+  document.getElementById('view-month-btn').addEventListener('click', ()=> setViewMode('month'));
+
+  // Month navigation (delegated: the grid is re-rendered on every change).
+  document.getElementById('table-wrap').addEventListener('click', (e)=>{
+    if(viewMode !== 'month') return;
+    const prev = e.target.closest('#mv-prev');
+    const next = e.target.closest('#mv-next');
+    if(!prev && !next) return;
+    const step = prev ? -1 : 1;
+    monthCursor = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth()+step, 1));
     render(currentSchedule);
   });
 
@@ -2271,9 +2860,10 @@
     update();
   });
   document.getElementById('show-union-holidays').addEventListener('change', update);
-  document.getElementById('show-title').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); markDirty(); });
-  document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); });
-  document.getElementById('num-episodes').addEventListener('input', ()=>{ if(viewMode==='sheet') render(currentSchedule); });
+  document.getElementById('show-title').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
+  document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
+  document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
+  document.getElementById('num-episodes').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
   document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
   document.getElementById('reset-btn').addEventListener('click', ()=>{
@@ -2293,8 +2883,11 @@
     lastCountry = '';
     document.getElementById('show-union-holidays').checked = true;
     document.getElementById('show-title').value = '';
+    document.getElementById('season-num').value = '';
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
+    episodeDefs = []; episodeCounter = 0;
+    refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     noteColors = {}; hiatusTexts = {}; hiatusColors = {};
@@ -2362,6 +2955,8 @@
     const stateSnapshot = {
       customPhaseDefs: customPhaseDefs,
       customPhaseCounter: customPhaseCounter,
+      episodeDefs: episodeDefs,
+      episodeCounter: episodeCounter,
       userNotes: userNotes,
       headerMode: headerMode,
       headerManual: headerManual,
@@ -2564,7 +3159,7 @@
   function writeBackup(){
     try {
       const stateSnapshot = {
-        customPhaseDefs, customPhaseCounter, userNotes, headerMode, headerManual,
+        customPhaseDefs, customPhaseCounter, episodeDefs, episodeCounter, userNotes, headerMode, headerManual,
         noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
       };
       idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
@@ -2857,6 +3452,10 @@
   })();
 
   document.getElementById('export-btn').addEventListener('click', async ()=>{
+    if(viewMode === 'month'){
+      exportMonthPdf();
+      return;
+    }
     if(typeof ExcelJS === 'undefined'){
       alert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
       return;
@@ -2874,6 +3473,72 @@
     }
   });
 
+  // ---------- Month view: export every month to PDF ----------
+  // Uses the browser's own print pipeline (Print -> "Save as PDF"), which is the only way a
+  // single-file, no-dependency tool can produce a real PDF -- and it renders the live DOM, so
+  // the output matches what's on screen rather than being a second implementation that drifts.
+  // Every month from the first phase to the last is rendered into a print-only container, so
+  // the PDF spans the whole schedule rather than just the month being viewed.
+  function monthRangeForSchedule(schedule){
+    const segs = (schedule.segments || []);
+    if(!segs.length) return null;
+    let min = Infinity, max = -Infinity;
+    segs.forEach(s=>{
+      min = Math.min(min, s.start.getTime());
+      // `end` is exclusive, so step back a day to get the last day actually covered -- a phase
+      // ending on the 1st shouldn't drag in a whole extra month.
+      max = Math.max(max, addDays(s.end, -1).getTime());
+    });
+    (schedule.hiatuses||[]).forEach(h=>{
+      if(segs.some(s=> h.start < s.end && h.end > s.start)){
+        min = Math.min(min, h.start.getTime());
+        max = Math.max(max, addDays(h.end, -1).getTime());
+      }
+    });
+    if(!Number.isFinite(min) || !Number.isFinite(max)) return null;
+    const a = new Date(min), b = new Date(max);
+    return {
+      first: new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1)),
+      last:  new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), 1))
+    };
+  }
+
+  function exportMonthPdf(){
+    const range = monthRangeForSchedule(currentSchedule);
+    if(!range){
+      alert('Add at least one phase with a start date before exporting the calendar.');
+      return;
+    }
+    const host = document.getElementById('print-root');
+    if(!host) return;
+    const savedCursor = monthCursor;   // restore the on-screen month afterwards
+
+    let html = '';
+    let cur = new Date(range.first.getTime());
+    let guard = 0;
+    while(cur <= range.last && guard++ < 240){
+      monthCursor = new Date(cur.getTime());
+      html += '<div class="print-page">' + renderMonthView(currentSchedule) + '</div>';
+      cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 1));
+    }
+    host.innerHTML = html;
+
+    // Restore live state before the dialog opens, so what's on screen is unaffected.
+    monthCursor = savedCursor;
+    render(currentSchedule);
+
+    document.body.classList.add('printing-calendar');
+    const cleanup = ()=>{
+      document.body.classList.remove('printing-calendar');
+      host.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+    // Safety net: afterprint isn't fired reliably by every browser.
+    setTimeout(()=>{ if(document.body.classList.contains('printing-calendar')) cleanup(); }, 60000);
+  }
+
   // ---------- Restore saved data when this file was produced by "Save to File" ----------
   function restoreSavedState(){
     const el = document.getElementById('saved-state');
@@ -2883,6 +3548,14 @@
     if(!snap || typeof snap !== 'object') return;
 
     // 1. Rebuild custom phase rows, then set their saved counter
+    if(Array.isArray(snap.episodeDefs)){
+      episodeDefs = snap.episodeDefs.map(e=>({
+        id: e.id || ('ep'+(++episodeCounter)),
+        name: e.name || '', days: (e.days===undefined?'':e.days),
+        nameEdited: !!e.nameEdited, daysEdited: !!e.daysEdited
+      }));
+      if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
+    }
     if(Array.isArray(snap.customPhaseDefs) && snap.customPhaseDefs.length){
       document.getElementById('custom-phase-rows').innerHTML = '';
       customPhaseDefs = [];
@@ -2960,14 +3633,16 @@
     if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
-    if(snap.viewMode === 'list'){
-      viewMode = 'list';
-      document.getElementById('view-list-btn').classList.add('active');
-      document.getElementById('view-sheet-btn').classList.remove('active');
-    } else if(snap.viewMode === 'sheet'){
-      viewMode = 'sheet';
-      document.getElementById('view-sheet-btn').classList.add('active');
-      document.getElementById('view-list-btn').classList.remove('active');
+    if(snap.viewMode === 'sheet' || snap.viewMode === 'month'){
+      viewMode = snap.viewMode;
+    } else if(snap.viewMode === 'list'){
+      viewMode = 'sheet';   // List view was removed; fall back to the waterfall.
+    }
+    {
+      ['sheet','month'].forEach(m=>{
+        const b = document.getElementById('view-'+m+'-btn');
+        if(b) b.classList.toggle('active', m===viewMode);
+      });
     }
   }
 
@@ -2988,6 +3663,7 @@
 
   restoreSavedState();
   lastCountry = document.getElementById('union-country').value;
+  refreshEpisodesUI();
   update();
 
   // Initial load/restore is done -- from here on, changes are real user edits.
@@ -3041,5 +3717,6 @@
   })();
 })();
 </script>
+<div id="print-root" aria-hidden="true"></div>
 </body>
 </html>
