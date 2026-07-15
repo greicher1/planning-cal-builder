@@ -1,1 +1,1 @@
-# spt-planning-cal-builder
+# planning-cal-builder
