@@ -187,6 +187,15 @@
 
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
+  .mv-tools{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+  #mv-hdr-mode-btn{
+    font-size:10px; padding:3px 8px;
+    border:1px solid var(--border-strong); border-radius:6px; background:var(--bg);
+    color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  #mv-hdr-mode-btn:hover{ color:var(--text); background:#fff; }
+  #mv-hdr-mode-btn.is-manual{ border-color:#7030A0; color:#7030A0; background:#f6effb; }
+  .mv-header.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; border-radius:8px; padding:8px; }
   .mv-header{ margin-bottom:14px; }
   /* Title sits centred while the date is pinned right: the spacer mirrors the date's width so
      the title stays optically centred on the page rather than being pushed left by it. */
@@ -194,23 +203,32 @@
   .mv-title{ flex:1; text-align:center; font-size:22px; font-weight:700; }
   .mv-today{ font-size:20px; font-weight:700; color:#000; white-space:nowrap; }
   .mv-titlebar::before{ content:''; flex:0 0 auto; width:var(--mv-today-w, 84px); }
-  .mv-nav{ display:flex; align-items:center; justify-content:center; gap:16px; }
-  .mv-monthyear{ font-size:17px; font-weight:600; min-width:190px; }
   .mv-arrow{
     font-family:inherit; font-size:13px; line-height:1; cursor:pointer;
     border:1px solid var(--border-strong); background:#fff; color:var(--text-muted);
     border-radius:6px; padding:6px 10px;
   }
-  .mv-arrow:hover{ background:var(--bg); color:var(--text); }
-  .mv-dowrow{ display:grid; grid-template-columns:repeat(7,1fr); }
+  .mv-arrow:hover:not(:disabled){ background:var(--bg); color:var(--text); }
+  .mv-arrow:disabled{ opacity:.3; cursor:default; }
+  /* The month/year sits in a box that's part of the grid: it shares the calendar's black
+     border and butts directly onto the day-name row, so the whole thing reads as one table
+     rather than a floating label above a separate grid. */
+  .mv-monthbar{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    background:#EDEDED; border:1px solid #000; border-bottom:none;
+    padding:7px 10px;
+  }
+  .mv-monthyear{ font-size:17px; font-weight:700; letter-spacing:.01em; }
+  .mv-dowrow{ display:grid; grid-template-columns:repeat(7,1fr); background:#F7F7F7;
+    border:1px solid #000; border-bottom:none; }
   .mv-dow{
     text-align:center; font-size:11px; font-weight:700; color:var(--text-muted);
     padding:6px 0; text-transform:uppercase; letter-spacing:.04em;
   }
   /* Each week is a row: the day-number grid sits underneath, and phase pills are laid over it
      in the same 7-column track so a bar can span multiple days as one continuous shape. */
-  .mv-body{ border:1px solid #D4D4D4; border-top:none; }
-  .mv-week{ position:relative; border-top:1px solid #D4D4D4; min-height:104px; }
+  .mv-body{ border:1px solid #000; border-top:none; }
+  .mv-week{ position:relative; border-top:1px solid #000; min-height:104px; }
   .mv-week:first-child{ border-top:none; }
   /* The day-number grid is the background layer: it fills the row so the cell shading and
      dividers cover the full height, whatever that height ends up being. */
@@ -218,7 +236,7 @@
     position:absolute; inset:0;
     display:grid; grid-template-columns:repeat(7,1fr);
   }
-  .mv-daycell{ border-left:1px solid #E8E8E8; padding:3px 5px; }
+  .mv-daycell{ border-left:1px solid #000; padding:3px 5px; }
   .mv-daycell:first-child{ border-left:none; }
   .mv-daynum{ font-size:11px; font-weight:600; color:#333; }
   .mv-out{ background:#FAFAF9; }
@@ -229,7 +247,7 @@
   .mv-bars{
     position:relative; z-index:1;
     display:grid; grid-template-columns:repeat(7,1fr);
-    gap:2px 0; padding:20px 3px 6px;
+    gap:2px 0; padding:24px 3px 6px;
     pointer-events:none;
   }
   .mv-bar{
@@ -282,6 +300,7 @@
     #print-root .mv-week{ flex:1; }
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
+    #print-root .mv-tools{ display:none !important; }
     /* Phase colours are the whole point of this document, so keep them. */
     *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
   }
@@ -472,7 +491,7 @@
     <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
     <button class="tb-btn primary" id="export-btn" type="button" disabled>Export to Excel</button>
     <span class="save-status" id="save-status"></span>
-    <button class="tb-btn danger" id="reset-btn" type="button">Reset</button>
+    <button class="tb-btn danger" id="reset-btn" type="button">Reset All</button>
   </div>
 </header>
 
@@ -629,9 +648,10 @@
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>You can edit any note.</strong> In Waterfall view, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted.</p>
+      <p><strong>You can edit any note.</strong> In Waterfall view, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Waterfall view vs. Month view</h3>
+      <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
       <p>Toggle at the top of the preview. <strong>Waterfall view</strong> mirrors the Excel export &mdash; a week-by-week grid with editable notes &mdash; and is the default. <strong>Month view</strong> is a day-by-day calendar where phases run as bars across the days they cover; Production shows as individual episodes.</p>
 
       <h3>Exporting</h3>
@@ -1031,7 +1051,15 @@
           const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
           const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-start)/DAY_MS/7) + 1;
           end = addDays(start, weeksNeeded*7);
-          weeksForSegment = weeksNeeded;
+          // The calendar labels Production "wk 1, wk 2..." only on weeks it actually works --
+          // hiatus weeks are stop-work and get a Hiatus band instead. Count the same way here
+          // so the hint agrees with the grid rather than counting elapsed calendar weeks.
+          let workedWeeks = 0;
+          for(let wkStart = new Date(start.getTime()); wkStart < end; wkStart = addDays(wkStart, 7)){
+            const inHiatus = hiatuses.some(h=> wkStart>=h.start && wkStart<h.end);
+            if(!inHiatus) workedWeeks++;
+          }
+          weeksForSegment = workedWeeks;
           productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
           shootDaysForSegment = sim.shootDays;
         } else {
@@ -1362,17 +1390,29 @@
       const cfg = readCfgForMeta(p.key);
       const metaEl = document.getElementById('meta-'+p.key);
       const unitWord = p.inputMode==='days' ? 'shooting day count' : 'week count';
+      // Read the ACTUAL computed segment rather than re-deriving anything here. The real
+      // schedule walks day by day around weekends, union holidays and hiatus and pushes the
+      // end out to still deliver the full count, so a naive days/5 estimate drifts from the
+      // calendar -- exactly the sort of quiet disagreement this hint is meant to prevent.
+      const seg = (schedule.segments || []).find(s=>s.key===p.key);
       if(cfg==='invalid'){
         metaEl.textContent = `Check that year — doesn't look right`;
         metaEl.style.color = 'var(--danger)';
       } else if(cfg){
-        const start = mondayOf(parseDateUTC(cfg.start));
-        const end = addDays(start, cfg.weeks*7 - 1);
+        // Prefer the real computed segment; fall back to the raw entry only if the schedule
+        // hasn't produced one (e.g. the range was rejected as too large).
+        const start = seg ? seg.start : mondayOf(parseDateUTC(cfg.start));
+        const weeks = seg ? seg.weeks : cfg.weeks;
+        const end = seg ? addDays(seg.end, -1) : addDays(start, cfg.weeks*7 - 1);
         let note;
         if(p.inputMode==='days'){
-          note = `${cfg.rawValue} shoot day${cfg.rawValue===1?'':'s'} \u2192 ${cfg.weeks} wk \u00b7 ${fmtShort(start)} \u2192 ${fmtShort(end)}`;
+          // For Production the meaningful end is the last actual SHOOT day, not the end of the
+          // week block it happens to sit in.
+          const lastDay = (schedule.productionInfo && schedule.productionInfo.lastShootDay)
+            ? schedule.productionInfo.lastShootDay : end;
+          note = `${cfg.rawValue} shoot day${cfg.rawValue===1?'':'s'} \u2192 ${weeks} wk \u00b7 ${fmtShort(start)} \u2192 ${fmtShort(lastDay)}`;
         } else {
-          note = `${fmtShort(start)} \u2192 ${fmtShort(end)} (${cfg.weeks} wk)`;
+          note = `${fmtShort(start)} \u2192 ${fmtShort(end)} (${weeks} wk)`;
         }
         if(cfg.start !== start.toISOString().slice(0,10)){
           note += ` \u00b7 snapped to Mon ${fmtShort(start)}`;
@@ -1422,14 +1462,10 @@
     const start = schedule.weeks[0].date;
     const lastWeek = schedule.weeks[totalWeeks-1].date;
     const end = addDays(lastWeek, 6);
-    const yearBlocks = computeYearBlocks(schedule.weeks);
-    const blockCount = yearBlocks.length;
-
     summaryEl.innerHTML = `
       <div class="stat"><div class="num">${totalWeeks}</div><div class="lbl">Total weeks</div></div>
       <div class="stat"><div class="num">${fmtShort(start)}</div><div class="lbl">Start</div></div>
       <div class="stat"><div class="num">${fmtShort(end)}</div><div class="lbl">End</div></div>
-      <div class="stat"><div class="num">${blockCount}</div><div class="lbl">Year column${blockCount===1?'':'s'} in export</div></div>
     `;
 
     // timeline strip: one representative color per week, hiatus shown as a hatch overlay
@@ -1470,6 +1506,10 @@
   //  - Every other phase is measured in weeks, so we color its weekdays (Mon-Fri) and leave
   //    weekends blank -- a purely visual rule; the schedule math is untouched.
   let monthCursor = null; // first-of-month currently displayed (UTC)
+  // While building the PDF we walk every month in turn. That deliberately ignores the
+  // range-clamp the live view applies, so it's kept in its own variable rather than fighting
+  // monthCursor for control.
+  let printingCursor = null;
 
   function isoOf(d){ return d.toISOString().slice(0,10); }
 
@@ -1541,15 +1581,24 @@
     if(!segs.length && !(schedule.weeks||[]).length){
       return '<div class="month-empty">Enter phase dates to see the calendar.</div>';
     }
-    // Default the cursor to the month the schedule starts in.
-    if(!monthCursor){
-      const first = segs.length
-        ? new Date(Math.min.apply(null, segs.map(s=>s.start.getTime())))
-        : (schedule.overallStart || new Date());
-      monthCursor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1));
+    // Pick the month to show. The cursor persists across renders so paging survives edits,
+    // but it must not survive a schedule that has moved somewhere else entirely -- otherwise
+    // resetting or opening a different file leaves the view parked on an empty month far away,
+    // which reads as the toggle being broken. If it falls outside the schedule, snap it back.
+    const range = monthRangeForSchedule(schedule);
+    if(printingCursor){
+      // Printing walks every month deliberately: no clamping.
+    } else if(range){
+      if(!monthCursor || monthCursor < range.first || monthCursor > range.last){
+        monthCursor = new Date(range.first.getTime());
+      }
+    } else if(!monthCursor){
+      const base = schedule.overallStart || new Date();
+      monthCursor = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1));
     }
-    const year = monthCursor.getUTCFullYear();
-    const month = monthCursor.getUTCMonth();
+    const cursor = printingCursor || monthCursor;
+    const year = cursor.getUTCFullYear();
+    const month = cursor.getUTCMonth();
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     // Header title carries the season as a short suffix, e.g. "Show Name S2".
     const rawTitle = (document.getElementById('show-title').value || '').trim();
@@ -1563,7 +1612,7 @@
 
     // Grid starts on the Monday on/before the 1st.
     const first = new Date(Date.UTC(year, month, 1));
-    const lead = (first.getUTCDay() + 6) % 7; // Mon=0 ... Sun=6
+    const lead = first.getUTCDay(); // Sun=0 ... Sat=6 -- weeks run Sunday to Saturday
     const gridStart = addDays(first, -lead);
     const daysInMonth = new Date(Date.UTC(year, month+1, 0)).getUTCDate();
     const weekCount = Math.ceil((lead + daysInMonth)/7);
@@ -1572,7 +1621,7 @@
     const laneSegs = segs.slice().sort((a,b)=> a.start - b.start);
     const epSpans = episodeSpans(schedule);
 
-    const dowNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
 
     let rows = '';
@@ -1592,12 +1641,15 @@
 
       let bars = '';
 
-      // Hiatus first: a full-width stop-work band across the days it covers.
+      // Hiatus first: a full-width stop-work band across the days it covers. Spillover days
+      // (the greyed-out neighbours from the previous/next month that fill the first and last
+      // rows) show the schedule too: a cell states what's true of its DATE, so a hiatus running
+      // Dec 28 - Jan 2 must look continuous on both pages rather than stopping at the 31st.
       const hiRuns = [];
       let hrun = null;
       for(let i=0;i<7;i++){
         const d = addDays(weekStart, i);
-        if(isHiatusDate(schedule, d) && d.getUTCMonth()===month){
+        if(isHiatusDate(schedule, d)){
           if(!hrun) hrun = {startCol:i, endCol:i, date:d}; else hrun.endCol = i;
         } else if(hrun){ hiRuns.push(hrun); hrun = null; }
       }
@@ -1618,9 +1670,6 @@
         const replacedByEpisodes = (s.key === 'production' && epSpans.length > 0);
         if(!replacedByEpisodes){
           pillRunsForWeek(schedule, weekStart, s).forEach(r=>{
-            let anyInMonth = false;
-            for(let i=r.startCol;i<=r.endCol;i++){ if(addDays(weekStart,i).getUTCMonth()===month){ anyInMonth = true; break; } }
-            if(!anyInMonth) return;
             const bg = s.color || '#eee';
             const fg = s.textColor || textColorFor(bg);
             const lbl = segPillLabel(s, r.date);
@@ -1643,19 +1692,37 @@
             }
             if(run) runs.push(run);
             runs.forEach(r=>{
-              let anyInMonth = false;
-              for(let i=r.startCol;i<=r.endCol;i++){ if(addDays(weekStart,i).getUTCMonth()===month){ anyInMonth = true; break; } }
-              if(!anyInMonth) return;
               bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${bg}; color:${fg};" title="${escHtml(ep.name)}">${escHtml(ep.name)}</div>`;
             });
           });
         }
       });
 
+      // Simultaneous Post: a per-week band, exactly as in the waterfall view. Read the flag the
+      // schedule already computed (active from N weeks into Production, suppressed during
+      // hiatus) rather than recomputing it here -- two implementations would drift.
+      const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(weekStart)));
+      if(wkRec && wkRec.simPost){
+        // It applies to the working week, so it spans the same weekdays a week-based phase
+        // would: Mon-Fri, leaving the weekends clear.
+        let sp = null;
+        const spRuns = [];
+        for(let i=0;i<7;i++){
+          const d = addDays(weekStart, i);
+          const dow = d.getUTCDay();
+          const working = (dow>=1 && dow<=5) && !isHiatusDate(schedule, d);
+          if(working){ if(!sp) sp = {startCol:i, endCol:i}; else sp.endCol = i; }
+          else if(sp){ spRuns.push(sp); sp = null; }
+        }
+        if(sp) spRuns.push(sp);
+        spRuns.forEach(r=>{
+          bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};" title="Simultaneous Post">Simultaneous Post</div>`;
+        });
+      }
+
       // Notes last: square purple blocks under the phase pills.
       for(let i=0;i<7;i++){
         const d = addDays(weekStart, i);
-        if(d.getUTCMonth() !== month) continue;
         const notes = notesForDate(schedule, d);
         if(!notes.length) continue;
         // Note highlight colours are stored per WEEK (keyed by that week's Monday).
@@ -1672,17 +1739,39 @@
       </div>`;
     }
 
+    // Month header lines. In Auto they mirror Show Info; in Manual they're an editable
+    // snapshot. Kept separate from the waterfall header's mode on purpose.
+    const mvDefaults = {
+      title: (title ? title + ' ' : '') + 'Full Prelim Production Calendar',
+      today: todayStr
+    };
+    const mvManual = mvHeaderMode === 'manual';
+    const mvLine = (id, cls) => {
+      const val = mvManual
+        ? (mvHeaderManual[id] !== undefined ? mvHeaderManual[id] : mvDefaults[id])
+        : mvDefaults[id];
+      const empty = val ? '' : ' hdr-empty';
+      const editable = mvManual ? ' contenteditable="true"' : '';
+      const editCls = mvManual ? ' hdr-editable' : '';
+      return `<div class="hdr-line ${cls}${empty}${editCls}" data-mvhid="${id}"${editable} spellcheck="false">${escHtml(val)}</div>`;
+    };
+
     return `<div class="month-view">
-      <div class="mv-header">
+      <div class="mv-tools">
+        <button id="mv-hdr-mode-btn" class="${mvManual?'is-manual':''}" type="button"
+          title="${mvManual?'Discard manual header edits and return to auto-filled values':'Take over the month header: snapshot the current values into editable lines'}"
+          >${mvManual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
+      </div>
+      <div class="mv-header${mvManual?' hdr-manual-mode':''}">
         <div class="mv-titlebar">
-          <div class="mv-title">${title ? escHtml(title) + ' ' : ''}Planning Calendar</div>
-          <div class="mv-today">${escHtml(todayStr)}</div>
+          ${mvLine('title','mv-title')}
+          ${mvLine('today','mv-today')}
         </div>
-        <div class="mv-nav">
-          <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month">&#9664;</button>
-          <div class="mv-monthyear">${MONTHS[month]} ${year}</div>
-          <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month">&#9654;</button>
-        </div>
+      </div>
+      <div class="mv-monthbar">
+        <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month"${(range && cursor <= range.first) ? ' disabled' : ''}>&#9664;</button>
+        <div class="mv-monthyear">${MONTHS[month]} ${year}</div>
+        <button class="mv-arrow" id="mv-next" type="button" aria-label="Next month"${(range && cursor >= range.last) ? ' disabled' : ''}>&#9654;</button>
       </div>
       <div class="mv-dowrow">${head}</div>
       <div class="mv-body">${rows}</div>
@@ -2021,6 +2110,38 @@
     if(e.key==='Enter' && e.target.closest && e.target.closest('.hdr-line')){
       e.preventDefault(); e.target.blur();
     }
+  });
+
+  // Month-view header: mode toggle + capturing edits. Independent of the waterfall header.
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    if(e.target && e.target.id === 'mv-hdr-mode-btn'){
+      if(mvHeaderMode === 'auto'){
+        // Snapshot the current auto values so they become the starting point for editing.
+        const rawTitle = (document.getElementById('show-title').value || '').trim();
+        const seasonVal = (document.getElementById('season-num').value || '').trim();
+        const t = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
+        const now = new Date();
+        mvHeaderManual = {
+          title: (t ? t + ' ' : '') + 'Full Prelim Production Calendar',
+          today: (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0') + '.' + String(now.getFullYear()).slice(2)
+        };
+        mvHeaderMode = 'manual';
+      } else {
+        mvHeaderMode = 'auto';
+        mvHeaderManual = {};
+      }
+      render(currentSchedule);
+      markDirty();
+    }
+  });
+  document.getElementById('table-wrap').addEventListener('focusout', e=>{
+    const line = e.target && e.target.closest ? e.target.closest('.hdr-line[data-mvhid]') : null;
+    if(!line || mvHeaderMode !== 'manual') return;
+    const id = line.dataset.mvhid;
+    const text = line.textContent.replace(/\s+/g,' ').trim();
+    if((mvHeaderManual[id] || '') === text) return;
+    mvHeaderManual[id] = text;
+    markDirty();
   });
 
   document.getElementById('table-wrap').addEventListener('click', e=>{
@@ -2733,6 +2854,11 @@
   // the seven editable lines when in manual mode.
   let headerMode = 'auto';
   let headerManual = {}; // { left, c1, c2, c3, r1, r2, r3 }
+  // The month view has its own header with its own auto/manual switch. It's deliberately
+  // INDEPENDENT of the waterfall header above: the two documents are printed separately and
+  // often want different wording, so taking one manual never touches the other.
+  let mvHeaderMode = 'auto';
+  let mvHeaderManual = {}; // { title, today }
 
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
@@ -2832,7 +2958,11 @@
     const next = e.target.closest('#mv-next');
     if(!prev && !next) return;
     const step = prev ? -1 : 1;
-    monthCursor = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth()+step, 1));
+    const target = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth()+step, 1));
+    // Don't page off the end of the schedule into empty months.
+    const range = monthRangeForSchedule(currentSchedule);
+    if(range && (target < range.first || target > range.last)) return;
+    monthCursor = target;
     render(currentSchedule);
   });
 
@@ -2866,7 +2996,9 @@
   document.getElementById('num-episodes').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
   document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
-  document.getElementById('reset-btn').addEventListener('click', ()=>{
+  // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as
+  // part of starting a blank file, and does its own prompting -- doesn't ask twice.
+  function resetAll(){
     PHASES.forEach(p=>{
       document.getElementById('start-'+p.key).value='';
       document.getElementById('weeks-'+p.key).value='';
@@ -2889,9 +3021,22 @@
     episodeDefs = []; episodeCounter = 0;
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {};
+    mvHeaderMode = 'auto'; mvHeaderManual = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     noteColors = {}; hiatusTexts = {}; hiatusColors = {};
     update();
+  }
+
+  document.getElementById('reset-btn').addEventListener('click', ()=>{
+    const ok = confirm(
+      'Reset All will clear this calendar completely:\n\n' +
+      '\u2022 every phase, date and duration\n' +
+      '\u2022 Show Info, season and the episode list\n' +
+      '\u2022 all notes, hiatus bands and colour edits\n' +
+      '\u2022 the union country and header text\n\n' +
+      'Any saved file on disk is left untouched \u2014 this only clears what\u2019s on screen. Continue?'
+    );
+    if(ok) resetAll();
   });
   // ---------- Save to File: snapshot current data into a self-contained HTML copy ----------
   // Reflect every live input/select/textarea value into its HTML attributes so that,
@@ -2960,6 +3105,8 @@
       userNotes: userNotes,
       headerMode: headerMode,
       headerManual: headerManual,
+      mvHeaderMode: mvHeaderMode,
+      mvHeaderManual: mvHeaderManual,
       noteColors: noteColors,
       hiatusTexts: hiatusTexts,
       hiatusColors: hiatusColors,
@@ -3160,6 +3307,7 @@
     try {
       const stateSnapshot = {
         customPhaseDefs, customPhaseCounter, episodeDefs, episodeCounter, userNotes, headerMode, headerManual,
+        mvHeaderMode, mvHeaderManual,
         noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
       };
       idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
@@ -3319,7 +3467,7 @@
     activeFileId = null;
     persistRecents();
     suppressDirty = true;
-    document.getElementById('reset-btn').click(); // reuse the full reset
+    resetAll(); // full reset without the button's own confirm (New already prompted)
     suppressDirty = false;
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
     idbSet(BACKUP_KEY, undefined);
@@ -3511,32 +3659,60 @@
     }
     const host = document.getElementById('print-root');
     if(!host) return;
-    const savedCursor = monthCursor;   // restore the on-screen month afterwards
+    const savedCursor = monthCursor;
 
-    let html = '';
-    let cur = new Date(range.first.getTime());
-    let guard = 0;
-    while(cur <= range.last && guard++ < 240){
-      monthCursor = new Date(cur.getTime());
-      html += '<div class="print-page">' + renderMonthView(currentSchedule) + '</div>';
-      cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 1));
+    // Clear any leftovers from an export that didn't finish cleanly, otherwise a stuck
+    // `printing-calendar` class hides the whole app and the next print silently does nothing.
+    document.body.classList.remove('printing-calendar');
+    host.innerHTML = '';
+
+    try {
+      let html = '';
+      let cur = new Date(range.first.getTime());
+      let guard = 0;
+      while(cur <= range.last && guard++ < 240){
+        // printingCursor bypasses the range-clamp in renderMonthView: here we deliberately
+        // walk every month in turn, and the clamp would keep snapping us back to the first.
+        printingCursor = new Date(cur.getTime());
+        html += '<div class="print-page">' + renderMonthView(currentSchedule) + '</div>';
+        cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 1));
+      }
+      host.innerHTML = html;
+    } catch(err){
+      console.error(err);
+      printingCursor = null;
+      monthCursor = savedCursor;
+      host.innerHTML = '';
+      alert('Something went wrong building the calendar for print: ' + err.message);
+      return;
     }
-    host.innerHTML = html;
+    printingCursor = null;
 
-    // Restore live state before the dialog opens, so what's on screen is unaffected.
+    // Restore the live view. Guarded: if this throws, the print must still happen -- the
+    // document is already built, and failing here would mean no dialog and no explanation.
     monthCursor = savedCursor;
-    render(currentSchedule);
+    try { render(currentSchedule); } catch(err){ console.error(err); }
 
     document.body.classList.add('printing-calendar');
+    let done = false;
     const cleanup = ()=>{
+      if(done) return;
+      done = true;
       document.body.classList.remove('printing-calendar');
       host.innerHTML = '';
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
-    window.print();
+    try {
+      window.print();
+    } catch(err){
+      console.error(err);
+      cleanup();
+      alert('The browser blocked the print dialog: ' + err.message);
+      return;
+    }
     // Safety net: afterprint isn't fired reliably by every browser.
-    setTimeout(()=>{ if(document.body.classList.contains('printing-calendar')) cleanup(); }, 60000);
+    setTimeout(cleanup, 60000);
   }
 
   // ---------- Restore saved data when this file was produced by "Save to File" ----------
@@ -3620,6 +3796,10 @@
     }
     // 4b. Restore header mode + manual lines. Old saves used per-line headerOverrides;
     //     migrate any of those into manual mode so they aren't lost.
+    if(snap.mvHeaderMode === 'manual' || (snap.mvHeaderManual && Object.keys(snap.mvHeaderManual).length)){
+      mvHeaderMode = 'manual';
+      mvHeaderManual = Object.assign({}, snap.mvHeaderManual || {});
+    }
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';
       headerManual = Object.assign({}, snap.headerManual || {});
