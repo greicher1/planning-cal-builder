@@ -1847,21 +1847,21 @@
             escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
             `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`);
         });
-        const own = dayNotes[dIso];
-        if(own && own.text){
-          const oc = dayNoteColors[dIso] || MILESTONE_COLOR;
-          // Respect the line the note was added on. `place` searches downward from the
-          // preferred lane, so if a phase has since taken it the note lands just below rather
-          // than jumping to the top of the block.
-          const want = (own.lane != null) ? own.lane : 0;
-          String(own.text).split('\n').filter(Boolean).forEach((t, li)=>{
+        // This day's own notes: month-view only, each independently editable with its own
+        // line and colour. The index ties a block back to its entry for editing.
+        const ownList = dayNoteList(dIso);
+        ownList.forEach((entry, ni)=>{
+          const oc = entry.color || MILESTONE_COLOR;
+          const want = (entry.lane != null) ? entry.lane : 0;
+          String(entry.text || '').split('\n').filter(Boolean).forEach((t, li)=>{
             place(i, i, 'mv-bar mv-note-block mv-note-click',
               `background:${oc}; color:${textColorFor(oc)};`,
               escHtml(t) + ' \u2014 click to edit (month view only)', escHtml(t),
-              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day"`,
+              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
               want + li);
           });
-        }
+        });
+        // An "add note" affordance on free lines (added below for every day).
       }
 
       // How tall is this week? At least MV_MIN_LANES, and more if the content needs it --
@@ -2884,11 +2884,19 @@
   const userNotes = {}; // { 'YYYY-MM-DD': {text: string} }  text:'' = auto-note explicitly cleared
   // Month-view-only notes, keyed by DAY. Deliberately separate from userNotes: the waterfall's
   // unit is a week and its Notes column feeds the Excel export, so per-day notes added in the
-  // month view live here and appear only in the month view and its PDF. Keeping the two stores
-  // apart is what lets a day carry its own text and colour without a week-keyed store having
-  // to arbitrate between several days.
-  const dayNotes = {};      // { 'YYYY-MM-DD': {text: string} }
-  let dayNoteColors = {};   // { 'YYYY-MM-DD': '#RRGGBB' }
+  // month view live here and appear only in the month view and its PDF.
+  // Each day holds a LIST -- a date block can carry several independent notes, each remembering
+  // the line it was added on and its own colour. Normalised by dayNoteList() below.
+  const dayNotes = {};      // { 'YYYY-MM-DD': [ {text, lane, color} ] }
+  let dayNoteColors = {};   // legacy per-day colour store, folded in by dayNoteList()
+  // Normalise any stored shape (old single-object saves included) into a list.
+  function dayNoteList(iso){
+    const v = dayNotes[iso];
+    if(!v) return [];
+    if(Array.isArray(v)) return v;
+    if(v.text) return [{text:v.text, lane:(v.lane!=null?v.lane:null), color:dayNoteColors[iso]||null}];
+    return [];
+  }
 
   // Per-cell highlight customization. All keyed by week 'YYYY-MM-DD'; absent = default.
   let noteColors = {};   // note cell fill override (default MILESTONE_COLOR purple)
@@ -4016,7 +4024,7 @@
   }
   function commitMvNoteEditor(){
     if(!activeMvNote) return;
-    const {kind, weekKey, dayIso, lane, textarea, pendingColor} = activeMvNote;
+    const {kind, weekKey, dayIso, lane, editIndex, textarea, pendingColor} = activeMvNote;
     const text = textarea.value.trim();
     if(kind === 'wf'){
       // A waterfall-owned note: write it back to the week store so the Waterfall and the Excel
@@ -4032,15 +4040,19 @@
       }
       if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
     } else {
-      // Keep the line the note was added on: a note should stay where it was put, not jump to
-      // the first free slot on the next render.
-      if(text) dayNotes[dayIso] = (lane != null) ? {text, lane} : {text};
-      else delete dayNotes[dayIso];
-      if(pendingColor && text){
-        if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete dayNoteColors[dayIso];
-        else dayNoteColors[dayIso] = pendingColor;
+      // Day notes are a LIST: editing one note touches only that note, adding creates a new
+      // entry, and committing empty text removes the note -- and with it its highlight.
+      const list = dayNoteList(dayIso).slice();
+      const idx = (editIndex != null && editIndex >= 0 && editIndex < list.length) ? editIndex : -1;
+      if(text){
+        const entry = {text, lane:(lane!=null?lane:null), color:pendingColor || (idx>=0 ? list[idx].color : null) || null};
+        if(entry.color && entry.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) entry.color = null;
+        if(idx >= 0) list[idx] = entry; else list.push(entry);
+      } else if(idx >= 0){
+        list.splice(idx, 1);   // deleting all text removes the note (and its colour with it)
       }
-      if(!text) delete dayNoteColors[dayIso];
+      if(list.length) dayNotes[dayIso] = list;
+      else { delete dayNotes[dayIso]; delete dayNoteColors[dayIso]; }
     }
     closeMvNoteEditor();
     markDirty();
@@ -4051,6 +4063,7 @@
     const isWf = (kind === 'wf');
     // Which line was clicked. Notes remember it so they stay on the line you chose.
     const laneAttr = anchor.style.gridRow ? (parseInt(anchor.style.gridRow, 10) - 1) : null;
+    let editIdx = null;
     // Prefill: a waterfall note shows its current text (auto or overridden); a day note shows
     // its own, and a blank day starts empty.
     let curText, curColor;
@@ -4066,9 +4079,14 @@
       curText = effectiveNoteText(weekKey, autoNotes);
       curColor = noteColors[weekKey] || MILESTONE_COLOR;
     } else {
-      const own = dayNotes[dayIso];
-      curText = own ? (own.text || '') : '';
-      curColor = dayNoteColors[dayIso] || MILESTONE_COLOR;
+      // Editing an existing note (index carried on the clicked block) prefills just that one;
+      // a "+" starts blank. Other notes on the day are untouched either way.
+      const list = dayNoteList(dayIso);
+      const ni = anchor.dataset.noteIndex !== undefined ? parseInt(anchor.dataset.noteIndex, 10) : -1;
+      const entry = (ni >= 0 && ni < list.length) ? list[ni] : null;
+      curText = entry ? (entry.text || '') : '';
+      curColor = (entry && entry.color) || MILESTONE_COLOR;
+      editIdx = entry ? ni : null;
     }
     const swatches = EXCEL_STANDARD_COLORS.map(c =>
       `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
@@ -4089,7 +4107,7 @@
     pop.style.left = Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - 240) + 'px';
     const textarea = pop.querySelector('textarea');
     textarea.focus(); textarea.select();
-    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, textarea, pendingColor:null};
+    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null};
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
       sw.addEventListener('mousedown', e=>e.preventDefault());
       sw.addEventListener('click', e=>{
