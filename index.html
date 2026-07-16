@@ -346,14 +346,19 @@
     body.printing-calendar #print-root{ display:block; }
     #print-root .print-page{
       break-after:page; page-break-after:always;
-      /* Each page is exactly one sheet of printable area. Set inline by the exporter so the
-         grid can stretch to fill it. */
+      /* Each page IS one printed sheet. Height is pinned to the page box itself (100vh, the area
+         inside the @page margins) rather than a px value computed from an assumed DPI -- a px
+         guess that's even a fraction too tall overflows and spills the bottom onto a second,
+         near-empty page. overflow:hidden guarantees no sub-pixel spill. The page is a flex
+         column so the month grid inside it stretches to fill the full sheet, top to bottom. */
+      height:100vh; width:100%; box-sizing:border-box; overflow:hidden;
+      display:flex; flex-direction:column;
     }
     #print-root .print-page:last-child{ break-after:auto; page-break-after:auto; }
-    /* The month grid is the whole page now -- drop the on-screen card chrome. */
+    /* The month grid is the whole page now -- drop the on-screen card chrome, and fill the page. */
     #print-root .month-view{
       border:none; border-radius:0; padding:0;
-      display:flex; flex-direction:column; height:100%;
+      display:flex; flex-direction:column; flex:1 1 auto; min-height:0;
     }
     /* The body takes whatever height the header leaves, and the weeks divide it between them
        in proportion to their lane counts -- so a 4-line row and a 6-line row keep their
@@ -4298,30 +4303,38 @@
     // 4-line rows prints as four equal rows filling the sheet; if one row carries 6 lines of
     // comments it takes proportionally more and the others give way. Everything stays visible
     // and the grid always spans top to bottom.
-    // Landscape Letter minus the 8mm @page margins, at 96dpi.
-    const PAGE_W = (11 - 2*8/25.4) * 96;
-    const PAGE_H = (8.5 - 2*8/25.4) * 96;
+    // Each page's height is pinned by CSS (100vh); here we only set the PROPORTIONS -- a flex
+    // weight per week so the rows divide the sheet between them. A month of 4-line rows prints as
+    // equal rows filling the page; a row carrying 6 lines of comments takes proportionally more
+    // and the others give way. All proportional, so it's independent of the absolute page height.
     try {
       Array.from(host.children).forEach(page=>{
-        page.style.height = PAGE_H + 'px';
-        page.style.width = PAGE_W + 'px';
-        page.style.overflow = 'hidden';
         const weeks = page.querySelectorAll('.mv-week');
         weeks.forEach(wkEl=>{
-          // Lane count for this row: the highest grid-row used by any real bar. The "+" slots
-          // are excluded -- they're hidden on paper, and counting them would report every row
-          // as full-height and flatten the proportions this is meant to preserve.
-          let lanes = 1;
-          wkEl.querySelectorAll('.mv-bar:not(.mv-note-add)').forEach(b=>{
+          // Count ONLY real content -- phases, episode pills, notes, hiatus bands (never the
+          // hidden "+"/expand affordances). Then RE-PACK those bars into gap-free lanes: a note
+          // can still remember a high lane from an earlier manual row-expansion, and if it prints
+          // at lane 6 with lanes 2-5 empty it would inflate the row with blank tracks and, across
+          // a month, push the grid taller than the sheet. Compacting to actual content is exactly
+          // "only scale to real comments and phases".
+          const bars = Array.from(wkEl.querySelectorAll('.mv-bar:not(.mv-note-add):not(.mv-row-expand)'));
+          const usedLanes = Array.from(new Set(
+            bars.map(b=>parseInt(b.style.gridRow, 10)).filter(Number.isFinite)
+          )).sort((a,b)=>a-b);
+          const remap = new Map();
+          usedLanes.forEach((ln, i)=> remap.set(ln, i+1)); // grid-row is 1-based
+          bars.forEach(b=>{
             const gr = parseInt(b.style.gridRow, 10);
-            if(Number.isFinite(gr) && gr > lanes) lanes = gr;
+            if(remap.has(gr)) b.style.gridRow = String(remap.get(gr));
           });
-          // Weight by the row's real height, not the raw lane count: every row also carries
-          // fixed padding for the day numbers, so a 6-lane row is nowhere near 6x the height
-          // of a 1-lane one and weighting by lanes alone would squash the sparse rows.
+          // Row height weight: the compacted content-lane count, floored at MV_MIN_LANES so even
+          // an empty or single-phase row prints full size (uniform 4-line blocks). Plus the fixed
+          // day-number chrome, so a tall row isn't weighted as a naive multiple of a short one.
+          const contentLanes = usedLanes.length;
+          const lanesForHeight = Math.max(contentLanes, MV_MIN_LANES);
           const MV_LANE_PX = 19;      // 17px track + 2px gap
           const MV_ROW_CHROME = 38;   // 24px top padding + 14px bottom
-          const weight = MV_ROW_CHROME + Math.max(lanes, MV_MIN_LANES) * MV_LANE_PX;
+          const weight = MV_ROW_CHROME + lanesForHeight * MV_LANE_PX;
           // Longhands, not the `flex` shorthand: some DOM implementations (jsdom included)
           // silently drop the shorthand, which would leave the rows unweighted and untestable.
           wkEl.style.flexGrow = String(weight);
@@ -4372,8 +4385,12 @@
     if(pop) pop.remove();
     activeMvNote = null;
   }
-  function commitMvNoteEditor(){
-    if(!activeMvNote) return;
+  // Write the active editor's text/colour into the stores WITHOUT re-rendering or closing. Split
+  // out so that opening another note (or clicking a "+") can save the current one first instead
+  // of throwing it away -- re-rendering here would invalidate the anchor the caller is about to
+  // use. Returns true if anything was written.
+  function writeActiveMvNote(){
+    if(!activeMvNote) return false;
     const {kind, weekKey, dayIso, lane, editIndex, textarea, pendingColor} = activeMvNote;
     const text = textarea.value.trim();
     if(kind === 'wf'){
@@ -4392,6 +4409,7 @@
     } else {
       // Day notes are a LIST: editing one note touches only that note, adding creates a new
       // entry, and committing empty text removes the note -- and with it its highlight.
+      // No colour picked = default (purple): stored as null so it renders MILESTONE_COLOR.
       const list = dayNoteList(dayIso).slice();
       const idx = (editIndex != null && editIndex >= 0 && editIndex < list.length) ? editIndex : -1;
       if(text){
@@ -4404,11 +4422,20 @@
       if(list.length) dayNotes[dayIso] = list;
       else { delete dayNotes[dayIso]; delete dayNoteColors[dayIso]; }
     }
+    return true;
+  }
+  function commitMvNoteEditor(){
+    if(!activeMvNote) return;
+    writeActiveMvNote();
     closeMvNoteEditor();
     markDirty();
     render(currentSchedule);
   }
   function openMvNoteEditor(anchor, weekKey, dayIso, kind){
+    // Clicking straight from one note to another "+" (common when clicking "out" onto the grid,
+    // where an invisible per-lane "+" sits) must SAVE the note in progress, not discard it. Write
+    // its data first -- no render, so `anchor` stays valid -- then swap editors.
+    if(activeMvNote){ writeActiveMvNote(); markDirty(); }
     closeMvNoteEditor();
     const isWf = (kind === 'wf');
     // Which line was clicked. Notes remember it so they stay on the line you chose.
