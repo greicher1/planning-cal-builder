@@ -194,10 +194,6 @@
   .stat .num{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;}
   .stat .lbl{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
 
-  .timeline{display:flex; height:34px; border-radius:8px; overflow:hidden; border:1px solid var(--border-strong); margin-bottom:18px;}
-  .timeline .seg{display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:500; overflow:hidden; white-space:nowrap; border-right:1px solid rgba(0,0,0,.08); position:relative;}
-  .timeline .seg:last-child{border-right:none;}
-  .timeline .seg.hiatus-marker{background-image:repeating-linear-gradient(45deg,rgba(255,0,0,.35) 0 4px, transparent 4px 8px);}
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
   .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px; margin-bottom:14px;}
@@ -350,8 +346,12 @@
          inside the @page margins) rather than a px value computed from an assumed DPI -- a px
          guess that's even a fraction too tall overflows and spills the bottom onto a second,
          near-empty page. overflow:hidden guarantees no sub-pixel spill. The page is a flex
-         column so the month grid inside it stretches to fill the full sheet, top to bottom. */
-      height:100vh; width:100%; box-sizing:border-box; overflow:hidden;
+         column so the month grid inside it stretches to fill the full sheet, top to bottom.
+         The 2px padding insets the calendar a hair from the page-box edge: without it the outer
+         frame borders sit exactly on the clip boundary and Chrome trims them to a sub-pixel, so
+         the right/bottom edge lines print thinner than the rest. 2px is imperceptible against the
+         8mm page margin but keeps every frame border fully inside the printable area. */
+      height:100vh; width:100%; box-sizing:border-box; overflow:hidden; padding:2px;
       display:flex; flex-direction:column;
     }
     #print-root .print-page:last-child{ break-after:auto; page-break-after:auto; }
@@ -374,11 +374,13 @@
        render as stable vector strokes every time. */
     #print-root .mv-week{ min-height:0; display:grid !important; grid-template-columns:1fr !important; grid-template-rows:1fr !important; }
     #print-root .mv-daygrid{ position:static !important; grid-area:1 / 1 !important; }
-    /* On screen the lanes are a fixed 17px. In print the row heights are driven by the flex
-       weights above, so the lane track stretches with them -- but the bars themselves keep
-       their natural height and sit at the top of their lane, otherwise a 1-line row would
-       print one enormously tall pill. */
-    #print-root .mv-bars{ grid-area:1 / 1 !important; height:auto; grid-auto-rows:minmax(17px, 1fr); }
+    /* Lanes are content-sized in print (min 17px, grow to fit) -- NOT stretched to equal 1fr
+       tracks. Equal tracks compress every lane to the same height, which clips a note that wraps
+       to two lines (it needs ~34px but a compressed track gives it ~20px). With auto the wrapped
+       note's lane simply grows to hold it. Bars pack to the top of the cell, matching the on-screen
+       month view. The week still fills the sheet (its flex height + the day-grid lines run full
+       height); the bars just sit at the top of that height. */
+    #print-root .mv-bars{ grid-area:1 / 1 !important; height:auto; grid-auto-rows:minmax(17px, auto); align-content:start; }
     #print-root .mv-bar{ align-self:start; }
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
@@ -708,7 +710,6 @@
   <main class="preview-panel">
     <div id="gap-warning"></div>
     <div class="summary-row" id="summary-row"></div>
-    <div id="timeline-wrap"></div>
     <div class="view-toggle" id="view-toggle">
       <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
       <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
@@ -1420,6 +1421,10 @@
         <div class="phase-meta" id="meta-${p.key}"></div>
         ${phaseHiatusBlockHtml(p.key, p.label)}
         ${p.key === 'production' ? `
+        <div class="ep-panel" id="ep-panel" style="display:none;">
+          <div class="ep-panel-warn" id="ep-panel-warn"></div>
+          <div id="episode-rows"></div>
+        </div>
         <div class="simpost-panel">
           <label class="simpost-toggle">
             <input type="checkbox" id="simpost-enabled">
@@ -1430,10 +1435,6 @@
             <input type="number" id="simpost-offset" min="0" step="1" value="0">
             weeks after Production begins
           </label>
-        </div>
-        <div class="ep-panel" id="ep-panel" style="display:none;">
-          <div class="ep-panel-warn" id="ep-panel-warn"></div>
-          <div id="episode-rows"></div>
         </div>` : ''}
       `;
       wrap.appendChild(row);
@@ -1669,7 +1670,6 @@
   function render(schedule){
     refreshSnapNotes();
     const summaryEl = document.getElementById('summary-row');
-    const timelineEl = document.getElementById('timeline-wrap');
     const tableEl = document.getElementById('table-wrap');
     const exportBtn = document.getElementById('export-btn');
     // The button does different things in each view, so it says which.
@@ -1728,7 +1728,6 @@
 
     if(schedule.weeks.length===0){
       summaryEl.innerHTML = '';
-      timelineEl.innerHTML = '';
       document.getElementById('gap-warning').innerHTML = '';
       let msg = 'Enter at least one phase\u2019s start date and week count to see a preview.';
       if(schedule.error==='invalid-year'){
@@ -1763,32 +1762,6 @@
       <div class="stat"><div class="num">${fmtShort(start)}</div><div class="lbl">Start</div></div>
       <div class="stat"><div class="num">${fmtShort(end)}</div><div class="lbl">End</div></div>
     `;
-
-    // timeline strip: one representative color per week, hiatus shown as a hatch overlay
-    let segHtml = '';
-    let i = 0;
-    while(i < totalWeeks){
-      const w = schedule.weeks[i];
-      const rep = w.cells[0];
-      const isHiatus = rep && rep.type==='hiatus';
-      const key = isHiatus ? 'hiatus' : (rep ? rep.key : 'blank');
-      let j = i;
-      while(j<totalWeeks){
-        const wj = schedule.weeks[j];
-        const repj = wj.cells[0];
-        const keyj = (repj && repj.type==='hiatus') ? 'hiatus' : (repj ? repj.key : 'blank');
-        if(keyj!==key) break;
-        j++;
-      }
-      const span = j - i;
-      const pct = (span/totalWeeks*100).toFixed(3);
-      const bg = isHiatus ? HIATUS_COLOR : (rep ? (rep.color||'#ffffff') : '#ffffff');
-      const txt = isHiatus ? HIATUS_TEXT : (rep ? rep.textColor : 'var(--text-faint)');
-      const label = isHiatus ? 'Hiatus' : (rep ? rep.label.replace(/ wk.*| Wk.*/,'') : '');
-      segHtml += `<div class="seg" style="width:${pct}%; background:${bg}; color:${txt};" title="${escHtml(label)} \u2014 ${span} wk">${span>=3?escHtml(label):''}</div>`;
-      i = j;
-    }
-    timelineEl.innerHTML = `<div class="timeline">${segHtml}</div>`;
 
     tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
                                              : renderSpreadsheetView(schedule);
@@ -4313,20 +4286,29 @@
     // 4-line rows prints as four equal rows filling the sheet; if one row carries 6 lines of
     // comments it takes proportionally more and the others give way. Everything stays visible
     // and the grid always spans top to bottom.
-    // Each page's height is pinned by CSS (100vh); here we only set the PROPORTIONS -- a flex
-    // weight per week so the rows divide the sheet between them. A month of 4-line rows prints as
-    // equal rows filling the page; a row carrying 6 lines of comments takes proportionally more
-    // and the others give way. All proportional, so it's independent of the absolute page height.
+    // Fit each month to exactly one sheet, in two modes:
+    //  - If the month's content fits, the week rows FLEX-GROW to fill the page (proportional to
+    //    their line counts: a 6-line row takes more, the others give way -- sparse months print
+    //    as uniform full-size rows).
+    //  - If the content is taller than the page (e.g. a 6-week month with episodes + Simultaneous
+    //    Post on most weeks PLUS a comment-heavy week), each row is given its natural height and
+    //    the whole month is SCALED DOWN (scaleY) just enough to fit one page -- so nothing
+    //    overflows into the row below and nothing is dropped. This is the "shrink to fit" mode.
+    const MV_LANE_PX = 19;      // 17px lane track + 2px gap
+    const MV_ROW_CHROME = 38;   // 24px top padding + 14px bottom, per week's day-number strip
+    const PAGE_H = (8.5 - 2*8/25.4) * 96;   // landscape Letter page box height, px @96dpi
+    const PAGE_PAD = 4;                     // print-page's 2px top+bottom padding
+    const PRINT_W = Math.round((11 - 2*8/25.4) * 96);
     try {
-      Array.from(host.children).forEach(page=>{
-        const weeks = page.querySelectorAll('.mv-week');
-        weeks.forEach(wkEl=>{
+      // Pass 1: re-pack each week's bars into gap-free lanes; also compute the 4-line "nice" height
+      // used to distribute slack so rows read as even blocks when there's room.
+      const pages = Array.from(host.children).map(page=>{
+        const weeks = Array.from(page.querySelectorAll('.mv-week'));
+        const niceH = weeks.map(wkEl=>{
           // Count ONLY real content -- phases, episode pills, notes, hiatus bands (never the
-          // hidden "+"/expand affordances). Then RE-PACK those bars into gap-free lanes: a note
-          // can still remember a high lane from an earlier manual row-expansion, and if it prints
-          // at lane 6 with lanes 2-5 empty it would inflate the row with blank tracks and, across
-          // a month, push the grid taller than the sheet. Compacting to actual content is exactly
-          // "only scale to real comments and phases".
+          // hidden "+"/expand affordances). RE-PACK those bars into gap-free lanes: a note can
+          // still remember a high lane from an earlier manual row-expansion, and printing it at
+          // lane 6 with lanes 2-5 empty would inflate the row with blank tracks.
           const bars = Array.from(wkEl.querySelectorAll('.mv-bar:not(.mv-note-add):not(.mv-row-expand)'));
           const usedLanes = Array.from(new Set(
             bars.map(b=>parseInt(b.style.gridRow, 10)).filter(Number.isFinite)
@@ -4337,20 +4319,88 @@
             const gr = parseInt(b.style.gridRow, 10);
             if(remap.has(gr)) b.style.gridRow = String(remap.get(gr));
           });
-          // Row height weight: the compacted content-lane count, floored at MV_MIN_LANES so even
-          // an empty or single-phase row prints full size (uniform 4-line blocks). Plus the fixed
-          // day-number chrome, so a tall row isn't weighted as a naive multiple of a short one.
-          const contentLanes = usedLanes.length;
-          const lanesForHeight = Math.max(contentLanes, MV_MIN_LANES);
-          const MV_LANE_PX = 19;      // 17px track + 2px gap
-          const MV_ROW_CHROME = 38;   // 24px top padding + 14px bottom
-          const weight = MV_ROW_CHROME + lanesForHeight * MV_LANE_PX;
-          // Longhands, not the `flex` shorthand: some DOM implementations (jsdom included)
-          // silently drop the shorthand, which would leave the rows unweighted and untestable.
-          wkEl.style.flexGrow = String(weight);
-          wkEl.style.flexShrink = '1';
-          wkEl.style.flexBasis = '0';
+          return MV_ROW_CHROME + Math.max(usedLanes.length, MV_MIN_LANES) * MV_LANE_PX;
         });
+        return { page, weeks, niceH };
+      });
+
+      // Measure -- with the print-root shown off-screen at the exact print width, and everything
+      // that print hides also hidden -- two things per page: (1) the header stack height (title +
+      // month bar + weekday row), and (2) each week's REAL content height. The content height is
+      // read from the bar layer's scrollHeight, so a note that wraps to two lines counts as the two
+      // lines it actually occupies -- lane-counting alone would undercount a wrapped note and clip
+      // it. reqH is therefore the true minimum a row needs; niceH is only for distributing slack.
+      const prevHost = host.style.cssText;
+      host.style.cssText = 'display:block; position:absolute; left:-99999px; top:0; width:' + PRINT_W + 'px;';
+      const restore = [];
+      host.querySelectorAll('.mv-arrow, .mv-tools, .mv-note-add, .mv-row-expand').forEach(el=>{
+        restore.push([el, el.style.display]); el.style.display = 'none';
+      });
+      pages.forEach(d=>{
+        const hdr = d.page.querySelector('.mv-header');
+        const firstWeek = d.weeks[0];
+        let reserve = 105; // sensible fallback
+        if(hdr && firstWeek){
+          const r = firstWeek.getBoundingClientRect().top - hdr.getBoundingClientRect().top;
+          if(r > 20 && r < PAGE_H) reserve = r;
+        }
+        d.avail = PAGE_H - PAGE_PAD - reserve;
+        d.reqH = d.weeks.map(wkEl=>{
+          const barLayer = wkEl.querySelector('.mv-bars');
+          if(!barLayer) return MV_ROW_CHROME + MV_LANE_PX;
+          // Match the print track sizing (content-sized lanes) while measuring, so a wrapped note
+          // is measured at the height it will actually print, then restore.
+          const prevGAR = barLayer.style.gridAutoRows;
+          barLayer.style.gridAutoRows = 'minmax(17px, auto)';
+          const h = Math.ceil(barLayer.scrollHeight);
+          barLayer.style.gridAutoRows = prevGAR;
+          return Math.max(h, MV_ROW_CHROME + MV_LANE_PX); // never below ~1 line
+        });
+        d.reqTotal = d.reqH.reduce((a,b)=>a+b,0);
+      });
+      restore.forEach(([el, disp])=> el.style.display = disp);
+      // Restore the print-root's ORIGINAL inline style exactly. It must NOT be forced to
+      // display:none inline -- an inline display would beat the "@media print #print-root{display:block}"
+      // rule and the whole calendar would print blank. Empty original => clear inline entirely so
+      // the stylesheet (hidden on screen, shown in print) governs it.
+      host.style.cssText = prevHost;
+
+      // Pass 2: fill when the ACTUAL content fits, shrink only when it genuinely can't.
+      pages.forEach(d=>{
+        const body = d.page.querySelector('.mv-body');
+        if(!d.weeks.length){ return; }
+        if(d.reqTotal <= d.avail || d.avail <= 0){
+          // Content fits: fill the page at FULL SIZE (no scaling). Each row starts at its real
+          // content height (flex-basis=reqH) and can't shrink below it (flex-shrink:0 + explicit
+          // min-height), so nothing ever spills into the row below. Left-over height is handed out
+          // in proportion to the 4-line "nice" weight, so rows read as even blocks and the grid
+          // still reaches the bottom of the sheet.
+          d.weeks.forEach((wkEl, i)=>{
+            wkEl.style.flexGrow = String(Math.max(d.reqH[i], d.niceH[i]));
+            wkEl.style.flexShrink = '0';
+            wkEl.style.flexBasis = d.reqH[i] + 'px';
+            wkEl.style.minHeight = d.reqH[i] + 'px';
+            wkEl.style.height = '';
+          });
+          if(body){ body.style.transform = ''; body.style.transformOrigin = ''; body.style.flex = ''; }
+        } else {
+          // Even at minimum, the content is taller than the page: give each row exactly its content
+          // height and scale the whole month down (scaleY) just enough to fit one page. Nothing is
+          // dropped or overlapped; a very full month simply prints a little smaller.
+          const scale = d.avail / d.reqTotal;
+          d.weeks.forEach((wkEl, i)=>{
+            wkEl.style.flexGrow = '0';
+            wkEl.style.flexShrink = '0';
+            wkEl.style.flexBasis = 'auto';
+            wkEl.style.minHeight = '';
+            wkEl.style.height = d.reqH[i] + 'px';
+          });
+          if(body){
+            body.style.flex = '0 0 auto';
+            body.style.transformOrigin = 'top left';
+            body.style.transform = 'scaleY(' + scale.toFixed(4) + ')';
+          }
+        }
       });
     } catch(err){
       console.error(err);   // never let a layout failure block the dialog
