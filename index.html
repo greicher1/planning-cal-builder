@@ -228,7 +228,7 @@
   /* Each week is a row: the day-number grid sits underneath, and phase pills are laid over it
      in the same 7-column track so a bar can span multiple days as one continuous shape. */
   .mv-body{ border:1px solid #000; border-top:none; }
-  .mv-week{ position:relative; border-top:1px solid #000; min-height:104px; }
+  .mv-week{ position:relative; border-top:1px solid #000; }
   .mv-week:first-child{ border-top:none; }
   /* The day-number grid is the background layer: it fills the row so the cell shading and
      dividers cover the full height, whatever that height ends up being. */
@@ -247,11 +247,26 @@
   .mv-bars{
     position:relative; z-index:1;
     display:grid; grid-template-columns:repeat(7,1fr);
-    gap:2px 0; padding:24px 3px 6px;
+    /* Fixed-height lanes: every bar is placed in an explicit grid-row, so an empty lane is a
+       real, addressable slot rather than whatever gap the flow leaves. */
+    grid-auto-rows:17px;
+    gap:2px 0; padding:24px 3px 14px;
     /* The bar layer sits over the day grid, so it must not swallow clicks meant for the cells
        underneath. Individually clickable bars opt back in via .mv-note-click below. */
     pointer-events:none;
   }
+  /* Grows the whole week row by one line. Sits on the bottom edge, visually distinct from the
+     per-slot "+" so it doesn't read as just another empty line. */
+  .mv-row-expand{
+    position:absolute; left:0; right:0; bottom:0; height:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; line-height:1; color:var(--text-faint);
+    background:linear-gradient(to bottom, transparent, rgba(0,0,0,.05));
+    cursor:pointer; pointer-events:auto; opacity:0; transition:opacity .12s;
+    border-top:1px dashed var(--border-strong);
+  }
+  .mv-week:hover .mv-row-expand{ opacity:.5; }
+  .mv-row-expand:hover{ opacity:1; color:var(--text); background:rgba(0,0,0,.07); }
   .mv-bar{
     font-size:10px; font-weight:600; line-height:1.5; padding:1px 8px; margin:0 1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -303,6 +318,8 @@
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
     #print-root .mv-tools{ display:none !important; }
+    /* The add/expand affordances are interactive chrome: never on paper. */
+    #print-root .mv-note-add, #print-root .mv-row-expand{ display:none !important; }
     /* Phase colours are the whole point of this document, so keep them. */
     *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
   }
@@ -679,7 +696,7 @@
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking the <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row. A block always grows to fit its content, so nothing is ever hidden. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Waterfall view vs. Month view</h3>
       <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
@@ -1537,6 +1554,12 @@
   //  - Every other phase is measured in weeks, so we color its weekdays (Mon-Fri) and leave
   //    weekends blank -- a purely visual rule; the schedule math is untouched.
   let monthCursor = null; // first-of-month currently displayed (UTC)
+  // A day block always shows at least this many lines, so there's somewhere to put a note even
+  // on an empty day. Content beyond it grows the row.
+  const MV_MIN_LANES = 4;
+  // Extra lines the user has asked for, per week (keyed by that week's Monday). Weeks share a
+  // row, so this necessarily applies to all seven days.
+  let mvExtraLanes = {};
   // While building the PDF we walk every month in turn. That deliberately ignores the
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
@@ -1698,7 +1721,33 @@
         dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
 
-      let bars = '';
+
+      // Bars are collected as objects first so each can be given an explicit grid ROW. That
+      // turns the block into addressable "slots": anything not filled by a phase, episode or
+      // note is a real gap we can offer a "+" in, rather than whatever the flow happens to
+      // leave over. Lane 0 is the top line under the day numbers.
+      const placed = [];              // {lane, startCol, endCol, html}
+      const occupied = new Map();     // lane -> Set of columns already used
+      const takeLane = (startCol, endCol, preferred)=>{
+        // Find the first lane where every column in the span is free (from `preferred` down).
+        for(let lane = preferred || 0; lane < 40; lane++){
+          const used = occupied.get(lane);
+          let free = true;
+          if(used){ for(let c=startCol;c<=endCol;c++){ if(used.has(c)){ free=false; break; } } }
+          if(free){
+            if(!occupied.has(lane)) occupied.set(lane, new Set());
+            const s = occupied.get(lane);
+            for(let c=startCol;c<=endCol;c++) s.add(c);
+            return lane;
+          }
+        }
+        return 0;
+      };
+      const place = (startCol, endCol, cls, style, title, text, data, preferred)=>{
+        const lane = takeLane(startCol, endCol, preferred);
+        placed.push({lane, startCol, endCol, cls, style, title, text, data});
+        return lane;
+      };
 
       // Hiatus first: a full-width stop-work band across the days it covers. Spillover days
       // (the greyed-out neighbours from the previous/next month that fill the first and last
@@ -1717,25 +1766,23 @@
         const wkIso = isoOf(mondayOf(r.date));
         const hc = hiatusColors[wkIso] || HIATUS_COLOR;
         const ht = hiatusTexts[wkIso] || 'Holiday Hiatus';
-        bars += `<div class="mv-bar mv-hiatus-bar" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${hc}; color:${textColorFor(hc)};">${escHtml(ht)}</div>`;
+        place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
+          `background:${hc}; color:${textColorFor(hc)};`, '', escHtml(ht), '');
       });
 
-      // One rounded pill per phase per contiguous run of covered days.
+      // One rounded pill per phase per contiguous run of covered days. Phases keep their lane
+      // order so a phase sits at the same height all month.
       laneSegs.forEach(s=>{
-        // In the month view, episodes REPLACE the Production bar: the individual episodes are
-        // the useful detail at day resolution, and a "Production Week N" bar above them would
-        // just restate the same span. If Show Info is incomplete there are no episodes to
-        // draw, so Production falls back to its own bar.
         const replacedByEpisodes = (s.key === 'production' && epSpans.length > 0);
         if(!replacedByEpisodes){
           pillRunsForWeek(schedule, weekStart, s).forEach(r=>{
             const bg = s.color || '#eee';
             const fg = s.textColor || textColorFor(bg);
-            const lbl = segPillLabel(s, r.date);
-            bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${bg}; color:${fg};" title="${escHtml(lbl)}">${escHtml(lbl)}</div>`;
+            const lbl = segPillLabel(s, addDays(weekStart, r.startCol));
+            place(r.startCol, r.endCol, 'mv-bar mv-pill',
+              `background:${bg}; color:${fg};`, escHtml(lbl), escHtml(lbl), '');
           });
         }
-
         // Episode pills occupy Production's lane.
         if(s.key === 'production' && epSpans.length){
           const bg = s.color || '#eee';
@@ -1751,19 +1798,16 @@
             }
             if(run) runs.push(run);
             runs.forEach(r=>{
-              bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${bg}; color:${fg};" title="${escHtml(ep.name)}">${escHtml(ep.name)}</div>`;
+              place(r.startCol, r.endCol, 'mv-bar mv-pill',
+                `background:${bg}; color:${fg};`, escHtml(ep.name), escHtml(ep.name), '');
             });
           });
         }
       });
 
-      // Simultaneous Post: a per-week band, exactly as in the waterfall view. Read the flag the
-      // schedule already computed (active from N weeks into Production, suppressed during
-      // hiatus) rather than recomputing it here -- two implementations would drift.
+      // Simultaneous Post: a per-week band, exactly as in the waterfall view.
       const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(weekStart)));
       if(wkRec && wkRec.simPost){
-        // It applies to the working week, so it spans the same weekdays a week-based phase
-        // would: Mon-Fri, leaving the weekends clear.
         let sp = null;
         const spRuns = [];
         for(let i=0;i<7;i++){
@@ -1775,36 +1819,66 @@
         }
         if(sp) spRuns.push(sp);
         spRuns.forEach(r=>{
-          bars += `<div class="mv-bar mv-pill" style="grid-column:${r.startCol+1} / ${r.endCol+2}; background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};" title="Simultaneous Post">Simultaneous Post</div>`;
+          place(r.startCol, r.endCol, 'mv-bar mv-pill',
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};`, 'Simultaneous Post', 'Simultaneous Post', '');
         });
       }
 
-      // Notes last: square purple blocks under the phase pills.
+      // Notes last, so they sit under the phase pills.
       for(let i=0;i<7;i++){
         const d = addDays(weekStart, i);
         const dIso = isoOf(d);
         const wkKey = isoOf(mondayOf(d));
-        // Waterfall-owned notes for this day (auto or week override). Editable here too: an
-        // edit writes back to the week store, so it shows in the Waterfall and the Excel export
-        // exactly as if it had been typed there.
         const wfNotes = notesForWaterfallDate(schedule, d);
         const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
         wfNotes.forEach(n=>{
-          bars += `<div class="mv-bar mv-note-block mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf" style="grid-column:${i+1} / ${i+2}; background:${wfColor}; color:${textColorFor(wfColor)};" title="${escHtml(n)} \u2014 click to edit (also updates the Waterfall)">${escHtml(n)}</div>`;
+          place(i, i, 'mv-bar mv-note-block mv-note-click',
+            `background:${wfColor}; color:${textColorFor(wfColor)};`,
+            escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
+            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`);
         });
-        // This day's own note: month-view only, editable, with its own colour.
         const own = dayNotes[dIso];
         if(own && own.text){
           const oc = dayNoteColors[dIso] || MILESTONE_COLOR;
           String(own.text).split('\n').filter(Boolean).forEach(t=>{
-            bars += `<div class="mv-bar mv-note-block mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2}; background:${oc}; color:${textColorFor(oc)};" title="${escHtml(t)} \u2014 click to edit (month view only)">${escHtml(t)}</div>`;
+            place(i, i, 'mv-bar mv-note-block mv-note-click',
+              `background:${oc}; color:${textColorFor(oc)};`,
+              escHtml(t) + ' \u2014 click to edit (month view only)', escHtml(t),
+              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day"`);
           });
         }
-        // An "add note" affordance on days with no note of their own.
-        if(!own && !isHiatusDate(schedule, d)){
-          bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
+      }
+
+      // How tall is this week? At least MV_MIN_LANES, more if content needs it, plus any
+      // manual expansion the user asked for.
+      const contentLanes = placed.length ? Math.max.apply(null, placed.map(p=>p.lane)) + 1 : 0;
+      const extra = mvExtraLanes[isoOf(mondayOf(weekStart))] || 0;
+      const laneCount = Math.max(MV_MIN_LANES, contentLanes) + extra;
+
+      // Emit the placed bars.
+      let bars = '';
+      placed.forEach(p=>{
+        bars += `<div class="${p.cls}" ${p.data} style="grid-column:${p.startCol+1} / ${p.endCol+2}; grid-row:${p.lane+1};${p.style}"${p.title?` title="${p.title}"`:''}>${p.text}</div>`;
+      });
+
+      // Every free slot gets its own "+", so a note can be added on the exact line it will
+      // occupy rather than always landing at the bottom of the block.
+      for(let i=0;i<7;i++){
+        const d = addDays(weekStart, i);
+        if(isHiatusDate(schedule, d)) continue;
+        const dIso = isoOf(d);
+        const wkKey = isoOf(mondayOf(d));
+        for(let lane=0; lane<laneCount; lane++){
+          const used = occupied.get(lane);
+          if(used && used.has(i)) continue;
+          bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2}; grid-row:${lane+1};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
         }
       }
+
+      // A wider control on the bottom edge grows the whole week row: day blocks share a row, so
+      // there's no way to give one day more lines without the others following.
+      const wkIsoRow = isoOf(mondayOf(weekStart));
+      bars += `<div class="mv-row-expand" data-expand-week="${wkIsoRow}" title="Add another line to this week">+</div>`;
 
       rows += `<div class="mv-week">
         <div class="mv-daygrid">${dayCells}</div>
@@ -2236,6 +2310,7 @@
       // holidays come back), plus all per-cell highlight colors and hiatus text/colors.
       Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
+    mvExtraLanes = {};
     dayNoteColors = {};
       noteColors = {}; hiatusTexts = {}; hiatusColors = {};
       render(currentSchedule);
@@ -3168,6 +3243,7 @@
     mvHeaderMode = 'auto'; mvHeaderManual = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
+    mvExtraLanes = {};
     dayNoteColors = {};
     noteColors = {}; hiatusTexts = {}; hiatusColors = {};
     update();
@@ -3250,6 +3326,7 @@
       episodeCounter: episodeCounter,
       userNotes: userNotes,
       dayNotes: dayNotes,
+      mvExtraLanes: mvExtraLanes,
       dayNoteColors: dayNoteColors,
       headerMode: headerMode,
       headerManual: headerManual,
@@ -3454,7 +3531,7 @@
   function writeBackup(){
     try {
       const stateSnapshot = {
-        customPhaseDefs, customPhaseCounter, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, headerMode, headerManual,
+        customPhaseDefs, customPhaseCounter, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
         mvHeaderMode, mvHeaderManual,
         noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
       };
@@ -3962,6 +4039,15 @@
     });
   }
   document.getElementById('table-wrap').addEventListener('click', e=>{
+    const exp = e.target.closest && e.target.closest('.mv-row-expand');
+    if(exp){
+      e.stopPropagation();
+      const k = exp.dataset.expandWeek;
+      mvExtraLanes[k] = (mvExtraLanes[k] || 0) + 1;
+      markDirty();
+      render(currentSchedule);
+      return;
+    }
     const hit = e.target.closest && e.target.closest('.mv-note-click');
     if(!hit) return;
     e.stopPropagation();
@@ -4041,6 +4127,9 @@
 
     // 4. Restore user notes and view mode. Migrate any old-format entries
     //    ({label, noteDate}) into the new single-text shape ({text}).
+    if(snap.mvExtraLanes && typeof snap.mvExtraLanes === 'object'){
+      mvExtraLanes = Object.assign({}, snap.mvExtraLanes);
+    }
     if(snap.dayNotes && typeof snap.dayNotes === 'object'){
       Object.keys(snap.dayNotes).forEach(k=>{ dayNotes[k] = snap.dayNotes[k]; });
     }
