@@ -124,7 +124,24 @@
   }
   .phase-row:last-child{border-bottom:none;}
   .swatch{width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.12);}
+  .swatch.clickable{cursor:pointer;}
+  .swatch.clickable:hover{box-shadow:0 0 0 2px rgba(0,0,0,.18);}
   .phase-name{font-weight:500; font-size:13.5px;}
+  /* Floating picker of the standard phase colors, opened by clicking a phase's color square. */
+  .phase-color-pop{
+    position:absolute; z-index:200; background:#fff; border:1px solid var(--border-strong);
+    border-radius:9px; padding:7px; box-shadow:0 8px 26px rgba(0,0,0,.18);
+    display:grid; grid-template-columns:repeat(3, 26px); gap:5px;
+  }
+  .phase-color-pop .pc-sw{ width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
+  .phase-color-pop .pc-sw:hover{ transform:scale(1.12); }
+  .phase-color-pop .pc-sw.selected{ outline:2px solid #333; outline-offset:1px; }
+  /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
+     Holiday hiatus, but scoped to the single phase it sits under. */
+  .phase-hiatus{ grid-column:2; margin-top:7px; }
+  .phase-hiatus-toggle{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:var(--text-muted); cursor:pointer; }
+  .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
   .phase-fields{grid-column:2; display:flex; gap:8px; margin-top:6px;}
   .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
   .phase-meta{grid-column:2; font-size:11.5px; color:var(--text-faint); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
@@ -145,8 +162,11 @@
   input[type=number]{font-family:'IBM Plex Mono',monospace;}
   input[type=checkbox]{accent-color:var(--accent); width:15px; height:15px;}
 
-  .hiatus-entry{display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;}
+  .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
   .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
+  .snap-note{ flex-basis:100%; width:100%; font-size:10.5px; color:#8a5a00; font-style:italic; line-height:1.3; margin-top:1px; }
+  .snap-note:empty{ display:none; }
   .icon-btn{
     border:1px solid var(--border-strong); background:#fff; border-radius:7px; width:32px; height:32px;
     cursor:pointer; font-size:15px; color:var(--text-muted); line-height:1; flex:none;
@@ -707,6 +727,8 @@
         <li><strong>Start date</strong> &mdash; any date snaps to the Monday of that week (weeks always run Monday&ndash;Sunday).</li>
         <li><strong>Duration</strong> &mdash; in weeks for most phases. <strong>Production is special: it&rsquo;s measured in shooting days</strong>, not weeks, and is scheduled day-by-day (see Union holidays below). Its total isn&rsquo;t typed &mdash; it&rsquo;s the sum of the episodes, which come from Show Info.</li>
         <li><strong>Name</strong> &mdash; click the phase name to rename it; the label carries through to every week of that phase and to the export.</li>
+        <li><strong>Color</strong> &mdash; click the little color square to the left of any phase name (built-in or custom) to pick from the standard palette. The choice applies everywhere: the Waterfall, the Month view, and the export.</li>
+        <li><strong>Phase hiatus</strong> &mdash; turn on the toggle under any phase (e.g. &ldquo;Writer&rsquo;s Rm Hiatus&rdquo;) to pause just that phase for a set number of weeks from a chosen Monday. It works like the Holiday hiatus &mdash; the phase still delivers its full requested weeks &mdash; but the pause stays in that phase&rsquo;s own column and never widens into the others. Click a phase-hiatus band in the Waterfall to rename it or recolor that week.</li>
       </ul>
       <p><strong>+ Add phase</strong> creates a custom phase with its own name, color, start, and length. Phases can overlap &mdash; when two or more run in the same week, the preview and export add columns so they sit side by side. Columns follow a clear rule: the earliest-starting phase takes the leftmost column and keeps it, later overlapping phases sit to its right, and non-overlapping phases share a column to keep the sheet narrow. When only one phase is running in a week, it spans across the empty columns so there are no blank gaps.</p>
       <p><strong>Header (Auto vs. Manual).</strong> By default the calendar header auto-fills from your inputs (title, production span, Principal Photography dates, episode count) and updates live. Click <strong>Header: Auto &mdash; Switch to Manual</strong> above the calendar to take control: it snapshots the current values into editable lines you can freely edit, and stops auto-updating. Switch back to Auto to discard the manual edits and resume live fill.</p>
@@ -1033,6 +1055,19 @@
       if(start && parseDateUTC(start)===null) hasInvalidYear = true;
       if(start && weeks>0) hiatuses.push({start, weeks});
     });
+    // Per-phase hiatus: a start + week count scoped to a single phase, collected only when that
+    // phase's toggle is on. Keyed by phase key so the scheduler can pause just that phase.
+    const phaseHiatuses = {};
+    allDefs.forEach(p=>{
+      const en = document.getElementById('phiatus-en-'+p.key);
+      if(!en || !en.checked) return;
+      const sEl = document.getElementById('phiatus-start-'+p.key);
+      const wEl = document.getElementById('phiatus-weeks-'+p.key);
+      const start = sEl ? sEl.value : '';
+      const weeks = wEl ? parseInt(wEl.value, 10) : NaN;
+      if(start && parseDateUTC(start)===null) hasInvalidYear = true;
+      if(start && weeks>0) phaseHiatuses[p.key] = {start, weeks};
+    });
     const calStartStr = document.getElementById('calendar-start').value;
     const calEndStr = document.getElementById('calendar-end').value;
     if(calStartStr && parseDateUTC(calStartStr)===null) hasInvalidYear = true;
@@ -1041,6 +1076,7 @@
       phases,
       allDefs,
       hiatuses,
+      phaseHiatuses,
       calendarStart: calStartStr || null,
       calendarEnd: calEndStr || null,
       hasInvalidYear,
@@ -1065,11 +1101,23 @@
       return {start, end};
     });
 
+    // Per-phase hiatuses: same shape as a global hiatus (Monday-snapped start + week span) but
+    // each pauses only the one phase it belongs to. Kept keyed by phase so the scheduler can
+    // both extend that phase's end and mark only its own column as interrupted.
+    const phaseHiatusRanges = {};
+    Object.keys(state.phaseHiatuses||{}).forEach(k=>{
+      const h = state.phaseHiatuses[k];
+      const pd = parseDateUTC(h.start);
+      if(!pd || !(h.weeks>0)) return;
+      const start = mondayOf(pd);
+      phaseHiatusRanges[k] = {start, end: addDays(start, h.weeks*7)};
+    });
+
     // A hiatus pauses whatever phase it falls inside, so that phase still delivers its full
     // requested week count -- it pushes the phase's end date out rather than quietly losing weeks.
     // This can cascade: extending a phase's end can pull a second hiatus into range, so we
     // repeat until nothing new gets absorbed.
-    function extendEndForHiatus(start, weeksRequested){
+    function extendEndForHiatus(start, weeksRequested, phaseKey){
       // Walk week-by-week from start: only non-hiatus weeks count toward the requested
       // total, so the phase always delivers its full week count. This uses the exact
       // predicate the renderer uses to mark a week as hiatus, which fixes two bugs the
@@ -1077,9 +1125,12 @@
       // calendar week now extend the phase by that week ONCE (the union), not once per
       // hiatus; (2) a hiatus that begins BEFORE the phase but overlaps its start now
       // extends the phase too (previously only hiatuses starting inside the range did).
+      // A phase's OWN hiatus (phaseKey) pauses it the same way, so it too pushes the end out.
+      const ownHi = phaseKey ? phaseHiatusRanges[phaseKey] : null;
       let delivered = 0, cur = start, safety = 0;
       while(delivered < weeksRequested && safety++ < 2000){
-        const inHiatus = hiatuses.some(h => cur >= h.start && cur < h.end);
+        const inHiatus = hiatuses.some(h => cur >= h.start && cur < h.end)
+                         || (ownHi && cur >= ownHi.start && cur < ownHi.end);
         if(!inHiatus) delivered++;
         cur = addDays(cur, 7);
       }
@@ -1091,6 +1142,7 @@
     // until enough actual shoot days have been counted. Returns the last real shoot day
     // and the list of union holidays that landed on a would-be shoot day (for notes).
     function simulateProductionSchedule(start, shootDaysRequested, holidayList){
+      const ownHi = phaseHiatusRanges['production'];
       let current = start;
       let count = 0;
       let lastShootDay = null;
@@ -1101,7 +1153,8 @@
         safety++;
         const dow = current.getUTCDay();
         const isWeekday = dow>=1 && dow<=5;
-        const inHiatus = hiatuses.some(h=> current>=h.start && current<h.end);
+        const inHiatus = hiatuses.some(h=> current>=h.start && current<h.end)
+                         || (ownHi && current>=ownHi.start && current<ownHi.end);
         if(isWeekday && !inHiatus){
           const iso = current.toISOString().slice(0,10);
           const holiday = holidayList.find(h=>h.date===iso);
@@ -1135,18 +1188,20 @@
           // The calendar labels Production "wk 1, wk 2..." only on weeks it actually works --
           // hiatus weeks are stop-work and get a Hiatus band instead. Count the same way here
           // so the hint agrees with the grid rather than counting elapsed calendar weeks.
+          const prodOwnHi = phaseHiatusRanges['production'];
           let workedWeeks = 0;
           for(let wkStart = new Date(start.getTime()); wkStart < end; wkStart = addDays(wkStart, 7)){
-            const inHiatus = hiatuses.some(h=> wkStart>=h.start && wkStart<h.end);
+            const inHiatus = hiatuses.some(h=> wkStart>=h.start && wkStart<h.end)
+                             || (prodOwnHi && wkStart>=prodOwnHi.start && wkStart<prodOwnHi.end);
             if(!inHiatus) workedWeeks++;
           }
           weeksForSegment = workedWeeks;
           productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
           shootDaysForSegment = sim.shootDays;
         } else {
-          end = extendEndForHiatus(start, cfg.weeks);
+          end = extendEndForHiatus(start, cfg.weeks, p.key);
         }
-        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment}));
+        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment, phaseHiatus: phaseHiatusRanges[p.key] || null}));
       }
     });
 
@@ -1262,8 +1317,19 @@
       } else {
         const active = segments.filter(s=> weekStart>=s.start && weekStart<s.end).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
-          const num = weekCounters[ph.key]++;
-          cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
+          const ownHi = ph.phaseHiatus;
+          if(ownHi && weekStart>=ownHi.start && weekStart<ownHi.end){
+            // This phase is paused this week: draw a hiatus band in ITS column only. It keeps
+            // its slot (so neighbors can't slide into it) but never spans sideways, and it does
+            // not advance the phase's week counter -- the paused weeks aren't work weeks.
+            const baseLabel = (ph.label || 'Phase') + ' Hiatus';
+            cells.push({type:'phaseHiatus', key:ph.key, col:segCol.get(ph),
+              weekIso: isoOf(weekStart), defaultLabel: baseLabel,
+              color: HIATUS_COLOR, textColor: HIATUS_TEXT, label: baseLabel});
+          } else {
+            const num = weekCounters[ph.key]++;
+            cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
+          }
         });
         if(state.simultaneousPost.enabled && prodSeg && weekStart>=prodSeg.start && weekStart<prodSeg.end){
           const weeksIntoProd = Math.round((weekStart-prodSeg.start)/DAY_MS/7);
@@ -1327,8 +1393,9 @@
            <div class="prod-total-readout" id="prod-total-readout"></div>`
         : `<label>Start date <input type="date" id="start-${p.key}"></label>
            <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>`;
+      const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
       row.innerHTML = `
-        <div class="swatch" style="background:${p.color||'#fff'}; ${p.color?'':'border-style:dashed;'}"></div>
+        <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
         <div class="custom-phase-header">
           <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
         </div>
@@ -1336,6 +1403,7 @@
           ${fieldsHtml}
         </div>
         <div class="phase-meta" id="meta-${p.key}"></div>
+        ${phaseHiatusBlockHtml(p.key, p.label)}
         ${p.key === 'production' ? `
         <div class="simpost-panel">
           <label class="simpost-toggle">
@@ -1355,6 +1423,14 @@
       `;
       wrap.appendChild(row);
       row.querySelector('.phase-name-input').addEventListener('input', update);
+      const sw = row.querySelector('.swatch');
+      sw.addEventListener('click', ()=>{
+        openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=>{
+          phaseColorOverride[p.key] = i;
+          sw.style.background = PHASE_COLOR_OPTIONS[i].color;
+          update();
+        });
+      });
     });
   }
 
@@ -1373,6 +1449,79 @@
     {name:"Green (like Production)",  color:'#E2F0D9', text:'#375623'},
     {name:"Orange (like Post)",       color:'#FBE5D6', text:'#8A4A1F'},
   ];
+  // Per-auto-phase color override: key -> index into PHASE_COLOR_OPTIONS. Auto phases default to
+  // whichever preset matches their built-in color; the user can repick from the swatch.
+  let phaseColorOverride = {};
+  function autoPhaseColorIndex(p){
+    if(p.key in phaseColorOverride) return phaseColorOverride[p.key];
+    const idx = PHASE_COLOR_OPTIONS.findIndex(o=>o.color.toUpperCase() === String(p.color||'').toUpperCase());
+    return idx >= 0 ? idx : 0;
+  }
+
+  // A small floating picker of the standard phase colors, anchored under a clicked color square.
+  // Shared by the built-in phases and the custom phases so both recolor the same way.
+  let activeColorPop = null;
+  function closePhaseColorPop(){
+    if(activeColorPop){
+      activeColorPop.remove();
+      activeColorPop = null;
+      document.removeEventListener('mousedown', onColorPopOutside, true);
+      window.removeEventListener('resize', closePhaseColorPop);
+      window.removeEventListener('scroll', closePhaseColorPop, true);
+    }
+  }
+  function onColorPopOutside(e){
+    if(!activeColorPop) return;
+    if(activeColorPop.contains(e.target)) return;
+    if(activeColorPop._anchor && activeColorPop._anchor.contains(e.target)) return;
+    closePhaseColorPop();
+  }
+  function openPhaseColorPop(anchorEl, currentIndex, onPick){
+    closePhaseColorPop();
+    const pop = document.createElement('div');
+    pop.className = 'phase-color-pop';
+    pop._anchor = anchorEl;
+    PHASE_COLOR_OPTIONS.forEach((o,i)=>{
+      const sw = document.createElement('span');
+      sw.className = 'pc-sw' + (i===currentIndex ? ' selected' : '');
+      sw.style.background = o.color;
+      sw.title = o.name;
+      sw.addEventListener('click', (e)=>{ e.stopPropagation(); closePhaseColorPop(); onPick(i); });
+      pop.appendChild(sw);
+    });
+    document.body.appendChild(pop);
+    const r = anchorEl.getBoundingClientRect();
+    let top = window.scrollY + r.bottom + 5;
+    let left = window.scrollX + r.left;
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    activeColorPop = pop;
+    setTimeout(()=>{
+      document.addEventListener('mousedown', onColorPopOutside, true);
+      window.addEventListener('resize', closePhaseColorPop);
+      window.addEventListener('scroll', closePhaseColorPop, true);
+    }, 0);
+  }
+
+  // Markup for the per-phase hiatus controls, dropped under each phase's fields. IDs are keyed
+  // by phase so their values round-trip through collectFieldValues()/restore like any field.
+  function phaseHiatusBlockHtml(key, label){
+    return `<div class="phase-hiatus">
+        <label class="phase-hiatus-toggle">
+          <input type="checkbox" class="phiatus-en" id="phiatus-en-${key}">
+          <span class="phiatus-label" id="phiatus-label-${key}">${escHtml(label)} Hiatus</span>
+        </label>
+        <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
+          <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
+          <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
+          <div class="snap-note"></div>
+        </div>
+      </div>`;
+  }
+
   let customPhaseDefs = [];
   let customPhaseCounter = 0;
   // Episodes (month view). Each: {id, name, days, nameEdited, daysEdited}. The *Edited flags
@@ -1388,14 +1537,20 @@
     const fixed = PHASES.map(p=>{
       const nameEl = document.getElementById('name-'+p.key);
       const typed = nameEl ? nameEl.value.trim() : '';
-      if(!typed || typed===p.label) return p; // unchanged -- keep its own original template
-      return Object.assign({}, p, { label:typed, template:n=>`${typed} wk ${n}` });
+      let def = p;
+      if(typed && typed!==p.label){
+        def = Object.assign({}, p, { label:typed, template:n=>`${typed} wk ${n}` });
+      }
+      if(p.key in phaseColorOverride){
+        const opt = PHASE_COLOR_OPTIONS[phaseColorOverride[p.key]];
+        if(opt) def = Object.assign({}, def, { color:opt.color, textColor:opt.text });
+      }
+      return def;
     });
     const custom = customPhaseDefs.map(cp=>{
       const nameEl = document.getElementById('name-'+cp.key);
       const name = (nameEl && nameEl.value.trim()) || 'Custom phase';
-      const colorEl = document.getElementById('color-'+cp.key);
-      const opt = PHASE_COLOR_OPTIONS[colorEl ? parseInt(colorEl.value,10) : cp.colorIndex] || PHASE_COLOR_OPTIONS[0];
+      const opt = PHASE_COLOR_OPTIONS[cp.colorIndex] || PHASE_COLOR_OPTIONS[0];
       return { key:cp.key, label:name, color:opt.color, textColor:opt.text, template:n=>`${name} wk ${n}` };
     });
     return fixed.concat(custom);
@@ -1410,12 +1565,10 @@
     const row = document.createElement('div');
     row.className = 'phase-row';
     row.dataset.key = key;
-    const colorOptionsHtml = PHASE_COLOR_OPTIONS.map((o,i)=>`<option value="${i}" ${i===colorIndex?'selected':''}>${o.name}</option>`).join('');
     row.innerHTML = `
-      <div class="swatch" id="swatch-${key}" style="background:${opt.color};"></div>
+      <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Click to set this phase's color"></div>
       <div class="custom-phase-header">
         <input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name">
-        <select class="color-select" id="color-${key}" title="Color">${colorOptionsHtml}</select>
         <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
       </div>
       <div class="phase-fields">
@@ -1423,15 +1576,26 @@
         <label>Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
       </div>
       <div class="phase-meta" id="meta-${key}"></div>
+      ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
     row.querySelector('.remove-custom-phase').addEventListener('click', ()=>{
       customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==key);
       row.remove();
       update();
     });
-    row.querySelector('.color-select').addEventListener('change', (e)=>{
-      document.getElementById('swatch-'+key).style.background = PHASE_COLOR_OPTIONS[parseInt(e.target.value,10)].color;
-      update();
+    const swEl = row.querySelector('.swatch');
+    swEl.addEventListener('click', ()=>{
+      const cp = customPhaseDefs.find(c=>c.key===key);
+      openPhaseColorPop(swEl, cp ? cp.colorIndex : 0, (i)=>{
+        if(cp) cp.colorIndex = i;
+        swEl.style.background = PHASE_COLOR_OPTIONS[i].color;
+        update();
+      });
+    });
+    // Keep the hiatus toggle's label in step with the phase's typed name.
+    row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
+      const lbl = document.getElementById('phiatus-label-'+key);
+      if(lbl) lbl.textContent = ((e.target.value.trim() || 'Phase')) + ' Hiatus';
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
     wrap.appendChild(row);
@@ -1445,6 +1609,7 @@
       <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
+      <div class="snap-note"></div>
     `;
     row.querySelector('.remove-hiatus').addEventListener('click', ()=>{ row.remove(); update(); });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
@@ -1462,8 +1627,32 @@
     DEFAULT_HIATUSES.forEach(([s,w]) => addHiatusRow(s,w));
   }
 
+  // "Snapped to Mon …" hint for any date field. Dates in this tool always snap to the Monday of
+  // their week; when the typed value isn't already a Monday we say so under the field so the
+  // shift is never silent. Returns '' for empty/invalid/already-Monday values.
+  function snapNoteText(dateStr){
+    if(!dateStr) return '';
+    const d = parseDateUTC(dateStr);
+    if(!d) return '';
+    if(d.getUTCDay() === 1) return '';
+    return 'Snapped to Mon ' + fmtShort(mondayOf(d));
+  }
+  function refreshSnapNotes(){
+    document.querySelectorAll('.hiatus-entry').forEach(row=>{
+      const inp = row.querySelector('.hiatus-start');
+      const note = row.querySelector('.snap-note');
+      if(inp && note) note.textContent = snapNoteText(inp.value);
+    });
+    document.querySelectorAll('.phase-hiatus-fields').forEach(fields=>{
+      const inp = fields.querySelector('.phiatus-start');
+      const note = fields.querySelector('.snap-note');
+      if(inp && note) note.textContent = snapNoteText(inp.value);
+    });
+  }
+
   // ---------- rendering: summary + timeline + table ----------
   function render(schedule){
+    refreshSnapNotes();
     const summaryEl = document.getElementById('summary-row');
     const timelineEl = document.getElementById('timeline-wrap');
     const tableEl = document.getElementById('table-wrap');
@@ -1631,6 +1820,13 @@
     return (schedule.hiatuses||[]).some(h=> date>=h.start && date<h.end);
   }
 
+  // True when `date` falls inside a phase's OWN hiatus (the per-phase pause), which interrupts
+  // just that phase rather than the whole calendar.
+  function isPhaseHiatusDate(seg, date){
+    const h = seg && seg.phaseHiatus;
+    return !!(h && date>=h.start && date<h.end);
+  }
+
   // The label a phase's pill shows for a given date, e.g. "Writers Room Week 3".
   function segPillLabel(s, date){
     const name = (s.name || s.label || '').replace(/\s*wk\s*\d+\s*$/i,'');
@@ -1645,7 +1841,7 @@
     let run = null;
     for(let i=0;i<7;i++){
       const d = addDays(weekStart, i);
-      const covered = segCoversDate(seg, d) && !isHiatusDate(schedule, d);
+      const covered = segCoversDate(seg, d) && !isHiatusDate(schedule, d) && !isPhaseHiatusDate(seg, d);
       if(covered){
         if(!run){ run = {startCol:i, endCol:i, date:d}; }
         else run.endCol = i;
@@ -1848,6 +2044,31 @@
               place(r.startCol, r.endCol, 'mv-bar mv-pill',
                 `background:${bg}; color:${fg};`, escHtml(ep.name), escHtml(ep.name), '');
             });
+          });
+        }
+        // Per-phase hiatus: a red band in this phase's lane on the weekdays it pauses. Mirrors
+        // the Holiday Hiatus band, but scoped to this one phase; edits made in the Waterfall
+        // (rename/recolor, keyed by week + phase) show through here too.
+        const ph = s.phaseHiatus;
+        if(ph){
+          const hRuns = [];
+          let hr = null;
+          for(let i=0;i<7;i++){
+            const d = addDays(weekStart, i);
+            const dow = d.getUTCDay();
+            const inBand = (dow>=1 && dow<=5) && d>=s.start && d<s.end
+                           && d>=ph.start && d<ph.end && !isHiatusDate(schedule, d);
+            if(inBand){ if(!hr) hr = {startCol:i, endCol:i, date:d}; else hr.endCol = i; }
+            else if(hr){ hRuns.push(hr); hr = null; }
+          }
+          if(hr) hRuns.push(hr);
+          hRuns.forEach(r=>{
+            const hKey = isoOf(mondayOf(r.date)) + '|' + s.key;
+            const defLbl = (s.name || s.label || 'Phase').replace(/\s*wk\s*\d+\s*$/i,'') + ' Hiatus';
+            const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : defLbl;
+            const hc = hiatusColors[hKey] || HIATUS_COLOR;
+            place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
+              `background:${hc}; color:${textColorFor(hc)};`, escHtml(hTxt), escHtml(hTxt), '');
           });
         }
       });
@@ -2226,7 +2447,7 @@
           const hTxt = hiatusTextFor(hKey);
           const hCol = hiatusColorFor(hKey);
           const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
+          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" data-default-label="Holiday Hiatus" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -2235,6 +2456,11 @@
             const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
             if(cell.kind==='phase'){
               bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};">${escHtml(cell.label)}</td>`;
+            } else if(cell.kind==='phaseHiatus'){
+              const phKey = cell.weekIso + '|' + cell.phaseKey;
+              const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+              const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;">${escHi(cell.label)}</td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">Simultaneous Post</td>`;
             } else {
@@ -2407,8 +2633,9 @@
 
     let textVal, curColor;
     let autoNotes = [];
+    const hiatusDefaultLabel = td.dataset.defaultLabel || 'Holiday Hiatus';
     if(isHiatus){
-      textVal = hiatusTextFor(weekKey);
+      textVal = (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : hiatusDefaultLabel;
       curColor = hiatusColorFor(weekKey);
     } else {
       autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (() => {
@@ -2432,7 +2659,9 @@
     // uses -- so this is opt-in rather than another required field.
     const existing = userNotes[weekKey];
     const pinnedDate = (!isHiatus && existing && typeof existing === 'object' && existing.date) ? existing.date : '';
-    const weekStart = parseDateUTC(weekKey);
+    // Note cells key off a plain week ISO; per-phase hiatus cells key off "week|phase", which
+    // isn't a parseable date. The day picker is only built for notes, so skip it for hiatus.
+    const weekStart = isHiatus ? null : parseDateUTC(weekKey);
     const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const dayOpts = weekStart ? DOW.map((nm,i)=>{
       const dIso = isoOf(addDays(weekStart, i));
@@ -2479,7 +2708,7 @@
     textarea.addEventListener('input', resize);
     resize();
 
-    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null};
+    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null, defaultLabel: hiatusDefaultLabel};
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     td.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -2536,10 +2765,10 @@
 
   function commitActiveNoteEditor(){
     if(!activeNoteEditor) return;
-    const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor} = activeNoteEditor;
+    const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor, defaultLabel} = activeNoteEditor;
     if(isHiatus){
       const text = textarea.value.trim();
-      if(text === 'Holiday Hiatus') delete hiatusTexts[weekKey];
+      if(text === (defaultLabel || 'Holiday Hiatus')) delete hiatusTexts[weekKey];
       else hiatusTexts[weekKey] = text; // '' allowed = blank band
       if(pendingColor){
         if(pendingColor.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[weekKey];
@@ -2812,6 +3041,10 @@
             }
             if(item.kind === 'phase'){
               baseStyle(cell);
+              cell.value = item.label;
+              setFill(cell, item.color);
+            } else if(item.kind === 'phaseHiatus'){
+              baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')}}});
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
@@ -3092,19 +3325,32 @@
         out.push({kind:'simpost', label:'Simultaneous Post', color:SIMPOST_COLOR, textColor:SIMPOST_TEXT, colspan:1});
         k++;
       } else if(bySlot[k]){
-        let span = 1;
-        while(k+span < mc && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
         const c = bySlot[k];
-        out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c});
-        k += span;
+        if(c.type === 'phaseHiatus'){
+          // A per-phase hiatus band lives ONLY in its own column: never spans sideways, and
+          // (because it occupies the slot) neighbors can't span into it either. Resolve any
+          // per-band rename/recolor the user has applied, keyed by week + phase.
+          const hKey = c.weekIso + '|' + c.key;
+          const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
+          const hCol = hiatusColors[hKey] || HIATUS_COLOR;
+          out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
+                    colspan:1, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel});
+          k += 1;
+        } else {
+          let span = 1;
+          while(k+span < mc && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
+          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c});
+          k += span;
+        }
       } else {
         // Empty slot(s). If the next phase to the right can legally span left across this
         // empty run (each empty slot is free for that phase's whole run), let that phase
         // left-extend to absorb them -- so a lone phase fills the width even when an earlier
-        // (non-overlapping) phase briefly held the column to its left.
+        // (non-overlapping) phase briefly held the column to its left. A per-phase hiatus band
+        // is excluded as an absorb target so it can never widen past its own column.
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
-        if(n < mc && bySlot[n] && freeForRunSpan(n, k, n-1)){
+        if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && freeForRunSpan(n, k, n-1)){
           // absorb slots k..n-1 into the phase at slot n, then span it rightward as usual.
           let span = 1;
           while(n+span < mc && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
@@ -3285,6 +3531,35 @@
     const row = document.getElementById('simpost-offset-row');
     if(on && row) row.classList.toggle('is-off', !on.checked);
   }
+  // Per-phase hiatus controls (present in both the built-in and custom phase containers).
+  // Delegated so it keeps working across row rebuilds; toggling the checkbox reveals the
+  // start/weeks fields, and any change recomputes the schedule.
+  ['input','change'].forEach(evt=>{
+    ['phase-rows','custom-phase-rows'].forEach(cid=>{
+      const host = document.getElementById(cid);
+      if(!host) return;
+      host.addEventListener(evt, e=>{
+        const t = e.target;
+        if(!t || !t.classList) return;
+        if(t.classList.contains('phiatus-en')){
+          const key = t.id.replace('phiatus-en-','');
+          const f = document.getElementById('phiatus-fields-'+key);
+          if(f) f.style.display = t.checked ? 'flex' : 'none';
+          update();
+        } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks')){
+          update();
+        }
+      });
+    });
+  });
+  // Show/hide each phase-hiatus field group to match its toggle (used after restore/reset).
+  function refreshPhaseHiatusUI(){
+    document.querySelectorAll('.phiatus-en').forEach(cb=>{
+      const key = cb.id.replace('phiatus-en-','');
+      const f = document.getElementById('phiatus-fields-'+key);
+      if(f) f.style.display = cb.checked ? 'flex' : 'none';
+    });
+  }
   document.getElementById('calendar-start').addEventListener('input', update);
   document.getElementById('calendar-end').addEventListener('input', update);
   // Union country is locked while any note/hiatus edit exists: switching countries would
@@ -3310,11 +3585,19 @@
   // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as
   // part of starting a blank file, and does its own prompting -- doesn't ask twice.
   function resetAll(){
+    phaseColorOverride = {};
     PHASES.forEach(p=>{
       document.getElementById('start-'+p.key).value='';
       document.getElementById('weeks-'+p.key).value='';
       document.getElementById('name-'+p.key).value=p.label;
+      const sw = document.getElementById('swatch-'+p.key);
+      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
     });
+    // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
+    document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
+    document.querySelectorAll('.phiatus-start').forEach(el=>{ el.value = ''; });
+    document.querySelectorAll('.phiatus-weeks').forEach(el=>{ el.value = '2'; });
+    refreshPhaseHiatusUI();
     customPhaseDefs = [];
     document.getElementById('custom-phase-rows').innerHTML = '';
     addDefaultHiatuses();
@@ -3415,6 +3698,7 @@
     const stateSnapshot = {
       customPhaseDefs: customPhaseDefs,
       customPhaseCounter: customPhaseCounter,
+      phaseColorOverride: phaseColorOverride,
       episodeDefs: episodeDefs,
       episodeCounter: episodeCounter,
       userNotes: userNotes,
@@ -3624,7 +3908,7 @@
   function writeBackup(){
     try {
       const stateSnapshot = {
-        customPhaseDefs, customPhaseCounter, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
+        customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
         mvHeaderMode, mvHeaderManual,
         noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
       };
@@ -4237,15 +4521,22 @@
       // align the generated keys/colorIndex/counter with what was saved
       customPhaseDefs = snap.customPhaseDefs.map(cp=>({key:cp.key, colorIndex:cp.colorIndex}));
       if(typeof snap.customPhaseCounter === 'number') customPhaseCounter = snap.customPhaseCounter;
-      // re-key the freshly built rows to match saved keys
+      // re-key the freshly built rows to match saved keys (every id ends in "-<key>", where a
+      // key is always "custom<n>"), then reflect the saved color onto the swatch.
       const rows = document.querySelectorAll('#custom-phase-rows .phase-row');
       rows.forEach((row, i)=>{
         const saved = snap.customPhaseDefs[i];
         if(!saved) return;
         row.dataset.key = saved.key;
         row.querySelectorAll('[id]').forEach(node=>{
-          node.id = node.id.replace(/(name|color|start|weeks|meta|swatch)-.+$/, (m, pfx)=> pfx + '-' + saved.key);
+          node.id = node.id.replace(/-custom\d+$/, '-' + saved.key);
         });
+        const sw = document.getElementById('swatch-' + saved.key);
+        const opt = PHASE_COLOR_OPTIONS[saved.colorIndex];
+        if(sw && opt) sw.style.background = opt.color;
+        const lbl = document.getElementById('phiatus-label-' + saved.key);
+        const nameEl = document.getElementById('name-' + saved.key);
+        if(lbl && nameEl) lbl.textContent = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
       });
     }
 
@@ -4319,6 +4610,24 @@
     if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
+    // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
+    if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
+      phaseColorOverride = Object.assign({}, snap.phaseColorOverride);
+    } else {
+      phaseColorOverride = {};
+    }
+    PHASES.forEach(p=>{
+      const sw = document.getElementById('swatch-'+p.key);
+      if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+    });
+    // 4e. Match per-phase hiatus field visibility + custom labels to the restored values.
+    refreshPhaseHiatusUI();
+    document.querySelectorAll('#custom-phase-rows .phase-row').forEach(row=>{
+      const key = row.dataset.key;
+      const lbl = document.getElementById('phiatus-label-'+key);
+      const nameEl = document.getElementById('name-'+key);
+      if(lbl && nameEl) lbl.textContent = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
+    });
     if(snap.viewMode === 'sheet' || snap.viewMode === 'month'){
       viewMode = snap.viewMode;
     } else if(snap.viewMode === 'list'){
