@@ -495,6 +495,10 @@
   /* Visible on hovering the week so it's discoverable, but faint until pointed at directly. */
   .mv-week:hover .mv-note-add{ opacity:.5; }
   .mv-note-add:hover{ opacity:1 !important; color:var(--text); background:#fff; border-style:solid; }
+  /* The "add a note" affordance for a day whose lanes are ALL full. Positioned absolutely in the
+     row's bottom padding rather than given its own grid row, so it doesn't inflate the row height
+     with an empty trailing line. Hover-only, and above the row-expand strip so it stays clickable. */
+  .mv-note-add.mv-note-add-full{ position:absolute; bottom:1px; height:13px; z-index:3; }
   .mv-note-pop{
     position:absolute; z-index:60; width:230px; padding:8px;
     background:#fff; border:1px solid var(--border-strong); border-radius:8px;
@@ -2141,11 +2145,11 @@
           anyFree = true;
           bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2}; grid-row:${lane+1};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
         }
-        // A day whose lanes are all taken still needs a way to add a note -- otherwise a busy
-        // week silently loses the ability entirely. Offer one on the next line down; the row
-        // grows to hold it, which is the same thing content overflow already does.
+        // A day whose lanes are all taken still needs a way to add a note. Rather than a trailing
+        // grid row (which would leave an empty line of dead space under a full day), drop the "+"
+        // as an absolute overlay in the row's bottom padding -- present on hover, costing no height.
         if(!anyFree){
-          bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2}; grid-row:${laneCount+1};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
+          bars += `<div class="mv-bar mv-note-add mv-note-add-full mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="left:calc(3px + ${i} * (100% - 6px) / 7); width:calc((100% - 6px) / 7);" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
         }
       }
 
