@@ -378,20 +378,26 @@
     #print-root .mv-note-add, #print-root .mv-row-expand{ display:none !important; }
     /* Phase colours are the whole point of this document, so keep them. */
     *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
-    /* The grid lines must survive even if the user prints with "Background graphics" off --
-       that setting strips background-colour but NOT borders, so the calendar's structure is
-       drawn with real borders rather than relying on fills. Restated here at full strength
-       because the day grid is an absolutely-positioned layer, which some print pipelines
-       render more conservatively than in-flow content. */
+    /* Outer frame + the horizontal week separators are real borders on IN-FLOW block elements,
+       which print reliably. */
     #print-root .mv-body,
     #print-root .mv-monthbar,
     #print-root .mv-dowrow{ border-color:#000 !important; }
     #print-root .mv-week{ border-top:1px solid #000 !important; }
     #print-root .mv-week:first-child{ border-top:none !important; }
-    #print-root .mv-daycell{ border-left:1px solid #000 !important; }
-    #print-root .mv-daycell:first-child{ border-left:none !important; }
-    #print-root .mv-daygrid{ z-index:0; }
+    /* Vertical day dividers: NOT per-cell borders. A 1px border on the absolutely-positioned day
+       grid rasterizes inconsistently in print -- hairlines that land between device pixels drop
+       out, and the shaded weekend columns (Sat/Sun) make a dropped line obvious. Instead paint
+       the day grid solid black and lay the seven day cells over it with a 1px column gap: the
+       black showing through each gap is a solid fill, which the print pipeline reproduces every
+       time. Cells get an explicit background so the black only shows in the gaps, not through the
+       cell body. The outer left/right edges come from the mv-body border (no gap on the ends), so
+       there's no doubled line. */
+    #print-root .mv-daygrid{ z-index:0; background:#000 !important; gap:0 1px !important; }
     #print-root .mv-bars{ z-index:1; }
+    #print-root .mv-daycell{ border-left:none !important; background:#FFFFFF !important; }
+    #print-root .mv-daycell.mv-out{ background:#FAFAF9 !important; }
+    #print-root .mv-daycell.mv-weekend{ background:#F4F3F0 !important; }
   }
 
   /* Production's total is derived from the episode list, so it reads as a value, not a field. */
@@ -4431,11 +4437,48 @@
     markDirty();
     render(currentSchedule);
   }
+  // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
+  // used after committing a note (which re-renders and detaches the original click target) so the
+  // editor can re-open on the live node. Matches an existing note by day+kind+index, or a "+" by
+  // day (preferring the same lane), falling back to any "+" on that day.
+  function relocateNoteAnchor(t){
+    if(!t) return null;
+    if(!t.isAdd && t.index !== undefined && t.index !== null && t.index !== ''){
+      const el = document.querySelector(
+        `.mv-note-block[data-note-kind="${t.kind}"][data-note-day="${t.day}"][data-note-index="${t.index}"]`);
+      if(el) return el;
+    }
+    if(t.kind === 'wf' && !t.isAdd){
+      const el = document.querySelector(`.mv-note-block[data-note-kind="wf"][data-note-day="${t.day}"]`);
+      if(el) return el;
+    }
+    if(t.day){
+      const adds = Array.from(document.querySelectorAll(`.mv-note-add[data-note-day="${t.day}"]`));
+      if(adds.length){
+        return adds.find(a=>a.style.gridRow === t.gridRow) || adds[0];
+      }
+    }
+    return null;
+  }
   function openMvNoteEditor(anchor, weekKey, dayIso, kind){
     // Clicking straight from one note to another "+" (common when clicking "out" onto the grid,
-    // where an invisible per-lane "+" sits) must SAVE the note in progress, not discard it. Write
-    // its data first -- no render, so `anchor` stays valid -- then swap editors.
-    if(activeMvNote){ writeActiveMvNote(); markDirty(); }
+    // where an invisible per-lane "+" sits) must SAVE the note in progress AND show it right away.
+    // Capture what was clicked, fully commit the open note (which re-renders so it appears), then
+    // re-locate the clicked target in the fresh DOM and continue with it.
+    if(activeMvNote){
+      const target = {
+        week: anchor.dataset.noteWeek, day: anchor.dataset.noteDay,
+        kind: anchor.dataset.noteKind || 'day', index: anchor.dataset.noteIndex,
+        gridRow: anchor.style.gridRow, isAdd: anchor.classList.contains('mv-note-add')
+      };
+      commitMvNoteEditor(); // write + close + markDirty + render
+      const fresh = relocateNoteAnchor(target);
+      if(!fresh) return;    // nothing to re-open (e.g. the day is now full) -- the note is saved
+      anchor = fresh;
+      weekKey = fresh.dataset.noteWeek;
+      dayIso = fresh.dataset.noteDay;
+      kind = fresh.dataset.noteKind || 'day';
+    }
     closeMvNoteEditor();
     const isWf = (kind === 'wf');
     // Which line was clicked. Notes remember it so they stay on the line you chose.
