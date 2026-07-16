@@ -290,6 +290,23 @@
   .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
 
   /* Episodes live inside the Production phase row (month view only). */
+  /* Simultaneous Post sits inside the Production row: its offset counts weeks from
+     Production's start, so the control belongs next to the date it's measured from. */
+  .simpost-panel{
+    grid-column:1 / -1; margin-top:6px; padding-top:6px;
+    border-top:1px dashed var(--border);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .simpost-toggle{
+    display:flex; align-items:center; gap:6px;
+    font-size:11.5px; font-weight:600; color:var(--text);
+  }
+  .simpost-offset-row{
+    display:flex; align-items:center; gap:5px;
+    font-size:10.5px; color:var(--text-muted); padding-left:20px;
+  }
+  .simpost-offset-row input{ width:52px; }
+  .simpost-offset-row.is-off{ opacity:.45; }
   .ep-panel{
     grid-column:1 / -1; margin-top:8px; padding:8px 10px;
     border:1px dashed var(--border-strong); border-radius:8px; background:var(--bg);
@@ -309,18 +326,26 @@
     body.printing-calendar #print-root{ display:block; }
     #print-root .print-page{
       break-after:page; page-break-after:always;
-      /* Height is set inline by the scaler when a month has to shrink. Left alone otherwise so
-         a short month still fills the sheet. */
+      /* Each page is exactly one sheet of printable area. Set inline by the exporter so the
+         grid can stretch to fill it. */
     }
     #print-root .print-page:last-child{ break-after:auto; page-break-after:auto; }
     /* The month grid is the whole page now -- drop the on-screen card chrome. */
     #print-root .month-view{
       border:none; border-radius:0; padding:0;
-      display:flex; flex-direction:column;
+      display:flex; flex-direction:column; height:100%;
     }
-    /* Rows keep their natural, lane-driven height: the scaler measures that and fits the page
-       to it. Stretching them here would make the measurement meaningless. */
-    #print-root .mv-body{ display:flex; flex-direction:column; }
+    /* The body takes whatever height the header leaves, and the weeks divide it between them
+       in proportion to their lane counts -- so a 4-line row and a 6-line row keep their
+       relative sizes while the month as a whole always reaches the bottom of the sheet. */
+    #print-root .mv-body{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+    #print-root .mv-week{ min-height:0; }
+    /* On screen the lanes are a fixed 17px. In print the row heights are driven by the flex
+       weights above, so the lane track stretches with them -- but the bars themselves keep
+       their natural height and sit at the top of their lane, otherwise a 1-line row would
+       print one enormously tall pill. */
+    #print-root .mv-bars{ height:100%; grid-auto-rows:minmax(17px, 1fr); }
+    #print-root .mv-bar{ align-self:start; }
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
     #print-root .mv-tools{ display:none !important; }
@@ -328,6 +353,20 @@
     #print-root .mv-note-add, #print-root .mv-row-expand{ display:none !important; }
     /* Phase colours are the whole point of this document, so keep them. */
     *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    /* The grid lines must survive even if the user prints with "Background graphics" off --
+       that setting strips background-colour but NOT borders, so the calendar's structure is
+       drawn with real borders rather than relying on fills. Restated here at full strength
+       because the day grid is an absolutely-positioned layer, which some print pipelines
+       render more conservatively than in-flow content. */
+    #print-root .mv-body,
+    #print-root .mv-monthbar,
+    #print-root .mv-dowrow{ border-color:#000 !important; }
+    #print-root .mv-week{ border-top:1px solid #000 !important; }
+    #print-root .mv-week:first-child{ border-top:none !important; }
+    #print-root .mv-daycell{ border-left:1px solid #000 !important; }
+    #print-root .mv-daycell:first-child{ border-left:none !important; }
+    #print-root .mv-daygrid{ z-index:0; }
+    #print-root .mv-bars{ z-index:1; }
   }
 
   /* Production's total is derived from the episode list, so it reads as a value, not a field. */
@@ -598,13 +637,6 @@
     </section>
 
     <section class="card">
-      <h2>Phases</h2>
-      <div id="phase-rows"></div>
-      <div id="custom-phase-rows"></div>
-      <button class="secondary add-hiatus-btn" id="add-phase-btn">+ Add phase</button>
-    </section>
-
-    <section class="card">
       <h2>Union holidays</h2>
       <p class="placeholder-note" style="margin-bottom:8px;">Applies to Production (shooting) only. If a union holiday falls on what would be a shoot day, that day gets skipped and the schedule extends until the full day count is met.</p>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
@@ -624,15 +656,10 @@
     </section>
 
     <section class="card">
-      <h2>Simultaneous post</h2>
-      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px;">
-        <input type="checkbox" id="simpost-enabled">
-        Auto-flag Simultaneous Post during Production
-      </label>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
-        Starts this many weeks after Production begins
-        <input type="number" id="simpost-offset" min="0" step="1" value="0" style="width:90px;">
-      </label>
+      <h2>Phases</h2>
+      <div id="phase-rows"></div>
+      <div id="custom-phase-rows"></div>
+      <button class="secondary add-hiatus-btn" id="add-phase-btn">+ Add phase</button>
     </section>
 
     <section class="card">
@@ -695,14 +722,14 @@
       <p><strong>Editing locks the country.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the country selector locks &mdash; switching countries would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch countries again.</p>
 
       <h3>Simultaneous post</h3>
-      <p>Check <strong>Auto-flag Simultaneous Post</strong> to mark weeks where post runs concurrently with the shoot. The <strong>offset</strong> field sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
+      <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
 
       <h3>Holiday hiatus</h3>
       <p>Add one or more hiatus periods (a start date and a number of weeks). A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Holiday Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page.</strong> The PDF measures each month and scales it to fit the sheet, so a dense month simply prints a little smaller rather than spilling onto a second page. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Waterfall view vs. Month view</h3>
       <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
@@ -1310,6 +1337,17 @@
         </div>
         <div class="phase-meta" id="meta-${p.key}"></div>
         ${p.key === 'production' ? `
+        <div class="simpost-panel">
+          <label class="simpost-toggle">
+            <input type="checkbox" id="simpost-enabled">
+            Simultaneous Post
+          </label>
+          <label class="simpost-offset-row" id="simpost-offset-row">
+            Starts
+            <input type="number" id="simpost-offset" min="0" step="1" value="0">
+            weeks after Production begins
+          </label>
+        </div>
         <div class="ep-panel" id="ep-panel" style="display:none;">
           <div class="ep-panel-warn" id="ep-panel-warn"></div>
           <div id="episode-rows"></div>
@@ -1730,7 +1768,6 @@
         if(dow===0 || dow===6) cls.push('mv-weekend');
         dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
-
 
       // Bars are collected as objects first so each can be given an explicit grid ROW. That
       // turns the block into addressable "slots": anything not filled by a phase, episode or
@@ -3223,13 +3260,31 @@
   });
 
   buildPhaseRows();
+  refreshSimPostUI();
   addDefaultHiatuses();
   PHASES.forEach(p=>{
     document.getElementById('start-'+p.key).addEventListener('input', update);
     document.getElementById('weeks-'+p.key).addEventListener('input', update);
   });
-  document.getElementById('simpost-enabled').addEventListener('input', update);
-  document.getElementById('simpost-offset').addEventListener('input', update);
+  // Simultaneous Post lives inside the Production row, which buildPhaseRows() creates. Bind by
+  // delegation rather than to the elements directly: a direct listener would be silently lost
+  // if the rows were ever rebuilt, and the failure would look like the checkbox doing nothing.
+  // Both 'input' and 'change' are handled -- a real checkbox click fires both, but scripted
+  // interaction may raise only one.
+  ['input','change'].forEach(evt=>{
+    document.getElementById('phase-rows').addEventListener(evt, e=>{
+      if(e.target && (e.target.id === 'simpost-enabled' || e.target.id === 'simpost-offset')){
+        refreshSimPostUI();
+        update();
+      }
+    });
+  });
+  // The offset only means something when the feature is on.
+  function refreshSimPostUI(){
+    const on = document.getElementById('simpost-enabled');
+    const row = document.getElementById('simpost-offset-row');
+    if(on && row) row.classList.toggle('is-off', !on.checked);
+  }
   document.getElementById('calendar-start').addEventListener('input', update);
   document.getElementById('calendar-end').addEventListener('input', update);
   // Union country is locked while any note/hiatus edit exists: switching countries would
@@ -3265,6 +3320,7 @@
     addDefaultHiatuses();
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
+    refreshSimPostUI();
     document.getElementById('calendar-start').value = '';
     document.getElementById('calendar-end').value = '';
     document.getElementById('union-country').value = '';
@@ -3616,6 +3672,7 @@
     suppressDirty = true;
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
     restoreSavedState();
+    refreshSimPostUI();
     lastCountry = document.getElementById('union-country').value;
     update();
     suppressDirty = false;
@@ -3950,38 +4007,46 @@
     }
     printingCursor = null;
 
-    // Guarantee one month per page. The sheet is a fixed physical size but a month's height is
-    // whatever its rows add up to, so measure each rendered page and scale it down to fit.
-    // Scaling (rather than a hard content cap) means a dense month simply prints smaller
-    // instead of losing rows or spilling onto a second sheet.
+    // Fit every month to exactly one sheet. Rather than measuring and shrinking the whole page
+    // with a transform (which left sparse months floating at the top, since a 2-row month has
+    // no natural reason to reach the bottom), the page is pinned to the printable area and the
+    // week rows divide it between them in proportion to their lane counts. A month with four
+    // 4-line rows prints as four equal rows filling the sheet; if one row carries 6 lines of
+    // comments it takes proportionally more and the others give way. Everything stays visible
+    // and the grid always spans top to bottom.
     // Landscape Letter minus the 8mm @page margins, at 96dpi.
     const PAGE_W = (11 - 2*8/25.4) * 96;
     const PAGE_H = (8.5 - 2*8/25.4) * 96;
-    // Measuring needs the pages laid out, and #print-root is display:none until this class is
-    // set -- so add it BEFORE measuring or every height reads back as zero.
-    document.body.classList.add('printing-calendar');
     try {
       Array.from(host.children).forEach(page=>{
-        const inner = page.firstElementChild;
-        if(!inner) return;
-        inner.style.transform = '';
-        page.style.height = '';
-        const h = inner.scrollHeight;
-        const w = inner.scrollWidth;
-        if(!h || !w) return;   // jsdom and other non-layout contexts report 0
-        const scale = Math.min(1, PAGE_H / h, PAGE_W / w);
-        // Ignore a sub-pixel overage: scaling by 0.999 costs a repaint and buys nothing.
-        if(scale < 0.995){
-          inner.style.transformOrigin = 'top left';
-          inner.style.transform = `scale(${scale})`;
-          // A transform doesn't affect layout, so the wrapper would still reserve the unscaled
-          // height and push a blank second sheet. Pin it to the scaled height.
-          page.style.height = (h * scale) + 'px';
-          page.style.overflow = 'hidden';
-        }
+        page.style.height = PAGE_H + 'px';
+        page.style.width = PAGE_W + 'px';
+        page.style.overflow = 'hidden';
+        const weeks = page.querySelectorAll('.mv-week');
+        weeks.forEach(wkEl=>{
+          // Lane count for this row: the highest grid-row used by any real bar. The "+" slots
+          // are excluded -- they're hidden on paper, and counting them would report every row
+          // as full-height and flatten the proportions this is meant to preserve.
+          let lanes = 1;
+          wkEl.querySelectorAll('.mv-bar:not(.mv-note-add)').forEach(b=>{
+            const gr = parseInt(b.style.gridRow, 10);
+            if(Number.isFinite(gr) && gr > lanes) lanes = gr;
+          });
+          // Weight by the row's real height, not the raw lane count: every row also carries
+          // fixed padding for the day numbers, so a 6-lane row is nowhere near 6x the height
+          // of a 1-lane one and weighting by lanes alone would squash the sparse rows.
+          const MV_LANE_PX = 19;      // 17px track + 2px gap
+          const MV_ROW_CHROME = 38;   // 24px top padding + 14px bottom
+          const weight = MV_ROW_CHROME + Math.max(lanes, MV_MIN_LANES) * MV_LANE_PX;
+          // Longhands, not the `flex` shorthand: some DOM implementations (jsdom included)
+          // silently drop the shorthand, which would leave the rows unweighted and untestable.
+          wkEl.style.flexGrow = String(weight);
+          wkEl.style.flexShrink = '1';
+          wkEl.style.flexBasis = '0';
+        });
       });
     } catch(err){
-      console.error(err);   // never let a measuring failure block the dialog
+      console.error(err);   // never let a layout failure block the dialog
     }
 
     // Restore the live view. Guarded: if this throws, the print must still happen -- the
@@ -3990,6 +4055,7 @@
     try { render(currentSchedule); } catch(err){ console.error(err); }
 
     // (printing-calendar was already set above, before measuring.)
+    document.body.classList.add('printing-calendar');
     let done = false;
     const cleanup = ()=>{
       if(done) return;
@@ -4284,6 +4350,7 @@
   restoreSavedState();
   lastCountry = document.getElementById('union-country').value;
   refreshEpisodesUI();
+  refreshSimPostUI();
   update();
 
   // Initial load/restore is done -- from here on, changes are real user edits.
