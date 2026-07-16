@@ -364,12 +364,21 @@
        in proportion to their lane counts -- so a 4-line row and a 6-line row keep their
        relative sizes while the month as a whole always reaches the bottom of the sheet. */
     #print-root .mv-body{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
-    #print-root .mv-week{ min-height:0; }
+    /* CRITICAL for print line fidelity: on screen the day grid (shading + dividers + day numbers)
+       is a position:absolute layer under the bars. Chrome's print pipeline rasterizes that
+       composited layer and drops 1px lines from it non-deterministically -- which is why exporting
+       the same month twice gave different missing dividers. So in print we take the grid OUT of the
+       absolute layer: the week becomes a 1x1 CSS grid and BOTH the day grid and the bars occupy the
+       same single cell (grid-area 1/1), stacked. The day grid is now in-flow, in the same paint
+       layer as the horizontal week borders (which always printed fine), so its vertical dividers
+       render as stable vector strokes every time. */
+    #print-root .mv-week{ min-height:0; display:grid !important; grid-template-columns:1fr !important; grid-template-rows:1fr !important; }
+    #print-root .mv-daygrid{ position:static !important; grid-area:1 / 1 !important; }
     /* On screen the lanes are a fixed 17px. In print the row heights are driven by the flex
        weights above, so the lane track stretches with them -- but the bars themselves keep
        their natural height and sit at the top of their lane, otherwise a 1-line row would
        print one enormously tall pill. */
-    #print-root .mv-bars{ height:100%; grid-auto-rows:minmax(17px, 1fr); }
+    #print-root .mv-bars{ grid-area:1 / 1 !important; height:auto; grid-auto-rows:minmax(17px, 1fr); }
     #print-root .mv-bar{ align-self:start; }
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
@@ -385,19 +394,14 @@
     #print-root .mv-dowrow{ border-color:#000 !important; }
     #print-root .mv-week{ border-top:1px solid #000 !important; }
     #print-root .mv-week:first-child{ border-top:none !important; }
-    /* Vertical day dividers: NOT per-cell borders. A 1px border on the absolutely-positioned day
-       grid rasterizes inconsistently in print -- hairlines that land between device pixels drop
-       out, and the shaded weekend columns (Sat/Sun) make a dropped line obvious. Instead paint
-       the day grid solid black and lay the seven day cells over it with a 1px column gap: the
-       black showing through each gap is a solid fill, which the print pipeline reproduces every
-       time. Cells get an explicit background so the black only shows in the gaps, not through the
-       cell body. The outer left/right edges come from the mv-body border (no gap on the ends), so
-       there's no doubled line. */
-    #print-root .mv-daygrid{ z-index:0; background:#000 !important; gap:0 1px !important; }
+    /* Vertical day dividers are 1px borders on the day cells -- exactly like the horizontal week
+       borders above, which print reliably. This works now ONLY because the grid-stacking above
+       moved the day grid OUT of the absolute layer and into the in-flow paint layer; the same
+       borders failed before because they lived on the composited absolute layer that Chrome
+       rasterized and thinned. Keep the bars above via z-index so pills sit over the dividers. */
     #print-root .mv-bars{ z-index:1; }
-    #print-root .mv-daycell{ border-left:none !important; background:#FFFFFF !important; }
-    #print-root .mv-daycell.mv-out{ background:#FAFAF9 !important; }
-    #print-root .mv-daycell.mv-weekend{ background:#F4F3F0 !important; }
+    #print-root .mv-daycell{ border-left:1px solid #000 !important; }
+    #print-root .mv-daycell:first-child{ border-left:none !important; }
   }
 
   /* Production's total is derived from the episode list, so it reads as a value, not a field. */
