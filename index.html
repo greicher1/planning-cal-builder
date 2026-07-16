@@ -679,7 +679,7 @@
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking the <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. A Waterfall note shown in Month view is read-only there; edit it in the Waterfall. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown: leave it on &ldquo;Mon (default)&rdquo; and the note sits on that week&rsquo;s Monday in Month view, or pick a day to pin it there. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking the <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Waterfall view vs. Month view</h3>
       <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
@@ -1602,8 +1602,21 @@
     if(override !== undefined){
       const list = userNoteList(weekIso);
       list.forEach(n=>{
-        const belongsHere = n.date ? (n.date === iso) : (date.getUTCDay() === 1);
-        if(belongsHere) String(n.text || '').split('\n').filter(Boolean).forEach(t=>out.push(t));
+        // A note's text may carry its own trailing date (the day picker stamps one in, and the
+        // auto-notes are written that way too). That date is the truth about where the line
+        // belongs -- so a multi-line override splits across days rather than stacking on one.
+        String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
+          const m = line.match(/(\d{1,2})\/(\d{2})\/(\d{2})\s*$/);
+          if(m){
+            const yr = 2000 + parseInt(m[3],10);
+            const lineIso = isoOf(new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10))));
+            if(lineIso === iso) out.push(line);
+            return;
+          }
+          // No date in the text: fall back to the note's pinned day, else the week's Monday.
+          const belongsHere = n.date ? (n.date === iso) : (date.getUTCDay() === 1);
+          if(belongsHere) out.push(line);
+        });
       });
     } else {
       autoNotes
@@ -1771,24 +1784,25 @@
         const d = addDays(weekStart, i);
         const dIso = isoOf(d);
         const wkKey = isoOf(mondayOf(d));
-        // Waterfall-owned notes for this day (auto or week override). Read-only here: they're
-        // week-level, so editing them from a single day would be ambiguous.
+        // Waterfall-owned notes for this day (auto or week override). Editable here too: an
+        // edit writes back to the week store, so it shows in the Waterfall and the Excel export
+        // exactly as if it had been typed there.
         const wfNotes = notesForWaterfallDate(schedule, d);
         const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
         wfNotes.forEach(n=>{
-          bars += `<div class="mv-bar mv-note-block" style="grid-column:${i+1} / ${i+2}; background:${wfColor}; color:${textColorFor(wfColor)};" title="${escHtml(n)} \u2014 edit in Waterfall view">${escHtml(n)}</div>`;
+          bars += `<div class="mv-bar mv-note-block mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf" style="grid-column:${i+1} / ${i+2}; background:${wfColor}; color:${textColorFor(wfColor)};" title="${escHtml(n)} \u2014 click to edit (also updates the Waterfall)">${escHtml(n)}</div>`;
         });
         // This day's own note: month-view only, editable, with its own colour.
         const own = dayNotes[dIso];
         if(own && own.text){
           const oc = dayNoteColors[dIso] || MILESTONE_COLOR;
           String(own.text).split('\n').filter(Boolean).forEach(t=>{
-            bars += `<div class="mv-bar mv-note-block mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" style="grid-column:${i+1} / ${i+2}; background:${oc}; color:${textColorFor(oc)};" title="${escHtml(t)} \u2014 click to edit">${escHtml(t)}</div>`;
+            bars += `<div class="mv-bar mv-note-block mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2}; background:${oc}; color:${textColorFor(oc)};" title="${escHtml(t)} \u2014 click to edit (month view only)">${escHtml(t)}</div>`;
           });
         }
         // An "add note" affordance on days with no note of their own.
         if(!own && !isHiatusDate(schedule, d)){
-          bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" style="grid-column:${i+1} / ${i+2};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
+          bars += `<div class="mv-bar mv-note-add mv-note-click" data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" style="grid-column:${i+1} / ${i+2};" title="Add a note on ${fmtShort(d)} (month view only)">+</div>`;
         }
       }
 
@@ -2297,6 +2311,25 @@
     </div>`;
 
     const textarea = td.querySelector('textarea');
+    // Choosing a day stamps the date into the text itself, so it reads "Table Read 11/04/26"
+    // the way the auto-notes do. It's inserted as plain characters -- editable and deletable
+    // like anything else typed -- rather than being auto-appended at render time, so what's in
+    // the box is exactly what gets saved.
+    const daySel = td.querySelector('.note-day-select');
+    if(daySel){
+      daySel.addEventListener('mousedown', e=>e.stopPropagation());
+      daySel.addEventListener('click', e=>e.stopPropagation());
+      daySel.addEventListener('change', e=>{
+        e.stopPropagation();
+        const iso = daySel.value;
+        const cur = textarea.value;
+        // Replace any date this control previously stamped, so switching days doesn't stack
+        // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
+        const stripped = cur.replace(/\s*\d{1,2}\/\d{2}\/\d{2}\s*$/, '');
+        textarea.value = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
+        textarea.focus();
+      });
+    }
     textarea.focus();
     textarea.select();
 
@@ -3843,43 +3876,76 @@
   }
   function commitMvNoteEditor(){
     if(!activeMvNote) return;
-    const {dayIso, textarea, pendingColor} = activeMvNote;
+    const {kind, weekKey, dayIso, textarea, pendingColor} = activeMvNote;
     const text = textarea.value.trim();
-    if(text) dayNotes[dayIso] = {text};
-    else delete dayNotes[dayIso];
-    if(pendingColor && text){
-      if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete dayNoteColors[dayIso];
-      else dayNoteColors[dayIso] = pendingColor;
+    if(kind === 'wf'){
+      // A waterfall-owned note: write it back to the week store so the Waterfall and the Excel
+      // export see the same edit. Pin it to this day so it stays where it was clicked.
+      const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
+        const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
+        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+      })() : [];
+      saveNoteEdit(weekKey, text, autoNotes, dayIso);
+      if(pendingColor){
+        if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
+        else noteColors[weekKey] = pendingColor;
+      }
+      if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+    } else {
+      if(text) dayNotes[dayIso] = {text};
+      else delete dayNotes[dayIso];
+      if(pendingColor && text){
+        if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete dayNoteColors[dayIso];
+        else dayNoteColors[dayIso] = pendingColor;
+      }
+      if(!text) delete dayNoteColors[dayIso];
     }
-    if(!text) delete dayNoteColors[dayIso];
     closeMvNoteEditor();
     markDirty();
     render(currentSchedule);
   }
-  function openMvNoteEditor(anchor, weekKey, dayIso){
+  function openMvNoteEditor(anchor, weekKey, dayIso, kind){
     closeMvNoteEditor();
-    // Only this day's own note is editable here. A waterfall note shown on this day is read-only
-    // from the month view -- editing it would have to write back into the week store.
-    const own = dayNotes[dayIso];
-    const curText = own ? (own.text || '') : '';
-    const curColor = dayNoteColors[dayIso] || MILESTONE_COLOR;
+    const isWf = (kind === 'wf');
+    // Prefill: a waterfall note shows its current text (auto or overridden); a day note shows
+    // its own, and a blank day starts empty.
+    let curText, curColor;
+    if(isWf){
+      // A waterfall note is a WEEK-level thing: an override replaces the week's whole text.
+      // So show every note the week currently has, not just the line clicked -- otherwise
+      // saving would silently drop the others (e.g. editing Thanksgiving would delete
+      // "Day after Thanksgiving" from the same week).
+      const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
+        const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
+        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+      })() : [];
+      curText = effectiveNoteText(weekKey, autoNotes);
+      curColor = noteColors[weekKey] || MILESTONE_COLOR;
+    } else {
+      const own = dayNotes[dayIso];
+      curText = own ? (own.text || '') : '';
+      curColor = dayNoteColors[dayIso] || MILESTONE_COLOR;
+    }
     const swatches = EXCEL_STANDARD_COLORS.map(c =>
       `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
     ).join('');
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
     pop.className = 'mv-note-pop';
+    const scopeNote = isWf
+      ? 'Also updates the Waterfall + Excel'
+      : 'Month view only';
     pop.innerHTML = `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
       <textarea rows="2" placeholder="Note text (multi-line OK)">${curText.replace(/</g,'&lt;')}</textarea>
       <div class="note-color-row" title="Highlight color">${swatches}</div>
-      <div class="mv-note-pop-hint">Month view only \u00b7 Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      <div class="mv-note-pop-hint">${scopeNote} \u00b7 Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
     pop.style.left = Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - 240) + 'px';
     const textarea = pop.querySelector('textarea');
     textarea.focus(); textarea.select();
-    activeMvNote = {dayIso, textarea, pendingColor:null};
+    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, textarea, pendingColor:null};
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
       sw.addEventListener('mousedown', e=>e.preventDefault());
       sw.addEventListener('click', e=>{
@@ -3899,7 +3965,7 @@
     const hit = e.target.closest && e.target.closest('.mv-note-click');
     if(!hit) return;
     e.stopPropagation();
-    openMvNoteEditor(hit, hit.dataset.noteWeek, hit.dataset.noteDay);
+    openMvNoteEditor(hit, hit.dataset.noteWeek, hit.dataset.noteDay, hit.dataset.noteKind || 'day');
   });
   // Clicking anywhere else commits, matching the waterfall editor's behaviour.
   document.addEventListener('click', e=>{
