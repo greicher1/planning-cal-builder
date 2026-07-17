@@ -298,9 +298,13 @@
   /* Notes are deliberately square so they read as a different class of thing than phases,
      and they sit on their exact day -- so instead of stealing width from neighbouring days,
      longer text wraps onto extra lines and the block grows taller. */
+  /* A note is one solid block up to 3 lines tall. pre-wrap keeps the user's own line breaks AND
+     lets long text wrap; the block is given exactly as many lanes as it needs, so it fills a single
+     highlight rather than overflowing. overflow:hidden guards against a mis-measure spilling over a
+     neighbour. */
   .mv-note-block{
     border-radius:0; font-weight:500;
-    white-space:normal; overflow:visible; text-overflow:clip;
+    white-space:pre-wrap; overflow:hidden; text-overflow:clip;
     line-height:1.3; padding:2px 4px; word-break:break-word; hyphens:auto;
   }
   .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
@@ -1894,6 +1898,46 @@
     return out;
   }
 
+  // Notes can be up to 3 lines tall and render as ONE solid block. To lay them out we need to know,
+  // before placing them, how many lines a note's text occupies at the day-column width -- both for
+  // user notes with real line breaks and for long auto-notes that wrap. Measured in a hidden element
+  // styled exactly like a note bar, and cached (keyed by width+text) so re-renders don't reflow.
+  let _mvNoteMeasureEl = null;
+  const _mvNoteLineCache = new Map();
+  function mvNoteLineCount(text, boxW){
+    const t = String(text == null ? '' : text);
+    if(!t.trim()) return 1;
+    const key = Math.round(boxW) + '|' + t;
+    if(_mvNoteLineCache.has(key)) return _mvNoteLineCache.get(key);
+    if(!_mvNoteMeasureEl){
+      _mvNoteMeasureEl = document.createElement('div');
+      _mvNoteMeasureEl.setAttribute('aria-hidden','true');
+      _mvNoteMeasureEl.style.cssText = 'position:absolute; left:-99999px; top:0; visibility:hidden; box-sizing:border-box;'
+        + "font-family:'Inter',-apple-system,sans-serif; font-size:10px; font-weight:500; line-height:1.3;"
+        + 'padding:2px 4px; border:1px solid transparent; white-space:pre-wrap; word-break:break-word; hyphens:auto;';
+      document.body.appendChild(_mvNoteMeasureEl);
+    }
+    _mvNoteMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    _mvNoteMeasureEl.textContent = t;
+    const h = _mvNoteMeasureEl.offsetHeight; // = lines*13 (line-height) + 4 (padding) + 2 (border)
+    const lines = Math.min(3, Math.max(1, Math.round((h - 6) / 13)));
+    if(_mvNoteLineCache.size > 800) _mvNoteLineCache.clear();
+    _mvNoteLineCache.set(key, lines);
+    return lines;
+  }
+  // Border-box width of a note bar = one day column minus the bar's 1px horizontal margins.
+  function mvNoteBoxWidth(){
+    let colW = 0;
+    const cell = document.querySelector('#table-wrap .mv-daycell');
+    if(cell) colW = cell.getBoundingClientRect().width;
+    if(!colW || colW < 20){
+      const tw = document.getElementById('table-wrap');
+      const w = (tw && tw.clientWidth) ? tw.clientWidth : 980;
+      colW = Math.max(70, (w - 30) / 7);
+    }
+    return colW - 2;
+  }
+
   function renderMonthView(schedule){
     const segs = schedule.segments || [];
     if(!segs.length && !(schedule.weeks||[]).length){
@@ -1961,28 +2005,37 @@
       // turns the block into addressable "slots": anything not filled by a phase, episode or
       // note is a real gap we can offer a "+" in, rather than whatever the flow happens to
       // leave over. Lane 0 is the top line under the day numbers.
-      const placed = [];              // {lane, startCol, endCol, html}
+      const placed = [];              // {lane, laneSpan, startCol, endCol, html}
       const occupied = new Map();     // lane -> Set of columns already used
-      const takeLane = (startCol, endCol, preferred)=>{
-        // Find the first lane where every column in the span is free (from `preferred` down).
-        for(let lane = preferred || 0; lane < 40; lane++){
-          const used = occupied.get(lane);
+      // Find the first lane where a `laneSpan`-tall block fits (every column free across ALL of its
+      // lanes), packing top-down, and reserve those lanes. laneSpan > 1 is how a multi-line note
+      // claims the vertical space it needs so nothing else lands on top of it.
+      const takeLane = (startCol, endCol, laneSpan)=>{
+        laneSpan = Math.max(1, laneSpan || 1);
+        for(let lane = 0; lane < 60; lane++){
           let free = true;
-          if(used){ for(let c=startCol;c<=endCol;c++){ if(used.has(c)){ free=false; break; } } }
+          for(let L = lane; L < lane + laneSpan && free; L++){
+            const used = occupied.get(L);
+            if(used){ for(let c=startCol;c<=endCol;c++){ if(used.has(c)){ free=false; break; } } }
+          }
           if(free){
-            if(!occupied.has(lane)) occupied.set(lane, new Set());
-            const s = occupied.get(lane);
-            for(let c=startCol;c<=endCol;c++) s.add(c);
+            for(let L = lane; L < lane + laneSpan; L++){
+              if(!occupied.has(L)) occupied.set(L, new Set());
+              const s = occupied.get(L);
+              for(let c=startCol;c<=endCol;c++) s.add(c);
+            }
             return lane;
           }
         }
         return 0;
       };
-      const place = (startCol, endCol, cls, style, title, text, data, preferred)=>{
-        const lane = takeLane(startCol, endCol, preferred);
-        placed.push({lane, startCol, endCol, cls, style, title, text, data});
+      const place = (startCol, endCol, cls, style, title, text, data, laneSpan)=>{
+        laneSpan = Math.max(1, laneSpan || 1);
+        const lane = takeLane(startCol, endCol, laneSpan);
+        placed.push({lane, laneSpan, startCol, endCol, cls, style, title, text, data});
         return lane;
       };
+      const noteBoxW = mvNoteBoxWidth();
 
       // Hiatus first: a full-width stop-work band across the days it covers. Spillover days
       // (the greyed-out neighbours from the previous/next month that fill the first and last
@@ -2092,24 +2145,30 @@
         const wfNotes = notesForWaterfallDate(schedule, d);
         const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
         wfNotes.forEach(n=>{
+          // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
+          // that many lanes so it prints as one solid block instead of spilling over its neighbour.
+          const span = mvNoteLineCount(n, noteBoxW);
           place(i, i, 'mv-bar mv-note-block mv-note-click',
             `background:${wfColor}; color:${textColorFor(wfColor)};`,
             escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
-            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`);
+            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`,
+            span);
         });
-        // This day's own notes: month-view only, each independently editable with its own
-        // line and colour. The index ties a block back to its entry for editing.
+        // This day's own notes: month-view only, each independently editable with its own colour.
+        // A note is ONE block that can be up to 3 lines tall (its own real line breaks plus any
+        // wrapping) -- the whole thing shares one highlight rather than splitting into separate
+        // notes. The index ties a block back to its entry for editing.
         const ownList = dayNoteList(dIso);
         ownList.forEach((entry, ni)=>{
           const oc = entry.color || MILESTONE_COLOR;
-          const want = (entry.lane != null) ? entry.lane : 0;
-          String(entry.text || '').split('\n').filter(Boolean).forEach((t, li)=>{
-            place(i, i, 'mv-bar mv-note-block mv-note-click',
-              `background:${oc}; color:${textColorFor(oc)};`,
-              escHtml(t) + ' \u2014 click to edit (month view only)', escHtml(t),
-              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
-              want + li);
-          });
+          const text = String(entry.text || '');
+          if(!text.trim()) return;
+          const span = mvNoteLineCount(text, noteBoxW);
+          place(i, i, 'mv-bar mv-note-block mv-note-click',
+            `background:${oc}; color:${textColorFor(oc)};`,
+            escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
+            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
+            span);
         });
         // An "add note" affordance on free lines (added below for every day).
       }
@@ -2117,7 +2176,7 @@
       // How tall is this week? At least MV_MIN_LANES, and more if the content needs it --
       // content is never hidden. Manual expansion is what's capped: it can lift the row up to
       // MV_MAX_LANES but no further, so a stray click can't inflate a page indefinitely.
-      const contentLanes = placed.length ? Math.max.apply(null, placed.map(p=>p.lane)) + 1 : 0;
+      const contentLanes = placed.length ? Math.max.apply(null, placed.map(p=>p.lane + (p.laneSpan||1))) : 0;
       const wkIsoRow = isoOf(mondayOf(weekStart));
       const baseLanes = Math.max(MV_MIN_LANES, contentLanes);
       const roomToGrow = Math.max(0, MV_MAX_LANES - baseLanes);
@@ -2128,7 +2187,9 @@
       // Emit the placed bars.
       let bars = '';
       placed.forEach(p=>{
-        bars += `<div class="${p.cls}" ${p.data} style="grid-column:${p.startCol+1} / ${p.endCol+2}; grid-row:${p.lane+1};${p.style}"${p.title?` title="${p.title}"`:''}>${p.text}</div>`;
+        const span = p.laneSpan || 1;
+        const gr = span > 1 ? `grid-row:${p.lane+1} / span ${span};` : `grid-row:${p.lane+1};`;
+        bars += `<div class="${p.cls}" ${p.data} style="grid-column:${p.startCol+1} / ${p.endCol+2}; ${gr}${p.style}"${p.title?` title="${p.title}"`:''}>${p.text}</div>`;
       });
 
       // Every free slot gets its own "+", so a note can be added on the exact line it will
@@ -4304,26 +4365,20 @@
     const PAGE_PAD = 4;                     // print-page's 2px top+bottom padding
     const PRINT_W = Math.round((11 - 2*8/25.4) * 96);
     try {
-      // Pass 1: re-pack each week's bars into gap-free lanes; also compute the 4-line "nice" height
-      // used to distribute slack so rows read as even blocks when there's room.
+      // Pass 1: compute each week's 4-line "nice" height, used only to distribute slack so rows
+      // read as even blocks when there's room. Bars are already packed top-down and gap-free (the
+      // renderer places them compactly), and a note may span several lanes, so the lane count is
+      // the furthest lane any bar reaches (start + span), not just the number of distinct starts.
       const pages = Array.from(host.children).map(page=>{
         const weeks = Array.from(page.querySelectorAll('.mv-week'));
         const niceH = weeks.map(wkEl=>{
-          // Count ONLY real content -- phases, episode pills, notes, hiatus bands (never the
-          // hidden "+"/expand affordances). RE-PACK those bars into gap-free lanes: a note can
-          // still remember a high lane from an earlier manual row-expansion, and printing it at
-          // lane 6 with lanes 2-5 empty would inflate the row with blank tracks.
           const bars = Array.from(wkEl.querySelectorAll('.mv-bar:not(.mv-note-add):not(.mv-row-expand)'));
-          const usedLanes = Array.from(new Set(
-            bars.map(b=>parseInt(b.style.gridRow, 10)).filter(Number.isFinite)
-          )).sort((a,b)=>a-b);
-          const remap = new Map();
-          usedLanes.forEach((ln, i)=> remap.set(ln, i+1)); // grid-row is 1-based
+          let maxLane = 0;
           bars.forEach(b=>{
-            const gr = parseInt(b.style.gridRow, 10);
-            if(remap.has(gr)) b.style.gridRow = String(remap.get(gr));
+            const m = String(b.style.gridRow || '').match(/^\s*(\d+)(?:\s*\/\s*span\s*(\d+))?/);
+            if(m){ const start = parseInt(m[1],10); const span = m[2] ? parseInt(m[2],10) : 1; maxLane = Math.max(maxLane, start - 1 + span); }
           });
-          return MV_ROW_CHROME + Math.max(usedLanes.length, MV_MIN_LANES) * MV_LANE_PX;
+          return MV_ROW_CHROME + Math.max(maxLane, MV_MIN_LANES) * MV_LANE_PX;
         });
         return { page, weeks, niceH };
       });
@@ -4581,15 +4636,30 @@
     const scopeNote = isWf
       ? 'Also updates the Waterfall + Excel'
       : 'Month view only';
+    const lineHint = isWf ? '' : 'Up to 3 lines \u00b7 Enter for a new line \u00b7 ';
     pop.innerHTML = `<div class="mv-note-pop-day">${fmtShort(parseDateUTC(dayIso))}</div>
-      <textarea rows="2" placeholder="Note text (multi-line OK)">${curText.replace(/</g,'&lt;')}</textarea>
+      <textarea rows="3" placeholder="Note text${isWf?' (multi-line OK)':' \u2014 Enter for a new line, up to 3'}">${curText.replace(/</g,'&lt;')}</textarea>
       <div class="note-color-row" title="Highlight color">${swatches}</div>
-      <div class="mv-note-pop-hint">${scopeNote} \u00b7 Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+      <div class="mv-note-pop-hint">${scopeNote} \u00b7 ${lineHint}Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
     pop.style.left = Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - 240) + 'px';
     const textarea = pop.querySelector('textarea');
+    // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
+    // aren't capped -- there each line is a separate milestone across the week.
+    if(!isWf){
+      const cap3 = ()=>{
+        const lines = textarea.value.split('\n');
+        if(lines.length > 3) textarea.value = lines.slice(0,3).join('\n');
+      };
+      textarea.addEventListener('input', cap3);
+      textarea.addEventListener('keydown', e=>{
+        if(e.key === 'Enter' && !e.metaKey && !e.ctrlKey && textarea.value.split('\n').length >= 3){
+          e.preventDefault(); // already at 3 lines -- don't add a 4th
+        }
+      });
+    }
     textarea.focus(); textarea.select();
     activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null};
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
