@@ -4376,11 +4376,17 @@
         if(d.reqTotal <= d.avail || d.avail <= 0){
           // Content fits: fill the page at FULL SIZE (no scaling). Each row starts at its real
           // content height (flex-basis=reqH) and can't shrink below it (flex-shrink:0 + explicit
-          // min-height), so nothing ever spills into the row below. Left-over height is handed out
-          // in proportion to the 4-line "nice" weight, so rows read as even blocks and the grid
-          // still reaches the bottom of the sheet.
+          // min-height), so nothing ever spills into the row below.
+          // The left-over height is handed ONLY to rows that aren't using their full 4-line block
+          // (grow weight = how far a row is BELOW the 4-line floor). A row already full of comments
+          // therefore stays exactly at its content height -- no dead space under it -- while the
+          // emptier rows stretch to carry the slack and the grid still reaches the bottom of the
+          // sheet. This is exactly "scale down the rows that aren't being used fully". If every row
+          // is already at/above the floor (nothing wants slack), fall back to sharing it by weight.
+          const growW = d.weeks.map((_, i)=> Math.max(0, d.niceH[i] - d.reqH[i]));
+          const anyGrow = growW.some(g=> g > 0);
           d.weeks.forEach((wkEl, i)=>{
-            wkEl.style.flexGrow = String(Math.max(d.reqH[i], d.niceH[i]));
+            wkEl.style.flexGrow = String(anyGrow ? growW[i] : d.niceH[i]);
             wkEl.style.flexShrink = '0';
             wkEl.style.flexBasis = d.reqH[i] + 'px';
             wkEl.style.minHeight = d.reqH[i] + 'px';
