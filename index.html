@@ -748,10 +748,10 @@
     </section>
 
     <section class="card" data-tab="show">
-      <h2>Shooting country</h2>
+      <h2>Production Region</h2>
       <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out.</p>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
-        Country
+        Region
         <select id="union-country" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
           <option value="">None</option>
           <option value="US">United States</option>
@@ -759,7 +759,7 @@
           <option value="UK">United Kingdom</option>
         </select>
       </label>
-      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; changing country would recompute Production&rsquo;s dates and misplace your comment/hiatus edits. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar first.</p>
+      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; changing the Region would recompute Production&rsquo;s dates and misplace your comment/hiatus edits. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar first.</p>
     </section>
 
     <section class="card" data-tab="show">
@@ -852,9 +852,9 @@
       <p>Episodes are added and removed only by changing <strong>Number of Episodes</strong>. Lowering it removes episodes from the end; if one of those had been edited by hand, the panel says so rather than dropping it silently. In <strong>Month view</strong> the episodes replace Production&rsquo;s bar, laid across its shooting days back to back &mdash; so an episode can end mid&#8209;week and the next start the same week.</p>
 
       <h3>Union holidays</h3>
-      <p><strong>Schedule effect &mdash; Production only.</strong> Pick a country in the Show tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates.</p>
+      <p><strong>Schedule effect &mdash; Production only.</strong> Pick a Production Region in the Show tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates.</p>
       <p><strong>Notes display &mdash; all phases.</strong> Every holiday that lands inside any phase is logged in the Notes column with its date. Use the per-holiday checklist under <strong>Union holidays</strong> to choose which appear in each view &mdash; display only, this doesn&rsquo;t change the schedule. By default none show in the <strong>Waterfall</strong> and all show in the <strong>Month</strong> calendar.</p>
-      <p><strong>Editing locks the country.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the country selector locks &mdash; switching countries would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch countries again.</p>
+      <p><strong>Editing locks the Region.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the Region selector locks &mdash; switching regions would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch regions again.</p>
 
       <h3>Simultaneous post</h3>
       <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
@@ -1847,7 +1847,7 @@
       if(emptyEl){
         emptyEl.textContent = hasCountry
           ? 'No holidays fall inside your current phases yet.'
-          : 'Set a Shooting country in the Show tab to choose which holidays appear as notes.';
+          : 'Set a Production Region in the Show tab to choose which holidays appear as notes.';
         emptyEl.style.display = 'block';
       }
       return;
@@ -3774,7 +3774,7 @@
     const locked = countryChangeWouldClobber();
     sel.classList.toggle('locked', locked);
     sel.title = locked
-      ? 'Locked: changing country recomputes Production’s dates and would misplace your comment/hiatus edits. Reset Notes & Hiatus first.'
+      ? 'Locked: changing the Region recomputes Production’s dates and would misplace your comment/hiatus edits. Reset Notes & Hiatus first.'
       : '';
     const hint = document.getElementById('union-lock-hint');
     if(hint) hint.style.display = locked ? 'block' : 'none';
@@ -3892,7 +3892,7 @@
   document.getElementById('union-country').addEventListener('change', e=>{
     const sel = e.target;
     if(sel.value !== lastCountry && countryChangeWouldClobber()){
-      alert('Changing the shooting country recomputes Production\u2019s dates (its shoot skips that country\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the country.');
+      alert('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the region.');
       sel.value = lastCountry; // revert the selection
       return;
     }
@@ -3985,7 +3985,7 @@
       '\u2022 every phase, date and duration\n' +
       '\u2022 Show Info, season and the episode list\n' +
       '\u2022 all notes, hiatus bands and colour edits\n' +
-      '\u2022 the union country and header text\n\n' +
+      '\u2022 the Production Region and header text\n\n' +
       'Any saved file on disk is left untouched \u2014 this only clears what\u2019s on screen. Continue?'
     );
     if(ok) resetAll();
