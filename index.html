@@ -100,14 +100,19 @@
   @media (max-width:960px){ .layout{flex-direction:column;} }
 
   .form-panel{
-    width:clamp(320px, 24vw, 420px); flex:none; padding:20px; border-right:1px solid var(--border);
+    width:clamp(320px, 24vw, 420px); flex:none; padding:0 20px 20px; border-right:1px solid var(--border);
     /* Sits below the sticky header: offset by its height and shrink the scroll area to match. */
     position:sticky; top:var(--header-h); align-self:flex-start;
     max-height:calc(100vh - var(--header-h)); overflow-y:auto;
   }
   @media (max-width:960px){
     .form-panel{ width:100%; border-right:none; border-bottom:1px solid var(--border);
-      max-height:none; position:static; }
+      max-height:none; position:static; padding-top:16px; }
+    /* When the panel goes full width, don't let the form fields stretch across the whole
+       window -- cap the content to a comfortable column and centre it so inputs stay a sane
+       size instead of ballooning to 900px wide. */
+    .form-panel > section.card,
+    .form-panel > .side-tabs{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 
   .preview-panel{flex:1; min-width:0; padding:20px 28px;}
@@ -117,6 +122,36 @@
     padding:14px 16px; margin-bottom:14px;
   }
   section.card h2{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin:0 0 10px;}
+
+  /* ---------- Sidebar tabs ---------- */
+  /* Sticky segmented control that groups the settings cards. Bleeds to the panel edges and
+     pins to the top of the internal scroll so it's always reachable. Mirrors the .view-toggle
+     idiom for visual consistency with the Waterfall/Month switcher. */
+  /* Sits flush at the panel top (panel has no top padding) so, once pinned, its own solid
+     background fully covers the settings content scrolling underneath -- no gap or peek. */
+  .side-tabs{
+    position:sticky; top:0; z-index:6;
+    padding:14px 0 12px; margin-bottom:14px;
+    background:var(--bg); border-bottom:1px solid var(--border);
+  }
+  .side-tabs-track{
+    display:flex; gap:3px; padding:3px;
+    background:#EEECE5; border:1px solid var(--border); border-radius:9px;
+  }
+  .side-tab-btn{
+    flex:1; font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:.01em;
+    border:none; background:transparent; color:var(--text-muted);
+    padding:7px 6px; border-radius:6px; cursor:pointer;
+    transition:color .12s ease, background .12s ease, box-shadow .12s ease;
+  }
+  .side-tab-btn.active{ background:var(--panel); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .side-tab-btn:hover:not(.active){ color:var(--text); }
+  .side-tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .card.tab-hidden{ display:none !important; }
+  @media (max-width:960px){
+    /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
+    .side-tabs{ position:static; }
+  }
 
   .phase-row{
     display:grid; grid-template-columns:16px 1fr; gap:8px 10px; align-items:center;
@@ -638,7 +673,15 @@
 
     <button class="primary" id="install-app-btn" style="display:none; width:100%; margin-bottom:12px;">Install as app</button>
 
-    <section class="card">
+    <div class="side-tabs">
+      <div class="side-tabs-track" role="tablist" aria-label="Settings sections">
+        <button type="button" class="side-tab-btn active" data-tab="show" role="tab">Show</button>
+        <button type="button" class="side-tab-btn" data-tab="phases" role="tab">Phases</button>
+        <button type="button" class="side-tab-btn" data-tab="holidays" role="tab">Holidays</button>
+      </div>
+    </div>
+
+    <section class="card" data-tab="show">
       <h2>Show Info</h2>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
         Title
@@ -669,10 +712,24 @@
         <input type="number" id="num-episodes" min="1" step="1" placeholder="e.g. 10" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
       </label>
       <div class="show-info-note" id="show-info-note" style="display:none;"></div>
-      <div class="show-info-note" id="show-info-note" style="display:none;"></div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="show">
+      <h2>Shooting country</h2>
+      <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out &mdash; and each can be shown as a note from the Holidays tab.</p>
+      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
+        Country
+        <select id="union-country" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
+          <option value="">None</option>
+          <option value="US">United States</option>
+          <option value="CAN">Canada</option>
+          <option value="UK">United Kingdom</option>
+        </select>
+      </label>
+      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; you&rsquo;ve edited comments/holidays/hiatus. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar to change the country again.</p>
+    </section>
+
+    <section class="card" data-tab="show">
       <h2>Calendar range</h2>
       <p class="placeholder-note" style="margin-bottom:8px;">Optional. By default the calendar shows the full year(s) your schedule touches (Jan–Dec), so every export is a consistent size. Set these to force a different start/end instead.</p>
       <div class="phase-fields" style="grid-column:1; margin-top:0;">
@@ -681,34 +738,40 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="holidays">
       <h2>Union holidays</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Applies to Production (shooting) only. If a union holiday falls on what would be a shoot day, that day gets skipped and the schedule extends until the full day count is met.</p>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
-        Country
-        <select id="union-country">
-          <option value="">None</option>
-          <option value="US">United States</option>
-          <option value="CAN">Canada</option>
-          <option value="UK">United Kingdom</option>
-        </select>
-      </label>
-      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked — you&rsquo;ve edited comments/holidays/hiatus. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar to change the country again.</p>
-      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-top:8px;">
+      <p class="placeholder-note" style="margin-bottom:8px;">Choose your Shooting country in the Show tab to load its holidays, then pick which appear as notes below. This is display only &mdash; it doesn&rsquo;t change the schedule.</p>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
         <input type="checkbox" id="show-union-holidays" checked>
         Show union holidays in the notes column
       </label>
+      <p id="holiday-vis-empty" class="placeholder-note" style="display:none; margin-top:10px;"></p>
+      <div id="holiday-vis" style="display:none; margin-top:12px;">
+        <p class="placeholder-note" style="margin-bottom:5px;">Holidays that land inside your phases. Choose which appear as notes in each view &mdash; display only, this does not change the schedule.</p>
+        <div style="display:flex; align-items:center; font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:0 2px 4px; border-bottom:1px solid var(--border);">
+          <span style="flex:1;">Holiday</span>
+          <span style="width:60px; text-align:center;">Waterfall</span>
+          <span style="width:48px; text-align:center;">Month</span>
+        </div>
+        <div id="holiday-vis-list"></div>
+        <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; font-size:11px;">
+          <span style="color:var(--text-muted);">Toggle all:</span>
+          <a href="#" class="hv-bulk" data-view="sheet" style="color:var(--accent,#2563eb);">Waterfall</a>
+          <a href="#" class="hv-bulk" data-view="month" style="color:var(--accent,#2563eb);">Month</a>
+        </div>
+      </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-tab="phases">
       <h2>Phases</h2>
       <div id="phase-rows"></div>
       <div id="custom-phase-rows"></div>
       <button class="secondary add-hiatus-btn" id="add-phase-btn">+ Add phase</button>
     </section>
 
-    <section class="card">
-      <h2>Holiday hiatus</h2>
+    <section class="card" data-tab="phases">
+      <h2>All-phase hiatus</h2>
+      <p class="placeholder-note" style="margin-bottom:8px;">A production-wide pause (e.g. a winter break) that stops every phase at once and pushes the whole schedule out. For pausing a single phase, use its own hiatus toggle above.</p>
       <div id="hiatus-list"></div>
       <button class="secondary add-hiatus-btn" id="add-hiatus">+ Add hiatus period</button>
     </section>
@@ -752,7 +815,7 @@
         <li><strong>Duration</strong> &mdash; in weeks for most phases. <strong>Production is special: it&rsquo;s measured in shooting days</strong>, not weeks, and is scheduled day-by-day (see Union holidays below). Its total isn&rsquo;t typed &mdash; it&rsquo;s the sum of the episodes, which come from Show Info.</li>
         <li><strong>Name</strong> &mdash; click the phase name to rename it; the label carries through to every week of that phase and to the export.</li>
         <li><strong>Color</strong> &mdash; click the little color square to the left of any phase name (built-in or custom) to pick from the standard palette. The choice applies everywhere: the Waterfall, the Month view, and the export.</li>
-        <li><strong>Phase hiatus</strong> &mdash; turn on the toggle under any phase (e.g. &ldquo;Writer&rsquo;s Rm Hiatus&rdquo;) to pause just that phase for a set number of weeks from a chosen Monday. It works like the Holiday hiatus &mdash; the phase still delivers its full requested weeks &mdash; but the pause stays in that phase&rsquo;s own column and never widens into the others. Click a phase-hiatus band in the Waterfall to rename it or recolor that week.</li>
+        <li><strong>Phase hiatus</strong> &mdash; turn on the toggle under any phase (e.g. &ldquo;Writer&rsquo;s Rm Hiatus&rdquo;) to pause just that phase for a set number of weeks from a chosen Monday. It works like the all-phase hiatus &mdash; the phase still delivers its full requested weeks &mdash; but the pause stays in that phase&rsquo;s own column and never widens into the others. Click a phase-hiatus band in the Waterfall to rename it or recolor that week.</li>
       </ul>
       <p><strong>+ Add phase</strong> creates a custom phase with its own name, color, start, and length. Phases can overlap &mdash; when two or more run in the same week, the preview and export add columns so they sit side by side. Columns follow a clear rule: the earliest-starting phase takes the leftmost column and keeps it, later overlapping phases sit to its right, and non-overlapping phases share a column to keep the sheet narrow. When only one phase is running in a week, it spans across the empty columns so there are no blank gaps.</p>
       <p><strong>Header (Auto vs. Manual).</strong> By default the calendar header auto-fills from your inputs (title, production span, Principal Photography dates, episode count) and updates live. Click <strong>Header: Auto &mdash; Switch to Manual</strong> above the calendar to take control: it snapshots the current values into editable lines you can freely edit, and stops auto-updating. Switch back to Auto to discard the manual edits and resume live fill.</p>
@@ -770,8 +833,8 @@
       <h3>Simultaneous post</h3>
       <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
 
-      <h3>Holiday hiatus</h3>
-      <p>Add one or more hiatus periods (a start date and a number of weeks). A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Holiday Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
+      <h3>All-phase hiatus</h3>
+      <p>Add one or more hiatus periods (a start date and a number of weeks) to pause the whole production at once. A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
@@ -819,6 +882,9 @@
   ];
   const SHOOT_DAYS_PER_WEEK = 5;
   const HIATUS_COLOR = '#FF0000', HIATUS_TEXT = '#FFFFFF';
+  // Default label for the production-wide (all-phase) hiatus band. Per-phase hiatuses keep
+  // their own "<Phase> Hiatus" labels; this is the generic full-width one.
+  const HIATUS_DEFAULT_LABEL = 'Hiatus';
   const SIMPOST_COLOR = '#FFFF00', SIMPOST_TEXT = '#5B5B00';
   const MILESTONE_COLOR = '#7030A0';
   const MILESTONE_TEXT = '#FFFFFF';
@@ -1039,6 +1105,22 @@
     const u = userNotes[weekKey];
     if(u !== undefined) return (u.text || '');   // includes explicit-clear ('' suppresses auto)
     return autoNotesText(autoNotes);
+  }
+  // Per-holiday, per-view visibility for holiday NOTES only. This changes what the notes
+  // column DISPLAYS in each view -- it never touches the production scheduling math (holidays
+  // still skip Production shoot days exactly as before). Default: hidden in the Waterfall,
+  // shown in the Month view. holidayView (declared with the other note state) holds explicit
+  // per-holiday overrides keyed by the holiday's id (its ISO date).
+  const HOLIDAY_VIEW_DEFAULT = {sheet:false, month:true};
+  function holidayVisibleIn(hid, view){
+    const sel = holidayView[hid];
+    if(sel && sel[view] !== undefined) return !!sel[view];
+    return !!HOLIDAY_VIEW_DEFAULT[view];
+  }
+  // Drop holiday auto-notes the user hasn't enabled for this view; pass everything else through.
+  function autoNotesForView(list, view){
+    if(!list || !list.length) return list || [];
+    return list.filter(n => !n.holiday || holidayVisibleIn(n.hid, view));
   }
   function colLetter(n){
     let s='';
@@ -1337,7 +1419,7 @@
       let simPost = false;
 
       if(hiatus){
-        cells.push({type:'hiatus', label:'Holiday Hiatus'});
+        cells.push({type:'hiatus', label:HIATUS_DEFAULT_LABEL});
       } else {
         const active = segments.filter(s=> weekStart>=s.start && weekStart<s.end).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
@@ -1378,24 +1460,48 @@
 
     // map each milestone/holiday note to the week index it falls in, shared by preview + export
     const notesByIdx = {};
-    function addNote(date, label){
+    function addNote(date, label, meta){
       const idx = weeks.findIndex(w => date>=w.date && date<addDays(w.date,7));
       if(idx===-1) return;
       if(!notesByIdx[idx]) notesByIdx[idx] = [];
-      notesByIdx[idx].push({label, date});
+      const note = {label, date};
+      if(meta) Object.assign(note, meta);
+      notesByIdx[idx].push(note);
     }
+
+    // Every union holiday (for the selected country) that falls inside ANY entered phase's
+    // span. This is the master list the per-view holiday checklist is generated from, and the
+    // source of the holiday NOTES shown in the calendar. It is deliberately independent of the
+    // day-level Production simulation above: that math still skips shoot days on holidays exactly
+    // as before -- this list only governs what the notes column DISPLAYS.
+    const phaseHolidays = [];
+    if(state.unionCountry && HOLIDAYS[state.unionCountry]){
+      const seen = {};
+      HOLIDAYS[state.unionCountry].forEach(h=>{
+        const hd = parseDateUTC(h.date);
+        if(!hd || seen[h.date]) return;
+        if(!segments.some(s=> hd>=s.start && hd<s.end)) return;
+        seen[h.date] = true;
+        phaseHolidays.push({iso:h.date, name:h.name, date:hd, hid:h.date});
+      });
+      phaseHolidays.sort((a,b)=> a.date - b.date);
+    }
+
     if(productionInfo){
       addNote(productionInfo.startDate, 'Start Principal Photography');
       addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
-      if(state.showUnionHolidays){
-        productionInfo.holidaysHit.forEach(h=> addNote(h.date, h.name));
-      }
+    }
+    // Holiday notes: one per phase-spanning holiday, tagged so each view can independently show
+    // or hide it (see autoNotesForView). The master "Show union holidays" switch still gates the
+    // whole set at once. This does NOT change the schedule -- production still skips these days.
+    if(state.showUnionHolidays){
+      phaseHolidays.forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     }
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses};
+    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays};
   }
 
   // ---------- UI: phase rows ----------
@@ -1675,8 +1781,52 @@
   }
 
   // ---------- rendering: summary + timeline + table ----------
+  // Auto-generated checklist of every holiday that lands inside a phase, with a Waterfall and a
+  // Month checkbox each. Re-rendered on every schedule change so it always matches the phases and
+  // the selected country. Hidden when the master switch is off or no holidays fall in any phase.
+  function renderHolidayVisList(schedule){
+    const wrap = document.getElementById('holiday-vis');
+    const listEl = document.getElementById('holiday-vis-list');
+    const emptyEl = document.getElementById('holiday-vis-empty');
+    if(!wrap || !listEl) return;
+    const holidays = (schedule && schedule.phaseHolidays) || [];
+    const masterEl = document.getElementById('show-union-holidays');
+    const masterOn = masterEl ? masterEl.checked : true;
+    const countryEl = document.getElementById('union-country');
+    const hasCountry = countryEl ? !!countryEl.value : false;
+    if(!masterOn || !holidays.length){
+      wrap.style.display = 'none';
+      listEl.innerHTML = '';
+      // When holidays are on but the list is empty, say why: no country picked vs. none in range.
+      if(emptyEl){
+        if(masterOn && !holidays.length){
+          emptyEl.textContent = hasCountry
+            ? 'No holidays fall inside your current phases yet.'
+            : 'Set a Shooting country in the Show tab to choose which holidays appear as notes.';
+          emptyEl.style.display = 'block';
+        } else {
+          emptyEl.style.display = 'none';
+        }
+      }
+      return;
+    }
+    if(emptyEl) emptyEl.style.display = 'none';
+    wrap.style.display = 'block';
+    listEl.innerHTML = holidays.map(h=>{
+      const s = holidayVisibleIn(h.hid, 'sheet') ? ' checked' : '';
+      const m = holidayVisibleIn(h.hid, 'month') ? ' checked' : '';
+      const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
+      return '<div class="hv-row" style="display:flex; align-items:center; font-size:12px; padding:4px 2px; border-bottom:1px solid var(--border);">'
+        + '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;" title="'+label+'">'+label+'</span>'
+        + '<span style="width:60px; text-align:center;"><input type="checkbox" class="hv-cb" data-hid="'+h.hid+'" data-view="sheet"'+s+'></span>'
+        + '<span style="width:48px; text-align:center;"><input type="checkbox" class="hv-cb" data-hid="'+h.hid+'" data-view="month"'+m+'></span>'
+        + '</div>';
+    }).join('');
+  }
+
   function render(schedule){
     refreshSnapNotes();
+    renderHolidayVisList(schedule);
     const summaryEl = document.getElementById('summary-row');
     const tableEl = document.getElementById('table-wrap');
     const exportBtn = document.getElementById('export-btn');
@@ -1856,7 +2006,7 @@
     const iso = isoOf(date);
     const weekIso = isoOf(mondayOf(date));
     const idx = (schedule.weeks||[]).findIndex(w=> isoOf(w.date) === weekIso);
-    const autoNotes = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
+    const autoNotes = autoNotesForView((idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [], 'month');
 
     // Waterfall-owned notes. An override replaces the week's auto text; it sits on its picked
     // day, or the week's Monday when none was chosen (a waterfall edit has no inherent day).
@@ -2053,7 +2203,7 @@
       hiRuns.forEach(r=>{
         const wkIso = isoOf(mondayOf(r.date));
         const hc = hiatusColors[wkIso] || HIATUS_COLOR;
-        const ht = hiatusTexts[wkIso] || 'Holiday Hiatus';
+        const ht = hiatusTexts[wkIso] || HIATUS_DEFAULT_LABEL;
         place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
           `background:${hc}; color:${textColorFor(hc)};`, '', escHtml(ht), '');
       });
@@ -2500,7 +2650,7 @@
           const hTxt = hiatusTextFor(hKey);
           const hCol = hiatusColorFor(hKey);
           const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" data-default-label="Holiday Hiatus" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
+          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -2520,7 +2670,7 @@
               bodyHtml += `<td${cs}></td>`;
             }
           });
-          const autoNotes = notesByIdx[idx];
+          const autoNotes = autoNotesForView(notesByIdx[idx], 'sheet');
           const weekDateKey = w.date.toISOString().slice(0,10);
           const noteText = effectiveNoteText(weekDateKey, autoNotes);
           const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -2657,7 +2807,7 @@
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-      noteColors = {}; hiatusTexts = {}; hiatusColors = {};
+      noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
       render(currentSchedule);
       reflectCountryLock();
       return;
@@ -2686,14 +2836,14 @@
 
     let textVal, curColor;
     let autoNotes = [];
-    const hiatusDefaultLabel = td.dataset.defaultLabel || 'Holiday Hiatus';
+    const hiatusDefaultLabel = td.dataset.defaultLabel || HIATUS_DEFAULT_LABEL;
     if(isHiatus){
       textVal = (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : hiatusDefaultLabel;
       curColor = hiatusColorFor(weekKey);
     } else {
       autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (() => {
         const idx = currentSchedule.weeks.findIndex(w=>w.date.toISOString().slice(0,10)===weekKey);
-        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+        return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'sheet') : [];
       })() : [];
       // Prefill with whatever the cell currently shows (user override if present, else the
       // inline auto-note text) so pre-filled comments can be edited or cleared.
@@ -2821,7 +2971,7 @@
     const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor, defaultLabel} = activeNoteEditor;
     if(isHiatus){
       const text = textarea.value.trim();
-      if(text === (defaultLabel || 'Holiday Hiatus')) delete hiatusTexts[weekKey];
+      if(text === (defaultLabel || HIATUS_DEFAULT_LABEL)) delete hiatusTexts[weekKey];
       else hiatusTexts[weekKey] = text; // '' allowed = blank band
       if(pendingColor){
         if(pendingColor.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[weekKey];
@@ -2957,7 +3107,7 @@
           slot += cell.colspan;
         });
         const weekKey = week.date.toISOString().slice(0,10);
-        const noteText = effectiveNoteText(weekKey, (schedule.notesByIdx||{})[i]);
+        const noteText = effectiveNoteText(weekKey, autoNotesForView((schedule.notesByIdx||{})[i], 'sheet'));
         noteText.split('\n').forEach(line=>{ notesMax = Math.max(notesMax, renderedTextWidth(line)); });
       }
       return {
@@ -3120,7 +3270,7 @@
           // padding so the column hugs its content.
           const nCell = ws.getRow(excelRow).getCell(notesCol);
           const nKey = week.date.toISOString().slice(0,10);
-          const noteText = effectiveNoteText(nKey, notesByIdx[globalIdx] || []);
+          const noteText = effectiveNoteText(nKey, autoNotesForView(notesByIdx[globalIdx] || [], 'sheet'));
           if(noteText){
             const nCol = noteColorFor(nKey);
             baseStyle(nCell, {font:{color:{argb:'FF'+textColorFor(nCol).replace('#','')}}});
@@ -3202,6 +3352,28 @@
   // ---------- wire up ----------
   let currentSchedule = {weeks:[], maxConcurrent:0};
   let viewMode = 'sheet';
+  // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
+  // file re-opens on the same tab.
+  let sidebarTab = 'show';
+  function setSidebarTab(tab){
+    if(!['show','phases','holidays'].includes(tab)) tab = 'show';
+    sidebarTab = tab;
+    document.querySelectorAll('.side-tab-btn').forEach(b=>{
+      const on = b.dataset.tab === tab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.form-panel section.card[data-tab]').forEach(s=>{
+      s.classList.toggle('tab-hidden', s.dataset.tab !== tab);
+    });
+  }
+  (function(){
+    const track = document.querySelector('.side-tabs-track');
+    if(track) track.addEventListener('click', e=>{
+      const b = e.target.closest('.side-tab-btn');
+      if(b) setSidebarTab(b.dataset.tab);
+    });
+  })();
   // User-editable notes for the spreadsheet view. Keyed by ISO date string (Monday of each week)
   // so they survive schedule re-renders (week indices can shift when dates change, but the date itself doesn't).
   const userNotes = {}; // { 'YYYY-MM-DD': {text: string} }  text:'' = auto-note explicitly cleared
@@ -3225,6 +3397,9 @@
   let noteColors = {};   // note cell fill override (default MILESTONE_COLOR purple)
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
+  // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
+  // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
+  let holidayView = {};
 
   // The 10 "Standard Colors" from Microsoft Office / Excel's color picker.
   const EXCEL_STANDARD_COLORS = [
@@ -3422,7 +3597,7 @@
     return out;
   }
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
-  function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : 'Holiday Hiatus'; }
+  function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
   function hiatusColorFor(weekKey){ return hiatusColors[weekKey] || HIATUS_COLOR; }
 
   // True if the user has made ANY manual edit to comments/holidays/hiatus (edited text,
@@ -3629,6 +3804,38 @@
     update();
   });
   document.getElementById('show-union-holidays').addEventListener('change', update);
+  // Per-holiday, per-view checklist. Toggling a box records an explicit override for that holiday
+  // and re-renders. Display-only: it never re-runs the schedule, so the calendar math is untouched.
+  (function(){
+    const host = document.getElementById('holiday-vis');
+    if(!host) return;
+    host.addEventListener('change', e=>{
+      const cb = e.target.closest('.hv-cb');
+      if(!cb) return;
+      const hid = cb.dataset.hid, view = cb.dataset.view;
+      const cur = Object.assign({}, holidayView[hid]);
+      cur[view] = cb.checked;
+      holidayView[hid] = cur;
+      markDirty();
+      render(currentSchedule);
+    });
+    host.addEventListener('click', e=>{
+      const a = e.target.closest('.hv-bulk');
+      if(!a) return;
+      e.preventDefault();
+      const view = a.dataset.view;
+      const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
+      // If any are currently off, turn them all on; otherwise turn them all off.
+      const turnOn = holidays.some(h=> !holidayVisibleIn(h.hid, view));
+      holidays.forEach(h=>{
+        const cur = Object.assign({}, holidayView[h.hid]);
+        cur[view] = turnOn;
+        holidayView[h.hid] = cur;
+      });
+      markDirty();
+      render(currentSchedule);
+    });
+  })();
   document.getElementById('show-title').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
@@ -3674,7 +3881,7 @@
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-    noteColors = {}; hiatusTexts = {}; hiatusColors = {};
+    noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
     update();
   }
 
@@ -3765,7 +3972,9 @@
       noteColors: noteColors,
       hiatusTexts: hiatusTexts,
       hiatusColors: hiatusColors,
+      holidayView: holidayView,
       viewMode: viewMode,
+      sidebarTab: sidebarTab,
       fields: collectFieldValues()
     };
     const stateEl = document.getElementById('saved-state');
@@ -3963,7 +4172,7 @@
       const stateSnapshot = {
         customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
         mvHeaderMode, mvHeaderManual,
-        noteColors, hiatusTexts, hiatusColors, viewMode, fields: collectFieldValues()
+        noteColors, hiatusTexts, hiatusColors, holidayView, viewMode, sidebarTab, fields: collectFieldValues()
       };
       idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
@@ -4523,7 +4732,7 @@
       // export see the same edit. Pin it to this day so it stays where it was clicked.
       const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
-        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+        return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
       })() : [];
       saveNoteEdit(weekKey, text, autoNotes, dayIso);
       if(pendingColor){
@@ -4613,7 +4822,7 @@
       // "Day after Thanksgiving" from the same week).
       const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
-        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
+        return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
       })() : [];
       curText = effectiveNoteText(weekKey, autoNotes);
       curColor = noteColors[weekKey] || MILESTONE_COLOR;
@@ -4814,6 +5023,8 @@
     if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
+    holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};
+    if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
       phaseColorOverride = Object.assign({}, snap.phaseColorOverride);
@@ -4861,6 +5072,7 @@
   })();
 
   restoreSavedState();
+  setSidebarTab(sidebarTab);
   lastCountry = document.getElementById('union-country').value;
   refreshEpisodesUI();
   refreshSimPostUI();
