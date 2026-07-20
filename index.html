@@ -26,7 +26,8 @@
     --border-strong:#CDCABF;
     --text:#1E1D1B;
     --text-muted:#726F68;
-    --text-faint:#9C988E;
+    --text-faint:#6E6A62;  /* darkened from #9C988E to meet WCAG AA (~5:1) -- it labels real
+                              informational text (phase meta hints, stats, save status) */
     --accent:#2C3E50;
     --accent-hover:#1C2833;
     --danger:#B3261E;
@@ -44,6 +45,10 @@
     --c-hiatus:#FF0000;           --c-hiatus-text:#FFFFFF;
     --c-simpost:#FFFF00;          --c-simpost-text:#5B5B00;
     --c-milestone:#7030A0;        --c-milestone-text:#FFFFFF;
+    /* Interaction accent for editing / manual-override states (note editing, manual header mode,
+       active file-menu item). Deliberately its own token, distinct from --c-milestone (which
+       happens to share the hue but means "milestone phase"), so the two can diverge later. */
+    --edit-accent:#7030A0;        --edit-accent-bg:#f6effb;
   }
   *{box-sizing:border-box;}
   body{
@@ -57,10 +62,13 @@
     background:#fff; position:sticky; top:0; z-index:40;
   }
   .app-toolbar{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; }
+  /* Toolbar buttons. Share radius (8px) and hover (var(--bg)) with the sidebar button system
+     (button.primary/.secondary); the smaller font-size/padding here is intentional -- the toolbar
+     is dense, the sidebar roomy. */
   .tb-btn{
     font-family:inherit; font-size:12px; font-weight:500; padding:7px 12px;
     border:1px solid var(--border-strong); background:#fff; color:var(--text);
-    border-radius:7px; cursor:pointer; white-space:nowrap;
+    border-radius:8px; cursor:pointer; white-space:nowrap;
   }
   .tb-btn:hover:not(:disabled){ background:var(--bg); border-color:var(--text-faint); }
   .tb-btn:disabled{ opacity:.45; cursor:not-allowed; }
@@ -84,7 +92,7 @@
     cursor:pointer; font-size:12px;
   }
   .file-menu-item:hover{ background:var(--bg); }
-  .file-menu-item.active{ background:#f6effb; color:#7030A0; font-weight:600; }
+  .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
   .file-menu-item .fm-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .fm-remove{ border:none; background:transparent; color:var(--text-faint); font-size:14px; line-height:1; cursor:pointer; padding:0 3px; border-radius:4px; }
   .fm-remove:hover{ color:var(--danger); background:rgba(0,0,0,.06); }
@@ -92,6 +100,11 @@
   .file-menu-empty{ padding:8px 9px; font-size:11px; color:var(--text-faint); }
   .save-status{ font-size:11px; color:var(--text-faint); min-width:78px; white-space:nowrap; }
   .save-status.dirty{ color:#b45309; }
+  .save-status.failed{ color:var(--danger); font-weight:600; }
+  /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
+  .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; border-radius:4px; }
+  .hv-bulk:hover{ background:var(--bg); text-decoration:underline; }
+  .hv-bulk:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
 
   /* Fill the available width at any window size (no artificial cap), so the calendar gets
      as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
@@ -105,6 +118,10 @@
     position:sticky; top:var(--header-h); align-self:flex-start;
     max-height:calc(100vh - var(--header-h)); overflow-y:auto;
   }
+  /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
+     room before it has to collapse to a single column. Declared before the 960px rule so that
+     rule's full-width stacking still wins at the smaller size. */
+  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 340px); } }
   @media (max-width:960px){
     .form-panel{ width:100%; border-right:none; border-bottom:1px solid var(--border);
       max-height:none; position:static; padding-top:16px; }
@@ -203,10 +220,10 @@
   .snap-note{ flex-basis:100%; width:100%; font-size:10.5px; color:#8a5a00; font-style:italic; line-height:1.3; margin-top:1px; }
   .snap-note:empty{ display:none; }
   .icon-btn{
-    border:1px solid var(--border-strong); background:#fff; border-radius:7px; width:32px; height:32px;
+    border:1px solid var(--border-strong); background:#fff; border-radius:8px; width:32px; height:32px;
     cursor:pointer; font-size:15px; color:var(--text-muted); line-height:1; flex:none;
   }
-  .icon-btn:hover{background:#F2F0EA;}
+  .icon-btn:hover{background:var(--bg);}
 
   button.primary, button.secondary{
     font-family:inherit; font-size:13px; font-weight:500; border-radius:8px; padding:9px 14px;
@@ -216,7 +233,7 @@
   button.primary:hover{background:var(--accent-hover);}
   button.primary:disabled{background:#B9C2CA; cursor:not-allowed;}
   button.secondary{background:#fff; border-color:var(--border-strong); color:var(--text);}
-  button.secondary:hover{background:#F2F0EA;}
+  button.secondary:hover{background:var(--bg);}
   .btn-row{display:flex; gap:8px; margin-top:4px;}
   .add-hiatus-btn{width:100%; margin-top:2px;}
 
@@ -245,7 +262,7 @@
     color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
   }
   #mv-hdr-mode-btn:hover{ color:var(--text); background:#fff; }
-  #mv-hdr-mode-btn.is-manual{ border-color:#7030A0; color:#7030A0; background:#f6effb; }
+  #mv-hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
   .mv-header.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; border-radius:8px; padding:8px; }
   .mv-header{ margin-bottom:14px; }
   /* Title sits centred while the date is pinned right: the spacer mirrors the date's width so
@@ -478,7 +495,10 @@
     border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
   }
 
-  .sheet-scroll{overflow-x:auto; border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
+  /* Bounded so the header row can pin while the (potentially very tall) table scrolls inside,
+     instead of the whole page scrolling and the Date/Notes headers disappearing. Sized off the
+     sticky app header; the ~140px covers the summary row, view toggle and preview padding above. */
+  .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
   .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
   .cal-header-date{font-family:'Calibri','Carlito',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
   .cal-header-center{flex:1; text-align:center; font-family:'Calibri','Carlito',sans-serif; line-height:1.4;}
@@ -491,7 +511,7 @@
   /* Only the manual-mode lines are interactive */
   .hdr-line.hdr-editable{cursor:text;}
   .hdr-line.hdr-editable:hover{ box-shadow:inset 0 0 0 1px var(--border-strong); }
-  .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px #7030A0; background:#faf5ff; }
+  .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); background:#faf5ff; }
   .hdr-line.hdr-editable.hdr-empty:not(:focus):hover::before{ content:'edit'; color:var(--text-faint); font-size:10px; }
   .cal-header-bar.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; }
   .hdr-tools{display:flex; justify-content:flex-end; gap:6px; padding:4px 8px 0; background:#fff;}
@@ -501,7 +521,7 @@
     color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
   }
   #hdr-mode-btn:hover, #notes-reset-btn:hover{ color:var(--text); background:#fff; }
-  #hdr-mode-btn.is-manual{ border-color:#7030A0; color:#7030A0; background:#f6effb; }
+  #hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
   #union-country.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
@@ -521,8 +541,13 @@
     color:#fff; padding:2px 3px; line-height:1.4;
   }
   .note-editor textarea::placeholder{opacity:.5; color:#fff;}
-  td.sheet-note-cell.editing{outline:2px solid #7030A0; outline-offset:-2px; cursor:text;}
+  td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
   td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
+  /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
+     fill. A hover ring makes the "click to edit" affordance discoverable on exactly the cells a
+     user is most likely to want to change. (Empty note cells already show a hover tint above.) */
+  td.sheet-note-cell.has-note:hover:not(.editing){ box-shadow: inset 0 0 0 2px rgba(112,48,160,.55); }
+  td.sheet-hiatus-cell:hover:not(.editing){ box-shadow: inset 0 0 0 2px rgba(0,0,0,.4); }
   /* Month view note editing. The .mv-bars layer is click-through, so anything interactive in
      it has to opt back in explicitly or it renders but can never be clicked. */
   .mv-note-click{ cursor:pointer; pointer-events:auto; }
@@ -574,8 +599,16 @@
     background:#F2F2F2; font-weight:600; font-size:11px;
     font-family:'Calibri','Carlito','Segoe UI',sans-serif; color:#000;
     border-color:#C6C6C6;
+    /* Pin the column-header row to the top of the scroll pane. border-collapse drops the
+       header's borders while stuck, so redraw the top/bottom rules with box-shadow. */
+    position:sticky; top:0; z-index:2;
+    box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6;
   }
   table.sheet-table td.sheet-date{font-weight:600; padding-left:5px; padding-right:5px; white-space:nowrap;}
+  /* Cap phase-cell labels so a long custom phase name can't widen its column and push the whole
+     grid into horizontal scroll. Truncates with an ellipsis; the full label is on hover (and in
+     the Excel export, which isn't width-limited). max-width is set inline, scaled by colspan. */
+  .sheet-table .phase-cell-label{ display:inline-block; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; max-width:130px; }
   table.sheet-table td.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table td.sheet-blockend{border-right:2px solid var(--text);}
@@ -663,7 +696,7 @@
     <button class="tb-btn" id="save-file-btn" type="button">Save</button>
     <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
     <button class="tb-btn primary" id="export-btn" type="button" disabled>Export to Excel</button>
-    <span class="save-status" id="save-status"></span>
+    <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
     <button class="tb-btn danger" id="reset-btn" type="button">Reset All</button>
   </div>
 </header>
@@ -682,7 +715,7 @@
     </div>
 
     <section class="card" data-tab="show">
-      <h2>Show Info</h2>
+      <h2>Show info</h2>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
         Title
         <input type="text" id="show-title" placeholder="e.g. Show Title" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
@@ -716,7 +749,7 @@
 
     <section class="card" data-tab="show">
       <h2>Shooting country</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out &mdash; and each can be shown as a note from the Holidays tab.</p>
+      <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out.</p>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
         Country
         <select id="union-country" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
@@ -726,12 +759,11 @@
           <option value="UK">United Kingdom</option>
         </select>
       </label>
-      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; you&rsquo;ve edited comments/holidays/hiatus. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar to change the country again.</p>
+      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; changing country would recompute Production&rsquo;s dates and misplace your comment/hiatus edits. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar first.</p>
     </section>
 
     <section class="card" data-tab="show">
       <h2>Calendar range</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Optional. By default the calendar shows the full year(s) your schedule touches (Jan–Dec), so every export is a consistent size. Set these to force a different start/end instead.</p>
       <div class="phase-fields" style="grid-column:1; margin-top:0;">
         <label>Show starting <input type="date" id="calendar-start"></label>
         <label>Show ending <input type="date" id="calendar-end"></label>
@@ -750,8 +782,8 @@
         <div id="holiday-vis-list"></div>
         <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; font-size:11px;">
           <span style="color:var(--text-muted);">Toggle all:</span>
-          <a href="#" class="hv-bulk" data-view="sheet" style="color:var(--accent,#2563eb);">Waterfall</a>
-          <a href="#" class="hv-bulk" data-view="month" style="color:var(--accent,#2563eb);">Month</a>
+          <button type="button" class="hv-bulk" data-view="sheet">Waterfall</button>
+          <button type="button" class="hv-bulk" data-view="month">Month</button>
         </div>
       </div>
     </section>
@@ -773,7 +805,7 @@
   </aside>
 
   <main class="preview-panel">
-    <div id="gap-warning"></div>
+    <div id="gap-warning" role="status" aria-live="polite"></div>
     <div class="summary-row" id="summary-row"></div>
     <div class="view-toggle" id="view-toggle">
       <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
@@ -1438,18 +1470,31 @@
       maxConcurrent = Math.max(maxConcurrent, cells.length);
       weeks.push({date:weekStart, cells, simPost});
     }
-    // flag interior gaps: blank stretches with real coverage on both sides (not lead-in/lead-out padding)
+    // Flag interior gaps: genuinely EMPTY weeks (no phase and no hiatus) bounded by real phase
+    // coverage on both sides. "Coverage" means an actual phase cell (a running phase, or a
+    // phase paused by its OWN hiatus) -- NOT a standalone global-hiatus band. This matters because
+    // the calendar auto-extends to the end of the last year it touches, and the always-present
+    // year-end break (a global hiatus) lands in that trailing padding. Counting that hiatus as
+    // "coverage" used to close the trailing empty run and mis-report months of padding as an
+    // "unscheduled gap." Anchoring to the first/last PHASE week keeps lead-in/lead-out padding --
+    // and any hiatus sitting inside it -- from ever being flagged.
     const gaps = [];
-    let gapStart = null;
+    const hasPhase = w => w.cells.some(c => c.type === 'phase' || c.type === 'phaseHiatus');
+    let firstPhaseIdx = -1, lastPhaseIdx = -1;
     for(let i=0;i<weeks.length;i++){
-      const blank = weeks[i].cells.length===0;
-      if(blank && gapStart===null) gapStart = i;
-      if(!blank && gapStart!==null){
-        if(gapStart>0) gaps.push({startDate: weeks[gapStart].date, endDate: addDays(weeks[i-1].date,6), weeks: i-gapStart});
-        gapStart = null;
-      }
+      if(hasPhase(weeks[i])){ if(firstPhaseIdx===-1) firstPhaseIdx = i; lastPhaseIdx = i; }
     }
-    // a trailing blank run only counts if the calendar didn't just end there naturally (i.e. never counted -- trailing edges are always padding, so we intentionally don't flag them)
+    if(firstPhaseIdx !== -1){
+      let gapStart = null;
+      const closeGap = (endIdx)=> gaps.push({startDate: weeks[gapStart].date, endDate: addDays(weeks[endIdx].date,6), weeks: (endIdx+1)-gapStart});
+      for(let i=firstPhaseIdx+1;i<lastPhaseIdx;i++){
+        const empty = weeks[i].cells.length===0;
+        if(empty && gapStart===null) gapStart = i;
+        if(!empty && gapStart!==null){ closeGap(i-1); gapStart = null; }
+      }
+      // A run of empty weeks reaching the last phase is still interior -> flag it (loop stops before lastPhaseIdx).
+      if(gapStart!==null) closeGap(lastPhaseIdx-1);
+    }
 
     // map each milestone/holiday note to the week index it falls in, shared by preview + export
     const notesByIdx = {};
@@ -1702,6 +1747,12 @@
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
     row.querySelector('.remove-custom-phase').addEventListener('click', ()=>{
+      // Only prompt when there's something to lose -- an untouched blank row deletes freely.
+      const nameEl = row.querySelector('.phase-name-input');
+      const startEl = document.getElementById('start-'+key);
+      const weeksEl = document.getElementById('weeks-'+key);
+      const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim());
+      if(hasData && !confirm('Remove this phase? Its name, dates, duration and hiatus will be lost.')) return;
       customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==key);
       row.remove();
       update();
@@ -1734,7 +1785,11 @@
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
       <div class="snap-note"></div>
     `;
-    row.querySelector('.remove-hiatus').addEventListener('click', ()=>{ row.remove(); update(); });
+    row.querySelector('.remove-hiatus').addEventListener('click', ()=>{
+      const startEl = row.querySelector('.hiatus-start');
+      if(startEl && startEl.value && !confirm('Remove this hiatus?')) return;
+      row.remove(); update();
+    });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
     list.appendChild(row);
   }
@@ -1805,8 +1860,8 @@
       const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
       return '<div class="hv-row" style="display:flex; align-items:center; font-size:12px; padding:4px 2px; border-bottom:1px solid var(--border);">'
         + '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;" title="'+label+'">'+label+'</span>'
-        + '<span style="width:60px; text-align:center;"><input type="checkbox" class="hv-cb" data-hid="'+h.hid+'" data-view="sheet"'+s+'></span>'
-        + '<span style="width:48px; text-align:center;"><input type="checkbox" class="hv-cb" data-hid="'+h.hid+'" data-view="month"'+m+'></span>'
+        + '<span style="width:60px; text-align:center;"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+'></span>'
+        + '<span style="width:48px; text-align:center;"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+'></span>'
         + '</div>';
     }).join('');
   }
@@ -1862,6 +1917,12 @@
         metaEl.style.color = '';
       } else if(startVal && !weeksVal){
         metaEl.textContent = `Enter a ${unitWord} to include this phase`;
+        metaEl.style.color = 'var(--danger)';
+      } else if(startVal && weeksVal && p.inputMode !== 'days' && !(parseInt(weeksVal,10) > 0)){
+        // A start date with a zero / negative / non-numeric week count drops the phase from the
+        // schedule. Without this the phase just vanishes with no explanation. (Production is
+        // excluded: its count comes from Show Info, which has its own guidance.)
+        metaEl.textContent = 'Enter a week count of 1 or more to schedule this phase';
         metaEl.style.color = 'var(--danger)';
       } else if(!startVal && weeksVal){
         metaEl.textContent = 'Enter a start date to include this phase';
@@ -2637,7 +2698,7 @@
           const hTxt = hiatusTextFor(hKey);
           const hCol = hiatusColorFor(hKey);
           const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-          bodyHtml += `<td class="sheet-hiatus-cell" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
+          bodyHtml += `<td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -2645,12 +2706,15 @@
           layout.forEach(cell=>{
             const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
             if(cell.kind==='phase'){
-              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};">${escHtml(cell.label)}</td>`;
+              const lblMax = 130 * (cell.colspan||1);
+              const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+              const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
+              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};"><span class="phase-cell-label" style="max-width:${lblMax}px"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-              bodyHtml += `<td${cs} class="sheet-hiatus-cell" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;">${escHi(cell.label)}</td>`;
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;">${escHi(cell.label)}</td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">Simultaneous Post</td>`;
             } else {
@@ -2663,9 +2727,9 @@
           const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
           if(noteText){
             const nc = noteColorFor(weekDateKey);
-            bodyHtml += `<td class="sheet-note-cell has-note" data-week="${weekDateKey}" style="background:${nc}; color:${textColorFor(nc)}; white-space:pre-wrap; ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
+            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" style="background:${nc}; color:${textColorFor(nc)}; white-space:pre-wrap; ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
           } else {
-            bodyHtml += `<td class="sheet-note-cell" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
+            bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
         }
       });
@@ -3349,6 +3413,7 @@
       const on = b.dataset.tab === tab;
       b.classList.toggle('active', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1; // roving tabindex: only the selected tab is in the tab order
     });
     document.querySelectorAll('.form-panel section.card[data-tab]').forEach(s=>{
       s.classList.toggle('tab-hidden', s.dataset.tab !== tab);
@@ -3356,9 +3421,39 @@
   }
   (function(){
     const track = document.querySelector('.side-tabs-track');
-    if(track) track.addEventListener('click', e=>{
+    if(!track) return;
+    const tabs = Array.from(track.querySelectorAll('.side-tab-btn'));
+    // Complete the ARIA tab pattern: link each tab to the section(s) it reveals (as tabpanels),
+    // and give the tablist real keyboard semantics -- roving tabindex + Arrow / Home / End nav,
+    // which the role="tab" markup promised but didn't implement.
+    tabs.forEach(b=>{
+      const t = b.dataset.tab;
+      if(!b.id) b.id = 'sidetab-' + t;
+      const panels = Array.from(document.querySelectorAll('.form-panel section.card[data-tab="'+t+'"]'));
+      panels.forEach((p,i)=>{
+        if(!p.id) p.id = 'sidepanel-' + t + '-' + i;
+        p.setAttribute('role','tabpanel');
+        p.setAttribute('aria-labelledby', b.id);
+      });
+      if(panels.length) b.setAttribute('aria-controls', panels.map(p=>p.id).join(' '));
+      b.tabIndex = b.classList.contains('active') ? 0 : -1;
+    });
+    track.addEventListener('click', e=>{
       const b = e.target.closest('.side-tab-btn');
       if(b) setSidebarTab(b.dataset.tab);
+    });
+    track.addEventListener('keydown', e=>{
+      const idx = tabs.indexOf(document.activeElement);
+      if(idx === -1) return;
+      let next = -1;
+      if(e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % tabs.length;
+      else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + tabs.length) % tabs.length;
+      else if(e.key === 'Home') next = 0;
+      else if(e.key === 'End') next = tabs.length - 1;
+      if(next === -1) return;
+      e.preventDefault();
+      setSidebarTab(tabs[next].dataset.tab);
+      tabs[next].focus();
     });
   })();
   // User-editable notes for the spreadsheet view. Keyed by ISO date string (Monday of each week)
@@ -3597,6 +3692,20 @@
       || Object.keys(hiatusColors).length > 0;
   }
 
+  // Changing the shooting country only moves DATES when Production is actually scheduled --
+  // holidays are skipped shoot days, so with no shoot there's nothing to shift. When Production
+  // isn't scheduled a country switch merely swaps which (unanchored) holiday auto-notes show,
+  // and every manual edit is keyed to an absolute week that doesn't move -- so it's safe to allow
+  // the switch freely. We only lock the selector when a switch could genuinely misplace edits:
+  // there are manual edits AND Production is scheduled (so its dates could recompute under them).
+  function productionIsScheduled(){
+    const startEl = document.getElementById('start-production');
+    return !!(startEl && startEl.value) && showInfoStatus().complete;
+  }
+  function countryChangeWouldClobber(){
+    return hasNoteEdits() && productionIsScheduled();
+  }
+
   // Per-line header overrides. Keys: left, c1 (title), c2 ("Planning Calendar"),
   // Header mode: 'auto' (lines mirror the inputs, not editable) or 'manual' (a snapshot of
   // the auto values that the user can freely edit; stops auto-updating). headerManual holds
@@ -3662,10 +3771,10 @@
   function reflectCountryLock(){
     const sel = document.getElementById('union-country');
     if(!sel) return;
-    const locked = hasNoteEdits();
+    const locked = countryChangeWouldClobber();
     sel.classList.toggle('locked', locked);
     sel.title = locked
-      ? 'Locked: reset Notes & Hiatus to change the country (you have manual edits).'
+      ? 'Locked: changing country recomputes Production’s dates and would misplace your comment/hiatus edits. Reset Notes & Hiatus first.'
       : '';
     const hint = document.getElementById('union-lock-hint');
     if(hint) hint.style.display = locked ? 'block' : 'none';
@@ -3782,8 +3891,8 @@
   let lastCountry = document.getElementById('union-country').value;
   document.getElementById('union-country').addEventListener('change', e=>{
     const sel = e.target;
-    if(sel.value !== lastCountry && hasNoteEdits()){
-      alert('The union country is locked because you\u2019ve edited the comments, holidays, or hiatus bands. Click \u201cReset Notes & Hiatus\u201d above the calendar to restore the defaults, then you can change the country again.');
+    if(sel.value !== lastCountry && countryChangeWouldClobber()){
+      alert('Changing the shooting country recomputes Production\u2019s dates (its shoot skips that country\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the country.');
       sel.value = lastCountry; // revert the selection
       return;
     }
@@ -4118,6 +4227,7 @@
   let suppressDirty = true;    // ignore programmatic updates during load/restore
   let lastSavedAt = null;
   let autosaveTimer = null;
+  let autosaveFailed = false;  // last autosave write threw (file moved/deleted, permission lost)
 
   function markDirty(){
     if(suppressDirty) return;
@@ -4127,6 +4237,7 @@
   }
   function markClean(){
     isDirty = false;
+    autosaveFailed = false;      // a successful save clears any prior autosave-failure warning
     lastSavedAt = new Date();
     refreshSaveStatus();
     idbSet(BACKUP_KEY, undefined); // saved to a real file; drop the recovery copy
@@ -4141,9 +4252,10 @@
   function refreshSaveStatus(){
     const el = document.getElementById('save-status');
     if(!el) return;
-    if(isDirty){ el.textContent = 'Unsaved changes'; el.className = 'save-status dirty'; }
-    else if(lastSavedAt){ el.textContent = 'Saved ' + fmtTime(lastSavedAt); el.className = 'save-status'; }
-    else { el.textContent = ''; el.className = 'save-status'; }
+    if(isDirty && autosaveFailed){ el.textContent = 'Autosave failed — click Save'; el.className = 'save-status failed'; el.title = 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.'; }
+    else if(isDirty){ el.textContent = 'Unsaved changes'; el.className = 'save-status dirty'; el.title = ''; }
+    else if(lastSavedAt){ el.textContent = 'Saved ' + fmtTime(lastSavedAt); el.className = 'save-status'; el.title = ''; }
+    else { el.textContent = ''; el.className = 'save-status'; el.title = ''; }
   }
 
   // Rolling local backup (debounced so typing doesn't hammer IndexedDB).
@@ -4174,7 +4286,14 @@
         await writable.write(html);
         await writable.close();
         markClean();
-      } catch(e){ /* permission lost or file moved: stay dirty, user can save manually */ }
+      } catch(e){
+        // Permission lost or file moved/deleted: stay dirty AND flag it, so the user isn't
+        // lulled into thinking autosave still protects their work. The warning persists (through
+        // further edits) until a manual Save succeeds. console for diagnostics.
+        console.warn('Autosave failed:', e);
+        autosaveFailed = true;
+        refreshSaveStatus();
+      }
     }, AUTOSAVE_MS);
   }
 
@@ -4195,7 +4314,9 @@
     const when = new Date(b.at);
     const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
     if(!confirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?')){
-      await idbSet(BACKUP_KEY, undefined);
+      // Keep the backup rather than deleting it on a single "No" -- an accidental decline
+      // shouldn't be irreversible. It's cleared on the next successful Save (markClean) or
+      // explicit New (newFile), and overwritten as soon as the user makes an edit (scheduleBackup).
       return;
     }
     const el = document.getElementById('saved-state');
@@ -4380,10 +4501,16 @@
   }
 
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{
+    if(saveBtn.disabled) return;          // ignore double-clicks while a write is already in flight
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving\u2026';   // in-progress feedback (mirrors Export's "Building file...")
     try {
       const result = await saveToFile();
+      saveBtn.disabled = false;           // flashSaveBtn re-disables briefly for its confirmation
       flashSaveBtn(result === 'download' ? 'Downloaded \u2713' : 'Saved \u2713');
     } catch(err){
+      saveBtn.disabled = false;
+      saveBtn.textContent = saveBtnLabel();
       if(err && err.name === 'AbortError') return; // user cancelled the picker
       console.error(err);
       alert('Something went wrong saving the file: ' + err.message);
@@ -4408,11 +4535,15 @@
         const item = e.target.closest('.file-menu-item');
         if(!item) return;
         closeFileMenu();
-        if(item.dataset.action === 'open'){
+        const isOpen = item.dataset.action === 'open';
+        const entry = isOpen ? null : recentFiles.find(f=>f.id === item.dataset.id);
+        // Opening another calendar replaces the one on screen -- warn if there's unsaved work,
+        // matching the "New" guard. Fires before the picker opens / any recents mutation.
+        if((isOpen || entry) && isDirty && !confirm('Open another calendar? Your unsaved changes will be lost.')) return;
+        if(isOpen){
           try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); alert('Could not open a file: '+err.message); } }
           return;
         }
-        const entry = recentFiles.find(f=>f.id === item.dataset.id);
         if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); alert('Could not open that file: '+err.message); } }
       });
       // click-away / Escape closes the menu
@@ -4838,7 +4969,13 @@
     document.body.appendChild(pop);
     const r = anchor.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
-    pop.style.left = Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - 240) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    // Clamp to the viewport using the popover's REAL measured size (mirrors openPhaseColorPop):
+    // flip above the day when it would overflow the bottom, and pull it in from the right edge --
+    // otherwise a note near the bottom/right of the screen opens partly off-screen and unreachable.
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
     const textarea = pop.querySelector('textarea');
     // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
     // aren't capped -- there each line is a separate milestone across the week.
