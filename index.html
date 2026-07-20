@@ -740,14 +740,8 @@
 
     <section class="card" data-tab="holidays">
       <h2>Union holidays</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Choose your Shooting country in the Show tab to load its holidays, then pick which appear as notes below. This is display only &mdash; it doesn&rsquo;t change the schedule.</p>
-      <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
-        <input type="checkbox" id="show-union-holidays" checked>
-        Show union holidays in the notes column
-      </label>
       <p id="holiday-vis-empty" class="placeholder-note" style="display:none; margin-top:10px;"></p>
       <div id="holiday-vis" style="display:none; margin-top:12px;">
-        <p class="placeholder-note" style="margin-bottom:5px;">Holidays that land inside your phases. Choose which appear as notes in each view &mdash; display only, this does not change the schedule.</p>
         <div style="display:flex; align-items:center; font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:0 2px 4px; border-bottom:1px solid var(--border);">
           <span style="flex:1;">Holiday</span>
           <span style="width:60px; text-align:center;">Waterfall</span>
@@ -826,8 +820,8 @@
       <p>Episodes are added and removed only by changing <strong>Number of Episodes</strong>. Lowering it removes episodes from the end; if one of those had been edited by hand, the panel says so rather than dropping it silently. In <strong>Month view</strong> the episodes replace Production&rsquo;s bar, laid across its shooting days back to back &mdash; so an episode can end mid&#8209;week and the next start the same week.</p>
 
       <h3>Union holidays</h3>
-      <p>Applies to the <strong>Production</strong> phase only. Pick a country and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. The holiday is logged in the Notes column with its date.</p>
-      <p><strong>&ldquo;Show union holidays in the notes column&rdquo;</strong> is on by default. Uncheck it to hide the holiday names/dates from the notes everywhere &mdash; live view, list view, and the Excel export &mdash; without changing the schedule math.</p>
+      <p><strong>Schedule effect &mdash; Production only.</strong> Pick a country in the Show tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates.</p>
+      <p><strong>Notes display &mdash; all phases.</strong> Every holiday that lands inside any phase is logged in the Notes column with its date. Use the per-holiday checklist under <strong>Union holidays</strong> to choose which appear in each view &mdash; display only, this doesn&rsquo;t change the schedule. By default none show in the <strong>Waterfall</strong> and all show in the <strong>Month</strong> calendar.</p>
       <p><strong>Editing locks the country.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the country selector locks &mdash; switching countries would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch countries again.</p>
 
       <h3>Simultaneous post</h3>
@@ -1187,7 +1181,6 @@
       calendarEnd: calEndStr || null,
       hasInvalidYear,
       unionCountry: document.getElementById('union-country').value || null,
-      showUnionHolidays: document.getElementById('show-union-holidays').checked,
       simultaneousPost:{
         enabled: document.getElementById('simpost-enabled').checked,
         offsetWeeks: parseInt(document.getElementById('simpost-offset').value,10) || 0
@@ -1491,12 +1484,12 @@
       addNote(productionInfo.startDate, 'Start Principal Photography');
       addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
     }
-    // Holiday notes: one per phase-spanning holiday, tagged so each view can independently show
-    // or hide it (see autoNotesForView). The master "Show union holidays" switch still gates the
-    // whole set at once. This does NOT change the schedule -- production still skips these days.
-    if(state.showUnionHolidays){
-      phaseHolidays.forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
-    }
+    // Holiday notes: one per phase-spanning holiday, tagged so each view -- and each individual
+    // holiday -- can independently show or hide it (see autoNotesForView / holidayVisibleIn).
+    // The notes are always generated; the per-holiday, per-view checklist governs what actually
+    // displays (default: hidden in the Waterfall, shown in the Month view). This does NOT change
+    // the schedule -- only Production's date math skips these days, and only for Production.
+    phaseHolidays.forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
@@ -1790,23 +1783,17 @@
     const emptyEl = document.getElementById('holiday-vis-empty');
     if(!wrap || !listEl) return;
     const holidays = (schedule && schedule.phaseHolidays) || [];
-    const masterEl = document.getElementById('show-union-holidays');
-    const masterOn = masterEl ? masterEl.checked : true;
     const countryEl = document.getElementById('union-country');
     const hasCountry = countryEl ? !!countryEl.value : false;
-    if(!masterOn || !holidays.length){
+    if(!holidays.length){
       wrap.style.display = 'none';
       listEl.innerHTML = '';
-      // When holidays are on but the list is empty, say why: no country picked vs. none in range.
+      // Empty list: say why -- no country picked vs. a country set but none landing in range.
       if(emptyEl){
-        if(masterOn && !holidays.length){
-          emptyEl.textContent = hasCountry
-            ? 'No holidays fall inside your current phases yet.'
-            : 'Set a Shooting country in the Show tab to choose which holidays appear as notes.';
-          emptyEl.style.display = 'block';
-        } else {
-          emptyEl.style.display = 'none';
-        }
+        emptyEl.textContent = hasCountry
+          ? 'No holidays fall inside your current phases yet.'
+          : 'Set a Shooting country in the Show tab to choose which holidays appear as notes.';
+        emptyEl.style.display = 'block';
       }
       return;
     }
@@ -3803,7 +3790,6 @@
     lastCountry = sel.value;
     update();
   });
-  document.getElementById('show-union-holidays').addEventListener('change', update);
   // Per-holiday, per-view checklist. Toggling a box records an explicit override for that holiday
   // and re-renders. Display-only: it never re-runs the schedule, so the calendar math is untouched.
   (function(){
@@ -3868,7 +3854,6 @@
     document.getElementById('calendar-end').value = '';
     document.getElementById('union-country').value = '';
     lastCountry = '';
-    document.getElementById('show-union-holidays').checked = true;
     document.getElementById('show-title').value = '';
     document.getElementById('season-num').value = '';
     document.getElementById('shoot-days-per-ep').value = '';
