@@ -171,7 +171,10 @@
   }
 
   .phase-row{
-    display:grid; grid-template-columns:16px 1fr; gap:8px 10px; align-items:center;
+    /* minmax(0,1fr) (not plain 1fr) lets the content column shrink below its min-content instead
+       of forcing the whole sidebar wider -- otherwise the Production row's fixed-width date input
+       + "Total Shooting Days" readout push the panel into horizontal overflow on narrow windows. */
+    display:grid; grid-template-columns:16px minmax(0, 1fr); gap:8px 10px; align-items:center;
     padding:8px 0; border-bottom:1px solid var(--border);
   }
   .phase-row:last-child{border-bottom:none;}
@@ -194,8 +197,11 @@
   .phase-hiatus-toggle{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:var(--text-muted); cursor:pointer; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
-  .phase-fields{grid-column:2; display:flex; gap:8px; margin-top:6px;}
-  .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+  .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1 1 0; min-width:0;}
+  /* Let the date/number inputs shrink with their column instead of enforcing a ~136px intrinsic
+     minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
+  .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
   .phase-meta{grid-column:2; font-size:11.5px; color:var(--text-faint); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
   .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
   .phase-name-input{font-weight:500; font-size:13.5px; font-family:inherit; border:1px solid transparent; border-radius:5px; padding:3px 5px; flex:1; background:transparent; color:var(--text); min-width:0;}
@@ -217,7 +223,8 @@
   .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
   .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
-  .snap-note{ flex-basis:100%; width:100%; font-size:10.5px; color:#8a5a00; font-style:italic; line-height:1.3; margin-top:1px; }
+  /* Matches the phase-meta "Snapped to Mon" note (faint mono) so the two read identically. */
+  .snap-note{ flex-basis:100%; width:100%; font-size:11.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; line-height:1.3; margin-top:2px; }
   .snap-note:empty{ display:none; }
   .icon-btn{
     border:1px solid var(--border-strong); background:#fff; border-radius:8px; width:32px; height:32px;
@@ -462,13 +469,18 @@
     #print-root .mv-daycell:first-child{ border-left:none !important; }
   }
 
-  /* Production's total is derived from the episode list, so it reads as a value, not a field. */
+  /* Production's total is derived from the episode list, so it reads as a value, not a field.
+     Laid out label-on-top like the Start date / Weeks fields beside it: small muted label, a
+     prominent number, then a faint "from N episodes" caption. Each text unit stays intact so it
+     wraps as a whole rather than breaking mid-phrase on a narrow sidebar. */
   .prod-total-readout{
-    display:flex; align-items:baseline; gap:6px; flex:1;
-    font-size:12px; color:var(--text); align-self:flex-end; padding:6px 0;
+    display:flex; flex-direction:column; gap:2px; flex:1 1 0; min-width:0;
+    align-self:flex-start; color:var(--text);
   }
-  .prod-total-readout strong{ font-size:14px; }
-  .prod-total-src{ font-size:10.5px; color:var(--text-faint); }
+  .prod-total-label{ font-size:11px; color:var(--text-muted); }
+  .prod-total-value{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .prod-total-value strong{ font-size:16px; line-height:1.1; }
+  .prod-total-src{ font-size:10.5px; color:var(--text-faint); white-space:nowrap; }
   .prod-total-empty{ font-size:11px; color:var(--text-faint); font-style:italic; }
   .show-info-note{
     margin-top:10px; font-size:10.5px; line-height:1.45;
@@ -1911,7 +1923,7 @@
           note = `${fmtShort(start)} \u2192 ${fmtShort(end)} (${weeks} wk)`;
         }
         if(cfg.start !== start.toISOString().slice(0,10)){
-          note += ` \u00b7 snapped to Mon ${fmtShort(start)}`;
+          note += ` \u00b7 Snapped to Mon ${fmtShort(start)}`;
         }
         metaEl.textContent = note;
         metaEl.style.color = '';
@@ -2570,9 +2582,10 @@
     const readout = document.getElementById('prod-total-readout');
     if(readout){
       readout.innerHTML = info.complete
-        ? 'Total Shooting Days <strong>' + info.totalShootDays + '</strong>'
+        ? '<span class="prod-total-label">Total Shooting Days</span>'
+          + '<span class="prod-total-value"><strong>' + info.totalShootDays + '</strong>'
           + '<span class="prod-total-src">from ' + episodeDefs.length + ' episode'
-          + (episodeDefs.length===1?'':'s') + '</span>'
+          + (episodeDefs.length===1?'':'s') + '</span></span>'
         : '<span class="prod-total-empty">Total Shooting Days \u2014 set by Show Info</span>';
     }
 
