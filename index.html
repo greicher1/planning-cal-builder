@@ -248,10 +248,6 @@
     font-size:12px; color:var(--text-faint); font-style:italic; line-height:1.5;
   }
 
-  .summary-row{display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px;}
-  .stat{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:10px 16px; min-width:120px;}
-  .stat .num{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;}
-  .stat .lbl{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
@@ -467,6 +463,24 @@
     #print-root .mv-bars{ z-index:1; }
     #print-root .mv-daycell{ border-left:1px solid #000 !important; }
     #print-root .mv-daycell:first-child{ border-left:none !important; }
+
+    /* ---- Waterfall (spreadsheet) PDF ---- */
+    /* Reuses the on-screen waterfall table (same header + column layout as the Excel export) so
+       the PDF reads like the Excel sheet printed. Orientation (portrait vs landscape) and any
+       fit-to-width scaling are chosen at export time; see exportWaterfallPdf(). */
+    body.printing-waterfall > *:not(#print-root){ display:none !important; }
+    body.printing-waterfall{ background:#fff; }
+    body.printing-waterfall #print-root{ display:block; }
+    /* Un-scroll / un-chrome the sheet wrapper so the full grid flows across pages. */
+    #print-root .sheet-scroll{ overflow:visible !important; max-height:none !important; border:none !important; border-radius:0 !important; }
+    /* Repeat the column-header row on every page; drop the on-screen sticky + shadow. */
+    #print-root table.sheet-table thead{ display:table-header-group; }
+    #print-root table.sheet-table th{ position:static !important; box-shadow:none !important; }
+    /* Keep each week row intact across page breaks; hide the interactive "+" note affordance. */
+    #print-root table.sheet-table tr{ break-inside:avoid; page-break-inside:avoid; }
+    #print-root .note-add-hint{ display:none !important; }
+    /* The title header prints once at the top of the first page. */
+    #print-root .cal-header-bar{ page-break-inside:avoid; break-inside:avoid; }
   }
 
   /* Production's total is derived from the episode list, so it reads as a value, not a field.
@@ -714,6 +728,7 @@
     <button class="tb-btn" id="save-file-btn" type="button">Save</button>
     <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
     <button class="tb-btn primary" id="export-btn" type="button" disabled>Export to Excel</button>
+    <button class="tb-btn" id="export-wf-pdf-btn" type="button" disabled>Export Waterfall to PDF</button>
     <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
     <button class="tb-btn danger" id="reset-btn" type="button">Reset All</button>
   </div>
@@ -780,13 +795,6 @@
       <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; changing the Region would recompute Production&rsquo;s dates and misplace your comment/hiatus edits. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar first.</p>
     </section>
 
-    <section class="card" data-tab="show">
-      <h2>Calendar range</h2>
-      <div class="phase-fields" style="grid-column:1; margin-top:0;">
-        <label>Show starting <input type="date" id="calendar-start"></label>
-        <label>Show ending <input type="date" id="calendar-end"></label>
-      </div>
-    </section>
 
     <section class="card" data-tab="holidays">
       <h2>Union holidays</h2>
@@ -824,7 +832,6 @@
 
   <main class="preview-panel">
     <div id="gap-warning" role="status" aria-live="polite"></div>
-    <div class="summary-row" id="summary-row"></div>
     <div class="view-toggle" id="view-toggle">
       <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
       <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
@@ -848,9 +855,6 @@
       <h3>Show Info</h3>
       <p><strong>Title</strong> names the project. It appears in the printed Excel header and becomes the file name when you export or save (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
       <p><strong>Shooting Days per Episode</strong> is informational context for the shoot &mdash; it&rsquo;s shown in the header&rsquo;s production summary. The actual shoot length is driven by the total shooting-day count you set on the Production phase.</p>
-
-      <h3>Calendar range</h3>
-      <p>Optional. By default the calendar spans the full year(s) your schedule touches (January&ndash;December) so exports are a consistent size. Set a start and/or end date here to force a different window &mdash; useful if you want extra lead-in or trailing weeks.</p>
 
       <h3>Phases</h3>
       <p>Each phase is a block of the schedule &mdash; Writer&rsquo;s Room, Pre Prep, Prod Prep, Production, and Post are provided by default, each with its own color. For every phase you set:</p>
@@ -1218,17 +1222,11 @@
       if(start && parseDateUTC(start)===null) hasInvalidYear = true;
       if(start && weeks>0) phaseHiatuses[p.key] = {start, weeks};
     });
-    const calStartStr = document.getElementById('calendar-start').value;
-    const calEndStr = document.getElementById('calendar-end').value;
-    if(calStartStr && parseDateUTC(calStartStr)===null) hasInvalidYear = true;
-    if(calEndStr && parseDateUTC(calEndStr)===null) hasInvalidYear = true;
     return {
       phases,
       allDefs,
       hiatuses,
       phaseHiatuses,
-      calendarStart: calStartStr || null,
-      calendarEnd: calEndStr || null,
       hasInvalidYear,
       unionCountry: document.getElementById('union-country').value || null,
       simultaneousPost:{
@@ -1354,10 +1352,7 @@
       }
     });
 
-    const calStart = state.calendarStart ? parseDateUTC(state.calendarStart) : null;
-    const calEnd = state.calendarEnd ? parseDateUTC(state.calendarEnd) : null;
-
-    if(segments.length===0 && !calStart && !calEnd){
+    if(segments.length===0){
       return {weeks:[], maxConcurrent:0, totalWeeks:0};
     }
 
@@ -1374,11 +1369,9 @@
       return addDays(jan1, daysToAdd);
     }
 
-    // Default (no explicit override): show the FULL calendar year(s) touched by the schedule --
-    // from the first Monday of the earliest year through the end of the latest year -- so every
-    // export is a consistent, familiar full-year shape instead of starting wherever the first
-    // phase happens to land. An explicit Calendar range value is still taken literally, and can
-    // only ever extend the range further, never clip a phase that's already scheduled.
+    // Show the FULL calendar year(s) touched by the schedule -- from the first Monday of the
+    // earliest year through the end of the latest year -- so every export is a consistent,
+    // familiar full-year shape instead of starting wherever the first phase happens to land.
     const allStarts = [...naturalStarts];
     const allEnds = [...naturalEnds];
     if(naturalStarts.length){
@@ -1389,9 +1382,6 @@
       const lastActiveDay = addDays(new Date(Math.max.apply(null, naturalEnds)), -1);
       allEnds.push(firstMondayOfYear(lastActiveDay.getUTCFullYear()+1).getTime());
     }
-    if(calStart) allStarts.push(mondayOf(calStart).getTime());
-    if(calEnd) allEnds.push(addDays(mondayOf(calEnd), 7).getTime());
-
     // fall back to whichever bound was actually supplied if one list is empty
     if(allStarts.length===0) allStarts.push(allEnds[0]);
     if(allEnds.length===0) allEnds.push(allStarts[0]);
@@ -1815,7 +1805,7 @@
   const DEFAULT_HIATUSES = [
     ['2026-12-21', 2],
     ['2027-12-20', 2],
-    ['2028-12-25', 2],
+    ['2028-12-18', 2],
     ['2029-12-24', 2],
   ];
   function addDefaultHiatuses(){
@@ -1887,7 +1877,6 @@
   function render(schedule){
     refreshSnapNotes();
     renderHolidayVisList(schedule);
-    const summaryEl = document.getElementById('summary-row');
     const tableEl = document.getElementById('table-wrap');
     const exportBtn = document.getElementById('export-btn');
     // The button does different things in each view, so it says which.
@@ -1896,6 +1885,10 @@
         ? 'Export Calendar to PDF'
         : 'Export Waterfall to Excel';
     }
+    // The Waterfall-to-PDF button only applies to the waterfall (the month view has its own PDF
+    // export via the main button), so it's shown only there.
+    const wfPdfBtn = document.getElementById('export-wf-pdf-btn');
+    if(wfPdfBtn) wfPdfBtn.style.display = (viewMode === 'month') ? 'none' : '';
 
     // update per-phase computed end-date hints
     getAllPhaseDefs().forEach(p=>{
@@ -1951,7 +1944,6 @@
     });
 
     if(schedule.weeks.length===0){
-      summaryEl.innerHTML = '';
       document.getElementById('gap-warning').innerHTML = '';
       let msg = 'Enter at least one phase\u2019s start date and week count to see a preview.';
       if(schedule.error==='invalid-year'){
@@ -1963,9 +1955,11 @@
       }
       tableEl.innerHTML = `<div class="empty-state">${msg}</div>`;
       exportBtn.disabled = true;
+      if(wfPdfBtn) wfPdfBtn.disabled = true;
       return;
     }
     exportBtn.disabled = false;
+    if(wfPdfBtn) wfPdfBtn.disabled = false;
 
     const gapWarningEl = document.getElementById('gap-warning');
     if(schedule.gaps && schedule.gaps.length){
@@ -1976,16 +1970,6 @@
     } else {
       gapWarningEl.innerHTML = '';
     }
-
-    const totalWeeks = schedule.weeks.length;
-    const start = schedule.weeks[0].date;
-    const lastWeek = schedule.weeks[totalWeeks-1].date;
-    const end = addDays(lastWeek, 6);
-    summaryEl.innerHTML = `
-      <div class="stat"><div class="num">${totalWeeks}</div><div class="lbl">Total weeks</div></div>
-      <div class="stat"><div class="num">${fmtShort(start)}</div><div class="lbl">Start</div></div>
-      <div class="stat"><div class="num">${fmtShort(end)}</div><div class="lbl">End</div></div>
-    `;
 
     tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
                                              : renderSpreadsheetView(schedule);
@@ -3573,8 +3557,8 @@
       blockMaxConcurrent[bi] = Math.max(1, mc);
       blockSimSlot[bi] = Math.min(simSlot, blockMaxConcurrent[bi]-1);
     });
-    // For each block build an occupancy grid: occupied[slot] = Set of local week indices
-    // where that slot holds a phase OR the Simultaneous Post marker. Spanning is then decided
+    // For each block build an occupancy grid: occupied[slot] = Map(local week index -> occupant
+    // key) for the phase (or Simultaneous Post marker) holding that slot. Spanning is then decided
     // per phase LIFETIME (not per block): a phase may span into a neighbor slot only if that
     // neighbor is empty for every week the phase itself runs. Two phases that never share a
     // week don't block each other, so a phase can fill a column its non-overlapping neighbor
@@ -3583,7 +3567,13 @@
       const slotMap = blockSlotMaps[bi];
       const mc = blockMaxConcurrent[bi];
       const simSlot = blockSimSlot[bi];
-      const occupied = Array.from({length:mc}, ()=>new Set());
+      // Each slot maps local-week -> the KEY of whatever occupies it (a phase key, or a sentinel
+      // for the Simultaneous Post marker). Tracking the occupant's identity -- not just "occupied"
+      // -- lets phaseRunBounds() stop a run where the column's occupant changes, so a later,
+      // non-overlapping phase that REUSES a column isn't treated as one continuous run with the
+      // earlier phase (which would let the earlier phase's overlaps block the later one's spanning).
+      const SIM_KEY = ' simpost';
+      const occupied = Array.from({length:mc}, ()=>new Map());
       for(let i=b.startIdx; i<b.startIdx+b.count; i++){
         const local = i - b.startIdx;
         const wk = schedule.weeks[i];
@@ -3591,8 +3581,8 @@
         // they must NOT mark slots as occupied -- otherwise they'd artificially extend a
         // phase's run through the hiatus and block legitimate spanning around it.
         if(wk.cells.length && wk.cells[0].type==='hiatus') continue;
-        wk.cells.forEach(c=>{ if(c.col!==undefined && slotMap.has(c.col)){ const s=slotMap.get(c.col); if(s<mc){ occupied[s].add(local); } } });
-        if(wk.simPost && simSlot>=0) occupied[simSlot].add(local); // SimPost's fixed lane
+        wk.cells.forEach(c=>{ if(c.col!==undefined && slotMap.has(c.col)){ const s=slotMap.get(c.col); if(s<mc){ occupied[s].set(local, c.key || ('col'+c.col)); } } });
+        if(wk.simPost && simSlot>=0) occupied[simSlot].set(local, SIM_KEY); // SimPost's fixed lane
       }
       return occupied;
     });
@@ -3603,9 +3593,15 @@
   // return the phase's run [start,end] (contiguous weeks it occupies slot s) so we can test
   // whether a neighbor slot is free for the phase's whole lifetime.
   function phaseRunBounds(occupiedSlot, localWeek){
+    // Bound the run to the SAME occupant (phase key) that holds the slot at localWeek, stopping
+    // where the occupant changes. occupiedSlot is now a Map(local -> key); walking raw occupancy
+    // across an occupant change would merge two non-overlapping phases sharing a reused column
+    // into one run -- and then one phase's overlaps (e.g. Simultaneous Post) would wrongly block
+    // the other phase from spanning to fill the width.
+    const key = occupiedSlot.get(localWeek);
     let start = localWeek, end = localWeek;
-    while(start-1 >= 0 && occupiedSlot.has(start-1)) start--;
-    while(occupiedSlot.has(end+1)) end++;
+    while(start-1 >= 0 && occupiedSlot.get(start-1) === key) start--;
+    while(occupiedSlot.get(end+1) === key) end++;
     return [start, end];
   }
 
@@ -3616,7 +3612,7 @@
   //    each other; a phase stays narrow beside anything it actually overlaps.
   //  - Simultaneous Post occupies ONE fixed slot for the whole block (simSlot, just right of
   //    Production) and always renders there; a phase span stops before it.
-  // `occupancy` is the block's per-slot Set of occupied local week indices; `localWeek` is
+  // `occupancy` is the block's per-slot Map(local week index -> occupant key); `localWeek` is
   // this row's index within the block; `fixedSimSlot` is the block's SimPost column (or -1).
   function computePhaseRowLayout(week, mc, slotMap, occupancy, localWeek, fixedSimSlot){
     const bySlot = new Array(mc).fill(null);
@@ -3903,8 +3899,6 @@
       if(f) f.style.display = cb.checked ? 'flex' : 'none';
     });
   }
-  document.getElementById('calendar-start').addEventListener('input', update);
-  document.getElementById('calendar-end').addEventListener('input', update);
   // Union country is locked while any note/hiatus edit exists: switching countries would
   // recompute holidays and discard the user's edits, so we block it until they reset.
   let lastCountry = document.getElementById('union-country').value;
@@ -3978,8 +3972,6 @@
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     refreshSimPostUI();
-    document.getElementById('calendar-start').value = '';
-    document.getElementById('calendar-end').value = '';
     document.getElementById('union-country').value = '';
     lastCountry = '';
     document.getElementById('show-title').value = '';
@@ -4621,6 +4613,10 @@
     }
   });
 
+  document.getElementById('export-wf-pdf-btn').addEventListener('click', ()=>{
+    exportWaterfallPdf();
+  });
+
   // ---------- Month view: export every month to PDF ----------
   // Uses the browser's own print pipeline (Print -> "Save as PDF"), which is the only way a
   // single-file, no-dependency tool can produce a real PDF -- and it renders the live DOM, so
@@ -4840,6 +4836,100 @@
       return;
     }
     // Safety net: afterprint isn't fired reliably by every browser.
+    setTimeout(cleanup, 60000);
+  }
+
+  // Dynamic @page for the waterfall PDF: orientation is chosen at export time, so it can't live in
+  // the static stylesheet. Injected just before printing and removed on cleanup, so it never
+  // affects the month PDF (which keeps the static landscape @page).
+  function setWfPageStyle(orientation, marginMm){
+    removeWfPageStyle();
+    const st = document.createElement('style');
+    st.id = 'wf-page-style';
+    st.textContent = '@media print{ @page{ size: letter ' + orientation + '; margin: ' + marginMm + 'mm; } }';
+    document.head.appendChild(st);
+  }
+  function removeWfPageStyle(){
+    const ex = document.getElementById('wf-page-style');
+    if(ex) ex.remove();
+  }
+
+  // Export the WATERFALL view to PDF via the browser print dialog, styled to read like the Excel
+  // sheet printed: it reuses renderSpreadsheetView() (the same header + column-layout logic that
+  // backs both the on-screen grid and the Excel export), then picks page orientation and a
+  // fit-to-width scale from the grid's natural width so wide multi-year schedules land in
+  // landscape and narrow ones in portrait -- the way Excel's "fit to width" print would.
+  function exportWaterfallPdf(){
+    if(!currentSchedule || !currentSchedule.weeks || !currentSchedule.weeks.length){
+      alert('Add at least one phase with a start date before exporting the waterfall.');
+      return;
+    }
+    const host = document.getElementById('print-root');
+    if(!host) return;
+    // Clear leftovers from any print that didn't finish, so a stuck class can't blank the app.
+    document.body.classList.remove('printing-calendar', 'printing-waterfall');
+    removeWfPageStyle();
+    host.innerHTML = '';
+
+    try {
+      host.innerHTML = '<div class="wf-print">' + renderSpreadsheetView(currentSchedule) + '</div>';
+      const tools = host.querySelector('.hdr-tools'); // interactive toolbar -- never on paper
+      if(tools) tools.remove();
+    } catch(err){
+      console.error(err);
+      host.innerHTML = '';
+      alert('Something went wrong building the waterfall for print: ' + err.message);
+      return;
+    }
+
+    // Choose orientation + scale from the grid's NATURAL width, measured off-screen at the exact
+    // print width. Rows always flow down across pages (the column-header row repeats via
+    // table-header-group), so only WIDTH drives the fit -- exactly the axis Excel's page setup
+    // decides landscape/portrait on.
+    const MARGIN_MM = 8;
+    const printableW = o => Math.round(((o === 'landscape' ? 11 : 8.5) - 2 * MARGIN_MM / 25.4) * 96);
+    let orientation = 'landscape', scale = 1;
+    try {
+      const prev = host.style.cssText;
+      host.style.cssText = 'display:block; position:absolute; left:-99999px; top:0; width:auto;';
+      const table = host.querySelector('.sheet-table');
+      const hdr = host.querySelector('.cal-header-bar');
+      const natW = Math.ceil(Math.max(
+        table ? table.getBoundingClientRect().width : 0,
+        hdr ? hdr.getBoundingClientRect().width : 0
+      ));
+      host.style.cssText = prev;
+      // Narrowest orientation the grid fits in without shrinking; otherwise landscape, scaled to fit.
+      orientation = (natW > 0 && natW <= printableW('portrait')) ? 'portrait' : 'landscape';
+      const availW = printableW(orientation);
+      if(natW > availW) scale = availW / natW;
+    } catch(err){ console.error(err); }
+
+    // zoom (not transform) so the grid still page-breaks between rows when scaled down.
+    const wrap = host.querySelector('.wf-print');
+    if(wrap) wrap.style.zoom = (scale < 1) ? String(scale) : '';
+    setWfPageStyle(orientation, MARGIN_MM);
+
+    document.body.classList.add('printing-waterfall');
+    let done = false;
+    const cleanup = ()=>{
+      if(done) return;
+      done = true;
+      document.body.classList.remove('printing-waterfall');
+      removeWfPageStyle();
+      host.innerHTML = '';
+      if(wrap) wrap.style.zoom = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    try {
+      window.print();
+    } catch(err){
+      console.error(err);
+      cleanup();
+      alert('The browser blocked the print dialog: ' + err.message);
+      return;
+    }
     setTimeout(cleanup, 60000);
   }
 
