@@ -198,6 +198,11 @@
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+  /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
+  .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; text-align:left; }
+  .autostart-btn:hover:not(:disabled){ text-decoration:underline; }
+  .autostart-btn:disabled{ color:var(--text-faint); cursor:default; }
+  .autostart-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
   .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1 1 116px; min-width:0;}
   /* Let the date/number inputs shrink with their column instead of enforcing a ~136px intrinsic
      minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
@@ -1598,6 +1603,7 @@
         <div class="phase-fields">
           ${fieldsHtml}
         </div>
+        ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
         <div class="phase-meta" id="meta-${p.key}"></div>
         ${phaseHiatusBlockHtml(p.key, p.label)}
         ${p.key === 'production' ? `
@@ -1960,6 +1966,21 @@
         metaEl.style.color = 'var(--danger)';
       } else {
         metaEl.textContent = '';
+      }
+      // "Start after previous phase" button: name it after the phase it would chain from, and
+      // disable it when nothing earlier in the chain is scheduled yet.
+      const asBtn = document.getElementById('autostart-'+p.key);
+      if(asBtn){
+        const prev = prevChainSegment(p.key, schedule);
+        if(prev){
+          const nm = ((document.getElementById('name-'+prev.key)||{}).value || '').trim()
+                     || (PHASES.find(x=>x.key===prev.key)||{}).label || 'previous phase';
+          asBtn.textContent = '↳ Start after ' + nm;
+          asBtn.disabled = false;
+        } else {
+          asBtn.textContent = '↳ Start after previous phase';
+          asBtn.disabled = true;
+        }
       }
     });
 
@@ -3843,8 +3864,43 @@
       refreshDerivedInfo();
       update();
     });
-
+    // "Start after previous phase" shortcut buttons.
+    host.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.autostart-btn');
+      if(!btn || btn.disabled) return;
+      autostartPhase(btn.dataset.phase);
+    });
   })();
+
+  // Fixed chain order for the built-in phases. autostartPhase() fills a phase's start date with the
+  // week right after the nearest EARLIER phase that is actually scheduled -- skipping past any
+  // hiatus so the new phase begins on a working week. Custom phases are intentionally not part of
+  // this chain.
+  const PHASE_CHAIN = ['writersRoom','prePrep','prodPrep','production','post','localization'];
+  // The scheduled phase (with a computed segment) immediately before `key` in the chain, or null.
+  function prevChainSegment(key, schedule){
+    const idx = PHASE_CHAIN.indexOf(key);
+    if(idx <= 0) return null;
+    const segs = (schedule && schedule.segments) || [];
+    for(let i = idx - 1; i >= 0; i--){
+      const seg = segs.find(s => s.key === PHASE_CHAIN[i]);
+      if(seg) return { seg, key: PHASE_CHAIN[i] };
+    }
+    return null;
+  }
+  function autostartPhase(key){
+    const prev = prevChainSegment(key, currentSchedule);
+    if(!prev) return;
+    // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
+    // full week count and pushes its end out). From there, step over any weeks that fall in a
+    // hiatus so the new phase lands on the first working week.
+    let d = new Date(prev.seg.end.getTime());
+    const hi = (currentSchedule && currentSchedule.hiatuses) || [];
+    let safety = 0;
+    while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+    const inp = document.getElementById('start-' + key);
+    if(inp){ inp.value = isoOf(d); update(); }
+  }
 
   document.getElementById('view-sheet-btn').addEventListener('click', ()=> setViewMode('sheet'));
   document.getElementById('view-month-btn').addEventListener('click', ()=> setViewMode('month'));
