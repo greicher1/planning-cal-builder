@@ -232,14 +232,17 @@
   }
   .icon-btn:hover{background:var(--bg);}
 
-  button.primary, button.secondary{
+  /* Sidebar/content buttons only. :not(.tb-btn) keeps this off the toolbar, whose Export-to-Excel
+     button also carries .primary -- otherwise this rule's larger padding/font would win over
+     .tb-btn and make that one button taller than its toolbar neighbors. */
+  button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
     font-family:inherit; font-size:13px; font-weight:500; border-radius:8px; padding:9px 14px;
     cursor:pointer; border:1px solid transparent;
   }
-  button.primary{background:var(--accent); color:#fff;}
-  button.primary:hover{background:var(--accent-hover);}
-  button.primary:disabled{background:#B9C2CA; cursor:not-allowed;}
-  button.secondary{background:#fff; border-color:var(--border-strong); color:var(--text);}
+  button.primary:not(.tb-btn){background:var(--accent); color:#fff;}
+  button.primary:not(.tb-btn):hover{background:var(--accent-hover);}
+  button.primary:not(.tb-btn):disabled{background:#B9C2CA; cursor:not-allowed;}
+  button.secondary:not(.tb-btn){background:#fff; border-color:var(--border-strong); color:var(--text);}
   button.secondary:hover{background:var(--bg);}
   .btn-row{display:flex; gap:8px; margin-top:4px;}
   .add-hiatus-btn{width:100%; margin-top:2px;}
@@ -392,6 +395,17 @@
   }
   /* ---------- Calendar PDF export (browser print) ---------- */
   #print-root{ display:none; }
+  /* Waterfall PDF look: compact rows + Excel's grey header, to read like the Excel print. Scoped
+     to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
+     fit-to-page measurement sees exactly the size that will print. */
+  .wf-print .sheet-table td, .wf-print .sheet-table th{ height:auto; padding:0 6px; line-height:1.3; }
+  /* Internal gridlines match the Excel print: light-grey DASHED horizontal row lines, thin SOLID
+     vertical column lines. The solid dark outer frame and year-block separators (2px var(--text)
+     rules elsewhere) still win by specificity, so only the interior 1px lines are affected. */
+  .wf-print .sheet-table td{ border-top-style:dashed; border-bottom-style:dashed; border-color:#C7C7C7; }
+  .wf-print .sheet-table th{ background:#D9D9D9; border-color:#BFBFBF; }
+  .wf-print .cal-header-bar{ padding:5px 12px; min-height:0; }
+  .wf-print .phase-cell-label{ max-width:none; }
   @media print{
     /* Landscape with minimal margins so the grid prints as large as the sheet allows. */
     @page{ size:landscape; margin:8mm; }
@@ -471,6 +485,10 @@
     body.printing-waterfall > *:not(#print-root){ display:none !important; }
     body.printing-waterfall{ background:#fff; }
     body.printing-waterfall #print-root{ display:block; }
+    /* Center the calendar horizontally (both orientations): the grid block has an explicit pinned
+       width (set in exportWaterfallPdf), so margin:auto splits the leftover printable slack evenly
+       left/right instead of it pooling on the right. */
+    body.printing-waterfall #print-root .wf-print{ margin-left:auto; margin-right:auto; }
     /* Un-scroll / un-chrome the sheet wrapper so the full grid flows across pages. */
     #print-root .sheet-scroll{ overflow:visible !important; max-height:none !important; border:none !important; border-radius:0 !important; }
     /* Repeat the column-header row on every page; drop the on-screen sticky + shadow. */
@@ -4882,32 +4900,52 @@
       return;
     }
 
-    // Choose orientation + scale from the grid's NATURAL width, measured off-screen at the exact
-    // print width. Rows always flow down across pages (the column-header row repeats via
-    // table-header-group), so only WIDTH drives the fit -- exactly the axis Excel's page setup
-    // decides landscape/portrait on.
-    const MARGIN_MM = 8;
-    const printableW = o => Math.round(((o === 'landscape' ? 11 : 8.5) - 2 * MARGIN_MM / 25.4) * 96);
-    let orientation = 'landscape', scale = 1;
+    // Fit the ENTIRE grid (header + every week row) onto exactly ONE page, and pick the
+    // orientation that lets it print as LARGE as possible -- this is what Excel's "fit sheet on
+    // one page" does, and why a tall/narrow calendar lands in portrait while a wide multi-year one
+    // lands in landscape. We measure the grid's natural width AND height off-screen, compute the
+    // fit-to-page scale for each orientation (min of the width- and height-fit), and take the
+    // orientation with the larger scale. Only shrink, never enlarge past 100% (like Excel).
+    const MARGIN_MM = 5;   // ~0.2" -- Excel's "Narrow" preset, so the grid gets most of the sheet
+    const px = inches => Math.round((inches - 2 * MARGIN_MM / 25.4) * 96); // printable px @96dpi
+    const PAGE = { portrait: { w: px(8.5), h: px(11) }, landscape: { w: px(11), h: px(8.5) } };
+    let orientation = 'portrait', scale = 1, natW = 0;
     try {
       const prev = host.style.cssText;
       host.style.cssText = 'display:block; position:absolute; left:-99999px; top:0; width:auto;';
       const table = host.querySelector('.sheet-table');
       const hdr = host.querySelector('.cal-header-bar');
-      const natW = Math.ceil(Math.max(
-        table ? table.getBoundingClientRect().width : 0,
-        hdr ? hdr.getBoundingClientRect().width : 0
-      ));
+      const tRect = table ? table.getBoundingClientRect() : { width: 0, height: 0 };
+      const hRect = hdr ? hdr.getBoundingClientRect() : { width: 0, height: 0 };
+      const W = Math.ceil(Math.max(tRect.width, hRect.width));
+      const H = Math.ceil(hRect.height + tRect.height);
       host.style.cssText = prev;
-      // Narrowest orientation the grid fits in without shrinking; otherwise landscape, scaled to fit.
-      orientation = (natW > 0 && natW <= printableW('portrait')) ? 'portrait' : 'landscape';
-      const availW = printableW(orientation);
-      if(natW > availW) scale = availW / natW;
+      natW = W;
+      // Orientation follows the grid's WIDTH (its column count), the way Excel does: stay portrait
+      // while the grid fits the portrait page width, and switch to landscape only once there are
+      // enough columns that it no longer does. (Choosing by raw max-scale instead would flip a
+      // short, wide 2-year grid into landscape even though Excel keeps such a calendar portrait.)
+      orientation = (W > 0 && W <= PAGE.portrait.w) ? 'portrait' : 'landscape';
+      const page = PAGE[orientation];
+      // Fill the chosen page up to the binding edge (width for a short/wide grid, height for a
+      // tall one), scaling UP if needed so the grid uses the sheet with only the thin margins
+      // around it -- capped at 2x so a tiny schedule doesn't balloon. Any leftover slack on the
+      // non-binding axis is split evenly by the centering rule in the print CSS.
+      // Height gets a 4% safety cushion because per-row sub-pixel rounding across many rows makes
+      // the print a hair taller than the measured height -- without it a tall grid can spill one
+      // row onto a 2nd page. It only bites the height-bound (tall/landscape) case; a width-bound
+      // grid still fills the page width exactly.
+      scale = Math.min(Math.min(page.w / W, (page.h * 0.96) / H), 2) * 0.99;
     } catch(err){ console.error(err); }
 
-    // zoom (not transform) so the grid still page-breaks between rows when scaled down.
     const wrap = host.querySelector('.wf-print');
-    if(wrap) wrap.style.zoom = (scale < 1) ? String(scale) : '';
+    if(wrap){
+      // Pin the grid to the EXACT width we measured so the print can't reflow it narrower (which
+      // would wrap text, make it taller than measured, and spill the last row onto a 2nd page).
+      // zoom then scales this fixed-width block to fit the page; margin:auto (print CSS) centers it.
+      if(natW > 0) wrap.style.width = natW + 'px';
+      wrap.style.zoom = String(scale);
+    }
     setWfPageStyle(orientation, MARGIN_MM);
 
     document.body.classList.add('printing-waterfall');
