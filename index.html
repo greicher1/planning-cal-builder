@@ -904,7 +904,7 @@
       <p><strong>Editing locks the Region.</strong> Once you manually edit any comment, holiday, or hiatus band (text, color, or clearing one), the Region selector locks &mdash; switching regions would recompute the holidays and discard your edits. Click <strong>Reset Notes &amp; Hiatus</strong> above the calendar to restore the auto defaults, which unlocks the selector so you can switch regions again.</p>
 
       <h3>Simultaneous post</h3>
-      <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
+      <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows a &ldquo;Simultaneous Post wk&nbsp;<em>n</em>&rdquo; marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible. Those weeks are counted as post weeks &mdash; so if two weeks run concurrently (Simultaneous Post wk&nbsp;1&ndash;2), the regular Post phase picks up where they left off and starts at Post wk&nbsp;3.</p>
 
       <h3>All-phase hiatus</h3>
       <p>Add one or more hiatus periods (a start date and a number of weeks) to pause the whole production at once. A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
@@ -1467,14 +1467,38 @@
     }
 
     const prodSeg = segments.find(s=>s.key==='production');
+
+    // Simultaneous Post = post work done DURING the shoot. A week counts as a sim-post week when the
+    // toggle is on and Production is running that week, from `offsetWeeks` after Production begins
+    // through its end. (Callers still skip global-hiatus weeks, where the shoot -- and thus post --
+    // is paused, so those never count.)
+    const isSimPostWeek = (ws) => {
+      if(!(state.simultaneousPost.enabled && prodSeg)) return false;
+      if(ws < prodSeg.start || ws >= prodSeg.end) return false;
+      const wip = Math.round((ws - prodSeg.start)/DAY_MS/7);
+      return wip >= state.simultaneousPost.offsetWeeks;
+    };
+    // Those sim-post weeks are numbered 1..K ("Simultaneous Post wk N"), and the regular Post phase
+    // then picks up from K+1 ("Post wk K+1") -- so post-week numbering is one unbroken sequence
+    // across the concurrent-with-the-shoot and standalone stretches. Count K up front (order-
+    // independent, in case Post's own span overlaps Production) and start Post's counter past it.
+    let simPostTotal = 0;
+    for(let i=0;i<totalWeeks;i++){
+      const ws = addDays(overallStart, i*7);
+      if(hiatuses.find(h=> ws>=h.start && ws<h.end)) continue; // shoot paused -> not a post week
+      if(isSimPostWeek(ws)) simPostTotal++;
+    }
+    if(simPostTotal > 0 && weekCounters.post !== undefined) weekCounters.post = simPostTotal + 1;
+
     const weeks = [];
     let maxConcurrent = 1;
+    let simPostCounter = 0;
 
     for(let i=0;i<totalWeeks;i++){
       const weekStart = addDays(overallStart, i*7);
       const hiatus = hiatuses.find(h=> weekStart>=h.start && weekStart<h.end);
       const cells = [];
-      let simPost = false;
+      let simPost = false, simPostNum = 0;
 
       if(hiatus){
         cells.push({type:'hiatus', label:HIATUS_DEFAULT_LABEL});
@@ -1495,13 +1519,10 @@
             cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
           }
         });
-        if(state.simultaneousPost.enabled && prodSeg && weekStart>=prodSeg.start && weekStart<prodSeg.end){
-          const weeksIntoProd = Math.round((weekStart-prodSeg.start)/DAY_MS/7);
-          if(weeksIntoProd >= state.simultaneousPost.offsetWeeks) simPost = true;
-        }
+        if(isSimPostWeek(weekStart)){ simPost = true; simPostNum = ++simPostCounter; }
       }
       maxConcurrent = Math.max(maxConcurrent, cells.length);
-      weeks.push({date:weekStart, cells, simPost});
+      weeks.push({date:weekStart, cells, simPost, simPostNum});
     }
     // Flag interior gaps: genuinely EMPTY weeks (no phase and no hiatus) bounded by real phase
     // coverage on both sides. "Coverage" means an actual phase cell (a running phase, or a
@@ -2372,9 +2393,10 @@
           else if(sp){ spRuns.push(sp); sp = null; }
         }
         if(sp) spRuns.push(sp);
+        const spLabel = 'Simultaneous Post wk ' + (wkRec.simPostNum||0);
         spRuns.forEach(r=>{
           place(r.startCol, r.endCol, 'mv-bar mv-pill',
-            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};`, 'Simultaneous Post', 'Simultaneous Post', '');
+            `background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};`, spLabel, spLabel, '');
         });
       }
 
@@ -2760,7 +2782,7 @@
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;">${escHi(cell.label)}</td>`;
             } else if(cell.kind==='simpost'){
-              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">Simultaneous Post</td>`;
+              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">${escHtml(cell.label)}</td>`;
             } else {
               bodyHtml += `<td${cs}></td>`;
             }
@@ -3198,7 +3220,7 @@
         let slot = 0;
         layout.forEach(cell=>{
           if(cell.kind==='phase') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth(cell.label));
-          else if(cell.kind==='simpost') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth('Simultaneous Post'));
+          else if(cell.kind==='simpost') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth(cell.label));
           slot += cell.colspan;
         });
         const weekKey = week.date.toISOString().slice(0,10);
@@ -3347,7 +3369,7 @@
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
               baseStyle(cell);
-              cell.value = 'Simultaneous Post';
+              cell.value = item.label;
               setFill(cell, SIMPOST_COLOR);
             } else {
               baseStyle(cell);
@@ -3688,7 +3710,7 @@
     let k = 0;
     while(k < mc){
       if(k === simSlot){
-        out.push({kind:'simpost', label:'Simultaneous Post', color:SIMPOST_COLOR, textColor:SIMPOST_TEXT, colspan:1});
+        out.push({kind:'simpost', label:'Simultaneous Post wk ' + (week.simPostNum||0), color:SIMPOST_COLOR, textColor:SIMPOST_TEXT, colspan:1});
         k++;
       } else if(bySlot[k]){
         const c = bySlot[k];
