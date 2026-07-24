@@ -4,22 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPT Planning Calendar Builder</title>
-<!-- Download gateway: when this file is served over the web (the shared GitHub link) instead of
-     opened as a downloaded local file, it acts as a download PAGE, not the running app -- so people
-     are steered into downloading their own copy rather than using (and getting confused by) the
-     live tool online. This tiny head script flags that case as early as possible, before the body
-     paints, so the app shell never flashes before the overlay takes over. A downloaded copy
-     (file://) or a local dev server (localhost) never gets the flag and boots the app as normal.
-     The paired CSS is in the <style> block and the overlay is built by a script before </body>. -->
-<script>
-  (function(){
-    try{
-      var h = location.hostname;
-      var localCopy = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h === '';
-      if(!localCopy) document.documentElement.classList.add('dl-gateway');
-    }catch(e){ /* if anything odd, fall through to running the app */ }
-  })();
-</script>
 <!-- PWA: install + theming. The manifest is inlined as a data: URI so the tool stays a
      single self-contained HTML file (no separate manifest.json to pass around). Installing
      the app in Chrome/Edge grants persistent file permissions, so the in-place "Save"
@@ -751,31 +735,6 @@
   #help-body code{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
   #help-body .help-intro{ color:var(--text-muted); margin-top:12px; }
   #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }
-
-  /* Download gateway (see the head script): on the hosted/shared link, hide the whole app and show
-     only the full-screen overlay. On a downloaded file:// copy the .dl-gateway class is never set,
-     so none of this applies and the app renders normally. Hiding the app shell the instant the
-     class is present (before the body's own paint) is what prevents a flash of the live tool. */
-  html.dl-gateway, html.dl-gateway body{ background:var(--bg); overflow:hidden; }
-  html.dl-gateway body > *:not(#download-gateway){ display:none !important; }
-  #download-gateway{
-    position:fixed; inset:0; z-index:2147483647; box-sizing:border-box;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:20px; text-align:center; padding:32px; background:var(--bg); color:var(--text);
-    font-family:'Inter', system-ui, -apple-system, sans-serif;
-  }
-  #download-gateway .dg-icon{ font-size:52px; line-height:1; }
-  #download-gateway h1{ margin:0; font-size:clamp(24px, 4.2vw, 40px); font-weight:700; letter-spacing:-0.02em; max-width:20ch; line-height:1.15; }
-  #download-gateway p{ margin:0; font-size:clamp(15px, 2vw, 18px); color:var(--text-muted); max-width:46ch; line-height:1.5; }
-  #download-gateway .dg-btn{
-    margin-top:4px; font:inherit; font-size:18px; font-weight:600; cursor:pointer;
-    background:var(--accent); color:#fff; border:none; border-radius:12px; padding:15px 30px;
-    box-shadow:0 2px 6px rgba(0,0,0,.15); transition:background .15s ease, transform .05s ease;
-  }
-  #download-gateway .dg-btn:hover{ background:var(--accent-hover); }
-  #download-gateway .dg-btn:active{ transform:translateY(1px); }
-  #download-gateway .dg-hint{ font-size:13px; color:var(--text-faint); max-width:44ch; }
-  #download-gateway .dg-chrome{ color:var(--accent); font-weight:700; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -5520,76 +5479,5 @@
 })();
 </script>
 <div id="print-root" aria-hidden="true"></div>
-
-<!-- Download gateway overlay (paired with the head script + .dl-gateway CSS above). Only builds when
-     the file is served over the web; a downloaded/local copy never gets the class, so this returns
-     immediately and the app runs. Chromium browsers (Chrome / Edge / Brave / Opera -- where the
-     app's in-place Save and recents actually work) get a Download button; everything else is asked
-     to open the link in Chrome. The download pulls a pristine copy of this file from the server
-     (not the live, app-mutated DOM), so the saved HTML is a clean app that runs offline. -->
-<script>
-  (function(){
-    if(!document.documentElement.classList.contains('dl-gateway')) return;
-
-    // userAgentData is exposed only by Chromium browsers, and each lists a "Chromium" brand. Fall
-    // back to UA sniffing for older Chromium and to rule out Firefox / Safari / legacy Edge.
-    function isChromium(){
-      try{
-        var uad = navigator.userAgentData;
-        if(uad && Array.isArray(uad.brands)){
-          return uad.brands.some(function(b){ return /Chromium/i.test(b.brand); });
-        }
-      }catch(e){}
-      var ua = navigator.userAgent || '';
-      if(/\bFirefox\/|\bFxiOS\//.test(ua)) return false;   // Firefox, any platform
-      if(/\bEdge\//.test(ua)) return false;                // legacy EdgeHTML (pre-Chromium)
-      return /\bChrome\/|\bChromium\//.test(ua);           // genuine Chromium engines
-    }
-
-    function downloadApp(){
-      fetch(location.href, {cache:'no-store'})
-        .then(function(r){ return r.text(); })
-        .then(function(html){
-          var blob = new Blob([html], {type:'text/html'});
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url; a.download = 'SPT Planning Calendar Builder.html';
-          document.body.appendChild(a); a.click(); a.remove();
-          setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        })
-        .catch(function(){
-          // Fallback: a same-origin anchor download (works because the file is same-origin).
-          var a = document.createElement('a');
-          a.href = location.href; a.download = 'SPT Planning Calendar Builder.html';
-          document.body.appendChild(a); a.click(); a.remove();
-        });
-    }
-
-    var wrap = document.createElement('div');
-    wrap.id = 'download-gateway';
-
-    if(isChromium()){
-      wrap.innerHTML =
-        '<div class="dg-icon">📅</div>' +
-        '<h1>SPT Planning Calendar Builder</h1>' +
-        '<p>This is a download page. Get the app, then open the downloaded file to build your calendar.</p>' +
-        '<button type="button" class="dg-btn" id="dg-download">⬇︎&nbsp;&nbsp;Download the App</button>' +
-        '<div class="dg-hint">Downloads one self-contained file &mdash; open it any time, works offline.</div>';
-      document.body.appendChild(wrap);
-      var btn = document.getElementById('dg-download');
-      if(btn) btn.addEventListener('click', function(){
-        downloadApp();
-        var hint = wrap.querySelector('.dg-hint');
-        if(hint) hint.textContent = 'Downloading… open the file from your Downloads folder to start.';
-      });
-    } else {
-      wrap.innerHTML =
-        '<div class="dg-icon">📅</div>' +
-        '<h1>To download, please open this link in <span class="dg-chrome">Chrome</span></h1>' +
-        '<p>This calendar builder downloads and runs best in Google Chrome. Copy this page’s link, open Chrome, and paste it there to get the app.</p>';
-      document.body.appendChild(wrap);
-    }
-  })();
-</script>
 </body>
 </html>
