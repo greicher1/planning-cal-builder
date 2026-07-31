@@ -587,7 +587,7 @@
   }
   #hdr-mode-btn:hover, #notes-reset-btn:hover{ color:var(--text); background:#fff; }
   #hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
-  #union-country.locked, #union-subregion.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
+  #union-country.locked, #union-subregion.locked, #union-usregion.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
   table.sheet-table{
@@ -828,6 +828,18 @@
           <option value="CAN" hidden>Canada</option>
         </select>
       </label>
+      <!-- US area picker. IATSE's West Coast Studio Local Agreements and the Area Standards
+           Agreement carry the SAME 11 holidays, so one "General" list covers LA, Atlanta,
+           Albuquerque etc. New York (Local 52) is the genuine exception: it swaps Good Friday for
+           Veterans Day. Kept as its own <select> (rather than reusing the province one) so both
+           option sets stay static and a restored save can set either value directly. -->
+      <label id="union-usregion-row" style="display:none; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-top:8px;">
+        Area
+        <select id="union-usregion" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
+          <option value="US-GEN">General (incl. CA, GA, NM, LA)</option>
+          <option value="US-NY">New York (Local 52)</option>
+        </select>
+      </label>
       <!-- Province picker: only meaningful for Canada, whose statutory holidays genuinely differ by
            province (Boxing Day is Ontario-only here; Remembrance Day is BC/AB; Truth and
            Reconciliation is BC/MB; the Fete nationale is Quebec-only). Shown/hidden by
@@ -926,7 +938,8 @@
 
       <h3>Union holidays</h3>
       <p><strong>Schedule effect &mdash; Production only.</strong> Pick a Production Region in the Show tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates.</p>
-      <p><strong>Which holidays these are.</strong> The <strong>United States</strong> list is the <strong>IATSE Basic Agreement&rsquo;s eleven recognized holidays</strong> (Juneteenth was added effective 1 January 2025). Note that <strong>Columbus Day and Veterans Day are deliberately not included</strong> &mdash; Veterans Day appears only in the AICP <em>commercial</em> contract, and Columbus Day is on no IATSE calendar, so treating them as no-shoot days would wrongly cost you shoot days.</p>
+      <p><strong>Which holidays these are.</strong> The <strong>United States</strong> lists are IATSE&rsquo;s <strong>eleven recognized holidays</strong> (Juneteenth was added effective 1 January 2025). <strong>General</strong> covers almost everywhere &mdash; the West Coast Studio Local Agreements and the Area Standards Agreement carry an identical list, so Los Angeles, Atlanta and Albuquerque are the same. Note that <strong>Columbus Day is not included anywhere</strong> (it is on no IATSE calendar) and <strong>Veterans Day is not a General holiday</strong> (it appears only in the AICP <em>commercial</em> contract), so treating either as a no-shoot day outside New York would wrongly cost you shoot days.</p>
+      <p><strong>New York is the real US exception.</strong> Under the IATSE Local 52 Majors Agreement the list <em>swaps</em> Good Friday for <strong>Veterans Day</strong> &mdash; same count, different days. (Martin Luther King Jr. Day was added there effective 1 January 2023.) So pick <strong>New York</strong> for a Local 52 shoot and <strong>General</strong> for everywhere else.</p>
       <p><strong>Canada is chosen by province</strong>, because the statutory lists really do diverge: Boxing Day is Ontario-only among the provinces listed; Remembrance Day applies in BC and Alberta but not Ontario or Quebec; the National Day for Truth and Reconciliation is statutory in BC and Manitoba (in Ontario the IATSE Local 873 agreement treats it as a &ldquo;Proclaimed Holiday&rdquo; instead); and the F&ecirc;te nationale (St-Jean-Baptiste, 24 June) is Quebec-only. Quebec is also the exception where <em>either</em> Good Friday <em>or</em> Easter Monday is required &mdash; the tool lists Good Friday, so switch it manually if your production observes Easter Monday instead. Nova Scotia is the shortest list: Victoria Day, Thanksgiving and Boxing Day are not statutory paid holidays there.</p>
       <p><strong>Weekend holidays.</strong> A holiday landing on a Saturday or Sunday also generates an &ldquo;(Observed)&rdquo; weekday entry, since that substitute day is the one that actually costs a shoot day. The US follows the IATSE rule (Saturday &rarr; the preceding Friday, Sunday &rarr; the following Monday); Canada and the UK move forward to the next free weekday, so a Saturday Christmas plus a Sunday Boxing Day become Monday and Tuesday rather than colliding. <strong>Always check these against your own union agreement before relying on them</strong> &mdash; and note that Christmas Eve and New Year&rsquo;s Eve are <em>not</em> holidays (in BC they carry premium pay, but they are working days).</p>
       <p><strong>Notes display &mdash; all phases.</strong> Every holiday that lands inside any phase is logged in the Notes column with its date. Use the per-holiday checklist under <strong>Union holidays</strong> to choose which appear in each view &mdash; display only, this doesn&rsquo;t change the schedule. By default none show in the <strong>Waterfall</strong> and all show in the <strong>Month</strong> calendar.</p>
@@ -1020,7 +1033,7 @@
   // forward to the next free weekday, so Christmas-Sat + Boxing-Sun become Mon + Tue, not a clash.
   // Double-check 'observed' dates against your own union agreement before relying on them.
   const HOLIDAYS = {
-    'US': [
+    'US-GEN': [
       {date:'2026-01-01', name:"New Year's Day"},
       {date:'2026-01-19', name:'Martin Luther King Jr. Day'},
       {date:'2026-02-16', name:"Presidents' Day"},
@@ -1067,6 +1080,59 @@
       {date:'2029-06-19', name:'Juneteenth'},
       {date:'2029-07-04', name:'Independence Day'},
       {date:'2029-09-03', name:'Labor Day'},
+      {date:'2029-11-22', name:'Thanksgiving'},
+      {date:'2029-11-23', name:'Day After Thanksgiving'},
+      {date:'2029-12-25', name:'Christmas Day'},
+    ],
+    'US-NY': [
+      {date:'2026-01-01', name:"New Year's Day"},
+      {date:'2026-01-19', name:'Martin Luther King Jr. Day'},
+      {date:'2026-02-16', name:"Presidents' Day"},
+      {date:'2026-05-25', name:'Memorial Day'},
+      {date:'2026-06-19', name:'Juneteenth'},
+      {date:'2026-07-03', name:'Independence Day (Observed)'},
+      {date:'2026-07-04', name:'Independence Day'},
+      {date:'2026-09-07', name:'Labor Day'},
+      {date:'2026-11-11', name:'Veterans Day'},
+      {date:'2026-11-26', name:'Thanksgiving'},
+      {date:'2026-11-27', name:'Day After Thanksgiving'},
+      {date:'2026-12-25', name:'Christmas Day'},
+      {date:'2027-01-01', name:"New Year's Day"},
+      {date:'2027-01-18', name:'Martin Luther King Jr. Day'},
+      {date:'2027-02-15', name:"Presidents' Day"},
+      {date:'2027-05-31', name:'Memorial Day'},
+      {date:'2027-06-18', name:'Juneteenth (Observed)'},
+      {date:'2027-06-19', name:'Juneteenth'},
+      {date:'2027-07-04', name:'Independence Day'},
+      {date:'2027-07-05', name:'Independence Day (Observed)'},
+      {date:'2027-09-06', name:'Labor Day'},
+      {date:'2027-11-11', name:'Veterans Day'},
+      {date:'2027-11-25', name:'Thanksgiving'},
+      {date:'2027-11-26', name:'Day After Thanksgiving'},
+      {date:'2027-12-24', name:'Christmas Day (Observed)'},
+      {date:'2027-12-25', name:'Christmas Day'},
+      {date:'2027-12-31', name:"New Year's Day (Observed)"},
+      {date:'2028-01-01', name:"New Year's Day"},
+      {date:'2028-01-17', name:'Martin Luther King Jr. Day'},
+      {date:'2028-02-21', name:"Presidents' Day"},
+      {date:'2028-05-29', name:'Memorial Day'},
+      {date:'2028-06-19', name:'Juneteenth'},
+      {date:'2028-07-04', name:'Independence Day'},
+      {date:'2028-09-04', name:'Labor Day'},
+      {date:'2028-11-10', name:'Veterans Day (Observed)'},
+      {date:'2028-11-11', name:'Veterans Day'},
+      {date:'2028-11-23', name:'Thanksgiving'},
+      {date:'2028-11-24', name:'Day After Thanksgiving'},
+      {date:'2028-12-25', name:'Christmas Day'},
+      {date:'2029-01-01', name:"New Year's Day"},
+      {date:'2029-01-15', name:'Martin Luther King Jr. Day'},
+      {date:'2029-02-19', name:"Presidents' Day"},
+      {date:'2029-05-28', name:'Memorial Day'},
+      {date:'2029-06-19', name:'Juneteenth'},
+      {date:'2029-07-04', name:'Independence Day'},
+      {date:'2029-09-03', name:'Labor Day'},
+      {date:'2029-11-11', name:'Veterans Day'},
+      {date:'2029-11-12', name:'Veterans Day (Observed)'},
       {date:'2029-11-22', name:'Thanksgiving'},
       {date:'2029-11-23', name:'Day After Thanksgiving'},
       {date:'2029-12-25', name:'Christmas Day'},
@@ -4110,34 +4176,46 @@
   // Canada's statutory holidays differ enough between provinces that one national list was wrong
   // everywhere, so the region is now a country plus -- for Canada -- a province.
   const DEFAULT_PROVINCE = 'CA-BC';
-  // Rewrite the legacy single-value selection saved by older files. Those stored country 'CAN'
-  // against one merged national list; map them onto Canada + a province so they still resolve.
-  // BC is the default because its list is the closest match to that old merged one (and Vancouver
-  // is the highest-volume Canadian production centre), but it is visible and changeable.
+  const DEFAULT_US_AREA = 'US-GEN';
+  const isCanada = v => v === 'CA' || v === 'CAN';   // 'CAN' = the pre-split saved value
+  // Rewrite the legacy single-value selections saved by older files. Those stored one national list
+  // per country ('US' / 'CAN'); map them onto a country + an area/province so they still resolve.
+  // BC is the Canadian default because its list is the closest match to that old merged one (and
+  // Vancouver is the highest-volume Canadian production centre); 'General' is the US default since
+  // it covers everywhere except New York. Both are visible and changeable.
   function normalizeRegionSelection(){
     const c = document.getElementById('union-country');
     const s = document.getElementById('union-subregion');
-    if(!c || !s) return;
+    const u = document.getElementById('union-usregion');
+    if(!c) return;
     if(c.value === 'CAN') c.value = 'CA';
-    if(c.value === 'CA' && !HOLIDAYS[s.value]) s.value = DEFAULT_PROVINCE;
+    if(isCanada(c.value) && s && !HOLIDAYS[s.value]) s.value = DEFAULT_PROVINCE;
+    if(c.value === 'US' && u && !HOLIDAYS[u.value]) u.value = DEFAULT_US_AREA;
     reflectRegionUI();
   }
-  // The HOLIDAYS key for the current selection, or null for "None".
+  // The HOLIDAYS key for the current selection, or null for "None". The country alone is never a
+  // key for US/Canada -- those resolve through their area/province selector.
   function effectiveRegionKey(){
     const c = (document.getElementById('union-country') || {}).value || '';
     if(!c) return null;
-    if(c === 'CA' || c === 'CAN'){
+    if(isCanada(c)){
       const s = (document.getElementById('union-subregion') || {}).value || DEFAULT_PROVINCE;
       return HOLIDAYS[s] ? s : DEFAULT_PROVINCE;
     }
+    if(c === 'US'){
+      const u = (document.getElementById('union-usregion') || {}).value || DEFAULT_US_AREA;
+      return HOLIDAYS[u] ? u : DEFAULT_US_AREA;
+    }
     return HOLIDAYS[c] ? c : null;
   }
-  // The province row only applies to Canada.
+  // Show whichever sub-region row applies to the chosen country (UK has none).
   function reflectRegionUI(){
     const c = document.getElementById('union-country');
-    const row = document.getElementById('union-subregion-row');
-    if(!c || !row) return;
-    row.style.display = (c.value === 'CA' || c.value === 'CAN') ? 'flex' : 'none';
+    if(!c) return;
+    const prov = document.getElementById('union-subregion-row');
+    const area = document.getElementById('union-usregion-row');
+    if(prov) prov.style.display = isCanada(c.value) ? 'flex' : 'none';
+    if(area) area.style.display = (c.value === 'US') ? 'flex' : 'none';
   }
 
   // Visually flag the region selectors as locked while note/hiatus edits exist.
@@ -4148,8 +4226,8 @@
     const tip = locked
       ? 'Locked: changing the Region recomputes Production’s dates and would misplace your comment/hiatus edits. Reset Notes & Hiatus first.'
       : '';
-    // Both selectors change the holiday set, so both get the locked treatment.
-    [sel, document.getElementById('union-subregion')].forEach(el=>{
+    // Every selector changes the holiday set, so they all get the locked treatment.
+    [sel, document.getElementById('union-subregion'), document.getElementById('union-usregion')].forEach(el=>{
       if(!el) return;
       el.classList.toggle('locked', locked);
       el.title = tip;
@@ -4305,6 +4383,7 @@
   // recompute holidays and discard the user's edits, so we block it until they reset.
   let lastCountry = document.getElementById('union-country').value;
   let lastSubregion = (document.getElementById('union-subregion') || {}).value || '';
+  let lastUsArea = (document.getElementById('union-usregion') || {}).value || '';
   // Re-baseline the guard's "last known good" region after anything that sets the selects
   // programmatically (load, restore, backup recovery) -- otherwise the next user change would be
   // compared against a stale value and could trip the lock alert spuriously.
@@ -4312,26 +4391,32 @@
     normalizeRegionSelection();
     lastCountry = (document.getElementById('union-country') || {}).value || '';
     lastSubregion = (document.getElementById('union-subregion') || {}).value || '';
+    lastUsArea = (document.getElementById('union-usregion') || {}).value || '';
   }
   // Country AND province both swap the holiday set, so both go through the same guard.
-  ['union-country','union-subregion'].forEach(id=>{
+  ['union-country','union-subregion','union-usregion'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.addEventListener('change', ()=>{
       const cEl = document.getElementById('union-country');
       const sEl = document.getElementById('union-subregion');
-      const changed = cEl.value !== lastCountry || (sEl && sEl.value !== lastSubregion);
+      const uEl = document.getElementById('union-usregion');
+      const changed = cEl.value !== lastCountry
+                   || (sEl && sEl.value !== lastSubregion)
+                   || (uEl && uEl.value !== lastUsArea);
       if(changed && countryChangeWouldClobber()){
         alert('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the region.');
-        cEl.value = lastCountry;               // revert BOTH, so they can't drift apart
+        cEl.value = lastCountry;               // revert ALL, so they can't drift apart
         if(sEl) sEl.value = lastSubregion;
+        if(uEl) uEl.value = lastUsArea;
         reflectRegionUI();
         return;
       }
-      // Switching to Canada with no valid province yet lands on the default.
+      // Switching country with no valid area/province yet lands on that country's default.
       normalizeRegionSelection();
       lastCountry = cEl.value;
       lastSubregion = sEl ? sEl.value : '';
+      lastUsArea = uEl ? uEl.value : '';
       update();
     });
   });
@@ -4400,9 +4485,12 @@
     document.getElementById('union-country').value = '';
     const subEl = document.getElementById('union-subregion');
     if(subEl) subEl.value = DEFAULT_PROVINCE;
+    const usEl = document.getElementById('union-usregion');
+    if(usEl) usEl.value = DEFAULT_US_AREA;
     reflectRegionUI();
     lastCountry = '';
     lastSubregion = subEl ? subEl.value : '';
+    lastUsArea = usEl ? usEl.value : '';
     document.getElementById('show-title').value = '';
     document.getElementById('season-num').value = '';
     document.getElementById('shoot-days-per-ep').value = '';
