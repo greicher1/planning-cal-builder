@@ -3696,11 +3696,45 @@
     // following digits into the size (e.g. &127.9.26 → size 127), which is the misparse to
     // avoid.
     const HSIZE = '&B&12&"Calibri,Bold"';
-    ws.headerFooter.oddHeader = [
-      `&L${HSIZE}${todayStr}`,
-      cLines.length ? `&C${HSIZE}${cLines.join('\n')}` : '',
-      rLines.length ? `&R${HSIZE}${rLines.join('\n')}` : '',
+    // Excel hard-caps a header/footer string at 255 characters IN TOTAL (not per &L/&C/&R
+    // section). One character over and the workbook still writes and still validates as XML, but
+    // Excel refuses it on open with "We found a problem with some content... Do you want us to try
+    // to recover as much as we can?" -- which looks like a corrupt file rather than a too-long
+    // header. A real calendar hit this at exactly 256 characters, so keep the total inside the
+    // limit here rather than shipping a workbook Excel will reject.
+    //
+    // Note the three `HSIZE` prefixes alone cost 60 of the 255, so the text budget is really ~195;
+    // long show titles plus three right-hand stat lines can genuinely exceed it.
+    const HF_MAX = 255;
+    let hL = todayStr, hC = cLines.slice(), hR = rLines.slice();
+    const assembleHeader = () => [
+      `&L${HSIZE}${hL}`,
+      hC.length ? `&C${HSIZE}${hC.join('\n')}` : '',
+      hR.length ? `&R${HSIZE}${hR.join('\n')}` : '',
     ].join('');
+    let headerStr = assembleHeader();
+    // First give up trailing DETAIL lines -- the right-hand stats before the centre's subtitles --
+    // since losing "10 Episodes" reads better than a truncated show title. A block's first line is
+    // never dropped, so the date, the title and the headline stat always survive.
+    while(headerStr.length > HF_MAX && (hR.length > 1 || hC.length > 1)){
+      if(hR.length > 1) hR.pop(); else hC.pop();
+      headerStr = assembleHeader();
+    }
+    // Backstop for a single very long line (e.g. an enormous show title): shave the longest
+    // remaining line until it fits. Trimming the assembled string directly could cut through an
+    // "&..." control code and corrupt the formatting, so always cut inside a line's own text.
+    let hfGuard = 0;
+    while(headerStr.length > HF_MAX && hfGuard++ < 400){
+      let arr = null, idx = -1, len = hL.length;      // default target: the left/date line
+      hC.forEach((s,i)=>{ if(s.length > len){ arr = hC; idx = i; len = s.length; } });
+      hR.forEach((s,i)=>{ if(s.length > len){ arr = hR; idx = i; len = s.length; } });
+      if(len <= 1) break;                              // nothing left worth cutting
+      const keep = Math.max(1, len - (headerStr.length - HF_MAX) - 1);
+      const cut = (arr ? arr[idx] : hL).slice(0, keep).replace(/\s+$/, '') + '…';
+      if(arr) arr[idx] = cut; else hL = cut;
+      headerStr = assembleHeader();
+    }
+    ws.headerFooter.oddHeader = headerStr;
     ws.pageSetup.margins = {
       left: 0.25, right: 0.25,
       top: 0.75, bottom: 0.75,
