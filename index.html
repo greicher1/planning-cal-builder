@@ -776,7 +776,7 @@
       <div class="side-tabs-track" role="tablist" aria-label="Settings sections">
         <button type="button" class="side-tab-btn active" data-tab="show" role="tab">Show</button>
         <button type="button" class="side-tab-btn" data-tab="phases" role="tab">Phases</button>
-        <button type="button" class="side-tab-btn" data-tab="holidays" role="tab">Holidays</button>
+        <button type="button" class="side-tab-btn" data-tab="settings" role="tab">Settings</button>
       </div>
     </div>
 
@@ -813,7 +813,7 @@
       <div class="show-info-note" id="show-info-note" style="display:none;"></div>
     </section>
 
-    <section class="card" data-tab="show">
+    <section class="card" data-tab="settings">
       <h2>Production Region</h2>
       <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out. Canada is picked by province &mdash; the statutory lists genuinely differ.</p>
       <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
@@ -859,21 +859,38 @@
     </section>
 
 
-    <section class="card" data-tab="holidays">
-      <h2>Union holidays</h2>
+    <section class="card" data-tab="settings">
+      <h2>Holidays</h2>
+      <p class="placeholder-note" style="margin-bottom:8px;">Un-tick <strong>Enable</strong> to drop a holiday from this show entirely &mdash; it stops costing Production a shoot day and stops appearing as a note. The two note columns control where an enabled holiday shows up.</p>
       <p id="holiday-vis-empty" class="placeholder-note" style="display:none; margin-top:10px;"></p>
       <div id="holiday-vis" style="display:none; margin-top:12px;">
-        <div style="display:flex; align-items:center; font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:0 2px 4px; border-bottom:1px solid var(--border);">
+        <div style="display:flex; align-items:flex-end; font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:0 2px 4px; border-bottom:1px solid var(--border);">
           <span style="flex:1;">Holiday</span>
-          <span style="width:60px; text-align:center;">Waterfall</span>
-          <span style="width:48px; text-align:center;">Month</span>
+          <span style="width:40px; text-align:center; line-height:1.15;">Enable</span>
+          <span style="width:40px; text-align:center; line-height:1.15;">W&rsquo;fall<br>note</span>
+          <span style="width:38px; text-align:center; line-height:1.15;">Month<br>note</span>
         </div>
         <div id="holiday-vis-list"></div>
         <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; font-size:11px;">
           <span style="color:var(--text-muted);">Toggle all:</span>
+          <button type="button" class="hv-bulk" data-view="enabled">Enable</button>
           <button type="button" class="hv-bulk" data-view="sheet">Waterfall</button>
           <button type="button" class="hv-bulk" data-view="month">Month</button>
         </div>
+      </div>
+      <!-- Custom (show-specific) holidays. A single day, which the hiatus rows cannot express --
+           those are whole Monday-snapped weeks. Not region-scoped, so they survive a region change. -->
+      <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--border);">
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Add your own holiday</div>
+        <div style="display:flex; gap:6px; align-items:flex-start;">
+          <input type="text" id="custom-hol-name" placeholder="Studio shutdown" style="flex:1; min-width:0; font-size:12px; padding:5px 7px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit;">
+          <input type="date" id="custom-hol-date" style="width:132px; flex:none; font-size:12px; padding:5px 7px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit;">
+          <button type="button" class="secondary" id="custom-hol-add" style="flex:none; padding:5px 10px; font-size:12px;">Add</button>
+        </div>
+        <div id="custom-hol-err" class="placeholder-note" style="display:none; color:var(--danger); margin-top:5px;"></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+        <button type="button" class="secondary" id="holiday-reset-btn" style="padding:5px 10px; font-size:11.5px;">Reset holidays</button>
       </div>
     </section>
 
@@ -937,7 +954,7 @@
       <p>Episodes are added and removed only by changing <strong>Number of Episodes</strong>. Lowering it removes episodes from the end; if one of those had been edited by hand, the panel says so rather than dropping it silently. In <strong>Month view</strong> the episodes replace Production&rsquo;s bar, laid across its shooting days back to back &mdash; so an episode can end mid&#8209;week and the next start the same week.</p>
 
       <h3>Union holidays</h3>
-      <p><strong>Schedule effect &mdash; Production only.</strong> Pick a Production Region in the Show tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates.</p>
+      <p><strong>Schedule effect &mdash; Production only.</strong> Pick a Production Region in the Settings tab and, if a recognized union holiday lands on what would have been a shoot day, that day is skipped and the shoot extends day-by-day until the full shooting-day count is met. Holidays never change any other phase&rsquo;s dates. Un-ticking a holiday&rsquo;s <strong>Enable</strong> box there drops it from this show entirely, so it stops costing a shoot day; you can also add your own single-day holidays, which is something the week-based hiatus rows can&rsquo;t express.</p>
       <p><strong>Which holidays these are.</strong> The <strong>United States</strong> lists are IATSE&rsquo;s <strong>eleven recognized holidays</strong> (Juneteenth was added effective 1 January 2025). <strong>General</strong> covers almost everywhere &mdash; the West Coast Studio Local Agreements and the Area Standards Agreement carry an identical list, so Los Angeles, Atlanta and Albuquerque are the same. Note that <strong>Columbus Day is not included anywhere</strong> (it is on no IATSE calendar) and <strong>Veterans Day is not a General holiday</strong> (it appears only in the AICP <em>commercial</em> contract), so treating either as a no-shoot day outside New York would wrongly cost you shoot days.</p>
       <p><strong>New York is the real US exception.</strong> Under the IATSE Local 52 Majors Agreement the list <em>swaps</em> Good Friday for <strong>Veterans Day</strong> &mdash; same count, different days. (Martin Luther King Jr. Day was added there effective 1 January 2023.) So pick <strong>New York</strong> for a Local 52 shoot and <strong>General</strong> for everywhere else.</p>
       <p><strong>Canada is chosen by province</strong>, because the statutory lists really do diverge: Boxing Day is Ontario-only among the provinces listed; Remembrance Day applies in BC and Alberta but not Ontario or Quebec; the National Day for Truth and Reconciliation is statutory in BC and Manitoba (in Ontario the IATSE Local 873 agreement treats it as a &ldquo;Proclaimed Holiday&rdquo; instead); and the F&ecirc;te nationale (St-Jean-Baptiste, 24 June) is Quebec-only. Quebec is also the exception where <em>either</em> Good Friday <em>or</em> Easter Monday is required &mdash; the tool lists Good Friday, so switch it manually if your production observes Easter Monday instead. Nova Scotia is the shortest list: Victoria Day, Thanksgiving and Boxing Day are not statutory paid holidays there.</p>
@@ -1498,6 +1515,58 @@
     if(sel && sel[view] !== undefined) return !!sel[view];
     return !!HOLIDAY_VIEW_DEFAULT[view];
   }
+
+  // ---- Holiday identity -------------------------------------------------------------------
+  // A holiday's id used to be its ISO date, which was fragile: switching region kept the date but
+  // changed the holiday, so a "hide this one" choice silently transferred to whatever now fell on
+  // that day. Ids are now name+year, so a choice follows the HOLIDAY. Settings for a holiday the
+  // new region doesn't have simply lie dormant and come back if you switch back.
+  function holidaySlug(name, isoDate){
+    const year = String(isoDate || '').slice(0, 4);
+    const base = String(name || '')
+      .toLowerCase()
+      .replace(/[’']/g, '')          // drop apostrophes so "New Year's" -> "new-years"
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return base + '@' + year;
+  }
+  // Files saved before ids became name-based key holidayView by bare ISO date. Rewrite those keys
+  // once, resolving each date against the region's list to recover the holiday's name.
+  function migrateHolidayViewKeys(){
+    const isoKey = /^\d{4}-\d{2}-\d{2}$/;
+    const keys = Object.keys(holidayView || {});
+    if(!keys.some(k => isoKey.test(k))) return;
+    const list = (function(){ const r = effectiveRegionKey(); return (r && HOLIDAYS[r]) || []; })();
+    const nameByDate = {};
+    list.forEach(h=>{ if(!nameByDate[h.date]) nameByDate[h.date] = h.name; });
+    const out = {};
+    keys.forEach(k=>{
+      if(isoKey.test(k) && nameByDate[k]) out[holidaySlug(nameByDate[k], k)] = holidayView[k];
+      else out[k] = holidayView[k];
+    });
+    holidayView = out;
+  }
+  // A holiday is on unless explicitly switched off. Turning it OFF removes it entirely: it stops
+  // costing Production a shoot day AND stops generating notes (the two note checkboxes grey out).
+  function holidayEnabled(hid){ return !holidayOff[hid]; }
+  // Every holiday that applies to this calendar -- the region's list plus the user's own -- each
+  // tagged with its id and whether it's enabled. Custom holidays are deliberately NOT region-scoped:
+  // "studio shutdown" belongs to the show, so it survives a region change.
+  function fullHolidayList(regionKey){
+    const out = [];
+    const seen = {};
+    ((regionKey && HOLIDAYS[regionKey]) || []).forEach(h=>{
+      if(seen[h.date + '|' + h.name]) return;
+      seen[h.date + '|' + h.name] = true;
+      const hid = holidaySlug(h.name, h.date);
+      out.push({date:h.date, name:h.name, hid, custom:false, enabled:holidayEnabled(hid)});
+    });
+    (customHolidays || []).forEach(c=>{
+      if(!c || !c.date || !c.name) return;
+      out.push({date:c.date, name:c.name, hid:c.id, custom:true, enabled:holidayEnabled(c.id)});
+    });
+    return out;
+  }
   // Drop holiday auto-notes the user hasn't enabled for this view; pass everything else through.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
@@ -1669,7 +1738,9 @@
         const start = mondayOf(parsed);
         let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null;
         if(p.key==='production'){
-          const holidayList = (state.unionCountry && HOLIDAYS[state.unionCountry]) || [];
+          // Only ENABLED holidays cost a shoot day; a holiday switched off in Settings is treated
+          // as an ordinary working day.
+          const holidayList = fullHolidayList(state.unionCountry).filter(h=>h.enabled);
           const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
           const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-start)/DAY_MS/7) + 1;
           end = addDays(start, weeksNeeded*7);
@@ -1890,14 +1961,18 @@
     // day-level Production simulation above: that math still skips shoot days on holidays exactly
     // as before -- this list only governs what the notes column DISPLAYS.
     const phaseHolidays = [];
-    if(state.unionCountry && HOLIDAYS[state.unionCountry]){
+    // Every holiday landing inside a phase -- INCLUDING ones switched off, because the Settings
+    // list has to show them to let you switch them back on. The `enabled` flag decides what
+    // actually produces a note below.
+    {
       const seen = {};
-      HOLIDAYS[state.unionCountry].forEach(h=>{
+      fullHolidayList(state.unionCountry).forEach(h=>{
         const hd = parseDateUTC(h.date);
-        if(!hd || seen[h.date]) return;
+        if(!hd || seen[h.hid]) return;
         if(!segments.some(s=> hd>=s.start && hd<s.end)) return;
-        seen[h.date] = true;
-        phaseHolidays.push({iso:h.date, name:h.name, date:hd, hid:h.date});
+        seen[h.hid] = true;
+        phaseHolidays.push({iso:h.date, name:h.name, date:hd, hid:h.hid,
+                            custom:!!h.custom, enabled:h.enabled});
       });
       phaseHolidays.sort((a,b)=> a.date - b.date);
     }
@@ -1911,7 +1986,7 @@
     // The notes are always generated; the per-holiday, per-view checklist governs what actually
     // displays (default: hidden in the Waterfall, shown in the Month view). This does NOT change
     // the schedule -- only Production's date math skips these days, and only for Production.
-    phaseHolidays.forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
+    phaseHolidays.filter(h=>h.enabled).forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
@@ -2219,31 +2294,64 @@
     const listEl = document.getElementById('holiday-vis-list');
     const emptyEl = document.getElementById('holiday-vis-empty');
     if(!wrap || !listEl) return;
-    const holidays = (schedule && schedule.phaseHolidays) || [];
+    const inRange = (schedule && schedule.phaseHolidays) || [];
+    // Custom holidays are always listed even when they fall outside the current phases -- they're
+    // the user's own entries, so silently hiding one they just added would look like a bug.
+    const shown = inRange.slice();
+    const have = {};
+    inRange.forEach(h=> have[h.hid] = true);
+    (customHolidays || []).forEach(c=>{
+      if(!c || !c.date || !c.name || have[c.id]) return;
+      const d = parseDateUTC(c.date);
+      if(!d) return;
+      shown.push({iso:c.date, name:c.name, date:d, hid:c.id, custom:true,
+                  enabled:holidayEnabled(c.id), outOfRange:true});
+    });
+    shown.sort((a,b)=> a.date - b.date);
     const countryEl = document.getElementById('union-country');
     const hasCountry = countryEl ? !!countryEl.value : false;
-    if(!holidays.length){
+    if(!shown.length){
       wrap.style.display = 'none';
       listEl.innerHTML = '';
-      // Empty list: say why -- no country picked vs. a country set but none landing in range.
+      // Empty list: say why -- no region picked vs. a region set but none landing in range.
       if(emptyEl){
         emptyEl.textContent = hasCountry
           ? 'No holidays fall inside your current phases yet.'
-          : 'Set a Production Region in the Show tab to choose which holidays appear as notes.';
+          : 'Set a Production Region above to apply union holidays.';
         emptyEl.style.display = 'block';
       }
       return;
     }
     if(emptyEl) emptyEl.style.display = 'none';
     wrap.style.display = 'block';
-    listEl.innerHTML = holidays.map(h=>{
+    listEl.innerHTML = shown.map(h=>{
+      const on = h.enabled !== false;
+      // A holiday on a Saturday/Sunday can't cost a shoot day -- weekends are already skipped --
+      // so its Enable box is inert. Its "(Observed)" weekday twin is the one that matters, and
+      // saying so here heads off "I un-ticked it and nothing happened".
+      const dow = h.date.getUTCDay();
+      const weekend = (dow === 0 || dow === 6);
+      const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
+      const dim = on ? '' : ' opacity:.45;';
+      const noteAttrs = on ? '' : ' disabled';   // notes are meaningless with the holiday off
       const s = holidayVisibleIn(h.hid, 'sheet') ? ' checked' : '';
       const m = holidayVisibleIn(h.hid, 'month') ? ' checked' : '';
-      const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
+      const tag = h.custom
+        ? ' <span style="font-size:9px; border:1px solid var(--border-strong); border-radius:3px; padding:0 3px; color:var(--text-muted);">custom</span>'
+        : '';
+      const oor = h.outOfRange
+        ? ' <span style="font-size:9px; color:var(--text-faint);">(outside schedule)</span>'
+        : '';
+      const wk = weekend ? ' title="Falls on a weekend — no shoot day to skip. Its (Observed) entry is the one that counts."' : '';
+      const del = h.custom
+        ? '<button type="button" class="icon-btn hv-del" data-hid="'+h.hid+'" title="Remove this custom holiday" style="width:18px; height:18px; font-size:13px; line-height:1; padding:0; margin-left:4px; flex:none;">&times;</button>'
+        : '';
       return '<div class="hv-row" style="display:flex; align-items:center; font-size:12px; padding:4px 2px; border-bottom:1px solid var(--border);">'
-        + '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:6px;" title="'+label+'">'+label+'</span>'
-        + '<span style="width:60px; text-align:center;"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+'></span>'
-        + '<span style="width:48px; text-align:center;"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+'></span>'
+        + '<span style="flex:1; min-width:0; padding-right:6px; line-height:1.3;'+dim+'" title="'+label+'">'+label+tag+oor+'</span>'
+        + '<span style="width:40px; text-align:center; flex:none;"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+h.hid+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + '<span style="width:40px; text-align:center; flex:none;'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+noteAttrs+'></span>'
+        + '<span style="width:38px; text-align:center; flex:none;'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+noteAttrs+'></span>'
+        + del
         + '</div>';
     }).join('');
   }
@@ -3800,7 +3908,8 @@
   // file re-opens on the same tab.
   let sidebarTab = 'show';
   function setSidebarTab(tab){
-    if(!['show','phases','holidays'].includes(tab)) tab = 'show';
+    if(tab === 'holidays') tab = 'settings';   // pre-rename saves
+    if(!['show','phases','settings'].includes(tab)) tab = 'show';
     sidebarTab = tab;
     document.querySelectorAll('.side-tab-btn').forEach(b=>{
       const on = b.dataset.tab === tab;
@@ -3875,6 +3984,11 @@
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
+  // hid -> true means the user switched that holiday OFF (default is on, so an empty map = all on).
+  let holidayOff = {};
+  // The user's own one-off holidays: [{id, name, date}]. Single days, which the hiatus rows can't
+  // express (those are whole Monday-snapped weeks). Not tied to a region.
+  let customHolidays = [];
 
   // The 10 "Standard Colors" from Microsoft Office / Excel's color picker.
   const EXCEL_STANDARD_COLORS = [
@@ -4435,12 +4549,46 @@
       markDirty();
       render(currentSchedule);
     });
+    // Enabling/disabling a holiday changes Production's dates, so it can shift notes the user has
+    // already placed. Same hazard the Region selectors guard against -- but this is one holiday and
+    // trivially undone, so we warn once and let it through rather than blocking outright.
+    host.addEventListener('change', e=>{
+      const cb = e.target.closest('.hv-en');
+      if(!cb) return;
+      const hid = cb.dataset.hid;
+      if(countryChangeWouldClobber()){
+        const ok = confirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?');
+        if(!ok){ cb.checked = !cb.checked; return; }   // put the box back
+      }
+      if(cb.checked) delete holidayOff[hid]; else holidayOff[hid] = true;
+      update();   // full recompute: this moves shoot days
+    });
     host.addEventListener('click', e=>{
+      const del = e.target.closest('.hv-del');
+      if(del){
+        const hid = del.dataset.hid;
+        const h = (customHolidays || []).find(c=>c.id === hid);
+        if(h && !confirm('Remove the custom holiday “' + h.name + '”?')) return;
+        customHolidays = (customHolidays || []).filter(c=>c.id !== hid);
+        delete holidayOff[hid];
+        delete holidayView[hid];
+        update();
+        return;
+      }
       const a = e.target.closest('.hv-bulk');
       if(!a) return;
       e.preventDefault();
       const view = a.dataset.view;
       const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
+      if(!holidays.length) return;
+      if(view === 'enabled'){
+        if(countryChangeWouldClobber()
+           && !confirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?')) return;
+        const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
+        holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
+        update();
+        return;
+      }
       // If any are currently off, turn them all on; otherwise turn them all off.
       const turnOn = holidays.some(h=> !holidayVisibleIn(h.hid, view));
       holidays.forEach(h=>{
@@ -4450,6 +4598,45 @@
       });
       markDirty();
       render(currentSchedule);
+    });
+  })();
+  // Add / reset for the user's own holidays.
+  (function(){
+    const nameEl = document.getElementById('custom-hol-name');
+    const dateEl = document.getElementById('custom-hol-date');
+    const addBtn = document.getElementById('custom-hol-add');
+    const errEl  = document.getElementById('custom-hol-err');
+    const resetBtn = document.getElementById('holiday-reset-btn');
+    function fail(msg){ if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; } }
+    function clearErr(){ if(errEl) errEl.style.display = 'none'; }
+    function add(){
+      clearErr();
+      const name = (nameEl.value || '').trim();
+      const date = (dateEl.value || '').trim();
+      if(!name) return fail('Give the holiday a name.');
+      if(!parseDateUTC(date)) return fail('Pick a date for the holiday.');
+      if((customHolidays || []).some(c=>c.date === date && c.name.toLowerCase() === name.toLowerCase()))
+        return fail('You already added that one.');
+      // A random id (not name+date) so renaming later keeps the holiday's on/off and note settings.
+      const id = 'cst-' + Math.random().toString(36).slice(2, 9);
+      customHolidays.push({id, name, date});
+      nameEl.value = ''; dateEl.value = '';
+      update();
+    }
+    if(addBtn) addBtn.addEventListener('click', add);
+    // Enter in either field adds, matching the Add button.
+    [nameEl, dateEl].forEach(el=>{
+      if(!el) return;
+      el.addEventListener('keydown', ev=>{ if(ev.key === 'Enter'){ ev.preventDefault(); add(); } });
+      el.addEventListener('input', clearErr);
+    });
+    if(resetBtn) resetBtn.addEventListener('click', ()=>{
+      if(!confirm('Re-enable every holiday, clear the note choices, and delete your custom holidays?\n\nThis only affects the Holidays section.')) return;
+      holidayOff = {};
+      holidayView = {};
+      customHolidays = [];
+      clearErr();
+      update();
     });
   })();
   document.getElementById('show-title').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
@@ -4504,6 +4691,7 @@
     mvExtraLanes = {};
     dayNoteColors = {};
     noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
+    holidayOff = {}; customHolidays = [];
     update();
   }
 
@@ -4595,6 +4783,8 @@
       hiatusTexts: hiatusTexts,
       hiatusColors: hiatusColors,
       holidayView: holidayView,
+      holidayOff: holidayOff,
+      customHolidays: customHolidays,
       viewMode: viewMode,
       sidebarTab: sidebarTab,
       fields: collectFieldValues()
@@ -4797,7 +4987,7 @@
       const stateSnapshot = {
         customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
         mvHeaderMode, mvHeaderManual,
-        noteColors, hiatusTexts, hiatusColors, holidayView, viewMode, sidebarTab, fields: collectFieldValues()
+        noteColors, hiatusTexts, hiatusColors, holidayView, holidayOff, customHolidays, viewMode, sidebarTab, fields: collectFieldValues()
       };
       idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
@@ -5792,6 +5982,13 @@
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
     holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};
+    holidayOff = (snap.holidayOff && typeof snap.holidayOff === 'object') ? Object.assign({}, snap.holidayOff) : {};
+    customHolidays = Array.isArray(snap.customHolidays)
+      ? snap.customHolidays.filter(c=>c && c.name && c.date).map(c=>({id:c.id || ('cst-' + Math.random().toString(36).slice(2,9)), name:String(c.name), date:String(c.date)}))
+      : [];
+    // Runs after snap.fields is applied above, so the region selects already hold their saved
+    // values and the date->name lookup resolves against the right list.
+    migrateHolidayViewKeys();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
