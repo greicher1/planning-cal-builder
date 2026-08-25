@@ -259,10 +259,14 @@
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
-  .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px; margin-bottom:14px;}
+  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;}
+  .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
   .view-toggle-btn{font-family:inherit; font-size:12.5px; font-weight:500; border:none; background:transparent; color:var(--text-muted); padding:6px 14px; border-radius:6px; cursor:pointer;}
   .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .view-toggle-btn:hover:not(.active){color:var(--text);}
+  .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
+  .undo-redo-group .icon-btn{font-size:16px;}
+  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
 
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
@@ -912,9 +916,15 @@
 
   <main class="preview-panel">
     <div id="gap-warning" role="status" aria-live="polite"></div>
-    <div class="view-toggle" id="view-toggle">
-      <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
-      <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
+    <div class="view-toggle-row">
+      <div class="view-toggle" id="view-toggle">
+        <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
+        <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
+      </div>
+      <div class="undo-redo-group">
+        <button class="icon-btn" id="undo-btn" type="button" title="Undo (⌘Z)" disabled>&#8630;</button>
+        <button class="icon-btn" id="redo-btn" type="button" title="Redo (⌘⇧Z)" disabled>&#8631;</button>
+      </div>
     </div>
     <div id="table-wrap"></div>
   </main>
@@ -3298,6 +3308,7 @@
     if((headerManual[id] || '') === text) return; // nothing changed
     headerManual[id] = text;
     render(currentSchedule);
+    markDirty(); // was previously missing here -- header edits were invisible to save-dirty tracking and undo
   });
   // Enter commits (no newlines inside a header line)
   document.getElementById('table-wrap').addEventListener('keydown', e=>{
@@ -3543,6 +3554,7 @@
     activeNoteEditor = null;
     render(currentSchedule);
     reflectCountryLock();
+    markDirty(); // was previously missing here -- waterfall note/hiatus edits were invisible to save-dirty tracking and undo
   }
 
   function closeWithoutSaving(){
@@ -4799,30 +4811,7 @@
     // 2. Reflect current field values into attributes (covers the static markup)
     reflectFieldsToAttributes();
     // 3. Capture in-memory JS state + a full field map into the saved-state block
-    const stateSnapshot = {
-      customPhaseDefs: customPhaseDefs,
-      customPhaseCounter: customPhaseCounter,
-      phaseColorOverride: phaseColorOverride,
-      episodeDefs: episodeDefs,
-      episodeCounter: episodeCounter,
-      userNotes: userNotes,
-      dayNotes: dayNotes,
-      mvExtraLanes: mvExtraLanes,
-      dayNoteColors: dayNoteColors,
-      headerMode: headerMode,
-      headerManual: headerManual,
-      mvHeaderMode: mvHeaderMode,
-      mvHeaderManual: mvHeaderManual,
-      noteColors: noteColors,
-      hiatusTexts: hiatusTexts,
-      hiatusColors: hiatusColors,
-      holidayView: holidayView,
-      holidayOff: holidayOff,
-      customHolidays: customHolidays,
-      viewMode: viewMode,
-      sidebarTab: sidebarTab,
-      fields: collectFieldValues()
-    };
+    const stateSnapshot = captureSnapshot();
     const stateEl = document.getElementById('saved-state');
     const prevStateText = stateEl.textContent;
     // Escape '<' as \u003c inside the JSON: a literal script-closing tag in any user text
@@ -4981,11 +4970,24 @@
   let autosaveTimer = null;
   let autosaveFailed = false;  // last autosave write threw (file moved/deleted, permission lost)
 
+  // Single source of truth for "the current app state" as a plain-JSON-able object -- reused by
+  // the save file, the local crash-recovery backup, and the undo/redo stack so all three always
+  // agree on exactly what counts as state.
+  function captureSnapshot(){
+    return {
+      customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
+      userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
+      mvHeaderMode, mvHeaderManual, noteColors, hiatusTexts, hiatusColors, holidayView,
+      holidayOff, customHolidays, viewMode, sidebarTab, fields: collectFieldValues()
+    };
+  }
+
   function markDirty(){
     if(suppressDirty) return;
     isDirty = true;
     refreshSaveStatus();
     scheduleBackup();
+    scheduleUndoPush();
   }
   function markClean(){
     isDirty = false;
@@ -5018,13 +5020,79 @@
   }
   function writeBackup(){
     try {
-      const stateSnapshot = {
-        customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter, userNotes, dayNotes, dayNoteColors, mvExtraLanes, headerMode, headerManual,
-        mvHeaderMode, mvHeaderManual,
-        noteColors, hiatusTexts, hiatusColors, holidayView, holidayOff, customHolidays, viewMode, sidebarTab, fields: collectFieldValues()
-      };
-      idbSet(BACKUP_KEY, { state: stateSnapshot, at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+      idbSet(BACKUP_KEY, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
+  }
+
+  // ---------- Undo / redo ----------
+  // Whole-state snapshots -- the same shape captureSnapshot() also feeds to Save and the crash-
+  // recovery backup -- so applying one just re-runs the save file's own restore path
+  // (applyStateSnapshot). Pushes are coalesced rather than per-keystroke: markDirty() already
+  // fires on every edit, including once per keystroke in text/number fields, so the push itself
+  // is debounced -- a burst of typing collapses into one undo step, taken once typing pauses.
+  // Stack entries are kept as JSON strings (not live objects) so a later in-place mutation of
+  // e.g. userNotes can never retroactively corrupt an already-pushed step.
+  const UNDO_LIMIT = 100;
+  const UNDO_DEBOUNCE_MS = 500;
+  let undoStack = [];                // snapshots older than the current state, oldest first
+  let redoStack = [];                // snapshots newer than the current state, oldest first
+  let lastPushedSnapshotJSON = null; // JSON of the current state as of the last push (the "baseline")
+  let applyingUndoRedo = false;      // true while restoring a snapshot, so restoring doesn't itself push a step
+  let undoPushTimer = null;
+
+  function pushUndoSnapshot(){
+    if(applyingUndoRedo || suppressDirty) return;
+    const json = JSON.stringify(captureSnapshot());
+    if(json === lastPushedSnapshotJSON) return; // nothing actually changed
+    if(lastPushedSnapshotJSON !== null){
+      undoStack.push(lastPushedSnapshotJSON);
+      if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+    }
+    lastPushedSnapshotJSON = json;
+    redoStack = []; // a fresh edit invalidates any redo history
+    refreshUndoRedoUI();
+  }
+  function scheduleUndoPush(){
+    clearTimeout(undoPushTimer);
+    undoPushTimer = setTimeout(pushUndoSnapshot, UNDO_DEBOUNCE_MS);
+  }
+  // Discards all undo/redo history and re-baselines on the current state. Called whenever a
+  // different document replaces what's on screen (New, Open, a recent file, backup recovery, or
+  // the initial page load) -- undoing "past" the start of a different calendar makes no sense.
+  function resetUndoHistory(){
+    undoStack = [];
+    redoStack = [];
+    clearTimeout(undoPushTimer);
+    lastPushedSnapshotJSON = JSON.stringify(captureSnapshot());
+    refreshUndoRedoUI();
+  }
+  function applySnapshotJSON(json){
+    applyingUndoRedo = true;
+    suppressDirty = true;
+    applyStateSnapshot(JSON.parse(json));
+    update();
+    suppressDirty = false;
+    applyingUndoRedo = false;
+    lastPushedSnapshotJSON = json;
+    markDirty(); // the restored state differs from what's on disk
+    refreshUndoRedoUI();
+  }
+  function undo(){
+    clearTimeout(undoPushTimer);
+    pushUndoSnapshot(); // flush any pending (debounced) edit as its own step before undoing it
+    if(!undoStack.length) return;
+    redoStack.push(lastPushedSnapshotJSON);
+    applySnapshotJSON(undoStack.pop());
+  }
+  function redo(){
+    if(!redoStack.length) return;
+    undoStack.push(lastPushedSnapshotJSON);
+    applySnapshotJSON(redoStack.pop());
+  }
+  function refreshUndoRedoUI(){
+    const u = document.getElementById('undo-btn'), r = document.getElementById('redo-btn');
+    if(u) u.disabled = !undoStack.length;
+    if(r) r.disabled = !redoStack.length;
   }
 
   // Autosave: only meaningful when a file is already linked (we can't create one silently).
@@ -5080,6 +5148,7 @@
     syncRegionTracking();
     update();
     suppressDirty = false;
+    resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
     isDirty = true;          // recovered work still isn't in a file
     refreshSaveStatus();
   }
@@ -5151,6 +5220,7 @@
       syncRegionTracking();
       update();
       suppressDirty = false;
+      resetUndoHistory(); // opening a different file starts a fresh undo history
     }
     // Make this the active, writable file so subsequent Save writes back to it.
     savedFileHandle = entry.handle;
@@ -5192,6 +5262,7 @@
     suppressDirty = true;
     resetAll(); // full reset without the button's own confirm (New already prompted)
     suppressDirty = false;
+    resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
     idbSet(BACKUP_KEY, undefined);
     refreshSaveBtn();
@@ -5267,6 +5338,34 @@
       console.error(err);
       alert('Something went wrong saving the file: ' + err.message);
     }
+  });
+
+  // Undo / redo buttons, next to the waterfall/month view toggle.
+  const undoBtn = document.getElementById('undo-btn');
+  const redoBtn = document.getElementById('redo-btn');
+  if(undoBtn) undoBtn.addEventListener('click', undo);
+  if(redoBtn) redoBtn.addEventListener('click', redo);
+
+  // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save).
+  // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
+  // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
+  // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
+  // focus leaves the field (matches the existing Escape/Tab handling in the note editor).
+  document.addEventListener('keydown', e=>{
+    const meta = e.metaKey || e.ctrlKey;
+    if(!meta) return;
+    const key = e.key.toLowerCase();
+    if(key === 's'){
+      e.preventDefault();
+      if(saveBtn) saveBtn.click(); // reuses the click handler's disabled-guard, flash, and error handling
+      return;
+    }
+    if(key !== 'z') return;
+    const active = document.activeElement;
+    const isEditable = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+    if(isEditable) return;
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
   });
 
   // Header toolbar wiring: file dropdown, New, Save As.
@@ -5908,7 +6007,15 @@
     let snap;
     try { snap = JSON.parse(el.textContent); } catch(e){ return; }
     if(!snap || typeof snap !== 'object') return;
+    applyStateSnapshot(snap);
+  }
 
+  // Apply a captured state snapshot (see captureSnapshot()) to the live document: DOM fields,
+  // dynamic rows, and every module-scope state map. Shared by loading a saved file, recovering a
+  // crash backup, and undo/redo -- all three need the same "replace everything" semantics, not a
+  // merge (an undo step, or a different opened file, may need to remove entries the current
+  // in-memory state has and the snapshot doesn't).
+  function applyStateSnapshot(snap){
     // 1. Rebuild custom phase rows, then set their saved counter
     if(Array.isArray(snap.episodeDefs)){
       episodeDefs = snap.episodeDefs.map(e=>({
@@ -5978,12 +6085,18 @@
     if(snap.mvExtraLanes && typeof snap.mvExtraLanes === 'object'){
       mvExtraLanes = Object.assign({}, snap.mvExtraLanes);
     }
+    // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
+    // being applied doesn't have (stale after an undo step, or leaked in from a previously open
+    // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
+    // cleared key-by-key rather than reassigned.
+    Object.keys(dayNotes).forEach(k=>{ delete dayNotes[k]; });
     if(snap.dayNotes && typeof snap.dayNotes === 'object'){
       Object.keys(snap.dayNotes).forEach(k=>{ dayNotes[k] = snap.dayNotes[k]; });
     }
     if(snap.dayNoteColors && typeof snap.dayNoteColors === 'object'){
       dayNoteColors = Object.assign({}, snap.dayNoteColors);
     }
+    Object.keys(userNotes).forEach(k=>{ delete userNotes[k]; });
     if(snap.userNotes && typeof snap.userNotes === 'object'){
       Object.keys(snap.userNotes).forEach(k=>{
         const v = snap.userNotes[k];
@@ -6079,6 +6192,7 @@
 
   // Initial load/restore is done -- from here on, changes are real user edits.
   suppressDirty = false;
+  resetUndoHistory();
   isDirty = false;
   refreshSaveStatus();
   startAutosave();
