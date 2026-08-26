@@ -227,6 +227,13 @@
 
   .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
   .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  /* Pin toggle: a locked all-phase hiatus keeps its calendar dates when the toolbar shifts the
+     calendar (a winter break belongs to Christmas, not to the schedule around it). */
+  /* Its own line under the fields: the sidebar is too narrow to hold it beside them, and letting
+     it share the row pushed the remove button onto a line of its own instead. */
+  .hiatus-lock{flex-basis:100% !important; flex-direction:row !important; align-items:center;
+    gap:5px !important; cursor:pointer; white-space:nowrap; margin-top:1px;}
+  .hiatus-lock input{margin:0; cursor:pointer;}
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
   /* Matches the phase-meta "Snapped to Mon" note (faint mono) so the two read identically. */
   .snap-note{ flex-basis:100%; width:100%; font-size:11.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; line-height:1.3; margin-top:2px; }
@@ -259,14 +266,65 @@
 
   .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
 
-  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;}
+  /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
+  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    flex-wrap:wrap; margin-bottom:14px;}
   .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
   .view-toggle-btn{font-family:inherit; font-size:12.5px; font-weight:500; border:none; background:transparent; color:var(--text-muted); padding:6px 14px; border-radius:6px; cursor:pointer;}
   .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .view-toggle-btn:hover:not(.active){color:var(--text);}
+  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;}
   .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
   .undo-redo-group .icon-btn{font-size:16px;}
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
+  /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
+     moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
+  .shift-group{display:inline-flex; align-items:center; gap:2px; background:var(--bg);
+    border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
+  .shift-group .icon-btn{width:28px; height:26px; border:none; background:transparent; font-size:14px;}
+  .shift-group .icon-btn:hover{background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .shift-label{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;
+    padding:0 2px; user-select:none;}
+  /* Brief confirmation of what a shift did, in place of the label. */
+  .shift-group.flash .shift-label{color:var(--text-muted);}
+
+  /* Calendar tools popover. Right-aligned: it hangs off a button near the right edge of the
+     preview panel, so anchoring it left would push it off screen. */
+  .tools-wrap{position:relative; flex:none;}
+  /* A labelled button, not a bare icon: every other command in this app says what it does
+     ("Save", "Export Waterfall to Excel"), and an unlabelled gear here was the one control the
+     user had to click to find out what it was. */
+  .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
+  .tools-btn .caret{color:var(--text-faint); font-size:9px;}
+  .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  .tools-menu{
+    display:none; position:absolute; top:calc(100% + 4px); right:0; width:320px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px 12px; z-index:60; text-align:left;
+  }
+  .tools-menu.open{display:block;}
+  .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
+  .tools-sec-last{padding-bottom:0; margin-bottom:0; border-bottom:none;}
+  .tools-head{margin:0 0 7px; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
+  .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+  .tools-row:last-child{margin-bottom:0;}
+  /* "Deliver by" anchors the END of the whole schedule, not a phase start -- a little air keeps it
+     from reading as a third line of the phase anchor above it. */
+  .tools-row-sep{margin-top:9px;}
+  .tools-lbl{font-size:11.5px; color:var(--text-muted); width:64px; flex:none;}
+  .tools-menu input[type="number"]{width:52px; flex:none;}
+  .tools-menu input[type="date"]{flex:1; min-width:0;}
+  .tools-menu select{flex:1; min-width:0;}
+  .tools-unit{font-size:11.5px; color:var(--text-muted); flex:none;}
+  .tools-go{margin-left:auto; font-size:11.5px !important; padding:5px 9px !important;}
+  .tools-row .tools-go + .tools-go{margin-left:0;}
+  .tools-wide{width:100%; font-size:11.5px !important; padding:6px 9px !important;}
+  /* Result line. Kept in the popover rather than the toolbar because these tools can move things
+     by an amount the user didn't type (an anchor computes its own delta). */
+  .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
+  .tools-msg:empty{display:none;}
+  .tools-msg.warn{color:var(--danger);}
 
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
@@ -921,9 +979,67 @@
         <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
         <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
       </div>
-      <div class="undo-redo-group">
-        <button class="icon-btn" id="undo-btn" type="button" title="Undo (⌘Z)" disabled>&#8630;</button>
-        <button class="icon-btn" id="redo-btn" type="button" title="Redo (⌘⇧Z)" disabled>&#8631;</button>
+      <div class="preview-tools">
+        <div class="shift-group" id="shift-group">
+          <button class="icon-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">&#8592;</button>
+          <span class="shift-label">week</span>
+          <button class="icon-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">&#8594;</button>
+        </div>
+        <div class="tools-wrap" id="tools-wrap">
+          <button class="tb-btn tools-btn" id="tools-btn" type="button" title="Shift, anchor, and re-chain the calendar" aria-haspopup="true" aria-expanded="false">Adjustment Tools <span class="caret">&#9662;</span></button>
+          <div class="tools-menu" id="tools-menu" role="dialog" aria-label="Calendar tools">
+
+            <div class="tools-sec">
+              <p class="tools-head">Shift everything</p>
+              <div class="tools-row">
+                <input type="number" id="tool-shift-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
+                <span class="tools-unit">weeks</span>
+                <button class="secondary tools-go" id="tool-shift-earlier" type="button">Earlier</button>
+                <button class="secondary tools-go" id="tool-shift-later" type="button">Later</button>
+              </div>
+            </div>
+
+            <div class="tools-sec">
+              <p class="tools-head">Anchor to a date</p>
+              <div class="tools-row">
+                <select id="tool-anchor-phase" aria-label="Phase to anchor"></select>
+                <span class="tools-unit">starts</span>
+              </div>
+              <div class="tools-row">
+                <input type="date" id="tool-anchor-shoot" aria-label="Date that phase should start on">
+                <button class="secondary tools-go" id="tool-anchor-shoot-go" type="button">Go</button>
+              </div>
+              <div class="tools-row tools-row-sep">
+                <label class="tools-lbl" for="tool-anchor-end">Deliver by</label>
+                <input type="date" id="tool-anchor-end">
+                <button class="secondary tools-go" id="tool-anchor-end-go" type="button">Go</button>
+              </div>
+            </div>
+
+            <div class="tools-sec">
+              <p class="tools-head">Push one phase and everything after it</p>
+              <div class="tools-row">
+                <select id="tool-ripple-phase" aria-label="Phase to push from"></select>
+              </div>
+              <div class="tools-row">
+                <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to push">
+                <span class="tools-unit">weeks</span>
+                <button class="secondary tools-go" id="tool-ripple-earlier" type="button">Earlier</button>
+                <button class="secondary tools-go" id="tool-ripple-later" type="button">Later</button>
+              </div>
+            </div>
+
+            <div class="tools-sec tools-sec-last">
+              <button class="secondary tools-wide" id="tool-close-gaps" type="button">Close all gaps between phases</button>
+            </div>
+
+            <p class="tools-msg" id="tools-msg"></p>
+          </div>
+        </div>
+        <div class="undo-redo-group">
+          <button class="icon-btn" id="undo-btn" type="button" title="Undo (⌘Z)" disabled>&#8630;</button>
+          <button class="icon-btn" id="redo-btn" type="button" title="Redo (⌘⇧Z)" disabled>&#8631;</button>
+        </div>
       </div>
     </div>
     <div id="table-wrap"></div>
@@ -982,6 +1098,11 @@
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
       <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+
+      <h3>Adjusting dates (moving the calendar around)</h3>
+      <p>Above the preview, <strong>&larr; week &rarr;</strong> shifts the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
+      <p><strong>Shift everything</strong> moves the whole plan by any number of weeks. <strong>Anchor a phase</strong> slides the whole calendar so that phase starts on a date you pick &mdash; the plan keeps its shape and every other phase keeps its lead time. <strong>Deliver by</strong> does the same from the other end, landing the finish on or before a date. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
+      <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Pinned to dates</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that pin on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
       <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
@@ -2242,14 +2363,20 @@
     wrap.appendChild(row);
   }
 
-  function addHiatusRow(prefillStart, prefillWeeks){
+  // `prefillLocked` defaults to TRUE: an all-phase hiatus is normally anchored to the real
+  // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
+  // is unless the user unpins it. Per-phase hiatuses have no such pin -- they belong to their
+  // phase's work, so they always travel with a shift.
+  function addHiatusRow(prefillStart, prefillWeeks, prefillLocked){
     const list = document.getElementById('hiatus-list');
     const row = document.createElement('div');
     row.className = 'hiatus-entry';
+    const locked = (prefillLocked === undefined) ? true : !!prefillLocked;
     row.innerHTML = `
       <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
+      <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Pin to dates</label>
       <div class="snap-note"></div>
     `;
     row.querySelector('.remove-hiatus').addEventListener('click', ()=>{
@@ -4788,14 +4915,23 @@
     // restoreSavedState() replays after the app rebuilds its dynamic rows on load.
     const byId = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el=>{
+      // The Adjustment Tools menu's own controls are transient UI, not calendar data: re-seeded
+      // from the live schedule every time the menu opens. Capturing them would bake stale tool
+      // dates into saved files and -- worse -- make the menu's own re-seed after an action look
+      // like a state change, adding a phantom step to the undo history.
+      if(el.closest('#tools-menu')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
     const hiatuses = [];
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const lockEl = row.querySelector('.hiatus-locked');
       hiatuses.push({
         start: (row.querySelector('.hiatus-start')||{}).value || '',
-        weeks: (row.querySelector('.hiatus-weeks')||{}).value || ''
+        weeks: (row.querySelector('.hiatus-weeks')||{}).value || '',
+        // Saves written before the pin existed have no `locked`; restore reads a missing value
+        // as pinned, matching the default for a new row.
+        locked: lockEl ? !!lockEl.checked : true
       });
     });
     return {byId, hiatuses};
@@ -5070,7 +5206,10 @@
     applyingUndoRedo = true;
     suppressDirty = true;
     applyStateSnapshot(JSON.parse(json));
-    update();
+    // refreshAfterRestore(), not a bare update(): undo/redo is applying a snapshot, so it needs
+    // the same post-restore UI refresh that loading a file does. With only update() here, an undo
+    // that changed the episode count put the field back but left the old episode rows on screen.
+    refreshAfterRestore();
     suppressDirty = false;
     applyingUndoRedo = false;
     lastPushedSnapshotJSON = json;
@@ -5093,6 +5232,187 @@
     const u = document.getElementById('undo-btn'), r = document.getElementById('redo-btn');
     if(u) u.disabled = !undoStack.length;
     if(r) r.disabled = !redoStack.length;
+  }
+
+  // ---------- Calendar shift tools ----------
+  // Move the whole plan earlier or later in whole weeks. The dates are the easy half: everything
+  // the user has typed ONTO those weeks is keyed by the week's Monday (or by an exact day), so a
+  // shift that moved only the start dates would leave every note behind on the old calendar date,
+  // silently detached from the phase it was written for. So the same delta is applied to the
+  // week-keyed stores too, by rebuilding each map under its new keys.
+  //
+  // What deliberately does NOT move:
+  //  * Holidays -- they're real calendar dates, not part of the plan. Because Production is a
+  //    day-level simulation that steps over them, shifting by exactly 7 days can move its WRAP by
+  //    more or less than 7: sliding into or out of a week containing a holiday adds or removes a
+  //    shoot day. That's correct, and shiftCalendar() reports the resulting wrap so it isn't a
+  //    surprise.
+  //  * All-phase hiatuses that are pinned (the default) -- a winter break belongs to Christmas.
+  //    Unpinned ones travel. Per-phase hiatuses always travel: they belong to their phase's work.
+  //  * Notes carrying a specific date -- a note pinned to a day is about that day (a holiday, a
+  //    network screening), so it keeps both its day and its week. Month-view day notes are
+  //    day-addressed by nature and stay put for the same reason, along with their extra lanes.
+  const MAX_SHIFT_WEEKS = 520; // ~10 years; a typo'd week count shouldn't fling the calendar away
+
+  function shiftDateFieldValue(el, days){
+    if(!el || !el.value) return false;      // an empty date field has nothing to shift
+    const d = parseDateUTC(el.value);
+    if(!d) return false;                    // unparseable (mid-typing, bad year) -- leave alone
+    el.value = isoOf(addDays(d, days));
+    return true;
+  }
+  // Rebuild a week/day-keyed map under shifted keys. `keep(key)` returns true for entries that
+  // must stay on their original key. Built fresh rather than mutated in place so a shift can never
+  // collide with a key it is about to write.
+  //
+  // Staying entries claim their keys FIRST. A moving entry can land on a week a pinned entry is
+  // still sitting on (shift a plain note one week forward onto the week of a date-pinned one), and
+  // whichever was written second would otherwise silently delete the other. So arrivals merge --
+  // or, with no merge function, yield to the entry already there. A shift must never lose text.
+  function shiftKeyedMap(map, days, keep, merge){
+    const out = {}, moving = [];
+    Object.keys(map).forEach(k=>{
+      const v = map[k];
+      const d = parseDateUTC(k);
+      if(!d || (keep && keep(k))) out[k] = v;         // unparseable keys stay put too
+      else moving.push([isoOf(addDays(d, days)), v]);
+    });
+    moving.forEach(([k, v])=>{
+      if(!(k in out)) out[k] = v;
+      else if(merge) out[k] = merge(out[k], v);
+    });
+    return out;
+  }
+  // Text of a stored note value, across every shape the store has used.
+  function noteValueText(v){
+    if(v === undefined || v === null) return '';
+    if(typeof v === 'string') return v;
+    if(Array.isArray(v.notes)) return v.notes.map(n=>(n && n.text) || '').filter(Boolean).join('\n');
+    return v.text || '';
+  }
+  // Two notes have ended up on one week. A waterfall cell holds one block of text and at most one
+  // day pin, so the texts join and the staying note keeps the pin -- it is the one that owns a day.
+  function mergeNoteValues(stay, incoming){
+    const text = [noteValueText(stay), noteValueText(incoming)].filter(Boolean).join('\n');
+    const date = (stay && typeof stay === 'object' && stay.date) ? stay.date : null;
+    return date ? {text, date} : {text};
+  }
+
+  // Shift by `weeks` (negative = earlier). With `fromIso` set, only the part of the calendar on or
+  // after that week moves -- that's the ripple case ("prep slipped, push the shoot and everything
+  // after it"); everything earlier stays exactly where it is. Returns a short summary for the
+  // caller to show, or null if there was nothing to shift.
+  function shiftCalendar(weeks, fromIso){
+    const n = Math.round(Number(weeks) || 0);
+    if(!n || Math.abs(n) > MAX_SHIFT_WEEKS) return null;
+    const days = n * 7;
+    const fromDate = fromIso ? mondayOf(parseDateUTC(fromIso)) : null;
+    // Whole-calendar shift -> everything is in range.
+    const inRange = iso => {
+      if(!fromDate) return true;
+      const d = parseDateUTC(iso);
+      return !!d && mondayOf(d) >= fromDate;
+    };
+
+    // 1. Phase start dates -- built-ins and custom phases alike.
+    let movedPhases = 0;
+    getAllPhaseDefs().forEach(p=>{
+      const startEl = document.getElementById('start-' + p.key);
+      // A phase moves as a unit: its own hiatus is part of its work, so it travels with the phase
+      // rather than being judged against the cutoff separately.
+      if(!startEl || !startEl.value || !inRange(startEl.value)) return;
+      if(shiftDateFieldValue(startEl, days)) movedPhases++;
+      shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
+    });
+
+    // 2. All-phase hiatuses -- only the ones the user has unpinned.
+    let movedHiatuses = 0, pinnedHiatuses = 0;
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const startEl = row.querySelector('.hiatus-start');
+      if(!startEl || !startEl.value || !inRange(startEl.value)) return;
+      const lock = row.querySelector('.hiatus-locked');
+      if(lock && lock.checked){ pinnedHiatuses++; return; }
+      if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
+    });
+
+    // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
+    //    a note's colour keys off the same week as the note, so it must make the same stay-or-go
+    //    decision -- and by the time the colours are shifted, userNotes has already been rewritten.
+    const pinnedWeeks = new Set(Object.keys(userNotes).filter(k => userNoteList(k).some(n => !!n.date)));
+    // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff.
+    const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k);
+    // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
+    // rather than reassigned.
+    const shiftedNotes = shiftKeyedMap(userNotes, days, isPinnedWeek, mergeNoteValues);
+    Object.keys(userNotes).forEach(k=> delete userNotes[k]);
+    Object.assign(userNotes, shiftedNotes);
+    // No merge for colours: a cell has one fill, and the note that stayed owns it.
+    noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
+    hiatusTexts = shiftKeyedMap(hiatusTexts, days);
+    hiatusColors = shiftKeyedMap(hiatusColors, days);
+    // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
+
+    refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
+    // Keep the month view looking at the same content instead of an emptied month. Null until the
+    // month view has been opened once, in which case it picks its own start and needs no nudge.
+    if(monthCursor) monthCursor = addDays(monthCursor, days);
+    refreshAfterRestore();
+
+    return {
+      weeks: n, movedPhases, movedHiatuses, pinnedHiatuses,
+      productionWrap: productionWrapText()
+    };
+  }
+  // The Production wrap date after a shift, for the toolbar's readout -- the one value a shift can
+  // move by something other than the requested amount (holidays don't move with the plan).
+  function productionWrapText(){
+    const info = currentSchedule && currentSchedule.productionInfo;
+    return (info && info.lastShootDay) ? fmtShort(info.lastShootDay) : null;
+  }
+
+  // ---------- Anchoring: shift so that some landmark lands on a chosen date ----------
+  // Both anchors work by measuring the whole-week gap between where the landmark is now and where
+  // the user wants it, then handing that delta to the ordinary shift. Everything is Monday-snapped
+  // first, so a target typed mid-week means "the week containing that date" rather than failing.
+  function weeksBetweenMondays(fromDate, toDate){
+    return Math.round((mondayOf(toDate) - mondayOf(fromDate)) / DAY_MS / 7);
+  }
+  // A deadline is one-sided: "deliver by the 5th" must not land on the 11th just because the 11th
+  // is the end of the week the 5th falls in. So this floors instead of rounding to the nearest
+  // week -- the schedule finishes on or before the date asked for, never after it.
+  function weeksToFinishBy(lastDay, target){
+    return Math.floor((target - lastDay) / DAY_MS / 7);
+  }
+  // The last day any phase is still running -- segment ends are exclusive (a phase's end IS the
+  // following phase's start), so the final working day is the day before the latest end.
+  function scheduleLastDay(){
+    const segs = (currentSchedule && currentSchedule.segments) || [];
+    if(!segs.length) return null;
+    let last = null;
+    segs.forEach(s=>{ if(!last || s.end > last) last = s.end; });
+    return last ? addDays(last, -1) : null;
+  }
+  function phaseStartDate(key){
+    const el = document.getElementById('start-' + key);
+    return (el && el.value) ? parseDateUTC(el.value) : null;
+  }
+
+  // ---------- Close all gaps ----------
+  // Re-chain the built-in phases back to back, which is the per-phase "Start after previous phase"
+  // button applied down the whole chain. Only phases that are ALREADY scheduled are touched --
+  // this tidies an existing plan, it doesn't invent start dates for phases left blank. Custom
+  // phases stay out of it, matching autostartPhase()'s own rule.
+  function closeAllGaps(){
+    let moved = 0, seenFirst = false;
+    PHASE_CHAIN.forEach(key=>{
+      const before = phaseStartDate(key);
+      if(!before) return;              // not scheduled -> leave it alone
+      if(!seenFirst){ seenFirst = true; return; }  // the chain's first phase is the anchor
+      autostartPhase(key);             // runs its own update(), so currentSchedule stays fresh
+      const after = phaseStartDate(key);
+      if(after && before && after.getTime() !== before.getTime()) moved++;
+    });
+    return moved;
   }
 
   // Autosave: only meaningful when a file is already linked (we can't create one silently).
@@ -5144,9 +5464,7 @@
     suppressDirty = true;
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
     restoreSavedState();
-    refreshSimPostUI();
-    syncRegionTracking();
-    update();
+    refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
     isDirty = true;          // recovered work still isn't in a file
@@ -5217,8 +5535,7 @@
       // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay.
       suppressDirty = true;
       restoreSavedState();
-      syncRegionTracking();
-      update();
+      refreshAfterRestore();
       suppressDirty = false;
       resetUndoHistory(); // opening a different file starts a fresh undo history
     }
@@ -5345,6 +5662,192 @@
   const redoBtn = document.getElementById('redo-btn');
   if(undoBtn) undoBtn.addEventListener('click', undo);
   if(redoBtn) redoBtn.addEventListener('click', redo);
+
+  // Shift tools. Each click is its own undo step: the debounce that collapses a burst of typing
+  // into one step would otherwise merge three quick clicks on "one week earlier" into a single
+  // three-week undo, which reads as the button having eaten two of the presses.
+  (function(){
+    const group = document.getElementById('shift-group');
+    const label = group && group.querySelector('.shift-label');
+    let flashTimer = null;
+    function runShift(weeks){
+      pushUndoSnapshot();          // close off whatever came before, so this click stands alone
+      const res = shiftCalendar(weeks);
+      pushUndoSnapshot();          // ...and bank the shift itself immediately
+      if(!res || !label) return;
+      // Say what happened. The wrap date is worth showing because holidays don't move with the
+      // plan, so Production's wrap can travel by more or less than the weeks requested.
+      const dir = res.weeks < 0 ? 'earlier' : 'later';
+      const n = Math.abs(res.weeks);
+      label.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '');
+      group.classList.add('flash');
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(()=>{ label.textContent = 'week'; group.classList.remove('flash'); }, 2600);
+    }
+    const back = document.getElementById('shift-back-btn');
+    const fwd = document.getElementById('shift-fwd-btn');
+    if(back) back.addEventListener('click', ()=> runShift(-1));
+    if(fwd) fwd.addEventListener('click', ()=> runShift(1));
+  })();
+
+  // Calendar tools popover: everything the two arrow buttons can't express in one click.
+  (function(){
+    const wrap = document.getElementById('tools-wrap');
+    const btn = document.getElementById('tools-btn');
+    const menu = document.getElementById('tools-menu');
+    const msg = document.getElementById('tools-msg');
+    if(!wrap || !btn || !menu) return;
+
+    function say(text, isWarning){
+      msg.textContent = text || '';
+      msg.classList.toggle('warn', !!isWarning);
+    }
+    // Every tool is a discrete action, so each gets its own undo step -- same reasoning as the
+    // arrow buttons: the typing-collapse debounce would otherwise fold consecutive tool uses
+    // together and make one Undo jump back further than the user expects.
+    function asOneUndoStep(fn){
+      pushUndoSnapshot();
+      const out = fn();
+      pushUndoSnapshot();
+      refreshMenuFromCalendar(); // the menu quotes live dates; they just changed
+      return out;
+    }
+    function describeShift(res){
+      if(!res) return 'Nothing to shift.';
+      const n = Math.abs(res.weeks);
+      let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
+      if(res.pinnedHiatuses) out += ' ' + res.pinnedHiatuses + ' pinned hiatus' + (res.pinnedHiatuses === 1 ? '' : 'es') + ' held.';
+      if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
+      return out;
+    }
+    function readWeeks(id){
+      const v = Math.round(Number((document.getElementById(id) || {}).value));
+      return (Number.isFinite(v) && v > 0) ? v : null;
+    }
+
+    // Every scheduled phase, in the order it runs. Built on open rather than once at startup so it
+    // always reflects the phases that exist right now, custom ones included.
+    function scheduledPhases(){
+      return getAllPhaseDefs()
+        .map(p=>({p, start: phaseStartDate(p.key)}))
+        .filter(x=>x.start)
+        .sort((a,b)=> a.start - b.start);
+    }
+    function fillPhaseSelect(id, list, preferKey){
+      const sel = document.getElementById(id);
+      const prev = sel.value;
+      sel.innerHTML = list.length
+        ? list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')} — ${fmtShort(mondayOf(x.start))}</option>`).join('')
+        : '<option value="">No phases scheduled yet</option>';
+      // Keep whatever was chosen last if it still exists, else fall back to the caller's preference.
+      if(prev && list.some(x=>x.p.key === prev)) sel.value = prev;
+      else if(preferKey && list.some(x=>x.p.key === preferKey)) sel.value = preferKey;
+    }
+    // Show the anchored phase's current start, so the field reads as "where it is now" and the
+    // user edits from there rather than typing into a blank box.
+    function syncAnchorDate(){
+      const key = (document.getElementById('tool-anchor-phase')||{}).value;
+      const start = key ? phaseStartDate(key) : null;
+      document.getElementById('tool-anchor-shoot').value = start ? isoOf(mondayOf(start)) : '';
+    }
+    // Re-read the calendar into the menu's own controls. Called on open AND after every tool runs:
+    // each dropdown entry carries the phase's current start date, so leaving them alone after a
+    // shift would leave the menu quoting dates the calendar no longer has.
+    function refreshMenuFromCalendar(){
+      const list = scheduledPhases();
+      fillPhaseSelect('tool-ripple-phase', list);
+      fillPhaseSelect('tool-anchor-phase', list, 'production'); // the shoot is the usual anchor
+      syncAnchorDate();
+      const last = scheduleLastDay();
+      document.getElementById('tool-anchor-end').value = last ? isoOf(last) : '';
+    }
+    function openMenu(){
+      refreshMenuFromCalendar();
+      say('');
+      menu.classList.add('open');
+      btn.setAttribute('aria-expanded','true');
+    }
+    document.getElementById('tool-anchor-phase').addEventListener('change', syncAnchorDate);
+    function closeMenu(){
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded','false');
+    }
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(menu.classList.contains('open')) closeMenu(); else openMenu();
+    });
+    // Clicks inside the popover must not reach the click-away handler below.
+    menu.addEventListener('click', e=> e.stopPropagation());
+    document.addEventListener('click', e=>{ if(!e.target.closest('#tools-wrap')) closeMenu(); });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeMenu(); });
+
+    // --- Shift everything by N weeks
+    function shiftBy(sign){
+      const n = readWeeks('tool-shift-weeks');
+      if(!n) return say('Enter a number of weeks.', true);
+      say(describeShift(asOneUndoStep(()=> shiftCalendar(sign * n))));
+    }
+    document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
+    document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
+
+    // --- Anchor: make a chosen phase start on a chosen date. Unlike the ripple below, this slides
+    //     the WHOLE calendar so that phase lands there -- the plan keeps its shape and every other
+    //     phase keeps its lead time; it just sits somewhere else on the calendar.
+    document.getElementById('tool-anchor-shoot-go').addEventListener('click', ()=>{
+      const sel = document.getElementById('tool-anchor-phase');
+      const key = sel.value;
+      if(!key) return say('No phase selected.', true);
+      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'That phase';
+      const target = parseDateUTC((document.getElementById('tool-anchor-shoot')||{}).value);
+      if(!target) return say('Pick a date first.', true);
+      const cur = phaseStartDate(key);
+      if(!cur) return say(label + ' has no start date to move.', true);
+      const delta = weeksBetweenMondays(cur, target);
+      if(!delta) return say(label + ' already starts that week.');
+      say(describeShift(asOneUndoStep(()=> shiftCalendar(delta))));
+    });
+
+    // --- Anchor: make the whole schedule finish by a chosen date
+    document.getElementById('tool-anchor-end-go').addEventListener('click', ()=>{
+      const target = parseDateUTC((document.getElementById('tool-anchor-end')||{}).value);
+      if(!target) return say('Pick a date first.', true);
+      const last = scheduleLastDay();
+      if(!last) return say('Nothing is scheduled yet.', true);
+      const delta = weeksToFinishBy(last, target);
+      if(!delta) return say('Already finishes ' + fmtShort(last) + ' — as late as it can without passing that date.');
+      const res = asOneUndoStep(()=> shiftCalendar(delta));
+      // Report where it actually landed rather than the date asked for. Shifts move in whole
+      // weeks, and holidays don't travel with the plan, so the finish can settle short of the
+      // deadline -- or, if Production grew over a holiday it now overlaps, past it.
+      const landed = scheduleLastDay();
+      let out = describeShift(res) + (landed ? ' Finishes ' + fmtShort(landed) + '.' : '');
+      if(landed && landed > target) out += ' Still past your date — the shoot grew over a holiday it now overlaps.';
+      say(out, !!(landed && landed > target));
+    });
+
+    // --- Ripple: push one phase and everything after it
+    function ripple(sign){
+      const key = (document.getElementById('tool-ripple-phase')||{}).value;
+      if(!key) return say('No phase selected.', true);
+      const n = readWeeks('tool-ripple-weeks');
+      if(!n) return say('Enter a number of weeks.', true);
+      const from = phaseStartDate(key);
+      if(!from) return say('That phase has no start date.', true);
+      const res = asOneUndoStep(()=> shiftCalendar(sign * n, isoOf(mondayOf(from))));
+      if(!res) return say('Nothing to shift.', true);
+      say(describeShift(res) + ' ' + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.');
+    }
+    document.getElementById('tool-ripple-earlier').addEventListener('click', ()=> ripple(-1));
+    document.getElementById('tool-ripple-later').addEventListener('click', ()=> ripple(1));
+
+    // --- Close all gaps
+    document.getElementById('tool-close-gaps').addEventListener('click', ()=>{
+      const moved = asOneUndoStep(closeAllGaps);
+      say(moved
+        ? 'Chained ' + moved + ' phase' + (moved === 1 ? '' : 's') + ' back to back.'
+        : 'No gaps to close.');
+    });
+  })();
 
   // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save).
   // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
@@ -6010,6 +6513,23 @@
     applyStateSnapshot(snap);
   }
 
+  // Everything that must run after a snapshot has been applied, to bring the visible UI back in
+  // line with the restored state. Three paths need it -- initial page load, opening a file, and
+  // recovering a backup -- and each used to keep its own hand-maintained copy of the list, which
+  // drifted. Opening a file never called refreshEpisodesUI(), which is the only thing that hides
+  // the "Complete Show Info" notice and renders the episode rows (update() deliberately doesn't:
+  // rebuilding the rows on every recompute would blow away focus mid-typing). So opening a
+  // complete calendar from a blank page restored every field correctly but left the blank page's
+  // stale "missing: Season, ..." notice on screen and the episode list empty. Keep this as the
+  // single list so the three paths can't diverge again.
+  function refreshAfterRestore(){
+    setSidebarTab(sidebarTab);
+    syncRegionTracking();
+    refreshEpisodesUI();
+    refreshSimPostUI();
+    update();
+  }
+
   // Apply a captured state snapshot (see captureSnapshot()) to the live document: DOM fields,
   // dynamic rows, and every module-scope state map. Shared by loading a saved file, recovering a
   // crash backup, and undo/redo -- all three need the same "replace everything" semantics, not a
@@ -6055,7 +6575,9 @@
     // 2. Rebuild hiatus rows to match the saved set (replaces the defaults)
     if(snap.fields && Array.isArray(snap.fields.hiatuses)){
       document.getElementById('hiatus-list').innerHTML = '';
-      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks));
+      // h.locked is absent in saves written before the pin existed -> addHiatusRow defaults it to
+      // pinned, which matches how those calendars behaved (nothing shifted them).
+      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked));
     }
 
     // 3. Apply saved values to every id'd field
@@ -6184,11 +6706,7 @@
   })();
 
   restoreSavedState();
-  setSidebarTab(sidebarTab);
-  syncRegionTracking();
-  refreshEpisodesUI();
-  refreshSimPostUI();
-  update();
+  refreshAfterRestore();
 
   // Initial load/restore is done -- from here on, changes are real user edits.
   suppressDirty = false;
