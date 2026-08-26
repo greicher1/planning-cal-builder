@@ -285,6 +285,11 @@
     border:none; background:transparent; border-radius:6px; padding:5px 7px; cursor:pointer;
     white-space:nowrap; line-height:1;}
   .shift-btn:hover{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  /* The split control's second half: a hairline separates it from the arrows so it reads as
+     "options for this control" rather than a third arrow. */
+  .shift-caret{border-left:1px solid var(--border-strong); border-radius:0 6px 6px 0;
+    padding:5px 6px; font-size:9px; color:var(--text-faint);}
+  .shift-caret[aria-expanded="true"]{background:#fff; color:var(--text);}
   /* Names the operation the two arrows perform. Fixed text -- the result readout gets its own
      floating chip below rather than borrowing this slot, which used to swap in a much longer
      string and shove the tools button and Undo/Redo sideways every time you nudged a week. */
@@ -312,14 +317,17 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
+     sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
+     to need the height cap the old combined menu did. */
   .tools-menu{
-    display:none; position:absolute; top:calc(100% + 4px); right:0; width:364px;
+    display:none; position:absolute; top:calc(100% + 5px); right:0; width:340px;
     background:#fff; border:1px solid var(--border-strong); border-radius:8px;
     box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px 12px; z-index:60; text-align:left;
-    /* Five sections is taller than a short laptop window; cap it and scroll rather than running
-       off the bottom of the screen. Mirrors what the file menu already does. */
-    max-height:calc(100vh - 150px); overflow-y:auto;
   }
+  .tools-menu-sm{width:280px;}
+  .tools-menu-lg{width:364px;}
+  .tools-div{height:1px; background:var(--border); margin:9px 0;}
   .tools-menu.open{display:block;}
   .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
   .tools-sec-last{padding-bottom:0; margin-bottom:0; border-bottom:none;}
@@ -1005,81 +1013,92 @@
         <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
       </div>
       <div class="preview-tools">
+        <!-- Shift All is a SPLIT control: the arrows act on one click (much the most-used thing
+             here, so it must not move behind a popover) and the caret beside them opens the
+             multi-week form. Each of the other tools gets its own button and its own small
+             popover, so the row names every capability without anything having to be opened. -->
         <div class="shift-group" id="shift-group">
           <button class="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">&#8592; 1 wk</button>
           <span class="shift-label">Shift All</span>
           <button class="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk &#8594;</button>
+          <button class="shift-btn shift-caret" id="pop-shift-btn" type="button" title="Shift by more than a week" aria-haspopup="true" aria-expanded="false">&#9662;</button>
           <span class="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
-        </div>
-        <div class="tools-wrap" id="tools-wrap">
-          <button class="tb-btn tools-btn" id="tools-btn" type="button" title="Shift, anchor, and re-chain the calendar" aria-haspopup="true" aria-expanded="false">Adjustment Tools <span class="caret">&#9662;</span></button>
-          <div class="tools-menu" id="tools-menu" role="dialog" aria-label="Calendar tools">
-
-            <div class="tools-sec">
-              <p class="tools-head">Shift All</p>
-              <div class="tools-row">
-                <input type="number" id="tool-shift-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
-                <span class="tools-unit">weeks</span>
-                <button class="secondary tools-go" id="tool-shift-earlier" type="button">Earlier</button>
-                <button class="secondary tools-go" id="tool-shift-later" type="button">Later</button>
-              </div>
+          <div class="tools-menu tools-menu-sm" id="pop-shift" role="dialog" aria-label="Shift All">
+            <p class="tools-head">Shift All</p>
+            <p class="tools-hint">Moves the whole calendar. The arrows do one week.</p>
+            <div class="tools-row">
+              <input type="number" id="tool-shift-weeks" min="1" step="1" value="2" aria-label="Number of weeks to shift">
+              <span class="tools-unit">weeks</span>
+              <button class="secondary tools-go" id="tool-shift-earlier" type="button">Earlier</button>
+              <button class="secondary tools-go" id="tool-shift-later" type="button">Later</button>
             </div>
-
-            <!-- "Shift From" completes into the dropdown directly beneath it, and only reads as a
-                 pair with "Shift All" while the two sit together -- so these two by-amount tools
-                 stay adjacent, ahead of the by-date ones. -->
-            <div class="tools-sec">
-              <p class="tools-head">Shift From</p>
-              <p class="tools-hint">Earlier phases stay where they are, so the gap in front stretches. Earlier/Later is the direction of travel, not which side moves.</p>
-              <div class="tools-row">
-                <select id="tool-ripple-phase" aria-label="Phase to shift from, along with everything after it"></select>
-                <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
-                <span class="tools-unit">wks</span>
-              </div>
-              <div class="tools-row">
-                <button class="secondary tools-half" id="tool-ripple-earlier" type="button">Earlier</button>
-                <button class="secondary tools-half" id="tool-ripple-later" type="button">Later</button>
-              </div>
-            </div>
-
-            <div class="tools-sec">
-              <p class="tools-head">Anchor to a date</p>
-              <p class="tools-hint">Schedule is shifted to anchored date but phase durations are maintained.</p>
-              <div class="tools-row">
-                <select id="tool-anchor-phase" aria-label="What to anchor"></select>
-                <select id="tool-anchor-edge" class="tools-edge" aria-label="Anchor its start or its end">
-                  <option value="start">starts on</option>
-                  <option value="end">ends by</option>
-                </select>
-              </div>
-              <div class="tools-row">
-                <input type="date" id="tool-anchor-date" aria-label="Date to anchor it to">
-                <button class="secondary tools-go" id="tool-anchor-go" type="button">Go</button>
-              </div>
-            </div>
-
-            <div class="tools-sec">
-              <p class="tools-head">Work from a date</p>
-              <p class="tools-hint">Pins this date, then rebuilds the phases on one side of it to run back to back, using their week counts. Fills in start dates left blank.</p>
-              <div class="tools-row">
-                <select id="tool-solve-phase" aria-label="Phase to work from"></select>
-                <span class="tools-unit">starts</span>
-                <input type="date" id="tool-solve-date" class="tools-date-fixed" aria-label="Date that phase should start on">
-              </div>
-              <div class="tools-row">
-                <button class="secondary tools-half" id="tool-solve-back" type="button">&#8592; Work backwards</button>
-                <button class="secondary tools-half" id="tool-solve-fwd" type="button">Work forwards &#8594;</button>
-              </div>
-            </div>
-
-            <div class="tools-sec tools-sec-last">
-              <button class="secondary tools-wide" id="tool-close-gaps" type="button">Close all gaps between phases</button>
-            </div>
-
-            <p class="tools-msg" id="tools-msg"></p>
+            <p class="tools-msg" data-tools-msg></p>
           </div>
         </div>
+
+        <div class="tools-wrap">
+          <button class="tb-btn tools-btn" id="pop-ripple-btn" type="button" title="Shift one phase and everything after it" aria-haspopup="true" aria-expanded="false">Shift From <span class="caret">&#9662;</span></button>
+          <div class="tools-menu" id="pop-ripple" role="dialog" aria-label="Shift From">
+            <p class="tools-head">Shift From</p>
+            <p class="tools-hint">Earlier phases stay where they are, so the gap in front stretches. Earlier/Later is the direction of travel, not which side moves.</p>
+            <div class="tools-row">
+              <select id="tool-ripple-phase" aria-label="Phase to shift from, along with everything after it"></select>
+              <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
+              <span class="tools-unit">wks</span>
+            </div>
+            <div class="tools-row">
+              <button class="secondary tools-half" id="tool-ripple-earlier" type="button">Earlier</button>
+              <button class="secondary tools-half" id="tool-ripple-later" type="button">Later</button>
+            </div>
+            <p class="tools-msg" data-tools-msg></p>
+          </div>
+        </div>
+
+        <div class="tools-wrap">
+          <button class="tb-btn tools-btn" id="pop-anchor-btn" type="button" title="Slide the calendar so one landmark lands on a date" aria-haspopup="true" aria-expanded="false">Anchor To <span class="caret">&#9662;</span></button>
+          <div class="tools-menu" id="pop-anchor" role="dialog" aria-label="Anchor to a date">
+            <p class="tools-head">Anchor to a date</p>
+            <p class="tools-hint">Schedule is shifted to anchored date but phase durations are maintained.</p>
+            <div class="tools-row">
+              <select id="tool-anchor-phase" aria-label="What to anchor"></select>
+              <select id="tool-anchor-edge" class="tools-edge" aria-label="Anchor its start or its end">
+                <option value="start">starts on</option>
+                <option value="end">ends by</option>
+              </select>
+            </div>
+            <div class="tools-row">
+              <input type="date" id="tool-anchor-date" aria-label="Date to anchor it to">
+              <button class="secondary tools-go" id="tool-anchor-go" type="button">Go</button>
+            </div>
+            <p class="tools-msg" data-tools-msg></p>
+          </div>
+        </div>
+
+        <div class="tools-wrap">
+          <button class="tb-btn tools-btn" id="pop-solve-btn" type="button" title="Rebuild the phases on one side of a fixed date" aria-haspopup="true" aria-expanded="false">Work From <span class="caret">&#9662;</span></button>
+          <!-- Wider than the others: its phase + "starts" + date row clips the phase name below 364px. -->
+          <div class="tools-menu tools-menu-lg" id="pop-solve" role="dialog" aria-label="Work from a date">
+            <p class="tools-head">Work from a date</p>
+            <p class="tools-hint">Pins this date, then rebuilds the phases on one side of it to run back to back, using their week counts. Fills in start dates left blank.</p>
+            <div class="tools-row">
+              <select id="tool-solve-phase" aria-label="Phase to work from"></select>
+              <span class="tools-unit">starts</span>
+              <input type="date" id="tool-solve-date" class="tools-date-fixed" aria-label="Date that phase should start on">
+            </div>
+            <div class="tools-row">
+              <button class="secondary tools-half" id="tool-solve-back" type="button">&#8592; Work backwards</button>
+              <button class="secondary tools-half" id="tool-solve-fwd" type="button">Work forwards &#8594;</button>
+            </div>
+            <!-- Folded in here rather than given its own button: it IS Work-forwards from the first
+                 phase at whatever date it already sits on, and the row has no spare width. -->
+            <div class="tools-div"></div>
+            <button class="secondary tools-wide" id="tool-close-gaps" type="button">Close all gaps between phases</button>
+            <p class="tools-msg" data-tools-msg></p>
+          </div>
+        </div>
+
         <div class="undo-redo-group">
+
           <button class="icon-btn" id="undo-btn" type="button" title="Undo (⌘Z)" disabled>&#8630;</button>
           <button class="icon-btn" id="redo-btn" type="button" title="Redo (⌘⇧Z)" disabled>&#8631;</button>
         </div>
@@ -1143,8 +1162,8 @@
       <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Adjusting dates (moving the calendar around)</h3>
-      <p>Above the preview, <strong>Shift All</strong> (<strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong>) moves the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
-      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Shift From</strong> is the same move applied to part of the calendar: pick a phase and it shifts that phase and everything after it, leaving the earlier work exactly where it is, so the gap in front of it stretches or shrinks &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; Earlier and Later are the direction of travel, not which side moves; both move the same set of phases. <strong>Close all gaps</strong> re-chains the phases back to back.</p>
+      <p>Above the preview sits a row of tools, each with its own button: <strong>Shift All</strong> (its <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons move the whole calendar one week at a time, and the small arrow beside them opens a box for any number of weeks), <strong>Shift From</strong>, <strong>Anchor To</strong> and <strong>Work From</strong>. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
+      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Shift From</strong> is the same move applied to part of the calendar: pick a phase and it shifts that phase and everything after it, leaving the earlier work exactly where it is, so the gap in front of it stretches or shrinks &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; Earlier and Later are the direction of travel, not which side moves; both move the same set of phases. </p><p><strong>Work From</strong> is the one that answers a date rather than just moving to it. Pick a phase, give it a date, and <strong>Work backwards</strong> rebuilds every phase before it to run back to back &mdash; so &ldquo;the shoot starts 6/22&rdquo; tells you when the writers&rsquo; room has to open. <strong>Work forwards</strong> does the same for the phases after it. Both read the week counts you&rsquo;ve typed and <em>write</em> start dates, including into fields you left blank, so a calendar with nothing but durations and one fixed date can be solved in a single click. A phase that straddles a locked hiatus starts earlier rather than losing weeks. That&rsquo;s the difference from <strong>Anchor To</strong>, which only ever moves dates that already exist and never changes the spacing between phases. <strong>Close all gaps</strong> sits in the same box: it is Work forwards from the first phase at whatever date it already sits on, so it needs nothing filled in. Working <em>backwards</em> through Production isn&rsquo;t supported yet &mdash; the shoot&rsquo;s length comes from a day-by-day simulation over weekends and holidays, and running that in reverse is still to come; the tool says so rather than guessing.</p>
       <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Locked in place</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that lock on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
@@ -4958,11 +4977,13 @@
     // restoreSavedState() replays after the app rebuilds its dynamic rows on load.
     const byId = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el=>{
-      // The Adjustment Tools menu's own controls are transient UI, not calendar data: re-seeded
-      // from the live schedule every time the menu opens. Capturing them would bake stale tool
-      // dates into saved files and -- worse -- make the menu's own re-seed after an action look
-      // like a state change, adding a phantom step to the undo history.
-      if(el.closest('#tools-menu')) return;
+      // The toolbar tools' own controls are transient UI, not calendar data: re-seeded from the
+      // live schedule every time a popover opens. Capturing them would bake stale tool dates into
+      // saved files and -- worse -- make a popover's own re-seed after an action look like a state
+      // change, adding a phantom step to the undo history.
+      // Matched on the CLASS, not an id: there is one popover per tool now, so an id-based test
+      // silently stops matching the moment the markup is reorganised.
+      if(el.closest('.tools-menu')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -5889,17 +5910,32 @@
     if(fwd) fwd.addEventListener('click', ()=> runShift(1));
   })();
 
-  // Calendar tools popover: everything the two arrow buttons can't express in one click.
+  // The calendar tools: one button per tool on the preview toolbar, each opening its own small
+  // popover. Replaces a single "Adjustment Tools" menu that stacked all of them -- which hid every
+  // capability behind one unlabelled click and grew to 562px tall.
   (function(){
-    const wrap = document.getElementById('tools-wrap');
-    const btn = document.getElementById('tools-btn');
-    const menu = document.getElementById('tools-menu');
-    const msg = document.getElementById('tools-msg');
-    if(!wrap || !btn || !menu) return;
+    // Each entry pairs a trigger button with the popover it owns.
+    const POPS = [
+      {btn:'pop-shift-btn',  menu:'pop-shift'},
+      {btn:'pop-ripple-btn', menu:'pop-ripple'},
+      {btn:'pop-anchor-btn', menu:'pop-anchor'},
+      {btn:'pop-solve-btn',  menu:'pop-solve'}
+    ].map(p=>({btn:document.getElementById(p.btn), menu:document.getElementById(p.menu)}))
+     .filter(p=>p.btn && p.menu);
+    if(!POPS.length) return;
 
+    // Results are written into whichever popover is open, so each tool reports in its own panel.
     function say(text, isWarning){
-      msg.textContent = text || '';
-      msg.classList.toggle('warn', !!isWarning);
+      const open = POPS.find(p=>p.menu.classList.contains('open'));
+      POPS.forEach(p=>{
+        const el = p.menu.querySelector('[data-tools-msg]');
+        if(el && p.menu !== (open && open.menu)){ el.textContent = ''; el.classList.remove('warn'); }
+      });
+      if(!open) return;
+      const el = open.menu.querySelector('[data-tools-msg]');
+      if(!el) return;
+      el.textContent = text || '';
+      el.classList.toggle('warn', !!isWarning);
     }
     // Every tool is a discrete action, so each gets its own undo step -- same reasoning as the
     // arrow buttons: the typing-collapse debounce would otherwise fold consecutive tool uses
@@ -6009,27 +6045,37 @@
       syncAnchorDate();
       syncSolveDate();
     }
-    function openMenu(){
-      refreshMenuFromCalendar();
-      say('');
-      menu.classList.add('open');
-      btn.setAttribute('aria-expanded','true');
+    function closeAllPops(){
+      POPS.forEach(p=>{
+        p.menu.classList.remove('open');
+        p.btn.setAttribute('aria-expanded','false');
+        const m = p.menu.querySelector('[data-tools-msg]');
+        if(m){ m.textContent = ''; m.classList.remove('warn'); }
+      });
     }
+    // Opening one closes the others: only ever one popover on screen, so they can't overlap each
+    // other or leave two stale result lines showing.
+    function openPop(target){
+      const wasOpen = target.menu.classList.contains('open');
+      closeAllPops();
+      if(wasOpen) return;
+      refreshMenuFromCalendar();   // every dropdown quotes live dates
+      target.menu.classList.add('open');
+      target.btn.setAttribute('aria-expanded','true');
+    }
+    POPS.forEach(p=>{
+      p.btn.addEventListener('click', e=>{ e.stopPropagation(); openPop(p); });
+      // Clicks inside a popover must not reach the click-away handler below.
+      p.menu.addEventListener('click', e=> e.stopPropagation());
+    });
+    document.addEventListener('click', e=>{
+      if(!e.target.closest('.tools-wrap') && !e.target.closest('.shift-group')) closeAllPops();
+    });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
+
     document.getElementById('tool-anchor-phase').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
-    function closeMenu(){
-      menu.classList.remove('open');
-      btn.setAttribute('aria-expanded','false');
-    }
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      if(menu.classList.contains('open')) closeMenu(); else openMenu();
-    });
-    // Clicks inside the popover must not reach the click-away handler below.
-    menu.addEventListener('click', e=> e.stopPropagation());
-    document.addEventListener('click', e=>{ if(!e.target.closest('#tools-wrap')) closeMenu(); });
-    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeMenu(); });
 
     // --- Shift All by N weeks (the toolbar arrows are the one-click 1-week case of this)
     function shiftBy(sign){
