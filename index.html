@@ -1668,7 +1668,11 @@
     if(!str) return null;
     const [y,m,d] = str.split('-').map(Number);
     if(!y || y < MIN_YEAR || y > MAX_YEAR) return null; // guards against typo'd years (e.g. an extra digit) hanging the page
-    return new Date(Date.UTC(y, m-1, d));
+    const out = new Date(Date.UTC(y, m-1, d));
+    // Return null rather than an Invalid Date. A malformed tail (a composite cell key like
+    // "2026-01-05|writersRoom", or a half-typed value) otherwise yields an Invalid Date, which is
+    // TRUTHY -- so callers that check the result pass it on and blow up later inside toISOString().
+    return Number.isFinite(out.getTime()) ? out : null;
   }
   function addDays(date, n){ return new Date(date.getTime() + n*DAY_MS); }
   function mondayOf(date){
@@ -5329,6 +5333,17 @@
   // must stay on their original key. Built fresh rather than mutated in place so a shift can never
   // collide with a key it is about to write.
   //
+  // Split a cell key into its week and any "|<phase key>" suffix. Note cells key off a plain week
+  // ISO; per-phase hiatus bands key off "<week>|<phase>". parseDateUTC() on the whole composite key
+  // does NOT return null -- str.split('-') leaves "05|writersRoom" for the day, so it builds an
+  // Invalid Date, which is truthy. That made a shift push the key onto the moving list and then
+  // throw RangeError inside isoOf(). Renaming any per-phase hiatus band was enough to crash a
+  // shift half-way through, after the dates were written but before the UI refreshed.
+  function splitWeekKey(k){
+    const bar = String(k).indexOf('|');
+    return bar < 0 ? { iso: k, suffix: '' } : { iso: k.slice(0, bar), suffix: k.slice(bar) };
+  }
+  //
   // Staying entries claim their keys FIRST. A moving entry can land on a week a pinned entry is
   // still sitting on (shift a plain note one week forward onto the week of a date-pinned one), and
   // whichever was written second would otherwise silently delete the other. So arrivals merge --
@@ -5337,9 +5352,14 @@
     const out = {}, moving = [];
     Object.keys(map).forEach(k=>{
       const v = map[k];
-      const d = parseDateUTC(k);
+      // A key is either a plain week ISO or "<week ISO>|<phase key>" -- the per-phase hiatus bands
+      // are addressed that way, so hiatusTexts/hiatusColors hold both shapes. Shift the date part
+      // and reattach the suffix: a per-phase band travels with its phase, so its custom label and
+      // colour must travel too.
+      const { iso, suffix } = splitWeekKey(k);
+      const d = parseDateUTC(iso);
       if(!d || (keep && keep(k))) out[k] = v;         // unparseable keys stay put too
-      else moving.push([isoOf(addDays(d, days)), v]);
+      else moving.push([isoOf(addDays(d, days)) + suffix, v]);
     });
     moving.forEach(([k, v])=>{
       if(!(k in out)) out[k] = v;
@@ -5371,10 +5391,11 @@
     if(!n || Math.abs(n) > MAX_SHIFT_WEEKS) return null;
     const days = n * 7;
     const fromDate = fromIso ? mondayOf(parseDateUTC(fromIso)) : null;
-    // Whole-calendar shift -> everything is in range.
-    const inRange = iso => {
+    // Whole-calendar shift -> everything is in range. Takes a cell key, which may carry a
+    // "|<phase key>" suffix, so it compares on the week part only.
+    const inRange = key => {
       if(!fromDate) return true;
-      const d = parseDateUTC(iso);
+      const d = parseDateUTC(splitWeekKey(key).iso);
       return !!d && mondayOf(d) >= fromDate;
     };
 
