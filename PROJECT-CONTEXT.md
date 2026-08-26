@@ -611,7 +611,35 @@ node /tmp/testsrv.js & sleep 2
   export from a test, **click the button** (`document.getElementById('export-btn').click()`),
   don't call `exportExcel()`.
 - **To capture an exported file**, monkey-patch `URL.createObjectURL` to grab the Blob, then
-  base64 it into the DOM and decode locally.
+  base64 it into the DOM and decode locally. Also stub `HTMLAnchorElement.prototype.click` so the
+  download doesn't fire. You can skip the round trip to disk entirely: `DecompressionStream
+  ('deflate-raw')` will inflate the .xlsx entries in the browser, and `DOMParser` will tell you
+  whether each part is well-formed.
+
+### ⚠️ Every test must build its own fixture
+
+The single most expensive mistake made in this project's testing. Reusing state between cases
+means **an action that happens to be a no-op creates no undo step** — so the next `undo` in the
+test pops the *test's own setup* instead, and every later assertion cascades into a false failure.
+One session lost eight assertions to this and briefly "found" a non-existent undo bug. Reset the
+fixture at the top of each case, and wait ~1.5 s after building it so the debounced undo pushes
+settle before you start measuring.
+
+### False failures: things that look like bugs and are not
+
+Each of these produced a wrong "FAIL" during a full-systems sweep. Check them before believing a
+result.
+
+| Symptom | Actual cause |
+|---|---|
+| Waterfall rows look out of chronological order | The waterfall renders as **two side-by-side blocks**; a row carries two date cells. Attribute each label to the nearest preceding date cell *in the same row*, then sort by date. |
+| `Post wk 1` found where it shouldn't be | It matches **inside** `Simultaneous Post wk 1`. Strip `/Simultaneous Post wk \d+/` first, or anchor on `^`. |
+| Month-view note editor "missing" | It is a popover with id `mv-note-pop` appended to **`body`**, not a child of the day cell. |
+| Excel header measures 320 > 255 | That is the **XML-escaped** length; `&amp;` is 5 characters for 1. Unescape before measuring — the real string was 237. |
+| PDF leaves `body.printing-*` stuck | Cleanup is bound to **`afterprint`** (with a 60 s safety net). A stubbed `window.print()` must `dispatchEvent(new Event('afterprint'))` or it looks stuck forever. |
+| Re-enabling holidays doesn't restore the schedule | The holiday list **re-renders on every change**, so a captured checkbox array is detached. Re-query `#holiday-vis-list input.hv-en` on each iteration. |
+| A holiday doesn't appear in the waterfall | Holidays default to **month-view only**. Each row has three boxes: `hv-en` (counts against the schedule, on by default) plus two `hv-cb` for per-view display — sheet **off**, month **on**. |
+| Region change silently ignored | Once any note/holiday/hiatus edit exists the region **reverts** rather than being `disabled`. Test on a fresh fixture with no edits. |
 
 ### Validating an exported .xlsx
 
@@ -680,7 +708,14 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
   beside it collapsed to 18 px. Use `.tools-menu input[type="date"].tools-date-fixed`.
 - **Regression tests must build their own fixture per case.** Reusing state meant a solve that
   happened to be a no-op created no undo step, so the next `undo` popped the *test's own setup*
-  and eight later assertions cascaded into false failures.
+  and eight later assertions cascaded into false failures. See §11.
+- ### ⚠️ Month grid rows run SUNDAY–Saturday; schedule weeks are MONDAY-based.
+  `gridStart` backs up to the Sunday on/before the 1st, so `mondayOf(weekStart)` on a row's own
+  Sunday returns the Monday of the *previous* week — the week that ended the day the row starts.
+  This drew every Simultaneous Post band a week late, and the first sim-post week never appeared in
+  the month containing it. A row's working days are Mon–Fri, so look up from `addDays(weekStart, 1)`.
+  The same skew still exists (deliberately) in the `mvExtraLanes` key: it is only ever compared
+  against itself and is persisted, so re-deriving it would orphan saved lanes.
 
 ---
 
