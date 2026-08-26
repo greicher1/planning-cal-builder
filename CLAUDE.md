@@ -33,6 +33,14 @@ DOM inputs → readState() → computeSchedule(state) → render(schedule) → m
   - `MAX_WEEKS = 600` guards against typo'd years hanging the page.
 - **`render(schedule)`** dispatches to `renderSpreadsheetView()` (waterfall) or `renderMonthView()` per `viewMode` (`'sheet' | 'month'`), plus the summary row and holiday-visibility list.
 
+**After applying a state snapshot, `refreshAfterRestore()` must run** — not a bare `update()`. It is the single list of post-restore UI refreshes (sidebar tab, region tracking, episode rows, sim-post, then `update`). The three restore paths each used to keep their own copy of that list and drifted, which left a stale "Complete Show Info" notice and an empty episode list after opening a saved file.
+
+## Calendar adjustment tools
+
+The toolbar above the preview holds **Shift All** (split control: arrows act, caret opens a form), **Shift From**, **Anchor To** and **Rebuild From**. Only two questions distinguish them, and the popover descriptions exist to answer them: *does everything move or part of it*, and *do the gaps between phases survive or get rebuilt*. Anything true of all four — none of them ever change a phase's duration — must **not** appear in a description; it reads as a distinction while distinguishing nothing.
+
+`shiftCalendar(weeks, fromIso)` also re-keys the week-keyed note stores, because a shift that moved only the dates would leave every note behind on the old calendar date. Holidays never move, locked all-phase hiatuses never move, and notes carrying a date never move; per-phase hiatuses always travel with their phase. Full detail, including the two solvers and why Production is searched rather than inverted, is in **PROJECT-CONTEXT.md §7a**.
+
 `PHASES` (line ~1008) defines the six built-in phases with their Excel fill/text colors and label templates; `production` is the only one with `inputMode:'days'`. Custom phases are appended via `customPhaseDefs` and get keys `custom<n>`; `getAllPhaseDefs()` returns built-ins + custom together and is what the rest of the app iterates.
 
 ## State model
@@ -49,7 +57,11 @@ State lives in module-scope mutable objects (scattered through the script — `c
 | `mvExtraLanes` | extra note lanes per month-view week |
 | `customPhaseDefs`, `episodeDefs` | dynamic rows |
 
-Any new persistent state must be added in **three** places or it will silently not survive a save: the `stateSnapshot` literal in `buildSavedHtml()`, the matching branch in `restoreSavedState()`, and (if it's a DOM field) `collectFieldValues()` / `reflectFieldsToAttributes()`.
+| `locked` on each `.hiatus-entry` | the "Lock in place" pin: a locked all-phase hiatus keeps its dates when the shift tools move the calendar |
+
+Any new persistent state must be added in **both** places or it will silently not survive a save: the `captureSnapshot()` literal and the matching branch in `applyStateSnapshot()` — plus (if it's a DOM field) `collectFieldValues()` / `reflectFieldsToAttributes()`. `captureSnapshot()` is the **single** definition of "what counts as state", consumed by the save file, the crash backup, and the undo stack; it replaced two duplicated snapshot literals.
+
+⚠️ `collectFieldValues()` sweeps every `input[id]`/`select[id]`/`textarea[id]` in the document. Any new id'd control that is *transient UI* rather than calendar data must be excluded, or it gets baked into saved files **and** adds phantom undo steps. The toolbar tool popovers are excluded via `el.closest('.tools-menu')` — matched on the **class**, deliberately not an id, because an id-based test quietly stops matching when markup is reorganised.
 
 ## Save / restore
 

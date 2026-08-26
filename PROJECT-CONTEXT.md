@@ -3,7 +3,7 @@
 **Purpose of this document:** everything a fresh Claude session needs to work on this project
 with no prior context. Pair it with the current `index.html` and you have the whole picture.
 
-**Last updated:** at commit `ae42e96` (Excel header 255-char fix).
+**Last updated:** at commit `218558b` (calendar tools: shift / anchor / rebuild, undo-redo, Cmd+S).
 
 ---
 
@@ -12,6 +12,9 @@ with no prior context. Pair it with the current `index.html` and you have the wh
 A **TV production scheduling tool** used to build season planning calendars. You give it phase
 start dates and durations; it produces a week-by-week **waterfall calendar**, a **month
 calendar**, an **Excel workbook**, and **printable PDFs**.
+
+Above the preview sits a row of **adjustment tools** that move or rebuild a whole plan at once —
+see §7a, which is the densest part of the app added since the original version of this document.
 
 It is used by production/scheduling staff at a TV studio ("SPT" = Sony Pictures Television).
 The output is the sort of one-page planning calendar that gets circulated to a production team.
@@ -286,7 +289,7 @@ undiscoverable.
 
 ---
 
-## 7. State model & the THREE-PLACES RULE
+## 7. State model & the snapshot rule
 
 State lives in **module-scope mutable variables**, not a single store. The persisted ones:
 
@@ -304,13 +307,104 @@ State lives in **module-scope mutable variables**, not a single store. The persi
 | `phaseColorOverride` | per-phase colour overrides |
 | `viewMode`, `sidebarTab` | UI position |
 
-> ### ⚠️ Any new persistent state must be added in THREE places or it silently won't survive a save:
-> 1. the `stateSnapshot` literal in `buildSavedHtml()` (~4802)
-> 2. the matching branch in `restoreSavedState()` (~5905)
-> 3. if it's a DOM field, `collectFieldValues()` / `reflectFieldsToAttributes()`
+Added since: `locked` on each all-phase hiatus row (the "Lock in place" pin — see §7a), and the
+undo/redo stacks, which are **not** persisted (history is per-session and reset on New/Open).
+
+> ### ⚠️ Any new persistent state must be added in BOTH places or it silently won't survive a save:
+> 1. the `captureSnapshot()` literal (~5176)
+> 2. the matching branch in `applyStateSnapshot()` (~6942)
+> 3. if it's a DOM field, `collectFieldValues()` (~4974) / `reflectFieldsToAttributes()`
 >
-> There is also a **second** `stateSnapshot` for the IndexedDB/localStorage backup (~4987) —
-> update that too.
+> **This used to be three places, with two duplicated snapshot literals** (one in
+> `buildSavedHtml()`, one in the IndexedDB backup). They are now a single `captureSnapshot()`
+> consumed by all **three** callers — the save file, the crash backup, and the undo stack — so
+> there is one definition of "what counts as state".
+>
+> ⚠️ `collectFieldValues()` sweeps **every** `input[id]`/`select[id]`/`textarea[id]` in the
+> document, so any new id'd control that is *transient UI* rather than calendar data must be
+> excluded or it gets baked into saved files **and** adds phantom undo steps. The toolbar tools are
+> excluded by `el.closest('.tools-menu')` — matched on the **class**, deliberately not an id,
+> because an id-based test quietly stops matching when markup is reorganised (this happened).
+
+---
+
+## 7a. The calendar adjustment tools (toolbar above the preview)
+
+```
+[Waterfall | Month]  [← 1 wk  Shift All  1 wk → ▾] [Shift From ▾] [Anchor To ▾] [Rebuild From ▾]  [↶ ↷]
+```
+
+One button per tool, each opening its own small popover. There is deliberately **no container
+menu** — an earlier "Adjustment Tools" menu hid all four behind one unlabelled click and grew to
+562 px tall. Shift All is a **split control**: the arrows act on one click, the caret opens the
+multi-week form.
+
+Only **two questions** distinguish these tools, and the popover descriptions are written to answer
+them. Anything true of all four (durations are never changed by any of them) must **not** appear in
+a description — it reads as a distinction while distinguishing nothing.
+
+| | Everything moves | Part moves |
+|---|---|---|
+| **Gaps preserved** | Shift All (by amount) · Anchor To (by date) | Shift From |
+| **Gaps rebuilt** | — | Rebuild From |
+
+- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)` (~5369). `fromIso` limits the
+  move to weeks on or after a cutoff; that is Shift From. Earlier/Later is the direction of
+  **travel**, not which side moves — both directions move the same set.
+- **Anchor To** — measures the gap between a landmark and a target date, then calls
+  `shiftCalendar` with that delta. It moves **dates, not phases**: a phase with a week count but
+  no date is invisible to it. It never reads week counts to position anything.
+- **Rebuild From** — `workBackwardsFrom` (~5584) / `workForwardsFrom` (~5632). Pins one date and
+  recomputes one side to run consecutively, **writing** start dates including into empty fields.
+- **Close all gaps** — `closeAllGaps()` (~5682), folded into the Rebuild From popover. It is
+  Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
+  From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
+
+### What a shift moves — and what deliberately doesn't
+
+A shift that moved only the dates would leave every note behind on the old calendar date, silently
+detached from the phase it was written for. `shiftCalendar` therefore also re-keys the week-keyed
+stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `monthCursor`.
+
+| Stays put | Why |
+|---|---|
+| Union holidays | Real calendar dates. Because Production is a day-level sim, shifting by exactly 7 days can move its **wrap** by more or less than 7 — the tools report the resulting wrap for this reason. |
+| All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. |
+| Notes carrying a **date** | A dated note is *about* that day. Month-view day notes and `mvExtraLanes` stay for the same reason. |
+| Per-phase hiatuses | These **do** travel — they belong to their phase's work, and move with it as a unit. |
+
+> ⚠️ Two notes can land on one week (an undated note shifted onto a dated one's week).
+> `shiftKeyedMap` lets **stayers claim their keys first** and arrivals **merge**; whichever wrote
+> second used to silently delete the other. A shift must never lose text.
+>
+> ⚠️ `noteColors` keys off the same week as its note and must make the same stay-or-go decision,
+> so the pinned-week set is computed **once, before anything moves**.
+
+### The two solvers
+
+- `startForWeeksEndingAt()` (~5570) is the **exact inverse of `extendEndForHiatus()`**: it walks
+  back from an exclusive end counting only non-paused weeks, so a phase straddling a hiatus starts
+  earlier rather than losing weeks.
+- Production has **no week count** — its span is a day-level walk over weekends, hiatus days and
+  enabled union holidays, so the same shoot occupies a different number of weeks depending on where
+  it lands. `productionStartEndingBy()` (~5525) therefore **asks the real scheduler** rather than
+  inverting it: `productionEndFor()` (~5504) sets the field, calls `computeSchedule(readState())`
+  directly (no render), reads the segment end, and restores the field.
+  > ⚠️ It searches from the latest candidate **backward**, deliberately not forward until it stops
+  > fitting. A later start is not always a later finish: a shoot beginning just before a long hiatus
+  > is pushed out by it, while one a week later starts *after* it and can finish sooner — so a
+  > forward scan can settle on a local fit and miss the answer.
+- `workForwardsFrom` uses **neither** solver: it writes a start, recomputes, and reads the real
+  segment end before placing the next phase, so Production's sim is honoured for free.
+  > ⚠️ It must chain off the last phase actually **placed**, not the previous entry in the
+  > sequence. Those differ whenever a phase is skipped for having no week count, and chaining off
+  > the sequence position meant one unused phase in the middle broke every phase after it.
+
+### Phase order for a rebuild
+
+`phaseSequence()` (~5475): built-ins keep their canonical `PHASE_CHAIN` order — it is the app's
+own model of the sequence and works with **no dates entered at all**. A custom phase has no place
+in that chain, so it is slotted by the date it currently sits on; an undated custom phase goes last.
 
 ---
 
@@ -337,6 +431,42 @@ dirty-tracking during load/restore; `markDirty()` schedules a localStorage backu
 **Consequence to remember:** a saved calendar carries the app code from whenever it was saved.
 Fixing a bug in `index.html` does **not** fix already-saved calendars. To repair one, patch the
 code inside that saved file (this has been done before — see §11).
+
+### Restoring: one path, three callers
+
+`applyStateSnapshot(snap)` (~6942) applies a snapshot to the live document;
+`restoreSavedState()` (~6911) is a thin wrapper that parses the embedded block and calls it.
+Afterwards, **`refreshAfterRestore()` (~6929) must run** — it re-reads the calendar into the UI
+(`setSidebarTab`, `syncRegionTracking`, `refreshEpisodesUI`, `refreshSimPostUI`, `update`).
+
+> ⚠️ The three restore paths — initial page load, opening a file, recovering a backup — each used
+> to keep their **own hand-maintained copy** of that refresh list, and they drifted. Opening a file
+> never called `refreshEpisodesUI()`, the only thing that hides the "Complete Show Info" notice
+> and renders the episode rows, so opening a complete calendar restored every field correctly and
+> left the *previous* calendar's stale warning on screen with an empty episode list. Keep
+> `refreshAfterRestore()` as the single list.
+
+Restore is **replace, not merge**: `dayNotes`/`userNotes` are cleared before repopulating.
+Merging left behind entries the incoming snapshot didn't have — stale after an undo step, or leaked
+in from a previously open file.
+
+### Undo / redo and Cmd+S
+
+Undo/redo are whole-state snapshots of `captureSnapshot()`, held as **JSON strings** so a later
+in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pushed step.
+
+- Pushes are **debounced** (~500 ms) off `markDirty()`, because `update()` runs on every
+  keystroke — otherwise a typed date would be a dozen undo steps.
+- **Discrete actions bypass the debounce**: every toolbar tool wraps itself in
+  `pushUndoSnapshot()` either side of the change, so one click is always exactly one undo step.
+- `resetUndoHistory()` runs whenever a different document replaces what's on screen.
+- Applying a step calls `refreshAfterRestore()`, not a bare `update()` — an undo that changed
+  the episode count otherwise put the field back and left the old episode rows on screen.
+- **Cmd+S** calls the Save button's own click handler (not `saveToFile()` directly) so it keeps
+  the in-flight guard, the flash, and the error handling. `saveToFile()` already means "picker if
+  no handle, write in place otherwise".
+- Cmd+Z / Cmd+Shift+Z are skipped while focus is in an `input`/`textarea`/contenteditable, so
+  the browser's own in-field undo still works there.
 
 ---
 
@@ -526,6 +656,32 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
   because saved calendars embed the app. This was done for a user's file by string-replacing the
   affected function and writing a `(Excel fix)` copy — the original was left untouched.
 
+### Traps added while building the adjustment tools
+
+- ### ⚠️ `SIM_KEY` IS DELIBERATELY NUL-PREFIXED — never run a blanket control-character sweep
+  over `index.html`.
+  `const SIM_KEY = '\u0000simpost'` uses a NUL prefix so the simultaneous-post pseudo-key can
+  never collide with a real phase key. A sweep that stripped "stray" control characters silently
+  changed it to `'simpost'`; it was caught by diffing against `HEAD` and restored byte-for-byte.
+  Verify with code points, not a string literal — a NUL cannot be reliably authored in a script.
+- **Restore paths drift.** See the `refreshAfterRestore()` warning in §8. Symptom was a stale
+  "Complete Show Info" notice and an empty episode list after opening a saved file.
+- **`collectFieldValues()` excludes transient UI by CLASS, not id.** It was `#tools-menu`; the
+  restructure to one popover per tool killed that id and the tool fields silently started being
+  saved again *and* adding phantom undo steps (undo needed two presses).
+- **A shift could silently delete a note.** Collisions merge now — see §7a.
+- **"Ends by" must floor, not round.** Aligning to the nearest week landed a 10/05 deadline on
+  10/11, six days *late*. A deadline is one-sided.
+- **`markDirty()` was missing** from `commitActiveNoteEditor()` and the waterfall header
+  `focusout` — waterfall note and header edits were invisible to the dirty indicator *and* to
+  undo. Anything that mutates state must call it.
+- **CSS specificity:** `input[type=date]{width:100%}` (0,1,1) out-specifies a bare class (0,1,0).
+  A `.tools-date-fixed` class lost, the date input took the whole row, and the phase dropdown
+  beside it collapsed to 18 px. Use `.tools-menu input[type="date"].tools-date-fixed`.
+- **Regression tests must build their own fixture per case.** Reusing state meant a solve that
+  happened to be a no-op created no undo step, so the next `undo` popped the *test's own setup*
+  and eight later assertions cascaded into false failures.
+
 ---
 
 ## 13. Pending / discussed but not built
@@ -552,45 +708,65 @@ saved calendars. Holiday data must never auto-update into an existing calendar.
 **Not yet done:** non-holiday settings (export options, defaults) in the Settings tab — the owner
 asked to hold off on those.
 
+### Decisions taken and deliberately not revisited
+
+- **New Calendar intake screen: declined for now.** Asked again after the toolbar work; the owner's
+  answer was to keep the app as is. The design above stands if it is ever picked up.
+- **The toolbar wraps to two lines below 1280 px window width.** Measured, accepted. It never
+  overflows or clips (tested to 900 px) — it just goes to 75 px tall. Shortening the labels or
+  collapsing them to icons was considered and rejected as worse.
+- **`Close all gaps` is redundant** — it is Rebuild-forwards from the first phase at its current
+  date. Kept anyway as the zero-input, one-click case, the same justification as the toolbar arrows
+  next to Shift All.
+- **Result-message verbosity is intentionally uneven.** The toolbar arrows show a terse chip
+  (`1 wk later · wrap 05/01/26`); the popovers give the full sentence including the locked-hiatus
+  count. The arrows are a quick nudge and that count is almost always "all of them".
+- **`bc2fc2d` has a wrong `Co-Authored-By` trailer** (says Sonnet 5; the work was Opus 5). Left
+  alone — it is pushed, and fixing it means rewriting public history.
+
 ---
 
-## 14. Quick line-number map (as of `ae42e96`)
+## 14. Quick line-number map (as of `218558b`)
 
 Approximate; the file shifts as it's edited. Regenerate with:
 `grep -n "^\s*\(async \)\?function [a-zA-Z]" index.html`
 
 | Area | Line |
 |---|---|
-| `<style>` block | 21–746 |
-| `<script id="saved-state">` | 750 |
-| ExcelJS CDN tag | 1003 |
-| Main `<script>` | 1004–6130 |
-| `PHASES` | 1008 |
-| `HOLIDAYS` | 1052 |
-| `holidaySlug` / `migrateHolidayViewKeys` / `fullHolidayList` | 1524 / 1535 / 1555 |
-| `readState` | 1591 |
-| `computeSchedule` | 1650 |
-| `extendEndForHiatus` | 1677 |
-| `simulateProductionSchedule` | 1701 |
-| `buildPhaseRows` | 1998 |
-| `renderHolidayVisList` | 2292 |
-| `render` | 2359 |
-| `renderMonthView` | 2638 |
-| `renderSpreadsheetView` | 3165 |
-| `exportExcel` | 3582 |
-| Excel header 255 guard (`HF_MAX`) | 3708 |
-| `setSidebarTab` | 3944 |
-| `computeBlockLayout` / `computePhaseRowLayout` | 4048 / 4155 |
-| `countryChangeWouldClobber` | 4258 |
-| `update` | 4315 |
-| Region helpers | 4334–4386 |
-| `autostartPhase` | 4439 |
-| `syncRegionTracking` | 4538 |
-| `buildSavedHtml` state snapshot | 4802 |
-| Backup snapshot | 4987 |
-| `exportMonthPdf` | 5391 |
-| `exportWaterfallPdf` | 5603 |
-| `restoreSavedState` | 5905 |
+| `<style>` block | 21–841 |
+| `<script id="saved-state">` | 845 |
+| Main `<script>` | 1197–7170 |
+| `PHASES` | 1201 |
+| `HOLIDAYS` | 1245 |
+| `readState` | 1784 |
+| `computeSchedule` | 1843 |
+| `extendEndForHiatus` | 1870 |
+| `simulateProductionSchedule` | 1894 |
+| `buildPhaseRows` | 2191 |
+| `addHiatusRow` (incl. the Lock-in-place pin) | 2432 |
+| `render` | 2558 |
+| `renderMonthView` | 2837 |
+| `renderSpreadsheetView` | 3364 |
+| `exportExcel` | 3783 |
+| `setSidebarTab` | 4145 |
+| `update` | 4516 |
+| `autostartPhase` | 4640 |
+| `collectFieldValues` | 4974 |
+| `buildSavedHtml` | 5006 |
+| `saveToFile` | 5122 |
+| **`captureSnapshot`** (the one state definition) | 5176 |
+| `pushUndoSnapshot` / undo-redo block | 5243 |
+| **`shiftCalendar`** | 5369 |
+| `phaseSequence` | 5475 |
+| `productionEndFor` / `productionStartEndingBy` | 5504 / 5525 |
+| `startForWeeksEndingAt` | 5570 |
+| `workBackwardsFrom` / `workForwardsFrom` | 5584 / 5632 |
+| `closeAllGaps` | 5682 |
+| `exportMonthPdf` | 6397 |
+| `exportWaterfallPdf` | 6609 |
+| `restoreSavedState` | 6911 |
+| **`refreshAfterRestore`** | 6929 |
+| **`applyStateSnapshot`** | 6942 |
 
 ---
 
