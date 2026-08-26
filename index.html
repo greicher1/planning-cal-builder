@@ -313,9 +313,12 @@
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
   .tools-menu{
-    display:none; position:absolute; top:calc(100% + 4px); right:0; width:320px;
+    display:none; position:absolute; top:calc(100% + 4px); right:0; width:364px;
     background:#fff; border:1px solid var(--border-strong); border-radius:8px;
     box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px 12px; z-index:60; text-align:left;
+    /* Five sections is taller than a short laptop window; cap it and scroll rather than running
+       off the bottom of the screen. Mirrors what the file menu already does. */
+    max-height:calc(100vh - 150px); overflow-y:auto;
   }
   .tools-menu.open{display:block;}
   .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
@@ -333,6 +336,15 @@
   .tools-go{margin-left:auto; font-size:11.5px !important; padding:5px 9px !important;}
   .tools-row .tools-go + .tools-go{margin-left:0;}
   .tools-wide{width:100%; font-size:11.5px !important; padding:6px 9px !important;}
+  /* Two equal buttons sharing a row -- the paired directions, and Earlier/Later. */
+  .tools-half{flex:1; min-width:0; font-size:11.5px !important; padding:6px 4px !important; white-space:nowrap;}
+  /* A date sharing its row with a phase dropdown gets a fixed width, so the phase name isn't
+     squeezed. The selector has to out-specify `input[type=date]{width:100%}` above -- a bare
+     .tools-date-fixed loses to it and the date takes the whole row, collapsing the select. */
+  .tools-menu input[type="date"].tools-date-fixed{flex:none; width:124px;}
+  /* One line per tool saying what it leaves alone -- the fact you need to tell these apart, since
+     several take the same phase + date input and do different things with it. */
+  .tools-hint{margin:0 0 7px; font-size:10.5px; line-height:1.35; color:var(--text-faint);}
   /* Result line. Kept in the popover rather than the toolbar because these tools can move things
      by an amount the user didn't type (an anchor computes its own delta). */
   .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
@@ -1013,31 +1025,50 @@
               </div>
             </div>
 
+            <!-- "Shift From" completes into the dropdown directly beneath it, and only reads as a
+                 pair with "Shift All" while the two sit together -- so these two by-amount tools
+                 stay adjacent, ahead of the by-date ones. -->
             <div class="tools-sec">
-              <p class="tools-head">Anchor to a date</p>
+              <p class="tools-head">Shift From</p>
+              <p class="tools-hint">Earlier phases stay where they are, so the gap in front stretches. Earlier/Later is the direction of travel, not which side moves.</p>
               <div class="tools-row">
-                <select id="tool-anchor-phase" aria-label="What to anchor"></select>
+                <select id="tool-ripple-phase" aria-label="Phase to shift from, along with everything after it"></select>
+                <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
+                <span class="tools-unit">wks</span>
               </div>
               <div class="tools-row">
+                <button class="secondary tools-half" id="tool-ripple-earlier" type="button">Earlier</button>
+                <button class="secondary tools-half" id="tool-ripple-later" type="button">Later</button>
+              </div>
+            </div>
+
+            <div class="tools-sec">
+              <p class="tools-head">Anchor to a date</p>
+              <p class="tools-hint">Schedule is shifted to anchored date but phase durations are maintained.</p>
+              <div class="tools-row">
+                <select id="tool-anchor-phase" aria-label="What to anchor"></select>
                 <select id="tool-anchor-edge" class="tools-edge" aria-label="Anchor its start or its end">
                   <option value="start">starts on</option>
                   <option value="end">ends by</option>
                 </select>
+              </div>
+              <div class="tools-row">
                 <input type="date" id="tool-anchor-date" aria-label="Date to anchor it to">
                 <button class="secondary tools-go" id="tool-anchor-go" type="button">Go</button>
               </div>
             </div>
 
             <div class="tools-sec">
-              <p class="tools-head">Push one phase and everything after it</p>
+              <p class="tools-head">Work from a date</p>
+              <p class="tools-hint">Pins this date, then rebuilds the phases on one side of it to run back to back, using their week counts. Fills in start dates left blank.</p>
               <div class="tools-row">
-                <select id="tool-ripple-phase" aria-label="Phase to push from"></select>
+                <select id="tool-solve-phase" aria-label="Phase to work from"></select>
+                <span class="tools-unit">starts</span>
+                <input type="date" id="tool-solve-date" class="tools-date-fixed" aria-label="Date that phase should start on">
               </div>
               <div class="tools-row">
-                <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to push">
-                <span class="tools-unit">weeks</span>
-                <button class="secondary tools-go" id="tool-ripple-earlier" type="button">Earlier</button>
-                <button class="secondary tools-go" id="tool-ripple-later" type="button">Later</button>
+                <button class="secondary tools-half" id="tool-solve-back" type="button">&#8592; Work backwards</button>
+                <button class="secondary tools-half" id="tool-solve-fwd" type="button">Work forwards &#8594;</button>
               </div>
             </div>
 
@@ -1113,7 +1144,7 @@
 
       <h3>Adjusting dates (moving the calendar around)</h3>
       <p>Above the preview, <strong>Shift All</strong> (<strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong>) moves the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
-      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
+      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Shift From</strong> is the same move applied to part of the calendar: pick a phase and it shifts that phase and everything after it, leaving the earlier work exactly where it is, so the gap in front of it stretches or shrinks &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; Earlier and Later are the direction of travel, not which side moves; both move the same set of phases. <strong>Close all gaps</strong> re-chains the phases back to back.</p>
       <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Locked in place</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that lock on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
@@ -5409,6 +5440,162 @@
     return (el && el.value) ? parseDateUTC(el.value) : null;
   }
 
+  // ---------- Work from a date: rebuild one side of a fixed date, back to back ----------
+  // "Anchor" moves the plan without reshaping it. This reshapes it: it pins one date and recomputes
+  // the phases on one side so they run consecutively, WRITING start dates -- including into fields
+  // left blank, which is what lets it answer "the shoot starts 6/22, so when does the room open?"
+  // from durations alone.
+
+  // The order the phases run in, for rebuilding purposes. Built-ins keep their canonical chain
+  // order: that's the app's own model of the sequence and what the per-phase "Start after previous
+  // phase" button already follows, and it works even when no dates have been entered yet. A custom
+  // phase has no place in that chain, so it's slotted by the date it currently sits on; an undated
+  // custom phase has nothing to position it, so it goes last, where it is at least predictable.
+  function phaseSequence(){
+    const defs = getAllPhaseDefs();
+    const byKey = {};
+    defs.forEach(p=>{ byKey[p.key] = p; });
+    const seq = PHASE_CHAIN.filter(k=>byKey[k]).map(k=>byKey[k]);
+    const customs = defs.filter(p=>PHASE_CHAIN.indexOf(p.key) === -1);
+    customs.forEach(p=>{
+      const d = phaseStartDate(p.key);
+      if(!d){ seq.push(p); return; }
+      // Insert before the first phase in the sequence that currently starts later than this one.
+      let at = seq.length;
+      for(let i = 0; i < seq.length; i++){
+        const other = phaseStartDate(seq[i].key);
+        if(other && other > d){ at = i; break; }
+      }
+      seq.splice(at, 0, p);
+    });
+    return seq;
+  }
+
+  // How many calendar-eligible weeks a phase needs. Production is deliberately excluded: its span
+  // comes from a day-level shoot simulation over weekends and union holidays, and running that
+  // backwards is a separate job -- callers check for it and stop rather than guessing.
+  function phaseWeeksFor(p){
+    if(p.key === 'production') return null;
+    const el = document.getElementById('weeks-' + p.key);
+    const raw = el ? parseInt(el.value, 10) : NaN;
+    if(!(raw > 0)) return null;
+    const w = rawInputToWeeks(p, raw);
+    return (w > 0) ? w : null;
+  }
+
+  // Hiatus ranges as computeSchedule builds them, but readable from outside it: the global list off
+  // the last computed schedule, and the per-phase ones straight from their fields (a phase with no
+  // start date yet has no segment to read them from).
+  function hiatusRangesForSolve(){
+    const global = ((currentSchedule && currentSchedule.hiatuses) || []).slice();
+    const own = {};
+    getAllPhaseDefs().forEach(p=>{
+      const en = document.getElementById('phiatus-en-' + p.key);
+      if(en && !en.checked) return;
+      const sEl = document.getElementById('phiatus-start-' + p.key);
+      const wEl = document.getElementById('phiatus-weeks-' + p.key);
+      const pd = sEl ? parseDateUTC(sEl.value) : null;
+      const wk = wEl ? parseInt(wEl.value, 10) : NaN;
+      if(!pd || !(wk > 0)) return;
+      const start = mondayOf(pd);
+      own[p.key] = {start, end: addDays(start, wk * 7)};
+    });
+    return {global, own};
+  }
+
+  // The exact inverse of extendEndForHiatus(): walk BACK from an exclusive end, counting only weeks
+  // that aren't paused, until the phase has its full span. A phase straddling a hiatus therefore
+  // starts earlier rather than losing weeks -- the same guarantee, solved from the other end.
+  function startForWeeksEndingAt(endExclusive, weeks, phaseKey, ranges){
+    const ownHi = phaseKey ? ranges.own[phaseKey] : null;
+    let delivered = 0, cur = endExclusive, safety = 0;
+    while(delivered < weeks && safety++ < 2000){
+      cur = addDays(cur, -7);
+      const paused = ranges.global.some(h => cur >= h.start && cur < h.end)
+                  || (ownHi && cur >= ownHi.start && cur < ownHi.end);
+      if(!paused) delivered++;
+    }
+    return cur;
+  }
+
+  // Pin `key` to `targetIso` and rebuild every phase BEFORE it so they run consecutively, ending
+  // where the next one begins. Returns a summary, or {error} describing why it stopped.
+  function workBackwardsFrom(key, targetIso){
+    const target = parseDateUTC(targetIso);
+    if(!target) return {error:'Pick a date first.'};
+    const seq = phaseSequence();
+    const at = seq.findIndex(p=>p.key === key);
+    if(at < 0) return {error:'That phase isn’t in the schedule.'};
+    if(at === 0) return {error:'Nothing runs before that phase.'};
+
+    const predecessors = seq.slice(0, at).reverse();  // nearest-first, walking backwards
+    // Production's span is a day-level simulation; inverting it is a separate job.
+    const prod = predecessors.find(p=>p.key === 'production');
+    if(prod) return {error:'Production sits before that phase — working back through the shoot isn’t supported yet.'};
+
+    const ranges = hiatusRangesForSolve();
+    const anchorMonday = mondayOf(target);
+    const written = [];
+    const skipped = [];
+    let cursor = anchorMonday;   // the date the phase being placed must END on (exclusive)
+    predecessors.forEach(p=>{
+      const weeks = phaseWeeksFor(p);
+      if(!weeks){ skipped.push(p.label || p.key); return; }
+      const start = startForWeeksEndingAt(cursor, weeks, p.key, ranges);
+      const el = document.getElementById('start-' + p.key);
+      if(!el) return;
+      const wasBlank = !el.value;
+      el.value = isoOf(start);
+      written.push({label: p.label || p.key, start, wasBlank});
+      cursor = start;   // the next phase back must end where this one begins
+    });
+
+    const anchorEl = document.getElementById('start-' + key);
+    if(anchorEl) anchorEl.value = isoOf(anchorMonday);
+    return {written, skipped, anchor: anchorMonday};
+  }
+
+  // Pin `key` to `targetIso` and rebuild every phase AFTER it, each starting where the previous one
+  // ends. Unlike the backward pass this leans on the live scheduler rather than its own arithmetic:
+  // it writes a start, recomputes, and reads the real segment end before placing the next phase --
+  // so Production's day-level shoot simulation is honoured for free, and a forward solve can never
+  // disagree with the dates the calendar is showing.
+  function workForwardsFrom(key, targetIso){
+    const target = parseDateUTC(targetIso);
+    if(!target) return {error:'Pick a date first.'};
+    const seq = phaseSequence();
+    const at = seq.findIndex(p=>p.key === key);
+    if(at < 0) return {error:'That phase isn’t in the schedule.'};
+    if(at === seq.length - 1) return {error:'Nothing runs after that phase.'};
+
+    const anchorEl = document.getElementById('start-' + key);
+    if(!anchorEl) return {error:'That phase has no start field.'};
+    anchorEl.value = isoOf(mondayOf(target));
+    update();   // so the anchor's own computed end is available to place the next phase
+
+    const written = [], skipped = [];
+    seq.slice(at + 1).forEach((p, i)=>{
+      const prev = seq[at + i];   // the phase this one follows
+      const prevSeg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === prev.key);
+      if(!prevSeg){ skipped.push(p.label || p.key); return; }
+      // A phase can't begin on a week the whole production is paused, so step over any hiatus the
+      // handoff lands in -- the same rule the per-phase "Start after previous phase" button uses.
+      let d = new Date(prevSeg.end.getTime());
+      const hi = (currentSchedule && currentSchedule.hiatuses) || [];
+      let safety = 0;
+      while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+      const el = document.getElementById('start-' + p.key);
+      if(!el) return;
+      // Only placeable if it has a span; Production gets its own from Show Info.
+      if(p.key !== 'production' && !phaseWeeksFor(p)){ skipped.push(p.label || p.key); return; }
+      const wasBlank = !el.value;
+      el.value = isoOf(d);
+      written.push({label: p.label || p.key, start: d, wasBlank});
+      update();   // recompute so the NEXT phase reads this one's real end
+    });
+    return {written, skipped, anchor: mondayOf(target)};
+  }
+
   // ---------- Close all gaps ----------
   // Re-chain the built-in phases back to back, which is the per-phase "Start after previous phase"
   // button applied down the whole chain. Only phases that are ALREADY scheduled are touched --
@@ -5750,7 +5937,9 @@
     function fillPhaseSelect(id, list, preferKey, withAll){
       const sel = document.getElementById(id);
       const prev = sel.value;
-      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')} — ${fmtShort(mondayOf(x.start))}</option>`);
+      // Work-from lists phases that have no start date yet (placing them is the point), so the
+      // date suffix is omitted rather than assumed -- mondayOf(null) would throw.
+      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')}${x.start ? ' — ' + fmtShort(mondayOf(x.start)) : ' — no date yet'}</option>`);
       if(withAll && list.length) opts.push(`<option value="${ANCHOR_ALL}">Whole schedule (all phases)</option>`);
       sel.innerHTML = opts.length ? opts.join('') : '<option value="">No phases scheduled yet</option>';
       // Keep whatever was chosen last if it still exists, else fall back to the caller's preference.
@@ -5800,11 +5989,25 @@
     // Re-read the calendar into the menu's own controls. Called on open AND after every tool runs:
     // each dropdown entry carries the phase's current start date, so leaving them alone after a
     // shift would leave the menu quoting dates the calendar no longer has.
+    // Work-from can target a phase that has no start date yet -- placing undated phases is the
+    // point of it -- so its dropdown lists every phase with a usable span, not just scheduled ones.
+    function solvablePhases(){
+      return phaseSequence()
+        .filter(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))
+        .map(p => ({p, start: phaseStartDate(p.key)}));
+    }
+    function syncSolveDate(){
+      const key = (document.getElementById('tool-solve-phase')||{}).value;
+      const start = key ? phaseStartDate(key) : null;
+      document.getElementById('tool-solve-date').value = start ? isoOf(mondayOf(start)) : '';
+    }
     function refreshMenuFromCalendar(){
       const list = scheduledPhases();
       fillPhaseSelect('tool-ripple-phase', list);
       fillPhaseSelect('tool-anchor-phase', list, 'production', true); // the shoot is the usual anchor
+      fillPhaseSelect('tool-solve-phase', solvablePhases(), 'production');
       syncAnchorDate();
+      syncSolveDate();
     }
     function openMenu(){
       refreshMenuFromCalendar();
@@ -5814,6 +6017,7 @@
     }
     document.getElementById('tool-anchor-phase').addEventListener('change', syncAnchorDate);
     document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
+    document.getElementById('tool-solve-phase').addEventListener('change', syncSolveDate);
     function closeMenu(){
       menu.classList.remove('open');
       btn.setAttribute('aria-expanded','false');
@@ -5876,20 +6080,57 @@
       say(out, overshot);
     });
 
-    // --- Ripple: push one phase and everything after it
+    // --- "Shift From": move one phase and everything after it, leaving earlier phases put.
+    //     Both directions move the same SET -- Earlier/Later is the direction of travel, not which
+    //     side of the calendar is affected -- so the gap in front of the chosen phase is what
+    //     stretches or shrinks.
     function ripple(sign){
-      const key = (document.getElementById('tool-ripple-phase')||{}).value;
+      const sel = document.getElementById('tool-ripple-phase');
+      const key = sel.value;
       if(!key) return say('No phase selected.', true);
+      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'that phase';
       const n = readWeeks('tool-ripple-weeks');
       if(!n) return say('Enter a number of weeks.', true);
       const from = phaseStartDate(key);
-      if(!from) return say('That phase has no start date.', true);
+      if(!from) return say(label + ' has no start date.', true);
       const res = asOneUndoStep(()=> shiftCalendar(sign * n, isoOf(mondayOf(from))));
       if(!res) return say('Nothing to shift.', true);
-      say(describeShift(res) + ' ' + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.');
+      // Name the phase it started from: the section header is deliberately terse, so the result
+      // line is where "from where?" gets answered.
+      say(describeShift(res) + ' From ' + label + ' onward — '
+        + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.');
     }
     document.getElementById('tool-ripple-earlier').addEventListener('click', ()=> ripple(-1));
     document.getElementById('tool-ripple-later').addEventListener('click', ()=> ripple(1));
+
+    // --- Work from a date: pin one phase's start, rebuild one side of it back to back
+    function runSolve(direction){
+      const sel = document.getElementById('tool-solve-phase');
+      const key = sel.value;
+      if(!key) return say('No phase selected.', true);
+      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'that phase';
+      const dateIso = (document.getElementById('tool-solve-date')||{}).value;
+      const res = asOneUndoStep(()=>{
+        const out = direction < 0 ? workBackwardsFrom(key, dateIso) : workForwardsFrom(key, dateIso);
+        if(!out.error) refreshAfterRestore();   // the date fields were written directly
+        return out;
+      });
+      if(res.error) return say(res.error, true);
+      if(!res.written.length){
+        return say('Nothing to place — the phases ' + (direction < 0 ? 'before' : 'after') + ' ' + label + ' have no week counts.', true);
+      }
+      // Lead with the phase the user actually wants to know about: the far end of the rebuild.
+      const far = res.written[res.written.length - 1];
+      const filled = res.written.filter(w=>w.wasBlank).length;
+      let out = (direction < 0 ? 'Worked back from ' : 'Worked forward from ') + label + ' — '
+        + far.label + (direction < 0 ? ' starts ' : ' starts ') + fmtShort(far.start) + '.';
+      out += ' ' + res.written.length + ' phase' + (res.written.length === 1 ? '' : 's') + ' placed';
+      out += filled ? (', ' + filled + ' newly dated.') : '.';
+      if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no week count).';
+      say(out);
+    }
+    document.getElementById('tool-solve-back').addEventListener('click', ()=> runSolve(-1));
+    document.getElementById('tool-solve-fwd').addEventListener('click', ()=> runSolve(1));
 
     // --- Close all gaps
     document.getElementById('tool-close-gaps').addEventListener('click', ()=>{
