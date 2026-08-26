@@ -1163,7 +1163,7 @@
 
       <h3>Adjusting dates (moving the calendar around)</h3>
       <p>Above the preview sits a row of tools, each with its own button: <strong>Shift All</strong> (its <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons move the whole calendar one week at a time, and the small arrow beside them opens a box for any number of weeks), <strong>Shift From</strong>, <strong>Anchor To</strong> and <strong>Work From</strong>. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
-      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Shift From</strong> is the same move applied to part of the calendar: pick a phase and it shifts that phase and everything after it, leaving the earlier work exactly where it is, so the gap in front of it stretches or shrinks &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; Earlier and Later are the direction of travel, not which side moves; both move the same set of phases. </p><p><strong>Work From</strong> is the one that answers a date rather than just moving to it. Pick a phase, give it a date, and <strong>Work backwards</strong> rebuilds every phase before it to run back to back &mdash; so &ldquo;the shoot starts 6/22&rdquo; tells you when the writers&rsquo; room has to open. <strong>Work forwards</strong> does the same for the phases after it. Both read the week counts you&rsquo;ve typed and <em>write</em> start dates, including into fields you left blank, so a calendar with nothing but durations and one fixed date can be solved in a single click. A phase that straddles a locked hiatus starts earlier rather than losing weeks. That&rsquo;s the difference from <strong>Anchor To</strong>, which only ever moves dates that already exist and never changes the spacing between phases. <strong>Close all gaps</strong> sits in the same box: it is Work forwards from the first phase at whatever date it already sits on, so it needs nothing filled in. Working <em>backwards</em> through Production isn&rsquo;t supported yet &mdash; the shoot&rsquo;s length comes from a day-by-day simulation over weekends and holidays, and running that in reverse is still to come; the tool says so rather than guessing.</p>
+      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Shift From</strong> is the same move applied to part of the calendar: pick a phase and it shifts that phase and everything after it, leaving the earlier work exactly where it is, so the gap in front of it stretches or shrinks &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; Earlier and Later are the direction of travel, not which side moves; both move the same set of phases. </p><p><strong>Work From</strong> is the one that answers a date rather than just moving to it. Pick a phase, give it a date, and <strong>Work backwards</strong> rebuilds every phase before it to run back to back &mdash; so &ldquo;the shoot starts 6/22&rdquo; tells you when the writers&rsquo; room has to open. <strong>Work forwards</strong> does the same for the phases after it. Both read the week counts you&rsquo;ve typed and <em>write</em> start dates, including into fields you left blank, so a calendar with nothing but durations and one fixed date can be solved in a single click. A phase that straddles a locked hiatus starts earlier rather than losing weeks. That&rsquo;s the difference from <strong>Anchor To</strong>, which only ever moves dates that already exist and never changes the spacing between phases. <strong>Close all gaps</strong> sits in the same box: it is Work forwards from the first phase at whatever date it already sits on, so it needs nothing filled in. Working backwards <em>through</em> Production works too, and is the one case that isn&rsquo;t simple subtraction: the shoot has no week count &mdash; its length is a day-by-day walk that skips weekends, hiatus days and every enabled union holiday &mdash; so how many weeks it occupies depends on where it lands. Rather than run that walk in reverse, the tool searches the real schedule for the latest start that still finishes in time, which means a back-solve can never disagree with the dates the calendar shows.</p>
       <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Locked in place</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that lock on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
@@ -5492,9 +5492,49 @@
     return seq;
   }
 
-  // How many calendar-eligible weeks a phase needs. Production is deliberately excluded: its span
-  // comes from a day-level shoot simulation over weekends and union holidays, and running that
-  // backwards is a separate job -- callers check for it and stop rather than guessing.
+  // ---------- Inverting Production ----------
+  // Production has no week count to subtract: its span is a day-level walk that skips weekends,
+  // hiatus days and every enabled union holiday until the shoot-day count is met, so the same
+  // shoot can occupy a different number of weeks depending on WHERE it lands. Rather than
+  // reimplement that walk in reverse -- which would be a second copy of the rule, free to drift --
+  // this asks the real scheduler: try a start, read the end it produces, and search for the fit.
+  //
+  // computeSchedule() is called directly rather than through update(), so nothing re-renders during
+  // the search. The field is put back immediately, so a failed search leaves no trace.
+  function productionEndFor(startIso){
+    const el = document.getElementById('start-production');
+    if(!el) return null;
+    const prev = el.value;
+    el.value = startIso;
+    let end = null;
+    try {
+      const sch = computeSchedule(readState());
+      const seg = (sch.segments || []).find(s=>s.key === 'production');
+      if(seg) end = seg.end;
+    } catch(e){ /* treat an unschedulable candidate as "doesn't fit" */ }
+    el.value = prev;
+    return end;
+  }
+  // The latest Monday on which the shoot can start and still be finished by `cursor`.
+  //
+  // Searched from the latest candidate BACKWARD, and deliberately not by stepping forward until it
+  // stops fitting: a later start is not always a later finish. A shoot beginning just before a long
+  // hiatus is pushed out by it, while one beginning a week later starts after it and can finish
+  // sooner -- so a forward scan can stop at a local fit and miss the real answer. Walking back from
+  // cursor returns the largest valid start on the first hit, whatever the hiatuses do.
+  function productionStartEndingBy(cursor){
+    let s = addDays(mondayOf(cursor), -7);   // must occupy at least one week
+    let safety = 0;
+    while(safety++ < 300){
+      const end = productionEndFor(isoOf(s));
+      if(end && end <= cursor) return s;
+      s = addDays(s, -7);
+    }
+    return null;
+  }
+
+  // How many calendar-eligible weeks a phase needs. Production returns null -- it has no week count
+  // and is placed by productionStartEndingBy() instead.
   function phaseWeeksFor(p){
     if(p.key === 'production') return null;
     const el = document.getElementById('weeks-' + p.key);
@@ -5550,21 +5590,26 @@
     if(at === 0) return {error:'Nothing runs before that phase.'};
 
     const predecessors = seq.slice(0, at).reverse();  // nearest-first, walking backwards
-    // Production's span is a day-level simulation; inverting it is a separate job.
-    const prod = predecessors.find(p=>p.key === 'production');
-    if(prod) return {error:'Production sits before that phase — working back through the shoot isn’t supported yet.'};
-
     const ranges = hiatusRangesForSolve();
     const anchorMonday = mondayOf(target);
     const written = [];
     const skipped = [];
     let cursor = anchorMonday;   // the date the phase being placed must END on (exclusive)
     predecessors.forEach(p=>{
-      const weeks = phaseWeeksFor(p);
-      if(!weeks){ skipped.push(p.label || p.key); return; }
-      const start = startForWeeksEndingAt(cursor, weeks, p.key, ranges);
       const el = document.getElementById('start-' + p.key);
       if(!el) return;
+      let start;
+      if(p.key === 'production'){
+        // The shoot is placed by searching the real simulation, not by subtracting weeks -- it has
+        // no week count, and how many weeks it occupies depends on the holidays it lands on.
+        if(!showInfoStatus().complete){ skipped.push(p.label || p.key); return; }
+        start = productionStartEndingBy(cursor);
+        if(!start){ skipped.push(p.label || p.key); return; }
+      } else {
+        const weeks = phaseWeeksFor(p);
+        if(!weeks){ skipped.push(p.label || p.key); return; }
+        start = startForWeeksEndingAt(cursor, weeks, p.key, ranges);
+      }
       const wasBlank = !el.value;
       el.value = isoOf(start);
       written.push({label: p.label || p.key, start, wasBlank});
@@ -5595,9 +5640,21 @@
     update();   // so the anchor's own computed end is available to place the next phase
 
     const written = [], skipped = [];
-    seq.slice(at + 1).forEach((p, i)=>{
-      const prev = seq[at + i];   // the phase this one follows
-      const prevSeg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === prev.key);
+    // The phase each new one hands off from is the last one actually PLACED, not the previous entry
+    // in the sequence. Those differ whenever a phase is skipped for having no week count: chaining
+    // off the sequence position instead meant one unused phase in the middle broke the handoff for
+    // every phase after it, and they were all reported skipped.
+    let prevKey = key;
+    seq.slice(at + 1).forEach(p=>{
+      const el = document.getElementById('start-' + p.key);
+      if(!el) return;
+      // A phase with no span isn't in use -- skip it and keep chaining from the last placed one.
+      // Production is the exception: its span comes from Show Info, not a week count.
+      if(p.key === 'production' ? !showInfoStatus().complete : !phaseWeeksFor(p)){
+        skipped.push(p.label || p.key);
+        return;
+      }
+      const prevSeg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === prevKey);
       if(!prevSeg){ skipped.push(p.label || p.key); return; }
       // A phase can't begin on a week the whole production is paused, so step over any hiatus the
       // handoff lands in -- the same rule the per-phase "Start after previous phase" button uses.
@@ -5605,13 +5662,10 @@
       const hi = (currentSchedule && currentSchedule.hiatuses) || [];
       let safety = 0;
       while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
-      const el = document.getElementById('start-' + p.key);
-      if(!el) return;
-      // Only placeable if it has a span; Production gets its own from Show Info.
-      if(p.key !== 'production' && !phaseWeeksFor(p)){ skipped.push(p.label || p.key); return; }
       const wasBlank = !el.value;
       el.value = isoOf(d);
       written.push({label: p.label || p.key, start: d, wasBlank});
+      prevKey = p.key;
       update();   // recompute so the NEXT phase reads this one's real end
     });
     return {written, skipped, anchor: mondayOf(target)};
