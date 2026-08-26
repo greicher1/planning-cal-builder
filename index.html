@@ -1152,7 +1152,7 @@
 
       <h3>Simultaneous post</h3>
       <p>The <strong>Simultaneous Post</strong> checkbox sits under the Production phase, since that&rsquo;s what it&rsquo;s measured against: tick it to mark weeks where post runs concurrently with the shoot, and the <strong>offset</strong> field beneath sets how many weeks after Production begins the flag starts. A flagged week shows its marker tucked into the leftmost free column right beside the running phase, so it takes as little space as possible.</p>
-      <p>The <strong>&ldquo;Number these weeks &amp; continue Post&rsquo;s count&rdquo;</strong> checkbox beneath chooses how those weeks are labelled and counted. <strong>On</strong> (the default), they read &ldquo;Simultaneous Post wk&nbsp;<em>n</em>&rdquo; and count as post weeks &mdash; so if two run concurrently (wk&nbsp;1&ndash;2), the regular Post phase picks up where they left off at Post wk&nbsp;3. <strong>Off</strong>, every flagged week simply reads &ldquo;Simultaneous Post&rdquo; and the Post phase counts independently, starting again at Post wk&nbsp;1.</p>
+      <p>The <strong>&ldquo;Number these weeks &amp; continue Post&rsquo;s count&rdquo;</strong> checkbox beneath chooses how those weeks are labelled and counted. <strong>Off</strong> (the default), every flagged week simply reads &ldquo;Simultaneous Post&rdquo; and the Post phase counts independently, starting at Post wk&nbsp;1. Switch it <strong>on</strong> and they read &ldquo;Simultaneous Post wk&nbsp;<em>n</em>&rdquo; and count as post weeks &mdash; so if two run concurrently (wk&nbsp;1&ndash;2), the regular Post phase picks up where they left off at Post wk&nbsp;3.</p>
 
       <h3>All-phase hiatus</h3>
       <p>Add one or more hiatus periods (a start date and a number of weeks) to pause the whole production at once. A hiatus pushes whatever phase it falls inside outward so that phase still delivers its full requested week or day count &mdash; it doesn&rsquo;t eat into the work. Hiatus weeks appear as a full-width &ldquo;Hiatus&rdquo; band. Click any hiatus band in Waterfall view to rename it or change its highlight color for that week.</p>
@@ -1834,11 +1834,11 @@
       simultaneousPost:{
         enabled: document.getElementById('simpost-enabled').checked,
         offsetWeeks: parseInt(document.getElementById('simpost-offset').value,10) || 0,
-        // Numbering mode. On (default): the flagged weeks are numbered and Post continues from them.
-        // Off: the original behavior -- every flagged week just reads "Simultaneous Post" and Post
-        // starts over at wk 1. Older saved files predate the checkbox, so a missing element means
-        // the element's default (on) applies.
-        countAsPostWeeks: (document.getElementById('simpost-count')||{checked:true}).checked
+        // Numbering mode. Off (default): every flagged week just reads "Simultaneous Post" and Post
+        // starts over at wk 1. On: the flagged weeks are numbered and Post continues from them.
+        // Off is also the behaviour that predates the checkbox, so saved files older than it -- which
+        // carry no stored value and fall back to this default -- read exactly as they did when made.
+        countAsPostWeeks: (document.getElementById('simpost-count')||{checked:false}).checked
       }
     };
   }
@@ -2238,7 +2238,7 @@
             weeks after Production begins
           </label>
           <label class="simpost-count-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1.">
-            <input type="checkbox" id="simpost-count" checked>
+            <input type="checkbox" id="simpost-count">
             <span>Number these weeks &amp; continue Post&rsquo;s count</span>
           </label>
         </div>` : ''}
@@ -4916,7 +4916,7 @@
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
-    if(spCount) spCount.checked = true; // numbered mode is the default
+    if(spCount) spCount.checked = false; // un-numbered is the default
     refreshSimPostUI();
     document.getElementById('union-country').value = '';
     const subEl = document.getElementById('union-subregion');
