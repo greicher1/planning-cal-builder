@@ -309,9 +309,7 @@
     color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
   .tools-row:last-child{margin-bottom:0;}
-  /* "Deliver by" anchors the END of the whole schedule, not a phase start -- a little air keeps it
-     from reading as a third line of the phase anchor above it. */
-  .tools-row-sep{margin-top:9px;}
+  .tools-edge{flex:none !important; width:92px;}
   .tools-lbl{font-size:11.5px; color:var(--text-muted); width:64px; flex:none;}
   .tools-menu input[type="number"]{width:52px; flex:none;}
   .tools-menu input[type="date"]{flex:1; min-width:0;}
@@ -1002,17 +1000,15 @@
             <div class="tools-sec">
               <p class="tools-head">Anchor to a date</p>
               <div class="tools-row">
-                <select id="tool-anchor-phase" aria-label="Phase to anchor"></select>
-                <span class="tools-unit">starts</span>
+                <select id="tool-anchor-phase" aria-label="What to anchor"></select>
               </div>
               <div class="tools-row">
-                <input type="date" id="tool-anchor-shoot" aria-label="Date that phase should start on">
-                <button class="secondary tools-go" id="tool-anchor-shoot-go" type="button">Go</button>
-              </div>
-              <div class="tools-row tools-row-sep">
-                <label class="tools-lbl" for="tool-anchor-end">Deliver by</label>
-                <input type="date" id="tool-anchor-end">
-                <button class="secondary tools-go" id="tool-anchor-end-go" type="button">Go</button>
+                <select id="tool-anchor-edge" class="tools-edge" aria-label="Anchor its start or its end">
+                  <option value="start">starts on</option>
+                  <option value="end">ends by</option>
+                </select>
+                <input type="date" id="tool-anchor-date" aria-label="Date to anchor it to">
+                <button class="secondary tools-go" id="tool-anchor-go" type="button">Go</button>
               </div>
             </div>
 
@@ -1101,7 +1097,7 @@
 
       <h3>Adjusting dates (moving the calendar around)</h3>
       <p>Above the preview, <strong>&larr; week &rarr;</strong> shifts the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
-      <p><strong>Shift everything</strong> moves the whole plan by any number of weeks. <strong>Anchor a phase</strong> slides the whole calendar so that phase starts on a date you pick &mdash; the plan keeps its shape and every other phase keeps its lead time. <strong>Deliver by</strong> does the same from the other end, landing the finish on or before a date. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
+      <p><strong>Shift everything</strong> moves the whole plan by any number of weeks. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
       <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Pinned to dates</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that pin on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
@@ -5733,22 +5729,57 @@
         .filter(x=>x.start)
         .sort((a,b)=> a.start - b.start);
     }
-    function fillPhaseSelect(id, list, preferKey){
+    // `withAll` adds the whole-schedule entry, which only the anchor offers -- rippling "from the
+    // whole schedule" would just be the plain shift that already has its own row.
+    function fillPhaseSelect(id, list, preferKey, withAll){
       const sel = document.getElementById(id);
       const prev = sel.value;
-      sel.innerHTML = list.length
-        ? list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')} — ${fmtShort(mondayOf(x.start))}</option>`).join('')
-        : '<option value="">No phases scheduled yet</option>';
+      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')} — ${fmtShort(mondayOf(x.start))}</option>`);
+      if(withAll && list.length) opts.push(`<option value="${ANCHOR_ALL}">Whole schedule (all phases)</option>`);
+      sel.innerHTML = opts.length ? opts.join('') : '<option value="">No phases scheduled yet</option>';
       // Keep whatever was chosen last if it still exists, else fall back to the caller's preference.
-      if(prev && list.some(x=>x.p.key === prev)) sel.value = prev;
-      else if(preferKey && list.some(x=>x.p.key === preferKey)) sel.value = preferKey;
+      const has = k => k === ANCHOR_ALL ? (withAll && list.length) : list.some(x=>x.p.key === k);
+      if(prev && has(prev)) sel.value = prev;
+      else if(preferKey && has(preferKey)) sel.value = preferKey;
     }
-    // Show the anchored phase's current start, so the field reads as "where it is now" and the
-    // user edits from there rather than typing into a blank box.
+    // The anchor works on a LANDMARK: one edge (start or end) of one phase, or of the schedule as
+    // a whole. ANCHOR_ALL is the whole-schedule entry -- "ends by" on it is the delivery deadline.
+    const ANCHOR_ALL = '__whole_schedule__';
+    // Where a landmark currently sits. A phase's end comes from its computed segment, so a phase
+    // with no duration typed has a start but no end yet. Production reports its WRAP rather than
+    // the end of the week the wrap falls in, matching what the header and the notes call it.
+    function landmarkDate(key, edge){
+      if(key === ANCHOR_ALL){
+        if(edge === 'end') return scheduleLastDay();
+        const segs = (currentSchedule && currentSchedule.segments) || [];
+        let first = null;
+        segs.forEach(s=>{ if(!first || s.start < first) first = s.start; });
+        return first;
+      }
+      if(edge === 'start') return phaseStartDate(key);
+      if(key === 'production'){
+        const info = currentSchedule && currentSchedule.productionInfo;
+        if(info && info.lastShootDay) return info.lastShootDay;
+      }
+      const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === key);
+      return seg ? addDays(seg.end, -1) : null;
+    }
+    function anchorSelection(){
+      const pSel = document.getElementById('tool-anchor-phase');
+      const eSel = document.getElementById('tool-anchor-edge');
+      const key = pSel.value, edge = eSel.value;
+      const label = key === ANCHOR_ALL
+        ? 'The schedule'
+        : ((pSel.selectedOptions[0] ? pSel.selectedOptions[0].textContent : '').split(' — ')[0] || 'That phase');
+      return {key, edge, label, current: key ? landmarkDate(key, edge) : null};
+    }
+    // Show where the chosen landmark sits now, so the field reads as "where it is" and the user
+    // edits from there rather than typing into a blank box.
     function syncAnchorDate(){
-      const key = (document.getElementById('tool-anchor-phase')||{}).value;
-      const start = key ? phaseStartDate(key) : null;
-      document.getElementById('tool-anchor-shoot').value = start ? isoOf(mondayOf(start)) : '';
+      const {edge, current} = anchorSelection();
+      // A start is Monday-snapped like every other start in this tool; an end is a real last day.
+      document.getElementById('tool-anchor-date').value =
+        current ? isoOf(edge === 'start' ? mondayOf(current) : current) : '';
     }
     // Re-read the calendar into the menu's own controls. Called on open AND after every tool runs:
     // each dropdown entry carries the phase's current start date, so leaving them alone after a
@@ -5756,10 +5787,8 @@
     function refreshMenuFromCalendar(){
       const list = scheduledPhases();
       fillPhaseSelect('tool-ripple-phase', list);
-      fillPhaseSelect('tool-anchor-phase', list, 'production'); // the shoot is the usual anchor
+      fillPhaseSelect('tool-anchor-phase', list, 'production', true); // the shoot is the usual anchor
       syncAnchorDate();
-      const last = scheduleLastDay();
-      document.getElementById('tool-anchor-end').value = last ? isoOf(last) : '';
     }
     function openMenu(){
       refreshMenuFromCalendar();
@@ -5768,6 +5797,7 @@
       btn.setAttribute('aria-expanded','true');
     }
     document.getElementById('tool-anchor-phase').addEventListener('change', syncAnchorDate);
+    document.getElementById('tool-anchor-edge').addEventListener('change', syncAnchorDate);
     function closeMenu(){
       menu.classList.remove('open');
       btn.setAttribute('aria-expanded','false');
@@ -5790,39 +5820,44 @@
     document.getElementById('tool-shift-earlier').addEventListener('click', ()=> shiftBy(-1));
     document.getElementById('tool-shift-later').addEventListener('click', ()=> shiftBy(1));
 
-    // --- Anchor: make a chosen phase start on a chosen date. Unlike the ripple below, this slides
-    //     the WHOLE calendar so that phase lands there -- the plan keeps its shape and every other
-    //     phase keeps its lead time; it just sits somewhere else on the calendar.
-    document.getElementById('tool-anchor-shoot-go').addEventListener('click', ()=>{
-      const sel = document.getElementById('tool-anchor-phase');
-      const key = sel.value;
-      if(!key) return say('No phase selected.', true);
-      const label = (sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '').split(' — ')[0] || 'That phase';
-      const target = parseDateUTC((document.getElementById('tool-anchor-shoot')||{}).value);
+    // --- Anchor: put one landmark -- the start or the end of any phase, or of the whole schedule
+    //     -- on a chosen date. Unlike the ripple below, this slides the WHOLE calendar so that
+    //     landmark lands there: the plan keeps its shape and every phase keeps its lead time, it
+    //     just sits somewhere else on the calendar.
+    //
+    //     The two edges round differently, and deliberately. A START is Monday-snapped like every
+    //     start in this tool, so aligning it to the target's week lands it exactly. An END falls on
+    //     whatever weekday the work happens to finish, and shifts move in whole weeks -- which
+    //     preserves weekday -- so an arbitrary end date is usually unreachable. "Ends by" is
+    //     therefore one-sided: it floors, landing on or before the date rather than overshooting
+    //     past a deadline to get nearer to it.
+    document.getElementById('tool-anchor-go').addEventListener('click', ()=>{
+      const {key, edge, label, current} = anchorSelection();
+      if(!key) return say('Nothing selected.', true);
+      const target = parseDateUTC((document.getElementById('tool-anchor-date')||{}).value);
       if(!target) return say('Pick a date first.', true);
-      const cur = phaseStartDate(key);
-      if(!cur) return say(label + ' has no start date to move.', true);
-      const delta = weeksBetweenMondays(cur, target);
-      if(!delta) return say(label + ' already starts that week.');
-      say(describeShift(asOneUndoStep(()=> shiftCalendar(delta))));
-    });
-
-    // --- Anchor: make the whole schedule finish by a chosen date
-    document.getElementById('tool-anchor-end-go').addEventListener('click', ()=>{
-      const target = parseDateUTC((document.getElementById('tool-anchor-end')||{}).value);
-      if(!target) return say('Pick a date first.', true);
-      const last = scheduleLastDay();
-      if(!last) return say('Nothing is scheduled yet.', true);
-      const delta = weeksToFinishBy(last, target);
-      if(!delta) return say('Already finishes ' + fmtShort(last) + ' — as late as it can without passing that date.');
+      if(!current){
+        return say(edge === 'end'
+          ? label + ' has no end yet — give it a duration first.'
+          : label + ' has no start date to move.', true);
+      }
+      const delta = edge === 'start'
+        ? weeksBetweenMondays(current, target)
+        : weeksToFinishBy(current, target);
+      if(!delta){
+        return say(edge === 'start'
+          ? label + ' already starts that week.'
+          : label + ' already ends ' + fmtShort(current) + ' — as late as it can without passing that date.');
+      }
       const res = asOneUndoStep(()=> shiftCalendar(delta));
-      // Report where it actually landed rather than the date asked for. Shifts move in whole
-      // weeks, and holidays don't travel with the plan, so the finish can settle short of the
-      // deadline -- or, if Production grew over a holiday it now overlaps, past it.
-      const landed = scheduleLastDay();
-      let out = describeShift(res) + (landed ? ' Finishes ' + fmtShort(landed) + '.' : '');
-      if(landed && landed > target) out += ' Still past your date — the shoot grew over a holiday it now overlaps.';
-      say(out, !!(landed && landed > target));
+      // Report where the landmark actually landed rather than the date asked for: whole-week steps
+      // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
+      // can even grow over one it now overlaps and finish past the date.
+      const landed = landmarkDate(key, edge);
+      let out = describeShift(res) + (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '');
+      const overshot = !!(landed && edge === 'end' && landed > target);
+      if(overshot) out += ' Still past your date — the shoot grew over a holiday it now overlaps.';
+      say(out, overshot);
     });
 
     // --- Ripple: push one phase and everything after it
