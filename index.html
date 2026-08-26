@@ -279,14 +279,29 @@
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
-  .shift-group{display:inline-flex; align-items:center; gap:2px; background:var(--bg);
+  .shift-group{position:relative; display:inline-flex; align-items:center; gap:2px; background:var(--bg);
     border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
-  .shift-group .icon-btn{width:28px; height:26px; border:none; background:transparent; font-size:14px;}
-  .shift-group .icon-btn:hover{background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .shift-btn{font-family:inherit; font-size:11px; font-weight:500; color:var(--text-muted);
+    border:none; background:transparent; border-radius:6px; padding:5px 7px; cursor:pointer;
+    white-space:nowrap; line-height:1;}
+  .shift-btn:hover{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  /* Names the operation the two arrows perform. Fixed text -- the result readout gets its own
+     floating chip below rather than borrowing this slot, which used to swap in a much longer
+     string and shove the tools button and Undo/Redo sideways every time you nudged a week. */
   .shift-label{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;
-    padding:0 2px; user-select:none;}
-  /* Brief confirmation of what a shift did, in place of the label. */
-  .shift-group.flash .shift-label{color:var(--text-muted);}
+    padding:0 4px; user-select:none; white-space:nowrap;}
+  /* Transient confirmation of what a shift did. Absolutely positioned so it can be as long as it
+     needs (the wrap date matters) without moving anything in the toolbar. */
+  .shift-readout{
+    display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:50; white-space:nowrap;
+    background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:4px 8px;
+    font-size:11px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace;
+    box-shadow:0 2px 8px rgba(0,0,0,.10);
+    /* It floats over the buttons beneath it for a couple of seconds; without this it would
+       swallow a click aimed at "Reset Notes & Hiatus" right after a shift. */
+    pointer-events:none;
+  }
+  .shift-group.flash .shift-readout{display:block;}
 
   /* Calendar tools popover. Right-aligned: it hangs off a button near the right edge of the
      preview panel, so anchoring it left would push it off screen. */
@@ -979,16 +994,17 @@
       </div>
       <div class="preview-tools">
         <div class="shift-group" id="shift-group">
-          <button class="icon-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">&#8592;</button>
-          <span class="shift-label">week</span>
-          <button class="icon-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">&#8594;</button>
+          <button class="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">&#8592; 1 wk</button>
+          <span class="shift-label">Shift All</span>
+          <button class="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk &#8594;</button>
+          <span class="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
         </div>
         <div class="tools-wrap" id="tools-wrap">
           <button class="tb-btn tools-btn" id="tools-btn" type="button" title="Shift, anchor, and re-chain the calendar" aria-haspopup="true" aria-expanded="false">Adjustment Tools <span class="caret">&#9662;</span></button>
           <div class="tools-menu" id="tools-menu" role="dialog" aria-label="Calendar tools">
 
             <div class="tools-sec">
-              <p class="tools-head">Shift everything</p>
+              <p class="tools-head">Shift All</p>
               <div class="tools-row">
                 <input type="number" id="tool-shift-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
                 <span class="tools-unit">weeks</span>
@@ -1096,9 +1112,9 @@
       <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Adjusting dates (moving the calendar around)</h3>
-      <p>Above the preview, <strong>&larr; week &rarr;</strong> shifts the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
-      <p><strong>Shift everything</strong> moves the whole plan by any number of weeks. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
-      <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Pinned to dates</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that pin on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
+      <p>Above the preview, <strong>Shift All</strong> (<strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong>) moves the whole calendar one week earlier or later, and <strong>Adjustment Tools</strong> opens the rest of the tools. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
+      <p><strong>Shift All</strong> moves the whole plan by any number of weeks &mdash; the <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons in the toolbar are the one-click version of it. <strong>Anchor to a date</strong> takes any landmark &mdash; the start or the end of any phase, or of the whole schedule &mdash; and slides the entire calendar so it lands there; the plan keeps its shape and every phase keeps its lead time. Pick <em>Whole schedule</em> and <em>ends by</em> for a delivery deadline. The two edges behave slightly differently on purpose: a <em>start</em> lands exactly on the week you pick, while <em>ends by</em> is one-sided &mdash; work finishes on whatever weekday it finishes, and shifts move in whole weeks, so it lands on or before your date rather than overshooting a deadline to get closer to it. <strong>Push one phase and everything after it</strong> is different: it moves only that phase onward and leaves the earlier work where it is, so the gap in front of it stretches &mdash; that&rsquo;s the tool for &ldquo;the shoot slipped but prep is already booked.&rdquo; <strong>Close all gaps</strong> re-chains the phases back to back.</p>
+      <p>Two things deliberately stay put. <strong>Union holidays never move</strong> &mdash; they&rsquo;re real calendar dates &mdash; so shifting the shoot by exactly a week can move its wrap by more or less than a week as it slides into or out of a holiday week; the tools report where the wrap actually landed. And a <strong>note with a date in it stays on that date</strong>, since it&rsquo;s about that specific day. All-phase hiatuses are <strong>Locked in place</strong> by default for the same reason &mdash; a winter break belongs to Christmas, not to the schedule around it &mdash; so uncheck that lock on any hiatus you want to travel with the plan. Per-phase hiatuses always travel with their phase. Any adjustment can be undone with <strong>&#8984;Z</strong>.</p>
 
       <h3>Waterfall view vs. Month view</h3>
       <p><strong>Each view has its own header with its own Auto/Manual switch, and the two are independent</strong> &mdash; taking the month header manual leaves the waterfall header alone, and vice versa. In Auto the lines fill themselves from Show Info; switch to Manual and they become an editable snapshot you can word however you like.</p>
@@ -2361,7 +2377,7 @@
 
   // `prefillLocked` defaults to TRUE: an all-phase hiatus is normally anchored to the real
   // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
-  // is unless the user unpins it. Per-phase hiatuses have no such pin -- they belong to their
+  // is unless the user unlocks it. Per-phase hiatuses have no such lock -- they belong to their
   // phase's work, so they always travel with a shift.
   function addHiatusRow(prefillStart, prefillWeeks, prefillLocked){
     const list = document.getElementById('hiatus-list');
@@ -2372,7 +2388,7 @@
       <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
-      <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Pin to dates</label>
+      <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
       <div class="snap-note"></div>
     `;
     row.querySelector('.remove-hiatus').addEventListener('click', ()=>{
@@ -4925,8 +4941,8 @@
       hiatuses.push({
         start: (row.querySelector('.hiatus-start')||{}).value || '',
         weeks: (row.querySelector('.hiatus-weeks')||{}).value || '',
-        // Saves written before the pin existed have no `locked`; restore reads a missing value
-        // as pinned, matching the default for a new row.
+        // Saves written before the lock existed have no `locked`; restore reads a missing value
+        // as locked, matching the default for a new row.
         locked: lockEl ? !!lockEl.checked : true
       });
     });
@@ -5243,8 +5259,8 @@
   //    more or less than 7: sliding into or out of a week containing a holiday adds or removes a
   //    shoot day. That's correct, and shiftCalendar() reports the resulting wrap so it isn't a
   //    surprise.
-  //  * All-phase hiatuses that are pinned (the default) -- a winter break belongs to Christmas.
-  //    Unpinned ones travel. Per-phase hiatuses always travel: they belong to their phase's work.
+  //  * All-phase hiatuses that are locked (the default) -- a winter break belongs to Christmas.
+  //    Unlocked ones travel. Per-phase hiatuses always travel: they belong to their phase's work.
   //  * Notes carrying a specific date -- a note pinned to a day is about that day (a holiday, a
   //    network screening), so it keeps both its day and its week. Month-view day notes are
   //    day-addressed by nature and stay put for the same reason, along with their extra lanes.
@@ -5321,13 +5337,13 @@
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
     });
 
-    // 2. All-phase hiatuses -- only the ones the user has unpinned.
-    let movedHiatuses = 0, pinnedHiatuses = 0;
+    // 2. All-phase hiatuses -- only the ones the user has unlocked.
+    let movedHiatuses = 0, lockedHiatuses = 0;
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
       const startEl = row.querySelector('.hiatus-start');
       if(!startEl || !startEl.value || !inRange(startEl.value)) return;
       const lock = row.querySelector('.hiatus-locked');
-      if(lock && lock.checked){ pinnedHiatuses++; return; }
+      if(lock && lock.checked){ lockedHiatuses++; return; }
       if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
     });
 
@@ -5355,7 +5371,7 @@
     refreshAfterRestore();
 
     return {
-      weeks: n, movedPhases, movedHiatuses, pinnedHiatuses,
+      weeks: n, movedPhases, movedHiatuses, lockedHiatuses,
       productionWrap: productionWrapText()
     };
   }
@@ -5664,21 +5680,21 @@
   // three-week undo, which reads as the button having eaten two of the presses.
   (function(){
     const group = document.getElementById('shift-group');
-    const label = group && group.querySelector('.shift-label');
+    const readout = document.getElementById('shift-readout');
     let flashTimer = null;
     function runShift(weeks){
       pushUndoSnapshot();          // close off whatever came before, so this click stands alone
       const res = shiftCalendar(weeks);
       pushUndoSnapshot();          // ...and bank the shift itself immediately
-      if(!res || !label) return;
+      if(!res || !readout) return;
       // Say what happened. The wrap date is worth showing because holidays don't move with the
       // plan, so Production's wrap can travel by more or less than the weeks requested.
       const dir = res.weeks < 0 ? 'earlier' : 'later';
       const n = Math.abs(res.weeks);
-      label.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '');
+      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '');
       group.classList.add('flash');
       clearTimeout(flashTimer);
-      flashTimer = setTimeout(()=>{ label.textContent = 'week'; group.classList.remove('flash'); }, 2600);
+      flashTimer = setTimeout(()=>{ group.classList.remove('flash'); }, 2600);
     }
     const back = document.getElementById('shift-back-btn');
     const fwd = document.getElementById('shift-fwd-btn');
@@ -5712,7 +5728,7 @@
       if(!res) return 'Nothing to shift.';
       const n = Math.abs(res.weeks);
       let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
-      if(res.pinnedHiatuses) out += ' ' + res.pinnedHiatuses + ' pinned hiatus' + (res.pinnedHiatuses === 1 ? '' : 'es') + ' held.';
+      if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       return out;
     }
@@ -5811,7 +5827,7 @@
     document.addEventListener('click', e=>{ if(!e.target.closest('#tools-wrap')) closeMenu(); });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeMenu(); });
 
-    // --- Shift everything by N weeks
+    // --- Shift All by N weeks (the toolbar arrows are the one-click 1-week case of this)
     function shiftBy(sign){
       const n = readWeeks('tool-shift-weeks');
       if(!n) return say('Enter a number of weeks.', true);
@@ -6610,8 +6626,8 @@
     // 2. Rebuild hiatus rows to match the saved set (replaces the defaults)
     if(snap.fields && Array.isArray(snap.fields.hiatuses)){
       document.getElementById('hiatus-list').innerHTML = '';
-      // h.locked is absent in saves written before the pin existed -> addHiatusRow defaults it to
-      // pinned, which matches how those calendars behaved (nothing shifted them).
+      // h.locked is absent in saves written before the lock existed -> addHiatusRow defaults it to
+      // locked, which matches how those calendars behaved (nothing shifted them).
       snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked));
     }
 
