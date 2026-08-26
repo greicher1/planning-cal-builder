@@ -3019,7 +3019,13 @@
       });
 
       // Simultaneous Post: a per-week band, exactly as in the waterfall view.
-      const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(weekStart)));
+      // A grid row runs SUNDAY to Saturday (gridStart backs up to the Sunday on/before the 1st),
+      // but the schedule's weeks are Monday-based. mondayOf() on the row's own Sunday therefore
+      // returns the Monday of the PREVIOUS week -- the week that ended the day this row starts --
+      // so the band was drawn a week late, and the first sim-post week never appeared in the month
+      // that actually contains it. The row's working days are Mon-Fri, so look up from its Monday.
+      const rowMonday = addDays(weekStart, 1);
+      const wkRec = (schedule.weeks || []).find(x => isoOf(x.date) === isoOf(mondayOf(rowMonday)));
       if(wkRec && wkRec.simPost){
         let sp = null;
         const spRuns = [];
@@ -3078,6 +3084,10 @@
       // content is never hidden. Manual expansion is what's capped: it can lift the row up to
       // MV_MAX_LANES but no further, so a stray click can't inflate a page indefinitely.
       const contentLanes = placed.length ? Math.max.apply(null, placed.map(p=>p.lane + (p.laneSpan||1))) : 0;
+      // Deliberately NOT corrected the way the sim-post lookup above was. This key is only ever
+      // compared against itself -- the row's "+" writes mvExtraLanes under exactly this key and
+      // this line reads it back -- so the off-by-one is invisible. It is also PERSISTED, so
+      // re-deriving it would orphan the extra lanes in every already-saved calendar.
       const wkIsoRow = isoOf(mondayOf(weekStart));
       const baseLanes = Math.max(MV_MIN_LANES, contentLanes);
       const roomToGrow = Math.max(0, MV_MAX_LANES - baseLanes);
