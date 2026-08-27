@@ -701,7 +701,13 @@
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
   table.sheet-table{
     /* fixed layout makes the <colgroup> widths authoritative; without it they are only hints
-       and the browser re-sizes from content. */
+       and the browser re-sizes from content.
+       An explicit width is set inline, to the exact sum of the column widths. Without it the
+       table is width:auto, and a width:auto table in a narrower container COMPRESSES to fit
+       rather than overflowing -- so the declared widths silently stopped applying as soon as
+       the grid outgrew the preview pane, and the drag handles (positioned from the declared
+       widths) drifted off the boundaries they were supposed to sit on. With the width set, the
+       grid overflows and .sheet-scroll scrolls, which is what should happen. */
     table-layout:fixed;
     border-collapse:collapse; font-size:11px; white-space:nowrap;
     font-family:'Carlito','Calibri','Segoe UI',-apple-system,sans-serif;
@@ -2218,9 +2224,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   let colWidths = {};    // 'date' | 'notes' | 'y2027:s0'  ->  width in Excel char units
   let rowHeights = {};   // row index -> height in screen px
 
-  // How a note has to be squeezed to sit on one line in a column `chars` wide.
-  // Shared by the screen and the Excel export so both shrink by exactly the same amount.
-  function noteFitFor(noteText, chars){
+  // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
+  // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
+  // notes AND phase labels so a narrowed column of either kind behaves the same way. The
+  // caller decides what to do when even the floor is not enough: notes wrap (the row grows),
+  // phase labels clip, because a wrapped label would break the fixed-height colour band.
+  function cellTextFit(noteText, chars){
     if(!noteText) return { scale:1, wrap:false };
     const avail = chars * EXCEL_MDW;              // Excel's own content width, padding excluded
     let widest = 0;
@@ -2294,15 +2303,38 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     });
   }
 
-  // Re-run the shrink-to-fit pass without a full render, so notes visibly resize mid-drag.
-  function applyNoteFitLive(notesChars){
-    const table = document.querySelector('table.sheet-table');
-    if(!table) return;
-    table.querySelectorAll('td.sheet-note-cell.has-note').forEach(td=>{
-      const fit = noteFitFor(td.textContent, notesChars);
-      td.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
-      td.style.fontSize = fit.scale < 1 ? (11 * fit.scale).toFixed(2) + 'px' : '';
-      td.dataset.notefit = fit.scale.toFixed(4);
+  // Re-run shrink-to-fit without a full render, so text visibly resizes mid-drag. Walks each
+  // row accumulating colSpan so a spanned cell is measured against the SUM of the columns it
+  // covers, exactly as the renderer does. Throttled to one pass per frame: a pointermove can
+  // fire several times per frame and this touches every text-bearing cell in the grid.
+  let _fitFrame = 0;
+  function applyCellFitLive(){
+    if(_fitFrame) return;
+    _fitFrame = requestAnimationFrame(()=>{
+      _fitFrame = 0;
+      const table = document.querySelector('table.sheet-table');
+      if(!table || !table.tBodies[0]) return;
+      const chars = [...table.querySelectorAll('colgroup col')]
+        .map(c => screenPxToChars(parseFloat(c.style.width) || 0));
+      [...table.tBodies[0].rows].forEach(tr=>{
+        let ci = 0;
+        [...tr.cells].forEach(td=>{
+          const span = td.colSpan || 1;
+          let avail = 0;
+          for(let k=0;k<span;k++) avail += chars[ci+k] || 0;
+          ci += span;
+          if(td.classList.contains('sheet-date') || td.classList.contains('sheet-empty')) return;
+          const txt = td.textContent;
+          if(!txt) return;
+          const fit = cellTextFit(txt, avail);
+          td.style.fontSize = fit.scale < 1 ? (11 * fit.scale).toFixed(2) + 'px' : '';
+          // Only notes may wrap; a wrapped phase label would break the fixed-height band.
+          if(td.classList.contains('sheet-note-cell')){
+            td.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
+            td.dataset.notefit = fit.scale.toFixed(4);
+          }
+        });
+      });
     });
   }
 
@@ -2323,7 +2355,6 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // Every column carrying this key moves together -- the three blocks' Date columns are one
     // column as far as the user is concerned.
     const sameKey = isCol ? cols.filter(c=>c.dataset.ckey === ckey) : [];
-    const notesIdx = cols.findIndex(c=>c.dataset.ckey === 'notes');
 
     h.classList.add('dragging');
     document.body.classList.add('grid-resizing');
@@ -2334,11 +2365,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       if(isCol){
         const px = Math.max(charsToScreenPx(COL_MIN_CHARS), startW + (ev.clientX - startX));
         sameKey.forEach(c=>{ c.style.width = px + 'px'; });
-        if(ckey === 'notes' || notesIdx >= 0){
-          // notes shrink live off the notes column's own width, whichever column is moving
-          const npx = parseFloat(cols[notesIdx] ? cols[notesIdx].style.width : '0') || 0;
-          applyNoteFitLive(screenPxToChars(npx));
-        }
+        applyCellFitLive();
       } else {
         const px = Math.max(8, startH + (ev.clientY - startY));
         tr.style.height = px + 'px';
@@ -4629,11 +4656,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // why the old renderer had to cap phase labels at a hardcoded 130px to stop one long custom
     // name dragging the whole grid into horizontal scroll.
     let colsHtml = '';
-    const flatCols = [];   // left-to-right, for the drag handles
+    let gridPxTotal = 0;
     yearBlocks.forEach((b, bi)=>{
       colWidthsFor[bi].cols.forEach(c=>{
-        flatCols.push(c);
-        colsHtml += `<col data-ckey="${c.key}" style="width:${charsToScreenPx(c.chars)}px">`;
+        const px = charsToScreenPx(c.chars);
+        gridPxTotal += px;
+        colsHtml += `<col data-ckey="${c.key}" style="width:${px}px">`;
       });
     });
 
@@ -4663,19 +4691,32 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
           const layout = computePhaseRowLayout(w, mc, blockSlotMaps[bi], blockOccupancy[bi], r, blockSimSlot[bi]);
+          // Phase columns are draggable like any other, so their labels need the same
+          // shrink-to-fit as notes. A spanned cell gets the SUM of the columns it covers.
+          const blockCols = colWidthsFor[bi].cols;
+          let slotCursor = 0;
           layout.forEach(cell=>{
             const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
+            let availChars = 0;
+            for(let k=0;k<cell.colspan;k++){
+              const c = blockCols[1 + slotCursor + k];   // +1 skips the date column
+              if(c) availChars += c.chars;
+            }
+            slotCursor += cell.colspan;
+            const lf = cellTextFit(cell.label || '', availChars);
+            // Never wrap here: rows are a fixed height and a wrapped label would break the band.
+            const lfCss = lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '';
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
-              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
+              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;">${escHi(cell.label)}</td>`;
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;${lfCss}">${escHi(cell.label)}</td>`;
             } else if(cell.kind==='simpost'){
-              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};">${escHtml(cell.label)}</td>`;
+              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};${lfCss}">${escHtml(cell.label)}</td>`;
             } else {
               bodyHtml += `<td${cs}></td>`;
             }
@@ -4688,7 +4729,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             const nc = noteColorFor(weekDateKey);
             // Fit the note on ONE line by shrinking it, rather than wrapping and growing the
             // row. pre (not pre-wrap) is what stops the soft wrap; explicit newlines survive.
-            const fit = noteFitFor(noteText, colWidthsFor[bi].notes);
+            const fit = cellTextFit(noteText, colWidthsFor[bi].notes);
             const fitCss = `white-space:${fit.wrap ? 'pre-wrap' : 'pre'};`
               + (fit.scale < 1 ? ` font-size:${(11 * fit.scale).toFixed(2)}px;` : '');
             bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" style="background:${nc}; color:${textColorFor(nc)}; ${fitCss} ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
@@ -4735,7 +4776,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       <div class="sheet-scroll" id="sheet-scroll-container">
         ${headerBar}
         <div class="sheet-grid-wrap">
-          <table class="sheet-table">
+          <table class="sheet-table" style="width:${gridPxTotal}px">
             <colgroup>${colsHtml}</colgroup>
             <thead><tr>${headerHtml}</tr></thead>
             <tbody>${bodyHtml}</tbody>
@@ -5261,16 +5302,22 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             if(item.colspan > 1){
               ws.mergeCells(excelRow, col, excelRow, col + item.colspan - 1);
             }
+            // Same shrink the screen applies to a phase label, from the same helper and over the
+            // same summed span, so a narrowed phase column reads identically in both.
+            let availChars = 0;
+            for(let k=0;k<item.colspan;k++) availChars += (widths.labels[slot + k] || 0);
+            const lf = cellTextFit(item.label || '', availChars);
+            const lfSize = Math.round(11 * lf.scale * 100) / 100;
             if(item.kind === 'phase'){
-              baseStyle(cell);
+              baseStyle(cell, {font:{size:lfSize}});
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'phaseHiatus'){
-              baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')}}});
+              baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')}, size:lfSize}});
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
-              baseStyle(cell);
+              baseStyle(cell, {font:{size:lfSize}});
               cell.value = item.label;
               setFill(cell, SIMPOST_COLOR);
             } else {
@@ -5296,7 +5343,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             // line in the preview sits on one line here too. The size is written EXPLICITLY
             // rather than leaning on Excel's own shrinkToFit, whose algorithm is not ours --
             // an explicit size is what makes the two agree.
-            const fit = noteFitFor(noteText, widths.notes);
+            const fit = cellTextFit(noteText, widths.notes);
             baseStyle(nCell, {font:{
               color:{argb:'FF'+textColorFor(nCol).replace('#','')},
               size: Math.round(11 * fit.scale * 100) / 100
