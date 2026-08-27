@@ -661,13 +661,21 @@
      instead of the whole page scrolling and the Date/Notes headers disappearing. Sized off the
      sticky app header; the ~140px covers the summary row, view toggle and preview padding above. */
   /* Resize handles are absolutely positioned against this, so they scroll with the grid. */
-  .sheet-grid-wrap{ position:relative; }
+  /* width:max-content so the wrapper hugs the table rather than the scroll pane: the handle
+     layer is positioned against this box, and a pane-width wrapper would put the coordinate
+     space out of step with the grid as soon as the grid was wider than the pane. */
+  .sheet-grid-wrap{ position:relative; width:max-content; }
   .grid-resize-layer{ position:absolute; inset:0; pointer-events:none; }
   /* The handles themselves take pointer events; the layer does not, so clicking a note cell
      through the layer still works. */
-  .grid-resize{ position:absolute; pointer-events:auto; z-index:4; }
-  .grid-resize.is-col{ width:7px; margin-left:-4px; cursor:col-resize; }
-  .grid-resize.is-row{ height:7px; margin-top:-4px; cursor:row-resize; }
+  .grid-resize{ position:absolute; pointer-events:auto; }
+  /* Column handles sit ABOVE row handles. The two cross at the date column's right edge, and
+     because a row handle exists at every row boundary they covered roughly a third of that
+     edge -- so grabbing the date column worked or didn't depending on where you happened to
+     click vertically. Row handles are also inset from the edge (see installGridResizers), so
+     now they do not overlap at all; the z-index is belt and braces. */
+  .grid-resize.is-col{ width:7px; margin-left:-4px; cursor:col-resize; z-index:5; }
+  .grid-resize.is-row{ height:7px; margin-top:-4px; cursor:row-resize; z-index:4; }
   .grid-resize:hover{ background:rgba(112,48,160,.22); }
   .grid-resize.dragging{ background:rgba(112,48,160,.45); }
   body.grid-resizing{ cursor:col-resize; user-select:none; }
@@ -2287,8 +2295,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     });
 
     // Row boundaries, but only across the FIRST date column: a full-width row handle would sit
-    // on top of every note cell and swallow the click that opens the editor.
-    const firstDateW = parseFloat(cols[0].style.width) || 40;
+    // on top of every note cell and swallow the click that opens the editor. Inset from that
+    // column's right edge so it never overlaps the column handle living there.
+    const COL_HANDLE_CLEARANCE = 9;
+    const firstDateW = Math.max(12, (parseFloat(cols[0].style.width) || 40) - COL_HANDLE_CLEARANCE);
     const rows = [...table.tBodies[0].rows];
     rows.forEach((tr, r)=>{
       const rb = tr.getBoundingClientRect();
@@ -2338,6 +2348,45 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     });
   }
 
+  // Keep the handles sitting on the boundaries they represent while a drag is in progress.
+  // Without this the purple bar stays where it was installed while the boundary moves out from
+  // under the cursor, which is most of what made dragging feel unpredictable.
+  function repositionColHandles(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    const table = wrap && wrap.querySelector('table.sheet-table');
+    if(!table) return;
+    const cols = [...table.querySelectorAll('colgroup col')];
+    const handles = [...wrap.querySelectorAll('.grid-resize.is-col')];
+    let x = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    cols.forEach((c, i)=>{
+      x += parseFloat(c.style.width) || 0;
+      if(handles[i]) handles[i].style.left = x + 'px';
+    });
+  }
+  function repositionRowHandles(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    const table = wrap && wrap.querySelector('table.sheet-table');
+    if(!table || !table.tBodies[0]) return;
+    const top = wrap.getBoundingClientRect().top;
+    const handles = [...wrap.querySelectorAll('.grid-resize.is-row')];
+    [...table.tBodies[0].rows].forEach((tr, r)=>{
+      if(handles[r]) handles[r].style.top = (tr.getBoundingClientRect().bottom - top) + 'px';
+    });
+    // a taller row makes the whole grid taller, so the column handles have to grow with it
+    const h = table.getBoundingClientRect().height + 'px';
+    wrap.querySelectorAll('.grid-resize.is-col').forEach(el=>{ el.style.height = h; });
+  }
+
+  let _liveFrame = 0;
+  function scheduleLiveUpdate(isCol){
+    if(_liveFrame) return;
+    _liveFrame = requestAnimationFrame(()=>{
+      _liveFrame = 0;
+      applyCellFitLive();
+      if(isCol) repositionColHandles(); else repositionRowHandles();
+    });
+  }
+
   document.addEventListener('pointerdown', e=>{
     const h = e.target.closest && e.target.closest('.grid-resize');
     if(!h) return;
@@ -2349,13 +2398,13 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const ckey = h.dataset.ckey;
     const colIdx = +h.dataset.colIdx;
     const rowIdx = +h.dataset.row;
-    const startW = isCol ? (parseFloat(cols[colIdx].style.width) || 0) : 0;
+    const col = isCol ? cols[colIdx] : null;
+    const startW = col ? (parseFloat(col.style.width) || 0) : 0;
     const tr = isCol ? null : table.tBodies[0].rows[rowIdx];
     const startH = tr ? tr.getBoundingClientRect().height : 0;
-    // Every column carrying this key moves together -- the three blocks' Date columns are one
-    // column as far as the user is concerned.
-    const sameKey = isCol ? cols.filter(c=>c.dataset.ckey === ckey) : [];
 
+    // Keep receiving moves even when the pointer outruns the 7px handle or leaves the window.
+    try { h.setPointerCapture(e.pointerId); } catch(_){}
     h.classList.add('dragging');
     document.body.classList.add('grid-resizing');
     if(!isCol) document.body.classList.add('row');
@@ -2363,24 +2412,33 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
     const onMove = ev=>{
       if(isCol){
-        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), startW + (ev.clientX - startX));
-        sameKey.forEach(c=>{ c.style.width = px + 'px'; });
-        applyCellFitLive();
+        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), Math.round(startW + (ev.clientX - startX)));
+        col.style.width = px + 'px';
+        // ** The table's explicit width MUST move with the columns. table-layout:fixed scales
+        // ** the declared column widths to whatever the table's width is, so widening one column
+        // ** without this just steals room from every other column and the dragged one never
+        // ** reaches the size asked for -- which is exactly what "the dragging feels weird"
+        // ** looked like.
+        let sum = 0;
+        cols.forEach(c=>{ sum += parseFloat(c.style.width) || 0; });
+        table.style.width = sum + 'px';
       } else {
-        const px = Math.max(8, startH + (ev.clientY - startY));
+        const px = Math.max(8, Math.round(startH + (ev.clientY - startY)));
         tr.style.height = px + 'px';
       }
       moved = true;
+      scheduleLiveUpdate(isCol);
     };
     const onUp = ()=>{
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
       h.classList.remove('dragging');
       document.body.classList.remove('grid-resizing','row');
       if(!moved) return;
       pushUndoSnapshot();
       if(isCol){
-        colWidths[ckey] = screenPxToChars(parseFloat(cols[colIdx].style.width) || 0);
+        colWidths[ckey] = screenPxToChars(parseFloat(col.style.width) || 0);
       } else {
         rowHeights[rowIdx] = Math.round(parseFloat(tr.style.height) || ROW_DEFAULT_PX);
       }
@@ -2389,6 +2447,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     };
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
   });
 
   // Double-click a handle = autofit: drop the override and let the measured width win again.
@@ -5737,16 +5796,19 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   function sheetColumnWidths(schedule, yearBlocks, layout){
     const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = layout;
     const notesByIdx = schedule.notesByIdx || {};
-    // Date cells are bold, so they measure wider than the same digits in the body font.
-    let dateMax = 0, notesMax = 0;
-    const labelMaxByBlock = [];
+    // Measured PER BLOCK, including the date and notes columns. They used to share one width
+    // across all blocks, which meant dragging one year's Date column silently resized every
+    // other year's too -- surprising, and unlike Excel, where every column is its own thing.
+    const maxByBlock = [];
 
     yearBlocks.forEach((b, bi)=>{
       const mc = blockMaxConcurrent[bi];
       const labelMax = new Array(mc).fill(0);
       const spans = [];
+      let dateMax = 0, notesMax = 0;
       for(let i=b.startIdx; i<b.startIdx+b.count; i++){
         const week = schedule.weeks[i];
+        // Date cells are bold, so they measure wider than the same digits in the body font.
         dateMax = Math.max(dateMax, measureTextPx(fmtShort(week.date), true));
         if(week.cells.length && week.cells[0].type==='hiatus') continue;   // spans the block
         const rows = computePhaseRowLayout(week, mc, blockSlotMaps[bi], blockOccupancy[bi],
@@ -5781,25 +5843,27 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           for(let k=slot; k<slot+colspan; k++) labelMax[k] = (labelMax[k] || 0) + add;
         }
       });
-      labelMaxByBlock.push(labelMax);
+      maxByBlock.push({ labelMax, dateMax, notesMax });
     });
 
     // 8.43 is Excel's default column width and what the reference export uses for its date
     // column; measured need is a little under that, so it acts as the floor.
     // A hand-dragged override wins over the measurement outright -- that is the whole point of
     // dragging -- and double-clicking the handle deletes the override to get autofit back.
-    const ov = k => colWidths[k];
-    const pick = (k, auto) => (ov(k) !== undefined ? ov(k) : auto);
-    const date  = pick('date',  clampChars(pxToChars(dateMax), 8.43));
-    const notes = pick('notes', clampChars(pxToChars(notesMax), 8, COL_MAX_CHARS_NOTES));
+    const pick = (k, auto) => (colWidths[k] !== undefined ? colWidths[k] : auto);
     return yearBlocks.map((b, bi)=>{
-      const labels = labelMaxByBlock[bi].map((px, s)=>
+      const m = maxByBlock[bi];
+      const kd = 'y' + b.year + ':date';
+      const kn = 'y' + b.year + ':notes';
+      const date  = pick(kd, clampChars(pxToChars(m.dateMax), 8.43));
+      const notes = pick(kn, clampChars(pxToChars(m.notesMax), 8, COL_MAX_CHARS_NOTES));
+      const labels = m.labelMax.map((px, s)=>
         pick('y' + b.year + ':s' + s, clampChars(pxToChars(px), 8)));
       // `cols` is the flat left-to-right list the renderer and the drag handles both walk, so
       // neither has to re-derive which key belongs to which column.
-      const cols = [{ key:'date', chars:date }]
+      const cols = [{ key:kd, chars:date }]
         .concat(labels.map((c, s)=>({ key:'y' + b.year + ':s' + s, chars:c })))
-        .concat([{ key:'notes', chars:notes }]);
+        .concat([{ key:kn, chars:notes }]);
       return { date, labels, notes, cols };
     });
   }
