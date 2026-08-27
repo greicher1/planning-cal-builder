@@ -660,6 +660,18 @@
   /* Bounded so the header row can pin while the (potentially very tall) table scrolls inside,
      instead of the whole page scrolling and the Date/Notes headers disappearing. Sized off the
      sticky app header; the ~140px covers the summary row, view toggle and preview padding above. */
+  /* Resize handles are absolutely positioned against this, so they scroll with the grid. */
+  .sheet-grid-wrap{ position:relative; }
+  .grid-resize-layer{ position:absolute; inset:0; pointer-events:none; }
+  /* The handles themselves take pointer events; the layer does not, so clicking a note cell
+     through the layer still works. */
+  .grid-resize{ position:absolute; pointer-events:auto; z-index:4; }
+  .grid-resize.is-col{ width:7px; margin-left:-4px; cursor:col-resize; }
+  .grid-resize.is-row{ height:7px; margin-top:-4px; cursor:row-resize; }
+  .grid-resize:hover{ background:rgba(112,48,160,.22); }
+  .grid-resize.dragging{ background:rgba(112,48,160,.45); }
+  body.grid-resizing{ cursor:col-resize; user-select:none; }
+  body.grid-resizing.row{ cursor:row-resize; }
   .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
   .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
   .cal-header-date{font-family:'Carlito','Calibri',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
@@ -758,6 +770,9 @@
   .color-swatch:hover{ transform:scale(1.15); }
   .color-swatch.selected{ outline:2px solid #fff; outline-offset:1px; box-shadow:0 0 0 1px #000; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
+  /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
+     one grows the row and reads better from the top. */
+  td.sheet-note-cell.has-note{ vertical-align:middle; }
   /* Excel's gridlines are a soft light grey, thinner and lighter than a typical table border. */
   table.sheet-table td, table.sheet-table th{
     border:1px var(--grid-style) var(--grid-line); padding:2px 10px; text-align:center;
@@ -2177,7 +2192,193 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // different layout.
   const SHEET_ZOOM = 0.75;
   const COL_PAD_CHARS = 0.71;   // ~5px at the 11pt basis, mirroring Excel's cell inset
-  const COL_MAX_CHARS = 40;     // a very long custom phase name must not force endless h-scroll
+  // Autofit ceilings. The cap exists so one very long custom phase name cannot force endless
+  // horizontal scroll -- but notes are prose and legitimately longer, and a cap that is too
+  // tight puts a note permanently out of reach of one line: past MAX/SHRINK_FLOOR chars' worth
+  // of text, no column autofit can hold it. 55 covers realistic note text; beyond that the
+  // shrink takes over, and beyond the floor it wraps. Dragging by hand is not capped at all.
+  const COL_MAX_CHARS = 40;
+  const COL_MAX_CHARS_NOTES = 55;
+  const COL_MIN_CHARS = 3;      // hand-dragged floor; the auto floor is higher (see clampChars)
+  // A note narrower than its column renders at full size. One that would overflow is SHRUNK to
+  // fit on one line rather than wrapping, down to this fraction of the base size; only if it
+  // still doesn't fit at the floor does it fall back to wrapping, so text is never lost.
+  const NOTE_SHRINK_FLOOR = 0.6;
+  // Screen rows are 20px where Excel's default row is 15pt, so heights convert 1:0.75 -- the
+  // same ratio as the width scale, but arrived at independently and worth keeping named apart.
+  const ROW_PX_TO_PT = 0.75;
+  const ROW_DEFAULT_PX = 20;
+
+  // Hand-dragged overrides. Columns are keyed by ROLE, not by position: 'date' and 'notes' are
+  // shared by every year block (unequal ones read as broken), and a phase slot is keyed by its
+  // block's YEAR rather than the block index, because a schedule that grows or loses a year
+  // renumbers the blocks and would otherwise move everybody's widths onto the wrong columns.
+  // Rows are keyed by row INDEX because one <tr> carries row r of every block -- three
+  // different weeks -- so there is no single date to key on.
+  let colWidths = {};    // 'date' | 'notes' | 'y2027:s0'  ->  width in Excel char units
+  let rowHeights = {};   // row index -> height in screen px
+
+  // How a note has to be squeezed to sit on one line in a column `chars` wide.
+  // Shared by the screen and the Excel export so both shrink by exactly the same amount.
+  function noteFitFor(noteText, chars){
+    if(!noteText) return { scale:1, wrap:false };
+    const avail = chars * EXCEL_MDW;              // Excel's own content width, padding excluded
+    let widest = 0;
+    // Explicit newlines are deliberate multi-line notes and stay as separate lines; it is only
+    // SOFT wrapping that shrink-to-fit replaces.
+    noteText.split('\n').forEach(line=>{ widest = Math.max(widest, measureTextPx(line, false)); });
+    if(widest <= avail || widest === 0) return { scale:1, wrap:false };
+    const need = avail / widest;
+    if(need >= NOTE_SHRINK_FLOOR) return { scale:need, wrap:false };
+    return { scale:NOTE_SHRINK_FLOOR, wrap:true };
+  }
+
+  // screen px -> Excel char units, the inverse of charsToScreenPx
+  function screenPxToChars(px){
+    return Math.round(((px / SHEET_ZOOM) - EXCEL_CELL_PAD) / EXCEL_MDW * 100) / 100;
+  }
+  // ---------- Drag-to-resize columns and rows ----------
+  // Handles are built AFTER the table is in the DOM and positioned from real geometry
+  // (getBoundingClientRect on the header cells and rows) rather than from cumulative widths.
+  // The waterfall header row is Date | <year colspan=N> | Notes per block, so most column
+  // boundaries have no <th> edge to hang a handle off -- reading the laid-out <col> boxes is the
+  // only thing that lines up with every boundary.
+  //
+  // Live feedback during a drag writes the <col> width directly and re-runs the note fit; a full
+  // re-render happens once, on release, together with the single undo step.
+  function installGridResizers(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    if(!wrap) return;
+    const table = wrap.querySelector('table.sheet-table');
+    const layer = wrap.querySelector('.grid-resize-layer');
+    if(!table || !layer) return;
+    layer.innerHTML = '';
+
+    const cols = [...table.querySelectorAll('colgroup col')];
+    const head = table.tHead && table.tHead.rows[0];
+    if(!cols.length || !head) return;
+
+    const wrapBox = wrap.getBoundingClientRect();
+    const tableBox = table.getBoundingClientRect();
+    const tableH = tableBox.height;
+
+    // Column boundaries: walk the declared widths, which table-layout:fixed honours exactly.
+    let x = tableBox.left - wrapBox.left;
+    cols.forEach((col, i)=>{
+      x += parseFloat(col.style.width) || 0;
+      const h = document.createElement('div');
+      h.className = 'grid-resize is-col';
+      h.style.left = x + 'px';
+      h.style.top = '0px';
+      h.style.height = tableH + 'px';
+      h.dataset.ckey = col.dataset.ckey || '';
+      h.dataset.colIdx = String(i);
+      h.title = 'Drag to resize · double-click to fit the widest entry';
+      layer.appendChild(h);
+    });
+
+    // Row boundaries, but only across the FIRST date column: a full-width row handle would sit
+    // on top of every note cell and swallow the click that opens the editor.
+    const firstDateW = parseFloat(cols[0].style.width) || 40;
+    const rows = [...table.tBodies[0].rows];
+    rows.forEach((tr, r)=>{
+      const rb = tr.getBoundingClientRect();
+      const h = document.createElement('div');
+      h.className = 'grid-resize is-row';
+      h.style.left = (tableBox.left - wrapBox.left) + 'px';
+      h.style.width = firstDateW + 'px';
+      h.style.top = (rb.bottom - wrapBox.top) + 'px';
+      h.dataset.row = String(r);
+      h.title = 'Drag to resize the row · double-click to reset';
+      layer.appendChild(h);
+    });
+  }
+
+  // Re-run the shrink-to-fit pass without a full render, so notes visibly resize mid-drag.
+  function applyNoteFitLive(notesChars){
+    const table = document.querySelector('table.sheet-table');
+    if(!table) return;
+    table.querySelectorAll('td.sheet-note-cell.has-note').forEach(td=>{
+      const fit = noteFitFor(td.textContent, notesChars);
+      td.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
+      td.style.fontSize = fit.scale < 1 ? (11 * fit.scale).toFixed(2) + 'px' : '';
+      td.dataset.notefit = fit.scale.toFixed(4);
+    });
+  }
+
+  document.addEventListener('pointerdown', e=>{
+    const h = e.target.closest && e.target.closest('.grid-resize');
+    if(!h) return;
+    e.preventDefault();
+    const isCol = h.classList.contains('is-col');
+    const table = document.querySelector('table.sheet-table');
+    const cols = [...table.querySelectorAll('colgroup col')];
+    const startX = e.clientX, startY = e.clientY;
+    const ckey = h.dataset.ckey;
+    const colIdx = +h.dataset.colIdx;
+    const rowIdx = +h.dataset.row;
+    const startW = isCol ? (parseFloat(cols[colIdx].style.width) || 0) : 0;
+    const tr = isCol ? null : table.tBodies[0].rows[rowIdx];
+    const startH = tr ? tr.getBoundingClientRect().height : 0;
+    // Every column carrying this key moves together -- the three blocks' Date columns are one
+    // column as far as the user is concerned.
+    const sameKey = isCol ? cols.filter(c=>c.dataset.ckey === ckey) : [];
+    const notesIdx = cols.findIndex(c=>c.dataset.ckey === 'notes');
+
+    h.classList.add('dragging');
+    document.body.classList.add('grid-resizing');
+    if(!isCol) document.body.classList.add('row');
+    let moved = false;
+
+    const onMove = ev=>{
+      if(isCol){
+        const px = Math.max(charsToScreenPx(COL_MIN_CHARS), startW + (ev.clientX - startX));
+        sameKey.forEach(c=>{ c.style.width = px + 'px'; });
+        if(ckey === 'notes' || notesIdx >= 0){
+          // notes shrink live off the notes column's own width, whichever column is moving
+          const npx = parseFloat(cols[notesIdx] ? cols[notesIdx].style.width : '0') || 0;
+          applyNoteFitLive(screenPxToChars(npx));
+        }
+      } else {
+        const px = Math.max(8, startH + (ev.clientY - startY));
+        tr.style.height = px + 'px';
+      }
+      moved = true;
+    };
+    const onUp = ()=>{
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      h.classList.remove('dragging');
+      document.body.classList.remove('grid-resizing','row');
+      if(!moved) return;
+      pushUndoSnapshot();
+      if(isCol){
+        colWidths[ckey] = screenPxToChars(parseFloat(cols[colIdx].style.width) || 0);
+      } else {
+        rowHeights[rowIdx] = Math.round(parseFloat(tr.style.height) || ROW_DEFAULT_PX);
+      }
+      render(currentSchedule);
+      markDirty();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  });
+
+  // Double-click a handle = autofit: drop the override and let the measured width win again.
+  document.addEventListener('dblclick', e=>{
+    const h = e.target.closest && e.target.closest('.grid-resize');
+    if(!h) return;
+    e.preventDefault();
+    const isCol = h.classList.contains('is-col');
+    const key = isCol ? h.dataset.ckey : +h.dataset.row;
+    const store = isCol ? colWidths : rowHeights;
+    if(store[key] === undefined) return;      // already auto -- nothing to undo
+    pushUndoSnapshot();
+    delete store[key];
+    render(currentSchedule);
+    markDirty();
+  });
+
 
   const _measureCanvas = document.createElement('canvas').getContext('2d');
   const _measureCache = new Map();
@@ -2198,8 +2399,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   function charsToPx(chars){ return Math.trunc(chars * EXCEL_MDW) + EXCEL_CELL_PAD; }
   // ...and the on-screen pixel width of that same column
   function charsToScreenPx(chars){ return Math.round(charsToPx(chars) * SHEET_ZOOM); }
-  function clampChars(chars, minChars){
-    let w = Math.min(COL_MAX_CHARS, Math.max(minChars || 8, Math.round(chars * 100) / 100));
+  function clampChars(chars, minChars, maxChars){
+    let w = Math.min(maxChars || COL_MAX_CHARS, Math.max(minChars || 8, Math.round(chars * 100) / 100));
     // ExcelJS treats width===9 as its own default and omits the <col> element entirely, so
     // Excel then falls back to ITS default of 8.43 and the value never takes effect -- while
     // everything here, and the screen, still believes the column is 9 wide. Nudge off the
@@ -3693,8 +3894,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       gapWarningEl.innerHTML = '';
     }
 
+    // (installGridResizers runs just below, once the new markup is in the DOM.)
     tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
                                              : renderSpreadsheetView(schedule);
+    // Handles are positioned from laid-out geometry, so they can only be built once the new
+    // markup is in the document.
+    if(viewMode !== 'month') installGridResizers();
   }
 
   // ---------- Month view ----------
@@ -4403,7 +4608,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = blockLayout;
     // Same widths the Excel export uses, so the grid on screen, the PDF and the workbook are
     // three renderings of ONE column model instead of three independent guesses.
-    const colWidths = sheetColumnWidths(schedule, yearBlocks, blockLayout);
+    // Named colWidthsFor, not colWidths -- the latter is the module-level override store.
+    const colWidthsFor = sheetColumnWidths(schedule, yearBlocks, blockLayout);
     const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
     const notesColspan = 1; // Notes only; Simultaneous Post now lives in the phase area
     const maxRows = Math.max(...yearBlocks.map(b=>b.count));
@@ -4423,16 +4629,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // why the old renderer had to cap phase labels at a hardcoded 130px to stop one long custom
     // name dragging the whole grid into horizontal scroll.
     let colsHtml = '';
+    const flatCols = [];   // left-to-right, for the drag handles
     yearBlocks.forEach((b, bi)=>{
-      const w = colWidths[bi];
-      colsHtml += `<col style="width:${charsToScreenPx(w.date)}px">`;
-      w.labels.forEach(c=>{ colsHtml += `<col style="width:${charsToScreenPx(c)}px">`; });
-      colsHtml += `<col style="width:${charsToScreenPx(w.notes)}px">`;
+      colWidthsFor[bi].cols.forEach(c=>{
+        flatCols.push(c);
+        colsHtml += `<col data-ckey="${c.key}" style="width:${charsToScreenPx(c.chars)}px">`;
+      });
     });
 
     let bodyHtml = '';
     for(let r=0; r<maxRows; r++){
-      bodyHtml += '<tr>';
+      const rh = rowHeights[r];
+      bodyHtml += rh ? `<tr data-row="${r}" style="height:${rh}px">` : `<tr data-row="${r}">`;
       yearBlocks.forEach((b, bi)=>{
         const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
         const mc = blockMaxConcurrent[bi];
@@ -4478,7 +4686,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
           if(noteText){
             const nc = noteColorFor(weekDateKey);
-            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" style="background:${nc}; color:${textColorFor(nc)}; white-space:pre-wrap; ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
+            // Fit the note on ONE line by shrinking it, rather than wrapping and growing the
+            // row. pre (not pre-wrap) is what stops the soft wrap; explicit newlines survive.
+            const fit = noteFitFor(noteText, colWidthsFor[bi].notes);
+            const fitCss = `white-space:${fit.wrap ? 'pre-wrap' : 'pre'};`
+              + (fit.scale < 1 ? ` font-size:${(11 * fit.scale).toFixed(2)}px;` : '');
+            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" style="background:${nc}; color:${textColorFor(nc)}; ${fitCss} ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
@@ -4521,11 +4734,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const html = `
       <div class="sheet-scroll" id="sheet-scroll-container">
         ${headerBar}
-        <table class="sheet-table">
-          <colgroup>${colsHtml}</colgroup>
-          <thead><tr>${headerHtml}</tr></thead>
-          <tbody>${bodyHtml}</tbody>
-        </table>
+        <div class="sheet-grid-wrap">
+          <table class="sheet-table">
+            <colgroup>${colsHtml}</colgroup>
+            <thead><tr>${headerHtml}</tr></thead>
+            <tbody>${bodyHtml}</tbody>
+          </table>
+          <div class="grid-resize-layer" aria-hidden="true"></div>
+        </div>
       </div>
     `;
     return html;
@@ -4873,6 +5089,13 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // exported columns sat wider than the reference export's.
     const blockColWidths = sheetColumnWidths(schedule, yearBlocks, blockLayout);
 
+    // A hand-dragged row height carries into the workbook. Screen px -> points, matching the
+    // 20px/15pt relationship the grid is built on.
+    function applyRowHeight(row, r){
+      const px = rowHeights[r];
+      if(px) row.height = Math.round(px * ROW_PX_TO_PT * 100) / 100;
+    }
+
     const HEADER_FILL = 'D9D9D9';
     const thin = {style:'thin'};
     const notesByIdx = schedule.notesByIdx || {};
@@ -4995,6 +5218,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         const globalIdx = yearBlocks[b].startIdx + r;
         const week = schedule.weeks[globalIdx];
         const isLastRow = (r===rowsInBlock-1);
+        // Row r is the same <tr> in every block, so this runs once per block with the same
+        // value. Idempotent, and cheaper than hoisting it out of the per-block loop.
+        applyRowHeight(ws.getRow(excelRow), r);
 
         // date cell (hardcode very first cell; formula-chain everything else)
         const dCell = ws.getRow(excelRow).getCell(dateCol);
@@ -5066,10 +5292,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           const noteText = effectiveNoteText(nKey, autoNotesForView(notesByIdx[globalIdx] || [], 'sheet'));
           if(noteText){
             const nCol = noteColorFor(nKey);
-            baseStyle(nCell, {font:{color:{argb:'FF'+textColorFor(nCol).replace('#','')}}});
+            // Same shrink the screen applies, from the same helper, so a note that sits on one
+            // line in the preview sits on one line here too. The size is written EXPLICITLY
+            // rather than leaning on Excel's own shrinkToFit, whose algorithm is not ours --
+            // an explicit size is what makes the two agree.
+            const fit = noteFitFor(noteText, widths.notes);
+            baseStyle(nCell, {font:{
+              color:{argb:'FF'+textColorFor(nCol).replace('#','')},
+              size: Math.round(11 * fit.scale * 100) / 100
+            }});
             nCell.value = noteText;
             setFill(nCell, nCol);
-            nCell.alignment = {horizontal:'center', vertical:'middle', wrapText:true, indent:0};
+            nCell.alignment = {horizontal:'center', vertical:'middle', wrapText:fit.wrap, indent:0};
           } else {
             baseStyle(nCell);
           }
@@ -5505,13 +5739,22 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
     // 8.43 is Excel's default column width and what the reference export uses for its date
     // column; measured need is a little under that, so it acts as the floor.
-    const date = clampChars(pxToChars(dateMax), 8.43);
-    const notes = clampChars(pxToChars(notesMax), 8);
-    return yearBlocks.map((b, bi)=>({
-      date,
-      labels: labelMaxByBlock[bi].map(px => clampChars(pxToChars(px), 8)),
-      notes
-    }));
+    // A hand-dragged override wins over the measurement outright -- that is the whole point of
+    // dragging -- and double-clicking the handle deletes the override to get autofit back.
+    const ov = k => colWidths[k];
+    const pick = (k, auto) => (ov(k) !== undefined ? ov(k) : auto);
+    const date  = pick('date',  clampChars(pxToChars(dateMax), 8.43));
+    const notes = pick('notes', clampChars(pxToChars(notesMax), 8, COL_MAX_CHARS_NOTES));
+    return yearBlocks.map((b, bi)=>{
+      const labels = labelMaxByBlock[bi].map((px, s)=>
+        pick('y' + b.year + ':s' + s, clampChars(pxToChars(px), 8)));
+      // `cols` is the flat left-to-right list the renderer and the drag handles both walk, so
+      // neither has to re-derive which key belongs to which column.
+      const cols = [{ key:'date', chars:date }]
+        .concat(labels.map((c, s)=>({ key:'y' + b.year + ':s' + s, chars:c })))
+        .concat([{ key:'notes', chars:notes }]);
+      return { date, labels, notes, cols };
+    });
   }
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
@@ -6008,6 +6251,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     dayNoteColors = {};
     noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
+    // Hand-dragged column widths and row heights are layout, not notes, so "Reset Notes &
+    // Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
+    colWidths = {}; rowHeights = {};
     update();
   }
 
@@ -6259,7 +6505,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
       mvHeaderMode, mvHeaderManual, noteColors, hiatusTexts, hiatusColors, holidayView,
-      holidayOff, customHolidays, viewMode, sidebarTab, fields: collectFieldValues()
+      holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights,
+      fields: collectFieldValues()
     };
   }
 
@@ -8109,6 +8356,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     if(snap.mvExtraLanes && typeof snap.mvExtraLanes === 'object'){
       mvExtraLanes = Object.assign({}, snap.mvExtraLanes);
     }
+    // Reassigned, not merged: an absent store in the snapshot means "no overrides", and a merge
+    // would keep a previous file's hand-dragged widths on this one.
+    colWidths  = (snap.colWidths  && typeof snap.colWidths  === 'object') ? Object.assign({}, snap.colWidths)  : {};
+    rowHeights = (snap.rowHeights && typeof snap.rowHeights === 'object') ? Object.assign({}, snap.rowHeights) : {};
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
