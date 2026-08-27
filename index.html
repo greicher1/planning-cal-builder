@@ -688,6 +688,9 @@
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
   table.sheet-table{
+    /* fixed layout makes the <colgroup> widths authoritative; without it they are only hints
+       and the browser re-sizes from content. */
+    table-layout:fixed;
     border-collapse:collapse; font-size:11px; white-space:nowrap;
     font-family:'Carlito','Calibri','Segoe UI',-apple-system,sans-serif;
     background:#fff; color:#000;
@@ -771,10 +774,16 @@
     box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6;
   }
   table.sheet-table td.sheet-date{font-weight:600; padding-left:5px; padding-right:5px; white-space:nowrap;}
-  /* Cap phase-cell labels so a long custom phase name can't widen its column and push the whole
-     grid into horizontal scroll. Truncates with an ellipsis; the full label is on hover (and in
-     the Excel export, which isn't width-limited). max-width is set inline, scaled by colspan. */
-  .sheet-table .phase-cell-label{ display:inline-block; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; max-width:130px; }
+  /* Columns are now sized to their own content (see sheetColumnWidths), so a label only needs
+     truncating in the one case the width model deliberately refuses to follow: a name past
+     COL_MAX_CHARS. The old hardcoded 130px cap is gone -- it applied to every label regardless
+     of how much room its column actually had. */
+  .sheet-table .phase-cell-label{ display:inline-block; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; max-width:100%; }
+  /* Clip to the column rather than letting content force it wider. Excluding .editing is
+     load-bearing: the note and hiatus editors are built INTO the cell (td.innerHTML =
+     '<div class="note-editor">'), and a multi-line textarea grows taller than the row, so a
+     clipped cell would cut the editor off mid-word. */
+  table.sheet-table td:not(.editing), table.sheet-table th{ overflow:hidden; text-overflow:ellipsis; }
   table.sheet-table td.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table td.sheet-blockend{border-right:2px solid var(--text);}
@@ -2138,6 +2147,68 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     }
   })();
 
+  // Decoding the font is async, so the first render can measure against a fallback face and
+  // bake wrong column widths in for the rest of the session. Drop the measurement cache and
+  // re-render once the real font is live. Guarded on currentSchedule so this does nothing if
+  // the font wins the race, which it usually does.
+  carlitoReady.then(()=>{
+    _measureCache.clear();
+    if(typeof currentSchedule !== 'undefined' && currentSchedule) render(currentSchedule);
+  });
+
+  // ---------- Column geometry: one width model for screen, Excel and PDF ----------
+  // Everything is expressed in EXCEL COLUMN-WIDTH UNITS, because that is the only unit all
+  // three outputs can honour: Excel takes it directly, and the screen and PDF convert it to
+  // pixels. Previously each output decided widths for itself -- the Excel export from a
+  // hand-tuned per-character weight table, the screen and PDF from browser table auto-layout --
+  // so the three could never agree, which is why the PDF never looked like the Excel print.
+  //
+  // Excel defines the unit from the workbook's NORMAL STYLE font, Calibri 11pt, whose maximum
+  // digit width at 96dpi is 7px. A column of width w renders trunc(w*7)+5 px, the +5 being the
+  // cell's own insets and gridline.
+  //
+  // ** The trap: Calibri/Carlito's "0" actually advances 7.4336px at 11pt, not 7. Excel floors
+  // ** it to an integer. Divide measured text by the true 7.4336 and every column comes out ~6%
+  // ** narrower than Excel's own autofit, in a way that just looks like a rounding bug.
+  const EXCEL_MDW = 7;          // NOT 7.4336 -- see above
+  const EXCEL_CELL_PAD = 5;
+  // Text is measured at 11pt (the unit's basis). The on-screen grid is set in 11px type, so its
+  // pixels are 11/(11*96/72) = 0.75 of Excel's -- a faithfully scaled copy rather than a
+  // different layout.
+  const SHEET_ZOOM = 0.75;
+  const COL_PAD_CHARS = 0.71;   // ~5px at the 11pt basis, mirroring Excel's cell inset
+  const COL_MAX_CHARS = 40;     // a very long custom phase name must not force endless h-scroll
+
+  const _measureCanvas = document.createElement('canvas').getContext('2d');
+  const _measureCache = new Map();
+  // Width of `str` in px at 11pt, i.e. in the same pixel space as EXCEL_MDW.
+  function measureTextPx(str, bold){
+    const key = (bold ? 'b|' : 'r|') + str;
+    let v = _measureCache.get(key);
+    if(v === undefined){
+      _measureCanvas.font = (bold ? 'bold ' : '') + "11pt Carlito, Calibri, sans-serif";
+      v = _measureCanvas.measureText(str).width;
+      _measureCache.set(key, v);
+    }
+    return v;
+  }
+  // px (at the 11pt basis) -> Excel column-width units
+  function pxToChars(px){ return px / EXCEL_MDW + COL_PAD_CHARS; }
+  // Excel column-width units -> px, Excel's own formula
+  function charsToPx(chars){ return Math.trunc(chars * EXCEL_MDW) + EXCEL_CELL_PAD; }
+  // ...and the on-screen pixel width of that same column
+  function charsToScreenPx(chars){ return Math.round(charsToPx(chars) * SHEET_ZOOM); }
+  function clampChars(chars, minChars){
+    let w = Math.min(COL_MAX_CHARS, Math.max(minChars || 8, Math.round(chars * 100) / 100));
+    // ExcelJS treats width===9 as its own default and omits the <col> element entirely, so
+    // Excel then falls back to ITS default of 8.43 and the value never takes effect -- while
+    // everything here, and the screen, still believes the column is 9 wide. Nudge off the
+    // sentinel. (The date column dodges this by flooring at 8.43; any computed column can land
+    // on it.)
+    if(w === 9) w = 9.01;
+    return w;
+  }
+
   const PHASES = [
     { key:'writersRoom', label:"Writer's Rm",  color:'#FFF2CC', textColor:'#7A6215', template:n=>`Writer's Rm wk ${n}` },
     { key:'prePrep',     label:'Pre Prep',      color:'#DAE3F3', textColor:'#203864', template:n=>`Pre Prep Wk ${n}` },
@@ -2627,9 +2698,13 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const back = (dow+6)%7;
     return addDays(date, -back);
   }
+  // m/d/yy with no zero padding -- Excel's own short-date format, and what the reference
+  // exports show ("1/5/26", not "01/05/26"), in the date column and inside note text alike.
+  // Notes in calendars saved before this change keep whatever they were written with; the
+  // formatter is not retroactive and rewriting stored note text was not worth it.
   function fmtShort(date){
-    const mm = String(date.getUTCMonth()+1).padStart(2,'0');
-    const dd = String(date.getUTCDate()).padStart(2,'0');
+    const mm = date.getUTCMonth()+1;
+    const dd = date.getUTCDate();
     const yy = String(date.getUTCFullYear()).slice(2);
     return `${mm}/${dd}/${yy}`;
   }
@@ -4324,7 +4399,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // Holiday Hiatus spanning the full width of a row, same colors/borders.
   function renderSpreadsheetView(schedule){
     const yearBlocks = computeYearBlocks(schedule.weeks);
-    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
+    const blockLayout = computeBlockLayout(schedule, yearBlocks);
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = blockLayout;
+    // Same widths the Excel export uses, so the grid on screen, the PDF and the workbook are
+    // three renderings of ONE column model instead of three independent guesses.
+    const colWidths = sheetColumnWidths(schedule, yearBlocks, blockLayout);
     const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
     const notesColspan = 1; // Notes only; Simultaneous Post now lives in the phase area
     const maxRows = Math.max(...yearBlocks.map(b=>b.count));
@@ -4337,6 +4416,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       headerHtml += `<th class="${isFirst?'sheet-blockstart':''}">Date</th>`;
       headerHtml += `<th colspan="${mc}">${b.year}</th>`;
       headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}">Notes</th>`;
+    });
+
+    // <colgroup> + table-layout:fixed is what gives columns an identity at all. Without it the
+    // browser sizes them from content and no explicit width can be honoured -- which is also
+    // why the old renderer had to cap phase labels at a hardcoded 130px to stop one long custom
+    // name dragging the whole grid into horizontal scroll.
+    let colsHtml = '';
+    yearBlocks.forEach((b, bi)=>{
+      const w = colWidths[bi];
+      colsHtml += `<col style="width:${charsToScreenPx(w.date)}px">`;
+      w.labels.forEach(c=>{ colsHtml += `<col style="width:${charsToScreenPx(c)}px">`; });
+      colsHtml += `<col style="width:${charsToScreenPx(w.notes)}px">`;
     });
 
     let bodyHtml = '';
@@ -4367,10 +4458,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           layout.forEach(cell=>{
             const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
             if(cell.kind==='phase'){
-              const lblMax = 130 * (cell.colspan||1);
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
-              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};"><span class="phase-cell-label" style="max-width:${lblMax}px"${tip}>${escHtml(cell.label)}</span></td>`;
+              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -4432,6 +4522,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       <div class="sheet-scroll" id="sheet-scroll-container">
         ${headerBar}
         <table class="sheet-table">
+          <colgroup>${colsHtml}</colgroup>
           <thead><tr>${headerHtml}</tr></thead>
           <tbody>${bodyHtml}</tbody>
         </table>
@@ -4611,7 +4702,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         const cur = textarea.value;
         // Replace any date this control previously stamped, so switching days doesn't stack
         // them up. Only touches a trailing date -- one typed mid-sentence is left alone.
-        const stripped = cur.replace(/\s*\d{1,2}\/\d{2}\/\d{2}\s*$/, '');
+        // \d{1,2} on the DAY as well as the month: fmtShort no longer zero-pads, so a
+        // day-of-month under 10 gave a one-digit day and the old pattern silently failed to
+        // strip -- switching days would then stack a second date on the end.
+        const stripped = cur.replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '');
         textarea.value = iso ? (stripped ? stripped + ' ' : '') + fmtShort(parseDateUTC(iso)) : stripped;
         textarea.focus();
       });
@@ -4763,7 +4857,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const yearBlocks = computeYearBlocks(schedule.weeks);
     const blockCount = yearBlocks.length;
 
-    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
+    const blockLayout = computeBlockLayout(schedule, yearBlocks);
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = blockLayout;
     const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
     // Columns per block = date + phase slots (Simultaneous Post now lives inside the phase
     // area, no dedicated column) + single Notes column.
@@ -4771,80 +4866,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const blockStartCols = [];
     { let cum=1; for(let b=0;b<blockCount;b++){ blockStartCols.push(cum); cum += blockColsPerBlock[b]; } }
 
-    // Column widths are computed from the longest text that will actually appear in each column
-    // (with padding), rather than one fixed width for everything -- a renamed/custom phase like
-    // "Writers' Room Extended" needs much more room than "Post", and shouldn't look cramped.
-    function neededWidth(len, minW){
-      return Math.max(minW||10, len + 4);
-    }
-    // Notes columns are sized to hug their content: just the widest text in the column
-    // plus a small breathing margin on either side, rather than the generous padding
-    // used for the phase columns.
-    function tightWidth(len, minW){
-      return Math.max(minW||4, len + 2);
-    }
-    // Character count is a poor proxy for rendered width: "Start Principal Photography
-    // 11/02/26" has 36 chars but many are narrow (i, l, ., /, 1, spaces), so it renders
-    // far narrower than 36 average-width units. This estimates the actual rendered width
-    // in Excel column-width units by weighting each character, matching what you'd get by
-    // dragging the column to fit. Weights are relative to a typical digit/letter (~1.0).
-    function renderedTextWidth(str){
-      let w = 0;
-      for(const ch of str){
-        if('ilj.,:;\'|!'.includes(ch)) w += 0.34;
-        else if('ftI()[]/\\ '.includes(ch)) w += 0.45;
-        else if('rt1'.includes(ch)) w += 0.6;
-        else if('MW'.includes(ch)) w += 1.25;
-        else if('mw'.includes(ch)) w += 1.15;
-        else if(ch>='A' && ch<='Z') w += 1.05;   // caps a touch wider
-        else w += 0.92;                            // typical lowercase / digit
-      }
-      return w;
-    }
-    // Notes column width. renderedTextWidth() returns a per-character weighted estimate;
-    // the factor calibrates it to real Excel column-width units (from a known case where a
-    // 36-char note filled a ~37-unit cell). Estimation errs slightly generous, which is the
-    // safe direction given the requirement that the longest note stay on ONE line. This is
-    // still far tighter than raw character count, which reserved space for every char as if
-    // average-width and left big trailing gaps.
-    function notesWidth(renderedMax, minW){
-      return Math.max(minW||6, renderedMax * 1.40 + 0.6);
-    }
-    const blockColWidths = yearBlocks.map((b, bi)=>{
-      const mc = blockMaxConcurrent[bi];
-      const slotMap = blockSlotMaps[bi];
-      const labelWidths = new Array(mc).fill(0);
-      let notesMax = 0;
-      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
-        const week = schedule.weeks[i];
-        if(week.cells.length && week.cells[0].type==='hiatus') continue;
-        // Size each slot by what lands in it (phase label or the SimPost marker), using the
-        // same layout the cells are written with. Only the STARTING slot of a spanned/placed
-        // item is measured, since spanned items borrow width from the slots they cover.
-        const layout = computePhaseRowLayout(week, mc, slotMap, blockOccupancy[bi], i - b.startIdx, blockSimSlot[bi]);
-        let slot = 0;
-        layout.forEach(cell=>{
-          if(cell.kind==='phase') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth(cell.label));
-          else if(cell.kind==='simpost') labelWidths[slot] = Math.max(labelWidths[slot], renderedTextWidth(cell.label));
-          slot += cell.colspan;
-        });
-        const weekKey = week.date.toISOString().slice(0,10);
-        const noteText = effectiveNoteText(weekKey, autoNotesForView((schedule.notesByIdx||{})[i], 'sheet'));
-        noteText.split('\n').forEach(line=>{ notesMax = Math.max(notesMax, renderedTextWidth(line)); });
-      }
-      return {
-        // 8.43, not 9: ExcelJS treats width===9 as its own default and omits the <col> element
-        // entirely, so Excel then applied ITS default (8.43) and the 9 never took effect. The
-        // fit-to-page maths below reads this number back, so the two silently disagreed by 4px
-        // per block. 8.43 is what Excel was already rendering, so nothing moves -- it just
-        // gets written down now, and gridPx stops over-estimating.
-        date: 8.43,
-        // Phase columns hug their widest label tightly (same calibrated estimator as notes),
-        // rather than the old character-count + 4 padding.
-        labels: labelWidths.map(w=>notesWidth(w, 8)),
-        notes: notesWidth(notesMax, 8),
-      };
-    });
+    // Column widths come from the shared model, so the workbook, the on-screen grid and the
+    // PDF are all laid out from the same numbers. This replaced a per-character weight table
+    // that estimated rendered width ("i" 0.34, "M" 1.25, ...) and then multiplied by an
+    // empirical 1.40 -- it over-estimated "Production wk 21" by about 30%, which is why the
+    // exported columns sat wider than the reference export's.
+    const blockColWidths = sheetColumnWidths(schedule, yearBlocks, blockLayout);
 
     const HEADER_FILL = 'D9D9D9';
     const thin = {style:'thin'};
@@ -4921,7 +4948,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex.replace('#','')}};
     }
     function baseStyle(cell, opts){
-      cell.font = Object.assign({name:'Calibri', size:12}, opts && opts.font);
+      // 11, not 12. Excel's column-width unit is defined by the workbook's Normal style
+      // (Calibri 11pt, max digit width 7px); cells set to 12pt are ~9% wider than that unit
+      // assumes, so every measured width came out short and needed fudging. The reference
+      // export's 15pt base row height is Excel's default for an 11pt Normal style, so 11 also
+      // matches what the exports being copied actually use.
+      cell.font = Object.assign({name:'Calibri', size:11}, opts && opts.font);
       cell.alignment = {horizontal:'center', vertical:'middle'};
       if(opts && opts.numFmt) cell.numFmt = opts.numFmt;
     }
@@ -5412,6 +5444,74 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       }
     }
     return out;
+  }
+
+  // Column widths for one schedule, in Excel column-width units, keyed by ROLE rather than by
+  // absolute column index: a schedule change that alters maxConcurrent must not scramble
+  // widths, and the three year-blocks are parallel views of the same structure so their Date
+  // and Notes columns are linked (dragging one later should move all three).
+  //
+  // Consumed by renderSpreadsheetView (screen + the PDF, via <colgroup>) and by exportExcel.
+  // Returns [{ date, labels:[...], notes }] -- one entry per year block.
+  function sheetColumnWidths(schedule, yearBlocks, layout){
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = layout;
+    const notesByIdx = schedule.notesByIdx || {};
+    // Date cells are bold, so they measure wider than the same digits in the body font.
+    let dateMax = 0, notesMax = 0;
+    const labelMaxByBlock = [];
+
+    yearBlocks.forEach((b, bi)=>{
+      const mc = blockMaxConcurrent[bi];
+      const labelMax = new Array(mc).fill(0);
+      const spans = [];
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        const week = schedule.weeks[i];
+        dateMax = Math.max(dateMax, measureTextPx(fmtShort(week.date), true));
+        if(week.cells.length && week.cells[0].type==='hiatus') continue;   // spans the block
+        const rows = computePhaseRowLayout(week, mc, blockSlotMaps[bi], blockOccupancy[bi],
+                                           i - b.startIdx, blockSimSlot[bi]);
+        let slot = 0;
+        rows.forEach(cell=>{
+          // A single-slot cell charges its whole label to its own column. A SPANNED cell is
+          // deferred to a second pass: charging its label to the starting column would inflate
+          // that column for every other row in the block, but ignoring it entirely (as the
+          // first version of this did) left a block whose every row is one lone spanning phase
+          // with nothing but minimum-width columns.
+          if(cell.kind==='phase' || cell.kind==='simpost'){
+            const px = measureTextPx(cell.label, false);
+            if(cell.colspan === 1) labelMax[slot] = Math.max(labelMax[slot], px);
+            else spans.push({ slot, colspan: cell.colspan, px });
+          }
+          slot += cell.colspan;
+        });
+        const wk = week.date.toISOString().slice(0,10);
+        const noteText = effectiveNoteText(wk, autoNotesForView(notesByIdx[i], 'sheet'));
+        if(noteText) noteText.split('\n').forEach(line=>{
+          notesMax = Math.max(notesMax, measureTextPx(line, false));
+        });
+      }
+      // Second pass: a spanned label only needs the columns it covers to ADD UP to its width,
+      // so top up the shortfall evenly rather than pushing any one column out on its own.
+      spans.forEach(({slot, colspan, px})=>{
+        let have = 0;
+        for(let k=slot; k<slot+colspan; k++) have += labelMax[k] || 0;
+        if(have < px){
+          const add = (px - have) / colspan;
+          for(let k=slot; k<slot+colspan; k++) labelMax[k] = (labelMax[k] || 0) + add;
+        }
+      });
+      labelMaxByBlock.push(labelMax);
+    });
+
+    // 8.43 is Excel's default column width and what the reference export uses for its date
+    // column; measured need is a little under that, so it acts as the floor.
+    const date = clampChars(pxToChars(dateMax), 8.43);
+    const notes = clampChars(pxToChars(notesMax), 8);
+    return yearBlocks.map((b, bi)=>({
+      date,
+      labels: labelMaxByBlock[bi].map(px => clampChars(pxToChars(px), 8)),
+      notes
+    }));
   }
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
