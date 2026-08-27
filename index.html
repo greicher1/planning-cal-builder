@@ -507,12 +507,14 @@
      to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
      fit-to-page measurement sees exactly the size that will print. */
   .wf-print .sheet-table td, .wf-print .sheet-table th{ height:auto; padding:0 6px; line-height:1.3; }
-  /* Internal gridlines match the Excel print: light-grey fine DOTTED horizontal row lines, thin
-     SOLID vertical column lines. Dotted (not dashed) because the fit-to-page zoom magnifies the
-     borders -- dashed rendered as chunky, heavy marks once scaled up, so fine dots read as a light
-     Excel-style hairline instead. The solid dark outer frame and year-block separators (2px
-     var(--text) rules elsewhere) still win by specificity, so only the interior 1px lines change. */
-  .wf-print .sheet-table td{ border-top-style:dotted; border-bottom-style:dotted; border-color:#DBDBDB; }
+  /* Interior gridlines for the PDF, matched to the Excel export by SHEET_GRIDLINES (the class is
+     stamped on the wrapper at export time, so the two can never drift apart). 'none' is the
+     reference look: grey header, year-block separators and outer frame only. The dotted variant
+     exists because the fit-to-page zoom magnifies borders -- dashed renders as chunky heavy marks
+     once scaled up, where fine dots still read as a light Excel-style hairline. */
+  .wf-print.wf-grid-none   .sheet-table{ --grid-line:transparent; }
+  .wf-print.wf-grid-dashed .sheet-table{ --grid-line:#BFBFBF; --grid-style:dashed; }
+  .wf-print.wf-grid-dotted .sheet-table{ --grid-line:#DBDBDB; --grid-style:dotted; }
   .wf-print .sheet-table th{ background:#D9D9D9; border-color:#BFBFBF; }
   .wf-print .cal-header-bar{ padding:5px 12px; min-height:0; }
   .wf-print .phase-cell-label{ max-width:none; }
@@ -689,6 +691,10 @@
     border-collapse:collapse; font-size:11px; white-space:nowrap;
     font-family:'Calibri','Carlito','Segoe UI',-apple-system,sans-serif;
     background:#fff; color:#000;
+    /* Interior gridline, as a variable so the print variants can restyle it WITHOUT adding a
+       higher-specificity td rule -- one of those would also out-rank the block separators and
+       the outer frame, which are longhand borders on more specific selectors. */
+    --grid-line:#D4D4D4; --grid-style:solid;
   }
   td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top; padding-left:4px; padding-right:4px;}
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
@@ -751,7 +757,7 @@
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* Excel's gridlines are a soft light grey, thinner and lighter than a typical table border. */
   table.sheet-table td, table.sheet-table th{
-    border:1px solid #D4D4D4; padding:2px 10px; text-align:center;
+    border:1px var(--grid-style) var(--grid-line); padding:2px 10px; text-align:center;
     height:20px; line-height:1.35;
   }
   /* Excel column-header styling: light grey fill, subtle darker rule beneath. */
@@ -1172,7 +1178,7 @@
 
       <h3>Exporting</h3>
       <p><strong>In Month view the button becomes &ldquo;Export Calendar to PDF.&rdquo;</strong> It opens your browser&rsquo;s print dialog &mdash; choose <em>Save as PDF</em> as the destination. Every month from the first phase to the last prints, one per landscape page, in full colour with the header, month and date, exactly as it looks on screen (minus the paging arrows). If the colours come out grey, switch on &ldquo;Background graphics&rdquo; in the dialog&rsquo;s More settings.</p>
-      <p>Generates a styled <code>.xlsx</code> matching the Waterfall view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
+      <p>Generates a styled <code>.xlsx</code> matching the Waterfall view: one column block per year, colored phase cells, the milestone Notes column, and a bold printed header with the title, date, and production summary. Columns are sized tight to their content, and the whole grid is scaled to print as large as possible on a <strong>single sheet</strong>. Orientation is chosen automatically &mdash; calendars of two years or fewer print portrait, three or more years print landscape &mdash; unless the other orientation would fit noticeably larger. The workbook is set to print on <strong>US&nbsp;Letter</strong>, centered on the page, with the print area pinned to the grid, so <em>File &rarr; Print &rarr; Save as PDF</em> straight out of Excel comes out the same for everyone regardless of their default printer. The file name uses your show title (e.g. <em>&ldquo;Show Title - Season 1 Planning Calendar.xlsx&rdquo;</em>).</p>
 
       <h3>Files, saving &amp; reopening</h3>
       <p>All the main actions live in the toolbar at the top: the <strong>file menu</strong> (showing the calendar you&rsquo;re currently in), <strong>New</strong>, <strong>Save</strong>, <strong>Save As</strong>, <strong>Export to Excel</strong>, and <strong>Reset</strong>.</p>
@@ -1208,6 +1214,13 @@
   ];
   const SHOOT_DAYS_PER_WEEK = 5;
   const HIATUS_COLOR = '#FF0000', HIATUS_TEXT = '#FFFFFF';
+  // Interior gridlines are a genuine per-team preference, not a house style: the reference
+  // Excel exports some execs work from have NO interior rules at all (only the grey header,
+  // the year-block separators and the outer frame), while others want them visible. This flag
+  // drives BOTH the Excel export and the waterfall PDF from one place so they can never
+  // disagree, and it is the first entry of the style config the Settings menu will own.
+  // 'none' matches the reference export; 'dashed' is what the tool shipped before.
+  const SHEET_GRIDLINES = 'none'; // 'none' | 'dashed' | 'dotted'
   // Default label for the production-wide (all-phase) hiatus band. Per-phase hiatuses keep
   // their own "<Phase> Hiatus" labels; this is the generic full-width one.
   const HIATUS_DEFAULT_LABEL = 'Hiatus';
@@ -3800,9 +3813,17 @@
       views: [{ showGridLines: true, showRowColHeaders: true }],
       pageSetup: {
         orientation: 'portrait',
+        // Pin US Letter. With paperSize omitted Excel falls back to the DEFAULT PRINTER's
+        // paper, so the same workbook silently reflowed to A4 for anyone whose machine
+        // defaults to it -- a different page shape from the one the layout was fitted to.
+        paperSize: 1,
         fitToPage: true,
         fitToWidth: 1,
-        fitToHeight: 1
+        fitToHeight: 1,
+        // The on-screen grid and the waterfall PDF both centre the block (margin:auto in the
+        // print CSS). Excel left-aligns unless told otherwise, which showed up as the export
+        // sitting off to one side for any calendar narrower than the printable width.
+        horizontalCentered: true
       }
     });
     const yearBlocks = computeYearBlocks(schedule.weeks);
@@ -3878,7 +3899,12 @@
         noteText.split('\n').forEach(line=>{ notesMax = Math.max(notesMax, renderedTextWidth(line)); });
       }
       return {
-        date: 9,
+        // 8.43, not 9: ExcelJS treats width===9 as its own default and omits the <col> element
+        // entirely, so Excel then applied ITS default (8.43) and the 9 never took effect. The
+        // fit-to-page maths below reads this number back, so the two silently disagreed by 4px
+        // per block. 8.43 is what Excel was already rendering, so nothing moves -- it just
+        // gets written down now, and gridPx stops over-estimating.
+        date: 8.43,
         // Phase columns hug their widest label tightly (same calibrated estimator as notes),
         // rather than the old character-count + 4 padding.
         labels: labelWidths.map(w=>notesWidth(w, 8)),
@@ -4086,12 +4112,15 @@
       }
     }
 
-    // The sheet's own gridlines are drawn as light dashed cell borders (not the print
-    // gridline setting). Apply a light-gray dashed border to every cell in the used
-    // range; any existing structural border (block frames, header separators) is kept.
+    // Interior gridlines are drawn as light cell borders rather than via Excel's print
+    // gridline setting, so they can be styled. Structural borders (block frames, header
+    // separators) are already set and are always kept. SHEET_GRIDLINES==='none' leaves the
+    // interior clean, which is what the reference exports look like.
     ws.pageSetup.showGridLines = false;
-    {
-      const dashed = {style:'dashed', color:{argb:'FFBFBFBF'}};
+    if(SHEET_GRIDLINES !== 'none'){
+      const line = (SHEET_GRIDLINES === 'dotted')
+        ? {style:'dotted', color:{argb:'FFDBDBDB'}}
+        : {style:'dashed', color:{argb:'FFBFBFBF'}};
       const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
       const totalColsForGrid = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
       for(let r=1;r<=totalRows;r++){
@@ -4099,10 +4128,10 @@
           const cell = ws.getRow(r).getCell(c);
           const b = cell.border || {};
           cell.border = {
-            top: b.top || dashed,
-            left: b.left || dashed,
-            bottom: b.bottom || dashed,
-            right: b.right || dashed,
+            top: b.top || line,
+            left: b.left || line,
+            bottom: b.bottom || line,
+            right: b.right || line,
           };
         }
       }
@@ -4136,6 +4165,10 @@
       let orientation = preferred;
       if(otherScale > prefScale * 1.15){ orientation = (preferred === 'landscape') ? 'portrait' : 'landscape'; }
       ws.pageSetup.orientation = orientation;
+      // Pin the print area to the used range. Left unset, Excel infers it, and any cell that
+      // has ever been touched outside the grid drags a blank second page into the print job
+      // -- which also defeats fitToHeight:1, since the "sheet" it fits is then the wrong size.
+      ws.pageSetup.printArea = 'A1:' + ws.getColumn(totalCols).letter + totalRows;
     }
 
     const buf = await wb.xlsx.writeBuffer();
@@ -6650,7 +6683,7 @@
     host.innerHTML = '';
 
     try {
-      host.innerHTML = '<div class="wf-print">' + renderSpreadsheetView(currentSchedule) + '</div>';
+      host.innerHTML = '<div class="wf-print wf-grid-' + SHEET_GRIDLINES + '">' + renderSpreadsheetView(currentSchedule) + '</div>';
       const tools = host.querySelector('.hdr-tools'); // interactive toolbar -- never on paper
       if(tools) tools.remove();
     } catch(err){
