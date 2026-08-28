@@ -7155,22 +7155,36 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
     // 1. Phase start dates -- built-ins and custom phases alike.
     let movedPhases = 0;
+    // Phases that stayed put. Their per-phase hiatus band stayed with them, so its label and
+    // colour -- keyed "<week ISO>|<phase key>" -- must stay too. See step 3.
+    const stayingPhases = new Set();
     getAllPhaseDefs().forEach(p=>{
       const startEl = document.getElementById('start-' + p.key);
       // A phase moves as a unit: its own hiatus is part of its work, so it travels with the phase
       // rather than being judged against the cutoff separately.
-      if(!startEl || !startEl.value || !inRange(startEl.value)) return;
+      if(!startEl || !startEl.value || !inRange(startEl.value)){ stayingPhases.add(p.key); return; }
       if(shiftDateFieldValue(startEl, days)) movedPhases++;
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
     });
 
     // 2. All-phase hiatuses -- only the ones the user has unlocked.
     let movedHiatuses = 0, lockedHiatuses = 0;
+    // Every week still occupied by a band that did NOT move -- because it is locked, or (on a
+    // ripple) starts before the cutoff. Collected from the pre-shift dates, which is automatic:
+    // a row is recorded on exactly the paths that return before touching its start field.
+    const stayingHiatusWeeks = new Set();
+    const recordStayingWeeks = row=>{
+      const startEl = row.querySelector('.hiatus-start');
+      const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
+      if(!d) return;
+      const wks = Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1);
+      for(let i=0;i<wks;i++) stayingHiatusWeeks.add(isoOf(addDays(d, i*7)));
+    };
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
       const startEl = row.querySelector('.hiatus-start');
-      if(!startEl || !startEl.value || !inRange(startEl.value)) return;
+      if(!startEl || !startEl.value || !inRange(startEl.value)){ recordStayingWeeks(row); return; }
       const lock = row.querySelector('.hiatus-locked');
-      if(lock && lock.checked){ lockedHiatuses++; return; }
+      if(lock && lock.checked){ lockedHiatuses++; recordStayingWeeks(row); return; }
       if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
     });
 
@@ -7188,9 +7202,17 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // No merge for colours: a cell has one fill, and the note that stayed owns it.
     noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
     noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
-    hiatusTexts = shiftKeyedMap(hiatusTexts, days);
-    hiatusColors = shiftKeyedMap(hiatusColors, days);
-    hiatusFontSize = shiftKeyedMap(hiatusFontSize, days);
+    // A band's label, colour and text size have to make the SAME stay-or-go decision the band
+    // made in steps 1-2, or they walk off it: a locked band would revert to the default red
+    // "Holiday Hiatus" while "Christmas Break" ended up on a week with no band at all. Note this
+    // is deliberately not isPinnedWeek -- that guard is about date-pinned notes, a different rule.
+    const hiatusKeyStays = k => {
+      const { iso, suffix } = splitWeekKey(k);
+      return suffix ? stayingPhases.has(suffix.slice(1)) : stayingHiatusWeeks.has(iso);
+    };
+    hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
+    hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
+    hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
@@ -9366,16 +9388,19 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       headerMode = 'auto'; headerManual = {};
     }
     // 4c. Restore per-cell highlight colors and hiatus text/color overrides
-    if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
-    // Reassigned unconditionally, unlike noteColors just above: an absent key in the snapshot
-    // means "no overrides", and a conditional assign would leave the previous state's sizes in
-    // place after an undo back past the point they were set.
+    // All reassigned unconditionally: an absent key in the snapshot means "no overrides", and a
+    // conditional assign would leave the previous state's colours or sizes in place -- which is
+    // what opening a save that predates one of these stores used to do.
+    noteColors = (snap.noteColors && typeof snap.noteColors === 'object')
+      ? Object.assign({}, snap.noteColors) : {};
     noteFontSize = (snap.noteFontSize && typeof snap.noteFontSize === 'object')
       ? Object.assign({}, snap.noteFontSize) : {};
     hiatusFontSize = (snap.hiatusFontSize && typeof snap.hiatusFontSize === 'object')
       ? Object.assign({}, snap.hiatusFontSize) : {};
-    if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
-    if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
+    hiatusTexts = (snap.hiatusTexts && typeof snap.hiatusTexts === 'object')
+      ? Object.assign({}, snap.hiatusTexts) : {};
+    hiatusColors = (snap.hiatusColors && typeof snap.hiatusColors === 'object')
+      ? Object.assign({}, snap.hiatusColors) : {};
     holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};
     holidayOff = (snap.holidayOff && typeof snap.holidayOff === 'object') ? Object.assign({}, snap.holidayOff) : {};
     customHolidays = Array.isArray(snap.customHolidays)
