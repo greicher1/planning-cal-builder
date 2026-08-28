@@ -680,8 +680,26 @@
      now they do not overlap at all; the z-index is belt and braces. */
   .grid-resize.is-col{ width:7px; margin-left:-4px; cursor:col-resize; z-index:5; }
   .grid-resize.is-row{ height:7px; margin-top:-4px; cursor:row-resize; z-index:4; }
+  /* Cell-span handles live on the left/right edge of a single phase cell. They are deliberately
+     inset a few px INTO the cell rather than centred on the boundary: a cell edge always falls on
+     a column boundary, and a handle sitting on top of one would steal the column drag on every row
+     that has phase content -- which is most of them. Column handles cover x-4..x+3, so these start
+     outside that band. Higher z-index for where they still touch. */
+  .grid-resize.is-span{ width:7px; cursor:ew-resize; z-index:6; }
+  .grid-resize.is-span::after{
+    content:''; position:absolute; left:2px; top:50%; width:3px; height:11px; margin-top:-6px;
+    border-radius:2px; background:rgba(112,48,160,.55); opacity:0; transition:opacity .1s;
+  }
+  .grid-resize.is-span:hover::after, .grid-resize.is-span.dragging::after{ opacity:1; }
   .grid-resize:hover{ background:rgba(112,48,160,.22); }
   .grid-resize.dragging{ background:rgba(112,48,160,.45); }
+  /* Ghost of where the cell will land, drawn over the grid while a span handle is dragged.
+     The alternative -- rewriting colSpan live -- reflows the whole table on every pointermove. */
+  .span-preview{
+    position:absolute; pointer-events:none; z-index:7; border:2px solid rgba(112,48,160,.85);
+    background:rgba(112,48,160,.12); border-radius:2px;
+  }
+  body.grid-resizing.span{ cursor:ew-resize; }
   body.grid-resizing{ cursor:col-resize; user-select:none; }
   body.grid-resizing.row{ cursor:row-resize; }
   .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
@@ -1229,6 +1247,10 @@
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
       <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+
+      <h3>Sizing the grid (columns, rows &amp; how far a cell reaches)</h3>
+      <p><strong>Columns and rows.</strong> Hover a column boundary or the bottom edge of a row in the Date column and drag. Text inside resizes itself to fit: a narrowed column shrinks its labels, and a row&rsquo;s height sets how many lines a note may use before it is cut off with an ellipsis. <strong>Double-click</strong> a boundary to go back to automatic &mdash; the column fits its widest entry again, the row returns to its default height. Column widths are shared with the Excel export and the PDF, so what you size on screen is what prints.</p>
+      <p><strong>How far a cell reaches.</strong> A phase cell normally only widens into the column beside it when that column is free for the phase&rsquo;s <em>whole</em> run, which leaves a gap in weeks where a neighbouring phase has already finished. To close one, hover the left or right edge of the cell and <strong>drag it across the empty space</strong>; the edge snaps to column boundaries and a purple outline shows where it will land. <strong>Double-click the cell</strong> to fill all the free space beside it in one go, and again to pull it back to its own column. <strong>Double-click the edge</strong> to hand it back to the automatic layout. It applies to that one cell in that one week &mdash; every other row is left alone &mdash; and it carries into the Excel and PDF exports.</p>
 
       <h3>Adjusting dates (moving the calendar around)</h3>
       <p>Above the preview sits a row of tools, each with its own button: <strong>Shift All</strong> (its <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons move the whole calendar one week at a time, and the small arrow beside them opens a box for any number of weeks), <strong>Shift From</strong>, <strong>Anchor To</strong> and <strong>Rebuild From</strong>. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
@@ -2264,6 +2286,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // different weeks -- so there is no single date to key on.
   let colWidths = {};    // 'date' | 'notes' | 'y2027:s0'  ->  width in Excel char units
   let rowHeights = {};   // row index -> height in screen px
+  // How far a single phase cell reaches across the empty columns beside it, keyed
+  // '<week ISO>|<phase key>' -> {l, r} = slots claimed LEFT and RIGHT of the phase's own column.
+  //
+  // The automatic layout is deliberately conservative: a phase only widens into a neighbouring
+  // column when that column is free for the phase's WHOLE run, so the last week of a phase whose
+  // neighbour finished earlier leaves a gap. This store is the hand override for those gaps --
+  // and {l:0,r:0} is a real value meaning "stay in your own column", which is how a cell is
+  // un-filled. Absent = follow the automatic layout.
+  //
+  // Anchored on the phase's own column rather than stored as a delta on the automatic span, so
+  // a schedule change that moves the auto span cannot silently move the width the user dragged.
+  let cellSpans = {};
 
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
@@ -2402,6 +2436,71 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       h.title = 'Drag to resize the row · double-click to reset';
       layer.appendChild(h);
     });
+
+    // Cell-span handles: one on each vertical edge of a phase cell, for dragging how far that
+    // ONE cell reaches across the empty columns beside it. They are per-row and only as tall as
+    // their row, which is why they sit above the column handles -- a column boundary runs the
+    // whole height of the grid and would otherwise take every grab aimed at a cell edge.
+    const colX = [];
+    {
+      let cx = tableBox.left - wrapBox.left;
+      cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
+      colX[cols.length] = cx;
+    }
+    // A block's phase columns are 'y<year>:s<slot>', so slot 0's position in the flat colgroup
+    // is all a handle needs to turn the slot numbers on the cell into screen coordinates.
+    const slotBase = new Map();
+    cols.forEach((c, i)=>{
+      const m = /^(y\d+):s(\d+)$/.exec(c.dataset.ckey || '');
+      if(m && m[2] === '0') slotBase.set(m[1], i);
+    });
+    rows.forEach(tr=>{
+      const rb = tr.getBoundingClientRect();
+      const top = rb.top - wrapBox.top, rowH = rb.height;
+      let ci = 0;
+      [...tr.cells].forEach(td=>{
+        const span = td.colSpan || 1;
+        const start = ci;
+        ci += span;
+        if(!td.classList.contains('sheet-phase-cell')) return;
+        const m = /^(y\d+):s\d+$/.exec((cols[start] && cols[start].dataset.ckey) || '');
+        const base = m ? slotBase.get(m[1]) : undefined;
+        if(base === undefined) return;
+        // +4 / -11 keep the 7px handle clear of the column handle's x-4..x+3 band on both sides.
+        [['l', colX[start] + 4], ['r', colX[start + span] - 11]].forEach(pair=>{
+          const hd = document.createElement('div');
+          hd.className = 'grid-resize is-span';
+          hd.style.left = pair[1] + 'px';
+          hd.style.top = top + 'px';
+          hd.style.height = rowH + 'px';
+          hd.dataset.side = pair[0];
+          hd.dataset.base = String(base);
+          hd.dataset.week = td.dataset.week;
+          hd.dataset.pkey = td.dataset.pkey;
+          hd.dataset.own  = td.dataset.own;
+          hd.dataset.lmin = td.dataset.lmin;
+          hd.dataset.rmax = td.dataset.rmax;
+          hd.dataset.a = String(start - base);              // the cell's current first slot
+          hd.dataset.b = String(start + span - 1 - base);   // ...and its current last slot
+          hd.title = 'Drag to change how far this cell reaches · double-click for automatic';
+          layer.appendChild(hd);
+        });
+      });
+    });
+  }
+
+  // Column boundary positions for a span drag, recomputed per pointerdown so they reflect the
+  // widths as they are right now (a column may have been dragged since the last render).
+  function spanHandleGeometry(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    const table = wrap && wrap.querySelector('table.sheet-table');
+    if(!table) return null;
+    const cols = [...table.querySelectorAll('colgroup col')];
+    const colX = [];
+    let cx = table.getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+    cols.forEach((c, i)=>{ colX[i] = cx; cx += parseFloat(c.style.width) || 0; });
+    colX[cols.length] = cx;
+    return { wrap, colX };
   }
 
   // Re-run shrink-to-fit without a full render, so text visibly resizes mid-drag. Walks each
@@ -2500,10 +2599,77 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     });
   }
 
+  // Drag one edge of a phase cell across the empty columns beside it. The edge snaps to column
+  // boundaries because there is nothing in between to land on -- a cell either covers a column
+  // or it doesn't -- and a ghost rectangle shows where it will end up, rather than rewriting
+  // colSpan live and reflowing the whole table on every pointermove.
+  function beginSpanDrag(e, h){
+    const geo = spanHandleGeometry();
+    if(!geo) return;
+    const { wrap, colX } = geo;
+    const base = +h.dataset.base, own = +h.dataset.own;
+    const side = h.dataset.side;
+    const key  = h.dataset.week + '|' + h.dataset.pkey;
+    // The edge being dragged may travel between these slots; the other edge stays put.
+    const lo = side === 'l' ? +h.dataset.lmin : own;
+    const hi = side === 'l' ? own : +h.dataset.rmax;
+    let a = +h.dataset.a, b = +h.dataset.b;
+
+    const ghost = document.createElement('div');
+    ghost.className = 'span-preview';
+    ghost.style.top = h.style.top;
+    ghost.style.height = h.style.height;
+    wrap.querySelector('.grid-resize-layer').appendChild(ghost);
+    const paint = ()=>{
+      ghost.style.left  = colX[base + a] + 'px';
+      ghost.style.width = Math.max(2, colX[base + b + 1] - colX[base + a]) + 'px';
+    };
+    paint();
+
+    try { h.setPointerCapture(e.pointerId); } catch(_){}
+    h.classList.add('dragging');
+    document.body.classList.add('grid-resizing','span');
+    let moved = false;
+
+    const onMove = ev=>{
+      const x = ev.clientX - wrap.getBoundingClientRect().left;
+      // Nearest legal boundary. For the left edge the boundary is the slot's own left side;
+      // for the right edge it is the slot AFTER it, hence the +1.
+      let best = lo, bestD = Infinity;
+      for(let sIdx = lo; sIdx <= hi; sIdx++){
+        const d = Math.abs(colX[base + sIdx + (side === 'l' ? 0 : 1)] - x);
+        if(d < bestD){ bestD = d; best = sIdx; }
+      }
+      if(side === 'l'){ if(best === a) return; a = best; }
+      else            { if(best === b) return; b = best; }
+      moved = true;
+      paint();
+    };
+    const onUp = ()=>{
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      ghost.remove();
+      h.classList.remove('dragging');
+      document.body.classList.remove('grid-resizing','span');
+      if(!moved) return;
+      pushUndoSnapshot();
+      // Stored relative to the phase's own column, so {l:0,r:0} is a real value meaning
+      // "stay in your own column" -- that is how a cell gets un-filled.
+      cellSpans[key] = { l: own - a, r: b - own };
+      render(currentSchedule);
+      markDirty();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }
+
   document.addEventListener('pointerdown', e=>{
     const h = e.target.closest && e.target.closest('.grid-resize');
     if(!h) return;
     e.preventDefault();
+    if(h.classList.contains('is-span')){ beginSpanDrag(e, h); return; }
     const isCol = h.classList.contains('is-col');
     const table = document.querySelector('table.sheet-table');
     const cols = [...table.querySelectorAll('colgroup col')];
@@ -2563,11 +2729,42 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     document.addEventListener('pointercancel', onUp);
   });
 
+  // Double-click a phase cell = fill the empty columns beside it, or -- if it is already
+  // filling them -- pull it back to its own column. The one-click version of the edge drag,
+  // and the only one of the two that is discoverable without knowing the handles are there.
+  document.addEventListener('dblclick', e=>{
+    const td = e.target.closest && e.target.closest('.sheet-phase-cell');
+    if(!td) return;
+    e.preventDefault();
+    const own = +td.dataset.own;
+    const maxL = own - (+td.dataset.lmin), maxR = (+td.dataset.rmax) - own;   // room available
+    const curL = own - (+td.dataset.a),   curR = (+td.dataset.b) - own;       // room taken now
+    const key = td.dataset.week + '|' + td.dataset.pkey;
+    // Read the CURRENT span off the cell rather than the override: a cell the automatic layout
+    // already widened has no override to compare against, and testing only the store made
+    // double-clicking one of those do nothing at all.
+    if(!maxL && !maxR && cellSpans[key] === undefined) return;   // alone in its column, nothing to do
+    const filled = curL === maxL && curR === maxR;
+    pushUndoSnapshot();
+    cellSpans[key] = filled ? { l:0, r:0 } : { l:maxL, r:maxR };
+    render(currentSchedule);
+    markDirty();
+  });
+
   // Double-click a handle = autofit: drop the override and let the measured width win again.
   document.addEventListener('dblclick', e=>{
     const h = e.target.closest && e.target.closest('.grid-resize');
     if(!h) return;
     e.preventDefault();
+    if(h.classList.contains('is-span')){
+      const key = h.dataset.week + '|' + h.dataset.pkey;
+      if(cellSpans[key] === undefined) return;   // already automatic
+      pushUndoSnapshot();
+      delete cellSpans[key];
+      render(currentSchedule);
+      markDirty();
+      return;
+    }
     const isCol = h.classList.contains('is-col');
     const key = isCol ? h.dataset.ckey : +h.dataset.row;
     const store = isCol ? colWidths : rowHeights;
@@ -4892,8 +5089,20 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           // Phase columns are draggable like any other, so their labels need the same
           // shrink-to-fit as notes. A spanned cell gets the SUM of the columns it covers.
           const blockCols = colWidthsFor[bi].cols;
+          const wIso = w.date.toISOString().slice(0,10);
+          // How far each segment could reach if it were dragged: the empty slots directly beside
+          // it. Worked out here, where the whole row is visible, so the drag handles can clamp
+          // honestly rather than letting the pointer run past what the layout will actually grant.
+          const emptyLeft = [], emptyRight = [];
+          {
+            let run = 0;
+            layout.forEach((sg, j)=>{ emptyLeft[j] = run; run = sg.kind==='empty' ? run + sg.colspan : 0; });
+            run = 0;
+            for(let j=layout.length-1; j>=0; j--){ emptyRight[j] = run; run = layout[j].kind==='empty' ? run + layout[j].colspan : 0; }
+          }
           let slotCursor = 0;
-          layout.forEach(cell=>{
+          layout.forEach((cell, segIdx)=>{
+            const segStart = slotCursor;
             const cs = cell.colspan>1 ? ` colspan="${cell.colspan}"` : '';
             let availChars = 0;
             for(let k=0;k<cell.colspan;k++){
@@ -4909,7 +5118,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
-              bodyHtml += `<td${cs} style="background:${cell.color}; color:${GRID_TEXT_COLOR};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
+              // own/lmin/rmax are the span drag's whole world: the phase's own column (which it
+              // can never give up) and the furthest slot on each side it may claim in this row.
+              const sp = cell.own === undefined ? '' :
+                ` class="sheet-phase-cell" data-week="${wIso}" data-pkey="${escAttr(cell.cell.key)}"`
+                + ` data-own="${cell.own}" data-lmin="${segStart - emptyLeft[segIdx]}"`
+                + ` data-rmax="${segStart + cell.colspan - 1 + emptyRight[segIdx]}"`
+                + ` data-a="${segStart}" data-b="${segStart + cell.colspan - 1}"`;
+              bodyHtml += `<td${cs}${sp} style="background:${cell.color}; color:${GRID_TEXT_COLOR};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -6002,7 +6218,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         } else {
           let span = 1;
           while(k+span < mc && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
-          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c});
+          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c, own:k});
           k += span;
         }
       } else {
@@ -6018,7 +6234,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           let span = 1;
           while(n+span < mc && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
           const c = bySlot[n];
-          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n-k)+span, cell:c});
+          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n-k)+span, cell:c, own:n});
           k = n + span;
         } else {
           // Plain empty run (merge consecutive empty non-SimPost slots).
@@ -6028,6 +6244,58 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           k += span;
         }
       }
+    }
+    return applyCellSpanOverrides(out, mc, slotMap, week);
+  }
+
+  // Lay the user's hand-dragged cell spans over the automatic layout.
+  //
+  // A claim may only take slots the automatic layout left EMPTY in this row, so it can never
+  // hide a phase, a per-phase hiatus band, or an active Simultaneous Post marker -- those keep
+  // their automatic footprint and the claim stops at the first slot it cannot have. A stale
+  // override (the schedule moved under it) therefore shrinks to whatever is genuinely free
+  // rather than being dropped outright or, worse, swallowing a neighbour.
+  function applyCellSpanOverrides(segs, mc, slotMap, week){
+    const weekIso = isoOf(week.date);
+    const claim = new Map();   // segment index -> [from, to] in slot space
+    const ownOf = new Map();   // segment index -> the phase's own slot
+    const startOf = [];
+    let s = 0;
+    segs.forEach((seg, i)=>{ startOf[i] = s; s += seg.colspan; });
+    segs.forEach((seg, i)=>{
+      if(seg.kind !== 'phase' || !seg.cell || seg.own === undefined) return;
+      const ov = cellSpans[weekIso + '|' + seg.cell.key];
+      if(!ov) return;
+      ownOf.set(i, seg.own);
+      claim.set(i, [Math.max(0, seg.own - (ov.l || 0)), Math.min(mc - 1, seg.own + (ov.r || 0))]);
+    });
+    if(!claim.size) return segs;
+
+    const taken = new Array(mc).fill(-1);
+    // 1. Everything that isn't empty and isn't claiming keeps exactly what the auto layout gave it.
+    segs.forEach((seg, i)=>{
+      if(seg.kind === 'empty' || claim.has(i)) return;
+      for(let n = startOf[i]; n < startOf[i] + seg.colspan; n++) taken[n] = i;
+    });
+    // 2. A claiming cell always keeps its own column (nothing else can own it -- it is the
+    //    phase's slot), then 3. grows outward into free slots only, stopping at the first
+    //    it cannot have so the result is always one contiguous cell.
+    claim.forEach((_, i)=>{ taken[ownOf.get(i)] = i; });
+    claim.forEach(([from, to], i)=>{
+      const own = ownOf.get(i);
+      for(let n = own - 1; n >= from; n--){ if(taken[n] !== -1) break; taken[n] = i; }
+      for(let n = own + 1; n <= to;   n++){ if(taken[n] !== -1) break; taken[n] = i; }
+    });
+
+    const out = [];
+    let k = 0;
+    while(k < mc){
+      const i = taken[k];
+      let span = 1;
+      while(k + span < mc && taken[k + span] === i) span++;
+      out.push(i === -1 ? {kind:'empty', colspan:span}
+                        : Object.assign({}, segs[i], {colspan:span}));
+      k += span;
     }
     return out;
   }
@@ -6680,9 +6948,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
-    // Hand-dragged column widths and row heights are layout, not notes, so "Reset Notes &
-    // Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
-    colWidths = {}; rowHeights = {};
+    // Hand-dragged column widths, row heights and cell spans are layout, not notes, so "Reset
+    // Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
+    colWidths = {}; rowHeights = {}; cellSpans = {};
     update();
   }
 
@@ -6935,7 +7203,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
       mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, holidayView,
-      holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights,
+      holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
       fields: collectFieldValues()
     };
   }
@@ -7213,6 +7481,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
     hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
     hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
+    // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
+    // the same journey a per-phase hiatus band does: it moves when its phase moves, stays when
+    // the phase stays put on a ripple.
+    cellSpans = shiftKeyedMap(cellSpans, days, hiatusKeyStays);
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
@@ -9348,6 +9620,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // would keep a previous file's hand-dragged widths on this one.
     colWidths  = (snap.colWidths  && typeof snap.colWidths  === 'object') ? Object.assign({}, snap.colWidths)  : {};
     rowHeights = (snap.rowHeights && typeof snap.rowHeights === 'object') ? Object.assign({}, snap.rowHeights) : {};
+    cellSpans  = (snap.cellSpans  && typeof snap.cellSpans  === 'object') ? Object.assign({}, snap.cellSpans)  : {};
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
