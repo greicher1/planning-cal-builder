@@ -506,7 +506,11 @@
   /* Waterfall PDF look: compact rows + Excel's grey header, to read like the Excel print. Scoped
      to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
      fit-to-page measurement sees exactly the size that will print. */
-  .wf-print .sheet-table td, .wf-print .sheet-table th{ height:auto; padding:0 6px; line-height:1.3; }
+  /* Horizontal padding must stay equal to the screen's, and to what the width model budgets:
+     the print copy reuses the screen's column widths, so 6px each side against a 3.75px budget
+     clipped in the PDF exactly what the screen had room for. Vertical padding is 0 here on
+     purpose -- print rows are content-height, not the screen's fixed 20px. */
+  .wf-print .sheet-table td, .wf-print .sheet-table th{ height:auto; padding:0 1.5px; line-height:1.3; }
   /* Interior gridlines for the PDF, matched to the Excel export by SHEET_GRIDLINES (the class is
      stamped on the wrapper at export time, so the two can never drift apart). 'none' is the
      reference look: grey header, year-block separators and outer frame only. The dotted variant
@@ -725,7 +729,15 @@
        the outer frame, which are longhand borders on more specific selectors. */
     --grid-line:#D4D4D4; --grid-style:solid;
   }
-  td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top; padding-left:4px; padding-right:4px;}
+  /* No padding here: `table.sheet-table td` (one class, two type selectors) out-specifies
+     `td.sheet-note-cell` (one class, one type), so the 4px this used to ask for never applied.
+     Padding is set in one place, against the width model. */
+  td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top;}
+  /* Note text lives in this wrapper so a pinned row can CAP it. An inline height on a <tr> is
+     only a MINIMUM -- the row grows to fit its content -- so without a wrapper carrying
+     max-height, dragging a row shorter than its text just sprang back. Rows that were never
+     dragged get no max-height and still grow rather than lose text. */
+  .note-body{ overflow:hidden; text-overflow:ellipsis; }
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
   td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
   td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
@@ -776,6 +788,12 @@
     font-size:9.5px; padding:1px 3px; border:1px solid var(--border-strong);
     border-radius:4px; background:#fff; color:var(--text); font-family:'Inter',sans-serif;
   }
+  .note-size-row{ display:flex; align-items:center; margin-top:3px; }
+  .note-size-row label{ display:flex; align-items:center; gap:4px; font-size:9.5px; color:var(--text-muted); }
+  .note-size-select{
+    font-size:9.5px; padding:1px 3px; border:1px solid var(--border-strong);
+    border-radius:4px; background:#fff; color:var(--text); font-family:'Inter',sans-serif;
+  }
   .note-color-row{display:flex; gap:3px; padding:3px 2px 1px; flex-wrap:wrap; justify-content:center;}
   .color-swatch{
     width:14px; height:14px; border-radius:3px; cursor:pointer; display:inline-block;
@@ -789,7 +807,14 @@
   td.sheet-note-cell.has-note{ vertical-align:middle; }
   /* Excel's gridlines are a soft light grey, thinner and lighter than a typical table border. */
   table.sheet-table td, table.sheet-table th{
-    border:1px var(--grid-style) var(--grid-line); padding:2px 10px; text-align:center;
+    /* Horizontal padding has to match what the width model budgets, or the two disagree and
+       text is clipped by the difference. Excel's px = trunc(chars*7)+5, where the +5 is a 2px
+       inset each side plus the 1px gridline; at SHEET_ZOOM that is 3.75px total, so ~1.5px of
+       padding either side of a 1px border. It was 10px each side -- 20px against a budget of
+       3.75px -- which silently ellipsis-clipped 64 of 255 filled cells, "Post wk 22" among
+       them, by up to 14px. Cells are centre-aligned, so a tight inset reads correctly; the
+       breathing room comes from COL_PAD_CHARS instead, where both outputs get it equally. */
+    border:1px var(--grid-style) var(--grid-line); padding:2px 1.5px; text-align:center;
     height:20px; line-height:1.35;
   }
   /* Excel column-header styling: light grey fill, subtle darker rule beneath. */
@@ -2205,7 +2230,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // pixels are 11/(11*96/72) = 0.75 of Excel's -- a faithfully scaled copy rather than a
   // different layout.
   const SHEET_ZOOM = 0.75;
-  const COL_PAD_CHARS = 0.71;   // ~5px at the 11pt basis, mirroring Excel's cell inset
+  // ~8px at the 11pt basis: Excel's own inset is ~5px, and the extra is visual breathing room so
+  // a label does not sit flush against the cell edge. Spent HERE rather than in CSS padding, so
+  // the screen, the PDF and the workbook all receive the same slack.
+  const COL_PAD_CHARS = 1.15;
   // Autofit ceilings. The cap exists so one very long custom phase name cannot force endless
   // horizontal scroll -- but notes are prose and legitimately longer, and a cap that is too
   // tight puts a note permanently out of reach of one line: past MAX/SHRINK_FLOOR chars' worth
@@ -2222,6 +2250,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // same ratio as the width scale, but arrived at independently and worth keeping named apart.
   const ROW_PX_TO_PT = 0.75;
   const ROW_DEFAULT_PX = 20;
+  // Measured from the live grid, not assumed: computed line-height is 14.85px on an 11px base.
+  const SHEET_LINE_RATIO = 1.35;
+  // Vertical padding (2px top + 2px bottom) plus the collapsed border, taken off a row's height
+  // before dividing it into lines.
+  const ROW_TEXT_PAD_PX = 5;
 
   // Hand-dragged overrides. Columns are keyed by ROLE, not by position: 'date' and 'notes' are
   // shared by every year block (unequal ones read as broken), and a phase slot is keyed by its
@@ -2237,17 +2270,75 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // notes AND phase labels so a narrowed column of either kind behaves the same way. The
   // caller decides what to do when even the floor is not enough: notes wrap (the row grows),
   // phase labels clip, because a wrapped label would break the fixed-height colour band.
-  function cellTextFit(noteText, chars){
-    if(!noteText) return { scale:1, wrap:false };
-    const avail = chars * EXCEL_MDW;              // Excel's own content width, padding excluded
-    let widest = 0;
-    // Explicit newlines are deliberate multi-line notes and stay as separate lines; it is only
-    // SOFT wrapping that shrink-to-fit replaces.
-    noteText.split('\n').forEach(line=>{ widest = Math.max(widest, measureTextPx(line, false)); });
-    if(widest <= avail || widest === 0) return { scale:1, wrap:false };
-    const need = avail / widest;
-    if(need >= NOTE_SHRINK_FLOOR) return { scale:need, wrap:false };
-    return { scale:NOTE_SHRINK_FLOOR, wrap:true };
+  // How many lines `text` needs in `availPx` of width (11pt measurement basis). Greedy word
+  // wrap, with explicit newlines as hard breaks. Each WORD is measured once rather than every
+  // running prefix, so the memo stays small and the scan below stays cheap.
+  function wrapLineCount(text, availPx){
+    const spaceW = measureTextPx(' ', false);
+    let total = 0;
+    String(text).split('\n').forEach(para=>{
+      const words = para.split(/\s+/).filter(Boolean);
+      if(!words.length){ total += 1; return; }   // a blank line still occupies one
+      let lineW = 0, lines = 1;
+      words.forEach(w=>{
+        const ww = measureTextPx(w, false);
+        const cand = lineW ? lineW + spaceW + ww : ww;
+        // `lineW === 0` lets a single over-long word own its line instead of looping forever
+        if(cand <= availPx || lineW === 0) lineW = cand;
+        else { lines++; lineW = ww; }
+      });
+      total += lines;
+    });
+    return total;
+  }
+
+  // How a cell's text has to be sized to sit inside its column AND its row.
+  //
+  // The row height is an INPUT, not an output: it buys a LINE BUDGET, and the text wraps into
+  // however many lines that is. Shrinking is what happens when even the budget is not enough.
+  // A row the user has never dragged is worth one line, which is the behaviour notes have had
+  // all along.
+  //
+  // The budget cannot be computed once and held: line-height is a multiple of font-size, so
+  // shrinking the text both reduces the lines NEEDED and increases the lines that FIT. Those two
+  // curves move towards each other monotonically as the size falls, so scanning size downwards
+  // finds the largest size where they meet -- no circularity, and no oscillation.
+  //
+  // opts.basePx   font size the cell wants (11 unless the user chose one for this note)
+  // opts.manual   true when basePx is the user's explicit choice -- then it is honoured outright
+  //               and the text is allowed to clip, because that is what the control is for
+  // opts.rowPx    the row's pinned height, or undefined for an auto-height (one line) row
+  // Returns { scale, lines, wrap, clipped } with scale ALWAYS relative to the 11px base, so
+  // every call site keeps its existing `11 * fit.scale` shape.
+  function cellTextFit(noteText, chars, opts){
+    opts = opts || {};
+    const basePx = opts.basePx || 11;
+    const availBasis = Math.max(1, chars * EXCEL_MDW);   // Excel's content width, inset excluded
+    if(!noteText) return { scale: basePx / 11, lines: 1, wrap: false, clipped: false };
+
+    // lines that fit in the row at font size px
+    const budgetAt = px => opts.rowPx
+      ? Math.max(1, Math.floor((opts.rowPx - ROW_TEXT_PAD_PX) / (px * SHEET_LINE_RATIO)))
+      : 1;
+    // lines the text needs at font size px: at px the glyphs are px/11 of measured size, which
+    // is the same as the available width shrinking by 11/px.
+    const needAt = px => wrapLineCount(noteText, availBasis * (11 / px));
+
+    if(opts.manual){
+      const need = needAt(basePx), fits = budgetAt(basePx);
+      // `lines` is the TRUE count, not the capped one: the renderer caps by clipping and the
+      // Excel export needs the honest number to size its row.
+      return { scale: basePx / 11, lines: need, wrap: need > 1, clipped: need > fits };
+    }
+    for(let s = 1; s >= NOTE_SHRINK_FLOOR - 1e-9; s -= 0.02){
+      const px = 11 * s, need = needAt(px);
+      if(need <= budgetAt(px)) return { scale: s, lines: need, wrap: need > 1, clipped: false };
+    }
+    // Floored and still over budget: wrap anyway rather than lose text. On an auto-height row
+    // that grows the row, which is the long-standing behaviour; on a pinned row it clips.
+    const px = 11 * NOTE_SHRINK_FLOOR, need = needAt(px);
+    return { scale: NOTE_SHRINK_FLOOR, lines: need, wrap: true,
+             clipped: need > budgetAt(px) };
   }
 
   // screen px -> Excel char units, the inverse of charsToScreenPx
@@ -2327,6 +2418,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       const chars = [...table.querySelectorAll('colgroup col')]
         .map(c => screenPxToChars(parseFloat(c.style.width) || 0));
       [...table.tBodies[0].rows].forEach(tr=>{
+        // The row's CURRENT height, not the committed rowHeights[] entry: during a row drag the
+        // inline height is being written live and the store has not been updated yet, and the
+        // line budget has to follow the row as it grows.
+        const rowPx = parseFloat(tr.style.height) || undefined;
         let ci = 0;
         [...tr.cells].forEach(td=>{
           const span = td.colSpan || 1;
@@ -2336,12 +2431,26 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           if(td.classList.contains('sheet-date') || td.classList.contains('sheet-empty')) return;
           const txt = td.textContent;
           if(!txt) return;
-          const fit = cellTextFit(txt, avail);
-          td.style.fontSize = fit.scale < 1 ? (11 * fit.scale).toFixed(2) + 'px' : '';
+          const isNote = td.classList.contains('sheet-note-cell');
+          // A per-note size lives on the week key, which the note cell already carries; without
+          // reading it here the drag refit would overwrite the user's chosen size with the auto
+          // one (and its empty-string branch used to wipe the inline size outright).
+          const nSize = isNote ? noteFontSizeFor(td.dataset.week) : undefined;
+          const fit = cellTextFit(txt, avail, isNote
+            ? { basePx: nSize || 11, manual: nSize !== undefined, rowPx }
+            : {});
+          const px = 11 * fit.scale;
+          // A note's text lives in .note-body (so a pinned row can cap it), so that is what
+          // carries the size and wrapping; everything else styles the cell directly.
+          const target = isNote ? (td.querySelector('.note-body') || td) : td;
+          target.style.fontSize = Math.abs(px - 11) > 0.01 ? px.toFixed(2) + 'px' : '';
           // Only notes may wrap; a wrapped phase label would break the fixed-height band.
-          if(td.classList.contains('sheet-note-cell')){
-            td.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
+          if(isNote){
+            target.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
+            target.style.maxHeight = rowPx ? Math.max(0, rowPx - ROW_TEXT_PAD_PX) + 'px' : '';
+            td.style.verticalAlign = fit.wrap ? 'top' : '';
             td.dataset.notefit = fit.scale.toFixed(4);
+            td.dataset.notelines = String(fit.lines);
           }
         });
       });
@@ -4762,7 +4871,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               if(c) availChars += c.chars;
             }
             slotCursor += cell.colspan;
-            const lf = cellTextFit(cell.label || '', availChars);
+            // No rowPx: a phase label is always one line -- a wrapped one would break the
+            // fixed-height colour band that makes the waterfall readable.
+            const lf = cellTextFit(cell.label || '', availChars, {});
             // Never wrap here: rows are a fixed height and a wrapped label would break the band.
             const lfCss = lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '';
             if(cell.kind==='phase'){
@@ -4786,12 +4897,21 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
           if(noteText){
             const nc = noteColorFor(weekDateKey);
-            // Fit the note on ONE line by shrinking it, rather than wrapping and growing the
-            // row. pre (not pre-wrap) is what stops the soft wrap; explicit newlines survive.
-            const fit = cellTextFit(noteText, colWidthsFor[bi].notes);
+            // The row's height buys a line budget; the note wraps into it and only shrinks
+            // when even that is not enough. A size the user picked for this note wins outright.
+            const nSize = noteFontSizeFor(weekDateKey);
+            const fit = cellTextFit(noteText, colWidthsFor[bi].notes, {
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r]
+            });
+            const fitPx = 11 * fit.scale;
+            // pre keeps a single line single (and lets text-overflow put an ellipsis on it);
+            // pre-wrap is only for a note that is genuinely using more than one line.
             const fitCss = `white-space:${fit.wrap ? 'pre-wrap' : 'pre'};`
-              + (fit.scale < 1 ? ` font-size:${(11 * fit.scale).toFixed(2)}px;` : '');
-            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" style="background:${nc}; color:${textColorFor(nc)}; ${fitCss} ${isLast?'border-right:2px solid var(--text);':''}">${esc(noteText)}</td>`;
+              + (Math.abs(fitPx - 11) > 0.01 ? ` font-size:${fitPx.toFixed(2)}px;` : '')
+              // Only a row the user actually pinned caps its text; everything else keeps the
+              // long-standing behaviour of growing rather than hiding anything.
+              + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="note-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
@@ -4927,9 +5047,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-      noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
+      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
       render(currentSchedule);
       reflectCountryLock();
+      // resetAll() ends with update(), which calls markDirty(); this branch never did, so
+      // "Reset Notes & Hiatus" left the file showing Saved and could not be undone.
+      markDirty();
       return;
     }
     if(viewMode !== 'sheet') return;
@@ -4991,6 +5114,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       const sel = (pinnedDate === dIso) ? ' selected' : '';
       return `<option value="${dIso}"${sel}>${nm} ${fmtShort(addDays(weekStart, i))}</option>`;
     }).join('') : '';
+    // Font size for THIS note. Deliberately a class and no id: collectFieldValues() sweeps every
+    // input[id]/select[id]/textarea[id] in the document into the saved file and the undo stack,
+    // so a transient editor control with an id would be baked into saves and add phantom undo
+    // steps. .note-day-select next door follows the same rule.
+    const NOTE_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16];
+    const curSize = isHiatus ? undefined : noteFontSizeFor(weekKey);
+    const sizeRow = isHiatus ? '' : `<div class="note-size-row">
+      <label>Size <select class="note-size-select">
+        <option value=""${curSize === undefined ? ' selected' : ''}>Auto</option>
+        ${NOTE_SIZES.map(s=>`<option value="${s}"${curSize === s ? ' selected' : ''}>${s}</option>`).join('')}
+      </select></label>
+    </div>`;
     const dayRow = isHiatus ? '' : `<div class="note-day-row">
       <label>Day <select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>Mon (default)</option>
@@ -5000,6 +5135,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     td.innerHTML = `<div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
+      ${sizeRow}
       <div class="note-color-row" title="Highlight color">${swatches}</div>
     </div>`;
 
@@ -5034,7 +5170,20 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     textarea.addEventListener('input', resize);
     resize();
 
-    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null, defaultLabel: hiatusDefaultLabel};
+    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
+                        pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel};
+    const sizeSel = td.querySelector('.note-size-select');
+    if(sizeSel){
+      sizeSel.addEventListener('mousedown', e=>e.stopPropagation());
+      sizeSel.addEventListener('click', e=>e.stopPropagation());
+      sizeSel.addEventListener('change', e=>{
+        e.stopPropagation();
+        if(!activeNoteEditor || activeNoteEditor.td !== td) return;
+        activeNoteEditor.pendingSize = sizeSel.value ? +sizeSel.value : undefined;
+        activeNoteEditor.sizeTouched = true;
+        textarea.focus();
+      });
+    }
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     td.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -5091,7 +5240,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
   function commitActiveNoteEditor(){
     if(!activeNoteEditor) return;
-    const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor, defaultLabel} = activeNoteEditor;
+    const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor, pendingSize, sizeTouched,
+           defaultLabel} = activeNoteEditor;
     if(isHiatus){
       const text = textarea.value.trim();
       if(text === (defaultLabel || HIATUS_DEFAULT_LABEL)) delete hiatusTexts[weekKey];
@@ -5108,8 +5258,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
       }
-      // A cell with no note has no highlight; drop any stored color with it.
-      if(!effectiveNoteText(weekKey, autoNotes)) delete noteColors[weekKey];
+      if(sizeTouched){
+        // "Auto" (and an explicit 11, the default) store nothing, so an untouched calendar keeps
+        // an empty map -- the same rule the colour swatches follow.
+        if(pendingSize === undefined || pendingSize === 11) delete noteFontSize[weekKey];
+        else noteFontSize[weekKey] = pendingSize;
+      }
+      // A cell with no note has no highlight and no size; drop both with it.
+      if(!effectiveNoteText(weekKey, autoNotes)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; }
     }
     activeNoteEditor = null;
     render(currentSchedule);
@@ -5191,6 +5347,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
     // A hand-dragged row height carries into the workbook. Screen px -> points, matching the
     // 20px/15pt relationship the grid is built on.
+    // A pinned row height is written as-is. ExcelJS emits customHeight="1" for ANY truthy
+    // row.height, which permanently disables Excel's autofit for that row -- so a wrapped note
+    // taller than the pinned height would be clipped in the workbook with no ellipsis and no
+    // indication. That is exactly what the screen does now too (the .note-body wrapper caps at
+    // the same height), so the two agree: pinned means pinned, in both.
+    // Rows the user never dragged get no height at all, and Excel autofits them.
     function applyRowHeight(row, r){
       const px = rowHeights[r];
       if(px) row.height = Math.round(px * ROW_PX_TO_PT * 100) / 100;
@@ -5365,7 +5527,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             // same summed span, so a narrowed phase column reads identically in both.
             let availChars = 0;
             for(let k=0;k<item.colspan;k++) availChars += (widths.labels[slot + k] || 0);
-            const lf = cellTextFit(item.label || '', availChars);
+            const lf = cellTextFit(item.label || '', availChars, {});
             const lfSize = Math.round(11 * lf.scale * 100) / 100;
             if(item.kind === 'phase'){
               baseStyle(cell, {font:{size:lfSize}});
@@ -5402,14 +5564,25 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             // line in the preview sits on one line here too. The size is written EXPLICITLY
             // rather than leaning on Excel's own shrinkToFit, whose algorithm is not ours --
             // an explicit size is what makes the two agree.
-            const fit = cellTextFit(noteText, widths.notes);
+            const nSize = noteFontSizeFor(nKey);
+            const fit = cellTextFit(noteText, widths.notes, {
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r]
+            });
+            // An un-pinned row must be tall enough for the lines the note actually uses:
+            // Excel autofits a wrapped cell only when no explicit height is set, and that is
+            // the case here, so nothing to do -- but a pinned row is capped on both sides.
             baseStyle(nCell, {font:{
               color:{argb:'FF'+textColorFor(nCol).replace('#','')},
               size: Math.round(11 * fit.scale * 100) / 100
             }});
             nCell.value = noteText;
             setFill(nCell, nCol);
-            nCell.alignment = {horizontal:'center', vertical:'middle', wrapText:fit.wrap, indent:0};
+            // wrapText must also be on when the text carries an explicit newline. Without it
+            // Excel keeps the break in the cell's value but lays the whole string out on ONE
+            // line, so a week with two notes -- autoNotesText joins them with '\n' -- ran
+            // together in the workbook while the screen showed two lines.
+            nCell.alignment = {horizontal:'center', vertical:'middle',
+                               wrapText: fit.lines > 1 || noteText.indexOf('\n') >= 0, indent:0};
           } else {
             baseStyle(nCell);
           }
@@ -5567,6 +5740,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
   // Per-cell highlight customization. All keyed by week 'YYYY-MM-DD'; absent = default.
   let noteColors = {};   // note cell fill override (default MILESTONE_COLOR purple)
+  // Per-note font size override, in screen px on the 11px base (undefined = size chosen
+  // automatically from the row's line budget). Keyed by week ISO exactly like noteColors, and
+  // travels with the note under every operation that moves notes.
+  let noteFontSize = {};
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
@@ -5868,6 +6045,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     });
   }
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
+  // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
+  function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
   function hiatusColorFor(weekKey){ return hiatusColors[weekKey] || HIATUS_COLOR; }
 
@@ -6360,7 +6539,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-    noteColors = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
+    noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths and row heights are layout, not notes, so "Reset Notes &
     // Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
@@ -6615,7 +6794,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     return {
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
-      mvHeaderMode, mvHeaderManual, noteColors, hiatusTexts, hiatusColors, holidayView,
+      mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights,
       fields: collectFieldValues()
     };
@@ -6868,6 +7047,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     Object.assign(userNotes, shiftedNotes);
     // No merge for colours: a cell has one fill, and the note that stayed owns it.
     noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
+    noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
     hiatusTexts = shiftKeyedMap(hiatusTexts, days);
     hiatusColors = shiftKeyedMap(hiatusColors, days);
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
@@ -8512,6 +8692,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     }
     // 4c. Restore per-cell highlight colors and hiatus text/color overrides
     if(snap.noteColors && typeof snap.noteColors === 'object') noteColors = Object.assign({}, snap.noteColors);
+    // Reassigned unconditionally, unlike noteColors just above: an absent key in the snapshot
+    // means "no overrides", and a conditional assign would leave the previous state's sizes in
+    // place after an undo back past the point they were set.
+    noteFontSize = (snap.noteFontSize && typeof snap.noteFontSize === 'object')
+      ? Object.assign({}, snap.noteFontSize) : {};
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
     holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};
