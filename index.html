@@ -733,11 +733,11 @@
      `td.sheet-note-cell` (one class, one type), so the 4px this used to ask for never applied.
      Padding is set in one place, against the width model. */
   td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top;}
-  /* Note text lives in this wrapper so a pinned row can CAP it. An inline height on a <tr> is
+  /* Note and hiatus text lives in this wrapper so a pinned row can CAP it. An inline height on a <tr> is
      only a MINIMUM -- the row grows to fit its content -- so without a wrapper carrying
      max-height, dragging a row shorter than its text just sprang back. Rows that were never
      dragged get no max-height and still grow rather than lose text. */
-  .note-body{ overflow:hidden; text-overflow:ellipsis; }
+  .cell-body{ overflow:hidden; text-overflow:ellipsis; }
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
   td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
   td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
@@ -2432,20 +2432,24 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           const txt = td.textContent;
           if(!txt) return;
           const isNote = td.classList.contains('sheet-note-cell');
-          // A per-note size lives on the week key, which the note cell already carries; without
-          // reading it here the drag refit would overwrite the user's chosen size with the auto
-          // one (and its empty-string branch used to wipe the inline size outright).
-          const nSize = isNote ? noteFontSizeFor(td.dataset.week) : undefined;
-          const fit = cellTextFit(txt, avail, isNote
-            ? { basePx: nSize || 11, manual: nSize !== undefined, rowPx }
+          const isHi   = td.classList.contains('sheet-hiatus-cell');
+          const flows  = isNote || isHi;   // cells that may wrap into the row's line budget
+          // A per-cell size lives on the week key, which both note and hiatus cells already
+          // carry; without reading it here the drag refit would overwrite the user's chosen
+          // size with the auto one (and its empty-string branch used to wipe it outright).
+          const cSize = isNote ? noteFontSizeFor(td.dataset.week)
+                      : isHi   ? hiatusFontSizeFor(td.dataset.week) : undefined;
+          const fit = cellTextFit(txt, avail, flows
+            ? { basePx: cSize || 11, manual: cSize !== undefined, rowPx }
             : {});
           const px = 11 * fit.scale;
-          // A note's text lives in .note-body (so a pinned row can cap it), so that is what
+          // A note's text lives in .cell-body (so a pinned row can cap it), so that is what
           // carries the size and wrapping; everything else styles the cell directly.
-          const target = isNote ? (td.querySelector('.note-body') || td) : td;
+          const target = flows ? (td.querySelector('.cell-body') || td) : td;
           target.style.fontSize = Math.abs(px - 11) > 0.01 ? px.toFixed(2) + 'px' : '';
-          // Only notes may wrap; a wrapped phase label would break the fixed-height band.
-          if(isNote){
+          // Only notes and hiatus bands may wrap; a wrapped PHASE label would break the
+          // fixed-height colour band that makes the waterfall readable.
+          if(flows){
             target.style.whiteSpace = fit.wrap ? 'pre-wrap' : 'pre';
             target.style.maxHeight = rowPx ? Math.max(0, rowPx - ROW_TEXT_PAD_PX) + 'px' : '';
             td.style.verticalAlign = fit.wrap ? 'top' : '';
@@ -4854,7 +4858,20 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           const hTxt = hiatusTextFor(hKey);
           const hCol = hiatusColorFor(hKey);
           const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-          bodyHtml += `<td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${isLast?'border-right:2px solid var(--text);':''}">${escHi(hTxt)}</td>`;
+          // The band spans every column of the block except the date one, so its available
+          // width is their sum. It had no fitting at all before: a long label simply ran past
+          // the cell and was clipped by the table's overflow rule.
+          let hAvail = 0;
+          colWidthsFor[bi].cols.forEach((c, ci)=>{ if(ci > 0) hAvail += c.chars; });
+          const hSize = hiatusFontSizeFor(hKey);
+          const hFit = cellTextFit(hTxt, hAvail, {
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r]
+          });
+          const hPx = 11 * hFit.scale;
+          const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
+            + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
+            + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+          bodyHtml += `<td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -4884,7 +4901,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" style="background:${cell.color}; color:${cell.textColor}; cursor:text;${lfCss}">${escHi(cell.label)}</td>`;
+              // A per-phase band is editable text like a note, so it gets the note treatment --
+              // the row's line budget and a per-band size -- rather than the one-line fit the
+              // phase labels beside it use.
+              const phSize = hiatusFontSizeFor(phKey);
+              const phFit = cellTextFit(cell.label || '', availChars, {
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r]
+              });
+              const phPx = 11 * phFit.scale;
+              const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
+                + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
+                + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};${lfCss}">${escHtml(cell.label)}</td>`;
             } else {
@@ -4911,7 +4939,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               // Only a row the user actually pinned caps its text; everything else keeps the
               // long-standing behaviour of growing rather than hiding anything.
               + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
-            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="note-body" style="${fitCss}">${esc(noteText)}</div></td>`;
+            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
@@ -5047,7 +5075,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
+      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {};
+      hiatusFontSize = {}; holidayView = {};
       render(currentSchedule);
       reflectCountryLock();
       // resetAll() ends with update(), which calls markDirty(); this branch never did, so
@@ -5119,8 +5148,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // so a transient editor control with an id would be baked into saves and add phantom undo
     // steps. .note-day-select next door follows the same rule.
     const NOTE_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16];
-    const curSize = isHiatus ? undefined : noteFontSizeFor(weekKey);
-    const sizeRow = isHiatus ? '' : `<div class="note-size-row">
+    // Hiatus bands get the size control too -- they are editable text in the same grid, and a
+    // band squeezed by a short row needs the same escape hatch a note does. (The DAY picker
+    // stays notes-only: a hiatus key is "week|phase", which is not a parseable date.)
+    const curSize = isHiatus ? hiatusFontSizeFor(weekKey) : noteFontSizeFor(weekKey);
+    const sizeRow = `<div class="note-size-row">
       <label>Size <select class="note-size-select">
         <option value=""${curSize === undefined ? ' selected' : ''}>Auto</option>
         ${NOTE_SIZES.map(s=>`<option value="${s}"${curSize === s ? ' selected' : ''}>${s}</option>`).join('')}
@@ -5250,6 +5282,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         if(pendingColor.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[weekKey];
         else hiatusColors[weekKey] = pendingColor;
       }
+      if(sizeTouched){
+        if(pendingSize === undefined || pendingSize === 11) delete hiatusFontSize[weekKey];
+        else hiatusFontSize[weekKey] = pendingSize;
+      }
     } else {
       const daySel = td.querySelector('.note-day-select');
       const chosenDate = daySel ? (daySel.value || '') : '';
@@ -5350,7 +5386,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // A pinned row height is written as-is. ExcelJS emits customHeight="1" for ANY truthy
     // row.height, which permanently disables Excel's autofit for that row -- so a wrapped note
     // taller than the pinned height would be clipped in the workbook with no ellipsis and no
-    // indication. That is exactly what the screen does now too (the .note-body wrapper caps at
+    // indication. That is exactly what the screen does now too (the .cell-body wrapper caps at
     // the same height), so the two agree: pinned means pinned, in both.
     // Rows the user never dragged get no height at all, and Excel autofits them.
     function applyRowHeight(row, r){
@@ -5505,7 +5541,22 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           ws.mergeCells(excelRow, labelColStart, excelRow, notesCol);
           const hCell = ws.getRow(excelRow).getCell(labelColStart);
           hCell.value = hTxt;
-          baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')}}});
+          // Same fit the screen applies, over the same span: every column of the block but the
+          // date one.
+          let hAvail = 0;
+          for(let k=0;k<maxConcurrent;k++) hAvail += (widths.labels[k] || 0);
+          hAvail += widths.notes;
+          const hSize = hiatusFontSizeFor(hKey);
+          const hFit = cellTextFit(hTxt, hAvail, {
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r]
+          });
+          baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')},
+                                  size: Math.round(11 * hFit.scale * 100) / 100}});
+          // NOTE: Excel never autofits a MERGED cell, so a wrapped band in a row with no pinned
+          // height will not grow the row -- unlike the screen. Pinning the row (which is what
+          // the line budget is derived from anyway) is what makes the two agree.
+          hCell.alignment = {horizontal:'center', vertical:'middle',
+                             wrapText: hFit.lines > 1 || hTxt.indexOf('\n') >= 0, indent:0};
           setFill(hCell, hCol);
           hCell.border = isLastRow ? {bottom:thin} : {};
           // the rightmost cell of a merged range needs its own border set for the edge to render
@@ -5534,7 +5585,20 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'phaseHiatus'){
-              baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')}, size:lfSize}});
+              // Editable text, so it follows the note rules (row budget + per-band size) rather
+              // than the one-line fit used for the phase labels beside it.
+              // item.weekIso, not week.date: this must be byte-identical to the key the screen
+              // builds (cell.weekIso + '|' + cell.phaseKey) or a size set in the editor would
+              // never be found by the export.
+              const phKey = item.weekIso + '|' + item.phaseKey;
+              const phSize = hiatusFontSizeFor(phKey);
+              const phFit = cellTextFit(item.label || '', availChars, {
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r]
+              });
+              baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')},
+                                     size: Math.round(11 * phFit.scale * 100) / 100}});
+              cell.alignment = {horizontal:'center', vertical:'middle',
+                                wrapText: phFit.lines > 1, indent:0};
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
@@ -5744,6 +5808,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // automatically from the row's line budget). Keyed by week ISO exactly like noteColors, and
   // travels with the note under every operation that moves notes.
   let noteFontSize = {};
+  // Same idea for hiatus bands. One store serves BOTH kinds because they are edited by the same
+  // editor and keyed the way their text and colour already are: a full-block band by week ISO,
+  // a per-phase band by "week|phaseKey". Kept separate from noteFontSize so the two cannot
+  // collide on a bare week key.
+  let hiatusFontSize = {};
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
@@ -6047,6 +6116,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
   function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
+  function hiatusFontSizeFor(weekKey){ return hiatusFontSize[weekKey]; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
   function hiatusColorFor(weekKey){ return hiatusColors[weekKey] || HIATUS_COLOR; }
 
@@ -6539,7 +6609,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-    noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {}; holidayView = {};
+    noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {};
+    hiatusFontSize = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths and row heights are layout, not notes, so "Reset Notes &
     // Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
@@ -6794,7 +6865,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     return {
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
-      mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors, holidayView,
+      mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors,
+      hiatusFontSize, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights,
       fields: collectFieldValues()
     };
@@ -7050,6 +7122,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
     hiatusTexts = shiftKeyedMap(hiatusTexts, days);
     hiatusColors = shiftKeyedMap(hiatusColors, days);
+    hiatusFontSize = shiftKeyedMap(hiatusFontSize, days);
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
@@ -8697,6 +8770,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // place after an undo back past the point they were set.
     noteFontSize = (snap.noteFontSize && typeof snap.noteFontSize === 'object')
       ? Object.assign({}, snap.noteFontSize) : {};
+    hiatusFontSize = (snap.hiatusFontSize && typeof snap.hiatusFontSize === 'object')
+      ? Object.assign({}, snap.hiatusFontSize) : {};
     if(snap.hiatusTexts && typeof snap.hiatusTexts === 'object') hiatusTexts = Object.assign({}, snap.hiatusTexts);
     if(snap.hiatusColors && typeof snap.hiatusColors === 'object') hiatusColors = Object.assign({}, snap.hiatusColors);
     holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};
