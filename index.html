@@ -4811,7 +4811,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const colWidthsFor = sheetColumnWidths(schedule, yearBlocks, blockLayout);
     const hasAnySimPost = schedule.weeks.some(w=>w.simPost);
     const notesColspan = 1; // Notes only; Simultaneous Post now lives in the phase area
-    const maxRows = Math.max(...yearBlocks.map(b=>b.count));
+    const maxRows = sheetRowCount(schedule, yearBlocks);
     const notesByIdx = schedule.notesByIdx || {};
 
     let headerHtml = '';
@@ -5492,7 +5492,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       for(let k=0;k<maxConcurrent;k++) ws.getColumn(labelColStart+k).width = widths.labels[k];
       ws.getColumn(notesCol).width = widths.notes;
 
-      const rowsInBlock = yearBlocks[b].count;
+      // Clamped to the same trimmed height the screen uses, so the workbook does not carry a
+      // trailing empty row the preview has dropped.
+      const rowsInBlock = Math.min(yearBlocks[b].count, sheetRowCount(schedule, yearBlocks));
       const yearLabel = yearBlocks[b].year;
 
       // header row
@@ -6039,6 +6041,34 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   //
   // Consumed by renderSpreadsheetView (screen + the PDF, via <colgroup>) and by exportExcel.
   // Returns [{ date, labels:[...], notes }] -- one entry per year block.
+  // How many table rows the grid actually needs.
+  //
+  // A table row is one row of EVERY year block at once, so the grid is as tall as the LONGEST
+  // block. Years are not the same length -- 2029 has 53 Mondays because both Jan 1 and Dec 31
+  // fall on one, while 2026-2028 have 52 -- so a 53-Monday year forces a final row that is
+  // blank in every other block. When nothing is scheduled in that week either, the result is a
+  // completely empty strip under the calendar.
+  //
+  // Trailing rows that are content-free in EVERY block are dropped. This deliberately does not
+  // touch the full-year padding the layout is built around: a year whose work finishes in
+  // September still shows its remaining weeks, because those rows carry content in some other
+  // block. Only a row with nothing anywhere in it goes.
+  function sheetRowCount(schedule, yearBlocks){
+    let rows = Math.max(...yearBlocks.map(b=>b.count));
+    const notesByIdx = schedule.notesByIdx || {};
+    const hasContent = (b, r)=>{
+      if(r >= b.count) return false;
+      const i = b.startIdx + r;
+      const w = schedule.weeks[i];
+      if(!w) return false;
+      if(w.cells && w.cells.length) return true;          // a phase, sim-post or hiatus band
+      const wk = w.date.toISOString().slice(0,10);
+      return !!effectiveNoteText(wk, autoNotesForView(notesByIdx[i], 'sheet'));
+    };
+    while(rows > 1 && !yearBlocks.some(b => hasContent(b, rows - 1))) rows--;
+    return rows;
+  }
+
   function sheetColumnWidths(schedule, yearBlocks, layout){
     const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = layout;
     const notesByIdx = schedule.notesByIdx || {};
