@@ -5686,34 +5686,17 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       }
     }
 
-    // Orientation preference by number of year-columns: 2 or fewer years -> portrait,
-    // 3 or more years -> landscape (wider grids need the extra horizontal room). We honor
-    // that preference unless the preferred orientation can't fit the grid on a single page
-    // while the other can, in which case we use whichever one fits.
+    // Orientation: 2 or fewer year-columns -> portrait, 3 or more -> landscape, unless the
+    // other way round prints meaningfully larger. The rule itself now lives in
+    // sheetPageOrientation() and is shared with the PDF writer -- when each output computed it
+    // from its own grid measurements they could disagree, and a three-year calendar sitting on
+    // the 15% boundary came out landscape here and portrait there.
     {
-      const m = ws.pageSetup.margins;
       const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
-      let gridPx = 0;
-      for(let c=1;c<=totalCols;c++){ gridPx += (ws.getColumn(c).width || 8) * 7 + 5; }
       const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
-      const gridHpx = totalRows * 20; // ~20px per row at 100%
-      // Limiting single-page fit scale for a given paper size (>=1 means it fits at 100%).
-      const fit = (paperW, paperH) => {
-        const pw = (paperW - m.left - m.right) * 96;
-        const ph = (paperH - m.top - m.bottom - m.header - m.footer) * 96;
-        return Math.min(pw / gridPx, ph / gridHpx);
-      };
-      const portraitScale  = fit(8.5, 11);
-      const landscapeScale = fit(11, 8.5);
-      const preferred = (blockCount >= 3) ? 'landscape' : 'portrait';
-      const prefScale = preferred === 'landscape' ? landscapeScale : portraitScale;
-      const otherScale = preferred === 'landscape' ? portraitScale : landscapeScale;
-      // fitToPage will scale down to fit regardless, so both always "fit" on one page; we
-      // only override the preference if the other orientation prints meaningfully larger AND
-      // the preferred one would require heavy shrinking (prints notably small).
-      let orientation = preferred;
-      if(otherScale > prefScale * 1.15){ orientation = (preferred === 'landscape') ? 'portrait' : 'landscape'; }
-      ws.pageSetup.orientation = orientation;
+      const metrics = sheetGridMetrics(schedule, yearBlocks, blockColWidths);
+      ws.pageSetup.orientation =
+        sheetPageOrientation(metrics.gridW, metrics.gridH, blockCount).orientation;
       // Pin the print area to the used range. Left unset, Excel infers it, and any cell that
       // has ever been touched outside the grid drags a blank second page into the print job
       // -- which also defeats fitToHeight:1, since the "sheet" it fits is then the wrong size.
@@ -6071,6 +6054,39 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     };
     while(rows > 1 && !yearBlocks.some(b => hasContent(b, rows - 1))) rows--;
     return rows;
+  }
+
+  // Page geometry shared by the workbook and the PDF, in points.
+  //
+  // These live together because the orientation decision has to be made from IDENTICAL inputs in
+  // both outputs. It very nearly was not: the workbook measured height as a flat rows*20px while
+  // the PDF used its real per-row heights, and on a three-year calendar sitting right on the
+  // 15% override boundary that 24px difference was enough to print the workbook landscape and
+  // the PDF portrait. Height is deliberately the FLAT model here -- a note wrapping to a second
+  // line should not be able to turn the page over.
+  const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, t: 54, b: 54, hdr: 21.6, ftr: 21.6 };
+  const SHEET_PAPER_PT = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
+
+  function sheetGridMetrics(schedule, yearBlocks, colWidthsFor){
+    const rows = sheetRowCount(schedule, yearBlocks);
+    let gridW = 0;
+    colWidthsFor.forEach(b => b.cols.forEach(c => { gridW += charsToScreenPx(c.chars); }));
+    return { rows, gridW, gridH: (rows + 1) * ROW_DEFAULT_PX * ROW_PX_TO_PT };
+  }
+
+  // Landscape from three year-blocks, unless the other way round prints meaningfully larger --
+  // the rule the Excel export has always used, now the only copy of it.
+  function sheetPageOrientation(gridW, gridH, blockCount){
+    const M = SHEET_PAGE_MARGIN_PT;
+    const fit = p => Math.min((p.w - M.l - M.r) / gridW,
+                              (p.h - M.t - M.b - M.hdr - M.ftr) / gridH);
+    const portrait = fit(SHEET_PAPER_PT.portrait), landscape = fit(SHEET_PAPER_PT.landscape);
+    const preferred = blockCount >= 3 ? 'landscape' : 'portrait';
+    const pref  = preferred === 'landscape' ? landscape : portrait;
+    const other = preferred === 'landscape' ? portrait : landscape;
+    const orientation = (other > pref * 1.15)
+      ? (preferred === 'landscape' ? 'portrait' : 'landscape') : preferred;
+    return { orientation, portrait, landscape, preferred };
   }
 
   function sheetColumnWidths(schedule, yearBlocks, layout){
@@ -8640,20 +8656,30 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // --- page, orientation and a WHOLE-PERCENT fit scale --------------------------------------
     // Excel walks its fit-to-page scale down in 1% steps; matching that is what keeps the two
     // outputs the same size rather than merely similar.
-    const MARGIN_PT = { l: 18, r: 18, t: 18, b: 18 };   // 0.25in sides, matching the workbook
-    const PAPER = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
-    const fitFor = p => {
-      const availW = p.w - MARGIN_PT.l - MARGIN_PT.r;
-      const availH = p.h - MARGIN_PT.t - MARGIN_PT.b;
-      return Math.min(availW / gridW, availH / (gridH + headerH));
-    };
-    // Orientation follows the grid's WIDTH, as the print path did: stay portrait while the grid
-    // fits a portrait page, and turn only when it no longer does.
-    const portraitFits = gridW <= PAPER.portrait.w - MARGIN_PT.l - MARGIN_PT.r;
-    const orientation = portraitFits ? 'portrait' : 'landscape';
+    // Margins are the workbook's, in points: ws.pageSetup.margins is
+    // {left:.25, right:.25, top:.75, bottom:.75, header:.3, footer:.3} inches. The reference
+    // export confirms them -- its grid starts 55.44pt down the page, against a 54pt top margin,
+    // and its header text sits at 22.32pt against a 21.6pt header margin.
+    const MARGIN_PT = SHEET_PAGE_MARGIN_PT, PAPER = SHEET_PAPER_PT;
+    // Orientation is decided the way exportExcel decides it, NOT the way the old print path did.
+    // The print path chose on width alone; the workbook prefers landscape from three year-blocks
+    // and only overrides when the other orientation prints meaningfully larger. Since the whole
+    // point of this writer is that the PDF and the workbook are one layout, a calendar must not
+    // be able to come out portrait in one and landscape in the other.
+    // Decided from the SHARED metrics, not from this writer's own precise gridH, so the page
+    // turns the same way here as it does in the workbook.
+    const metrics = sheetGridMetrics(schedule, yearBlocks, colWidthsFor);
+    const pick = sheetPageOrientation(metrics.gridW, metrics.gridH, yearBlocks.length);
+    const orientation = pick.orientation;
     const paper = PAPER[orientation];
-    const raw = fitFor(paper);
-    const scale = Math.max(0.1, Math.floor(Math.min(raw, 1) * 100) / 100);   // whole percent, never up
+    // The real scale uses the actual body box; the header text lives in the top margin, as
+    // Excel's does, so it costs the grid nothing.
+    const bodyTop = MARGIN_PT.t;
+    const bodyH = paper.h - MARGIN_PT.t - MARGIN_PT.b;
+    const raw = Math.min((paper.w - MARGIN_PT.l - MARGIN_PT.r) / gridW, bodyH / gridH);
+    // Excel steps its fit-to-page scale in whole percent; matching that is what keeps the two
+    // the same size rather than merely similar.
+    const scale = Math.max(0.1, Math.floor(Math.min(raw, 1) * 100) / 100);
 
     const page = pdfPage(paper.w, paper.h);
     // Paint the sheet white FIRST. A PDF page has no background of its own -- it is transparent,
@@ -8683,29 +8709,45 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       });
     };
 
-    // --- header text ---------------------------------------------------------------------------
-    let y = originY;
+    // --- header text -----------------------------------------------------------------------
+    // Drawn in the TOP MARGIN band, at Excel's header margin, not above the grid in the body.
+    // That is where Excel puts &L/&C/&R, and it is why the grid can start at exactly the top
+    // margin no matter how many header lines there are -- the header costs the grid nothing.
+    // Header type is NOT scaled with the grid: Excel's page header keeps its point size however
+    // hard the sheet is shrunk to fit.
     if(hdrLines){
       const midX = originX + gridW*scale/2;
       const rightEdge = originX + gridW*scale;
-      const baseY = y + S(HDR_TITLE_PT);          // first baseline
-      const stepFor = i => (i === 0 ? S(HDR_TITLE_PT) : S(HDR_SUB_PT)) * 1.35;
-      const stackY = i => { let v = baseY; for(let k=0;k<i;k++) v += stepFor(k); return v; };
-      if(hLeft) page.text(hLeft, originX, baseY, 'F1', S(HDR_SUB_PT), '#666666');
+      // The band runs from the header margin to the top margin; the grid begins immediately
+      // below it. Three header lines at full size need more room than that band has, and the
+      // overflow ran straight into the grid's top edge -- so the header type shrinks to fit
+      // rather than the grid moving, which is what keeps the table top calibrated.
+      // What has to fit is the FIRST ASCENDER to the LAST DESCENDER, not a sum of line boxes:
+      // sizing by line boxes left the final line's baseline sitting exactly on the grid edge
+      // with its descenders below it, so "Writer's Room Opens" was sliced by the header row.
+      const bandH = MARGIN_PT.t - MARGIN_PT.hdr - 1;      // 1pt so it never quite touches
+      const asc = reg.ascent / reg.unitsPerEm, dsc = Math.abs(reg.descent / reg.unitsPerEm);
+      const needAt1 = asc*HDR_TITLE_PT
+        + (hdrLines > 1 ? HDR_TITLE_PT*1.35 + (hdrLines-2)*HDR_SUB_PT*1.35 : 0)
+        + dsc*(hdrLines > 1 ? HDR_SUB_PT : HDR_TITLE_PT);
+      const hS = needAt1 > bandH ? bandH/needAt1 : 1;
+      const T = HDR_TITLE_PT*hS, U = HDR_SUB_PT*hS;
+      const baseY = MARGIN_PT.hdr + asc*T;          // first baseline, inside the band
+      const stackY = i => baseY + (i ? T*1.35 + (i-1)*U*1.35 : 0);
+      if(hLeft) page.text(hLeft, originX, baseY, 'F1', U, '#666666');
       hCentre.forEach((ln, i)=>{
-        const size = S(i === 0 ? HDR_TITLE_PT : HDR_SUB_PT);
+        const size = i === 0 ? T : U;
         const tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
         page.text(ln, midX - ttfTextWidth(ttf, ln, size)/2, stackY(i), tag, size, '#000000');
       });
       hRight.forEach((ln, i)=>{
-        const size = S(HDR_SUB_PT), tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
-        page.text(ln, rightEdge - ttfTextWidth(ttf, ln, size),
-                  baseY + i*S(HDR_SUB_PT)*1.35, tag, size, '#000000');
+        const tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
+        page.text(ln, rightEdge - ttfTextWidth(ttf, ln, U), baseY + i*U*1.35, tag, U, '#000000');
       });
-      y += S(headerH);
     }
 
-    const gridTop = y;
+    // The grid always begins at the top margin; the header sat above it, in the margin.
+    const gridTop = originY;
     const HEADER_FILL_PDF = '#D9D9D9', FRAME = '#1E1D1B', HDR_RULE = '#BFBFBF';
     const interior = SHEET_GRIDLINES === 'none' ? null
                    : (SHEET_GRIDLINES === 'dotted' ? '#DBDBDB' : '#BFBFBF');
