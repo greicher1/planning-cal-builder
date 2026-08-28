@@ -2626,6 +2626,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // disagree, and it is the first entry of the style config the Settings menu will own.
   // 'none' matches the reference export; 'dashed' is what the tool shipped before.
   const SHEET_GRIDLINES = 'none'; // 'none' | 'dashed' | 'dotted'
+  // How the waterfall PDF is produced. 'direct' writes the file byte-by-byte from the shared
+  // column model; 'print' is the original route through window.print(), kept working so the two
+  // can be compared and so there is somewhere to fall back to.
+  const WF_PDF_MODE = 'direct';   // 'direct' | 'print'
   // Default label for the production-wide (all-phase) hiatus band. Per-phase hiatuses keep
   // their own "<Phase> Hiatus" labels; this is the generic full-width one.
   const HIATUS_DEFAULT_LABEL = 'Hiatus';
@@ -8100,7 +8104,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   });
 
   document.getElementById('export-wf-pdf-btn').addEventListener('click', ()=>{
-    exportWaterfallPdf();
+    if(WF_PDF_MODE === 'direct') exportWaterfallPdfDirect();
+    else exportWaterfallPdf();
   });
 
   // ---------- Month view: export every month to PDF ----------
@@ -8345,6 +8350,511 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // backs both the on-screen grid and the Excel export), then picks page orientation and a
   // fit-to-width scale from the grid's natural width so wide multi-year schedules land in
   // landscape and narrow ones in portrait -- the way Excel's "fit to width" print would.
+  // ---------- Direct PDF writer ----------
+  // The waterfall PDF is written byte-by-byte here rather than handed to window.print().
+  //
+  // Going through the browser's print dialog meant the output depended on settings we do not
+  // control -- the user's scale, margins and "Background graphics" toggle all silently change
+  // it -- and the page could only ever be as faithful as a screen stylesheet stretched with
+  // `zoom`. Writing the file directly gives exact control of the page box, the scale and every
+  // glyph position, and it draws from the SAME column model the screen and the workbook use
+  // (sheetColumnWidths / sheetRowCount / cellTextFit / computePhaseRowLayout), so all three
+  // stay one layout rather than three approximations of one.
+  //
+  // Points are the unit throughout. charsToScreenPx() already returns a column's Excel width
+  // converted at 0.75, which is numerically the same as its width in points -- so it is the
+  // right function for both, despite the name.
+
+  // Minimal TrueType reader: only what /FontFile2 embedding and text measurement need.
+  function ttfRead(bytes){
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const tables = {};
+    const n = dv.getUint16(4);
+    for(let i=0;i<n;i++){
+      const o = 12 + i*16;
+      tables[String.fromCharCode(...bytes.subarray(o,o+4))] =
+        { off: dv.getUint32(o+8), len: dv.getUint32(o+12) };
+    }
+    const head = tables.head.off, hhea = tables.hhea.off;
+    const t = {
+      dv, tables,
+      unitsPerEm: dv.getUint16(head+18),
+      bbox: [dv.getInt16(head+36), dv.getInt16(head+38), dv.getInt16(head+40), dv.getInt16(head+42)],
+      ascent: dv.getInt16(hhea+4),
+      descent: dv.getInt16(hhea+6),
+      numHMetrics: dv.getUint16(hhea+34),
+      italicAngle: tables.post ? dv.getInt32(tables.post.off+4)/65536 : 0,
+    };
+    const os2 = tables['OS/2'];
+    t.capHeight = (os2 && os2.len >= 90) ? dv.getInt16(os2.off+88) : Math.round(t.ascent*0.7);
+    // PostScript name (nameID 6), stripped to the characters a PDF name may carry
+    t.name = 'EmbeddedFont';
+    if(tables.name){
+      const o = tables.name.off, cnt = dv.getUint16(o+2), strOff = o + dv.getUint16(o+4);
+      for(let i=0;i<cnt;i++){
+        const r = o+6+i*12;
+        if(dv.getUint16(r+6) === 6){
+          const len = dv.getUint16(r+8), off = dv.getUint16(r+10), plat = dv.getUint16(r);
+          let s = '';
+          for(let k=0;k<len;k++){
+            const ch = bytes[strOff+off+k];
+            if(plat === 3){ if(k%2) s += String.fromCharCode(ch); } else s += String.fromCharCode(ch);
+          }
+          s = s.replace(/[^\x21-\x7E]/g,'');
+          if(s){ t.name = s; break; }
+        }
+      }
+    }
+    // best Unicode cmap subtable
+    const c = tables.cmap.off, sub = dv.getUint16(c+2);
+    let best = null;
+    for(let i=0;i<sub;i++){
+      const r = c+4+i*8, plat = dv.getUint16(r), enc = dv.getUint16(r+2);
+      const score = (plat===3&&enc===1)?3 : (plat===3&&enc===10)?2 : (plat===0)?1 : 0;
+      if(score && (!best || score > best.score)) best = { score, off: c + dv.getUint32(r+4) };
+    }
+    t.cmapOff = best ? best.off : 0;
+    t.cmapFmt = best ? dv.getUint16(best.off) : 0;
+    return t;
+  }
+  function ttfGlyph(t, u){
+    const dv = t.dv, o = t.cmapOff;
+    if(t.cmapFmt === 4){
+      const segX2 = dv.getUint16(o+6);
+      const ends = o+14, starts = ends+segX2+2, deltas = starts+segX2, ranges = deltas+segX2;
+      for(let s=0;s<segX2;s+=2){
+        if(u <= dv.getUint16(ends+s)){
+          const st = dv.getUint16(starts+s);
+          if(u < st) return 0;
+          const ro = dv.getUint16(ranges+s);
+          if(ro === 0) return (u + dv.getInt16(deltas+s)) & 0xFFFF;
+          const gi = dv.getUint16(ranges+s+ro+(u-st)*2);
+          return gi === 0 ? 0 : (gi + dv.getInt16(deltas+s)) & 0xFFFF;
+        }
+      }
+      return 0;
+    }
+    if(t.cmapFmt === 12){
+      const groups = dv.getUint32(o+12);
+      for(let g=0;g<groups;g++){
+        const r = o+16+g*12, s = dv.getUint32(r), e = dv.getUint32(r+4);
+        if(u >= s && u <= e) return dv.getUint32(r+8) + (u - s);
+      }
+    }
+    return 0;
+  }
+  function ttfAdvance(t, gid){
+    return t.dv.getUint16(t.tables.hmtx.off + Math.min(gid, t.numHMetrics-1)*4);
+  }
+  function ttfTextWidth(t, str, sizePt){
+    let w = 0;
+    for(const ch of String(str)) w += ttfAdvance(t, ttfGlyph(t, ch.codePointAt(0)));
+    return w * sizePt / t.unitsPerEm;
+  }
+
+  // WinAnsiEncoding differs from Latin-1 only at 0x80-0x9F; PDF's /Widths is indexed by BYTE,
+  // so the smart-punctuation band needs its own code -> unicode map.
+  const PDF_WINANSI_HI = {
+    0x80:0x20AC,0x82:0x201A,0x83:0x0192,0x84:0x201E,0x85:0x2026,0x86:0x2020,0x87:0x2021,
+    0x88:0x02C6,0x89:0x2030,0x8A:0x0160,0x8B:0x2039,0x8C:0x0152,0x8E:0x017D,0x91:0x2018,
+    0x92:0x2019,0x93:0x201C,0x94:0x201D,0x95:0x2022,0x96:0x2013,0x97:0x2014,0x98:0x02DC,
+    0x99:0x2122,0x9A:0x0161,0x9B:0x203A,0x9C:0x0153,0x9E:0x017E,0x9F:0x0178
+  };
+  let _winansiRev = null;
+  function pdfEscape(s){
+    if(!_winansiRev){ _winansiRev = {}; for(const k in PDF_WINANSI_HI) _winansiRev[PDF_WINANSI_HI[k]] = +k; }
+    let out = '';
+    for(const ch of String(s)){
+      const u = ch.codePointAt(0);
+      let code = u <= 0xFF ? u : (_winansiRev[u] || 0x3F);   // '?' rather than dropping a glyph
+      if(code === 0x28 || code === 0x29 || code === 0x5C) out += '\\' + String.fromCharCode(code);
+      else if(code < 32 || code > 126) out += '\\' + code.toString(8).padStart(3,'0');
+      else out += String.fromCharCode(code);
+    }
+    return out;
+  }
+
+  const pdfNum = v => (Math.round(v*1000)/1000).toString();
+  function pdfRgb(hex){
+    const n = parseInt(String(hex).replace('#',''),16);
+    return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255].map(v=>v.toFixed(4)).join(' ');
+  }
+
+  // A one-page PDF: filled rectangles, hairlines and WinAnsi text in embedded TrueType.
+  function pdfPage(wPt, hPt){
+    const ops = [];
+    return {
+      w: wPt, h: hPt, ops,
+      // y is measured from the TOP of the page; PDF's own origin is bottom-left.
+      rect(x, y, w, h, hex){
+        if(w <= 0 || h <= 0) return;
+        ops.push(`${pdfRgb(hex)} rg ${pdfNum(x)} ${pdfNum(hPt-(y+h))} ${pdfNum(w)} ${pdfNum(h)} re f`);
+      },
+      line(x1, y1, x2, y2, hex, wt){
+        ops.push(`${pdfRgb(hex)} RG ${pdfNum(wt)} w ${pdfNum(x1)} ${pdfNum(hPt-y1)} m `
+               + `${pdfNum(x2)} ${pdfNum(hPt-y2)} l S`);
+      },
+      text(str, x, baselineY, tag, sizePt, hex){
+        if(str === '' || str == null) return;
+        ops.push(`BT /${tag} ${pdfNum(sizePt)} Tf ${pdfRgb(hex)} rg 1 0 0 1 ${pdfNum(x)} `
+               + `${pdfNum(hPt-baselineY)} Tm (${pdfEscape(str)}) Tj ET`);
+      },
+      // clip the next drawing to a cell, so an over-long label cannot bleed into its neighbour
+      clipPush(x, y, w, h){ ops.push(`q ${pdfNum(x)} ${pdfNum(hPt-(y+h))} ${pdfNum(w)} ${pdfNum(h)} re W n`); },
+      clipPop(){ ops.push('Q'); },
+    };
+  }
+
+  async function pdfDeflate(u8){
+    const cs = new CompressionStream('deflate');     // zlib wrapper == PDF /FlateDecode
+    return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(cs)).arrayBuffer());
+  }
+
+  // Serialise one page plus its embedded fonts. `fonts` is [{tag, ttf, raw, deflated}].
+  async function pdfSerialize(page, fonts){
+    const enc = new TextEncoder();
+    const chunks = []; let len = 0;
+    const push = u8 => { chunks.push(u8); len += u8.length; };
+    const put = s => push(enc.encode(s));
+    const offsets = [];
+    const nObjs = 4 + fonts.length*3;
+    const fontObj = i => 5 + i*3, descObj = i => 6 + i*3, fileObj = i => 7 + i*3;
+    const startObj = n => { offsets[n] = len; put(`${n} 0 obj\n`); };
+    const endObj = () => put('endobj\n');
+
+    put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    startObj(1); put('<< /Type /Catalog /Pages 2 0 R >>\n'); endObj();
+    startObj(2); put('<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n'); endObj();
+    startObj(3);
+    put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pdfNum(page.w)} ${pdfNum(page.h)}] `
+      + `/Resources << /Font << ${fonts.map((f,i)=>`/${f.tag} ${fontObj(i)} 0 R`).join(' ')} >> >> `
+      + `/Contents 4 0 R >>\n`);
+    endObj();
+    const content = await pdfDeflate(enc.encode(page.ops.join('\n')));
+    startObj(4); put(`<< /Length ${content.length} /Filter /FlateDecode >>\nstream\n`);
+    push(content); put('\nendstream\n'); endObj();
+
+    for(let i=0;i<fonts.length;i++){
+      const f = fonts[i], t = f.ttf, sc = 1000 / t.unitsPerEm;
+      const widths = [];
+      for(let c=32;c<=255;c++){
+        const u = (c >= 0x80 && c <= 0x9F) ? (PDF_WINANSI_HI[c] || 0) : c;
+        widths.push(u ? Math.round(ttfAdvance(t, ttfGlyph(t,u)) * sc) : 0);
+      }
+      startObj(fontObj(i));
+      put(`<< /Type /Font /Subtype /TrueType /BaseFont /${t.name} /FirstChar 32 /LastChar 255 `
+        + `/Widths [${widths.join(' ')}] /Encoding /WinAnsiEncoding `
+        + `/FontDescriptor ${descObj(i)} 0 R >>\n`);
+      endObj();
+      startObj(descObj(i));
+      put(`<< /Type /FontDescriptor /FontName /${t.name} /Flags 32 `
+        + `/FontBBox [${t.bbox.map(v=>Math.round(v*sc)).join(' ')}] /ItalicAngle ${pdfNum(t.italicAngle)} `
+        + `/Ascent ${Math.round(t.ascent*sc)} /Descent ${Math.round(t.descent*sc)} `
+        + `/CapHeight ${Math.round(t.capHeight*sc)} /StemV 80 /FontFile2 ${fileObj(i)} 0 R >>\n`);
+      endObj();
+      // Length1 is the UNCOMPRESSED font program length; Length is the stream's. The bytes are
+      // already Flate-compressed in the file (that is how they are stored), so they go straight
+      // in without a recompression round trip.
+      startObj(fileObj(i));
+      put(`<< /Length ${f.deflated.length} /Length1 ${f.raw.length} /Filter /FlateDecode >>\nstream\n`);
+      push(f.deflated); put('\nendstream\n'); endObj();
+    }
+
+    const xref = len;
+    put(`xref\n0 ${nObjs+1}\n0000000000 65535 f \n`);
+    for(let n=1;n<=nObjs;n++) put(`${String(offsets[n]).padStart(10,'0')} 00000 n \n`);
+    put(`trailer\n<< /Size ${nObjs+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+
+    const out = new Uint8Array(len);
+    let p = 0;
+    for(const c of chunks){ out.set(c, p); p += c.length; }
+    return out;
+  }
+
+  // Lay the waterfall out in points and draw it. Mirrors renderSpreadsheetView cell for cell.
+  async function buildWaterfallPdf(schedule){
+    await carlitoReady;
+    if(!carlitoBytes['400'] || !carlitoBytes['700'])
+      throw new Error('The embedded font is not available, so the PDF cannot be written.');
+    const reg = ttfRead(carlitoBytes['400']), bold = ttfRead(carlitoBytes['700']);
+
+    const yearBlocks = computeYearBlocks(schedule.weeks);
+    const blockLayout = computeBlockLayout(schedule, yearBlocks);
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = blockLayout;
+    const colWidthsFor = sheetColumnWidths(schedule, yearBlocks, blockLayout);
+    const maxRows = sheetRowCount(schedule, yearBlocks);
+    const notesByIdx = schedule.notesByIdx || {};
+
+    // --- geometry, all in points -------------------------------------------------------------
+    // charsToScreenPx() converts an Excel column width at 0.75, which IS its width in points.
+    const blockCols = colWidthsFor.map(b => b.cols.map(c => ({ key:c.key, chars:c.chars, w: charsToScreenPx(c.chars) })));
+    const blockX = []; let gx = 0;
+    blockCols.forEach(cols=>{ blockX.push(gx); cols.forEach(c=>{ gx += c.w; }); });
+    const gridW = gx;
+
+    // Row heights follow Excel: a screen pixel of row height is 0.75pt. A row grows for a note
+    // that needs more lines unless the user pinned it, exactly as the grid does.
+    const HDR_ROW_PT = ROW_DEFAULT_PX * ROW_PX_TO_PT;
+    const rowPt = [];
+    for(let r=0;r<maxRows;r++){
+      const pinned = rowHeights[r] ? rowHeights[r] * ROW_PX_TO_PT : 0;
+      let need = HDR_ROW_PT;
+      if(!pinned){
+        yearBlocks.forEach((b, bi)=>{
+          if(r >= b.count) return;
+          const w = schedule.weeks[b.startIdx + r];
+          if(!w) return;
+          const fits = [];
+          if(w.cells.length && w.cells[0].type==='hiatus'){
+            const hKey = w.date.toISOString().slice(0,10);
+            let av = 0; blockCols[bi].forEach((c,ci)=>{ if(ci>0) av += c.chars; });
+            const hs = hiatusFontSizeFor(hKey);
+            fits.push(cellTextFit(hiatusTextFor(hKey), av, { basePx: hs||11, manual: hs!==undefined }));
+          } else {
+            const wk = w.date.toISOString().slice(0,10);
+            const nt = effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx+r], 'sheet'));
+            if(nt){
+              const ns = noteFontSizeFor(wk);
+              fits.push(cellTextFit(nt, colWidthsFor[bi].notes, { basePx: ns||11, manual: ns!==undefined }));
+            }
+          }
+          fits.forEach(f=>{
+            const h = f.lines * (11*f.scale) * SHEET_LINE_RATIO + ROW_TEXT_PAD_PX*ROW_PX_TO_PT;
+            if(h > need) need = h;
+          });
+        });
+      }
+      rowPt.push(pinned || need);
+    }
+    const gridH = rowPt.reduce((a,b)=>a+b, HDR_ROW_PT);
+
+    // --- header block ------------------------------------------------------------------------
+    const hd = computeHeaderDefaults(schedule);
+    const hLeft = headerLine('left', hd);
+    const hCentre = ['c1','c2','c3'].map(id=>headerLine(id, hd)).filter(Boolean);
+    const hRight = ['r1','r2','r3'].map(id=>headerLine(id, hd)).filter(Boolean);
+    const HDR_TITLE_PT = 11, HDR_SUB_PT = 8, HDR_GAP_PT = 10;
+    const hdrLines = Math.max(hCentre.length, hRight.length, hLeft ? 1 : 0);
+    const headerH = hdrLines ? (HDR_TITLE_PT*1.35 + (hdrLines-1)*HDR_SUB_PT*1.35 + HDR_GAP_PT) : 0;
+
+    // --- page, orientation and a WHOLE-PERCENT fit scale --------------------------------------
+    // Excel walks its fit-to-page scale down in 1% steps; matching that is what keeps the two
+    // outputs the same size rather than merely similar.
+    const MARGIN_PT = { l: 18, r: 18, t: 18, b: 18 };   // 0.25in sides, matching the workbook
+    const PAPER = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
+    const fitFor = p => {
+      const availW = p.w - MARGIN_PT.l - MARGIN_PT.r;
+      const availH = p.h - MARGIN_PT.t - MARGIN_PT.b;
+      return Math.min(availW / gridW, availH / (gridH + headerH));
+    };
+    // Orientation follows the grid's WIDTH, as the print path did: stay portrait while the grid
+    // fits a portrait page, and turn only when it no longer does.
+    const portraitFits = gridW <= PAPER.portrait.w - MARGIN_PT.l - MARGIN_PT.r;
+    const orientation = portraitFits ? 'portrait' : 'landscape';
+    const paper = PAPER[orientation];
+    const raw = fitFor(paper);
+    const scale = Math.max(0.1, Math.floor(Math.min(raw, 1) * 100) / 100);   // whole percent, never up
+
+    const page = pdfPage(paper.w, paper.h);
+    // Paint the sheet white FIRST. A PDF page has no background of its own -- it is transparent,
+    // and a viewer that composites onto anything but white (thumbnailers and rasterisers
+    // routinely composite onto black) turns every black glyph invisible and the page into a
+    // black rectangle. Excel's own export paints one too.
+    page.rect(0, 0, paper.w, paper.h, '#FFFFFF');
+    const availW = paper.w - MARGIN_PT.l - MARGIN_PT.r;
+    const originX = MARGIN_PT.l + Math.max(0, (availW - gridW*scale) / 2);   // centred, like Excel
+    const originY = MARGIN_PT.t;
+
+    const S = v => v * scale;
+    const baselineIn = (topY, h, lines, size, i) => {
+      // CSS half-leading, using the font's real metrics, so a line sits where the grid puts it
+      const lh = size * SHEET_LINE_RATIO;
+      const asc = reg.ascent / reg.unitsPerEm, desc = reg.descent / reg.unitsPerEm;
+      const blockH = lines * lh;
+      const top = topY + Math.max(0, (h - blockH) / 2);
+      return top + i*lh + (lh - (asc - desc)*size)/2 + asc*size;
+    };
+    const drawLines = (txt, cx, cellTop, cellH, size, colour, tag, ttf, maxW)=>{
+      const lines = String(txt).split('\n');
+      lines.forEach((ln, i)=>{
+        const w = ttfTextWidth(ttf, ln, size);
+        const x = cx - w/2;
+        page.text(ln, x, baselineIn(cellTop, cellH, lines.length, size, i), tag, size, colour);
+      });
+    };
+
+    // --- header text ---------------------------------------------------------------------------
+    let y = originY;
+    if(hdrLines){
+      const midX = originX + gridW*scale/2;
+      const rightEdge = originX + gridW*scale;
+      const baseY = y + S(HDR_TITLE_PT);          // first baseline
+      const stepFor = i => (i === 0 ? S(HDR_TITLE_PT) : S(HDR_SUB_PT)) * 1.35;
+      const stackY = i => { let v = baseY; for(let k=0;k<i;k++) v += stepFor(k); return v; };
+      if(hLeft) page.text(hLeft, originX, baseY, 'F1', S(HDR_SUB_PT), '#666666');
+      hCentre.forEach((ln, i)=>{
+        const size = S(i === 0 ? HDR_TITLE_PT : HDR_SUB_PT);
+        const tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
+        page.text(ln, midX - ttfTextWidth(ttf, ln, size)/2, stackY(i), tag, size, '#000000');
+      });
+      hRight.forEach((ln, i)=>{
+        const size = S(HDR_SUB_PT), tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
+        page.text(ln, rightEdge - ttfTextWidth(ttf, ln, size),
+                  baseY + i*S(HDR_SUB_PT)*1.35, tag, size, '#000000');
+      });
+      y += S(headerH);
+    }
+
+    const gridTop = y;
+    const HEADER_FILL_PDF = '#D9D9D9', FRAME = '#1E1D1B', HDR_RULE = '#BFBFBF';
+    const interior = SHEET_GRIDLINES === 'none' ? null
+                   : (SHEET_GRIDLINES === 'dotted' ? '#DBDBDB' : '#BFBFBF');
+
+    // --- column header row ---------------------------------------------------------------------
+    let hy = gridTop, hh = S(HDR_ROW_PT);
+    yearBlocks.forEach((b, bi)=>{
+      const cols = blockCols[bi];
+      let x = originX + S(blockX[bi]);
+      page.rect(x, hy, S(cols.reduce((a,c)=>a+c.w,0)), hh, HEADER_FILL_PDF);
+      const put = (label, w)=>{
+        const size = S(HDR_ROW_PT*0.55);
+        page.clipPush(x, hy, w, hh);
+        drawLines(label, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
+        page.clipPop();
+        x += w;
+      };
+      put('Date', S(cols[0].w));
+      put(String(b.year), S(cols.slice(1,-1).reduce((a,c)=>a+c.w,0)));
+      put('Notes', S(cols[cols.length-1].w));
+    });
+    page.line(originX, hy+hh, originX + S(gridW), hy+hh, HDR_RULE, 0.75);
+
+    // --- body ------------------------------------------------------------------------------------
+    let ry = gridTop + hh;
+    for(let r=0;r<maxRows;r++){
+      const rh = S(rowPt[r]);
+      yearBlocks.forEach((b, bi)=>{
+        const cols = blockCols[bi];
+        const bx = originX + S(blockX[bi]);
+        if(r >= b.count) return;                       // shorter block: leave the row blank
+        const w = schedule.weeks[b.startIdx + r];
+        if(!w) return;
+
+        // date cell
+        const dw = S(cols[0].w);
+        const dsize = S(11);
+        page.clipPush(bx, ry, dw, rh);
+        drawLines(fmtShort(w.date), bx + dw/2, ry, rh, dsize, '#000000', 'F2', bold, dw);
+        page.clipPop();
+
+        if(w.cells.length && w.cells[0].type==='hiatus'){
+          const hKey = w.date.toISOString().slice(0,10);
+          const hTxt = hiatusTextFor(hKey), hCol = hiatusColorFor(hKey);
+          const bandW = S(cols.slice(1).reduce((a,c)=>a+c.w,0));
+          let av = 0; cols.forEach((c,ci)=>{ if(ci>0) av += c.chars; });
+          const hs = hiatusFontSizeFor(hKey);
+          const fit = cellTextFit(hTxt, av, { basePx: hs||11, manual: hs!==undefined,
+                                              rowPx: rowHeights[r] });
+          page.rect(bx + dw, ry, bandW, rh, hCol);
+          page.clipPush(bx + dw, ry, bandW, rh);
+          drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
+                    textColorFor(hCol), 'F1', reg, bandW);
+          page.clipPop();
+          return;
+        }
+
+        const layout = computePhaseRowLayout(w, blockMaxConcurrent[bi], blockSlotMaps[bi],
+                                             blockOccupancy[bi], r, blockSimSlot[bi]);
+        let slot = 0, cx = bx + dw;
+        layout.forEach(cell=>{
+          let cw = 0, av = 0;
+          for(let k=0;k<cell.colspan;k++){
+            const c = cols[1 + slot + k];
+            if(c){ cw += S(c.w); av += c.chars; }
+          }
+          slot += cell.colspan;
+          if(cell.kind === 'phase' || cell.kind === 'simpost' || cell.kind === 'phaseHiatus'){
+            const fill = cell.kind === 'simpost' ? SIMPOST_COLOR : cell.color;
+            const ink  = cell.kind === 'simpost' ? SIMPOST_TEXT  : cell.textColor;
+            page.rect(cx, ry, cw, rh, fill);
+            let fit;
+            if(cell.kind === 'phaseHiatus'){
+              const k = cell.weekIso + '|' + cell.phaseKey;
+              const ps = hiatusFontSizeFor(k);
+              fit = cellTextFit(cell.label||'', av, { basePx: ps||11, manual: ps!==undefined,
+                                                      rowPx: rowHeights[r] });
+            } else {
+              fit = cellTextFit(cell.label||'', av, {});
+            }
+            page.clipPush(cx, ry, cw, rh);
+            drawLines(cell.label||'', cx + cw/2, ry, rh, S(11*fit.scale), ink, 'F1', reg, cw);
+            page.clipPop();
+          }
+          cx += cw;
+        });
+
+        // notes cell
+        const nw = S(cols[cols.length-1].w);
+        const nx = bx + S(cols.reduce((a,c)=>a+c.w,0)) - nw;
+        const wk = w.date.toISOString().slice(0,10);
+        const nTxt = effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx+r], 'sheet'));
+        if(nTxt){
+          const nCol = noteColorFor(wk), ns = noteFontSizeFor(wk);
+          const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
+                                  { basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] });
+          page.rect(nx, ry, nw, rh, nCol);
+          page.clipPush(nx, ry, nw, rh);
+          drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
+          page.clipPop();
+        }
+      });
+
+      if(interior && r < maxRows-1)
+        page.line(originX, ry+rh, originX + S(gridW), ry+rh, interior, 0.4);
+      ry += rh;
+    }
+
+    // --- frame and year-block separators -----------------------------------------------------
+    const gridBottom = ry, right = originX + S(gridW);
+    page.line(originX, gridTop, right, gridTop, FRAME, 1.2);
+    page.line(originX, gridBottom, right, gridBottom, FRAME, 1.2);
+    page.line(originX, gridTop, originX, gridBottom, FRAME, 1.2);
+    page.line(right, gridTop, right, gridBottom, FRAME, 1.2);
+    for(let bi=1; bi<yearBlocks.length; bi++){
+      const x = originX + S(blockX[bi]);
+      page.line(x, gridTop, x, gridBottom, FRAME, 1.2);
+    }
+
+    const fonts = [
+      { tag:'F1', ttf:reg,  raw:carlitoBytes['400'], deflated:carlitoDeflated['400'] },
+      { tag:'F2', ttf:bold, raw:carlitoBytes['700'], deflated:carlitoDeflated['700'] },
+    ];
+    const bytes = await pdfSerialize(page, fonts);
+    return { bytes, orientation, scale, gridW, gridH, pageW: paper.w, pageH: paper.h };
+  }
+
+  async function exportWaterfallPdfDirect(){
+    if(!currentSchedule || !currentSchedule.weeks || !currentSchedule.weeks.length){
+      alert('Add at least one phase with a start date before exporting the waterfall.');
+      return;
+    }
+    let out;
+    try { out = await buildWaterfallPdf(currentSchedule); }
+    catch(err){
+      console.error(err);
+      alert('Something went wrong writing the waterfall PDF: ' + err.message);
+      return;
+    }
+    const titleRaw = (document.getElementById('show-title').value || '').trim();
+    const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    const name = (safe ? safe + ' ' : '') + 'Planning Calendar.pdf';
+    const url = URL.createObjectURL(new Blob([out.bytes], {type:'application/pdf'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function exportWaterfallPdf(){
     if(!currentSchedule || !currentSchedule.weeks || !currentSchedule.weeks.length){
       alert('Add at least one phase with a start date before exporting the waterfall.');
