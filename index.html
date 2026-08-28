@@ -2634,6 +2634,15 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // their own "<Phase> Hiatus" labels; this is the generic full-width one.
   const HIATUS_DEFAULT_LABEL = 'Hiatus';
   const SIMPOST_COLOR = '#FFFF00', SIMPOST_TEXT = '#5B5B00';
+  // Grid text is BLACK. Only a cell whose fill is dark or user-chosen -- a note, a hiatus band --
+  // picks its ink for contrast, via textColorFor().
+  //
+  // The phase palette carries a per-phase textColor (a dark tint of its own fill) and the
+  // waterfall used to draw labels in it. The workbook never did: baseStyle() sets no font colour
+  // for a phase cell, so Excel has always rendered them black -- which is why the reference
+  // exports look right and the on-screen grid and the PDF did not. Black everywhere settles it
+  // in favour of what the workbook, and the reference, already do.
+  const GRID_TEXT_COLOR = '#000000';
   // The marker text for a Simultaneous Post week, shared by the waterfall, the Excel export and the
   // month view so all three always agree. computeSchedule only assigns simPostNum in the numbered
   // mode, so a falsy number means the un-numbered ("old") mode and we print the bare label.
@@ -4900,7 +4909,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
-              bodyHtml += `<td${cs} style="background:${cell.color}; color:${cell.textColor};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
+              bodyHtml += `<td${cs} style="background:${cell.color}; color:${GRID_TEXT_COLOR};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
               const escHi = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -4918,7 +4927,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
                 + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
               bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
             } else if(cell.kind==='simpost'){
-              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${SIMPOST_TEXT};${lfCss}">${escHtml(cell.label)}</td>`;
+              bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${GRID_TEXT_COLOR};${lfCss}">${escHtml(cell.label)}</td>`;
             } else {
               bodyHtml += `<td${cs}></td>`;
             }
@@ -5587,7 +5596,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             const lf = cellTextFit(item.label || '', availChars, {});
             const lfSize = Math.round(11 * lf.scale * 100) / 100;
             if(item.kind === 'phase'){
-              baseStyle(cell, {font:{size:lfSize}});
+              // Explicit, though it is also ExcelJS's default: leaving it implicit is what let
+              // the screen and the PDF drift into the phase palette's own textColor.
+              baseStyle(cell, {font:{size:lfSize, color:{argb:'FF'+GRID_TEXT_COLOR.replace('#','')}}});
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'phaseHiatus'){
@@ -5608,7 +5619,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
-              baseStyle(cell, {font:{size:lfSize}});
+              baseStyle(cell, {font:{size:lfSize, color:{argb:'FF'+GRID_TEXT_COLOR.replace('#','')}}});
               cell.value = item.label;
               setFill(cell, SIMPOST_COLOR);
             } else {
@@ -8824,7 +8835,9 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           slot += cell.colspan;
           if(cell.kind === 'phase' || cell.kind === 'simpost' || cell.kind === 'phaseHiatus'){
             const fill = cell.kind === 'simpost' ? SIMPOST_COLOR : cell.color;
-            const ink  = cell.kind === 'simpost' ? SIMPOST_TEXT  : cell.textColor;
+            // A per-phase hiatus is a hiatus: its fill is dark and user-chosen, so it keeps the
+            // contrast rule. Phase and Simultaneous Post labels are black like everything else.
+            const ink  = cell.kind === 'phaseHiatus' ? textColorFor(cell.color) : GRID_TEXT_COLOR;
             page.rect(cx, ry, cw, rh, fill);
             let fit;
             if(cell.kind === 'phaseHiatus'){
