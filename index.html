@@ -6064,7 +6064,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // 15% override boundary that 24px difference was enough to print the workbook landscape and
   // the PDF portrait. Height is deliberately the FLAT model here -- a note wrapping to a second
   // line should not be able to turn the page over.
-  const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, t: 54, b: 54, hdr: 21.6, ftr: 21.6 };
+  // Left/right and top are the workbook's Narrow preset (0.25in sides, 0.75in top), and the top
+  // is load-bearing: the page header is drawn in the band between `hdr` and `t`.
+  //
+  // The BOTTOM is not. Excel reserves 0.75in there for a footer; this app draws none, and on a
+  // landscape sheet the fit is usually height-bound, so that 54pt came straight off the size of
+  // the calendar -- a near-square grid ended up 540pt wide on a 792pt page with 1.75in of white
+  // down each side. Reclaiming it is the one free increase available.
+  const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, t: 54, b: 18, hdr: 21.6, ftr: 0 };
   const SHEET_PAPER_PT = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
 
   function sheetGridMetrics(schedule, yearBlocks, colWidthsFor){
