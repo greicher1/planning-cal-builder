@@ -265,6 +265,139 @@ file (see §4, "what NOT to do").
    settings control simply calls it. The PDF and Excel read the value at export time, so they need
    nothing.
 
+### 2b-3. Mantine build — **STAGE 1 AND THE HEADER ARE BUILT AND GATED** (29 Aug 2026)
+
+> Read this before `MANTINE-MIGRATION.md` §6's stage list, which it partly supersedes. The stage
+> ORDER changed: Stage 3 (Settings) was skipped for now because Stage 1 already proved the provider,
+> theme, layer fence and build on real code, which was Stage 3's whole justification.
+
+**The four owner rulings that unblocked it**, all taken 29 Aug 2026, all the recommended option:
+
+| §  | Question | Ruling |
+|---|---|---|
+| UI-CONV §9.6 / MIG Q1 | file size + minified source | **Minified**, accept ~1.1 MB |
+| MIG Q3 | deploy path | **GitHub Action** builds and publishes `dist/` |
+| UI-CONV §9.5 | is `.mv-note-pop` in scope? | **In scope** — redesign it, and fix its never-repositions bug |
+| UI-CONV §9.1 | embed Inter? | **Yes**, drop IBM Plex Mono for the system mono stack |
+
+⚠️ **§9.1 is ruled but NOT yet built.** The Google Fonts links are still in `src/index.html`. When
+it lands it needs the gate its ruling came with: a month-PDF diff taken with the network **on** and
+**off**, because `mvNoteLineCount()` measures against Inter and its result sets month-view row
+heights that `exportMonthPdf` prints.
+
+#### What exists now
+
+```
+index.html          ← UNCHANGED. The deployed v1.2.0 app, byte-identical to releases/v1.2.0.html.
+src/index.html      ← the Vite entry: the static skeleton only
+src/main.jsx        ← CSS order, one React root, portals, then initLegacyApp()
+src/theme.js        ← UI-CONVENTIONS §3 as a Mantine theme
+src/chrome/bridge.js  ← the engine→chrome state bridge
+src/chrome/Header.jsx ← the ported toolbar
+src/legacy/app.js   ← the original IIFE, wrapped and surgically edited at the write sites
+src/styles/legacy.css ← the original stylesheet, minus the retired header rules
+dist/index.html     ← build output (gitignored)
+```
+
+⛔ **The root `index.html` is deliberately untouched and must stay that way until an
+owner-approved cutover.** `main` auto-deploys it, so a source-only `index.html` at the root would
+break the live site the moment anyone pushed. Build with `npm run build`; gate with
+`cd tests/harness && ./gate.sh`.
+
+#### The three architectural facts that were forced, not chosen
+
+1. **React mounts as one root that PORTALS into the existing containers, and never wraps them.**
+   Both print paths hide the app with `body.printing-* > *:not(#print-root)` — child combinators a
+   wrapper defeats, printing a blank page; `header.app-header` is resolved by the ResizeObserver
+   that writes `--header-h`; and `#table-wrap` must exist before the script runs, for the seven
+   unguarded listeners.
+2. **The @layer fence is: Mantine's layered CSS first, the app's UNLAYERED stylesheet last.**
+   Unlayered normal declarations outrank every layer, so every frozen rule wins with no per-rule
+   work. For `!important` the precedence *reverses*, which put
+   `*{print-color-adjust:exact !important}` at risk — without it both PDFs print as an empty grid.
+   **Verified: all 20 `!important` declarations in `@mantine/core` 9.5.2's `styles.layer.css` are
+   scoped to hashed `.m_*` selectors**, so none can reach `#table-wrap`. **Re-check this on any
+   Mantine upgrade.**
+3. **The bridge carries OUTPUT only.** React re-renders by mutating the node it already made, so
+   listeners the engine attaches survive; input needs no bridge. Output must be rerouted because a
+   `textContent` write destroys a Mantine Button's inner spans, a `className` assignment wipes
+   Mantine's class, and Mantine styles disabled from `[data-disabled]` **only**.
+
+#### ⛔ The rule that cost the most to learn
+
+**Mantine's `Popover` mounts its dropdown from an EFFECT.** `#file-menu` does not exist when the
+IIFE evaluates — not inside `flushSync`, not with `keepMounted`. `getElementById` returned null, the
+delegated listener silently never attached, and the file menu opened and closed perfectly while
+doing nothing. No error; the only symptom was *Open…* not opening anything, which reads as a broken
+feature rather than a missing listener.
+
+> **The engine must not capture React-rendered nodes at evaluation time.** Anything it resolves by
+> id either lives in the STATIC skeleton, or is reached by delegation from `document`.
+
+Two more traps landed where `UI-CONVENTIONS.md` §8 did not predict them:
+
+- **`Menu.Target` injects its own id.** It delegates to `Popover.Target`, which *clones* its child
+  and writes Popover's generated id over yours. Passing `id` to `<Menu>` does not help either. §8.3
+  described this for form controls; it also hits a plain `<button>` whose id the engine binds to.
+  `#file-menu-btn` is gone; **`.file-menu-btn` is the contract.**
+- **`.tb-btn` is shared with the un-ported preview toolbar.** Deleting it with the old header left
+  *Shift From*, *Anchor To* and *Rebuild From* as unstyled UA buttons. The block is restored with a
+  note saying it goes when `PreviewToolbar.jsx` lands.
+
+#### Harness changes — all three were required, not incidental
+
+- `t/lib.js` `set()` uses the **native value setter**. React tracks the last value it wrote, so
+  `e.value = v` leaves the tracker unchanged and React swallows the event — every fixture would
+  silently assert against a blank calendar. This is the fix `MANTINE-MIGRATION.md` §4.2 said had to
+  land *before* porting.
+- **`appReady()`'s probe moved for the third time.** "`#file-menu` has children" worked while the
+  dropdown shipped empty; Mantine renders its items from React's first commit, so a page whose
+  engine never started now satisfies it. It waits on `#file-menu-wrap`'s display instead.
+- `t/fence.js` waits for the row count to **settle**. Waiting on `rows > 1` measured mid-build and
+  reported 635 px then 602 px for the *same untouched page* — which reads exactly like a regression.
+- `tests/harness/package.json` is new: the root `package.json`'s `"type":"module"` reclassifies the
+  CommonJS harness as ESM, and `srv.js` dies on `require is not defined` while `run.sh` reports only
+  *"server did not start"*.
+- **`./gate.sh` runs the whole gate as one command**, and `run.sh` takes `HARNESS_PAGE` so the same
+  tests drive either page. ⚠️ Give `restore`/`sharecopy` a **60 s** budget; 40 s hits the documented
+  IndexedDB stall often enough to look like a failure.
+- ⚠️ **Never byte-compare the `.xlsx`.** ExcelJS stamps `dcterms:created`/`modified` into
+  `docProps/core.xml`, so two exports of an identical workbook differ by ~1 byte. Compare the
+  unzipped parts with `core.xml` excluded — `gate.sh` does.
+
+#### Where it stands, measured
+
+Full gate **PASSED** against `tests/baselines/2026-08-29-stage-7`: 0 horizontally clipped cells,
+waterfall PDF **byte-identical**, every Excel part identical, `v1.0.0-saved.html` restoring to 52
+rows / 154 cells / 324 pt, `fields.byId` **56 ids identical**, 0 console errors. Frozen-surface
+computed styles are unchanged — table 602 px, note cell 184 px, phase cell 92 px, date cell 53 px,
+no typographic or box change. The only deltas are `--header-h` 52 → 51 px and the 1 px that gives
+back to `.sheet-scroll`'s max-height.
+
+`dist/index.html` is **977 KB** (307 KB gzipped) against the current 667 KB — inside the
+~1.0–1.15 MB the probe projected.
+
+#### ⏭ What is next, in order
+
+1. **Preview toolbar** (`.view-toggle`, the shift split control, the four `.tools-menu` popovers,
+   undo/redo). Frees the `.tb-btn` block. ⚠️ The eight id'd controls inside `.tools-menu` are kept
+   out of saved files by exactly one test — `el.closest('.tools-menu')` — and Mantine's `Popover`
+   **portals by default**, which escapes it. `classNames={{ dropdown: 'tools-menu' }}`, on the
+   dropdown and not a wrapper.
+2. **Sidebar** — the largest stage. `§8.3` (generated ids) must be answered before the first Mantine
+   input is placed in a hiatus row, an episode row or the holiday list. ⚠️ Sidebar tab panels must
+   stay **mounted**: `computeHeaderDefaults` reads five fields from *both* export writers and three
+   of those reads are unguarded, so a `Tabs` that unmounts inactive panels throws inside
+   `exportExcel`/`buildWaterfallPdf`.
+3. **Note popovers + help modal**, then **embed Inter** (§9.1) with its network-on/off month-PDF
+   diff, then **calibrate and document**.
+4. **The GitHub Action**, and only then the cutover conversation.
+
+⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
+spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
+regenerating rather than trusting if `index.html` has moved.
+
+
 ### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
 
 > ✅ **Stage 2 (the design pass) was completed 29 Aug 2026 → [`UI-CONVENTIONS.md`](UI-CONVENTIONS.md).**

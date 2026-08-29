@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Mantine chrome, stages 1 and 2 of 6
+
+⚠️ **Not deployed and not cut as a version.** The live site and the repo's `index.html` are still
+v1.2.0 and are byte-identical to `releases/v1.2.0.html`. This work builds from a new `src/` into
+`dist/index.html` and deliberately leaves the root file alone — `main` auto-deploys it, so a
+source-only `index.html` at the root would break the live site the moment anyone pushed.
+
+**What changed for a user:** nothing yet. What changed for the app is its top toolbar, which is now
+React + Mantine — the file menu gets real keyboard navigation and Escape for free, the save-status
+readout gains a proper "autosave failed" state instead of a fourth CSS class, and roughly six
+inconsistent button looks collapse into one. Everything below the toolbar is untouched.
+
+**Why a build step at all.** React + Mantine cannot be pasted into a single file; the owner priced
+that trade on 29 Aug 2026 and chose the minified build (~1.1 MB against today's 667 KB, 307 KB
+gzipped) plus a GitHub Action to publish it. The single-file property survives — `dist/index.html`
+is still one self-contained document that runs from `file://` — but the *shipped* file is no longer
+readable source. That matters less than it used to, because Save has written 4.5 KB of `.sptcal`
+JSON since v1.1.0 rather than a copy of the app.
+
+**What is frozen and stayed frozen.** The waterfall grid, the month view, the width model and the
+Excel/PDF writers are untouched. The verification is the point, not the claim: the waterfall PDF is
+**byte-identical**, every part of the Excel workbook is identical (excluding its timestamp), a real
+v1.0.0 saved calendar restores to the same 52 rows / 154 cells / 324 pt grid, `fields.byId` carries
+the same 56 ids, horizontally clipped cells stay at 0, and every computed font, padding and box
+metric inside `#table-wrap` is unchanged.
+
+**Three things worth knowing, each found by measurement:**
+
+- Mantine's CSS baseline reaches inside the frozen container through *type* selectors, not its
+  hashed classes — `input, button, textarea, select { font: inherit }` is a shorthand, so it resets
+  `line-height` on the buttons the frozen renderers emit. Three of them declared none and grew by
+  3 px. They now pin `line-height: normal` explicitly. The obvious defensive assertion — "nothing
+  inside the grid matches a Mantine class" — would have passed while that shipped.
+- Mantine's `Popover` mounts its dropdown from an effect, so the file menu's node did not exist when
+  the app's script bound its listener. The menu opened and closed perfectly while doing nothing at
+  all, with no error of any kind.
+- Mantine writes its own `id` over one you give a menu button. Element ids are part of this app's
+  save-file format, so that class of surprise is the main hazard in the rest of this work.
+
+**Verified:** `tests/harness/gate.sh` — the whole acceptance gate as one command — passes against
+`tests/baselines/2026-08-29-stage-7`. New: `t/fence.js` asserts positively that computed styles
+inside the frozen container did not move, which no test covered before.
+
+
 ### Unreleased — 29 Aug 2026 — The chrome's design system, settled before it is built
 
 **No change to `index.html`.** This is a decision pass, written up in
