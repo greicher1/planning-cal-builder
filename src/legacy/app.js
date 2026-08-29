@@ -6299,6 +6299,8 @@ export function initLegacyApp() {
       const dir = res.weeks < 0 ? 'earlier' : 'later';
       const n = Math.abs(res.weeks);
       readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '');
+      // The readout anchors under the button that acted (owner, round 6): CSS reads this.
+      group.dataset.shiftDir = dir;
       group.classList.add('flash');
       clearTimeout(flashTimer);
       flashTimer = setTimeout(()=>{ group.classList.remove('flash'); }, 2600);
@@ -7594,6 +7596,11 @@ export function initLegacyApp() {
   // their picked day, or Monday by default); the flow is deliberately one-way.
   let activeMvNote = null;
   function closeMvNoteEditor(){
+    // Stop tracking the anchor (the listeners were registered by openMvNoteEditor; see there).
+    if(activeMvNote && activeMvNote.place){
+      window.removeEventListener('scroll', activeMvNote.place, true);
+      window.removeEventListener('resize', activeMvNote.place);
+    }
     const pop = document.getElementById('mv-note-pop');
     if(pop) pop.remove();
     activeMvNote = null;
@@ -7739,6 +7746,24 @@ export function initLegacyApp() {
     const pr = pop.getBoundingClientRect();
     if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
     if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
+    // Track the anchor like the waterfall twin does: reposition on capture-phase scroll (the
+    // preview pane scrolls, not just the window) and on resize. Historically this editor
+    // registered NEITHER — flagged as a live bug in UI-CONVENTIONS §6 and ruled in scope by the
+    // owner (§9.5, 29 Aug 2026): the popover was placed once from scrollY + rect and stranded
+    // the moment anything moved. Reads the anchor through activeMvNote so the rebuild guard
+    // below can re-point it at a freshly-rendered equivalent node.
+    const place = ()=>{
+      const a = activeMvNote && activeMvNote.anchor;
+      if(!a || !document.body.contains(a)) return;  // a rebuild is the guard's job, not ours
+      const rr = a.getBoundingClientRect();
+      pop.style.top = (window.scrollY + rr.bottom + 4) + 'px';
+      pop.style.left = (window.scrollX + rr.left) + 'px';
+      const p2 = pop.getBoundingClientRect();
+      if(p2.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - p2.width - 8) + 'px';
+      if(p2.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + rr.top - p2.height - 4) + 'px';
+    };
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
     const textarea = pop.querySelector('textarea');
     // A month-view day note is capped at 3 lines (it prints as one 3-line block). Waterfall notes
     // aren't capped -- there each line is a separate milestone across the week.
@@ -7755,7 +7780,13 @@ export function initLegacyApp() {
       });
     }
     textarea.focus(); textarea.select();
-    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null};
+    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null,
+                    anchor, place,
+                    // The same descriptor shape relocateNoteAnchor() takes — captured now so the
+                    // rebuild guard can re-find the equivalent node in a freshly-rendered grid.
+                    anchorDesc: { week: weekKey, day: dayIso, kind: isWf ? 'wf' : 'day',
+                                  index: anchor.dataset.noteIndex, gridRow: anchor.style.gridRow,
+                                  isAdd: anchor.classList.contains('mv-note-add') }};
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
       sw.addEventListener('mousedown', e=>e.preventDefault());
       sw.addEventListener('click', e=>{
@@ -7793,6 +7824,20 @@ export function initLegacyApp() {
     if(e.target.closest && (e.target.closest('#mv-note-pop') || e.target.closest('.mv-note-click'))) return;
     commitMvNoteEditor();
   });
+  // The rebuild guard — the other half of the §9.5 bug fix. The waterfall editor's equivalent
+  // lives INSIDE frozen render() (the activeNoteEditor check), so the month editor cannot mirror
+  // it there; a MutationObserver on #table-wrap gives the same protection from outside the
+  // freeze. A render this editor did not start (an undo, a sidebar edit) rebuilds the grid and
+  // detaches the anchor: re-find the equivalent node with the same matcher the commit path uses
+  // and follow it, or — anchor genuinely gone (day now full, view switched) — close without
+  // saving, exactly like the twin. Observing mutates nothing; the frozen surface is only read.
+  new MutationObserver(()=>{
+    if(!activeMvNote) return;
+    if(activeMvNote.anchor && document.body.contains(activeMvNote.anchor)) return;
+    const fresh = relocateNoteAnchor(activeMvNote.anchorDesc);
+    if(fresh && activeMvNote.place){ activeMvNote.anchor = fresh; activeMvNote.place(); }
+    else closeMvNoteEditor();
+  }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
 
   // ---------- Restore saved data when this file was produced by "Save to File" ----------
   function restoreSavedState(){

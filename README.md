@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — round 6: fit and finish, and the note editors join the family
+
+⚠️ **Not deployed and not cut as a version.** The owner's sixth review round (HANDOFF §2b-3
+rows 34–39), plus the first slice of the standing backlog. The five fixes:
+
+- **New / Save / Save As are equal at the longest button's own size** — a grid wrapper whose
+  `1fr` auto-columns all size to the largest content (Save As defines the set at its natural
+  padding), replacing round 5's hardcoded 104px. Measured 86/86/86.
+- **The file chip trimmed 20%** (280 → 224; the dropdown stays 280).
+- **The holiday table's header stopped colliding** — the three note columns widened to 46/46/44
+  (header and row cells in lockstep) and the uppercase tracking came off the cell labels;
+  "W'FALL NOTE" and "MONTH NOTE" now read as two columns instead of one jam.
+- **The "Complete Show Info" warning reads as a sentence again.** The chip was `display:flex`,
+  which turns the message's text-plus-`<strong>` into three independently-wrapping anonymous
+  flex items — the odd columns in the owner's screenshot. Block layout with the glyph absolutely
+  positioned fixes both of the engine's messages with no engine change.
+- **The shift readout lands under the button that acted** — `runShift` stamps the direction on
+  the group and CSS anchors "1 wk earlier" under ← and "1 wk later" under →. Verified by
+  geometry both ways.
+
+And from the backlog, **the note-popover stage (§9.5, ruled in scope) landed its core**: both
+note editors wear the app's one overlay look (the file-menu/date-picker shell, token type,
+chevroned Day/Size selects, 16px swatches with the primary-colored selected ring), and the
+month-view editor's live bug is fixed — it now tracks its anchor on scroll and resize like its
+waterfall twin, and a MutationObserver on `#table-wrap` gives it the twin's rebuild protection
+*without* touching frozen `render()` (where the twin's guard lives): a rebuild re-finds the
+equivalent anchor and follows it, or closes without saving. Verified live: a resize re-glues the
+popover at 4px; a sidebar edit that rebuilt the grid under an open editor re-anchored it. The
+note's rendered size, wrapping and shrink behaviour back in the cell are untouched — the frozen
+gate run confirms it.
+
 ### Unreleased — round 5: Load, the loader-look pickers, and one icon everywhere
 
 ⚠️ **Not deployed and not cut as a version.** The owner's fifth review round, logged item by item

@@ -113,8 +113,9 @@ export function Header() {
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}
                 /* FIXED width, not max-width (owner, round 5): the chip must show much of a real
                    show title, and it must not resize as titles change — a constant-size chip, with
-                   the label ellipsis-truncating inside it. 280 matches the dropdown width. */
-                styles={{ root: { width: 280 }, inner: { justifyContent: 'flex-start' }, label: { overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 } }}
+                   the label ellipsis-truncating inside it. 224 = round 5's 280 minus the 20% the
+                   owner trimmed in round 6. The dropdown stays 280. */
+                styles={{ root: { width: 224 }, inner: { justifyContent: 'flex-start' }, label: { overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 } }}
               >
                 <span id="file-menu-label">{menu.label}</span>
               </Button>
@@ -190,14 +191,16 @@ export function Header() {
           </Box>
       </Menu>
 
-      {/* miw, the same on all three (owner, round 5): New / Save / Save As read as one equal-sized
-          set. min-width rather than width, so the non-Chromium labels the engine can push
-          ("Save to File", "Downloaded ✓") still fit instead of clipping. */}
-      <Button {...BTN} miw={104} id="new-file-btn" variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
+      {/* One equal size for New / Save / Save As, CLAMPED TO THE LONGEST content (owner, round 6 —
+          replacing round 5's magic miw=104): grid-auto-columns:1fr under an indefinite container
+          width sizes every track to the largest max-content, so Save As (or a longer pushed label
+          like "Save to File") defines all three, with its own natural padding. A display:none
+          Save As contributes no track, so the other two stay equal on their own. */}
+      <div className="file-actions">
+      <Button {...BTN} id="new-file-btn" variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
 
       <Button
         {...BTN}
-        miw={104}
         id="save-file-btn"
         variant="default"
         leftSection={<IconFloppy className="btn-ic" />}
@@ -214,7 +217,6 @@ export function Header() {
           dead. Found 29 Aug 2026 while investigating the sidebar-rows stage. */}
       <Button
         {...BTN}
-        miw={104}
         id="save-as-btn"
         variant="default"
         leftSection={<IconCopyPlus className="btn-ic" />}
@@ -224,6 +226,7 @@ export function Header() {
       >
         {saveAs.label}
       </Button>
+      </div>
 
       {/* The share-copy button LEFT the header (owner, 29 Aug 2026 round 3): the flow lives on as
           "Export App With Data" in the Settings tab (Sidebar.jsx AppCard), which carries the
