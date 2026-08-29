@@ -182,6 +182,127 @@ Two smaller items: the app reserves 54 pt above the grid where Excel reserves ~2
 header *inside* that band), and two palette entries differ — Pre Prep and Prod Prep are effectively
 swapped versus the reference, and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`).
 
+### 2f. PWA update delivery to installed devices — discussed, not built
+
+Owner question (28 Aug 2026): most users run this as an installed PWA, not a browser tab — how do
+we ship a dev change and get it to actually reach and reload on their devices? Researched, nothing
+implemented yet.
+
+**Where the app already stands, and why it's better than it sounds:** there is no service worker
+and no cache layer (§3, "no service worker"). An installed PWA with no service worker behaves like
+a browser tab on relaunch — it fetches `index.html` fresh from the network every time, no stale
+cache to fight. So "quit and relaunch" already gets the newest deploy, with zero extra plumbing,
+*as long as the fetch actually reaches the network* (see the private-repo thread below) and isn't
+served stale by HTTP caching at the hosting layer (GitHub Pages sets its own headers; not
+independently verified this session).
+
+**The private-repo / SSO complication, worked through with the owner:**
+
+- The app deploys via **GitHub Pages** from `main` (§5a). Free-tier Pages requires the *source
+  repo* to be public. Private-repo Pages needs **GitHub Enterprise Cloud**.
+- GHEC private Pages is **not** a one-time unlock. Every request is checked against a live
+  GitHub/SSO session at request time — there is no "authorize once, then open forever" behavior.
+  A user with an expired or absent session gets denied on that request, full stop.
+- This breaks a silent background update check or fetch from inside an installed, standalone PWA:
+  a `fetch()` has no way to complete an interactive SSO login. If the PWA's context doesn't already
+  carry a valid session, the request just fails — no error surfaced to the user, no update found.
+- **What does still work:** a real top-level page **navigation** (`window.location.href = ...`, a
+  clicked link) to a private/SSO-gated URL behaves normally even from inside a standalone PWA
+  window — the browser shows the SSO redirect/popup, the user logs in, and lands on the page. The
+  failure mode is specific to unattended background `fetch()`, not to navigation.
+
+**The design that falls out of that, agreed in discussion, not yet built:**
+
+1. A **small, separate, unauthenticated** version marker (e.g. `{"version":"1.4.2"}` on a public
+   gist or a tiny public repo/endpoint — deliberately *not* the private app itself, and containing
+   nothing sensitive). This is what an installed PWA can safely background-poll without hitting the
+   SSO wall.
+2. The running app compares that marker against a version constant baked into itself. On mismatch,
+   show an "Update available" banner/button — no auto-reload, since users may have unsaved work.
+3. Clicking it does a real **navigation** to the deployed URL (not a `fetch()`), so the SSO
+   redirect — if the session has lapsed — happens the normal, working way.
+
+Open items before this is buildable: confirm the repo's actual current visibility and hosting plan
+(not yet checked this session — do that before assuming GHEC is even in play); decide where the
+public version marker lives and who updates it (should ride along with the existing release-cut
+step in §5g, not be a separate manual task); and note that **VPN-gating was explicitly deferred by
+the owner** ("we don't need to worry about VPN right now") — SSO-only access is the current target,
+so don't build network-level (IP allowlist / VPN-only host) gating unless asked again.
+
+### 2g. Encrypted `.sptcal` — **designed, not built** (28 Aug 2026)
+
+The owner asked for an encryption/decryption method around `.sptcal` "so that only our app can
+read/write it". The full design is in **[`SPTCAL-ENCRYPTION.md`](SPTCAL-ENCRYPTION.md)**. Nothing
+in `index.html` was touched. What matters for the next session:
+
+**The design is blocked on a decision only the owner can make**, and the decision is not about
+cryptography.
+
+The owner's stated assumption is *"our HTML is never accessed — only `.sptcal` is."* Under that
+assumption an app key embedded in `index.html` is a real secret and the scheme gives real
+confidentiality. **The assumption is not true today**, in four ways, all verified this session:
+
+1. The GitHub repo is **public** (`gh repo view` → `isPrivate: false`). Every version of
+   `index.html` is readable forever, including in git history — a key committed once is public
+   from that commit on, and rotating later does not un-publish what the old key encrypted.
+2. The app is served on **GitHub Pages** at <https://greicher1.github.io/planning-cal-builder/>.
+   View Source is the whole attack.
+3. `releases/v1.0.0.html` is a byte-identical copy of the app in that public repo — and the
+   versioning rule in `CLAUDE.md` says to add one of these *every release*.
+4. The `.html` "Export shareable copy" exists specifically to hand someone a working copy of the
+   app, i.e. to give away the HTML.
+
+And one that cannot be fixed: this is a client-side app, so **every user necessarily receives the
+HTML** in order to run it. The assumption can hold against people who don't have the app; it can
+never hold against someone who does.
+
+That is still a useful threat model — "only people with the app can read it" is probably the real
+requirement (cloud sync, mail attachments, a lost laptop, a forwarded file). But it has to be
+*chosen*, because making it true costs the public URL. Three options, laid out with costs in
+§0 of the design doc: **A** make the assumption true (private repo, no public Pages, strip the key
+from the `.html` export), **B** leave the app public and claim only tamper-evidence and
+write-authenticity, **C** passphrase mode — the only option that survives a public `index.html`.
+A and C compose; the container carries both.
+
+**Do not start implementing before the owner picks.** The code is the same either way; what
+changes is what may truthfully be said in the UI, and shipping "your calendars are encrypted" on
+top of option B would be a lie told to users about their production plans.
+
+Design decisions already made, so they don't get re-litigated:
+
+- Container is one ASCII line, `SPTCAL1.<keytok>.<salt>.<iv>.<ct‖tag>`, AES-256-GCM, with the whole
+  header bound in as AAD. Extension stays `.sptcal`; the format is sniffed from content exactly as
+  `parseCalendarText()` already sniffs `{` vs. `<script id="saved-state">`.
+- The app key must be a **keyring** (`APP_KEYS = {1:…, 2:…}` + `CURRENT_KEY_ID`), decrypt by the id
+  in the file, encrypt with the current one, **never delete an entry**. Deleting an old id destroys
+  every file it wrote — see rule 3 in §0.
+- **The `.html` share export is never encrypted**, under any option. That file *is* a copy of the
+  app, so the key would sit kilobytes from the ciphertext. Label it "not encrypted".
+- The IndexedDB crash backup and the undo stack stay plaintext. Same-origin storage the browser
+  already fences; encrypting them adds key-management failure modes to the crash-recovery path.
+- A fresh IV **every write**. The app rewrites the same file on every autosave, and IV reuse under
+  one key breaks GCM catastrophically.
+
+**The one thing that could break Save — verify before writing any code.** `crypto.subtle` requires
+a secure context, and the documented way to run this app is `open index.html` (a `file://` origin).
+Chrome and Edge treat `file://` as secure *today*. Gate the whole feature on a runtime
+`window.isSecureContext && crypto.subtle` check and fall back to plaintext with a one-time notice.
+A calendar that saves in the clear is a disclosed limitation; a Save button that throws is a lost
+production plan.
+
+**The seam is clean, which is the good news.** Write side: `buildSavedData()` gains an async
+wrapper, three call sites, all already `async`. Read side: `parseCalendarText()` becomes `async`
+and grows a third branch *ahead* of the existing two — exactly one caller (`openRecentFile()`,
+already async). Both existing branches stay untouched, so every pre-encryption `.sptcal` and every
+pre-v1.1.0 `.html` keeps opening through code nobody modified. That is the cheapest possible way
+to honour rule 3 in §0 of this file.
+
+A decrypt failure must **never** fall through to today's "doesn't contain calendar data" message —
+that reads as "wrong file" and sends the user looking for a file that isn't the problem. Four
+distinct messages; see §4 of the design doc.
+
+---
+
 ### 2e. Known, deliberately left alone
 
 - **Month view** still tints phase bars with the palette's `textColor`; the waterfall was changed to
@@ -257,7 +378,26 @@ with, forever**. When the owner reports something already fixed, ask which file 
 digging. This has already caused one false alarm this session.
 
 There is no service worker (removed deliberately, and old registrations are actively unregistered
-on load), so the *live site* always serves current code on a normal refresh.
+on load), so the *live site* always serves current code on a normal refresh — including on an
+installed PWA's relaunch, since with no service worker it fetches like a plain tab. The one caveat,
+worked through 28 Aug 2026: if the deploy is ever moved behind GitHub Enterprise Cloud private
+Pages (SSO-gated), that gate is checked on *every* request, not once — so an unattended background
+fetch from inside the installed PWA (an update check, or the relaunch fetch itself) can silently
+fail with no valid session, where a real page navigation would not. See §2f.
+
+---
+
+### A single-file client-side app cannot hold a secret
+
+Any key embedded in `index.html` ships to everyone who runs the app — that is not an obfuscation
+problem to be solved with cleverness, it is what "the browser must execute this file" means. It
+came up designing `.sptcal` encryption (§2g) and it will come up again for any licensing, API-key
+or "phone home" idea. The only secrets this app can hold are ones the *user* supplies at runtime
+and the app never stores. Everything else is tamper-evidence, which is real and useful, and worth
+saying plainly instead of dressing up as confidentiality.
+
+Related, and easy to miss: the repo is **public** and the app is on **GitHub Pages**. Anything
+committed to `index.html` is published, immediately and permanently, including in git history.
 
 ---
 
@@ -600,3 +740,73 @@ Three things deliberately **not** done, and why:
 DOM sweep via `collectFieldValues()`, so `fields.byId` is still keyed by element id and the legacy
 branch is still needed — the difference is that `parseCalendarText()` has already isolated
 "reading a file" from "applying a snapshot", so only the second half has to change.
+
+---
+
+## 8. Build order
+
+Written 28 Aug 2026, after three sessions' findings landed at once (the `.sptcal` format split,
+the PWA update-delivery research in §2f, and the encryption design in §2g). This is the **one
+sequenced list** of what to build next. `MANTINE-MIGRATION.md` §6 still holds the detail of the
+redesign stages; this says where they sit relative to everything else.
+
+Two items are **decision-gated**, not effort-gated — no amount of work moves them until the owner
+answers. They are listed first because a wrong guess there wastes a whole stage.
+
+### Gate 0 — decisions the owner owes, before anything is built
+
+| # | Decision | Blocks | Where it's laid out |
+|---|---|---|---|
+| D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
+| D2 | **Is losing "a saved calendar is readable" acceptable?** Largely answered by `.sptcal` shipping — the thing you inspect is now 4.5 KB of JSON. Worth confirming. | Mantine Stage 4 | `MANTINE-MIGRATION.md` §7 Q1 |
+| D3 | **Committed `dist/` or a GitHub Action?** | Mantine Stage 1 | `MANTINE-MIGRATION.md` §7 Q3 |
+| D4 | **Repo visibility / hosting plan.** Not yet checked; D1 and §2f both depend on it. | §2f, §2g | §2f |
+
+### The order
+
+| Stage | What | Depends on | Est. |
+|---|---|---|---|
+| **0** | **Docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` to current — now 24 commits stale, and they still describe the pre-`.sptcal` save path. | — | 1 |
+| **1** | **PWA update delivery** (§2f): public version marker, version constant, "Update available" banner, navigation not `fetch()`. | D4 | 1–2 |
+| **2** | **Encryption** (§2g): container, keyring, passphrase mode, four distinct failure messages. | **D1** | 2–3 |
+| **3** | **Settings menu + per-user persistence** (§2b). `localStorage`, never `captureSnapshot()`. | — | 1–2 |
+| **4** | **Mantine Stage 1** — scaffold, zero behaviour change; **fix the test harness first**. | D3 | 1–2 |
+| **5** | **Mantine Stage 2** — design pass, theme tokens, one warning system, mockups. No code. | — | 1 |
+| **6** | **Mantine Stages 3–5** — sidebar, toolbar, popovers, editors. | D2 | 5–7 |
+| **7** | **Multiple / structured notes columns** (§2c) — the biggest remaining visual gap from the reference export, and most of why the PDF geometry diverges. | — | 2–3 |
+| **8** | **PDF calibration** (§2d) — mostly falls out of stage 7. | 7 | 1–2 |
+
+**Why this order, where it isn't obvious:**
+
+- **Stage 0 first, always.** The docs now lag far enough that a fresh session would act on a save
+  path that no longer exists. That is exactly the failure `CLAUDE.md`'s first rule exists to stop.
+- **PWA delivery before the redesign, not after.** It is small, it is independent, and it is the
+  mechanism by which every later change actually reaches the people using this. Shipping a
+  redesign that installed users never receive is the worst possible ordering.
+- **Encryption before the Mantine work** *if* D1 comes back as A or C. It touches
+  `buildSavedData()` and `parseCalendarText()` — two functions the redesign does not go near — so
+  doing it while the save layer is freshly in mind and stable is cheaper than doing it on top of a
+  half-migrated app. If D1 comes back as B, drop it down the list; tamper-evidence alone is not
+  urgent.
+- **Settings menu before Mantine Stage 3, and again after.** It is listed once here, but
+  `MANTINE-MIGRATION.md` also proposes it as the first Mantine surface. Pick one: build it now in
+  plain JS if it is wanted soon, or hold it as the Mantine proving ground. **Do not build it
+  twice.**
+- **Notes columns last.** It is the largest change to what the grid contains, and the grid is
+  frozen (§0 rule 2) — so it needs its own conversation and its own acceptance gate before anyone
+  starts, not to be folded into a UI stage.
+
+### One thing the next session must not trip on
+
+`parseCalendarText()` **now returns `{format, snapshot}`**, not a bare snapshot — the format is
+needed so opening a legacy `.html` can offer the upgrade. `SPTCAL-ENCRYPTION.md` §3 was written
+against the older signature and shows a third branch returning the snapshot directly. The design
+is unaffected; the code sketch in it needs `{format:'data', snapshot:…}` on the encrypted branch.
+
+### Test fixtures now exist
+
+`tests/fixtures/v1.0.0-saved.html` — a **genuine** pre-v1.1.0 saved calendar, produced by running
+the v1.0.0 build itself and clicking Save. 760 KB, 27 snapshot keys, no `version` field, grid baked
+in. This is the file to test any future change to the restore path against. **Generate a new
+fixture each time a version is cut**, alongside the tag and the `releases/` copy (§5g) — the
+fixtures are only useful if they keep pace with the formats that exist in the wild.

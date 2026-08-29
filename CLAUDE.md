@@ -138,8 +138,12 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 - **Migrations are forward-only** — old file into new app. New file into old app is not supported
   and cannot be. `migrateHolidayViewKeys()` and `normalizeRegionSelection()` are the existing
   worked examples; follow their shape.
-- **Test with real files**, not synthesised ones. Keep fixtures under `tests/fixtures/` as
-  versions accumulate.
+- **Test with real files**, not synthesised ones. `tests/fixtures/v1.0.0-saved.html` is a genuine
+  pre-`.sptcal` calendar, produced by running the v1.0.0 build and clicking Save. **Cut a new
+  fixture whenever a version is cut**, alongside the tag and the `releases/` copy.
+- **Opening a legacy `.html` recommends upgrading it** — a dismissible strip with a
+  *Save as .sptcal* button (`showLegacyNotice`). Recommend, never convert: plain Save on a legacy
+  file still writes `.html`.
 - **There is no `version` field in the snapshot yet.** Add one the next time the format is touched,
   and branch on it rather than on the presence of individual keys.
 
@@ -234,7 +238,7 @@ Any new persistent state must be added in **both** places or it will silently no
 
 **Two formats, one reader.** "Save" writes **`.sptcal`** — `captureSnapshot()` as JSON, ~4.5 KB. "Export shareable copy…" writes the old full self-contained HTML document (`buildSavedHtml()`), built from a *clone* of the document with `#table-wrap`, `#print-root` and any open popover stripped, and the state serialized into `<script id="saved-state" type="application/json">` (ships as `null`). `<` is escaped to `\u003c` so user text containing a closing script tag can't truncate the file.
 
-`parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
+`parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. It returns **`{format, snapshot}`** — the format is part of the contract because opening a legacy `.html` is the one moment the app can offer to upgrade it. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 
 `reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM property values — form fields must have their values written back to attributes before snapshotting.
 
