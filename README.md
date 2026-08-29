@@ -11,6 +11,11 @@ waterfall calendar, a month calendar, an Excel workbook and a printable PDF.
 One self-contained `index.html`. No build system, no package manager, no server. Open the file and
 it runs.
 
+**Browser:** use **Chrome or Edge.** A calendar will *open* in any modern browser, but saving in
+place — writing back to the same file, the recent-files list, autosave — needs the File System
+Access API, which only Chromium browsers have. In Safari or Firefox, Save falls back to downloading
+a new copy each time, and printing has not been tested.
+
 **For contributors and agents, the reading order is:** [`HANDOFF.md`](HANDOFF.md) →
 [`CLAUDE.md`](CLAUDE.md) → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
 
@@ -23,6 +28,55 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+
+### Unreleased — 29 Aug 2026 — The chrome's design system, settled before it is built
+
+**No change to `index.html`.** This is a decision pass, written up in
+[`UI-CONVENTIONS.md`](UI-CONVENTIONS.md): the Mantine design work ("Stage 2") that the migration
+plan puts *before* any chrome is built. It settles the theme tokens, one feedback system to replace
+the many, the component choice for every control, overlay and date picker outside the frozen
+surface, and the responsive model.
+
+**What it changes about the plan, rather than about the app.** Every Mantine claim was checked
+against the installed `@mantine/core` **9.5.2** source instead of recalled, and five widely-assumed
+choices turned out to break the save format silently:
+
+- `DatePickerInput` renders a **`<button>`**, and `collectFieldValues()` sweeps `input[id]` — so
+  every `start-<phase>` key would vanish from `fields.byId`. Not saved wrong: **saved not at all.**
+  `DateInput` is the only viable picker, and its default `valueFormat` writes `"August 29, 2026"`
+  where `parseDateUTC` expects an ISO date.
+- `Select` puts the option **label** in the id-bearing input, so the region selects would save
+  `"United States"` instead of `"US"`. They must be `NativeSelect`.
+- Omitting `id` yields a **randomly generated** id, not none — Mantine's `useId` runs
+  unconditionally. ~75 holiday checkboxes plus the note-popover controls would land in every saved
+  file and every undo step, under keys that change each session. That is the exact bug the existing
+  code comments say was deliberately avoided.
+- `Popover` portals by default, which moves the four tool popovers' eight id'd controls out from
+  under the single `.tools-menu` ancestor test that keeps them out of saved files.
+- Mantine's CSS baseline reaches **five real `<button>` elements inside `#table-wrap`**; `font:
+  inherit` is a shorthand that also resets `line-height`, measured at **+3 px** of button height
+  *with* the `@layer` fence in place, because a layer settles priority and not matching.
+
+**Measured, and two documented numbers corrected.** The chrome's typography turns out to be a CDN
+dependency the grid's font deliberately is not — Inter and IBM Plex Mono are fetched from Google
+Fonts while Carlito is embedded — and it is load-bearing for a **frozen export**: `mvNoteLineCount`
+measures against Inter and its result sets month-view row heights that `exportMonthPdf` prints.
+Nine visible controls render in Arial because their rules omit `font-family:inherit`. The chrome
+carries 16 font sizes, 9 radii, 8 shadows for 5 same-elevation surfaces, and 40 inline `style=`
+attributes holding 168 declarations. And the toolbar-wrap width recorded in two docs was wrong: the
+**preview** toolbar wraps at ~1185 px (that is the 75 px-tall one), while the **header** toolbar
+wraps between ~848 px and ~1018 px depending on the file name — never at 1280 px.
+
+**Also recorded:** the owner's standing instruction that the on-screen waterfall editor keeps its
+present appearance — formatting, auto-shrinking, font, size, widths and heights — unless
+specifically directed otherwise. That **narrows** an earlier reading of "the editable grid could
+have a reconsideration on design", and now sits in `CLAUDE.md` and `HANDOFF.md` §4 mapped onto the
+symbols it actually names.
+
+**Verified:** `python3 tools/check-refs.py` CLEAN, with `UI-CONVENTIONS.md` added to its scan.
+Browser measurements taken against the running app at seven widths, with the pane fronted — an
+earlier run gave a false `--header-h` staleness because `ResizeObserver` and `requestAnimationFrame`
+are throttled while the pane is hidden, which is the trap PROJECT-CONTEXT §11 already records.
 
 ### v1.2.0 — 29 Aug 2026 — The app can tell you it has been updated
 

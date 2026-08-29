@@ -70,8 +70,14 @@ fixtures** (`tests/fixtures/`) but no runner — see §11.
 > and `HANDOFF.md` §8 for the staged plan and the decisions it is gated on.
 
 **Run it:** `open index.html` on macOS, or serve the directory over HTTP. Reload to test.
-Chrome/Edge are the target browsers — the File System Access API (`showSaveFilePicker`) and
-IndexedDB handle persistence degrade to a plain download elsewhere.
+
+**Chrome/Edge are the target browsers — decided, not incidental** (owner's call, 29 Aug 2026), and
+that is *two* constraints wearing one sentence: the **app** needs the File System Access API
+(`showSaveFilePicker`) and `FileSystemFileHandle` persistence in IndexedDB, both Chromium-only
+(§8); the **harness** needs Chrome's `--headless=new --dump-dom`, which Safari has no equivalent of
+(§11). Elsewhere, opening a calendar works fine and saving degrades to a plain download of the
+legacy `.html` copy. The month-PDF print path has never been measured outside Chrome — an unknown,
+not a tested fallback. Full reasoning in `HANDOFF.md` §3.
 
 ---
 
@@ -136,13 +142,13 @@ DOM inputs → readState() → computeSchedule(state) → render(schedule) → m
 
 All dates are handled as **UTC midnight**. Always use the helpers, never raw `Date` math:
 
-| Helper | Line | Purpose |
-|---|---|---|
-| `parseDateUTC()` | 1474 | parse `'YYYY-MM-DD'` to a UTC-midnight Date |
-| `addDays(d, n)` | 1480 | day arithmetic |
-| `mondayOf(d)` | 1481 | snap to the week's Monday |
-| `isoOf(d)` | 2498 | back to `'YYYY-MM-DD'` |
-| `fmtShort(d)` | 1486 | display format |
+| Helper | Purpose |
+|---|---|
+| `parseDateUTC()` | parse `'YYYY-MM-DD'` to a UTC-midnight Date |
+| `addDays(d, n)` | day arithmetic |
+| `mondayOf(d)` | snap to the week's Monday |
+| `isoOf(d)` | back to `'YYYY-MM-DD'` |
+| `fmtShort(d)` | display format |
 
 Using local-time `Date` math here causes off-by-one-day bugs that are painful to track down.
 
@@ -507,7 +513,7 @@ A save is now **155–168× smaller**.
 
 ### One reader, forever
 
-`parseCalendarText(text)` (7352) is the **only** thing that reads a calendar file. It returns
+`parseCalendarText(text)` is the **only** thing that reads a calendar file. It returns
 `{format:'data'|'html', snapshot}` or `null`:
 
 - text starting with `{` → the file **is** the snapshot;
@@ -515,8 +521,8 @@ A save is now **155–168× smaller**.
 
 Both converge on `applyStateSnapshot()` → `refreshAfterRestore()`, so there is no migration that
 can be got wrong. The `format` is part of the return because the caller acts on it: opening a
-legacy `.html` raises a dismissible strip recommending *Save as .sptcal* (`showLegacyNotice`,
-8226). **Recommend, never convert** — plain Save writes back in whatever format the file already
+legacy `.html` raises a dismissible strip recommending *Save as .sptcal* (`showLegacyNotice`).
+**Recommend, never convert** — plain Save writes back in whatever format the file already
 is (`handleIsLegacyHtml`), so nothing changes format without being asked.
 
 **This is a permanent contract.** Every calendar saved before v1.1.0 is an `.html` sitting on
@@ -776,6 +782,20 @@ project's real documentation.
 There is no test runner. The reliable pattern is a **throwaway static server that injects a test
 script**, driven by headless Chrome with `--dump-dom`, writing results into a `<pre>` that gets
 parsed back out.
+
+### Why Chrome specifically — and why it cannot be ported cheaply
+
+The harness is not "a browser": it is `--headless=new` + `--dump-dom` + `--virtual-time-budget`,
+and the entire mechanism exists because those three flags do. **Safari has no headless mode and no
+DOM-dump flag**; its only automation surface is `safaridriver` — a real windowed browser speaking
+WebDriver, enabled by hand under *Develop ▸ Allow Remote Automation* and driven by a client
+library. Firefox has headless but no `--dump-dom`. Either port is a rewrite, not a change to
+`CHROME=`.
+
+⚠️ **This is a separate constraint from the app's own Chromium requirement** (File System Access,
+`FileSystemFileHandle` persistence in IndexedDB — §8). The two are routinely stated as one
+sentence, and that merge is exactly why "why not Safari?" had no recorded answer until 29 Aug 2026.
+Both, plus the print path that has never been measured outside Chrome, are in `HANDOFF.md` §3.
 
 ```js
 // /tmp/testsrv.js — serve index.html with a test script injected
@@ -1057,6 +1077,13 @@ asked to hold off on those.
 - **The toolbar wraps to two lines below 1280 px window width.** Measured, accepted. It never
   overflows or clips (tested to 900 px) — it just goes to 75 px tall. Shortening the labels or
   collapsing them to icons was considered and rejected as worse.
+
+  ⚠️ **Re-measured 29 Aug 2026 — "the toolbar" here is the PREVIEW toolbar (`.view-toggle-row`),
+  and its wrap point is ~1185 px, not 1280.** The 75 px is exactly right and identifies which
+  toolbar this is about. The **header** toolbar (`.app-toolbar`) is a different control and wraps
+  between ~848 px and ~1018 px depending on the file name and save-status string. `HANDOFF.md` §6
+  had attributed this note's wrap to the header toolbar; that has been corrected. Full table in
+  `UI-CONVENTIONS.md` §2.
 - **`Close all gaps` is redundant** — it is Rebuild-forwards from the first phase at its current
   date. Kept anyway as the zero-input, one-click case, the same justification as the toolbar arrows
   next to Shift All.
@@ -1082,6 +1109,12 @@ wrong function. So prose names symbols, which `grep -n` always finds, and the nu
 python3 tools/check-refs.py
 ```
 
+It checks **both halves of the rule**: every row of the map below against the real file, and the
+**seven prose docs** for a line number that has crept back in. It has now caught the same hole
+three separate times, each hiding behind different punctuation — a table's pipe separator, a
+parenthesised number, a number wrapped onto the next line. `HANDOFF.md` §2a has the list. **Run it
+after any edit to `index.html`, and believe it over your memory of where a function used to be.**
+
 | Symbol | Line |
 |---|---|
 | `<style>` block | 21 |
@@ -1101,6 +1134,10 @@ python3 tools/check-refs.py
 | `WF_PDF_MODE` | 2941 |
 | `GRID_TEXT_COLOR` | 2954 |
 | `HOLIDAYS` | 2985 |
+| `parseDateUTC` | 3407 |
+| `addDays` | 3417 |
+| `mondayOf` | 3418 |
+| `fmtShort` | 3427 |
 | `autoNotesText` | 3435 |
 | `effectiveNoteText` | 3443 |
 | `holidaySlug` | 3465 |
@@ -1114,6 +1151,7 @@ python3 tools/check-refs.py
 | `captureScroll` | 4316 |
 | `restoreScroll` | 4332 |
 | `render` | 4383 |
+| `isoOf` | 4543 |
 | `renderMonthView` | 4683 |
 | `renderSpreadsheetView` | 5220 |
 | `notesColspan` | 5229 |

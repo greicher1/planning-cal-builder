@@ -16,6 +16,14 @@ So: a throwaway server injects a test script into `index.html`, headless Chrome 
 `--dump-dom`, and the test writes its result as JSON into a `<pre id="R">` that gets parsed back
 out. That is the whole mechanism.
 
+**And that is why it is Chrome-only.** `--headless=new`, `--dump-dom` and `--virtual-time-budget`
+are the mechanism, not an implementation detail of it. Safari has no headless mode and no DOM dump
+— only `safaridriver`, a windowed WebDriver browser that must be enabled by hand; Firefox has
+headless but no `--dump-dom`. `CHROME=` swaps the *binary*, not the browser engine's capabilities:
+point it at anything but a Chromium build and nothing works. Porting this is a rewrite as a
+WebDriver client. See `HANDOFF.md` §3, which also separates this from the app's own Chromium
+requirement — they are different constraints and get confused for each other.
+
 ## Running
 
 ```bash

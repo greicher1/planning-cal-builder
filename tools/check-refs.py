@@ -81,19 +81,77 @@ def main():
     # a BACKTICKED SYMBOL within a couple of characters: prose is full of legitimate numbers
     # (byte counts, the 255-character header cap, 7.4336 px, years) and a looser rule would cry
     # wolf until someone stopped running the script, which is worse than the hole it closes.
-    prose_hits = []
-    for md in ('PROJECT-CONTEXT.md', 'CLAUDE.md', 'HANDOFF.md', 'SPTCAL-ENCRYPTION.md'):
+    # ** Three more shapes were found still stale on 29 Aug 2026, AFTER the table fix above. **
+    # ** PROJECT-CONTEXT section 4 carried a five-row `| Helper | Line | Purpose |` table whose
+    # ** every number was ~2,000 lines wrong (`parseDateUTC` said 1474; it is at 3407), and
+    # ** section 8 carried `parseCalendarText(text)` (7352) and `showLegacyNotice`,\n8226 -- both
+    # ** stale by the same +32 as section 2b. All three slipped past because of PUNCTUATION:
+    # **   `sym` | 1474   -- the separator is a pipe, and the old class was [ ,] only
+    # **   `sym()` (7352) -- parenthesised WITHOUT the tilde the old pattern required
+    # **   `sym`,\n8226   -- the number wrapped onto the next line
+    # ** So: the separator class now includes the pipe, the tilde is optional, and each line is
+    # ** scanned joined to the one after it (a match is reported once, against the line the
+    # ** SYMBOL is on). The pipe form is the false-positive risk -- plenty of legitimate tables
+    # ** pair a symbol with a 3-digit constant -- so it additionally requires the number to be
+    # ** the WHOLE cell and to fall inside index.html's actual line range.
+    src_max = len(SRC) + 200
+    prose_hits, seen = [], set()
+
+    def hit(md, i, frag, why=''):
+        key = (md, i, frag)
+        if key in seen:
+            return
+        seen.add(key)
+        prose_hits.append('%s:%d  %s%s' % (md, i, frag, why))
+
+    # All the prose docs, not just the original four: MANTINE-SEAM.md and STAGE-8.md both
+    # cite the frozen surface heavily and are exactly where a line number would creep back.
+    for md in ('PROJECT-CONTEXT.md', 'CLAUDE.md', 'HANDOFF.md', 'SPTCAL-ENCRYPTION.md',
+               'MANTINE-SEAM.md', 'MANTINE-MIGRATION.md', 'STAGE-8.md',
+               'UI-CONVENTIONS.md'):
         text = (ROOT / md).read_text(encoding='utf-8')
         body = text.split('## 14.')[0] if md == 'PROJECT-CONTEXT.md' else text
-        for i, line in enumerate(body.split('\n'), 1):
-            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`[^\n]{0,20}?\(~\d{3,5}\)', line):
-                prose_hits.append('%s:%d  %s' % (md, i, m.group(0)))
+        lines = body.split('\n')
+        line_cols = set()
+        for i, line in enumerate(lines, 1):
+            nxt = lines[i] if i < len(lines) else ''
+            joined = line + ' ' + nxt
+            cut = len(line)          # a match must START on this line, so it is reported once
+            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`[^\n]{0,20}?\(~?\d{3,5}\)', joined):
+                if m.start() < cut:
+                    hit(md, i, m.group(0))
             for m in re.finditer(r'index\.html:\d+', line):
-                prose_hits.append('%s:%d  %s  (link a symbol, not a line)' % (md, i, m.group(0)))
-            # `symbol` 1234   /   `symbol` 1234-1235   -- the shape section 2b was using.
-            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_]*`[ ,]{1,3}\d{3,5}\b', line):
-                prose_hits.append('%s:%d  %s  (name the symbol only; numbers live in section 14)'
-                                  % (md, i, m.group(0)))
+                hit(md, i, m.group(0), '  (link a symbol, not a line)')
+            # `symbol` 1234  /  `symbol`, 1234  -- the shape section 2b was using.
+            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`[ ,]{1,3}\d{3,5}\b', joined):
+                if m.start() < cut:
+                    hit(md, i, m.group(0), '  (name the symbol only; numbers live in section 14)')
+            # `symbol` | 1474 |  -- the shape section 4's date-helper table was using.
+            #
+            # This one needs a narrower trigger than the others, because plenty of legitimate
+            # tables pair a symbol with a small number: `MAX_WEEKS` | 600, `EXCEL_MDW` | 7,
+            # `HF_MAX` | 255. Crying wolf on those is how someone stops running the script, which
+            # is worse than the hole. So it fires on either of two specific signals:
+            #   (a) the table declares a "Line" / "Lines" column in its header -- exact, and what
+            #       section 4 actually did; or
+            #   (b) the number is a WHOLE cell and >= 1000, i.e. it looks like an index.html line
+            #       rather than a constant. Real constants in these docs are all 3 digits or fewer.
+            if line.lstrip().startswith('|') and re.match(r'^\s*\|[\s:|-]+\|?\s*$', nxt):
+                cells = [c.strip().lower() for c in line.strip().strip('|').split('|')]
+                # 'line' only, never 'lines': a plural header is a line-COUNT column
+                #   (MANTINE-MIGRATION's scope table), which is not a reference at all.
+                line_cols = {j for j, c in enumerate(cells) if c == 'line'}
+            elif not line.lstrip().startswith('|'):
+                line_cols = set()
+            if line.lstrip().startswith('|') and line_cols:
+                cells = [c.strip() for c in line.strip().strip('|').split('|')]
+                for j in line_cols:
+                    if j < len(cells) and re.fullmatch(r'\d{2,5}', cells[j]):
+                        hit(md, i, '| %s |' % cells[j],
+                            '  (a "Line" column: numbers live in section 14)')
+            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`\s*\|\s*(\d{4,5})\s*(?=\||$)', line):
+                if 1000 <= int(m.group(1)) <= src_max:
+                    hit(md, i, m.group(0), '  (looks like a line number: they live in section 14)')
     for h in prose_hits:
         print('  PROSE LINE NUMBER (should name the symbol only): %s' % h)
 

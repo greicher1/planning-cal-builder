@@ -1,7 +1,15 @@
 # HANDOFF.md
 
 Written at the end of the session that ended at commit `cf51a29` (28 Aug 2026).
-**Updated 28 Aug 2026** after Stage 0 (the docs refresh) was completed — see §2a and §8.
+
+**Last updated 29 Aug 2026, on top of `83ac3b7`.** Since `cf51a29` the work has been decisions,
+evidence and tooling rather than app code — **`index.html` has not changed since `cef1927`**
+(v1.2.0). What landed after it: the notes-column design settled and then held (§2c), line numbers
+pulled out of prose entirely and replaced by `tools/check-refs.py` (§2a), Stage 7 stopped at its
+gate (§8), the test harness committed as [`tests/harness/`](tests/harness/) with a baseline, Stage
+8 taken apart in [`STAGE-8.md`](STAGE-8.md), the Mantine seam mapped symbol by symbol in
+[`MANTINE-SEAM.md`](MANTINE-SEAM.md), and **browser support audited and written down for the first
+time** (§3).
 
 **Read this first — before [`CLAUDE.md`](CLAUDE.md), before
 [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md), before touching `index.html`.** Those two describe the
@@ -9,7 +17,8 @@ app as a system and change slowly. This file describes *where things stand right
 just built, what was asked for and not yet delivered, what was learned the hard way, and the
 working conventions the owner and the agent have settled on.
 
-Reading order: **`HANDOFF.md` → `CLAUDE.md` → `PROJECT-CONTEXT.md`**.
+Reading order: **`CLAUDE.md` → `HANDOFF.md` → `PROJECT-CONTEXT.md`** (changed by the owner
+29 Aug 2026; `CLAUDE.md` now comes first).
 
 Keeping this file current is part of the work. Update it in the same breath as any substantial
 change — see §5d.
@@ -105,7 +114,7 @@ a given week*. All four consumers (screen, PDF writer, `sheetColumnWidths`, Exce
 so a layout change lands everywhere at once. **Keep it that way** — the previous divergence cost
 weeks.
 
-### Shipped in this session (21 commits, `ca26df0` … `cf51a29`)
+### Shipped in the 27–28 Aug build session (21 commits, `ca26df0` … `cf51a29`)
 
 | Area | What landed |
 |---|---|
@@ -158,16 +167,47 @@ original checklist is now written up:
 Two things found while doing it, both fixed:
 
 - **Every inline line-number reference in `PROJECT-CONTEXT.md` was stale — 35 of 37.** The §14 map
-  at the bottom had been regenerated, but the numbers quoted throughout the prose had not, and
-  they were off by 2,000–3,000 lines (`applyStateSnapshot` said; it is at 9967). All 37 are
-  now correct, plus 2 in `CLAUDE.md`, and §14 has grown to **55 verified rows**.
+  at the bottom had been regenerated, but the numbers quoted throughout the prose had not, and they
+  were off by 2,000–3,000 lines.
+
+  ⚠️ **Superseded 29 Aug 2026 (`37b877a`) — hand-correcting them was the wrong fix, and it did not
+  survive the next commit.** Prose now quotes **no line numbers at all**: it names symbols, which
+  `grep -n` always finds and which cannot rot. Every number lives in PROJECT-CONTEXT §14 — now
+  **74 verified rows** — and `tools/check-refs.py` checks both halves, the map *and* the absence of
+  numbers from prose. **Do not go back to maintaining numbers inline**, however precise it feels.
+
+- ⛔ **Three more stale references were still hiding after that sweep, found 29 Aug 2026 — and all
+  three slipped past the checker on PUNCTUATION alone.** This is the third time this exact hole has
+  been found in one day (§2b's table was the second), so it is worth stating the shape rather than
+  just the fix:
+
+  | What it said | Actual | Why the checker missed it |
+  |---|---|---|
+  | PROJECT-CONTEXT §4's whole date-helper table — `parseDateUTC` at 1474, and four more | 3407, ~2,000 lines out | separator was a **pipe**; the pattern allowed only space or comma |
+  | §8: parseCalendarText(text) (7352) | 7384 | parenthesised **without the tilde** the pattern required |
+  | §8: showLegacyNotice, 8226 | 8258 | the number had **wrapped onto the next line** |
+
+  (Those two rows are written **without backticks on purpose** — reproduce them faithfully and the
+  checker fires on this very file, which is the intended behaviour and a decent proof it works.)
+
+  The last two are the same **+32** drift as §2b — one commit inserted 32 lines above them, and
+  every reference below moved. **All three are fixed**: §4's table now names symbols only, §8 quotes
+  nothing, and the five date helpers were added to §14 (which is why it is 74 rows, not 69).
+
+  `tools/check-refs.py` now catches all three shapes, scans **seven** docs rather than four, and was
+  regression-tested against the known-bad text before being trusted. The pipe form is deliberately
+  narrow — it fires on a `Line` column header (singular) or a whole-cell number ≥ 1000, so
+  `` `MAX_WEEKS` | 600 `` and MANTINE-MIGRATION's plural `Lines` **count** column do not cry wolf.
+  That restraint is the point: a checker that fires on legitimate numbers gets stopped rather than
+  fixed.
 - **The §7 state table was missing five stores `captureSnapshot()` actually persists** —
   `noteFontSize`, `hiatusFontSize`, `colWidths`, `rowHeights`, `cellSpans`. The code was right;
   only the doc was wrong. It now also records `version` / `fields` and the deliberately-not-state
   list.
 
-⚠️ **These numbers rot on every commit that changes `index.html`.** Re-verify them whenever the
-script moves — `grep -n` for the symbol; §14 carries the regeneration command.
+⚠️ **§14's numbers rot on every commit that changes `index.html`.** Run
+`python3 tools/check-refs.py` after any edit to it — it verifies all 74 rows *and* fails the run if
+a line number has crept back into any of the seven prose docs. Last run CLEAN, 29 Aug 2026.
 
 ### 2b. Settings menu + per-user persistence
 
@@ -225,7 +265,25 @@ file (see §4, "what NOT to do").
    settings control simply calls it. The PDF and Excel read the value at export time, so they need
    nothing.
 
-### 2b-2. Mantine UI redesign of the surrounding chrome — **decided, not started**
+### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
+
+> ✅ **Stage 2 (the design pass) was completed 29 Aug 2026 → [`UI-CONVENTIONS.md`](UI-CONVENTIONS.md).**
+> Read it before anything below. It settles the theme tokens, the one feedback system, every
+> control/overlay/date-picker choice, and the responsive model — grounded in the real
+> `@mantine/core` **9.5.2** source rather than recalled API. Three things in it change what the
+> rest of this section assumes:
+>
+> - **§8 — seven verified traps.** `DatePickerInput` renders a `<button>`, so it would silently
+>   drop every `start-<phase>` key from `fields.byId`. `Select` stores the option *label*, not its
+>   value. Omitting `id` yields a **random** id, not none — so ~75 holiday checkboxes and the
+>   note-popover controls would be swept into every saved file and the undo stack. `Popover`
+>   portals by default, escaping the `.tools-menu` guard. `Input.Wrapper`'s id *wins* over the
+>   inner input's. Mantine's baseline reaches five real `<button>`s inside `#table-wrap`.
+> - **§1 — the phase palette's real source is JavaScript.** The `--c-*` custom properties have two
+>   consumers and both are dead CSS; `PHASES[]`, `HIATUS_COLOR`, `SIMPOST_COLOR` and
+>   `MILESTONE_COLOR` are what the grid and both exports actually read.
+> - **§9 — six items need an owner ruling**, because they turn out to touch `render()` or change a
+>   frozen export's output rather than being design choices.
 
 The owner has chosen **Option B** from [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md): the
 surrounding UI — toolbar, header, sidebar, tabs, cards, popovers, menus, labels, warnings,
@@ -748,11 +806,19 @@ Three "scroll jump" failures turned out to be Chrome's scroll anchoring correctl
 still while `scrollY` changed. Comparing scroll numbers lied; comparing *where a given week's row
 sits on screen* told the truth. Pick the metric that matches the complaint.
 
-### Saved files carry their own copy of the app
+### Saved files carry their own copy of the app — the *old* ones, and every shareable copy
 
-A saved calendar is a copy of `index.html` with state baked in, so **it keeps the bugs it was saved
-with, forever**. When the owner reports something already fixed, ask which file they are in before
-digging. This has already caused one false alarm this session.
+⚠️ **Narrowed by v1.1.0, and the old phrasing is now a trap.** Plain **Save** writes `.sptcal` —
+~4.5 KB of JSON, no app code — so a `.sptcal` cannot carry a bug at all. The finding still holds,
+unchanged, for the two formats that *are* whole documents: **legacy `.html` calendars** saved
+before v1.1.0, and every **shareable copy** (File ▸ *Export shareable copy…*), which is a complete
+frozen app on purpose.
+
+Those keep the bugs they were saved with, forever. When the owner reports something already fixed,
+ask **which file they are in** before digging — that has already caused one false alarm. Two live
+consequences of the same fact: §2h, where a shareable copy bakes in a notice strip naming someone
+else's file; and the update check staying deliberately silent on `file://`, because telling a
+frozen copy's holder to "update" would navigate them off the very file they were sent.
 
 There is no service worker (removed deliberately, and old registrations are actively unregistered
 on load), so the *live site* always serves current code on a normal refresh — including on an
@@ -761,6 +827,51 @@ worked through 28 Aug 2026: if the deploy is ever moved behind GitHub Enterprise
 Pages (SSO-gated), that gate is checked on *every* request, not once — so an unattended background
 fetch from inside the installed PWA (an update check, or the relaunch fetch itself) can silently
 fail with no valid session, where a real page navigation would not. See §2f.
+
+---
+
+### "Chrome/Edge" is two constraints, not one — and Safari has never been measured
+
+Asked by the owner 29 Aug 2026: *is there a reason Chromium is the only reliable run, over Safari?*
+The audit found **no decision had ever been recorded.** The word "Safari" appeared nowhere in the
+repo — not in a doc, not in a code comment. One sentence ("Chrome/Edge are the target browsers")
+had been carrying two unrelated constraints, which is why the question had no answer to point at.
+
+**The decision, confirmed by the owner the same day: stay on Chrome/Edge.** Written down here so it
+is a choice and not an accident. What follows is **two real constraints and one unknown**, and they
+are different in kind — conflating them is how someone ends up "just trying Safari" and drawing a
+confident wrong conclusion from it.
+
+**A — the harness is Chrome-only structurally, not by preference.** `tests/harness/run.sh` is built
+*around* `--headless=new`, `--dump-dom` and `--virtual-time-budget`: inject a script, let it write
+JSON into `<pre id="R">`, dump the serialised DOM to stdout, parse the payload back out. Safari has
+**no headless mode and no DOM-dump flag at all.** Its only automation surface is `safaridriver` — a
+real windowed browser speaking WebDriver, which must be enabled by hand under *Develop ▸ Allow
+Remote Automation* and driven by a client library. Firefox has headless but no `--dump-dom`. Either
+port is a **rewrite of the harness**, not a change to `CHROME=`. Budget it that way if it is ever
+asked for.
+
+**B — the app is Chromium-first, and degrades on purpose.** `supportsFsAccess` gates on
+`window.showSaveFilePicker`, and the File System Access API is Chromium-only; so is
+structured-cloning a `FileSystemFileHandle` into IndexedDB, which is exactly what the recents list
+is. On Safari that means no save-in-place, no recents, no autosave-to-a-linked-file — and **Save
+writes the legacy full-copy `.html`, not `.sptcal`.** That last one is deliberate, and the comment
+in `saveToFile` says why: with no handle there is nothing to write back to, so handing someone a
+data file they then cannot re-link is worse than a copy that just works. **Opening is unaffected**
+— `parseCalendarText()` does not care what browser it is in — so §0 rule 3 holds everywhere.
+
+**C — one thing nobody has measured.** The month PDF is `window.print()`, and the print CSS is
+tuned against **Chrome's** print engine specifically: the 2 px page-box inset exists because Chrome
+trims frame borders sitting exactly on the clip boundary to a sub-pixel, and the bar-border rule
+exists because Chrome's print pipeline rasterises a composited absolute layer. Those are
+observations of *one* engine. Safari's print output has never been looked at. Two things are safe:
+`buildWaterfallPdf()` writes PDF bytes directly with no print dialog, so no engine is involved; and
+`DecompressionStream('deflate')`, which inflates the embedded Carlito, needs **Safari ≥ 16.4** —
+below that the font never loads and the whole width model silently measures a fallback.
+
+**So do not describe Safari as "degrades gracefully."** A and B are structural and known; C is an
+*unknown*, not a tested fallback. The honest statement, and the one to give a user who asks: **every
+calendar opens in any modern browser; saving and printing are only known-good in Chrome/Edge.**
 
 ---
 
@@ -873,11 +984,48 @@ in another, so read both:
   re-aligns or re-widths what comes out of them is still out of bounds. The reason is users, not
   tidiness: people are coming to this from the old version and the printout has to be the document
   they already know.
-- **Looser:** the **editable grid on screen** explicitly *may* be reconsidered on design. That is
-  the owner's own words and it is the one place with latitude. It is not permission to touch the
-  width model, `computePhaseRowLayout()` or the writers — those are still frozen by §0 rule 2, and
-  the screen shares them with the exports, which is precisely how a "screen-only" change stops
-  being screen-only.
+- ~~**Looser:** the **editable grid on screen** explicitly *may* be reconsidered on design.~~
+  ⛔ **NARROWED BY THE OWNER, 29 Aug 2026 — this latitude is withdrawn by default.** See the rule
+  immediately below. What survives of it: the *word* "may" was never permission to touch the width
+  model, `computePhaseRowLayout()` or the writers — those are frozen by §0 rule 2, and the screen
+  shares them with the exports, which is precisely how a "screen-only" change stops being
+  screen-only.
+
+**Do not redesign the on-screen waterfall editor either.** The owner's words, 29 Aug 2026, given
+as a standing UI convention:
+
+> *"the waterfall editor and output is to remain as similar to as it is right now to retain its
+> identity to user-comfortable conventions of the past, unless given specific instructions from
+> the user. This includes formatting styles, auto shrinking, font, font size, width and heights
+> etc etc. Outside of the actual grid and export, all is fair game"*
+
+This **supersedes** the "Looser" bullet above, which had read the owner's earlier *"the editable
+grid in the app could have a reconsideration on design"* as open latitude. It is not. The default
+is now **hold the waterfall editor as it is**; a redesign of it needs a specific instruction, not
+an inference from a general permission to modernise the app.
+
+Read it by what it names, because it names mechanisms and not just looks:
+
+| Named in the instruction | The symbols it means |
+|---|---|
+| formatting styles | the `.sheet-*` CSS, cell alignment, the block separators, `SHEET_GRIDLINES` |
+| **auto shrinking** | `cellTextFit`, `wrapLineCount`, `clampChars` — the line-budget model |
+| font, font size | `'Carlito','Calibri'` at 11 px, the per-cell `noteFontSize` / `hiatusFontSize` |
+| width | `EXCEL_MDW`, `COL_PAD_CHARS`, `charsToScreenPx`, `sheetColumnWidths`, `colWidths` |
+| heights | `ROW_DEFAULT_PX = 20`, `rowHeights`, the row-snapping behaviour |
+
+The reason is the same one that froze the exports, applied one layer further in: **users are
+arriving from the old version and the thing they work in every day has to stay the thing they
+recognise.** Identity, not tidiness.
+
+**The boundary this draws, stated exactly** — because a UI pass runs straight into it:
+
+- **Frozen:** anything that changes what a grid cell *looks like* or *how much text fits in it*.
+- **Fair game:** the chrome that surrounds the grid, and the floating panels *anchored to* it. A
+  note editor popover is a body-level panel, not grid markup (that is the whole point of
+  `.note-pop`, §6) — so its own padding, typography and controls may be redesigned. What may
+  **not** change is the note's rendered size, wrapping or shrink behaviour once it lands back in
+  the cell.
 
 This is what stopped §2c dead at its acceptance gate. Before proposing anything that touches the
 grid, work out whether it can change the exports **at all** — and if it can, ask first, with the
@@ -1046,9 +1194,20 @@ have to be rediscovered:
 
 - **A slim status bar** is the only version that earns its space: save state, total week count and
   the active region. Its real argument is that it would move the `.save-status` chip out of the
-  top toolbar, which already wraps to two lines below 1280 px, and give warnings a permanent home
-  instead of the six different looks they have now (`#gap-warning`, `.tools-msg`,
+  top toolbar, ~~which already wraps to two lines below 1280 px~~, and give warnings a permanent
+  home instead of the six different looks they have now (`#gap-warning`, `.tools-msg`,
   `.placeholder-note`, `.snap-note`, `#union-lock-hint`, `#custom-hol-err`).
+
+  ⚠️ **The struck clause is wrong, and it was half the argument.** Measured in a real browser
+  29 Aug 2026 (`UI-CONVENTIONS.md` §2): the **header** toolbar wraps between **~848 px** (empty
+  app, short status string) and **~1018 px** (long file name, longer status) — it is
+  content-dependent, bounded by `.file-menu-btn`'s `max-width`, and never wraps at 1280 px. What
+  *does* wrap near there is the **preview** toolbar (`.view-toggle-row`), at **~1185 px**, going
+  to **75 px** tall — which is the measurement PROJECT-CONTEXT records under "the toolbar", one
+  section over. Two different toolbars, and this bullet credited the wrong one.
+
+  The warning-count half of the argument stands and got stronger: the real count is **32 feedback
+  surfaces**, not six. That is now designed out in `UI-CONVENTIONS.md` §4, without a footer.
 - **A print-only assumptions line** — region, holiday set, days-per-episode, printed under the
   calendar — is a genuinely useful idea and is **out of bounds by default**: it would mean editing
   the frozen PDF/Excel writers. It is a separate ask with its own acceptance gate (§0 rule 2), not
@@ -1234,12 +1393,12 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 
 | Stage | What | Depends on | Est. |
 |---|---|---|---|
-| ~~**0**~~ | ✅ **DONE — docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` are current as of `b603fd7`; all 37 line refs verified, §14 map at 55 verified rows. See §2a. | — | — |
+| ~~**0**~~ | ✅ **DONE — docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` are current as of `83ac3b7`; prose names symbols and quotes **no** line numbers, §14 map at **74 verified rows**, enforced by `tools/check-refs.py` across seven docs. See §2a. | — | — |
 | ~~**1**~~ | ✅ **DONE — PWA update delivery** (§2f). `version.json` in this repo (owner's call, 29 Aug 2026), `APP_VERSION`, a per-version-dismissable blue strip, `location.reload()` not `fetch()`, gives up after 3 failures, silent on `file://`. Shipped as **v1.2.0**. | D4 | — |
 | **2** | ⏸ **DEFERRED by the owner, 29 Aug 2026.** Encryption (§2g). The design and the `crypto.subtle` verification stand; nothing is blocked *technically*, it is simply not being done now. Re-open by answering D1. | **D1** | 2–3 |
 | **3** | 🔒 **HELD as the first Mantine surface** (owner's call, 29 Aug 2026) — so it is built **once**, in Mantine, not twice. Do **not** build it in plain JS. Its constraints are worked out in §2b and still apply. | Mantine | 1–2 |
-| **4** | **Mantine Stage 1** — scaffold, zero behaviour change; **fix the test harness first**. | D3 | 1–2 |
-| **5** | **Mantine Stage 2** — design pass, theme tokens, one warning system, mockups. No code. | — | 1 |
+| **4** | **Mantine Stage 1** — scaffold, zero behaviour change. ✅ The harness prerequisite is **done**: [`tests/harness/`](tests/harness/) is committed and green, with a pre-Mantine baseline at `tests/baselines/2026-08-29-stage-7/` to diff the scaffold against. It is Chrome-only by construction — see §3. | D3 | 1–2 |
+| ~~**5**~~ | ✅ **DONE — Mantine Stage 2**, 29 Aug 2026, at the owner's request. Theme tokens, the one feedback system, the responsive model and the component choice for every chrome control, date picker and overlay are settled in [`UI-CONVENTIONS.md`](UI-CONVENTIONS.md). No code written. ⛔ **Read its §8 before Stage 4** — seven verified traps, five of which silently break the save format; and its §9, six items that need an owner ruling because they turn out to touch `render()` or a frozen export. | — | — |
 | **6** | **Mantine Stages 3–5** — sidebar, toolbar, popovers, editors. | D2 | 5–7 |
 | ~~**7**~~ | ⏸ **HELD by the owner, 29 Aug 2026.** Structured notes columns (§2c). Picked up, baselined, and stopped at the gate: the split cannot be export-neutral, and the exports must look exactly as v1.0.0 (§4). Design and baseline both stand in §2c; **do not build it without asking again**. | — | — |
 | ~~**8**~~ | ⏹ **INVESTIGATED 29 Aug 2026 and mostly WONTFIX** — see [`STAGE-8.md`](STAGE-8.md). Its four geometry rows are one whole-percent fit scale, every route to them visibly changes the PDF, and §4 forbids that. What is left is not a stage: two colour decisions, one real bug (§2h), three internal disagreements and some cleanups. **Recommendation: strike it from the build order.** | — | — |

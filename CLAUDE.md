@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-## ⛔ READ [`HANDOFF.md`](HANDOFF.md) FIRST — before this file, before anything else
+## ⛔ READ [`HANDOFF.md`](HANDOFF.md) FIRST — after this file, before anything else
 
 `HANDOFF.md` is the live state of the project: what was just built, what the owner has asked for
 and not yet received, what was learned the hard way, and the working conventions in force. It is
-the only document that reflects *right now*. Read it before you read another line of this file,
+the only document that reflects *right now*. Read it after you read this file,
 and before you touch `index.html`.
 
 **Keeping it current is a first-class part of the job, not bookkeeping.** After any substantial
@@ -22,7 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > harness, bug history, and pending work. Read it when picking this project up fresh, or when
 > handing it to a session with no history.
 
-**Reading order:** [`HANDOFF.md`](HANDOFF.md) → this file → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+**Reading order:** this file → [`HANDOFF.md`](HANDOFF.md) → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+*(Changed by the owner 29 Aug 2026 — this file now comes first. The other docs' copies of the order
+have been brought into line.)*
 
 ## ⛔ Never commit, push or deploy on your own initiative
 
@@ -86,6 +88,29 @@ there for a specific, measured reason, and the reasons are not visible from the 
 **Allowed:** calling into this surface, reading from it, and changing what *surrounds* it — the
 toolbar above the grid, the popovers anchored to its cells (anchored to, never injected into),
 the container's own layout position on the page.
+
+⛔ **The freeze covers the on-screen waterfall editor's APPEARANCE too, not just the exports.**
+Owner instruction, 29 Aug 2026, given as a standing convention:
+
+> *"the waterfall editor and output is to remain as similar to as it is right now to retain its
+> identity to user-comfortable conventions of the past, unless given specific instructions from
+> the user. This includes formatting styles, auto shrinking, font, font size, width and heights
+> etc etc. Outside of the actual grid and export, all is fair game"*
+
+This **withdraws** the latitude an earlier remark (*"the editable grid in the app could have a
+reconsideration on design"*) had been read as granting — see `HANDOFF.md` §4, where the "Looser"
+bullet is now struck. The default is **hold the waterfall editor as it is.** Redesigning it takes
+a specific instruction; it is not implied by permission to modernise the app on Mantine.
+
+Note what the instruction names: *auto shrinking* is `cellTextFit` / `wrapLineCount` / `clampChars`,
+*width* is `sheetColumnWidths` / `COL_PAD_CHARS` / `colWidths`, *heights* is `ROW_DEFAULT_PX` and
+`rowHeights`. So it names mechanisms already on the frozen list above, and adds their **look** to
+what may not change.
+
+**The line a UI pass has to hold:** frozen is anything that changes what a grid cell looks like or
+how much text fits in it. Fair game is the chrome around the grid and the floating panels
+*anchored to* it — `.note-pop` is a body-level panel, so its own padding, type and controls may be
+redesigned, while the note's rendered size, wrapping and shrink behaviour back in the cell may not.
 
 > ⚠️ **"the grid" is the wrong word and it has already caused a collision.** These docs use it for
 > the frozen surface listed above; the owner used it (29 Aug 2026) for the whole calendar system,
@@ -220,7 +245,25 @@ There is no runner but there **are** fixtures — `tests/fixtures/` holds real s
 
 ⚠️ **These docs quote no line numbers.** They name symbols; `grep -n` finds them. Numbers live in exactly one place — [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md) §14 — and `python3 tools/check-refs.py` verifies them. This is not fussiness: the numbers were once scattered through ~107 sites, and twice in one day a single commit to `index.html` invalidated nearly all of them. A wrong line number reads as precision and sends you to the wrong function. **Run the checker after any edit to `index.html`.**
 
-**Run it:** `open index.html` (macOS). Reload the browser to test changes. Chrome/Edge are the target browsers — the File System Access API (`showSaveFilePicker`) and IndexedDB handle persistence degrade to a plain download elsewhere.
+**Run it:** `open index.html` (macOS). Reload the browser to test changes.
+
+**Chrome/Edge are the target browsers — decided, not incidental** (owner's call, 29 Aug 2026). Read
+that as **two** constraints, because it was written as one sentence for months and the merge is what
+made the question unanswerable:
+
+- **The harness** needs Chrome's `--headless=new --dump-dom`. Safari has neither, and no
+  equivalent — its only automation surface is `safaridriver`, a windowed WebDriver browser you must
+  enable by hand. Porting the harness is a rewrite, not a change to `CHROME=`.
+- **The app** needs the File System Access API (`showSaveFilePicker`) plus `FileSystemFileHandle`
+  persistence in IndexedDB, both Chromium-only. Elsewhere, **opening a calendar works fine** and
+  saving degrades to a plain download of the legacy `.html` copy — deliberately, since without a
+  handle there is nothing to write back to.
+- **The print path has never been measured outside Chrome.** The month-PDF print CSS is tuned to
+  Chrome's engine specifically. That is an unknown, not a known-good fallback — do not call Safari
+  "graceful degradation" without measuring it.
+
+Full reasoning, including the `DecompressionStream` floor that Carlito depends on, is in
+[`HANDOFF.md`](HANDOFF.md) §3.
 
 **Keep it single-file.** The self-containment is load-bearing: the PWA manifest and every icon are inlined so the tool can be emailed around as one file and run offline from `file://`, and the *shareable copy* export is a complete working app in one document. Do not split out CSS/JS or add local asset files.
 

@@ -4,7 +4,7 @@
 **Decision recorded:** 28 Aug 2026 — the owner chose **Option B**: redesign the surrounding UI on
 Mantine, **freeze the grid and the exports permanently**.
 
-Reading order is unchanged: [`HANDOFF.md`](HANDOFF.md) → [`CLAUDE.md`](CLAUDE.md) →
+Reading order (owner-revised 29 Aug 2026): [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md). This document is the working plan for the redesign.
 
 ---
