@@ -63,119 +63,12 @@
       </div>
     </div>
 
-    <section class="card" data-tab="show">
-      <h2>Show info</h2>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-        Title
-        <input type="text" id="show-title" placeholder="e.g. Show Title" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
-      </label>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-        Season
-        <select id="season-num" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
-          <option value="">—</option>
-          <option value="1">Season 1</option>
-          <option value="2">Season 2</option>
-          <option value="3">Season 3</option>
-          <option value="4">Season 4</option>
-          <option value="5">Season 5</option>
-          <option value="6">Season 6</option>
-          <option value="7">Season 7</option>
-          <option value="8">Season 8</option>
-          <option value="9">Season 9</option>
-          <option value="10">Season 10</option>
-        </select>
-      </label>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-        Shooting Days per Episode
-        <input type="number" id="shoot-days-per-ep" min="1" step="1" placeholder="e.g. 8" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
-      </label>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
-        Number of Episodes
-        <input type="number" id="num-episodes" min="1" step="1" placeholder="e.g. 10" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box;">
-      </label>
-      <div class="show-info-note" id="show-info-note" style="display:none;"></div>
-    </section>
-
-    <section class="card" data-tab="settings">
-      <h2>Production Region</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped, pushing the schedule out. Canada is picked by province &mdash; the statutory lists genuinely differ.</p>
-      <label style="display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted);">
-        Country
-        <select id="union-country" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
-          <option value="">None</option>
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-          <option value="UK">United Kingdom</option>
-          <!-- Legacy value from files saved before Canada was split by province. Kept (hidden) so a
-               restored file still selects Canada; normalizeRegionSelection() then rewrites it. -->
-          <option value="CAN" hidden>Canada</option>
-        </select>
-      </label>
-      <!-- US area picker. IATSE's West Coast Studio Local Agreements and the Area Standards
-           Agreement carry the SAME 11 holidays, so one "General" list covers LA, Atlanta,
-           Albuquerque etc. New York (Local 52) is the genuine exception: it swaps Good Friday for
-           Veterans Day. Kept as its own <select> (rather than reusing the province one) so both
-           option sets stay static and a restored save can set either value directly. -->
-      <label id="union-usregion-row" style="display:none; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-top:8px;">
-        Area
-        <select id="union-usregion" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
-          <option value="US-GEN">General (incl. CA, GA, NM, LA)</option>
-          <option value="US-NY">New York (Local 52)</option>
-        </select>
-      </label>
-      <!-- Province picker: only meaningful for Canada, whose statutory holidays genuinely differ by
-           province (Boxing Day is Ontario-only here; Remembrance Day is BC/AB; Truth and
-           Reconciliation is BC/MB; the Fete nationale is Quebec-only). Shown/hidden by
-           reflectRegionUI(); the options are static so a restored save can set the value directly. -->
-      <label id="union-subregion-row" style="display:none; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); margin-top:8px;">
-        Province
-        <select id="union-subregion" style="font-size:13px; font-family:inherit; border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px; width:100%; box-sizing:border-box; background:#fff;">
-          <option value="CA-BC">British Columbia</option>
-          <option value="CA-ON">Ontario</option>
-          <option value="CA-QC">Quebec</option>
-          <option value="CA-AB">Alberta</option>
-          <option value="CA-MB">Manitoba</option>
-          <option value="CA-NS">Nova Scotia</option>
-        </select>
-      </label>
-      <p id="union-lock-hint" class="placeholder-note" style="display:none; margin-top:6px; color:#b45309;">Locked &mdash; changing the Region would recompute Production&rsquo;s dates and misplace your comment/hiatus edits. Use &ldquo;Reset Notes &amp; Hiatus&rdquo; above the calendar first.</p>
-    </section>
-
-
-    <section class="card" data-tab="settings">
-      <h2>Holidays</h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">Un-tick <strong>Enable</strong> to drop a holiday from this show entirely &mdash; it stops costing Production a shoot day and stops appearing as a note. The two note columns control where an enabled holiday shows up.</p>
-      <p id="holiday-vis-empty" class="placeholder-note" style="display:none; margin-top:10px;"></p>
-      <div id="holiday-vis" style="display:none; margin-top:12px;">
-        <div style="display:flex; align-items:flex-end; font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; padding:0 2px 4px; border-bottom:1px solid var(--border);">
-          <span style="flex:1;">Holiday</span>
-          <span style="width:40px; text-align:center; line-height:1.15;">Enable</span>
-          <span style="width:40px; text-align:center; line-height:1.15;">W&rsquo;fall<br>note</span>
-          <span style="width:38px; text-align:center; line-height:1.15;">Month<br>note</span>
-        </div>
-        <div id="holiday-vis-list"></div>
-        <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; font-size:11px;">
-          <span style="color:var(--text-muted);">Toggle all:</span>
-          <button type="button" class="hv-bulk" data-view="enabled">Enable</button>
-          <button type="button" class="hv-bulk" data-view="sheet">Waterfall</button>
-          <button type="button" class="hv-bulk" data-view="month">Month</button>
-        </div>
-      </div>
-      <!-- Custom (show-specific) holidays. A single day, which the hiatus rows cannot express --
-           those are whole Monday-snapped weeks. Not region-scoped, so they survive a region change. -->
-      <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--border);">
-        <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Add your own holiday</div>
-        <div style="display:flex; gap:6px; align-items:flex-start;">
-          <input type="text" id="custom-hol-name" placeholder="Studio shutdown" style="flex:1; min-width:0; font-size:12px; padding:5px 7px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit;">
-          <input type="date" id="custom-hol-date" style="width:132px; flex:none; font-size:12px; padding:5px 7px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit;">
-          <button type="button" class="secondary" id="custom-hol-add" style="flex:none; padding:5px 10px; font-size:12px;">Add</button>
-        </div>
-        <div id="custom-hol-err" class="placeholder-note" style="display:none; color:var(--danger); margin-top:5px;"></div>
-      </div>
-      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-        <button type="button" class="secondary" id="holiday-reset-btn" style="padding:5px 10px; font-size:11.5px;">Reset holidays</button>
-      </div>
-    </section>
+    <!-- Show info, Production Region and Holidays are React (src/chrome/Sidebar.jsx). They
+         moved out of this file because their 38 inline style= attributes -- 166 declarations
+         -- beat every stylesheet rule, so restyling could not reach them. The Phases and
+         All-phase hiatus cards below stay here: their contents are generated by the engine,
+         which also mints the element ids that are the save-file format. -->
+    <div id="sidebar-static"></div>
 
     <section class="card" data-tab="phases">
       <h2>Phases</h2>

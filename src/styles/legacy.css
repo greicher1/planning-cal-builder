@@ -169,7 +169,9 @@
     /* When the panel goes full width, don't let the form fields stretch across the whole
        window -- cap the content to a comfortable column and centre it so inputs stay a sane
        size instead of ballooning to 900px wide. */
-    .form-panel > section.card,
+    /* Descendant, not child: the three React cards now sit inside #sidebar-static, so a child
+       combinator would silently stop capping them when the panel goes full width. */
+    .form-panel section.card,
     .form-panel > .side-tabs{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 
@@ -270,14 +272,86 @@
   .custom-phase-header .icon-btn{width:24px; height:24px; font-size:14px; flex:none;}
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
-  input[type=date], input[type=number], select{
-    border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px;
-    font-family:inherit; font-size:13px; background:#fff; color:var(--text);
-    width:100%;
+  /* ============================================================================================
+     PLAIN CONTROLS, WEARING MANTINE'S INPUT
+     ============================================================================================
+     Most of the sidebar's fields are NOT React: the phase rows, per-phase hiatus blocks, episode
+     rows, all-phase hiatus rows and the holiday list are built by the engine as HTML strings
+     (buildPhaseRows, phaseHiatusBlockHtml, renderEpisodeRows, renderHolidayVisList). Their markup
+     is plain <input>/<select>, and it has to stay that way -- the engine reads .value off them,
+     writes .value into them on restore, and generates their ids, which ARE the save-file format.
+
+     So rather than rewrite those generators, this block gives plain controls Mantine's input look,
+     from Mantine's own variables: the xs 30px height the design pass fixed on (theme.js), a gray-4
+     hairline, the default radius, and the primary colour as the focus ring. A Mantine TextInput
+     rendered next to one of these should be indistinguishable.
+     ============================================================================================ */
+  input[type=date], input[type=number], input[type=text]:not(.phase-name-input), select, textarea{
+    height:var(--input-height-xs, 30px);
+    border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-default);
+    padding:0 var(--mantine-spacing-md);
+    font-family:inherit; font-size:var(--mantine-font-size-md);
+    background:var(--mantine-color-white); color:var(--mantine-color-black);
+    width:100%; box-sizing:border-box;
+    transition:border-color 100ms ease;
+  }
+  textarea{ height:auto; padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); }
+  input[type=date]:hover, input[type=number]:hover, select:hover{ border-color:var(--mantine-color-gray-5); }
+  input[type=date]:focus, input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--mantine-primary-color-filled);
+  }
+  input:disabled, select:disabled{
+    background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-5); cursor:not-allowed;
   }
   select{cursor:pointer;}
-  input[type=number]{font-family:'IBM Plex Mono',monospace;}
-  input[type=checkbox]{accent-color:var(--accent); width:15px; height:15px;}
+  /* ⛔ The mono face is NOT decorative here: digits in a monospace face keep week counts and day
+     counts vertically aligned down a column of rows. Kept, but on the system stack -- the app was
+     loading IBM Plex Mono at two weights for eight sites, every one of which renders at 400. */
+  input[type=number]{font-family:var(--mantine-font-family-monospace);}
+  /* Mantine's Checkbox is a styled SVG the engine cannot generate. This is the closest a native
+     box gets: its own primary accent, and the same 16px box Mantine's xs size uses. */
+  input[type=checkbox]{accent-color:var(--mantine-primary-color-filled); width:16px; height:16px; cursor:pointer;}
+
+  /* Field labels, matching Mantine's Input.Label: small, medium weight, dark -- NOT the muted grey
+     the app used, which read as disabled next to a real Mantine label. */
+  .phase-fields label, .phase-hiatus-fields label, .hiatus-entry label{
+    font-size:var(--mantine-font-size-xs); font-weight:500;
+    color:var(--mantine-color-gray-9); gap:var(--mantine-spacing-xxs);
+  }
+
+  /* Sidebar buttons, matching Mantine's Button variant="default" / "filled". */
+  button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
+    height:var(--input-height-xs, 30px);
+    border-radius:var(--mantine-radius-default);
+    font-size:var(--mantine-font-size-sm); font-weight:500; font-family:inherit;
+    padding:0 var(--mantine-spacing-lg); cursor:pointer;
+    border:1px solid transparent; transition:background-color 100ms ease;
+  }
+  button.secondary:not(.tb-btn){
+    background:var(--mantine-color-white); border-color:var(--mantine-color-gray-4);
+    color:var(--mantine-color-black);
+  }
+  button.secondary:not(.tb-btn):hover{ background:var(--mantine-color-gray-0); }
+  button.primary:not(.tb-btn){
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+  }
+  button.primary:not(.tb-btn):hover{ background:var(--mantine-primary-color-filled-hover); }
+  button.primary:not(.tb-btn):disabled{
+    background:var(--mantine-color-gray-2); color:var(--mantine-color-gray-5); cursor:not-allowed;
+  }
+  button.primary:not(.tb-btn):focus-visible, button.secondary:not(.tb-btn):focus-visible{
+    outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;
+  }
+
+  /* Each phase reads as its own card inside the Phases card -- the Mantine UI "application card"
+     idiom one level down, which is what gives a long column of phases any structure at all. */
+  .phase-row{
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md);
+    padding:var(--mantine-spacing-lg); margin-bottom:var(--mantine-spacing-md);
+    background:var(--mantine-color-white);
+  }
+  .phase-row:hover{ border-color:var(--mantine-color-gray-4); }
 
   .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
   .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
@@ -1050,3 +1124,34 @@
   #help-body code{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
   #help-body .help-intro{ color:var(--text-muted); margin-top:12px; }
   #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }
+
+  /* ---------- Sidebar cards that moved to React (src/chrome/Sidebar.jsx) ---------- */
+  /* The holiday table's column header. Was six inline style= attributes; now one rule. */
+  .hv-head{
+    display:flex; align-items:flex-end;
+    font-size:var(--mantine-font-size-xxs); text-transform:uppercase; letter-spacing:.05em;
+    color:var(--mantine-color-gray-6);
+    padding:0 2px var(--mantine-spacing-xs);
+    border-bottom:1px solid var(--mantine-color-gray-3);
+    margin-top:var(--mantine-spacing-lg);
+  }
+  .hv-head span{ width:40px; text-align:center; line-height:1.2; flex:none; }
+  .hv-head .hv-head-name{ flex:1; width:auto; text-align:left; }
+
+  /* The custom-holiday block, separated by a rule rather than a dashed border -- Mantine UI uses
+     padding-top + border-top for a section break, and never a dashed one. */
+  .hv-custom{ border-top:1px solid var(--mantine-color-gray-3); }
+
+  /* The region lock hint. Roman, amber, and it names the three controls it applies to. */
+  .lock-hint{
+    margin:var(--mantine-spacing-sm) 0 0;
+    font-size:var(--mantine-font-size-xs);
+    color:var(--mantine-color-warn-9);
+  }
+
+  /* ⚠️ reflectRegionUI() shows these two rows with `style.display = 'flex'`, which the old markup
+     paired with `flex-direction:column` on the same <label>. The React version is a plain Box, so
+     without this the select becomes a flex ITEM and shrinks to its content width instead of filling
+     the card. Restored here rather than by changing the engine, which sets 'flex' for both rows. */
+  #union-usregion-row, #union-subregion-row{ flex-direction:column; }
+  #union-usregion-row > *, #union-subregion-row > *{ width:100%; }

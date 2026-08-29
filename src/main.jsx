@@ -25,6 +25,7 @@ import './styles/legacy.css'
 import { theme } from './theme.js'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
+import { ShowInfoCard, RegionCard, HolidaysCard } from './chrome/Sidebar.jsx'
 import { initLegacyApp } from './legacy/app.js'
 
 // ---- Why portals, and not a React root that owns the document ---------------------------------
@@ -48,6 +49,7 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
+      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /></>, '#sidebar-static')}
     </>
   )
 }
