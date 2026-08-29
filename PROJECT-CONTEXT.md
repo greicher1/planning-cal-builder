@@ -828,6 +828,25 @@ node /tmp/testsrv.js & sleep 2
   download doesn't fire. You can skip the round trip to disk entirely: `DecompressionStream
   ('deflate-raw')` will inflate the .xlsx entries in the browser, and `DOMParser` will tell you
   whether each part is well-formed.
+- ⚠️ **`--dump-dom` writes the file and then does not always exit.** Observed 29 Aug 2026: the DOM
+  landed on disk, Chrome stayed alive, and the shell command after the `;` never ran — which looks
+  exactly like the *test* hanging. Run Chrome in the background, poll for the file, then `kill -9`
+  it and `pkill -f "user-data-dir=/tmp/tc-<name>"` before parsing. Do not put the parse step after
+  Chrome in the same foreground chain.
+- ⚠️ **Never hold a NodeList across a click that re-renders its list.** Already recorded below for
+  holidays, and it bit again immediately: a `forEach` over `#holiday-vis-list input.hv-cb` clicked
+  14 boxes and turned on **one**, because the list rebuilt after the first click and the other 13
+  nodes were detached. Detached clicks throw nothing and change nothing, so it reads as the app
+  ignoring the input. Re-query on every iteration, click the first still-unchecked box, and await
+  a tick in between.
+- **To drive Open without a picker**, stand in for `window.showOpenFilePicker` with a fake handle:
+  `{name, kind:'file', queryPermission/requestPermission → 'granted', isSameEntry → false,
+  getFile → new File([text], name)}`, then click the `[data-action="open"]` item in `#file-menu`.
+  Everything real still runs — `parseCalendarText`, `applyStateSnapshot`, `refreshAfterRestore`.
+  Fetch the fixture over the same test server. Allow ~2 s afterwards: the restore is async and a
+  measurement taken too early reports an empty calendar, which looks like a restore failure.
+- **Stub `window.alert` into an array** before any Open/Save test. Every failure path in the file
+  layer is an `alert()`, so without this a rejected file is indistinguishable from a silent no-op.
 
 ### Saved fixtures (`tests/fixtures/`)
 

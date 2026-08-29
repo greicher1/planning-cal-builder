@@ -242,7 +242,13 @@ Two consequences that are easy to miss and hard to reverse:
   calendar. Fix the harness (native value setter + keep the existing element ids) **before**
   porting anything, not after.
 
-### 2c. Multiple / structured notes columns
+### 2c. Multiple / structured notes columns — ⏸ **HELD by the owner, 29 Aug 2026**
+
+> ⛔ **Do not start building this.** It was picked up as build-order Stage 7 on 29 Aug 2026,
+> the baseline measurements were taken, and it was then **stopped before a line of `index.html`
+> was written** — because the owner set a constraint the stage cannot satisfy. Read
+> "Why it was held" at the end of this section before re-opening it. Everything between here
+> and there is the design as it stood, and it still stands; what changed is whether it may ship.
 
 The reference Excel export splits Notes into **two sub-columns**: a label and a right-aligned date
 (`Drop 201, 202, 203  ⟶  7/28/28`). The app concatenates them into one centred string. This is the
@@ -311,14 +317,92 @@ the answer; the `colspan="2"` approach sidesteps it entirely.
 
 ### The acceptance gate, before any of this is written
 
-- **Clipped-cell count stays 0.** The padding trap has landed twice (§3); a new column is exactly
-  the shape of change that trips it.
+- **Horizontally clipped-cell count stays 0.** The padding trap has landed twice (§3); a new column
+  is exactly the shape of change that trips it. **Horizontally** is load-bearing — see the baseline
+  below, where counting vertical overflow too produced three failures against untouched code.
 - **PDF diff** against an export taken immediately before the change.
 - **Excel opens without the corrupt-file alert** (the 255-char header limit is unrelated but the
   export is the thing being changed).
 - **`tests/fixtures/v1.0.0-saved.html` restores identically** — the real proof that no existing
   calendar shifted.
 - **Grid width measured against the 1301 pt reference**, since closing that gap is the point.
+
+### Why it was held — the constraint and the finding (29 Aug 2026)
+
+**The owner's constraint, in their words:**
+
+> *"the output must not be changed — how the excel looks and the pdf looks should be exactly as
+> 1.0.0 was — the editable grid in the app could have a reconsideration on design, but the goal is
+> to not deviate from the exports too much so it could be easy to understand for new users coming
+> from the old version"*
+
+**The finding: Stage 7 cannot be export-neutral.** This is structural, not a matter of care.
+`sheetColumnWidths()` returns **one** flat `cols` list, and the screen, the Excel writer and the
+PDF writer all walk it — that shared model is the entire through-line of the 2026 work (§1). So:
+
+- Adding a notes-date column to `cols` feeds all three outputs **by construction**. There is no
+  version of "split the column in the model" that reaches the screen and not the workbook.
+- And the *point* of the split is the width. Closing 1104 → 1301 pt means the Notes area gets
+  wider, which changes the exports' geometry, page fit and scale. A split that changes no export
+  geometry has not closed anything.
+
+So "the exports look exactly like v1.0.0" and "close the gap to the reference export" are
+mutually exclusive. That is the whole finding, and it is why this stopped at the gate.
+
+**Four options were put to the owner**, with mockups of the notes column in each:
+
+| | | Exports | Reference gap |
+|---|---|---|---|
+| 1 | Split everywhere (§2c as specced) | change: label flush left, date flush right, Notes wider | closes |
+| 2 | Screen only, exports frozen | byte-identical to today | stays open; screen and exports disagree for the first time since the width systems were merged |
+| 3 | Split everywhere, labels stay centred | change: Notes wider, dates aligned, labels centred as today | closes |
+| 4 | **Hold the stage entirely** ← **chosen** | untouched | stays open |
+
+**What the choice means for the next session:**
+
+- ⛔ **Do not build any of options 1–3 without asking again.** The decision was made with the
+  trade-off in front of the owner; it is not an oversight to be corrected.
+- **§2d (PDF calibration) has lost its dependency.** It was written assuming Stage 7 would land
+  first and shrink the row pitch on its own ("mostly falls out of stage 7"). It no longer does.
+  **The +16% row pitch has to be attacked directly**, and the app being height-bound where Excel
+  is width-bound is now a standing condition rather than a thing about to be fixed. See §8.
+- **The owner's constraint is broader than this stage** and now sits in §4 as its own rule: the
+  exports are frozen in *appearance*, not merely in code. The editable grid on screen has more
+  latitude — that was said explicitly.
+- If it is ever re-opened, the likeliest form is option 3: it is the one that closes the geometry
+  gap while leaving the label alignment users recognise alone.
+
+### The baseline, already measured — do not redo it
+
+Taken 29 Aug 2026 against `37b877a`, immediately before the stage was stopped. This is the
+before-side of the acceptance gate above, so re-opening the stage starts from here rather than
+from another afternoon of harness-building.
+
+**The fixture** (built by driving the real DOM, never by calling into the IIFE): a 2-block
+10-episode US-General calendar — Writer's Rm 12 wk from 2026-01-05, Pre Prep 6, Prod Prep 6,
+Production 8 days/ep, Post 16, Localization 8 — plus a 2-week all-phase hiatus from 2026-08-24,
+**all 14 holidays switched on for the waterfall**, and one free-text two-line user note on
+2026-09-07 (the `colspan` path that must stay pixel-identical).
+
+| Measurement | Baseline |
+|---|---|
+| **Horizontally clipped cells** | **0** |
+| Vertically clipped cells | 3 — all multi-line notes at the shrink floor in a 20 px row |
+| Grid width, unscaled | 797 pt (`date 53 + s0 88 + s1 88 + notes 179` ×2026, `53 + 86 + 86 + 164` ×2027) |
+| Rows | 52 |
+| Excel | 10,169 B · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait |
+| Waterfall PDF | 76,568 B · 612×792 · 204 text ops · 279 rect ops · grid drawn 573.84 pt wide |
+| `v1.0.0-saved.html` restore | 52 rows / 154 cells / 56 fields · 0 clipped · grid 324 pt |
+
+⚠️ **"Clipped cells" has to mean HORIZONTAL clipping.** The first version of the measurement
+counted vertical overflow too and reported 3 failures against unmodified code. Vertical overflow
+is *deliberate* — rows are a fixed height and text is fitted to the row, so a three-line note in a
+20 px row is clipped by design once the shrink floor is reached. Only horizontal clipping is the
+padding trap (§3), and only horizontal clipping is the gate.
+
+The harness that produced this lives in the session scratchpad and is **not committed** — the
+option the owner picked said so. Its shape is the one PROJECT-CONTEXT §11 already describes, plus
+two gotchas that cost a run each and are now written up there.
 
 ### 2d. Remaining PDF calibration
 
@@ -336,6 +420,17 @@ Measured against the owner's real Excel-exported reference:
 Excel is **width-bound** (its grid fills the printable width exactly and stops 105 pt short of the
 bottom); the app is **height-bound**, so it stretches rows to fill the page. Same fit-to-page
 intent, different binding constraint — and §2c is most of the cause.
+
+⚠️ **This section used to say the row pitch would mostly fall out of Stage 7. It will not** —
+§2c was held on 29 Aug 2026 and the notes columns are staying one column wide. So the app stays
+height-bound, and the +16% row pitch has to be attacked **directly**, on its own terms, with its
+own acceptance gate. Two consequences worth thinking about before anyone starts:
+
+- The gap is a *fit* gap, not a rendering gap. `sheetPageOrientation()` and the whole-percent fit
+  scale in `buildWaterfallPdf()` are where a height-bound grid turns into stretched rows.
+- Whatever is done here is bound by the same constraint that stopped §2c (§4): the PDF must still
+  **look** like v1.0.0's. Closing a row-pitch gap by making the page fit differently is exactly
+  the kind of change that shows. Take the before-export first and diff it.
 
 Two smaller items: the app reserves 54 pt above the grid where Excel reserves ~21.5 (Excel puts its
 header *inside* that band), and two palette entries differ — Pre Prep and Prod Prep are effectively
@@ -623,6 +718,31 @@ twice); `computePhaseRowLayout()` is the one source four consumers share, and it
 three-way divergence is why the PDF never matched an Excel print. **No third-party CSS baseline
 may reach these elements** — Mantine's `global.css`/`baseline.css` must be fenced into a `@layer`
 the grid rules outrank. The UI work in `MANTINE-MIGRATION.md` stops at this boundary.
+
+**Do not change how the exports LOOK.** New rule, from the owner, 29 Aug 2026:
+
+> *"the output must not be changed — how the excel looks and the pdf looks should be exactly as
+> 1.0.0 was — the editable grid in the app could have a reconsideration on design, but the goal is
+> to not deviate from the exports too much so it could be easy to understand for new users coming
+> from the old version"*
+
+This sits *beside* the frozen-surface rule above, and it is stricter in one direction and looser
+in another, so read both:
+
+- **Stricter:** the freeze is no longer only about the code. The Excel workbook and the waterfall
+  PDF are frozen in **appearance**. A change that leaves the frozen functions alone but moves,
+  re-aligns or re-widths what comes out of them is still out of bounds. The reason is users, not
+  tidiness: people are coming to this from the old version and the printout has to be the document
+  they already know.
+- **Looser:** the **editable grid on screen** explicitly *may* be reconsidered on design. That is
+  the owner's own words and it is the one place with latitude. It is not permission to touch the
+  width model, `computePhaseRowLayout()` or the writers — those are still frozen by §0 rule 2, and
+  the screen shares them with the exports, which is precisely how a "screen-only" change stops
+  being screen-only.
+
+This is what stopped §2c dead at its acceptance gate. Before proposing anything that touches the
+grid, work out whether it can change the exports **at all** — and if it can, ask first, with the
+before-and-after in front of the owner.
 
 **Do not break a saved calendar.** Open never executes an old file's code — it lifts the
 `saved-state` JSON out and replays it into the *running* app (§7). So the snapshot schema is a
@@ -982,8 +1102,8 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 | **4** | **Mantine Stage 1** — scaffold, zero behaviour change; **fix the test harness first**. | D3 | 1–2 |
 | **5** | **Mantine Stage 2** — design pass, theme tokens, one warning system, mockups. No code. | — | 1 |
 | **6** | **Mantine Stages 3–5** — sidebar, toolbar, popovers, editors. | D2 | 5–7 |
-| **7** | **Multiple / structured notes columns** (§2c) — the biggest remaining visual gap from the reference export, and most of why the PDF geometry diverges. | — | 2–3 |
-| **8** | **PDF calibration** (§2d) — mostly falls out of stage 7. | 7 | 1–2 |
+| ~~**7**~~ | ⏸ **HELD by the owner, 29 Aug 2026.** Structured notes columns (§2c). Picked up, baselined, and stopped at the gate: the split cannot be export-neutral, and the exports must look exactly as v1.0.0 (§4). Design and baseline both stand in §2c; **do not build it without asking again**. | — | — |
+| **8** | **PDF calibration** (§2d) — **no longer falls out of stage 7**, which was held. The +16% row pitch has to be attacked directly, and under the same "exports must look like v1.0.0" constraint that stopped stage 7. Re-scope it before starting. | — | ? |
 
 **Why this order, where it isn't obvious:**
 
@@ -1003,7 +1123,13 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
   twice.**
 - **Notes columns last.** It is the largest change to what the grid contains, and the grid is
   frozen (§0 rule 2) — so it needs its own conversation and its own acceptance gate before anyone
-  starts, not to be folded into a UI stage.
+  starts, not to be folded into a UI stage. ✅ **That ordering paid off exactly as intended:** the
+  stage got its own conversation, the conversation surfaced a constraint nobody had written down,
+  and it was stopped before any code was written rather than after. Keep doing this.
+- **Stage 8 is now the odd one out.** Every other remaining stage is either decision-gated or
+  Mantine. Stage 8 is the only one that still wants to change the exports, and §4 now says the
+  exports may not change in appearance — so its first task is to work out whether there is a
+  version of itself that is allowed to exist. Do that before estimating it.
 
 ### One thing the next session must not trip on
 
