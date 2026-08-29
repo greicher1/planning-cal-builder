@@ -178,15 +178,21 @@ long sessions — it is easy to forget precisely when it matters most.
 
 ## Project
 
-`index.html` — a **single self-contained HTML file** (~10,000 lines / 662 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
+`index.html` — a **single self-contained HTML file** (10,210 lines / 660 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
 
-There is no build system, no package manager, no tests, no server. The whole app is one `<style>` block, static markup, and one `<script>` block. ExcelJS is the only dependency, loaded from a CDN `<script>` tag. The Carlito font is **embedded** in the file (base64 of a zlib'd TrueType subset, ~91 KB) rather than fetched, so text measurement cannot drift; `tools/subset-font.py` regenerates it. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
+There is no build system, no package manager, no test runner, no server. The whole app is one `<style>` block, static markup, and one `<script>` block wrapped in an IIFE — nothing inside is a global, so a test must drive the DOM rather than call functions. ExcelJS is the only dependency, loaded from a CDN `<script>` tag. The Carlito font is **embedded** (base64 of a zlib'd TrueType subset, ~94 KB) rather than fetched, so text measurement cannot drift; `tools/subset-font.py` regenerates it. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
+
+There is no runner but there **are** fixtures — `tests/fixtures/` holds real saved calendars to test the restore path against. See PROJECT-CONTEXT §11.
 
 ⚠️ Line numbers quoted anywhere in this file are approximate and go stale fast — the script has roughly doubled since they were written. Search for the symbol, don't jump to the line.
 
 **Run it:** `open index.html` (macOS). Reload the browser to test changes. Chrome/Edge are the target browsers — the File System Access API (`showSaveFilePicker`) and IndexedDB handle persistence degrade to a plain download elsewhere.
 
-**Keep it single-file.** The self-containment is load-bearing: saved calendars *are* copies of `index.html` with state baked in, and the PWA manifest is inlined so the tool can be emailed around as one file. Do not split out CSS/JS or add local asset files.
+**Keep it single-file.** The self-containment is load-bearing: the PWA manifest and every icon are inlined so the tool can be emailed around as one file and run offline from `file://`, and the *shareable copy* export is a complete working app in one document. Do not split out CSS/JS or add local asset files.
+
+⚠️ **"Saved calendars are copies of the app" is out of date** — as of v1.1.0 Save writes `.sptcal`, ~4.5 KB of JSON. The full-copy format is now File ▸ *Export shareable copy…*. Both open, forever. See "Save / restore" below.
+
+⚠️ **This constraint is under active reconsideration** for the chrome only — see [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md) and `HANDOFF.md` §8. The grid and the exports are excluded permanently.
 
 ## Core data flow
 
@@ -212,11 +218,11 @@ The toolbar above the preview holds **Shift All** (split control: arrows act, ca
 
 `shiftCalendar(weeks, fromIso)` also re-keys the week-keyed note stores, because a shift that moved only the dates would leave every note behind on the old calendar date. Holidays never move, locked all-phase hiatuses never move, and notes carrying a date never move; per-phase hiatuses always travel with their phase. Full detail, including the two solvers and why Production is searched rather than inverted, is in **PROJECT-CONTEXT.md §7a**.
 
-`PHASES` (line ~1008) defines the six built-in phases with their Excel fill/text colors and label templates; `production` is the only one with `inputMode:'days'`. Custom phases are appended via `customPhaseDefs` and get keys `custom<n>`; `getAllPhaseDefs()` returns built-ins + custom together and is what the rest of the app iterates.
+`PHASES` (line ~2889) defines the six built-in phases with their Excel fill/text colors and label templates; `production` is the only one with `inputMode:'days'`. Custom phases are appended via `customPhaseDefs` and get keys `custom<n>`; `getAllPhaseDefs()` returns built-ins + custom together and is what the rest of the app iterates.
 
 ## State model
 
-State lives in module-scope mutable objects (scattered through the script — `customPhaseDefs`/`episodeDefs` near line ~2150, most note/header maps near lines ~4000–4275), *not* in a single store. The main ones, all keyed by `'YYYY-MM-DD'` week or day:
+State lives in module-scope mutable objects scattered through the script, *not* in a single store. `captureSnapshot()` is the single **definition** of what counts as state even though the storage is scattered. The main ones, mostly keyed by `'YYYY-MM-DD'` week or day:
 
 | Variable | Purpose |
 |---|---|
@@ -227,10 +233,14 @@ State lives in module-scope mutable objects (scattered through the script — `c
 | `headerMode`/`headerManual`, `mvHeaderMode`/`mvHeaderManual` | auto vs. hand-edited header lines |
 | `mvExtraLanes` | extra note lanes per month-view week |
 | `customPhaseDefs`, `episodeDefs` | dynamic rows |
-
+| `noteFontSize`, `hiatusFontSize` | per-cell font size, set by the note editor or a row drag |
+| `colWidths`, `rowHeights` | manual grid sizing from `installGridResizers`; absent = automatic |
+| `cellSpans` | a cell dragged across the empty columns beside it |
 | `locked` on each `.hiatus-entry` | the "Lock in place" pin: a locked all-phase hiatus keeps its dates when the shift tools move the calendar |
 
-Any new persistent state must be added in **both** places or it will silently not survive a save: the `captureSnapshot()` literal and the matching branch in `applyStateSnapshot()` — plus (if it's a DOM field) `collectFieldValues()` / `reflectFieldsToAttributes()`. `captureSnapshot()` is the **single** definition of "what counts as state", consumed by the save file, the crash backup, and the undo stack; it replaced two duplicated snapshot literals.
+**Not** state, deliberately: `autosaveNeedsFile`, `autosaveFailed`, `isDirty`, `suppressDirty` and the legacy-notice visibility are all session UI, and none belongs in a saved file. Per-user *preferences* (`SHEET_GRIDLINES`, `WF_PDF_MODE`, `GRID_TEXT_COLOR`, once the Settings menu owns them) belong in `localStorage`, **never** in `captureSnapshot()` — they are not calendar data and must not travel inside someone else's file.
+
+Any new persistent state must be added in **both** places or it will silently not survive a save: the `captureSnapshot()` literal and the matching branch in `applyStateSnapshot()` — plus (if it's a DOM field) `collectFieldValues()` / `reflectFieldsToAttributes()` — and the resets, and the shift re-key if it is week-keyed. **Restore unconditionally**: `if(snap.x) x = snap.x` leaves the *previous* file's values in place when the new file has no such key. `captureSnapshot()` is the **single** definition of "what counts as state", consumed by the save file, the crash backup, and the undo stack; it replaced two duplicated snapshot literals.
 
 ⚠️ `collectFieldValues()` sweeps every `input[id]`/`select[id]`/`textarea[id]` in the document. Any new id'd control that is *transient UI* rather than calendar data must be excluded, or it gets baked into saved files **and** adds phantom undo steps. The toolbar tool popovers are excluded via `el.closest('.tools-menu')` — matched on the **class**, deliberately not an id, because an id-based test quietly stops matching when markup is reorganised.
 
@@ -246,8 +256,13 @@ File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents
 
 ## Exports
 
-- **Excel** (`exportExcel()`, ~line 3582): builds an ExcelJS workbook directly with explicit column widths, merges, and ARGB fills. `computeBlockLayout()` / `computePhaseRowLayout()` compute the column-slot assignment (which phase occupies which column in a given week, honoring `maxConcurrent` and the fixed sim-post slot) — this same layout logic backs the on-screen waterfall table, so changes there affect both.
-- **PDF** (`exportMonthPdf()`, ~line 5391): renders every month into `#print-root`, adds `body.printing-calendar` (a print stylesheet at lines ~440–470 hides everything else), and calls `window.print()`. Always clear the class and `#print-root` before starting — a stuck class hides the app and makes the next print silently do nothing.
+**Frozen — see the rule above.** Listed here so the seam is legible, not so it can be edited.
+
+- **Excel** (`exportExcel()`): builds an ExcelJS workbook directly with explicit column widths, merges, and ARGB fills. `computeBlockLayout()` / `computePhaseRowLayout()` compute the column-slot assignment (which phase occupies which column in a given week, honoring `maxConcurrent` and the fixed sim-post slot) — the **same** layout logic backs the on-screen waterfall and the PDF, so changes there land everywhere at once. Excel caps a header/footer string at **255 characters in total**; one over and Excel reports the file as corrupt.
+- **Waterfall PDF** (`buildWaterfallPdf()` → `exportWaterfallPdfDirect()`): **writes PDF bytes directly, no print dialog** — TrueType subsetting from the embedded Carlito, `/FontFile2`, WinAnsi, xref, Flate. `WF_PDF_MODE` selects it; the old print path is the fallback. Orientation comes from `sheetPageOrientation()`, the same rule the workbook uses.
+- **Month PDF** (`exportMonthPdf()`): still browser print — renders every month into `#print-root`, adds `body.printing-calendar` (a print stylesheet hides everything else), calls `window.print()`. Always clear the class and `#print-root` before starting; a stuck class hides the app and makes the next print silently do nothing. Cleanup is bound to `afterprint` with a 60 s safety net.
+
+The width model that feeds all three is in PROJECT-CONTEXT §9a.
 
 ## Conventions
 
@@ -255,5 +270,5 @@ File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents
 - Colors are hex strings shared by DOM and Excel; `textColorFor()` picks readable foreground.
 - The Production Region selectors **lock** once the user has made note/holiday/hiatus edits (`hasNoteEdits()` → `reflectCountryLock()`), since changing region would regenerate auto-notes and clobber them. Both `#union-country` and `#union-subregion` lock and revert together.
 - **Region model:** a country (`#union-country`: `US` / `CA` / `UK`) plus a sub-region for US and Canada — `#union-usregion` (`US-GEN`, `US-NY`) and `#union-subregion` (`CA-BC`, `CA-ON`, `CA-QC`, `CA-AB`, `CA-MB`, `CA-NS`). They are **two separate selects** so both option sets stay static and a restored save can set either value directly. `effectiveRegionKey()` resolves country+sub-region to one `HOLIDAYS` key (the bare `US`/`CA` values are never keys); `reflectRegionUI()` shows whichever row applies; `normalizeRegionSelection()` rewrites the legacy `CAN` value and fills a missing sub-region with that country's default; `syncRegionTracking()` re-baselines the change-guard after any programmatic load/restore. All three selects lock and revert together.
-- `HOLIDAYS` (~line 1052) is keyed by **region**, not country, and is **generated from holiday rules** rather than hand-transcribed — regenerate it rather than editing dates by hand. Both US lists are IATSE's 11 recognized holidays: `US-GEN` (West Coast Studio Locals **and** the Area Standards Agreement — verified identical, so LA = Atlanta = Albuquerque) and `US-NY` (Local 52 Majors), which **swaps Good Friday for Veterans Day**. **Columbus Day appears in neither** (it is on no IATSE calendar), and Veterans Day is *only* correct for New York. Canada is per-province because the statutory lists genuinely differ (Boxing Day is ON-only; Remembrance Day BC/AB; Truth & Reconciliation BC/MB; Fête nationale QC-only). Weekend holidays also emit an `(Observed)` weekday entry — US shifts Sat→Fri / Sun→Mon per the IATSE ASA rule, Canada/UK move forward to the next free weekday.
+- `HOLIDAYS` (~line 2953) is keyed by **region**, not country, and is **generated from holiday rules** rather than hand-transcribed — regenerate it rather than editing dates by hand. Both US lists are IATSE's 11 recognized holidays: `US-GEN` (West Coast Studio Locals **and** the Area Standards Agreement — verified identical, so LA = Atlanta = Albuquerque) and `US-NY` (Local 52 Majors), which **swaps Good Friday for Veterans Day**. **Columbus Day appears in neither** (it is on no IATSE calendar), and Veterans Day is *only* correct for New York. Canada is per-province because the statutory lists genuinely differ (Boxing Day is ON-only; Remembrance Day BC/AB; Truth & Reconciliation BC/MB; Fête nationale QC-only). Weekend holidays also emit an `(Observed)` weekday entry — US shifts Sat→Fri / Sun→Mon per the IATSE ASA rule, Canada/UK move forward to the next free weekday.
 - The code comments explain *why* (bug history, browser constraints) at length — match that style when the reasoning is non-obvious, and keep existing explanatory comments intact when editing nearby.

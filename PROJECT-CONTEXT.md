@@ -3,7 +3,13 @@
 **Purpose of this document:** everything a fresh Claude session needs to work on this project
 with no prior context. Pair it with the current `index.html` and you have the whole picture.
 
-**Last updated:** at commit `218558b` (calendar tools: shift / anchor / rebuild, undo-redo, Cmd+S).
+**Last updated:** at commit `b603fd7` (28 Aug 2026) — the `.sptcal` save format, the frozen
+grid/exports rule, and the Mantine redesign decision. Previous refresh was `218558b`, 27 commits
+earlier; everything between is summarised in §§2, 8, 9, 9a and 12.
+
+> ⚠️ **Three documents, three jobs.** [`HANDOFF.md`](HANDOFF.md) is *where things stand right now*
+> and is read **first**. [`CLAUDE.md`](CLAUDE.md) is the rules. This file is the *system* —
+> how it works and why. When they disagree, `HANDOFF.md` is newer.
 
 ---
 
@@ -35,20 +41,33 @@ in **shoot days** and simulated day-by-day. Users can also add **custom phases**
 
 ## 2. Hard architectural constraint: ONE FILE
 
-`index.html` is a **single self-contained HTML file** (~6,100 lines, ~380 KB). One `<style>`
-block, static markup, one big `<script>` block.
+`index.html` is a **single self-contained HTML file** — **10,210 lines, 660 KB** as of `b603fd7`.
+One `<style>` block, static markup, one big `<script>` block wrapped in an IIFE (so nothing inside
+is a global — see §11).
 
 **Do not split out CSS/JS or add local asset files.** This is load-bearing, not stylistic:
 
-- **Saved calendars *are* copies of `index.html`** with the user's state baked into a
-  `<script id="saved-state">` block. A saved calendar is a fully working copy of the app.
-- The PWA manifest and all icons are inlined as `data:` URIs so the tool can be **emailed
-  around as one file** and run offline from `file://`.
+- The PWA manifest and all icons are inlined as `data:` URIs so the tool can be **emailed around
+  as one file** and run offline from `file://`.
+- The **Carlito font is embedded** (base64 of a zlib'd TrueType subset, ~94 KB, 14% of the file)
+  rather than fetched, so text measurement cannot drift. `tools/subset-font.py` regenerates it.
+  This replaced a Google Fonts dependency — see §9a for why that mattered enough to inline 94 KB.
 
-**The only external dependencies:** ExcelJS from a CDN `<script>` tag (line ~1003) and Google
-Fonts. Everything else is inline.
+> ⚠️ **"Saved calendars are copies of `index.html`" is no longer true, and that change is recent.**
+> As of v1.1.0 **Save writes `.sptcal`** — the state as JSON, ~4.5 KB. The old full-copy format
+> survives as File ▸ *Export shareable copy…*. Both still open, forever. See §8, which was
+> rewritten for this.
 
-**No build system. No package manager. No test framework. No server.**
+**The only external dependency:** ExcelJS from a CDN `<script>` tag (line 2240). Everything else
+is inline. The app is otherwise fully offline-capable and makes no network requests.
+
+**No build system. No package manager. No test framework. No server.** There are now **test
+fixtures** (`tests/fixtures/`) but no runner — see §11.
+
+> ⚠️ **This constraint is under active reconsideration.** The owner has chosen to redesign the
+> surrounding UI on Mantine, which requires React and a build step. The grid and the exports are
+> **permanently frozen** and excluded (§2a). See [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md)
+> and `HANDOFF.md` §8 for the staged plan and the decisions it is gated on.
 
 **Run it:** `open index.html` on macOS, or serve the directory over HTTP. Reload to test.
 Chrome/Edge are the target browsers — the File System Access API (`showSaveFilePicker`) and
@@ -56,34 +75,55 @@ IndexedDB handle persistence degrade to a plain download elsewhere.
 
 ---
 
+## 2a. The frozen surface — the grid and the exports
+
+**Never touched.** Not restyled, refactored, wrapped in components, or migrated to a UI library.
+The full rule, listed function by function, is the *"⛔ Never touch the grid or the exports"*
+section of [`CLAUDE.md`](CLAUDE.md); the seam is `#table-wrap` and `#print-root` and everything
+inside them, the width model, the layout and text-fitting functions, and the Excel/PDF writers.
+
+Three measured facts are why, and none is visible from reading the code:
+
+1. Carlito/Calibri's `"0"` advances **7.4336 px**, but **Excel floors MDW to 7**. Using the true
+   advance makes every column ~6% narrower than Excel's autofit.
+2. The model budgets **3.75 px** of total cell padding at `SHEET_ZOOM`. Anything more silently
+   ellipsis-clips text — it has landed twice, at 64/255 filled cells and then 9/52 date cells.
+3. `computePhaseRowLayout()` is the single source of which phase occupies which column, shared by
+   four consumers. Its previous three-way divergence is why the PDF never matched an Excel print.
+
+Changing what *surrounds* the grid is fine and expected: the toolbar, the popovers anchored to its
+cells, the container's position on the page.
+
+---
+
 ## 3. Core data flow
 
-Everything funnels through one cycle, driven by `update()` (line ~4315):
+Everything funnels through one cycle, driven by `update()` (line ~6799):
 
 ```
 DOM inputs → readState() → computeSchedule(state) → render(schedule) → markDirty()
 ```
 
-- **`readState()`** (~1591) reads every `#start-<key>` / `#weeks-<key>` field, hiatus rows,
+- **`readState()`** (~3500) reads every `#start-<key>` / `#weeks-<key>` field, hiatus rows,
   per-phase hiatuses, Show Info, and the region selectors.
   Note: once Show Info is complete (`showInfoStatus()`), **`episodes × days-per-episode`
   overrides** whatever was typed in the Production row, everywhere.
 
-- **`computeSchedule(state)`** (~1650) is the heart of the app. Returns
+- **`computeSchedule(state)`** (~3559) is the heart of the app. Returns
   `{weeks, maxConcurrent, totalWeeks, segments, hiatuses, gaps, notesByIdx, productionInfo,
   phaseHolidays, error?}`. Each week carries its phase segments, hiatus flags, and auto-notes.
 
-- **`render(schedule)`** (~2359) dispatches to `renderSpreadsheetView()` (waterfall, ~3165) or
-  `renderMonthView()` (~2638) per `viewMode` (`'sheet' | 'month'`), plus the summary row and the
+- **`render(schedule)`** (~4351) dispatches to `renderSpreadsheetView()` (waterfall, ~5188) or
+  `renderMonthView()` (~4651) per `viewMode` (`'sheet' | 'month'`), plus the summary row and the
   holiday list in Settings.
 
 ### Deliberate scheduling behaviours (do not "fix" these)
 
-- **Hiatuses PAUSE a phase, they don't consume its weeks.** `extendEndForHiatus()` (~1677)
+- **Hiatuses PAUSE a phase, they don't consume its weeks.** `extendEndForHiatus()` (~3586)
   walks week-by-week and only counts non-hiatus weeks, so a phase always delivers its full
   requested span — the hiatus pushes its end date out. Overlapping hiatuses extend by the
   **union**, not per-hiatus.
-- **Production alone runs a day-level simulation** (`simulateProductionSchedule()`, ~1701):
+- **Production alone runs a day-level simulation** (`simulateProductionSchedule()`, ~3610):
   skips weekends, hiatus days, and **enabled** union holidays for the selected region until the
   shoot-day count is met.
 - **Global hiatuses** apply to all phases; **`phaseHiatuses[key]`** pauses only its own phase.
@@ -126,12 +166,12 @@ every option set stays static and a restored save can set any value directly:
 
 Supporting functions:
 
-- **`effectiveRegionKey()`** (~4346) resolves country + sub-region to ONE `HOLIDAYS` key.
+- **`effectiveRegionKey()`** (~6835) resolves country + sub-region to ONE `HOLIDAYS` key.
   The bare `US`/`CA` values are **never** keys.
-- **`reflectRegionUI()`** (~4360) shows whichever sub-region row applies (UK has none).
-- **`normalizeRegionSelection()`** (~4334) rewrites the legacy `CAN` value from pre-split saves
+- **`reflectRegionUI()`** (~6849) shows whichever sub-region row applies (UK has none).
+- **`normalizeRegionSelection()`** (~6823) rewrites the legacy `CAN` value from pre-split saves
   and fills a missing sub-region with that country's default (`CA-BC` / `US-GEN`).
-- **`syncRegionTracking()`** (~4538) re-baselines the change-guard after any programmatic
+- **`syncRegionTracking()`** (~7027) re-baselines the change-guard after any programmatic
   load/restore, so the next user change isn't compared against a stale value.
 
 ### THE RESEARCH FINDINGS (verified against primary sources — do not silently change these)
@@ -222,12 +262,12 @@ would not open).
 ### Holiday identity — stable IDs
 
 A holiday's id is **`slug(name)@year`** (e.g. `good-friday@2026`), produced by `holidaySlug()`
-(~1524). It used to be the bare ISO date, which was fragile: switching region kept the date but
+(~3433). It used to be the bare ISO date, which was fragile: switching region kept the date but
 changed the holiday, so a per-holiday choice silently transferred to whatever now fell on that
 day. With name-based ids a choice **follows the holiday** across region changes, and settings for
 a holiday the new region lacks simply lie dormant.
 
-`migrateHolidayViewKeys()` (~1535) rewrites old date-keyed entries on load.
+`migrateHolidayViewKeys()` (~3444) rewrites old date-keyed entries on load.
 
 ### Enable / disable and custom holidays
 
@@ -235,7 +275,7 @@ a holiday the new region lacks simply lie dormant.
 - **`customHolidays`** — `[{id, name, date}]`, the user's own single-day holidays. Ids are random
   (`cst-xxxxxxx`) so renaming keeps the settings. **Deliberately NOT region-scoped**, so a
   studio shutdown survives a region change. Always listed even when outside the current phases.
-- **`fullHolidayList(regionKey)`** (~1555) merges the region's list with the custom ones and tags
+- **`fullHolidayList(regionKey)`** (~3464) merges the region's list with the custom ones and tags
   each with `enabled`.
 - Disabling a holiday **changes Production's dates**, so it warns once (only when note edits
   exist) rather than hard-blocking.
@@ -256,15 +296,15 @@ ON) chooses between:
   there (Post wk 3, 4…). One unbroken post-week sequence.
 - **Off:** every flagged week reads just "Simultaneous Post" and Post starts again at wk 1.
 
-`simPostLabel()` (~1025) centralizes the marker text so the waterfall, Excel export, and month
+`simPostLabel()` (~2926) centralizes the marker text so the waterfall, Excel export, and month
 view can't drift apart.
 
 ### "Start after previous phase"
 
 Each built-in phase except Writers Room has a small text button that fills its start date with
 the week right after the nearest **earlier scheduled** phase ends, following `PHASE_CHAIN`
-(~4427). Handles hiatuses two ways: the previous phase's end already accounts for hiatuses
-*inside* it, and then `autostartPhase()` (~4439) steps past any hiatus at the boundary so the new
+(~6916). Handles hiatuses two ways: the previous phase's end already accounts for hiatuses
+*inside* it, and then `autostartPhase()` (~6928) steps past any hiatus at the boundary so the new
 phase lands on a working week. One-time fill; the date stays editable. Custom phases excluded.
 
 ### Notes
@@ -280,9 +320,33 @@ Wraps", holidays, sim-post flags). Users can edit, recolor, or clear any note.
 
 `userNotes[key].text === ''` means "auto-note explicitly cleared" and stays gone.
 
+### Editing is a popover, never markup injected into the grid
+
+`openNoteEditor()` (~5513) — and the month-view note editor and the phase colour picker — open a
+panel **appended to `body` and anchored to the cell**, not an editor rendered *inside* it. The
+grid must keep exactly the shape it had: injecting a form into a cell changes that row's height
+and column's width, so opening an editor moved the very thing being edited out from under the
+pointer. That is what commit `cf51a29` fixed, and it is now a standing convention.
+
+Three obligations come with it, each of which was a bug first:
+
+- **A popover that outlives its anchor must be torn down.** `render()` rebuilds the grid on every
+  edit, so a body-level popover survives its cell and is left hanging over the calendar pointing
+  at nothing.
+- **Anchored inside a scrolling container ⇒ reposition on `scroll` (capture phase) and `resize`**,
+  and clamp into the window.
+- **Its controls must not carry `id`s.** `collectFieldValues()` sweeps every id'd
+  `input`/`select`/`textarea` into saved files *and* the undo stack, so the editor's day and size
+  selects use **classes** (§7). The toolbar popovers are excluded by `el.closest('.tools-menu')`
+  — matched on the class, deliberately not an id.
+
+**Direct manipulation is preferred over dialogs** generally: resizing, filling a cell and changing
+a row height are all drag-or-double-click on the thing itself, and double-click means "back to
+automatic" (§9a).
+
 ### Sidebar tabs
 
-Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`, ~3944). Sections are
+Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`, ~6176). Sections are
 `<section class="card" data-tab="...">`. The Settings tab holds **Production Region** and
 **Holidays** together — they were previously split across two tabs, which made the region
 undiscoverable.
@@ -303,17 +367,30 @@ State lives in **module-scope mutable variables**, not a single store. The persi
 | `customHolidays` | user-added single-day holidays |
 | `headerMode`/`headerManual`, `mvHeaderMode`/`mvHeaderManual` | auto vs hand-edited header lines |
 | `mvExtraLanes` | extra note lanes per month-view week |
-| `customPhaseDefs`, `episodeDefs` | dynamic rows |
+| `customPhaseDefs`, `episodeDefs` | dynamic rows (with their `customPhaseCounter` / `episodeCounter`) |
 | `phaseColorOverride` | per-phase colour overrides |
+| `noteFontSize`, `hiatusFontSize` | per-cell font size, set by the note editor or a row drag |
+| `colWidths`, `rowHeights` | manual grid sizing from `installGridResizers`; absent = automatic |
+| `cellSpans` | a cell dragged across the empty columns beside it |
 | `viewMode`, `sidebarTab` | UI position |
+
+Two more things ride in the snapshot that are not maps: **`version`** (`SNAPSHOT_VERSION`, see §8)
+and **`fields`** — `collectFieldValues()`'s sweep of every id'd form control, which is what makes
+those DOM ids part of the file format (§2a, §8).
 
 Added since: `locked` on each all-phase hiatus row (the "Lock in place" pin — see §7a), and the
 undo/redo stacks, which are **not** persisted (history is per-session and reset on New/Open).
 
+**Deliberately NOT state:** `autosaveNeedsFile`, `autosaveFailed`, `isDirty`, `suppressDirty` and
+the legacy-notice visibility are session UI. Per-user *preferences* (`SHEET_GRIDLINES`,
+`WF_PDF_MODE`, `GRID_TEXT_COLOR`, once the Settings menu owns them) belong in `localStorage`,
+**never** in `captureSnapshot()` — they are not calendar data and must not travel inside someone
+else's file.
+
 > ### ⚠️ Any new persistent state must be added in BOTH places or it silently won't survive a save:
-> 1. the `captureSnapshot()` literal (~5176)
-> 2. the matching branch in `applyStateSnapshot()` (~6942)
-> 3. if it's a DOM field, `collectFieldValues()` (~4974) / `reflectFieldsToAttributes()`
+> 1. the `captureSnapshot()` literal (~7562)
+> 2. the matching branch in `applyStateSnapshot()` (~9967)
+> 3. if it's a DOM field, `collectFieldValues()` (~7267) / `reflectFieldsToAttributes()`
 >
 > **This used to be three places, with two duplicated snapshot literals** (one in
 > `buildSavedHtml()`, one in the IndexedDB backup). They are now a single `captureSnapshot()`
@@ -348,15 +425,15 @@ a description — it reads as a distinction while distinguishing nothing.
 | **Gaps preserved** | Shift All (by amount) · Anchor To (by date) | Shift From |
 | **Gaps rebuilt** | — | Rebuild From |
 
-- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)` (~5369). `fromIso` limits the
+- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)` (~7776). `fromIso` limits the
   move to weeks on or after a cutoff; that is Shift From. Earlier/Later is the direction of
   **travel**, not which side moves — both directions move the same set.
 - **Anchor To** — measures the gap between a landmark and a target date, then calls
   `shiftCalendar` with that delta. It moves **dates, not phases**: a phase with a week count but
   no date is invisible to it. It never reads week counts to position anything.
-- **Rebuild From** — `workBackwardsFrom` (~5584) / `workForwardsFrom` (~5632). Pins one date and
+- **Rebuild From** — `workBackwardsFrom` (~8020) / `workForwardsFrom` (~8068). Pins one date and
   recomputes one side to run consecutively, **writing** start dates including into empty fields.
-- **Close all gaps** — `closeAllGaps()` (~5682), folded into the Rebuild From popover. It is
+- **Close all gaps** — `closeAllGaps()` (~8118), folded into the Rebuild From popover. It is
   Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
   From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
 
@@ -382,13 +459,13 @@ stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `mo
 
 ### The two solvers
 
-- `startForWeeksEndingAt()` (~5570) is the **exact inverse of `extendEndForHiatus()`**: it walks
+- `startForWeeksEndingAt()` (~8006) is the **exact inverse of `extendEndForHiatus()`**: it walks
   back from an exclusive end counting only non-paused weeks, so a phase straddling a hiatus starts
   earlier rather than losing weeks.
 - Production has **no week count** — its span is a day-level walk over weekends, hiatus days and
   enabled union holidays, so the same shoot occupies a different number of weeks depending on where
-  it lands. `productionStartEndingBy()` (~5525) therefore **asks the real scheduler** rather than
-  inverting it: `productionEndFor()` (~5504) sets the field, calls `computeSchedule(readState())`
+  it lands. `productionStartEndingBy()` (~7961) therefore **asks the real scheduler** rather than
+  inverting it: `productionEndFor()` (~7940) sets the field, calls `computeSchedule(readState())`
   directly (no render), reads the segment end, and restores the field.
   > ⚠️ It searches from the latest candidate **backward**, deliberately not forward until it stops
   > fitting. A later start is not always a later finish: a shoot beginning just before a long hiatus
@@ -402,7 +479,7 @@ stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `mo
 
 ### Phase order for a rebuild
 
-`phaseSequence()` (~5475): built-ins keep their canonical `PHASE_CHAIN` order — it is the app's
+`phaseSequence()` (~7911): built-ins keep their canonical `PHASE_CHAIN` order — it is the app's
 own model of the sequence and works with **no dates entered at all**. A custom phase has no place
 in that chain, so it is slotted by the date it currently sits on; an undated custom phase goes last.
 
@@ -410,33 +487,94 @@ in that chain, so it is slotted by the date it currently sits on; an undated cus
 
 ## 8. Save / restore
 
-**Save writes a new complete HTML document**: `document.documentElement.outerHTML` with live
-state serialized into `<script id="saved-state" type="application/json">` (line 750, ships as
-`null`). `<` is escaped to `<` so user text containing a closing script tag can't truncate
-the file.
+> **Rewritten at v1.1.0 (`eae849e`).** Everything before that commit described a single format
+> where Save wrote a complete copy of the app. That is now one of two formats and no longer the
+> default.
 
-On load, `restoreSavedState()` (~5905) parses that block and replays it: rebuilds custom-phase
-and hiatus rows **first** (re-keying generated ids to the saved keys), then applies
-`fields.byId`, then the in-memory maps.
+### Two formats, two jobs
+
+| | **`.sptcal`** — the calendar | **`.html`** — a shareable copy |
+|---|---|---|
+| Contents | `captureSnapshot()` as pretty JSON | the whole app, with the state in it |
+| Size | **~4.5 KB** | ~693 KB |
+| Written by | Save, Save As, autosave (`buildSavedData`, 7300) | File ▸ *Export shareable copy…* (`buildSavedHtml`, 7311) |
+| For | working — opening, editing, saving | emailing a double-clickable app to someone |
+
+**Why the split.** Save and Open were never symmetric: Save wrote a runnable copy of the app, but
+Open never read it — it lifts the JSON out and replays it into the **running** app, so the old
+file's HTML, CSS and JS is never parsed and never executed. Measured on a 10-episode calendar:
+**729,172 bytes of which 3,238 (0.44%) was the data**, and 44.5 KB of the rest was the rendered
+grid, serialized out of the live DOM and then regenerated from state on load and thrown away.
+A save is now **155–168× smaller**.
+
+### One reader, forever
+
+`parseCalendarText(text)` (7352) is the **only** thing that reads a calendar file. It returns
+`{format:'data'|'html', snapshot}` or `null`:
+
+- text starting with `{` → the file **is** the snapshot;
+- anything else → the original `<script id="saved-state">` regex.
+
+Both converge on `applyStateSnapshot()` → `refreshAfterRestore()`, so there is no migration that
+can be got wrong. The `format` is part of the return because the caller acts on it: opening a
+legacy `.html` raises a dismissible strip recommending *Save as .sptcal* (`showLegacyNotice`,
+8226). **Recommend, never convert** — plain Save writes back in whatever format the file already
+is (`handleIsLegacyHtml`), so nothing changes format without being asked.
+
+**This is a permanent contract.** Every calendar saved before v1.1.0 is an `.html` sitting on
+someone's machine, and a file that stops opening is a production plan destroyed. See the
+*"⛔ Every saved calendar must keep opening, forever"* rule in `CLAUDE.md`, and §11 for the
+fixture that proves it.
+
+### The share format's details
+
+`buildSavedHtml()` serializes a **clone** of the document, so the live page is never mutated. The
+clone drops `#table-wrap`, `#print-root` and any body-level popover before serializing — all
+regenerated on load, and a stray popover would otherwise export as a panel hanging over the
+calendar pointing at nothing. `<` is escaped to `\u003c` in the state block so user text
+containing a closing script tag can't truncate the file.
 
 **`reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM
-property values** — form fields must have their values written back to attributes before
-snapshotting.
+property values** — form fields must have their values written back to attributes first. It is
+now only needed by this path.
+
+### Snapshot versioning
+
+`captureSnapshot()` (7562) stamps `version: SNAPSHOT_VERSION` (currently 1). Nothing branches on
+it yet; it exists so a future migration can ask which app wrote a file instead of sniffing for
+individual keys, which is what `migrateHolidayViewKeys()` and `normalizeRegionSelection()` have
+both had to do. **Snapshots with no `version` key must keep opening** — that is every file written
+before v1.1.0.
+
+### Files, autosave and the picker
 
 File handles are kept in **IndexedDB** (`spt-planning-cal` / `handles`) as a recents list, so a
-reopened saved file can write back in place after one permission click. `suppressDirty` gates
-dirty-tracking during load/restore; `markDirty()` schedules a localStorage backup and the
-10-minute autosave.
+reopened calendar can write back in place after one permission click. `suppressDirty` gates
+dirty-tracking during load/restore; `markDirty()` schedules an IndexedDB backup and the 10-minute
+autosave.
 
-**Consequence to remember:** a saved calendar carries the app code from whenever it was saved.
-Fixing a bug in `index.html` does **not** fix already-saved calendars. To repair one, patch the
-code inside that saved file (this has been done before — see §11).
+> ⚠️ **The first save always opens the save picker, and autosave can never reach that path.**
+> `showSaveFilePicker()` requires a user gesture — calling it from a timer throws — and writing a
+> calendar to a location the user never chose is exactly what the picker exists to prevent. When
+> autosave finds unsaved work with no linked file it sets `autosaveNeedsFile` and the status line
+> says *"Autosave needs a file — click Save"*. Work is not at risk meanwhile: `writeBackup()` has
+> been keeping a rolling IndexedDB copy since three seconds after the first edit. **Do not "fix"
+> this by having autosave pick a location.**
+
+`markClean()` runs as soon as the bytes are on disk, **before** the `recordRecent()` IndexedDB
+round-trip. Doing it after left the status line saying "unsaved" for as long as IDB took —
+measured at 1.2 s, long enough for an autosave tick to fire a second redundant write.
+
+**Consequence that still holds for the `.html` format:** a shareable copy carries the app code
+from whenever it was exported, so it keeps the bugs it was exported with. When someone reports
+something already fixed, ask which file they are in. `.sptcal` does not have this problem — it is
+always opened by current code, which is most of the point.
 
 ### Restoring: one path, three callers
 
-`applyStateSnapshot(snap)` (~6942) applies a snapshot to the live document;
-`restoreSavedState()` (~6911) is a thin wrapper that parses the embedded block and calls it.
-Afterwards, **`refreshAfterRestore()` (~6929) must run** — it re-reads the calendar into the UI
+`applyStateSnapshot(snap)` (~9967) applies a snapshot to the live document;
+`restoreSavedState()` (~9936) is a thin wrapper that parses the embedded block and calls it.
+Afterwards, **`refreshAfterRestore()` (~9954) must run** — it re-reads the calendar into the UI
 (`setSidebarTab`, `syncRegionTracking`, `refreshEpisodesUI`, `refreshSimPostUI`, `update`).
 
 > ⚠️ The three restore paths — initial page load, opening a file, recovering a backup — each used
@@ -472,10 +610,10 @@ in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pus
 
 ## 9. Exports
 
-### Excel (`exportExcel()`, ~3582)
+### Excel (`exportExcel()`, ~5798)
 
 Builds an ExcelJS workbook directly with explicit column widths, merges, and ARGB fills.
-`computeBlockLayout()` (~4048) / `computePhaseRowLayout()` (~4155) compute the column-slot
+`computeBlockLayout()` (~6289) / `computePhaseRowLayout()` (~6396) compute the column-slot
 assignment — **the same layout logic backs the on-screen waterfall**, so changes there affect
 both.
 
@@ -485,7 +623,7 @@ both.
 > much as we can?"* — which looks like corruption, not a too-long header.
 >
 > A real calendar hit this at exactly **256** characters. The export now enforces the limit
-> (`HF_MAX`, ~3708) by dropping trailing detail lines (right-hand stats before centre subtitles,
+> (`HF_MAX`, ~5885) by dropping trailing detail lines (right-hand stats before centre subtitles,
 > never a block's first line), with a backstop that shaves the longest remaining line inside its
 > own text so it can't cut through an `&` control code.
 >
@@ -494,17 +632,94 @@ both.
 
 ### PDF
 
-- **Month PDF** (`exportMonthPdf()`, ~5391) — renders every month into `#print-root`, adds
-  `body.printing-calendar`, calls `window.print()`.
-- **Waterfall PDF** (`exportWaterfallPdf()`, ~5603) — fits the ENTIRE grid onto ONE page and
-  picks the orientation that prints largest, mirroring Excel's "fit sheet on one page".
-  Orientation follows the grid's **width**; `MARGIN_MM = 5` (Excel's "Narrow"); the grid is
-  pinned to its measured width so the print can't reflow and spill a row; height gets a 4%
-  cushion for per-row sub-pixel rounding. Gridlines are fine **dotted** light grey (dashed
-  rendered as chunky marks once the fit-to-page zoom magnified them).
+- **Month PDF** (`exportMonthPdf()`, 8912) — still goes through the browser: renders every month
+  into `#print-root`, adds `body.printing-calendar` (a print stylesheet hides everything else),
+  calls `window.print()`.
+- **Waterfall PDF** (`buildWaterfallPdf()`, 9346 → `exportWaterfallPdfDirect()`, 9612) — **writes
+  the PDF bytes directly. No print dialog.** ~500 lines: TrueType subsetting from the embedded
+  Carlito (`ttfRead` 9140, `ttfGlyph`, `ttfAdvance`, `ttfTextWidth`), `/FontFile2` embedding,
+  WinAnsi encoding, xref table, Flate compression via `CompressionStream` (`pdfDeflate`), assembled
+  by `pdfSerialize` (9285). `WF_PDF_MODE = 'direct' | 'print'` selects it; the old print path is
+  kept as the fallback.
+
+  Orientation comes from `sheetPageOrientation()` (6624) — **the same rule the Excel export
+  uses**, so the workbook and the PDF turn the page the same way. That divergence was a real bug.
 
 > ### ⚠️ Always clear `body.printing-*` and `#print-root` before starting a print.
-> A stuck class hides the entire app and makes the next print silently do nothing.
+> A stuck class hides the entire app and makes the next print silently do nothing. Cleanup is
+> bound to `afterprint` with a 60 s safety net — a stubbed `window.print()` in a test must
+> `dispatchEvent(new Event('afterprint'))` or it looks stuck forever.
+
+---
+
+## 9a. The shared column model (the through-line of the 2026 work)
+
+The app once had **three independent column-width systems** — screen, Excel, PDF — that could
+never agree, and that, not the rendering, is why the PDF never looked like an Excel print.
+They are now one:
+
+```
+sheetColumnWidths()  → Excel char units, measured with a real canvas
+        ├─ screen    → <colgroup> + table-layout:fixed
+        ├─ Excel     → column widths directly
+        └─ PDF       → the same numbers read as points
+```
+
+**The constants, all frozen (§2a), at line 2309:**
+
+| | | |
+|---|---|---|
+| `EXCEL_MDW = 7` | **not 7.4336** | Excel floors max-digit-width. The true Carlito advance yields columns ~6% narrower than Excel's autofit. |
+| `SHEET_ZOOM = 0.75` | | The screen renders 11 px type where Excel uses 11 pt, so screen px and Excel points are numerically the same. `charsToScreenPx()` serves both the screen and the PDF. |
+| `EXCEL_CELL_PAD = 5` | | Total cell padding budget. **3.75 px at `SHEET_ZOOM`.** Any CSS rule spending more silently ellipsis-clips. |
+| `COL_PAD_CHARS = 1.15` | | Breathing room. Belongs *here*, where both outputs get it equally. |
+| `ROW_DEFAULT_PX = 20` | | Every row starts here. Text is fitted to the row, never the row grown to the text. |
+
+Every width goes through `px = trunc(chars × 7) + 5`.
+
+**Carlito is metric-compatible with Calibri** — verified, not assumed: both give `"0"` an advance
+of 1038/2048 em, and a 155 px string measures identically. That is what lets an embedded
+open-licence font stand in for Calibri without the model drifting, and why the font is inlined
+(§2) rather than fetched.
+
+**`computePhaseRowLayout()` (6396)** is the matching single source for *which phase occupies which
+column in a given week*. Four consumers call it — screen, PDF writer, `sheetColumnWidths()`, Excel
+export — so a layout change lands everywhere at once. Keep it that way.
+
+### Direct manipulation on the grid
+
+- **Drag columns and rows to resize** (`installGridResizers`, 2451). Row drags **snap** to the
+  default and to any height already set on another row (4 px); the handle turns green while it
+  holds. Double-click means "back to automatic".
+- **Cell spans** (`beginSpanDrag`, 2667; `applyCellSpanOverrides`, 6502) — drag a cell's edge
+  across the empty columns beside it; double-click to fill or un-fill.
+- **Text fitting** (`cellTextFit`, 2407) — **row height decides how many lines a note gets**, plus
+  a per-note font size. Shrink-to-fit for notes, phase labels and hiatus bands.
+- **Phases running at the same time divide the width evenly** — two take half each, three a third.
+  All phase columns within a year block share one width; columns differing by 15% make an even
+  split read as a mistake.
+- **The preview never jumps**, and it takes **two** mechanisms, not one:
+  1. `captureScroll()` (~4284) / `restoreScroll()` (~4300) wrap every render. Inner scroll
+     containers are remembered by element id; the **window** is anchored to *where the grid sits
+     on screen* — `getBoundingClientRect().top` of `#sheet-scroll-container`, falling back to
+     `#table-wrap` (the month view has no sheet scroller) — and put back as a **delta**, not an
+     absolute `scrollY`. Restoring the old `scrollY` faithfully is the jump, not
+     the cure: sidebar rows appear and disappear above the grid (a new hiatus row, the province
+     selector when the region becomes Canada), so the same scroll number puts the grid somewhere
+     else on screen. A delta also agrees with Chrome's own scroll anchoring instead of fighting it
+     — where anchoring already held the view still, `dy` is 0 and nothing happens.
+  2. A separate **capture-phase** `pointerdown`/`change`/`input` listener (~4331) scoped to
+     **`.form-panel`**. Sidebar handlers rebuild their rows *first* and call `update()` afterwards,
+     by which point the grid has already moved and the snapshot inside `update()` reads the moved
+     position as correct. Taking the anchor on the event itself, before any handler runs, is the
+     only way to catch those. ⚠️ It is scoped to the sidebar **deliberately** — events in the grid
+     must not be second-guessed, because scrolling a clicked cell into view is exactly what should
+     happen there.
+
+> ⚠️ `table-layout: fixed` **scales declared widths to the table's width**. Widening one column
+> without also updating the table's explicit width just steals room from every other column, and
+> the dragged one never reaches the size asked for. That was the entirety of "the dragging feels
+> weird."
 
 ---
 
@@ -616,6 +831,27 @@ node /tmp/testsrv.js & sleep 2
   ('deflate-raw')` will inflate the .xlsx entries in the browser, and `DOMParser` will tell you
   whether each part is well-formed.
 
+### Saved fixtures (`tests/fixtures/`)
+
+There is still no runner, but there are now **real files to test the restore path against**, which
+matters because synthesised ones only reproduce your own assumptions.
+
+- **`tests/fixtures/v1.0.0-saved.html`** — a genuine pre-`.sptcal` calendar, produced by serving
+  the **v1.0.0 build itself**, typing a calendar into it, and clicking Save. 760,003 bytes, 27
+  snapshot keys, **no `version` field**, grid baked in. Opened in current code it restores every
+  field and a 154-cell grid identical to the one it was saved from.
+- **Cut a new fixture every time a version is cut**, alongside the tag and the `releases/` copy.
+  Fixtures are only worth having if they keep pace with the formats in the wild.
+
+> ⚠️ **A round-trip test that reads its own output proves almost nothing.** The first `.html`
+> compatibility test used an `.html` generated by *current* code — which already had the `version`
+> field, was already built from a clone, and already had no baked grid. It showed the new code
+> could read itself, not that it could read what is out in the world.
+
+Edge cases worth keeping in any restore test: `releases/v1.0.0.html` itself (the app, whose state
+block is the literal `null`) must be **rejected**, not opened as an empty calendar; and garbage,
+empty text, malformed JSON and HTML with no state block must all be rejected without throwing.
+
 ### ⚠️ Every test must build its own fixture
 
 The single most expensive mistake made in this project's testing. Reusing state between cases
@@ -684,6 +920,48 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
   because saved calendars embed the app. This was done for a user's file by string-replacing the
   affected function and writing a `(Excel fix)` copy — the original was left untouched.
 
+### Traps from the column-model and save-format work (2026)
+
+- ### ⚠️ THE WIDTH-UNIT TRAP — `EXCEL_MDW` IS 7, NOT 7.4336
+  Carlito/Calibri's `"0"` genuinely advances **7.4336 px** at 11 pt, and Excel **floors** max
+  digit width to **7**. Dividing measured text by the *true* advance gives columns ~6% narrower
+  than Excel's autofit, and because every width in the app flows through
+  `px = trunc(chars × 7) + 5`, that 6% lands in the screen grid, the workbook **and** the PDF at
+  once. The measured-looking number is the wrong one. See §9a.
+- **A 53-Monday year leaves a trailing blank strip.** A table row is one row of *every* year block
+  at once, so the grid is as tall as the longest block — and years differ: 2029 has 53 Mondays
+  (both 1 Jan and 31 Dec fall on one) where 2026–2028 have 52. The 53rd row is blank in every
+  other block, and if nothing is scheduled that week it is blank everywhere. `sheetRowCount()`
+  (~6581) drops trailing rows that are content-free in **every** block. ⚠️ It deliberately does
+  **not** touch full-year padding: a year whose work ends in September still shows its remaining
+  weeks, because those rows carry content in some *other* block. Only a row empty everywhere goes.
+- **64 of 255 filled cells were silently ellipsis-clipped**, then later 9 of 52 date cells — both
+  times because a CSS rule spent more padding than the width model budgets (§9a). Invisible
+  without counting. **Any change near cell CSS needs a clipped-cell count as its gate.**
+- **ExcelJS omits `<col>` when `width === 9`**, so the Date column's width never took effect.
+- **The workbook and the PDF disagreed about page orientation** on a 3-block calendar, until both
+  were made to call `sheetPageOrientation()`.
+- **Excel dropped hard line breaks in notes** — `wrapText` was only set at the shrink floor.
+- **Excel writes alignment into `styles.xml`, not `sheet1.xml`.** Reading `wrapText` from the
+  wrong part produced a confidently wrong test result.
+- **`sips` renders a PDF's CropBox; the Read tool renders its MediaBox.** Comparing an app PDF to
+  a reference with a CropBox needs a **byte-length-preserving** rewrite, or every xref offset
+  breaks.
+- **Compositing a transparent PDF page onto black** instead of white produced an "all black page"
+  that was the measurement, not the PDF.
+- **`requestAnimationFrame` does not fire while the browser pane is hidden.** Front the pane before
+  measuring anything that depends on it, or the whole run is meaningless.
+- **Three "scroll jump" failures were Chrome's scroll anchoring working correctly** — `scrollY`
+  changed while the view held still. Comparing scroll numbers lied; comparing where a given week's
+  row sat on screen told the truth. Measure what the user perceives.
+- **The save status lagged the save** by the duration of an unrelated IndexedDB round-trip,
+  because `markClean()` ran after `recordRecent()`. Long enough for autosave to fire a second
+  redundant write. See §8.
+- **A round-trip test that only reads its own output proves nothing about old files.** The first
+  `.html` compatibility test used an `.html` generated by *current* code — already versioned,
+  already clone-built, already grid-free. The real fixture had to be generated by running the
+  **v1.0.0 build itself**. See §11.
+
 ### Traps added while building the adjustment tools
 
 - ### ⚠️ `SIM_KEY` IS DELIBERATELY NUL-PREFIXED — never run a blanket control-character sweep
@@ -730,8 +1008,8 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
 - **No anchor date**, no phase dates (those need the live waterfall), no holiday customization.
 - Must be **skippable** and never blocking; add a quiet empty-state hint for anyone who skips.
 - ⚠️ **Must never appear when opening a saved calendar** — trigger off "no saved state AND no
-  fields filled", not merely "page loaded". Saved calendars are copies of the app, so getting
-  this wrong greets every saved calendar with a setup form.
+  fields filled", not merely "page loaded". A *shareable copy* is a copy of the app, so getting
+  this wrong greets every one of them with a setup form.
 - Also triggered by the existing **New** button.
 
 **Explicitly deferred:** an imported "holiday pack" format and a server-side/admin authoring UI.
@@ -742,6 +1020,12 @@ saved calendars. Holiday data must never auto-update into an existing calendar.
 
 **Not yet done:** non-holiday settings (export options, defaults) in the Settings tab — the owner
 asked to hold off on those.
+
+> **This section is no longer the live list.** [`HANDOFF.md`](HANDOFF.md) §2 is what has been asked
+> for and not yet delivered, and **§8 is the sequenced build order** across all of it — the docs
+> refresh, PWA update delivery, `.sptcal` encryption, the Settings menu, the Mantine stages, the
+> notes columns and the PDF calibration, with the owner decisions each is gated on. Read that
+> before planning work; this section is kept for the design detail it records.
 
 ### Decisions taken and deliberately not revisited
 
@@ -761,57 +1045,83 @@ asked to hold off on those.
 
 ---
 
-## 14. Quick line-number map (as of `218558b`)
+## 14. Quick line-number map (as of `b603fd7`)
 
-Approximate; the file shifts as it's edited. Regenerate with:
-`grep -n "^\s*\(async \)\?function [a-zA-Z]" index.html`
+Approximate; the file shifts as it's edited. **Search for the symbol, don't jump to the line.**
+Regenerate with: `grep -n "^\s*\(async \)\?function [a-zA-Z]" index.html`
 
 | Area | Line |
 |---|---|
-| `<style>` block | 21–841 |
-| `<script id="saved-state">` | 845 |
-| Main `<script>` | 1197–7170 |
-| `PHASES` | 1201 |
-| `HOLIDAYS` | 1245 |
-| `readState` | 1784 |
-| `computeSchedule` | 1843 |
-| `extendEndForHiatus` | 1870 |
-| `simulateProductionSchedule` | 1894 |
-| `buildPhaseRows` | 2191 |
-| `addHiatusRow` (incl. the Lock-in-place pin) | 2432 |
-| `render` | 2558 |
-| `renderMonthView` | 2837 |
-| `renderSpreadsheetView` | 3364 |
-| `exportExcel` | 3783 |
-| `setSidebarTab` | 4145 |
-| `update` | 4516 |
-| `autostartPhase` | 4640 |
-| `collectFieldValues` | 4974 |
-| `buildSavedHtml` | 5006 |
-| `saveToFile` | 5122 |
-| **`captureSnapshot`** (the one state definition) | 5176 |
-| `pushUndoSnapshot` / undo-redo block | 5243 |
-| **`shiftCalendar`** | 5369 |
-| `phaseSequence` | 5475 |
-| `productionEndFor` / `productionStartEndingBy` | 5504 / 5525 |
-| `startForWeeksEndingAt` | 5570 |
-| `workBackwardsFrom` / `workForwardsFrom` | 5584 / 5632 |
-| `closeAllGaps` | 5682 |
-| `exportMonthPdf` | 6397 |
-| `exportWaterfallPdf` | 6609 |
-| `restoreSavedState` | 6911 |
-| **`refreshAfterRestore`** | 6929 |
-| **`applyStateSnapshot`** | 6942 |
+| `<style>` block | 21 |
+| `<script id="saved-state">` (ships as `null`) | 981 |
+| Embedded Carlito (2 weights, base64) | 1461 |
+| ExcelJS CDN tag | 2240 |
+| Main `<script>` (one IIFE) | 2241 |
+| **Width model constants** (`EXCEL_MDW` …) | 2309 |
+| `cellTextFit` | 2407 |
+| `installGridResizers` | 2451 |
+| `beginSpanDrag` | 2667 |
+| `measureTextPx` | 2862 |
+| `charsToScreenPx` | 2877 |
+| `PHASES` | 2889 |
+| `SHEET_GRIDLINES` / `WF_PDF_MODE` / `GRID_TEXT_COLOR` | 2905 |
+| `HOLIDAYS` | 2953 |
+| `readState` | 3500 |
+| `computeSchedule` | 3559 |
+| `captureScroll` / `restoreScroll` | 4284 / 4300 |
+| `.form-panel` capture-phase scroll anchor | 4331 |
+| `render` | 4351 |
+| `renderMonthView` | 4651 |
+| `renderSpreadsheetView` | 5188 |
+| `openNoteEditor` | 5513 |
+| `exportExcel` | 5798 |
+| `setSidebarTab` | 6176 |
+| `computeBlockLayout` | 6289 |
+| **`computePhaseRowLayout`** (the one layout source) | 6396 |
+| `applyCellSpanOverrides` | 6502 |
+| `sheetRowCount` (drops the 53-Monday blank strip) | 6581 |
+| `sheetPageOrientation` | 6624 |
+| **`sheetColumnWidths`** (the one width source) | 6637 |
+| `update` | 6799 |
+| `shiftCalendar` | 7776 |
+| `workBackwardsFrom` / `closeAllGaps` | 8020 / 8118 |
+| **Save-format constants** (`SAVE_EXT`, `SNAPSHOT_VERSION`) | 7389 |
+| `buildSavedData` (the `.sptcal` writer) | 7300 |
+| `buildSavedHtml` (the share writer) | 7311 |
+| **`parseCalendarText`** (the one reader) | 7352 |
+| `handleIsLegacyHtml` | 7406 |
+| `collectFieldValues` / `reflectFieldsToAttributes` | 7267 / 7240 |
+| **`captureSnapshot`** (the one state definition) | 7562 |
+| `showLegacyNotice` (the upgrade strip) | 8226 |
+| `openRecentFile` / `openFileViaPicker` | 8286 / 8333 |
+| `exportMonthPdf` (browser print) | 8912 |
+| `buildWaterfallPdf` / `exportWaterfallPdfDirect` | 9346 / 9612 |
+| `restoreSavedState` / `refreshAfterRestore` | 9936 / 9954 |
+| **`applyStateSnapshot`** (the one restore path) | 9967 |
+| `saveToFile` | 7491 |
+| **`captureSnapshot`** (the one state definition) | 7562 |
+| `startAutosave` | 8132 |
+| `showLegacyNotice` | 8226 |
+| `openRecentFile` | 8286 |
+| `exportMonthPdf` | 8912 |
+| `ttfRead` (TrueType subsetting) | 9140 |
+| `pdfSerialize` | 9285 |
+| `buildWaterfallPdf` | 9346 |
+| `exportWaterfallPdfDirect` | 9612 |
+| `restoreSavedState` | 9936 |
+| **`refreshAfterRestore`** | 9954 |
+| **`applyStateSnapshot`** | 9967 |
 
 ---
 
 ## 15. Starting a fresh session — suggested first message
 
 > This is the SPT Planning Calendar Builder, a single-file HTML TV production scheduling tool.
-> I'm attaching `PROJECT-CONTEXT.md` (full context) and `index.html` (the app). Please read the
-> context doc first. Key things: it must stay a single self-contained file, saved calendars are
-> copies of the app itself, verify changes in a real browser before telling me they work, and
-> don't push to `main` until I say "commit and push" — it auto-deploys to a public site.
+> Read `HANDOFF.md` first, then `CLAUDE.md`, then `PROJECT-CONTEXT.md` — in that order. The short
+> version: the grid and the exports are permanently frozen and must not be touched; every calendar
+> ever saved must keep opening; changelog substantial changes in `README.md`; verify in a real
+> browser before telling me anything works; and never push to `main` without being asked for that
+> specific push — it auto-deploys to a live public site.
 
-Also worth re-creating a `CLAUDE.md` in the repo (one already exists and should be kept current)
-so the guidance loads automatically in Claude Code.
+In Claude Code all three files load automatically via `CLAUDE.md`, which points at the other two
+in reading order. Keep them current — `HANDOFF.md` especially, in the same breath as the code.

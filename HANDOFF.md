@@ -1,6 +1,7 @@
 # HANDOFF.md
 
 Written at the end of the session that ended at commit `cf51a29` (28 Aug 2026).
+**Updated 28 Aug 2026** after Stage 0 (the docs refresh) was completed — see §2a and §8.
 
 **Read this first — before [`CLAUDE.md`](CLAUDE.md), before
 [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md), before touching `index.html`.** Those two describe the
@@ -37,8 +38,56 @@ change — see §5d.
 
 ## 1. Where the app stands
 
-`index.html` is ~10,000 lines / 662 KB, one file, no build step. Live at
+`index.html` is 10,210 lines / 660 KB, one file, no build step. Deployed at
 <https://greicher1.github.io/planning-cal-builder/>.
+
+### ⚠️ v1.1.0 is BUILT BUT NOT DEPLOYED — the live site is still v1.0.0
+
+Verified 28 Aug 2026 by fetching the live URL: it is **byte-identical to `releases/v1.0.0.html`**
+(SHA-256 `0150be15…`) and contains no `SAVE_EXT`, no `sptcal`, no `SNAPSHOT_VERSION`.
+
+`main` is **5 commits ahead of `origin/main`** — v1.1.0 plus the Stage 0 docs refresh:
+
+```
+  (HEAD)  Bring the docs back to the code, and fix the line numbers that lied
+b603fd7  Prove old .html calendars still open, and offer to upgrade them
+eae849e  Save the calendar, not a copy of the app: the .sptcal data format
+e1ea019  Cut v1.0.0, and add the changelog and saved-file compatibility rules
+489f9ee  Freeze the grid and the exports, and plan the Mantine redesign around them
+```
+
+The **`v1.0.0` tag is unpushed too** — that is what makes the `releases/v1.0.0.html` URL in
+`README.md` 404. It needs its own `git push --tags`; pushing `main` does not carry it.
+
+### ⚠️ The push must happen from the machine that owns the repo
+
+Attempted 28 Aug 2026 and **rejected**:
+
+```
+remote: Permission to greicher1/planning-cal-builder.git denied to antowhsu.
+```
+
+`gh api repos/greicher1/planning-cal-builder` reports `pull: true, push: false` for that account —
+the token is fine (it carries `repo` scope), the *account* simply is not a collaborator. So:
+
+- **This working copy is a temporary second machine.** The long-running one is the repo at
+  `~/Downloads/Calendar Builder` under user `apple` — the stale `.claude/launch.json` path
+  (`/private/tmp/claude-510/-Users-apple-Downloads-Calendar-Builder/…`) is the fingerprint of it.
+  That machine is authenticated as the repo owner; **push from there.**
+- The repo travels back by **AirDrop of the whole folder**, not by pushing. Everything needed is
+  committed — working tree clean, no submodules, ~15 MB including `.git`.
+- ⚠️ **AirDrop the folder, not just `index.html`.** The 5 commits, the `v1.0.0` tag and the reflog
+  live in `.git`; copying the working files alone silently discards all of it.
+- If this recurs, the permanent fix is to add `antowhsu` as a collaborator on
+  `greicher1/planning-cal-builder`. Until then, expect every push from here to 403.
+
+**What that means concretely.** Everyone using the tool right now is still saving ~700 KB `.html`
+files. The 155× smaller `.sptcal` format, the legacy-upgrade strip and the autosave-status fix
+have reached nobody.
+
+Nothing here is lost or at risk — it is all committed locally. But **do not read the changelog as
+a description of what users have.** Ask before pushing (§5a); this is exactly the release that
+rule exists to govern.
 
 The through-line of the last stretch of work: the app had **three independent column-width
 systems** (screen, Excel, PDF) that could never agree, and that — not the rendering — was why the
@@ -89,22 +138,37 @@ was invisible until measured:
 
 ## 2. Requested but not yet done
 
-### 2a. Documentation is stale — **do this first**
+### 2a. Documentation refresh — ✅ **DONE** (Stage 0)
 
-`CLAUDE.md` and `PROJECT-CONTEXT.md` were last touched at `8a0c4f3`, **21 commits ago**. They still
-describe the old three-way width situation and a character-weight table that no longer exists.
-Nothing below is documented in them:
+`CLAUDE.md` and `PROJECT-CONTEXT.md` had gone **24 commits** stale and still described the
+pre-`.sptcal` save path and a three-way width situation that no longer exists. Every item on the
+original checklist is now written up:
 
-- the shared column model and `charsToScreenPx()`
-- the embedded font and why measurement can no longer drift
-- the resize system (`installGridResizers`, `colWidths`, `rowHeights`, snapping)
-- the line-budget model (`cellTextFit`) and per-cell font sizes
-- the direct PDF writer and the shared orientation rule
-- `cellSpans` and the even-share rule
-- scroll preservation (`captureScroll` / `restoreScroll` and the `.form-panel` anchor)
-- the note editor being a popover
+| Was missing | Now in |
+|---|---|
+| the shared column model and `charsToScreenPx()` | PROJECT-CONTEXT §9a |
+| the embedded font and why measurement can no longer drift | §2, §9a |
+| the resize system (`installGridResizers`, `colWidths`, `rowHeights`, snapping) | §9a, §7 table |
+| the line-budget model (`cellTextFit`) and per-cell font sizes | §9a, §7 table |
+| the direct PDF writer and the shared orientation rule | §9 |
+| `cellSpans` and the even-share rule | §9a, §7 table |
+| scroll preservation (`captureScroll` / `restoreScroll` + the `.form-panel` anchor) | §9a |
+| the note editor being a popover | §6 |
+| the width-unit trap and the 53-Monday asymmetry | §12 |
 
-The width-unit trap and the 53-Monday asymmetry (§4) belong in PROJECT-CONTEXT §12.
+Two things found while doing it, both fixed:
+
+- **Every inline line-number reference in `PROJECT-CONTEXT.md` was stale — 35 of 37.** The §14 map
+  at the bottom had been regenerated, but the numbers quoted throughout the prose had not, and
+  they were off by 2,000–3,000 lines (`applyStateSnapshot` said ~6942; it is at 9967). All 37 are
+  now correct, plus 2 in `CLAUDE.md`, and §14 has grown to **55 verified rows**.
+- **The §7 state table was missing five stores `captureSnapshot()` actually persists** —
+  `noteFontSize`, `hiatusFontSize`, `colWidths`, `rowHeights`, `cellSpans`. The code was right;
+  only the doc was wrong. It now also records `version` / `fields` and the deliberately-not-state
+  list.
+
+⚠️ **These numbers rot on every commit that changes `index.html`.** Re-verify them whenever the
+script moves — `grep -n` for the symbol; §14 carries the regeneration command.
 
 ### 2b. Settings menu + per-user persistence
 
@@ -760,13 +824,13 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 | D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
 | D2 | **Is losing "a saved calendar is readable" acceptable?** Largely answered by `.sptcal` shipping — the thing you inspect is now 4.5 KB of JSON. Worth confirming. | Mantine Stage 4 | `MANTINE-MIGRATION.md` §7 Q1 |
 | D3 | **Committed `dist/` or a GitHub Action?** | Mantine Stage 1 | `MANTINE-MIGRATION.md` §7 Q3 |
-| D4 | **Repo visibility / hosting plan.** Not yet checked; D1 and §2f both depend on it. | §2f, §2g | §2f |
+| D4 | ~~**Repo visibility.**~~ ✅ **ANSWERED 28 Aug 2026: the repo is PUBLIC** (`gh repo view` → `isPrivate:false`, `visibility:PUBLIC`). So an app key baked into `index.html` is *published*, and D1 must be decided knowing that. What remains open is only the **hosting plan** — whether it ever moves behind GHEC private Pages. | §2f, §2g | §2f |
 
 ### The order
 
 | Stage | What | Depends on | Est. |
 |---|---|---|---|
-| **0** | **Docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` to current — now 24 commits stale, and they still describe the pre-`.sptcal` save path. | — | 1 |
+| ~~**0**~~ | ✅ **DONE — docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` are current as of `b603fd7`; all 37 line refs verified, §14 map at 55 verified rows. See §2a. | — | — |
 | **1** | **PWA update delivery** (§2f): public version marker, version constant, "Update available" banner, navigation not `fetch()`. | D4 | 1–2 |
 | **2** | **Encryption** (§2g): container, keyring, passphrase mode, four distinct failure messages. | **D1** | 2–3 |
 | **3** | **Settings menu + per-user persistence** (§2b). `localStorage`, never `captureSnapshot()`. | — | 1–2 |
