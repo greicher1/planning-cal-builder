@@ -25,7 +25,7 @@ export function Header() {
   // decisions -- readState/computeSchedule/render still decide what the chrome should say -- it
   // owns only how that decision is drawn.
   const [save, setSave] = useState({ label: 'Save', busy: false, disabled: false })
-  const [saveAs, setSaveAs] = useState({ visible: false, busy: false })
+  const [saveAs, setSaveAs] = useState({ visible: false, busy: false, label: 'Save As…', disabled: false })
   const [status, setStatus] = useState({ text: '', tone: 'idle', title: '' })
   const [exp, setExp] = useState({ label: 'Export to Excel', primary: false, disabled: true, busy: false })
   const [expWf, setExpWf] = useState({ visible: true, disabled: true })
@@ -160,11 +160,21 @@ export function Header() {
         {save.label}
       </Button>
 
-      {saveAs.visible && (
-        <Button {...BTN} id="save-as-btn"  variant="default" loading={saveAs.busy}>
-          Save As…
-        </Button>
-      )}
+      {/* ⚠️ ALWAYS RENDERED, visibility carried by display — same rule as #file-menu-wrap above.
+          The engine captures `const saveAsBtn = getElementById('save-as-btn')` at evaluation time
+          and binds its click listener through that const. Rendered conditionally, the capture was
+          null, the listener never bound, and the button appeared later (visible:true push) fully
+          dead. Found 29 Aug 2026 while investigating the sidebar-rows stage. */}
+      <Button
+        {...BTN}
+        id="save-as-btn"
+        variant="default"
+        loading={saveAs.busy}
+        disabled={saveAs.disabled}
+        style={{ display: saveAs.visible ? undefined : 'none' }}
+      >
+        {saveAs.label}
+      </Button>
 
       {/* ONE button, with the viewMode dispatch inside the engine's handler. It is the SOLE entry
           point to exportMonthPdf(); splitting it into two semantic buttons would decouple the month
@@ -180,11 +190,20 @@ export function Header() {
         {exp.label}
       </Button>
 
-      {expWf.visible && (
-        <Button {...BTN} id="export-wf-pdf-btn"  variant="filled" disabled={expWf.disabled}>
-          Export Waterfall to PDF
-        </Button>
-      )}
+      {/* ⚠️ ALWAYS RENDERED, visibility carried by display — the engine binds this button's click
+          directly by id at evaluation time. It starts visible, so the listener DID bind — but a
+          conditional render meant one Month↔Waterfall round-trip unmounted the node and remounted
+          a NEW one, silently orphaning the listener: the export button came back looking fine and
+          doing nothing. Same fix as #save-as-btn above. */}
+      <Button
+        {...BTN}
+        id="export-wf-pdf-btn"
+        variant="filled"
+        disabled={expWf.disabled}
+        style={{ display: expWf.visible ? undefined : 'none' }}
+      >
+        Export Waterfall to PDF
+      </Button>
 
       {/* The status readout. "Autosave failed" LEAVES the status slot and becomes a Badge: the one
           state that means something is wrong should be the one state with a shape. Everything else

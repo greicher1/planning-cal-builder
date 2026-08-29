@@ -12,7 +12,18 @@
 #   3. the Excel opens without a corrupt alert  (check-xlsx.sh) AND its parts are unchanged
 #   4. a real v1.0.0 saved calendar restores identically
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
-#   7. computed styles inside #table-wrap are unchanged  (fence.js -- gate 7)
+#
+# ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
+# earlier revision of this comment listed it, which read as coverage that did not exist. There is
+# no committed fence baseline. Run it by hand around any CSS-touching change:
+#   ./run.sh fence 40                                      (against /index.html)
+#   HARNESS_PAGE=/dist/index.html ./run.sh fence 40        (against the build)
+# and diff the two fence.json's yourself -- the frozen /waterfall/* entries must be identical.
+#
+# ⚠️ The baseline embeds the date it was cut (2026-08-29): the Excel header's left line and the
+# waterfall PDF's header both carry todayStr, so gates 2 and 3 report FALSE failures on any later
+# date against untouched code. Re-cut the baseline on a known-good build before trusting a FAIL
+# there on a later day.
 #
 # ⚠️ On (3): comparing the .xlsx BYTES is wrong and will report a false failure. ExcelJS stamps
 # dcterms:created / dcterms:modified into docProps/core.xml, so two exports of an identical
@@ -90,9 +101,13 @@ chk(a.get('sig')==b.get('sig'), "restored grid signature identical")
 # thing that must not move -- not merely that the values resolve. formSignature() reports it.
 fa, fb = a.get('form'), b.get('form')
 chk(fa==fb, f"fields.byId key set identical ({len(fa or [])} ids)")
-if fa!=fb and isinstance(fa,list) and isinstance(fb,list):
-    print('        lost:  ', sorted(set(map(str,fb))-set(map(str,fa)))[:12])
-    print('        gained:', sorted(set(map(str,fa))-set(map(str,fb)))[:12])
+# form is a DICT ({id: value}), so equality above is keys AND values. The detail print below used
+# to be guarded by isinstance(..., list) and therefore never fired -- a failure printed no ids at
+# all, which under pressure invites misattributing which ids moved.
+if fa!=fb and isinstance(fa,dict) and isinstance(fb,dict):
+    print('        lost:   ', sorted(set(fb)-set(fa))[:12])
+    print('        gained: ', sorted(set(fa)-set(fb))[:12])
+    print('        changed:', sorted(k for k in set(fa)&set(fb) if fa[k]!=fb[k])[:12])
 sys.exit(bad)
 PY
 

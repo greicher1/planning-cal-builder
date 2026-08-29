@@ -2033,25 +2033,29 @@ export function initLegacyApp() {
       const dow = h.date.getUTCDay();
       const weekend = (dow === 0 || dow === 6);
       const label = escHtml(h.name) + ' · ' + fmtShort(h.date);
-      const dim = on ? '' : ' opacity:.45;';
+      // Presentation lives in .hv-* classes (legacy.css) rather than inline style= attributes --
+      // these rows used to carry ~7 inline declarations each, which no stylesheet pass could touch.
+      // The .hv-en/.hv-cb/.hv-del classes and data-hid/data-view attributes are the delegated
+      // handlers' matching contract; the class swap must never touch those.
+      const dim = on ? '' : ' hv-dim';
       const noteAttrs = on ? '' : ' disabled';   // notes are meaningless with the holiday off
       const s = holidayVisibleIn(h.hid, 'sheet') ? ' checked' : '';
       const m = holidayVisibleIn(h.hid, 'month') ? ' checked' : '';
       const tag = h.custom
-        ? ' <span style="font-size:9px; border:1px solid var(--border-strong); border-radius:3px; padding:0 3px; color:var(--text-muted);">custom</span>'
+        ? ' <span class="hv-tag">custom</span>'
         : '';
       const oor = h.outOfRange
-        ? ' <span style="font-size:9px; color:var(--text-faint);">(outside schedule)</span>'
+        ? ' <span class="hv-oor">(outside schedule)</span>'
         : '';
       const wk = weekend ? ' title="Falls on a weekend — no shoot day to skip. Its (Observed) entry is the one that counts."' : '';
       const del = h.custom
-        ? '<button type="button" class="icon-btn hv-del" data-hid="'+h.hid+'" title="Remove this custom holiday" style="width:18px; height:18px; font-size:13px; line-height:1; padding:0; margin-left:4px; flex:none;">&times;</button>'
+        ? '<button type="button" class="icon-btn hv-del" data-hid="'+h.hid+'" title="Remove this custom holiday">&times;</button>'
         : '';
-      return '<div class="hv-row" style="display:flex; align-items:center; font-size:12px; padding:4px 2px; border-bottom:1px solid var(--border);">'
-        + '<span style="flex:1; min-width:0; padding-right:6px; line-height:1.3;'+dim+'" title="'+label+'">'+label+tag+oor+'</span>'
-        + '<span style="width:40px; text-align:center; flex:none;"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+h.hid+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
-        + '<span style="width:40px; text-align:center; flex:none;'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+noteAttrs+'></span>'
-        + '<span style="width:38px; text-align:center; flex:none;'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+noteAttrs+'></span>'
+      return '<div class="hv-row">'
+        + '<span class="hv-label'+dim+'" title="'+label+'">'+label+tag+oor+'</span>'
+        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+h.hid+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+noteAttrs+'></span>'
+        + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
     }).join('');

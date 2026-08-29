@@ -59,24 +59,12 @@
      exactly how `.file-menu{display:none}` kept the ported dropdown invisible while React was
      correctly reporting it open. */
 
-  /* ⏳ .tb-btn SURVIVES, and only because the PREVIEW toolbar is not ported yet. `Shift From`,
-     `Anchor To` and `Rebuild From` still carry this class, and deleting it left them as unstyled
-     UA buttons -- a regression introduced and caught in the same session. It goes when
-     src/chrome/PreviewToolbar.jsx lands; nothing in the header carries the class any more, so this
-     block and the Mantine header cannot fight each other in the meantime. */
-  .tb-btn{
-    font-family:inherit; font-size:12px; font-weight:500; padding:7px 12px;
-    border:1px solid var(--border-strong); background:#fff; color:var(--text);
-    border-radius:8px; cursor:pointer; white-space:nowrap;
-    /* line-height is pinned for the same reason as the three in-grid buttons: Mantine's baseline
-       carries `input,button,textarea,select{font:inherit}`, a SHORTHAND, which would replace the
-       UA's `normal` with the inherited 1.5 and grow every one of these by 3px. */
-    line-height:normal;
-  }
-  .tb-btn:hover:not(:disabled){ background:var(--bg); border-color:var(--text-faint); }
-  .tb-btn:disabled{ opacity:.45; cursor:not-allowed; }
-  .tb-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
-  .tb-btn.primary:hover:not(:disabled){ background:var(--accent-hover); border-color:var(--accent-hover); }
+  /* Retired 29 Aug 2026, with the ported preview toolbar: .tb-btn. PreviewToolbar.jsx landed and
+     nothing in the build emits the class any more (verified: zero matches in src/index.html,
+     src/chrome/ and src/legacy/app.js; the in-grid buttons the frozen renderers emit carry
+     .mv-arrow / is-manual, never .tb-btn). The button rules below still say :not(.tb-btn) on
+     purpose -- the selector text keeps its specificity story identical whether or not the class
+     exists, and the root index.html (the deployed app) still uses it. */
 
   /* The active FILE in the dropdown. Mantine's Menu.Item has no "current" state of its own, and
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
@@ -84,8 +72,8 @@
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
 
   /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
-  .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; border-radius:4px; }
-  .hv-bulk:hover{ background:var(--bg); text-decoration:underline; }
+  .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-primary-color-filled); cursor:pointer; border-radius:var(--mantine-radius-xs); }
+  .hv-bulk:hover{ background:var(--mantine-color-gray-0); text-decoration:underline; }
   .hv-bulk:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
 
   /* Legacy-format notice. Amber, not red: the file opened correctly and nothing failed -- this
@@ -240,8 +228,8 @@
   .phase-name{font-weight:500; font-size:13.5px;}
   /* Floating picker of the standard phase colors, opened by clicking a phase's color square. */
   .phase-color-pop{
-    position:absolute; z-index:200; background:#fff; border:1px solid var(--border-strong);
-    border-radius:9px; padding:7px; box-shadow:0 8px 26px rgba(0,0,0,.18);
+    position:absolute; z-index:200; background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); padding:var(--mantine-spacing-md); box-shadow:var(--mantine-shadow-md);
     display:grid; grid-template-columns:repeat(3, 26px); gap:5px;
   }
   .phase-color-pop .pc-sw{ width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
@@ -250,12 +238,12 @@
   /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
      Holiday hiatus, but scoped to the single phase it sits under. */
   .phase-hiatus{ grid-column:2; margin-top:7px; }
-  .phase-hiatus-toggle{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:var(--text-muted); cursor:pointer; }
+  .phase-hiatus-toggle{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9); cursor:pointer; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
   /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
-  .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; text-align:left; }
+  .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled); cursor:pointer; text-align:left; }
   .autostart-btn:hover:not(:disabled){ text-decoration:underline; }
   .autostart-btn:disabled{ color:var(--text-faint); cursor:default; }
   .autostart-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
@@ -263,12 +251,12 @@
   /* Let the date/number inputs shrink with their column instead of enforcing a ~136px intrinsic
      minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
-  .phase-meta{grid-column:2; font-size:11.5px; color:var(--text-faint); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
+  .phase-meta{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--text-faint); margin-top:4px; font-family:var(--mantine-font-family-monospace);}
   .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
-  .phase-name-input{font-weight:500; font-size:13.5px; font-family:inherit; border:1px solid transparent; border-radius:5px; padding:3px 5px; flex:1; background:transparent; color:var(--text); min-width:0;}
+  .phase-name-input{font-weight:500; font-size:var(--mantine-font-size-md); font-family:inherit; border:1px solid transparent; border-radius:var(--mantine-radius-sm); padding:3px 5px; flex:1; background:transparent; color:var(--mantine-color-black); min-width:0;}
   .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
-  .phase-name-input:hover{border-color:var(--border);}
-  .phase-name-input:focus{border-color:var(--border-strong); background:#fff; outline:none;}
+  .phase-name-input:hover{border-color:var(--mantine-color-gray-3);}
+  .phase-name-input:focus{border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none;}
   .custom-phase-header .icon-btn{width:24px; height:24px; font-size:14px; flex:none;}
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
@@ -309,9 +297,45 @@
      counts vertically aligned down a column of rows. Kept, but on the system stack -- the app was
      loading IBM Plex Mono at two weights for eight sites, every one of which renders at 400. */
   input[type=number]{font-family:var(--mantine-font-family-monospace);}
-  /* Mantine's Checkbox is a styled SVG the engine cannot generate. This is the closest a native
-     box gets: its own primary accent, and the same 16px box Mantine's xs size uses. */
+  /* Fallback for any checkbox outside the sidebar: at least the right accent. */
   input[type=checkbox]{accent-color:var(--mantine-primary-color-filled); width:16px; height:16px; cursor:pointer;}
+  /* Sidebar checkboxes drawn as Mantine's Checkbox: appearance:none turns the native box into a
+     paintable element, and the check is Mantine's own icon path as an inline SVG mask. Scoped to
+     .form-panel deliberately -- the frozen renderers emit no checkboxes, but scoping means that can
+     never become a question. The engine's generated markup (phiatus-en, hv-en/hv-cb, simpost,
+     hiatus-lock) picks this up with no template change. */
+  .form-panel input[type=checkbox]{
+    -webkit-appearance:none; appearance:none;
+    border:1px solid var(--mantine-color-gray-4); border-radius:4px;
+    background:var(--mantine-color-white);
+    display:inline-block; vertical-align:middle; margin:0; padding:0; flex:none;
+    transition:background-color 100ms ease, border-color 100ms ease;
+  }
+  .form-panel input[type=checkbox]:hover:not(:disabled){ border-color:var(--mantine-color-gray-5); }
+  .form-panel input[type=checkbox]:checked{
+    background-color:var(--mantine-primary-color-filled);
+    border-color:var(--mantine-primary-color-filled);
+    /* Mantine's CheckIcon path, white, drawn as a background -- no SVG child, so the engine's
+       innerHTML rebuilds cannot lose it. */
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 10 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M4 4.586L1.707 2.293A1 1 0 1 0 .293 3.707l3 3a.997.997 0 0 0 1.414 0l5-5A1 1 0 1 0 8.293.293L4 4.586z'/%3E%3C/svg%3E");
+    background-size:62% auto; background-position:center; background-repeat:no-repeat;
+  }
+  .form-panel input[type=checkbox]:focus-visible{
+    outline:2px solid var(--mantine-primary-color-filled); outline-offset:2px;
+  }
+  .form-panel input[type=checkbox]:disabled{
+    background:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-3);
+    cursor:not-allowed;
+  }
+  /* The React cards chose hideControls on every NumberInput; the engine's plain number inputs are
+     the only place native spinners still appeared. Hidden here (and in the tool popovers) so the
+     two families match -- every one of these fields is typed, not stepped. */
+  .form-panel input[type=number]::-webkit-outer-spin-button,
+  .form-panel input[type=number]::-webkit-inner-spin-button,
+  .tools-menu input[type=number]::-webkit-outer-spin-button,
+  .tools-menu input[type=number]::-webkit-inner-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
 
   /* Field labels, matching Mantine's Input.Label: small, medium weight, dark -- NOT the muted grey
      the app used, which read as disabled next to a real Mantine label. */
@@ -320,7 +344,10 @@
     color:var(--mantine-color-gray-9); gap:var(--mantine-spacing-xxs);
   }
 
-  /* Sidebar buttons, matching Mantine's Button variant="default" / "filled". */
+  /* Sidebar buttons, matching Mantine's Button variant="default" / "filled".
+     :not(.tb-btn) keeps this off the toolbar, whose PDF-export button also carries .primary --
+     otherwise this rule's padding/font would win over .tb-btn and make that one button taller
+     than its toolbar neighbors. */
   button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
     height:var(--input-height-xs, 30px);
     border-radius:var(--mantine-radius-default);
@@ -364,31 +391,31 @@
   .hiatus-lock input{margin:0; cursor:pointer;}
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
   /* Matches the phase-meta "Snapped to Mon" note (faint mono) so the two read identically. */
-  .snap-note{ flex-basis:100%; width:100%; font-size:11.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; line-height:1.3; margin-top:2px; }
+  .snap-note{ flex-basis:100%; width:100%; font-size:var(--mantine-font-size-xs); color:var(--text-faint); font-family:var(--mantine-font-family-monospace); line-height:var(--mantine-line-height-xs); margin-top:2px; }
   .snap-note:empty{ display:none; }
+  /* Reads as Mantine's ActionIcon variant="default". font-family:inherit is load-bearing, not
+     cosmetic: <button> does not inherit the body face, so every × and the undo/redo arrows --
+     text glyphs, not icons -- were rendering in Arial next to Inter (UI-CONVENTIONS §2 finding 3). */
   .icon-btn{
-    border:1px solid var(--border-strong); background:#fff; border-radius:8px; width:32px; height:32px;
-    cursor:pointer; font-size:15px; color:var(--text-muted); line-height:1; flex:none;
+    border:1px solid var(--mantine-color-gray-4); background:var(--mantine-color-white);
+    border-radius:var(--mantine-radius-default); width:30px; height:30px;
+    cursor:pointer; font-family:inherit; font-size:15px; color:var(--mantine-color-gray-7);
+    line-height:1; flex:none; transition:background-color 100ms ease;
   }
-  .icon-btn:hover{background:var(--bg);}
+  .icon-btn:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .icon-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
 
-  /* Sidebar/content buttons only. :not(.tb-btn) keeps this off the toolbar, whose PDF-export
-     button also carries .primary -- otherwise this rule's larger padding/font would win over
-     .tb-btn and make that one button taller than its toolbar neighbors. */
-  button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
-    font-family:inherit; font-size:13px; font-weight:500; border-radius:8px; padding:9px 14px;
-    cursor:pointer; border:1px solid transparent;
-  }
-  button.primary:not(.tb-btn){background:var(--accent); color:#fff;}
-  button.primary:not(.tb-btn):hover{background:var(--accent-hover);}
-  button.primary:not(.tb-btn):disabled{background:#B9C2CA; cursor:not-allowed;}
-  button.secondary:not(.tb-btn){background:#fff; border-color:var(--border-strong); color:var(--text);}
-  button.secondary:hover{background:var(--bg);}
+  /* ⚠️ The ORIGINAL legacy block for these selectors used to survive here (13px / radius 8 /
+     9px 14px padding on var(--accent)). Being later in the file at equal specificity, it won
+     every property both blocks declared -- so "+ Add phase" never actually matched a Mantine
+     Button. Deleted 29 Aug 2026; the Mantine-token block above is now the only one. */
   .btn-row{display:flex; gap:8px; margin-top:4px;}
   .add-hiatus-btn{width:100%; margin-top:2px;}
 
+  /* Roman, not italic: italic used to mean explanatory copy AND errors, so it meant nothing.
+     UI-CONVENTIONS §4 retires it from the feedback vocabulary. */
   .placeholder-note{
-    font-size:12px; color:var(--text-faint); font-style:italic; line-height:1.5;
+    font-size:var(--mantine-font-size-xs); color:var(--text-faint); font-style:normal; line-height:var(--mantine-line-height-md);
   }
 
 
@@ -439,14 +466,14 @@
   /* Names the operation the two arrows perform. Fixed text -- the result readout gets its own
      floating chip below rather than borrowing this slot, which used to swap in a much longer
      string and shove the tools button and Undo/Redo sideways every time you nudged a week. */
-  .shift-label{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;
+  .shift-label{font-size:11px; color:var(--text-faint); font-family:var(--mantine-font-family-monospace);
     padding:0 4px; user-select:none; white-space:nowrap;}
   /* Transient confirmation of what a shift did. Absolutely positioned so it can be as long as it
      needs (the wrap date matters) without moving anything in the toolbar. */
   .shift-readout{
     display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:50; white-space:nowrap;
     background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:4px 8px;
-    font-size:11px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace;
+    font-size:11px; color:var(--text-muted); font-family:var(--mantine-font-family-monospace);
     box-shadow:0 2px 8px rgba(0,0,0,.10);
     /* It floats over the buttons beneath it for a couple of seconds; without this it would
        swallow a click aimed at "Reset Notes & Hiatus" right after a shift. */
@@ -639,12 +666,12 @@
     display:flex; flex-direction:column; gap:4px;
   }
   .simpost-toggle{
-    display:flex; align-items:center; gap:6px;
-    font-size:11.5px; font-weight:600; color:var(--text);
+    display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9);
   }
   .simpost-offset-row{
     display:flex; align-items:center; gap:5px;
-    font-size:10.5px; color:var(--text-muted); padding-left:20px;
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); padding-left:20px;
   }
   .simpost-offset-row input{ width:52px; }
   .simpost-offset-row.is-off{ opacity:.45; }
@@ -652,17 +679,17 @@
      52px-wide input, which would stretch this checkbox. */
   .simpost-count-row{
     display:flex; align-items:flex-start; gap:6px;
-    font-size:10.5px; color:var(--text-muted); padding-left:20px; line-height:1.35;
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); padding-left:20px; line-height:1.35;
   }
   .simpost-count-row input{ width:13px; height:13px; flex:none; margin-top:1px; }
   .simpost-count-row.is-off{ opacity:.45; }
   .ep-panel{
-    grid-column:1 / -1; margin-top:8px; padding:8px 10px;
-    border:1px dashed var(--border-strong); border-radius:8px; background:var(--bg);
+    grid-column:1 / -1; margin-top:var(--mantine-spacing-md); padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md); background:var(--mantine-color-gray-0);
   }
   .ep-panel-warn{
-    font-size:11px; color:#8a5a00; background:#fff8e6;
-    border:1px solid #f0d9a0; border-radius:6px; padding:6px 8px;
+    font-size:var(--mantine-font-size-xs); color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
+    border:1px solid var(--mantine-color-warn-2); border-radius:var(--mantine-radius-default); padding:var(--mantine-spacing-sm) var(--mantine-spacing-md);
   }
   /* ---------- Calendar PDF export (browser print) ---------- */
   #print-root{ display:none; }
@@ -814,15 +841,12 @@
   .phase-row.phase-blocked > .custom-phase-header,
   .phase-row.phase-blocked > .phase-fields,
   .phase-row.phase-blocked > .phase-meta{ opacity:.45; }
-  .episode-row{ display:flex; gap:6px; align-items:center; margin-bottom:5px; }
-  .episode-row .ep-name{
-    flex:1; min-width:0; font-family:inherit; font-size:12.5px;
-    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
-  }
-  .episode-row .ep-days{
-    width:62px; flex:none; font-family:inherit; font-size:12.5px;
-    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
-  }
+  /* The episode inputs used to carry their own 12.5px/6px-radius recipe -- the sidebar's second,
+     undeclared input size (UI-CONVENTIONS §3d). They now inherit the shared plain-control rules
+     like every other field; only the layout facts stay. */
+  .episode-row{ display:flex; gap:var(--mantine-spacing-sm); align-items:center; margin-bottom:5px; }
+  .episode-row .ep-name{ flex:1; min-width:0; }
+  .episode-row .ep-days{ width:62px; flex:none; }
 
   /* Bounded so the header row can pin while the (potentially very tall) table scrolls inside,
      instead of the whole page scrolling and the Date/Notes headers disappearing. Sized off the
@@ -1072,7 +1096,7 @@
   }
   table.week-table td{padding:5px 8px; border-bottom:1px solid var(--border); vertical-align:middle;}
   .block-divider td{padding:10px 8px 4px; font-weight:600; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border-strong); background:transparent;}
-  .date-cell{font-family:'IBM Plex Mono',monospace; white-space:nowrap; color:var(--text-muted);}
+  .date-cell{font-family:var(--mantine-font-family-monospace); white-space:nowrap; color:var(--text-muted);}
   .badge{display:inline-block; padding:2px 8px; border-radius:5px; font-size:12px; margin:1px 4px 1px 0; font-weight:500;}
   .badge.hiatus{background:var(--c-hiatus); color:var(--c-hiatus-text);}
   .badge.simpost{background:var(--c-simpost); color:var(--c-simpost-text); font-size:11px;}
@@ -1121,7 +1145,7 @@
   #help-body p{ margin:6px 0; color:var(--text); }
   #help-body ul{ margin:6px 0 6px 2px; padding-left:18px; }
   #help-body li{ margin:4px 0; }
-  #help-body code{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
+  #help-body code{ font-family:var(--mantine-font-family-monospace); font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
   #help-body .help-intro{ color:var(--text-muted); margin-top:12px; }
   #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }
 
@@ -1137,6 +1161,28 @@
   }
   .hv-head span{ width:40px; text-align:center; line-height:1.2; flex:none; }
   .hv-head .hv-head-name{ flex:1; width:auto; text-align:left; }
+
+  /* The holiday rows themselves -- engine-generated by renderHolidayVisList(), which used to carry
+     these as inline style= attributes on every span of every row. Same numbers, one place. The
+     ui.mantine.dev table idiom: gray-2 row rules, gray-0 hover, no zebra. Column widths must stay
+     40/40/38 in lockstep with .hv-head above. */
+  .hv-row{
+    display:flex; align-items:center;
+    font-size:var(--mantine-font-size-sm); padding:var(--mantine-spacing-xs) 2px;
+    border-bottom:1px solid var(--mantine-color-gray-2);
+  }
+  .hv-row:hover{ background:var(--mantine-color-gray-0); }
+  .hv-label{ flex:1; min-width:0; padding-right:var(--mantine-spacing-sm); line-height:var(--mantine-line-height-xs); }
+  .hv-cell{ width:40px; text-align:center; flex:none; }
+  .hv-cell-month{ width:38px; }
+  /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */
+  .hv-dim{ opacity:.45; }
+  .hv-tag{
+    font-size:var(--mantine-font-size-xxs); border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-xs); padding:0 3px; color:var(--mantine-color-gray-6);
+  }
+  .hv-oor{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
+  .hv-del{ width:18px; height:18px; font-size:13px; line-height:1; padding:0; margin-left:4px; flex:none; }
 
   /* The custom-holiday block, separated by a rule rather than a dashed border -- Mantine UI uses
      padding-top + border-top for a section break, and never a dashed one. */

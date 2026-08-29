@@ -280,10 +280,12 @@ file (see §4, "what NOT to do").
 | UI-CONV §9.5 | is `.mv-note-pop` in scope? | **In scope** — redesign it, and fix its never-repositions bug |
 | UI-CONV §9.1 | embed Inter? | **Yes**, drop IBM Plex Mono for the system mono stack |
 
-⚠️ **§9.1 is ruled but NOT yet built.** The Google Fonts links are still in `src/index.html`. When
-it lands it needs the gate its ruling came with: a month-PDF diff taken with the network **on** and
-**off**, because `mvNoteLineCount()` measures against Inter and its result sets month-view row
-heights that `exportMonthPdf` prints.
+⚠️ **§9.1 is ruled but NOT yet built.** The IBM Plex Mono half landed 29 Aug 2026 (chrome mono
+sites now use the system stack and the Google Fonts link is Inter-only — safe, because no mono
+site feeds any frozen measurement). The **Inter embed** is the half still outstanding, and it
+keeps the gate its ruling came with: a month-PDF diff taken with the network **on** and **off**,
+because `mvNoteLineCount()` measures against Inter and its result sets month-view row heights that
+`exportMonthPdf` prints.
 
 #### What exists now
 
@@ -372,13 +374,81 @@ Two more traps landed where `UI-CONVENTIONS.md` §8 did not predict them:
   `docProps/core.xml`, so two exports of an identical workbook differ by ~1 byte. Compare the
   unzipped parts with `core.xml` excluded — `gate.sh` does.
 
-#### ⛔ What is NOT done, stated plainly
+#### ✅ The engine-generated rows: RESTYLED TO SPEC, deliberately not rebuilt (ruled 29 Aug 2026)
 
-The Phases and All-phase hiatus card **interiors** are restyled, not rebuilt — same for the holiday
-list rows and the episode rows. They look Mantine because plain `<input>`/`<select>` now render at
-Mantine's xs height with a gray-4 hairline and the primary focus ring, but they are still
-engine-generated markup. That is a deliberate stopping point, not an oversight: see item 1 of
-"what is next".
+The Phases and All-phase hiatus card interiors, the episode rows and the holiday list are
+engine-generated markup wearing the full Mantine look — **and that is now a decision, not a
+stopping point.** Asked with the trade-off laid out (rebuild as React components vs. restyle the
+generators in place), the owner chose **restyle to spec**, the recommended option. The deciding
+findings, from a six-way read of the generators, restore path, chrome and harness:
+
+- A rebuild buys almost nothing visually: the settled §2c uncontrolled rule means React would
+  render the same native inputs the CSS already styles.
+- `applyStateSnapshot` rebuilds custom rows, regex-re-keys their ids and writes `fields.byId`
+  values **in one synchronous tick**; React commits asynchronously, so a state-driven rebuild
+  silently drops every restored value unless the restore path itself is restructured — §0 rule 3's
+  blast radius. Undo/redo replays that path constantly.
+- Frozen code reads the rows unguarded every cycle (`render()` writes `meta-<key>`, `readState()`
+  reads `start-<key>` on every keystroke), so rows must exist synchronously before the engine's
+  first `update()` and must never be reconciled away.
+- The generators innerHTML-replace their containers, so a rebuild cannot ship incrementally —
+  every generator plus the restore seam in one atomic change.
+- **The gate covers none of the custom-phase path** — no test clicks `#add-phase-btn`, the fixture
+  has no custom phases, so a rebuild breaking custom-phase restore shows GATE PASSED.
+
+**What the restyle pass landed** (all gated, all verified in a real browser against dist):
+sidebar checkboxes drawn as Mantine's Checkbox via `appearance:none` + a white SVG check, scoped
+to `.form-panel` so nothing can reach `#table-wrap`; native number spinners hidden in
+`.form-panel` and `.tools-menu` (matching the React cards' `hideControls`); the holiday rows'
+~7-inline-declarations-per-row replaced by `.hv-row`/`.hv-label`/`.hv-cell`/`.hv-dim`/`.hv-tag`
+classes (template edit in `renderHolidayVisList` — the `.hv-en`/`.hv-cb`/`.hv-del` +
+`data-hid`/`data-view` contract untouched); the episode inputs' undeclared second input size
+removed (UI-CONV §3d); the duplicated legacy `button.primary/.secondary` block **deleted** — it
+sat later in the file at equal specificity and had been silently winning over the Mantine-token
+block the whole time; `.icon-btn` restyled as ActionIcon-default with `font-family:inherit`
+(finding 3's Arial ×s); `.tb-btn` retired (nothing in the build emits it since the preview toolbar
+port); IBM Plex Mono dropped per §3a — system mono stack everywhere, Google Fonts link trimmed to
+Inter-only (Inter's *embedding* is still item 3 of "what is next", with its month-PDF gate);
+`phase-meta`/`snap-note`/`simpost-*`/`ep-panel*`/`placeholder-note`(now roman)/`phase-color-pop`
+tokenised onto `--mantine-*` variables.
+
+#### ⛔ Two Mantine-build bugs found and FIXED, one shape (29 Aug 2026)
+
+React rendered `#save-as-btn` and `#export-wf-pdf-btn` **conditionally**, but the engine captures
+both by `getElementById` at evaluation time and binds click listeners through the capture. Save As
+started `visible:false` → capture null → the button later appeared **dead**. The export button
+started visible → worked — until one Month↔Waterfall round-trip remounted a NEW node and orphaned
+the listener. Both now render always, visibility carried by `display` — the rule
+`#file-menu-wrap`'s comment already stated. Browser-verified: node identity survives the
+round-trip; Save As is present at load. **The general law: anything the engine resolves by id at
+evaluation time must be in the DOM at first commit and must never be conditionally unmounted.**
+
+#### ⚠️ Two PRE-EXISTING engine bugs found, NOT fixed — they need their own conversation
+
+Identical in deployed v1.2.0 and `src/legacy/app.js`; fixing them means engine edits and (for the
+first) a behavior change to shipped restore semantics:
+
+1. **Stale closures after custom-row re-key.** `addCustomPhaseRow`'s remove/swatch/name handlers
+   close over the mint-time `custom<n>` key; `applyStateSnapshot`'s re-key renames ids but not
+   closures. Restoring a save whose custom keys are non-dense (any calendar where a custom phase
+   was ever deleted before a later one) leaves those handlers stale: remove strands a ghost def in
+   `customPhaseDefs` and the next `update()` **throws** in `readState` on the missing
+   `start-<key>`; swatch picks stop persisting. The delegated handlers are immune (they re-derive
+   the key from the live id).
+2. **A snapshot with zero custom phases does not clear existing custom rows** — the rebuild is
+   gated on `snap.customPhaseDefs.length`, violating the restore-unconditionally rule. Opening a
+   customless file over a session with custom phases keeps the old rows.
+
+#### ⚠️ Harness facts that will bite the next session (found 29 Aug 2026; gate.sh header now says all three)
+
+- `gate.sh` **never ran fence.js** despite its old header comment listing gate 7. No fence
+  baseline is committed. Run it by hand against both pages and diff — done for this stage: every
+  frozen `#table-wrap` computed style identical between `/index.html` and dist.
+- **The baseline is date-pinned to 2026-08-29.** The Excel header and the waterfall PDF embed
+  `todayStr`, so the PDF byte-compare and the Excel parts-diff FALSE-FAIL from any later date
+  against untouched code. Re-cut the baseline on a known-good build before trusting those legs.
+- The `fields.byId` failure diagnostic was dead code (an `isinstance(list)` guard on what parses
+  as a dict); it now prints lost/gained/changed ids.
 
 #### ⛔ The controlled-input finding, and the fact that it is now SETTLED
 
@@ -420,14 +490,12 @@ filesystem, which is the emailing-it-around property surviving the build step.
 
 #### ⏭ What is next, in order
 
-1. **The engine-generated sidebar rows** — the biggest remaining piece, and the one that is
-   *restyled but not rebuilt*. `buildPhaseRows`, `phaseHiatusBlockHtml`, `renderEpisodeRows`,
-   `renderHolidayVisList` and the all-phase hiatus rows all emit HTML **strings**, and those
-   generators also **mint the element ids that are the save-file format** (`start-<key>`,
-   `weeks-<key>`, `name-<key>`, the per-row hiatus ids). They currently get Mantine's look from the
-   plain-control rules in `legacy.css`; turning them into components means moving id generation into
-   React, which puts §0 rule 3 in the blast radius. **Do this one deliberately, with the
-   `fields.byId` gate in front of you, or leave it restyled.**
+1. ✅ **DONE — the engine-generated sidebar rows, resolved as RESTYLE TO SPEC** (owner ruling,
+   29 Aug 2026 — see the section above). The generators keep minting the ids; the look now fully
+   matches ui.mantine.dev via the `--mantine-*`-token CSS and two chrome-safe template edits. A
+   React rebuild stays *possible* later, but its sane precondition is a custom-phase fixture +
+   tests (the gate's biggest blind spot) and a restructured restore seam — do not start it
+   casually.
 2. **The note popovers** (`.note-pop`, `.mv-note-pop`) **and the help modal.** The owner ruled
    `.mv-note-pop` **in scope** (§9.5), including fixing its live bug: `render()` never tears it down
    and it registers neither a scroll nor a resize listener, unlike its waterfall twin. ⚠️ Both are
