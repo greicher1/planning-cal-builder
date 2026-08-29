@@ -4303,11 +4303,29 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       gapWarningEl.innerHTML = '';
     }
 
+    // Rebuilding the markup replaces the scroll container itself, which puts it back at the top.
+    // Every edit re-renders -- a column or row drag, a cell span, a note, a hiatus label -- so
+    // without this the view jumped back to January on each one, which made dragging anything
+    // below the fold unusable. Remembered per element id and restored onto the rebuilt nodes;
+    // the window's own scroll goes too, since a render can briefly change the page height.
+    const scrollMemo = [];
+    tableEl.querySelectorAll('[id]').forEach(el=>{
+      if(el.scrollTop || el.scrollLeft) scrollMemo.push([el.id, el.scrollLeft, el.scrollTop]);
+    });
+    const winX = window.scrollX, winY = window.scrollY;
+
     // (installGridResizers runs just below, once the new markup is in the DOM.)
     tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
                                              : renderSpreadsheetView(schedule);
+    scrollMemo.forEach(entry=>{
+      const el = document.getElementById(entry[0]);
+      if(el){ el.scrollLeft = entry[1]; el.scrollTop = entry[2]; }
+    });
+    if(window.scrollX !== winX || window.scrollY !== winY) window.scrollTo(winX, winY);
+
     // Handles are positioned from laid-out geometry, so they can only be built once the new
-    // markup is in the document.
+    // markup is in the document -- and after the scroll is back, so nothing is measured against
+    // a position the grid is about to leave.
     if(viewMode !== 'month') installGridResizers();
   }
 
