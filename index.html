@@ -762,13 +762,27 @@
   td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
   td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
   td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
-  .note-editor{display:flex; flex-direction:column; gap:2px; padding:2px; min-width:120px;}
-  .note-editor textarea{
-    font-family:'Carlito','Calibri','Segoe UI',sans-serif; font-size:11px; border:none; outline:none;
-    background:transparent; resize:none; width:100%; box-sizing:border-box;
-    color:#fff; padding:2px 3px; line-height:1.4;
+  .note-editor{display:flex; flex-direction:column; gap:4px;}
+  /* The note/hiatus editor is a popover anchored to the cell, not markup injected into it. It
+     used to replace the cell's contents, so the cell grew to hold a two-row textarea plus three
+     control rows -- and with table-layout:fixed that shoved its whole row around while you typed,
+     which is exactly what you were reading when you opened it. The grid now never moves: the cell
+     keeps its text and takes an outline, and the controls float above. Same shape as the month
+     view's note popover, which has always worked this way. */
+  .note-pop{
+    position:absolute; z-index:60; width:230px; padding:8px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 6px 22px rgba(0,0,0,.18);
   }
-  .note-editor textarea::placeholder{opacity:.5; color:#fff;}
+  .note-pop-title{ font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+  .note-editor textarea{
+    width:100%; box-sizing:border-box; font-family:'Inter',sans-serif; font-size:11px;
+    color:var(--text); background:#fff; border:1px solid var(--border-strong);
+    border-radius:5px; padding:4px 5px; resize:vertical; line-height:1.4;
+    max-height:140px; overflow:auto;
+  }
+  .note-editor textarea::placeholder{ color:var(--text-faint); opacity:1; }
+  .note-pop-hint{ font-size:9px; color:var(--text-faint); margin-top:5px; }
   td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
   td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
   /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
@@ -864,11 +878,11 @@
      20 is exactly the "ever so slightly different heights" that makes a printed grid look wrong.
      A block box fills the cell and adds nothing. */
   .sheet-table .phase-cell-label{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-  /* Clip to the column rather than letting content force it wider. Excluding .editing is
-     load-bearing: the note and hiatus editors are built INTO the cell (td.innerHTML =
-     '<div class="note-editor">'), and a multi-line textarea grows taller than the row, so a
-     clipped cell would cut the editor off mid-word. */
-  table.sheet-table td:not(.editing), table.sheet-table th{ overflow:hidden; text-overflow:ellipsis; }
+  /* Clip to the column rather than letting content force it wider. This used to exempt .editing,
+     because the note and hiatus editors were built INTO the cell and a clipped cell would have cut
+     the editor off mid-word. They are popovers now, so the cell being edited is an ordinary cell
+     and clips like every other one. */
+  table.sheet-table td, table.sheet-table th{ overflow:hidden; text-overflow:ellipsis; }
   table.sheet-table td.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text);}
   table.sheet-table td.sheet-blockend{border-right:2px solid var(--text);}
@@ -1259,7 +1273,7 @@
 
       <h3>Notes (in the preview)</h3>
       <p>The Notes column auto-fills key milestones inline &mdash; e.g. <em>&ldquo;Start Principal Photography 11/02/26&rdquo;</em>, &ldquo;Principal Photography Wraps&rdquo;, union holidays, and any simultaneous-post flags.</p>
-      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
+      <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open a small editor beside it &mdash; it floats over the calendar, so the grid keeps exactly the shape it had while you type. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Sizing the grid (columns, rows &amp; how far a cell reaches)</h3>
       <p><strong>Columns and rows.</strong> Hover a column boundary or the bottom edge of a row in the Date column and drag. Text inside resizes itself to fit: a narrowed column shrinks its labels, and a row&rsquo;s height sets how many lines a note may use before it is cut off with an ellipsis. Every row starts at the same default height, and while you drag one it <strong>snaps</strong> to the default and to any height you have already set elsewhere &mdash; the handle turns green when it locks on &mdash; so rows end up matching rather than a pixel apart. <strong>Double-click</strong> a boundary to go back to automatic &mdash; the column fits its widest entry again, the row returns to the default height. Column widths and row heights are shared with the Excel export and the PDF, so what you size on screen is what prints.</p>
@@ -4428,6 +4442,15 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // markup is in the document. Their coordinates are all differences measured against the grid
     // wrapper, so where the container happens to be scrolled makes no difference to them.
     if(viewMode !== 'month') installGridResizers();
+    // A render from anywhere else -- a sidebar field, an undo -- rebuilds the grid and throws away
+    // the cell an open editor was anchored to. The editor is on the body now, so it would outlive
+    // that and hang over the calendar pointing at nothing. (commitActiveNoteEditor and
+    // closeWithoutSaving both clear activeNoteEditor before they render, so this only ever fires
+    // for a render they did not start.)
+    if(activeNoteEditor && !document.body.contains(activeNoteEditor.td)){
+      closeNoteEditorPop();
+      activeNoteEditor = null;
+    }
     restoreScroll(scrollSnap);
   }
 
@@ -5518,19 +5541,45 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         ${dayOpts}
       </select></label>
     </div>`;
-    td.innerHTML = `<div class="note-editor">
+    // Anchored to the cell, appended to the body -- NOT written into the cell. The grid keeps
+    // exactly the shape it had before the click.
+    const pop = document.createElement('div');
+    pop.className = 'note-pop';
+    // A per-phase hiatus key is "<week>|<phase>", which is not a date, so take the week part and
+    // fall back to the raw key if it still will not parse.
+    const popWeek = parseDateUTC(splitWeekKey(weekKey).iso);
+    const popTitle = (isHiatus ? 'Hiatus' : 'Note') + ' \u00b7 ' + (popWeek ? fmtShort(popWeek) : weekKey);
+    pop.innerHTML = `<div class="note-pop-title">${escHtml(popTitle)}</div>
+      <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
       ${sizeRow}
       <div class="note-color-row" title="Highlight color">${swatches}</div>
-    </div>`;
+      </div>
+      <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
+    document.body.appendChild(pop);
+    // Keep it beside the cell and inside the window, and keep doing so: the grid scrolls inside
+    // its own pane, so a popover placed once and left alone slides away from its cell.
+    const place = ()=>{
+      const r = td.getBoundingClientRect();
+      pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+      pop.style.left = (window.scrollX + r.left) + 'px';
+      const pr = pop.getBoundingClientRect();
+      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
+      if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
+    };
+    place();
+    // Capture phase, so scrolling the grid's own pane counts and not just the window.
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
 
-    const textarea = td.querySelector('textarea');
+    const textarea = pop.querySelector('textarea');
     // Choosing a day stamps the date into the text itself, so it reads "Table Read 11/04/26"
     // the way the auto-notes do. It's inserted as plain characters -- editable and deletable
     // like anything else typed -- rather than being auto-appended at render time, so what's in
     // the box is exactly what gets saved.
-    const daySel = td.querySelector('.note-day-select');
+    const daySel = pop.querySelector('.note-day-select');
     if(daySel){
       daySel.addEventListener('mousedown', e=>e.stopPropagation());
       daySel.addEventListener('click', e=>e.stopPropagation());
@@ -5551,14 +5600,15 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     textarea.focus();
     textarea.select();
 
-    // Auto-resize textarea
+    // Auto-resize the textarea up to the CSS max-height, past which it scrolls. Nothing here
+    // touches the grid any more, so a long note grows the popover rather than the calendar.
     function resize(){ textarea.style.height='auto'; textarea.style.height=textarea.scrollHeight+'px'; }
     textarea.addEventListener('input', resize);
     resize();
 
-    activeNoteEditor = {td, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
+    activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel};
-    const sizeSel = td.querySelector('.note-size-select');
+    const sizeSel = pop.querySelector('.note-size-select');
     if(sizeSel){
       sizeSel.addEventListener('mousedown', e=>e.stopPropagation());
       sizeSel.addEventListener('click', e=>e.stopPropagation());
@@ -5572,7 +5622,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     }
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
-    td.querySelectorAll('.color-swatch').forEach(sw=>{
+    pop.querySelectorAll('.color-swatch').forEach(sw=>{
       sw.addEventListener('mousedown', e=>{ e.preventDefault(); }); // keep textarea focus
       sw.addEventListener('click', e=>{
         e.stopPropagation();
@@ -5581,7 +5631,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           activeNoteEditor.pendingColor = c;
           td.style.background = c;
           td.style.color = textColorFor(c);
-          td.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
+          pop.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s===sw));
         }
       });
     });
@@ -5624,9 +5674,21 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     return [dt ? {text, date:dt} : {text}];
   }
 
+  // Take the popover down and stop it tracking the cell. Called by every path that ends an edit;
+  // a render() would rebuild the grid but not this, since it lives on the body.
+  function closeNoteEditorPop(){
+    if(!activeNoteEditor) return;
+    const {pop, place} = activeNoteEditor;
+    if(place){
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    }
+    if(pop) pop.remove();
+  }
+
   function commitActiveNoteEditor(){
     if(!activeNoteEditor) return;
-    const {td, weekKey, textarea, autoNotes, isHiatus, pendingColor, pendingSize, sizeTouched,
+    const {td, pop, weekKey, textarea, autoNotes, isHiatus, pendingColor, pendingSize, sizeTouched,
            defaultLabel} = activeNoteEditor;
     if(isHiatus){
       const text = textarea.value.trim();
@@ -5641,7 +5703,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         else hiatusFontSize[weekKey] = pendingSize;
       }
     } else {
-      const daySel = td.querySelector('.note-day-select');
+      const daySel = pop.querySelector('.note-day-select');
       const chosenDate = daySel ? (daySel.value || '') : '';
       saveNoteEdit(weekKey, textarea.value, autoNotes, chosenDate);
       if(pendingColor){
@@ -5657,6 +5719,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       // A cell with no note has no highlight and no size; drop both with it.
       if(!effectiveNoteText(weekKey, autoNotes)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; }
     }
+    closeNoteEditorPop();
     activeNoteEditor = null;
     render(currentSchedule);
     reflectCountryLock();
@@ -5665,6 +5728,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 
   function closeWithoutSaving(){
     if(!activeNoteEditor) return;
+    closeNoteEditorPop();
     activeNoteEditor = null;
     render(currentSchedule);
   }
@@ -5672,9 +5736,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // Save on clicking outside. e.stopPropagation() in the table-wrap delegated handler
   // already prevents the cell-opening click from bubbling here, so no skip-flag needed.
   document.addEventListener('click', e=>{
-    if(activeNoteEditor && !activeNoteEditor.td.contains(e.target)){
-      commitActiveNoteEditor();
-    }
+    if(!activeNoteEditor) return;
+    // The popover is a sibling of the grid, not inside the cell, so it has to be excluded here
+    // too -- otherwise picking a colour or a day would commit and close the editor.
+    if(activeNoteEditor.td.contains(e.target)) return;
+    if(activeNoteEditor.pop && activeNoteEditor.pop.contains(e.target)) return;
+    commitActiveNoteEditor();
   });
   document.addEventListener('keydown', e=>{
     if(!activeNoteEditor) return;
