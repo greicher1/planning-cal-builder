@@ -252,6 +252,74 @@ row pitch back toward the reference on its own.
 
 The owner also asked for the ability to **add extra notes columns**.
 
+### The spec, settled 29 Aug 2026
+
+> **Functionally two separate columns; visually one.** The label and the date are two real columns
+> to the layout and width model — that is what right-aligns the date to a consistent edge — but
+> they present as a single Notes column: one header, no rule between them.
+
+That is what the reference export itself does, and it is the whole feature.
+
+### Why this is far cheaper than it looks — four findings from the code
+
+1. **`notesColspan` already exists** (`renderSpreadsheetView`, ~5229, currently `1`), and the
+   header is already written as `<th colspan="${notesColspan}">Notes</th>`. It was **>1 before**,
+   when Simultaneous Post had its own column beside Notes. *One header spanning N notes columns is
+   a shape this code has already shipped.* The empty-row and hiatus-row cells also already span
+   `mc + notesColspan`, so they follow automatically.
+2. **`cols` is the one list everything walks.** `sheetColumnWidths()` returns
+   `cols = [date, ...labels, notes]`, described in its own comment as "the flat left-to-right list
+   the renderer and the drag handles both walk, so neither has to re-derive which key belongs to
+   which column." Adding `{key:'y<year>:notesdate', chars:…}` feeds the screen `<colgroup>`, the
+   drag handles, the Excel widths and the PDF widths **at once**. Measure a second maximum
+   (`notesDateMax`) beside the existing `notesMax`.
+3. **"No rule between them" is the default, not extra work.** Interior gridlines are off
+   (`SHEET_GRIDLINES = 'none'`), and the only border in that region is `.sheet-blockend`, which
+   lands on the block's *last* column — the date — not between label and date.
+4. ### ⚠️ **It needs NO save-format change. Auto-notes are already structured.**
+   `addNote()` has always stored `{label, date}` separately (~3890); only `autoNotesText()`
+   (~3437) joins them for display. Splitting the display is therefore pure rendering.
+
+   For **user-typed** notes, give the cell `colspan="2"`. A free-text note then spans the full
+   Notes width — **pixel-identical to today** — so every existing calendar renders exactly as it
+   does now, and `userNotes[k].text` is untouched. Structured *user* notes, if ever wanted, become
+   a separate opt-in decision rather than a prerequisite.
+
+### ⚠️ Do not reach for `userNotes[k].date` — that field is occupied
+
+It is **not** a display date. It is a day-of-week pin doing two load-bearing jobs: telling the
+**month view which day** to place the note on, and making the note **immune to calendar shifts**
+(`pinnedWeeks`, ~7859, is built from notes that have one). A display date needs a **new** key.
+
+The name collides with the pre-git `noteDate` field and that is exactly the trap: see below.
+
+### The history, and what is NOT recoverable
+
+`userNotes` entries were once `{label, noteDate}` and were flattened to `{text}`. The live
+migration (~10091) simply concatenates them — `{text: [lbl, dt].filter(Boolean).join(' ')}` — i.e.
+the collapse baked the *display string* into storage.
+
+**Why it was done is not recoverable.** It predates this repo: `d249f60`, the first commit
+containing `index.html`, already carries only the migration, and the three 15 Jul 2026 "Add files
+via upload" commits have no messages. No doc records it.
+
+One inference, flagged as inference: **auto-notes were never flattened**, only user notes. Had the
+motive been data-model simplification, both would have gone. The likelier reading is an *editing*
+decision — one free-text box is simpler than two coupled fields inside a small anchored popover.
+**Worth asking the owner before reintroducing structure for user notes.** Nothing above depends on
+the answer; the `colspan="2"` approach sidesteps it entirely.
+
+### The acceptance gate, before any of this is written
+
+- **Clipped-cell count stays 0.** The padding trap has landed twice (§3); a new column is exactly
+  the shape of change that trips it.
+- **PDF diff** against an export taken immediately before the change.
+- **Excel opens without the corrupt-file alert** (the 255-char header limit is unrelated but the
+  export is the thing being changed).
+- **`tests/fixtures/v1.0.0-saved.html` restores identically** — the real proof that no existing
+  calendar shifted.
+- **Grid width measured against the 1301 pt reference**, since closing that gap is the point.
+
 ### 2d. Remaining PDF calibration
 
 Measured against the owner's real Excel-exported reference:
