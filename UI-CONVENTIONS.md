@@ -181,6 +181,80 @@ a convenience — see §7.
 
 ---
 
+## 2b. The visual reference: ui.mantine.dev
+
+**Set by the owner, 29 Aug 2026, mid-build:**
+
+> *"review https://ui.mantine.dev/ — these prebuilt components are good references to what I want
+> it to look like"*
+
+This is a decision about *look*, and it resolves something §3 left open. §3 settles the **tokens**;
+this settles **how they are consumed**. Read together they say: the chrome does not merely contain
+Mantine components, it is built the way Mantine UI builds.
+
+**The conventions, read out of Mantine UI's own source** (`NavbarSimple.module.css`,
+`HeaderTabs.module.css` and friends in `mantinedev/ui.mantine.dev`) rather than inferred from
+screenshots:
+
+| | |
+|---|---|
+| Borders | `1px solid var(--mantine-color-gray-3)` — a hairline, never a heavy rule |
+| Resting surface | `var(--mantine-color-white)` on a `gray-0` ground |
+| Hover | `background: var(--mantine-color-gray-0)` |
+| **Active / selected** | `background: var(--mantine-color-<primary>-light)` + `color: var(--mantine-color-<primary>-light-color)` |
+| Interactive text | `font-size: sm`, `font-weight: 500` |
+| Section rule | `padding-bottom` + `margin-bottom` + `border-bottom`, not a bare `<hr>` |
+| Cards | white, hairline border, `radius-md`, **no shadow at rest** — a column of them stays calm |
+
+⛔ **The operative consequence: chrome CSS reads `--mantine-*` variables, not the app's legacy
+tokens.** That is the token fork §2 finding 4 demanded, and it is the thing that makes a surface
+*read* as Mantine. Converted so far: `.form-panel`, `section.card` + its `h2`, `.side-tabs`,
+`.view-toggle`, `.shift-group`, `.tools-menu`, `.tools-head`, `.tools-div`.
+
+⛔ **The legacy tokens are not retired and must not be retinted.** 39 places in FROZEN CSS read
+them — including `border:2px solid var(--text)` on the waterfall's structural block borders and two
+rules inside `@media print`. They keep their literal values under their existing names; the chrome
+simply stops being one of their readers.
+
+⚠️ **One tension to resolve deliberately, not by drift.** Mantine UI's blocks are *airier* than this
+app can afford: they assume `sm`/`md` controls, while §3d fixes every chrome form control at `xs`
+because the Phases tab already overflows its scroll container by 2×. **Take Mantine UI's structure
+and its colour/border/radius idiom; do not take its density.** Where the two disagree, density wins
+in the sidebar and Mantine UI wins everywhere else.
+
+---
+
+## 2c. ⛔ A trap §8 missed, and it is bigger than the ones it caught
+
+**Mantine's input components are CONTROLLED. `applyStateSnapshot()` writes `el.value` into every
+field on restore.** A controlled component ignores that write — React re-renders from its own state
+and the restored value vanishes.
+
+§8.1 caught `DatePickerInput`'s *id* problem and prescribed `DateInput` instead. But `DateInput` is
+controlled too, so it fails a *different* way: the id survives, the id appears in `fields.byId`, the
+file saves correctly — and then **the value silently does not come back on open**. That is worse
+than the trap §8 documented, because it passes every id-based assertion.
+
+Found 29 Aug 2026 while porting the preview toolbar, where `syncAnchorDate()` writes
+`#tool-anchor-date`'s value every time the popover opens. It is why the two tool dates stayed native
+`<input type="date">`.
+
+**This governs the entire sidebar stage.** Every control in `fields.byId` — 56 ids — is written by
+`applyStateSnapshot()`. So either:
+
+1. **Uncontrolled everywhere** (native inputs, or Mantine components used uncontrolled with a real
+   `id` and no `value` prop), keeping `collectFieldValues()` / `applyStateSnapshot()` exactly as
+   they are. Lowest risk; loses `DateInput`'s week-band affordance from §5.
+2. **Rewrite the restore path** so it sets React state rather than DOM values — which is
+   `MANTINE-MIGRATION.md` §4.4's original plan, and it puts the save-format contract (§0 rule 3,
+   *every saved calendar must keep opening, forever*) in the blast radius of a UI pass.
+
+**Recommended: (1), with the week-band affordance re-costed separately.** It keeps the rule that has
+never been broken unbroken. Decide before the first Mantine input is placed in the sidebar — this
+now gates Stage 4 alongside §8.3.
+
+---
+
 ## 3. The theme
 
 ### 3a. Type
