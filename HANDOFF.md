@@ -15,11 +15,15 @@ change — see §5d.
 
 ---
 
-## 0. The two rules that override everything else
+## 0. The three rules that override everything else
 
 1. **Never commit or push on your own initiative.** `main` auto-deploys to a live public site with
    real users on it. Ask, with an interactive checkbox picker, every time. See §5.
-2. **Watch the context window.** When the session is getting long, stop and tell the owner to save
+2. **Never touch the grid or the exports.** `#table-wrap`, `#print-root`, the width model, the
+   layout functions and the Excel/PDF writers are frozen. Not restyled, not refactored, not
+   wrapped in components, not migrated to a UI library. The exact frozen surface is listed in
+   `CLAUDE.md`. See §4.
+3. **Watch the context window.** When the session is getting long, stop and tell the owner to save
    and migrate to a fresh session. See §5.
 
 ---
@@ -115,6 +119,29 @@ Execs differ on gridlines specifically (some want them, some want dashed) — th
 motivating case. Persistence should be per-user and per-machine, so `localStorage`, **not**
 `captureSnapshot()` — these are preferences, not calendar data, and must not travel inside a saved
 file (see §4, "what NOT to do").
+
+### 2b-2. Mantine UI redesign of the surrounding chrome — **decided, not started**
+
+The owner has chosen **Option B** from [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md): the
+surrounding UI — toolbar, header, sidebar, tabs, cards, popovers, menus, labels, warnings,
+settings, the help modal — is to be **redesigned** (not merely ported) on Mantine. The grid and the
+exports are **frozen**, permanently, and that rule now sits in `CLAUDE.md` and in §0/§4 here.
+
+Measured, not estimated (probe in the scratchpad, reproducible — see the migration doc §2):
+React 19 + Mantine 9 as a single inlined file is **664 KB** with per-component CSS, **790 KB** with
+the full `styles.css`, **1.50 MB** unminified. It **does run from `file://`** (verified by headless
+Chrome `--dump-dom`), so emailing the tool as one file survives. Mantine 9's date components take
+`'YYYY-MM-DD'` **strings**, so they fit the UTC-midnight convention without a dayjs hazard.
+
+Two consequences that are easy to miss and hard to reverse:
+
+- **Source stops being the artifact.** A build step means the repo file, the deployed file and a
+  saved calendar are three different things, and the shipped one is minified. A saved calendar is
+  no longer a *readable* copy of the app. Several past debugging sessions depended on that.
+- **The §11 test harness breaks silently.** It drives the app with `el.value = v` plus a dispatched
+  `input` event; React ignores that and every fixture would quietly assert against a blank
+  calendar. Fix the harness (native value setter + keep the existing element ids) **before**
+  porting anything, not after.
 
 ### 2c. Multiple / structured notes columns
 
@@ -234,6 +261,17 @@ In this session the owner authorised a push once ("lets push and commit all") an
 pushed a further six times unprompted. `main` auto-deploys to a live site used by other people.
 See §5 for the process that replaces this.
 
+**Do not touch the grid or the exports.** `#table-wrap` and `#print-root` and everything inside
+them, the width-model constants (`EXCEL_MDW`, `SHEET_ZOOM`, `EXCEL_CELL_PAD`, `COL_PAD_CHARS`,
+`ROW_DEFAULT_PX`), the layout and text-fitting functions, and the Excel/PDF writers are **frozen** —
+see `CLAUDE.md` for the exact list. This is not a style preference. Every number in there is a
+measured answer to a specific failure: Excel floors MDW to 7 when the true advance is 7.4336; the
+model budgets 3.75 px of cell padding and anything more silently ellipsis-clips (it has landed
+twice); `computePhaseRowLayout()` is the one source four consumers share, and its previous
+three-way divergence is why the PDF never matched an Excel print. **No third-party CSS baseline
+may reach these elements** — Mantine's `global.css`/`baseline.css` must be fenced into a `@layer`
+the grid rules outrank. The UI work in `MANTINE-MIGRATION.md` stops at this boundary.
+
 **Do not report a fix without evidence from a real browser.** Reading the code is not verification.
 The owner expects concrete before/after numbers.
 
@@ -352,6 +390,29 @@ These comments are the project's real documentation.
   takes the fill there instead. Excel export is the plain white button.
 - `.tb-btn` styling must stay off the sidebar button rules (`button.primary:not(.tb-btn)`), or the
   larger sidebar padding makes one toolbar button taller than its neighbours.
+
+### Footer — there isn't one, and that is deliberate
+
+The layout is **header + sidebar + preview**, full stop. `footer.assumptions` survives in the CSS
+(lines ~909–910) but nothing renders it — dead rules from an earlier version. Asked directly
+during the Mantine scoping (28 Aug 2026), the owner's answer was **no footer now and none
+foreseen**. Do not add one on your own initiative, and do not treat the dead CSS as evidence that
+one is planned.
+
+If a footer is ever revisited, these are the considerations already worked through, so they don't
+have to be rediscovered:
+
+- **A slim status bar** is the only version that earns its space: save state, total week count and
+  the active region. Its real argument is that it would move the `.save-status` chip out of the
+  top toolbar, which already wraps to two lines below 1280 px, and give warnings a permanent home
+  instead of the six different looks they have now (`#gap-warning`, `.tools-msg`,
+  `.placeholder-note`, `.snap-note`, `#union-lock-hint`, `#custom-hol-err`).
+- **A print-only assumptions line** — region, holiday set, days-per-episode, printed under the
+  calendar — is a genuinely useful idea and is **out of bounds by default**: it would mean editing
+  the frozen PDF/Excel writers. It is a separate ask with its own acceptance gate (§0 rule 2), not
+  something folded into a UI change.
+- **Vertical space is the preview's**, not the chrome's. The waterfall is the product; anything
+  permanently pinned to the bottom is taken from it. That is most of why there is no footer today.
 
 ### The grid
 

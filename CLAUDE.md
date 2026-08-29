@@ -41,6 +41,56 @@ release, not a save.
 This rule has been broken before. In one session a single "push and commit" was treated as standing
 permission and six further pushes went out unasked. Do not repeat that.
 
+## ⛔ Never touch the grid or the exports
+
+**The calendar grid and the Excel/PDF writers are frozen.** They are not to be restyled,
+refactored, "modernised", wrapped in components, or migrated to any UI library — including the
+Mantine work described in [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md). Every number in them is
+there for a specific, measured reason, and the reasons are not visible from the code.
+
+**Frozen surface — the seam is exact:**
+
+- **`#table-wrap` and everything inside it.** The waterfall and month-view grids. React/Mantine
+  renders this as an *empty container with a ref* and never touches its children.
+- **`#print-root` and everything inside it.** Same rule.
+- **The width model:** `EXCEL_MDW = 7` (floored, **not** 7.4336), `SHEET_ZOOM = 0.75`,
+  `EXCEL_CELL_PAD = 5`, `COL_PAD_CHARS = 1.15`, `ROW_DEFAULT_PX = 20`.
+- **Grid rendering + geometry:** `render`, `renderSpreadsheetView`, `renderMonthView`,
+  `computeBlockLayout`, `phaseRunBounds`, `computePhaseRowLayout`, `applyCellSpanOverrides`,
+  `sheetRowCount`, `sheetGridMetrics`, `sheetPageOrientation`, `sheetColumnWidths`.
+- **Text fitting + measurement:** `measureTextPx`, `pxToChars`, `charsToPx`, `charsToScreenPx`,
+  `clampChars`, `screenPxToChars`, `wrapLineCount`, `cellTextFit`.
+- **Direct manipulation:** `installGridResizers`, `beginSpanDrag`, `spanHandleGeometry`,
+  `applyCellFitLive`, `repositionColHandles`, `repositionRowHandles`, `scheduleLiveUpdate`,
+  `captureScroll`, `restoreScroll`.
+- **Exports:** `exportExcel`, `exportMonthPdf`, `buildWaterfallPdf`, `exportWaterfallPdf`,
+  `exportWaterfallPdfDirect`, `pdfSerialize`, `pdfPage`, `pdfEscape`, `pdfRgb`, `pdfDeflate`,
+  `ttfRead`, `ttfGlyph`, `ttfAdvance`, `ttfTextWidth`, `setWfPageStyle`, `removeWfPageStyle`,
+  `readCfgForMeta`.
+- **CSS:** the `/* ---------- Month view ---------- */` block, the
+  `/* ---------- Calendar PDF export ---------- */` block, and every `.sheet-*` / `.mv-*` /
+  `#print-root` rule. **No third-party CSS baseline may reach them** — Mantine's `global.css` /
+  `baseline.css` must be fenced into a `@layer` the grid rules outrank.
+
+**Why, concretely.** These three cost weeks and are each invisible without measurement:
+
+- Calibri/Carlito's `"0"` advances 7.4336 px, but **Excel floors MDW to 7**. Using the true
+  advance yields columns ~6% narrower than Excel's autofit, and every downstream width is wrong.
+- The width model budgets **3.75 px** of total cell padding at `SHEET_ZOOM`. Any CSS rule that
+  spends more silently ellipsis-clips text. This has already landed twice — 64 of 255 filled
+  cells once, then 9 of 52 date cells.
+- `computePhaseRowLayout()` is the **single** source of which phase occupies which column, shared
+  by the screen, the PDF writer, `sheetColumnWidths()` and the Excel export. The previous
+  three-way divergence is what made the PDF never match an Excel print.
+
+**Allowed:** calling into this surface, reading from it, and changing what *surrounds* it — the
+toolbar above the grid, the popovers anchored to its cells (anchored to, never injected into),
+the container's own layout position on the page.
+
+**If a change genuinely requires touching it:** stop and ask, with the measurement you intend to
+use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
+decide this one alone.
+
 ## ⏳ Watch the context window — hand off before quality drops
 
 Long sessions degrade: context gets summarised, details are lost, and work starts getting
