@@ -24,6 +24,7 @@ import './styles/legacy.css'
 
 import { theme } from './theme.js'
 import { Header } from './chrome/Header.jsx'
+import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
 import { initLegacyApp } from './legacy/app.js'
 
 // ---- Why portals, and not a React root that owns the document ---------------------------------
@@ -43,7 +44,12 @@ import { initLegacyApp } from './legacy/app.js'
 // index.html keeps its exact shape and React only fills the interiors. One root and one
 // MantineProvider, so the CSS-variable block is emitted once.
 function Chrome() {
-  return <>{portal(<Header />, 'header.app-header')}</>
+  return (
+    <>
+      {portal(<Header />, 'header.app-header')}
+      {portal(<PreviewToolbar />, '.view-toggle-row')}
+    </>
+  )
 }
 
 // A portal whose host must already exist. It must NOT be created here: #table-wrap and

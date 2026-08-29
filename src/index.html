@@ -195,103 +195,11 @@
 
   <main class="preview-panel">
     <div id="gap-warning" role="status" aria-live="polite"></div>
-    <div class="view-toggle-row">
-      <div class="view-toggle" id="view-toggle">
-        <button class="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn">Waterfall view</button>
-        <button class="view-toggle-btn" data-mode="month" id="view-month-btn">Month view</button>
-      </div>
-      <div class="preview-tools">
-        <!-- Shift All is a SPLIT control: the arrows act on one click (much the most-used thing
-             here, so it must not move behind a popover) and the caret beside them opens the
-             multi-week form. Each of the other tools gets its own button and its own small
-             popover, so the row names every capability without anything having to be opened. -->
-        <div class="shift-group" id="shift-group">
-          <button class="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">&#8592; 1 wk</button>
-          <span class="shift-label">Shift All</span>
-          <button class="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk &#8594;</button>
-          <button class="shift-btn shift-caret" id="pop-shift-btn" type="button" title="Shift by more than a week" aria-haspopup="true" aria-expanded="false">&#9662;</button>
-          <span class="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
-          <div class="tools-menu tools-menu-sm" id="pop-shift" role="dialog" aria-label="Shift All">
-            <p class="tools-head">Shift All</p>
-            <p class="tools-hint">Every phase moves by the same amount &mdash; the arrows do one week. The gaps between them stay exactly as they are.</p>
-            <div class="tools-row">
-              <input type="number" id="tool-shift-weeks" min="1" step="1" value="2" aria-label="Number of weeks to shift">
-              <span class="tools-unit">weeks</span>
-              <button class="secondary tools-go" id="tool-shift-earlier" type="button">Earlier</button>
-              <button class="secondary tools-go" id="tool-shift-later" type="button">Later</button>
-            </div>
-            <p class="tools-msg" data-tools-msg></p>
-          </div>
-        </div>
-
-        <div class="tools-wrap">
-          <button class="tb-btn tools-btn" id="pop-ripple-btn" type="button" title="Shift one phase and everything after it" aria-haspopup="true" aria-expanded="false">Shift From <span class="caret">&#9662;</span></button>
-          <div class="tools-menu" id="pop-ripple" role="dialog" aria-label="Shift From">
-            <p class="tools-head">Shift From</p>
-            <p class="tools-hint">The phase you pick and everything after it move. Earlier phases stay put, so the gap in front of it opens or closes. Earlier and Later are directions of travel, not which side moves.</p>
-            <div class="tools-row">
-              <select id="tool-ripple-phase" aria-label="Phase to shift from, along with everything after it"></select>
-              <input type="number" id="tool-ripple-weeks" min="1" step="1" value="1" aria-label="Number of weeks to shift">
-              <span class="tools-unit">wks</span>
-            </div>
-            <div class="tools-row">
-              <button class="secondary tools-half" id="tool-ripple-earlier" type="button">Earlier</button>
-              <button class="secondary tools-half" id="tool-ripple-later" type="button">Later</button>
-            </div>
-            <p class="tools-msg" data-tools-msg></p>
-          </div>
-        </div>
-
-        <div class="tools-wrap">
-          <button class="tb-btn tools-btn" id="pop-anchor-btn" type="button" title="Slide the calendar so one landmark lands on a date" aria-haspopup="true" aria-expanded="false">Anchor To <span class="caret">&#9662;</span></button>
-          <div class="tools-menu" id="pop-anchor" role="dialog" aria-label="Anchor to a date">
-            <p class="tools-head">Anchor to a date</p>
-            <p class="tools-hint">Every phase moves so your date lands on the phase you pick &mdash; like Shift All, but you name the destination instead of the distance. Gaps are preserved; use Rebuild From if you want them closed.</p>
-            <div class="tools-row">
-              <select id="tool-anchor-phase" aria-label="What to anchor"></select>
-              <select id="tool-anchor-edge" class="tools-edge" aria-label="Anchor its start or its end">
-                <option value="start">starts on</option>
-                <option value="end">ends by</option>
-              </select>
-            </div>
-            <div class="tools-row">
-              <input type="date" id="tool-anchor-date" aria-label="Date to anchor it to">
-              <button class="secondary tools-go" id="tool-anchor-go" type="button">Go</button>
-            </div>
-            <p class="tools-msg" data-tools-msg></p>
-          </div>
-        </div>
-
-        <div class="tools-wrap">
-          <button class="tb-btn tools-btn" id="pop-solve-btn" type="button" title="Rebuild the phases on one side of a fixed date" aria-haspopup="true" aria-expanded="false">Rebuild From <span class="caret">&#9662;</span></button>
-          <!-- Wider than the others: its phase + "starts" + date row clips the phase name below 364px. -->
-          <div class="tools-menu tools-menu-lg" id="pop-solve" role="dialog" aria-label="Rebuild from a date">
-            <p class="tools-head">Rebuild from a date</p>
-            <p class="tools-hint">Doesn&rsquo;t move the calendar &mdash; rebuilds it. Your date stays put, and the phases on one side are recalculated from their week counts to run with no gaps &mdash; including any that aren&rsquo;t dated yet. Use Anchor To if the plan should keep its current spacing.</p>
-            <div class="tools-row">
-              <select id="tool-solve-phase" aria-label="Phase to work from"></select>
-              <span class="tools-unit">starts</span>
-              <input type="date" id="tool-solve-date" class="tools-date-fixed" aria-label="Date that phase should start on">
-            </div>
-            <div class="tools-row">
-              <button class="secondary tools-half" id="tool-solve-back" type="button">&#8592; Work backwards</button>
-              <button class="secondary tools-half" id="tool-solve-fwd" type="button">Work forwards &#8594;</button>
-            </div>
-            <!-- Folded in here rather than given its own button: it IS Work-forwards from the first
-                 phase at whatever date it already sits on, and the row has no spare width. -->
-            <div class="tools-div"></div>
-            <button class="secondary tools-wide" id="tool-close-gaps" type="button">Close all gaps between phases</button>
-            <p class="tools-msg" data-tools-msg></p>
-          </div>
-        </div>
-
-        <div class="undo-redo-group">
-
-          <button class="icon-btn" id="undo-btn" type="button" title="Undo (⌘Z)" disabled>&#8630;</button>
-          <button class="icon-btn" id="redo-btn" type="button" title="Redo (⌘⇧Z)" disabled>&#8631;</button>
-        </div>
-      </div>
-    </div>
+    <!-- The toolbar ELEMENT stays static and React fills its interior, for the same reason the
+         header does: #gap-warning must remain a genuine SIBLING of this row and of #table-wrap,
+         and #table-wrap must be the immediately following sibling. A React wrapper would make the
+         toolbar their nephew. -->
+    <div class="view-toggle-row"></div>
     <div id="table-wrap"></div>
   </main>
 </div>

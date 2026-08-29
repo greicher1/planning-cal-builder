@@ -128,8 +128,33 @@
   .layout{display:flex; gap:0; align-items:flex-start; width:100%;}
   @media (max-width:960px){ .layout{flex-direction:column;} }
 
+
+  /* ============================================================================================
+     CHROME, ON MANTINE'S VARIABLES — the ui.mantine.dev idiom.
+     ============================================================================================
+     Everything below styles CHROME only, and it reads Mantine's generated custom properties
+     (--mantine-spacing-*, --mantine-radius-*, --mantine-font-size-*, --mantine-color-*) rather
+     than the app's own legacy tokens. That is the token FORK the design pass called for, and it
+     is what makes these surfaces read as Mantine rather than merely contain Mantine components.
+
+     ⛔ The legacy tokens are NOT retired and must not be retinted. UI-CONVENTIONS.md §2 finding 4
+     counted 39 places where FROZEN CSS reads them -- including `border:2px solid var(--text)` on
+     the waterfall's structural block borders and two rules inside @media print. They keep their
+     literal values under their existing names; the chrome simply stops being one of their readers.
+
+     The conventions are lifted from Mantine UI's own source (NavbarSimple.module.css et al):
+       * borders            1px solid var(--mantine-color-gray-3)
+       * resting surface    var(--mantine-color-white) on var(--mantine-color-gray-0) ground
+       * hover              background var(--mantine-color-gray-0)
+       * ACTIVE / selected  background var(--mantine-color-<primary>-light)
+                            color      var(--mantine-color-<primary>-light-color)
+       * interactive text   font-size sm, font-weight 500
+       * section rule       padding-bottom + margin-bottom + border-bottom
+     ============================================================================================ */
   .form-panel{
-    width:clamp(320px, 24vw, 420px); flex:none; padding:0 20px 20px; border-right:1px solid var(--border);
+    width:clamp(320px, 24vw, 420px); flex:none;
+    padding:0 var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+    border-right:1px solid var(--mantine-color-gray-3);
     /* Sits below the sticky header: offset by its height and shrink the scroll area to match. */
     position:sticky; top:var(--header-h); align-self:flex-start;
     max-height:calc(100vh - var(--header-h)); overflow-y:auto;
@@ -150,11 +175,23 @@
 
   .preview-panel{flex:1; min-width:0; padding:20px 28px;}
 
+  /* The Mantine UI "application card": white on the grey ground, a hairline gray-3 border, md
+     radius, md padding. Nothing else -- no shadow at rest, which is what keeps a column of them
+     calm rather than busy. */
   section.card{
-    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-    padding:14px 16px; margin-bottom:14px;
+    background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-md);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-md);
+    margin-bottom:var(--mantine-spacing-md);
   }
-  section.card h2{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin:0 0 10px;}
+  /* Section header: the small dimmed caps Mantine UI uses above a group of controls. */
+  section.card h2{
+    font-size:var(--mantine-font-size-xs); font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+    color:var(--mantine-color-gray-6);
+    margin:0 0 var(--mantine-spacing-md);
+  }
 
   /* ---------- Sidebar tabs ---------- */
   /* Sticky segmented control that groups the settings cards. Bleeds to the panel edges and
@@ -163,13 +200,14 @@
   /* Sits flush at the panel top (panel has no top padding) so, once pinned, its own solid
      background fully covers the settings content scrolling underneath -- no gap or peek. */
   .side-tabs{
-    position:sticky; top:0; z-index:6;
-    padding:14px 0 12px; margin-bottom:14px;
-    background:var(--bg); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:100;   /* re-based onto the Mantine ladder: chrome = 100 */
+    padding:var(--mantine-spacing-md) 0 var(--mantine-spacing-lg);
+    margin-bottom:var(--mantine-spacing-md);
+    background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-3);
   }
   .side-tabs-track{
-    display:flex; gap:3px; padding:3px;
-    background:#EEECE5; border:1px solid var(--border); border-radius:9px;
+    display:flex; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
+    background:var(--mantine-color-gray-1); border-radius:var(--mantine-radius-md);
   }
   .side-tab-btn{
     flex:1; font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:.01em;
@@ -285,18 +323,36 @@
   /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
   .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
     flex-wrap:wrap; margin-bottom:14px;}
-  .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
-  .view-toggle-btn{font-family:inherit; font-size:12.5px; font-weight:500; border:none; background:transparent; color:var(--text-muted); padding:6px 14px; border-radius:6px; cursor:pointer;}
-  .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
-  .view-toggle-btn:hover:not(.active){color:var(--text);}
+  /* Reads as a Mantine SegmentedControl, but it is two <button>s -- deliberately. A real
+     SegmentedControl renders an <input type="radio"> per segment, and Mantine generates an id for
+     each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
+     into every saved calendar under keys that change each page load. See PreviewToolbar.jsx. */
+  .view-toggle{
+    display:inline-flex; gap:var(--mantine-spacing-xxs);
+    background:var(--mantine-color-gray-1);
+    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);
+  }
+  .view-toggle-btn{
+    font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
+    border:none; background:transparent; color:var(--mantine-color-gray-7);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-lg);
+    border-radius:var(--mantine-radius-sm); cursor:pointer;
+  }
+  .view-toggle-btn.active{
+    background:var(--mantine-color-white); color:var(--mantine-color-black);
+    box-shadow:var(--mantine-shadow-xs);
+  }
+  .view-toggle-btn:hover:not(.active){ color:var(--mantine-color-black); }
+  .view-toggle-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
   .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;}
   .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
   .undo-redo-group .icon-btn{font-size:16px;}
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
-  .shift-group{position:relative; display:inline-flex; align-items:center; gap:2px; background:var(--bg);
-    border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
+  .shift-group{position:relative; display:inline-flex; align-items:center;
+    gap:var(--mantine-spacing-xxs); background:var(--mantine-color-gray-1);
+    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);}
   .shift-btn{font-family:inherit; font-size:11px; font-weight:500; color:var(--text-muted);
     border:none; background:transparent; border-radius:6px; padding:5px 7px; cursor:pointer;
     white-space:nowrap; line-height:1;}
@@ -336,19 +392,27 @@
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
+  /* ⛔ NOT a Mantine Popover, and it must not become one. Popover portals by default, which moves
+     these panels out from under .tools-menu -- the single ancestor test that keeps their eight
+     id'd controls out of every saved file -- and it mounts from an effect, so the panels would not
+     exist when the engine collects them by id at evaluation time. They are plain panels wearing
+     Mantine's dropdown clothes: white, gray-3 hairline, lg radius, the one shared md shadow.
+     z-index 300 is the re-based overlay tier (UI-CONVENTIONS.md §6); it was 60. */
   .tools-menu{
-    display:none; position:absolute; top:calc(100% + 5px); right:0; width:340px;
-    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
-    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px 12px; z-index:60; text-align:left;
+    display:none; position:absolute; top:calc(100% + var(--mantine-spacing-sm)); right:0; width:340px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+    padding:var(--mantine-spacing-lg); z-index:300; text-align:left;
   }
   .tools-menu-sm{width:280px;}
   .tools-menu-lg{width:364px;}
-  .tools-div{height:1px; background:var(--border); margin:9px 0;}
+  .tools-div{height:1px; background:var(--mantine-color-gray-3); margin:var(--mantine-spacing-lg) 0;}
   .tools-menu.open{display:block;}
   .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
   .tools-sec-last{padding-bottom:0; margin-bottom:0; border-bottom:none;}
-  .tools-head{margin:0 0 7px; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
-    color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
+  .tools-head{margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xxs);
+    letter-spacing:.05em; text-transform:uppercase; font-weight:600;
+    color:var(--mantine-color-gray-6);}
   .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
   .tools-row:last-child{margin-bottom:0;}
   .tools-edge{flex:none !important; width:92px;}

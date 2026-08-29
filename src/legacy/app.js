@@ -5473,9 +5473,10 @@ export function initLegacyApp() {
     applySnapshotJSON(redoStack.pop());
   }
   function refreshUndoRedoUI(){
-    const u = document.getElementById('undo-btn'), r = document.getElementById('redo-btn');
-    if(u) u.disabled = !undoStack.length;
-    if(r) r.disabled = !redoStack.length;
+    // Pushed, not written. Mantine styles disabled state from [data-disabled] alone -- there is no
+    // :disabled rule in its CSS -- so setting the native property here would disable the buttons
+    // functionally and leave them looking enabled.
+    chrome.undoRedo({ undo: !undoStack.length, redo: !redoStack.length });
   }
 
   // ---------- Calendar shift tools ----------

@@ -52,6 +52,11 @@ export const chrome = {
   notice: noop,
   // { visible }                — the PWA install button.
   installBtn: noop,
+  // { undo, redo } booleans — TRUE means disabled, matching `u.disabled = !undoStack.length`.
+  // Bridged rather than left imperative because Mantine styles disabled from [data-disabled] only:
+  // setting the native .disabled property would disable the buttons functionally while leaving
+  // them looking enabled.
+  undoRedo: noop,
 }
 
 export function installChrome(impl) {
