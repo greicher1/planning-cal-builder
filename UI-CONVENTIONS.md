@@ -249,9 +249,19 @@ Found 29 Aug 2026 while porting the preview toolbar, where `syncAnchorDate()` wr
    `MANTINE-MIGRATION.md` §4.4's original plan, and it puts the save-format contract (§0 rule 3,
    *every saved calendar must keep opening, forever*) in the blast radius of a UI pass.
 
-**Recommended: (1), with the week-band affordance re-costed separately.** It keeps the rule that has
-never been broken unbroken. Decide before the first Mantine input is placed in the sidebar — this
-now gates Stage 4 alongside §8.3.
+✅ **SETTLED 29 Aug 2026 — option (1), and by demonstration rather than by argument.** The three
+static sidebar cards were built entirely from **uncontrolled** Mantine components (`defaultValue`
+only, never `value`), and the `restore` gate passes against real `TextInput` / `NativeSelect` /
+`NumberInput` elements: a genuine v1.0.0 saved calendar restores to 52 rows / 154 cells / 324 pt
+with `fields.byId` unchanged at **56 ids**. So `applyStateSnapshot()`'s `el.value` writes reach
+Mantine-rendered inputs perfectly, and `collectFieldValues()` / `applyStateSnapshot()` need no
+change at all.
+
+**What this costs, precisely:** only the components that are *inherently* controlled are ruled out —
+`DateInput` and `DatePickerInput`. Every date field in the app is therefore still a native
+`<input type="date">`, and **§5's Monday-snap week band has to be re-costed on its own terms**
+rather than arriving free with `DateInput`. It is the one thing in this document that the port
+cannot deliver as written.
 
 ---
 
@@ -460,9 +470,17 @@ it, the readout swallowed a click aimed at *Reset Notes & Hiatus*.
 **The date pickers were the owner's explicit ask, and they carry the single biggest hazard in the
 migration.** See §8.1 first.
 
-**Verdict: `DateInput`, never `DatePickerInput`**, with `valueFormat="YYYY-MM-DD"` — non-negotiable,
+> ⛔ **SUPERSEDED 29 Aug 2026 — see §2c.** `DateInput` is *also* a controlled component, and
+> `applyStateSnapshot()` restores by writing `el.value` into every field by id. A controlled input
+> ignores that write, so a saved date would silently fail to come back on open — while still saving
+> correctly and passing every id-based assertion. **Every date field in the app is a native
+> `<input type="date">`**, and the week-band affordance below needs re-costing on its own terms.
+> What survives of this section: the *behaviour* it describes is still the right target, and
+> `DatePickerInput` is still ruled out for the separate reason §8.1 gives.
+
+~~**Verdict: `DateInput`, never `DatePickerInput`**, with `valueFormat="YYYY-MM-DD"` — non-negotiable,
 not cosmetic. Applies to all six date families: phase starts, per-phase hiatus, all-phase hiatus,
-custom holiday, and the two tool-popover dates.
+custom holiday, and the two tool-popover dates.~~
 
 **Monday-snapping moves into the picker.** Today it is a `.snap-note` afterthought printed under the
 field *after* the user has already chosen. Instead: `getDayProps(date)` returns
@@ -803,6 +821,18 @@ Nothing in this document ships without all of these, every stage:
 
 Unchanged from `MANTINE-MIGRATION.md` §6 in shape; this document is what Stage 2 produced.
 
+> ⚠️ **SUPERSEDED by what was actually built. `HANDOFF.md` §2b-3 is the live status and the live
+> order.** Recorded here because the *reasoning* still reads correctly, and because the two places
+> the plan diverged are worth knowing:
+>
+> - **Stage 3 (the Settings menu) was skipped, not forgotten.** Its whole justification was proving
+>   the provider, theme, CSS layering and build pipeline on something small. Stage 1 proved all four
+>   on the real app, so Stage 3's proving value was already spent. The owner's §2b ask still stands
+>   and is still unbuilt.
+> - **`collectFieldValues()` did NOT die**, which this table assumed it would. It survives untouched,
+>   and that is what kept the save-format contract out of the migration's blast radius entirely —
+>   see §2c. Every Mantine input carries its real id and is uncontrolled.
+
 | | | Depends on |
 |---|---|---|
 | **Stage 3** | Settings menu, first Mantine surface — proves provider, theme, layer fence, build | §8.6, §8.7 |
@@ -813,3 +843,6 @@ Unchanged from `MANTINE-MIGRATION.md` §6 in shape; this document is what Stage 
 ⚠️ **§8.3 gates Stage 4 and is not an implementation detail.** Whether Mantine inputs may carry
 generated ids has to be answered before the first one is placed in a hiatus row, an episode row or
 the holiday list — not discovered afterwards, when saved files already carry the junk keys.
+✅ Answered in practice: **pass the real id to every Mantine input**, and use no component that mints
+hidden id'd inputs of its own — which is why `SegmentedControl` is ruled out for the view toggle
+(a radio per segment, each with a generated id, outside any `.tools-menu`).

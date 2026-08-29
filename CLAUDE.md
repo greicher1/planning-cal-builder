@@ -239,6 +239,14 @@ long sessions — it is easy to forget precisely when it matters most.
 
 `index.html` — a **single self-contained HTML file** (~10,345 lines / ~667 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
 
+> ⚠️ **This describes the DEPLOYED `index.html`, and it is still exactly true of it. It is no longer
+> true of the repo.** As of 29 Aug 2026 there is a Vite + React + Mantine build in `src/` that
+> produces `dist/index.html` — the chrome's header, preview toolbar and static sidebar cards are
+> React now. The root `index.html` is untouched and still IS the live app, byte-identical to
+> `releases/v1.2.0.html`; nothing has been deployed. Read [`HANDOFF.md`](HANDOFF.md) §2b-3 for what
+> exists, and note that the product is still ONE self-contained file — that is what the build
+> produces.
+
 There is no build system, no package manager, no test runner, no server. The whole app is one `<style>` block, static markup, and one `<script>` block wrapped in an IIFE — nothing inside is a global, so a test must drive the DOM rather than call functions. ExcelJS is the only dependency, loaded from a CDN `<script>` tag. The Carlito font is **embedded** (base64 of a zlib'd TrueType subset, ~94 KB) rather than fetched, so text measurement cannot drift; `tools/subset-font.py` regenerates it. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
 
 There is no runner but there **are** fixtures — `tests/fixtures/` holds real saved calendars to test the restore path against. See PROJECT-CONTEXT §11.

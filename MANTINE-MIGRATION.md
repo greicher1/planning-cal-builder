@@ -270,6 +270,21 @@ Blocking. Nothing ships until all of it is done.
 
 ## 6. Staged plan
 
+> ⛔ **SUPERSEDED BY WHAT WAS BUILT. [`HANDOFF.md`](HANDOFF.md) §2b-3 is the live status and the live
+> order.** Kept because the reasoning still reads correctly and the estimates were roughly right.
+> Three things this section assumed turned out differently, and each is worth carrying forward:
+>
+> - **Stage 3 (the Settings menu) was skipped, not forgotten.** Its justification was proving the
+>   provider, theme, CSS layering and build on something small; Stage 1 proved all four on the real
+>   app. The owner's §2b ask still stands and is still unbuilt.
+> - **§4.4 was wrong, and usefully so.** `collectFieldValues()` and `reflectFieldsToAttributes()`
+>   did NOT die and persistence was NOT rewritten around React state. Every Mantine input carries
+>   its real id and is **uncontrolled**, so `applyStateSnapshot()`'s `el.value` writes still land.
+>   That kept the save-format contract out of the migration's blast radius entirely — which also
+>   means **§4.5's legacy-restore branch was never needed**, and §7's Q2 (how many saved calendars
+>   exist) stopped being a blocker.
+> - **The seam is four portals, not one root.** See `HANDOFF.md` §2b-3 and `MANTINE-SEAM.md` §3.1.
+
 Each stage ends somewhere shippable, so work can pause without leaving a half-migrated app on
 `main`. Estimates are working sessions, unpadded. **Every stage ends with the §1 acceptance gate:
 zero clipped cells, PDF diffs clean.**

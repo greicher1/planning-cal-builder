@@ -265,7 +265,7 @@ file (see §4, "what NOT to do").
    settings control simply calls it. The PDF and Excel read the value at export time, so they need
    nothing.
 
-### 2b-3. Mantine build — **STAGE 1 AND THE HEADER ARE BUILT AND GATED** (29 Aug 2026)
+### 2b-3. Mantine build — **BUILD + HEADER + PREVIEW TOOLBAR + STATIC SIDEBAR CARDS, ALL GATED** (29 Aug 2026)
 
 > Read this before `MANTINE-MIGRATION.md` §6's stage list, which it partly supersedes. The stage
 > ORDER changed: Stage 3 (Settings) was skipped for now because Stage 1 already proved the provider,
@@ -288,16 +288,23 @@ heights that `exportMonthPdf` prints.
 #### What exists now
 
 ```
-index.html          ← UNCHANGED. The deployed v1.2.0 app, byte-identical to releases/v1.2.0.html.
-src/index.html      ← the Vite entry: the static skeleton only
-src/main.jsx        ← CSS order, one React root, portals, then initLegacyApp()
-src/theme.js        ← UI-CONVENTIONS §3 as a Mantine theme
-src/chrome/bridge.js  ← the engine→chrome state bridge
-src/chrome/Header.jsx ← the ported toolbar
-src/legacy/app.js   ← the original IIFE, wrapped and surgically edited at the write sites
-src/styles/legacy.css ← the original stylesheet, minus the retired header rules
-dist/index.html     ← build output (gitignored)
+index.html                   ← UNCHANGED. The deployed v1.2.0 app, byte-identical to
+                                releases/v1.2.0.html.
+src/index.html               ← the Vite entry: the static skeleton only
+src/main.jsx                 ← CSS order, one React root, four portals, then initLegacyApp()
+src/theme.js                 ← UI-CONVENTIONS §3 as a Mantine theme
+src/chrome/bridge.js         ← the engine→chrome state bridge (OUTPUT only; see below)
+src/chrome/Header.jsx        ← app header: file menu, six actions, save status
+src/chrome/PreviewToolbar.jsx← view toggle, Shift All split control, 4 tool popovers, undo/redo
+src/chrome/Sidebar.jsx       ← the three STATIC cards: Show info, Production Region, Holidays
+src/legacy/app.js            ← the original IIFE, wrapped and surgically edited at the write sites
+src/styles/legacy.css        ← the original stylesheet + the chrome's Mantine-variable rules
+dist/index.html              ← build output (gitignored), ~1.03 MB / 324 KB gzipped
 ```
+
+**The four portal hosts**, all of which stay in the static skeleton and are filled rather than
+replaced: `header.app-header`, `.view-toggle-row`, `#sidebar-static`, and (Stage 1 only, now empty)
+`#react-root` as the root container.
 
 ⛔ **The root `index.html` is deliberately untouched and must stay that way until an
 owner-approved cutover.** `main` auto-deploys it, so a source-only `index.html` at the root would
@@ -365,33 +372,80 @@ Two more traps landed where `UI-CONVENTIONS.md` §8 did not predict them:
   `docProps/core.xml`, so two exports of an identical workbook differ by ~1 byte. Compare the
   unzipped parts with `core.xml` excluded — `gate.sh` does.
 
+#### ⛔ What is NOT done, stated plainly
+
+The Phases and All-phase hiatus card **interiors** are restyled, not rebuilt — same for the holiday
+list rows and the episode rows. They look Mantine because plain `<input>`/`<select>` now render at
+Mantine's xs height with a gray-4 hairline and the primary focus ring, but they are still
+engine-generated markup. That is a deliberate stopping point, not an oversight: see item 1 of
+"what is next".
+
+#### ⛔ The controlled-input finding, and the fact that it is now SETTLED
+
+`UI-CONVENTIONS.md` §2c records the trap: Mantine's inputs are **controlled**, and
+`applyStateSnapshot()` restores a calendar by writing `el.value` into each field by id. A controlled
+component ignores that write and re-renders from its own state — so a value would silently fail to
+come back on open while still *saving* correctly and passing every id-based assertion. §8.1 caught
+`DatePickerInput`'s id problem and prescribed `DateInput`; `DateInput` is controlled too, so it fails
+this different and worse way.
+
+✅ **Resolved by demonstration, not by argument.** Every control in `Sidebar.jsx` is **uncontrolled**
+— `defaultValue` only, never `value` — and the `restore` gate passes against real Mantine
+`TextInput` / `NativeSelect` / `NumberInput` elements, restoring 52 rows / 154 cells / 324 pt with
+`fields.byId` unchanged at 56 ids. So option (1) in §2c is proven: **uncontrolled Mantine components
+work with the existing save/restore path, unchanged.** The only casualties are the genuinely
+controlled ones — `DateInput` / `DatePickerInput` — which is why every date field in the app is still
+a native `<input type="date">`, and why §5's Monday-snap week-band affordance needs re-costing
+separately rather than being assumed.
+
 #### Where it stands, measured
 
-Full gate **PASSED** against `tests/baselines/2026-08-29-stage-7`: 0 horizontally clipped cells,
-waterfall PDF **byte-identical**, every Excel part identical, `v1.0.0-saved.html` restoring to 52
-rows / 154 cells / 324 pt, `fields.byId` **56 ids identical**, 0 console errors. Frozen-surface
-computed styles are unchanged — table 602 px, note cell 184 px, phase cell 92 px, date cell 53 px,
-no typographic or box change. The only deltas are `--header-h` 52 → 51 px and the 1 px that gives
-back to `.sheet-scroll`'s max-height.
+Full gate **PASSED** after every stage, against `tests/baselines/2026-08-29-stage-7`: 0 horizontally
+clipped cells, waterfall PDF **byte-identical**, every Excel part identical, `v1.0.0-saved.html`
+restoring to 52 rows / 154 cells / 324 pt, `fields.byId` **56 ids identical**, 0 console errors.
+Frozen-surface computed styles are unchanged — table 602 px, note cell 184 px, phase cell 92 px,
+date cell 53 px, no typographic or box change. The only deltas are `--header-h` 52 → 51 px and the
+1 px that gives back to `.sheet-scroll`'s max-height.
 
-`dist/index.html` is **977 KB** (307 KB gzipped) against the current 667 KB — inside the
-~1.0–1.15 MB the probe projected.
+`dist/index.html` is **~1.03 MB** (324 KB gzipped) against the current 667 KB — inside the
+~1.0–1.15 MB the probe projected, and item 5 of "what is next" would take ~247 KB back off it.
+
+**Verified by hand in a real browser**, because the gate cannot see any of it: all four tool
+popovers open and `fillPhaseSelect` fills their phase selects with the `' — '` separator intact; the
+file menu opens, and its *Open…* item drives the real file-open path (which is what the `restore`
+gate exercises); the export button's viewMode dispatch flips its label and its fill between
+Waterfall and Month; `reflectRegionUI` still shows the US Area row through the React-rendered
+markup. The built file also runs from `file://` — checked with headless Chrome straight off the
+filesystem, which is the emailing-it-around property surviving the build step.
 
 #### ⏭ What is next, in order
 
-1. **Preview toolbar** (`.view-toggle`, the shift split control, the four `.tools-menu` popovers,
-   undo/redo). Frees the `.tb-btn` block. ⚠️ The eight id'd controls inside `.tools-menu` are kept
-   out of saved files by exactly one test — `el.closest('.tools-menu')` — and Mantine's `Popover`
-   **portals by default**, which escapes it. `classNames={{ dropdown: 'tools-menu' }}`, on the
-   dropdown and not a wrapper.
-2. **Sidebar** — the largest stage. `§8.3` (generated ids) must be answered before the first Mantine
-   input is placed in a hiatus row, an episode row or the holiday list. ⚠️ Sidebar tab panels must
-   stay **mounted**: `computeHeaderDefaults` reads five fields from *both* export writers and three
-   of those reads are unguarded, so a `Tabs` that unmounts inactive panels throws inside
-   `exportExcel`/`buildWaterfallPdf`.
-3. **Note popovers + help modal**, then **embed Inter** (§9.1) with its network-on/off month-PDF
-   diff, then **calibrate and document**.
-4. **The GitHub Action**, and only then the cutover conversation.
+1. **The engine-generated sidebar rows** — the biggest remaining piece, and the one that is
+   *restyled but not rebuilt*. `buildPhaseRows`, `phaseHiatusBlockHtml`, `renderEpisodeRows`,
+   `renderHolidayVisList` and the all-phase hiatus rows all emit HTML **strings**, and those
+   generators also **mint the element ids that are the save-file format** (`start-<key>`,
+   `weeks-<key>`, `name-<key>`, the per-row hiatus ids). They currently get Mantine's look from the
+   plain-control rules in `legacy.css`; turning them into components means moving id generation into
+   React, which puts §0 rule 3 in the blast radius. **Do this one deliberately, with the
+   `fields.byId` gate in front of you, or leave it restyled.**
+2. **The note popovers** (`.note-pop`, `.mv-note-pop`) **and the help modal.** The owner ruled
+   `.mv-note-pop` **in scope** (§9.5), including fixing its live bug: `render()` never tears it down
+   and it registers neither a scroll nor a resize listener, unlike its waterfall twin. ⚠️ Both are
+   `document.body.appendChild` panels and `buildSavedHtml()` strips them **by class name** — keep
+   `.note-pop` / `.mv-note-pop` / `.phase-color-pop` or a stray popover exports into a shareable copy.
+3. **Embed Inter** (§9.1, ruled yes) with the gate the ruling came with: a month-PDF diff taken with
+   the network **on** and **off**, because `mvNoteLineCount()` measures against Inter and its result
+   sets month-view row heights that `exportMonthPdf` prints. ⚠️ `body{font-family:'Inter',…}` is
+   FROZEN for this reason — `.mv-bar` and `.mv-note-block` declare no font-family and inherit it.
+4. **The two notice strips** — still static markup, still carrying the §2h bug. Porting them fixes it
+   for free (a strip that renders nothing when dismissed cannot be serialised), but that changes an
+   export's output and wants the owner's sign-off first.
+5. **Per-component Mantine CSS.** The build inlines the full `styles.layer.css` — **273 KB for ~200
+   components when the chrome uses about a dozen**; the per-component files for what is in use total
+   ~26 KB. That is a quarter of the file, and it matters because the owner priced the emailing-it-
+   around property. Deferred deliberately until the component set is final: a forgotten import
+   renders unstyled rather than failing. Expect ~730 KB after.
+6. **Calibrate and document**, then **the GitHub Action**, and only then the cutover conversation.
 
 ⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
 spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth

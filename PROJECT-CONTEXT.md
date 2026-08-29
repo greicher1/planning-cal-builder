@@ -778,6 +778,29 @@ project's real documentation.
 > trap list. It is **not deployed** — nothing in `index.html` references it. The sketch below is
 > kept because it explains *why* the harness has the shape it does; read it, then use the committed
 > version rather than rebuilding one.
+>
+> ⚠️ **Four things changed with the Mantine build (29 Aug 2026) and are easy to trip over:**
+>
+> - **`./gate.sh` runs the whole acceptance gate as one command** and diffs it against
+>   `tests/baselines/2026-08-29-stage-7`. Use it; the individual tests are for diagnosing what it
+>   reports.
+> - **`HARNESS_PAGE=/dist/index.html`** points the same tests at the Vite build instead of the
+>   deployed root file. The server always serves the repo ROOT, so `tests/fixtures/…` stays reachable
+>   from either page.
+> - **`tests/harness/package.json` exists and must not be deleted.** The repo root gained
+>   `"type":"module"` with the build, which reclassifies every `.js` beneath it as ESM — `srv.js`
+>   then dies on `require is not defined` and `run.sh` reports only *"server did not start"*, which
+>   reads exactly like a broken app.
+> - **`t/lib.js`'s `set()` uses the NATIVE value setter.** React tracks the last value it wrote, so a
+>   plain `e.value = v` leaves the tracker unchanged, React decides nothing changed and swallows the
+>   dispatched event — every fixture would silently assert against a blank calendar.
+>
+> ⚠️ **Give `restore` and `sharecopy` a 60 s budget, not 40.** Below that the documented
+> fresh-profile IndexedDB stall fires often enough to look like a real failure.
+>
+> ⚠️ **Never byte-compare the `.xlsx`.** ExcelJS stamps `dcterms:created` / `modified` into
+> `docProps/core.xml`, so two exports of an identical workbook differ by ~1 byte. Compare the
+> unzipped parts with `core.xml` excluded — `gate.sh` does.
 
 There is no test runner. The reliable pattern is a **throwaway static server that injects a test
 script**, driven by headless Chrome with `--dump-dom`, writing results into a `<pre>` that gets
