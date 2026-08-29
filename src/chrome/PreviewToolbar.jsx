@@ -44,7 +44,7 @@
 import { useState, useLayoutEffect } from 'react'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconRows, IconCalendarPlain } from './icons.jsx'
+import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
 
 export function PreviewToolbar() {
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
@@ -185,11 +185,11 @@ export function PreviewToolbar() {
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
           <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>
             <ActionIcon id="undo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                        disabled={undoRedo.undo} aria-label="Undo">↶</ActionIcon>
+                        disabled={undoRedo.undo} aria-label="Undo"><IconUndo className="btn-ic" /></ActionIcon>
           </Tooltip>
           <Tooltip label="Redo (⌘⇧Z)" position="bottom" withArrow>
             <ActionIcon id="redo-btn" className="icon-btn" variant="subtle" color="gray" size="md"
-                        disabled={undoRedo.redo} aria-label="Redo">↷</ActionIcon>
+                        disabled={undoRedo.redo} aria-label="Redo"><IconRedo className="btn-ic" /></ActionIcon>
           </Tooltip>
         </Group>
       </div>

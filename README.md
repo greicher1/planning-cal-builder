@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — round 3: chips crowned, warnings diegetic, terminology settled
+
+⚠️ **Not deployed and not cut as a version.** The owner's third review round, itemised in
+HANDOFF §2b-3 and built the same day. What a user notices: every phase chip is crowned by its
+**color bar** (the full-width clickable strip is the same color changer, conforming to the chip's
+corner radius) with a visual grab handle beside the name (reordering itself is deliberately not
+built — it is save-format territory); the production episode warning reads as a real warning with
+a drawn glyph on the amber tuple; the phase date/duration readout sits on **two rows**; remove ×
+buttons centre their glyph and go red on hover; undo/redo wear drawn glyphs; the tool popovers'
+phase pickers wear Mantine's chevron; **"Autosave needs a file" shows as the red badge**; the file
+menu searches "**loaded** files" (new house terminology: *saving* writes a `.sptcal` locally,
+*loading* opens a `.sptcal`/`.html` into the PWA); and sharing a copy moved to **Settings ▸ App ▸
+Export App With Data**. Under the hood: a 600 ms accidental-retrigger guard on New / Save As /
+Share / both exports, and label/text-size parity rules so Show, Settings and Phases cannot drift.
+
+⚠️ **One line of this round is the project's first deliberate frozen-function edit**, made at the
+owner's direction: the two-row readout changes one separator (` · ` → newline) inside `render()`'s
+meta branch. `meta-<key>` is a write-only sidebar element no export reads, and the full gate —
+waterfall PDF byte-identical, Excel parts identical, v1.0.0 restore, 56 ids — passed after it.
+Also answered this round: the export filename convention is untouched, and the all-phase hiatus
+never had a sidebar name field (band labels are edited on the band itself, in the calendar).
+
 ### Unreleased — the visual redesign rounds: header, navbar, blocks, split control, date pickers
 
 ⚠️ **Not deployed and not cut as a version** — same standing as the entries below. Everything here

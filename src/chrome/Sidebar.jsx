@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconShare } from './icons.jsx'
 
 const SEASONS = [
   { value: '', label: '—' },
@@ -106,6 +106,25 @@ export function RegionCard() {
         Locked — changing the Region would recompute Production’s dates and misplace your
         comment/hiatus edits. Use “Reset Notes &amp; Hiatus” above the calendar first.
       </p>
+      </div>
+    </section>
+  )
+}
+
+export function AppCard() {
+  return (
+    <section className="card" data-tab="settings">
+      <h2><IconShare className="card-ic" /><span>App</span></h2>
+      <div className="side-block">
+        <Text size="xs" c="dimmed" mb="md">
+          A standalone HTML copy of the app with this calendar loaded — for sending to someone who
+          doesn’t have the tool. It opens by double-click, anywhere, offline.
+        </Text>
+        {/* #share-copy-btn: the engine's document-delegated click listener matches this id — the
+            same flow that used to live on a header button (owner moved it here, 29 Aug 2026). */}
+        <Button id="share-copy-btn" type="button" variant="default" size="xs" fullWidth>
+          Export App With Data
+        </Button>
       </div>
     </section>
   )

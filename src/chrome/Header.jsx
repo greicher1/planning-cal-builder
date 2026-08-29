@@ -14,7 +14,7 @@
 import { useState, useLayoutEffect, useCallback } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconShare } from './icons.jsx'
+import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload } from './icons.jsx'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
 // current control measures 30.0px and the sidebar it shares a scale with already overflows its
@@ -135,8 +135,8 @@ export function Header() {
                 <input
                   className="fm-search"
                   type="text"
-                  placeholder="Search saved files…"
-                  aria-label="Search saved files"
+                  placeholder="Search loaded files…"
+                  aria-label="Search loaded files"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
@@ -145,7 +145,7 @@ export function Header() {
               <div className="fm-list">
                 {menu.items.length === 0 ? (
                   <Text className="file-menu-empty" size="xs" c="dimmed" px="md" py="md">
-                    No saved files yet
+                    No loaded files yet
                   </Text>
                 ) : menu.items.filter((f) => f.name.toLowerCase().includes(q.trim().toLowerCase())).length === 0 ? (
                   <Text className="file-menu-empty" size="xs" c="dimmed" px="md" py="md">
@@ -217,18 +217,9 @@ export function Header() {
         {saveAs.label}
       </Button>
 
-      {/* "Export shareable copy" split out of the file menu (owner's ask, 29 Aug 2026). The
-          engine handles the click by document-level delegation on this id, so the button may be
-          conditionally styled but must always be rendered. */}
-      <Button
-        {...BTN}
-        id="share-copy-btn"
-        variant="default"
-        leftSection={<IconShare className="btn-ic" />}
-        title="A standalone HTML copy of the app with this calendar in it — for sending to someone who doesn’t have the tool"
-      >
-        Share copy
-      </Button>
+      {/* The share-copy button LEFT the header (owner, 29 Aug 2026 round 3): the flow lives on as
+          "Export App With Data" in the Settings tab (Sidebar.jsx AppCard), which carries the
+          #share-copy-btn id the engine's document-delegated listener matches. Code path intact. */}
 
       {/* ONE button, with the viewMode dispatch inside the engine's handler. It is the SOLE entry
           point to exportMonthPdf(); splitting it into two semantic buttons would decouple the month

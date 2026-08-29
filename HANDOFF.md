@@ -518,36 +518,40 @@ entry ("the visual redesign rounds"); what a next session must know:
 UI copy follows this vocabulary (the file-menu search says "Search loaded files"). Use it in all
 new user-facing text.
 
-#### ⏳ REQUESTED BY THE OWNER, NOT YET BUILT (29 Aug 2026 review round 3)
+#### ✅/⏳ THE OWNER'S ROUND-3 LIST — built same day except where marked (29 Aug 2026)
 
-Logged before building, at the owner's instruction. In rough dependency order:
+Logged before building at the owner's instruction, then built and gated. State of each:
 
-1. **Unify remaining font-size drift between Show / Settings / Phases contents.**
-2. **Phase chips:** the color changer becomes a full-width bar at the TOP of each chip (conforming
-   to the top corner radius; still the engine's `swatch-<key>` anchor); **visual-only grab
-   handles** for future rearranging (⛔ no reorder code yet — reordering touches `customPhaseDefs`
-   order, which is save-format, and `PHASE_CHAIN`; needs its own design).
-3. **Diegetic warnings in phase chips** — e.g. a red highlight ring on a bad start date; restyle
-   the production episode warning chip onto the warn tuple.
-4. **Red hover on the phase-chip ×**, and center the glyph properly.
-5. **Custom modal warnings/confirms replacing every native `alert()`/`confirm()`** — the
-   UI-CONVENTIONS §4 feedback system (~30 call sites). Substantial; belongs with the
-   popover/help-modal stage (item 2 below).
-6. **Undo/redo glyphs redrawn** to fit the Mantine icon family.
-7. **Accidental-retrigger guard** (cooldown) on New / Save / Save As / Share / Export buttons.
-8. **The tool popovers' phase `<select>`s styled to Mantine** (they stay real selects —
-   `fillPhaseSelect` owns their innerHTML).
-9. **"Search loaded files"** label per the terminology rule.
-10. **Share copy leaves the header**: keep the code path, disable/hide the header button, and add
-    an **"Export App With Data"** action in the Settings tab that triggers the same flow.
-11. **"Autosave needs a file" status shows red.**
-12. **`.phase-meta` becomes two rows** (dates → line 1, "Snapped to Mon …" → line 2). ⚠️ The
-    string is composed inside FROZEN `render()` — the change is one separator (` · ` → `\n`) plus
-    `white-space:pre-line`; `meta-<key>` is a write-only sidebar div no export reads. Owner-
-    directed; log it as the first deliberate frozen-function edit when it lands.
-13. **All-phase hiatus naming:** ANSWERED — it never existed in the sidebar. Band labels are
-    edited by clicking the band in the grid (`hiatusTexts`). A sidebar name field means a new key
-    in the `fields.hiatuses` entry shape (save format, append-only) — needs a design decision.
+1. ✅ Font parity: `.mantine-InputWrapper-label` now matches the engine field labels declaration
+   for declaration; Mantine input text pinned to `sm` alongside the plain-control rule.
+2. ✅ **Phase chips:** the color changer is a full-width bar crowning each chip (same
+   `swatch-<key>` element and engine contract — `style.background` write, color-pop anchor);
+   **grab handles are VISUAL ONLY** (six CSS dots, `cursor:grab`). ⛔ Reorder CODE stays unbuilt
+   deliberately — `customPhaseDefs` order is save-format and `PHASE_CHAIN` depends on order;
+   needs its own design first.
+3. ◐ The production episode warning chip is diegetic now (warn tuple + drawn warning glyph).
+   ⏳ The red ring on a bad start date is NOT built — the validity signal lives inside frozen
+   `render()`'s meta branch (inline color write); surfacing it as a field ring needs a small
+   engine hook that should be designed with the §4 modal work.
+4. ✅ × buttons flex-centred; destructive removes go danger-tinted on hover.
+5. ⏳ **Custom modals replacing `alert()`/`confirm()` (~30 sites)** — scheduled with the
+   popover/help-modal stage (item 2 of "what is next"). The owner has asked for it explicitly.
+6. ✅ Undo/redo are drawn stroke glyphs from the icon family.
+7. ✅ `reClickGuard(600ms)` on New / Save As / Share / both exports (Save already had
+   `saveInFlight`).
+8. ✅ Tool-popover phase selects wear Mantine's chevron (`appearance:none` + inline SVG; still
+   real `<select>`s — `fillPhaseSelect` owns their innerHTML).
+9. ✅ "Search loaded files…" per the terminology rule.
+10. ✅ Share copy left the header; **Settings ▸ App ▸ "Export App With Data"** carries
+    `#share-copy-btn`, so the engine's document-delegated listener needed no change.
+11. ✅ "Autosave needs a file — click Save" pushes `tone:'failed'` → the red Badge.
+12. ✅ **`.phase-meta` is two rows — THE FIRST DELIBERATE FROZEN-FUNCTION EDIT.** One separator
+    inside `render()`'s meta branch (` · ` → `\n`) plus `white-space:pre-line`. Owner-directed;
+    `meta-<key>` is a write-only sidebar div no export path reads; the full gate (waterfall PDF
+    byte-identical, Excel parts identical) passed after it.
+13. ✅ ANSWERED — all-phase hiatus naming never existed in the sidebar. Band labels are edited by
+    clicking the band in the grid (`hiatusTexts`). A sidebar name field = a new key in the
+    `fields.hiatuses` entry shape (save format, append-only) — needs a design decision.
 
 #### ⏭ What is next, in order
 

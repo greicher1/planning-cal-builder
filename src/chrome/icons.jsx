@@ -121,6 +121,24 @@ export function IconCalendarPlain(props) {
   )
 }
 
+export function IconUndo(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6.5 12.5 3 9l3.5-3.5" />
+      <path d="M3 9h6a3.5 3.5 0 0 1 0 7H7.5" />
+    </svg>
+  )
+}
+
+export function IconRedo(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9.5 12.5 13 9 9.5 5.5" />
+      <path d="M13 9H7a3.5 3.5 0 0 0 0 7h1.5" />
+    </svg>
+  )
+}
+
 export function IconDownload(props) {
   return (
     <svg {...base} {...props}>

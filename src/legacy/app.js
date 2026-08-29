@@ -2193,7 +2193,7 @@ export function initLegacyApp() {
           note = `${fmtShort(start)} \u2192 ${fmtShort(end)} (${weeks} wk)`;
         }
         if(cfg.start !== start.toISOString().slice(0,10)){
-          note += ` \u00b7 Snapped to Mon ${fmtShort(start)}`;
+          note += `\nSnapped to Mon ${fmtShort(start)}`;   // '\n' + .phase-meta{white-space:pre-line}: two rows (owner, 29 Aug 2026)
         }
         metaEl.textContent = note;
         metaEl.style.color = '';
@@ -5404,7 +5404,7 @@ export function initLegacyApp() {
   // than leaving as quiet text -- UI-CONVENTIONS.md §4.
   function refreshSaveStatus(){
     if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
-    else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'dirty', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
+    else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'failed', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
     else if(isDirty){ chrome.saveStatus({ text: 'Unsaved changes', tone: 'dirty', title: '' }); }
     else if(lastSavedAt){ chrome.saveStatus({ text: 'Saved ' + fmtTime(lastSavedAt), tone: 'idle', title: '' }); }
     else { chrome.saveStatus({ text: '', tone: 'idle', title: '' }); }
@@ -6088,6 +6088,20 @@ export function initLegacyApp() {
   // asynchronously, so a second click landing before the commit would have read .disabled === false
   // and started a concurrent write to the same file. The flag is set synchronously.
   let saveInFlight = false;
+  // Round-3 owner ask (29 Aug 2026): an accidental-retrigger guard for the file-action buttons.
+  // A double activation inside the window is dropped. This exists because the async busy states
+  // commit through React AFTER the second click of a fast double-click has already landed --
+  // saveInFlight closes that hole for Save specifically; this closes it for the rest (double
+  // pickers, double downloads, double New confirms).
+  function reClickGuard(ms, fn){
+    let last = 0;
+    return function(...args){
+      const now = Date.now();
+      if(now - last < ms) return;
+      last = now;
+      return fn.apply(this, args);
+    };
+  }
   function flashSaveBtn(text, btn){
     const isSaveAs = btn === saveAsBtn;
     const restore = isSaveAs ? 'Save As\u2026' : saveBtnLabel();
@@ -6642,20 +6656,20 @@ export function initLegacyApp() {
     // "Export shareable copy" moved out of the file menu to its own header button (owner's ask,
     // 29 Aug 2026). Delegated from document for the same remount-proofing reason as the menu
     // listener above; the menu's own 'share' branch stays as harmless belt-and-braces.
-    document.addEventListener('click', (e)=>{
+    document.addEventListener('click', reClickGuard(600, (e)=>{
       if(!e.target.closest || !e.target.closest('#share-copy-btn')) return;
       try {
         downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
       } catch(err){ console.error(err); alert('Could not build a shareable copy: '+err.message); }
-    });
+    }));
 
-    if(newBtn) newBtn.addEventListener('click', ()=>{
+    if(newBtn) newBtn.addEventListener('click', reClickGuard(600, ()=>{
       // Only warn if there's actually unsaved work to lose.
       if(isDirty && !confirm('Start a new blank calendar? Your unsaved changes will be lost.')) return;
       newFile();
-    });
+    }));
 
-    if(saveAsBtn) saveAsBtn.addEventListener('click', async ()=>{
+    if(saveAsBtn) saveAsBtn.addEventListener('click', reClickGuard(600, async ()=>{
       try {
         const r = await saveAsFile();
         flashSaveBtn(r === 'download' ? 'Downloaded \u2713' : 'Saved \u2713', saveAsBtn);
@@ -6664,7 +6678,7 @@ export function initLegacyApp() {
         console.error(err);
         alert('Something went wrong saving the file: ' + err.message);
       }
-    });
+    }));
   })();
 
   // Help modal
@@ -6678,7 +6692,7 @@ export function initLegacyApp() {
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
   })();
 
-  document.getElementById('export-btn').addEventListener('click', async ()=>{
+  document.getElementById('export-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(viewMode === 'month'){
       exportMonthPdf();
       return;
@@ -6701,12 +6715,12 @@ export function initLegacyApp() {
     } finally {
       chrome.exportBtn({ busy: false, disabled: false });
     }
-  });
+  }));
 
-  document.getElementById('export-wf-pdf-btn').addEventListener('click', ()=>{
+  document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, ()=>{
     if(WF_PDF_MODE === 'direct') exportWaterfallPdfDirect();
     else exportWaterfallPdf();
-  });
+  }));
 
   // ---------- Month view: export every month to PDF ----------
   // Uses the browser's own print pipeline (Print -> "Save as PDF"), which is the only way a

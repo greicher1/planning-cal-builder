@@ -25,7 +25,7 @@ import './styles/legacy.css'
 import { theme } from './theme.js'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, RegionCard, HolidaysCard } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, RegionCard, HolidaysCard, AppCard } from './chrome/Sidebar.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -50,7 +50,7 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
-      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /></>, '#sidebar-static')}
+      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /><AppCard /></>, '#sidebar-static')}
       {/* Not a portal: DatePop renders straight into #react-root, which is a direct child of
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}
