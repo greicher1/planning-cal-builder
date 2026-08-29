@@ -98,32 +98,32 @@ cells, the container's position on the page.
 
 ## 3. Core data flow
 
-Everything funnels through one cycle, driven by `update()` (line ~6799):
+Everything funnels through one cycle, driven by `update()`:
 
 ```
 DOM inputs → readState() → computeSchedule(state) → render(schedule) → markDirty()
 ```
 
-- **`readState()`** (~3500) reads every `#start-<key>` / `#weeks-<key>` field, hiatus rows,
+- **`readState()`** reads every `#start-<key>` / `#weeks-<key>` field, hiatus rows,
   per-phase hiatuses, Show Info, and the region selectors.
   Note: once Show Info is complete (`showInfoStatus()`), **`episodes × days-per-episode`
   overrides** whatever was typed in the Production row, everywhere.
 
-- **`computeSchedule(state)`** (~3559) is the heart of the app. Returns
+- **`computeSchedule(state)`** is the heart of the app. Returns
   `{weeks, maxConcurrent, totalWeeks, segments, hiatuses, gaps, notesByIdx, productionInfo,
   phaseHolidays, error?}`. Each week carries its phase segments, hiatus flags, and auto-notes.
 
-- **`render(schedule)`** (~4351) dispatches to `renderSpreadsheetView()` (waterfall, ~5188) or
-  `renderMonthView()` (~4651) per `viewMode` (`'sheet' | 'month'`), plus the summary row and the
+- **`render(schedule)`** dispatches to `renderSpreadsheetView()` (waterfall) or
+  `renderMonthView()` per `viewMode` (`'sheet' | 'month'`), plus the summary row and the
   holiday list in Settings.
 
 ### Deliberate scheduling behaviours (do not "fix" these)
 
-- **Hiatuses PAUSE a phase, they don't consume its weeks.** `extendEndForHiatus()` (~3586)
+- **Hiatuses PAUSE a phase, they don't consume its weeks.** `extendEndForHiatus()`
   walks week-by-week and only counts non-hiatus weeks, so a phase always delivers its full
   requested span — the hiatus pushes its end date out. Overlapping hiatuses extend by the
   **union**, not per-hiatus.
-- **Production alone runs a day-level simulation** (`simulateProductionSchedule()`, ~3610):
+- **Production alone runs a day-level simulation** (`simulateProductionSchedule()`:
   skips weekends, hiatus days, and **enabled** union holidays for the selected region until the
   shoot-day count is met.
 - **Global hiatuses** apply to all phases; **`phaseHiatuses[key]`** pauses only its own phase.
@@ -166,12 +166,12 @@ every option set stays static and a restored save can set any value directly:
 
 Supporting functions:
 
-- **`effectiveRegionKey()`** (~6835) resolves country + sub-region to ONE `HOLIDAYS` key.
+- **`effectiveRegionKey()`** resolves country + sub-region to ONE `HOLIDAYS` key.
   The bare `US`/`CA` values are **never** keys.
-- **`reflectRegionUI()`** (~6849) shows whichever sub-region row applies (UK has none).
-- **`normalizeRegionSelection()`** (~6823) rewrites the legacy `CAN` value from pre-split saves
+- **`reflectRegionUI()`** shows whichever sub-region row applies (UK has none).
+- **`normalizeRegionSelection()`** rewrites the legacy `CAN` value from pre-split saves
   and fills a missing sub-region with that country's default (`CA-BC` / `US-GEN`).
-- **`syncRegionTracking()`** (~7027) re-baselines the change-guard after any programmatic
+- **`syncRegionTracking()`** re-baselines the change-guard after any programmatic
   load/restore, so the next user change isn't compared against a stale value.
 
 ### THE RESEARCH FINDINGS (verified against primary sources — do not silently change these)
@@ -261,13 +261,12 @@ would not open).
 
 ### Holiday identity — stable IDs
 
-A holiday's id is **`slug(name)@year`** (e.g. `good-friday@2026`), produced by `holidaySlug()`
-(~3433). It used to be the bare ISO date, which was fragile: switching region kept the date but
+A holiday's id is **`slug(name)@year`** (e.g. `good-friday@2026`), produced by `holidaySlug()`. It used to be the bare ISO date, which was fragile: switching region kept the date but
 changed the holiday, so a per-holiday choice silently transferred to whatever now fell on that
 day. With name-based ids a choice **follows the holiday** across region changes, and settings for
 a holiday the new region lacks simply lie dormant.
 
-`migrateHolidayViewKeys()` (~3444) rewrites old date-keyed entries on load.
+`migrateHolidayViewKeys()` rewrites old date-keyed entries on load.
 
 ### Enable / disable and custom holidays
 
@@ -275,7 +274,7 @@ a holiday the new region lacks simply lie dormant.
 - **`customHolidays`** — `[{id, name, date}]`, the user's own single-day holidays. Ids are random
   (`cst-xxxxxxx`) so renaming keeps the settings. **Deliberately NOT region-scoped**, so a
   studio shutdown survives a region change. Always listed even when outside the current phases.
-- **`fullHolidayList(regionKey)`** (~3464) merges the region's list with the custom ones and tags
+- **`fullHolidayList(regionKey)`** merges the region's list with the custom ones and tags
   each with `enabled`.
 - Disabling a holiday **changes Production's dates**, so it warns once (only when note edits
   exist) rather than hard-blocking.
@@ -296,15 +295,14 @@ ON) chooses between:
   there (Post wk 3, 4…). One unbroken post-week sequence.
 - **Off:** every flagged week reads just "Simultaneous Post" and Post starts again at wk 1.
 
-`simPostLabel()` (~2926) centralizes the marker text so the waterfall, Excel export, and month
+`simPostLabel()` centralizes the marker text so the waterfall, Excel export, and month
 view can't drift apart.
 
 ### "Start after previous phase"
 
 Each built-in phase except Writers Room has a small text button that fills its start date with
-the week right after the nearest **earlier scheduled** phase ends, following `PHASE_CHAIN`
-(~6916). Handles hiatuses two ways: the previous phase's end already accounts for hiatuses
-*inside* it, and then `autostartPhase()` (~6928) steps past any hiatus at the boundary so the new
+the week right after the nearest **earlier scheduled** phase ends, following `PHASE_CHAIN`. Handles hiatuses two ways: the previous phase's end already accounts for hiatuses
+*inside* it, and then `autostartPhase()` steps past any hiatus at the boundary so the new
 phase lands on a working week. One-time fill; the date stays editable. Custom phases excluded.
 
 ### Notes
@@ -322,7 +320,7 @@ Wraps", holidays, sim-post flags). Users can edit, recolor, or clear any note.
 
 ### Editing is a popover, never markup injected into the grid
 
-`openNoteEditor()` (~5513) — and the month-view note editor and the phase colour picker — open a
+`openNoteEditor()` — and the month-view note editor and the phase colour picker — open a
 panel **appended to `body` and anchored to the cell**, not an editor rendered *inside* it. The
 grid must keep exactly the shape it had: injecting a form into a cell changes that row's height
 and column's width, so opening an editor moved the very thing being edited out from under the
@@ -346,7 +344,7 @@ automatic" (§9a).
 
 ### Sidebar tabs
 
-Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`, ~6176). Sections are
+Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`. Sections are
 `<section class="card" data-tab="...">`. The Settings tab holds **Production Region** and
 **Holidays** together — they were previously split across two tabs, which made the region
 undiscoverable.
@@ -388,9 +386,9 @@ the legacy-notice visibility are session UI. Per-user *preferences* (`SHEET_GRID
 else's file.
 
 > ### ⚠️ Any new persistent state must be added in BOTH places or it silently won't survive a save:
-> 1. the `captureSnapshot()` literal (~7562)
-> 2. the matching branch in `applyStateSnapshot()` (~9967)
-> 3. if it's a DOM field, `collectFieldValues()` (~7267) / `reflectFieldsToAttributes()`
+> 1. the `captureSnapshot()` literal
+> 2. the matching branch in `applyStateSnapshot()`
+> 3. if it's a DOM field, `collectFieldValues()` / `reflectFieldsToAttributes()`
 >
 > **This used to be three places, with two duplicated snapshot literals** (one in
 > `buildSavedHtml()`, one in the IndexedDB backup). They are now a single `captureSnapshot()`
@@ -425,15 +423,15 @@ a description — it reads as a distinction while distinguishing nothing.
 | **Gaps preserved** | Shift All (by amount) · Anchor To (by date) | Shift From |
 | **Gaps rebuilt** | — | Rebuild From |
 
-- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)` (~7776). `fromIso` limits the
+- **Shift All / Shift From** — `shiftCalendar(weeks, fromIso)`. `fromIso` limits the
   move to weeks on or after a cutoff; that is Shift From. Earlier/Later is the direction of
   **travel**, not which side moves — both directions move the same set.
 - **Anchor To** — measures the gap between a landmark and a target date, then calls
   `shiftCalendar` with that delta. It moves **dates, not phases**: a phase with a week count but
   no date is invisible to it. It never reads week counts to position anything.
-- **Rebuild From** — `workBackwardsFrom` (~8020) / `workForwardsFrom` (~8068). Pins one date and
+- **Rebuild From** — `workBackwardsFrom` / `workForwardsFrom`. Pins one date and
   recomputes one side to run consecutively, **writing** start dates including into empty fields.
-- **Close all gaps** — `closeAllGaps()` (~8118), folded into the Rebuild From popover. It is
+- **Close all gaps** — `closeAllGaps()`, folded into the Rebuild From popover. It is
   Rebuild-forwards from the *first* phase at its current date, so it **moves the shoot**; Rebuild
   From backwards **holds the shoot** and moves the front end. Same goal, opposite anchor.
 
@@ -459,13 +457,13 @@ stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `mo
 
 ### The two solvers
 
-- `startForWeeksEndingAt()` (~8006) is the **exact inverse of `extendEndForHiatus()`**: it walks
+- `startForWeeksEndingAt()` is the **exact inverse of `extendEndForHiatus()`**: it walks
   back from an exclusive end counting only non-paused weeks, so a phase straddling a hiatus starts
   earlier rather than losing weeks.
 - Production has **no week count** — its span is a day-level walk over weekends, hiatus days and
   enabled union holidays, so the same shoot occupies a different number of weeks depending on where
-  it lands. `productionStartEndingBy()` (~7961) therefore **asks the real scheduler** rather than
-  inverting it: `productionEndFor()` (~7940) sets the field, calls `computeSchedule(readState())`
+  it lands. `productionStartEndingBy()` therefore **asks the real scheduler** rather than
+  inverting it: `productionEndFor()` sets the field, calls `computeSchedule(readState())`
   directly (no render), reads the segment end, and restores the field.
   > ⚠️ It searches from the latest candidate **backward**, deliberately not forward until it stops
   > fitting. A later start is not always a later finish: a shoot beginning just before a long hiatus
@@ -479,7 +477,7 @@ stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `mo
 
 ### Phase order for a rebuild
 
-`phaseSequence()` (~7911): built-ins keep their canonical `PHASE_CHAIN` order — it is the app's
+`phaseSequence()`: built-ins keep their canonical `PHASE_CHAIN` order — it is the app's
 own model of the sequence and works with **no dates entered at all**. A custom phase has no place
 in that chain, so it is slotted by the date it currently sits on; an undated custom phase goes last.
 
@@ -496,7 +494,7 @@ in that chain, so it is slotted by the date it currently sits on; an undated cus
 | | **`.sptcal`** — the calendar | **`.html`** — a shareable copy |
 |---|---|---|
 | Contents | `captureSnapshot()` as pretty JSON | the whole app, with the state in it |
-| Size | **~4.5 KB** | ~693 KB |
+| Size | **~4.5 KB** | KB |
 | Written by | Save, Save As, autosave (`buildSavedData`, 7300) | File ▸ *Export shareable copy…* (`buildSavedHtml`, 7311) |
 | For | working — opening, editing, saving | emailing a double-clickable app to someone |
 
@@ -540,7 +538,7 @@ now only needed by this path.
 
 ### Snapshot versioning
 
-`captureSnapshot()` (7562) stamps `version: SNAPSHOT_VERSION` (currently 1). Nothing branches on
+`captureSnapshot()` stamps `version: SNAPSHOT_VERSION` (currently 1). Nothing branches on
 it yet; it exists so a future migration can ask which app wrote a file instead of sniffing for
 individual keys, which is what `migrateHolidayViewKeys()` and `normalizeRegionSelection()` have
 both had to do. **Snapshots with no `version` key must keep opening** — that is every file written
@@ -572,9 +570,9 @@ always opened by current code, which is most of the point.
 
 ### Restoring: one path, three callers
 
-`applyStateSnapshot(snap)` (~9967) applies a snapshot to the live document;
-`restoreSavedState()` (~9936) is a thin wrapper that parses the embedded block and calls it.
-Afterwards, **`refreshAfterRestore()` (~9954) must run** — it re-reads the calendar into the UI
+`applyStateSnapshot(snap)` applies a snapshot to the live document;
+`restoreSavedState()` is a thin wrapper that parses the embedded block and calls it.
+Afterwards, **`refreshAfterRestore()` must run** — it re-reads the calendar into the UI
 (`setSidebarTab`, `syncRegionTracking`, `refreshEpisodesUI`, `refreshSimPostUI`, `update`).
 
 > ⚠️ The three restore paths — initial page load, opening a file, recovering a backup — each used
@@ -593,7 +591,7 @@ in from a previously open file.
 Undo/redo are whole-state snapshots of `captureSnapshot()`, held as **JSON strings** so a later
 in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pushed step.
 
-- Pushes are **debounced** (~500 ms) off `markDirty()`, because `update()` runs on every
+- Pushes are **debounced** ( ms) off `markDirty()`, because `update()` runs on every
   keystroke — otherwise a typed date would be a dozen undo steps.
 - **Discrete actions bypass the debounce**: every toolbar tool wraps itself in
   `pushUndoSnapshot()` either side of the change, so one click is always exactly one undo step.
@@ -610,10 +608,10 @@ in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pus
 
 ## 9. Exports
 
-### Excel (`exportExcel()`, ~5798)
+### Excel (`exportExcel()`
 
 Builds an ExcelJS workbook directly with explicit column widths, merges, and ARGB fills.
-`computeBlockLayout()` (~6289) / `computePhaseRowLayout()` (~6396) compute the column-slot
+`computeBlockLayout()` / `computePhaseRowLayout()` compute the column-slot
 assignment — **the same layout logic backs the on-screen waterfall**, so changes there affect
 both.
 
@@ -623,26 +621,26 @@ both.
 > much as we can?"* — which looks like corruption, not a too-long header.
 >
 > A real calendar hit this at exactly **256** characters. The export now enforces the limit
-> (`HF_MAX`, ~5885) by dropping trailing detail lines (right-hand stats before centre subtitles,
+> (`HF_MAX` by dropping trailing detail lines (right-hand stats before centre subtitles,
 > never a block's first line), with a backstop that shaves the longest remaining line inside its
 > own text so it can't cut through an `&` control code.
 >
 > Note the three `&B&12&"Calibri,Bold"` prefixes cost **60 of the 255** on their own, leaving
-> only ~195 for actual text.
+> only for actual text.
 
 ### PDF
 
-- **Month PDF** (`exportMonthPdf()`, 8912) — still goes through the browser: renders every month
+- **Month PDF** (`exportMonthPdf()` — still goes through the browser: renders every month
   into `#print-root`, adds `body.printing-calendar` (a print stylesheet hides everything else),
   calls `window.print()`.
-- **Waterfall PDF** (`buildWaterfallPdf()`, 9346 → `exportWaterfallPdfDirect()`, 9612) — **writes
-  the PDF bytes directly. No print dialog.** ~500 lines: TrueType subsetting from the embedded
+- **Waterfall PDF** (`buildWaterfallPdf()` → `exportWaterfallPdfDirect()` — **writes
+  the PDF bytes directly. No print dialog.** lines: TrueType subsetting from the embedded
   Carlito (`ttfRead` 9140, `ttfGlyph`, `ttfAdvance`, `ttfTextWidth`), `/FontFile2` embedding,
   WinAnsi encoding, xref table, Flate compression via `CompressionStream` (`pdfDeflate`), assembled
   by `pdfSerialize` (9285). `WF_PDF_MODE = 'direct' | 'print'` selects it; the old print path is
   kept as the fallback.
 
-  Orientation comes from `sheetPageOrientation()` (6624) — **the same rule the Excel export
+  Orientation comes from `sheetPageOrientation()` — **the same rule the Excel export
   uses**, so the workbook and the PDF turn the page the same way. That divergence was a real bug.
 
 > ### ⚠️ Always clear `body.printing-*` and `#print-root` before starting a print.
@@ -682,24 +680,24 @@ of 1038/2048 em, and a 155 px string measures identically. That is what lets an 
 open-licence font stand in for Calibri without the model drifting, and why the font is inlined
 (§2) rather than fetched.
 
-**`computePhaseRowLayout()` (6396)** is the matching single source for *which phase occupies which
+**`computePhaseRowLayout()`** is the matching single source for *which phase occupies which
 column in a given week*. Four consumers call it — screen, PDF writer, `sheetColumnWidths()`, Excel
 export — so a layout change lands everywhere at once. Keep it that way.
 
 ### Direct manipulation on the grid
 
-- **Drag columns and rows to resize** (`installGridResizers`, 2451). Row drags **snap** to the
+- **Drag columns and rows to resize** (`installGridResizers`. Row drags **snap** to the
   default and to any height already set on another row (4 px); the handle turns green while it
   holds. Double-click means "back to automatic".
-- **Cell spans** (`beginSpanDrag`, 2667; `applyCellSpanOverrides`, 6502) — drag a cell's edge
+- **Cell spans** (`beginSpanDrag`; `applyCellSpanOverrides` — drag a cell's edge
   across the empty columns beside it; double-click to fill or un-fill.
-- **Text fitting** (`cellTextFit`, 2407) — **row height decides how many lines a note gets**, plus
+- **Text fitting** (`cellTextFit` — **row height decides how many lines a note gets**, plus
   a per-note font size. Shrink-to-fit for notes, phase labels and hiatus bands.
 - **Phases running at the same time divide the width evenly** — two take half each, three a third.
   All phase columns within a year block share one width; columns differing by 15% make an even
   split read as a mistake.
 - **The preview never jumps**, and it takes **two** mechanisms, not one:
-  1. `captureScroll()` (~4284) / `restoreScroll()` (~4300) wrap every render. Inner scroll
+  1. `captureScroll()` / `restoreScroll()` wrap every render. Inner scroll
      containers are remembered by element id; the **window** is anchored to *where the grid sits
      on screen* — `getBoundingClientRect().top` of `#sheet-scroll-container`, falling back to
      `#table-wrap` (the month view has no sheet scroller) — and put back as a **delta**, not an
@@ -708,7 +706,7 @@ export — so a layout change lands everywhere at once. Keep it that way.
      selector when the region becomes Canada), so the same scroll number puts the grid somewhere
      else on screen. A delta also agrees with Chrome's own scroll anchoring instead of fighting it
      — where anchoring already held the view still, `dy` is 0 and nothing happens.
-  2. A separate **capture-phase** `pointerdown`/`change`/`input` listener (~4331) scoped to
+  2. A separate **capture-phase** `pointerdown`/`change`/`input` listener scoped to
      **`.form-panel`**. Sidebar handlers rebuild their rows *first* and call `update()` afterwards,
      by which point the grid has already moved and the snapshot inside `update()` reads the moved
      position as correct. Taking the anchor on the event itself, before any handler runs, is the
@@ -931,8 +929,7 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
 - **A 53-Monday year leaves a trailing blank strip.** A table row is one row of *every* year block
   at once, so the grid is as tall as the longest block — and years differ: 2029 has 53 Mondays
   (both 1 Jan and 31 Dec fall on one) where 2026–2028 have 52. The 53rd row is blank in every
-  other block, and if nothing is scheduled that week it is blank everywhere. `sheetRowCount()`
-  (~6581) drops trailing rows that are content-free in **every** block. ⚠️ It deliberately does
+  other block, and if nothing is scheduled that week it is blank everywhere. `sheetRowCount()` drops trailing rows that are content-free in **every** block. ⚠️ It deliberately does
   **not** touch full-year padding: a year whose work ends in September still shows its remaining
   weeks, because those rows carry content in some *other* block. Only a row empty everywhere goes.
 - **64 of 255 filled cells were silently ellipsis-clipped**, then later 9 of 52 date cells — both
@@ -1045,74 +1042,96 @@ asked to hold off on those.
 
 ---
 
-## 14. Quick line-number map (as of `b603fd7`)
+## 14. The line-number map — the ONE place numbers live
 
-Approximate; the file shifts as it's edited. **Search for the symbol, don't jump to the line.**
-Regenerate with: `grep -n "^\s*\(async \)\?function [a-zA-Z]" index.html`
+Everywhere else in these docs names the **symbol only**, deliberately. These numbers were once
+scattered through the prose in ~107 places, and twice in a single day one commit to `index.html`
+invalidated nearly all of them (the second time, 104 of 107) — any insertion shifts everything
+below it. **A wrong line number is worse than none:** it reads as precision and sends you to the
+wrong function. So prose names symbols, which `grep -n` always finds, and the numbers live here.
 
-| Area | Line |
+⚠️ **These go stale on any edit to `index.html`.** Verify or regenerate with:
+
+```bash
+python3 tools/check-refs.py
+```
+
+| Symbol | Line |
 |---|---|
 | `<style>` block | 21 |
-| `<script id="saved-state">` (ships as `null`) | 981 |
-| Embedded Carlito (2 weights, base64) | 1461 |
-| ExcelJS CDN tag | 2240 |
-| Main `<script>` (one IIFE) | 2241 |
-| **Width model constants** (`EXCEL_MDW` …) | 2309 |
-| `cellTextFit` | 2407 |
-| `installGridResizers` | 2451 |
-| `beginSpanDrag` | 2667 |
-| `measureTextPx` | 2862 |
-| `charsToScreenPx` | 2877 |
-| `PHASES` | 2889 |
-| `SHEET_GRIDLINES` / `WF_PDF_MODE` / `GRID_TEXT_COLOR` | 2905 |
-| `HOLIDAYS` | 2953 |
-| `readState` | 3500 |
-| `computeSchedule` | 3559 |
-| `captureScroll` / `restoreScroll` | 4284 / 4300 |
-| `.form-panel` capture-phase scroll anchor | 4331 |
-| `render` | 4351 |
-| `renderMonthView` | 4651 |
-| `renderSpreadsheetView` | 5188 |
-| `openNoteEditor` | 5513 |
-| `exportExcel` | 5798 |
-| `setSidebarTab` | 6176 |
-| `computeBlockLayout` | 6289 |
-| **`computePhaseRowLayout`** (the one layout source) | 6396 |
-| `applyCellSpanOverrides` | 6502 |
-| `sheetRowCount` (drops the 53-Monday blank strip) | 6581 |
-| `sheetPageOrientation` | 6624 |
-| **`sheetColumnWidths`** (the one width source) | 6637 |
-| `update` | 6799 |
-| `shiftCalendar` | 7776 |
-| `workBackwardsFrom` / `closeAllGaps` | 8020 / 8118 |
-| **Save-format constants** (`SAVE_EXT`, `SNAPSHOT_VERSION`) | 7389 |
-| `buildSavedData` (the `.sptcal` writer) | 7300 |
-| `buildSavedHtml` (the share writer) | 7311 |
-| **`parseCalendarText`** (the one reader) | 7352 |
-| `handleIsLegacyHtml` | 7406 |
-| `collectFieldValues` / `reflectFieldsToAttributes` | 7267 / 7240 |
-| **`captureSnapshot`** (the one state definition) | 7562 |
-| `showLegacyNotice` (the upgrade strip) | 8226 |
-| `openRecentFile` / `openFileViaPicker` | 8286 / 8333 |
-| `exportMonthPdf` (browser print) | 8912 |
-| `buildWaterfallPdf` / `exportWaterfallPdfDirect` | 9346 / 9612 |
-| `restoreSavedState` / `refreshAfterRestore` | 9936 / 9954 |
-| **`applyStateSnapshot`** (the one restore path) | 9967 |
-| `saveToFile` | 7491 |
-| **`captureSnapshot`** (the one state definition) | 7562 |
-| `startAutosave` | 8132 |
-| `showLegacyNotice` | 8226 |
-| `openRecentFile` | 8286 |
-| `exportMonthPdf` | 8912 |
-| `ttfRead` (TrueType subsetting) | 9140 |
-| `pdfSerialize` | 9285 |
-| `buildWaterfallPdf` | 9346 |
-| `exportWaterfallPdfDirect` | 9612 |
-| `restoreSavedState` | 9936 |
-| **`refreshAfterRestore`** | 9954 |
-| **`applyStateSnapshot`** | 9967 |
-
----
+| The saved-state block (ships empty) | 993 |
+| Embedded Carlito (2 weights, base64) | 1483 |
+| ExcelJS CDN tag | 2262 |
+| Main script (one IIFE) | 2264 |
+| `APP_VERSION` | 2275 |
+| `EXCEL_MDW` | 2341 |
+| `cellTextFit` | 2439 |
+| `installGridResizers` | 2483 |
+| `beginSpanDrag` | 2699 |
+| `measureTextPx` | 2894 |
+| `charsToScreenPx` | 2909 |
+| `PHASES` | 2921 |
+| `SHEET_GRIDLINES` | 2937 |
+| `WF_PDF_MODE` | 2941 |
+| `GRID_TEXT_COLOR` | 2954 |
+| `HOLIDAYS` | 2985 |
+| `autoNotesText` | 3435 |
+| `effectiveNoteText` | 3443 |
+| `holidaySlug` | 3465 |
+| `migrateHolidayViewKeys` | 3476 |
+| `fullHolidayList` | 3496 |
+| `readState` | 3532 |
+| `computeSchedule` | 3591 |
+| `extendEndForHiatus` | 3618 |
+| `simulateProductionSchedule` | 3642 |
+| `addNote` | 3890 |
+| `captureScroll` | 4316 |
+| `restoreScroll` | 4332 |
+| `render` | 4383 |
+| `renderMonthView` | 4683 |
+| `renderSpreadsheetView` | 5220 |
+| `notesColspan` | 5229 |
+| `openNoteEditor` | 5545 |
+| `exportExcel` | 5830 |
+| `setSidebarTab` | 6208 |
+| `computeBlockLayout` | 6321 |
+| `computePhaseRowLayout` | 6428 |
+| `applyCellSpanOverrides` | 6534 |
+| `sheetRowCount` | 6613 |
+| `sheetPageOrientation` | 6656 |
+| `sheetColumnWidths` | 6669 |
+| `update` | 6831 |
+| `normalizeRegionSelection` | 6855 |
+| `effectiveRegionKey` | 6867 |
+| `reflectRegionUI` | 6881 |
+| `autostartPhase` | 6960 |
+| `syncRegionTracking` | 7059 |
+| `reflectFieldsToAttributes` | 7272 |
+| `collectFieldValues` | 7299 |
+| `buildSavedData` | 7332 |
+| `buildSavedHtml` | 7343 |
+| `parseCalendarText` | 7384 |
+| `SAVE_EXT` | 7421 |
+| `SNAPSHOT_VERSION` | 7426 |
+| `handleIsLegacyHtml` | 7438 |
+| `captureSnapshot` | 7594 |
+| `shiftCalendar` | 7808 |
+| `phaseSequence` | 7943 |
+| `productionEndFor` | 7972 |
+| `productionStartEndingBy` | 7993 |
+| `startForWeeksEndingAt` | 8038 |
+| `workBackwardsFrom` | 8052 |
+| `workForwardsFrom` | 8100 |
+| `closeAllGaps` | 8150 |
+| `showLegacyNotice` | 8258 |
+| `openRecentFile` | 8318 |
+| `openFileViaPicker` | 8365 |
+| `exportMonthPdf` | 8944 |
+| `buildWaterfallPdf` | 9378 |
+| `exportWaterfallPdfDirect` | 9644 |
+| `restoreSavedState` | 9968 |
+| `refreshAfterRestore` | 9986 |
+| `applyStateSnapshot` | 9999 |
 
 ## 15. Starting a fresh session — suggested first message
 

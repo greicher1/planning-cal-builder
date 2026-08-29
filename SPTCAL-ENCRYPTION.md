@@ -121,7 +121,7 @@ write re-prompts once.
 
 The seam is unusually clean; the app already funnels both directions through one function each.
 
-**Write** — `buildSavedData()` ([index.html:7300](index.html:7300)) currently returns
+**Write** — `buildSavedData()` currently returns
 `JSON.stringify(captureSnapshot(), null, 1)`. It gains an async wrapper:
 
 ```js
@@ -132,11 +132,11 @@ async function encodeCalendarFile(){
 }
 ```
 
-Three call sites: [7527](index.html:7527), [8149](index.html:8149), [8213](index.html:8213).
+Three call sites, all found by grepping `buildSavedData` — each already branches on `handleIsLegacyHtml()`.
 Each becomes `await encodeCalendarFile()` — and each already branches on `handleIsLegacyHtml()`,
 so the `.html` path is untouched by construction.
 
-**Read** — `parseCalendarText()` ([index.html:7352](index.html:7352)) becomes `async` and grows a
+**Read** — `parseCalendarText()` becomes `async` and grows a
 *third* branch, ahead of the existing two.
 
 > ### ⚠️ Corrected 29 Aug 2026 — this sketch was written against the OLD signature
@@ -165,7 +165,7 @@ async function parseCalendarText(text){
 > exists to prevent, so make it structural: throw a typed error and let the caller map it to one
 > of §4's four messages.
 
-Exactly one functional caller: [index.html:8302](index.html:8302) inside `openRecentFile()`,
+Exactly one functional caller, inside `openRecentFile()`, which is
 already `async` — it takes an `await`. Every pre-encryption `.sptcal` and every pre-v1.1.0 `.html`
 keeps opening through code that was not modified, which is the cheapest possible way to honour
 "every saved calendar must keep opening, forever."

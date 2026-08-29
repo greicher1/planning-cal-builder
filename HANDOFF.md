@@ -38,17 +38,18 @@ change — see §5d.
 
 ## 1. Where the app stands
 
-`index.html` is 10,210 lines / 660 KB, one file, no build step. Deployed at
+`index.html` is ~10,345 lines / ~667 KB, one file, no build step. Deployed at
 <https://greicher1.github.io/planning-cal-builder/>.
 
-### ⚠️ v1.1.0 is BUILT BUT NOT DEPLOYED — the live site is still v1.0.0
+### ⚠️ v1.2.0 IS BUILT BUT NOT DEPLOYED — the live site is still v1.0.0
 
 Verified 28 Aug 2026 by fetching the live URL: it is **byte-identical to `releases/v1.0.0.html`**
 (SHA-256 `0150be15…`) and contains no `SAVE_EXT`, no `sptcal`, no `SNAPSHOT_VERSION`.
 
-`main` is **seven commits ahead of `origin/main`** — everything from the `.sptcal` format through
-the Stage 0 docs refresh to v1.2.0's update delivery. `git log --oneline origin/main..main` is the
-live list; the oldest is `489f9ee`.
+`main` is **several commits ahead of `origin/main`** — everything from the `.sptcal` format
+through the Stage 0 docs refresh to v1.2.0's update delivery. **`git log --oneline origin/main..main`
+is the live list** (a count written here would be wrong by the next commit); the oldest is
+`489f9ee`.
 
 **Two tags are unpushed: `v1.0.0` and `v1.2.0`.** That is what makes the `releases/…` URLs in
 `README.md` 404. They need their own `git push --tags`; pushing `main` does not carry them.
@@ -79,7 +80,7 @@ the token is fine (it carries `repo` scope), the *account* simply is not a colla
 - If this recurs, the permanent fix is to add `antowhsu` as a collaborator on
   `greicher1/planning-cal-builder`. Until then, expect every push from here to 403.
 
-**What that means concretely.** Everyone using the tool right now is still saving ~700 KB `.html`
+**What that means concretely.** Everyone using the tool right now is still saving KB `.html`
 files. The 155× smaller `.sptcal` format, the legacy-upgrade strip and the autosave-status fix
 have reached nobody.
 
@@ -113,7 +114,7 @@ weeks.
 | One column model | `sheetColumnWidths()` now feeds screen, workbook and PDF |
 | Resize | Drag columns and rows; autofit; shrink-to-fit for notes, phase labels and hiatus bands |
 | Row line budget | Row height decides how many lines a note gets; per-note and per-hiatus font size |
-| Direct PDF writer | ~500 lines: TrueType subsetting, `/FontFile2`, WinAnsi, xref, Flate. No print dialog |
+| Direct PDF writer | lines: TrueType subsetting, `/FontFile2`, WinAnsi, xref, Flate. No print dialog |
 | Page geometry | One orientation rule shared by the workbook and the PDF |
 | Cell spans | Drag a cell's edge across the empty columns beside it; double-click to fill / un-fill |
 | Even splits | Phases running at the same time divide the width evenly; phase columns share one width |
@@ -158,7 +159,7 @@ Two things found while doing it, both fixed:
 
 - **Every inline line-number reference in `PROJECT-CONTEXT.md` was stale — 35 of 37.** The §14 map
   at the bottom had been regenerated, but the numbers quoted throughout the prose had not, and
-  they were off by 2,000–3,000 lines (`applyStateSnapshot` said ~6942; it is at 9967). All 37 are
+  they were off by 2,000–3,000 lines (`applyStateSnapshot` said; it is at 9967). All 37 are
   now correct, plus 2 in `CLAUDE.md`, and §14 has grown to **55 verified rows**.
 - **The §7 state table was missing five stores `captureSnapshot()` actually persists** —
   `noteFontSize`, `hiatusFontSize`, `colWidths`, `rowHeights`, `cellSpans`. The code was right;
@@ -262,7 +263,7 @@ That is what the reference export itself does, and it is the whole feature.
 
 ### Why this is far cheaper than it looks — four findings from the code
 
-1. **`notesColspan` already exists** (`renderSpreadsheetView`, ~5229, currently `1`), and the
+1. **`notesColspan` already exists** (`renderSpreadsheetView`, currently `1`), and the
    header is already written as `<th colspan="${notesColspan}">Notes</th>`. It was **>1 before**,
    when Simultaneous Post had its own column beside Notes. *One header spanning N notes columns is
    a shape this code has already shipped.* The empty-row and hiatus-row cells also already span
@@ -277,8 +278,7 @@ That is what the reference export itself does, and it is the whole feature.
    (`SHEET_GRIDLINES = 'none'`), and the only border in that region is `.sheet-blockend`, which
    lands on the block's *last* column — the date — not between label and date.
 4. ### ⚠️ **It needs NO save-format change. Auto-notes are already structured.**
-   `addNote()` has always stored `{label, date}` separately (~3890); only `autoNotesText()`
-   (~3437) joins them for display. Splitting the display is therefore pure rendering.
+   `addNote()` has always stored `{label, date}` separately; only `autoNotesText()` joins them for display. Splitting the display is therefore pure rendering.
 
    For **user-typed** notes, give the cell `colspan="2"`. A free-text note then spans the full
    Notes width — **pixel-identical to today** — so every existing calendar renders exactly as it
@@ -289,14 +289,14 @@ That is what the reference export itself does, and it is the whole feature.
 
 It is **not** a display date. It is a day-of-week pin doing two load-bearing jobs: telling the
 **month view which day** to place the note on, and making the note **immune to calendar shifts**
-(`pinnedWeeks`, ~7859, is built from notes that have one). A display date needs a **new** key.
+(`pinnedWeeks`, is built from notes that have one). A display date needs a **new** key.
 
 The name collides with the pre-git `noteDate` field and that is exactly the trap: see below.
 
 ### The history, and what is NOT recoverable
 
 `userNotes` entries were once `{label, noteDate}` and were flattened to `{text}`. The live
-migration (~10091) simply concatenates them — `{text: [lbl, dt].filter(Boolean).join(' ')}` — i.e.
+migration simply concatenates them — `{text: [lbl, dt].filter(Boolean).join(' ')}` — i.e.
 the collapse baked the *display string* into storage.
 
 **Why it was done is not recoverable.** It predates this repo: `d249f60`, the first commit
@@ -777,7 +777,7 @@ before the Mantine overhaul, and is the baseline everything after it is measured
 ### Footer — there isn't one, and that is deliberate
 
 The layout is **header + sidebar + preview**, full stop. `footer.assumptions` survives in the CSS
-(lines ~909–910) but nothing renders it — dead rules from an earlier version. Asked directly
+(lines–910) but nothing renders it — dead rules from an earlier version. Asked directly
 during the Mantine scoping (28 Aug 2026), the owner's answer was **no footer now and none
 foreseen**. Do not add one on your own initiative, and do not treat the dead CSS as evidence that
 one is planned.
@@ -864,7 +864,7 @@ snapshot JSON. Everything else is inert.
 | **The data — `saved-state` JSON** | **3,238** | **0.44%** |
 | Embedded Carlito font | 93,797 | 12.9% |
 | **The rendered grid, serialized and then thrown away** | **44,568** | 6.1% |
-| The rest of the app — CSS, markup, script, help modal | ~587,000 | 80.5% |
+| The rest of the app — CSS, markup, script, help modal |,000 | 80.5% |
 | **Total** | **729,172** | 100% |
 
 **99.56% of a saved calendar is a copy of the application that the Open path never reads.**
@@ -891,7 +891,7 @@ Neither the copy nor the data should be dropped. They should stop being the same
 | | **`.spcal` — the data file** | **`.html` — the share file** |
 |---|---|---|
 | Contents | the snapshot JSON, nothing else | today's full self-contained app + state |
-| Size | **~3 KB** | ~730 KB |
+| Size | **~3 KB** | KB |
 | Role | **the default.** Save, Open, autosave, recents, backup | "Export a shareable copy" — an explicit, occasional action |
 | Opens by | the app | double-click, anywhere, offline |
 | Carries app bugs | no — always opened by current code | yes, frozen at export time |
@@ -906,7 +906,7 @@ Concretely, this is a **small** change, because the hard part already exists:
 - `buildSavedHtml()` survives verbatim as "Export shareable copy", and should additionally empty
   `#table-wrap` before serializing — that alone reclaims the 44.5 KB of dead grid markup.
 
-What it buys: saves become ~240× smaller and effectively instant; autosave and the IndexedDB
+What it buys: saves become× smaller and effectively instant; autosave and the IndexedDB
 backup stop moving three-quarters of a megabyte every ten minutes; a saved plan always opens in
 *current* code, so fixes reach old files; and files become diffable, greppable and mergeable in a
 way a 730 KB HTML blob never will be.
