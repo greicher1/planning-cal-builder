@@ -442,7 +442,10 @@ own acceptance gate. Two consequences worth thinking about before anyone starts:
   the kind of change that shows. Take the before-export first and diff it.
 
 Two palette entries differ: Pre Prep and Prod Prep are effectively swapped versus the reference,
-and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`).
+and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`). ⏹ **Both are now WONTFIX
+too** — they are only "wrong" against the reference, and as of 29 Aug 2026 the reference is not
+the target (§4). Changing either would move the exports away from v1.0.0, which is the one thing
+the rule forbids.
 
 > ⛔ ~~*"the app reserves 54 pt above the grid where Excel reserves ~21.5 (Excel puts its header
 > inside that band)"*~~ — **STRUCK 29 Aug 2026. It is false of the current code.** The app has
@@ -466,8 +469,11 @@ applies here too. **Read [`STAGE-8.md`](STAGE-8.md) before touching any of this.
   36 pt more height to run into** (`SHEET_PAGE_MARGIN_PT.b` is 18 where the workbook's own bottom
   margin is 54, reclaimed deliberately as "the one free increase available"). Roughly half the
   +16% is that one constant.
-- So every route to the row pitch visibly changes the PDF, and §4 forbids that. **WONTFIX unless
-  the owner re-answers the question in `STAGE-8.md` §6.**
+- So every route to the row pitch visibly changes the PDF, and §4 forbids that.
+  ✅ **ANSWERED 29 Aug 2026: "v1.0.0" means the app's BUILD, not the reference spreadsheet**
+  (§4 has the owner's words). That closes `STAGE-8.md` §6 and makes the row pitch, the grid width
+  and the body-text size **permanent WONTFIXes**. Do not re-open them; the reference is no longer
+  the target.
 - ⚠️ **The app's PDF and the app's own workbook do not print at the same size** — ~7% apart
   whenever height binds. That is the app disagreeing with *itself*, independent of any reference,
   and nobody has decided about it.
@@ -796,6 +802,68 @@ the grid rules outrank. The UI work in `MANTINE-MIGRATION.md` stops at this boun
 > 1.0.0 was — the editable grid in the app could have a reconsideration on design, but the goal is
 > to not deviate from the exports too much so it could be easy to understand for new users coming
 > from the old version"*
+
+…and, asked directly whether "1.0.0" meant the app's build or the reference spreadsheet, the owner
+settled it the same day:
+
+> *"the build's output should stay the same — even better if using the same render engine —
+> specifically the operating waterfall grid which outputs excel or pdfs — the pdfs should look
+> exactly the same as it exported in v1.0.0 — on the other hand — the full calendar system (the
+> grid, is that what we're calling it?) can be redesigned under MANTINE"*
+
+**So: v1.0.0 THE BUILD, not the reference spreadsheet.** That closes `STAGE-8.md` §6 and makes the
+row pitch, the grid width and the body-text size permanent WONTFIXes. It also adds a preference
+that is stronger than "don't change the output": **keep the same render engine.** Do not rewrite
+`buildWaterfallPdf` or `exportExcel` — leave the writers alone and let them keep producing what
+they produce.
+
+⚠️ **"the grid, is that what we're calling it?" — no, and the mismatch is dangerous.** In these
+docs **"the grid" means the frozen thing**: `#table-wrap`'s contents, the width model and the
+shared layout functions. The owner used it to mean the whole calendar system. Both readings appear
+in the same paragraph above, so read the freeze rule in `CLAUDE.md` by its *symbol list*, never by
+the word "grid". [`MANTINE-SEAM.md`](MANTINE-SEAM.md) fixes the vocabulary properly.
+
+**What this permits, verified by hand 29 Aug 2026** — the good news is that "same render engine"
+is nearly free:
+
+| | DOM references |
+|---|---|
+| `buildWaterfallPdf` | **zero** |
+| `exportExcel` | **three**, all in its last lines: the download anchor, `#show-title` for the filename, and appending the anchor |
+| `cellTextFit`, `sheetColumnWidths`, `computePhaseRowLayout`, `sheetRowCount`, `sheetGridMetrics`, `sheetPageOrientation` | **zero** |
+| `computeHeaderDefaults` | five form fields, read by element id |
+
+The direct PDF writer is pure computation over module state and a measuring canvas. It does not
+know the DOM exists, so **a Mantine migration cannot break it as long as the module state and the
+form-field ids survive** — and those ids are already frozen by the save-file format. The Excel
+writer is the same but for its filename read.
+
+> ⚠️ This table first said `exportExcel` had **four**. It has three — the fourth grep hit was the
+> substring `officedocument.` in the xlsx MIME type, a false positive from matching `document\.`
+> without a word boundary. Caught by the seam investigation, verified, corrected here. Worth
+> keeping as a reminder that `grep 'document\.'` over this file over-reports.
+
+⚠️ **But "cannot break the writers" is not the same as "cannot break the exports."** There are
+**four** outputs, not two, and the other two ARE the DOM: the print-fallback waterfall PDF
+(`exportWaterfallPdf`, live when `WF_PDF_MODE === 'print'`) and `exportMonthPdf` both inject
+`renderSpreadsheetView()` / `renderMonthView()` into `#print-root`, style it with the app's own
+stylesheet, measure it with `getBoundingClientRect()` and print it. The full seam — including
+seven **unguarded** `#table-wrap` listeners that run at IIFE-evaluation time, and print selectors
+written as **child** combinators that a React root would silently break — is in
+[`MANTINE-SEAM.md`](MANTINE-SEAM.md). Read it before any Mantine stage.
+
+⚠️ **The two DOM-dependent PDF paths are the exception**: the print fallback
+(`WF_PDF_MODE === 'print'`) and `exportMonthPdf` both render HTML into the page and call
+`window.print()`. Those *do* depend on the on-screen renderer and on print CSS, and a redesign can
+destroy them while the direct writer sails through untouched.
+
+**And the on-screen grid is already NOT a faithful preview of the printout**, which is what makes
+redesigning it cheaper than it sounds. Measured against the committed baseline: columns run at
+1 screen px per point (`charsToScreenPx` is used as pixels on screen and as *points* in the PDF),
+but rows run at 20 screen px per 15 pt (`ROW_DEFAULT_PX` × `ROW_PX_TO_PT`). So for the same width
+the screen grid is **~33% taller** than the printed one — 797 × 1060 px on screen against
+797 × 795 pt in the PDF, both from `tests/baselines/2026-08-29-stage-7/`. There is no
+pixel-fidelity guarantee to give up here, because there never was one.
 
 This sits *beside* the frozen-surface rule above, and it is stricter in one direction and looser
 in another, so read both:

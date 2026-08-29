@@ -87,6 +87,25 @@ there for a specific, measured reason, and the reasons are not visible from the 
 toolbar above the grid, the popovers anchored to its cells (anchored to, never injected into),
 the container's own layout position on the page.
 
+> ⚠️ **"the grid" is the wrong word and it has already caused a collision.** These docs use it for
+> the frozen surface listed above; the owner used it (29 Aug 2026) for the whole calendar system,
+> when granting permission to redesign the app on Mantine. **Read this rule by its symbol list,
+> never by the word.** [`MANTINE-SEAM.md`](MANTINE-SEAM.md) replaces the word with five precise
+> ones — *the waterfall view, the month view, the width model, the writers, the print paths* — and
+> maps every symbol, CSS rule and element id to one of them. Read it before any Mantine work.
+>
+> Two things it establishes that are not obvious from the list above:
+>
+> - **There are four outputs, not two.** `exportExcel` and `buildWaterfallPdf` never read the DOM,
+>   but the print-fallback waterfall PDF and `exportMonthPdf` **are** the DOM — they inject
+>   `renderSpreadsheetView()` / `renderMonthView()` into `#print-root` and print it. So
+>   `renderMonthView` is an export renderer, not chrome, and the month view is frozen too.
+> - **The freeze extends to structure the exports depend on**, not just to the listed functions:
+>   seven **unguarded** `#table-wrap` listeners that run at IIFE-evaluation time, print selectors
+>   written as **child** combinators of `<body>`, `font-carlito-400`/`700` as runtime-read element
+>   ids, and `*{ print-color-adjust:exact !important }` — which a `@layer` would demote, stripping
+>   every fill from both PDFs.
+
 **If a change genuinely requires touching it:** stop and ask, with the measurement you intend to
 use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
 decide this one alone.

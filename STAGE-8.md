@@ -166,7 +166,31 @@ does not burn another stage rediscovering that it cannot be touched.
 
 ---
 
-## 6. The decision the owner owes
+## 6. The decision the owner owes — ✅ **ANSWERED, same day**
+
+> **"the build's output should stay the same — even better if using the same render engine —
+> specifically the operating waterfall grid which outputs excel or pdfs — the pdfs should look
+> exactly the same as it exported in v1.0.0"** — owner, 29 Aug 2026
+
+**v1.0.0 the build.** So: items #1, #2, #3, #4, #5, #7 and #8 are **permanent WONTFIXes** — the
+reference is no longer the target, and moving toward it now means moving *away* from the thing the
+rule protects. #9 (the PDF/workbook 7% disagreement) survives only as an internal-consistency
+question, and answering it by reverting the bottom margin would shrink every height-bound PDF —
+i.e. it would change v1.0.0's output, so it is blocked too unless raised separately.
+
+**What is actually left of Stage 8: item #14 (the bug), and the documentation items.** Strike the
+rest.
+
+The owner also added a constraint stronger than "don't change the output": **keep the same render
+engine.** Do not rewrite `buildWaterfallPdf` or `exportExcel`. Verified the same day that this is
+nearly free — the direct PDF writer contains *zero* `document.` references and the Excel writer
+four, all for the download anchor and the filename. See `HANDOFF.md` §4 and
+[`MANTINE-SEAM.md`](MANTINE-SEAM.md).
+
+<details>
+<summary>The original framing of the question, kept for the record</summary>
+
+
 
 > **When you said "exactly as 1.0.0 was", did you mean the app's v1.0.0 build, or the Excel
 > spreadsheet the reference export came from?**
@@ -192,6 +216,8 @@ the first candidate.
 
 Whichever it is, one line into `HANDOFF.md` §4 verbatim, so it is not re-litigated in three
 sessions' time.
+
+</details>
 
 ---
 

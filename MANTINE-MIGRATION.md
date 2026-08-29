@@ -11,6 +11,32 @@ Reading order is unchanged: [`HANDOFF.md`](HANDOFF.md) → [`CLAUDE.md`](CLAUDE.
 
 ## 1. The rule that governs this work
 
+> ### ⚠️ REVISED BY THE OWNER, 29 Aug 2026 — read this before the rest of the section
+>
+> The absolute below is **no longer accurate for the on-screen waterfall.** The owner's words:
+>
+> > *"the build's output should stay the same — even better if using the same render engine —
+> > specifically the operating waterfall grid which outputs excel or pdfs — the pdfs should look
+> > exactly the same as it exported in v1.0.0 — on the other hand — the full calendar system (the
+> > grid, is that what we're calling it?) can be redesigned under MANTINE"*
+>
+> So the rule has split in two, and the split is not where this document assumed:
+>
+> - **The OUTPUT is frozen** — the Excel workbook and the waterfall PDF must look exactly as
+>   v1.0.0's did, and the writers themselves should not even be rewritten ("same render engine").
+>   That part is now *stricter* than what follows: it freezes appearance, not just code.
+> - **The on-screen waterfall MAY be redesigned on Mantine.** That part is *looser*, and it
+>   contradicts "React renders `#table-wrap` as an empty container and never touches its children"
+>   below.
+>
+> ⚠️ **"the grid" now means two different things** depending on who is speaking — these docs use it
+> for the frozen thing, the owner used it for the whole calendar system. **Read the freeze rule by
+> its symbol list, never by the word "grid".**
+>
+> The seam that makes both halves true at once is worked out in
+> [`MANTINE-SEAM.md`](MANTINE-SEAM.md), which supersedes this section wherever they disagree.
+> `HANDOFF.md` §4 carries the decision and the verification behind it.
+
 > **The grid and the exports are never touched.**
 
 It is written in full in [`CLAUDE.md`](CLAUDE.md) ("⛔ Never touch the grid or the exports") and
