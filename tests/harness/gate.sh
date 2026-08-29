@@ -69,7 +69,7 @@ else bad "Excel parts differ: $(diff -rq /tmp/gate-xa /tmp/gate-xb | head -3)"; 
 # fails to resolve within 20s roughly one run in three, while the app is completely healthy. That
 # stall is an environment fact, not a regression -- see the README.
 for attempt in 1 2; do
-  HARNESS_PAGE="$PAGE" "$HERE/run.sh" restore 40 >/dev/null 2>&1
+  HARNESS_PAGE="$PAGE" "$HERE/run.sh" restore 60 >/dev/null 2>&1
   python3 -c "import json,sys; d=json.load(open('$HERE/restore.json')); sys.exit(1 if 'EX' in d else 0)" 2>/dev/null && break
   [[ $attempt == 2 ]] && say "  note  restore retried once (IndexedDB stall)"
 done

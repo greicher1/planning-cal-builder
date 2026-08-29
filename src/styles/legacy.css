@@ -35,51 +35,54 @@
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     font-size:14px; line-height:1.5;
   }
+  /* The header ELEMENT. Its interior is React/Mantine now (src/chrome/Header.jsx), so what
+     survives here is only what belongs to the element itself: the sticky behaviour, the rule under
+     it, and the page gutter.
+
+     ⛔ flex-wrap is GONE, deliberately. UI-CONVENTIONS.md §7 makes the header structurally
+     incapable of wrapping, because its wrap point was never a fixed width -- measured, it moved
+     between ~848px and ~1018px depending on the length of the open file's NAME and the status
+     string. A layout whose height depends on the file name is a layout whose height cannot be
+     declared, and --header-h feeds the FROZEN
+     `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}`. The Group inside carries
+     wrap="nowrap"; this rule must not re-enable wrapping behind it. */
   header.app-header{
     padding:10px 28px; border-bottom:1px solid var(--border);
-    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    display:flex; align-items:center;
     background:#fff; position:sticky; top:0; z-index:40;
   }
-  .app-toolbar{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; }
-  /* Toolbar buttons. Share radius (8px) and hover (var(--bg)) with the sidebar button system
-     (button.primary/.secondary); the smaller font-size/padding here is intentional -- the toolbar
-     is dense, the sidebar roomy. */
+
+  /* Retired with the Mantine header: .app-toolbar, the whole .file-menu / .fm-* dropdown, and
+     .save-status. Their jobs moved into the theme (theme.js) and the component, so leaving them
+     here would be worse than dead code -- this stylesheet is UNLAYERED and therefore outranks
+     every Mantine layer, so a stale rule silently beats the component that replaced it. That is
+     exactly how `.file-menu{display:none}` kept the ported dropdown invisible while React was
+     correctly reporting it open. */
+
+  /* ⏳ .tb-btn SURVIVES, and only because the PREVIEW toolbar is not ported yet. `Shift From`,
+     `Anchor To` and `Rebuild From` still carry this class, and deleting it left them as unstyled
+     UA buttons -- a regression introduced and caught in the same session. It goes when
+     src/chrome/PreviewToolbar.jsx lands; nothing in the header carries the class any more, so this
+     block and the Mantine header cannot fight each other in the meantime. */
   .tb-btn{
     font-family:inherit; font-size:12px; font-weight:500; padding:7px 12px;
     border:1px solid var(--border-strong); background:#fff; color:var(--text);
     border-radius:8px; cursor:pointer; white-space:nowrap;
+    /* line-height is pinned for the same reason as the three in-grid buttons: Mantine's baseline
+       carries `input,button,textarea,select{font:inherit}`, a SHORTHAND, which would replace the
+       UA's `normal` with the inherited 1.5 and grow every one of these by 3px. */
+    line-height:normal;
   }
   .tb-btn:hover:not(:disabled){ background:var(--bg); border-color:var(--text-faint); }
   .tb-btn:disabled{ opacity:.45; cursor:not-allowed; }
   .tb-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .tb-btn.primary:hover:not(:disabled){ background:var(--accent-hover); border-color:var(--accent-hover); }
-  .tb-btn.danger{ color:var(--danger); border-color:#e5c3c3; margin-left:auto; }
-  .tb-btn.danger:hover:not(:disabled){ background:#fdf2f2; border-color:var(--danger); }
-  /* File dropdown */
-  .file-menu-wrap{ position:relative; }
-  .file-menu-btn{ display:flex; align-items:center; gap:6px; max-width:220px; }
-  .file-menu-btn #file-menu-label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .file-menu-btn .caret{ color:var(--text-faint); font-size:10px; }
-  .file-menu{
-    display:none; position:absolute; top:calc(100% + 4px); left:0; min-width:240px; max-width:320px;
-    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
-    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:4px; z-index:60; max-height:320px; overflow-y:auto;
-  }
-  .file-menu.open{ display:block; }
-  .file-menu-item{
-    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px;
-    cursor:pointer; font-size:12px;
-  }
-  .file-menu-item:hover{ background:var(--bg); }
+
+  /* The active FILE in the dropdown. Mantine's Menu.Item has no "current" state of its own, and
+     this is the one thing in the old .file-menu block that carried meaning rather than looks:
+     which calendar is open. */
   .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
-  .file-menu-item .fm-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fm-remove{ border:none; background:transparent; color:var(--text-faint); font-size:14px; line-height:1; cursor:pointer; padding:0 3px; border-radius:4px; }
-  .fm-remove:hover{ color:var(--danger); background:rgba(0,0,0,.06); }
-  .file-menu-sep{ height:1px; background:var(--border); margin:4px 2px; }
-  .file-menu-empty{ padding:8px 9px; font-size:11px; color:var(--text-faint); }
-  .save-status{ font-size:11px; color:var(--text-faint); min-width:78px; white-space:nowrap; }
-  .save-status.dirty{ color:#b45309; }
-  .save-status.failed{ color:var(--danger); font-weight:600; }
+
   /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
   .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; border-radius:4px; }
   .hv-bulk:hover{ background:var(--bg); text-decoration:underline; }

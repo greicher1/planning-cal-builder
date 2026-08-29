@@ -9,9 +9,24 @@
 // working -- React ignores it -- and every test here would quietly assert against a blank
 // calendar. Fix this file (native value setter) BEFORE porting anything, not after.
 window.__T = (function(){
+  // ⚠️ NATIVE SETTER, not `e.value = v`.
+  // React installs its own `value` setter on the input prototype and tracks the last value it
+  // wrote. A plain assignment updates the DOM but leaves React's tracker unchanged, so React
+  // decides nothing changed and swallows the dispatched event -- silently. Every fixture in this
+  // harness would go on "setting" fields that never took, and every assertion would run against a
+  // blank calendar, which reads exactly like the app ignoring input. Calling the PROTOTYPE setter
+  // bypasses React's override and leaves the tracker stale, which is what makes React believe the
+  // value is new. This is the fix MANTINE-MIGRATION.md §4.2 says must land before any porting.
+  function nativeSet(e, v){
+    var proto = e instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype
+              : e instanceof HTMLSelectElement   ? HTMLSelectElement.prototype
+              : HTMLInputElement.prototype;
+    var d = Object.getOwnPropertyDescriptor(proto, 'value');
+    if(d && d.set) d.set.call(e, v); else e.value = v;
+  }
   function set(id,v){
     var e=document.getElementById(id); if(!e) throw new Error('no #'+id);
-    e.value=v; ['input','change'].forEach(function(t){e.dispatchEvent(new Event(t,{bubbles:true}));});
+    nativeSet(e, v); ['input','change'].forEach(function(t){e.dispatchEvent(new Event(t,{bubbles:true}));});
   }
   function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
@@ -165,16 +180,23 @@ window.__T = (function(){
   // A probe a dead page also satisfies turns a broken page into a "broken feature", which is how
   // an unrestored calendar got reported as the app ignoring a file.
   //
-  // #file-menu is EMPTY in the markup and #file-menu-wrap is display:none; both are only changed
-  // by renderRecents(), which runs inside loadRecents().then(...) -- an IndexedDB round trip, and
-  // on a fresh --user-data-dir the database has to be created first. That round trip is the real
-  // source of the ~1-in-3 flake: the click landed on a menu that did not exist yet, threw nothing,
-  // and the test reported an unrestored calendar.
+  // ⚠️ CHANGED WITH THE MANTINE HEADER, and it is the third time this probe has had to move.
+  // It used to be "#file-menu has children". That worked while the dropdown shipped EMPTY in the
+  // markup and only renderRecents() filled it. The Mantine Menu renders its Open… and Export
+  // shareable copy… items from React's very first commit -- before initLegacyApp() has even run --
+  // so a page whose engine never started now satisfies the old probe. Same failure mode as the two
+  // before it: a dead page reads as a live one, and the real breakage surfaces later as a "feature"
+  // that does nothing.
+  //
+  // #file-menu-wrap's display is still a live-code-only signal: it ships display:none from React's
+  // state default and is cleared only by renderRecents(), which runs inside loadRecents().then(...)
+  // -- an IndexedDB round trip, and on a fresh --user-data-dir the database has to be created
+  // first. That round trip is the real source of the ~1-in-3 flake.
   async function appReady(){
     await until(function(){
-      var menu = document.getElementById('file-menu');
-      return menu && menu.children.length > 0;
-    }, 'renderRecents() to populate the file menu (IndexedDB-backed; see README)', 200, 100);
+      var wrap = document.getElementById('file-menu-wrap');
+      return wrap && getComputedStyle(wrap).display !== 'none';
+    }, 'renderRecents() to reveal the file menu (IndexedDB-backed; see README)', 200, 100);
   }
   async function openViaFakePicker(url, name){
     var txt = await (await fetch(url)).text();
@@ -191,7 +213,7 @@ window.__T = (function(){
       }];
     };
     await appReady();
-    document.getElementById('file-menu-btn').click();
+    document.querySelector('.file-menu-btn').click();  // NB: the id is Mantine's (Popover.Target injects it); the class is the contract
     await until(function(){
       return !!document.querySelector('#file-menu .file-menu-item[data-action="open"]');
     }, 'Open... menu item', 60, 100);

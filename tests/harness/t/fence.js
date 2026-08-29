@@ -48,9 +48,23 @@ window.addEventListener('load', function () { (async function () {
 
   try {
     T.buildFixture();
+    // ⚠️ Wait for the grid to SETTLE, not merely to appear.
+    // The first version waited on `rows > 1`, which is satisfied while buildFixture() is still
+    // feeding in phases -- and the column count depends on maxConcurrent, so a measurement taken
+    // then reports a DIFFERENT table width than the finished calendar. Two runs of this test
+    // against the same untouched page reported 635px and 602px, which reads exactly like a
+    // regression and is not one. Wait for the row count to stop changing.
     await T.until(function () {
       return document.querySelectorAll('table.sheet-table tbody tr').length > 1;
     }, 'the grid to render', 150, 100);
+    var lastRows = -1, stable = 0;
+    await T.until(function () {
+      var n = document.querySelectorAll('table.sheet-table tbody tr').length;
+      stable = (n === lastRows) ? stable + 1 : 0;
+      lastRows = n;
+      return stable >= 5;      // ~500ms unchanged
+    }, 'the row count to settle', 100, 100);
+    out.rows = lastRows;
 
     out.health = T.appHealth();
 

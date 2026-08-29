@@ -23,23 +23,13 @@
 
 <script id="saved-state" type="application/json">null</script>
 
-<header class="app-header">
-  <div class="app-toolbar">
-    <div class="file-menu-wrap" id="file-menu-wrap" style="display:none;">
-      <button class="tb-btn file-menu-btn" id="file-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">
-        <span id="file-menu-label">Untitled</span> <span class="caret">&#9662;</span>
-      </button>
-      <div class="file-menu" id="file-menu" role="menu"></div>
-    </div>
-    <button class="tb-btn" id="new-file-btn" type="button">New</button>
-    <button class="tb-btn" id="save-file-btn" type="button">Save</button>
-    <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
-    <button class="tb-btn" id="export-btn" type="button" disabled>Export to Excel</button>
-    <button class="tb-btn primary" id="export-wf-pdf-btn" type="button" disabled>Export Waterfall to PDF</button>
-    <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
-    <button class="tb-btn danger" id="reset-btn" type="button">Reset All</button>
-  </div>
-</header>
+<!-- The header ELEMENT stays in the static markup and stays a DIRECT CHILD of <body>; only
+     its interior is React. Three things depend on this exact node: a ResizeObserver does
+     document.querySelector('header.app-header') and writes --header-h, which the frozen
+     `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads; and both print
+     paths hide the app with `body.printing-* > *:not(#print-root)`, which are CHILD
+     combinators a React wrapper would defeat, printing a blank page. -->
+<header class="app-header"></header>
 
 <!-- Shown only after opening a pre-v1.1.0 .html calendar. Its own strip rather than a dialog:
      the file opened fine and nothing is wrong, so it must not interrupt: read it or ignore it. -->

@@ -24,7 +24,7 @@ window.addEventListener('load',function(){ (async function(){
     out.legacyStripShowing = !document.getElementById('legacy-notice').hidden;
 
     // Export shareable copy lives in the file menu, same as Open.
-    document.getElementById('file-menu-btn').click();
+    document.querySelector('.file-menu-btn').click();  // the id is Mantine's; the class is the contract
     await T.until(function(){
       return !!document.querySelector('#file-menu .file-menu-item[data-action="share"]');
     }, 'the Export-shareable-copy item', 60, 100);

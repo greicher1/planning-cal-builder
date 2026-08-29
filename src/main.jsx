@@ -2,6 +2,7 @@
 // reordering anything.
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { MantineProvider } from '@mantine/core'
 
 // ---- CSS ------------------------------------------------------------------------------------
@@ -22,6 +23,7 @@ import '@mantine/dates/styles.layer.css'
 import './styles/legacy.css'
 
 import { theme } from './theme.js'
+import { Header } from './chrome/Header.jsx'
 import { initLegacyApp } from './legacy/app.js'
 
 // ---- Why portals, and not a React root that owns the document ---------------------------------
@@ -41,7 +43,20 @@ import { initLegacyApp } from './legacy/app.js'
 // index.html keeps its exact shape and React only fills the interiors. One root and one
 // MantineProvider, so the CSS-variable block is emitted once.
 function Chrome() {
-  return null   // stage 1b: provider and theme only. Surfaces arrive stage by stage.
+  return <>{portal(<Header />, 'header.app-header')}</>
+}
+
+// A portal whose host must already exist. It must NOT be created here: #table-wrap and
+// header.app-header are both resolved by the engine at evaluation time, so a host React invented
+// would either be missing when the engine looked for it or would sit in the wrong place in <body>.
+function portal(node, selector) {
+  const host = document.querySelector(selector)
+  if (!host) {
+    // Loud, because the failure is otherwise silent and looks like a styling bug.
+    console.error('chrome: no host for ' + selector + ' -- the static skeleton is missing it')
+    return null
+  }
+  return createPortal(node, host)
 }
 
 const host = document.getElementById('react-root')
@@ -50,6 +65,12 @@ const root = createRoot(host)
 // flushSync, because React 19 commits asynchronously by default and initLegacyApp() binds to
 // chrome elements BY ID at evaluation time. The chrome DOM has to exist before that call returns,
 // not on the next frame.
+//
+// ⚠️ flushSync is NOT sufficient on its own, and finding that out cost an afternoon. Mantine's
+// Popover mounts its dropdown from an EFFECT, so #file-menu is still absent when this returns --
+// even with keepMounted. Anything the engine resolves by id at evaluation time must therefore
+// either live in the STATIC skeleton or be reached by delegation from document. See the file-menu
+// handler in legacy/app.js.
 flushSync(() => {
   root.render(
     // forceColorScheme="light" — dark mode is a stated non-goal, see theme.js.

@@ -11,6 +11,8 @@
 // variable now throws ReferenceError instead of silently creating a global. The harness's
 // window.__ERR trap is what proves this file is clean -- do not skip it after editing here.
 
+import { chrome } from '../chrome/bridge.js'
+
 export function initLegacyApp() {
 
 (function(){
@@ -2144,15 +2146,14 @@ export function initLegacyApp() {
     // always the PDF one. In the waterfall that is the separate Waterfall-to-PDF button beside it,
     // so this one drops to the plain style; in the month view this button IS the PDF export (the
     // other is hidden), so it takes the fill instead of leaving the view with no emphasised action.
-    if(exportBtn){
-      const isMonth = viewMode === 'month';
-      exportBtn.textContent = isMonth ? 'Export Calendar to PDF' : 'Export Waterfall to Excel';
-      exportBtn.classList.toggle('primary', isMonth);
-    }
+    const isMonth = viewMode === 'month';
+    chrome.exportBtn({
+      label: isMonth ? 'Export Calendar to PDF' : 'Export Waterfall to Excel',
+      primary: isMonth,
+    });
     // The Waterfall-to-PDF button only applies to the waterfall (the month view has its own PDF
     // export via the main button), so it's shown only there.
-    const wfPdfBtn = document.getElementById('export-wf-pdf-btn');
-    if(wfPdfBtn) wfPdfBtn.style.display = (viewMode === 'month') ? 'none' : '';
+    chrome.exportWfBtn({ visible: !isMonth });
 
     // update per-phase computed end-date hints
     getAllPhaseDefs().forEach(p=>{
@@ -2233,12 +2234,12 @@ export function initLegacyApp() {
         msg = 'That date range doesn\u2019t resolve to a valid span \u2014 double check the start and end dates.';
       }
       tableEl.innerHTML = `<div class="empty-state">${msg}</div>`;
-      exportBtn.disabled = true;
-      if(wfPdfBtn) wfPdfBtn.disabled = true;
+      chrome.exportBtn({ disabled: true });
+      chrome.exportWfBtn({ disabled: true });
       return;
     }
-    exportBtn.disabled = false;
-    if(wfPdfBtn) wfPdfBtn.disabled = false;
+    chrome.exportBtn({ disabled: false });
+    chrome.exportWfBtn({ disabled: false });
 
     const gapWarningEl = document.getElementById('gap-warning');
     if(schedule.gaps && schedule.gaps.length){
@@ -5377,14 +5378,18 @@ export function initLegacyApp() {
     h = h % 12; if(h === 0) h = 12;
     return h + ':' + m + ' ' + ap;
   }
+  // Pushes the status as DATA rather than writing it onto the node. The old version assigned
+  // el.className as a WHOLE STRING, which under React wipes whatever class Mantine put there --
+  // the readout would silently lose its styling the first time the status changed. `tone` is the
+  // state; how each tone looks is the chrome's business. 'failed' is the one state that means
+  // something is actually wrong, and it is the one the chrome gives a shape to (a Badge) rather
+  // than leaving as quiet text -- UI-CONVENTIONS.md §4.
   function refreshSaveStatus(){
-    const el = document.getElementById('save-status');
-    if(!el) return;
-    if(isDirty && autosaveFailed){ el.textContent = 'Autosave failed — click Save'; el.className = 'save-status failed'; el.title = 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.'; }
-    else if(isDirty && autosaveNeedsFile){ el.textContent = 'Autosave needs a file — click Save'; el.className = 'save-status dirty'; el.title = 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.'; }
-    else if(isDirty){ el.textContent = 'Unsaved changes'; el.className = 'save-status dirty'; el.title = ''; }
-    else if(lastSavedAt){ el.textContent = 'Saved ' + fmtTime(lastSavedAt); el.className = 'save-status'; el.title = ''; }
-    else { el.textContent = ''; el.className = 'save-status'; el.title = ''; }
+    if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
+    else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'dirty', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
+    else if(isDirty){ chrome.saveStatus({ text: 'Unsaved changes', tone: 'dirty', title: '' }); }
+    else if(lastSavedAt){ chrome.saveStatus({ text: 'Saved ' + fmtTime(lastSavedAt), tone: 'idle', title: '' }); }
+    else { chrome.saveStatus({ text: '', tone: 'idle', title: '' }); }
   }
 
   // Rolling local backup (debounced so typing doesn't hammer IndexedDB).
@@ -6050,19 +6055,26 @@ export function initLegacyApp() {
   const saveBtn = document.getElementById('save-file-btn');
   const saveAsBtn = document.getElementById('save-as-btn');
   const saveBtnLabel = () => supportsFsAccess ? 'Save' : 'Save to File';
+  // The chrome is React now, so what these buttons SAY is pushed through the bridge rather than
+  // written onto the node. Writing textContent onto a Mantine Button destroys its inner spans, and
+  // Mantine styles disabled from [data-disabled] only -- setting .disabled would disable the button
+  // functionally while leaving it looking enabled. src/chrome/bridge.js has the full reasoning.
   function refreshSaveBtn(){
-    if(saveBtn) saveBtn.textContent = saveBtnLabel();
+    chrome.saveBtn({ label: saveBtnLabel() });
     // "Save As…" only makes sense where we can pick a real file location.
-    if(saveAsBtn) saveAsBtn.style.display = supportsFsAccess ? '' : 'none';
+    chrome.saveAsBtn({ visible: supportsFsAccess });
   }
   refreshSaveBtn();
+  // ⚠️ The re-entrancy guard is now this flag, NOT the button's .disabled property. React commits
+  // asynchronously, so a second click landing before the commit would have read .disabled === false
+  // and started a concurrent write to the same file. The flag is set synchronously.
+  let saveInFlight = false;
   function flashSaveBtn(text, btn){
-    const b = btn || saveBtn;
-    if(!b) return;
-    const restore = b === saveBtn ? saveBtnLabel() : 'Save As\u2026';
-    b.textContent = text;
-    b.disabled = true;
-    setTimeout(()=>{ b.disabled = false; b.textContent = restore; }, 1200);
+    const isSaveAs = btn === saveAsBtn;
+    const restore = isSaveAs ? 'Save As\u2026' : saveBtnLabel();
+    const push = isSaveAs ? chrome.saveAsBtn : chrome.saveBtn;
+    push({ label: text, disabled: true });
+    setTimeout(()=>{ push({ label: restore, disabled: false }); }, 1200);
   }
 
   // Load a file's saved data INTO the running app: read its HTML, pull out the embedded
@@ -6159,38 +6171,24 @@ export function initLegacyApp() {
 
   // Render the file dropdown in the header: current file name on the button, recents +
   // "Open…" inside the menu.
+  // Pushes the recents list as DATA. The chrome renders each entry carrying the SAME
+  // data-id / data-remove / data-action attributes the delegated handler below matches on with
+  // .closest(), so that handler -- and its deliberate branch ORDER -- ports across untouched.
+  //
+  // The local `esc` that used to live here is gone, and good riddance: it escaped & < " but NOT >,
+  // while the notice strips used the app's escHtml() which does. Two escapers doing one job, with
+  // one of them subtly weaker. JSX escapes, so neither is needed.
   function renderRecents(){
-    const wrap = document.getElementById('file-menu-wrap');
-    const menu = document.getElementById('file-menu');
-    const label = document.getElementById('file-menu-label');
-    if(!wrap || !menu || !label) return;
-    if(!supportsFsAccess){ wrap.style.display = 'none'; return; }
-    wrap.style.display = '';
+    if(!supportsFsAccess){ chrome.fileMenu({ visible: false }); return; }
     const active = recentFiles.find(f=>f.id === activeFileId);
-    label.textContent = active ? active.name.replace(/\.html$/i,'') : 'Untitled';
-    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    const items = recentFiles.length
-      ? recentFiles.map(f=>{
-          const cls = f.id === activeFileId ? ' active' : '';
-          const nm = esc(f.name);
-          return `<div class="file-menu-item${cls}" data-id="${f.id}" role="menuitem" title="${nm}">
-            <span class="fm-name">${nm}</span>
-            <button class="fm-remove" data-remove="${f.id}" title="Remove from list" aria-label="Remove">\u00d7</button>
-          </div>`;
-        }).join('')
-      : '<div class="file-menu-empty">No saved files yet</div>';
-    menu.innerHTML = items + '<div class="file-menu-sep"></div>' +
-      '<div class="file-menu-item" data-action="open" role="menuitem"><span class="fm-name">Open\u2026</span></div>' +
-      // The old save format, kept as a deliberate export: a complete, double-clickable copy of the
-      // app with this calendar in it, for emailing to someone who doesn't have the tool. Not what
-      // Save writes any more -- it's ~230x bigger and freezes today's bugs into the file forever.
-      '<div class="file-menu-item" data-action="share" role="menuitem" title="A standalone HTML copy of the app with this calendar in it \u2014 for sending to someone who doesn\u2019t have the tool"><span class="fm-name">Export shareable copy\u2026</span></div>';
+    chrome.fileMenu({
+      visible: true,
+      // NB: strips only .html -- a .sptcal file deliberately shows its extension.
+      label: active ? active.name.replace(/\.html$/i,'') : 'Untitled',
+      items: recentFiles.map(f => ({ id: f.id, name: f.name, active: f.id === activeFileId })),
+    });
   }
-  function closeFileMenu(){
-    const m = document.getElementById('file-menu'); const b = document.getElementById('file-menu-btn');
-    if(m) m.classList.remove('open');
-    if(b) b.setAttribute('aria-expanded','false');
-  }
+  function closeFileMenu(){ chrome.fileMenu({ open: false }); }
 
   // On load: bring in the recent-files list, but do NOT adopt the last active file's handle.
   // A freshly-loaded page shows a blank calendar, so silently pointing Save at the previous
@@ -6208,16 +6206,18 @@ export function initLegacyApp() {
   }
 
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{
-    if(saveBtn.disabled) return;          // ignore double-clicks while a write is already in flight
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving\u2026';   // in-progress feedback (mirrors Export's "Building file...")
+    if(saveInFlight) return;              // ignore double-clicks while a write is already in flight
+    saveInFlight = true;
+    chrome.saveBtn({ busy: true, disabled: true });   // mirrors Export's "Building file..."
+
     try {
       const result = await saveToFile();
-      saveBtn.disabled = false;           // flashSaveBtn re-disables briefly for its confirmation
+      saveInFlight = false;
+      chrome.saveBtn({ busy: false });     // flashSaveBtn re-disables briefly for its confirmation
       flashSaveBtn(result === 'download' ? 'Downloaded \u2713' : 'Saved \u2713');
     } catch(err){
-      saveBtn.disabled = false;
-      saveBtn.textContent = saveBtnLabel();
+      saveInFlight = false;
+      chrome.saveBtn({ busy: false, disabled: false, label: saveBtnLabel() });
       if(err && err.name === 'AbortError') return; // user cancelled the picker
       console.error(err);
       alert('Something went wrong saving the file: ' + err.message);
@@ -6567,17 +6567,33 @@ export function initLegacyApp() {
 
   // Header toolbar wiring: file dropdown, New, Save As.
   (function(){
-    const menuBtn = document.getElementById('file-menu-btn');
-    const menu = document.getElementById('file-menu');
+    // NB: there is no menuBtn const any more. Mantine's Menu.Target delegates to Popover.Target,
+    // which CLONES its child and injects Popover's own generated id -- so an id written on that
+    // button is silently replaced and getElementById('file-menu-btn') returns null. Nothing here
+    // needs it: opening, closing, aria-expanded, click-away and Escape are all Mantine's now.
     const newBtn = document.getElementById('new-file-btn');
 
-    if(menuBtn && menu){
-      menuBtn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        const open = menu.classList.toggle('open');
-        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      });
-      menu.addEventListener('click', async (e)=>{
+    // ⚠️ Opening, closing, click-away and Escape are Mantine's Menu now, NOT this file's.
+    // The toggle handler, the document click-away (`!e.target.closest('#file-menu-wrap')`) and the
+    // document Escape handler that used to live here are all DELETED, deliberately: two closers on
+    // one menu is exactly how "clicking an item reopens it" happens. What stays is the ONE
+    // delegated listener below, because its branch ORDER is load-bearing --
+    //   data-remove (returns early, so the menu STAYS OPEN while pruning several entries)
+    //     -> item -> close -> share (above the dirty guard, since exporting is not navigation)
+    //     -> dirty confirm -> open/recent.
+    // Mantine is configured with closeOnItemClick={false} so this flow keeps deciding, unchanged.
+    // ⛔ Bound to DOCUMENT, not to #file-menu, and scoped by closest(). Binding to the node
+    // directly is what broke this once already: Mantine's Popover mounts its dropdown from an
+    // EFFECT, so #file-menu does not exist at the instant this IIFE evaluates -- even inside
+    // flushSync, and even with keepMounted. getElementById returned null, the listener silently
+    // never attached, and the file menu opened and closed perfectly while doing nothing at all.
+    // No error, no warning; the only symptom was Open… not opening anything.
+    //
+    // The general rule this is an instance of: the engine must not capture React-rendered nodes at
+    // evaluation time. Delegating from document costs nothing and cannot be defeated by a remount.
+    {
+      document.addEventListener('click', async (e)=>{
+        if(!e.target.closest || !e.target.closest('#file-menu')) return;
         const rm = e.target.closest('[data-remove]');
         if(rm){ e.stopPropagation(); await removeRecent(rm.getAttribute('data-remove')); return; }
         const item = e.target.closest('.file-menu-item');
@@ -6602,9 +6618,6 @@ export function initLegacyApp() {
         }
         if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); alert('Could not open that file: '+err.message); } }
       });
-      // click-away / Escape closes the menu
-      document.addEventListener('click', (e)=>{ if(!e.target.closest('#file-menu-wrap')) closeFileMenu(); });
-      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeFileMenu(); });
     }
 
     if(newBtn) newBtn.addEventListener('click', ()=>{
@@ -6645,16 +6658,19 @@ export function initLegacyApp() {
       alert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
       return;
     }
-    const btn = document.getElementById('export-btn');
-    const original = btn.textContent;
-    btn.textContent = 'Building file...'; btn.disabled = true;
+    // ⚠️ This used to be `const original = btn.textContent` … `finally { btn.textContent =
+    // original }` -- a snapshot of a property render() ALSO writes. Under React a commit landing
+    // between the snapshot and the restore could strand the button reading 'Building file...', or
+    // showing the other view's label. `busy` is a state now and the label is always DERIVED from
+    // viewMode, never captured. MANTINE-SEAM.md §3.1 names this specifically.
+    chrome.exportBtn({ busy: true, disabled: true });
     try{
       await exportExcel(currentSchedule);
     } catch(err){
       console.error(err);
       alert('Something went wrong building the Excel file: ' + err.message);
     } finally {
-      btn.textContent = original; btn.disabled = false;
+      chrome.exportBtn({ busy: false, disabled: false });
     }
   });
 
