@@ -121,7 +121,7 @@ write re-prompts once.
 
 The seam is unusually clean; the app already funnels both directions through one function each.
 
-**Write** — `buildSavedData()` ([index.html:7267](index.html:7267)) currently returns
+**Write** — `buildSavedData()` ([index.html:7300](index.html:7300)) currently returns
 `JSON.stringify(captureSnapshot(), null, 1)`. It gains an async wrapper:
 
 ```js
@@ -132,25 +132,42 @@ async function encodeCalendarFile(){
 }
 ```
 
-Three call sites, all already `async`: [7491](index.html:7491), [8109](index.html:8109),
-[8173](index.html:8173). Each becomes `await encodeCalendarFile()` — and each already branches on
-`handleIsLegacyHtml()`, so the `.html` path is untouched by construction.
+Three call sites: [7527](index.html:7527), [8149](index.html:8149), [8213](index.html:8213).
+Each becomes `await encodeCalendarFile()` — and each already branches on `handleIsLegacyHtml()`,
+so the `.html` path is untouched by construction.
 
-**Read** — `parseCalendarText()` ([index.html:7316](index.html:7316)) becomes `async` and grows a
-*third* branch, ahead of the existing two:
+**Read** — `parseCalendarText()` ([index.html:7352](index.html:7352)) becomes `async` and grows a
+*third* branch, ahead of the existing two.
+
+> ### ⚠️ Corrected 29 Aug 2026 — this sketch was written against the OLD signature
+> `parseCalendarText()` shipped in v1.1.0 returning **`{format, snapshot}`**, not a bare snapshot.
+> The format is part of the contract because opening a legacy `.html` is the one moment the app
+> can offer to upgrade it. **The encrypted branch must return the same shape** — an encrypted
+> file is still the data format, so it is `format:'data'`.
 
 ```js
 async function parseCalendarText(text){
-  const t = String(text||'').replace(/^﻿/, '').trimStart();
-  if(t.startsWith('SPTCAL1.')) return openSealed(t);   // NEW
-  if(t.startsWith('{'))        return /* existing plaintext branch, unchanged */;
+  const t = String(text||'').replace(/^\uFEFF/, '').trimStart();
+  if(t.startsWith('SPTCAL1.')){                        // NEW
+    const json = await openSealed(t);                  // throws on any decrypt failure — see below
+    return { format:'data', snapshot: JSON.parse(json) };
+  }
+  if(t.startsWith('{'))  return /* existing plaintext branch, unchanged */;
   /* existing legacy .html branch, unchanged */
 }
 ```
 
-Exactly one caller: [index.html:8219](index.html:8219) inside `openRecentFile()`, already async —
-it takes an `await`. Every pre-encryption `.sptcal` and every pre-v1.1.0 `.html` keeps opening
-through code that was not modified, which is the cheapest possible way to honour
+> ### ⚠️ `openSealed()` must THROW, never return `null`
+> `parseCalendarText()` signals "this isn't a calendar" by returning `null`, and the caller turns
+> that into *"That file doesn't contain saved calendar data."* A decrypt failure returning `null`
+> would inherit that message — telling someone holding a perfectly good calendar that it is the
+> wrong file, and sending them to look for one that does not exist. That is the exact failure §4
+> exists to prevent, so make it structural: throw a typed error and let the caller map it to one
+> of §4's four messages.
+
+Exactly one functional caller: [index.html:8302](index.html:8302) inside `openRecentFile()`,
+already `async` — it takes an `await`. Every pre-encryption `.sptcal` and every pre-v1.1.0 `.html`
+keeps opening through code that was not modified, which is the cheapest possible way to honour
 "every saved calendar must keep opening, forever."
 
 **Not encrypted, deliberately:** the IndexedDB crash backup (`BACKUP_KEY`) and the undo stack.

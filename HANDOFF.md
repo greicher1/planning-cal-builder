@@ -191,6 +191,35 @@ motivating case. Persistence should be per-user and per-machine, so `localStorag
 `captureSnapshot()` — these are preferences, not calendar data, and must not travel inside a saved
 file (see §4, "what NOT to do").
 
+**⚠️ Two things checked 29 Aug 2026 that change how this must be built:**
+
+1. **`localStorage` is used NOWHERE in the app today** — zero occurrences. The crash backup is
+   IndexedDB (`idbSet(BACKUP_KEY, …)`), not `localStorage`, whatever older prose in `CLAUDE.md`
+   implied (now corrected). So this stage *introduces* `localStorage`; it does not join an
+   existing mechanism, and there is no established read/write helper to copy.
+
+2. **All three constants are read from INSIDE the frozen surface**, which decides the design:
+
+   | Constant | Read at | Frozen? |
+   |---|---|---|
+   | `SHEET_GRIDLINES` | `exportExcel` 6121–6122, `buildWaterfallPdf` 9484–9485, 9647 | **yes** |
+   | `GRID_TEXT_COLOR` | `renderSpreadsheetView` 5307/5325, `exportExcel` 6042/6063, `buildWaterfallPdf` 9554 | **yes** |
+   | `WF_PDF_MODE` | export dispatch 8878 | no |
+
+   That is *not* a blocker — §0 rule 2 explicitly allows the frozen code to **read** from
+   surrounding state. But it does force one specific shape: **keep the identifiers exactly as they
+   are** and change only their *declaration* (`const X = 'none'` → a `let`/getter hydrated from
+   `localStorage` at startup). Then **no frozen function body is edited at all** — the diff stays
+   entirely in the declaration block and the new settings UI.
+
+   Do **not** refactor these into a `settings.gridlines` object and update the call sites: that
+   edits `renderSpreadsheetView`, `exportExcel` and `buildWaterfallPdf`, which is exactly what
+   rule 2 forbids, and it buys nothing.
+
+   Changing a value must trigger a re-render — `update()` already does this on every edit, so the
+   settings control simply calls it. The PDF and Excel read the value at export time, so they need
+   nothing.
+
 ### 2b-2. Mantine UI redesign of the surrounding chrome — **decided, not started**
 
 The owner has chosen **Option B** from [`MANTINE-MIGRATION.md`](MANTINE-MIGRATION.md): the
@@ -256,9 +285,31 @@ implemented yet.
 and no cache layer (§3, "no service worker"). An installed PWA with no service worker behaves like
 a browser tab on relaunch — it fetches `index.html` fresh from the network every time, no stale
 cache to fight. So "quit and relaunch" already gets the newest deploy, with zero extra plumbing,
-*as long as the fetch actually reaches the network* (see the private-repo thread below) and isn't
-served stale by HTTP caching at the hosting layer (GitHub Pages sets its own headers; not
-independently verified this session).
+*as long as the fetch actually reaches the network* (see the private-repo thread below).
+
+**✅ The hosting-layer caching question is now answered (29 Aug 2026).** `curl -I` against the
+live URL returns:
+
+```
+cache-control: max-age=600
+etag: "6a9254a0-a18bb"
+```
+
+So GitHub Pages sets a **10-minute** browser cache with an ETag. That qualifies "relaunch always
+gets the newest deploy" without overturning it: a relaunch **within 10 minutes** of the last fetch
+is served from the local HTTP cache and never touches the network; past that the browser
+revalidates against the ETag and picks up a new deploy. The staleness window is **bounded at ~10
+minutes** — nothing like a service worker's indefinite cache, which is why removing the SW was the
+right call, but it is not zero.
+
+Two consequences for the design below:
+
+- A version marker **served from Pages is cached the same 10 minutes**, and Pages does not let you
+  set per-file headers. Poll it with a cache-busting query (`?t=<epoch>`) or accept ~10-minute
+  granularity on update detection. Either is fine; just do it deliberately.
+- **Verifying a deploy** (§5a says poll the live URL for a new symbol) can show a stale 200 for up
+  to 10 minutes. Use a cache-busting query or `curl -H 'Cache-Control: no-cache'` when checking,
+  or you will conclude a good deploy failed.
 
 **The private-repo / SSO complication, worked through with the owner:**
 
@@ -347,9 +398,18 @@ Design decisions already made, so they don't get re-litigated:
 - A fresh IV **every write**. The app rewrites the same file on every autosave, and IV reuse under
   one key breaks GCM catastrophically.
 
-**The one thing that could break Save — verify before writing any code.** `crypto.subtle` requires
-a secure context, and the documented way to run this app is `open index.html` (a `file://` origin).
-Chrome and Edge treat `file://` as secure *today*. Gate the whole feature on a runtime
+**The one thing that could break Save — ✅ VERIFIED 29 Aug 2026, and it is fine.** `crypto.subtle`
+requires a secure context, and the documented way to run this app is `open index.html` (a `file://`
+origin). Measured in headless Chrome against a real `file://` page:
+
+```
+isSecureContext    true      hasCryptoSubtle   true
+AES-256-GCM round trip with AAD   PASS
+PBKDF2 importKey (passphrase mode, option C)   PASS
+```
+
+So the whole scheme — including option C's passphrase derivation — works from `file://` in Chrome
+today. This was the biggest technical unknown in the design and it is closed. Gate the whole feature on a runtime
 `window.isSecureContext && crypto.subtle` check and fall back to plaintext with a one-time notice.
 A calendar that saves in the clear is a disclosed limitation; a Save button that throws is a lost
 production plan.
