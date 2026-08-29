@@ -15,16 +15,23 @@ change — see §5d.
 
 ---
 
-## 0. The three rules that override everything else
+## 0. The rules that override everything else
 
 1. **Never commit or push on your own initiative.** `main` auto-deploys to a live public site with
-   real users on it. Ask, with an interactive checkbox picker, every time. See §5.
+   real users on it. Ask, with an interactive checkbox picker, every time. See §5a.
 2. **Never touch the grid or the exports.** `#table-wrap`, `#print-root`, the width model, the
    layout functions and the Excel/PDF writers are frozen. Not restyled, not refactored, not
    wrapped in components, not migrated to a UI library. The exact frozen surface is listed in
    `CLAUDE.md`. See §4.
-3. **Watch the context window.** When the session is getting long, stop and tell the owner to save
-   and migrate to a fresh session. See §5.
+3. **Every saved calendar must keep opening, forever.** Open reads *only* the `saved-state` JSON
+   out of a file and replays it into the running app — the old file's code is never executed. The
+   snapshot schema is therefore a permanent contract, and `fields.byId`'s DOM ids are part of the
+   file format. See §4 and §7.
+4. **Changelog every substantial change**, in `README.md`, in the same breath as the code. Cut a
+   version — tag **and** `releases/vX.Y.Z.html` — when the app reaches a state worth returning to.
+   See §5g.
+5. **Watch the context window.** When the session is getting long, stop and tell the owner to save
+   and migrate to a fresh session. See §5b.
 
 ---
 
@@ -272,6 +279,16 @@ three-way divergence is why the PDF never matched an Excel print. **No third-par
 may reach these elements** — Mantine's `global.css`/`baseline.css` must be fenced into a `@layer`
 the grid rules outrank. The UI work in `MANTINE-MIGRATION.md` stops at this boundary.
 
+**Do not break a saved calendar.** Open never executes an old file's code — it lifts the
+`saved-state` JSON out and replays it into the *running* app (§7). So the snapshot schema is a
+permanent contract: never rename, remove or repurpose a `captureSnapshot()` key; never restore
+conditionally; a missing key falls back to a default, never to what is already in memory. And
+**`fields.byId` is keyed by DOM element `id`**, which makes those ids part of the file format
+rather than an implementation detail. `CLAUDE.md` has the full rule.
+
+**Do not let a substantial change ship without a changelog entry.** `README.md`, newest first,
+written with the code and not afterwards. `CLAUDE.md` has the rule; §5g has the shape.
+
 **Do not report a fix without evidence from a real browser.** Reading the code is not verification.
 The owner expects concrete before/after numbers.
 
@@ -381,6 +398,23 @@ These comments are the project's real documentation.
 
 ---
 
+### 5g. Versioning and the changelog
+
+`README.md` holds the changelog, newest first, under the marker comment. It is updated **with**
+the code, not batched at the end of a session.
+
+A **version** is cut when the app reaches a state worth being able to return to. Cutting one means
+all three of:
+
+1. A changelog entry in `README.md` saying what the version *is* and what its known limits are.
+2. `git tag -a vX.Y.Z` — immutable history.
+3. `releases/vX.Y.Z.html` — a byte-identical copy, verified with `cmp`/`shasum`.
+
+The tag and the copy are not redundant. The tag is how you diff, branch and bisect; the copy is
+the one you can hand someone or double-click when the build system has moved on and `index.html`
+is no longer a runnable app. **v1.0.0** (28 Aug 2026, `305c343`) is the last single-file build
+before the Mantine overhaul, and is the baseline everything after it is measured against.
+
 ## 6. UI conventions
 
 ### Toolbar
@@ -448,3 +482,100 @@ have to be rediscovered:
 Descriptions exist to answer a real question. Anything true of *every* option must not appear in
 one option's description — it reads as a distinction while distinguishing nothing. (The four
 calendar adjustment tools are the worked example; see CLAUDE.md.)
+
+---
+
+## 7. The save / open format — how it actually works, and where it should go
+
+Written 28 Aug 2026 after the owner asked whether saves are full app copies and whether that is
+the right design. **Measured, not assumed** — headless-Chrome harness, a 10-episode US-General
+calendar with four phases dated and four hiatus rows.
+
+### What happens today
+
+Save and Open are **not symmetric**, and that is the crux.
+
+```
+SAVE:  captureSnapshot()  →  JSON  →  <script id="saved-state">
+       + document.documentElement.outerHTML   ← a complete, runnable copy of the app
+
+OPEN:  read file as TEXT  →  regex out <script id="saved-state">  →  JSON
+       →  applyStateSnapshot()  →  refreshAfterRestore()
+       ✗ the old file's HTML/CSS/JS is NEVER parsed and NEVER executed
+```
+
+So the answer to "are we saving a full snapshot then only parsing the data on open, or fully
+loading the old HTML?" is **the first one**. Open takes exactly one thing from the file: the
+snapshot JSON. Everything else is inert.
+
+### What that costs, measured
+
+| Part of a saved calendar | Bytes | Share |
+|---|---:|---:|
+| **The data — `saved-state` JSON** | **3,238** | **0.44%** |
+| Embedded Carlito font | 93,797 | 12.9% |
+| **The rendered grid, serialized and then thrown away** | **44,568** | 6.1% |
+| The rest of the app — CSS, markup, script, help modal | ~587,000 | 80.5% |
+| **Total** | **729,172** | 100% |
+
+**99.56% of a saved calendar is a copy of the application that the Open path never reads.**
+
+The 44.5 KB rendered-grid figure is the one to notice: because `buildSavedHtml()` serializes the
+*live* DOM, whatever the grid happened to be showing gets baked into the file — and then
+`refreshAfterRestore()` regenerates it from the state on load and discards it. It is pure
+overhead, it grows with the size of the calendar, and nothing ever reads it.
+
+### Why it is still not simply wrong
+
+The full copy buys one real thing: **a saved calendar is double-clickable.** Mail someone the
+file and they have a working app with your schedule in it, no install, no server, offline. That
+was a deliberate design goal and it is genuinely valuable.
+
+But it also carries a cost that has already caused a false alarm in this project: **a saved file
+keeps the bugs it was saved with, forever.** When someone reports something already fixed, ask
+which file they are in before digging (§3).
+
+### The better shape — two formats, one contract
+
+Neither the copy nor the data should be dropped. They should stop being the same file.
+
+| | **`.spcal` — the data file** | **`.html` — the share file** |
+|---|---|---|
+| Contents | the snapshot JSON, nothing else | today's full self-contained app + state |
+| Size | **~3 KB** | ~730 KB |
+| Role | **the default.** Save, Open, autosave, recents, backup | "Export a shareable copy" — an explicit, occasional action |
+| Opens by | the app | double-click, anywhere, offline |
+| Carries app bugs | no — always opened by current code | yes, frozen at export time |
+
+Concretely, this is a **small** change, because the hard part already exists:
+
+- `Save` writes `JSON.stringify(captureSnapshot())` instead of `buildSavedHtml()`. The File System
+  Access handle, recents, autosave and dirty-tracking are untouched.
+- `Open` gains one branch at the top: if the text starts with `{`, parse it directly; otherwise run
+  today's regex for the `saved-state` block. **Both paths converge on the same
+  `applyStateSnapshot()`,** which is why old `.html` calendars keep working with no migration.
+- `buildSavedHtml()` survives verbatim as "Export shareable copy", and should additionally empty
+  `#table-wrap` before serializing — that alone reclaims the 44.5 KB of dead grid markup.
+
+What it buys: saves become ~240× smaller and effectively instant; autosave and the IndexedDB
+backup stop moving three-quarters of a megabyte every ten minutes; a saved plan always opens in
+*current* code, so fixes reach old files; and files become diffable, greppable and mergeable in a
+way a 730 KB HTML blob never will be.
+
+**This matters more after the Mantine overhaul, not less.** Once there is a build step,
+`buildSavedHtml()` serializes a *minified* app, so the "readable copy" argument for the HTML
+format weakens at exactly the moment the data-only format becomes cleaner to produce.
+
+### If this is taken up
+
+1. **Add a `version` field to `captureSnapshot()` first.** There is none today — 27 top-level keys
+   and no way to tell which app wrote them. Every migration so far has had to sniff for individual
+   keys (`migrateHolidayViewKeys`, `normalizeRegionSelection`). Do this before adding a second
+   format, not after.
+2. **Keep `.html` Open working forever** (§0 rule 3). It is the only format that exists today, so
+   every calendar in the wild is one.
+3. **Do not put preferences in the data file.** Settings are per-user and per-machine —
+   `localStorage`, never `captureSnapshot()`.
+4. **Sequence it with the migration.** Persistence is being rewritten in Stage 4 anyway
+   (`MANTINE-MIGRATION.md` §4.4–4.5); doing the format split in the same stage costs little extra
+   and doing it separately means touching the same code twice.

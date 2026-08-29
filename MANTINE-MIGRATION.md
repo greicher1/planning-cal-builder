@@ -210,7 +210,10 @@ Blocking. Nothing ships until all of it is done.
    id-less hiatus array. `applyStateSnapshot()` needs a legacy branch mapping those onto the new
    state shape, covering the generated per-phase ids and the custom-phase re-keying. **A saved
    calendar that stops opening is data loss for a real user** — this needs real saved files as
-   fixtures, not synthesised ones.
+   fixtures, not synthesised ones. Now backed by a standing rule — `CLAUDE.md` → "⛔ Every saved
+   calendar must keep opening, forever" — and see [`HANDOFF.md`](HANDOFF.md) §7 for how Open
+   actually works and the proposed data-only save format, which should be sequenced into this
+   same stage.
 6. **Redesign the chrome** (§2). ~1,790 lines of function bodies plus ~51 KB of static markup.
 7. **Rebuild the deploy path.** Pages currently serves the repo's `index.html` directly; it must
    now serve build output — either a committed `dist/index.html` (simple, noisy diffs) or a
@@ -298,17 +301,71 @@ own even if the rest stops — which is the main reason to order it this way.
 
 ## 7. Open questions
 
-Still open — none block Stage 0, all block Stage 4:
+Still open — none block Stage 0, all block Stage 4.
 
-1. **Is losing "a saved calendar is a readable copy of the app" acceptable?** After the build step
-   a saved file is minified. It still *runs* identically; it can no longer be read, grepped or
-   hand-patched, and several past debugging sessions depended on exactly that. **This is the one
-   irreversible trade in the plan** — worth a deliberate yes rather than an implied one.
-2. **How many saved calendars exist, and can we get copies?** The legacy-restore branch (§4.5)
-   needs real files as fixtures. "A handful and yes" makes the risk manageable; "unknown, on other
-   people's machines" makes Stage 4 more conservative.
-3. **Committed `dist/` or a GitHub Action?** Affects how the `CLAUDE.md` deploy gate is enforced
-   once the pushed file is build output rather than source.
+### Q1 — is losing "a saved calendar is a readable copy of the app" acceptable?
+
+After the build step, `buildSavedHtml()` serializes a **minified** app. The file still *runs*
+identically; it can no longer be read, grepped or hand-patched, and several past debugging
+sessions depended on exactly that.
+
+**Partly answered by the format proposal in [`HANDOFF.md`](HANDOFF.md) §7.** If Save moves to a
+~3 KB data-only `.spcal` file and the HTML copy becomes an explicit "export a shareable copy",
+then the readability of the HTML matters much less — the thing you actually open and inspect is
+3 KB of JSON, which is *more* readable than today's 730 KB blob, not less. Q1 is really "do we
+take the format split?" and the answer to that is probably yes.
+
+### Q2 — how many saved calendars exist, and can we get copies?
+
+**"Saved calendars" means real `.html` files that real people have on their machines** — the
+output of the app's Save button, each one a full copy of the app with someone's actual production
+schedule baked into its `saved-state` JSON. Not git commits, not versions of the code. If a
+scheduler built a plan for a show in June and saved it to their desktop, that file is a saved
+calendar.
+
+**"Legacy restore" is the code path that opens one of those older files in a newer app.** It
+matters because Open never runs the old file's code — it lifts the JSON out and replays it into
+the *running* app (`HANDOFF.md` §7). Today that JSON contains `fields.byId`, a map keyed by DOM
+element id (`start-production`, `weeks-post`, `union-usregion`, `name-custom1`, …). A React app
+has no such map, so `applyStateSnapshot()` needs a branch that translates old-id-keyed data into
+the new state shape. That branch is the legacy restore.
+
+**A "fixture" is just a real saved file kept as a test input.** The consequence of not having any
+is precise and unpleasant: the branch gets written against what we *believe* old files contain,
+and the belief is checked only by files we generated ourselves — which will faithfully reproduce
+our own misunderstanding. Real files carry things a synthesised one won't: calendars saved before
+the region model split Canada by province, before the hiatus lock existed, before custom phases,
+with hand-edited notes and dragged column widths and `text:''` cleared auto-notes. **Each of those
+is a way the restore can silently drop data rather than fail loudly** — the plan opens, looks
+roughly right, and three columns are the wrong width and two notes are gone.
+
+"A handful and yes" makes this manageable. "Unknown, on other people's machines" means Stage 4
+gets a defensive posture instead: never drop an unrecognised key, log what could not be mapped,
+and refuse to overwrite the source file after a lossy restore.
+
+### Q3 — committed `dist/` or a GitHub Action?
+
+Today there is no build: `index.html` **is** the app, and GitHub Pages serves that file straight
+out of the repo. After the migration the app is *built* from source into `dist/index.html`, and
+something has to get that built file onto Pages. Two ways:
+
+**(a) Commit `dist/`.** Run `npm run build` locally and commit the output alongside the source.
+Pages keeps serving a file from the repo exactly as it does now.
+*For:* nothing new to learn, the deploy gate in `CLAUDE.md` works unchanged, and you can always
+see precisely what is live by opening the committed file.
+*Against:* every commit carries a ~1 MB minified diff nobody can read; it is easy to commit source
+without rebuilding, so the repo says one thing and the live site does another.
+
+**(b) A GitHub Action.** A workflow file in the repo tells GitHub: on push to `main`, run
+`npm ci && npm run build` on their machine and publish `dist/` to Pages. The built file never
+enters the repo.
+*For:* clean diffs, source and site cannot drift apart, and the build is reproducible by anyone.
+*Against:* one more moving part; a broken workflow means a broken deploy; and there is a lag
+between push and live while the Action runs (~1–2 min rather than ~40 s).
+
+**Recommendation: (b), with the deploy gate unchanged.** It also makes the gate *easier* to
+honour — a deploy becomes a named, visible workflow run rather than an ordinary file push, so
+"did I just deploy?" has an unambiguous answer.
 
 ### Settled
 

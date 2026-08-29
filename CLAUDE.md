@@ -91,6 +91,65 @@ the container's own layout position on the page.
 use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
 decide this one alone.
 
+## ⛔ Every saved calendar must keep opening, forever
+
+**A saved `.html` calendar written by *any* past version must open in *every* future version.** A
+file that stops opening is a user's plan destroyed, and they will have no copy but the one that no
+longer works. This outranks tidiness, consistency, and any refactor.
+
+### How Open actually works — read this before changing anything near it
+
+Save and Open are **not** symmetric, and the asymmetry is the whole point:
+
+- **Save** (`saveToFile` → `buildSavedHtml`) writes `document.documentElement.outerHTML` — a
+  complete, runnable copy of the app — with the live state serialized into
+  `<script id="saved-state" type="application/json">`.
+- **Open** (`openRecentFile` / `openFileViaPicker`) reads the chosen file **as text**, regexes out
+  *only* that `saved-state` block, writes the JSON into the **running** app's own `#saved-state`
+  element, and calls `restoreSavedState()` → `applyStateSnapshot()` → `refreshAfterRestore()`.
+
+**The old file's HTML, CSS and JavaScript are never parsed and never executed.** Exactly one thing
+crosses the boundary: the snapshot JSON. Everything else in the file — 99.6% of its bytes,
+measured — is there so the file is *also* double-clickable on its own.
+
+### What that makes binding
+
+The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot()` defines it.
+
+- **Never rename, remove or repurpose a key** in `captureSnapshot()`. Add new ones; leave old ones
+  readable. A renamed key is a silently dropped setting.
+- **`fields.byId` is keyed by DOM element `id`** (`start-production`, `weeks-post`,
+  `union-usregion`, `name-custom1`, the generated `start-<key>` / `weeks-<key>` per phase). Those
+  ids are therefore **part of the file format, not an implementation detail.** Keep them, or ship
+  an explicit old-id → new-state migration map. This is the single biggest hazard in the Mantine
+  work.
+- **Restore unconditionally.** `if(snap.x) x = snap.x` leaves the *previous* file's values in
+  place when the new file has no such key. Always `snap.x ? {...snap.x} : {}`.
+- **A missing key falls back to a default, never to whatever is in memory.**
+- **Migrations are forward-only** — old file into new app. New file into old app is not supported
+  and cannot be. `migrateHolidayViewKeys()` and `normalizeRegionSelection()` are the existing
+  worked examples; follow their shape.
+- **Test with real files**, not synthesised ones. Keep fixtures under `tests/fixtures/` as
+  versions accumulate.
+- **There is no `version` field in the snapshot yet.** Add one the next time the format is touched,
+  and branch on it rather than on the presence of individual keys.
+
+## ⛔ Changelog every substantial change
+
+**`README.md` carries the changelog and it is updated in the same breath as the code**, not
+afterwards and not in a batch. "Substantial" means anything a user would notice or a future
+session would want to return to: a feature, a behaviour change, a fix that taught us something, a
+format change, a decision about how something should work.
+
+- Newest entry first, under the marker comment in `README.md`.
+- An entry names **what changed, why, and what was verified** — the same standard as a commit
+  message (see `HANDOFF.md` §5e).
+- **Cut a version** when the app reaches a state worth returning to: bump it in the changelog, tag
+  it (`git tag -a vX.Y.Z`), and drop a byte-identical copy in `releases/vX.Y.Z.html`. Both, not
+  one — the tag is the history, the copy is the thing you can just open.
+- Changelog entries are **not** a substitute for `HANDOFF.md`. The changelog is what shipped;
+  `HANDOFF.md` is where things stand and what was learned.
+
 ## ⏳ Watch the context window — hand off before quality drops
 
 Long sessions degrade: context gets summarised, details are lost, and work starts getting
