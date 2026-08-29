@@ -46,18 +46,16 @@ change — see §5d.
 Verified 28 Aug 2026 by fetching the live URL: it is **byte-identical to `releases/v1.0.0.html`**
 (SHA-256 `0150be15…`) and contains no `SAVE_EXT`, no `sptcal`, no `SNAPSHOT_VERSION`.
 
-`main` is **5 commits ahead of `origin/main`** — v1.1.0 plus the Stage 0 docs refresh:
+`main` is **seven commits ahead of `origin/main`** — everything from the `.sptcal` format through
+the Stage 0 docs refresh to v1.2.0's update delivery. `git log --oneline origin/main..main` is the
+live list; the oldest is `489f9ee`.
 
-```
-  (HEAD)  Bring the docs back to the code, and fix the line numbers that lied
-b603fd7  Prove old .html calendars still open, and offer to upgrade them
-eae849e  Save the calendar, not a copy of the app: the .sptcal data format
-e1ea019  Cut v1.0.0, and add the changelog and saved-file compatibility rules
-489f9ee  Freeze the grid and the exports, and plan the Mantine redesign around them
-```
+**Two tags are unpushed: `v1.0.0` and `v1.2.0`.** That is what makes the `releases/…` URLs in
+`README.md` 404. They need their own `git push --tags`; pushing `main` does not carry them.
 
-The **`v1.0.0` tag is unpushed too** — that is what makes the `releases/v1.0.0.html` URL in
-`README.md` 404. It needs its own `git push --tags`; pushing `main` does not carry it.
+⚠️ **v1.1.0 was never cut** — it has a changelog entry but no tag and no `releases/` copy, because
+it was superseded before it ever deployed. **v1.2.0 is the release that carries both.** Do not go
+back and retro-cut v1.1.0; there is no build of it that was ever public.
 
 ### ⚠️ The push must happen from the machine that owns the repo
 
@@ -326,23 +324,38 @@ Two consequences for the design below:
   window — the browser shows the SSO redirect/popup, the user logs in, and lands on the page. The
   failure mode is specific to unattended background `fetch()`, not to navigation.
 
-**The design that falls out of that, agreed in discussion, not yet built:**
+**✅ BUILT and shipped as v1.2.0 (29 Aug 2026).** The owner chose **`version.json` in this repo**,
+served from the same Pages site — zero new infrastructure, now that the repo is confirmed public
+(D4). As built:
 
-1. A **small, separate, unauthenticated** version marker (e.g. `{"version":"1.4.2"}` on a public
-   gist or a tiny public repo/endpoint — deliberately *not* the private app itself, and containing
-   nothing sensitive). This is what an installed PWA can safely background-poll without hitting the
-   SSO wall.
-2. The running app compares that marker against a version constant baked into itself. On mismatch,
-   show an "Update available" banner/button — no auto-reload, since users may have unsaved work.
-3. Clicking it does a real **navigation** to the deployed URL (not a `fetch()`), so the SSO
-   redirect — if the session has lapsed — happens the normal, working way.
+| Piece | Where |
+|---|---|
+| `APP_VERSION` | top of the main IIFE in `index.html`, with the bump warning attached |
+| The marker | `version.json` at the repo root → `…/planning-cal-builder/version.json` |
+| The check | nested IIFE in the PWA block; 8 s after load, then every 30 min, plus on `visibilitychange` when stale |
+| The banner | `#update-notice`, sharing the legacy strip's CSS, dismissable **per version** |
+| The action | `location.reload()` — a real top-level navigation, never a background `fetch()` |
 
-Open items before this is buildable: confirm the repo's actual current visibility and hosting plan
-(not yet checked this session — do that before assuming GHEC is even in play); decide where the
-public version marker lives and who updates it (should ride along with the existing release-cut
-step in §5g, not be a separate manual task); and note that **VPN-gating was explicitly deferred by
-the owner** ("we don't need to worry about VPN right now") — SSO-only access is the current target,
-so don't build network-level (IP allowlist / VPN-only host) gating unless asked again.
+Decisions baked in, each for a reason worth not re-litigating:
+
+- **Never auto-reloads.** The user may be mid-edit; the existing `beforeunload` guard still runs.
+- **Only nags when the server is genuinely ahead** — numeric per-segment compare, so `1.2.10`
+  beats `1.2.9` and a *rolled-back* deploy stays quiet instead of inviting a downgrade.
+- **Silent on `file://`.** A shareable copy is a deliberate frozen snapshot; "update" would
+  navigate its holder away from the file they were sent.
+- **Gives up after 3 consecutive failures**, so a frozen `releases/vX.Y.Z.html` — which resolves
+  the marker relative to its own folder and will never find one — does not 404 twice an hour
+  forever.
+- **The fetch is cache-busted** (`?t=` *and* `cache:'no-store'`), because the marker is served
+  from the same host and inherits the same `max-age=600` it exists to see past.
+
+⛔ **`APP_VERSION` and `version.json` are now part of cutting a release** — see §5g step 0. This is
+the one piece of bookkeeping with a live consequence for people who are not you.
+
+**Still true, and still not built:** if the deploy is ever moved behind GHEC private Pages, the
+marker must move somewhere unauthenticated or the check silently dies against the SSO wall. The
+`location.reload()` form was chosen partly so that day only requires moving the marker, not
+rewriting the mechanism. VPN gating remains explicitly deferred by the owner.
 
 ### 2g. Encrypted `.sptcal` — **designed, not built** (28 Aug 2026)
 
@@ -668,8 +681,12 @@ These comments are the project's real documentation.
 the code, not batched at the end of a session.
 
 A **version** is cut when the app reaches a state worth being able to return to. Cutting one means
-all three of:
+all **four** of:
 
+0. ⛔ **`APP_VERSION` in `index.html` and `version.json` — bumped together, same commit.** Since
+   v1.2.0 the deployed app compares these to tell installed users an update exists. Bumping one
+   without the other either cries wolf at every user or silently suppresses a real update. Listed
+   as step zero because it is the one with a live consequence for people who are not you.
 1. A changelog entry in `README.md` saying what the version *is* and what its known limits are.
 2. `git tag -a vX.Y.Z` — immutable history.
 3. `releases/vX.Y.Z.html` — a byte-identical copy, verified with `cmp`/`shasum`.
@@ -881,7 +898,7 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 
 | # | Decision | Blocks | Where it's laid out |
 |---|---|---|---|
-| D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
+| D1 | **Encryption threat model: A, B or C.** Public repo means an embedded app key is not a secret. ⏸ **Deferred 29 Aug 2026** — asked and explicitly parked, not unanswered. Ask again before starting §2g. | all of §2g | `SPTCAL-ENCRYPTION.md` §0 |
 | D2 | **Is losing "a saved calendar is readable" acceptable?** Largely answered by `.sptcal` shipping — the thing you inspect is now 4.5 KB of JSON. Worth confirming. | Mantine Stage 4 | `MANTINE-MIGRATION.md` §7 Q1 |
 | D3 | **Committed `dist/` or a GitHub Action?** | Mantine Stage 1 | `MANTINE-MIGRATION.md` §7 Q3 |
 | D4 | ~~**Repo visibility.**~~ ✅ **ANSWERED 28 Aug 2026: the repo is PUBLIC** (`gh repo view` → `isPrivate:false`, `visibility:PUBLIC`). So an app key baked into `index.html` is *published*, and D1 must be decided knowing that. What remains open is only the **hosting plan** — whether it ever moves behind GHEC private Pages. | §2f, §2g | §2f |
@@ -891,9 +908,9 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 | Stage | What | Depends on | Est. |
 |---|---|---|---|
 | ~~**0**~~ | ✅ **DONE — docs refresh.** `CLAUDE.md` + `PROJECT-CONTEXT.md` are current as of `b603fd7`; all 37 line refs verified, §14 map at 55 verified rows. See §2a. | — | — |
-| **1** | **PWA update delivery** (§2f): public version marker, version constant, "Update available" banner, navigation not `fetch()`. | D4 | 1–2 |
-| **2** | **Encryption** (§2g): container, keyring, passphrase mode, four distinct failure messages. | **D1** | 2–3 |
-| **3** | **Settings menu + per-user persistence** (§2b). `localStorage`, never `captureSnapshot()`. | — | 1–2 |
+| ~~**1**~~ | ✅ **DONE — PWA update delivery** (§2f). `version.json` in this repo (owner's call, 29 Aug 2026), `APP_VERSION`, a per-version-dismissable blue strip, `location.reload()` not `fetch()`, gives up after 3 failures, silent on `file://`. Shipped as **v1.2.0**. | D4 | — |
+| **2** | ⏸ **DEFERRED by the owner, 29 Aug 2026.** Encryption (§2g). The design and the `crypto.subtle` verification stand; nothing is blocked *technically*, it is simply not being done now. Re-open by answering D1. | **D1** | 2–3 |
+| **3** | 🔒 **HELD as the first Mantine surface** (owner's call, 29 Aug 2026) — so it is built **once**, in Mantine, not twice. Do **not** build it in plain JS. Its constraints are worked out in §2b and still apply. | Mantine | 1–2 |
 | **4** | **Mantine Stage 1** — scaffold, zero behaviour change; **fix the test harness first**. | D3 | 1–2 |
 | **5** | **Mantine Stage 2** — design pass, theme tokens, one warning system, mockups. No code. | — | 1 |
 | **6** | **Mantine Stages 3–5** — sidebar, toolbar, popovers, editors. | D2 | 5–7 |

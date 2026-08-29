@@ -24,6 +24,65 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### v1.2.0 — 29 Aug 2026 — The app can tell you it has been updated
+
+**The problem, measured rather than assumed.** There is no service worker (one was removed
+precisely because it served a stale app forever), so the received wisdom was that a reload always
+fetches the current build. Checking the live site's actual headers showed that is *nearly* true:
+
+```
+cache-control: max-age=600
+etag: "6a9254a0-a18bb"
+```
+
+GitHub Pages sets a **ten-minute** browser cache. A relaunch inside that window is answered from
+the browser's own HTTP cache and never learns a new deploy exists. Worse, most people run this as
+an installed PWA, which they leave open and return to rather than relaunching at all — so an old
+build can persist indefinitely, and shipping a fix does not mean anyone receives it.
+
+**What now happens.** The app knows its own version (`APP_VERSION`) and compares it against a
+tiny `version.json` deployed beside it. When the deployed version is genuinely newer, a blue strip
+appears under the header: *"Version 1.2.1 is available — this copy is 1.2.0."* with a **Reload to
+update** button.
+
+- **It never reloads on its own.** You may be mid-edit with unsaved work, and reloading out from
+  under someone is how a production plan gets destroyed. It tells you and lets you choose; the
+  existing unsaved-changes guard still applies on the way out.
+- **It only nags when the server is genuinely ahead.** Versions are compared numerically per
+  segment, so `1.2.10` correctly beats `1.2.9` (a string comparison gets that backwards), and a
+  rolled-back deploy leaves you alone rather than inviting you to "update" to an older build.
+- **Dismissal is per version.** Waving away 1.2.1 does not hide 1.3.0.
+- **Only the deployed app checks.** A *shareable copy* opened from `file://` is a deliberate
+  frozen snapshot — telling its holder to "update" would navigate them away from the very file
+  they were sent. It stays silent.
+- **It gives up after three consecutive failures.** A frozen `releases/vX.Y.Z.html` resolves the
+  marker relative to its own folder, where there is none and never will be; without this it would
+  404 every thirty minutes forever. Any success resets the count.
+- **Offline is silence,** not an error. An update check that cannot run is not worth interrupting
+  anyone about.
+
+The check runs 8 s after load, then every 30 minutes, and when the tab becomes visible again after
+that long — the likeliest moment for a new deploy to have appeared under a long-lived PWA.
+
+> ### ⚠️ `APP_VERSION` and `version.json` are ONE action, not two
+> Bump them in the same commit. `version.json` alone makes every user see an update that does not
+> exist; `APP_VERSION` alone makes a real update invisible. Both live at the top of their files
+> with this warning attached.
+
+**Also in this release:** the two notice strips now share one set of CSS rules and differ only in
+hue — amber for *"your file is an old format"*, blue for *"the app has a newer version"*. This app
+already had more warning styles than it should; a second strip built from scratch would have made
+that worse. Verified the legacy strip's computed styling is byte-for-byte what it was.
+
+**Verified:** matching versions stay silent; a newer marker raises the strip; a rolled-back marker
+stays silent; a missing marker is silent and stops asking; the comparison passes 10/10 cases
+including `1.2.10 > 1.2.9`; and the grid is unchanged at 157 cells / 132 filled / **0 clipped**,
+identical to before the change. The grid and the exports were not touched.
+
+> **v1.1.0 never shipped on its own.** It was changelogged and committed but never deployed or
+> tagged, so v1.2.0 is the release that carries both it and this. Everything in the v1.1.0 entry
+> below arrives with this version.
+
 ### v1.1.0 — 28 Aug 2026 — Save writes data, not a copy of the app
 
 **Save and Open used to be the same file.** Save wrote `document.documentElement.outerHTML` — a

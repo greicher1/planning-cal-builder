@@ -157,9 +157,17 @@ format change, a decision about how something should work.
 - Newest entry first, under the marker comment in `README.md`.
 - An entry names **what changed, why, and what was verified** — the same standard as a commit
   message (see `HANDOFF.md` §5e).
-- **Cut a version** when the app reaches a state worth returning to: bump it in the changelog, tag
-  it (`git tag -a vX.Y.Z`), and drop a byte-identical copy in `releases/vX.Y.Z.html`. Both, not
-  one — the tag is the history, the copy is the thing you can just open.
+- **Cut a version** when the app reaches a state worth returning to. That is now **four** things,
+  all in the same commit:
+  1. `APP_VERSION` in `index.html` **and** `version.json` — ⛔ **together, always.** `version.json`
+     alone shows every user an update that does not exist; `APP_VERSION` alone makes a real update
+     invisible. This is the update-delivery contract (README v1.2.0), not bookkeeping.
+  2. A changelog entry in `README.md`.
+  3. `git tag -a vX.Y.Z` — immutable history.
+  4. `releases/vX.Y.Z.html`, byte-identical, verified with `cmp`/`shasum`.
+
+  The tag and the copy are not redundant: the tag is how you diff and bisect, the copy is the one
+  you can hand someone or double-click when `index.html` has moved on.
 - Changelog entries are **not** a substitute for `HANDOFF.md`. The changelog is what shipped;
   `HANDOFF.md` is where things stand and what was learned.
 
