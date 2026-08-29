@@ -693,6 +693,9 @@
   .grid-resize.is-span:hover::after, .grid-resize.is-span.dragging::after{ opacity:1; }
   .grid-resize:hover{ background:rgba(112,48,160,.22); }
   .grid-resize.dragging{ background:rgba(112,48,160,.45); }
+  /* Row height has locked onto the default or onto another row's -- worth showing, since the
+     whole point is that the result matches something else exactly. */
+  .grid-resize.is-row.snapped{ background:rgba(0,176,80,.55); }
   /* Ghost of where the cell will land, drawn over the grid while a span handle is dragged.
      The alternative -- rewriting colSpan live -- reflows the whole table on every pointermove. */
   .span-preview{
@@ -845,12 +848,22 @@
     position:sticky; top:0; z-index:2;
     box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6;
   }
-  table.sheet-table td.sheet-date{font-weight:600; padding-left:5px; padding-right:5px; white-space:nowrap;}
+  /* Inherits the 1.5px inset above. It used to set 5px each side, which is the same mismatch
+     with the width model that clipped the body cells: 10px spent against a budget of 3.75px,
+     enough to put an ellipsis on every two-digit-month date (10/12/26 needed 53px in a 52px
+     cell). The column is measured from the widest date in bold, so with the inset back in step
+     there is ~5px to spare. */
+  table.sheet-table td.sheet-date{font-weight:600; white-space:nowrap;}
   /* Columns are now sized to their own content (see sheetColumnWidths), so a label only needs
      truncating in the one case the width model deliberately refuses to follow: a name past
      COL_MAX_CHARS. The old hardcoded 130px cap is gone -- it applied to every label regardless
      of how much room its column actually had. */
-  .sheet-table .phase-cell-label{ display:inline-block; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; max-width:100%; }
+  /* display:block, NOT inline-block. An inline-block sits on the text baseline, and aligning it
+     mid-line makes the line box a fraction taller than the plain strut -- so every row holding a
+     phase label came out 21px against the 20px of every other row. Twelve rows of 21 and forty of
+     20 is exactly the "ever so slightly different heights" that makes a printed grid look wrong.
+     A block box fills the cell and adds nothing. */
+  .sheet-table .phase-cell-label{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
   /* Clip to the column rather than letting content force it wider. Excluding .editing is
      load-bearing: the note and hiatus editors are built INTO the cell (td.innerHTML =
      '<div class="note-editor">'), and a multi-line textarea grows taller than the row, so a
@@ -1249,7 +1262,7 @@
       <p><strong>The two views own their notes separately.</strong> <strong>Waterfall notes</strong> are the master set: they appear in the Waterfall, the Excel export, and the Month view. <strong>Month view notes</strong> &mdash; added by hovering a day and clicking a <strong>+</strong> &mdash; belong to the Month view and its PDF only, and deliberately do <em>not</em> appear in the Waterfall or the Excel export. Every day block shows at least four lines, and each free line has its own <strong>+</strong>, so a note goes exactly where you click rather than always dropping to the bottom. A note stays on the line you added it to. If a day needs more room than the phases leave, the wider <strong>+</strong> on the bottom edge of the block adds another line &mdash; to the whole week, since the seven day blocks share one calendar row &mdash; up to a maximum of six. A block always grows to fit its actual content, so nothing is ever hidden even past that maximum.</p><p><strong>Every month prints on exactly one page, filling the sheet.</strong> Each page is pinned to the paper and the week rows divide it between them: an empty row still gets its four lines, so a sparse month prints as uniform full-size rows rather than a small grid floating at the top. A row carrying extra comments takes proportionally more of the page and the others give way, so everything stays visible and the calendar always spans top to bottom. If the grid lines print faint or missing, switch on <em>Background graphics</em> in the print dialog&rsquo;s More settings. Waterfall notes can be edited from either view &mdash; editing one in Month view updates the Waterfall and the Excel export too, since it&rsquo;s the same note. Because a Waterfall note covers a whole week, that editor shows the week&rsquo;s <em>whole</em> text, so the other notes in it aren&rsquo;t lost. In <strong>Waterfall view</strong>, click a note cell to open an editor. Type to replace it, or clear it completely to remove a pre-filled milestone &mdash; a cleared note stays gone and won&rsquo;t regenerate. An empty note loses its highlight. Because a waterfall row covers a whole week, its editor has a <strong>Day</strong> dropdown. Picking a day stamps that date into the note text &mdash; &ldquo;Table Read&rdquo; becomes &ldquo;Table Read 11/04/26&rdquo; &mdash; matching how the automatic notes are written. The date is ordinary text you can reword or delete, and it&rsquo;s what places the note in Month view; switching days rewrites it rather than adding another. Leave the dropdown on &ldquo;Mon (default)&rdquo; and the note simply sits on that week&rsquo;s Monday. Notes added in Month view are pinned to the day you clicked, and each keeps its own highlight colour. The editor also shows the ten standard Microsoft Excel colors &mdash; pick one to change that individual cell&rsquo;s highlight color (text flips black or white automatically for readability). Press <strong>Tab</strong> or <strong>Ctrl/Cmd&#8209;Enter</strong> to save, <strong>Esc</strong> to cancel, or just click away. The <strong>Reset Notes &amp; Hiatus</strong> button above the header returns every note, holiday, and hiatus band to its auto-generated text and default color &mdash; including bringing back any milestones you deleted. (That&rsquo;s different from <strong>Reset All</strong> in the toolbar, which clears the whole calendar and asks first.)</p>
 
       <h3>Sizing the grid (columns, rows &amp; how far a cell reaches)</h3>
-      <p><strong>Columns and rows.</strong> Hover a column boundary or the bottom edge of a row in the Date column and drag. Text inside resizes itself to fit: a narrowed column shrinks its labels, and a row&rsquo;s height sets how many lines a note may use before it is cut off with an ellipsis. <strong>Double-click</strong> a boundary to go back to automatic &mdash; the column fits its widest entry again, the row returns to its default height. Column widths are shared with the Excel export and the PDF, so what you size on screen is what prints.</p>
+      <p><strong>Columns and rows.</strong> Hover a column boundary or the bottom edge of a row in the Date column and drag. Text inside resizes itself to fit: a narrowed column shrinks its labels, and a row&rsquo;s height sets how many lines a note may use before it is cut off with an ellipsis. Every row starts at the same default height, and while you drag one it <strong>snaps</strong> to the default and to any height you have already set elsewhere &mdash; the handle turns green when it locks on &mdash; so rows end up matching rather than a pixel apart. <strong>Double-click</strong> a boundary to go back to automatic &mdash; the column fits its widest entry again, the row returns to the default height. Column widths and row heights are shared with the Excel export and the PDF, so what you size on screen is what prints.</p>
       <p><strong>Phases that overlap share the width evenly.</strong> In any week where two phases run at once they get half the phase area each; three get a third each, four a quarter. All the phase columns in a year block are the same width, so an even split really is even. A phase running on its own still stretches across the whole area.</p>
       <p><strong>How far a cell reaches.</strong> A phase cell only widens into the column beside it when that column is free for the phase&rsquo;s <em>whole</em> run, which leaves a gap in weeks where a neighbouring phase has already finished. To close one, hover the left or right edge of the cell and <strong>drag it across the empty space</strong>; the edge snaps to column boundaries and a purple outline shows where it will land. <strong>Double-click the cell</strong> to fill all the free space beside it in one go, and again to pull it back to its own column. <strong>Double-click the edge</strong> to hand it back to the automatic layout. It applies to that one cell in that one week &mdash; every other row is left alone &mdash; and it carries into the Excel and PDF exports.</p>
       <p>A width you drag out while a cell has the row to itself is <em>not</em> kept once another phase moves in beside it &mdash; that week goes back to the even split, since a cell three columns wide next to a neighbour of one reads as a mistake. Widen it again with the overlap on screen and it stays, because then it is clearly what you meant.</p>
@@ -2686,6 +2699,16 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const startW = col ? (parseFloat(col.style.width) || 0) : 0;
     const tr = isCol ? null : table.tBodies[0].rows[rowIdx];
     const startH = tr ? tr.getBoundingClientRect().height : 0;
+    // Heights a row drag snaps to: the default, and whatever every OTHER row is already set to.
+    // Without this you end up with a 21 beside a 20 -- invisible on screen, obvious in print --
+    // and no way to get back to matching except by deleting the override. Collected once per
+    // drag, so a height set earlier in the same session is a target for the next row.
+    const snapTargets = isCol ? [] : (()=>{
+      const set = new Set([ROW_DEFAULT_PX]);
+      Object.keys(rowHeights).forEach(k=>{ if(+k !== rowIdx) set.add(rowHeights[k]); });
+      return [...set].filter(v=>v > 0);
+    })();
+    const ROW_SNAP_PX = 4;
 
     // Keep receiving moves even when the pointer outruns the 7px handle or leaves the window.
     try { h.setPointerCapture(e.pointerId); } catch(_){}
@@ -2707,7 +2730,13 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         cols.forEach(c=>{ sum += parseFloat(c.style.width) || 0; });
         table.style.width = sum + 'px';
       } else {
-        const px = Math.max(8, Math.round(startH + (ev.clientY - startY)));
+        let px = Math.max(8, Math.round(startH + (ev.clientY - startY)));
+        // Snap to the nearest matching height when the pointer gets close, so rows end up equal
+        // rather than one pixel apart. Nearest wins if several are in range.
+        let best = null, bestD = ROW_SNAP_PX + 1;
+        snapTargets.forEach(t=>{ const d = Math.abs(t - px); if(d < bestD){ bestD = d; best = t; } });
+        if(best !== null) px = best;
+        h.classList.toggle('snapped', best !== null && best !== Math.round(startH + (ev.clientY - startY)));
         tr.style.height = px + 'px';
       }
       moved = true;
@@ -2717,7 +2746,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
-      h.classList.remove('dragging');
+      h.classList.remove('dragging','snapped');
       document.body.classList.remove('grid-resizing','row');
       if(!moved) return;
       pushUndoSnapshot();
@@ -5138,7 +5167,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     let bodyHtml = '';
     for(let r=0; r<maxRows; r++){
       const rh = rowHeights[r];
-      bodyHtml += rh ? `<tr data-row="${r}" style="height:${rh}px">` : `<tr data-row="${r}">`;
+      // Written on EVERY row, not just dragged ones. Left to itself a row is only as tall as its
+      // tallest cell, so heights drifted apart by a pixel here and there; and the workbook and the
+      // PDF both lay the grid out as a flat rows x ROW_DEFAULT_PX, so a screen row that quietly
+      // grew was a screen-vs-export divergence as well as an untidy grid.
+      bodyHtml += `<tr data-row="${r}" style="height:${rh || ROW_DEFAULT_PX}px">`;
       yearBlocks.forEach((b, bi)=>{
         const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
         const mc = blockMaxConcurrent[bi];
@@ -5163,12 +5196,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           colWidthsFor[bi].cols.forEach((c, ci)=>{ if(ci > 0) hAvail += c.chars; });
           const hSize = hiatusFontSizeFor(hKey);
           const hFit = cellTextFit(hTxt, hAvail, {
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r]
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
           });
           const hPx = 11 * hFit.scale;
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
-            + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+            + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
           bodyHtml += `<td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
@@ -5224,12 +5257,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               // phase labels beside it use.
               const phSize = hiatusFontSizeFor(phKey);
               const phFit = cellTextFit(cell.label || '', availChars, {
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r]
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
               });
               const phPx = 11 * phFit.scale;
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
-                + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+                + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
               bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${GRID_TEXT_COLOR};${lfCss}">${escHtml(cell.label)}</td>`;
@@ -5247,16 +5280,16 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             // when even that is not enough. A size the user picked for this note wins outright.
             const nSize = noteFontSizeFor(weekDateKey);
             const fit = cellTextFit(noteText, colWidthsFor[bi].notes, {
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r]
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
             });
             const fitPx = 11 * fit.scale;
             // pre keeps a single line single (and lets text-overflow put an ellipsis on it);
             // pre-wrap is only for a note that is genuinely using more than one line.
             const fitCss = `white-space:${fit.wrap ? 'pre-wrap' : 'pre'};`
               + (Math.abs(fitPx - 11) > 0.01 ? ` font-size:${fitPx.toFixed(2)}px;` : '')
-              // Only a row the user actually pinned caps its text; everything else keeps the
-              // long-standing behaviour of growing rather than hiding anything.
-              + (rowHeights[r] ? ` max-height:${Math.max(0, rowHeights[r] - ROW_TEXT_PAD_PX)}px;` : '');
+              // Every row caps its text now, not just a hand-dragged one: they all start at the
+              // default height, so they all get the same line budget.
+              + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
             bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
             bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
@@ -5706,10 +5739,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     // taller than the pinned height would be clipped in the workbook with no ellipsis and no
     // indication. That is exactly what the screen does now too (the .cell-body wrapper caps at
     // the same height), so the two agree: pinned means pinned, in both.
-    // Rows the user never dragged get no height at all, and Excel autofits them.
+    // Set on EVERY row, not just dragged ones. It carries customHeight, which switches Excel's
+    // autofit off -- which is now the point: the screen and the PDF give every row the same
+    // height, and a workbook that quietly grew one row around a long note would be the odd one
+    // out. Excel's own row autofit is still one click away for anyone who wants it.
     function applyRowHeight(row, r){
-      const px = rowHeights[r];
-      if(px) row.height = Math.round(px * ROW_PX_TO_PT * 100) / 100;
+      row.height = Math.round((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT * 100) / 100;
     }
 
     const HEADER_FILL = 'D9D9D9';
@@ -5868,7 +5903,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           hAvail += widths.notes;
           const hSize = hiatusFontSizeFor(hKey);
           const hFit = cellTextFit(hTxt, hAvail, {
-            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r]
+            basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
           });
           baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')},
                                   size: Math.round(11 * hFit.scale * 100) / 100}});
@@ -5915,7 +5950,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               const phKey = item.weekIso + '|' + item.phaseKey;
               const phSize = hiatusFontSizeFor(phKey);
               const phFit = cellTextFit(item.label || '', availChars, {
-                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r]
+                basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
               });
               baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')},
                                      size: Math.round(11 * phFit.scale * 100) / 100}});
@@ -5952,7 +5987,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
             // an explicit size is what makes the two agree.
             const nSize = noteFontSizeFor(nKey);
             const fit = cellTextFit(noteText, widths.notes, {
-              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r]
+              basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
             });
             // An un-pinned row must be tall enough for the lines the note actually uses:
             // Excel autofits a wrapped cell only when no explicit height is set, and that is
@@ -9052,40 +9087,17 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     blockCols.forEach(cols=>{ blockX.push(gx); cols.forEach(c=>{ gx += c.w; }); });
     const gridW = gx;
 
-    // Row heights follow Excel: a screen pixel of row height is 0.75pt. A row grows for a note
-    // that needs more lines unless the user pinned it, exactly as the grid does.
+    // Row heights follow Excel: a screen pixel of row height is 0.75pt. Every row is the default
+    // unless it was dragged, exactly as the grid is -- text is fitted to the row rather than the
+    // row grown to the text.
+    //
+    // This used to grow a row for a note needing more lines, which put the PDF out of step with
+    // the screen AND with sheetGridMetrics(), whose orientation decision has always measured
+    // height as a flat rows x ROW_DEFAULT_PX ("a note wrapping to a second line should not be
+    // able to turn the page over"). Now all three agree.
     const HDR_ROW_PT = ROW_DEFAULT_PX * ROW_PX_TO_PT;
     const rowPt = [];
-    for(let r=0;r<maxRows;r++){
-      const pinned = rowHeights[r] ? rowHeights[r] * ROW_PX_TO_PT : 0;
-      let need = HDR_ROW_PT;
-      if(!pinned){
-        yearBlocks.forEach((b, bi)=>{
-          if(r >= b.count) return;
-          const w = schedule.weeks[b.startIdx + r];
-          if(!w) return;
-          const fits = [];
-          if(w.cells.length && w.cells[0].type==='hiatus'){
-            const hKey = w.date.toISOString().slice(0,10);
-            let av = 0; blockCols[bi].forEach((c,ci)=>{ if(ci>0) av += c.chars; });
-            const hs = hiatusFontSizeFor(hKey);
-            fits.push(cellTextFit(hiatusTextFor(hKey), av, { basePx: hs||11, manual: hs!==undefined }));
-          } else {
-            const wk = w.date.toISOString().slice(0,10);
-            const nt = effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx+r], 'sheet'));
-            if(nt){
-              const ns = noteFontSizeFor(wk);
-              fits.push(cellTextFit(nt, colWidthsFor[bi].notes, { basePx: ns||11, manual: ns!==undefined }));
-            }
-          }
-          fits.forEach(f=>{
-            const h = f.lines * (11*f.scale) * SHEET_LINE_RATIO + ROW_TEXT_PAD_PX*ROW_PX_TO_PT;
-            if(h > need) need = h;
-          });
-        });
-      }
-      rowPt.push(pinned || need);
-    }
+    for(let r=0;r<maxRows;r++) rowPt.push((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT);
     const gridH = rowPt.reduce((a,b)=>a+b, HDR_ROW_PT);
 
     // --- header block ------------------------------------------------------------------------
@@ -9240,7 +9252,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           let av = 0; cols.forEach((c,ci)=>{ if(ci>0) av += c.chars; });
           const hs = hiatusFontSizeFor(hKey);
           const fit = cellTextFit(hTxt, av, { basePx: hs||11, manual: hs!==undefined,
-                                              rowPx: rowHeights[r] });
+                                              rowPx: rowHeights[r] || ROW_DEFAULT_PX });
           page.rect(bx + dw, ry, bandW, rh, hCol);
           page.clipPush(bx + dw, ry, bandW, rh);
           drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
@@ -9270,7 +9282,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
               const k = cell.weekIso + '|' + cell.phaseKey;
               const ps = hiatusFontSizeFor(k);
               fit = cellTextFit(cell.label||'', av, { basePx: ps||11, manual: ps!==undefined,
-                                                      rowPx: rowHeights[r] });
+                                                      rowPx: rowHeights[r] || ROW_DEFAULT_PX });
             } else {
               fit = cellTextFit(cell.label||'', av, {});
             }
@@ -9289,7 +9301,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         if(nTxt){
           const nCol = noteColorFor(wk), ns = noteFontSizeFor(wk);
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
-                                  { basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] });
+                                  { basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX });
           page.rect(nx, ry, nw, rh, nCol);
           page.clipPush(nx, ry, nw, rh);
           drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
