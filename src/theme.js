@@ -171,7 +171,10 @@ export const theme = {
     // popover and menu in the app renders flat.
     Popover: { defaultProps: { shadow: 'md', radius: 'lg' } },
     Menu:    { defaultProps: { shadow: 'md', radius: 'lg' } },
-    Modal:   { defaultProps: { shadow: 'xl', radius: 'xl' } },
+    // ⚠️ padding must be explicit: Modal's header/body pad with the `md` SPACING token, which the
+    // density scale above redefines to 8px — half of Mantine's stock 16px, and visibly cramped in
+    // a 440px dialog (owner, 29 Aug 2026: warning modals need more side padding). xxl = 20px.
+    Modal:   { defaultProps: { shadow: 'xl', radius: 'xl', padding: 'xxl' } },
 
     // Focus visibility cannot be forgotten per call site if it is set once here.
     Tooltip: { defaultProps: { events: { hover: true, focus: true, touch: false }, withArrow: true } },

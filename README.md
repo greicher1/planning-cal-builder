@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — round 5: Load, the loader-look pickers, and one icon everywhere
+
+⚠️ **Not deployed and not cut as a version.** The owner's fifth review round, logged item by item
+in HANDOFF §2b-3's master list (rows 27–33) and built the same day. What a user notices:
+
+- **The dialogs breathe.** The app's own warning dialogs were rendering with 8px of side padding —
+  `Modal` pads with the `md` *spacing* token, and the chrome's density scale redefines `md` from
+  16px down to 8px, silently halving every modal's padding. Fixed once, in the theme's
+  `Modal.defaultProps` (`padding:'xxl'` = 20px). Measured 8 → 20px.
+- **"Open" became "Load" everywhere a user reads it** — the file-menu item, the dirty-work
+  confirm ("Load another calendar?"), the permission and error alerts, the legacy-notice strip,
+  and the help guide — completing the round-3 terminology rule (saving = write `.sptcal`, loading
+  = open a file into the PWA). Identifiers and the `data-action="open"` engine contract
+  deliberately did not change. The help's Save paragraph also stopped claiming Save writes a full
+  copy of the tool — that has been `.sptcal` since v1.1.0.
+- **The tool popovers' pickers look like the loader.** The phase pickers under Shift From /
+  Anchor To / Rebuild From (and Anchor To's starts-on/ends-by) no longer open the OS select popup:
+  `SelectPop.jsx` overlays the native selects with the file menu's look — white panel, accented
+  current row, dimmed right-aligned dates. The native `<select>`s stay exactly as they were
+  (`fillPhaseSelect` still owns their options; handlers still read `.value`; write-back is the
+  native setter + real events — verified by watching a pick move the anchor date, and by a full
+  Anchor To run through a picked phase). The panel deliberately lives *inside* `.tools-menu`: the
+  engine closes all tool popovers on any click outside them, so a body-level panel would shut the
+  popover on every pick.
+- **The header settled.** The file chip is a fixed 280px (shows much of a real title, never
+  resizes), "Save As…" lost its ellipsis (in the chrome *and* in `flashSaveBtn`'s restore string,
+  which would have flashed it back), and New / Save / Save As share one 104px min-width.
+- **One icon, everywhere.** The header brand mark now *is* the favicon — the red calendar tile —
+  and both are instances of one source (`src/chrome/appIcon.js`); the head links carry
+  placeholders that main.jsx fills at startup. The installed-PWA manifest icons and the red
+  `theme-color` stay as they were, flagged as their own decision.
+- **The help guide animates in** (fade + rise, 0.22s) — keyframes on the existing `.open` class,
+  since a transition cannot fire across display:none; reduced-motion honoured.
+- **More air between the sidebar fields** — the card stacks moved from 8px gaps to 16px.
+
+Verified in the dev server and in the built `dist/index.html` (zero console errors; `--header-h`
+unchanged at 63px; Escape closes the picker first and the popover second). **Full gate PASSED**
+against `tests/baselines/2026-08-29-stage-7`: 0 horizontally clipped cells, waterfall PDF
+byte-identical, every Excel part identical, `v1.0.0-saved.html` restoring to 52 rows / 154 cells /
+324 pt with `fields.byId` identical at 56 ids. (One gate run first FAILED on the restore leg's
+documented IndexedDB stall — it passed standalone and on a quieter re-run, exactly per the
+HANDOFF §2b-3 diagnosis note.)
+
 ### Unreleased — round 4: the app's own dialogs, and the polish pass on the polish
 
 ⚠️ **Not deployed and not cut as a version.** What a user notices most: **the browser-chrome

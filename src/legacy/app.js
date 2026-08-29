@@ -5136,7 +5136,9 @@ export function initLegacyApp() {
     // .date-pop added 29 Aug 2026 with the pop-out date pickers: the popover unmounts when
     // closed, but a Share click closes it via React state -- which commits AFTER this synchronous
     // build -- so without the strip a copy exported by that click would carry the open calendar.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop').forEach(el=>el.remove());
+    // .select-pop added with the tool-popover phase pickers (round 5), for the same same-tick
+    // reason as .date-pop.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop').forEach(el=>el.remove());
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -6041,9 +6043,9 @@ export function initLegacyApp() {
     const name = (fileName || 'That calendar').replace(/\.html?$/i,'');
     el.querySelector('.ln-text').innerHTML =
       '<strong>' + escHtml(name) + '</strong> is an older <strong>.html</strong> calendar. ' +
-      'It opened fine and always will \u2014 but it carries a whole copy of an old build of the app ' +
+      'It loaded fine and always will \u2014 but it carries a whole copy of an old build of the app ' +
       'around ~3 KB of plan. Saving it as <strong>.sptcal</strong> keeps only the plan, and it will ' +
-      'then always open in the current app.';
+      'then always load in the current app.';
     el.hidden = false;
   }
   function hideLegacyNotice(){
@@ -6121,7 +6123,7 @@ export function initLegacyApp() {
   }
   function flashSaveBtn(text, btn){
     const isSaveAs = btn === saveAsBtn;
-    const restore = isSaveAs ? 'Save As\u2026' : saveBtnLabel();
+    const restore = isSaveAs ? 'Save As' : saveBtnLabel();
     const push = isSaveAs ? chrome.saveAsBtn : chrome.saveBtn;
     push({ label: text, disabled: true });
     setTimeout(()=>{ push({ label: restore, disabled: false }); }, 1200);
@@ -6136,7 +6138,7 @@ export function initLegacyApp() {
       const q = await entry.handle.queryPermission({ mode: 'readwrite' });
       if(q !== 'granted'){
         const p = await entry.handle.requestPermission({ mode: 'readwrite' });
-        if(p !== 'granted'){ uiAlert('Permission to open that file was declined.'); return; }
+        if(p !== 'granted'){ uiAlert('Permission to load that file was declined.'); return; }
       }
     } catch(e){ /* some browsers: proceed and let read throw */ }
 
@@ -6175,7 +6177,7 @@ export function initLegacyApp() {
     if(parsed.format === 'html') showLegacyNotice(entry.name); else hideLegacyNotice();
   }
 
-  // "Open…" — pick any calendar from disk (either format) and load + track it.
+  // "Load…" — pick any calendar from disk (either format) and load + track it.
   async function openFileViaPicker(){
     if(!supportsFsAccess) return;
     let handle;
@@ -6220,7 +6222,7 @@ export function initLegacyApp() {
   }
 
   // Render the file dropdown in the header: current file name on the button, recents +
-  // "Open…" inside the menu.
+  // "Load…" inside the menu.
   // Pushes the recents list as DATA. The chrome renders each entry carrying the SAME
   // data-id / data-remove / data-action attributes the delegated handler below matches on with
   // .closest(), so that handler -- and its deliberate branch ORDER -- ports across untouched.
@@ -6661,12 +6663,12 @@ export function initLegacyApp() {
         const entry = isOpen ? null : recentFiles.find(f=>f.id === item.dataset.id);
         // Opening another calendar replaces the one on screen -- warn if there's unsaved work,
         // matching the "New" guard. Fires before the picker opens / any recents mutation.
-        if((isOpen || entry) && isDirty && !(await uiConfirm('Open another calendar? Your unsaved changes will be lost.', { title: 'Open another calendar', confirmLabel: 'Open', danger: true }))) return;
+        if((isOpen || entry) && isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
         if(isOpen){
-          try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); uiAlert('Could not open a file: '+err.message); } }
+          try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); uiAlert('Could not load a file: '+err.message); } }
           return;
         }
-        if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); uiAlert('Could not open that file: '+err.message); } }
+        if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); uiAlert('Could not load that file: '+err.message); } }
       });
     }
 

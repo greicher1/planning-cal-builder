@@ -15,6 +15,7 @@ import { useState, useLayoutEffect, useCallback } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload } from './icons.jsx'
+import { APP_ICON } from './appIcon.js'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
 // current control measures 30.0px and the sidebar it shares a scale with already overflows its
@@ -26,7 +27,7 @@ export function Header() {
   // decisions -- readState/computeSchedule/render still decide what the chrome should say -- it
   // owns only how that decision is drawn.
   const [save, setSave] = useState({ label: 'Save', busy: false, disabled: false })
-  const [saveAs, setSaveAs] = useState({ visible: false, busy: false, label: 'Save As…', disabled: false })
+  const [saveAs, setSaveAs] = useState({ visible: false, busy: false, label: 'Save As', disabled: false })
   const [status, setStatus] = useState({ text: '', tone: 'idle', title: '' })
   const [exp, setExp] = useState({ label: 'Export to Excel', primary: false, disabled: true, busy: false })
   const [expWf, setExpWf] = useState({ visible: true, disabled: true })
@@ -61,13 +62,10 @@ export function Header() {
           print-fallback measurement cares), so nothing here may make the toolbar wrap. The name
           hides below 1240px (CSS) for the same reason. */}
       <div className="app-brand">
-        <span className="app-brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"
-               strokeLinecap="round" strokeLinejoin="round" focusable="false" aria-hidden="true">
-            <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
-            <path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3" />
-          </svg>
-        </span>
+        {/* The mark IS the favicon — one artwork, one source (appIcon.js), two instances
+            (owner, round 5). The drawn navy-chip glyph this replaced lives on in icons.jsx as
+            IconCalendarPlain; the brand now carries the app's actual icon instead. */}
+        <img className="app-brand-mark" src={APP_ICON} alt="" aria-hidden="true" />
         <span className="app-brand-name">SPT Planning Calendar</span>
       </div>
       <div className="app-toolbar-div" aria-hidden="true" />
@@ -113,7 +111,10 @@ export function Header() {
                 aria-expanded={menu.open ? 'true' : 'false'}
                 leftSection={<IconFolder className="btn-ic" />}
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}
-                styles={{ root: { maxWidth: 220 }, label: { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                /* FIXED width, not max-width (owner, round 5): the chip must show much of a real
+                   show title, and it must not resize as titles change — a constant-size chip, with
+                   the label ellipsis-truncating inside it. 280 matches the dropdown width. */
+                styles={{ root: { width: 280 }, inner: { justifyContent: 'flex-start' }, label: { overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 } }}
               >
                 <span id="file-menu-label">{menu.label}</span>
               </Button>
@@ -126,7 +127,9 @@ export function Header() {
                   every recent keeps data-id/data-remove, and a click on the search box matches
                   neither branch and correctly does nothing. */}
               <Menu.Item className="file-menu-item" data-action="open" role="menuitem">
-                <span className="fm-name">Open…</span>
+                {/* "Load", per the terminology rule (loading = opening a file into the PWA).
+                    data-action="open" is the engine contract and deliberately does NOT rename. */}
+                <span className="fm-name">Load…</span>
               </Menu.Item>
               <div className="fm-search-row">
                 {/* Plain <input>, deliberately not a Mantine TextInput: Mantine inputs mint a
@@ -187,10 +190,14 @@ export function Header() {
           </Box>
       </Menu>
 
-      <Button {...BTN} id="new-file-btn" variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
+      {/* miw, the same on all three (owner, round 5): New / Save / Save As read as one equal-sized
+          set. min-width rather than width, so the non-Chromium labels the engine can push
+          ("Save to File", "Downloaded ✓") still fit instead of clipping. */}
+      <Button {...BTN} miw={104} id="new-file-btn" variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
 
       <Button
         {...BTN}
+        miw={104}
         id="save-file-btn"
         variant="default"
         leftSection={<IconFloppy className="btn-ic" />}
@@ -207,6 +214,7 @@ export function Header() {
           dead. Found 29 Aug 2026 while investigating the sidebar-rows stage. */}
       <Button
         {...BTN}
+        miw={104}
         id="save-as-btn"
         variant="default"
         leftSection={<IconCopyPlus className="btn-ic" />}

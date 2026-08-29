@@ -27,8 +27,20 @@ import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
 import { ShowInfoCard, RegionCard, HolidaysCard, AppCard } from './chrome/Sidebar.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
+import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
+import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
+
+// The app icon's bytes live in appIcon.js ONLY; the head carries placeholder hrefs (see the
+// comment there). Written before render so the tab icon is right from the first paint the user
+// can see — the app is 100% JS-dependent, so there is no meaningful pre-JS window. The engine's
+// buildSavedHtml() serialises attributes, so a shareable copy carries the real URI here, not the
+// placeholder.
+for (const sel of ['link[rel="icon"]', 'link[rel="apple-touch-icon"]']) {
+  const link = document.querySelector(sel)
+  if (link) link.href = APP_ICON
+}
 
 // ---- Why portals, and not a React root that owns the document ---------------------------------
 // Three independent constraints in MANTINE-SEAM.md §3.1 rule out wrapping the app in a root div:
@@ -56,6 +68,7 @@ function Chrome() {
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}
       <DatePop />
+      <SelectPop />
       <Dialogs />
     </>
   )

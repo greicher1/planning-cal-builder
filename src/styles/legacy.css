@@ -130,12 +130,9 @@
   /* Width-frugal on purpose: header height feeds --header-h (frozen .sheet-scroll reads it), so
      the brand must never be the thing that makes the toolbar wrap. The name drops below 1240px. */
   .app-brand{ display:flex; align-items:center; gap:var(--mantine-spacing-md); flex:none; }
-  .app-brand-mark{
-    width:30px; height:30px; border-radius:var(--mantine-radius-default);
-    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
-    display:flex; align-items:center; justify-content:center; flex:none;
-  }
-  .app-brand-mark svg{ width:15px; height:15px; }
+  /* An <img> of the actual app icon since round 5 (one artwork with the favicon — appIcon.js),
+     replacing the navy chip + drawn glyph. Same 30px box, so --header-h cannot move. */
+  .app-brand-mark{ width:30px; height:30px; display:block; flex:none; }
   .app-brand-name{
     font-size:15px; font-weight:650; letter-spacing:-.01em;
     color:var(--mantine-color-gray-9); white-space:nowrap;
@@ -780,6 +777,35 @@
   .tools-msg:empty{display:none;}
   .tools-msg.warn{color:var(--danger);}
 
+  /* The tool popovers' pop-out picker (SelectPop.jsx, round 5): the loader dropdown's look over
+     the native selects. It is portaled INSIDE .tools-menu — the component says why — and
+     positioned by it; the shell mirrors the file menu / .date-pop family (white, gray-3
+     hairline, radius-lg, shadow-md), the rows mirror .file-menu-item, and the selected row wears
+     the loader's .active accent. */
+  .select-pop{
+    position:absolute; z-index:10;
+    background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg);
+    box-shadow:var(--mantine-shadow-md);
+    padding:4px;
+    max-height:248px; overflow-y:auto;
+  }
+  .select-pop .sp-item{
+    display:flex; width:100%; align-items:baseline; justify-content:space-between;
+    gap:var(--mantine-spacing-md);
+    border:none; background:none; font-family:inherit; text-align:left;
+    font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9);
+    padding:6px 10px; border-radius:var(--mantine-radius-sm); cursor:pointer;
+    white-space:nowrap;
+  }
+  .select-pop .sp-hi{ background:var(--mantine-color-gray-1); }
+  .select-pop .sp-cur{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  .select-pop .sp-name{ overflow:hidden; text-overflow:ellipsis; }
+  .select-pop .sp-date{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); flex:none; }
+  .select-pop .sp-cur .sp-date{ color:inherit; opacity:.75; }
+  .select-pop .sp-empty{ padding:8px 10px; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
+
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
   .mv-tools{ display:flex; justify-content:flex-end; margin-bottom:8px; }
@@ -1371,7 +1397,20 @@
     background:rgba(20,19,17,.45); backdrop-filter:blur(2px);
     align-items:center; justify-content:center; padding:24px;
   }
-  #help-overlay.open{ display:flex; }
+  /* Open ANIMATION (owner, round 5). Keyframes, not a transition: the show mechanism is
+     display:none → flex, which has no from-state for a transition to run over — but animations
+     fire the moment the element becomes rendered, so attaching them to .open animates every open
+     with no JS change. The movement sits on #help-modal (the child) and only opacity on the
+     overlay, because the overlay carries backdrop-filter and transforming a filtered layer forces
+     repaints. `from` only — omitting `to` inherits the resting state. Close stays instant (an
+     exit animation needs @starting-style/allow-discrete machinery; not asked for). */
+  #help-overlay.open{ display:flex; animation:helpOverlayIn .16s ease-out; }
+  #help-overlay.open #help-modal{ animation:helpModalIn .22s cubic-bezier(.2,.9,.3,1); }
+  @keyframes helpOverlayIn{ from{ opacity:0; } }
+  @keyframes helpModalIn{ from{ opacity:0; transform:translateY(10px) scale(.965); } }
+  @media (prefers-reduced-motion: reduce){
+    #help-overlay.open, #help-overlay.open #help-modal{ animation:none; }
+  }
   #help-modal{
     background:var(--panel); border-radius:14px; width:min(720px,100%);
     max-height:88vh; display:flex; flex-direction:column;

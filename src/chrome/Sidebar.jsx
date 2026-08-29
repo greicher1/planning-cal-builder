@@ -32,7 +32,10 @@ export function ShowInfoCard() {
       {/* .side-block: the same bounded white block a phase row gets, so the three React cards and
           the engine-generated Phases card read as ONE system (owner's ask, 29 Aug 2026). */}
       <div className="side-block">
-      <Stack gap="md">
+      {/* gap xl, not md (owner, round 5): md is 8px on the density scale and the fields read as
+          cramped. 16px of air between fields; the Phases-tab overflow argument in theme.js is
+          about input HEIGHT, which this does not touch. */}
+      <Stack gap="xl">
         <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
         {/* ⛔ NativeSelect, never Select. Select puts the option LABEL in the id-bearing input, so
             this would save "Season 2" where the format expects "2". */}
@@ -62,7 +65,8 @@ export function RegionCard() {
         Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
         pushing the schedule out. Canada is picked by province — the statutory lists genuinely differ.
       </Text>
-      <Stack gap="md">
+      {/* Same round-5 spacing as the Show card. */}
+      <Stack gap="xl">
         <NativeSelect id="union-country" label="Country">
           <option value="">None</option>
           <option value="US">United States</option>
