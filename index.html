@@ -244,7 +244,7 @@
   }
   .icon-btn:hover{background:var(--bg);}
 
-  /* Sidebar/content buttons only. :not(.tb-btn) keeps this off the toolbar, whose Export-to-Excel
+  /* Sidebar/content buttons only. :not(.tb-btn) keeps this off the toolbar, whose PDF-export
      button also carries .primary -- otherwise this rule's larger padding/font would win over
      .tb-btn and make that one button taller than its toolbar neighbors. */
   button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
@@ -955,8 +955,8 @@
     <button class="tb-btn" id="new-file-btn" type="button">New</button>
     <button class="tb-btn" id="save-file-btn" type="button">Save</button>
     <button class="tb-btn" id="save-as-btn" type="button" style="display:none;">Save As&hellip;</button>
-    <button class="tb-btn primary" id="export-btn" type="button" disabled>Export to Excel</button>
-    <button class="tb-btn" id="export-wf-pdf-btn" type="button" disabled>Export Waterfall to PDF</button>
+    <button class="tb-btn" id="export-btn" type="button" disabled>Export to Excel</button>
+    <button class="tb-btn primary" id="export-wf-pdf-btn" type="button" disabled>Export Waterfall to PDF</button>
     <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
     <button class="tb-btn danger" id="reset-btn" type="button">Reset All</button>
   </div>
@@ -4311,11 +4311,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     renderHolidayVisList(schedule);
     const tableEl = document.getElementById('table-wrap');
     const exportBtn = document.getElementById('export-btn');
-    // The button does different things in each view, so it says which.
+    // The button does different things in each view, so it says which -- and the FILLED button is
+    // always the PDF one. In the waterfall that is the separate Waterfall-to-PDF button beside it,
+    // so this one drops to the plain style; in the month view this button IS the PDF export (the
+    // other is hidden), so it takes the fill instead of leaving the view with no emphasised action.
     if(exportBtn){
-      exportBtn.textContent = (viewMode === 'month')
-        ? 'Export Calendar to PDF'
-        : 'Export Waterfall to Excel';
+      const isMonth = viewMode === 'month';
+      exportBtn.textContent = isMonth ? 'Export Calendar to PDF' : 'Export Waterfall to Excel';
+      exportBtn.classList.toggle('primary', isMonth);
     }
     // The Waterfall-to-PDF button only applies to the waterfall (the month view has its own PDF
     // export via the main button), so it's shown only there.
