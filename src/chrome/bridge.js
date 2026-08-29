@@ -57,6 +57,13 @@ export const chrome = {
   // setting the native .disabled property would disable the buttons functionally while leaving
   // them looking enabled.
   undoRedo: noop,
+  // ({ kind:'confirm'|'alert', title?, message, confirmLabel?, cancelLabel?, danger? }) → Promise<boolean>.
+  // ⚠️ The default is the NATIVE dialog, not a no-op: a silent Promise.resolve(true) would
+  // auto-answer destructive confirms if the chrome ever failed to mount. Degrading to the old
+  // browser popups is the safe failure.
+  dialog: (opts) => Promise.resolve(
+    opts && opts.kind === 'confirm' ? window.confirm(opts.message) : (window.alert(opts && opts.message), true)
+  ),
   // { holidays: [{iso, name}], hiatuses: [{start, weeks}] } — the date-picker popovers' markers
   // (src/chrome/DatePop.jsx). Pushed by update() so the little calendars mark holidays and
   // all-phase hiatus weeks without the popover ever reaching into the engine.

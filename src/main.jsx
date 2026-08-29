@@ -27,6 +27,7 @@ import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
 import { ShowInfoCard, RegionCard, HolidaysCard, AppCard } from './chrome/Sidebar.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
+import { Dialogs } from './chrome/Dialogs.jsx'
 import { initLegacyApp } from './legacy/app.js'
 
 // ---- Why portals, and not a React root that owns the document ---------------------------------
@@ -55,6 +56,7 @@ function Chrome() {
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}
       <DatePop />
+      <Dialogs />
     </>
   )
 }

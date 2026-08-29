@@ -1898,13 +1898,13 @@ export function initLegacyApp() {
       <div class="phase-meta" id="meta-${key}"></div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
-    row.querySelector('.remove-custom-phase').addEventListener('click', ()=>{
+    row.querySelector('.remove-custom-phase').addEventListener('click', async ()=>{
       // Only prompt when there's something to lose -- an untouched blank row deletes freely.
       const nameEl = row.querySelector('.phase-name-input');
       const startEl = document.getElementById('start-'+key);
       const weeksEl = document.getElementById('weeks-'+key);
       const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim());
-      if(hasData && !confirm('Remove this phase? Its name, dates, duration and hiatus will be lost.')) return;
+      if(hasData && !(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }))) return;
       customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==key);
       row.remove();
       update();
@@ -1943,9 +1943,9 @@ export function initLegacyApp() {
       <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
       <div class="snap-note"></div>
     `;
-    row.querySelector('.remove-hiatus').addEventListener('click', ()=>{
+    row.querySelector('.remove-hiatus').addEventListener('click', async ()=>{
       const startEl = row.querySelector('.hiatus-start');
-      if(startEl && startEl.value && !confirm('Remove this hiatus?')) return;
+      if(startEl && startEl.value && !(await uiConfirm('Remove this hiatus?', { title: 'Remove hiatus', confirmLabel: 'Remove', danger: true }))) return;
       row.remove(); update();
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
@@ -2052,7 +2052,10 @@ export function initLegacyApp() {
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+h.hid+'" title="Remove this custom holiday">&times;</button>'
         : '';
       return '<div class="hv-row">'
-        + '<span class="hv-label'+dim+'" title="'+label+'">'+label+tag+oor+'</span>'
+        + '<span class="hv-label'+dim+'" title="'+label+'">'
+        +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
+        +   '<span class="hv-date">'+fmtShort(h.date)+'</span>'
+        + '</span>'
         + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+h.hid+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
         + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+noteAttrs+'></span>'
         + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+noteAttrs+'></span>'
@@ -4842,7 +4845,7 @@ export function initLegacyApp() {
                    || (sEl && sEl.value !== lastSubregion)
                    || (uEl && uEl.value !== lastUsArea);
       if(changed && countryChangeWouldClobber()){
-        alert('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the region.');
+        uiAlert('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the region.');
         cEl.value = lastCountry;               // revert ALL, so they can't drift apart
         if(sEl) sEl.value = lastSubregion;
         if(uEl) uEl.value = lastUsArea;
@@ -4875,23 +4878,23 @@ export function initLegacyApp() {
     // Enabling/disabling a holiday changes Production's dates, so it can shift notes the user has
     // already placed. Same hazard the Region selectors guard against -- but this is one holiday and
     // trivially undone, so we warn once and let it through rather than blocking outright.
-    host.addEventListener('change', e=>{
+    host.addEventListener('change', async e=>{
       const cb = e.target.closest('.hv-en');
       if(!cb) return;
       const hid = cb.dataset.hid;
       if(countryChangeWouldClobber()){
-        const ok = confirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?');
+        const ok = await uiConfirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?', { title: 'Recompute the schedule?' });
         if(!ok){ cb.checked = !cb.checked; return; }   // put the box back
       }
       if(cb.checked) delete holidayOff[hid]; else holidayOff[hid] = true;
       update();   // full recompute: this moves shoot days
     });
-    host.addEventListener('click', e=>{
+    host.addEventListener('click', async e=>{
       const del = e.target.closest('.hv-del');
       if(del){
         const hid = del.dataset.hid;
         const h = (customHolidays || []).find(c=>c.id === hid);
-        if(h && !confirm('Remove the custom holiday “' + h.name + '”?')) return;
+        if(h && !(await uiConfirm('Remove the custom holiday “' + h.name + '”?', { title: 'Remove holiday', confirmLabel: 'Remove', danger: true }))) return;
         customHolidays = (customHolidays || []).filter(c=>c.id !== hid);
         delete holidayOff[hid];
         delete holidayView[hid];
@@ -4906,7 +4909,7 @@ export function initLegacyApp() {
       if(!holidays.length) return;
       if(view === 'enabled'){
         if(countryChangeWouldClobber()
-           && !confirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?')) return;
+           && !(await uiConfirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?', { title: 'Recompute the schedule?' }))) return;
         const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
         holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
         update();
@@ -4953,8 +4956,8 @@ export function initLegacyApp() {
       el.addEventListener('keydown', ev=>{ if(ev.key === 'Enter'){ ev.preventDefault(); add(); } });
       el.addEventListener('input', clearErr);
     });
-    if(resetBtn) resetBtn.addEventListener('click', ()=>{
-      if(!confirm('Re-enable every holiday, clear the note choices, and delete your custom holidays?\n\nThis only affects the Holidays section.')) return;
+    if(resetBtn) resetBtn.addEventListener('click', async ()=>{
+      if(!(await uiConfirm('Re-enable every holiday, clear the note choices, and delete your custom holidays?\n\nThis only affects the Holidays section.', { title: 'Reset holidays', confirmLabel: 'Reset', danger: true }))) return;
       holidayOff = {};
       holidayView = {};
       customHolidays = [];
@@ -5023,14 +5026,15 @@ export function initLegacyApp() {
     update();
   }
 
-  document.getElementById('reset-btn').addEventListener('click', ()=>{
-    const ok = confirm(
+  document.getElementById('reset-btn').addEventListener('click', async ()=>{
+    const ok = await uiConfirm(
       'Reset All will clear this calendar completely:\n\n' +
       '\u2022 every phase, date and duration\n' +
       '\u2022 Show Info, season and the episode list\n' +
       '\u2022 all notes, hiatus bands and colour edits\n' +
       '\u2022 the Production Region and header text\n\n' +
-      'Any saved file on disk is left untouched \u2014 this only clears what\u2019s on screen. Continue?'
+      'Any saved file on disk is left untouched \u2014 this only clears what\u2019s on screen. Continue?',
+      { title: 'Reset All', confirmLabel: 'Reset everything', danger: true }
     );
     if(ok) resetAll();
   });
@@ -5986,7 +5990,7 @@ export function initLegacyApp() {
     if(!b || !b.state) return;
     const when = new Date(b.at);
     const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
-    if(!confirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?')){
+    if(!(await uiConfirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?', { title: 'Recover unsaved work', confirmLabel: 'Recover' }))){
       // Keep the backup rather than deleting it on a single "No" -- an accidental decline
       // shouldn't be irreversible. It's cleared on the next successful Save (markClean) or
       // explicit New (newFile), and overwritten as soon as the user makes an edit (scheduleBackup).
@@ -6066,7 +6070,7 @@ export function initLegacyApp() {
         btn.disabled = false;
         if(err && err.name === 'AbortError') return;   // user cancelled the picker
         console.error(err);
-        alert('Could not save a .sptcal copy: ' + err.message);
+        uiAlert('Could not save a .sptcal copy: ' + err.message);
       }
     });
   })();
@@ -6093,6 +6097,19 @@ export function initLegacyApp() {
   // commit through React AFTER the second click of a fast double-click has already landed --
   // saveInFlight closes that hole for Save specifically; this closes it for the rest (double
   // pickers, double downloads, double New confirms).
+  // The app's own dialogs (owner, rounds 3-4): every user-facing confirm()/alert() in CHROME
+  // handlers goes through the bridge to a Mantine modal (src/chrome/Dialogs.jsx). Two rules:
+  //   * uiConfirm must be AWAITED -- it resolves true/false. Converted handlers became async.
+  //   * ⛔ alert() calls INSIDE the frozen export functions (exportMonthPdf, exportWaterfallPdf,
+  //     exportWaterfallPdfDirect) stay native: editing those bodies is what the freeze forbids.
+  //   * The bridge default degrades to window.confirm/alert, so a chromeless engine still asks.
+  function uiConfirm(message, opts){
+    return chrome.dialog(Object.assign({ kind: 'confirm', message }, opts || {}));
+  }
+  function uiAlert(message, opts){
+    return chrome.dialog(Object.assign({ kind: 'alert', message }, opts || {}));
+  }
+
   function reClickGuard(ms, fn){
     let last = 0;
     return function(...args){
@@ -6119,17 +6136,17 @@ export function initLegacyApp() {
       const q = await entry.handle.queryPermission({ mode: 'readwrite' });
       if(q !== 'granted'){
         const p = await entry.handle.requestPermission({ mode: 'readwrite' });
-        if(p !== 'granted'){ alert('Permission to open that file was declined.'); return; }
+        if(p !== 'granted'){ uiAlert('Permission to open that file was declined.'); return; }
       }
     } catch(e){ /* some browsers: proceed and let read throw */ }
 
     let text;
     try { const file = await entry.handle.getFile(); text = await file.text(); }
-    catch(e){ alert('Could not read that file. It may have been moved or deleted.'); return; }
+    catch(e){ uiAlert('Could not read that file. It may have been moved or deleted.'); return; }
 
     // Read the calendar out of the file -- either format, one code path (parseCalendarText).
     const parsed = parseCalendarText(text);
-    if(!parsed){ alert('That file doesn\u2019t contain saved calendar data.'); return; }
+    if(!parsed){ uiAlert('That file doesn\u2019t contain saved calendar data.'); return; }
     const snap = parsed.snapshot;
     // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay. applyStateSnapshot
     // is called directly rather than round-tripping through the live #saved-state element: that
@@ -6253,7 +6270,7 @@ export function initLegacyApp() {
       chrome.saveBtn({ busy: false, disabled: false, label: saveBtnLabel() });
       if(err && err.name === 'AbortError') return; // user cancelled the picker
       console.error(err);
-      alert('Something went wrong saving the file: ' + err.message);
+      uiAlert('Something went wrong saving the file: ' + err.message);
     }
   });
 
@@ -6637,19 +6654,19 @@ export function initLegacyApp() {
         if(item.dataset.action === 'share'){
           try {
             downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
-          } catch(err){ console.error(err); alert('Could not build a shareable copy: '+err.message); }
+          } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
           return;
         }
         const isOpen = item.dataset.action === 'open';
         const entry = isOpen ? null : recentFiles.find(f=>f.id === item.dataset.id);
         // Opening another calendar replaces the one on screen -- warn if there's unsaved work,
         // matching the "New" guard. Fires before the picker opens / any recents mutation.
-        if((isOpen || entry) && isDirty && !confirm('Open another calendar? Your unsaved changes will be lost.')) return;
+        if((isOpen || entry) && isDirty && !(await uiConfirm('Open another calendar? Your unsaved changes will be lost.', { title: 'Open another calendar', confirmLabel: 'Open', danger: true }))) return;
         if(isOpen){
-          try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); alert('Could not open a file: '+err.message); } }
+          try { await openFileViaPicker(); } catch(err){ if(err && err.name!=='AbortError'){ console.error(err); uiAlert('Could not open a file: '+err.message); } }
           return;
         }
-        if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); alert('Could not open that file: '+err.message); } }
+        if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); uiAlert('Could not open that file: '+err.message); } }
       });
     }
 
@@ -6660,12 +6677,12 @@ export function initLegacyApp() {
       if(!e.target.closest || !e.target.closest('#share-copy-btn')) return;
       try {
         downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
-      } catch(err){ console.error(err); alert('Could not build a shareable copy: '+err.message); }
+      } catch(err){ console.error(err); uiAlert('Could not build a shareable copy: '+err.message); }
     }));
 
-    if(newBtn) newBtn.addEventListener('click', reClickGuard(600, ()=>{
+    if(newBtn) newBtn.addEventListener('click', reClickGuard(600, async ()=>{
       // Only warn if there's actually unsaved work to lose.
-      if(isDirty && !confirm('Start a new blank calendar? Your unsaved changes will be lost.')) return;
+      if(isDirty && !(await uiConfirm('Start a new blank calendar? Your unsaved changes will be lost.', { title: 'New calendar', confirmLabel: 'Start new', danger: true }))) return;
       newFile();
     }));
 
@@ -6676,7 +6693,7 @@ export function initLegacyApp() {
       } catch(err){
         if(err && err.name === 'AbortError') return;
         console.error(err);
-        alert('Something went wrong saving the file: ' + err.message);
+        uiAlert('Something went wrong saving the file: ' + err.message);
       }
     }));
   })();
@@ -6698,7 +6715,7 @@ export function initLegacyApp() {
       return;
     }
     if(typeof ExcelJS === 'undefined'){
-      alert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
+      uiAlert('The Excel export library failed to load from the CDN (cdn.jsdelivr.net). This can happen on locked-down corporate networks. Try a different network, or ask IT to allow that domain.');
       return;
     }
     // ⚠️ This used to be `const original = btn.textContent` … `finally { btn.textContent =
@@ -6711,7 +6728,7 @@ export function initLegacyApp() {
       await exportExcel(currentSchedule);
     } catch(err){
       console.error(err);
-      alert('Something went wrong building the Excel file: ' + err.message);
+      uiAlert('Something went wrong building the Excel file: ' + err.message);
     } finally {
       chrome.exportBtn({ busy: false, disabled: false });
     }

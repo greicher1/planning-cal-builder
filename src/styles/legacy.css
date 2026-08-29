@@ -143,6 +143,9 @@
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
   /* 1080, not 1240: the export labels shortened, so the name earns more room before wrap risk. */
   @media (max-width:1080px){ .app-brand-name{ display:none; } }
+  /* display:block: an inline svg sits on the text baseline and inherits a descender gap, which
+     is exactly the 2px "not quite centred" the owner kept seeing (round 4 image 5). */
+  .btn-ic, .card-ic, .tab-ic, .vt-ic{ display:block; }
   .btn-ic{ width:14px; height:14px; }
 
   /* Retired 29 Aug 2026, with the ported preview toolbar: .tb-btn. PreviewToolbar.jsx landed and
@@ -549,7 +552,10 @@
     background:var(--mantine-color-white);
     transition:border-color 100ms ease, box-shadow 100ms ease;
   }
-  .phase-row{ padding-top:calc(var(--mantine-spacing-lg) + 8px); overflow:hidden; }
+  .phase-row{
+    padding:calc(var(--mantine-spacing-lg) + 8px) var(--mantine-spacing-xl) var(--mantine-spacing-lg);
+    overflow:hidden;
+  }
   /* The grab handle: VISUAL ONLY for now (owner, 29 Aug 2026 -- "no need to build code for it
      yet"). Reordering is save-format territory (customPhaseDefs order, PHASE_CHAIN) and needs its
      own design before any drag logic exists. Six dots via radial-gradient, no markup change. */
@@ -597,6 +603,16 @@
     background:var(--mantine-color-danger-0); border-color:var(--mantine-color-danger-2);
     color:var(--mantine-color-danger-9);
   }
+  /* The × as drawn geometry, not a text glyph: &times; sits on a text baseline and never centres
+     exactly (owner, round 4 image 4). font-size:0 hides the engine-emitted character; the mask
+     paints currentColor, so the danger hover above keeps working untouched. */
+  .remove-custom-phase, .remove-hiatus, .hv-del{ font-size:0; }
+  .remove-custom-phase::before, .remove-hiatus::before, .hv-del::before{
+    content:""; width:11px; height:11px; background:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3.5 3.5l9 9M12.5 3.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3.5 3.5l9 9M12.5 3.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .hv-del::before{ width:9px; height:9px; }
   .icon-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
 
   /* ⚠️ The ORIGINAL legacy block for these selectors used to survive here (13px / radius 8 /
@@ -914,8 +930,9 @@
   .ep-panel-warn{
     font-size:var(--mantine-font-size-xs); color:var(--mantine-color-warn-9); background:var(--mantine-color-warn-0);
     border:1px solid var(--mantine-color-warn-2); border-radius:var(--mantine-radius-default);
-    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md);
-    display:flex; align-items:flex-start; gap:var(--mantine-spacing-sm); line-height:var(--mantine-line-height-xs);
+    /* Roomier than an inline hint: this chip carries full sentences (owner, round 4 image 1). */
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
+    display:flex; align-items:flex-start; gap:var(--mantine-spacing-md); line-height:1.45;
   }
   /* The warn glyph, drawn in CSS so the engine's innerHTML writes cannot lose it. */
   .ep-panel-warn::before{
@@ -1405,7 +1422,11 @@
     border-bottom:1px solid var(--mantine-color-gray-2);
   }
   .hv-row:hover{ background:var(--mantine-color-gray-0); }
-  .hv-label{ flex:1; min-width:0; padding-right:var(--mantine-spacing-sm); line-height:var(--mantine-line-height-xs); }
+  .hv-label{ flex:1; min-width:0; padding-right:var(--mantine-spacing-sm); line-height:var(--mantine-line-height-xs);
+    display:flex; flex-direction:column; gap:1px; }
+  .hv-name{ font-size:var(--mantine-font-size-sm); }
+  /* The date on its own row, smaller and lighter (owner, round 4 image 2). */
+  .hv-date{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   .hv-cell{ width:40px; text-align:center; flex:none; }
   .hv-cell-month{ width:38px; }
   /* A disabled holiday's label and note cells dim; the Enable cell never does (it is the way back). */

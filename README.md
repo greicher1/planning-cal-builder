@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — round 4: the app's own dialogs, and the polish pass on the polish
+
+⚠️ **Not deployed and not cut as a version.** What a user notices most: **the browser-chrome
+popups are gone.** "Start a new blank calendar?", Reset All, removing a phase / hiatus / custom
+holiday, the holiday-reset and recompute warnings, and recovery prompts are now the app's own
+Mantine dialogs — titled, centred, with the destructive action as a red filled button, and Escape
+or clicking outside always answering the safe way. Error alerts in the save/open/share/export
+handlers follow. Under the hood the bridge's `dialog` entry deliberately falls back to the NATIVE
+dialogs if the chrome ever fails to mount — a silent auto-confirm on a destructive action being
+the one unacceptable failure. ⚠️ Eight `alert()` calls remain native on purpose: they live inside
+the frozen export functions, and converting them is a frozen edit that needs its own ruling.
+
+Also in this round, from the owner's screenshots: the episode warning chip got real padding and
+line-height; **holiday rows split name and date onto two lines** (date smaller and lighter); phase
+chips got more side padding; and the remove × plus undo/redo glyphs are now geometrically centred
+— the × is drawn (a mask over `currentColor`, so the red hover still works) instead of a text
+glyph that sat on a baseline. HANDOFF §2b-3 now carries the reconciled **master list** of every
+request in the redesign arc with per-item status.
+
 ### Unreleased — round 3: chips crowned, warnings diegetic, terminology settled
 
 ⚠️ **Not deployed and not cut as a version.** The owner's third review round, itemised in

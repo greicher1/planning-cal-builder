@@ -518,6 +518,46 @@ entry ("the visual redesign rounds"); what a next session must know:
 UI copy follows this vocabulary (the file-menu search says "Search loaded files"). Use it in all
 new user-facing text.
 
+#### 📋 THE MASTER LIST — every owner request of the redesign arc, reconciled (29 Aug 2026, round 4)
+
+Compiled at the owner's instruction from their consolidated re-paste, checked item by item against
+what is actually built. ✅ built · ◐ partial · ⏳ open with a reason · ❓ needs an owner decision.
+
+| # | Request | Status |
+|---|---|---|
+| 1 | Show/Settings/Phases font parity | ✅ label + input-size parity rules |
+| 2 | Color changer as top bar on phase chips | ✅ same `swatch-<key>` contract |
+| 3 | Grab handles (visual only) | ✅ CSS dots; ⛔ reorder CODE needs a save-format design (`customPhaseDefs` order, `PHASE_CHAIN`) |
+| 4 | Diegetic warnings in phase chips | ◐ episode warn chip done (+ round-4 air); ⏳ red ring on a bad start date needs a hook inside FROZEN `render()`'s validity branch — owner sign-off required |
+| 5 | Red hover ×, visually centred | ✅ round 3 + round 4: the × is drawn geometry now (mask), not a text glyph |
+| 6 | All-phase hiatus naming | ❓ never existed — bands are named by clicking them in the calendar (`hiatusTexts`); a sidebar field adds a key to `fields.hiatuses` (save format) — decide before building |
+| 7 | Custom warnings replacing browser popups | ✅ round 4: `Dialogs.jsx` + `chrome.dialog` bridge; ALL 10 confirms + 13 chrome-side alerts converted. ⏳ 8 native `alert()`s remain INSIDE frozen export functions (`exportMonthPdf`, `exportWaterfallPdf*`) — converting them is a frozen edit; ❓ rule wanted. `beforeunload` stays native (browser-owned) |
+| 8 | Undo/redo symbols fit Mantine | ✅ drawn glyphs; round 4 fixed the baseline offset |
+| 9 | Retrigger block on file actions | ✅ `reClickGuard(600ms)` |
+| 10 | Tool popover pickers pull from Mantine | ✅ chevron restyle; they stay real `<select>`s (`fillPhaseSelect`) |
+| 11 | "Search loaded files" + terminology rule | ✅ built + rule logged (saving = write `.sptcal`; loading = open into the PWA) |
+| 12 | Share copy: keep code, disable button; "Export App With Data" in Settings | ✅ Settings ▸ App carries the flow. ⚠️ INTERPRETATION: the header button was REMOVED (code path intact) rather than shown-disabled — say the word if a visible-but-disabled header button was wanted |
+| 13 | Autosave-needs-a-file in red | ✅ red Badge |
+| 14 | Export naming convention | ✅ never touched — `<Show Title> Planning Calendar.xlsx` |
+| 15 | Meta readout two rows | ✅ the one deliberate frozen `render()` edit, owner-directed, gate-proved |
+| 16 | Changelog/commit/backlog hygiene | ✅ three commits + this list |
+| 17 | Install-as-app above switchers | ✅ |
+| 18 | Show/Settings blocks like Phases | ✅ `.side-block` |
+| 19 | Warm dark-gray text + picker text ratio | ✅ `theme.black` + `sm` input text |
+| 20 | Equal centred Waterfall/Month | ✅ |
+| 21 | Shift All merged split control | ✅ |
+| 22 | Status padding | ✅ |
+| 23 | Menu rhythm (Open vs search) | ✅ |
+| 24 | Rail reverted, icons kept, thicker named header, red Reset, button animations, full-height sidebar, preview-toolbar overhaul, menu search + pinned Open, export split | ✅ all |
+| 25 | Round-4 images: cramped warn chip · holiday name/date split rows · chip side padding · × and undo/redo centring | ✅ all four |
+| 26 | **Note popovers + help modal** (`.note-pop`, `.mv-note-pop` incl. its reposition bug) | ⏳ **the next stage** — now bundled with the remaining №4 ring and, if ruled, №7's frozen-alert conversions |
+
+Nothing from the consolidated paste is unaccounted for. The open set is: №3 reorder design, №4 field
+ring (frozen hook), №6 naming design, №7 frozen-alert ruling, №12 interpretation check, №26 the
+popover stage — plus the pre-existing backlog (Inter embed with its month-PDF gate, the notice
+strips port pending the §2h ruling, per-component Mantine CSS ~247 KB, the sub-1024 responsive
+pass).
+
 #### ✅/⏳ THE OWNER'S ROUND-3 LIST — built same day except where marked (29 Aug 2026)
 
 Logged before building at the owner's instruction, then built and gated. State of each:
