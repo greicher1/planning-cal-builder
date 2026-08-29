@@ -2152,7 +2152,9 @@ export function initLegacyApp() {
     // other is hidden), so it takes the fill instead of leaving the view with no emphasised action.
     const isMonth = viewMode === 'month';
     chrome.exportBtn({
-      label: isMonth ? 'Export Calendar to PDF' : 'Export Waterfall to Excel',
+      // Short labels, HeaderMegaMenu-style: the icon carries the file-type half of the meaning
+      // (Header.jsx renders a download glyph when primary, a table glyph otherwise).
+      label: isMonth ? 'Export PDF' : 'Export to Excel',
       primary: isMonth,
     });
     // The Waterfall-to-PDF button only applies to the waterfall (the month view has its own PDF
@@ -4594,6 +4596,15 @@ export function initLegacyApp() {
     currentSchedule = computeSchedule(state);
     render(currentSchedule);
     reflectCountryLock();
+    // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
+    // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
+    // other chrome surface, so the popover never reaches into the engine.
+    chrome.dateContext({
+      holidays: fullHolidayList(state.unionCountry)
+        .filter(h => h.enabled !== false)
+        .map(h => ({ iso: h.date, name: h.name })),
+      hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
+    });
     markDirty();
     restoreScroll(scrollSnap);
   }
@@ -5118,7 +5129,10 @@ export function initLegacyApp() {
     const pr = clone.querySelector('#print-root'); if(pr) pr.innerHTML = '';
     //    Body-level popovers are transient UI that happens to live in <body>; a stray one would
     //    export as a panel hanging over the calendar pointing at nothing.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop').forEach(el=>el.remove());
+    // .date-pop added 29 Aug 2026 with the pop-out date pickers: the popover unmounts when
+    // closed, but a Share click closes it via React state -- which commits AFTER this synchronous
+    // build -- so without the strip a copy exported by that click would carry the open calendar.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop').forEach(el=>el.remove());
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -6624,6 +6638,16 @@ export function initLegacyApp() {
         if(entry){ try { await openRecentFile(entry); } catch(err){ console.error(err); alert('Could not open that file: '+err.message); } }
       });
     }
+
+    // "Export shareable copy" moved out of the file menu to its own header button (owner's ask,
+    // 29 Aug 2026). Delegated from document for the same remount-proofing reason as the menu
+    // listener above; the menu's own 'share' branch stays as harmless belt-and-braces.
+    document.addEventListener('click', (e)=>{
+      if(!e.target.closest || !e.target.closest('#share-copy-btn')) return;
+      try {
+        downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      } catch(err){ console.error(err); alert('Could not build a shareable copy: '+err.message); }
+    });
 
     if(newBtn) newBtn.addEventListener('click', ()=>{
       // Only warn if there's actually unsaved work to lose.

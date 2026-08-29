@@ -18,6 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
+import { IconTv, IconMapPin, IconCalendarDot } from './icons.jsx'
 
 const SEASONS = [
   { value: '', label: '—' },
@@ -27,7 +28,10 @@ const SEASONS = [
 export function ShowInfoCard() {
   return (
     <section className="card" data-tab="show">
-      <h2>Show info</h2>
+      <h2><IconTv className="card-ic" /><span>Show info</span></h2>
+      {/* .side-block: the same bounded white block a phase row gets, so the three React cards and
+          the engine-generated Phases card read as ONE system (owner's ask, 29 Aug 2026). */}
+      <div className="side-block">
       <Stack gap="md">
         <TextInput id="show-title" label="Title" placeholder="e.g. Show Title" />
         {/* ⛔ NativeSelect, never Select. Select puts the option LABEL in the id-bearing input, so
@@ -42,6 +46,7 @@ export function ShowInfoCard() {
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>
+      </div>
     </section>
   )
 }
@@ -49,9 +54,10 @@ export function ShowInfoCard() {
 export function RegionCard() {
   return (
     <section className="card" data-tab="settings">
-      <h2>Production Region</h2>
+      <h2><IconMapPin className="card-ic" /><span>Production Region</span></h2>
       {/* Explanatory copy: roman, not italic. `.placeholder-note` did four different jobs — hint,
           error, empty state and explanation — so italic meant nothing. UI-CONVENTIONS.md §4. */}
+      <div className="side-block">
       <Text size="xs" c="dimmed" mb="md">
         Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
         pushing the schedule out. Canada is picked by province — the statutory lists genuinely differ.
@@ -100,6 +106,7 @@ export function RegionCard() {
         Locked — changing the Region would recompute Production’s dates and misplace your
         comment/hiatus edits. Use “Reset Notes &amp; Hiatus” above the calendar first.
       </p>
+      </div>
     </section>
   )
 }
@@ -107,7 +114,8 @@ export function RegionCard() {
 export function HolidaysCard() {
   return (
     <section className="card" data-tab="settings">
-      <h2>Holidays</h2>
+      <h2><IconCalendarDot className="card-ic" /><span>Holidays</span></h2>
+      <div className="side-block">
       <Text size="xs" c="dimmed" mb="md">
         Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
         Production a shoot day and stops appearing as a note. The two note columns control where an
@@ -133,9 +141,12 @@ export function HolidaysCard() {
         </Group>
       </div>
 
+      </div>
+
       {/* Custom (show-specific) holidays. A single day, which the hiatus rows cannot express --
-          those are whole Monday-snapped weeks. Not region-scoped, so they survive a region change. */}
-      <Box className="hv-custom" mt="xl" pt="lg">
+          those are whole Monday-snapped weeks. Not region-scoped, so they survive a region change.
+          Its own block: it is a different job from the visibility table above it. */}
+      <Box className="side-block hv-custom">
         <Text size="xs" fw={500} mb="sm">Add your own holiday</Text>
         {/* ⚠️ The date input no longer has a fixed 132px width and the name field no longer has to
             fight for what is left. Measured before: the row spent 190px on fixed-width children, so

@@ -47,7 +47,11 @@
      `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}`. The Group inside carries
      wrap="nowrap"; this rule must not re-enable wrapping behind it. */
   header.app-header{
-    padding:10px 28px; border-bottom:1px solid var(--border);
+    /* Thicker on the owner's instruction (29 Aug 2026). Safe because --header-h is MEASURED by
+       the ResizeObserver, not assumed -- the frozen .sheet-scroll max-height adapts with it. The
+       print-fallback caveat (HANDOFF: toolbar height is export-affecting for the dormant
+       WF_PDF_MODE='print' path) stands; that path has no committed baseline and is off. */
+    padding:16px 28px; border-bottom:1px solid var(--mantine-color-gray-3);
     display:flex; align-items:center;
     background:#fff; position:sticky; top:0; z-index:40;
   }
@@ -59,12 +63,117 @@
      exactly how `.file-menu{display:none}` kept the ported dropdown invisible while React was
      correctly reporting it open. */
 
+
+  /* ---------- The pop-out date picker (src/chrome/DatePop.jsx) ---------- */
+  /* The native calendar glyph retires on participating fields: this popover IS the picker there,
+     and two competing calendars off one field read as a bug. Typing is untouched. */
+  .form-panel input[type=date]::-webkit-calendar-picker-indicator,
+  .tools-menu input[type=date]::-webkit-calendar-picker-indicator{ display:none; }
+  .date-pop{
+    position:fixed; z-index:300;              /* the popover tier of the Mantine ladder */
+    width:252px; box-sizing:border-box;
+    background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg);
+    box-shadow:var(--mantine-shadow-md);
+    padding:var(--mantine-spacing-md);
+    user-select:none;
+  }
+  .dp-head{ display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:var(--mantine-spacing-sm); }
+  .dp-title{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-gray-9); }
+  .dp-nav{
+    width:26px; height:26px; border:none; background:transparent; cursor:pointer;
+    font-family:inherit; font-size:15px; line-height:1; color:var(--mantine-color-gray-6);
+    border-radius:var(--mantine-radius-default);
+  }
+  .dp-nav:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  .dp-dow{ display:grid; grid-template-columns:repeat(7, 1fr); margin-bottom:2px; }
+  .dp-dow span{
+    text-align:center; font-size:var(--mantine-font-size-xxs); font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em; color:var(--mantine-color-gray-5);
+    padding:2px 0;
+  }
+  .dp-grid{ display:grid; grid-template-columns:repeat(7, 1fr); }
+  .dp-day{
+    position:relative; height:30px; border:none; background:transparent; cursor:pointer;
+    font-family:inherit; font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9);
+    border-radius:var(--mantine-radius-sm); padding:0;
+  }
+  .dp-out{ color:var(--mantine-color-gray-4); }
+  .dp-today{ box-shadow:inset 0 0 0 1px var(--mantine-color-gray-4); }
+  /* The hover WEEK: the affordance that makes Monday-snapping visible before the click. */
+  .dp-hband{ background:var(--mantine-color-gray-1); border-radius:0; }
+  /* The selected week's band, squared so seven cells read as ONE object; the Monday is capped. */
+  .dp-band{ background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color); border-radius:0; }
+  .dp-band:first-child, .dp-hband:first-child{ border-radius:var(--mantine-radius-sm) 0 0 var(--mantine-radius-sm); }
+  .dp-cap{
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    border-radius:var(--mantine-radius-sm) 0 0 var(--mantine-radius-sm); font-weight:600;
+  }
+  .dp-day:hover:not(.dp-cap){ background:var(--mantine-color-gray-2); }
+  .dp-dot{
+    position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
+    width:3px; height:3px; border-radius:50%;
+  }
+  .dp-dot-hol{ background:var(--mantine-color-danger-9); }
+  .dp-dot-hia{ background:var(--mantine-color-warn-9); }
+  .dp-cap .dp-dot, .dp-band .dp-dot{ background:var(--mantine-color-white); }
+  .dp-hint{
+    margin-top:var(--mantine-spacing-sm); padding-top:var(--mantine-spacing-sm);
+    border-top:1px solid var(--mantine-color-gray-2);
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
+    line-height:var(--mantine-line-height-xs);
+  }
+
+  /* ---------- Header brand (the Mantine-UI header lead) ---------- */
+  /* Width-frugal on purpose: header height feeds --header-h (frozen .sheet-scroll reads it), so
+     the brand must never be the thing that makes the toolbar wrap. The name drops below 1240px. */
+  .app-brand{ display:flex; align-items:center; gap:var(--mantine-spacing-md); flex:none; }
+  .app-brand-mark{
+    width:30px; height:30px; border-radius:var(--mantine-radius-default);
+    background:var(--mantine-primary-color-filled); color:var(--mantine-color-white);
+    display:flex; align-items:center; justify-content:center; flex:none;
+  }
+  .app-brand-mark svg{ width:15px; height:15px; }
+  .app-brand-name{
+    font-size:15px; font-weight:650; letter-spacing:-.01em;
+    color:var(--mantine-color-gray-9); white-space:nowrap;
+  }
+  .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
+  /* 1080, not 1240: the export labels shortened, so the name earns more room before wrap risk. */
+  @media (max-width:1080px){ .app-brand-name{ display:none; } }
+  .btn-ic{ width:14px; height:14px; }
+
   /* Retired 29 Aug 2026, with the ported preview toolbar: .tb-btn. PreviewToolbar.jsx landed and
      nothing in the build emits the class any more (verified: zero matches in src/index.html,
      src/chrome/ and src/legacy/app.js; the in-grid buttons the frozen renderers emit carry
      .mv-arrow / is-manual, never .tb-btn). The button rules below still say :not(.tb-btn) on
      purpose -- the selector text keeps its specificity story identical whether or not the class
      exists, and the root index.html (the deployed app) still uses it. */
+
+  /* Breathing room before the status text (owner's point 6). */
+  .save-status{ margin-left:var(--mantine-spacing-md); }
+
+  /* The searchable recents list: Open… and the search box are pinned; only .fm-list scrolls. */
+  .fm-search-row{ padding:2px var(--mantine-spacing-xs) var(--mantine-spacing-xs); }
+  .fm-search{
+    width:100%; box-sizing:border-box;
+    height:28px; padding:0 var(--mantine-spacing-md);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default);
+    background:var(--mantine-color-gray-0); color:var(--mantine-color-black);
+    font-family:inherit; font-size:var(--mantine-font-size-sm);
+  }
+  .fm-search:focus{ outline:none; border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); }
+  .fm-search::placeholder{ color:var(--mantine-color-gray-5); }
+  .fm-list{ max-height:300px; overflow-y:auto; }
+  /* One rhythm for the dropdown: items at the same 12px/comfortable padding as the search box --
+     "Open…" used to sit compressed beside a roomier search field (owner's point 7). */
+  .file-menu .file-menu-item{
+    font-size:var(--mantine-font-size-sm);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
+  }
+  .file-menu .fm-name{ font-size:var(--mantine-font-size-sm); }
 
   /* The active FILE in the dropdown. Mantine's Menu.Item has no "current" state of its own, and
      this is the one thing in the old .file-menu block that carried meaning rather than looks:
@@ -139,28 +248,43 @@
        * interactive text   font-size sm, font-weight 500
        * section rule       padding-bottom + margin-bottom + border-bottom
      ============================================================================================ */
+  /* A white navbar against the grey canvas (the DoubleNavbar's rail was tried and reverted on the
+     owner's verdict, 29 Aug 2026 -- horizontal icon+label tabs won). min-height makes the white
+     panel run to the bottom of the viewport even when its content is short. */
   .form-panel{
-    width:clamp(320px, 24vw, 420px); flex:none;
-    padding:0 var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+    width:clamp(320px, 24vw, 440px); flex:none;
+    padding:0;
+    background:var(--mantine-color-white);
     border-right:1px solid var(--mantine-color-gray-3);
     /* Sits below the sticky header: offset by its height and shrink the scroll area to match. */
     position:sticky; top:var(--header-h); align-self:flex-start;
+    min-height:calc(100vh - var(--header-h));
     max-height:calc(100vh - var(--header-h)); overflow-y:auto;
+  }
+  .side-content{
+    min-width:0;
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  }
+  /* Above the section switchers. display comes from the inline attribute until the engine clears
+     it (style.display = ''), at which point this block owns the layout. */
+  .form-panel > #install-app-btn{
+    display:block;
+    margin:var(--mantine-spacing-lg) var(--mantine-spacing-xl) 0;
+    width:calc(100% - 2 * var(--mantine-spacing-xl));
   }
   /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
      room before it has to collapse to a single column. Declared before the 960px rule so that
      rule's full-width stacking still wins at the smaller size. */
   @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 340px); } }
   @media (max-width:960px){
-    .form-panel{ width:100%; border-right:none; border-bottom:1px solid var(--border);
-      max-height:none; position:static; padding-top:16px; }
+    .form-panel{ width:100%; border-right:none;
+      border-bottom:1px solid var(--border); max-height:none; min-height:0; position:static; }
     /* When the panel goes full width, don't let the form fields stretch across the whole
        window -- cap the content to a comfortable column and centre it so inputs stay a sane
        size instead of ballooning to 900px wide. */
     /* Descendant, not child: the three React cards now sit inside #sidebar-static, so a child
        combinator would silently stop capping them when the panel goes full width. */
-    .form-panel section.card,
-    .form-panel > .side-tabs{ max-width:640px; margin-left:auto; margin-right:auto; }
+    .form-panel section.card{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 
   .preview-panel{flex:1; min-width:0; padding:20px 28px;}
@@ -168,20 +292,24 @@
   /* The Mantine UI "application card": white on the grey ground, a hairline gray-3 border, md
      radius, md padding. Nothing else -- no shadow at rest, which is what keeps a column of them
      calm rather than busy. */
+  /* Sections of the navbar rather than cards on a ground: borderless, divided by a gray-2 rule
+     -- Mantine UI's section break (padding + border-bottom, never a boxed card inside a navbar). */
   section.card{
-    background:var(--mantine-color-white);
-    border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-md);
-    padding:var(--mantine-spacing-md) var(--mantine-spacing-md);
-    margin-bottom:var(--mantine-spacing-md);
+    background:transparent; border:none; border-radius:0;
+    padding:var(--mantine-spacing-lg) 0;
+    margin:0;
+    border-bottom:1px solid var(--mantine-color-gray-2);
   }
-  /* Section header: the small dimmed caps Mantine UI uses above a group of controls. */
+  /* Section header: the small dimmed caps Mantine UI uses above a group of controls, led by a
+     16-viewBox stroke icon (drawn inline -- src/chrome/icons.jsx has the rule and the family). */
   section.card h2{
+    display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xs); font-weight:600;
     text-transform:uppercase; letter-spacing:.05em;
     color:var(--mantine-color-gray-6);
     margin:0 0 var(--mantine-spacing-md);
   }
+  .card-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-6); }
 
   /* ---------- Sidebar tabs ---------- */
   /* Sticky segmented control that groups the settings cards. Bleeds to the panel edges and
@@ -189,24 +317,33 @@
      idiom for visual consistency with the Waterfall/Month switcher. */
   /* Sits flush at the panel top (panel has no top padding) so, once pinned, its own solid
      background fully covers the settings content scrolling underneath -- no gap or peek. */
+  /* Horizontal icon+label section tabs, the active one on primary-light -- Mantine's signature
+     selected state. Sticky at the top of the panel's own scroll so they are always reachable.
+     (The Waterfall/Month toggle keeps the white-pill SegmentedControl look; this is navigation,
+     that is a mode switch, and the two reading differently is the point.) */
   .side-tabs{
-    position:sticky; top:0; z-index:100;   /* re-based onto the Mantine ladder: chrome = 100 */
-    padding:var(--mantine-spacing-md) 0 var(--mantine-spacing-lg);
-    margin-bottom:var(--mantine-spacing-md);
-    background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-3);
+    position:sticky; top:0; z-index:100;
+    background:var(--mantine-color-white);
+    border-bottom:1px solid var(--mantine-color-gray-2);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
   }
   .side-tabs-track{
-    display:flex; gap:var(--mantine-spacing-xxs); padding:var(--mantine-spacing-xxs);
-    background:var(--mantine-color-gray-1); border-radius:var(--mantine-radius-md);
+    display:flex; gap:var(--mantine-spacing-xxs);
   }
   .side-tab-btn{
-    flex:1; font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:.01em;
-    border:none; background:transparent; color:var(--text-muted);
-    padding:7px 6px; border-radius:6px; cursor:pointer;
-    transition:color .12s ease, background .12s ease, box-shadow .12s ease;
+    flex:1; display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
+    font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500; letter-spacing:.01em;
+    border:none; background:transparent; color:var(--mantine-color-gray-6);
+    padding:8px 6px; border-radius:var(--mantine-radius-default); cursor:pointer;
+    transition:color .12s ease, background .12s ease;
   }
-  .side-tab-btn.active{ background:var(--panel); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08); }
-  .side-tab-btn:hover:not(.active){ color:var(--text); }
+  .side-tab-btn .tab-ic{ width:15px; height:15px; flex:none; }
+  .side-tab-btn.active{
+    background:var(--mantine-primary-color-light);
+    color:var(--mantine-primary-color-light-color);
+    font-weight:600;
+  }
+  .side-tab-btn:hover:not(.active){ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
   .side-tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .card.tab-hidden{ display:none !important; }
   @media (max-width:960px){
@@ -222,9 +359,10 @@
     padding:8px 0; border-bottom:1px solid var(--border);
   }
   .phase-row:last-child{border-bottom:none;}
-  .swatch{width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.12);}
+  .swatch{width:16px; height:16px; border-radius:var(--mantine-radius-sm); border:none;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);}
   .swatch.clickable{cursor:pointer;}
-  .swatch.clickable:hover{box-shadow:0 0 0 2px rgba(0,0,0,.18);}
+  .swatch.clickable:hover{box-shadow:inset 0 0 0 1px rgba(0,0,0,.15), 0 0 0 2px var(--mantine-color-gray-3);}
   .phase-name{font-weight:500; font-size:13.5px;}
   /* Floating picker of the standard phase colors, opened by clicking a phase's color square. */
   .phase-color-pop{
@@ -237,7 +375,9 @@
   .phase-color-pop .pc-sw.selected{ outline:2px solid #333; outline-offset:1px; }
   /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
      Holiday hiatus, but scoped to the single phase it sits under. */
-  .phase-hiatus{ grid-column:2; margin-top:7px; }
+  /* The per-phase hiatus reads as its own ruled-off section of the block, not a stray toggle. */
+  .phase-hiatus{ grid-column:1 / -1; margin-top:var(--mantine-spacing-md);
+    padding-top:var(--mantine-spacing-md); border-top:1px solid var(--mantine-color-gray-2); }
   .phase-hiatus-toggle{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9); cursor:pointer; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
@@ -251,7 +391,7 @@
   /* Let the date/number inputs shrink with their column instead of enforcing a ~136px intrinsic
      minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
-  .phase-meta{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--text-faint); margin-top:4px; font-family:var(--mantine-font-family-monospace);}
+  .phase-meta{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); margin-top:6px;}
   .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
   .phase-name-input{font-weight:500; font-size:var(--mantine-font-size-md); font-family:inherit; border:1px solid transparent; border-radius:var(--mantine-radius-sm); padding:3px 5px; flex:1; background:transparent; color:var(--mantine-color-black); min-width:0;}
   .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
@@ -279,11 +419,16 @@
     border:1px solid var(--mantine-color-gray-4);
     border-radius:var(--mantine-radius-default);
     padding:0 var(--mantine-spacing-md);
-    font-family:inherit; font-size:var(--mantine-font-size-md);
+    /* sm, not md: 12px in a 30px box is the "Reset All" ratio the owner pointed at -- text should
+       sit in the control, not fill it. (--mantine-color-black is the warm #1E1D1B via theme.black,
+       never pure black.) */
+    font-family:inherit; font-size:var(--mantine-font-size-sm);
     background:var(--mantine-color-white); color:var(--mantine-color-black);
     width:100%; box-sizing:border-box;
     transition:border-color 100ms ease;
   }
+  /* Mantine's own inputs read their size token; align it with the same ratio. */
+  .form-panel .mantine-Input-input{ font-size:var(--mantine-font-size-sm); }
   textarea{ height:auto; padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); }
   input[type=date]:hover, input[type=number]:hover, select:hover{ border-color:var(--mantine-color-gray-5); }
   input[type=date]:focus, input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus{
@@ -293,10 +438,9 @@
     background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-5); cursor:not-allowed;
   }
   select{cursor:pointer;}
-  /* ⛔ The mono face is NOT decorative here: digits in a monospace face keep week counts and day
-     counts vertically aligned down a column of rows. Kept, but on the system stack -- the app was
-     loading IBM Plex Mono at two weights for eight sites, every one of which renders at 400. */
-  input[type=number]{font-family:var(--mantine-font-family-monospace);}
+  /* Number inputs joined the one family (29 Aug 2026): the mono face kept digits aligned down a
+     column, but the owner flagged the mixed faces inside phase blocks as the thing that read
+     broken, and consistency won. */
   /* Fallback for any checkbox outside the sidebar: at least the right accent. */
   input[type=checkbox]{accent-color:var(--mantine-primary-color-filled); width:16px; height:16px; cursor:pointer;}
   /* Sidebar checkboxes drawn as Mantine's Checkbox: appearance:none turns the native box into a
@@ -373,14 +517,24 @@
 
   /* Each phase reads as its own card inside the Phases card -- the Mantine UI "application card"
      idiom one level down, which is what gives a long column of phases any structure at all. */
-  .phase-row{
-    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-md);
+  /* ONE block recipe for every bounded object in the sidebar -- phase rows, hiatus entries and
+     the React cards' .side-block wrappers all read as the same system (owner's ask, 29 Aug 2026:
+     "Show info and settings should follow and look like phases"). */
+  .phase-row, .side-block{
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
     padding:var(--mantine-spacing-lg); margin-bottom:var(--mantine-spacing-md);
     background:var(--mantine-color-white);
+    transition:border-color 100ms ease, box-shadow 100ms ease;
   }
-  .phase-row:hover{ border-color:var(--mantine-color-gray-4); }
+  .phase-row:hover, .side-block:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-xs); }
 
-  .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
+  .hiatus-entry{display:flex; flex-wrap:wrap; gap:var(--mantine-spacing-md); align-items:flex-end;
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-lg);
+    margin-bottom:var(--mantine-spacing-md);
+    background:var(--mantine-color-white);
+    transition:border-color 100ms ease, box-shadow 100ms ease;}
+  .hiatus-entry:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-xs); }
   .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
   /* Pin toggle: a locked all-phase hiatus keeps its calendar dates when the toolbar shifts the
      calendar (a winter break belongs to Christmas, not to the schedule around it). */
@@ -391,7 +545,7 @@
   .hiatus-lock input{margin:0; cursor:pointer;}
   /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
   /* Matches the phase-meta "Snapped to Mon" note (faint mono) so the two read identically. */
-  .snap-note{ flex-basis:100%; width:100%; font-size:var(--mantine-font-size-xs); color:var(--text-faint); font-family:var(--mantine-font-family-monospace); line-height:var(--mantine-line-height-xs); margin-top:2px; }
+  .snap-note{ flex-basis:100%; width:100%; font-size:var(--mantine-font-size-xs); color:var(--text-faint); line-height:var(--mantine-line-height-xs); margin-top:2px; }
   .snap-note:empty{ display:none; }
   /* Reads as Mantine's ActionIcon variant="default". font-family:inherit is load-bearing, not
      cosmetic: <button> does not inherit the body face, so every × and the undo/redo arrows --
@@ -409,8 +563,26 @@
      9px 14px padding on var(--accent)). Being later in the file at equal specificity, it won
      every property both blocks declared -- so "+ Add phase" never actually matched a Mantine
      Button. Deleted 29 Aug 2026; the Mantine-token block above is now the only one. */
+  /* Press feedback, adapted from the ui.mantine.dev buttons category: a 1px settle on :active.
+     Scoped to chrome containers so nothing can reach the five in-grid buttons the frozen
+     renderers emit (their computed styles are fence-measured). */
+  .form-panel button:active:not(:disabled),
+  .app-toolbar .mantine-Button-root:active:not([data-disabled]),
+  .view-toggle-row button:active:not(:disabled){ transform:translateY(1px); }
+  /* The expand caret turns when its popover is open -- aria-expanded is already engine-managed. */
+  .caret{ display:inline-block; transition:transform 150ms ease; }
+  [aria-expanded="true"] .caret{ transform:rotate(180deg); }
+
   .btn-row{display:flex; gap:8px; margin-top:4px;}
+  /* variant="light": primary-light ground, primary ink -- Mantine UI's standard secondary-add
+     affordance, and a deliberate echo of the active tab so the accent reads as one system. */
   .add-hiatus-btn{width:100%; margin-top:2px;}
+  button.secondary.add-hiatus-btn{
+    background:var(--mantine-primary-color-light);
+    border-color:transparent;
+    color:var(--mantine-primary-color-light-color);
+  }
+  button.secondary.add-hiatus-btn:hover{ background:var(--mantine-primary-color-light-hover); }
 
   /* Roman, not italic: italic used to mean explanatory copy AND errors, so it meant nothing.
      UI-CONVENTIONS §4 retires it from the feedback vocabulary. */
@@ -429,16 +601,22 @@
      each; those are `input[id]` outside any .tools-menu, so collectFieldValues() would sweep them
      into every saved calendar under keys that change each page load. See PreviewToolbar.jsx. */
   .view-toggle{
-    display:inline-flex; gap:var(--mantine-spacing-xxs);
+    /* inline-grid with equal columns: both segments take the wider one's width, so Waterfall and
+       Month are the same size with centred labels (owner's point 4). */
+    display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr;
+    gap:var(--mantine-spacing-xxs);
     background:var(--mantine-color-gray-1);
     border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);
   }
   .view-toggle-btn{
+    display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
     border:none; background:transparent; color:var(--mantine-color-gray-7);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-lg);
     border-radius:var(--mantine-radius-sm); cursor:pointer;
+    transition:color .12s ease, background .12s ease;
   }
+  .vt-ic{ width:14px; height:14px; flex:none; }
   .view-toggle-btn.active{
     background:var(--mantine-color-white); color:var(--mantine-color-black);
     box-shadow:var(--mantine-shadow-xs);
@@ -451,30 +629,36 @@
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
   /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
      moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
-  .shift-group{position:relative; display:inline-flex; align-items:center;
-    gap:var(--mantine-spacing-xxs); background:var(--mantine-color-gray-1);
-    border-radius:var(--mantine-radius-md); padding:var(--mantine-spacing-xxs);}
-  .shift-btn{font-family:inherit; font-size:11px; font-weight:500; color:var(--text-muted);
-    border:none; background:transparent; border-radius:6px; padding:5px 7px; cursor:pointer;
-    white-space:nowrap; line-height:1;}
-  .shift-btn:hover{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
-  /* The split control's second half: a hairline separates it from the arrows so it reads as
-     "options for this control" rather than a third arrow. */
-  .shift-caret{border-left:1px solid var(--border-strong); border-radius:0 6px 6px 0;
-    padding:5px 6px; font-size:9px; color:var(--text-faint);}
-  .shift-caret[aria-expanded="true"]{background:#fff; color:var(--text);}
+  /* A joined three-part control at the toolbar's shared 30px control height -- the Mantine UI
+     split-button idiom. The centre IS the dropdown trigger ("Shift All ▾"); the arrows are the
+     one-click one-week moves. */
+  .shift-group{position:relative; display:inline-flex; align-items:stretch; gap:0;
+    height:var(--input-height-xs, 30px); box-sizing:border-box;
+    background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-default); overflow:visible;}
+  .shift-btn{font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500;
+    color:var(--mantine-color-gray-7);
+    border:none; background:transparent; border-radius:0; padding:0 var(--mantine-spacing-lg);
+    cursor:pointer; white-space:nowrap; line-height:1; display:flex; align-items:center;}
+  .shift-btn + .shift-btn{ border-left:1px solid var(--mantine-color-gray-3); }
+  .shift-btn:first-child{ border-radius:calc(var(--mantine-radius-default) - 1px) 0 0 calc(var(--mantine-radius-default) - 1px); }
+  .shift-btn:nth-child(3){ border-radius:0 calc(var(--mantine-radius-default) - 1px) calc(var(--mantine-radius-default) - 1px) 0; }
+  .shift-btn:hover{background:var(--mantine-color-gray-0); color:var(--mantine-color-black);}
+  .shift-main{ font-weight:600; color:var(--mantine-color-gray-9); gap:var(--mantine-spacing-sm); }
+  .shift-main[aria-expanded="true"]{ background:var(--mantine-color-gray-0); }
   /* Names the operation the two arrows perform. Fixed text -- the result readout gets its own
      floating chip below rather than borrowing this slot, which used to swap in a much longer
      string and shove the tools button and Undo/Redo sideways every time you nudged a week. */
-  .shift-label{font-size:11px; color:var(--text-faint); font-family:var(--mantine-font-family-monospace);
+  .shift-label{font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-6);
     padding:0 4px; user-select:none; white-space:nowrap;}
   /* Transient confirmation of what a shift did. Absolutely positioned so it can be as long as it
      needs (the wrap date matters) without moving anything in the toolbar. */
   .shift-readout{
     display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:50; white-space:nowrap;
     background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:4px 8px;
-    font-size:11px; color:var(--text-muted); font-family:var(--mantine-font-family-monospace);
-    box-shadow:0 2px 8px rgba(0,0,0,.10);
+    font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-7);
+    box-shadow:var(--mantine-shadow-sm);
     /* It floats over the buttons beneath it for a couple of seconds; without this it would
        swallow a click aimed at "Reset Notes & Hiatus" right after a shift. */
     pointer-events:none;
@@ -1184,9 +1368,7 @@
   .hv-oor{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
   .hv-del{ width:18px; height:18px; font-size:13px; line-height:1; padding:0; margin-left:4px; flex:none; }
 
-  /* The custom-holiday block, separated by a rule rather than a dashed border -- Mantine UI uses
-     padding-top + border-top for a section break, and never a dashed one. */
-  .hv-custom{ border-top:1px solid var(--mantine-color-gray-3); }
+  /* .hv-custom is its own .side-block now; the old border-top section break retired with it. */
 
   /* The region lock hint. Roman, amber, and it names the three controls it applies to. */
   .lock-hint{

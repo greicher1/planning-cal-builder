@@ -29,6 +29,52 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the visual redesign rounds: header, navbar, blocks, split control, date pickers
+
+⚠️ **Not deployed and not cut as a version** — same standing as the entries below. Everything here
+was driven live by the owner across three review rounds on 29 Aug 2026, each verified against the
+full gate before the next round started (waterfall PDF byte-identical, Excel parts identical, the
+v1.0.0 fixture restoring to 52 rows / 154 cells, `fields.byId` at 56 ids, 0 clipped cells).
+
+**The design direction, settled by iteration.** A DoubleNavbar icon rail was built to the
+ui.mantine.dev reference, reviewed, and **reverted** on the owner's verdict — the horizontal
+icon+label tabs won, on a white sidebar panel that now fills to the bottom of the viewport. What
+stayed from that round: the thicker header (51→63px — safe because `--header-h` is measured, not
+assumed) led by an **"SPT Planning Calendar"** brand mark, iconed buttons throughout (hand-drawn
+inline geometry, no icon package), the right-aligned export pair with the filled **Export PDF** at
+the row's end, a red-text Reset All isolated past a divider, and press/caret micro-animations
+adapted from the ui.mantine.dev buttons category.
+
+**The owner's seven-point adjustment round, all landed:** Install-as-app above the switchers; Show
+info / Region / Holidays content in the **same bounded white blocks as the phase rows** (one shared
+`.side-block` recipe); no more pure black — `theme.black` is the warm `#1E1D1B` the app's own scale
+tops out at, and input text dropped to 12px in the 30px box (the "Reset All ratio"); Waterfall and
+Month segments equal width and centred; **Shift All rebuilt as a joined split control** at the
+toolbar's shared height whose centre *is* the dropdown trigger; breathing room before the save
+status; one rhythm for the file menu.
+
+**The pop-out date pickers** (owner-selected feature): every sidebar and tool-popover date field
+opens a Mantine-styled calendar — the **Monday-snap week band** made visible before the click
+(hover previews the week, the Monday is capped), enabled union holidays dotted red and all-phase
+hiatus weeks dotted amber ("mark, never exclude"), single-day mode for the custom-holiday field.
+Hand-rolled deliberately: Mantine's DateInput is controlled and would silently break restore
+(UI-CONVENTIONS §2c); this popover instead writes through the native setter exactly like a
+keystroke, carries no ids anywhere, gets its marker data pushed through the bridge
+(`chrome.dateContext`), and is stripped from shareable copies by class.
+
+**File menu restructured:** Open… pinned to the top, an id-less search box under it (deliberately
+NOT a Mantine input — those mint random ids that would leak into every saved file), only the
+recents list scrolls, and **"Export shareable copy" split out of the menu** to its own
+document-delegated button.
+
+**Two fixes along the way:** the two dead-listener conditional-render bugs (Save As…, Export
+Waterfall to PDF) documented in the entry below were fixed at the start of this arc, and the
+engine's export-button labels were shortened at their push site with the icon following the
+engine's `primary` flag so the Month-view button truthfully shows a download glyph.
+
+**Verified but worth restating:** the export filename convention is untouched — the workbook still
+saves as `<Show Title> Planning Calendar.xlsx`; only button labels changed.
+
 ### Unreleased — the engine-generated sidebar rows: restyled to spec, deliberately not rebuilt
 
 ⚠️ **Not deployed and not cut as a version** — same standing as the entry below; the root

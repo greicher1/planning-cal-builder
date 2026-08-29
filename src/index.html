@@ -56,15 +56,38 @@
 <div class="layout">
   <aside class="form-panel">
 
-    <button class="primary" id="install-app-btn" style="display:none; width:100%; margin-bottom:12px;">Install as app</button>
+    <!-- Above the section switchers (owner's ask, 29 Aug 2026). display:none is the resting
+         state; the engine reveals it by CLEARING the inline value (style.display = ''), so the
+         CSS below owns its layout once shown. -->
+    <button class="primary" id="install-app-btn" style="display:none;">Install as app</button>
 
     <div class="side-tabs">
+      <!-- The ui.mantine.dev DoubleNavbar rail: icon-only section buttons, active on
+           primary-light. Icons are inline geometry (16 viewBox, stroke 1.6) rather than an icon
+           package -- see src/chrome/icons.jsx for the rule. Clicks resolve through
+           .closest('.side-tab-btn') in the engine, so a hit on the svg lands on the button; the
+           .tab-lb spans are visually hidden but stay the accessible name, and title= carries the
+           hover tooltip. -->
       <div class="side-tabs-track" role="tablist" aria-label="Settings sections">
-        <button type="button" class="side-tab-btn active" data-tab="show" role="tab">Show</button>
-        <button type="button" class="side-tab-btn" data-tab="phases" role="tab">Phases</button>
-        <button type="button" class="side-tab-btn" data-tab="settings" role="tab">Settings</button>
+        <button type="button" class="side-tab-btn active" data-tab="show" role="tab" title="Show">
+          <svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.1" r=".4" fill="currentColor" stroke="none"/></svg>
+          <span class="tab-lb">Show</span>
+        </button>
+        <button type="button" class="side-tab-btn" data-tab="phases" role="tab" title="Phases">
+          <svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 4.2h7M5 8h9M3.5 11.8h5.5"/></svg>
+          <span class="tab-lb">Phases</span>
+        </button>
+        <button type="button" class="side-tab-btn" data-tab="settings" role="tab" title="Settings">
+          <svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 4.4h12M2 8h12M2 11.6h12"/><circle cx="10.6" cy="4.4" r="1.7" fill="var(--mantine-color-white)"/><circle cx="5.2" cy="8" r="1.7" fill="var(--mantine-color-white)"/><circle cx="8.6" cy="11.6" r="1.7" fill="var(--mantine-color-white)"/></svg>
+          <span class="tab-lb">Settings</span>
+        </button>
       </div>
     </div>
+
+    <!-- Everything except the rail lives in .side-content: the DoubleNavbar's second column.
+         The wrapper is presentation only -- every engine selector into the sidebar is descendant-
+         or closest-based, so nothing resolves through a direct-child path that this would break. -->
+    <div class="side-content">
 
     <!-- Show info, Production Region and Holidays are React (src/chrome/Sidebar.jsx). They
          moved out of this file because their 38 inline style= attributes -- 166 declarations
@@ -74,18 +97,20 @@
     <div id="sidebar-static"></div>
 
     <section class="card" data-tab="phases">
-      <h2>Phases</h2>
+      <h2><svg class="card-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 4.2h7M5 8h9M3.5 11.8h5.5"/></svg><span>Phases</span></h2>
       <div id="phase-rows"></div>
       <div id="custom-phase-rows"></div>
       <button class="secondary add-hiatus-btn" id="add-phase-btn">+ Add phase</button>
     </section>
 
     <section class="card" data-tab="phases">
-      <h2>All-phase hiatus</h2>
+      <h2><svg class="card-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4v8M10 4v8"/></svg><span>All-phase hiatus</span></h2>
       <p class="placeholder-note" style="margin-bottom:8px;">A production-wide pause (e.g. a winter break) that stops every phase at once and pushes the whole schedule out. For pausing a single phase, use its own hiatus toggle above.</p>
       <div id="hiatus-list"></div>
       <button class="secondary add-hiatus-btn" id="add-hiatus">+ Add hiatus period</button>
     </section>
+
+    </div><!-- /.side-content -->
 
   </aside>
 

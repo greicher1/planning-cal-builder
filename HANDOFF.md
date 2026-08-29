@@ -488,6 +488,67 @@ Waterfall and Month; `reflectRegionUI` still shows the US Area row through the R
 markup. The built file also runs from `file://` — checked with headless Chrome straight off the
 filesystem, which is the emailing-it-around property surviving the build step.
 
+#### 🎨 The visual-redesign rounds (29 Aug 2026, same session as the restyle ruling)
+
+Three owner-review rounds, each gated before the next. The full inventory is the README changelog
+entry ("the visual redesign rounds"); what a next session must know:
+
+- **The DoubleNavbar icon rail was built and REVERTED on the owner's verdict** — horizontal
+  icon+label tabs won. Do not rebuild the rail. The white full-height sidebar, thicker header
+  (51→63px, safe because `--header-h` is MEASURED), brand block, iconed buttons, red Reset,
+  equal view segments, the joined Shift All split control, the searchable file menu (Open…
+  pinned) and the `.side-block` = `.phase-row` shared recipe all survived review.
+- **The pop-out date pickers are live** (`src/chrome/DatePop.jsx`): hand-rolled popover calendars
+  over the untouched native date inputs — Mantine's DateInput stays banned (§2c). Id-less by
+  construction, marker data via `chrome.dateContext` (pushed from `update()`), `.date-pop` added
+  to `buildSavedHtml`'s strip list. Write-back is the native setter + dispatched events, so the
+  engine sees a keystroke.
+- **Icons are hand-drawn inline geometry** (`src/chrome/icons.jsx` + raw SVG in the skeleton
+  tab strip) — no icon package, deliberately.
+- **`theme.black = '#1E1D1B'`** — nothing in the chrome is pure black any more.
+- ⚠️ **The gate's restore leg can stall repeatedly under load** — four consecutive IndexedDB
+  stalls were observed while several Chrome instances ran; a standalone `./run.sh restore 60`
+  and a quiet re-run both passed clean. Diagnose with a standalone run before blaming a change.
+
+#### 📖 Terminology rule (owner, 29 Aug 2026)
+
+> **Saving** means writing a `.sptcal` locally. **Loading** means opening a `.sptcal` or `.html`
+> into the PWA.
+
+UI copy follows this vocabulary (the file-menu search says "Search loaded files"). Use it in all
+new user-facing text.
+
+#### ⏳ REQUESTED BY THE OWNER, NOT YET BUILT (29 Aug 2026 review round 3)
+
+Logged before building, at the owner's instruction. In rough dependency order:
+
+1. **Unify remaining font-size drift between Show / Settings / Phases contents.**
+2. **Phase chips:** the color changer becomes a full-width bar at the TOP of each chip (conforming
+   to the top corner radius; still the engine's `swatch-<key>` anchor); **visual-only grab
+   handles** for future rearranging (⛔ no reorder code yet — reordering touches `customPhaseDefs`
+   order, which is save-format, and `PHASE_CHAIN`; needs its own design).
+3. **Diegetic warnings in phase chips** — e.g. a red highlight ring on a bad start date; restyle
+   the production episode warning chip onto the warn tuple.
+4. **Red hover on the phase-chip ×**, and center the glyph properly.
+5. **Custom modal warnings/confirms replacing every native `alert()`/`confirm()`** — the
+   UI-CONVENTIONS §4 feedback system (~30 call sites). Substantial; belongs with the
+   popover/help-modal stage (item 2 below).
+6. **Undo/redo glyphs redrawn** to fit the Mantine icon family.
+7. **Accidental-retrigger guard** (cooldown) on New / Save / Save As / Share / Export buttons.
+8. **The tool popovers' phase `<select>`s styled to Mantine** (they stay real selects —
+   `fillPhaseSelect` owns their innerHTML).
+9. **"Search loaded files"** label per the terminology rule.
+10. **Share copy leaves the header**: keep the code path, disable/hide the header button, and add
+    an **"Export App With Data"** action in the Settings tab that triggers the same flow.
+11. **"Autosave needs a file" status shows red.**
+12. **`.phase-meta` becomes two rows** (dates → line 1, "Snapped to Mon …" → line 2). ⚠️ The
+    string is composed inside FROZEN `render()` — the change is one separator (` · ` → `\n`) plus
+    `white-space:pre-line`; `meta-<key>` is a write-only sidebar div no export reads. Owner-
+    directed; log it as the first deliberate frozen-function edit when it lands.
+13. **All-phase hiatus naming:** ANSWERED — it never existed in the sidebar. Band labels are
+    edited by clicking the band in the grid (`hiatusTexts`). A sidebar name field means a new key
+    in the `fields.hiatuses` entry shape (save format, append-only) — needs a design decision.
+
 #### ⏭ What is next, in order
 
 1. ✅ **DONE — the engine-generated sidebar rows, resolved as RESTYLE TO SPEC** (owner ruling,

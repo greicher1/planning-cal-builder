@@ -57,6 +57,11 @@ export function variantColorResolver(input) {
 }
 
 export const theme = {
+  // Not pure black (owner's ask, 29 Aug 2026): every "black" in the chrome is the warm near-black
+  // the app's own scale already tops out at -- gray[9] = --text = #1E1D1B. Mantine derives its
+  // default text ink and --mantine-color-black from this, so one line moves the whole chrome.
+  black: '#1E1D1B',
+
   // ---- Type ---------------------------------------------------------------------------------
   // Sixteen distinct font-sizes and 34 half-pixel declarations collapse to six integer tokens. The
   // half-pixels were not doing perceptual work: .tb-btn 12 vs .side-tab-btn 12.5, input 13 vs

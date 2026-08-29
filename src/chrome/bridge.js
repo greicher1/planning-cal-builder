@@ -57,6 +57,10 @@ export const chrome = {
   // setting the native .disabled property would disable the buttons functionally while leaving
   // them looking enabled.
   undoRedo: noop,
+  // { holidays: [{iso, name}], hiatuses: [{start, weeks}] } — the date-picker popovers' markers
+  // (src/chrome/DatePop.jsx). Pushed by update() so the little calendars mark holidays and
+  // all-phase hiatus weeks without the popover ever reaching into the engine.
+  dateContext: noop,
 }
 
 export function installChrome(impl) {

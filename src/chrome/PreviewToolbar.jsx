@@ -44,6 +44,7 @@
 import { useState, useLayoutEffect } from 'react'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
+import { IconRows, IconCalendarPlain } from './icons.jsx'
 
 export function PreviewToolbar() {
   // The ONLY React-owned state in this component. It exists because Mantine styles disabled state
@@ -64,8 +65,14 @@ export function PreviewToolbar() {
   return (
     <>
       <div className="view-toggle" id="view-toggle">
-        <button className="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn" type="button">Waterfall view</button>
-        <button className="view-toggle-btn" data-mode="month" id="view-month-btn" type="button">Month view</button>
+        {/* Icons are safe here: the engine only ever toggles .active on these buttons by id --
+            it never writes their textContent -- and clicks resolve on the button itself. */}
+        <button className="view-toggle-btn active" data-mode="sheet" id="view-sheet-btn" type="button">
+          <IconRows className="vt-ic" /><span>Waterfall</span>
+        </button>
+        <button className="view-toggle-btn" data-mode="month" id="view-month-btn" type="button">
+          <IconCalendarPlain className="vt-ic" /><span>Month</span>
+        </button>
       </div>
 
       <div className="preview-tools">
@@ -73,11 +80,17 @@ export function PreviewToolbar() {
             here, so it must not move behind a popover) and the caret beside them opens the
             multi-week form. Each of the other tools gets its own button and its own small
             popover, so the row names every capability without anything having to be opened. */}
+        {/* Redesigned 29 Aug 2026 (owner): a joined three-part control at the toolbar's shared
+            30px height. The CENTER is now the dropdown trigger -- "Shift All ▾" opens the
+            multi-week form -- so the label stopped being dead text sitting between two arrows and
+            the dropdown stopped being an unreadable sliver. Same three engine ids, same handlers:
+            the engine binds shift-back/fwd by id and pop-shift-btn as the popover trigger, and
+            .shift-label had zero engine references (verified), so folding it into the trigger is
+            markup-only. */}
         <div className="shift-group" id="shift-group">
           <button className="shift-btn" id="shift-back-btn" type="button" title="Shift the whole calendar one week earlier">← 1 wk</button>
-          <span className="shift-label">Shift All</span>
+          <button className="shift-btn shift-main" id="pop-shift-btn" type="button" title="Shift the whole calendar by any number of weeks" aria-haspopup="true" aria-expanded="false">Shift All <span className="caret" aria-hidden="true">▾</span></button>
           <button className="shift-btn" id="shift-fwd-btn" type="button" title="Shift the whole calendar one week later">1 wk →</button>
-          <button className="shift-btn shift-caret" id="pop-shift-btn" type="button" title="Shift by more than a week" aria-haspopup="true" aria-expanded="false">▾</button>
           {/* The readout is only ever made visible by `.shift-group.flash .shift-readout`, and its
               pointer-events:none is load-bearing: without it the readout swallowed a click aimed at
               Reset Notes & Hiatus. */}
