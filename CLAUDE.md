@@ -1,5 +1,20 @@
 # CLAUDE.md
 
+## ⛔ READ [`HANDOFF.md`](HANDOFF.md) FIRST — before this file, before anything else
+
+`HANDOFF.md` is the live state of the project: what was just built, what the owner has asked for
+and not yet received, what was learned the hard way, and the working conventions in force. It is
+the only document that reflects *right now*. Read it before you read another line of this file,
+and before you touch `index.html`.
+
+**Keeping it current is a first-class part of the job, not bookkeeping.** After any substantial
+change — a feature, a fix that taught you something, a decision about how something should work,
+anything an owner request touched — update `HANDOFF.md` in the same breath as the code. A stale
+handoff is worse than none: the next session will act on it and be confidently wrong. If you find
+it out of date, say so and fix it before continuing.
+
+---
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **Full project context lives in [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md)** — the union-holiday
@@ -7,11 +22,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > harness, bug history, and pending work. Read it when picking this project up fresh, or when
 > handing it to a session with no history.
 
+**Reading order:** [`HANDOFF.md`](HANDOFF.md) → this file → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+
+## ⛔ Never commit, push or deploy on your own initiative
+
+`main` **auto-deploys to a live public site that other people are using**. A push is a production
+release, not a save.
+
+- Commit locally while you work — that is fine and expected.
+- **Never** run `git push` without being asked for that specific push. Approval is per-action and
+  per-change: "commit and push" earlier in the session does **not** authorise the next one, and
+  "that looks good" is not authorisation at all.
+- When work is ready, **ask with an interactive checkbox picker** (`AskUserQuestion`) whether to
+  commit, and separately whether to push/deploy. Present it as a choice, not a formality.
+- After an approved push, verify the live URL actually serves the change (~40–60 s) before
+  reporting it as shipped.
+
+This rule has been broken before. In one session a single "push and commit" was treated as standing
+permission and six further pushes went out unasked. Do not repeat that.
+
+## ⏳ Watch the context window — hand off before quality drops
+
+Long sessions degrade: context gets summarised, details are lost, and work starts getting
+re-derived or quietly repeated. **Proactively** — without being prompted — tell the owner when the
+session is getting long, and recommend migrating:
+
+1. Save all work (commit locally at minimum; ask before pushing).
+2. **Update `HANDOFF.md`** with everything learned since it was last written.
+3. Start a fresh session, pointing it at `HANDOFF.md` first.
+
+Raise this *before* the session is struggling, not after. Re-read this section periodically during
+long sessions — it is easy to forget precisely when it matters most.
+
 ## Project
 
-`index.html` — a **single self-contained HTML file** (~6,100 lines) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
+`index.html` — a **single self-contained HTML file** (~10,000 lines / 662 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
 
-There is no build system, no package manager, no tests, no server. The whole app is one `<style>` block (lines ~21–746), static markup, and one `<script>` block (lines ~1004–6130). ExcelJS is the only dependency, loaded from a CDN `<script>` tag; Google Fonts are linked. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
+There is no build system, no package manager, no tests, no server. The whole app is one `<style>` block, static markup, and one `<script>` block. ExcelJS is the only dependency, loaded from a CDN `<script>` tag. The Carlito font is **embedded** in the file (base64 of a zlib'd TrueType subset, ~91 KB) rather than fetched, so text measurement cannot drift; `tools/subset-font.py` regenerates it. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
+
+⚠️ Line numbers quoted anywhere in this file are approximate and go stale fast — the script has roughly doubled since they were written. Search for the symbol, don't jump to the line.
 
 **Run it:** `open index.html` (macOS). Reload the browser to test changes. Chrome/Edge are the target browsers — the File System Access API (`showSaveFilePicker`) and IndexedDB handle persistence degrade to a plain download elsewhere.
 
