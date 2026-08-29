@@ -4191,7 +4191,87 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     }).join('');
   }
 
+  // Rebuilding markup with innerHTML replaces the scroll containers themselves, which puts them
+  // back at the top -- and rebuilding the sidebar can change the page height, taking the window's
+  // own scroll with it. Every edit re-renders (a drag, a cell span, a note, a phase colour, or
+  // just a new week count), so without this the preview snapped back to January on all of them
+  // and nothing below the fold could be worked on.
+  //
+  // Positions are remembered by element id and put back on the rebuilt nodes. Only containers
+  // that are actually scrolled are recorded, and a position is only written back when it has
+  // really changed, so nesting these (update() around render()) costs nothing and cannot fight
+  // itself.
+  function captureScroll(){
+    const memo = [];
+    document.querySelectorAll('[id]').forEach(el=>{
+      if(el.scrollTop || el.scrollLeft) memo.push([el.id, el.scrollLeft, el.scrollTop]);
+    });
+    // The WINDOW is anchored to where the preview sits on screen, not to a scroll number.
+    // Sidebar rows come and go above the grid -- an added hiatus row, the province selector that
+    // appears when the region becomes Canada -- which moves the grid down the document. Putting
+    // the old scrollY back faithfully would then slide the grid down the SCREEN by exactly that
+    // much, which is the jump, not the cure. What the user is watching is the grid, so the grid
+    // is what gets held still.
+    const anchor = document.getElementById('sheet-scroll-container') || document.getElementById('table-wrap');
+    return { memo, x: window.scrollX, y: window.scrollY,
+             anchorId: anchor ? anchor.id : null,
+             anchorTop: anchor ? anchor.getBoundingClientRect().top : 0 };
+  }
+  function restoreScroll(snap){
+    if(!snap) return;
+    snap.memo.forEach(entry=>{
+      const el = document.getElementById(entry[0]);
+      if(!el) return;
+      if(el.scrollLeft !== entry[1]) el.scrollLeft = entry[1];
+      if(el.scrollTop  !== entry[2]) el.scrollTop  = entry[2];
+    });
+    const anchor = snap.anchorId ? document.getElementById(snap.anchorId) : null;
+    if(anchor){
+      // A delta, so this agrees with the browser's own scroll anchoring instead of fighting it:
+      // where anchoring already held the grid still, dy is 0 and nothing happens.
+      const dy = anchor.getBoundingClientRect().top - snap.anchorTop;
+      if(Math.abs(dy) >= 1) window.scrollBy(0, dy);
+      if(window.scrollX !== snap.x) window.scrollTo(snap.x, window.scrollY);
+    } else if(window.scrollX !== snap.x || window.scrollY !== snap.y){
+      window.scrollTo(snap.x, snap.y);
+    }
+  }
+
+  // A sidebar control can change the SIDEBAR'S OWN height -- adding a hiatus row, ticking a
+  // per-phase hiatus, picking a country that reveals a province selector. On a narrow window the
+  // layout stacks, so the panel sits above the preview and every one of those pushes the grid
+  // down the page while the user is looking at it.
+  //
+  // The snapshot inside update() cannot catch these: the handlers rebuild their rows FIRST and
+  // call update() afterwards, by which point the grid has already moved and the new position
+  // looks like the correct one. So take it on the event itself, in the capture phase before any
+  // handler has run, and put the grid back once the DOM has settled. Scoped to .form-panel --
+  // events in the grid must not be second-guessed, since scrolling a clicked cell into view is
+  // exactly what should happen there.
+  (function(){
+    let armed = null;
+    const arm = e=>{
+      if(!e.target || !e.target.closest || !e.target.closest('.form-panel')) return;
+      const a = document.getElementById('sheet-scroll-container') || document.getElementById('table-wrap');
+      if(!a) return;
+      armed = { id: a.id, top: a.getBoundingClientRect().top };
+      requestAnimationFrame(()=>{
+        const p = armed; armed = null;
+        if(!p) return;
+        const el = document.getElementById(p.id);
+        if(!el) return;
+        // A delta, so it agrees with the browser's own scroll anchoring rather than fighting it.
+        const dy = el.getBoundingClientRect().top - p.top;
+        if(Math.abs(dy) >= 1) window.scrollBy(0, dy);
+      });
+    };
+    ['pointerdown','change','input'].forEach(t=> document.addEventListener(t, arm, true));
+  })();
+
   function render(schedule){
+    // Taken before ANY rebuilding -- renderHolidayVisList below rewrites a sidebar list, and a
+    // sidebar that changes height moves the window scroll before the grid is even touched.
+    const scrollSnap = captureScroll();
     refreshSnapNotes();
     renderHolidayVisList(schedule);
     const tableEl = document.getElementById('table-wrap');
@@ -4303,30 +4383,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       gapWarningEl.innerHTML = '';
     }
 
-    // Rebuilding the markup replaces the scroll container itself, which puts it back at the top.
-    // Every edit re-renders -- a column or row drag, a cell span, a note, a hiatus label -- so
-    // without this the view jumped back to January on each one, which made dragging anything
-    // below the fold unusable. Remembered per element id and restored onto the rebuilt nodes;
-    // the window's own scroll goes too, since a render can briefly change the page height.
-    const scrollMemo = [];
-    tableEl.querySelectorAll('[id]').forEach(el=>{
-      if(el.scrollTop || el.scrollLeft) scrollMemo.push([el.id, el.scrollLeft, el.scrollTop]);
-    });
-    const winX = window.scrollX, winY = window.scrollY;
-
     // (installGridResizers runs just below, once the new markup is in the DOM.)
     tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
                                              : renderSpreadsheetView(schedule);
-    scrollMemo.forEach(entry=>{
-      const el = document.getElementById(entry[0]);
-      if(el){ el.scrollLeft = entry[1]; el.scrollTop = entry[2]; }
-    });
-    if(window.scrollX !== winX || window.scrollY !== winY) window.scrollTo(winX, winY);
-
     // Handles are positioned from laid-out geometry, so they can only be built once the new
-    // markup is in the document -- and after the scroll is back, so nothing is measured against
-    // a position the grid is about to leave.
+    // markup is in the document. Their coordinates are all differences measured against the grid
+    // wrapper, so where the container happens to be scrolled makes no difference to them.
     if(viewMode !== 'month') installGridResizers();
+    restoreScroll(scrollSnap);
   }
 
   // ---------- Month view ----------
@@ -6552,11 +6616,16 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     return defaults[id] || '';
   }
   function update(){
+    // Belt and braces around render()'s own snapshot: reflectCountryLock() and markDirty() below
+    // both touch the DOM after the grid is rebuilt, and update() is what the handlers that add or
+    // remove sidebar rows call once they have already changed the page height.
+    const scrollSnap = captureScroll();
     const state = readState();
     currentSchedule = computeSchedule(state);
     render(currentSchedule);
     reflectCountryLock();
     markDirty();
+    restoreScroll(scrollSnap);
   }
 
   // ---- Production Region (country + optional province) -------------------------------------
