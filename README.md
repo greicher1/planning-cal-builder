@@ -24,6 +24,55 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### v1.1.0 — 28 Aug 2026 — Save writes data, not a copy of the app
+
+**Save and Open used to be the same file.** Save wrote `document.documentElement.outerHTML` — a
+complete runnable copy of the app — with the state embedded in `<script id="saved-state">`. But
+Open never read the app: it lifts that JSON out and replays it into the **running** app, so the
+old file's HTML, CSS and JS is never parsed and never executed. Measured on a 10-episode calendar,
+that file was **729,172 bytes of which 3,238 (0.44%) was the data**, and 44.5 KB of the rest was
+the rendered grid — serialized out of the live DOM, then regenerated from state on load and thrown
+away.
+
+There are now **two formats with two different jobs**:
+
+| | **`.sptcal`** — the calendar | **`.html`** — a shareable copy |
+|---|---|---|
+| Contents | the state, as JSON | the whole app, with the state in it |
+| Size | **~4.5 KB** | ~695 KB |
+| Written by | **Save, Save As, autosave** | File ▸ **Export shareable copy…** |
+| For | working — opening, editing, saving | sending to someone who doesn't have the tool |
+
+**Measured: a save is now 155× smaller** (4,488 vs 695,556 bytes on the same calendar).
+
+- **Every calendar saved before this version still opens, and always will.** `parseCalendarText()`
+  is the one place that reads a file: text starting with `{` is a snapshot, anything else gets the
+  original `saved-state` regex. Both paths converge on the same `applyStateSnapshot()`, so there
+  is no migration to get wrong. Verified: an `.html` saved by the old code and a `.sptcal` saved by
+  the new code restore the **byte-identical rendered grid**, and a snapshot with no `version` key
+  opens correctly.
+- **Save writes back in whatever format the file already is.** Open a legacy `.html` and Save keeps
+  it an `.html` — no file is silently converted.
+- **The first save still always opens the save dialog**, manual or otherwise. Autosave can never
+  reach that path: `showSaveFilePicker()` requires a user gesture, and writing a calendar somewhere
+  the user never chose is exactly what the dialog exists to prevent. When autosave finds unsaved
+  work with no file linked it now says so — *"Autosave needs a file — click Save"* — instead of
+  failing silently. Work is not at risk meanwhile; the rolling IndexedDB backup has been running
+  since three seconds after the first edit.
+- **The shareable copy got smaller too.** It is built from a **clone** of the document, so the live
+  page is never mutated, and the clone drops `#table-wrap`, `#print-root` and any open popover
+  before serializing — all regenerated on load. Verified 0 bytes for each in the export.
+- **Snapshots now carry a `version` field** (`SNAPSHOT_VERSION = 1`). Nothing branches on it yet;
+  it exists so a future migration can ask which app wrote a file instead of sniffing for individual
+  keys, which is what `migrateHolidayViewKeys()` and `normalizeRegionSelection()` have had to do.
+- **Fixed along the way:** the save status waited on IndexedDB recents bookkeeping before reporting
+  a write that had already succeeded — measured at ~1.2 s in a test run, long enough for an
+  autosave tick to fire a second redundant write of the same bytes. `markClean()` now runs as soon
+  as the bytes are on disk. Verified: status settles within 400 ms and the duplicate write is gone.
+
+The grid and the exports were not touched. See [`HANDOFF.md`](HANDOFF.md) §7 for the full analysis
+and [`CLAUDE.md`](CLAUDE.md) for the standing rule that saved calendars must keep opening forever.
+
 ### v1.0.0 — 28 Aug 2026 · `305c343` · tag `v1.0.0`
 
 > The tag points at **`305c343`** — the commit where `index.html` was last the shipped app.

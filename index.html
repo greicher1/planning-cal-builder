@@ -7221,7 +7221,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     document.querySelectorAll('textarea').forEach(t=>{ t.textContent = t.value; });
   }
 
-  function buildSavedFileName(){
+  function buildSavedFileName(ext){
     const raw = (document.getElementById('show-title').value || '').trim() || 'Show Name';
     const d = new Date();
     const stamp = d.getFullYear() + '-' +
@@ -7229,7 +7229,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       String(d.getDate()).padStart(2,'0');
     // strip characters that are illegal in filenames
     const safe = raw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
-    return `${safe} ${stamp}.html`;
+    return `${safe} ${stamp}${ext || SAVE_EXT}`;
   }
 
   function collectFieldValues(){
@@ -7262,31 +7262,69 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     return {byId, hiatuses};
   }
 
-  // Serialize the whole document (with current state embedded) into a self-contained HTML
-  // string. Used by both the direct-write ("Save") and download ("Save As" fallback) paths.
+  // The DATA format: the state snapshot as JSON and nothing else. This is what Save writes.
+  // Same object the crash backup and the undo stack use, so all three can never disagree about
+  // what counts as state.
+  function buildSavedData(){
+    // Commit any open note editor first, or its in-progress text is lost.
+    if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
+      commitActiveNoteEditor();
+    }
+    return JSON.stringify(captureSnapshot(), null, 1);
+  }
+
+  // The SHARE format: the whole document, with current state embedded, as a self-contained and
+  // double-clickable copy of the app. No longer what Save writes -- it is "Export shareable
+  // copy", and the download fallback on browsers with no File System Access.
   function buildSavedHtml(){
     // 1. Commit any open note editor so its text isn't lost
     if(typeof activeNoteEditor !== 'undefined' && activeNoteEditor){
       commitActiveNoteEditor();
     }
-    // 2. Reflect current field values into attributes (covers the static markup)
+    // 2. Reflect current field values into attributes. outerHTML serializes ATTRIBUTES, not live
+    //    DOM property values, so without this every form field exports blank.
     reflectFieldsToAttributes();
-    // 3. Capture in-memory JS state + a full field map into the saved-state block
-    const stateSnapshot = captureSnapshot();
-    const stateEl = document.getElementById('saved-state');
-    const prevStateText = stateEl.textContent;
-    // Escape '<' as \u003c inside the JSON: a literal script-closing tag in any user text
-    // would otherwise terminate the state script element early and corrupt the whole saved
-    // file. JSON.parse treats \u003c identically to '<', so restore is unaffected.
-    stateEl.textContent = JSON.stringify(stateSnapshot).replace(/</g, '\\u003c');
-    let html;
-    try {
-      html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-    } finally {
-      // restore the live block so the current page keeps working normally
-      stateEl.textContent = prevStateText;
+    // 3. Serialize a CLONE, not the live document. The old version mutated the live #saved-state
+    //    element and restored it in a finally block; cloning means the running page is never
+    //    touched at all, and it gives us somewhere safe to strip things from.
+    const clone = document.documentElement.cloneNode(true);
+    // 4. Drop what the file doesn't need. The grid and #print-root are REGENERATED from state by
+    //    refreshAfterRestore() the moment the file opens, so serializing them writes 44.5 KB
+    //    (measured, 10-episode calendar) that is read by nothing and grows with the calendar.
+    //    Note this empties the clone -- the live grid is never touched, which the "never touch
+    //    the grid" rule in CLAUDE.md requires.
+    const tw = clone.querySelector('#table-wrap'); if(tw) tw.innerHTML = '';
+    const pr = clone.querySelector('#print-root'); if(pr) pr.innerHTML = '';
+    //    Body-level popovers are transient UI that happens to live in <body>; a stray one would
+    //    export as a panel hanging over the calendar pointing at nothing.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop').forEach(el=>el.remove());
+    // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
+    //    would otherwise terminate the state script element early and corrupt the whole file.
+    //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
+    const stateEl = clone.querySelector('#saved-state');
+    if(stateEl) stateEl.textContent = JSON.stringify(captureSnapshot()).replace(/</g, '\\u003c');
+    return '<!DOCTYPE html>\n' + clone.outerHTML;
+  }
+
+  // Read a calendar out of a file's text, in either format. THE one place that knows how to do
+  // this, so the recents list, the Open picker and any future path can never diverge on it.
+  // Returns a snapshot object, or null if the text is neither format.
+  //
+  // The .html branch must keep working forever (CLAUDE.md): every calendar saved before v1.1.0 is
+  // an .html, they are sitting on people's machines, and a file that stops opening is a
+  // production plan destroyed with no other copy.
+  function parseCalendarText(text){
+    const trimmed = String(text || '').replace(/^\uFEFF/, '').trimStart();
+    // Data format: the file IS the snapshot.
+    if(trimmed.startsWith('{')){
+      try { const o = JSON.parse(trimmed); return (o && typeof o === 'object') ? o : null; }
+      catch(e){ return null; }
     }
-    return html;
+    // Legacy HTML format: lift the embedded state block out of a full copy of the app.
+    const m = text.match(/<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i);
+    if(!m) return null;
+    try { const o = JSON.parse(m[1].trim()); return (o && typeof o === 'object') ? o : null; }
+    catch(e){ return null; }
   }
 
   // A handle to the file chosen on the first save, so later saves write back in place.
@@ -7296,6 +7334,40 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   let savedFileHandle = null;
   let handleNeedsPermission = false; // true when we have a remembered handle but not yet permission
   const supportsFsAccess = (typeof window.showSaveFilePicker === 'function');
+
+  // ---------- The two save formats ----------
+  // A calendar is DATA, not an application, and until v1.1.0 the two were the same file: Save
+  // wrote document.documentElement.outerHTML -- a complete runnable copy of the app -- with the
+  // state embedded in <script id="saved-state">. Measured on a 10-episode calendar, that file was
+  // 729,172 bytes of which the state was 3,238 (0.44%). Open never read the other 99.56%: it lifts
+  // the JSON out and replays it into the RUNNING app, so the old file's HTML/CSS/JS is never
+  // parsed and never executed. 44.5 KB of it was the rendered grid, serialized out of the live DOM
+  // and then regenerated from state on load and thrown away.
+  //
+  // So there are now two formats with two different jobs:
+  //   .sptcal  -- the state JSON and nothing else (~3 KB). The default for Save/Open/autosave.
+  //   .html    -- the old full self-contained copy, kept as an explicit "Export shareable copy"
+  //               for emailing someone a double-clickable working app.
+  // Open reads BOTH, forever (see parseCalendarText) -- every calendar saved before v1.1.0 is an
+  // .html, and CLAUDE.md makes never breaking those a standing rule.
+  const SAVE_EXT   = '.sptcal';
+  const SAVE_MIME  = 'application/json';
+  // Written into every snapshot from v1.1.0 on. Nothing branches on it yet -- it exists so a
+  // future migration can ask "which app wrote this?" instead of sniffing for individual keys,
+  // which is what migrateHolidayViewKeys() and normalizeRegionSelection() have had to do.
+  const SNAPSHOT_VERSION = 1;
+  const SAVE_TYPES = [{ description: 'Planning Calendar', accept: { [SAVE_MIME]: [SAVE_EXT] } }];
+  // The Open picker takes either format. Two entries rather than one with two MIME keys so the
+  // picker shows "Planning Calendar" first and the legacy type as a distinct, clearly-labelled
+  // choice.
+  const OPEN_TYPES = [
+    { description: 'Planning Calendar', accept: { [SAVE_MIME]: [SAVE_EXT] } },
+    { description: 'Planning Calendar (legacy HTML)', accept: { 'text/html': ['.html'] } },
+  ];
+  // True when a handle points at a legacy .html calendar. Save writes back in whatever format the
+  // file already is, so opening an old calendar and hitting Save keeps it working exactly as it
+  // did -- no silent format change under a file the user didn't ask us to convert.
+  function handleIsLegacyHtml(h){ return !!(h && /\.html?$/i.test(h.name || '')); }
 
   // --- IndexedDB: a list of recent files (each { id, handle, name, savedAt }) plus a
   // pointer to the currently-active file. Reusing the File System Access handles lets the
@@ -7364,12 +7436,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   }
 
   // Download fallback (browsers without the File System Access API): writes a new file.
-  function downloadSavedHtml(html){
-    const blob = new Blob([html], {type:'text/html'});
+  function downloadTextFile(text, mime, name){
+    const blob = new Blob([text], {type:mime});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildSavedFileName();
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -7381,18 +7453,23 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // handle from a previous session, the first save re-requests write permission (one prompt).
   // Returns 'saved'|'saveas'|'download', or throws on real errors.
   async function saveToFile(){
-    const html = buildSavedHtml();
     if(!supportsFsAccess){
-      downloadSavedHtml(html);
+      // No File System Access: the browser won't let us write a file, so a download is the only
+      // route. Downloads keep the SHARE format -- without a handle there is nothing to write back
+      // to, so a data file the user then can't re-link is worse than a copy that just works.
+      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
       markClean();
       return 'download';
     }
     let isNew = false;
     if(!savedFileHandle){
+      // FIRST SAVE ALWAYS OPENS THE PICKER. The user chooses where their calendar lives; nothing
+      // in this app ever writes a file to a location they didn't pick. Autosave deliberately
+      // cannot reach this path -- see startAutosave().
       isNew = true;
       savedFileHandle = await window.showSaveFilePicker({
         suggestedName: buildSavedFileName(),
-        types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+        types: SAVE_TYPES,
       });
     } else if(handleNeedsPermission){
       // Reconnecting to a remembered file: ask for write permission (one click).
@@ -7401,17 +7478,26 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         // Permission denied -> fall back to a fresh Save As so the user can still save.
         savedFileHandle = await window.showSaveFilePicker({
           suggestedName: buildSavedFileName(),
-          types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+          types: SAVE_TYPES,
         });
         isNew = true;
       }
       handleNeedsPermission = false;
     }
+    // Write back in whatever format the file already is. Opening a pre-v1.1.0 .html calendar and
+    // hitting Save keeps it an .html -- we never silently convert a file the user didn't ask us
+    // to convert, and their existing workflow is untouched.
+    const legacy = handleIsLegacyHtml(savedFileHandle);
+    const body = legacy ? buildSavedHtml() : buildSavedData();
     const writable = await savedFileHandle.createWritable();
-    await writable.write(html);
+    await writable.write(body);
     await writable.close();
-    await recordRecent(savedFileHandle); // add/update in the recent-files list
+    // Mark clean the moment the bytes are on disk, BEFORE the recents bookkeeping. recordRecent()
+    // awaits IndexedDB, and reporting the save only after that unrelated round-trip left the
+    // status line still saying "unsaved" for as long as IDB took -- measured at ~1.2s in a test
+    // run, long enough for an autosave tick to fire a second, redundant write of the same bytes.
     markClean();
+    await recordRecent(savedFileHandle); // add/update in the recent-files list
     return isNew ? 'saveas' : 'saved';
   }
 
@@ -7430,12 +7516,16 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   let lastSavedAt = null;
   let autosaveTimer = null;
   let autosaveFailed = false;  // last autosave write threw (file moved/deleted, permission lost)
+  // Autosave came around with unsaved work but no file to write it to. Surfaced in the status
+  // line rather than acted on: only a user gesture can open the save picker (see startAutosave).
+  let autosaveNeedsFile = false;
 
   // Single source of truth for "the current app state" as a plain-JSON-able object -- reused by
   // the save file, the local crash-recovery backup, and the undo/redo stack so all three always
   // agree on exactly what counts as state.
   function captureSnapshot(){
     return {
+      version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
       mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors,
@@ -7455,6 +7545,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   function markClean(){
     isDirty = false;
     autosaveFailed = false;      // a successful save clears any prior autosave-failure warning
+    autosaveNeedsFile = false;   // ...and so does now having somewhere to autosave to
     lastSavedAt = new Date();
     refreshSaveStatus();
     idbSet(BACKUP_KEY, undefined); // saved to a real file; drop the recovery copy
@@ -7470,6 +7561,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     const el = document.getElementById('save-status');
     if(!el) return;
     if(isDirty && autosaveFailed){ el.textContent = 'Autosave failed — click Save'; el.className = 'save-status failed'; el.title = 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.'; }
+    else if(isDirty && autosaveNeedsFile){ el.textContent = 'Autosave needs a file — click Save'; el.className = 'save-status dirty'; el.title = 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.'; }
     else if(isDirty){ el.textContent = 'Unsaved changes'; el.className = 'save-status dirty'; el.title = ''; }
     else if(lastSavedAt){ el.textContent = 'Saved ' + fmtTime(lastSavedAt); el.className = 'save-status'; el.title = ''; }
     else { el.textContent = ''; el.className = 'save-status'; el.title = ''; }
@@ -8004,11 +8096,23 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   function startAutosave(){
     clearInterval(autosaveTimer);
     autosaveTimer = setInterval(async ()=>{
-      if(!isDirty || !savedFileHandle || handleNeedsPermission) return;
+      if(!isDirty) return;
+      // NO LINKED FILE: autosave cannot silently invent one. showSaveFilePicker() requires a user
+      // gesture -- calling it from a timer throws NotAllowedError -- and even if it didn't,
+      // writing someone's calendar to a location they never chose is exactly the behaviour the
+      // first-save picker exists to prevent. So flag it instead: the status line asks for a Save
+      // click, and that click takes the normal saveToFile() path, which opens the picker. Work is
+      // not at risk meanwhile -- writeBackup() has been keeping a rolling copy in IndexedDB since
+      // three seconds after the first edit.
+      if(!savedFileHandle){
+        if(!autosaveNeedsFile){ autosaveNeedsFile = true; refreshSaveStatus(); }
+        return;
+      }
+      if(handleNeedsPermission) return;
       try {
-        const html = buildSavedHtml();
+        const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml() : buildSavedData();
         const writable = await savedFileHandle.createWritable();
-        await writable.write(html);
+        await writable.write(body);
         await writable.close();
         markClean();
       } catch(e){
@@ -8059,19 +8163,23 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // new file the active one. This duplicates the current calendar (fork it to try a variation);
   // distinct from "New", which clears the calendar and starts blank.
   async function saveAsFile(){
-    const html = buildSavedHtml();
-    if(!supportsFsAccess){ downloadSavedHtml(html); return 'download'; }
+    if(!supportsFsAccess){
+      downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+      return 'download';
+    }
     const handle = await window.showSaveFilePicker({
       suggestedName: buildSavedFileName(),
-      types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+      types: SAVE_TYPES,
     });
+    // Save As always produces the current format, even when forking a legacy .html calendar --
+    // the user is naming a new file here, so there is no existing format to preserve.
     const writable = await handle.createWritable();
-    await writable.write(html);
+    await writable.write(handleIsLegacyHtml(handle) ? buildSavedHtml() : buildSavedData());
     await writable.close();
     savedFileHandle = handle;
     handleNeedsPermission = false;
+    markClean();                 // bytes are on disk -- report it before the IDB bookkeeping
     await recordRecent(handle);
-    markClean();
     refreshSaveBtn();
     return 'saveas';
   }
@@ -8111,19 +8219,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     try { const file = await entry.handle.getFile(); text = await file.text(); }
     catch(e){ alert('Could not read that file. It may have been moved or deleted.'); return; }
 
-    // Extract the embedded saved-state block from the file's HTML.
-    const m = text.match(/<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i);
-    if(!m){ alert('That file doesn\u2019t contain saved calendar data.'); return; }
-    const liveState = document.getElementById('saved-state');
-    if(liveState){
-      liveState.textContent = m[1].trim();
-      // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay.
-      suppressDirty = true;
-      restoreSavedState();
-      refreshAfterRestore();
-      suppressDirty = false;
-      resetUndoHistory(); // opening a different file starts a fresh undo history
-    }
+    // Read the calendar out of the file -- either format, one code path (parseCalendarText).
+    const snap = parseCalendarText(text);
+    if(!snap){ alert('That file doesn\u2019t contain saved calendar data.'); return; }
+    // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay. applyStateSnapshot
+    // is called directly rather than round-tripping through the live #saved-state element: that
+    // detour existed only because the old Open path had the JSON as a string, and writing another
+    // file's data into this document's state block was always a bit of a lie.
+    suppressDirty = true;
+    applyStateSnapshot(snap);
+    refreshAfterRestore();
+    suppressDirty = false;
+    resetUndoHistory(); // opening a different file starts a fresh undo history
     // Make this the active, writable file so subsequent Save writes back to it.
     savedFileHandle = entry.handle;
     handleNeedsPermission = false;
@@ -8142,7 +8249,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     let handle;
     try {
       [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'Planning Calendar (HTML)', accept: {'text/html': ['.html']} }],
+        types: OPEN_TYPES,
         multiple: false,
       });
     } catch(e){ if(e && e.name === 'AbortError') return; throw e; }
@@ -8202,7 +8309,11 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         }).join('')
       : '<div class="file-menu-empty">No saved files yet</div>';
     menu.innerHTML = items + '<div class="file-menu-sep"></div>' +
-      '<div class="file-menu-item" data-action="open" role="menuitem"><span class="fm-name">Open\u2026</span></div>';
+      '<div class="file-menu-item" data-action="open" role="menuitem"><span class="fm-name">Open\u2026</span></div>' +
+      // The old save format, kept as a deliberate export: a complete, double-clickable copy of the
+      // app with this calendar in it, for emailing to someone who doesn't have the tool. Not what
+      // Save writes any more -- it's ~230x bigger and freezes today's bugs into the file forever.
+      '<div class="file-menu-item" data-action="share" role="menuitem" title="A standalone HTML copy of the app with this calendar in it \u2014 for sending to someone who doesn\u2019t have the tool"><span class="fm-name">Export shareable copy\u2026</span></div>';
   }
   function closeFileMenu(){
     const m = document.getElementById('file-menu'); const b = document.getElementById('file-menu-btn');
@@ -8601,6 +8712,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         const item = e.target.closest('.file-menu-item');
         if(!item) return;
         closeFileMenu();
+        // Export is not a navigation: it doesn't replace what's on screen, so it deliberately
+        // sits above the unsaved-changes guard below.
+        if(item.dataset.action === 'share'){
+          try {
+            downloadTextFile(buildSavedHtml(), 'text/html', buildSavedFileName('.html'));
+          } catch(err){ console.error(err); alert('Could not build a shareable copy: '+err.message); }
+          return;
+        }
         const isOpen = item.dataset.action === 'open';
         const entry = isOpen ? null : recentFiles.find(f=>f.id === item.dataset.id);
         // Opening another calendar replaces the one on screen -- warn if there's unsaved work,

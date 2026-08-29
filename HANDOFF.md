@@ -535,7 +535,7 @@ But it also carries a cost that has already caused a false alarm in this project
 keeps the bugs it was saved with, forever.** When someone reports something already fixed, ask
 which file they are in before digging (§3).
 
-### The better shape — two formats, one contract
+### The better shape — two formats, one contract  ✅ **SHIPPED in v1.1.0**
 
 Neither the copy nor the data should be dropped. They should stop being the same file.
 
@@ -566,16 +566,37 @@ way a 730 KB HTML blob never will be.
 `buildSavedHtml()` serializes a *minified* app, so the "readable copy" argument for the HTML
 format weakens at exactly the moment the data-only format becomes cleaner to produce.
 
-### If this is taken up
+### As built (v1.1.0)
 
-1. **Add a `version` field to `captureSnapshot()` first.** There is none today — 27 top-level keys
-   and no way to tell which app wrote them. Every migration so far has had to sniff for individual
-   keys (`migrateHolidayViewKeys`, `normalizeRegionSelection`). Do this before adding a second
-   format, not after.
-2. **Keep `.html` Open working forever** (§0 rule 3). It is the only format that exists today, so
-   every calendar in the wild is one.
-3. **Do not put preferences in the data file.** Settings are per-user and per-machine —
-   `localStorage`, never `captureSnapshot()`.
-4. **Sequence it with the migration.** Persistence is being rewritten in Stage 4 anyway
-   (`MANTINE-MIGRATION.md` §4.4–4.5); doing the format split in the same stage costs little extra
-   and doing it separately means touching the same code twice.
+All of the above shipped, plus the `version` field that was listed as its prerequisite.
+
+| Symbol | Job |
+|---|---|
+| `SAVE_EXT` / `SAVE_MIME` / `SAVE_TYPES` / `OPEN_TYPES` | the two formats, declared once |
+| `SNAPSHOT_VERSION` = 1 | stamped into every snapshot; nothing branches on it yet |
+| `buildSavedData()` | the data format — `captureSnapshot()` as pretty JSON |
+| `buildSavedHtml()` | the share format, now built from a **clone** |
+| `parseCalendarText()` | **the one reader.** `{` → snapshot; otherwise the `saved-state` regex |
+| `handleIsLegacyHtml()` | so Save writes back in the format the file already is |
+| `autosaveNeedsFile` | autosave found work but no file; surfaced in the status line |
+
+Measured on the same fixture: **4,488-byte `.sptcal` vs 695,556-byte `.html` — 155× smaller.**
+Both formats round-trip to a byte-identical rendered grid; a snapshot with no `version` key still
+opens; garbage, empty text and HTML with no state block are all rejected cleanly.
+
+Three things deliberately **not** done, and why:
+
+- **`buildSavedHtml()` was not deleted.** Emailing someone a double-clickable working calendar was
+  a real design goal and it still is. It is just no longer what Save means.
+- **Legacy `.html` files are not auto-converted.** Open one, hit Save, and it stays an `.html`.
+  Converting a file the user did not ask us to convert is how you lose someone's trust once.
+- **Preferences still do not go in the data file.** Settings are per-user and per-machine —
+  `localStorage`, never `captureSnapshot()`. That was true before and the format split does not
+  change it.
+
+### Still true for the Mantine work
+
+`MANTINE-MIGRATION.md` §4.4–4.5 is *smaller* now but not gone. `captureSnapshot()` is still a
+DOM sweep via `collectFieldValues()`, so `fields.byId` is still keyed by element id and the legacy
+branch is still needed — the difference is that `parseCalendarText()` has already isolated
+"reading a file" from "applying a snapshot", so only the second half has to change.

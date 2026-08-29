@@ -101,16 +101,25 @@ longer works. This outranks tidiness, consistency, and any refactor.
 
 Save and Open are **not** symmetric, and the asymmetry is the whole point:
 
-- **Save** (`saveToFile` → `buildSavedHtml`) writes `document.documentElement.outerHTML` — a
-  complete, runnable copy of the app — with the live state serialized into
-  `<script id="saved-state" type="application/json">`.
-- **Open** (`openRecentFile` / `openFileViaPicker`) reads the chosen file **as text**, regexes out
-  *only* that `saved-state` block, writes the JSON into the **running** app's own `#saved-state`
-  element, and calls `restoreSavedState()` → `applyStateSnapshot()` → `refreshAfterRestore()`.
+- **Save** (`saveToFile` → `buildSavedData`) writes **`.sptcal`** — the state as JSON, ~4.5 KB,
+  and nothing else. `buildSavedHtml()` still exists and still writes the old full self-contained
+  copy, but only as File ▸ **Export shareable copy…** and as the download fallback where the File
+  System Access API is unavailable. A handle pointing at a legacy `.html` keeps being written as
+  `.html` (`handleIsLegacyHtml`) — no file is silently converted.
+- **Open** (`openRecentFile` / `openFileViaPicker`) reads the chosen file **as text** and hands it
+  to `parseCalendarText()` — **the one place that knows how to read a calendar file.** Text
+  starting with `{` is a snapshot (`.sptcal`); anything else gets the `saved-state` regex (legacy
+  `.html`). Both converge on `applyStateSnapshot()` → `refreshAfterRestore()`.
 
 **The old file's HTML, CSS and JavaScript are never parsed and never executed.** Exactly one thing
-crosses the boundary: the snapshot JSON. Everything else in the file — 99.6% of its bytes,
-measured — is there so the file is *also* double-clickable on its own.
+crosses the boundary: the snapshot JSON. That asymmetry is why `.sptcal` exists: in the old format
+99.6% of a saved file's bytes — measured — were a copy of the app that Open never read.
+
+**The first save always opens the save picker**, and autosave can never reach that path
+(`showSaveFilePicker()` needs a user gesture, and writing to a location the user never chose is
+what the picker exists to prevent). When autosave finds unsaved work with no linked file it sets
+`autosaveNeedsFile` and says so in the status line. Do not "fix" this by having autosave pick a
+location.
 
 ### What that makes binding
 
@@ -223,7 +232,9 @@ Any new persistent state must be added in **both** places or it will silently no
 
 ## Save / restore
 
-"Save" writes a *new complete HTML document* — `document.documentElement.outerHTML` with the live state serialized into `<script id="saved-state" type="application/json">` (line 750, ships as `null`). `<` is escaped to `<` so user text containing a closing script tag can't truncate the file. On load, `restoreSavedState()` parses that block and replays it: rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`.
+**Two formats, one reader.** "Save" writes **`.sptcal`** — `captureSnapshot()` as JSON, ~4.5 KB. "Export shareable copy…" writes the old full self-contained HTML document (`buildSavedHtml()`), built from a *clone* of the document with `#table-wrap`, `#print-root` and any open popover stripped, and the state serialized into `<script id="saved-state" type="application/json">` (ships as `null`). `<` is escaped to `\u003c` so user text containing a closing script tag can't truncate the file.
+
+`parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 
 `reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM property values — form fields must have their values written back to attributes before snapshotting.
 
