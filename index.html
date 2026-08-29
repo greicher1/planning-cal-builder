@@ -1250,7 +1250,9 @@
 
       <h3>Sizing the grid (columns, rows &amp; how far a cell reaches)</h3>
       <p><strong>Columns and rows.</strong> Hover a column boundary or the bottom edge of a row in the Date column and drag. Text inside resizes itself to fit: a narrowed column shrinks its labels, and a row&rsquo;s height sets how many lines a note may use before it is cut off with an ellipsis. <strong>Double-click</strong> a boundary to go back to automatic &mdash; the column fits its widest entry again, the row returns to its default height. Column widths are shared with the Excel export and the PDF, so what you size on screen is what prints.</p>
-      <p><strong>How far a cell reaches.</strong> A phase cell normally only widens into the column beside it when that column is free for the phase&rsquo;s <em>whole</em> run, which leaves a gap in weeks where a neighbouring phase has already finished. To close one, hover the left or right edge of the cell and <strong>drag it across the empty space</strong>; the edge snaps to column boundaries and a purple outline shows where it will land. <strong>Double-click the cell</strong> to fill all the free space beside it in one go, and again to pull it back to its own column. <strong>Double-click the edge</strong> to hand it back to the automatic layout. It applies to that one cell in that one week &mdash; every other row is left alone &mdash; and it carries into the Excel and PDF exports.</p>
+      <p><strong>Phases that overlap share the width evenly.</strong> In any week where two phases run at once they get half the phase area each; three get a third each, four a quarter. All the phase columns in a year block are the same width, so an even split really is even. A phase running on its own still stretches across the whole area.</p>
+      <p><strong>How far a cell reaches.</strong> A phase cell only widens into the column beside it when that column is free for the phase&rsquo;s <em>whole</em> run, which leaves a gap in weeks where a neighbouring phase has already finished. To close one, hover the left or right edge of the cell and <strong>drag it across the empty space</strong>; the edge snaps to column boundaries and a purple outline shows where it will land. <strong>Double-click the cell</strong> to fill all the free space beside it in one go, and again to pull it back to its own column. <strong>Double-click the edge</strong> to hand it back to the automatic layout. It applies to that one cell in that one week &mdash; every other row is left alone &mdash; and it carries into the Excel and PDF exports.</p>
+      <p>A width you drag out while a cell has the row to itself is <em>not</em> kept once another phase moves in beside it &mdash; that week goes back to the even split, since a cell three columns wide next to a neighbour of one reads as a mistake. Widen it again with the overlap on screen and it stays, because then it is clearly what you meant.</p>
 
       <h3>Adjusting dates (moving the calendar around)</h3>
       <p>Above the preview sits a row of tools, each with its own button: <strong>Shift All</strong> (its <strong>&larr; 1 wk</strong> / <strong>1 wk &rarr;</strong> buttons move the whole calendar one week at a time, and the small arrow beside them opens a box for any number of weeks), <strong>Shift From</strong>, <strong>Anchor To</strong> and <strong>Rebuild From</strong>. Everything you&rsquo;ve typed onto the calendar travels with it &mdash; notes, highlight colors, and hiatus labels all keep the phase week they were written for, rather than staying behind on the old date.</p>
@@ -2482,6 +2484,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           hd.dataset.rmax = td.dataset.rmax;
           hd.dataset.a = String(start - base);              // the cell's current first slot
           hd.dataset.b = String(start + span - 1 - base);   // ...and its current last slot
+          hd.dataset.nphases = td.dataset.nphases || '1';   // phases sharing this row right now
           hd.title = 'Drag to change how far this cell reaches · double-click for automatic';
           layer.appendChild(hd);
         });
@@ -2655,8 +2658,10 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       if(!moved) return;
       pushUndoSnapshot();
       // Stored relative to the phase's own column, so {l:0,r:0} is a real value meaning
-      // "stay in your own column" -- that is how a cell gets un-filled.
-      cellSpans[key] = { l: own - a, r: b - own };
+      // "stay in your own column" -- that is how a cell gets un-filled. `k` is how many phases
+      // shared the row when this was set: once that changes the width is no longer what the
+      // user agreed to, so the even-share cap takes over again.
+      cellSpans[key] = { l: own - a, r: b - own, k: +h.dataset.nphases || 1 };
       render(currentSchedule);
       markDirty();
     };
@@ -2746,7 +2751,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
     if(!maxL && !maxR && cellSpans[key] === undefined) return;   // alone in its column, nothing to do
     const filled = curL === maxL && curR === maxR;
     pushUndoSnapshot();
-    cellSpans[key] = filled ? { l:0, r:0 } : { l:maxL, r:maxR };
+    const k = +td.dataset.nphases || 1;
+    cellSpans[key] = filled ? { l:0, r:0, k } : { l:maxL, r:maxR, k };
     render(currentSchedule);
     markDirty();
   });
@@ -5206,7 +5212,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
                 ` class="sheet-phase-cell" data-week="${wIso}" data-pkey="${escAttr(cell.cell.key)}"`
                 + ` data-own="${cell.own}" data-lmin="${segStart - emptyLeft[segIdx]}"`
                 + ` data-rmax="${segStart + cell.colspan - 1 + emptyRight[segIdx]}"`
-                + ` data-a="${segStart}" data-b="${segStart + cell.colspan - 1}"`;
+                + ` data-a="${segStart}" data-b="${segStart + cell.colspan - 1}"`
+                + ` data-nphases="${cell.nPhases || 1}"`;
               bodyHtml += `<td${cs}${sp} style="background:${cell.color}; color:${GRID_TEXT_COLOR};${lfCss}"><span class="phase-cell-label"${tip}>${escHtml(cell.label)}</span></td>`;
             } else if(cell.kind==='phaseHiatus'){
               const phKey = cell.weekIso + '|' + cell.phaseKey;
@@ -6279,6 +6286,18 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       return true;
     };
 
+    // How wide any ONE phase may get in this row. Phases running at the same time divide the
+    // phase area evenly -- two take half each, three a third, four a quarter -- because a row
+    // where one phase is three columns wide and the phase beside it is one reads as a mistake
+    // rather than as a schedule. A phase running alone is unaffected and still fills the area.
+    //
+    // Fixed cells are taken out of the pot first: a per-phase hiatus band and the Simultaneous
+    // Post marker are one column each and never widen, so the phases divide what is left.
+    const fixedSlots = (simSlot >= 0 ? 1 : 0)
+                     + bySlot.filter(c => c && c.type === 'phaseHiatus').length;
+    const nPhases = bySlot.filter(c => c && c.type !== 'phaseHiatus').length;
+    const spanCap = nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc;
+
     const out = [];
     let k = 0;
     while(k < mc){
@@ -6299,7 +6318,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
           k += 1;
         } else {
           let span = 1;
-          while(k+span < mc && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
+          while(k+span < mc && span < spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
           out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c, own:k});
           k += span;
         }
@@ -6312,11 +6331,17 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         let n = k;
         while(n < mc && !bySlot[n] && n!==simSlot) n++;
         if(n < mc && bySlot[n] && bySlot[n].type!=='phaseHiatus' && freeForRunSpan(n, k, n-1)){
-          // absorb slots k..n-1 into the phase at slot n, then span it rightward as usual.
+          // Absorb slots k..n-1 into the phase at slot n, then span it rightward as usual --
+          // but never past its even share, and taking from the LEFT first so the run stays
+          // flush against whatever is to its left rather than leaving a one-column island.
+          let left = Math.min(n - k, Math.max(0, spanCap - 1));
+          const from = n - left;
           let span = 1;
-          while(n+span < mc && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
+          while(n+span < mc && (left + span) < spanCap && !bySlot[n+span] && freeForRun(n, n+span)){ span++; }
+          // Anything the cap stopped it taking is still empty and gets its own run.
+          if(from > k) out.push({kind:'empty', colspan:from - k});
           const c = bySlot[n];
-          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:(n-k)+span, cell:c, own:n});
+          out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:left+span, cell:c, own:n});
           k = n + span;
         } else {
           // Plain empty run (merge consecutive empty non-SimPost slots).
@@ -6327,7 +6352,8 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
         }
       }
     }
-    return applyCellSpanOverrides(out, mc, slotMap, week);
+    out.forEach(sg=>{ if(sg.kind === 'phase') sg.nPhases = nPhases; });
+    return applyCellSpanOverrides(out, mc, slotMap, week, nPhases, spanCap);
   }
 
   // Lay the user's hand-dragged cell spans over the automatic layout.
@@ -6337,7 +6363,7 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
   // their automatic footprint and the claim stops at the first slot it cannot have. A stale
   // override (the schedule moved under it) therefore shrinks to whatever is genuinely free
   // rather than being dropped outright or, worse, swallowing a neighbour.
-  function applyCellSpanOverrides(segs, mc, slotMap, week){
+  function applyCellSpanOverrides(segs, mc, slotMap, week, nPhases, spanCap){
     const weekIso = isoOf(week.date);
     const claim = new Map();   // segment index -> [from, to] in slot space
     const ownOf = new Map();   // segment index -> the phase's own slot
@@ -6348,8 +6374,23 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       if(seg.kind !== 'phase' || !seg.cell || seg.own === undefined) return;
       const ov = cellSpans[weekIso + '|' + seg.cell.key];
       if(!ov) return;
+      // A width dragged out when the phase had the row to itself must not survive a phase moving
+      // in beside it -- that is exactly the case where one cell ends up three columns wide and
+      // its new neighbour one. The override records how many phases shared the row when it was
+      // set; if that has changed since, it is held to the same even share the automatic layout
+      // would give. Deliberately widening a cell while the overlap is on screen still wins,
+      // because then the counts agree. (An override saved before this was recorded has no count
+      // and is treated as stale, so old files rebalance rather than staying lopsided.)
+      const cap = (ov.k === nPhases) ? mc : spanCap;
+      let l = ov.l || 0, r = ov.r || 0;
+      if(l + r + 1 > cap){
+        // Trim the right edge first, then the left: a phase reads from its own column outward,
+        // and pulling the right edge in keeps it flush with whatever sits to its left.
+        r = Math.max(0, Math.min(r, cap - 1));
+        l = Math.max(0, Math.min(l, cap - 1 - r));
+      }
       ownOf.set(i, seg.own);
-      claim.set(i, [Math.max(0, seg.own - (ov.l || 0)), Math.min(mc - 1, seg.own + (ov.r || 0))]);
+      claim.set(i, [Math.max(0, seg.own - l), Math.min(mc - 1, seg.own + r)]);
     });
     if(!claim.size) return segs;
 
@@ -6521,8 +6562,12 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
       const kn = 'y' + b.year + ':notes';
       const date  = pick(kd, clampChars(pxToChars(m.dateMax), 8.43));
       const notes = pick(kn, clampChars(pxToChars(m.notesMax), 8, COL_MAX_CHARS_NOTES));
-      const labels = m.labelMax.map((px, s)=>
-        pick('y' + b.year + ':s' + s, clampChars(pxToChars(px), 8)));
+      // Phase columns within a block are all the SAME width. Two phases running side by side
+      // each get one column, and columns that differ by 15% make an even split look like a
+      // mistake -- so the block's phase columns are sized together, to whatever the widest of
+      // them needs. A hand-dragged width still overrides its own column outright.
+      const slotAuto = clampChars(pxToChars(Math.max(0, ...m.labelMax)), 8);
+      const labels = m.labelMax.map((px, s)=> pick('y' + b.year + ':s' + s, slotAuto));
       // `cols` is the flat left-to-right list the renderer and the drag handles both walk, so
       // neither has to re-derive which key belongs to which column.
       const cols = [{ key:kd, chars:date }]
