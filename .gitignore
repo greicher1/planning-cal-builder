@@ -8,6 +8,18 @@
 # tests/baselines/ when one is worth keeping, but don't track the scratch ones.
 tests/harness/*.html
 tests/harness/*.json
+# ...but NOT the one that makes the harness work. The repo root gained "type":"module"
+# with the Vite build, which reclassifies every .js beneath it as ESM and kills the
+# CommonJS harness scripts; tests/harness/package.json scopes them back. Without this
+# negation a fresh clone gets a harness that only ever says "server did not start".
+!tests/harness/package.json
 tests/harness/*.xlsx
 tests/harness/*.pdf
 tests/harness/*.txt
+
+# Vite build. node_modules is never committed; dist/ is BUILD OUTPUT and the owner chose the
+# GitHub Action deploy path (MANTINE-MIGRATION.md Q3), which builds it on GitHub rather than
+# serving a committed copy. Committing it would put a ~1 MB unreadable diff in every commit and
+# let the repo and the live site drift apart.
+node_modules/
+dist/

@@ -1,0 +1,26 @@
+{
+  "name": "spt-planning-calendar-builder",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "description": "SPT Planning Calendar Builder \u2014 builds to a single self-contained dist/index.html.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node tools/check-build.mjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.2.2",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "dependencies": {
+    "@mantine/core": "9.5.2",
+    "@mantine/dates": "9.5.2",
+    "@mantine/hooks": "9.5.2",
+    "dayjs": "^1.11.23",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}

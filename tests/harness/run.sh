@@ -18,6 +18,11 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 T="${1:?usage: run.sh <test-name> [seconds]}"
 SECS="${2:-45}"
 PORT="${HARNESS_PORT:-8231}"
+# Which page to test. Defaults to the deployed single-file app at the repo root; set
+#   HARNESS_PAGE=/dist/index.html
+# to run the same test against the Vite build instead. The server always serves the REPO ROOT, so
+# tests/fixtures/... stays reachable from either page -- t/restore.js fetches it by absolute path.
+PAGE="${HARNESS_PAGE:-/index.html}"
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 
 [[ -x "$CHROME" ]] || { echo "no Chrome at: $CHROME (set CHROME=...)"; exit 1; }
@@ -30,7 +35,7 @@ sleep 0.5
 node "$HERE/srv.js" "$PORT" "$ROOT" "$HERE/t" > /dev/null 2>&1 &
 SPID=$!
 sleep 1.5
-curl -sf -o /dev/null "http://localhost:$PORT/index.html" || { echo "server did not start on $PORT"; kill $SPID 2>/dev/null; exit 1; }
+curl -sf -o /dev/null "http://localhost:$PORT$PAGE" || { echo "server did not start on $PORT"; kill $SPID 2>/dev/null; exit 1; }
 
 # Clear this test's previous output BEFORE running. Otherwise a run that dies without writing a
 # result leaves the last run's <name>.json sitting there, and reading it looks like a pass.
@@ -41,7 +46,7 @@ rm -rf "/tmp/tc-$T"
 "$CHROME" --headless=new --disable-gpu --no-sandbox \
   --user-data-dir="/tmp/tc-$T" --window-size=1600,1200 \
   --virtual-time-budget=$((SECS * 1000)) \
-  --dump-dom "http://localhost:$PORT/index.html?test=$T" > "$HERE/$T.html" 2>/dev/null &
+  --dump-dom "http://localhost:$PORT$PAGE?test=$T" > "$HERE/$T.html" 2>/dev/null &
 CPID=$!
 for i in $(seq 1 $SECS); do sleep 1; kill -0 $CPID 2>/dev/null || break; done
 kill -9 $CPID 2>/dev/null

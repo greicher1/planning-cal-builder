@@ -1,0 +1,985 @@
+  :root{
+    --bg:#F7F6F3;
+    --panel:#FFFFFF;
+    --border:#E3E1DA;
+    --border-strong:#CDCABF;
+    --text:#1E1D1B;
+    --text-muted:#726F68;
+    --text-faint:#6E6A62;  /* darkened from #9C988E to meet WCAG AA (~5:1) -- it labels real
+                              informational text (phase meta hints, stats, save status) */
+    --accent:#2C3E50;
+    --accent-hover:#1C2833;
+    --danger:#B3261E;
+    --radius:10px;
+    /* Height of the sticky header; measured at runtime so the sticky sidebar sits flush
+       beneath it at any window width (the toolbar wraps on narrow screens). */
+    --header-h:64px;
+
+    --c-writersRoom:#FFF2CC;      --c-writersRoom-text:#7A6215;
+    --c-prePrep:#DAE3F3;          --c-prePrep-text:#203864;
+    --c-prodPrep:#D6DCE5;         --c-prodPrep-text:#222A35;
+    --c-production:#E2F0D9;       --c-production-text:#375623;
+    --c-post:#FBE5D6;             --c-post-text:#8A4A1F;
+    --c-localization:#EDEDED;      --c-localization-text:#525252;
+    --c-hiatus:#FF0000;           --c-hiatus-text:#FFFFFF;
+    --c-simpost:#FFFF00;          --c-simpost-text:#5B5B00;
+    --c-milestone:#7030A0;        --c-milestone-text:#FFFFFF;
+    /* Interaction accent for editing / manual-override states (note editing, manual header mode,
+       active file-menu item). Deliberately its own token, distinct from --c-milestone (which
+       happens to share the hue but means "milestone phase"), so the two can diverge later. */
+    --edit-accent:#7030A0;        --edit-accent-bg:#f6effb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  header.app-header{
+    padding:10px 28px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    background:#fff; position:sticky; top:0; z-index:40;
+  }
+  .app-toolbar{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; }
+  /* Toolbar buttons. Share radius (8px) and hover (var(--bg)) with the sidebar button system
+     (button.primary/.secondary); the smaller font-size/padding here is intentional -- the toolbar
+     is dense, the sidebar roomy. */
+  .tb-btn{
+    font-family:inherit; font-size:12px; font-weight:500; padding:7px 12px;
+    border:1px solid var(--border-strong); background:#fff; color:var(--text);
+    border-radius:8px; cursor:pointer; white-space:nowrap;
+  }
+  .tb-btn:hover:not(:disabled){ background:var(--bg); border-color:var(--text-faint); }
+  .tb-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .tb-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tb-btn.primary:hover:not(:disabled){ background:var(--accent-hover); border-color:var(--accent-hover); }
+  .tb-btn.danger{ color:var(--danger); border-color:#e5c3c3; margin-left:auto; }
+  .tb-btn.danger:hover:not(:disabled){ background:#fdf2f2; border-color:var(--danger); }
+  /* File dropdown */
+  .file-menu-wrap{ position:relative; }
+  .file-menu-btn{ display:flex; align-items:center; gap:6px; max-width:220px; }
+  .file-menu-btn #file-menu-label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-menu-btn .caret{ color:var(--text-faint); font-size:10px; }
+  .file-menu{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; min-width:240px; max-width:320px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:4px; z-index:60; max-height:320px; overflow-y:auto;
+  }
+  .file-menu.open{ display:block; }
+  .file-menu-item{
+    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px;
+    cursor:pointer; font-size:12px;
+  }
+  .file-menu-item:hover{ background:var(--bg); }
+  .file-menu-item.active{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
+  .file-menu-item .fm-name{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fm-remove{ border:none; background:transparent; color:var(--text-faint); font-size:14px; line-height:1; cursor:pointer; padding:0 3px; border-radius:4px; }
+  .fm-remove:hover{ color:var(--danger); background:rgba(0,0,0,.06); }
+  .file-menu-sep{ height:1px; background:var(--border); margin:4px 2px; }
+  .file-menu-empty{ padding:8px 9px; font-size:11px; color:var(--text-faint); }
+  .save-status{ font-size:11px; color:var(--text-faint); min-width:78px; white-space:nowrap; }
+  .save-status.dirty{ color:#b45309; }
+  .save-status.failed{ color:var(--danger); font-weight:600; }
+  /* Small text-button for the holiday "Toggle all" controls (were raw <a href="#"> links). */
+  .hv-bulk{ background:none; border:none; padding:2px 5px; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; border-radius:4px; }
+  .hv-bulk:hover{ background:var(--bg); text-decoration:underline; }
+  .hv-bulk:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  /* Legacy-format notice. Amber, not red: the file opened correctly and nothing failed -- this
+     is a recommendation, and colouring it like an error would teach people to distrust their own
+     saved calendars. Sits under the sticky header, above the layout, full width. */
+  /* Two notice strips, ONE shape. Amber says "your FILE is an old format"; blue says "the APP
+     has a newer version". Sharing the structural rules and varying only the hue keeps them
+     reading as one family -- this app already has more warning looks than it should
+     (HANDOFF §6), and a second strip built from scratch would have made that worse. */
+  #legacy-notice, #update-notice{
+    display:flex; align-items:center; gap:9px; padding:8px 28px;
+    border-bottom:1px solid; font-size:12px;
+  }
+  #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
+  #legacy-notice[hidden], #update-notice[hidden]{ display:none; }
+  #legacy-notice .ln-icon, #update-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text,  #update-notice .ln-text{ flex:1; min-width:0; }
+  #legacy-notice .ln-text strong, #update-notice .ln-text strong{ font-weight:600; }
+  #legacy-notice .ln-go, #update-notice .ln-go{
+    flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
+    background:#fff; border:1px solid; border-radius:7px; cursor:pointer;
+  }
+  #legacy-notice .ln-go{ border-color:#D9B45F; color:#7A5B14; }
+  #legacy-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
+  #update-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
+  #update-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
+  #legacy-notice .ln-x, #update-notice .ln-x{
+    flex:none; border:none; background:none; font-size:16px; line-height:1;
+    cursor:pointer; padding:0 2px; border-radius:4px;
+  }
+  #legacy-notice .ln-x{ color:#A98B3D; }
+  #legacy-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  #update-notice .ln-x{ color:#6D93BF; }
+  #update-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
+
+  /* Fill the available width at any window size (no artificial cap), so the calendar gets
+     as much room as the screen allows. The sidebar keeps a comfortable fixed width and the
+     preview takes everything left over. */
+  .layout{display:flex; gap:0; align-items:flex-start; width:100%;}
+  @media (max-width:960px){ .layout{flex-direction:column;} }
+
+  .form-panel{
+    width:clamp(320px, 24vw, 420px); flex:none; padding:0 20px 20px; border-right:1px solid var(--border);
+    /* Sits below the sticky header: offset by its height and shrink the scroll area to match. */
+    position:sticky; top:var(--header-h); align-self:flex-start;
+    max-height:calc(100vh - var(--header-h)); overflow-y:auto;
+  }
+  /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
+     room before it has to collapse to a single column. Declared before the 960px rule so that
+     rule's full-width stacking still wins at the smaller size. */
+  @media (max-width:1280px){ .form-panel{ width:clamp(280px, 26vw, 340px); } }
+  @media (max-width:960px){
+    .form-panel{ width:100%; border-right:none; border-bottom:1px solid var(--border);
+      max-height:none; position:static; padding-top:16px; }
+    /* When the panel goes full width, don't let the form fields stretch across the whole
+       window -- cap the content to a comfortable column and centre it so inputs stay a sane
+       size instead of ballooning to 900px wide. */
+    .form-panel > section.card,
+    .form-panel > .side-tabs{ max-width:640px; margin-left:auto; margin-right:auto; }
+  }
+
+  .preview-panel{flex:1; min-width:0; padding:20px 28px;}
+
+  section.card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:14px;
+  }
+  section.card h2{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin:0 0 10px;}
+
+  /* ---------- Sidebar tabs ---------- */
+  /* Sticky segmented control that groups the settings cards. Bleeds to the panel edges and
+     pins to the top of the internal scroll so it's always reachable. Mirrors the .view-toggle
+     idiom for visual consistency with the Waterfall/Month switcher. */
+  /* Sits flush at the panel top (panel has no top padding) so, once pinned, its own solid
+     background fully covers the settings content scrolling underneath -- no gap or peek. */
+  .side-tabs{
+    position:sticky; top:0; z-index:6;
+    padding:14px 0 12px; margin-bottom:14px;
+    background:var(--bg); border-bottom:1px solid var(--border);
+  }
+  .side-tabs-track{
+    display:flex; gap:3px; padding:3px;
+    background:#EEECE5; border:1px solid var(--border); border-radius:9px;
+  }
+  .side-tab-btn{
+    flex:1; font-family:inherit; font-size:12.5px; font-weight:500; letter-spacing:.01em;
+    border:none; background:transparent; color:var(--text-muted);
+    padding:7px 6px; border-radius:6px; cursor:pointer;
+    transition:color .12s ease, background .12s ease, box-shadow .12s ease;
+  }
+  .side-tab-btn.active{ background:var(--panel); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .side-tab-btn:hover:not(.active){ color:var(--text); }
+  .side-tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .card.tab-hidden{ display:none !important; }
+  @media (max-width:960px){
+    /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
+    .side-tabs{ position:static; }
+  }
+
+  .phase-row{
+    /* minmax(0,1fr) (not plain 1fr) lets the content column shrink below its min-content instead
+       of forcing the whole sidebar wider -- otherwise the Production row's fixed-width date input
+       + "Total Shooting Days" readout push the panel into horizontal overflow on narrow windows. */
+    display:grid; grid-template-columns:16px minmax(0, 1fr); gap:8px 10px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .phase-row:last-child{border-bottom:none;}
+  .swatch{width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.12);}
+  .swatch.clickable{cursor:pointer;}
+  .swatch.clickable:hover{box-shadow:0 0 0 2px rgba(0,0,0,.18);}
+  .phase-name{font-weight:500; font-size:13.5px;}
+  /* Floating picker of the standard phase colors, opened by clicking a phase's color square. */
+  .phase-color-pop{
+    position:absolute; z-index:200; background:#fff; border:1px solid var(--border-strong);
+    border-radius:9px; padding:7px; box-shadow:0 8px 26px rgba(0,0,0,.18);
+    display:grid; grid-template-columns:repeat(3, 26px); gap:5px;
+  }
+  .phase-color-pop .pc-sw{ width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
+  .phase-color-pop .pc-sw:hover{ transform:scale(1.12); }
+  .phase-color-pop .pc-sw.selected{ outline:2px solid #333; outline-offset:1px; }
+  /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
+     Holiday hiatus, but scoped to the single phase it sits under. */
+  .phase-hiatus{ grid-column:2; margin-top:7px; }
+  .phase-hiatus-toggle{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:var(--text-muted); cursor:pointer; }
+  .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
+  .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+  /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
+  .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:11px; color:var(--accent); cursor:pointer; text-align:left; }
+  .autostart-btn:hover:not(:disabled){ text-decoration:underline; }
+  .autostart-btn:disabled{ color:var(--text-faint); cursor:default; }
+  .autostart-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:3px; }
+  .phase-fields label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1 1 116px; min-width:0;}
+  /* Let the date/number inputs shrink with their column instead of enforcing a ~136px intrinsic
+     minimum (which was pushing the whole sidebar into horizontal overflow on narrow windows). */
+  .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
+  .phase-meta{grid-column:2; font-size:11.5px; color:var(--text-faint); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
+  .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
+  .phase-name-input{font-weight:500; font-size:13.5px; font-family:inherit; border:1px solid transparent; border-radius:5px; padding:3px 5px; flex:1; background:transparent; color:var(--text); min-width:0;}
+  .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
+  .phase-name-input:hover{border-color:var(--border);}
+  .phase-name-input:focus{border-color:var(--border-strong); background:#fff; outline:none;}
+  .custom-phase-header .icon-btn{width:24px; height:24px; font-size:14px; flex:none;}
+  .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
+
+  input[type=date], input[type=number], select{
+    border:1px solid var(--border-strong); border-radius:7px; padding:6px 8px;
+    font-family:inherit; font-size:13px; background:#fff; color:var(--text);
+    width:100%;
+  }
+  select{cursor:pointer;}
+  input[type=number]{font-family:'IBM Plex Mono',monospace;}
+  input[type=checkbox]{accent-color:var(--accent); width:15px; height:15px;}
+
+  .hiatus-entry{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin-bottom:8px;}
+  .hiatus-entry label{display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1;}
+  /* Pin toggle: a locked all-phase hiatus keeps its calendar dates when the toolbar shifts the
+     calendar (a winter break belongs to Christmas, not to the schedule around it). */
+  /* Its own line under the fields: the sidebar is too narrow to hold it beside them, and letting
+     it share the row pushed the remove button onto a line of its own instead. */
+  .hiatus-lock{flex-basis:100% !important; flex-direction:row !important; align-items:center;
+    gap:5px !important; cursor:pointer; white-space:nowrap; margin-top:1px;}
+  .hiatus-lock input{margin:0; cursor:pointer;}
+  /* "Snapped to Mon …" hint shown under any date field whose value isn't already a Monday. */
+  /* Matches the phase-meta "Snapped to Mon" note (faint mono) so the two read identically. */
+  .snap-note{ flex-basis:100%; width:100%; font-size:11.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; line-height:1.3; margin-top:2px; }
+  .snap-note:empty{ display:none; }
+  .icon-btn{
+    border:1px solid var(--border-strong); background:#fff; border-radius:8px; width:32px; height:32px;
+    cursor:pointer; font-size:15px; color:var(--text-muted); line-height:1; flex:none;
+  }
+  .icon-btn:hover{background:var(--bg);}
+
+  /* Sidebar/content buttons only. :not(.tb-btn) keeps this off the toolbar, whose PDF-export
+     button also carries .primary -- otherwise this rule's larger padding/font would win over
+     .tb-btn and make that one button taller than its toolbar neighbors. */
+  button.primary:not(.tb-btn), button.secondary:not(.tb-btn){
+    font-family:inherit; font-size:13px; font-weight:500; border-radius:8px; padding:9px 14px;
+    cursor:pointer; border:1px solid transparent;
+  }
+  button.primary:not(.tb-btn){background:var(--accent); color:#fff;}
+  button.primary:not(.tb-btn):hover{background:var(--accent-hover);}
+  button.primary:not(.tb-btn):disabled{background:#B9C2CA; cursor:not-allowed;}
+  button.secondary:not(.tb-btn){background:#fff; border-color:var(--border-strong); color:var(--text);}
+  button.secondary:hover{background:var(--bg);}
+  .btn-row{display:flex; gap:8px; margin-top:4px;}
+  .add-hiatus-btn{width:100%; margin-top:2px;}
+
+  .placeholder-note{
+    font-size:12px; color:var(--text-faint); font-style:italic; line-height:1.5;
+  }
+
+
+  .empty-state{color:var(--text-faint); font-size:13.5px; padding:40px 0; text-align:center;}
+
+  /* Wraps rather than overflowing once the toggle and the tools can't share a line. */
+  .view-toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    flex-wrap:wrap; margin-bottom:14px;}
+  .view-toggle{display:inline-flex; gap:2px; background:var(--bg); border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
+  .view-toggle-btn{font-family:inherit; font-size:12.5px; font-weight:500; border:none; background:transparent; color:var(--text-muted); padding:6px 14px; border-radius:6px; cursor:pointer;}
+  .view-toggle-btn.active{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .view-toggle-btn:hover:not(.active){color:var(--text);}
+  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;}
+  .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
+  .undo-redo-group .icon-btn{font-size:16px;}
+  .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
+  /* Shift tools. Grouped in one bordered well so the pair reads as a single control (the calendar
+     moves as a whole) rather than as two unrelated arrow buttons next to Undo. */
+  .shift-group{position:relative; display:inline-flex; align-items:center; gap:2px; background:var(--bg);
+    border:1px solid var(--border-strong); border-radius:8px; padding:2px;}
+  .shift-btn{font-family:inherit; font-size:11px; font-weight:500; color:var(--text-muted);
+    border:none; background:transparent; border-radius:6px; padding:5px 7px; cursor:pointer;
+    white-space:nowrap; line-height:1;}
+  .shift-btn:hover{background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  /* The split control's second half: a hairline separates it from the arrows so it reads as
+     "options for this control" rather than a third arrow. */
+  .shift-caret{border-left:1px solid var(--border-strong); border-radius:0 6px 6px 0;
+    padding:5px 6px; font-size:9px; color:var(--text-faint);}
+  .shift-caret[aria-expanded="true"]{background:#fff; color:var(--text);}
+  /* Names the operation the two arrows perform. Fixed text -- the result readout gets its own
+     floating chip below rather than borrowing this slot, which used to swap in a much longer
+     string and shove the tools button and Undo/Redo sideways every time you nudged a week. */
+  .shift-label{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;
+    padding:0 4px; user-select:none; white-space:nowrap;}
+  /* Transient confirmation of what a shift did. Absolutely positioned so it can be as long as it
+     needs (the wrap date matters) without moving anything in the toolbar. */
+  .shift-readout{
+    display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:50; white-space:nowrap;
+    background:#fff; border:1px solid var(--border-strong); border-radius:6px; padding:4px 8px;
+    font-size:11px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace;
+    box-shadow:0 2px 8px rgba(0,0,0,.10);
+    /* It floats over the buttons beneath it for a couple of seconds; without this it would
+       swallow a click aimed at "Reset Notes & Hiatus" right after a shift. */
+    pointer-events:none;
+  }
+  .shift-group.flash .shift-readout{display:block;}
+
+  /* Calendar tools popover. Right-aligned: it hangs off a button near the right edge of the
+     preview panel, so anchoring it left would push it off screen. */
+  .tools-wrap{position:relative; flex:none;}
+  /* A labelled button, not a bare icon: every other command in this app says what it does
+     ("Save", "Export Waterfall to Excel"), and an unlabelled gear here was the one control the
+     user had to click to find out what it was. */
+  .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
+  .tools-btn .caret{color:var(--text-faint); font-size:9px;}
+  .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
+     sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
+     to need the height cap the old combined menu did. */
+  .tools-menu{
+    display:none; position:absolute; top:calc(100% + 5px); right:0; width:340px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:10px 12px; z-index:60; text-align:left;
+  }
+  .tools-menu-sm{width:280px;}
+  .tools-menu-lg{width:364px;}
+  .tools-div{height:1px; background:var(--border); margin:9px 0;}
+  .tools-menu.open{display:block;}
+  .tools-sec{padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--border);}
+  .tools-sec-last{padding-bottom:0; margin-bottom:0; border-bottom:none;}
+  .tools-head{margin:0 0 7px; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
+  .tools-row{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+  .tools-row:last-child{margin-bottom:0;}
+  .tools-edge{flex:none !important; width:92px;}
+  .tools-lbl{font-size:11.5px; color:var(--text-muted); width:64px; flex:none;}
+  .tools-menu input[type="number"]{width:52px; flex:none;}
+  .tools-menu input[type="date"]{flex:1; min-width:0;}
+  .tools-menu select{flex:1; min-width:0;}
+  .tools-unit{font-size:11.5px; color:var(--text-muted); flex:none;}
+  .tools-go{margin-left:auto; font-size:11.5px !important; padding:5px 9px !important;}
+  .tools-row .tools-go + .tools-go{margin-left:0;}
+  .tools-wide{width:100%; font-size:11.5px !important; padding:6px 9px !important;}
+  /* Two equal buttons sharing a row -- the paired directions, and Earlier/Later. */
+  .tools-half{flex:1; min-width:0; font-size:11.5px !important; padding:6px 4px !important; white-space:nowrap;}
+  /* A date sharing its row with a phase dropdown gets a fixed width, so the phase name isn't
+     squeezed. The selector has to out-specify `input[type=date]{width:100%}` above -- a bare
+     .tools-date-fixed loses to it and the date takes the whole row, collapsing the select. */
+  .tools-menu input[type="date"].tools-date-fixed{flex:none; width:124px;}
+  /* One line per tool saying what it leaves alone -- the fact you need to tell these apart, since
+     several take the same phase + date input and do different things with it. */
+  .tools-hint{margin:0 0 7px; font-size:10.5px; line-height:1.35; color:var(--text-faint);}
+  /* Result line. Kept in the popover rather than the toolbar because these tools can move things
+     by an amount the user didn't type (an anchor computes its own delta). */
+  .tools-msg{margin:9px 0 0; font-size:11px; line-height:1.4; color:var(--text-muted); min-height:0;}
+  .tools-msg:empty{display:none;}
+  .tools-msg.warn{color:var(--danger);}
+
+  /* ---------- Month view ---------- */
+  .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
+  .mv-tools{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+  #mv-hdr-mode-btn{
+    font-size:10px; padding:3px 8px;
+    /* line-height is pinned, not decorative. Chrome's UA sheet styles <button> with the
+       `font` SHORTHAND, which sets line-height to `normal`; this rule overrides font-size and
+       font-family individually, so `normal` survives. Mantine's baseline carries
+       `input,button,textarea,select{font:inherit}` -- also a shorthand -- which would replace
+       `normal` with the inherited 1.5 and add +3px of button height to a control the FROZEN
+       renderers emit inside #table-wrap. The @layer fence does not help here: it settles
+       priority between declarations of the same property, and without this line the app
+       declares no line-height at all. UI-CONVENTIONS.md §8.6. */
+    line-height:normal;
+    border:1px solid var(--border-strong); border-radius:6px; background:var(--bg);
+    color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  #mv-hdr-mode-btn:hover{ color:var(--text); background:#fff; }
+  #mv-hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
+  .mv-header.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; border-radius:8px; padding:8px; }
+  .mv-header{ margin-bottom:14px; }
+  /* Title sits centred while the date is pinned right: the spacer mirrors the date's width so
+     the title stays optically centred on the page rather than being pushed left by it. */
+  .mv-titlebar{ display:flex; align-items:baseline; gap:12px; }
+  .mv-title{ flex:1; text-align:center; font-size:22px; font-weight:700; }
+  .mv-today{ font-size:20px; font-weight:700; color:#000; white-space:nowrap; }
+  .mv-titlebar::before{ content:''; flex:0 0 auto; width:var(--mv-today-w, 84px); }
+  .mv-arrow{
+    font-family:inherit; font-size:13px; line-height:1; cursor:pointer;
+    border:1px solid var(--border-strong); background:#fff; color:var(--text-muted);
+    border-radius:6px; padding:6px 10px;
+  }
+  .mv-arrow:hover:not(:disabled){ background:var(--bg); color:var(--text); }
+  .mv-arrow:disabled{ opacity:.3; cursor:default; }
+  /* The month/year sits in a box that's part of the grid: it shares the calendar's black
+     border and butts directly onto the day-name row, so the whole thing reads as one table
+     rather than a floating label above a separate grid. */
+  .mv-monthbar{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    background:#EDEDED; border:1px solid #000; border-bottom:none;
+    padding:7px 10px;
+  }
+  .mv-monthyear{ font-size:17px; font-weight:700; letter-spacing:.01em; }
+  .mv-dowrow{ display:grid; grid-template-columns:repeat(7,1fr); background:#F7F7F7;
+    border:1px solid #000; border-bottom:none; }
+  .mv-dow{
+    text-align:center; font-size:11px; font-weight:700; color:var(--text-muted);
+    padding:6px 0; text-transform:uppercase; letter-spacing:.04em;
+  }
+  /* Each week is a row: the day-number grid sits underneath, and phase pills are laid over it
+     in the same 7-column track so a bar can span multiple days as one continuous shape. */
+  .mv-body{ border:1px solid #000; border-top:none; }
+  .mv-week{ position:relative; border-top:1px solid #000; }
+  .mv-week:first-child{ border-top:none; }
+  /* The day-number grid is the background layer: it fills the row so the cell shading and
+     dividers cover the full height, whatever that height ends up being. */
+  .mv-daygrid{
+    position:absolute; inset:0;
+    display:grid; grid-template-columns:repeat(7,1fr);
+  }
+  .mv-daycell{ border-left:1px solid #000; padding:3px 5px; }
+  .mv-daycell:first-child{ border-left:none; }
+  .mv-daynum{ font-size:11px; font-weight:600; color:#333; }
+  .mv-out{ background:#FAFAF9; }
+  .mv-out .mv-daynum{ opacity:.35; }
+  .mv-weekend{ background:#F4F3F0; }
+  /* Bars sit in normal flow ON TOP of the day grid, so tall content (a wrapped note) grows
+     the week row rather than spilling over the week below. */
+  .mv-bars{
+    position:relative; z-index:1;
+    display:grid; grid-template-columns:repeat(7,1fr);
+    /* Fixed-height lanes: every bar is placed in an explicit grid-row, so an empty lane is a
+       real, addressable slot rather than whatever gap the flow leaves. */
+    grid-auto-rows:17px;
+    gap:2px 0; padding:24px 3px 14px;
+    /* The bar layer sits over the day grid, so it must not swallow clicks meant for the cells
+       underneath. Individually clickable bars opt back in via .mv-note-click below. */
+    pointer-events:none;
+  }
+  /* Grows the whole week row by one line. Sits on the bottom edge, visually distinct from the
+     per-slot "+" so it doesn't read as just another empty line. */
+  .mv-row-expand{
+    position:absolute; left:0; right:0; bottom:0; height:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; line-height:1; color:var(--text-faint);
+    background:linear-gradient(to bottom, transparent, rgba(0,0,0,.05));
+    cursor:pointer; pointer-events:auto; opacity:0; transition:opacity .12s;
+    border-top:1px dashed var(--border-strong);
+  }
+  .mv-week:hover .mv-row-expand{ opacity:.5; }
+  .mv-row-expand:hover{ opacity:1; color:var(--text); background:rgba(0,0,0,.07); }
+  /* At the line cap: still visible on hover so the limit is discoverable, but inert. */
+  .mv-row-expand.is-full{ cursor:default; letter-spacing:2px; }
+  .mv-week:hover .mv-row-expand.is-full{ opacity:.3; }
+  .mv-row-expand.is-full:hover{ opacity:.3; color:var(--text-faint); background:transparent; }
+  .mv-bar{
+    font-size:10px; font-weight:600; line-height:1.5; padding:1px 8px; margin:0 1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    border:1px solid rgba(0,0,0,.18);
+  }
+  /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
+  .mv-pill{ border-radius:9px; }
+  .mv-hiatus-bar{ border-radius:9px; text-align:center; }
+  /* Notes are deliberately square so they read as a different class of thing than phases,
+     and they sit on their exact day -- so instead of stealing width from neighbouring days,
+     longer text wraps onto extra lines and the block grows taller. */
+  /* A note is one solid block up to 3 lines tall. pre-wrap keeps the user's own line breaks AND
+     lets long text wrap; the block is given exactly as many lanes as it needs, so it fills a single
+     highlight rather than overflowing. overflow:hidden guards against a mis-measure spilling over a
+     neighbour. */
+  .mv-note-block{
+    border-radius:0; font-weight:500;
+    white-space:pre-wrap; overflow:hidden; text-overflow:clip;
+    line-height:1.3; padding:2px 4px; word-break:break-word; hyphens:auto;
+  }
+  .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
+
+  /* Episodes live inside the Production phase row (month view only). */
+  /* Simultaneous Post sits inside the Production row: its offset counts weeks from
+     Production's start, so the control belongs next to the date it's measured from. */
+  .simpost-panel{
+    grid-column:1 / -1; margin-top:6px; padding-top:6px;
+    border-top:1px dashed var(--border);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .simpost-toggle{
+    display:flex; align-items:center; gap:6px;
+    font-size:11.5px; font-weight:600; color:var(--text);
+  }
+  .simpost-offset-row{
+    display:flex; align-items:center; gap:5px;
+    font-size:10.5px; color:var(--text-muted); padding-left:20px;
+  }
+  .simpost-offset-row input{ width:52px; }
+  .simpost-offset-row.is-off{ opacity:.45; }
+  /* Post-numbering mode toggle. Its own class (not .simpost-offset-row) because that rule forces a
+     52px-wide input, which would stretch this checkbox. */
+  .simpost-count-row{
+    display:flex; align-items:flex-start; gap:6px;
+    font-size:10.5px; color:var(--text-muted); padding-left:20px; line-height:1.35;
+  }
+  .simpost-count-row input{ width:13px; height:13px; flex:none; margin-top:1px; }
+  .simpost-count-row.is-off{ opacity:.45; }
+  .ep-panel{
+    grid-column:1 / -1; margin-top:8px; padding:8px 10px;
+    border:1px dashed var(--border-strong); border-radius:8px; background:var(--bg);
+  }
+  .ep-panel-warn{
+    font-size:11px; color:#8a5a00; background:#fff8e6;
+    border:1px solid #f0d9a0; border-radius:6px; padding:6px 8px;
+  }
+  /* ---------- Calendar PDF export (browser print) ---------- */
+  #print-root{ display:none; }
+  /* Waterfall PDF look: compact rows + Excel's grey header, to read like the Excel print. Scoped
+     to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
+     fit-to-page measurement sees exactly the size that will print. */
+  /* Horizontal padding must stay equal to the screen's, and to what the width model budgets:
+     the print copy reuses the screen's column widths, so 6px each side against a 3.75px budget
+     clipped in the PDF exactly what the screen had room for. Vertical padding is 0 here on
+     purpose -- print rows are content-height, not the screen's fixed 20px. */
+  .wf-print .sheet-table td, .wf-print .sheet-table th{ height:auto; padding:0 1.5px; line-height:1.3; }
+  /* Interior gridlines for the PDF, matched to the Excel export by SHEET_GRIDLINES (the class is
+     stamped on the wrapper at export time, so the two can never drift apart). 'none' is the
+     reference look: grey header, year-block separators and outer frame only. The dotted variant
+     exists because the fit-to-page zoom magnifies borders -- dashed renders as chunky heavy marks
+     once scaled up, where fine dots still read as a light Excel-style hairline. */
+  .wf-print.wf-grid-none   .sheet-table{ --grid-line:transparent; }
+  .wf-print.wf-grid-dashed .sheet-table{ --grid-line:#BFBFBF; --grid-style:dashed; }
+  .wf-print.wf-grid-dotted .sheet-table{ --grid-line:#DBDBDB; --grid-style:dotted; }
+  .wf-print .sheet-table th{ background:#D9D9D9; border-color:#BFBFBF; }
+  .wf-print .cal-header-bar{ padding:5px 12px; min-height:0; }
+  .wf-print .phase-cell-label{ max-width:none; }
+  @media print{
+    /* Landscape with minimal margins so the grid prints as large as the sheet allows. */
+    @page{ size:landscape; margin:8mm; }
+    /* Only the generated month pages print; the whole app UI is suppressed. */
+    body.printing-calendar > *:not(#print-root){ display:none !important; }
+    body.printing-calendar{ background:#fff; }
+    body.printing-calendar #print-root{ display:block; }
+    #print-root .print-page{
+      break-after:page; page-break-after:always;
+      /* Each page IS one printed sheet. Height is pinned to the page box itself (100vh, the area
+         inside the @page margins) rather than a px value computed from an assumed DPI -- a px
+         guess that's even a fraction too tall overflows and spills the bottom onto a second,
+         near-empty page. overflow:hidden guarantees no sub-pixel spill. The page is a flex
+         column so the month grid inside it stretches to fill the full sheet, top to bottom.
+         The 2px padding insets the calendar a hair from the page-box edge: without it the outer
+         frame borders sit exactly on the clip boundary and Chrome trims them to a sub-pixel, so
+         the right/bottom edge lines print thinner than the rest. 2px is imperceptible against the
+         8mm page margin but keeps every frame border fully inside the printable area. */
+      height:100vh; width:100%; box-sizing:border-box; overflow:hidden; padding:2px;
+      display:flex; flex-direction:column;
+    }
+    #print-root .print-page:last-child{ break-after:auto; page-break-after:auto; }
+    /* The month grid is the whole page now -- drop the on-screen card chrome, and fill the page. */
+    #print-root .month-view{
+      border:none; border-radius:0; padding:0;
+      display:flex; flex-direction:column; flex:1 1 auto; min-height:0;
+    }
+    /* The body takes whatever height the header leaves, and the weeks divide it between them
+       in proportion to their lane counts -- so a 4-line row and a 6-line row keep their
+       relative sizes while the month as a whole always reaches the bottom of the sheet. */
+    #print-root .mv-body{ flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+    /* CRITICAL for print line fidelity: on screen the day grid (shading + dividers + day numbers)
+       is a position:absolute layer under the bars. Chrome's print pipeline rasterizes that
+       composited layer and drops 1px lines from it non-deterministically -- which is why exporting
+       the same month twice gave different missing dividers. So in print we take the grid OUT of the
+       absolute layer: the week becomes a 1x1 CSS grid and BOTH the day grid and the bars occupy the
+       same single cell (grid-area 1/1), stacked. The day grid is now in-flow, in the same paint
+       layer as the horizontal week borders (which always printed fine), so its vertical dividers
+       render as stable vector strokes every time. */
+    #print-root .mv-week{ min-height:0; display:grid !important; grid-template-columns:1fr !important; grid-template-rows:1fr !important; }
+    #print-root .mv-daygrid{ position:static !important; grid-area:1 / 1 !important; }
+    /* Lanes are content-sized in print (min 17px, grow to fit) -- NOT stretched to equal 1fr
+       tracks. Equal tracks compress every lane to the same height, which clips a note that wraps
+       to two lines (it needs ~34px but a compressed track gives it ~20px). With auto the wrapped
+       note's lane simply grows to hold it. Bars pack to the top of the cell, matching the on-screen
+       month view. The week still fills the sheet (its flex height + the day-grid lines run full
+       height); the bars just sit at the top of that height. */
+    #print-root .mv-bars{ grid-area:1 / 1 !important; height:auto; grid-auto-rows:minmax(17px, auto); align-content:start; }
+    #print-root .mv-bar{ align-self:start; }
+    /* Month paging arrows are meaningless on paper. */
+    #print-root .mv-arrow{ display:none !important; }
+    #print-root .mv-tools{ display:none !important; }
+    /* The add/expand affordances are interactive chrome: never on paper. */
+    #print-root .mv-note-add, #print-root .mv-row-expand{ display:none !important; }
+    /* Phase colours are the whole point of this document, so keep them. */
+    *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    /* Outer frame + the horizontal week separators are real borders on IN-FLOW block elements,
+       which print reliably. */
+    #print-root .mv-body,
+    #print-root .mv-monthbar,
+    #print-root .mv-dowrow{ border-color:#000 !important; }
+    #print-root .mv-week{ border-top:1px solid #000 !important; }
+    #print-root .mv-week:first-child{ border-top:none !important; }
+    /* Vertical day dividers are 1px borders on the day cells -- exactly like the horizontal week
+       borders above, which print reliably. This works now ONLY because the grid-stacking above
+       moved the day grid OUT of the absolute layer and into the in-flow paint layer; the same
+       borders failed before because they lived on the composited absolute layer that Chrome
+       rasterized and thinned. Keep the bars above via z-index so pills sit over the dividers. */
+    #print-root .mv-bars{ z-index:1; }
+    #print-root .mv-daycell{ border-left:1px solid #000 !important; }
+    #print-root .mv-daycell:first-child{ border-left:none !important; }
+
+    /* ---- Waterfall (spreadsheet) PDF ---- */
+    /* Reuses the on-screen waterfall table (same header + column layout as the Excel export) so
+       the PDF reads like the Excel sheet printed. Orientation (portrait vs landscape) and any
+       fit-to-width scaling are chosen at export time; see exportWaterfallPdf(). */
+    body.printing-waterfall > *:not(#print-root){ display:none !important; }
+    body.printing-waterfall{ background:#fff; }
+    body.printing-waterfall #print-root{ display:block; }
+    /* Center the calendar horizontally (both orientations): the grid block has an explicit pinned
+       width (set in exportWaterfallPdf), so margin:auto splits the leftover printable slack evenly
+       left/right instead of it pooling on the right. */
+    body.printing-waterfall #print-root .wf-print{ margin-left:auto; margin-right:auto; }
+    /* Un-scroll / un-chrome the sheet wrapper so the full grid flows across pages. */
+    #print-root .sheet-scroll{ overflow:visible !important; max-height:none !important; border:none !important; border-radius:0 !important; }
+    /* Repeat the column-header row on every page; drop the on-screen sticky + shadow. */
+    #print-root table.sheet-table thead{ display:table-header-group; }
+    #print-root table.sheet-table th{ position:static !important; box-shadow:none !important; }
+    /* Keep each week row intact across page breaks; hide the interactive "+" note affordance. */
+    #print-root table.sheet-table tr{ break-inside:avoid; page-break-inside:avoid; }
+    #print-root .note-add-hint{ display:none !important; }
+    /* The title header prints once at the top of the first page. */
+    #print-root .cal-header-bar{ page-break-inside:avoid; break-inside:avoid; }
+  }
+
+  /* Production's total is derived from the episode list, so it reads as a value, not a field.
+     Laid out label-on-top like the Start date / Weeks fields beside it: small muted label, a
+     prominent number, then a faint "from N episodes" caption. Each text unit stays intact so it
+     wraps as a whole rather than breaking mid-phrase on a narrow sidebar. */
+  .prod-total-readout{
+    display:flex; flex-direction:column; gap:3px; flex:1 1 116px; min-width:0;
+    align-self:flex-start; color:var(--text);
+  }
+  /* Keep the label to one line (ellipsis if the sidebar is very narrow) so it stays the same
+     height as the sibling "Start date" label -- otherwise a 2-line wrap pushes the value out of
+     alignment with the date box. Full text remains available via the title tooltip. */
+  .prod-total-label{ font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* min-height matches the sibling date/number input (~32px) and the content is centered, so the
+     "80 from N episodes" value lines up with the date text in the Start date box rather than
+     floating at the top. The 3px readout gap mirrors the field label->input gap. */
+  .prod-total-value{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-height:32px; }
+  .prod-total-value strong{ font-size:16px; line-height:1.1; }
+  .prod-total-src{ font-size:10.5px; color:var(--text-faint); white-space:nowrap; }
+  .prod-total-empty{ font-size:11px; color:var(--text-faint); font-style:italic; }
+  .show-info-note{
+    margin-top:10px; font-size:10.5px; line-height:1.45;
+    color:#1F4E79; background:#EAF3FB; border:1px solid #C5DDF0;
+    border-radius:6px; padding:6px 8px;
+  }
+  /* Episodes changed by hand, called out separately: this is what explains a total that
+     isn't a round episodes x days multiple. */
+  .show-info-flags{
+    margin-top:5px; padding-top:5px; border-top:1px solid #C5DDF0; color:#8a5a00;
+  }
+  /* A Production row that can't build episodes yet is visibly inert. */
+  .phase-row.phase-blocked > .swatch,
+  .phase-row.phase-blocked > .custom-phase-header,
+  .phase-row.phase-blocked > .phase-fields,
+  .phase-row.phase-blocked > .phase-meta{ opacity:.45; }
+  .episode-row{ display:flex; gap:6px; align-items:center; margin-bottom:5px; }
+  .episode-row .ep-name{
+    flex:1; min-width:0; font-family:inherit; font-size:12.5px;
+    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
+  }
+  .episode-row .ep-days{
+    width:62px; flex:none; font-family:inherit; font-size:12.5px;
+    border:1px solid var(--border-strong); border-radius:6px; padding:5px 7px;
+  }
+
+  /* Bounded so the header row can pin while the (potentially very tall) table scrolls inside,
+     instead of the whole page scrolling and the Date/Notes headers disappearing. Sized off the
+     sticky app header; the ~140px covers the summary row, view toggle and preview padding above. */
+  /* Resize handles are absolutely positioned against this, so they scroll with the grid. */
+  /* width:max-content so the wrapper hugs the table rather than the scroll pane: the handle
+     layer is positioned against this box, and a pane-width wrapper would put the coordinate
+     space out of step with the grid as soon as the grid was wider than the pane. */
+  .sheet-grid-wrap{ position:relative; width:max-content; }
+  .grid-resize-layer{ position:absolute; inset:0; pointer-events:none; }
+  /* The handles themselves take pointer events; the layer does not, so clicking a note cell
+     through the layer still works. */
+  .grid-resize{ position:absolute; pointer-events:auto; }
+  /* Column handles sit ABOVE row handles. The two cross at the date column's right edge, and
+     because a row handle exists at every row boundary they covered roughly a third of that
+     edge -- so grabbing the date column worked or didn't depending on where you happened to
+     click vertically. Row handles are also inset from the edge (see installGridResizers), so
+     now they do not overlap at all; the z-index is belt and braces. */
+  .grid-resize.is-col{ width:7px; margin-left:-4px; cursor:col-resize; z-index:5; }
+  .grid-resize.is-row{ height:7px; margin-top:-4px; cursor:row-resize; z-index:4; }
+  /* Cell-span handles live on the left/right edge of a single phase cell. They are deliberately
+     inset a few px INTO the cell rather than centred on the boundary: a cell edge always falls on
+     a column boundary, and a handle sitting on top of one would steal the column drag on every row
+     that has phase content -- which is most of them. Column handles cover x-4..x+3, so these start
+     outside that band. Higher z-index for where they still touch. */
+  .grid-resize.is-span{ width:7px; cursor:ew-resize; z-index:6; }
+  .grid-resize.is-span::after{
+    content:''; position:absolute; left:2px; top:50%; width:3px; height:11px; margin-top:-6px;
+    border-radius:2px; background:rgba(112,48,160,.55); opacity:0; transition:opacity .1s;
+  }
+  .grid-resize.is-span:hover::after, .grid-resize.is-span.dragging::after{ opacity:1; }
+  .grid-resize:hover{ background:rgba(112,48,160,.22); }
+  .grid-resize.dragging{ background:rgba(112,48,160,.45); }
+  /* Row height has locked onto the default or onto another row's -- worth showing, since the
+     whole point is that the result matches something else exactly. */
+  .grid-resize.is-row.snapped{ background:rgba(0,176,80,.55); }
+  /* Ghost of where the cell will land, drawn over the grid while a span handle is dragged.
+     The alternative -- rewriting colSpan live -- reflows the whole table on every pointermove. */
+  .span-preview{
+    position:absolute; pointer-events:none; z-index:7; border:2px solid rgba(112,48,160,.85);
+    background:rgba(112,48,160,.12); border-radius:2px;
+  }
+  body.grid-resizing.span{ cursor:ew-resize; }
+  body.grid-resizing{ cursor:col-resize; user-select:none; }
+  body.grid-resizing.row{ cursor:row-resize; }
+  .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
+  .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
+  .cal-header-date{font-family:'Carlito','Calibri',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
+  .cal-header-center{flex:1; text-align:center; font-family:'Carlito','Calibri',sans-serif; line-height:1.4;}
+  .cal-header-center .cal-subtitle{font-size:11px; color:var(--text);}
+  .cal-header-right{min-width:120px; text-align:right;}
+  .cal-header-right-content{font-family:'Carlito','Calibri',sans-serif; font-size:11px; color:var(--text); line-height:1.5; text-align:right;}
+  /* Editable header lines: auto-filled, click any line to edit it in place */
+  .hdr-line{outline:none; border-radius:4px; padding:0 3px; min-height:14px;}
+  .hdr-line.hdr-title{font-size:13px; font-weight:700; color:var(--text);}
+  /* Only the manual-mode lines are interactive */
+  .hdr-line.hdr-editable{cursor:text;}
+  .hdr-line.hdr-editable:hover{ box-shadow:inset 0 0 0 1px var(--border-strong); }
+  .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); background:#faf5ff; }
+  .hdr-line.hdr-editable.hdr-empty:not(:focus):hover::before{ content:'edit'; color:var(--text-faint); font-size:10px; }
+  .cal-header-bar.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; }
+  .hdr-tools{display:flex; justify-content:flex-end; gap:6px; padding:4px 8px 0; background:#fff;}
+  #hdr-mode-btn, #notes-reset-btn{
+    font-size:10px; padding:3px 8px;
+    /* line-height is pinned, not decorative. Chrome's UA sheet styles <button> with the
+       `font` SHORTHAND, which sets line-height to `normal`; this rule overrides font-size and
+       font-family individually, so `normal` survives. Mantine's baseline carries
+       `input,button,textarea,select{font:inherit}` -- also a shorthand -- which would replace
+       `normal` with the inherited 1.5 and add +3px of button height to a control the FROZEN
+       renderers emit inside #table-wrap. The @layer fence does not help here: it settles
+       priority between declarations of the same property, and without this line the app
+       declares no line-height at all. UI-CONVENTIONS.md §8.6. */
+    line-height:normal;
+    border:1px solid var(--border-strong); border-radius:6px; background:var(--bg);
+    color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  #hdr-mode-btn:hover, #notes-reset-btn:hover{ color:var(--text); background:#fff; }
+  #hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
+  #union-country.locked, #union-subregion.locked, #union-usregion.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
+  /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
+     gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
+  table.sheet-table{
+    /* fixed layout makes the <colgroup> widths authoritative; without it they are only hints
+       and the browser re-sizes from content.
+       An explicit width is set inline, to the exact sum of the column widths. Without it the
+       table is width:auto, and a width:auto table in a narrower container COMPRESSES to fit
+       rather than overflowing -- so the declared widths silently stopped applying as soon as
+       the grid outgrew the preview pane, and the drag handles (positioned from the declared
+       widths) drifted off the boundaries they were supposed to sit on. With the width set, the
+       grid overflows and .sheet-scroll scrolls, which is what should happen. */
+    table-layout:fixed;
+    border-collapse:collapse; font-size:11px; white-space:nowrap;
+    font-family:'Carlito','Calibri','Segoe UI',-apple-system,sans-serif;
+    background:#fff; color:#000;
+    /* Interior gridline, as a variable so the print variants can restyle it WITHOUT adding a
+       higher-specificity td rule -- one of those would also out-rank the block separators and
+       the outer frame, which are longhand borders on more specific selectors. */
+    --grid-line:#D4D4D4; --grid-style:solid;
+  }
+  /* No padding here: `table.sheet-table td` (one class, two type selectors) out-specifies
+     `td.sheet-note-cell` (one class, one type), so the 4px this used to ask for never applied.
+     Padding is set in one place, against the width model. */
+  td.sheet-note-cell{cursor:text; min-width:70px; position:relative; vertical-align:top;}
+  /* Note and hiatus text lives in this wrapper so a pinned row can CAP it. An inline height on a <tr> is
+     only a MINIMUM -- the row grows to fit its content -- so without a wrapper carrying
+     max-height, dragging a row shorter than its text just sprang back. Rows that were never
+     dragged get no max-height and still grow rather than lose text. */
+  .cell-body{ overflow:hidden; text-overflow:ellipsis; }
+  td.sheet-note-cell:hover:not(.has-note):not(.editing){ background:#faf5ff; }
+  td.sheet-note-cell .note-add-hint{color:#ccc; font-size:11px; font-family:'Inter',sans-serif; user-select:none; padding:2px 4px;}
+  td.sheet-note-cell:hover .note-add-hint{color:#b39ddb;}
+  .note-editor{display:flex; flex-direction:column; gap:4px;}
+  /* The note/hiatus editor is a popover anchored to the cell, not markup injected into it. It
+     used to replace the cell's contents, so the cell grew to hold a two-row textarea plus three
+     control rows -- and with table-layout:fixed that shoved its whole row around while you typed,
+     which is exactly what you were reading when you opened it. The grid now never moves: the cell
+     keeps its text and takes an outline, and the controls float above. Same shape as the month
+     view's note popover, which has always worked this way. */
+  .note-pop{
+    position:absolute; z-index:60; width:230px; padding:8px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 6px 22px rgba(0,0,0,.18);
+  }
+  .note-pop-title{ font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+  .note-editor textarea{
+    width:100%; box-sizing:border-box; font-family:'Inter',sans-serif; font-size:11px;
+    color:var(--text); background:#fff; border:1px solid var(--border-strong);
+    border-radius:5px; padding:4px 5px; resize:vertical; line-height:1.4;
+    max-height:140px; overflow:auto;
+  }
+  .note-editor textarea::placeholder{ color:var(--text-faint); opacity:1; }
+  .note-pop-hint{ font-size:9px; color:var(--text-faint); margin-top:5px; }
+  td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
+  td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
+  /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
+     fill. A hover ring makes the "click to edit" affordance discoverable on exactly the cells a
+     user is most likely to want to change. (Empty note cells already show a hover tint above.) */
+  td.sheet-note-cell.has-note:hover:not(.editing){ box-shadow: inset 0 0 0 2px rgba(112,48,160,.55); }
+  td.sheet-hiatus-cell:hover:not(.editing){ box-shadow: inset 0 0 0 2px rgba(0,0,0,.4); }
+  /* Month view note editing. The .mv-bars layer is click-through, so anything interactive in
+     it has to opt back in explicitly or it renders but can never be clicked. */
+  .mv-note-click{ cursor:pointer; pointer-events:auto; }
+  .mv-note-add{
+    background:transparent; color:var(--text-faint); border:1px dashed var(--border-strong);
+    border-radius:3px; text-align:center; opacity:0; transition:opacity .12s;
+    font-size:10px; line-height:1;
+  }
+  /* Visible on hovering the week so it's discoverable, but faint until pointed at directly. */
+  .mv-week:hover .mv-note-add{ opacity:.5; }
+  .mv-note-add:hover{ opacity:1 !important; color:var(--text); background:#fff; border-style:solid; }
+  /* The "add a note" affordance for a day whose lanes are ALL full. Positioned absolutely in the
+     row's bottom padding rather than given its own grid row, so it doesn't inflate the row height
+     with an empty trailing line. Hover-only, and above the row-expand strip so it stays clickable. */
+  .mv-note-add.mv-note-add-full{ position:absolute; bottom:1px; height:13px; z-index:3; }
+  .mv-note-pop{
+    position:absolute; z-index:60; width:230px; padding:8px;
+    background:#fff; border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 6px 22px rgba(0,0,0,.18);
+  }
+  .mv-note-pop-day{ font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:4px; }
+  .mv-note-pop textarea{
+    width:100%; box-sizing:border-box; font-family:'Inter',sans-serif; font-size:11px;
+    border:1px solid var(--border-strong); border-radius:5px; padding:4px 5px; resize:vertical;
+  }
+  .mv-note-pop-hint{ font-size:9px; color:var(--text-faint); margin-top:5px; }
+
+  .note-day-row{ display:flex; align-items:center; margin-top:4px; }
+  .note-day-row label{ display:flex; align-items:center; gap:4px; font-size:9.5px; color:var(--text-muted); }
+  .note-day-select{
+    font-size:9.5px; padding:1px 3px; border:1px solid var(--border-strong);
+    border-radius:4px; background:#fff; color:var(--text); font-family:'Inter',sans-serif;
+  }
+  .note-size-row{ display:flex; align-items:center; margin-top:3px; }
+  .note-size-row label{ display:flex; align-items:center; gap:4px; font-size:9.5px; color:var(--text-muted); }
+  .note-size-select{
+    font-size:9.5px; padding:1px 3px; border:1px solid var(--border-strong);
+    border-radius:4px; background:#fff; color:var(--text); font-family:'Inter',sans-serif;
+  }
+  .note-color-row{display:flex; gap:3px; padding:3px 2px 1px; flex-wrap:wrap; justify-content:center;}
+  .color-swatch{
+    width:14px; height:14px; border-radius:3px; cursor:pointer; display:inline-block;
+    border:1px solid rgba(255,255,255,.55); box-shadow:0 0 0 1px rgba(0,0,0,.25);
+  }
+  .color-swatch:hover{ transform:scale(1.15); }
+  .color-swatch.selected{ outline:2px solid #fff; outline-offset:1px; box-shadow:0 0 0 1px #000; }
+  td.sheet-note-cell.has-note{cursor:text; text-align:center;}
+  /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
+     one grows the row and reads better from the top. */
+  td.sheet-note-cell.has-note{ vertical-align:middle; }
+  /* Excel's gridlines are a soft light grey, thinner and lighter than a typical table border. */
+  table.sheet-table td, table.sheet-table th{
+    /* Horizontal padding has to match what the width model budgets, or the two disagree and
+       text is clipped by the difference. Excel's px = trunc(chars*7)+5, where the +5 is a 2px
+       inset each side plus the 1px gridline; at SHEET_ZOOM that is 3.75px total, so ~1.5px of
+       padding either side of a 1px border. It was 10px each side -- 20px against a budget of
+       3.75px -- which silently ellipsis-clipped 64 of 255 filled cells, "Post wk 22" among
+       them, by up to 14px. Cells are centre-aligned, so a tight inset reads correctly; the
+       breathing room comes from COL_PAD_CHARS instead, where both outputs get it equally. */
+    border:1px var(--grid-style) var(--grid-line); padding:2px 1.5px; text-align:center;
+    height:20px; line-height:1.35;
+  }
+  /* Excel column-header styling: light grey fill, subtle darker rule beneath. */
+  table.sheet-table th{
+    background:#F2F2F2; font-weight:600; font-size:11px;
+    font-family:'Carlito','Calibri','Segoe UI',sans-serif; color:#000;
+    border-color:#C6C6C6;
+    /* Pin the column-header row to the top of the scroll pane. border-collapse drops the
+       header's borders while stuck, so redraw the top/bottom rules with box-shadow. */
+    position:sticky; top:0; z-index:2;
+    box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6;
+  }
+  /* Inherits the 1.5px inset above. It used to set 5px each side, which is the same mismatch
+     with the width model that clipped the body cells: 10px spent against a budget of 3.75px,
+     enough to put an ellipsis on every two-digit-month date (10/12/26 needed 53px in a 52px
+     cell). The column is measured from the widest date in bold, so with the inset back in step
+     there is ~5px to spare. */
+  table.sheet-table td.sheet-date{font-weight:600; white-space:nowrap;}
+  /* Columns are now sized to their own content (see sheetColumnWidths), so a label only needs
+     truncating in the one case the width model deliberately refuses to follow: a name past
+     COL_MAX_CHARS. The old hardcoded 130px cap is gone -- it applied to every label regardless
+     of how much room its column actually had. */
+  /* display:block, NOT inline-block. An inline-block sits on the text baseline, and aligning it
+     mid-line makes the line box a fraction taller than the plain strut -- so every row holding a
+     phase label came out 21px against the 20px of every other row. Twelve rows of 21 and forty of
+     20 is exactly the "ever so slightly different heights" that makes a printed grid look wrong.
+     A block box fills the cell and adds nothing. */
+  .sheet-table .phase-cell-label{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+  /* Clip to the column rather than letting content force it wider. This used to exempt .editing,
+     because the note and hiatus editors were built INTO the cell and a clipped cell would have cut
+     the editor off mid-word. They are popovers now, so the cell being edited is an ordinary cell
+     and clips like every other one. */
+  table.sheet-table td, table.sheet-table th{ overflow:hidden; text-overflow:ellipsis; }
+  table.sheet-table td.sheet-blockstart{border-left:2px solid var(--text);}
+  table.sheet-table th.sheet-blockstart{border-left:2px solid var(--text);}
+  table.sheet-table td.sheet-blockend{border-right:2px solid var(--text);}
+  table.sheet-table th.sheet-blockend{border-right:2px solid var(--text);}
+  table.sheet-table tr:first-child th{border-top:2px solid var(--text);}
+  table.sheet-table tr:last-child td{border-bottom:2px solid var(--text);}
+  table.sheet-table td.sheet-empty{background:#fff;}
+  .gap-banner{background:#FFF4E5; border:1px solid #F0C36D; color:#7A5300; border-radius:var(--radius); padding:10px 14px; font-size:12.5px; margin-bottom:14px; line-height:1.6;}
+  .gap-banner strong{font-weight:500;}
+
+  table.week-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.week-table th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted);
+    border-bottom:1px solid var(--border-strong); padding:6px 8px; position:sticky; top:0; background:var(--bg);
+  }
+  table.week-table td{padding:5px 8px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  .block-divider td{padding:10px 8px 4px; font-weight:600; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border-strong); background:transparent;}
+  .date-cell{font-family:'IBM Plex Mono',monospace; white-space:nowrap; color:var(--text-muted);}
+  .badge{display:inline-block; padding:2px 8px; border-radius:5px; font-size:12px; margin:1px 4px 1px 0; font-weight:500;}
+  .badge.hiatus{background:var(--c-hiatus); color:var(--c-hiatus-text);}
+  .badge.simpost{background:var(--c-simpost); color:var(--c-simpost-text); font-size:11px;}
+  .badge.milestone{background:#7030A0; color:#FFFFFF; font-size:11px; display:block; margin-bottom:3px;}
+
+  footer.assumptions{margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faint); line-height:1.6;}
+  footer.assumptions strong{color:var(--text-muted);}
+
+  /* Help button + modal */
+  #help-fab{
+    position:fixed; right:22px; bottom:22px; z-index:60;
+    width:46px; height:46px; border-radius:50%;
+    border:1px solid var(--border-strong); background:var(--accent); color:#fff;
+    font-size:22px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.22); transition:transform .12s ease, background .12s ease;
+  }
+  #help-fab:hover{ background:var(--accent-hover); transform:translateY(-1px); }
+  #help-fab:active{ transform:translateY(0); }
+
+  #help-overlay{
+    display:none; position:fixed; inset:0; z-index:70;
+    background:rgba(20,19,17,.45); backdrop-filter:blur(2px);
+    align-items:center; justify-content:center; padding:24px;
+  }
+  #help-overlay.open{ display:flex; }
+  #help-modal{
+    background:var(--panel); border-radius:14px; width:min(720px,100%);
+    max-height:88vh; display:flex; flex-direction:column;
+    box-shadow:0 18px 50px rgba(0,0,0,.3); overflow:hidden;
+  }
+  #help-modal-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:18px 22px; border-bottom:1px solid var(--border); flex:none;
+  }
+  #help-title{ margin:0; font-size:17px; font-weight:600; }
+  #help-close{
+    border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+    font-size:26px; line-height:1; padding:0 4px; border-radius:6px;
+  }
+  #help-close:hover{ color:var(--text); background:var(--bg); }
+  #help-body{ padding:8px 22px 22px; overflow-y:auto; font-size:13.5px; line-height:1.6; }
+  #help-body h3{
+    font-size:14px; font-weight:600; color:var(--text); margin:20px 0 6px;
+    padding-bottom:4px; border-bottom:1px solid var(--border);
+  }
+  #help-body p{ margin:6px 0; color:var(--text); }
+  #help-body ul{ margin:6px 0 6px 2px; padding-left:18px; }
+  #help-body li{ margin:4px 0; }
+  #help-body code{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--bg); padding:1px 5px; border-radius:4px; }
+  #help-body .help-intro{ color:var(--text-muted); margin-top:12px; }
+  #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }

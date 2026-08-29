@@ -1,0 +1,6 @@
+{
+  "//": "The harness is CommonJS. The repo root gained \"type\":\"module\" when the Vite build landed, which reclassifies every .js beneath it as ESM -- srv.js/parse.js/pdf-info.js then die on `require is not defined`, and run.sh reports only 'server did not start'. This file scopes them back to CommonJS without renaming anything the README points at.",
+  "name": "spt-calendar-harness",
+  "private": true,
+  "type": "commonjs"
+}
