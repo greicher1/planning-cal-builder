@@ -3,3 +3,11 @@
 
 # Claude Code local settings
 .claude/
+
+# Harness working output. Run artifacts land beside the scripts; keep a copy in
+# tests/baselines/ when one is worth keeping, but don't track the scratch ones.
+tests/harness/*.html
+tests/harness/*.json
+tests/harness/*.xlsx
+tests/harness/*.pdf
+tests/harness/*.txt

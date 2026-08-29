@@ -144,6 +144,13 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 - **Opening a legacy `.html` recommends upgrading it** — a dismissible strip with a
   *Save as .sptcal* button (`showLegacyNotice`). Recommend, never convert: plain Save on a legacy
   file still writes `.html`.
+- ⛔ **`PHASE_COLOR_OPTIONS`'s ARRAY ORDER is part of the file format.** Found 29 Aug 2026 and not
+  documented anywhere before. `phaseColorOverride[key]` and `customPhaseDefs[].colorIndex` are
+  **indices into that array**, and both are in `captureSnapshot()`. Inserting, removing or
+  re-ordering an entry silently recolours every calendar ever saved — no error, no migration, just
+  wrong colours in someone's production plan. **Append only.** If a pairing must change, re-pair
+  **in place** and change the option's *name* to match. This is the same class of hazard as
+  `fields.byId`'s DOM ids, and it is easier to trip over because the array looks like presentation.
 - **There is no `version` field in the snapshot yet.** Add one the next time the format is touched,
   and branch on it rather than on the presence of individual keys.
 

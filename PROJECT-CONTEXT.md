@@ -495,7 +495,7 @@ in that chain, so it is slotted by the date it currently sits on; an undated cus
 |---|---|---|
 | Contents | `captureSnapshot()` as pretty JSON | the whole app, with the state in it |
 | Size | **~4.5 KB** | KB |
-| Written by | Save, Save As, autosave (`buildSavedData`, 7300) | File ▸ *Export shareable copy…* (`buildSavedHtml`, 7311) |
+| Written by | Save, Save As, autosave (`buildSavedData`) | File ▸ *Export shareable copy…* (`buildSavedHtml`) |
 | For | working — opening, editing, saving | emailing a double-clickable app to someone |
 
 **Why the split.** Save and Open were never symmetric: Save wrote a runnable copy of the app, but
@@ -635,9 +635,9 @@ both.
   calls `window.print()`.
 - **Waterfall PDF** (`buildWaterfallPdf()` → `exportWaterfallPdfDirect()` — **writes
   the PDF bytes directly. No print dialog.** lines: TrueType subsetting from the embedded
-  Carlito (`ttfRead` 9140, `ttfGlyph`, `ttfAdvance`, `ttfTextWidth`), `/FontFile2` embedding,
+  Carlito (`ttfRead`, `ttfGlyph`, `ttfAdvance`, `ttfTextWidth`), `/FontFile2` embedding,
   WinAnsi encoding, xref table, Flate compression via `CompressionStream` (`pdfDeflate`), assembled
-  by `pdfSerialize` (9285). `WF_PDF_MODE = 'direct' | 'print'` selects it; the old print path is
+  by `pdfSerialize`. `WF_PDF_MODE = 'direct' | 'print'` selects it; the old print path is
   kept as the fallback.
 
   Orientation comes from `sheetPageOrientation()` — **the same rule the Excel export
@@ -765,6 +765,13 @@ project's real documentation.
 ---
 
 ## 11. Testing methodology (no test framework — use headless Chrome)
+
+> ✅ **The harness is now committed: [`tests/harness/`](tests/harness/).** One command per test
+> (`cd tests/harness && ./run.sh base 45`), with the server, the shared driver library, an `.xlsx`
+> validator and a PDF reader. `tests/harness/README.md` carries the running instructions and the
+> trap list. It is **not deployed** — nothing in `index.html` references it. The sketch below is
+> kept because it explains *why* the harness has the shape it does; read it, then use the committed
+> version rather than rebuilding one.
 
 There is no test runner. The reliable pattern is a **throwaway static server that injects a test
 script**, driven by headless Chrome with `--dump-dom`, writing results into a `<pre>` that gets

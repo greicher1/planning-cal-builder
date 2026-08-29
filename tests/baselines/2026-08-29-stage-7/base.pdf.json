@@ -1,0 +1,27 @@
+{
+ "file": "base.pdf",
+ "bytes": 76568,
+ "mediaBox": [
+  612,
+  792
+ ],
+ "textOps": 204,
+ "rectOps": 279,
+ "contentLen": 28882,
+ "gridLeft": 19.08,
+ "gridRight": 592.92,
+ "gridDrawnW": 573.84,
+ "gridTop": 738,
+ "gridBottom": 165.6,
+ "gridDrawnH": 572.4,
+ "textXmin": 19.08,
+ "textXmax": 561.314,
+ "sampleTexts": [
+  "8.29.26",
+  "Test Show S2",
+  "Planning Calendar",
+  "Writer's Room Opens: 1.5.26",
+  "17-Week Production Span / 8-Day Shooting Schedule",
+  "Principal Photography 6.29.26 / Wrap: 11.3.26"
+ ]
+}

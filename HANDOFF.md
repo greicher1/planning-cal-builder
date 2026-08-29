@@ -201,9 +201,15 @@ file (see §4, "what NOT to do").
 
    | Constant | Read at | Frozen? |
    |---|---|---|
-   | `SHEET_GRIDLINES` | `exportExcel` 6121–6122, `buildWaterfallPdf` 9484–9485, 9647 | **yes** |
-   | `GRID_TEXT_COLOR` | `renderSpreadsheetView` 5307/5325, `exportExcel` 6042/6063, `buildWaterfallPdf` 9554 | **yes** |
-   | `WF_PDF_MODE` | export dispatch 8878 | no |
+   | `SHEET_GRIDLINES` | `exportExcel` (interior-gridline pass), `buildWaterfallPdf` (`interior`), the print fallback in `exportWaterfallPdf` | **yes** |
+   | `GRID_TEXT_COLOR` | `renderSpreadsheetView` (phase + sim-post cells), `exportExcel` (`baseStyle` font colour), `buildWaterfallPdf` (`ink`) | **yes** |
+   | `WF_PDF_MODE` | the waterfall-export dispatch | no |
+
+   ⚠️ **This table used to quote line numbers, and all six were stale by exactly +32** — one
+   commit had inserted 32 lines above them. `tools/check-refs.py` reported CLEAN throughout,
+   because its prose scan skipped any line starting with `|` and this is a table. Both are fixed
+   (29 Aug 2026): the checker now scans tables and catches the bare-number form, and the table
+   names symbols, which is what the rule asked for in the first place. `grep -n` finds them.
 
    That is *not* a blocker — §0 rule 2 explicitly allows the frozen code to **read** from
    surrounding state. But it does force one specific shape: **keep the identifiers exactly as they
@@ -400,9 +406,12 @@ is *deliberate* — rows are a fixed height and text is fitted to the row, so a 
 20 px row is clipped by design once the shrink floor is reached. Only horizontal clipping is the
 padding trap (§3), and only horizontal clipping is the gate.
 
-The harness that produced this lives in the session scratchpad and is **not committed** — the
-option the owner picked said so. Its shape is the one PROJECT-CONTEXT §11 already describes, plus
-two gotchas that cost a run each and are now written up there.
+✅ **The harness that produced this is now committed** at [`tests/harness/`](tests/harness/), at
+the owner's later instruction to keep undeployed work in the folder. Reproduce with
+`cd tests/harness && ./run.sh base 45`, then diff against
+[`tests/baselines/2026-08-29-stage-7/`](tests/baselines/2026-08-29-stage-7/), which holds these
+numbers plus the actual `.xlsx` and `.pdf`. Several gotchas that each cost a run are written up in
+that README and in PROJECT-CONTEXT §11.
 
 ### 2d. Remaining PDF calibration
 
@@ -432,9 +441,40 @@ own acceptance gate. Two consequences worth thinking about before anyone starts:
   **look** like v1.0.0's. Closing a row-pitch gap by making the page fit differently is exactly
   the kind of change that shows. Take the before-export first and diff it.
 
-Two smaller items: the app reserves 54 pt above the grid where Excel reserves ~21.5 (Excel puts its
-header *inside* that band), and two palette entries differ — Pre Prep and Prod Prep are effectively
-swapped versus the reference, and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`).
+Two palette entries differ: Pre Prep and Prod Prep are effectively swapped versus the reference,
+and the header row grey is one step lighter (`#D9D9D9` vs `#D0CECE`).
+
+> ⛔ ~~*"the app reserves 54 pt above the grid where Excel reserves ~21.5 (Excel puts its header
+> inside that band)"*~~ — **STRUCK 29 Aug 2026. It is false of the current code.** The app has
+> drawn its header inside the top-margin band, exactly as Excel does, since 28 Aug 2026;
+> `buildWaterfallPdf` says so in terms and its grid origin is unconditionally `MARGIN_PT.t`. The
+> `~21.5` is Excel's *header margin* (0.3 in), which is where Excel puts its header **text** — its
+> grid still starts at its 0.75 in top margin. The table two rows above records that agreement
+> (*Table top: Excel 54.5, App 54.0*). The sentence contradicted its own table, and left standing
+> it would have sent the next session to "fix" a 32 pt band that is already right, inside a
+> function byte-identical to v1.0.0. See [`STAGE-8.md`](STAGE-8.md) §7.
+
+### ⏹ Investigated 29 Aug 2026 — and mostly WONTFIX. See [`STAGE-8.md`](STAGE-8.md)
+
+Stage 8 was taken apart before starting it, because §2c had just been held on a constraint that
+applies here too. **Read [`STAGE-8.md`](STAGE-8.md) before touching any of this.** The short of it:
+
+- **The four geometry rows above are not four items. They are one number.** `buildWaterfallPdf`
+  computes a single whole-percent fit scale and multiplies *everything* by it — every row is
+  `15 pt × scale`. There is no row-height knob. **Row pitch IS the fit scale.**
+- **Excel runs out of width first; the app runs out of height first — and the app gave itself
+  36 pt more height to run into** (`SHEET_PAGE_MARGIN_PT.b` is 18 where the workbook's own bottom
+  margin is 54, reclaimed deliberately as "the one free increase available"). Roughly half the
+  +16% is that one constant.
+- So every route to the row pitch visibly changes the PDF, and §4 forbids that. **WONTFIX unless
+  the owner re-answers the question in `STAGE-8.md` §6.**
+- ⚠️ **The app's PDF and the app's own workbook do not print at the same size** — ~7% apart
+  whenever height binds. That is the app disagreeing with *itself*, independent of any reference,
+  and nobody has decided about it.
+- ⚠️ **The §2d numbers above are not internally self-consistent** — two imply a 64% scale, two
+  imply 66.3%, and the app only ever applies one. Treat +16% as "large and real", not as a target
+  to hit to a decimal place. **Anyone re-opening this needs a fresh reference export from the
+  owner first**; the original is not in the repo and never was.
 
 ### 2f. PWA update delivery to installed devices — discussed, not built
 
@@ -602,6 +642,37 @@ that reads as "wrong file" and sends the user looking for a file that isn't the 
 distinct messages; see §4 of the design doc.
 
 ---
+
+### 2h. ⛔ BUG — "Export shareable copy" bakes in whichever notice strip is showing
+
+**Found and reproduced 29 Aug 2026 while investigating Stage 8. Not fixed — `index.html` was not
+touched.** Full write-up in [`STAGE-8.md`](STAGE-8.md) §4.
+
+`buildSavedHtml()` serialises a clone and strips `#table-wrap`, `#print-root` and the three
+body-level popover classes. It does **not** strip `#legacy-notice` or `#update-notice`. Both ship
+`hidden` in the markup and are un-hidden at runtime by `el.hidden = false` — which *removes* the
+attribute, and `outerHTML` serialises attributes, not properties.
+
+Proved in headless Chrome (`tests/harness/t/sharecopy.js`): open the real legacy fixture, which
+raises the upgrade strip, then File ▸ Export shareable copy. What came out:
+
+```html
+<div id="legacy-notice" role="status" aria-live="polite">
+  ... <strong>v1.0.0-saved</strong> is an older <strong>.html</strong> calendar. It opened fine ...
+```
+
+No `hidden`. The control assertions in the same run passed — `#table-wrap` *was* emptied and
+`#update-notice` *did* keep its `hidden` — so the test is reading the right file and the strip
+really is the exception.
+
+**What the recipient sees:** a working calendar carrying a permanent banner that names *someone
+else's* file and urges them to upgrade a file they do not have. The same mechanism bakes in the
+blue update banner if one happens to be showing at export time.
+
+**It is a v1.2.0-era regression in an export** — v1.0.0 had neither element — so under §4 fixing it
+is not merely permitted, it is *required*: the fix restores v1.0.0's output. One line, adding the
+two ids to the existing strip list in `buildSavedHtml()`. **Ask before applying it**, like any
+change to `index.html`.
 
 ### 2e. Known, deliberately left alone
 
@@ -1103,7 +1174,7 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
 | **5** | **Mantine Stage 2** — design pass, theme tokens, one warning system, mockups. No code. | — | 1 |
 | **6** | **Mantine Stages 3–5** — sidebar, toolbar, popovers, editors. | D2 | 5–7 |
 | ~~**7**~~ | ⏸ **HELD by the owner, 29 Aug 2026.** Structured notes columns (§2c). Picked up, baselined, and stopped at the gate: the split cannot be export-neutral, and the exports must look exactly as v1.0.0 (§4). Design and baseline both stand in §2c; **do not build it without asking again**. | — | — |
-| **8** | **PDF calibration** (§2d) — **no longer falls out of stage 7**, which was held. The +16% row pitch has to be attacked directly, and under the same "exports must look like v1.0.0" constraint that stopped stage 7. Re-scope it before starting. | — | ? |
+| ~~**8**~~ | ⏹ **INVESTIGATED 29 Aug 2026 and mostly WONTFIX** — see [`STAGE-8.md`](STAGE-8.md). Its four geometry rows are one whole-percent fit scale, every route to them visibly changes the PDF, and §4 forbids that. What is left is not a stage: two colour decisions, one real bug (§2h), three internal disagreements and some cleanups. **Recommendation: strike it from the build order.** | — | — |
 
 **Why this order, where it isn't obvious:**
 
@@ -1126,10 +1197,12 @@ answers. They are listed first because a wrong guess there wastes a whole stage.
   starts, not to be folded into a UI stage. ✅ **That ordering paid off exactly as intended:** the
   stage got its own conversation, the conversation surfaced a constraint nobody had written down,
   and it was stopped before any code was written rather than after. Keep doing this.
-- **Stage 8 is now the odd one out.** Every other remaining stage is either decision-gated or
-  Mantine. Stage 8 is the only one that still wants to change the exports, and §4 now says the
-  exports may not change in appearance — so its first task is to work out whether there is a
-  version of itself that is allowed to exist. Do that before estimating it.
+- ~~**Stage 8 is now the odd one out.**~~ ✅ **Done, same day.** Stage 8 was the only remaining
+  stage that still wanted to change the exports, so its first task was to establish whether a
+  version of itself was allowed to exist. It mostly is not — [`STAGE-8.md`](STAGE-8.md). Note the
+  investigation cost a few hours and would have cost a whole stage to discover by building; the
+  same "work out whether it is permitted before estimating it" step is worth applying to anything
+  else that touches the exports.
 
 ### One thing the next session must not trip on
 

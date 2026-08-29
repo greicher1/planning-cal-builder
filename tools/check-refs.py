@@ -68,17 +68,32 @@ def main():
         print('  NOT FOUND in index.html: %s' % ', '.join(sorted(set(unknown))))
 
     # Prose must not carry line numbers -- that is the invariant this whole script protects.
+    #
+    # ** Table rows used to be skipped entirely, and that hole was real. ** HANDOFF section 2b
+    # ** kept its references in a table -- `exportExcel` 6121-6122, `buildWaterfallPdf` 9484-9485
+    # ** -- so the scan never looked at them, and they sat stale by exactly +32 lines while this
+    # ** script printed RESULT: CLEAN. That is precisely the failure the script exists to prevent,
+    # ** just moved inside a table. Found 29 Aug 2026.
+    #
+    # Tables are now scanned like any other line, for all three shapes a reference takes. The only
+    # exclusion left is section 14 itself, which is the one place numbers are allowed to live and
+    # is checked above instead. The bare-number pattern deliberately requires the number to follow
+    # a BACKTICKED SYMBOL within a couple of characters: prose is full of legitimate numbers
+    # (byte counts, the 255-character header cap, 7.4336 px, years) and a looser rule would cry
+    # wolf until someone stopped running the script, which is worse than the hole it closes.
     prose_hits = []
     for md in ('PROJECT-CONTEXT.md', 'CLAUDE.md', 'HANDOFF.md', 'SPTCAL-ENCRYPTION.md'):
         text = (ROOT / md).read_text(encoding='utf-8')
         body = text.split('## 14.')[0] if md == 'PROJECT-CONTEXT.md' else text
         for i, line in enumerate(body.split('\n'), 1):
-            if line.strip().startswith('|'):
-                continue
             for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`[^\n]{0,20}?\(~\d{3,5}\)', line):
                 prose_hits.append('%s:%d  %s' % (md, i, m.group(0)))
             for m in re.finditer(r'index\.html:\d+', line):
                 prose_hits.append('%s:%d  %s  (link a symbol, not a line)' % (md, i, m.group(0)))
+            # `symbol` 1234   /   `symbol` 1234-1235   -- the shape section 2b was using.
+            for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_]*`[ ,]{1,3}\d{3,5}\b', line):
+                prose_hits.append('%s:%d  %s  (name the symbol only; numbers live in section 14)'
+                                  % (md, i, m.group(0)))
     for h in prose_hits:
         print('  PROSE LINE NUMBER (should name the symbol only): %s' % h)
 

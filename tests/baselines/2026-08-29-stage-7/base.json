@@ -1,0 +1,187 @@
+{
+ "holidaysTurnedOn": 14,
+ "gridWidthPt": 797,
+ "cols": [
+  {
+   "k": "y2026:date",
+   "w": 53
+  },
+  {
+   "k": "y2026:s0",
+   "w": 88
+  },
+  {
+   "k": "y2026:s1",
+   "w": 88
+  },
+  {
+   "k": "y2026:notes",
+   "w": 179
+  },
+  {
+   "k": "y2027:date",
+   "w": 53
+  },
+  {
+   "k": "y2027:s0",
+   "w": 86
+  },
+  {
+   "k": "y2027:s1",
+   "w": 86
+  },
+  {
+   "k": "y2027:notes",
+   "w": 164
+  }
+ ],
+ "hClip": [],
+ "hClipCount": 0,
+ "vClip": [
+  {
+   "t": "Start Principal Photography 6/29/26\nInde",
+   "dh": 12,
+   "cls": "sheet-note-cell has-note"
+  },
+  {
+   "t": "Studio Cut Due\nNetwork Cut Due 9/11/26",
+   "dh": 3,
+   "cls": "sheet-note-cell has-note"
+  },
+  {
+   "t": "Thanksgiving 11/26/26\nDay After Thanksgi",
+   "dh": 3,
+   "cls": "sheet-note-cell has-note"
+  }
+ ],
+ "vClipCount": 3,
+ "rows": 52,
+ "noteCells": [
+  {
+   "w": "2026-01-05",
+   "span": 1,
+   "t": "Writer's Room Opens 1/5/26"
+  },
+  {
+   "w": "2026-01-19",
+   "span": 1,
+   "t": "Martin Luther King Jr. Day 1/19/26"
+  },
+  {
+   "w": "2027-01-18",
+   "span": 1,
+   "t": "Martin Luther King Jr. Day 1/18/27"
+  },
+  {
+   "w": "2026-02-16",
+   "span": 1,
+   "t": "Presidents' Day 2/16/26"
+  },
+  {
+   "w": "2027-02-15",
+   "span": 1,
+   "t": "Presidents' Day 2/15/27"
+  },
+  {
+   "w": "2027-03-22",
+   "span": 1,
+   "t": "Good Friday 3/26/27"
+  },
+  {
+   "w": "2026-05-25",
+   "span": 1,
+   "t": "Memorial Day 5/25/26"
+  },
+  {
+   "w": "2026-06-15",
+   "span": 1,
+   "t": "Juneteenth 6/19/26"
+  },
+  {
+   "w": "2026-06-29",
+   "span": 1,
+   "t": "Start Principal Photography 6/29/26 Independence Day (Observed) 7/3/26 Independence Day 7/4/26"
+  },
+  {
+   "w": "2026-09-07",
+   "span": 1,
+   "t": "Studio Cut Due Network Cut Due 9/11/26"
+  },
+  {
+   "w": "2026-11-02",
+   "span": 1,
+   "t": "Principal Photography Wraps 11/3/26"
+  },
+  {
+   "w": "2026-11-23",
+   "span": 1,
+   "t": "Thanksgiving 11/26/26 Day After Thanksgiving 11/27/26"
+  }
+ ],
+ "sig": [
+  "1/5/26#1|Writer's Rm wk 1#2|Writer's Room Opens 1/5/26#1|1/4/27#1|Post wk 8#1|#1|+#1",
+  "1/12/26#1|Writer's Rm wk 2#2|+#1|1/11/27#1|Post wk 9#1|#1|+#1",
+  "1/19/26#1|Writer's Rm wk 3#2|Martin Luther King Jr. Day 1/19/26#1|1/18/27#1|Post wk 10#1|#1|Martin Luther King Jr. Day 1/18/27#1",
+  "1/26/26#1|Writer's Rm wk 4#2|+#1|1/25/27#1|Post wk 11#1|#1|+#1",
+  "2/2/26#1|Writer's Rm wk 5#2|+#1|2/1/27#1|Post wk 12#1|#1|+#1",
+  "2/9/26#1|Writer's Rm wk 6#2|+#1|2/8/27#1|Post wk 13#1|#1|+#1",
+  "2/16/26#1|Writer's Rm wk 7#2|Presidents' Day 2/16/26#1|2/15/27#1|Post wk 14#1|#1|Presidents' Day 2/15/27#1",
+  "2/23/26#1|Writer's Rm wk 8#2|+#1|2/22/27#1|Post wk 15#1|#1|+#1",
+  "3/2/26#1|Writer's Rm wk 9#2|+#1|3/1/27#1|Post wk 16#1|Localization wk 1#1|+#1",
+  "3/9/26#1|Writer's Rm wk 10#2|+#1|3/8/27#1|#1|Localization wk 2#1|+#1",
+  "3/16/26#1|Writer's Rm wk 11#2|+#1|3/15/27#1|#1|Localization wk 3#1|+#1",
+  "3/23/26#1|Writer's Rm wk 12#2|+#1|3/22/27#1|#1|Localization wk 4#1|Good Friday 3/26/27#1",
+  "3/30/26#1|#2|+#1|3/29/27#1|#1|Localization wk 5#1|+#1",
+  "4/6/26#1|Pre Prep Wk 1#2|+#1|4/5/27#1|#1|Localization wk 6#1|+#1",
+  "4/13/26#1|Pre Prep Wk 2#2|+#1|4/12/27#1|#1|Localization wk 7#1|+#1",
+  "4/20/26#1|Pre Prep Wk 3#2|+#1|4/19/27#1|#1|Localization wk 8#1|+#1",
+  "4/27/26#1|Pre Prep Wk 4#2|+#1|4/26/27#1|#2|+#1",
+  "5/4/26#1|Pre Prep Wk 5#2|+#1|5/3/27#1|#2|+#1",
+  "5/11/26#1|Pre Prep Wk 6#2|+#1|5/10/27#1|#2|+#1",
+  "5/18/26#1|Prod Prep wk 1#2|+#1|5/17/27#1|#2|+#1",
+  "5/25/26#1|Prod Prep wk 2#2|Memorial Day 5/25/26#1|5/24/27#1|#2|+#1",
+  "6/1/26#1|Prod Prep wk 3#2|+#1|5/31/27#1|#2|+#1",
+  "6/8/26#1|Prod Prep wk 4#2|+#1|6/7/27#1|#2|+#1",
+  "6/15/26#1|Prod Prep wk 5#2|Juneteenth 6/19/26#1|6/14/27#1|#2|+#1",
+  "6/22/26#1|Prod Prep wk 6#2|+#1|6/21/27#1|#2|+#1",
+  "6/29/26#1|Production wk 1#2|Start Principal Photography 6/29/26 Independence Day (Observed) 7/3/26 Independence Day 7/4/26#1|6/28/27#1|#2|+#1",
+  "7/6/26#1|Production wk 2#2|+#1|7/5/27#1|#2|+#1",
+  "7/13/26#1|Production wk 3#2|+#1|7/12/27#1|#2|+#1",
+  "7/20/26#1|Production wk 4#2|+#1|7/19/27#1|#2|+#1",
+  "7/27/26#1|Production wk 5#2|+#1|7/26/27#1|#2|+#1",
+  "8/3/26#1|Production wk 6#2|+#1|8/2/27#1|#2|+#1",
+  "8/10/26#1|Production wk 7#2|+#1|8/9/27#1|#2|+#1",
+  "8/17/26#1|Production wk 8#2|+#1|8/16/27#1|#2|+#1",
+  "8/24/26#1|Hiatus#3|8/23/27#1|#2|+#1",
+  "8/31/26#1|Hiatus#3|8/30/27#1|#2|+#1",
+  "9/7/26#1|Production wk 9#1|#1|Studio Cut Due Network Cut Due 9/11/26#1|9/6/27#1|#2|+#1",
+  "9/14/26#1|Production wk 10#1|#1|+#1|9/13/27#1|#2|+#1",
+  "9/21/26#1|Production wk 11#1|#1|+#1|9/20/27#1|#2|+#1",
+  "9/28/26#1|Production wk 12#1|#1|+#1|9/27/27#1|#2|+#1",
+  "10/5/26#1|Production wk 13#1|#1|+#1|10/4/27#1|#2|+#1",
+  "10/12/26#1|Production wk 14#1|#1|+#1|10/11/27#1|#2|+#1",
+  "10/19/26#1|Production wk 15#1|#1|+#1|10/18/27#1|#2|+#1",
+  "10/26/26#1|Production wk 16#1|#1|+#1|10/25/27#1|#2|+#1",
+  "11/2/26#1|Production wk 17#1|Post wk 1#1|Principal Photography Wraps 11/3/26#1|11/1/27#1|#2|+#1",
+  "11/9/26#1|#1|Post wk 2#1|+#1|11/8/27#1|#2|+#1",
+  "11/16/26#1|#1|Post wk 3#1|+#1|11/15/27#1|#2|+#1",
+  "11/23/26#1|#1|Post wk 4#1|Thanksgiving 11/26/26 Day After Thanksgiving 11/27/26#1|11/22/27#1|#2|+#1",
+  "11/30/26#1|#1|Post wk 5#1|+#1|11/29/27#1|#2|+#1",
+  "12/7/26#1|#1|Post wk 6#1|+#1|12/6/27#1|#2|+#1",
+  "12/14/26#1|#1|Post wk 7#1|+#1|12/13/27#1|#2|+#1",
+  "12/21/26#1|Hiatus#3|12/20/27#1|Hiatus#3",
+  "12/28/26#1|Hiatus#3|12/27/27#1|Hiatus#3"
+ ],
+ "headers": [
+  "Date#1",
+  "2026#2",
+  "Notes#1",
+  "Date#1",
+  "2027#2",
+  "Notes#1"
+ ],
+ "xlsxLen": 10169,
+ "xlsx": "<written to base.xlsx>",
+ "pdfLen": 76568,
+ "pdf": "<written to base.pdf>"
+}
