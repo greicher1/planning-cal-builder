@@ -18,8 +18,52 @@ import { MantineProvider } from '@mantine/core'
 //     declarations in styles.layer.css are scoped to hashed .m_* class selectors, so not one of
 //     them can match anything inside #table-wrap or #print-root. Re-check this on any Mantine
 //     upgrade; tools/check-build.mjs asserts it.
-import '@mantine/core/styles.layer.css'
+// PER-COMPONENT, not the 273 KB bundle (round 6). The chrome uses about a dozen components; the
+// full sheet ships ~200. The list below is not guesswork: every m_* class the app actually renders
+// was collected from a live run that opened each sidebar tab, the file menu, all four tool
+// popovers, the pop-out date picker, the phase picker, the month view and both note editors, then
+// mapped hash -> file. ⚠️ Seven files are here that that sweep did NOT see, because their states
+// are not reachable by clicking: Badge (the autosave-FAILED status), Loader (a Button's `loading`
+// spinner), Tooltip, Divider (Menu.Divider), ScrollArea, VisuallyHidden and FloatingIndicator.
+// THAT is the trap this optimisation carries -- a missing import renders unstyled rather than
+// failing -- so add the file whenever a component or a STATE is added, and re-run the audit.
+//
+// ⛔ THE ORDER IS NOT ALPHABETICAL AND MUST NOT BE SORTED. Every file declares the SAME
+// `@layer mantine`, so within it ORDER decides, and Mantine's components rely on that: Button's
+// root and UnstyledButton's root are both single classes on the same element, so an alphabetical
+// list (UnstyledButton last) let UnstyledButton's reset win and every button in the app rendered
+// with no background, no border and no padding. Measured, not theorised — the first attempt did
+// exactly this. The order below is DERIVED from the position of each file's own rules inside
+// Mantine's shipped styles.layer.css, so it is that file's order with the unused parts removed.
+// Regenerate the same way if the list changes; do not hand-sort it.
 import '@mantine/dates/styles.layer.css'
+import '@mantine/core/styles/default-css-variables.layer.css'
+import '@mantine/core/styles/baseline.layer.css'
+import '@mantine/core/styles/global.layer.css'
+import '@mantine/core/styles/ScrollArea.layer.css'
+import '@mantine/core/styles/UnstyledButton.layer.css'
+import '@mantine/core/styles/VisuallyHidden.layer.css'
+import '@mantine/core/styles/Paper.layer.css'
+import '@mantine/core/styles/Overlay.layer.css'
+import '@mantine/core/styles/Popover.layer.css'
+import '@mantine/core/styles/Loader.layer.css'
+import '@mantine/core/styles/ActionIcon.layer.css'
+import '@mantine/core/styles/CloseButton.layer.css'
+import '@mantine/core/styles/Group.layer.css'
+import '@mantine/core/styles/ModalBase.layer.css'
+import '@mantine/core/styles/Input.layer.css'
+import '@mantine/core/styles/FloatingIndicator.layer.css'
+import '@mantine/core/styles/Text.layer.css'
+import '@mantine/core/styles/Combobox.layer.css'
+import '@mantine/core/styles/Badge.layer.css'
+import '@mantine/core/styles/Button.layer.css'
+import '@mantine/core/styles/Divider.layer.css'
+import '@mantine/core/styles/Menu.layer.css'
+import '@mantine/core/styles/Modal.layer.css'
+import '@mantine/core/styles/NumberInput.layer.css'
+import '@mantine/core/styles/Tooltip.layer.css'
+import '@mantine/core/styles/Stack.layer.css'
+import './styles/inter.css'
 import './styles/legacy.css'
 
 import { theme } from './theme.js'

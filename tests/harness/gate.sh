@@ -20,10 +20,14 @@
 #   HARNESS_PAGE=/dist/index.html ./run.sh fence 40        (against the build)
 # and diff the two fence.json's yourself -- the frozen /waterfall/* entries must be identical.
 #
-# ⚠️ The baseline embeds the date it was cut (2026-08-29): the Excel header's left line and the
-# waterfall PDF's header both carry todayStr, so gates 2 and 3 report FALSE failures on any later
-# date against untouched code. Re-cut the baseline on a known-good build before trusting a FAIL
-# there on a later day.
+# ✅ THE DATE-PINNING FALSE-FAIL IS FIXED (round 7). The baseline embeds the date it was cut
+# (2026-08-29) and both artefacts carry todayStr, so gates 2 and 3 used to report FALSE failures on
+# every later day against untouched code -- documented, and therefore ignored, which made the two
+# comparisons that actually prove the frozen writers have not moved permanently useless. Both now
+# compare with ONLY that one token normalised: pdfcmp.py substitutes the dotted M.D.YY stamp in
+# each file's content streams and byte-compares the rest, and the workbook's sheet1.xml gets the
+# same single substitution. Calendar CONTENT renders dates with slashes, so real printed dates are
+# still compared strictly. A FAIL here is now a real FAIL -- treat it as one.
 #
 # ⚠️ On (3): comparing the .xlsx BYTES is wrong and will report a false failure. ExcelJS stamps
 # dcterms:created / dcterms:modified into docProps/core.xml, so two exports of an identical
@@ -62,8 +66,12 @@ PY
 fi
 
 # ---- the waterfall PDF, byte for byte ---------------------------------------------------------
+# TODAY / BASEDATE are the only tokens allowed to differ -- see pdfcmp.py's header.
+TODAY="$(date +%-m.%-d.%y)"; BASEDATE="8.29.26"
 if cmp -s "$HERE/base.pdf" "$BASE/base.pdf"; then ok "waterfall PDF byte-identical to baseline"
-else bad "waterfall PDF differs from baseline (run: node pdf-info.js base.pdf base.txt)"; fi
+elif PDFOUT="$(python3 "$HERE/pdfcmp.py" "$HERE/base.pdf" "$BASE/base.pdf" --today "$TODAY" --base "$BASEDATE" 2>&1)"; then
+  ok "waterfall PDF identical to baseline (header date stamp $BASEDATE -> $TODAY)"
+else bad "waterfall PDF differs beyond the date stamp: $(print -r -- "$PDFOUT" | head -4)"; fi
 
 # ---- the workbook: valid, and unchanged apart from its timestamp -------------------------------
 if "$HERE/check-xlsx.sh" "$HERE/base.xlsx" >/dev/null 2>&1; then ok "Excel passes check-xlsx.sh"
@@ -72,7 +80,10 @@ rm -rf /tmp/gate-xa /tmp/gate-xb; mkdir -p /tmp/gate-xa /tmp/gate-xb
 (cd /tmp/gate-xa && unzip -qo "$HERE/base.xlsx") 2>/dev/null
 (cd /tmp/gate-xb && unzip -qo "$BASE/base.xlsx") 2>/dev/null
 rm -f /tmp/gate-xa/docProps/core.xml /tmp/gate-xb/docProps/core.xml
-if diff -rq /tmp/gate-xa /tmp/gate-xb >/dev/null 2>&1; then ok "Excel parts identical (core.xml timestamp excluded)"
+# The header's left line carries todayStr in the same dotted form -- normalise that token only.
+for f in /tmp/gate-xa/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$TODAY/DATESTAMP/g" "$f"; done
+for f in /tmp/gate-xb/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$BASEDATE/DATESTAMP/g" "$f"; done
+if diff -rq /tmp/gate-xa /tmp/gate-xb >/dev/null 2>&1; then ok "Excel parts identical (core.xml timestamp + header date excluded)"
 else bad "Excel parts differ: $(diff -rq /tmp/gate-xa /tmp/gate-xb | head -3)"; fi
 
 # ---- restore: a real pre-.sptcal calendar still opens ------------------------------------------

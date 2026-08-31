@@ -29,6 +29,62 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — round 7: the backlog cleared, and the app stopped phoning home
+
+⚠️ **Not deployed and not cut as a version.** The owner's seventh round plus the buildable half of
+the standing backlog (HANDOFF §2b-3 rows 3, 4, 6, 7, 40–46).
+
+**Three bugs, one of which was losing work:**
+
+- **The date pickers no longer destroy the edit.** Opening the pop-out calendar from *Shift From*,
+  *Anchor To* or *Rebuild From* and clicking a day closed the tool popover underneath it — the
+  panel is a body-level element, so the click read as "outside". The popover now survives, and
+  Escape closes the picker first and the panel second instead of both at once.
+- **Undo and redo are actually centred.** Round 4 fixed a text-glyph baseline; the real problem was
+  that the drawn arrows sat low *inside their own viewBox* (ink centre 10.75 on a 16 box). Redrawn
+  symmetrically — measured ink centre is now exactly 8.0.
+- **The title's padding is even** — 28px on both sides, measured; it was 28 left and 6 right.
+
+**The header works at every screen size.** It never overflowed or wrapped — the buttons *shrank*,
+so at 1100px the labels read "Expor", "Exp", "Rese". Now no label is ever truncated: controls hold
+their natural width, and space is given up in deliberate steps as the window narrows (the file chip
+shrinks, then the brand name goes, then New / Save As / the secondary export become icons with
+tooltips, then the status text). Save and the primary export keep their labels at every width.
+Verified at 1440, 1280, 1150, 1024 and 900.
+
+**Two long-standing backlog items, both built without touching frozen code** — which is the part
+worth recording, because both were previously blocked *on* needing a frozen edit:
+
+- **A bad start date now rings its field red**, not just the note underneath. The ring is applied
+  from `update()` to the sidebar field, and asks the frozen validity function for the verdict
+  rather than copying its rule.
+- **The last 8 browser `alert()` popups are gone**, so every dialog in the app is now the app's
+  own. They live inside the frozen export functions, so instead of editing them a function named
+  `alert` is declared in the engine's own scope and shadows the global — every call site converts,
+  no frozen line changes.
+
+**And the app no longer fetches anything from the internet.** Inter is embedded (one variable font,
+48 KB, replacing four downloads), so a calendar opened offline or from an emailed file measures
+text exactly as it does online — which matters because those measurements set month-view row
+heights that print. Verified: text widths at all four weights are *identical* to the fonts Google
+was serving, and the built file makes zero external requests. Mantine's stylesheet also went
+per-component, so despite adding a font the file **shrank from 1,096 KB to 983 KB**.
+
+**One test-harness limitation found and documented, not papered over:** the gate's restore leg
+fails in headless Chrome because `indexedDB.open()` there never settles — no success, no error, it
+simply hangs — so the file menu is never revealed and the test times out. It behaves **identically
+against the untouched deployed app**, which is what proves it is the environment and not this
+work. The earlier advice to "re-run it standalone" turned out to be a trap: the harness defaults to
+the *deployed* page, so a standalone pass says nothing about the build. Both facts are now written
+down, with the probe that measured them.
+
+**Fixed while verifying:** exporting a shareable copy while a notice strip was showing baked that
+strip into the copy — a recipient saw a permanent banner naming someone else's file. And the test
+gate's two most valuable checks (the byte-comparisons proving the frozen PDF and Excel writers
+haven't moved) had been failing on every run since the baseline was cut, purely because both files
+stamp today's date; they now normalise that one token and compare everything else strictly, so a
+red there means something real again.
+
 ### Unreleased — round 6: fit and finish, and the note editors join the family
 
 ⚠️ **Not deployed and not cut as a version.** The owner's sixth review round (HANDOFF §2b-3

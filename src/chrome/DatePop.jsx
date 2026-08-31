@@ -106,17 +106,21 @@ export function DatePop() {
       if (e.target.closest && e.target.closest('.date-pop')) return
       close()
     }
-    const onKey = (e) => { if (e.key === 'Escape') close() }
+    // Escape closes THIS popover only, and consumes the key: the engine's own document-level
+    // Escape closes every tool popover, so without this a single press would take the date
+    // picker AND the Shift From / Anchor To / Rebuild From panel underneath it. Capture phase
+    // so it runs before that handler regardless of registration order. Same rule as SelectPop.
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }
     const onMove = () => place(target)
     const onType = () => setValue(parseIso(target.value))
     document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
+    document.addEventListener('keydown', onKey, true)
     window.addEventListener('scroll', onMove, true)
     window.addEventListener('resize', onMove)
     target.addEventListener('input', onType)
     return () => {
       document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('keydown', onKey, true)
       window.removeEventListener('scroll', onMove, true)
       window.removeEventListener('resize', onMove)
       target.removeEventListener('input', onType)

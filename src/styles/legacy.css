@@ -129,7 +129,13 @@
   /* ---------- Header brand (the Mantine-UI header lead) ---------- */
   /* Width-frugal on purpose: header height feeds --header-h (frozen .sheet-scroll reads it), so
      the brand must never be the thing that makes the toolbar wrap. The name drops below 1240px. */
-  .app-brand{ display:flex; align-items:center; gap:var(--mantine-spacing-md); flex:none; }
+  /* padding-right balances the title's two sides (owner, round 6 image 2). Measured before:
+     28px of page gutter to the LEFT of the mark against 6px between the name and the divider, so
+     the title read as shoved up against the rule. 22px + the toolbar's own 6px gap puts 28px on
+     the right too — the same gutter, mirrored. Kept on .app-brand (not on the divider) so it
+     travels with the block when the name hides below 1080px. */
+  .app-brand{ display:flex; align-items:center; gap:var(--mantine-spacing-md); flex:none;
+    padding-right:22px; }
   /* An <img> of the actual app icon since round 5 (one artwork with the favicon — appIcon.js),
      replacing the navy chip + drawn glyph. Same 30px box, so --header-h cannot move. */
   .app-brand-mark{ width:30px; height:30px; display:block; flex:none; }
@@ -138,8 +144,38 @@
     color:var(--mantine-color-gray-9); white-space:nowrap;
   }
   .app-toolbar-div{ width:1px; height:22px; background:var(--mantine-color-gray-3); flex:none; }
-  /* 1080, not 1240: the export labels shortened, so the name earns more room before wrap risk. */
-  @media (max-width:1080px){ .app-brand-name{ display:none; } }
+  /* ---------- The header's responsive ladder (owner, round 6: "must work at different screen
+     dimensions") ----------
+     THE BUG THIS FIXES: nothing overflowed and nothing wrapped — the flex items SHRANK, so at
+     1100px the labels read "Expor", "Exp", "Rese". Measured: the header's natural demand is
+     ~1230px, and every button was shrinkable, so the three narrowest labels clipped first.
+     The rule is now: a label is never truncated. Controls keep their natural width, the status
+     readout is the only flexible thing, and demand is reduced in deliberate steps instead. */
+  .app-toolbar > *{ flex:none; }
+  /* The one elastic element, and it ellipsises rather than clipping mid-glyph. */
+  .save-status{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The chip's width lives here, NOT in Header.jsx's `styles` prop — that emits an inline style no
+     media query can beat. */
+  .file-menu-btn{ width:224px; }
+
+  /* Step 1 — the chip gives up room first: it is the widest single control and the least
+     information-dense (the same name is in the menu it opens). */
+  @media (max-width:1320px){ .file-menu-btn{ width:180px; } }
+  /* Step 2 — the brand NAME goes. The mark stays, so identity survives. (Was 1080; raised because
+     the name is ~185px and giving it up early is cheaper than truncating a command.) */
+  @media (max-width:1200px){ .app-brand-name{ display:none; } .app-brand{ padding-right:16px; } }
+  /* Step 3 — the three secondary commands run icon-only. Save keeps its label (it carries the
+     engine's "Saved ✓" flash confirmation) and so does the primary Export PDF; New, Save As and
+     the secondary export drop to their icons with title= tooltips. */
+  @media (max-width:1120px){
+    .app-toolbar .btn-collapse .mantine-Button-label{ display:none; }
+    .app-toolbar .btn-collapse .mantine-Button-section{ margin:0; }
+    .app-toolbar .btn-collapse{ padding-left:9px; padding-right:9px; }
+    .file-menu-btn{ width:150px; }
+  }
+  /* Step 4 — the status text goes last of all: it is the only thing here that is not a command,
+     and its state is still carried by the Save button's own label and the dirty marker. */
+  @media (max-width:980px){ .save-status{ display:none; } }
   /* display:block: an inline svg sits on the text baseline and inherits a descender gap, which
      is exactly the 2px "not quite centred" the owner kept seeing (round 4 image 5). */
   .btn-ic, .card-ic, .tab-ic, .vt-ic{ display:block; }
@@ -454,6 +490,19 @@
   }
   textarea{ height:auto; padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); }
   input[type=date]:hover, input[type=number]:hover, select:hover{ border-color:var(--mantine-color-gray-5); }
+  /* The diegetic invalid-date ring (owner №4). Applied by reflectStartDateValidity() from update()
+     -- see the engine comment for why it is not done inside render(). Scoped to .form-panel so it
+     can never reach a field the frozen renderers emit. The ring is a box-shadow, not a border
+     change: a border swap would move the control by 0 but re-tint the 30px height calculation
+     other rules assume, and the shadow reads more clearly at 1px anyway. */
+  .form-panel input.is-invalid{
+    border-color:var(--mantine-color-danger-6);
+    box-shadow:0 0 0 2px var(--mantine-color-danger-1);
+  }
+  .form-panel input.is-invalid:focus{
+    border-color:var(--mantine-color-danger-6);
+    box-shadow:0 0 0 2px var(--mantine-color-danger-2);
+  }
   input[type=date]:focus, input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus{
     outline:none; border-color:var(--mantine-primary-color-filled);
   }

@@ -114,8 +114,11 @@ export function Header() {
                 /* FIXED width, not max-width (owner, round 5): the chip must show much of a real
                    show title, and it must not resize as titles change — a constant-size chip, with
                    the label ellipsis-truncating inside it. 224 = round 5's 280 minus the 20% the
-                   owner trimmed in round 6. The dropdown stays 280. */
-                styles={{ root: { width: 224 }, inner: { justifyContent: 'flex-start' }, label: { overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 } }}
+                   owner trimmed in round 6. The dropdown stays 280.
+                   ⚠️ The WIDTH ITSELF lives in legacy.css (.file-menu-btn), not here: a Mantine
+                   `styles` prop becomes an INLINE style, which no media query can override, and
+                   round 6's responsive pass has to narrow this chip on smaller screens. */
+                styles={{ inner: { justifyContent: 'flex-start' }, label: { overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 } }}
               >
                 <span id="file-menu-label">{menu.label}</span>
               </Button>
@@ -197,7 +200,11 @@ export function Header() {
           like "Save to File") defines all three, with its own natural padding. A display:none
           Save As contributes no track, so the other two stay equal on their own. */}
       <div className="file-actions">
-      <Button {...BTN} id="new-file-btn" variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
+      {/* btn-collapse: below the narrow breakpoint these drop their label and run icon-only, so
+          the header stops truncating text (round 6). title= keeps them discoverable there —
+          UI-CONVENTIONS §6 keeps native title where it reveals what the layout hid. */}
+      <Button {...BTN} id="new-file-btn" className="btn-collapse" title="Start a new blank calendar"
+              variant="default" leftSection={<IconFilePlus className="btn-ic" />}>New</Button>
 
       <Button
         {...BTN}
@@ -218,6 +225,8 @@ export function Header() {
       <Button
         {...BTN}
         id="save-as-btn"
+        className="btn-collapse"
+        title="Copy this calendar into a new file and switch to it"
         variant="default"
         leftSection={<IconCopyPlus className="btn-ic" />}
         loading={saveAs.busy}
@@ -278,6 +287,8 @@ export function Header() {
       <Button
         {...BTN}
         id="export-btn"
+        className="btn-collapse"
+        title={exp.label}
         ml="auto"
         variant={exp.primary ? 'filled' : 'default'}
         leftSection={exp.primary ? <IconDownload className="btn-ic" /> : <IconTable className="btn-ic" />}

@@ -121,11 +121,16 @@ export function IconCalendarPlain(props) {
   )
 }
 
+// ⚠️ These two are drawn to be OPTICALLY CENTRED IN THEIR OWN viewBox, which the first version
+// was not: its ink spanned y 5.5-16 on a 16 box, i.e. a centre of 10.75 against the box's 8, so
+// the pair sat visibly low in their buttons however the button centred them (owner, round 6 image
+// 1 — round 4's fix had corrected a text-glyph baseline, not this geometry). Both now span
+// y 3-13 and x ~3-13: centre 8,8. Redo is the exact mirror of Undo about x=8. Keep it that way.
 export function IconUndo(props) {
   return (
     <svg {...base} {...props}>
-      <path d="M6.5 12.5 3 9l3.5-3.5" />
-      <path d="M3 9h6a3.5 3.5 0 0 1 0 7H7.5" />
+      <path d="M6.5 3 3 6.5 6.5 10" />
+      <path d="M3 6.5h6.5a3.25 3.25 0 0 1 0 6.5H7" />
     </svg>
   )
 }
@@ -133,8 +138,8 @@ export function IconUndo(props) {
 export function IconRedo(props) {
   return (
     <svg {...base} {...props}>
-      <path d="M9.5 12.5 13 9 9.5 5.5" />
-      <path d="M13 9H7a3.5 3.5 0 0 0 0 7h1.5" />
+      <path d="M9.5 3 13 6.5 9.5 10" />
+      <path d="M13 6.5H6.5a3.25 3.25 0 0 0 0 6.5H9" />
     </svg>
   )
 }

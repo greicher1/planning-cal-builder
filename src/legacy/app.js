@@ -4608,8 +4608,30 @@ export function initLegacyApp() {
         .map(h => ({ iso: h.date, name: h.name })),
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
     });
+    reflectStartDateValidity();
     markDirty();
     restoreScroll(scrollSnap);
+  }
+
+  // The diegetic invalid-date signal (owner request №4). Until now a bad start date said so ONLY
+  // in the phase's meta readout ("Check that year — doesn't look right"), which sits below the
+  // field and reads as commentary; the field itself looked fine. This rings the field.
+  //
+  // ⛔ Note where it does NOT live. The obvious home is render()'s meta branch, which already
+  // computes the verdict -- but that is frozen. So the ring is applied from update() (not frozen)
+  // to a SIDEBAR field (chrome), and it CALLS the frozen readCfgForMeta() for the verdict rather
+  // than re-deriving it. Reading from the frozen surface is explicitly allowed; this way there is
+  // no second copy of the validity rule to drift out of step with the meta line.
+  function reflectStartDateValidity(){
+    getAllPhaseDefs().forEach(p=>{
+      const el = document.getElementById('start-'+p.key);
+      if(!el) return;
+      let bad = false;
+      // Defensive: a row mid-rebuild can be missing its weeks field, and a thrown error here
+      // would take the rest of update() with it.
+      try { bad = readCfgForMeta(p.key) === 'invalid'; } catch(err){ bad = false; }
+      el.classList.toggle('is-invalid', bad);
+    });
   }
 
   // ---- Production Region (country + optional province) -------------------------------------
@@ -5139,6 +5161,15 @@ export function initLegacyApp() {
     // .select-pop added with the tool-popover phase pickers (round 5), for the same same-tick
     // reason as .date-pop.
     clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop').forEach(el=>el.remove());
+    // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
+    // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
+    // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =
+    // false`, which REMOVES the attribute -- and outerHTML serialises attributes, not properties.
+    // So a shareable copy exported while the legacy-upgrade strip was up carried a permanent
+    // banner naming SOMEONE ELSE'S file and urging the recipient to upgrade a file they do not
+    // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
+    // removed because the copy is a working app: its own engine may need to raise these later.
+    clone.querySelectorAll('#legacy-notice, #update-notice').forEach(el=>{ el.hidden = true; });
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -6112,6 +6143,25 @@ export function initLegacyApp() {
     return chrome.dialog(Object.assign({ kind: 'alert', message }, opts || {}));
   }
 
+  // ⛔ A DELIBERATE SHADOW OF window.alert, and the reason it is a shadow rather than 8 edits.
+  //
+  // Eight alert() calls live INSIDE the frozen export functions (exportMonthPdf,
+  // exportWaterfallPdf, exportWaterfallPdfDirect). Converting them by editing those bodies is
+  // exactly what the freeze forbids. A function DECLARATION named alert is hoisted to the top of
+  // this IIFE and shadows the global for every call site in it -- so all eight route to the app's
+  // own dialog with NOT ONE frozen function body touched. It is the same shape the settings-menu
+  // design prescribes for SHEET_GRIDLINES: keep the identifier, change only its declaration.
+  //
+  // Why this is behaviour-preserving, checked site by site rather than assumed: every one of the
+  // eight is `alert(msg); return;` -- the alert is the last statement on its path. Native alert
+  // blocks and this does not, but since nothing runs after it either way, no export path can
+  // observe the difference. ⚠️ That is the precondition. If a future export ever needs to alert
+  // and CONTINUE, this shadow changes its meaning -- await uiAlert() explicitly there instead.
+  //
+  // No recursion: the bridge's fallback in src/chrome/bridge.js calls window.alert by name from
+  // its own module scope, which this cannot shadow.
+  function alert(message){ return uiAlert(message); }
+
   function reClickGuard(ms, fn){
     let last = 0;
     return function(...args){
@@ -6470,7 +6520,13 @@ export function initLegacyApp() {
       p.menu.addEventListener('click', e=> e.stopPropagation());
     });
     document.addEventListener('click', e=>{
-      if(!e.target.closest('.tools-wrap') && !e.target.closest('.shift-group')) closeAllPops();
+      // .date-pop is EXCLUDED because it is a body-level panel (src/chrome/DatePop.jsx), so a
+      // click on a day in the pop-out calendar is a click 'outside' the tool popover that
+      // opened it -- and closing the popover mid-edit threw the edit away. Reported by the
+      // owner on all three date tools (round 6). .select-pop needs no entry: it portals INSIDE
+      // .tools-menu, so it is already inside .tools-wrap.
+      if(!e.target.closest('.tools-wrap') && !e.target.closest('.shift-group')
+         && !e.target.closest('.date-pop')) closeAllPops();
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeAllPops(); });
 
