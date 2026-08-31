@@ -29,6 +29,48 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the deploy Action, and the check script that never existed
+
+> ✅ **Installed and live (31 Aug 2026).** Pages Source is **GitHub Actions**, and this workflow
+> builds `src/` and publishes `dist/index.html`. **The Mantine build is now what users get.** The
+> root `index.html` stays in the repo as the v1.2.0 legacy app — it is the rollback: flipping Pages
+> Source back to "Deploy from a branch" restores it instantly, with no revert and no rebuild.
+
+**`.github/workflows/deploy.yml`** — builds `src/` and, on request, publishes `dist/` to Pages.
+This is the item `HANDOFF.md` listed as *"then the GitHub Action, and only then the cutover
+conversation"*, and it is built to respect that order:
+
+- **`build` runs on every push and PR.** `npm ci` → `npm run build` → `npm run check` →
+  `tools/check-refs.py` (warn-only), then uploads `dist/index.html` as a downloadable artifact.
+  Continuous verification with **zero deploy risk**.
+- **`deploy` runs only on a manual `workflow_dispatch` with `deploy=true`.** Never on push.
+
+**The live site is unchanged and stays on the v1.2.0 legacy app.** Pages is still
+`build_type: legacy` serving repo root, exactly as `vite.config.js` requires until an
+owner-approved cutover. Performing that cutover needs a repo **settings** change (Pages Source →
+GitHub Actions) that the workflow deliberately cannot do for you — until it is done, a
+`deploy=true` run fails at *Setup Pages*, which is the intended guard. The three cutover steps are
+written at the top of the workflow file.
+
+**`tools/check-build.mjs`** — written, because it did not exist. `package.json` has referenced it
+since the Vite build landed and `vite.config.js` names it (*"asserts it survives the build; do not
+delete that check"*), so `npm run check` had been failing with `MODULE_NOT_FOUND` and **nothing was
+ever actually asserted**. It now gates 12 properties: one self-contained file with a size floor, no
+unexpected external requests (the ExcelJS CDN is the only allowance), no un-inlined local assets,
+`#table-wrap` and `#print-root` intact, the NUL sentinel, the Mantine chrome, the `.sptcal` format,
+the ExcelJS loader, and `version.json` in step with `package.json`. Passes 12/12.
+
+> **The NUL sentinel check is deliberately not a byte check, and that matters.** `SIM_KEY` is a NUL
+> followed by `simpost`. Measured: the legacy `index.html` carries **1 literal NUL byte**, the build
+> carries **0** — the minifier re-encodes it as a `\0` / `\u0000` escape. That is semantically
+> identical and correct, so the check asserts a NUL-valued sentinel survives *in some form*. The
+> obvious byte-level assertion `vite.config.js` implies would have false-failed on every single
+> build, which is very likely why the file was easier to leave unwritten than to finish.
+
+Also fixed: the `deploy` job copies `version.json` into `dist/` before publishing. The app polls it
+*relative to itself*; it lives at the repo root, so publishing `dist/` alone would 404 that poll and
+the update banner could never fire.
+
 ### Unreleased — the documentation sweep after rounds 5–7
 
 ⚠️ **Not deployed and not cut as a version. No app code changed.** Every project document was

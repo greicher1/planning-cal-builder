@@ -1,0 +1,135 @@
+# Build the Mantine app from src/ and, on request, publish it to GitHub Pages.
+#
+# THE CUTOVER IS DONE (31 Aug 2026, owner-approved). Pages Source is "GitHub Actions" and this
+# workflow publishes dist/. The root index.html is no longer what users get; it stays in the repo
+# as the v1.2.0 legacy app and the byte-identical releases/v1.2.0.html copy.
+#
+# TWO JOBS
+#
+# `build` runs on every push AND every pull request: npm ci, build, `npm run check`, then uploads
+# dist/index.html as a plain artifact. On a PR that is the whole run -- a PR never deploys.
+#
+# `deploy` runs on push to main and on manual dispatch. Push to main IS the release, exactly as it
+# was when Pages served the root index.html; the gate on that is the "never push unasked" rule in
+# CLAUDE.md, not a second switch in here.
+#
+# TO ROLL BACK, if the build ever needs pulling: Settings > Pages > Source back to "Deploy from a
+# branch" (main, /). That instantly restores the root index.html, which is a known-good app -- no
+# revert, no rebuild, no waiting on CI.
+
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Re-deploy the current main without a code change'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let two runs race; a queued deploy should supersede, not interleave.
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Vite 8 requires ^20.19.0 || >=22.12.0 (package.json has no engines field, so this is
+          # the constraint to track). 22.x is the current LTS line.
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the build
+        # tools/check-build.mjs: one self-contained file, no unexpected external requests, the
+        # frozen #table-wrap / #print-root containers intact, the NUL sentinel still a NUL, and
+        # version.json in step with package.json.
+        run: npm run check
+
+      - name: Check the docs' line references
+        # tools/check-refs.py guards PROJECT-CONTEXT section 14's symbol map against drift. It is
+        # a real project rule, but stale docs must not block a deploy, so it only warns.
+        continue-on-error: true
+        run: python3 tools/check-refs.py
+
+      - name: Upload the built file
+        # A plain artifact, downloadable from the run summary. This is NOT the Pages artifact --
+        # uploading one of those is what the deploy job does, deliberately separately.
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-index-html
+          path: dist/index.html
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to Pages
+    # THE CUTOVER HAPPENED 31 Aug 2026, owner-approved: the Mantine build is now the live site,
+    # and `main` auto-deploys it exactly as it auto-deployed the root index.html before. Keeping
+    # this manual-only would have silently changed the deploy model the owner already works to --
+    # push to main IS the release, and the gate on that is the "never push unasked" rule in
+    # CLAUDE.md, not a second switch here.
+    # Still runs on a manual dispatch too, for re-deploying without a code change.
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the build
+        run: npm run check
+
+      - name: Include version.json beside the app
+        # The app polls version.json relative to itself to spot a new deploy. It lives at the repo
+        # root, not in dist/, so the build output alone would 404 that poll and the update banner
+        # would never fire. Copy it in rather than moving it -- the legacy root app polls it too.
+        run: cp version.json dist/version.json
+
+      - name: Setup Pages
+        # Fails if Pages Source is still "Deploy from a branch". That failure is the guard: it
+        # means the cutover step has not been done yet. See the header of this file.
+        uses: actions/configure-pages@v5
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

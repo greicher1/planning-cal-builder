@@ -700,7 +700,74 @@ Logged before building at the owner's instruction, then built and gated. State o
    for states no click can reach), and re-run the runtime class audit described in row 45.
 6. **The sub-1024 responsive pass.** The header ladder is built and verified 1440→900 (row 43); what
    is unbuilt is the layout *below* the 960 px stacking point, which nobody has designed.
-7. **Calibrate and document**, then **the GitHub Action**, and only then the cutover conversation.
+7. **Calibrate and document**, then ~~the GitHub Action~~, and only then the cutover conversation.
+   ✅ **THE ACTION IS INSTALLED AND THE CUTOVER IS DONE (31 Aug 2026, owner-approved).**
+   `.github/workflows/deploy.yml`. Pages Source is **GitHub Actions**; the workflow builds `src/`
+   and publishes `dist/`, and **the Mantine build is the live site**. Deploy runs on push to
+   `main` as well as on manual dispatch — the repo already auto-deployed before this, so
+   manual-only would have silently changed the deploy model; the gate remains the "never push
+   unasked" rule in `CLAUDE.md`.
+   **ROLLBACK, if ever needed:** Settings ▸ Pages ▸ Source back to "Deploy from a branch"
+   (`main`, `/`). That restores the root `index.html` — the known-good v1.2.0 legacy app —
+   instantly, with no revert, no rebuild and no waiting on CI.
+   ⚠️ One thing that bit on the way, worth keeping: pushing anything under `.github/workflows/`
+   needs the token's **`workflow`** scope. Without it the push is rejected, and the Contents API
+   is blocked identically but answers **404, not 403**, which reads as a missing repo.
+
+### ✅ The restore leg: row 49's conclusion was right, its evidence was not — RESOLVED 31 Aug 2026
+
+**Bottom line: there is no app bug, and the cutover is not gated on this.** Verified in a real
+browser (not headless, no virtual time), on the build, served over HTTP:
+
+| | Result |
+|---|---|
+| `indexedDB.open('spt-planning-cal')` | **SUCCESS in 1 ms**, object store `handles` present |
+| `#file-menu-wrap` | `display: block`, visible |
+| `isSecureContext` / `showSaveFilePicker` | `true` / `function` |
+| React mount | 2 children, full chrome renders |
+
+So the recents list, the file handles and the crash backup all work. Row 49's *conclusion* —
+environmental — is correct.
+
+**But row 49's stated evidence is wrong, and that matters**, because it is the sentence the next
+session will reason from. It says the hang is *"IDENTICAL on the untouched deployed
+`/index.html`"*. It is not. Same server, same origin, same Chrome, same run:
+
+- `/index.html` (legacy) — restore **PASSES**, IDB settles
+- `/dist/index.html` (build) — restore **FAILS**, `indexedDB.open` **TIMEOUT at 8000 ms**
+
+**The mechanism, which that asymmetry actually points at.** `src/index.html` loads the app as
+`<script type="module">`, which is **deferred** — a change made deliberately and documented in
+that file. The legacy app ran its IIFE *mid-parse*, so `loadRecents()` issued
+`indexedDB.open()` almost immediately; the build issues it after parsing **and** after React
+mounts. Under `--virtual-time-budget` the clock races ahead as soon as the task queue drains, and
+IndexedDB's real disk I/O is not something the virtual clock waits for. The later the `open()` is
+issued, the more likely the budget has effectively expired before the I/O lands. Same environment,
+different position in the page lifecycle — which is why one page hangs and the other does not.
+
+⛔ **What this costs, and it is not nothing:** the restore leg is the test that proves *saved
+calendars still open* — the project's most safety-critical rule (§0 rule 3). It is **unprovable
+against the build** under this harness. That is a hole in the gate, not a hole in the app. Fixing
+it means changing how the harness waits (CDP, or a real-time run with an explicit dump trigger),
+exactly as row 49 said; removing `--virtual-time-budget` is still not an option, because
+`--dump-dom` then emits nothing.
+
+**Until it is fixed, verify the build's restore path in a real browser** — it takes a minute:
+serve the repo, open `/dist/index.html`, and check `indexedDB.open` settles and the file menu
+appears. Do not read a harness FAIL on that leg as a regression without doing so.
+
+### ⚠️ `grep` SILENTLY UNDER-REPORTS ON `src/legacy/app.js`
+
+Cost real time on 31 Aug 2026 and nearly produced a badly wrong conclusion ("the build has no
+IndexedDB code at all"). The file contains the **literal NUL** of the `SIM_KEY` sentinel, so GNU
+grep classifies it as **binary** and suppresses matches — `grep -c indexedDB src/legacy/app.js`
+prints *nothing*, while `grep -ac` prints 2 and the file really has 8 occurrences. `file(1)` still
+calls it "UTF-8 text", so nothing warns you.
+
+Use `grep -a`, or better `node -e` with `readFileSync` (which PROJECT-CONTEXT §11 already
+recommends for the long-line problem — this is a second, independent reason). Note the same trap
+does **not** hit `dist/index.html`: the minifier re-encodes the NUL as an escape, so the built
+file greps normally. The source is the dangerous one.
 
 ⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
 spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
