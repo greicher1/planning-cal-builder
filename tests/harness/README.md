@@ -26,15 +26,54 @@ requirement — they are different constraints and get confused for each other.
 
 ## Running
 
+**Start here: the acceptance gate, in one command.**
+
 ```bash
 cd tests/harness
-./run.sh base 45        # build a calendar, measure the grid, capture both exports
-./run.sh restore 35     # open tests/fixtures/v1.0.0-saved.html and prove it still restores
+./gate.sh                       # the whole gate against /dist/index.html (the BUILD)
+./gate.sh /index.html           # ...or against the deployed single-file app
 ```
+
+`gate.sh` is the entry point the freeze rule in `CLAUDE.md` demands: it builds the fixture, measures
+the frozen grid, compares the **waterfall PDF** and every **Excel part** against
+`tests/baselines/2026-08-29-stage-7/`, restores the real v1.0.0 saved calendar, and asserts
+`fields.byId` is unchanged. It defaults to **`/dist/index.html`**.
+
+⛔ **`run.sh` DOES NOT.** It defaults to `HARNESS_PAGE=/index.html` — the **deployed** app — so the
+individual commands below test the single-file build unless you say otherwise:
+
+```bash
+./run.sh base 45                                  # ⚠️ the DEPLOYED app
+HARNESS_PAGE=/dist/index.html ./run.sh base 45    # the BUILD
+HARNESS_PAGE=/dist/index.html ./run.sh restore 60 # open the v1.0.0 fixture in the BUILD
+HARNESS_PAGE=/dist/index.html ./run.sh fsprobe 30 # why is the file menu never revealed?
+```
+
+This mismatch has already produced one confidently wrong diagnosis — see the Traps section.
 
 Results land beside the script as `<name>.json`, plus `<name>.xlsx` / `<name>.pdf` when the test
 captured an export. Those outputs are gitignored — commit a copy into `tests/baselines/` when you
 want to keep one.
+
+### The two frozen-output proofs, and why they used to be red
+
+`gate.sh` compares the waterfall PDF and every Excel part against the baseline — these are the
+checks that prove the **frozen writers have not moved**, and they matter more than anything else
+here.
+
+⚠️ **Both used to FALSE-FAIL on every run after the day the baseline was cut**, because the PDF
+header and the Excel header both stamp `todayStr`. That was documented as expected — which meant two
+permanently-red gates that nobody read. Fixed in round 7: `pdfcmp.py` decompresses the PDF's content
+streams, substitutes **only** the dotted `M.D.YY` stamp, and byte-compares the rest;
+`sheet1.xml` gets the same single substitution. Calendar CONTENT renders dates with slashes
+(`1/5/26`), so a real change to a printed date still fails.
+
+⛔ **A red there now means something real.** Do not re-widen the exemption to make it green.
+
+⚠️ `pdfcmp.py` compares only successfully-decompressed Flate streams, on purpose: a first version
+also compared the **xref table**, whose byte offsets shift mechanically whenever any object's length
+changes, so the date stamp alone made it "differ". Excluding it hides nothing — every object's
+content is still compared strictly.
 
 Then validate the exports:
 
@@ -43,7 +82,9 @@ Then validate the exports:
 node pdf-info.js base.pdf base.txt  # page box, text/rect counts, grid extent, every string
 ```
 
-Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS path).
+Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS path), and
+⚠️ **`HARNESS_PAGE` (default `/index.html`)** — the one whose default silently changes *what program
+you are testing*. `gate.sh` overrides it to `/dist/index.html`; `run.sh` does not.
 
 ## Files
 
@@ -59,6 +100,10 @@ Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS
 | `t/probe.js` | diagnostic only: what is alive over time, with real timestamps |
 | `check-xlsx.sh` | validates an `.xlsx` the way Excel rejects it, not the way a parser does |
 | `pdf-info.js` | reads back a waterfall PDF so two exports can be diffed |
+| `gate.sh` | ⭐ **the acceptance gate in one command**, diffed against `tests/baselines/`; defaults to `/dist/index.html` |
+| `pdfcmp.py` | byte-compares two waterfall PDFs with ONLY the header's today-stamp normalised (see below) |
+| `t/fence.js` | every computed style on the frozen surface, so two pages can be compared property by property |
+| `t/fsprobe.js` | diagnostic only: is the file menu hidden because IndexedDB never opened? Run it on BOTH pages |
 
 ## Traps this harness has already fallen into
 
@@ -85,15 +130,33 @@ reason attached; this is the index.
   `#union-country`'s default option is `value=""`, so an empty string is the *correct* fresh state
   and also what a dead page shows; `#file-menu-label` ships the literal text "Untitled" in the
   markup. A probe a dead page also satisfies turns a broken page into a "broken feature". The
-  signal that works is `#file-menu` having children — it is empty in the markup and only
-  `renderRecents()` fills it.
-- ⚠️ **Fresh-profile IndexedDB stall.** `renderRecents()` runs inside `loadRecents().then(...)`,
-  an IndexedDB round trip, and on a fresh `--user-data-dir` the database has to be created first.
-  Roughly one run in three it does not resolve within 20 s, while the app is otherwise completely
-  healthy — the grid renders, no errors, no alerts. Two consequences: **gate a test only on the
-  subsystem it actually uses** (`base` deliberately does not call `appReady()`, because it never
-  touches the file menu), and if `restore` or `sharecopy` times out on the file menu, suspect the
-  environment before the app.
+  ⚠️ **The probe that "works" has moved three times, and the version this README used to
+  recommend — `#file-menu` having children — is DEAD.** Mantine renders the dropdown's items from
+  React's first commit, so a page whose engine never started satisfies it. `appReady()` now waits on
+  `#file-menu-wrap`'s computed `display` instead, which only `renderRecents()` clears.
+- ⛔ **IndexedDB NEVER SETTLES in headless Chrome — this is not a one-in-three flake.** It was
+  written up that way for two rounds ("fresh-profile stall, roughly one run in three"); round 7
+  measured it directly with `t/fsprobe.js` and the truth is worse and simpler:
+  `indexedDB.open('spt-planning-cal')` fires **no** `success`, **no** `error` and **no** `blocked`,
+  past 8 s. `renderRecents()` sits behind that round trip, so `#file-menu-wrap` is never revealed
+  and `appReady()` times out — while the app is otherwise completely healthy (grid renders, no
+  errors, no alerts).
+  **It behaves IDENTICALLY on the untouched deployed `/index.html`, which is the proof it is
+  environmental and not a regression.** The File System Access API is present and the context is
+  secure in headless, so capability is not the cause; the prime suspect is `--virtual-time-budget`
+  fast-forwarding timers while IndexedDB does real async I/O. ⛔ Removing that flag is **not** a fix
+  — tried, and `--dump-dom` then emits nothing at all, because the budget is what makes Chrome wait
+  before dumping. Fixing it properly means changing how the harness waits (CDP, or a real-time run
+  with an explicit dump trigger) and is its own piece of work.
+  Two consequences: **gate a test only on the subsystem it actually uses** (`base` deliberately does
+  not call `appReady()`, because it never touches the file menu), and when `restore` or `sharecopy`
+  times out on the file menu, **prove it environmental** with
+  `HARNESS_PAGE=/dist/index.html ./run.sh fsprobe 30` and the same against `/index.html`. Matching
+  behaviour on both = environment. Only the build hanging = a real regression, start looking.
+- ⛔ **`run.sh` defaults to the DEPLOYED app, and that has already produced a wrong diagnosis.**
+  `PAGE="${HARNESS_PAGE:-/index.html}"`. So the instinctive move when `gate.sh` reports a failure —
+  "let me re-run just that leg on its own" — silently tests a **different program**, passes, and
+  reads as a clean bill of health. It is not one. Always pass `HARNESS_PAGE=/dist/index.html`.
 - **Measure at the END of an async path, not at its first visible effect.** `showLegacyNotice()` is
   the last thing `openRecentFile()` does — after `applyStateSnapshot`, `refreshAfterRestore`,
   `persistRecents` and `renderRecents`. Reading the strip the moment the grid appears races it and

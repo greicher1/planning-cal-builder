@@ -556,8 +556,15 @@ at `z-index:6` is **chrome**, not a grid internal, and must be re-based with the
 - The default middlewares are `{flip: true, shift: true}`. `shift` is the window-clamping the app
   hand-rolls.
 
-So `place()`, both scroll/resize listeners and the three clamp lines all delete. **What does not
-delete** is the anchor re-resolution: `render()` rebuilds the grid, so the popover must key on
+~~So `place()`, both scroll/resize listeners and the three clamp lines all delete.~~ ⛔ **THE
+OPPOSITE WAS BUILT, DELIBERATELY, AND NONE OF IT DELETED.** Mantine's `Popover` was rejected for
+these panels on two independent grounds, either fatal: it **portals by default**, which moves a
+dropdown out from under `.tools-menu` — the ancestor test that is the *entire* mechanism keeping
+eight id'd controls out of every saved file and every undo step — and it **mounts its dropdown from
+an effect**, so the node does not exist when the engine collects it by id at evaluation time.
+`legacy.css` carries a standing comment saying so. The hand-rolled `place()` and its capture-phase
+scroll + resize listeners are load-bearing, and round 6 ADDED a second copy of them to
+`.mv-note-pop`, which had never had any. **What does not delete** is the anchor re-resolution: `render()` rebuilds the grid, so the popover must key on
 `{weekKey, isHiatus}` and re-find its cell after each render — which the app already does when
 switching cells — rather than holding the node.
 
@@ -591,24 +598,55 @@ both. That is a live bug this work would fix as a side effect — not a regressi
 
 ## 7. Responsiveness
 
-**`AppShell` replaces the hand-rolled sticky layout**, with `AppShell.Header` / `.Navbar` / `.Main`.
-`#print-root` stays a direct child of `<body>`, outside the React root.
+> ⛔ **THIS SECTION WAS SUPERSEDED BY WHAT WAS BUILT (round 6, 31 Aug 2026). Read the "AS BUILT"
+> block at the end before acting on anything above it.** Three of its prescriptions are not merely
+> unbuilt — they are now known to be wrong for this app, and one of them would break the print paths.
+
+~~**`AppShell` replaces the hand-rolled sticky layout**~~, with `AppShell.Header` / `.Navbar` /
+`.Main`. `#print-root` stays a direct child of `<body>`, outside the React root.
+
+⛔ **`AppShell` cannot be used and was not.** React mounts through `createPortal` into the static
+skeleton precisely because a root that WRAPS the app defeats both print paths'
+`body.printing-* > *:not(#print-root)` **child** combinators — the printed page comes out blank.
+`AppShell` is a wrapper by construction. See MANTINE-SEAM §3.1; `main.jsx` says the same in its own
+comment.
 
 **Breakpoints keep Mantine's five names, with the app's real numbers:**
 `xs 576, sm 768, md 1024, lg 1200, xl 1440`. `md` replaces the current 960 as the sidebar-collapse
 point; `lg` replaces the unnamed ~1185 as the toolbar-density point.
 
-**The header is made structurally incapable of wrapping** — `Group wrap="nowrap"` with three zones,
-and below `lg` the non-essential controls (New, Save As…, Reset All, the secondary export) move into
-one overflow `Menu`. Essential at every width: the file button, Save, the primary export for the
-current view, and the save status.
+~~**The header is made structurally incapable of wrapping**~~ — `Group wrap="nowrap"` with three
+zones, and below `lg` the non-essential controls move into one overflow `Menu`.
 
-That is what lets `--header-h`'s runtime `ResizeObserver` be deleted and replaced by
-`:root{--header-h: var(--app-shell-header-height, 56px)}`. ⚠️ **This is only legitimate because of
-the no-wrap decision** — `.sheet-scroll`'s `max-height: calc(100vh - var(--header-h) - 140px)` is
-frozen and sizes the container holding the grid. Ship a dev-only assertion that the measured header
-height equals the declared one, so a future toolbar change fails loudly instead of silently
-mis-sizing the grid.
+⛔ **No overflow `Menu` was built, and the diagnosis behind it was wrong.** The header never wrapped
+and never overflowed: its flex items **SHRANK**, so at 1100 px the labels read "Expor", "Exp",
+"Rese". An overflow menu would also have fought the engine, which binds those buttons by id at
+evaluation time and must never see them unmounted.
+
+~~That is what lets `--header-h`'s runtime `ResizeObserver` be deleted~~ — ⛔ **the ResizeObserver is
+KEPT and is load-bearing.** It still measures the header and writes `--header-h`, which the frozen
+`.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads. That is *why* the header was
+allowed to grow to 63 px at all: the grid adapts because the value is measured rather than declared.
+A hard-coded `--header-h` would silently mis-size the container holding the grid. The dev-only
+assertion this paragraph asked for is unnecessary for the same reason — there is no declared number
+to disagree with.
+
+### ✅ AS BUILT — the header's responsive ladder (round 6)
+
+The rule: **a label is never truncated.** Controls keep their natural width (`.app-toolbar > *` is
+`flex:none`), the save-status readout is the only elastic element, and demand is reduced in
+deliberate steps instead:
+
+| Below | What gives up room, and why it is the cheapest thing to lose |
+|---|---|
+| **1320 px** | the file chip narrows 224 → 180 px — the widest single control, and the same name is inside the menu it opens |
+| **1200 px** | the brand **name** hides; the mark stays, so identity survives |
+| **1120 px** | New / Save As / the secondary export go **icon-only** with `title=` tooltips |
+| **980 px** | the status text hides — the only thing here that is not a command |
+
+**Save keeps its label at every width** (it carries the engine's "Saved ✓" flash confirmation) and so
+does the primary export. Verified at 1440 / 1280 / 1150 / 1024 / 900: zero clipped labels, zero
+overflow, `--header-h` 63 px throughout.
 
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
 toggle and the Shift All arrows, which are deliberately one-click. Below `lg` the three labelled
@@ -743,7 +781,7 @@ Also: `theme.fontSmoothing` defaults to **true**, applying `antialiased` to `bod
 into `#table-wrap`. Glyph *metrics* are unchanged — so `measureTextPx` and the 3.75 px budget are
 safe — but the on-screen appearance of the frozen waterfall changes. Set `fontSmoothing: false`.
 
-### 8.7 There is no build system to import CSS into
+### 8.7 ~~There is no build system to import CSS into~~ ✅ There is one, and the CSS is per-component now
 
 `styles.layer.css` is **273,442 bytes**; the ten per-component files this design needs total
 **26,276**. But the deeper point is that the app has no import graph — the CSS has to be pasted into
@@ -763,7 +801,15 @@ grep assertion to `tools/check-refs.py` that the block contains no unwrapped Man
 Each of these looked like a design decision and turned out to be a change to frozen code or frozen
 output. None should be built on a guess.
 
-**9.1 — Embedding Inter changes a frozen export's output on offline machines.** Via
+**9.1 — ✅ RULED YES AND BUILT (round 7).** Inter is embedded as one variable woff2 (latin) in
+`src/styles/inter.css`, regenerated by `tools/fetch-inter.py`; the Google Fonts link and both
+preconnects are gone and the app fetches nothing external. **The gate was met by measurement**:
+canvas text widths at 400/500/600/700 came out byte-identical to the Google-served statics, so
+`mvNoteLineCount`'s input never changed, and with no request left network state cannot be a
+variable. ⚠️ Nobody has exported a month PDF before-and-after, so the literal diff below is still
+unrun. The original reasoning, which is what made this a ruling rather than a task:
+
+**Embedding Inter changes a frozen export's output on offline machines.** Via
 `mvNoteLineCount` → `place()` → month-view row heights → `exportMonthPdf`. Embedding standardises
 the measurement to Inter *always*, which is byte-identical to today's **online** behaviour and a
 real, visible change to the month PDF on any machine that is offline, behind a network that blocks
@@ -784,14 +830,26 @@ resolution: hoist it out into a sibling in the preview panel so the frozen conta
 the grid. Gate: the rendered grid HTML for a *populated* schedule must be byte-identical, since only
 the empty branch is touched.
 
-**9.5 — `.mv-note-pop` is a genuine collision in the rules themselves.** It matches the frozen
+**9.5 — `.mv-note-pop`** was a genuine collision in the rules themselves: it matches the frozen
 `.mv-*` pattern and sits inside the frozen CSS band, but it is a body-level popover and the owner's
-instruction puts panels anchored to the grid in scope. **Do not write code against it until this is
-ruled.** If it is ruled in scope, note that the frozen `renderMonthView` emits its anchor.
+instruction puts panels anchored to the grid in scope.
+✅ **RULED IN SCOPE by the owner (29 Aug 2026) and BUILT (round 6).** It now wears the shared overlay
+look, and the live bug this document flagged in §6 is fixed: it tracks its anchor on capture-phase
+scroll + resize like its waterfall twin, and gets the twin's rebuild protection from a
+**MutationObserver on `#table-wrap`** — deliberately *not* by mirroring the twin's guard, which lives
+inside frozen `render()`. Observing mutates nothing. ⚠️ The note's rendered size, wrapping and shrink
+behaviour back in the cell were not touched and must not be; the frozen `renderMonthView` still emits
+its anchor.
 
-**9.6 — The single-file size budget.** Adding React + Mantine was measured at ~1.0–1.15 MB
-(`MANTINE-MIGRATION.md` §3). The per-component CSS above is a further 26 KB. The app is emailed
-around as one file; that property is the owner's to price.
+**9.6 — The single-file size budget.** ✅ **Settled by building it.** The projection was ~1.0–1.15 MB
+(`MANTINE-MIGRATION.md` §3) and the build landed at 1,096 KB with the full stylesheet. Round 7 then
+took the per-component CSS (26 files, not the 273 KB bundle) *and* added the embedded font, and the
+file came out at **983 KB** — smaller than before, with one fewer network dependency.
+⛔ **The per-component import ORDER is derived from Mantine's own `styles.layer.css` and must never
+be alphabetised**: they share one `@layer`, so order decides, and sorting it put `UnstyledButton`
+after `Button`, whose reset then stripped every button in the app of its background, border and
+padding. Add a file whenever a component **or a state** is added — Badge, Loader and Tooltip are in
+the list for states no click can reach.
 
 ---
 

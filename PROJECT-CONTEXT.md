@@ -8,7 +8,7 @@ grid/exports rule, and the Mantine redesign decision. Previous refresh was `2185
 earlier; everything between is summarised in §§2, 8, 9, 9a and 12.
 
 > ⚠️ **Three documents, three jobs.** [`HANDOFF.md`](HANDOFF.md) is *where things stand right now*
-> and is read **first**. [`CLAUDE.md`](CLAUDE.md) is the rules. This file is the *system* —
+> and is read **second** — [`CLAUDE.md`](CLAUDE.md), the rules, comes first (owner, 29 Aug 2026). This file is the *system* —
 > how it works and why. When they disagree, `HANDOFF.md` is newer.
 
 ---
@@ -58,10 +58,16 @@ is a global — see §11).
 > survives as File ▸ *Export shareable copy…*. Both still open, forever. See §8, which was
 > rewritten for this.
 
-**The only external dependency:** ExcelJS from a CDN `<script>` tag (line 2240). Everything else
+**External dependencies:** ExcelJS from a CDN `<script>` tag — and, in the DEPLOYED file only,
+**Google Fonts** (two `preconnect`s plus a `css2` stylesheet for Inter and IBM Plex Mono). ⚠️ The
+build has neither font dependency: IBM Plex Mono was dropped and Inter is embedded
+(`src/styles/inter.css`), so `dist/index.html` fetches nothing but ExcelJS. Everything else
 is inline. The app is otherwise fully offline-capable and makes no network requests.
 
-**No build system. No package manager. No test framework. No server.** There are now **test
+**The DEPLOYED FILE has no build step.** ⚠️ The repo now has all four of the things this line used
+to deny: Vite + React 19 + Mantine 9.5.2 (`npm run dev` / `npm run build` → `dist/index.html`), a
+package manager, a harness (`tests/harness/gate.sh`) and a server (`tests/harness/srv.js`). What
+has not changed is the product: the build still emits ONE self-contained file. There are **test
 fixtures** (`tests/fixtures/`) but no runner — see §11.
 
 > ⚠️ **This constraint is under active reconsideration.** The owner has chosen to redesign the
@@ -669,7 +675,7 @@ sheetColumnWidths()  → Excel char units, measured with a real canvas
         └─ PDF       → the same numbers read as points
 ```
 
-**The constants, all frozen (§2a), at line 2309:**
+**The constants, all frozen (§2a):**
 
 | | | |
 |---|---|---|
@@ -731,7 +737,10 @@ export — so a layout change lands everywhere at once. Keep it that way.
 
 ### Workflow
 
-1. **Make the change** in `index.html`.
+1. **Make the change** — ⚠️ in `src/`, not in the root `index.html`. The root file is the deployed
+   v1.2.0 app (byte-identical to `releases/v1.2.0.html`) and is deliberately frozen until an
+   owner-approved cutover; all work since 29 Aug 2026 lands in `src/` and is built with
+   `npm run build`.
 2. **Verify it in a real browser** — never claim it works from code reading alone. The owner
    expects evidence.
 3. **Report what was verified**, with concrete before/after values.
@@ -795,7 +804,12 @@ project's real documentation.
 >   plain `e.value = v` leaves the tracker unchanged, React decides nothing changed and swallows the
 >   dispatched event — every fixture would silently assert against a blank calendar.
 >
-> ⚠️ **Give `restore` and `sharecopy` a 60 s budget, not 40.** Below that the documented
+> ⛔ **No budget fixes this, and the 60 s advice is superseded.** Round 7 measured it:
+> `indexedDB.open()` in headless Chrome **never settles** — no success, no error, no `blocked` —
+> so `renderRecents()` never reveals the file menu, identically on the untouched deployed page.
+> Diagnose with `HARNESS_PAGE=/dist/index.html ./run.sh fsprobe 30` against **both** pages, and
+> see the harness README. The original note: ⚠️ **Give `restore` and `sharecopy` a 60 s budget,
+> not 40.** Below that the documented
 > fresh-profile IndexedDB stall fires often enough to look like a real failure.
 >
 > ⚠️ **Never byte-compare the `.xlsx`.** ExcelJS stamps `dcterms:created` / `modified` into
@@ -895,7 +909,10 @@ node /tmp/testsrv.js & sleep 2
   Everything real still runs — `parseCalendarText`, `applyStateSnapshot`, `refreshAfterRestore`.
   Fetch the fixture over the same test server. Allow ~2 s afterwards: the restore is async and a
   measurement taken too early reports an empty calendar, which looks like a restore failure.
-- **Stub `window.alert` into an array** before any Open/Save test. Every failure path in the file
+- **Stub `window.alert` into an array** before any Open/Save test. ⚠️ **This captures nothing in
+  the BUILD**, which is the page `gate.sh` tests by default: `src/legacy/app.js` declares its own
+  `alert` that routes to the app's Mantine dialog, so the engine never reaches `window.alert`.
+  Assert on the dialog instead. Still true of the deployed `/index.html`. Every failure path in the file
   layer is an `alert()`, so without this a rejected file is indistinguishable from a silent no-op.
 
 ### Saved fixtures (`tests/fixtures/`)
@@ -1223,7 +1240,8 @@ after any edit to `index.html`, and believe it over your memory of where a funct
 ## 15. Starting a fresh session — suggested first message
 
 > This is the SPT Planning Calendar Builder, a single-file HTML TV production scheduling tool.
-> Read `HANDOFF.md` first, then `CLAUDE.md`, then `PROJECT-CONTEXT.md` — in that order. The short
+> Read `CLAUDE.md` first, then `HANDOFF.md`, then `PROJECT-CONTEXT.md` — in that order (changed by
+> the owner 29 Aug 2026; add `UI-CONVENTIONS.md` before any UI work). The short
 > version: the grid and the exports are permanently frozen and must not be touched; every calendar
 > ever saved must keep opening; changelog substantial changes in `README.md`; verify in a real
 > browser before telling me anything works; and never push to `main` without being asked for that

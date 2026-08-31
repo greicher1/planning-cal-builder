@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the documentation sweep after rounds 5–7
+
+⚠️ **Not deployed and not cut as a version. No app code changed.** Every project document was
+audited against the repo as it actually stands and corrected. This is bookkeeping only in the sense
+that no user sees it; three rounds of building had left the docs describing a program that no longer
+exists, and several of them would have sent the next session to build something already built — or
+to build it the wrong way.
+
+**The corrections that mattered most:**
+
+- **Two docs prescribed designs that were tried and rejected.** `UI-CONVENTIONS.md` §7 called for an
+  `AppShell` and an overflow menu in the header; `AppShell` *cannot* be used (a React root that wraps
+  the app breaks both print paths) and the overflow menu solved a problem the header never had — it
+  was truncating labels, not wrapping. `MANTINE-MIGRATION.md` promised that four hand-rolled popovers
+  would collapse into one library call; Mantine's `Popover` is disqualified here on two independently
+  fatal grounds. Both now carry what was built and why the original was wrong, rather than being
+  quietly deleted.
+- **The layer fence was documented inverted** in two places — the app's stylesheet goes *last* and
+  unlayered, not fenced into a layer — and the per-component import order is now recorded as
+  derived-never-alphabetical, with the failure it caused.
+- **Three docs still described the restore-test stall as flaky-under-load** and told the reader to
+  re-run it standalone. That advice is a trap: the harness defaults to the *deployed* page, so the
+  standalone run tests a different program and passes. All three now carry the measured cause.
+- **`CLAUDE.md` gained the patterns that unblocked two "impossible" requests** — how to change frozen
+  *behaviour* without editing frozen code, with the preconditions that make each one safe.
+- **Corrected throughout:** the reading order, the claim that there is no build system or test runner,
+  which font is embedded for which reason (Carlito feeds the frozen width model; Inter is chrome
+  only), the `buildSavedHtml()` strip list, and the §2h bug status in the three docs that still
+  called it open.
+
+**And the line-number checker got its own hole closed.** `tools/check-refs.py` exists to keep line
+numbers out of prose — and the audit found three sitting in prose while it reported CLEAN, because
+every pattern it had required a backticked symbol next to the number, and these were written as bare
+English instead — the word "line" followed by a number, with no symbol beside it.
+Two of the three were also already wrong, which is the entire argument for the rule. The checker now
+catches the bare English form, regression-tested against both the text that fooled it and the
+legitimate numbers it must not fire on.
+
 ### Unreleased — round 7: the backlog cleared, and the app stopped phoning home
 
 ⚠️ **Not deployed and not cut as a version.** The owner's seventh round plus the buildable half of

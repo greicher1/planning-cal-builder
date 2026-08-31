@@ -52,7 +52,13 @@ it is permanent, and it outranks anything in this document.
 | `#table-wrap` and every descendant | the existing imperative renderer |
 | `#print-root` and every descendant | the existing PDF/print path |
 
-Both are rendered by React as **empty containers with a ref**, and React never touches their
+⛔ **NOT AS BUILT — this shape breaks the app at load.** `#table-wrap` must exist in the served
+HTML *before* the engine script runs: seven listeners are attached to it unguarded at
+IIFE-evaluation time, so a container React creates on mount makes all seven throw and takes the
+rest of the engine with them. As built, both stay in the STATIC skeleton and React `createPortal`s
+into the containers around them, never wrapping or replacing them. See `src/main.jsx`.
+
+~~Both are rendered by React as **empty containers with a ref**~~, and React never touches their
 children. `renderSpreadsheetView()` / `renderMonthView()` keep writing into `#table-wrap` exactly
 as they do now; `exportMonthPdf()` and `buildWaterfallPdf()` keep using `#print-root` exactly as
 they do now. The existing delegated listeners on `#table-wrap` (note editor open, keydown,
@@ -84,7 +90,14 @@ box-sizing, margins, `line-height`, `font-family` and table defaults document-wi
 this app they are a live candidate to re-introduce the clipping bug — and it will not look like a
 Mantine problem, it will look like the PDF being wrong again.
 
-**Mandatory mitigation:** import Mantine's `.layer.css` variants and fence them into a CSS
+**Mandatory mitigation — and ⚠️ the shape below is inverted from what actually works.** As built,
+Mantine's layered files are imported **FIRST** and the app's **UNLAYERED** `legacy.css` LAST,
+because unlayered normal declarations outrank every layer; nothing is "fenced into" a layer by
+hand. For `!important` the precedence reverses, which is the real hazard to
+`*{print-color-adjust:exact !important}` — cleared by verifying all 20 `!important` declarations
+in @mantine/core 9.5.2 are scoped to hashed `.m_*` selectors. The original text:
+
+~~import Mantine's `.layer.css` variants and fence them into a CSS~~
 `@layer` that the app's grid rules outrank; assert in review that no Mantine selector matches
 inside `#table-wrap` or `#print-root`. **Acceptance gate for every stage:** the ellipsis-clipped
 cell count stays at zero and a generated PDF diffs clean against a pre-migration export. Not "it
@@ -120,13 +133,13 @@ the diff reviewable surface-by-surface and means no user has to relearn where an
 | **All-phase hiatus** | `.hiatus-entry` rows, pin checkbox | rows with `DatePickerInput` + `NumberInput` + `Switch` (the "Lock in place" pin) |
 | **Preview toolbar** | `.view-toggle` pair, `.shift-group` split control, 4 popovers, undo/redo | `SegmentedControl` for the view; `Button.Group` for the shift split; `Popover` ×4; `ActionIcon` + `Tooltip` for undo/redo |
 | **Warnings / status** | `#gap-warning`, `.tools-msg`, `.placeholder-note`, `.snap-note`, `#union-lock-hint`, `#custom-hol-err` | one consistent system: `Alert` for blocking/advisory, `Text c="dimmed"` for hints, `InputBase` `error` for field-level. Today these are six different looks for the same idea |
-| **Note / month-note editors** | hand-rolled body-level popovers with manual anchoring, capture-phase scroll repositioning, window clamping, outside-click teardown | `Popover` (floating-ui) — anchored **to** grid cells, never injected **into** them. This is the biggest deletion in the project |
+| **Note / month-note editors** | hand-rolled body-level popovers with manual anchoring, capture-phase scroll repositioning, window clamping, outside-click teardown | `Popover` (floating-ui) — anchored **to** grid cells, never injected **into** them. ~~This is the biggest deletion in the project~~ — ⛔ it was not deleted; see the note above |
 | **Phase colour picker** | `.phase-color-pop` | `Popover` + `ColorSwatch` grid |
 | **Help** | `#help-fab` + `#help-overlay` + ~180 lines of static markup | `ActionIcon` FAB + `Modal` with `ScrollArea`; content unchanged |
 | **Empty state** | `.empty-state` | proper empty state; also the natural home for the deferred intake hint |
 
 **Not present today, and staying that way:** there is no footer. `footer.assumptions` exists in
-the CSS (lines ~909–910) but nothing renders it — dead rules from an earlier version. Asked
+the CSS but nothing renders it — dead rules from an earlier version. Asked
 directly, the owner's answer was **no footer now, none foreseen**. The considerations for one, if
 it is ever revisited, are recorded as a UI convention in [`HANDOFF.md`](HANDOFF.md) §6 — including
 that a print-only assumptions footer would mean editing frozen export code and is therefore a
@@ -139,7 +152,13 @@ separate ask. **The layout stays header + sidebar + preview.**
   §4 carries a standing rule against giving transient UI an `id`, and why the toolbar popovers
   need a `.tools-menu` escape hatch. With React state as the source of truth, "what counts as
   calendar data" becomes a declaration instead of a DOM query.
-- **Four hand-rolled popovers become one library call.** The app currently maintains its own
+- ⛔ **THIS BENEFIT DID NOT MATERIALISE AND CANNOT.** Mantine's `Popover` is disqualified for the
+four `.tools-menu` panels on two independently fatal grounds: it **portals by default**, which
+moves the dropdown out from under `.tools-menu` — the ancestor test that keeps eight id'd controls
+out of every saved file and every undo step — and it **mounts from an effect**, so the node is
+absent when the engine collects it by id at evaluation time (this already cost an afternoon on the
+file menu). They stay hand-rolled, deliberately. Same for `SegmentedControl` (it mints id'd radios)
+and `DateInput` (controlled). ~~**Four hand-rolled popovers become one library call.**~~ The app currently maintains its own
   anchoring, scroll repositioning, clamping, teardown and outlived-anchor cleanup in four places.
 - **Six warning styles become one.** The list above is not a nitpick — it is the clearest
   *visual* argument for the redesign.
@@ -344,7 +363,13 @@ own even if the rest stops — which is the main reason to order it this way.
 
 Still open — none block Stage 0, all block Stage 4.
 
-### Q1 — is losing "a saved calendar is a readable copy of the app" acceptable?
+### Q1 — ✅ ANSWERED 29 Aug 2026: **minified**, ~1.1 MB accepted
+
+The owner took the recommended option; HANDOFF §2b-3's ruling table records it. `.sptcal` had
+already narrowed the question — the thing you inspect is now 4.5 KB of JSON, not a 730 KB
+document. The original framing follows.
+
+#### (as asked) is losing "a saved calendar is a readable copy of the app" acceptable?
 
 After the build step, `buildSavedHtml()` serializes a **minified** app. The file still *runs*
 identically; it can no longer be read, grepped or hand-patched, and several past debugging
@@ -384,7 +409,13 @@ roughly right, and three columns are the wrong width and two notes are gone.
 gets a defensive posture instead: never drop an unrecognised key, log what could not be mapped,
 and refuse to overwrite the source file after a lossy restore.
 
-### Q3 — committed `dist/` or a GitHub Action?
+### Q3 — ✅ ANSWERED 29 Aug 2026: **a GitHub Action** builds and publishes `dist/`
+
+Recorded in HANDOFF §2b-3's ruling table, and `.gitignore` states the same decision beside the
+`dist/` entry. ⏳ Still **unbuilt** — it is the second-to-last item before the cutover
+conversation — but it is no longer an open question. The original framing follows.
+
+#### (as asked) committed `dist/` or a GitHub Action?
 
 Today there is no build: `index.html` **is** the app, and GitHub Pages serves that file straight
 out of the repo. After the migration the app is *built* from source into `dist/index.html`, and

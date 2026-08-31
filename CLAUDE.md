@@ -1,5 +1,40 @@
 # CLAUDE.md
 
+## ⛔⛔ HANDOVER — DO THIS FIRST IN THE NEXT FRESH SESSION, THEN DELETE THIS SECTION
+
+**Read the docs in the reading order below first. Then, before you act on whatever the user asked
+you to do — whatever it is — put the four questions below to them in ONE interactive picker
+(`AskUserQuestion` takes up to four questions in a single call).** Ask them first, then get on with
+the actual request.
+
+**Why this is here.** Rounds 5, 6 and 7 plus a full documentation sweep were built on a *temporary
+second machine* (see `HANDOFF.md` §1 — that account cannot push; the repo travels back by AirDrop).
+The next session is expected to be **greicher, the original author, on the machine that owns the
+repo**. Two decisions were deliberately left for that machine rather than guessed at here, and they
+are the only things blocking the backlog.
+
+**The four questions, in this order:**
+
+1. **Commit the local edits.** Check `git status` first — if the tree is dirty, ask whether to
+   commit it. ⚠️ Do **not** fold pushing into this question: `main` auto-deploys to a live public
+   site, and the never-push rule below is per-action and unchanged. Push is its own conversation.
+2. **Blocker: №6, all-phase hiatus naming.** Ask what to do with it. The finding, so you can put it
+   fairly: naming hiatus bands from the sidebar **never existed** — bands are named by clicking them
+   in the calendar (`hiatusTexts`). Adding a sidebar field means a **new key in the `fields.hiatuses`
+   entry shape**, i.e. a save-format change (append-only, permanent). It was deferred on
+   29–31 Aug 2026 specifically because it "belongs with the author greicher".
+3. **Blocker: the two notice strips.** Ask what to do with them, as a *separate* question. State
+   plainly that this is **no longer a bug**: §2h (a shareable copy baking in a strip that named
+   someone else's file) was fixed in round 7 inside `buildSavedHtml()`, with the strips left as
+   static markup. Porting them to React is now optional tidiness — but it still **changes an
+   export's output**, which is why it still wants a ruling rather than a quiet decision.
+4. **Question: "Thank Anto for his work"** — options, exactly these three:
+   *Thank you Anto!* · *Thank you Anto!!* · *Thank you Anto!!!!*
+
+⛔ **Then delete this entire section from `CLAUDE.md`** — once the user has answered (or explicitly
+waved the questions away), it has done its job and must not greet a third session. Deleting it is
+part of completing the handover, not a separate chore.
+
 ## ⛔ READ [`HANDOFF.md`](HANDOFF.md) FIRST — after this file, before anything else
 
 `HANDOFF.md` is the live state of the project: what was just built, what the owner has asked for
@@ -23,6 +58,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > handing it to a session with no history.
 
 **Reading order:** this file → [`HANDOFF.md`](HANDOFF.md) → [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md).
+Add [`UI-CONVENTIONS.md`](UI-CONVENTIONS.md) before any UI work: §10 is the list of acceptance
+gates `tests/harness/gate.sh` automates, §9 holds the owner rulings that produced the Inter embed
+and the note-popover stage, and §8 carries the id-hygiene traps that protect the save format.
 *(Changed by the owner 29 Aug 2026 — this file now comes first. The other docs' copies of the order
 have been brought into line.)*
 
@@ -71,8 +109,16 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `readCfgForMeta`.
 - **CSS:** the `/* ---------- Month view ---------- */` block, the
   `/* ---------- Calendar PDF export ---------- */` block, and every `.sheet-*` / `.mv-*` /
-  `#print-root` rule. **No third-party CSS baseline may reach them** — Mantine's `global.css` /
-  `baseline.css` must be fenced into a `@layer` the grid rules outrank.
+  `#print-root` rule. **No third-party CSS baseline may reach them.** As built, the fence is **import order**, not a
+  hand-written `@layer`: Mantine ships `*.layer.css` files that already declare `@layer mantine`,
+  and `main.jsx` imports those first with the app's **unlayered** `legacy.css` last — unlayered
+  normal declarations outrank every layer, so each frozen rule wins with no per-rule work. ⚠️ For
+  `!important` the precedence REVERSES, which put `*{print-color-adjust:exact !important}` at risk;
+  without it both PDFs print as an empty grid. Cleared by verifying all 20 `!important` declarations
+  in @mantine/core 9.5.2 are scoped to hashed `.m_*` selectors. **Re-verify on any Mantine upgrade.**
+  ⛔ Mantine's CSS is imported PER-COMPONENT now, and **the order is derived, never alphabetical** —
+  they share one layer, so order decides, and sorting it put `UnstyledButton` after `Button` and
+  stripped every button in the app of its background, border and padding.
 
 **Why, concretely.** These three cost weeks and are each invisible without measurement:
 
@@ -131,15 +177,60 @@ redesigned, while the note's rendered size, wrapping and shrink behaviour back i
 >   ids, and `*{ print-color-adjust:exact !important }` — which a `@layer` would demote, stripping
 >   every fill from both PDFs.
 
+### ✅ Sanctioned ways to change frozen BEHAVIOUR without editing frozen code
+
+**Ask this before concluding a request is blocked by the freeze.** Three patterns are built, gated
+and shipped (30–31 Aug 2026), and two of them delivered owner requests that had been written down
+as *needing a frozen edit and an owner sign-off*. The freeze forbids editing those function bodies
+— it does not forbid reading from them, calling them, or acting on what surrounds them.
+
+1. **Change the DECLARATION, not the call sites.** The eight `alert()` calls inside
+   `exportMonthPdf` / `exportWaterfallPdf*` became the app's own dialogs by declaring
+   `function alert(message){ return uiAlert(message) }` inside the engine's IIFE: a hoisted
+   declaration shadows the global for every call site in the file, and not one frozen line changed.
+   ⚠️ **Its precondition is real** — every one of those eight is `alert(msg); return;`, checked site
+   by site, so a non-blocking dialog is unobservable. A future export that must alert *and continue*
+   has to `await uiAlert()` explicitly. The same shape is what the Settings menu should use for
+   `SHEET_GRIDLINES` / `GRID_TEXT_COLOR` (HANDOFF §2b).
+2. **Drive the effect from outside, and ASK the frozen code for the verdict.** The invalid-date ring
+   looked like it needed a hook inside `render()`'s validity branch. Instead
+   `reflectStartDateValidity()` runs from `update()` (not frozen), rings the **sidebar** field
+   (chrome), and calls frozen `readCfgForMeta()` for the answer — so there is no second copy of the
+   rule to drift from the meta line it must agree with.
+3. **Observe the frozen surface instead of editing it.** The month-view note editor needed the
+   teardown-on-rebuild guard its waterfall twin gets from *inside* `render()`. A `MutationObserver`
+   on `#table-wrap` gives the same protection from outside; observing mutates nothing.
+
+⛔ **What these do NOT license.** None of them may change what a grid cell looks like, how much text
+fits in it, or what comes out of the writers — that is the boundary, and it is unmoved. If your idea
+needs the frozen code to *behave* differently rather than to be *read* differently, it is a frozen
+edit and the rule below applies.
+
 **If a change genuinely requires touching it:** stop and ask, with the measurement you intend to
 use as the acceptance gate (clipped-cell count, PDF diff against a pre-change export). Do not
 decide this one alone.
+
+⚠️ **One place chrome geometry legitimately reaches into the frozen surface: `--header-h`.** A
+ResizeObserver measures the header and writes it, and the frozen
+`.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads it. That is why the header
+may change height at all — the grid adapts *because* the value is measured rather than assumed. Keep
+it measured; do not replace it with a constant, and do not let the header wrap.
 
 ## ⛔ Every saved calendar must keep opening, forever
 
 **A saved `.html` calendar written by *any* past version must open in *every* future version.** A
 file that stops opening is a user's plan destroyed, and they will have no copy but the one that no
 longer works. This outranks tidiness, consistency, and any refactor.
+
+### 📖 It is called LOAD in the UI, and Open in the code — deliberately
+
+Settled with the owner (round 5): **saving** means writing a `.sptcal` locally; **loading** means
+opening a `.sptcal` or `.html` into the PWA. Every user-facing string says Load — the file-menu item
+is *Load…*, the unsaved-work guard asks *Load another calendar?*, failures read *Could not load…*.
+⛔ **The code did not rename.** `data-action="open"` is the contract the engine's one delegated
+file-menu handler matches on, and `openRecentFile` / `openFileViaPicker` / `OPEN_TYPES` keep their
+names. Rename either and the menu goes silently dead. New user-facing copy uses Load; new code may
+keep saying open.
 
 ### How Open actually works — read this before changing anything near it
 
@@ -210,9 +301,12 @@ format change, a decision about how something should work.
   message (see `HANDOFF.md` §5e).
 - **Cut a version** when the app reaches a state worth returning to. That is now **four** things,
   all in the same commit:
-  1. `APP_VERSION` in `index.html` **and** `version.json` — ⛔ **together, always.** `version.json`
-     alone shows every user an update that does not exist; `APP_VERSION` alone makes a real update
-     invisible. This is the update-delivery contract (README v1.2.0), not bookkeeping.
+  1. `APP_VERSION` in `index.html`, `APP_VERSION` in `src/legacy/app.js` **and** `version.json` —
+     ⛔ **all three together, always.** `version.json` alone shows every user an update that does not
+     exist; `APP_VERSION` alone makes a real update invisible. This is the update-delivery contract
+     (README v1.2.0), not bookkeeping. ⚠️ The build carries its **own** copy of `APP_VERSION` since
+     the engine moved to `src/legacy/app.js` — both read `1.2.0` today, and a bump that touches only
+     one ships a build that misreports itself.
   2. A changelog entry in `README.md`.
   3. `git tag -a vX.Y.Z` — immutable history.
   4. `releases/vX.Y.Z.html`, byte-identical, verified with `cmp`/`shasum`.
@@ -237,7 +331,7 @@ long sessions — it is easy to forget precisely when it matters most.
 
 ## Project
 
-`index.html` — a **single self-contained HTML file** (~10,345 lines / ~667 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
+`index.html` — a **single self-contained HTML file** (~10,344 lines / ~667 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
 
 > ⚠️ **This describes the DEPLOYED `index.html`, and it is still exactly true of it. It is no longer
 > true of the repo.** As of 29 Aug 2026 there is a Vite + React + Mantine build in `src/` that
@@ -247,13 +341,25 @@ long sessions — it is easy to forget precisely when it matters most.
 > exists, and note that the product is still ONE self-contained file — that is what the build
 > produces.
 
-There is no build system, no package manager, no test runner, no server. The whole app is one `<style>` block, static markup, and one `<script>` block wrapped in an IIFE — nothing inside is a global, so a test must drive the DOM rather than call functions. ExcelJS is the only dependency, loaded from a CDN `<script>` tag. The Carlito font is **embedded** (base64 of a zlib'd TrueType subset, ~94 KB) rather than fetched, so text measurement cannot drift; `tools/subset-font.py` regenerates it. Everything else (icons, PWA manifest) is inlined as `data:` URIs.
+The DEPLOYED FILE has no build step: it is one `<style>` block, static markup, and one `<script>` block wrapped in an IIFE — nothing inside is a global, so a test must drive the DOM rather than call functions. ExcelJS is the only runtime dependency, loaded from a CDN `<script>` tag.
 
-There is no runner but there **are** fixtures — `tests/fixtures/` holds real saved calendars to test the restore path against. See PROJECT-CONTEXT §11.
+⚠️ **The REPO has all four of the things that sentence used to deny.** A Vite build (`npm run build` → `dist/index.html`), a package manager (`package.json`; React 19 + Mantine 9.5.2), a runner (`tests/harness/`) and a server (`tests/harness/srv.js`). What has *not* changed is the product: the build still emits ONE self-contained file.
 
-⚠️ **These docs quote no line numbers.** They name symbols; `grep -n` finds them. Numbers live in exactly one place — [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md) §14 — and `python3 tools/check-refs.py` verifies them. This is not fussiness: the numbers were once scattered through ~107 sites, and twice in one day a single commit to `index.html` invalidated nearly all of them. A wrong line number reads as precision and sends you to the wrong function. **Run the checker after any edit to `index.html`.**
+⛔ **Two fonts are embedded and they must never be confused.** **Carlito** is the grid and export typeface, and it is embedded (base64 of a zlib'd TrueType subset, ~94 KB) because it feeds the **frozen width model** — `EXCEL_MDW`, `measureTextPx`, every column width in the workbook and both PDFs — so its measurement must never drift; `tools/subset-font.py` regenerates it. **Inter** is the CHROME typeface and is embedded only in the build (`src/styles/inter.css`, one variable woff2, regenerated by `tools/fetch-inter.py`). Touching Carlito changes the exports; touching Inter cannot. Everything else (icons, PWA manifest) is inlined as `data:` URIs — except that the **deployed** file still fetches Inter and IBM Plex Mono from Google Fonts. The build fetches nothing: the link and both preconnects are gone, IBM Plex Mono was dropped, and Inter travels inside the file, so an emailed copy measures text identically offline.
 
-**Run it:** `open index.html` (macOS). Reload the browser to test changes.
+There is a runner now, and fixtures. `tests/harness/` holds a headless-Chrome harness: `run.sh` drives one test, `gate.sh` runs the whole acceptance gate and diffs it against `tests/baselines/2026-08-29-stage-7/`. `tests/fixtures/` holds real saved calendars for the restore path. See PROJECT-CONTEXT §11 and UI-CONVENTIONS §10.
+
+⚠️ **The two entry points default to DIFFERENT pages, and that has already cost a wrong diagnosis.** `gate.sh` defaults to `/dist/index.html` — the build. `run.sh` defaults to `HARNESS_PAGE=/index.html` — the **deployed** app. So "re-run that leg standalone to see if it is really broken" silently tests a different program, and it passes while the build fails. Always pass `HARNESS_PAGE=/dist/index.html` when you mean the build.
+
+⚠️ **`tests/fixtures/` has a hole in the format that matters most: there is no `.sptcal` fixture at all**, only the pre-v1.1.0 `v1.0.0-saved.html`. So the restore gate proves the legacy path and *not* the format every save now writes. Cutting one is the cheapest possible insurance for §0 rule 3.
+
+⚠️ **These docs quote no line numbers.** They name symbols; `grep -n` finds them. Numbers live in exactly one place — [`PROJECT-CONTEXT.md`](PROJECT-CONTEXT.md) §14 — and `python3 tools/check-refs.py` verifies them. This is not fussiness: the numbers were once scattered through ~107 sites, and twice in one day a single commit to `index.html` invalidated nearly all of them. A wrong line number reads as precision and sends you to the wrong function. **Run the checker after any edit to `index.html`.** ⚠️ **It is blind to `src/legacy/app.js`** — it
+resolves §14's symbols against the root `index.html` only. Most work now lands in the build's engine,
+where the checker cannot see a thing, so a clean run there proves nothing about it.
+
+**Run the deployed app:** `open index.html` (macOS). Reload the browser to test changes.
+
+**Run and prove the BUILD:** `npm run dev` serves `src/` for iteration; `npm run build` produces `dist/index.html` (one self-contained file, ~983 KB). Before calling any change to the grid, the exports or the save path done, run `cd tests/harness && ./gate.sh` — it is the gate the freeze rule above demands, and it compares the waterfall PDF and every Excel part against the baseline.
 
 **Chrome/Edge are the target browsers — decided, not incidental** (owner's call, 29 Aug 2026). Read
 that as **two** constraints, because it was written as one sentence for months and the merge is what
@@ -335,6 +441,15 @@ Any new persistent state must be added in **both** places or it will silently no
 
 `parseCalendarText()` is the **only** thing that reads a calendar file: text starting with `{` is a snapshot, anything else gets the `saved-state` regex. It returns **`{format, snapshot}`** — the format is part of the contract because opening a legacy `.html` is the one moment the app can offer to upgrade it. Both converge on `applyStateSnapshot()`, which rebuilds custom-phase and hiatus rows first (re-keying generated ids to the saved keys), then applies `fields.byId`. On page load, `restoreSavedState()` still reads the inline block — that is how a shareable copy opens itself.
 
+⛔ **What the clone must strip, and the one thing it must HIDE rather than strip.** The strip list is
+five classes — `.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop` — because each is
+a body-level panel that a Share click can catch mid-close (React commits after the synchronous
+build). Separately the clone **re-hides** `#legacy-notice` and `#update-notice`: they ship `hidden`
+and are un-hidden at runtime by `el.hidden = false`, which *removes* the attribute `outerHTML` would
+have serialised, so a copy exported while the upgrade strip was up carried a permanent banner naming
+someone else's file. Hidden rather than removed, because the copy is a working app whose own engine
+may need to raise them later. (Fixed round 7; it restores v1.0.0's output rather than changing it.)
+
 `reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM property values — form fields must have their values written back to attributes before snapshotting.
 
 File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents list, so a reopened saved file can write back in place after one permission click. `suppressDirty` gates dirty-tracking during load/restore; `markDirty()` schedules the rolling crash backup (debounced 3 s) and the 10-minute autosave. ⚠️ That backup is **IndexedDB**, not `localStorage` — `idbSet(BACKUP_KEY, …)`. **`localStorage` is used nowhere in the app today**, so the Settings menu (HANDOFF §2b) would be introducing it, not joining it.
@@ -353,7 +468,7 @@ The width model that feeds all three is in PROJECT-CONTEXT §9a.
 
 - All dates are handled as **UTC midnight**; use `parseDateUTC()`, `addDays()`, `mondayOf()`, `isoOf()` rather than raw `Date` math. Weeks are always Monday-snapped.
 - Colors are hex strings shared by DOM and Excel; `textColorFor()` picks readable foreground.
-- The Production Region selectors **lock** once the user has made note/holiday/hiatus edits (`hasNoteEdits()` → `reflectCountryLock()`), since changing region would regenerate auto-notes and clobber them. Both `#union-country` and `#union-subregion` lock and revert together.
+- The Production Region selectors **lock** once the user has made note/holiday/hiatus edits (`hasNoteEdits()` → `reflectCountryLock()`), since changing region would regenerate auto-notes and clobber them. All three region selects — `#union-country`, `#union-usregion` and `#union-subregion` — lock and revert together.
 - **Region model:** a country (`#union-country`: `US` / `CA` / `UK`) plus a sub-region for US and Canada — `#union-usregion` (`US-GEN`, `US-NY`) and `#union-subregion` (`CA-BC`, `CA-ON`, `CA-QC`, `CA-AB`, `CA-MB`, `CA-NS`). They are **two separate selects** so both option sets stay static and a restored save can set either value directly. `effectiveRegionKey()` resolves country+sub-region to one `HOLIDAYS` key (the bare `US`/`CA` values are never keys); `reflectRegionUI()` shows whichever row applies; `normalizeRegionSelection()` rewrites the legacy `CAN` value and fills a missing sub-region with that country's default; `syncRegionTracking()` re-baselines the change-guard after any programmatic load/restore. All three selects lock and revert together.
 - `HOLIDAYS` is keyed by **region**, not country, and is **generated from holiday rules** rather than hand-transcribed — regenerate it rather than editing dates by hand. Both US lists are IATSE's 11 recognized holidays: `US-GEN` (West Coast Studio Locals **and** the Area Standards Agreement — verified identical, so LA = Atlanta = Albuquerque) and `US-NY` (Local 52 Majors), which **swaps Good Friday for Veterans Day**. **Columbus Day appears in neither** (it is on no IATSE calendar), and Veterans Day is *only* correct for New York. Canada is per-province because the statutory lists genuinely differ (Boxing Day is ON-only; Remembrance Day BC/AB; Truth & Reconciliation BC/MB; Fête nationale QC-only). Weekend holidays also emit an `(Observed)` weekday entry — US shifts Sat→Fri / Sun→Mon per the IATSE ASA rule, Canada/UK move forward to the next free weekday.
 - The code comments explain *why* (bug history, browser constraints) at length — match that style when the reasoning is non-obvious, and keep existing explanatory comments intact when editing nearby.

@@ -103,7 +103,7 @@ Worth knowing before anyone generalises. The committed baseline
 | 11 | Print area covers rows `sheetRowCount()` trimmed | **NEEDS A DECISION** | Makes the workbook print smaller than it needs to on a 53-Monday year with an idle last week. Fixing it makes Excel prints *bigger* — an export appearance change. Needs a new fixture; the committed baseline does not exercise it. |
 | 12 | Screen header grey `#F2F2F2` disagrees with both exports' `#D9D9D9` | **ALLOWED** | §4 gives the on-screen grid latitude and freezes the exports. Read literally: the screen value may move, the export value may not — the opposite of the instinct. |
 | 13 | Dead code and a wrong comment in the PDF writer | **ALLOWED** | `headerH` and `bodyTop` are computed and never read (`grep -n` finds only their declarations). Provably output-neutral, but still a diff against the `releases/` copy — ask first. |
-| 14 | **`buildSavedHtml()` bakes visible notice strips into shareable copies** | **BUG — and fixing it moves the export *back* toward v1.0.0** | Confirmed empirically, see §4. |
+| 14 | **`buildSavedHtml()` bakes visible notice strips into shareable copies** ✅ **FIXED round 7 in `src/legacy/app.js`** | **was a BUG — and fixing it moves the export *back* toward v1.0.0** | Confirmed empirically, see §4. |
 | 15 | **`PHASE_COLOR_OPTIONS`'s array order is part of the save-file format** | **ALLOWED — write it down** | `phaseColorOverride[key]` and `customPhaseDefs[].colorIndex` are **array indices**, and both are in `captureSnapshot()`. Re-ordering that array silently recolours every calendar ever saved. Undocumented until now. If #7 ever ships, re-pair **in place**, and swap the option *names* too ("Blue (like Pre Prep)" / "Slate (like Prod Prep)"). |
 | 16 | Per-cell font size already exists and reaches the PDF | **ALLOWED — surface it, don't change defaults** | `cellTextFit`'s `opts.manual` path returns `basePx/11`; `noteFontSize` / `hiatusFontSize` are saved state. A user who wants smaller text already has the control. |
 
@@ -136,7 +136,11 @@ update banner if one is showing at export time.
 
 **This is a v1.2.0-era regression in an export** — v1.0.0 had neither element. So under §4 fixing
 it is not merely permitted, it is *required*: the fix restores v1.0.0's output. It is one line in
-`buildSavedHtml()`'s existing strip list. **Not applied — `index.html` was not touched by this
+`buildSavedHtml()`'s existing strip list. ✅ **APPLIED in round 7 (31 Aug 2026)** — in
+`src/legacy/app.js`, as `clone.querySelectorAll('#legacy-notice, #update-notice')` with
+`el.hidden = true` (hidden rather than removed: the copy is a working app whose own engine may
+need to raise them later). ⚠️ The root `index.html` is STILL untouched, so the original sentence —
+**Not applied — `index.html` was not touched by this
 investigation.**
 
 ---

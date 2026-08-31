@@ -122,6 +122,14 @@ def main():
                     hit(md, i, m.group(0))
             for m in re.finditer(r'index\.html:\d+', line):
                 hit(md, i, m.group(0), '  (link a symbol, not a line)')
+            # "at line 2309" / "(line 2240)" -- the BARE English form, with no backticked symbol
+            # anywhere near it. Added 31 Aug 2026 after a documentation audit found two of these
+            # sitting in PROJECT-CONTEXT prose while this script reported CLEAN: every pattern above
+            # requires a `symbol` adjacent to the number, and "ExcelJS from a CDN `<script>` tag
+            # (line 2240)" has none that match -- `<script>` is not a symbol shape. Both numbers
+            # were also WRONG by the time they were found, which is the whole reason for the rule.
+            for m in re.finditer(r'\blines?\s+~?\d{3,5}\b', line, re.I):
+                hit(md, i, m.group(0), '  (name the symbol; numbers live in section 14)')
             # `symbol` 1234  /  `symbol`, 1234  -- the shape section 2b was using.
             for m in re.finditer(r'`[A-Za-z_][A-Za-z0-9_()]*`[ ,]{1,3}\d{3,5}\b', joined):
                 if m.start() < cut:
