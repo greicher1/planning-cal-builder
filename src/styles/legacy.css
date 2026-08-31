@@ -476,7 +476,15 @@
   .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
   .phase-name-input:hover{border-color:var(--mantine-color-gray-3);}
   .phase-name-input:focus{border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none;}
-  .custom-phase-header .icon-btn{width:24px; height:24px; font-size:14px; flex:none;}
+  /* ⛔ NO font-size HERE. This selector is 0,2,0 and `.remove-custom-phase{font-size:0}` below is
+     only 0,1,0, so a font-size set here WINS and un-hides the engine-emitted `&times;` character
+     that the font-size:0 exists to suppress -- leaving the text × AND the masked ::before × side
+     by side, rendering as "××" (owner, 31 Aug 2026). The only .icon-btn in this header is the
+     remove button, which draws its glyph as geometry, so it needs no font-size at all.
+     This is the same specificity trap as `button.primary` over `.tb-btn` -- see PROJECT-CONTEXT
+     §12. When a rule hides text so a pseudo-element can replace it, nothing more specific may
+     set font-size on the same element. */
+  .custom-phase-header .icon-btn{width:24px; height:24px; flex:none;}
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
   /* ============================================================================================
@@ -1604,7 +1612,11 @@
     border-radius:var(--mantine-radius-xs); padding:0 3px; color:var(--mantine-color-gray-6);
   }
   .hv-oor{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
-  .hv-del{ width:18px; height:18px; font-size:13px; line-height:1; padding:0; margin-left:4px; flex:none; }
+  /* ⛔ NO font-size HERE either -- same trap as .custom-phase-header .icon-btn above, but by
+     SOURCE ORDER rather than specificity: this rule and `.remove-custom-phase, .remove-hiatus,
+     .hv-del{font-size:0}` are both 0,1,0, and this one comes later, so it wins and un-hides the
+     engine's `&times;` next to the masked ::before × -- "××" again. */
+  .hv-del{ width:18px; height:18px; line-height:1; padding:0; margin-left:4px; flex:none; }
 
   /* .hv-custom is its own .side-block now; the old border-top section break retired with it. */
 

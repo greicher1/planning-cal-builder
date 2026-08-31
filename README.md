@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the remove buttons showed two × instead of one
+
+Three buttons — remove custom phase, remove hiatus, delete custom holiday — rendered **`××`**.
+
+The design is sound: the engine emits a `&times;` text character, `font-size:0` hides it, and a
+`::before` paints the × as masked geometry so it centres exactly (a text `&times;` sits on a
+baseline and never does). Two later rules broke it by re-setting `font-size` on the same elements,
+un-hiding the text so it sat beside the drawn glyph:
+
+- `.custom-phase-header .icon-btn{font-size:14px}` — **wins on specificity** (0,2,0 vs 0,1,0)
+- `.hv-del{font-size:13px}` — **wins on source order** (same 0,1,0, declared later)
+
+Both `font-size` declarations removed; the geometry they also set is kept. **This is the third time
+this exact trap has cost this project time** — `button.primary` over `.tb-btn` was the first
+(PROJECT-CONTEXT §12). The rule worth remembering: *when one rule hides text so a pseudo-element
+can replace it, nothing later or more specific may set `font-size` on that element.* Both fixes
+carry a comment saying so.
+
+Verified on the build: all three buttons compute `font-size: 0px` with a mask present, and render
+exactly one glyph.
+
 ### Unreleased — descriptions became hover cards, and the fake drag handle is gone
 
 **The six-dot grab handle on custom phase rows is removed.** It was added 29 Aug as a visual-only
