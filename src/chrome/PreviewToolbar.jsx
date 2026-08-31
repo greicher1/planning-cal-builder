@@ -42,6 +42,7 @@
 //      same conflict that governs the whole sidebar, where applyStateSnapshot() writes .value into
 //      every field on restore.
 import { useState, useLayoutEffect } from 'react'
+import { InfoHint } from './InfoHint.jsx'
 import { Button, ActionIcon, Tooltip, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import { IconRows, IconCalendarPlain, IconUndo, IconRedo } from './icons.jsx'
@@ -97,8 +98,12 @@ export function PreviewToolbar() {
           <span className="shift-readout" id="shift-readout" role="status" aria-live="polite"></span>
 
           <div className="tools-menu tools-menu-sm" id="pop-shift" role="dialog" aria-label="Shift All">
-            <p className="tools-head">Shift All</p>
-            <p className="tools-hint">Every phase moves by the same amount — the arrows do one week. The gaps between them stay exactly as they are.</p>
+            <p className="tools-head">
+              Shift All
+              <InfoHint label="Shift All" width={300}>
+                Every phase moves by the same amount — the arrows do one week. The gaps between them stay exactly as they are.
+              </InfoHint>
+            </p>
             <div className="tools-row">
               <input type="number" id="tool-shift-weeks" min="1" step="1" defaultValue="2" aria-label="Number of weeks to shift" />
               <span className="tools-unit">weeks</span>
@@ -114,8 +119,12 @@ export function PreviewToolbar() {
                   title="Shift one phase and everything after it" aria-haspopup="true" aria-expanded="false"
                   rightSection={<span className="caret" aria-hidden="true">▾</span>}>Shift From</Button>
           <div className="tools-menu" id="pop-ripple" role="dialog" aria-label="Shift From">
-            <p className="tools-head">Shift From</p>
-            <p className="tools-hint">The phase you pick and everything after it move. Earlier phases stay put, so the gap in front of it opens or closes. Earlier and Later are directions of travel, not which side moves.</p>
+            <p className="tools-head">
+              Shift From
+              <InfoHint label="Shift From" width={300}>
+                The phase you pick and everything after it move. Earlier phases stay put, so the gap in front of it opens or closes. Earlier and Later are directions of travel, not which side moves.
+              </InfoHint>
+            </p>
             <div className="tools-row">
               {/* ⛔ No children, and it must stay a real <select>: fillPhaseSelect() owns this
                   element's innerHTML, and three handlers recover the phase name by splitting the
@@ -137,8 +146,12 @@ export function PreviewToolbar() {
                   title="Slide the calendar so one landmark lands on a date" aria-haspopup="true" aria-expanded="false"
                   rightSection={<span className="caret" aria-hidden="true">▾</span>}>Anchor To</Button>
           <div className="tools-menu" id="pop-anchor" role="dialog" aria-label="Anchor to a date">
-            <p className="tools-head">Anchor to a date</p>
-            <p className="tools-hint">Every phase moves so your date lands on the phase you pick — like Shift All, but you name the destination instead of the distance. Gaps are preserved; use Rebuild From if you want them closed.</p>
+            <p className="tools-head">
+              Anchor to a date
+              <InfoHint label="Anchor to a date" width={300}>
+                Every phase moves so your date lands on the phase you pick — like Shift All, but you name the destination instead of the distance. Gaps are preserved; use Rebuild From if you want them closed.
+              </InfoHint>
+            </p>
             <div className="tools-row">
               <select id="tool-anchor-phase" aria-label="What to anchor"></select>
               {/* The option VALUES are read directly ('start' / 'end'); do not reword them. */}
@@ -163,8 +176,12 @@ export function PreviewToolbar() {
                   rightSection={<span className="caret" aria-hidden="true">▾</span>}>Rebuild From</Button>
           {/* Wider than the others: its phase + "starts" + date row clips the phase name below 364px. */}
           <div className="tools-menu tools-menu-lg" id="pop-solve" role="dialog" aria-label="Rebuild from a date">
-            <p className="tools-head">Rebuild from a date</p>
-            <p className="tools-hint">Doesn’t move the calendar — rebuilds it. Your date stays put, and the phases on one side are recalculated from their week counts to run with no gaps — including any that aren’t dated yet. Use Anchor To if the plan should keep its current spacing.</p>
+            <p className="tools-head">
+              Rebuild from a date
+              <InfoHint label="Rebuild from a date" width={300}>
+                Doesn’t move the calendar — rebuilds it. Your date stays put, and the phases on one side are recalculated from their week counts to run with no gaps — including any that aren’t dated yet. Use Anchor To if the plan should keep its current spacing.
+              </InfoHint>
+            </p>
             <div className="tools-row">
               <select id="tool-solve-phase" aria-label="Phase to work from"></select>
               <span className="tools-unit">starts</span>

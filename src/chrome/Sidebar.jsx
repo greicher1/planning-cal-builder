@@ -19,6 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconShare } from './icons.jsx'
+import { InfoHint } from './InfoHint.jsx'
 
 const SEASONS = [
   { value: '', label: '—' },
@@ -57,14 +58,17 @@ export function ShowInfoCard() {
 export function RegionCard() {
   return (
     <section className="card" data-tab="settings">
-      <h2><IconMapPin className="card-ic" /><span>Production Region</span></h2>
-      {/* Explanatory copy: roman, not italic. `.placeholder-note` did four different jobs — hint,
-          error, empty state and explanation — so italic meant nothing. UI-CONVENTIONS.md §4. */}
+      <h2>
+        <IconMapPin className="card-ic" /><span>Production Region</span>
+        {/* Was a permanent three-line paragraph here (owner, 31 Aug 2026). The copy is unchanged;
+            only when you see it is. UI-CONVENTIONS.md §4 separated explanation from warning, and
+            this takes only the explanation — #union-lock-hint below stays visible. */}
+        <InfoHint label="Production Region">
+          Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
+          pushing the schedule out. Canada is picked by province — the statutory lists genuinely differ.
+        </InfoHint>
+      </h2>
       <div className="side-block">
-      <Text size="xs" c="dimmed" mb="md">
-        Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
-        pushing the schedule out. Canada is picked by province — the statutory lists genuinely differ.
-      </Text>
       {/* Same round-5 spacing as the Show card. */}
       <Stack gap="xl">
         <NativeSelect id="union-country" label="Country">
@@ -118,12 +122,14 @@ export function RegionCard() {
 export function AppCard() {
   return (
     <section className="card" data-tab="settings">
-      <h2><IconShare className="card-ic" /><span>App</span></h2>
-      <div className="side-block">
-        <Text size="xs" c="dimmed" mb="md">
+      <h2>
+        <IconShare className="card-ic" /><span>App</span>
+        <InfoHint label="Export App With Data">
           A standalone HTML copy of the app with this calendar loaded — for sending to someone who
           doesn’t have the tool. It opens by double-click, anywhere, offline.
-        </Text>
+        </InfoHint>
+      </h2>
+      <div className="side-block">
         {/* #share-copy-btn: the engine's document-delegated click listener matches this id — the
             same flow that used to live on a header button (owner moved it here, 29 Aug 2026). */}
         <Button id="share-copy-btn" type="button" variant="default" size="xs" fullWidth>
@@ -137,13 +143,15 @@ export function AppCard() {
 export function HolidaysCard() {
   return (
     <section className="card" data-tab="settings">
-      <h2><IconCalendarDot className="card-ic" /><span>Holidays</span></h2>
+      <h2>
+        <IconCalendarDot className="card-ic" /><span>Holidays</span>
+        <InfoHint label="Holidays" width={280}>
+          Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
+          Production a shoot day and stops appearing as a note. The two note columns control where an
+          enabled holiday shows up.
+        </InfoHint>
+      </h2>
       <div className="side-block">
-      <Text size="xs" c="dimmed" mb="md">
-        Un-tick <strong>Enable</strong> to drop a holiday from this show entirely — it stops costing
-        Production a shoot day and stops appearing as a note. The two note columns control where an
-        enabled holiday shows up.
-      </Text>
       <Text id="holiday-vis-empty" size="xs" c="dimmed" style={{ display: 'none' }}></Text>
 
       <div id="holiday-vis" style={{ display: 'none' }}>

@@ -356,6 +356,32 @@
   }
   .card-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-6); }
 
+  /* The "i" that replaced the always-visible description paragraphs (owner, 31 Aug 2026).
+     margin-left:auto pushes it to the far end of the card header, so it reads as an affordance
+     ON the card rather than a third word in the title. Grey by default and only inking up on
+     hover/focus: it must be findable without competing with the controls underneath. */
+  .info-hint{
+    margin-left:auto; flex:none; display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; padding:0; border:none; border-radius:50%;
+    background:none; color:var(--mantine-color-gray-5); cursor:help;
+    transition:color 100ms ease, background-color 100ms ease;
+  }
+  .info-hint svg{ width:14px; height:14px; }
+  .info-hint:hover{ color:var(--mantine-color-gray-7); background:var(--mantine-color-gray-1); }
+  /* Keyboard reachable, and visibly so -- HoverCard opens on focus as well as hover. */
+  .info-hint:focus-visible{
+    outline:2px solid var(--mantine-color-blue-5); outline-offset:1px;
+    color:var(--mantine-color-gray-7);
+  }
+  /* Inside a tool popover the "i" sits beside the popover's own heading, which is not a flex row
+     with spare space -- so no auto margin there, just a small gap after the title. */
+  .tools-head .info-hint{ margin-left:var(--mantine-spacing-xs); }
+  .tools-head{ display:flex; align-items:center; }
+  /* The card body: same ink and size the paragraph had, so the copy is unchanged in every way
+     except when you see it. line-height a touch looser than the sidebar default -- it is now a
+     block of prose on its own rather than a caption under a title. */
+  .info-hint-body{ line-height:1.5; }
+
   /* ---------- Sidebar tabs ---------- */
   /* Sticky segmented control that groups the settings cards. Bleeds to the panel edges and
      pins to the top of the internal scroll so it's always reachable. Mirrors the .view-toggle
@@ -611,15 +637,12 @@
     padding:calc(var(--mantine-spacing-lg) + 8px) var(--mantine-spacing-xl) var(--mantine-spacing-lg);
     overflow:hidden;
   }
-  /* The grab handle: VISUAL ONLY for now (owner, 29 Aug 2026 -- "no need to build code for it
-     yet"). Reordering is save-format territory (customPhaseDefs order, PHASE_CHAIN) and needs its
-     own design before any drag logic exists. Six dots via radial-gradient, no markup change. */
-  .custom-phase-header::before{
-    content:""; width:10px; height:15px; flex:none; cursor:grab; opacity:.55;
-    background-image:radial-gradient(circle, var(--mantine-color-gray-5) 1.1px, transparent 1.1px);
-    background-size:5px 5px; background-position:0 0;
-  }
-  .custom-phase-header:hover::before{ opacity:.9; }
+  /* ⛔ NO GRAB HANDLE HERE. A six-dot handle with cursor:grab was added 29 Aug 2026 as a
+     visual-only placeholder ("no need to build code for it yet"), and removed 31 Aug 2026 at the
+     owner's request: it promised drag-to-reorder that does not exist, and the grab cursor made
+     the promise twice. An affordance for a feature that isn't built is a bug, not a preview.
+     If reordering is ever built -- it is save-format territory (customPhaseDefs order,
+     PHASE_CHAIN) and needs its own design -- add the handle back WITH the behaviour, not before. */
   .phase-row:hover, .side-block:hover{ border-color:var(--mantine-color-gray-4); box-shadow:var(--mantine-shadow-xs); }
 
   .hiatus-entry{display:flex; flex-wrap:wrap; gap:var(--mantine-spacing-md); align-items:flex-end;

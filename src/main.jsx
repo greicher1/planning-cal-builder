@@ -67,6 +67,7 @@ import './styles/inter.css'
 import './styles/legacy.css'
 
 import { theme } from './theme.js'
+import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
 import { ShowInfoCard, RegionCard, HolidaysCard, AppCard } from './chrome/Sidebar.jsx'
@@ -108,6 +109,15 @@ function Chrome() {
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
       {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /><AppCard /></>, '#sidebar-static')}
+      {/* The All-phase hiatus card's rows are engine-generated, so the card itself cannot be a
+          React component -- but its header is static markup, so its "i" portals in here. Keeps
+          one InfoHint implementation rather than a CSS-only lookalike for this one card. */}
+      {portal(
+        <InfoHint label="All-phase hiatus" width={300}>
+          A production-wide pause (e.g. a winter break) that stops every phase at once and pushes
+          the whole schedule out. For pausing a single phase, use its own hiatus toggle above.
+        </InfoHint>,
+        '#hiatus-hint-host')}
       {/* Not a portal: DatePop renders straight into #react-root, which is a direct child of
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}

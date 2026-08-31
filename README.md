@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — descriptions became hover cards, and the fake drag handle is gone
+
+**The six-dot grab handle on custom phase rows is removed.** It was added 29 Aug as a visual-only
+placeholder and it promised drag-to-reorder that does not exist — with `cursor:grab` making the
+promise twice. An affordance for an unbuilt feature is a bug, not a preview. If reordering is ever
+built (it is save-format territory: `customPhaseDefs` order, `PHASE_CHAIN`) the handle comes back
+*with* the behaviour. Verified: 0 elements with `cursor:grab`, no CSS rule mentioning it, and the
+`::before` resolves to `content: none`.
+
+**Every always-visible description is now a Mantine `HoverCard` behind a small grey "i".** Eight of
+them — Production Region, Holidays, Export App With Data, All-phase hiatus, and the four calendar
+tools (Shift All, Shift From, Anchor To, Rebuild From). The copy is unchanged word for word; only
+*when* you see it changed. The cards were reading as documentation rather than controls, and the
+paragraphs cost the sidebar most of its vertical space.
+
+- **Descriptions only.** `#union-lock-hint`, `#custom-hol-err` and `.snap-note` stay visible —
+  hiding "Locked — changing the Region would misplace your edits" behind a hover would be a real
+  regression, since those appear precisely when something needs attention and attention is the one
+  thing a hover doesn't get. `UI-CONVENTIONS.md` §4 had already separated explanation from warning;
+  this takes only the explanation.
+- **No new Mantine CSS import**, which matters because that list's order is derived from Mantine's
+  own `styles.layer.css` and must never be sorted. `HoverCard` is built *on* `Popover` (it uses
+  `PopoverStylesNames`/`PopoverCssVariables`), and `Popover.layer.css` was already imported.
+- **`position="right"`**, not `top`: every hint sits near the top of the window, so opening upward
+  put the card over the header. Right opens into the preview pane — the one direction with room —
+  and Mantine's middlewares flip it when there isn't.
+- **`zIndex={400}`**, not the default 300: `.tools-menu` is *also* 300, and four hints live inside
+  those popovers. Equal z-index left the winner to DOM order, which favours the portal today and
+  would silently stop doing so after any reorder — a hint rendering behind the thing it explains.
+- The trigger is a real `<button>` so it is keyboard-reachable (HoverCard opens on focus too), and
+  it carries no `id` — transient chrome never does in this codebase.
+
+Verified in a real browser on the build: 8 hints, all `<button type="button">`, all focusable, all
+`aria-label`led, none with an id; all eight descriptions' copy present verbatim; 0 leftover
+`.tools-hint` or `.placeholder-note`; the Region hint opens to the right with the full original
+sentence; the nested Shift From hint opens inside its popover at z-index 400 with the right text.
+
 ### Unreleased — the deploy Action, and the check script that never existed
 
 > ✅ **Installed and live (31 Aug 2026).** Pages Source is **GitHub Actions**, and this workflow

@@ -107,8 +107,10 @@
     </section>
 
     <section class="card" data-tab="phases">
-      <h2><svg class="card-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4v8M10 4v8"/></svg><span>All-phase hiatus</span></h2>
-      <p class="placeholder-note" style="margin-bottom:8px;">A production-wide pause (e.g. a winter break) that stops every phase at once and pushes the whole schedule out. For pausing a single phase, use its own hiatus toggle above.</p>
+      <h2><svg class="card-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4v8M10 4v8"/></svg><span>All-phase hiatus</span><!-- The "i" hover-card is portalled in here by React (main.jsx ->
+      HiatusHint). This card's ROWS are engine-generated HTML, so the card cannot be a React
+      component -- but its header is static, so a portal host in it works fine and keeps the hint
+      identical to the three React cards' hints. --><span id="hiatus-hint-host"></span></h2>
       <div id="hiatus-list"></div>
       <button class="secondary add-hiatus-btn" id="add-hiatus">+ Add hiatus period</button>
     </section>
