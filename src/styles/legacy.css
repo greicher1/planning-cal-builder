@@ -780,7 +780,18 @@
   }
   .view-toggle-btn:hover:not(.active){ color:var(--mantine-color-black); }
   .view-toggle-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
-  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;}
+  /* ⛔ WRAPS, and max-width is what makes it wrap. `flex:none` is `0 0 auto`, so the used main size
+     is max-content -- wider than the row whenever the content is -- and the row's own flex-wrap only
+     ever moves the whole tools block to its own line, never breaks it up. With overflow visible and
+     no scroller, the right-hand controls were simply painted past the window edge and unreachable.
+     Measured 1 Sep 2026 at a 611px viewport: the toolbar needed 802px with a selection live, so
+     `Expand`, `◀ Swap`, `Swap ▶` AND Undo/Redo were all off-screen. That is a regression the two
+     direct-manipulation features introduced -- they added ~217px to a row that already fitted.
+     max-width:100% caps the max-content size at the container's width, which is what lets the
+     children wrap; row-gap keeps the wrapped lines apart. On a wide window max-content is under
+     100%, nothing wraps, and the appearance is byte-identical to before. */
+  .preview-tools{display:inline-flex; align-items:center; gap:10px; flex:none;
+    flex-wrap:wrap; row-gap:8px; max-width:100%;}
   .undo-redo-group{display:inline-flex; gap:6px; flex:none;}
   .undo-redo-group .icon-btn{font-size:16px;}
   .undo-redo-group .icon-btn:disabled{opacity:.4; cursor:default; background:#fff;}
@@ -1341,7 +1352,9 @@
      the teal is outside the purple handle vocabulary entirely. */
   .grid-swap-knob{
     position:absolute; width:21px; height:21px; margin:-10.5px 0 0 -10.5px; box-sizing:border-box;
-    border-radius:50%; pointer-events:auto; touch-action:none; cursor:grab;
+    /* `pointer`, not `grab`: it is CLICKABLE as well as draggable (owner, 1 Sep 2026), and click is
+       the simpler of the two. `grabbing` still takes over for the drag itself. */
+    border-radius:50%; pointer-events:auto; touch-action:none; cursor:pointer;
     background:#0E7C8C; color:#fff; border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
     display:flex; align-items:center; justify-content:center; user-select:none;
     font:15px/1 'Inter',system-ui,sans-serif; transition:transform .1s, background .1s;

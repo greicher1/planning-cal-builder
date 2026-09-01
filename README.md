@@ -37,8 +37,8 @@ reconciler, F2-b the gate; everything shipped so far was invisible. This adds th
 *what would move*, and the gesture that moves it.
 
 **What you get.** Highlight a cell of the phase you want to move — ⌘-click one, or drag across a run
-of them — and a small teal circle appears on the column boundary beside it. Drag the circle across
-the boundary, or press **◀ Swap** / **Swap ▶** in the preview toolbar (Alt+← / Alt+→ does the same),
+of them — and a small teal circle appears on the column boundary beside it. **Click the circle**, or
+drag it across the boundary, or press **◀ Swap** / **Swap ▶** in the preview toolbar (Alt+← / Alt+→ does the same),
 and the two phases exchange columns for **every week they run alongside each other**, in one step and
 one undo. Nothing about the phases changes — same dates, same durations, same labels, same widths —
 only which column each occupies, and both exports follow because the swap happens upstream of the one
@@ -85,11 +85,17 @@ Details worth keeping:
 - **A move that reverses one already stored deletes both entries** rather than storing an identity,
   so a saved file never carries a no-op. The store write is derived by one function shared with the
   trial, so a verdict can never describe a different write than the one that lands.
+- **The knob takes a click as well as a drag** (owner, after trying it). The plan had it drag-only,
+  and its reason was real but was about a *different* affordance: the earlier draft drew a full-height
+  rail along the whole column seam, where a click anywhere near a boundary would have permuted the
+  schedule. This is a 21px circle that exists only while a swap-eligible selection is live. What the
+  drag threshold still buys is kept — a press that **travels more than 12px the wrong way does
+  nothing**, and Escape cancels. A **350 ms re-arm** makes a double-click one swap rather than a swap
+  and an immediate un-swap, which (since moving back over the same partner deletes the pair) would
+  otherwise land back where it started with two undo steps for nothing.
 - **The knob is keyboard-operable.** It carries `role="button" tabindex="0"` and a real aria-label
   (*"Swap Post with Prod Prep (11/16/26–12/7/26)"*), so Enter or Space on it has to work — an element
-  that announces itself as a button and then ignores Enter is worse than one with no role. That is the
-  one path where a swap fires without a drag, and it is legitimate: focus is explicit, unlike the
-  stray click on a column boundary the 12px threshold exists to reject.
+  that announces itself as a button and then ignores Enter is worse than one with no role.
 - **A knob, not a rail on the seam.** An earlier draft drew a full-run-height purple rail on the
   column boundary; it is visually identical to the two purple resize affordances already there, and
   it covered the boundary for every row of the run. One 21px circle in a hue outside that vocabulary
@@ -108,6 +114,16 @@ Details worth keeping:
   on — a chip reading "2 other weeks changed width" while covering those two weeks is worse than no
   chip at all.
 - No frozen code changed, and no save-format change: `gridColSwaps` was added in F2-a.
+
+**And a regression the two features introduced together, found by looking at the shipped app.** The
+preview toolbar is one `nowrap` flex row with `overflow: visible` and no scroller, so anything past
+the window's edge was simply painted off-screen and unreachable. Measured at a 611px viewport with a
+selection live: the row needed **802px**, so `Expand`, both Swap buttons **and Undo/Redo** were all
+outside the window. Feature 1's button added ~79px to that row and Feature 2's added ~138px, to a row
+that previously needed ~585px and fitted. `.preview-tools` now wraps — and `max-width:100%` is what
+makes it wrap, because `flex:none` sizes the block to max-content and the row's own `flex-wrap` only
+ever moves the whole block to its own line rather than breaking it up. On a wide window max-content
+is under 100%, nothing wraps, and the layout is byte-identical to before.
 
 Verified: new `colswapmove` gate leg — from a fixture with no stored order at all, one ⌘-click at
 real coordinates plus one button press moves the whole four-week run, the unselected weeks keep their

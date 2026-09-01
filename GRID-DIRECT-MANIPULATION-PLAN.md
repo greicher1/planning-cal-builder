@@ -1348,6 +1348,12 @@ Escape key. Instead:
   green and a black for other handle states). 21px of one row instead of 11px of every row leaves
   the column boundary grabbable for the rest of the run.
 - **Drag-only.** 12px horizontal threshold. **No click-to-swap** — a single click on a column
+  ⚠️ **SUPERSEDED 1 Sep 2026 (owner): the knob takes a CLICK as well as a drag.** The reasoning below
+  is still correct about a *rail* spanning the seam; it does not hold for a 21px circle that exists
+  only while a swap-eligible selection is live. What survives, and is implemented: a press that
+  travels >12px the wrong way does nothing, Escape cancels, and a 350 ms re-arm keeps a double-click
+  to one swap. The original text follows unchanged.
+
   boundary must never permute the schedule, and the boundary's documented
   double-click-to-autofit must keep working.
 - `role="button" tabindex="0"`, real `aria-label` (*"Swap Casting with Prod Prep for weeks 3–6"*), in

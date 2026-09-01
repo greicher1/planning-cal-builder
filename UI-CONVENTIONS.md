@@ -652,6 +652,16 @@ Layer geometry, and why there are two overlays rather than one:
   an `overflow:auto` pane, so anything drawn past the grid's box extends the scroll extent — a
   scrollbar that appears and vanishes with the selection.
 
+⚠️ **The preview toolbar is one `nowrap` flex row with `overflow: visible` and no scroller**, so a
+control that does not fit is painted past the window edge and is unreachable — there is no scrollbar
+to find it with. `.view-toggle-row`'s own `flex-wrap` does not save you: it only ever moves the whole
+`.preview-tools` block onto its own line. `.preview-tools` now carries `flex-wrap:wrap` **and
+`max-width:100%`**, and the max-width is the load-bearing half — `flex:none` sizes the block to
+max-content, so without a cap it is always exactly as wide as its content and never wraps. Measured
+1 Sep 2026: the row needed 802px with a selection live, against a 611px viewport, and `Expand`, both
+Swap buttons and **Undo/Redo** were all off-screen. **Anything added to this row must be measured at
+a narrow viewport with a selection live**, which is its widest state.
+
 Chips stack **upwards** from the selection, never downwards: below, they covered the next week's
 labels, and the swap knob is centred vertically on the selected run, so a chip across the middle of
 it lands on the feature's primary affordance.

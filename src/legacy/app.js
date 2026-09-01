@@ -3100,7 +3100,7 @@ export function initLegacyApp() {
       k.setAttribute('role', 'button');
       k.setAttribute('tabindex', '0');
       k.setAttribute('aria-label', run.label);
-      k.title = run.label + ' — drag across the column boundary';
+      k.title = run.label + ' — click, or drag across the boundary';
       k.textContent = run.dir > 0 ? '›' : '‹';
       if(swapDrag && swapDrag.dir === run.dir) k.classList.add('dragging');
       layer.appendChild(k);
@@ -3248,8 +3248,22 @@ export function initLegacyApp() {
     return true;
   }
 
-  // Fast path: drag the knob. DRAG ONLY -- a single click on a column boundary must never permute
-  // the schedule, and that boundary's documented double-click-to-autofit has to keep working.
+  // Fast path: CLICK the knob, or drag it across the boundary. Both, on the owner's instruction
+  // (1 Sep 2026) -- the plan had it drag-only.
+  //
+  // ⚠️ The plan's reason for drag-only was real but was about a DIFFERENT affordance: an earlier
+  // draft drew a full-height rail along the whole column seam, where a click anywhere near a
+  // boundary would have permuted the schedule. This is a 21px circle that exists only while a
+  // swap-eligible selection is live, carries a chevron and an aria-label, and sits on its own layer.
+  // A click on it is deliberate, not stray. What the plan's rule still buys, and what is kept: a
+  // press that TRAVELS more than 12px in the wrong direction does nothing, and Escape cancels.
+  //
+  // ⛔ The 350ms re-arm is not a nicety. A double-click on the knob delivers TWO clicks, and since
+  // moving a run back over the partner it is already swapped with DELETES the pair, that is swap
+  // followed by un-swap: the screen ends where it started and two undo steps exist for nothing --
+  // which is exactly the "the gesture appears to do nothing" failure this whole layer exists to
+  // prevent. One deliberate swap per double-click.
+  //
   // Delegated from the layer, never from document: the existing .grid-resize pointerdown
   // self-guards on closest('.grid-resize'), so a knob never matches it. Zero contention.
   document.addEventListener('pointerdown', e=>{
@@ -3265,6 +3279,7 @@ export function initLegacyApp() {
     document.addEventListener('selectstart', killSel, true);
     try { k.setPointerCapture && k.setPointerCapture(e.pointerId); } catch(_){}
     const x0 = e.clientX;
+    let travelled = 0, cancelled = false;
     swapDrag = { dir:null, run, knob:k };
     k.classList.add('dragging');
     document.body.classList.add('grid-swapping');
@@ -3272,6 +3287,7 @@ export function initLegacyApp() {
     const onMove = ev=>{
       if(ev.buttons === 0){ onUp(ev); return; }
       const dx = ev.clientX - x0;
+      travelled = Math.max(travelled, Math.abs(dx));
       const armed = (dir > 0 ? dx >= 12 : dx <= -12);
       if(armed === !!swapDrag.dir) return;
       swapDrag.dir = armed ? dir : null;
@@ -3280,25 +3296,33 @@ export function initLegacyApp() {
     const onUp = ev=>{
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('pointercancel', onCancel);
       document.removeEventListener('keydown', onKey, true);
       document.removeEventListener('selectstart', killSel, true);
       document.body.classList.remove('grid-swapping');
-      const fire = !!(swapDrag && swapDrag.dir);
+      // A drag past the threshold in the knob's own direction, OR a press that stayed put -- i.e. a
+      // click. A press that travelled the WRONG way is neither, and does nothing: that is what stops
+      // a mis-aimed grab on the column boundary from permuting anything.
+      const fire = !cancelled && (!!swapDrag.dir || travelled < 12) && (Date.now() - _swapLastFire) > 350;
       swapDrag = null;
-      if(fire) doSwapMove(dir); else redrawGridOverlay(null);
+      if(fire){ _swapLastFire = Date.now(); doSwapMove(dir); } else redrawGridOverlay(null);
     };
+    const onCancel = ev=>{ cancelled = true; onUp(ev); };
     const onKey = ev=>{
       if(ev.key !== 'Escape') return;
       ev.preventDefault();
+      cancelled = true;
       if(swapDrag) swapDrag.dir = null;
       onUp(ev);
     };
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
+    document.addEventListener('pointercancel', onCancel);
     document.addEventListener('keydown', onKey, true);
   }, true);
+  // When the last knob activation fired, so a double-click is one swap rather than a swap and an
+  // immediate un-swap. Shared with the Enter/Space path below for the same reason.
+  let _swapLastFire = 0;
 
   // ⛔ A knob carries role="button" tabindex="0", so it MUST be operable from the keyboard -- an
   // element that announces itself as a button and then does nothing when you press Enter on it is
@@ -3312,6 +3336,8 @@ export function initLegacyApp() {
     const k = e.target.closest && e.target.closest('.grid-swap-knob');
     if(!k) return;
     e.preventDefault();
+    if(Date.now() - _swapLastFire <= 350) return;   // held Enter must not swap and un-swap
+    _swapLastFire = Date.now();
     doSwapMove(+k.dataset.dir);
   });
 
