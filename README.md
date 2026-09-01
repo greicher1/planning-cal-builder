@@ -29,6 +29,46 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — seven more batch-expand fixes, from the review's verify pass
+
+The adversarial review's second stage tried to *refute* each of its own findings against the real
+code, and confirmed six. Two of those were already fixed; these are the rest, plus the minors from
+the freeze and gesture lenses.
+
+- **The batch was stealing the frozen autofit gesture.** Double-clicking a column boundary to refit
+  it — advertised in that handle's own tooltip — silently batch-expanded instead, whenever a
+  selection happened to be live. The batch's `dblclick` listener is capture-phase and resolves cells
+  geometrically, so it walked straight *past* the handle to the cell beneath and then
+  `stopPropagation`'d the frozen handler out of existence. Handles now own their band here, the same
+  rule the marquee's pointerdown already followed.
+- **Typed note text could still be lost — through the toolbar button.** The fix in the previous
+  entry covered the marquee, but the button's click listener is registered *ahead* of the note
+  editor's outside-click commit, so pressing Expand with an editor open re-rendered first and
+  `render()` discards an orphaned editor without committing it. `batchFill` now commits any open
+  editor as its very first statement — before reading the selection, because committing re-renders
+  and detaches every cell it would have been holding.
+- **A cell under an open popover was still clickable.** `elementsFromPoint` keeps descending past
+  whatever is on top, so a click inside a note editor or date picker could resolve to the grid cell
+  beneath it. The walk now stops at any body-level panel.
+- **The overlay painted over the pinned header.** The selection rects and count chip rode above the
+  frozen sticky header row instead of scrolling under it (`z-index` 8 against the header's 2). Now 1.
+- **The chip contradicted the button.** With every selected cell already at its limit the button
+  correctly read "Pull back" while the chip still said "double-click to expand" — the chip's verb was
+  hard-coded. Both now derive from the same value.
+- **The marquee took no pointer capture** and never checked the button was still held, unlike every
+  frozen drag in the file. A missed pointerup left it extending the selection under a free cursor
+  with `user-select:none` stuck across the whole document. It also now ignores touch pointers, so
+  dragging to pan on a touchscreen scrolls instead of selecting — previously recorded as a
+  limitation but not actually enforced.
+- **Counts were computed before contention clamping,** so the chip could promise more cells than
+  pressing the button would deliver, and a cell that had lost its only free column to a neighbour was
+  drawn solid rather than dashed. Both now use the resolved rows.
+- **Two transient body classes were serialized into exported copies.** `grid-cell-hover`
+  (`cursor:cell`) and `grid-selecting` (`user-select:none`) were baked into a shareable copy exported
+  mid-interaction, and the hover handler could never clear the class it started out believing was
+  absent — so that copy opened with a cell cursor over the whole page, permanently. The clone strips
+  them, and the handler seeds its state from the DOM.
+
 ### Unreleased — six fixes to batch expand, from an adversarial review of the shipped code
 
 Design review and implementation review catch different classes of bug, so the batch-expand commit

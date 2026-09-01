@@ -1293,7 +1293,11 @@
      like. Nothing here selects .sheet-*, .mv-* or #print-root, and nothing uses !important.
      The layer is a sibling of .grid-resize-layer inside .sheet-grid-wrap, so it shares the grid's
      coordinate space and is clipped by the scroll pane. */
-  .grid-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:8; overflow:hidden; }
+  /* z-index 1, deliberately BELOW the frozen sticky header row (`.sheet-table th` is
+     position:sticky; z-index:2, in this same stacking context). At a higher z-index the selection
+     rects and the count chip painted OVER the pinned Date/2026/Notes header instead of scrolling
+     under it. 1 still puts the overlay above the table's own cells, which is all it needs. */
+  .grid-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
   .grid-sel-cell{ position:absolute; box-sizing:border-box; border:2px solid rgba(112,48,160,.9);
     background:rgba(112,48,160,.14); border-radius:2px; }
   /* Swept, but both neighbour slots are occupied -- nothing to expand into. SHOWN rather than

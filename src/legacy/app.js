@@ -725,8 +725,14 @@ export function initLegacyApp() {
   // ~29% of a 77px cell -- ALL of a hand-narrowed one -- so elementFromPoint returns a handle for
   // much of a cell's width and e.target misses the cell entirely. Walking the hit stack needs no
   // CSS change and no pointer-events state to save and restore.
+  // ⛔ Stop the walk at any body-level panel. elementsFromPoint keeps descending past whatever is on
+  // top, so with a note editor / date picker / colour picker open over the grid it would happily
+  // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
+  // or apply a batch to a cell the user cannot even see.
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
+      if(el.closest && el.closest(OVER_PANEL)) return null;
       const td = el.closest && el.closest('td.sheet-phase-cell');
       if(td && hasSpanContract(td)) return td;
     }
@@ -788,9 +794,19 @@ export function initLegacyApp() {
 
   // The SINGLE repaint entry point. Call it after EVERY mutation of gridSel, including the clear
   // paths: a bare click that empties the selection does not render, so the observer never fires.
+  // Push the toolbar's state through the bridge. Factored out because EVERY early exit below must
+  // still do it: the button's enabled state and its Expand/Pull-back label live in React, so a
+  // repaint that bails without pushing leaves the last-known count on screen -- an enabled button
+  // for a selection that no longer exists, which then no-ops when pressed.
+  function pushGridSelection(count, expandable, allFilled){
+    if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
+      chrome.gridSelection({ count, expandable, allFilled });
+    }
+  }
+
   function redrawGridOverlay(marquee){
     const layer = ensureSelLayer();
-    if(!layer) return;
+    if(!layer){ pushGridSelection(0, 0, false); return; }
     // Prune against the live DOM. This is the design's ONE cleanup mechanism, and it is why
     // Feature 1 needs no entry in resetAll(), the 'Reset Notes & Hiatus' branch,
     // applyStateSnapshot() or shiftCalendar()'s re-key: every one of those paths ends in a render,
@@ -801,13 +817,25 @@ export function initLegacyApp() {
 
     layer.textContent = '';
     const g = selGeom();
-    if(!g) return;
+    if(!g){ pushGridSelection(gridSel.size, 0, false); return; }
     const rows = selCells().map(spanRoom);
-    let expandable = 0, clampedNote = 0;
+    // The counts and the verb must be computed from the CLAMPED rows -- the same resolveRowContention
+    // the apply will run. Reading them off the raw rows reported cells as expandable that contention
+    // is about to clamp to nothing, so the chip promised more than pressing the button delivered.
+    const resolved = resolveRowContention(rows.filter(canExpand));
+    const byKey = new Map(resolved.map(r => [r.key, r]));
+    const effective = r => byKey.get(r.key) || r;
+    const grantable = resolved.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+    const clampedOut = resolved.filter(r => r.clamped && !r.maxL && !r.maxR).length;
+    const allFilled = grantable.length > 0 && grantable.every(r => r.curL === r.maxL && r.curR === r.maxR);
+    let expandable = 0;
     rows.forEach(r=>{
       const b = ownSlotBox(r.td, g);
       if(!b) return;
-      const on = canExpand(r);
+      // "Can this cell actually do something" -- post-clamp, so a cell that lost its only free slot
+      // to a neighbour in the same week is drawn dashed rather than solid, matching the outcome.
+      const er = effective(r);
+      const on = !!(er.maxL || er.maxR || cellSpans[r.key] !== undefined);
       if(on) expandable++;
       const d = document.createElement('div');
       d.className = 'grid-sel-cell' + (on ? '' : ' is-inert');
@@ -830,10 +858,13 @@ export function initLegacyApp() {
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
       const inert = rows.length - expandable;
+      // The verb must agree with the toolbar button, which derives its label from the same
+      // allFilled value pushed below. Hard-coding "expand" contradicted a button reading
+      // "Pull back" whenever the selection was already at its limit.
       chip.textContent = expandable
         ? expandable + (expandable === 1 ? ' cell' : ' cells')
-          + (inert ? ' (' + inert + ' has no room)' : '')
-          + ' · double-click to expand'
+          + (inert ? ' (' + inert + (clampedOut ? ' shares a column' : ' has no room') + ')' : '')
+          + ' · double-click to ' + (allFilled ? 'pull back' : 'expand')
         : rows.length + ' selected · no room to expand';
       layer.appendChild(chip);
       // Clamp inside the layer's own box. overflow:hidden stops a chip below the last row from
@@ -851,11 +882,7 @@ export function initLegacyApp() {
         chip.style.top = top + 'px';
       }
     }
-    if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
-      chrome.gridSelection({ count: rows.length, expandable,
-                             allFilled: expandable > 0 && rows.filter(canExpand)
-                               .every(r => r.curL === r.maxL && r.curR === r.maxR) });
-    }
+    pushGridSelection(rows.length, expandable, allFilled);
   }
 
   // ⛔ childList ONLY, NO subtree. render()'s `tableEl.innerHTML =` is a DIRECT-CHILD mutation of
@@ -872,9 +899,7 @@ export function initLegacyApp() {
       // selection that no longer exists. Push the empty state explicitly.
       if(gridSel.size || gridSelAnchor){
         gridSel.clear(); gridSelAnchor = null;
-        if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
-          chrome.gridSelection({ count:0, expandable:0, allFilled:false });
-        }
+        pushGridSelection(0, 0, false);
       }
       return;
     }
@@ -894,9 +919,18 @@ export function initLegacyApp() {
   document.addEventListener('pointerdown', e=>{
     suppressGridClick = false;               // any new press retires a stale suppression
     if(e.button !== 0 || viewMode !== 'sheet') return;
+    // Mouse and trackpad only. On a touchscreen, dragging to PAN the grid would otherwise build a
+    // selection instead of scrolling -- and there is no touch-action rule anywhere in this app to
+    // lean on (adding one to a td would be new frozen .sheet-* CSS).
+    if(e.pointerType === 'touch') return;
     if(e.target.closest && e.target.closest('.grid-resize')) return;   // handles own their band
     const td = hitCell(e.clientX, e.clientY);
     if(!td) return;
+    // Keep receiving moves when the pointer outruns the cell or leaves the window -- the same
+    // reason every frozen drag in this file takes capture. Without it a missed pointerup leaves
+    // onMove extending the selection under a free cursor AND body.grid-selecting stuck, which means
+    // user-select:none over the whole document until the next click.
+    try { e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch(_){}
 
     // ⛔ NO preventDefault here. In Chromium, preventDefault on pointerdown suppresses mousedown,
     // mouseup, click AND dblclick outright -- it would silently kill the note editor and the
@@ -919,6 +953,9 @@ export function initLegacyApp() {
     let sweeping = false;
 
     const onMove = ev=>{
+      // If the button is no longer held, a pointerup was missed (a dropped event, a context menu, a
+      // window switch). End the gesture rather than tracking a free cursor for ever.
+      if(ev.buttons === 0){ onUp(ev); return; }
       if(!sweeping){
         // BOTH conditions, not either. An `far || differentCell` test arms on a 1px drift across a
         // row boundary (rows are ROW_DEFAULT_PX = 20), so a stationary double-click near an edge
@@ -1046,6 +1083,12 @@ export function initLegacyApp() {
   // becomes as wide as its own row allows.
   function batchFill(){
     if(viewMode !== 'sheet') return false;
+    // ⛔ FIRST statement, before selCells(). Any apply path can be reached with a note or hiatus
+    // editor still open -- the toolbar button's click listener is registered ahead of the editor's
+    // outside-click commit listener, so pressing Expand would render() first and render DISCARDS an
+    // orphaned editor without committing it: the user's typed text vanishes with no error. Committing
+    // here re-renders and detaches every td, which is exactly why this cannot go after selCells().
+    if(activeNoteEditor) commitActiveNoteEditor();
     const rows = resolveRowContention(selCells().map(spanRoom).filter(canExpand));
     const live = rows.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
     if(!live.length) return false;
@@ -1078,9 +1121,15 @@ export function initLegacyApp() {
   // "the only one of the two that is discoverable without knowing the handles are there".
   document.addEventListener('dblclick', e=>{
     if(viewMode !== 'sheet') return;
+    // ⛔ A handle owns its own band -- the same rule the marquee's pointerdown follows. Without this
+    // the batch STEALS the frozen autofit gesture: this listener is capture-phase, hitCell walks
+    // straight past the handle to the cell beneath it, and preventDefault + stopPropagation then
+    // stop the frozen `.grid-resize` dblclick from ever running. Double-clicking a column boundary
+    // to refit it -- advertised in that handle's own title text -- would silently batch-expand
+    // instead, whenever a selection happened to be live.
+    if(e.target.closest && e.target.closest('.grid-resize')) return;
     // hitCell, NOT e.target.closest: the handles cover ~29% of a 77px cell and ALL of a narrow one,
-    // and in that band the frozen .grid-resize dblclick handler runs instead and performs the
-    // OPPOSITE action (delete cellSpans -> autofit ONE cell).
+    // so e.target misses the cell for much of its width.
     const td = hitCell(e.clientX, e.clientY);
     if(!td) return;
     if(!gridSel.size) return;                // no selection: the existing single-cell handler runs
@@ -1116,12 +1165,20 @@ export function initLegacyApp() {
     // when nothing focusable holds focus -- i.e. focus is on <body>, which is where it sits after a
     // marquee sweep, and where the toolbar button is the discoverable path anyway.
     if(a && a !== document.body) return;
+    // Never claim a MODIFIED Enter/Space -- those belong to the browser and to the app's own
+    // Cmd+Z / Cmd+S handlers.
+    if(e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); batchFill(); }
   });
 
   // Pre-gesture affordance without any frozen CSS: a td.sheet-phase-cell rule would be NEW frozen
   // CSS (there is none today), but a cursor on <body> is ours.
-  let _hoverFrame = 0, _hoverOn = false;
+  // Seeded from the DOM, not assumed false: a shareable copy exported while the cursor happened to
+  // be over a phase cell has body.grid-cell-hover baked into its markup (buildSavedHtml serialises
+  // documentElement and does not touch body's class list). With a hard-coded `false` the handler
+  // believes the class is already off and never removes it, so that copy opens with cursor:cell
+  // stuck over the entire page, permanently.
+  let _hoverFrame = 0, _hoverOn = document.body.classList.contains('grid-cell-hover');
   document.addEventListener('pointermove', e=>{
     if(_hoverFrame) return;
     _hoverFrame = requestAnimationFrame(()=>{
@@ -6194,6 +6251,10 @@ export function initLegacyApp() {
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
     clone.querySelectorAll('#legacy-notice, #update-notice').forEach(el=>{ el.hidden = true; });
+    // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
+    // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
+    // would be a permanent, page-wide state in someone else's file.
+    if(clone.body) clone.body.classList.remove('grid-cell-hover', 'grid-selecting', 'grid-resizing', 'row', 'span');
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
