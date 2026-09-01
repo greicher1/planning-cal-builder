@@ -2758,7 +2758,7 @@ export function initLegacyApp() {
       // FROZEN EDIT (owner-approved 31 Aug 2026): the month header's two lines take the same
       // per-line formatting as the waterfall's nine, from their own mvHeaderFormat store --
       // the two headers are independent by design (see mvHeaderManual).
-      const fmtCss = headerFormatCss(headerFmt(id, true));
+      const fmtCss = headerFormatCss(headerFmt(id, true), id, true);
       return `<div class="hdr-line ${cls}${empty}${editCls}" data-mvhid="${id}"${editable} spellcheck="false" style="${fmtCss}">${escHtml(val)}</div>`;
     };
 
@@ -3170,7 +3170,7 @@ export function initLegacyApp() {
       // hard-coded style this call site already passed (r1's font-weight:600), and everything
       // about how the line is built otherwise is untouched.
       const slotCls = HDR_NEW_SLOTS.includes(id) ? ' hdr-slot' : '';
-      const fmtCss = headerFormatCss(headerFmt(id, false));
+      const fmtCss = headerFormatCss(headerFmt(id, false), id, false);
       return `<div class="hdr-line ${cls||''}${empty}${editCls}${slotCls}" data-hid="${id}"${editable} spellcheck="false" style="${extraStyle||''}${fmtCss}">${escH(val)}</div>`;
     };
 
@@ -4620,8 +4620,18 @@ export function initLegacyApp() {
 
   function headerFmt(id, mv){ return (mv ? mvHeaderFormat : headerFormat)[id] || {}; }
 
+  // Which way a line sits when it has no explicit align -- i.e. what its column already does.
+  // Needed because a highlight makes the line shrink to its text (see headerFormatCss), and a
+  // shrunk block has to be re-positioned by margins or it jumps to the left of its column.
+  function headerDefaultAlign(id, mv){
+    if(mv) return id === 'today' ? 'right' : 'center';
+    if(id === 'left' || id === 'l2') return 'left';
+    if(id[0] === 'r') return 'right';
+    return 'center';
+  }
+
   // Format -> inline CSS, for the two on-screen renderers.
-  function headerFormatCss(f){
+  function headerFormatCss(f, id, mv){
     if(!f) return '';
     const out = [];
     if(f.size)      out.push('font-size:' + f.size + 'px');
@@ -4634,8 +4644,23 @@ export function initLegacyApp() {
     if(f.italic === true)      out.push('font-style:italic');
     else if(f.italic === false) out.push('font-style:normal');
     if(f.color)     out.push('color:' + f.color);
-    if(f.highlight) out.push('background-color:' + f.highlight);
     if(f.align)     out.push('text-align:' + f.align);
+    if(f.highlight){
+      out.push('background-color:' + f.highlight);
+      // The highlight must cover the TEXT, not the whole column (owner, 31 Aug 2026). .hdr-line is
+      // a block filling its column, so a background on it painted a full-width band. Shrinking to
+      // the text and re-positioning with auto margins keeps the line where its column puts it
+      // while the background hugs what was typed -- and it tracks the text as it is edited,
+      // because fit-content is recomputed on every keystroke.
+      // Only applied WITH a highlight: without one, a full-width line is the bigger click target
+      // for putting the caret in, and that is worth keeping.
+      const al = f.align || headerDefaultAlign(id, mv);
+      out.push('width:fit-content');
+      out.push('padding-left:4px', 'padding-right:4px');
+      if(al === 'center') out.push('margin-left:auto', 'margin-right:auto');
+      else if(al === 'right') out.push('margin-left:auto');
+      else out.push('margin-right:auto');
+    }
     return out.join(';') + (out.length ? ';' : '');
   }
 
@@ -4693,7 +4718,19 @@ export function initLegacyApp() {
       q('.hf-i').classList.toggle('is-on', !!f.italic);
       q('.hf-color').value = f.color || '#000000';
       q('.hf-hl').value = f.highlight || '#ffff00';
-      bar.querySelectorAll('.hf-al').forEach(b=> b.classList.toggle('is-on', f.align === b.dataset.align));
+      const effAlign = f.align || (active ? headerDefaultAlign(hdrFmtTarget.id, mv) : 'left');
+      const toggle = q('.hf-al-toggle');
+      if(toggle){
+        // The toggle wears the CURRENT alignment, so the toolbar answers "how is this line set?"
+        // without opening anything.
+        toggle.innerHTML = alignIcon(effAlign) + '<span class="hf-caret">\u25BE</span>';
+        toggle.classList.toggle('is-on', !!f.align);
+      }
+      bar.querySelectorAll('.hf-al-opt').forEach(b=>{
+        const on = effAlign === b.dataset.align;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
       q('.hf-target').textContent = active ? hdrFmtLabel(hdrFmtTarget.id) : 'click a header line';
     });
   }
@@ -4711,7 +4748,7 @@ export function initLegacyApp() {
     if(Object.keys(cur).length) store[hdrFmtTarget.id] = cur; else delete store[hdrFmtTarget.id];
     const sel = hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`;
     const el = document.querySelector('#table-wrap ' + sel);
-    if(el) el.setAttribute('style', headerFormatCss(cur));
+    if(el) el.setAttribute('style', headerFormatCss(cur, hdrFmtTarget.id, hdrFmtTarget.mv));
     syncHdrFmtToolbar();
     markDirty();
   }
@@ -4760,8 +4797,35 @@ export function initLegacyApp() {
       syncHdrFmtToolbar(); markDirty();
       return;
     }
-    const al = e.target.closest('.hf-al');
-    if(al) return applyHdrFmt({ align: cur.align === al.dataset.align ? '' : al.dataset.align });
+    const toggle = e.target.closest('.hf-al-toggle');
+    if(toggle){
+      const menu = bar.querySelector('.hf-al-menu');
+      const open = menu.hidden;
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    const opt = e.target.closest('.hf-al-opt');
+    if(opt){
+      const menu = bar.querySelector('.hf-al-menu');
+      menu.hidden = true;
+      bar.querySelector('.hf-al-toggle').setAttribute('aria-expanded','false');
+      // Picking the alignment a line already has clears the override rather than pinning it, so
+      // a line can be returned to following its column.
+      return applyHdrFmt({ align: cur.align === opt.dataset.align ? '' : opt.dataset.align });
+    }
+  });
+  // A body-level click closes the alignment menu. Registered on document, not #table-wrap: a
+  // click anywhere else in the app should dismiss it, and the engine's own closeAllPops() does
+  // not know about this menu.
+  document.addEventListener('click', e=>{
+    if(e.target.closest && e.target.closest('.hf-align-wrap')) return;
+    document.querySelectorAll('.hf-al-menu').forEach(m=>{ m.hidden = true; });
+    document.querySelectorAll('.hf-al-toggle').forEach(t=> t.setAttribute('aria-expanded','false'));
+  });
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Escape') return;
+    document.querySelectorAll('.hf-al-menu:not([hidden])').forEach(m=>{ m.hidden = true; });
   });
   document.getElementById('table-wrap').addEventListener('input', e=>{
     if(!e.target.closest || !e.target.closest('.hdr-fmt')) return;
@@ -4772,6 +4836,30 @@ export function initLegacyApp() {
     if(!e.target.closest || !e.target.closest('.hdr-fmt')) return;
     if(e.target.classList.contains('hf-size')) return applyHdrFmt({ size: e.target.value ? Number(e.target.value) : '' });
   });
+
+  // Ragged-rule glyphs for the three alignments. Drawn rather than taken from a font because no
+  // dependable unicode character exists for these -- the nearest ones render as boxes in some
+  // fonts -- and because a <select> cannot show an icon at all, which is why this is a button and
+  // a small menu rather than a native dropdown.
+  function alignIcon(a){
+    const rows = {
+      left:   ['M2 4h12', 'M2 8h7',  'M2 12h10'],
+      center: ['M2 4h12', 'M4.5 8h7', 'M3 12h10'],
+      right:  ['M2 4h12', 'M7 8h7',  'M4 12h10'],
+    }[a];
+    return `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+      stroke-linecap="round" aria-hidden="true" focusable="false">${rows.map(d=>`<path d="${d}"/>`).join('')}</svg>`;
+  }
+  function alignMenuHtml(){
+    const opts = ['left','center','right'].map(a=>
+      `<button type="button" class="hf-al-opt" data-align="${a}" role="menuitemradio" aria-checked="false"
+        title="Align ${a}" aria-label="Align ${a}">${alignIcon(a)}<span>${a[0].toUpperCase()+a.slice(1)}</span></button>`).join('');
+    return `<span class="hf-align-wrap">
+      <button type="button" class="hf-ctl hf-btn hf-al-toggle" aria-haspopup="menu" aria-expanded="false"
+        title="Alignment" aria-label="Alignment">${alignIcon('left')}<span class="hf-caret">&#9662;</span></button>
+      <span class="hf-al-menu" role="menu" hidden>${opts}</span>
+    </span>`;
+  }
 
   function headerFmtToolbarHtml(mv){
     const sizes = mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
@@ -4790,9 +4878,7 @@ export function initLegacyApp() {
         <span class="hf-swatch-ink">A</span>
         <input type="color" class="hf-hl" value="#ffff00" aria-label="Highlight color">
       </label>
-      <button type="button" class="hf-ctl hf-btn hf-al" data-align="left" title="Align left" aria-label="Align left">&#8676;</button>
-      <button type="button" class="hf-ctl hf-btn hf-al" data-align="center" title="Align center" aria-label="Align center">&#8596;</button>
-      <button type="button" class="hf-ctl hf-btn hf-al" data-align="right" title="Align right" aria-label="Align right">&#8677;</button>
+      ${alignMenuHtml()}
       <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>
       <span class="hf-target" aria-live="polite">click a header line</span>
     </div>`;

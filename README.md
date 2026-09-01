@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the header toolbar: highlight hugs its text, and the bar is one Mantine row
+
+- **Highlight now covers the text, not the whole column.** `.hdr-line` is a block filling its
+  column, so a background on it painted a full-width band. The line now shrinks to `fit-content`
+  when it has a highlight and is re-positioned with auto margins, so it stays where its column
+  puts it. Measured on the title: **807px → 104px** around 96px of text, and it **tracks as you
+  type** — 104 → 305 on a longer title, → 37 on a short one. Applied only when a highlight is set:
+  without one, a full-width line is a bigger target for putting the caret in, and that is worth
+  keeping.
+- **"Reset Notes & Hiatus" is back beside the mode button.** Adding the toolbar made the strip
+  `space-between` with three children, which stranded Reset alone in the middle of the bar. Now
+  `flex-end` with the toolbar taking `margin-right:auto`, so it is toolbar-left, the two engine
+  buttons grouped right. (The button's *behaviour* was never broken — verified the handler fires
+  and rebuilds the grid.)
+- **The whole strip is Mantine-styled.** `#notes-reset-btn`, `#hdr-mode-btn` and `#mv-hdr-mode-btn`
+  are engine-rendered bare `<button>`s that never picked up the chrome's look. They now match
+  `.hf-ctl` exactly — same 22px height, radius, border and hover — so the row reads as one set of
+  controls. Manual mode renders as a filled edit-accent chip, because it is a *state* rather than
+  an action.
+- **The three alignment arrows became one dropdown with ragged-rule icons.** An arrow says "move
+  it that way", which is what the Shift tools do; ragged rules say "this is how the text sits".
+  Drawn as SVG rather than taken from a font — no dependable unicode glyph exists for these, and a
+  native `<select>` cannot show an icon at all, which is why it is a button plus a small menu. The
+  toggle wears the line's current alignment, so the toolbar answers "how is this set?" without
+  being opened; picking the alignment a line already has clears the override.
+
+Gate re-run: waterfall PDF and Excel parts still byte-identical to baseline.
+
 ### Unreleased — three fixes to the header formatting toolbar
 
 Reported straight after it shipped, all three real:

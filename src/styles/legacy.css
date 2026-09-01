@@ -1288,8 +1288,62 @@
   /* space-between, not flex-end: the formatting toolbar sits at the LEFT end of this strip and
      the mode button stays at the right (owner, 31 Aug 2026 -- "the opposite corner"). The spacer
      keeps the mode button hard right in auto mode, when no toolbar is rendered. */
-  .hdr-tools{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 8px 0; background:#fff; flex-wrap:wrap;}
+  /* flex-end + margin-right:auto on the toolbar, NOT space-between. With three children,
+     space-between stranded "Reset Notes & Hiatus" alone in the middle of the bar (owner,
+     31 Aug 2026 -- introduced when the toolbar was added). This keeps the toolbar hard left and
+     the two engine buttons grouped together hard right, which is where they were before. */
+  .hdr-tools{display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:4px 8px 0; background:#fff; flex-wrap:wrap;}
   .hdr-fmt-spacer{ flex:1; }
+  .hdr-fmt{ margin-right:auto; }
+
+  /* ---------- The two engine-rendered buttons in this strip ---------- */
+  /* #notes-reset-btn and #hdr-mode-btn are built by renderSpreadsheetView as bare <button>s, so
+     they never picked up the chrome's look and sat next to a Mantine-styled toolbar wearing UA
+     defaults. Styled to match .hf-ctl exactly -- same height, radius, border and hover -- so the
+     strip reads as one row of controls (owner, 31 Aug 2026). */
+  #notes-reset-btn, #hdr-mode-btn, #mv-hdr-mode-btn{
+    flex:none; font-family:inherit; font-size:11px; line-height:1; height:22px; padding:0 10px;
+    border:1px solid var(--mantine-color-gray-3); background:var(--mantine-color-white);
+    color:var(--mantine-color-gray-7); border-radius:var(--mantine-radius-sm); cursor:pointer;
+    transition:background-color 100ms ease, border-color 100ms ease, color 100ms ease;
+  }
+  #notes-reset-btn:hover, #hdr-mode-btn:hover, #mv-hdr-mode-btn:hover{
+    background:var(--mantine-color-gray-0); border-color:var(--mantine-color-gray-4);
+    color:var(--mantine-color-black);
+  }
+  #notes-reset-btn:focus-visible, #hdr-mode-btn:focus-visible, #mv-hdr-mode-btn:focus-visible{
+    outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px;
+  }
+  /* Manual mode is a STATE, not an action, so it reads as a filled chip rather than another
+     plain button -- the same edit-accent the manual header band already uses. */
+  #hdr-mode-btn.is-manual, #mv-hdr-mode-btn.is-manual{
+    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:600;
+  }
+  #hdr-mode-btn.is-manual:hover, #mv-hdr-mode-btn.is-manual:hover{
+    background:var(--edit-accent); color:var(--mantine-color-white);
+  }
+
+  /* ---------- Alignment dropdown ---------- */
+  .hf-align-wrap{ position:relative; display:inline-flex; }
+  .hf-al-toggle{ gap:2px; padding:0 4px 0 5px; }
+  .hf-al-toggle svg{ width:14px; height:14px; }
+  .hf-caret{ font-size:8px; color:var(--mantine-color-gray-6); }
+  .hf-al-menu{
+    position:absolute; top:calc(100% + 3px); left:0; z-index:70;
+    display:flex; flex-direction:column; min-width:110px; padding:3px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-sm); box-shadow:var(--mantine-shadow-md);
+  }
+  .hf-al-menu[hidden]{ display:none; }
+  .hf-al-opt{
+    display:flex; align-items:center; gap:7px; width:100%;
+    font-family:inherit; font-size:11px; line-height:1; text-align:left;
+    padding:5px 7px; border:none; background:none; color:var(--mantine-color-gray-7);
+    border-radius:var(--mantine-radius-xs); cursor:pointer;
+  }
+  .hf-al-opt svg{ width:14px; height:14px; flex:none; }
+  .hf-al-opt:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .hf-al-opt.is-on{ background:var(--edit-accent-bg); color:var(--edit-accent); font-weight:600; }
 
   /* ---------- Header formatting toolbar ---------- */
   /* Only ever rendered in manual mode -- in auto mode the lines mirror the inputs and cannot be
