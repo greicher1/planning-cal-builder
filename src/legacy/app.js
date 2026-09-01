@@ -1931,12 +1931,14 @@ export function initLegacyApp() {
   // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
   // is unless the user unlocks it. Per-phase hiatuses have no such lock -- they belong to their
   // phase's work, so they always travel with a shift.
-  function addHiatusRow(prefillStart, prefillWeeks, prefillLocked){
+  function addHiatusRow(prefillStart, prefillWeeks, prefillLocked, prefillName){
     const list = document.getElementById('hiatus-list');
     const row = document.createElement('div');
     row.className = 'hiatus-entry';
     const locked = (prefillLocked === undefined) ? true : !!prefillLocked;
+    const escAttr = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
     row.innerHTML = `
+      <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
       <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
@@ -1983,6 +1985,44 @@ export function initLegacyApp() {
       const inp = fields.querySelector('.phiatus-start');
       const note = fields.querySelector('.snap-note');
       if(inp && note) note.textContent = snapNoteText(inp.value);
+    });
+  }
+
+  // Drives each all-phase hiatus band's default label from its sidebar Name field, without ever
+  // touching a frozen render function: it writes straight into hiatusTexts, which
+  // renderSpreadsheetView / renderMonthView / exportExcel / buildWaterfallPdf already read via
+  // hiatusTextFor(). hiatusNameSyncedKeys remembers what we last wrote so a hand-typed override
+  // (made by clicking the band itself) is never clobbered -- a key is only ours to update while
+  // hiatusTexts still holds exactly what we put there.
+  function syncHiatusNamesFromSidebar(){
+    const stillOwned = new Set();
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const name = ((row.querySelector('.hiatus-name')||{}).value || '').trim();
+      const startStr = (row.querySelector('.hiatus-start')||{}).value;
+      const weeks = parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10);
+      const startDate = startStr && parseDateUTC(startStr);
+      if(!startDate || !(weeks > 0)) return;
+      const monday = mondayOf(startDate);
+      for(let i=0;i<weeks;i++){
+        const key = isoOf(addDays(monday, i*7));
+        const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
+        if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
+        if(name){
+          if(hiatusTexts[key] !== name) hiatusTexts[key] = name;
+          hiatusNameSyncedKeys[key] = name;
+        } else if(key in hiatusTexts){
+          delete hiatusTexts[key];
+          delete hiatusNameSyncedKeys[key];
+        }
+        stillOwned.add(key);
+      }
+    });
+    // A key we owned before that no row claims this pass (row deleted, or shifted off these
+    // dates) reverts to the default instead of being left stranded with a stale name.
+    Object.keys(hiatusNameSyncedKeys).forEach(key=>{
+      if(stillOwned.has(key)) return;
+      if(hiatusTexts[key] === hiatusNameSyncedKeys[key]) delete hiatusTexts[key];
+      delete hiatusNameSyncedKeys[key];
     });
   }
 
@@ -3293,7 +3333,7 @@ export function initLegacyApp() {
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {};
+      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
       hiatusFontSize = {}; holidayView = {};
       render(currentSchedule);
       reflectCountryLock();
@@ -4096,6 +4136,11 @@ export function initLegacyApp() {
   let hiatusFontSize = {};
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
+  // Tracks, per week ISO key, the hiatusTexts value syncHiatusNamesFromSidebar() last wrote there --
+  // this is what lets a hand-typed band label (clicking the band directly) always win over the
+  // sidebar Name field: a key is only synced again while hiatusTexts still holds exactly what we
+  // last put there.
+  let hiatusNameSyncedKeys = {};
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -4937,6 +4982,7 @@ export function initLegacyApp() {
     // remove sidebar rows call once they have already changed the page height.
     const scrollSnap = captureScroll();
     const state = readState();
+    syncHiatusNamesFromSidebar();
     currentSchedule = computeSchedule(state);
     render(currentSchedule);
     reflectCountryLock();
@@ -5381,7 +5427,7 @@ export function initLegacyApp() {
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
-    noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusColors = {};
+    noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths, row heights and cell spans are layout, not notes, so "Reset
@@ -5456,7 +5502,10 @@ export function initLegacyApp() {
         weeks: (row.querySelector('.hiatus-weeks')||{}).value || '',
         // Saves written before the lock existed have no `locked`; restore reads a missing value
         // as locked, matching the default for a new row.
-        locked: lockEl ? !!lockEl.checked : true
+        locked: lockEl ? !!lockEl.checked : true,
+        // Saves written before naming existed have no `name`; restore reads a missing value as
+        // '', matching a fresh row and leaving the band's default "Hiatus" label untouched.
+        name: (row.querySelector('.hiatus-name')||{}).value || ''
       });
     });
     return {byId, hiatuses};
@@ -5747,7 +5796,7 @@ export function initLegacyApp() {
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
-      hiatusFontSize, holidayView,
+      hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
       fields: collectFieldValues()
     };
@@ -6031,6 +6080,10 @@ export function initLegacyApp() {
       return suffix ? stayingPhases.has(suffix.slice(1)) : stayingHiatusWeeks.has(iso);
     };
     hiatusTexts = shiftKeyedMap(hiatusTexts, days, hiatusKeyStays);
+    // Carries sync ownership along with the text it applies to -- otherwise a moved band would
+    // already show the right name (from the line above) but a LATER rename would be mistaken for
+    // a hand-edit and refused, since the tracker's keys would still point at the old dates.
+    hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, days, hiatusKeyStays);
     hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
     hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
@@ -8346,7 +8399,7 @@ export function initLegacyApp() {
       document.getElementById('hiatus-list').innerHTML = '';
       // h.locked is absent in saves written before the lock existed -> addHiatusRow defaults it to
       // locked, which matches how those calendars behaved (nothing shifted them).
-      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked));
+      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name));
     }
 
     // 3. Apply saved values to every id'd field
@@ -8437,6 +8490,8 @@ export function initLegacyApp() {
       ? Object.assign({}, snap.hiatusFontSize) : {};
     hiatusTexts = (snap.hiatusTexts && typeof snap.hiatusTexts === 'object')
       ? Object.assign({}, snap.hiatusTexts) : {};
+    hiatusNameSyncedKeys = (snap.hiatusNameSyncedKeys && typeof snap.hiatusNameSyncedKeys === 'object')
+      ? Object.assign({}, snap.hiatusNameSyncedKeys) : {};
     hiatusColors = (snap.hiatusColors && typeof snap.hiatusColors === 'object')
       ? Object.assign({}, snap.hiatusColors) : {};
     holidayView = (snap.holidayView && typeof snap.holidayView === 'object') ? Object.assign({}, snap.holidayView) : {};

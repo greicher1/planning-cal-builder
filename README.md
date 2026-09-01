@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — name an all-phase hiatus from the sidebar
+
+Backlog №6, deferred to the owner because it changes the save format — now built. Each all-phase
+hiatus row (`#hiatus-list`) gets a **Name** field. A non-blank name becomes the default label on
+every week that hiatus covers — on the waterfall, the month view, and in both Excel and PDF exports
+— by writing into the same `hiatusTexts` override store a click-to-rename edit on the band already
+uses (`hiatusTextFor()`), so no frozen render or export function was touched.
+
+Clicking a band directly and typing something else still wins over the sidebar name for that one
+week: a new `hiatusNameSyncedKeys` map tracks which weeks the sidebar sync currently owns, and only
+ever touches a week it still owns. Ownership survives a shift (`shiftCalendar` re-keys it alongside
+`hiatusTexts`) and a save/reload (`hiatusNameSyncedKeys` is now part of `captureSnapshot()` /
+`applyStateSnapshot()`, append-only — an old save with no `fields.hiatuses[].name` restores exactly
+as it did before).
+
+Verified in the browser: naming a 2-week hiatus labels both weeks; hand-editing one week's band and
+then renaming the hiatus again updates only the untouched week; clearing the name reverts owned
+weeks to the default "Hiatus" label; the name shows correctly in Month view. `cd tests/harness &&
+HARNESS_PAGE=/dist/index.html ./gate.sh` passes every frozen-surface check (waterfall PDF and Excel
+parts byte-identical to baseline, 0 clipped cells) — the one FAIL (`restore`) is the pre-existing
+IndexedDB/headless-Chrome stall (HANDOFF.md), reproduced identically on the untouched `/index.html`.
+
 ### Unreleased — drop the current-line readout from the header toolbar
 
 The small text at the end of the toolbar naming the line you were editing ("title", "stat 1", or

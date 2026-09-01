@@ -1,40 +1,5 @@
 # CLAUDE.md
 
-## ⛔⛔ HANDOVER — DO THIS FIRST IN THE NEXT FRESH SESSION, THEN DELETE THIS SECTION
-
-**Read the docs in the reading order below first. Then, before you act on whatever the user asked
-you to do — whatever it is — put the four questions below to them in ONE interactive picker
-(`AskUserQuestion` takes up to four questions in a single call).** Ask them first, then get on with
-the actual request.
-
-**Why this is here.** Rounds 5, 6 and 7 plus a full documentation sweep were built on a *temporary
-second machine* (see `HANDOFF.md` §1 — that account cannot push; the repo travels back by AirDrop).
-The next session is expected to be **greicher, the original author, on the machine that owns the
-repo**. Two decisions were deliberately left for that machine rather than guessed at here, and they
-are the only things blocking the backlog.
-
-**The four questions, in this order:**
-
-1. **Commit the local edits.** Check `git status` first — if the tree is dirty, ask whether to
-   commit it. ⚠️ Do **not** fold pushing into this question: `main` auto-deploys to a live public
-   site, and the never-push rule below is per-action and unchanged. Push is its own conversation.
-2. **Blocker: №6, all-phase hiatus naming.** Ask what to do with it. The finding, so you can put it
-   fairly: naming hiatus bands from the sidebar **never existed** — bands are named by clicking them
-   in the calendar (`hiatusTexts`). Adding a sidebar field means a **new key in the `fields.hiatuses`
-   entry shape**, i.e. a save-format change (append-only, permanent). It was deferred on
-   29–31 Aug 2026 specifically because it "belongs with the author greicher".
-3. **Blocker: the two notice strips.** Ask what to do with them, as a *separate* question. State
-   plainly that this is **no longer a bug**: §2h (a shareable copy baking in a strip that named
-   someone else's file) was fixed in round 7 inside `buildSavedHtml()`, with the strips left as
-   static markup. Porting them to React is now optional tidiness — but it still **changes an
-   export's output**, which is why it still wants a ruling rather than a quiet decision.
-4. **Question: "Thank Anto for his work"** — options, exactly these three:
-   *Thank you Anto!* · *Thank you Anto!!* · *Thank you Anto!!!!*
-
-⛔ **Then delete this entire section from `CLAUDE.md`** — once the user has answered (or explicitly
-waved the questions away), it has done its job and must not greet a third session. Deleting it is
-part of completing the handover, not a separate chore.
-
 ## ⛔ READ [`HANDOFF.md`](HANDOFF.md) FIRST — after this file, before anything else
 
 `HANDOFF.md` is the live state of the project: what was just built, what the owner has asked for

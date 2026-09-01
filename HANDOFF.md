@@ -561,7 +561,7 @@ what is actually built. ✅ built · ◐ partial · ⏳ open with a reason · �
 | 3 | Grab handles (visual only) | ✅ CSS dots. ⛔ **THE REORDER ITSELF IS STILL UNBUILT AND IS A KNOWN DEBT** — owner, round 7: *"do document that this will need to be implemented, but a later decision."* The handles currently promise a drag that does nothing. What it needs before any code: `customPhaseDefs` ARRAY ORDER is save-format (a reorder rewrites what every saved file means), `PHASE_CHAIN` depends on order, and the "start after previous phase" links resolve through it — so a drag has to define what happens to dated phases, chained phases and `phaseHiatuses` keys. Design it as its own stage with its own gate; do not bolt drag onto the existing handles. |
 | 4 | Diegetic warnings in phase chips | ✅ **DONE round 7, and with NO frozen edit.** The ring was thought to need a hook inside frozen `render()`'s validity branch. It does not: `reflectStartDateValidity()` runs from `update()` (not frozen), toggles `.is-invalid` on the SIDEBAR field (chrome), and CALLS frozen `readCfgForMeta()` for the verdict — reading from the frozen surface is allowed, and it means there is no second copy of the validity rule to drift from the meta line. Verified: a year of 0206 rings the field red while the meta line says "Check that year". |
 | 5 | Red hover ×, visually centred | ✅ round 3 + round 4: the × is drawn geometry now (mask), not a text glyph |
-| 6 | All-phase hiatus naming | ⏸ **DEFERRED BY THE OWNER, round 7 — do not build.** *"it belongs with the author greicher, so we will defer that decision until this repo is back on that device."* The finding stands: sidebar naming never existed (bands are named by clicking them in the calendar, `hiatusTexts`), and adding a sidebar field means a new key in the `fields.hiatuses` entry shape — save format, append-only. Raise it on the owner's machine, not here. |
+| 6 | All-phase hiatus naming | ✅ **BUILT 31 Aug 2026, on the owner's own machine, per the owner's ruling once the repo arrived there.** A `Name` field on each `#hiatus-list` row (`addHiatusRow`, `.hiatus-entry`) drives `hiatusTexts` for every week that hiatus covers — writing into the SAME store a click-to-rename edit on the band already uses (`hiatusTextFor()`), so no frozen render/export function was touched. A hand-typed override on a specific week still wins, via the new `hiatusNameSyncedKeys` ownership map (persisted in `captureSnapshot()`/`applyStateSnapshot()`, re-keyed alongside `hiatusTexts` in `shiftCalendar()`). New `fields.hiatuses[].name` key, append-only — see the README changelog entry for the full design and verification. |
 | 7 | Custom warnings replacing browser popups | ✅ **COMPLETE as of round 7 — all 8 remaining alerts converted with NO frozen edit.** They live inside `exportMonthPdf` / `exportWaterfallPdf*`, so editing the call sites was forbidden; instead a hoisted `function alert(message){ return uiAlert(message) }` declared in the IIFE SHADOWS the global for every call site in it. Same shape §2b prescribes for `SHEET_GRIDLINES`: keep the identifier, change only the declaration. ⚠️ Behaviour-preserving ONLY because all 8 are `alert(msg); return;` — checked site by site — so blocking vs async is unobservable. A future export that must alert AND CONTINUE has to `await uiAlert()` explicitly. `beforeunload` stays native (browser-owned). |
 | 8 | Undo/redo symbols fit Mantine | ✅ drawn glyphs; round 4 fixed the baseline offset |
 | 9 | Retrigger block on file actions | ✅ `reClickGuard(600ms)` |
@@ -619,7 +619,6 @@ the Inter embed, the per-component CSS and the §2h fix are all done.
 | Item | Status |
 |---|---|
 | **№3 phase reorder** | A real DEBT: the handles promise a drag that does nothing. Needs its own design first — `customPhaseDefs` order is save format, `PHASE_CHAIN` depends on order. Owner: "a later decision". |
-| **№6 hiatus naming** | ⏸ **Deferred to the owner's own machine** — do not build here. |
 | **№12 interpretation** | Owner confirmed round 7: as built is correct. Closed. |
 | **The notice-strips port** | No longer a bug fix (§2h is fixed); plain tidiness, still needs sign-off because it changes an export's output. |
 | **The help modal** | Tokenised, not ported to a React `Modal`. Cosmetic parity already reached. |
@@ -662,9 +661,7 @@ Logged before building at the owner's instruction, then built and gated. State o
     inside `render()`'s meta branch (` · ` → `\n`) plus `white-space:pre-line`. Owner-directed;
     `meta-<key>` is a write-only sidebar div no export path reads; the full gate (waterfall PDF
     byte-identical, Excel parts identical) passed after it.
-13. ✅ ANSWERED — all-phase hiatus naming never existed in the sidebar. Band labels are edited by
-    clicking the band in the grid (`hiatusTexts`). A sidebar name field = a new key in the
-    `fields.hiatuses` entry shape (save format, append-only) — needs a design decision.
+13. ✅ **BUILT 31 Aug 2026** — see row 6 of the master list above for the shipped design.
 
 #### ⏭ What is next, in order
 
