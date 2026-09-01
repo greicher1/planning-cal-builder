@@ -1746,7 +1746,13 @@ export function initLegacyApp() {
         </div>` : ''}
       `;
       wrap.appendChild(row);
-      row.querySelector('.phase-name-input').addEventListener('input', update);
+      row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
+        // Keep the hiatus name field's placeholder in step with the phase's typed name, same as
+        // the custom-phase rows do.
+        const nameField = document.getElementById('phiatus-name-'+p.key);
+        if(nameField) nameField.placeholder = ((e.target.value.trim() || p.label)) + ' Hiatus';
+        update();
+      });
       const sw = row.querySelector('.swatch');
       sw.addEventListener('click', ()=>{
         openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=>{
@@ -1833,13 +1839,16 @@ export function initLegacyApp() {
   // Markup for the per-phase hiatus controls, dropped under each phase's fields. IDs are keyed
   // by phase so their values round-trip through collectFieldValues()/restore like any field.
   function phaseHiatusBlockHtml(key, label){
+    // The toggle's own caption IS the name field -- not a checkbox <label> wrapping static text
+    // plus a separate Name box below it. The checkbox and the text input are independent sibling
+    // controls (not one nested in the other's <label>), so clicking the checkbox toggles and
+    // clicking the text edits, with no overlap between the two (owner, 1 Sep 2026).
     return `<div class="phase-hiatus">
-        <label class="phase-hiatus-toggle">
-          <input type="checkbox" class="phiatus-en" id="phiatus-en-${key}">
-          <span class="phiatus-label" id="phiatus-label-${key}">${escHtml(label)} Hiatus</span>
-        </label>
+        <div class="phase-hiatus-toggle">
+          <input type="checkbox" class="phiatus-en" id="phiatus-en-${key}" aria-label="${escHtml(label)} Hiatus toggle">
+          <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus" aria-label="${escHtml(label)} hiatus name">
+        </div>
         <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
-          <label>Name <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus"></label>
           <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
           <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
           <div class="snap-note"></div>
@@ -1923,12 +1932,10 @@ export function initLegacyApp() {
         update();
       });
     });
-    // Keep the hiatus toggle's label -- and the hiatus Name field's placeholder, which defaults
-    // to the same text -- in step with the phase's typed name.
+    // Keep the hiatus toggle/name field's placeholder -- which defaults to the phase's own name
+    // -- in step as it's typed.
     row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
       const defLabel = ((e.target.value.trim() || 'Phase')) + ' Hiatus';
-      const lbl = document.getElementById('phiatus-label-'+key);
-      if(lbl) lbl.textContent = defLabel;
       const nameField = document.getElementById('phiatus-name-'+key);
       if(nameField) nameField.placeholder = defLabel;
     });
@@ -8443,9 +8450,9 @@ export function initLegacyApp() {
         const sw = document.getElementById('swatch-' + saved.key);
         const opt = PHASE_COLOR_OPTIONS[saved.colorIndex];
         if(sw && opt) sw.style.background = opt.color;
-        const lbl = document.getElementById('phiatus-label-' + saved.key);
+        const nameField = document.getElementById('phiatus-name-' + saved.key);
         const nameEl = document.getElementById('name-' + saved.key);
-        if(lbl && nameEl) lbl.textContent = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
+        if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
       });
     }
 
@@ -8567,14 +8574,17 @@ export function initLegacyApp() {
     PHASES.forEach(p=>{
       const sw = document.getElementById('swatch-'+p.key);
       if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
+      const nameField = document.getElementById('phiatus-name-'+p.key);
+      const nameEl = document.getElementById('name-'+p.key);
+      if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || p.label)) + ' Hiatus';
     });
-    // 4e. Match per-phase hiatus field visibility + custom labels to the restored values.
+    // 4e. Match per-phase hiatus field visibility + name placeholders to the restored values.
     refreshPhaseHiatusUI();
     document.querySelectorAll('#custom-phase-rows .phase-row').forEach(row=>{
       const key = row.dataset.key;
-      const lbl = document.getElementById('phiatus-label-'+key);
+      const nameField = document.getElementById('phiatus-name-'+key);
       const nameEl = document.getElementById('name-'+key);
-      if(lbl && nameEl) lbl.textContent = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
+      if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || 'Phase')) + ' Hiatus';
     });
     if(snap.viewMode === 'sheet' || snap.viewMode === 'month'){
       viewMode = snap.viewMode;

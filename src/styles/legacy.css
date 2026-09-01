@@ -456,7 +456,18 @@
   /* The per-phase hiatus reads as its own ruled-off section of the block, not a stray toggle. */
   .phase-hiatus{ grid-column:1 / -1; margin-top:var(--mantine-spacing-md);
     padding-top:var(--mantine-spacing-md); border-top:1px solid var(--mantine-color-gray-2); }
-  .phase-hiatus-toggle{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9); cursor:pointer; }
+  .phase-hiatus-toggle{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); }
+  /* The hiatus name field doubles as the toggle's own caption -- borderless and full-strength
+     ink until hovered/focused, so an unnamed hiatus still reads as a normal label ("Writer's Rm
+     Hiatus") rather than as an empty, greyed-out input begging to be filled in. */
+  .phiatus-name{
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500;
+    color:var(--mantine-color-gray-9); border:1px solid transparent; border-radius:var(--mantine-radius-sm);
+    padding:2px 5px; background:transparent; flex:1; min-width:0;
+  }
+  .phiatus-name::placeholder{ color:var(--mantine-color-gray-9); opacity:1; }
+  .phiatus-name:hover{ border-color:var(--mantine-color-gray-3); }
+  .phiatus-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
@@ -501,7 +512,7 @@
      hairline, the default radius, and the primary colour as the focus ring. A Mantine TextInput
      rendered next to one of these should be indistinguishable.
      ============================================================================================ */
-  input[type=date], input[type=number], input[type=text]:not(.phase-name-input), select, textarea{
+  input[type=date], input[type=number], input[type=text]:not(.phase-name-input):not(.phiatus-name), select, textarea{
     height:var(--input-height-xs, 30px);
     border:1px solid var(--mantine-color-gray-4);
     border-radius:var(--mantine-radius-default);

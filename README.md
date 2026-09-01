@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the per-phase hiatus toggle's own label is the name field
+
+Simplification, requested right after the per-phase name field shipped: instead of a checkbox
+labeled "Writer's Rm Hiatus" with a separate "Name" text box underneath, the checkbox's own
+caption now *is* the editable name. `phaseHiatusBlockHtml()`'s `<label>` (checkbox + static
+`<span>`) became two independent sibling controls — the checkbox and a `phiatus-name` text input
+— so clicking the checkbox toggles and clicking the text edits, with no overlap between the two
+(nesting the input inside the checkbox's `<label>` would have made clicking into it also toggle
+the checkbox). Empty, it shows the same auto default ("Writer's Rm Hiatus") as a full-strength,
+borderless placeholder — not a greyed-out empty box — so an unnamed hiatus still reads exactly
+like the old static label at rest, and only reveals it's editable on hover/focus (styled after
+the existing `.phase-name-input` pattern). The separate Name row inside `.phase-hiatus-fields` is
+gone; that row is back to just Start date/Weeks.
+
+Along the way, closed a small pre-existing gap: renaming a *built-in* phase never updated its
+hiatus toggle's label live (only custom phases had that sync). Since the label is now the name
+field's placeholder — more load-bearing than a static caption was — added the same live-sync
+built-in phases were missing, plus a restore-time refresh (both built-in and custom) so reopening
+a save with a renamed phase shows the right placeholder immediately rather than the stale
+original name.
+
+No save-format change — same `phiatus-name-<key>` id as before, still a plain `fields.byId`
+field.
+
+Verified in the browser: clicking the checkbox toggles without touching the text; clicking the
+text focuses it without touching the checkbox; typing a name updates the band immediately; a
+previously-set name from an earlier save/session restores into the merged field correctly;
+clearing it falls back to the placeholder look; a custom phase's placeholder tracks its typed
+name. `cd tests/harness && HARNESS_PAGE=/dist/index.html ./gate.sh` passes cleanly (only the
+known IndexedDB restore-stall leg fails, as always).
+
 ### Unreleased — name a per-phase hiatus from the sidebar too
 
 The all-phase hiatus naming built earlier only covered `#hiatus-list` rows — a per-phase hiatus
