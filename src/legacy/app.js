@@ -145,6 +145,37 @@ export function initLegacyApp() {
   // a schedule change that moves the auto span cannot silently move the width the user dragged.
   let cellSpans = {};
 
+  // The user's grid COLUMN-ORDER overrides: which phase sits in which column, per week.
+  // Authorised by an explicit owner ruling (1 Sep 2026) invoking the appearance convention's
+  // "unless given specific instructions" escape -- see HANDOFF.md and
+  // GRID-DIRECT-MANIPULATION-PLAN.md section 6. It covers column ORDER only; nothing about a cell's
+  // own appearance, its text fitting or the width model moves.
+  //
+  // Keyed '<weekIso>|<phaseKey>' -- byte-identical in shape to cellSpans, so splitWeekKey() parses
+  // it and hiatusKeyStays is the correct shift predicate with no new rule. EXACTLY two key parts:
+  // shiftKeyedMap splits ONE '|', so a three-part key would break hiatusKeyStays' suffix.slice(1).
+  //
+  // Written as MUTUAL pointers: swapping A and B in week W stores BOTH 'W|A' -> {with:'B'} and
+  // 'W|B' -> {with:'A'}. A pair is honoured only when both directions resolve AND both phases have
+  // a cell in that week, so a shift that moves one phase and not the other breaks the pair and the
+  // swap cleanly EVAPORATES rather than half-applying.
+  //
+  // ⛔ There is no `seat` (absolute position) field and there must never be one. A seat can only be
+  // implemented as rank-by-col, but frozen computeBlockLayout orders slots by FIRST APPEARANCE in
+  // the block, not by col value -- so with a legitimately reused column a seat model was measured
+  // moving a phase the WRONG WAY with no error. A mutual transposition is direction-agnostic and
+  // immune to slot ordering.
+  //
+  // The value is an OBJECT so a later version can add a field without a format break. Values are
+  // immutable: applyStateSnapshot's Object.assign is shallow (matching the cellSpans precedent), so
+  // always assign a fresh object, never mutate one in place.
+  //
+  // Why a phase KEY and not a col or a slot index: `col` is an opaque identity produced by segCol's
+  // free-column reuse and shifts whenever any start date changes, and a slot index means a
+  // different column in each year block. A phase key is stable under both, and under renames (the
+  // label lives in a separate name-<key> field).
+  let gridColSwaps = {};
+
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
   // notes AND phase labels so a narrowed column of either kind behaves the same way. The
@@ -2105,7 +2136,81 @@ export function initLegacyApp() {
     const wrSeg = segments.find(s=>s.key==='writersRoom');
     if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays};
+    // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
+    // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
+    // computeBlockLayout / computePhaseRowLayout, and no solver reads it (verified: every .col read
+    // in the file is inside those two), so there is nothing to keep a pre-swap copy for. Doing it
+    // here also means every consumer -- screen, Excel, both PDFs, sheetColumnWidths -- sees one
+    // consistent schedule, which is what makes them unable to disagree.
+    // The result is recorded on the schedule for the gate to inspect; it is derived and transient
+    // (nothing serialises a schedule, and captureSnapshot never touches it).
+    const appliedColSwaps = applyColSwaps(weeks);
+
+    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps};
+  }
+
+  // Resolve gridColSwaps into the disjoint transpositions that actually apply to ONE week.
+  // Returns [[cellA, cellB], ...]. Defensive by design: a store that has drifted -- a phase deleted,
+  // a duration shortened, a half-moved pair after a ripple shift, a hand-edited .sptcal -- yields
+  // fewer pairs or none, never a wrong one.
+  function swapPairsForWeek(weekIso, cells){
+    const byKey = new Map();
+    // type:'hiatus' all-phase bands carry neither key nor col, so they can never enter a pair --
+    // correct: they render full width and blockOccupancy skips them. A phaseHiatus band DOES carry
+    // both, so it pairs like a phase cell, which is required since it stands in for its phase that
+    // week and marks occupancy under the phase's own key.
+    cells.forEach(c=>{ if(c.col !== undefined && c.key) byKey.set(c.key, c); });
+
+    // Collect declared partners first, then validate the WHOLE relation before building any pair.
+    // Validating pair-by-pair is what makes a trailing 3-cycle guard dead code: a first-come
+    // "claimed" set prevents it ever firing, so a real 3-cycle gets HALF-applied in Map iteration
+    // order instead of dropped.
+    const want = new Map();
+    byKey.forEach((c, key)=>{
+      const ov = gridColSwaps[weekIso + '|' + key];
+      if(!ov || typeof ov !== 'object') return;
+      if(typeof ov.with !== 'string') return;
+      if(ov.with === key) return;          // self-pointer: one hand-edited file would otherwise
+                                          // silently reorder three phases
+      if(!byKey.has(ov.with)) return;      // partner absent this week -> the mutual-pointer guard
+      want.set(key, ov.with);
+    });
+    // Must be a set of disjoint MUTUAL 2-cycles. Anything else -> no pairs at all for this week.
+    const named = new Map();
+    for(const [, p] of want) named.set(p, (named.get(p) || 0) + 1);
+    for(const [k, p] of want){
+      if(want.get(p) !== k) return [];                       // not mutual
+      if(named.get(k) > 1 || named.get(p) > 1) return [];    // named by more than one other phase
+    }
+    const pairs = [], done = new Set();
+    for(const [k, p] of want){
+      if(done.has(k) || done.has(p)) continue;
+      pairs.push([byKey.get(k), byKey.get(p)]);
+      done.add(k); done.add(p);
+    }
+    return pairs;
+  }
+
+  // Total: always yields a permutation, never throws, never drops or duplicates a cell, and is the
+  // IDENTITY when no pair applies. It preserves each week's col MULTISET exactly, which is the
+  // construction-level reason frozen firstAppear / blockSlotMaps / phaseSlots cannot move -- proved
+  // empirically over 10k+ fuzzed permutations by tests/harness/prove-col-permutation.mjs.
+  // ⛔ Entries are never DELETED here, only ignored -- and re-honoured if the schedule comes back.
+  // The precedent is explicit in applyCellSpanOverrides ("a stale override shrinks to whatever is
+  // genuinely free rather than being dropped outright"): deleting would let a temporary duration
+  // typo permanently destroy the user's column order.
+  function applyColSwaps(weeks){
+    const applied = [];
+    if(!Object.keys(gridColSwaps).length) return applied;
+    weeks.forEach((w, i)=>{
+      const iso = isoOf(w.date);
+      swapPairsForWeek(iso, w.cells).forEach(([a, b])=>{
+        const t = a.col; a.col = b.col; b.col = t;   // an exchange is its own inverse, so the gate
+                                                    // can revert a pair without a baseCol stash
+        applied.push({ weekIdx:i, weekIso:iso, a:a.key, b:b.key });
+      });
+    });
+    return applied;
   }
 
   // ---------- UI: phase rows ----------
@@ -5916,9 +6021,11 @@ export function initLegacyApp() {
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
-    // Hand-dragged column widths, row heights and cell spans are layout, not notes, so "Reset
-    // Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears them.
-    colWidths = {}; rowHeights = {}; cellSpans = {};
+    // Hand-dragged column widths, row heights, cell spans and column ORDER are layout, not notes,
+    // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
+    // them. gridColSwaps follows that same rule on purpose: its absence from the notes-reset branch
+    // is a decision, not an oversight, so do not "complete the checklist" by adding it there.
+    colWidths = {}; rowHeights = {}; cellSpans = {}; gridColSwaps = {};
     update();
   }
 
@@ -6284,6 +6391,7 @@ export function initLegacyApp() {
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
+      gridColSwaps,
       fields: collectFieldValues()
     };
   }
@@ -6576,6 +6684,12 @@ export function initLegacyApp() {
     // the same journey a per-phase hiatus band does: it moves when its phase moves, stays when
     // the phase stays put on a ripple.
     cellSpans = shiftKeyedMap(cellSpans, days, hiatusKeyStays);
+    // A column-order override is keyed the same way and is phase-owned, so it travels identically.
+    // hiatusKeyStays is the correct predicate; isPinnedWeek is explicitly WRONG here (that guard is
+    // about date-pinned notes, a different rule). No merge fn: last-writer-yields matches cellSpans,
+    // and swapPairsForWeek's mutual-pointer check drops any inconsistent survivor rather than
+    // half-applying it -- which is exactly the case where a ripple moves one phase and not the other.
+    gridColSwaps = shiftKeyedMap(gridColSwaps, days, hiatusKeyStays);
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
@@ -8920,6 +9034,10 @@ export function initLegacyApp() {
     colWidths  = (snap.colWidths  && typeof snap.colWidths  === 'object') ? Object.assign({}, snap.colWidths)  : {};
     rowHeights = (snap.rowHeights && typeof snap.rowHeights === 'object') ? Object.assign({}, snap.rowHeights) : {};
     cellSpans  = (snap.cellSpans  && typeof snap.cellSpans  === 'object') ? Object.assign({}, snap.cellSpans)  : {};
+    // ⛔ The `: {}` branch is the whole point, not defensiveness. `if(snap.x) x = snap.x` would leave
+    // the PREVIOUS file's column order applied to this one -- the exact bug the
+    // restore-unconditionally rule exists to prevent. An absent key means "no overrides", always.
+    gridColSwaps = (snap.gridColSwaps && typeof snap.gridColSwaps === 'object') ? Object.assign({}, snap.gridColSwaps) : {};
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're

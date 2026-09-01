@@ -7,8 +7,13 @@ Written Sep 2026. Self-contained: it assumes no memory of the analysis that prod
 [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) first, then this. It supersedes nothing;
 it is a plan, not a record of work done.
 
-> ⛔ **Feature 2 cannot start until the owner has signed off on grid COLUMN ORDER in writing.**
-> See §3.2 and §11 D1. Feature 1 needs no sign-off and can start immediately.
+> ✅ **D1 GRANTED (owner, 1 Sep 2026) — Feature 2 is authorised.** Grid **column order** may be
+> user-overridable; a phase's column may vary per week. That is the 29 Aug appearance convention's
+> *"unless given specific instructions from the user"* escape, invoked explicitly, and it is
+> recorded in `HANDOFF.md`. ⚠️ It covers **column order only** — not a cell's own appearance, its
+> text fitting, or the width model, all of which stay frozen. **D7 also granted: ship Phase 1**
+> (whole-run swaps, §6.8) first.
+> Feature 1 is **built** (§5, shipped 1 Sep 2026).
 
 > ✅ **Already decided by the owner (1 Sep 2026) — do not re-open as an open question:**
 > **D2, collateral tolerance.** A swap may reflow an *unswapped* week by **at most one column**
@@ -1776,7 +1781,11 @@ No harness test clicks a knob or sweeps a marquee. Drive `/dist/index.html` with
 Genuine product questions. Implementation choices have already been made above and are not listed
 here.
 
-**D1 — COLUMN-ORDER SIGN-OFF. ⛔ BLOCKS ALL OF FEATURE 2.**
+**D1 — COLUMN-ORDER SIGN-OFF. ✅ GRANTED 1 Sep 2026 — recorded in `HANDOFF.md`.**
+The owner has ruled that grid column order may be user-overridable, invoking the appearance
+convention's *"unless given specific instructions"* escape. Scope: **column order only** — not cell
+appearance, text fitting or the width model. **D7 granted in the same breath: Phase 1 first.**
+The original question, kept for the record:
 Making a phase's column vary per week changes which label appears in which grid column — i.e. what
 is inside `#table-wrap` — which the 29 Aug 2026 standing convention freezes. Its only escape is
 *"unless given specific instructions from the user"*. **Please confirm in writing that grid COLUMN
@@ -1827,7 +1836,9 @@ in which case pull them all back. A per-cell toggle scrambles a half-expanded se
 filled / half not. And the selection **survives** the apply, so expand → pull back → adjust is one
 continuous interaction. Both recommended — confirm?
 
-**D7 — SCOPE: is Feature 2 Phase 1 enough to ship?**
+**D7 — SCOPE. ✅ GRANTED 1 Sep 2026: ship Phase 1 first.** Arbitrary partial runs (F2-e) are a
+separate, later decision and must not be built on this ruling.
+The original question, kept for the record:
 Phase 1 = a swap where at least one side is a phase's **whole** run within the year block. That is
 exactly your screenshot. Arbitrary partial runs (e.g. swapping only weeks 4–5 out of a 6-week
 overlap) would be Phase 2. Ship Phase 1 first?

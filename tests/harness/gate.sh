@@ -122,6 +122,43 @@ if fa!=fb and isinstance(fa,dict) and isinstance(fb,dict):
 sys.exit(bad)
 PY
 
+# ---- colswap: the grid COLUMN-ORDER reconciler, end to end through a real restore path ----------
+# Driven by HARNESS_STATE, which substitutes a fixture into the page's own <script id="saved-state">
+# block -- the shareable-copy path, so this leg needs no debug hook and, deliberately, no IndexedDB
+# (that is what makes it reliable here while the `restore` leg above is not).
+# It proves the PLUMBING: the store survives restore, swapPairsForWeek honours a mutual pair, the
+# swapped weeks transpose, the unswapped weeks keep their position, every cell is still present
+# exactly once, and the colgroup key set -- which hand-dragged colWidths are stored against -- does
+# not move. The invariance THEOREM is proved separately and far more strongly by
+# `node tests/harness/prove-col-permutation.mjs`, which fuzzes the real computeBlockLayout source.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-2col "$HERE/run.sh" colswap 45 >/dev/null 2>&1
+python3 - "$HERE/colswap.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  colswap produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  colswap threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('swappedWeeks')==4 and not a.get('swapFailures'),
+    f"colswap: 4 overlap weeks transposed (failures: {a.get('swapFailures')})")
+chk(a.get('unswappedPositionsOk'), "colswap: unswapped weeks kept their phase and slot")
+# Collateral is EXPECTED here and is reported, not failed: applying the swap ends prodPrep's slot-0
+# run early, so the two weeks above it newly auto-span. Owner ruling D2 caps that at magnitude 1.
+chk(a.get('collateralWithinCap'), f"colswap: collateral within the magnitude-1 cap {a.get('collateral')}")
+chk(a.get('cellCountsOk'), f"colswap: no cell dropped or duplicated {a.get('cellCounts')}")
+chk(a.get('colKeysOk'), f"colswap: colgroup key set unmoved ({a.get('colKeys')})")
+chk(a.get('phaseColsEqualWidth'), "colswap: phase columns still share one width")
+chk(not a.get('errors'), f"colswap: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"colswap: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

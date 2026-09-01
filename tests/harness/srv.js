@@ -23,9 +23,28 @@ http.createServer((q, r) => {
   const file = path.join(ROOT, p);
   if (!file.startsWith(path.resolve(ROOT))) { r.writeHead(403); r.end('no'); return; }
   const t = u.searchParams.get('test');
+  // ?state=<name> substitutes tests/fixtures/<name>.sptcal into the page's own
+  // <script id="saved-state"> block, which the app already ships (as `null`) and which
+  // restoreSavedState() replays at startup. That is the SHAREABLE-COPY restore path -- a real one --
+  // so a test can start from an arbitrary saved state with no debug hook in the app and, crucially,
+  // WITHOUT IndexedDB: the `restore` leg's file-handle path is what stalls in headless Chrome, and
+  // this deliberately avoids it.
+  const stateName = u.searchParams.get('state');
   fs.readFile(file, (e, d) => {
     if (e) { r.writeHead(404); r.end('not found'); return; }
     let o = String(d);
+    if (stateName && /^[\w.-]+$/.test(stateName)) {
+      const sp = path.join(ROOT, 'tests', 'fixtures', stateName + '.sptcal');
+      let json;
+      try { json = fs.readFileSync(sp, 'utf8'); }
+      catch (err) { r.writeHead(500); r.end('state fixture not found: ' + sp); return; }
+      // `<` escaped exactly as buildSavedHtml does, so user text containing a closing script tag
+      // cannot truncate the document.
+      const safe = json.replace(/</g, '\\u003c');
+      const re = /(<script id="saved-state" type="application\/json">)([\s\S]*?)(<\/script>)/;
+      if (!re.test(o)) { r.writeHead(500); r.end('no saved-state block in ' + p); return; }
+      o = o.replace(re, (m, a, _b, c) => a + safe + c);
+    }
     if (t) {
       // ** Installed in <head>, BEFORE the app's own script parses. ** lib.js is injected at
       // </body>, by which point the app has already run -- so a trap installed there cannot see

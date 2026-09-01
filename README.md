@@ -29,6 +29,61 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — grid column order: the store and the reconciler (no gesture yet)
+
+Step one of Feature 2 in [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md),
+authorised by an explicit owner ruling that grid **column order** may be user-overridable (recorded
+in `HANDOFF.md`; it covers column order only, and nothing about a cell's appearance, its text
+fitting or the width model). **There is no gesture yet** — this lands the model, the save format and
+the tests, because getting either wrong underneath a drag is undiagnosable.
+
+`gridColSwaps` stores a swap as **mutual pointers** — swapping A and B in week W writes both
+`W|A → {with:'B'}` and `W|B → {with:'A'}` — keyed exactly like `cellSpans`, so `splitWeekKey` parses
+it and `hiatusKeyStays` is already the right shift predicate. A pair applies only when both
+directions resolve *and* both phases have a cell that week, so a shift that moves one phase and not
+the other makes the swap cleanly evaporate instead of half-applying. `swapPairsForWeek` validates
+the whole relation before building any pair (self-pointers, non-mutual entries and 3-cycles all
+yield nothing for that week), and `applyColSwaps` runs at the end of `computeSchedule` exchanging
+two cells' `col` values — so screen, Excel and both PDFs see one consistent schedule and cannot
+disagree. Stale entries are **ignored, never deleted**, matching `applyCellSpanOverrides`' precedent:
+deleting would let a temporary duration typo permanently destroy the user's column order.
+
+**Why a transposition and not a position index.** A "seat" can only be implemented as rank-by-column,
+but frozen `computeBlockLayout` orders slots by *first appearance in the block*, not by column value
+— so with a legitimately reused column a seat model was measured moving a phase **the wrong way**,
+with no error. Exchanging column values is direction-agnostic and immune to slot ordering.
+
+**The load-bearing theorem is now a test, not a claim.**
+`node tests/harness/prove-col-permutation.mjs` slices the **verbatim source** of
+`computeBlockLayout` out of `src/legacy/app.js` and fuzzes it, so it cannot drift from the
+implementation the way a hand-transcription would. Over 10,000 real permutations:
+`blockSlotMaps` and its size never move. That matters because those slots are what the
+`y<year>:s<slot>` colgroup keys — and therefore every hand-dragged column width — are stored
+against, so a violation would be silent corruption of saved user work. The script also isolates the
+**one documented exception**: `blockSimSlot` reads Production's column, so moving Production can move
+the Simultaneous Post lane and change the column count. It measured 119 such cases, which is why the
+plan refuses Production swaps in a SimPost block *and* why the validation gate must run on every
+update rather than only when the gesture fires (a swap accepted while SimPost is off becomes a
+column-count change the moment it is switched on).
+
+New harness leg `colswap`, wired into `gate.sh`, proves the plumbing end to end through a **real**
+app path: `HARNESS_STATE=<name>` now substitutes a fixture into the page's own
+`<script id="saved-state">` block — the shareable-copy restore path — so a test can start from an
+arbitrary saved calendar with **no debug hook in the app** and, deliberately, **no IndexedDB**, which
+is what makes this leg trustworthy where the existing `restore` leg stalls under headless Chrome.
+The fixture is a genuine capture reproducing the owner's screenshot, and the leg asserts the four
+overlap weeks transpose, the weeks above keep their phase and slot, no cell is dropped or
+duplicated, the colgroup key set is unmoved, and the phase columns still share one width.
+
+⚠️ **One finding worth recording, caught by that leg.** Applying the swap changes the two weeks
+*above* the overlap from one column to full width. That is not a bug: ending Prod Prep's slot-0 run
+early (frozen `phaseRunBounds` bounds a run by occupant key, and slot 0's occupant changes at the
+overlap) makes `freeForRun` newly succeed, so those weeks legitimately auto-span. It is
+**collateral** — a layout change in weeks the user did not select, measured at ~25% of swaps — and
+the owner has ruled it allowed when capped at one column and refused beyond that. It is also what
+makes the result match the owner's screenshot, where those weeks *are* full width. The leg asserts
+the cap rather than asserting the old value, which would have been asserting the feature is broken.
+
 ### Unreleased — expand a whole run of cells in one go
 
 The first of the two features in [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md).

@@ -23,6 +23,12 @@ PORT="${HARNESS_PORT:-8231}"
 # to run the same test against the Vite build instead. The server always serves the REPO ROOT, so
 # tests/fixtures/... stays reachable from either page -- t/restore.js fetches it by absolute path.
 PAGE="${HARNESS_PAGE:-/index.html}"
+# Optional starting state: HARNESS_STATE=<name> substitutes tests/fixtures/<name>.sptcal into the
+# page's own <script id="saved-state"> block (see srv.js), so a test can begin from an arbitrary
+# saved calendar WITHOUT a debug hook in the app and without IndexedDB -- which is what makes it
+# usable in headless Chrome, where the file-handle restore path stalls.
+STATE_Q=""
+[[ -n "${HARNESS_STATE:-}" ]] && STATE_Q="&state=${HARNESS_STATE}"
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 
 [[ -x "$CHROME" ]] || { echo "no Chrome at: $CHROME (set CHROME=...)"; exit 1; }
@@ -46,7 +52,7 @@ rm -rf "/tmp/tc-$T"
 "$CHROME" --headless=new --disable-gpu --no-sandbox \
   --user-data-dir="/tmp/tc-$T" --window-size=1600,1200 \
   --virtual-time-budget=$((SECS * 1000)) \
-  --dump-dom "http://localhost:$PORT$PAGE?test=$T" > "$HERE/$T.html" 2>/dev/null &
+  --dump-dom "http://localhost:$PORT$PAGE?test=$T$STATE_Q" > "$HERE/$T.html" 2>/dev/null &
 CPID=$!
 for i in $(seq 1 $SECS); do sleep 1; kill -0 $CPID 2>/dev/null || break; done
 kill -9 $CPID 2>/dev/null
