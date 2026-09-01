@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — drop the current-line readout from the header toolbar
+
+The small text at the end of the toolbar naming the line you were editing ("title", "stat 1", or
+"click a header line") is gone at the owner's request. The dimming already communicates "pick a
+line first" — the controls sit at 45% and inert until one is clicked — and every control keeps its
+own `title`, so the words were carrying nothing the state wasn't already carrying. The bar is
+228px instead of 361px.
+
+`hdrFmtLabel()` and the `.hf-target` rules were removed with it rather than left to rot; verified
+zero references remain in the source or the build. The dimming behaviour is unchanged: 0.45 before
+a line is picked, 1 after, and formatting still applies.
+
 ### Unreleased — the header toolbar: highlight hugs its text, and the bar is one Mantine row
 
 - **Highlight now covers the text, not the whole column.** `.hdr-line` is a block filling its

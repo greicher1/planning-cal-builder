@@ -4700,10 +4700,6 @@ export function initLegacyApp() {
     return null;
   }
   function hdrFmtStore(mv){ return mv ? mvHeaderFormat : headerFormat; }
-  function hdrFmtLabel(id){
-    return ({ left:'date', l2:'left 2', c1:'title', c2:'subtitle', c3:'subtitle 3', c4:'subtitle 4',
-              r1:'stat 1', r2:'stat 2', r3:'stat 3', title:'title', today:'date' })[id] || id;
-  }
   // Reflect the target line's current formatting back into the controls, so the toolbar shows
   // the state of what you are about to change rather than stale values from the last line.
   function syncHdrFmtToolbar(){
@@ -4731,7 +4727,6 @@ export function initLegacyApp() {
         b.classList.toggle('is-on', on);
         b.setAttribute('aria-checked', on ? 'true' : 'false');
       });
-      q('.hf-target').textContent = active ? hdrFmtLabel(hdrFmtTarget.id) : 'click a header line';
     });
   }
   // Apply to state, then paint the live element directly. Deliberately NOT a full update():
@@ -4880,7 +4875,6 @@ export function initLegacyApp() {
       </label>
       ${alignMenuHtml()}
       <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>
-      <span class="hf-target" aria-live="polite">click a header line</span>
     </div>`;
   }
 

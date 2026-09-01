@@ -1382,11 +1382,11 @@
     position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; border:none; padding:0;
   }
   .hf-swatch-hl .hf-swatch-ink{ background:#ffff00; padding:0 2px; border-radius:2px; }
-  /* Which line the toolbar will act on. Without this the controls look live but silently do
-     nothing until a line has been clicked. */
-  .hf-target{ font-size:10px; color:var(--mantine-color-gray-6); margin-left:2px; white-space:nowrap; }
+  /* The controls stay dimmed and inert until a header line has been clicked. The little text
+     readout naming that line was removed 31 Aug 2026 at the owner's request -- the dimming is
+     what actually communicates "pick a line first", and each control keeps its own title
+     attribute, so the words were carrying no weight the state was not already carrying. */
   .hdr-fmt:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
-  .hdr-fmt:not(.has-target) .hf-target{ font-style:italic; }
 
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
      min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift
