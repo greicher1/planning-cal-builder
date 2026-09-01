@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — name a per-phase hiatus from the sidebar too
+
+The all-phase hiatus naming built earlier only covered `#hiatus-list` rows — a per-phase hiatus
+(the toggle inside each phase card, e.g. "Writer's Rm Hiatus") had no sidebar Name field, so it
+could still only be renamed by clicking the band. Added one, reusing the same mechanism end to
+end: `phaseHiatusBlockHtml()` gets a `phiatus-name-<key>` field (a singleton id'd input, so it
+round-trips through `fields.byId` for free — no save-format change needed, unlike the all-phase
+case), and `syncHiatusNamesFromSidebar()` now also walks every phase whose own hiatus toggle is
+on, writing into the exact same `hiatusTexts`/`hiatusNameSyncedKeys` stores under the
+`"week|phaseKey"` key shape a phase-hiatus band's click-to-rename and drag override already use —
+so the shift re-keying and save/restore work that already existed for that key shape covered this
+for free too.
+
+Verified in the browser: naming a 2-week per-phase hiatus labels the un-overridden week while
+leaving a previously hand-typed override on the other week untouched; clearing the name reverts
+it; undo/redo round-trips it correctly; a shift carries both the hand-edit and the sidebar name to
+their new weeks, and renaming again *after* the shift still updates the band (the exact case the
+ownership-tracking design has to get right, or a rename would silently stop working post-shift).
+
 ### Unreleased — a per-phase hiatus band sizes and drags like any other phase cell
 
 Reported as a layout bug: a phase's own hiatus band (e.g. "Writer's Rm Hiatus") was stuck at

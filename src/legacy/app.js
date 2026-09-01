@@ -1839,6 +1839,7 @@ export function initLegacyApp() {
           <span class="phiatus-label" id="phiatus-label-${key}">${escHtml(label)} Hiatus</span>
         </label>
         <div class="phase-hiatus-fields" id="phiatus-fields-${key}" style="display:none;">
+          <label>Name <input type="text" class="phiatus-name" id="phiatus-name-${key}" placeholder="${escHtml(label)} Hiatus"></label>
           <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
           <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
           <div class="snap-note"></div>
@@ -1922,10 +1923,14 @@ export function initLegacyApp() {
         update();
       });
     });
-    // Keep the hiatus toggle's label in step with the phase's typed name.
+    // Keep the hiatus toggle's label -- and the hiatus Name field's placeholder, which defaults
+    // to the same text -- in step with the phase's typed name.
     row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
+      const defLabel = ((e.target.value.trim() || 'Phase')) + ' Hiatus';
       const lbl = document.getElementById('phiatus-label-'+key);
-      if(lbl) lbl.textContent = ((e.target.value.trim() || 'Phase')) + ' Hiatus';
+      if(lbl) lbl.textContent = defLabel;
+      const nameField = document.getElementById('phiatus-name-'+key);
+      if(nameField) nameField.placeholder = defLabel;
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
     wrap.appendChild(row);
@@ -1992,23 +1997,26 @@ export function initLegacyApp() {
     });
   }
 
-  // Drives each all-phase hiatus band's default label from its sidebar Name field, without ever
-  // touching a frozen render function: it writes straight into hiatusTexts, which
-  // renderSpreadsheetView / renderMonthView / exportExcel / buildWaterfallPdf already read via
-  // hiatusTextFor(). hiatusNameSyncedKeys remembers what we last wrote so a hand-typed override
-  // (made by clicking the band itself) is never clobbered -- a key is only ours to update while
-  // hiatusTexts still holds exactly what we put there.
+  // Drives each hiatus band's default label -- all-phase AND per-phase -- from its sidebar Name
+  // field, without ever touching a frozen render function: it writes straight into hiatusTexts,
+  // which renderSpreadsheetView / renderMonthView / exportExcel / buildWaterfallPdf already read
+  // via hiatusTextFor(). hiatusNameSyncedKeys remembers what we last wrote so a hand-typed
+  // override (made by clicking the band itself) is never clobbered -- a key is only ours to
+  // update while hiatusTexts still holds exactly what we put there. All-phase keys are a bare
+  // week ISO; per-phase keys are "week|phaseKey" -- the same shape a phase-hiatus band's own
+  // click-to-rename and cellSpans drag override already use, so one ownership map covers both
+  // kinds with no format collision.
   function syncHiatusNamesFromSidebar(){
     const stillOwned = new Set();
-    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
-      const name = ((row.querySelector('.hiatus-name')||{}).value || '').trim();
-      const startStr = (row.querySelector('.hiatus-start')||{}).value;
-      const weeks = parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10);
+    // Shared by both kinds below: claim every week `name`'s row covers, but only where nothing
+    // has hand-edited the band since we last claimed it.
+    const applyRange = (name, startStr, weeksStr, makeKey) => {
+      const weeks = parseInt(weeksStr, 10);
       const startDate = startStr && parseDateUTC(startStr);
       if(!startDate || !(weeks > 0)) return;
       const monday = mondayOf(startDate);
       for(let i=0;i<weeks;i++){
-        const key = isoOf(addDays(monday, i*7));
+        const key = makeKey(isoOf(addDays(monday, i*7)));
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
@@ -2020,9 +2028,27 @@ export function initLegacyApp() {
         }
         stillOwned.add(key);
       }
+    };
+    document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+      const name = ((row.querySelector('.hiatus-name')||{}).value || '').trim();
+      const startStr = (row.querySelector('.hiatus-start')||{}).value;
+      const weeksStr = (row.querySelector('.hiatus-weeks')||{}).value;
+      applyRange(name, startStr, weeksStr, wk => wk);
     });
-    // A key we owned before that no row claims this pass (row deleted, or shifted off these
-    // dates) reverts to the default instead of being left stranded with a stale name.
+    // Per-phase hiatus: only while its own toggle is on, matching readState()'s own gate --
+    // an unchecked phase's start/weeks fields still hold values but describe nothing active.
+    getAllPhaseDefs().forEach(p=>{
+      const en = document.getElementById('phiatus-en-'+p.key);
+      if(!en || !en.checked) return;
+      const nameEl = document.getElementById('phiatus-name-'+p.key);
+      const startEl = document.getElementById('phiatus-start-'+p.key);
+      const weeksEl = document.getElementById('phiatus-weeks-'+p.key);
+      const name = nameEl ? nameEl.value.trim() : '';
+      applyRange(name, startEl && startEl.value, weeksEl && weeksEl.value, wk => wk + '|' + p.key);
+    });
+    // A key we owned before that no row claims this pass (row deleted, toggle turned off, or
+    // shifted off these dates) reverts to the default instead of being left stranded with a
+    // stale name.
     Object.keys(hiatusNameSyncedKeys).forEach(key=>{
       if(stillOwned.has(key)) return;
       if(hiatusTexts[key] === hiatusNameSyncedKeys[key]) delete hiatusTexts[key];
@@ -5243,7 +5269,7 @@ export function initLegacyApp() {
           const f = document.getElementById('phiatus-fields-'+key);
           if(f) f.style.display = t.checked ? 'flex' : 'none';
           update();
-        } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks')){
+        } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks') || t.classList.contains('phiatus-name')){
           update();
         }
       });
