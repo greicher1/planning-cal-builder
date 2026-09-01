@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — swap two phases' columns however little they overlap
+
+Two restrictions removed, both on the owner's instruction, both of which were blocking the feature's
+central purpose rather than protecting anything.
+
+**1. "At least one side must be a phase's whole run."** This was Phase 1's scope limit (D7), and it
+sounded narrower than it was: it refuses the *ordinary* shape of two phases that merely overlap. Two
+phases each running twelve weeks, sharing six in the middle, each sticking out beyond the other —
+there is no whole run to select, so there was no knob at all and the chip said "select a phase's
+whole run", which is advice you cannot act on. The original request's screenshot passed only because
+one phase's entire life happened to sit inside its overlap.
+
+Lifting it does **not** enable arbitrary partial runs (still a separate decision). It cannot: the run
+walk always yields the *maximal* contiguous stretch where the two phases sit side by side, and it is
+never clipped to the selection — so a hand-picked sub-slice is still unreachable and a phase's column
+can still never zig-zag mid-run.
+
+**2. "Don't re-flow more weeks than you move."** A count-based collateral refusal, and it was the
+wrong rule for four reasons:
+
+- **It was never the owner's ruling.** D2 decided a *magnitude* cap — an unswapped week may shift by
+  at most one column. The count rule was added on top by the gate's design and was strictly stricter
+  than the decision of record.
+- **A count is not a measure of harm.** Every one of those weeks moves by exactly one column, which is
+  the thing D2 allowed. Twelve of them is not twelve times worse than one.
+- **What it called collateral is usually the layout correcting itself.** A phase held to one narrow
+  column in weeks where it runs *alone* — because `phaseRunBounds` spanned its column-run across an
+  overlap — fills the row once that run splits. That is the grid's own rule, not damage.
+- **It scaled backwards.** The longer the phases, the more likely it fired, and long phases are
+  exactly where column order matters most.
+
+What still protects the calendar is untouched: the block's **column count** (G2), any change to a
+**column width** (G3), and a reflow of **two or more** columns (G5, D2's actual ruling). The
+disclosure is untouched too — amber rects before you drop, a chip with the count afterwards.
+
+Measured on the case that was refused twice: 6 shared weeks move, 12 tail weeks widen by one column
+each, chip reads *"Swapped Pre Prep ↔ Writer's Rm. 12 other weeks changed width to fit."*
+
+Verified: new `colswapmid` gate leg, driven by a fixture that is deliberately the case a count rule
+rejects — neither phase's run confined to the overlap, both tails held narrow beforehand, one gesture
+moving all six shared weeks, both six-week tails keeping their slot and widening by exactly one
+column, and the count reported. It fails loudly if either restriction is reinstated.
+
 ### Unreleased — swap two phases' columns (Feature 2, Phase 1)
 
 Steps **F2-c and F2-d** of [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md),

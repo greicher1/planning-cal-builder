@@ -1821,6 +1821,22 @@ ORDER may be user-overridable.** This is **not** the sidebar phase-reorder debt.
 measurement offered with this request is in §3.2. Feature 1 does **not** need this.
 
 **D2 — COLLATERAL: unswapped weeks can change layout. ✅ DECIDED 1 Sep 2026 — capped tolerance.**
+
+> ⚠️ **AMENDED later the same day, and the amendment matters.** The gate as built carried a SECOND
+> collateral rule the owner never ruled on: `collateral-many`, refusing when the disturbed weeks
+> outnumbered the moved ones. It was **removed** on the owner's instruction. A count is not a measure
+> of harm when every change is magnitude 1; what it called collateral is usually the layout
+> *correcting itself* (a phase held to one narrow column in weeks where it runs alone, because
+> `phaseRunBounds` spanned its column-run across an overlap, fills the row once that run splits); and
+> it scaled backwards — the longer the phases, the more likely it fired. **Only the magnitude cap
+> below is a decision of record.** ⛔ Do not reinstate a count rule as a safety improvement.
+>
+> **D7's whole-run limit was lifted at the same time**, for the same class of reason: it refused the
+> ordinary shape of two phases that merely overlap, where neither side has a whole run inside the
+> shared weeks, and the chip then gave advice the user could not act on. That does **not** enable
+> F2-e — the run walk is still never clipped to the selection, so an arbitrary sub-slice remains
+> unreachable. See `HANDOFF.md`.
+
 A partial swap splits the phase's run, which can reflow weeks you did not touch (measured: 25.3% of
 swaps change some unswapped week; 5.4% by ≥2 columns). It is the honest output of the existing
 "a phase spans into an empty neighbour for its whole run" rule and **cannot** be prevented without a

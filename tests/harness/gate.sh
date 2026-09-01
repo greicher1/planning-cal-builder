@@ -228,6 +228,42 @@ chk(not hv.get('h'), f"move: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- colswapmid: a swap where NEITHER phase's whole run is inside the overlap -------------------
+# The ordinary shape of two phases that merely overlap -- each sticks out beyond the other -- which
+# Phase 1 (D7) refused outright, and which a count-based collateral rule then refused a second time.
+# Both restrictions were lifted 1 Sep 2026 on the owner's instruction. The fixture is deliberately
+# the case a count rule rejects: 6 weeks move and 12 weeks widen, every one by exactly ONE column,
+# which is what D2 sanctioned. If this leg starts failing with "it would re-flow", someone has
+# reinstated the count rule; if it fails with "whole run", someone has re-enabled SWAP_WHOLE_RUN_ONLY.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-midoverlap "$HERE/run.sh" colswapmid 45 >/dev/null 2>&1
+python3 - "$HERE/colswapmid.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  colswapmid produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  colswapmid threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('neitherSideWhole'),
+    f"mid: neither phase's run is confined to the overlap ({a.get('wrWeeks')} and {a.get('ppWeeks')} weeks, 6 shared)")
+chk(a.get('naturalOrder') and a.get('tailsNarrowBefore'),
+    "mid: pre-state is natural order, and both tails are held to one column")
+chk(a.get('labelNamesOverlap'), f"mid: the run is the shared stretch -- {a.get('knobLabel')}")
+chk(a.get('wholeOverlapMoved'), f"mid: one gesture moved all 6 shared weeks ({a.get('movedWeeks')}/6)")
+chk(a.get('wrTailWidened') and a.get('ppTailWidened'),
+    "mid: both 6-week tails kept their slot and widened by exactly one column")
+chk(a.get('chipReportsTwelve'),
+    f"mid: 12 collateral weeks allowed AND reported -- {str(a.get('chipText'))[:80]}")
+chk(not a.get('errors'), f"mid: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"mid: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

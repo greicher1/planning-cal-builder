@@ -2439,7 +2439,7 @@ export function initLegacyApp() {
     if(before.slots !== after.slots) return 'slot-order';                  // G1
     if(before.mc !== after.mc || before.simSlot !== after.simSlot) return 'geometry';   // G2
     if(before.cols !== after.cols) return 'column-width';                  // G3
-    let changedUnswapped = 0, worstDelta = 0;
+    let worstDelta = 0;
     for(let i=0;i<after.weeks.length;i++){
       const iso = blockIsos[i];
       const wasSwapped = swappedIsos.has(iso);
@@ -2448,13 +2448,28 @@ export function initLegacyApp() {
       if(bw === aw) continue;
       // S1 sanity: the same cells must still be present, just possibly re-sized.
       if(weekContent(bw) !== weekContent(aw)) return 'content';
-      changedUnswapped++;
       worstDelta = Math.max(worstDelta, Math.abs(maxColspan(aw) - maxColspan(bw)));
     }
-    // G5, per the owner's magnitude-1 ruling (plan D2). A shift of one column in a week the user did
-    // not select is allowed and reported; two or more refuses the swap.
+    // G5, per the owner's magnitude-1 ruling (plan D2). A shift of ONE column in a week the user did
+    // not select is allowed, previewed in amber and reported in a chip; two or more refuses.
+    //
+    // ⛔ MAGNITUDE ONLY. There used to be a second, COUNT-based rule here -- refuse when the disturbed
+    // weeks outnumbered the moved ones -- and it was removed 1 Sep 2026 on the owner's instruction,
+    // for reasons worth keeping so nobody reinstates it as a safety improvement:
+    //   * it was never the owner's ruling. D2 decided a magnitude cap; the count rule was added on
+    //     top of it by the plan's gate design and was strictly stricter than the decision of record.
+    //   * a count is not a measure of harm. Each of those weeks moves by exactly one column, which is
+    //     the thing D2 allowed; twelve of them is not twelve times worse than one.
+    //   * what it was calling collateral is usually the layout CORRECTING itself. A phase held to one
+    //     narrow column in weeks where it runs alone -- because frozen phaseRunBounds spanned its run
+    //     across an overlap -- fills the row once that run splits. That is the grid's own rule, not
+    //     damage the swap did.
+    //   * it scaled backwards: the longer the phases, the more likely it fired, and long phases are
+    //     exactly where getting the column order right matters most. It blocked the feature's central
+    //     purpose -- swapping two phases' positions regardless of how much they overlap.
+    // What still protects the calendar is unchanged: G2 the block's column count, G3 any change to a
+    // column width, and this line -- a reflow of two or more columns.
     if(worstDelta > 1) return 'collateral-wide';
-    if(changedUnswapped > swappedIsos.size && changedUnswapped > 0) return 'collateral-many';
     return null;
   }
 
@@ -2464,8 +2479,7 @@ export function initLegacyApp() {
     'column-width':    'it would change every column width in the year',
     'column-exchange': 'the two phases would not actually trade places',
     'content':         'a cell would be lost',
-    'collateral-wide': 'it would re-flow weeks you did not select',
-    'collateral-many': 'it would re-flow more weeks than it moves',
+    'collateral-wide': 'it would re-flow weeks you did not select by more than one column',
     'simpost':         'Simultaneous Post is anchored to Production’s column',
   };
 
@@ -2642,10 +2656,28 @@ export function initLegacyApp() {
   //   * a block is one contiguous run of weeks in ONE year and a year appears in exactly one block,
   //     so data-week's year IS the block identity. No colgroup walk, no slot map, no straddling.
 
-  // Phase 1 (owner ruling D7) restricts a move to a run where at least ONE side is a phase's whole
-  // run inside the block -- exactly the owner's screenshot. Arbitrary partial runs are a separate,
-  // later decision (plan section 6.8) and this constant is the single place that enforces it.
-  const SWAP_WHOLE_RUN_ONLY = true;
+  // ⚠️ LIFTED 1 Sep 2026 (owner), and the reason is worth reading before anyone turns it back on.
+  //
+  // Phase 1 (D7) required at least ONE side of a swap to be a phase's WHOLE run inside the block.
+  // That sounds narrow and is: it refuses the ordinary shape of two phases that merely OVERLAP --
+  // Writers' Rm running 12 weeks from 1/5 beside Pre Prep running 12 from 2/16 share six weeks, each
+  // sticks out beyond the other, and neither side's whole run is inside the six. Measured on the
+  // shipped build: no knob at all, and the chip read "select a phase's whole run". The owner's own
+  // screenshot passed only because Post's entire life happened to sit inside its overlap.
+  //
+  // ⛔ Lifting this does NOT enable arbitrary partial runs (F2-e proper / plan section 6.8). It
+  // cannot: swapRunFor's walk always yields the MAXIMAL contiguous stretch where the two phases sit
+  // side by side, and it is never clipped to the user's selection -- so a hand-picked sub-slice of an
+  // overlap is still unreachable, and a phase's column can still never zig-zag mid-run. That half
+  // needs a real interaction design (the selection would have to DEFINE the range rather than seed
+  // it) and it is still a separate decision.
+  //
+  // What protects a now-eligible swap is what always protected one: the F2-b gate. G2 refuses a
+  // change to the block's column count, G3 any change to a column width, G5 collateral beyond one
+  // column. None of those were whole-run assumptions. The observable effect of this switch is
+  // therefore MORE swaps reaching the gate and being refused with a named reason -- not more swaps
+  // getting through unmeasured.
+  const SWAP_WHOLE_RUN_ONLY = false;
 
   // The phase segments of ONE week of ONE block, left to right, in block-local SLOT space.
   function swapRowSegs(local, year){
