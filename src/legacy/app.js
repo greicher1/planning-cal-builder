@@ -4625,8 +4625,14 @@ export function initLegacyApp() {
     if(!f) return '';
     const out = [];
     if(f.size)      out.push('font-size:' + f.size + 'px');
-    if(f.bold)      out.push('font-weight:700');
-    if(f.italic)    out.push('font-style:italic');
+    // Tri-state on purpose: undefined = inherit the stylesheet, true = force on, false = force
+    // OFF. The title line is font-weight:700 by DEFAULT (.hdr-line.hdr-title), so without an
+    // explicit 400 the Bold button could never un-bold it -- it looked broken because nothing
+    // visibly changed either way (owner, 31 Aug 2026).
+    if(f.bold === true)        out.push('font-weight:700');
+    else if(f.bold === false)  out.push('font-weight:400');
+    if(f.italic === true)      out.push('font-style:italic');
+    else if(f.italic === false) out.push('font-style:normal');
     if(f.color)     out.push('color:' + f.color);
     if(f.highlight) out.push('background-color:' + f.highlight);
     if(f.align)     out.push('text-align:' + f.align);
@@ -4698,9 +4704,10 @@ export function initLegacyApp() {
     if(!hdrFmtTarget) return;
     const store = hdrFmtStore(hdrFmtTarget.mv);
     const cur = Object.assign({}, store[hdrFmtTarget.id] || {}, patch);
-    // Drop falsy keys so an untouched line serialises as {} and a cleared one does not keep
-    // `bold:false` noise in the save file.
-    Object.keys(cur).forEach(k=>{ if(cur[k] === '' || cur[k] === false || cur[k] == null) delete cur[k]; });
+    // Drop only EMPTY keys, never `false`. `bold:false` is meaningful -- it means "not bold even
+    // though the stylesheet says otherwise", which is the only way to un-bold the title line.
+    // Deleting it was the bug that made the Bold button look dead on the title.
+    Object.keys(cur).forEach(k=>{ if(cur[k] === '' || cur[k] == null) delete cur[k]; });
     if(Object.keys(cur).length) store[hdrFmtTarget.id] = cur; else delete store[hdrFmtTarget.id];
     const sel = hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`;
     const el = document.querySelector('#table-wrap ' + sel);
@@ -4716,18 +4723,35 @@ export function initLegacyApp() {
       syncHdrFmtToolbar();
     }
   });
-  // mousedown, not click: preventDefault here stops the contenteditable losing focus at all on
-  // browsers that would blur it before the click lands, so the caret stays where the user left it.
+  // Keep the edited line focused when a toolbar BUTTON is pressed: preventDefault on mousedown
+  // stops the contenteditable being blurred before the click lands, so the caret stays put.
+  //
+  // ⛔ BUTTONS ONLY. Preventing mousedown's default over a <select> SUPPRESSES THE NATIVE POPUP
+  // in Chromium -- the exact behaviour SelectPop relies on deliberately (HANDOFF row 30) -- so a
+  // blanket preventDefault across the toolbar meant the size dropdown could never open. It was
+  // scoped by excluding the colour inputs, which quietly left the select broken. Naming the
+  // buttons is the correct test: anything that is not a button here is a native control that
+  // needs its own default behaviour.
   document.getElementById('table-wrap').addEventListener('mousedown', e=>{
-    if(e.target.closest && e.target.closest('.hdr-fmt') && !e.target.closest('input[type="color"]')) e.preventDefault();
+    if(e.target.closest && e.target.closest('.hdr-fmt .hf-btn')) e.preventDefault();
   });
   document.getElementById('table-wrap').addEventListener('click', e=>{
     const bar = e.target.closest && e.target.closest('.hdr-fmt');
     if(!bar) return;
     const store = hdrFmtTarget ? hdrFmtStore(hdrFmtTarget.mv) : null;
     const cur = (store && hdrFmtTarget) ? (store[hdrFmtTarget.id] || {}) : {};
-    if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !cur.bold });
-    if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !cur.italic });
+    // Toggle from what the line ACTUALLY looks like right now, not from the stored value: the
+    // title is bold by default, so an unset `cur.bold` there means "currently bold" and the first
+    // click has to turn it OFF. Reading the live computed style is the only way to know which
+    // lines the stylesheet has already bolded.
+    const liveEl = hdrFmtTarget ? document.querySelector('#table-wrap ' +
+      (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`)) : null;
+    const liveBold = cur.bold !== undefined ? cur.bold
+      : !!(liveEl && parseInt(getComputedStyle(liveEl).fontWeight, 10) >= 600);
+    const liveItalic = cur.italic !== undefined ? cur.italic
+      : !!(liveEl && getComputedStyle(liveEl).fontStyle === 'italic');
+    if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !liveBold });
+    if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !liveItalic });
     if(e.target.closest('.hf-clear')) {
       if(hdrFmtTarget) delete hdrFmtStore(hdrFmtTarget.mv)[hdrFmtTarget.id];
       const sel = hdrFmtTarget ? (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`) : null;

@@ -1294,8 +1294,14 @@
   /* ---------- Header formatting toolbar ---------- */
   /* Only ever rendered in manual mode -- in auto mode the lines mirror the inputs and cannot be
      edited, so the controls would offer something impossible. */
-  .hdr-fmt{ display:flex; align-items:center; gap:3px; flex:1; min-width:0; flex-wrap:wrap; }
+  /* flex:0 1 auto and NOWRAP. It was flex:1 + wrap, which let the size <select> -- the one
+     control with no intrinsic width -- expand to the whole bar and push every other control onto
+     a second line above the grid (owner, 31 Aug 2026). Every child is flex:none with a real
+     width, so the row is exactly as wide as its contents and space-between keeps the mode button
+     hard right, on the SAME line. */
+  .hdr-fmt{ display:flex; align-items:center; gap:3px; flex:0 1 auto; min-width:0; flex-wrap:nowrap; }
   .hf-ctl{
+    flex:none;                 /* nothing in this toolbar may grow -- see .hdr-fmt above */
     font-family:inherit; font-size:11px; line-height:1;
     border:1px solid var(--mantine-color-gray-3); background:var(--mantine-color-white);
     color:var(--mantine-color-gray-7); border-radius:var(--mantine-radius-sm);
@@ -1309,7 +1315,10 @@
   .hf-btn.is-on{
     background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:700;
   }
-  .hf-size{ height:22px; padding:0 4px; }
+  /* An explicit width: a <select> has no intrinsic width to fall back on, and without one it
+     was rendering 260px wide -- the full width of the bar. Wide enough for "Size" and any
+     two-digit value. */
+  .hf-size{ height:22px; padding:0 4px; width:64px; }
   /* The two colour wells: a letter over a bar of the chosen colour, with the native picker
      stretched invisibly across it -- an <input type=color> renders as a chunky OS control that
      would tower over a 22px toolbar. */

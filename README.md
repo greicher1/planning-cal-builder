@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — three fixes to the header formatting toolbar
+
+Reported straight after it shipped, all three real:
+
+- **The size dropdown could never open.** A `mousedown` `preventDefault` covering the whole
+  toolbar — there to stop the edited line losing its caret when a button is pressed — also
+  suppresses the native `<select>` popup in Chromium. That is the same behaviour `SelectPop`
+  exploits deliberately (`HANDOFF.md` row 30), used here by accident. It is now scoped to
+  `.hf-btn` only: buttons keep the caret, native controls keep their own behaviour. Verified:
+  mousedown is `defaultPrevented` on a button and **not** on the select.
+- **The size selector sat on its own full-width line above everything else.** A `<select>` has no
+  intrinsic width, and the bar was `flex:1` with wrapping, so it expanded to the whole strip
+  (measured: 260px) and pushed every other control onto a second row. Now `flex:none` on every
+  control, an explicit 64px on the select, and no wrapping. Measured at 1600px: the strip is
+  **26px tall instead of 52**, with the toolbar leftmost and the mode button hard right, on one line.
+- **Bold did nothing on the main title.** The title is `font-weight:700` by default, and the code
+  dropped falsy values — so `bold:false` was thrown away and `bold:true` changed nothing visible.
+  `bold`/`italic` are now tri-state (unset = inherit, `true` = force on, `false` = force off), and
+  the toggle reads the line's **computed** weight so it knows a line the stylesheet already
+  bolded. Verified: 700 → 400 → 700 with the button state tracking.
+
+Gate re-run after the fixes: waterfall PDF and Excel parts still byte-identical to baseline.
+
 ### Unreleased — header text formatting, and two more header lines
 
 A formatting toolbar at the top-left of the header strip — opposite the mode button — with **text
