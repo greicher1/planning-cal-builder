@@ -776,6 +776,20 @@ export function initLegacyApp() {
              top: r.top, bottom: r.bottom };
   }
 
+  // The cell's FULL rendered box, for DRAWING. Deliberately different from ownSlotBox above, and the
+  // distinction is the whole point:
+  //   - MEMBERSHIP (what a sweep selects) must use the cell's own single column, or dragging down one
+  //     column also grabs every full-width cell that merely straddles it.
+  //   - DRAWING must use the whole cell, or a cell spanning two columns gets an outline round only
+  //     its first one, which reads as the highlight being broken rather than as precision.
+  // Using one box for both put a one-column outline on a two-column cell (owner, 1 Sep 2026).
+  function tdBox(td, g){
+    if(!g) return null;
+    const r = td.getBoundingClientRect();
+    return { wrapLeft: r.left - g.wrapRect.left, wrapTop: r.top - g.wrapRect.top,
+             wrapWidth: Math.max(1, r.width), wrapHeight: Math.max(1, r.height) };
+  }
+
   // The overlay lives as a SIBLING of .grid-resize-layer inside .sheet-grid-wrap: that inherits the
   // grid's coordinate space, scrolls with the pane in both axes, is clipped by it so it can never
   // paint over the sidebar, is absent from both print paths, and needs no buildSavedHtml strip
@@ -830,7 +844,10 @@ export function initLegacyApp() {
     const allFilled = grantable.length > 0 && grantable.every(r => r.curL === r.maxL && r.curR === r.maxR);
     let expandable = 0;
     rows.forEach(r=>{
-      const b = ownSlotBox(r.td, g);
+      // tdBox, not ownSlotBox: draw round the WHOLE cell. It follows the cell automatically when a
+      // batch widens it, because the apply ends in render() and the observer repaints from the fresh
+      // boxes -- so the outline grows with the cell rather than needing its own animation.
+      const b = tdBox(r.td, g);
       if(!b) return;
       // "Can this cell actually do something" -- post-clamp, so a cell that lost its only free slot
       // to a neighbour in the same week is drawn dashed rather than solid, matching the outcome.
@@ -871,7 +888,7 @@ export function initLegacyApp() {
       // extending .sheet-scroll's scroll extent (a scrollbar that appears and vanishes with the
       // selection), so an unclamped chip would be clipped away entirely instead.
       let foot = null;
-      rows.forEach(r=>{ const b = ownSlotBox(r.td, g); if(!b) return;
+      rows.forEach(r=>{ const b = tdBox(r.td, g); if(!b) return;
         if(!foot || b.wrapTop + b.wrapHeight > foot.bot){ foot = { bot: b.wrapTop + b.wrapHeight, left: b.wrapLeft, top: b.wrapTop }; } });
       if(foot){
         const cw = chip.offsetWidth, ch = chip.offsetHeight;

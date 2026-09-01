@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the selection outline wraps the whole cell, and grows with it
+
+Reported: the purple highlight covered only part of the row. Two separate things were behind that,
+and only one of them was a bug.
+
+**The bug.** The outline was drawn from the cell's OWN single column rather than its rendered box, so
+a cell spanning two columns got an outline round only the first one — and it stayed that size when a
+batch widened the cell. `ownSlotBox` exists for a good reason and keeps its job: deciding *which*
+cells a sweep selects has to be per-column, or dragging down one column also grabs every full-width
+cell that merely straddles it. But *drawing* needed the whole cell. Now a separate `tdBox` does the
+drawing, and because the apply ends in a render the outline follows the cell for free — measured
+86px → 172px as a cell expands to two columns, where it previously stayed at 86px.
+
+**Not a bug.** The strip still left uncovered on the right is the **Notes column** (measured: 46px of
+a 191px row, which is exactly the gap in the report). The owner's ruling is to leave it outside the
+highlight: the box then means precisely what the operation does — expanding moves a phase cell across
+empty *phase* columns and can never occupy the Notes column, so outlining it would promise something
+the feature does not do. It also keeps the boxes symmetric in multi-phase weeks and lets them scale
+visibly, where spanning to Notes would make every box end at the same right edge regardless of the
+cell's actual width.
+
 ### Unreleased — seven more batch-expand fixes, from the review's verify pass
 
 The adversarial review's second stage tried to *refute* each of its own findings against the real
