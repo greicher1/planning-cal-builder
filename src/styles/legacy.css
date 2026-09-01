@@ -1141,6 +1141,12 @@
     /* Month paging arrows are meaningless on paper. */
     #print-root .mv-arrow{ display:none !important; }
     #print-root .mv-tools{ display:none !important; }
+    /* The waterfall's header formatting toolbar is the same category of interactive chrome as
+       .mv-tools above -- it has no reason to appear on paper -- but had no matching rule, so the
+       print-fallback waterfall PDF (WF_PDF_MODE:'print') would have printed Bold/Italic/Reset
+       buttons across the top of the sheet. Found 1 Sep 2026; the direct PDF writer (the default
+       mode) never touches this DOM at all, so it was never visible there. */
+    #print-root .hdr-tools{ display:none !important; }
     /* The add/expand affordances are interactive chrome: never on paper. */
     #print-root .mv-note-add, #print-root .mv-row-expand{ display:none !important; }
     /* Phase colours are the whole point of this document, so keep them. */
@@ -1292,19 +1298,24 @@
      space-between stranded "Reset Notes & Hiatus" alone in the middle of the bar (owner,
      31 Aug 2026 -- introduced when the toolbar was added). This keeps the toolbar hard left and
      the two engine buttons grouped together hard right, which is where they were before. */
-  .hdr-tools{display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:4px 8px 0; background:#fff; flex-wrap:wrap;}
+  /* margin-bottom keeps the toolbar from hugging cal-header-bar directly below it -- they used
+     to sit flush with a 0 gap between them. */
+  .hdr-tools{display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:4px 8px 0; margin-bottom:6px; background:#fff; flex-wrap:wrap;}
   .hdr-fmt-spacer{ flex:1; }
   .hdr-fmt{ margin-right:auto; }
 
   /* ---------- The two engine-rendered buttons in this strip ---------- */
   /* #notes-reset-btn and #hdr-mode-btn are built by renderSpreadsheetView as bare <button>s, so
-     they never picked up the chrome's look and sat next to a Mantine-styled toolbar wearing UA
-     defaults. Styled to match .hf-ctl exactly -- same height, radius, border and hover -- so the
-     strip reads as one row of controls (owner, 31 Aug 2026). */
+     they never picked up the chrome's look. Metrics copied from a REAL Mantine
+     <Button variant="default" size="xs"> (Header.jsx's New/Save/Reset All), measured live rather
+     than guessed -- height 30, padding 0 14, border-color gray-4, radius "default" (7px),
+     font-weight 500, ink black -- so these read as the same control, not an approximation of one
+     (owner, 1 Sep 2026; supersedes the 31 Aug 2026 pass that matched the smaller .hf-ctl toolbar
+     buttons instead). */
   #notes-reset-btn, #hdr-mode-btn, #mv-hdr-mode-btn{
-    flex:none; font-family:inherit; font-size:11px; line-height:1; height:22px; padding:0 10px;
-    border:1px solid var(--mantine-color-gray-3); background:var(--mantine-color-white);
-    color:var(--mantine-color-gray-7); border-radius:var(--mantine-radius-sm); cursor:pointer;
+    flex:none; font-family:inherit; font-size:11px; font-weight:500; line-height:1; height:30px; padding:0 14px;
+    border:1px solid var(--mantine-color-gray-4); background:var(--mantine-color-white);
+    color:var(--mantine-color-black); border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:background-color 100ms ease, border-color 100ms ease, color 100ms ease;
   }
   #notes-reset-btn:hover, #hdr-mode-btn:hover, #mv-hdr-mode-btn:hover{
@@ -1395,22 +1406,19 @@
      PRE-EXISTING lines can also be empty (c3 with no writers-room date, r3 with no episode
      count) and their current spacing is deliberate -- this must not change it. */
   .hdr-line.hdr-slot.hdr-empty:not(.hdr-editable){ display:none; }
-  #hdr-mode-btn, #notes-reset-btn{
-    font-size:10px; padding:3px 8px;
-    /* line-height is pinned, not decorative. Chrome's UA sheet styles <button> with the
-       `font` SHORTHAND, which sets line-height to `normal`; this rule overrides font-size and
-       font-family individually, so `normal` survives. Mantine's baseline carries
-       `input,button,textarea,select{font:inherit}` -- also a shorthand -- which would replace
-       `normal` with the inherited 1.5 and add +3px of button height to a control the FROZEN
-       renderers emit inside #table-wrap. The @layer fence does not help here: it settles
-       priority between declarations of the same property, and without this line the app
-       declares no line-height at all. UI-CONVENTIONS.md §8.6. */
-    line-height:normal;
-    border:1px solid var(--border-strong); border-radius:6px; background:var(--bg);
-    color:var(--text-muted); cursor:pointer; font-family:'Inter',sans-serif;
-  }
-  #hdr-mode-btn:hover, #notes-reset-btn:hover{ color:var(--text); background:#fff; }
-  #hdr-mode-btn.is-manual{ border-color:var(--edit-accent); color:var(--edit-accent); background:var(--edit-accent-bg); }
+  /* An empty .hdr-slot IS present in manual mode (the rule above only hides it in auto), but
+     with no border and no text it was indistinguishable from blank space -- the slot read as
+     gone even though it was there and clickable. A standing dashed outline (not the :hover-only
+     "edit" hint above, which still layers on top of this on hover) makes it findable at rest. */
+  .hdr-line.hdr-slot.hdr-editable.hdr-empty{ outline:1px dashed var(--border-strong); outline-offset:1px; }
+  /* A pre-Mantine leftover for these same two buttons used to survive here, at equal ID
+     specificity and LATER in the file -- so it silently won every property both blocks declared,
+     and the "restyled to match Mantine" block above was dead code for #hdr-mode-btn and
+     #notes-reset-btn (though not #mv-hdr-mode-btn, which the old block never covered -- the
+     month-view button was the only one actually wearing the newer look). Deleted 1 Sep 2026;
+     same shape as the button.primary/.secondary cleanup on 29 Aug 2026. The line-height concern
+     that old block's comment raised is still handled -- the surviving block above sets
+     line-height:1, which overrides the button font-shorthand reset the same way. */
   #union-country.locked, #union-subregion.locked, #union-usregion.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */

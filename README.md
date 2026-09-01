@@ -29,6 +29,67 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a per-phase hiatus band sizes and drags like any other phase cell
+
+Reported as a layout bug: a phase's own hiatus band (e.g. "Writer's Rm Hiatus") was stuck at
+exactly one column wide even in a block where that phase would normally span several, leaving
+dead white space beside it. Root cause in `computePhaseRowLayout()`: a phase-hiatus segment was
+hard-coded to `colspan:1` and carved out of the width-sharing math as a fixed reservation
+(grouped with the Simultaneous Post marker) instead of computing its width the way an active
+phase cell does.
+
+Fixed by having a phase-hiatus segment count as one of the phases sharing the row and walk the
+same `freeForRun`/`spanCap` logic a `phase` segment already does, inside the same (frozen, single
+shared-source) function that feeds the screen, `exportExcel`, and `buildWaterfallPdf` alike — so
+screen and both exports agree by construction, same as always.
+
+Also added the double-click-to-fill and drag-to-resize affordance regular phase cells already
+have. This came free: `installGridResizers`, `beginSpanDrag`, and both `dblclick` handlers are
+already generic over any `.sheet-phase-cell` with the right `data-*` attributes, so giving a
+phase-hiatus `<td>` that class and those attributes (own/lmin/rmax/a/b/nphases) was enough — none
+of those four functions changed. `applyCellSpanOverrides()` needed one guard widened to accept
+`phaseHiatus` segments as claimable, reusing the exact `weekIso|phaseKey` `cellSpans` key shape a
+dragged phase cell already uses (no new store, no save-format change).
+
+One real snag found during implementation: the drag system and the existing click-to-rename
+popover both read a phase-hiatus cell's `data-week`, for two different purposes. The drag system
+needs `data-week` + a separate `data-pkey` (the generic phase-cell contract); the rename system
+needs them pre-combined as `"week|phase"` (the `hiatusTexts`/`hiatusColors`/`hiatusFontSize` key
+shape). Resolved by making `data-week` plain (matching phase cells) and rebuilding the combined
+key at the three places that need it — `openNoteEditor()`, `applyCellFitLive()`, and the
+cell-switch re-locate lookup (which also gained a `data-pkey` match, so two phases hiatused the
+same week can no longer collide on a bare date match).
+
+Verified in the browser: a hiatus band now matches a concurrent regular phase cell's width
+exactly in the same row (both capped or both full-width, depending on what else shares the row);
+double-click fills/un-fills it; a manual drag persists and un-does correctly; the click-to-rename
+popover and per-band font size still work; an ordinary phase cell's own width and drag behavior
+are unchanged. `cd tests/harness && HARNESS_PAGE=/dist/index.html ./gate.sh` passes every
+frozen-surface check — the existing fixture doesn't exercise a multi-column per-phase-hiatus
+scenario, so that leg proves nothing broke elsewhere rather than proving the new behavior itself;
+the browser checks above are what prove that.
+
+### Unreleased — the header toolbar and its two buttons read as real Mantine, not an approximation
+
+- **"Reset Notes & Hiatus" and the header mode toggle now match a real Mantine
+  `<Button variant="default" size="xs">` exactly** (Header.jsx's New/Save/Reset All), measured
+  live rather than guessed: 30px height, 0 14px padding, gray-4 border, "default" radius,
+  font-weight 500, black ink. They previously matched the *smaller* `.hf-ctl` toolbar-control
+  look (22px) instead. Along the way, found and deleted a pre-Mantine leftover CSS block for the
+  same two buttons that was silently winning by source order at equal ID specificity — the same
+  shape as the `button.primary`/`.secondary` cleanup on 29 Aug 2026 — which is also why the
+  month-view mode button looked different from its waterfall twin (the old block never covered
+  it).
+- **The mode toggle now just reads "Header: Manual" / "Header: Auto"** — dropped the
+  "— Switch to Auto/Manual" half, which was redundant with the button's own filled/outline state.
+- **The formatting toolbar no longer hugs the header bar below it** — added a small gap
+  (`margin-bottom`) between `.hdr-tools` and `.cal-header-bar`.
+- **Fixed an incidental finding**: `#print-root .mv-tools` was hidden for print, but the
+  waterfall's equivalent `.hdr-tools` had no matching rule — so the print-fallback waterfall PDF
+  (`WF_PDF_MODE:'print'`, not the default direct writer) would have printed the Bold/Italic/Reset
+  toolbar across the top of the sheet. Added `#print-root .hdr-tools{ display:none !important; }`
+  to match.
+
 ### Unreleased — name an all-phase hiatus from the sidebar
 
 Backlog №6, deferred to the owner because it changes the save format — now built. Each all-phase

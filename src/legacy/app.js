@@ -383,8 +383,12 @@ export function initLegacyApp() {
           // A per-cell size lives on the week key, which both note and hiatus cells already
           // carry; without reading it here the drag refit would overwrite the user's chosen
           // size with the auto one (and its empty-string branch used to wipe it outright).
+          // A per-phase hiatus cell's data-week is the plain date (data-pkey carries the phase,
+          // for the span-drag handles) -- rebuild the combined "week|phase" key hiatusFontSize
+          // is actually keyed by, same as openNoteEditor() does (owner, 1 Sep 2026).
+          const hiKey = td.dataset.pkey ? (td.dataset.week + '|' + td.dataset.pkey) : td.dataset.week;
           const cSize = isNote ? noteFontSizeFor(td.dataset.week)
-                      : isHi   ? hiatusFontSizeFor(td.dataset.week) : undefined;
+                      : isHi   ? hiatusFontSizeFor(hiKey) : undefined;
           const fit = cellTextFit(txt, avail, flows
             ? { basePx: cSize || 11, manual: cSize !== undefined, rowPx }
             : {});
@@ -2807,7 +2811,7 @@ export function initLegacyApp() {
         ${mvManual ? headerFmtToolbarHtml(true) : '<span class="hdr-fmt-spacer"></span>'}
         <button id="mv-hdr-mode-btn" class="${mvManual?'is-manual':''}" type="button"
           title="${mvManual?'Discard manual header edits and return to auto-filled values':'Take over the month header: snapshot the current values into editable lines'}"
-          >${mvManual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
+          >${mvManual?'Header: Manual':'Header: Auto'}</button>
       </div>
       <div class="mv-header${mvManual?' hdr-manual-mode':''}">
         <div class="mv-titlebar">
@@ -3159,7 +3163,17 @@ export function initLegacyApp() {
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
                 + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
-              bodyHtml += `<td${cs} class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${phKey}" data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
+              // Same span-drag hooks a phase cell gets (own/lmin/rmax/a/b/nphases), so a hiatus
+              // band can be double-clicked or dragged across its column exactly like an active
+              // phase (owner, 1 Sep 2026). data-week here is deliberately the PLAIN date to match
+              // that generic contract -- data-pkey carries the phase, and openNoteEditor()/
+              // applyCellFitLive() rebuild the combined "week|phase" key from the two.
+              const spH = cell.own === undefined ? '' :
+                ` data-own="${cell.own}" data-lmin="${segStart - emptyLeft[segIdx]}"`
+                + ` data-rmax="${segStart + cell.colspan - 1 + emptyRight[segIdx]}"`
+                + ` data-a="${segStart}" data-b="${segStart + cell.colspan - 1}"`
+                + ` data-nphases="${cell.nPhases || 1}"`;
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell sheet-phase-cell" title="Click to rename or recolor this hiatus" data-week="${cell.weekIso}" data-pkey="${escAttr(cell.phaseKey)}"${spH} data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${GRID_TEXT_COLOR};${lfCss}">${escHtml(cell.label)}</td>`;
             } else {
@@ -3217,7 +3231,7 @@ export function initLegacyApp() {
     const headerBar = `<div class="hdr-tools">
       ${manual ? headerFmtToolbarHtml(false) : '<span class="hdr-fmt-spacer"></span>'}
       <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
-      <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?'Discard manual header edits and return to auto-filled values':'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
+      <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?'Discard manual header edits and return to auto-filled values':'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?'Header: Manual':'Header: Auto'}</button>
     </div>
     <div class="cal-header-bar${manual?' hdr-manual-mode':''}">
       <div class="cal-header-date">
@@ -3349,11 +3363,16 @@ export function initLegacyApp() {
     if(activeNoteEditor && activeNoteEditor.td === td) return; // already editing this cell
     if(activeNoteEditor){
       // Switching cells: fully commit the open editor (this re-renders), then re-locate
-      // the clicked cell in the fresh DOM by its week key + kind and open it.
+      // the clicked cell in the fresh DOM by its week key + kind and open it. Also matched on
+      // data-pkey when present, or two phases hiatused the same week would collide on a bare
+      // data-week match and the wrong one could reopen (owner, 1 Sep 2026).
       const targetWeek = td.dataset.week;
+      const targetPkey = td.dataset.pkey;
       const targetSel = td.classList.contains('sheet-hiatus-cell') ? 'td.sheet-hiatus-cell' : 'td.sheet-note-cell';
       commitActiveNoteEditor();
-      const fresh = document.querySelector(`${targetSel}[data-week="${targetWeek}"]`);
+      const fresh = document.querySelector(
+        `${targetSel}[data-week="${targetWeek}"]${targetPkey ? `[data-pkey="${targetPkey}"]` : ''}`
+      );
       if(fresh) openNoteEditor(fresh);
       return;
     }
@@ -3361,7 +3380,12 @@ export function initLegacyApp() {
   });
 
   function openNoteEditor(td){
-    const weekKey = td.dataset.week;
+    // A per-phase hiatus cell now also carries data-pkey (for the drag/double-click handles,
+    // which read data-week + data-pkey generically -- same as a phase cell), so data-week on
+    // that cell is the plain date, not the combined "week|phase" key hiatusTexts/hiatusColors/
+    // cellSpans all use. Rebuild the combined key here, the one place weekKey is derived for
+    // every note/hiatus editor interaction (owner, 1 Sep 2026).
+    const weekKey = td.dataset.pkey ? (td.dataset.week + '|' + td.dataset.pkey) : td.dataset.week;
     const isHiatus = td.classList.contains('sheet-hiatus-cell');
 
     let textVal, curColor;
@@ -4311,12 +4335,11 @@ export function initLegacyApp() {
     // phase area evenly -- two take half each, three a third, four a quarter -- because a row
     // where one phase is three columns wide and the phase beside it is one reads as a mistake
     // rather than as a schedule. A phase running alone is unaffected and still fills the area.
-    //
-    // Fixed cells are taken out of the pot first: a per-phase hiatus band and the Simultaneous
-    // Post marker are one column each and never widen, so the phases divide what is left.
-    const fixedSlots = (simSlot >= 0 ? 1 : 0)
-                     + bySlot.filter(c => c && c.type === 'phaseHiatus').length;
-    const nPhases = bySlot.filter(c => c && c.type !== 'phaseHiatus').length;
+    // A per-phase hiatus band counts as one of the phases sharing the row (owner, 1 Sep 2026) --
+    // it stands in for its phase this week, so it divides the width the same way an active phase
+    // does, rather than being a fixed 1-column reservation like the Simultaneous Post marker.
+    const fixedSlots = (simSlot >= 0 ? 1 : 0);
+    const nPhases = bySlot.filter(Boolean).length;
     const spanCap = nPhases > 1 ? Math.max(1, Math.floor((mc - fixedSlots) / nPhases)) : mc;
 
     const out = [];
@@ -4327,22 +4350,25 @@ export function initLegacyApp() {
         k++;
       } else if(bySlot[k]){
         const c = bySlot[k];
+        // Same rightward walk for a phase-hiatus band as for an active phase (owner, 1 Sep
+        // 2026): it may widen into empty neighbor slots on its own column's terms, same spanCap,
+        // same freeForRun check. own/cell are what let applyCellSpanOverrides() -- and, via the
+        // data-* attributes rendered from them, the drag/double-click handles -- treat it exactly
+        // like a phase cell, with no changes to either.
+        let span = 1;
+        while(k+span < mc && span < spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
         if(c.type === 'phaseHiatus'){
-          // A per-phase hiatus band lives ONLY in its own column: never spans sideways, and
-          // (because it occupies the slot) neighbors can't span into it either. Resolve any
-          // per-band rename/recolor the user has applied, keyed by week + phase.
+          // Resolve any per-band rename/recolor the user has applied, keyed by week + phase.
           const hKey = c.weekIso + '|' + c.key;
           const hTxt = (hKey in hiatusTexts) ? hiatusTexts[hKey] : c.defaultLabel;
           const hCol = hiatusColors[hKey] || HIATUS_COLOR;
           out.push({kind:'phaseHiatus', label:hTxt, color:hCol, textColor:textColorFor(hCol),
-                    colspan:1, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel});
-          k += 1;
+                    colspan:span, weekIso:c.weekIso, phaseKey:c.key, defaultLabel:c.defaultLabel,
+                    cell:c, own:k});
         } else {
-          let span = 1;
-          while(k+span < mc && span < spanCap && !bySlot[k+span] && freeForRun(k, k+span)){ span++; }
           out.push({kind:'phase', label:c.label, color:c.color||'#fff', textColor:c.textColor, colspan:span, cell:c, own:k});
-          k += span;
         }
+        k += span;
       } else {
         // Empty slot(s). If the next phase to the right can legally span left across this
         // empty run (each empty slot is free for that phase's whole run), let that phase
@@ -4373,7 +4399,7 @@ export function initLegacyApp() {
         }
       }
     }
-    out.forEach(sg=>{ if(sg.kind === 'phase') sg.nPhases = nPhases; });
+    out.forEach(sg=>{ if(sg.kind === 'phase' || sg.kind === 'phaseHiatus') sg.nPhases = nPhases; });
     return applyCellSpanOverrides(out, mc, slotMap, week, nPhases, spanCap);
   }
 
@@ -4392,7 +4418,10 @@ export function initLegacyApp() {
     let s = 0;
     segs.forEach((seg, i)=>{ startOf[i] = s; s += seg.colspan; });
     segs.forEach((seg, i)=>{
-      if(seg.kind !== 'phase' || !seg.cell || seg.own === undefined) return;
+      // A phase-hiatus band is claimable the same way a phase cell is (owner, 1 Sep 2026) --
+      // both carry .cell/.own from computePhaseRowLayout() now, and share the same
+      // weekIso+'|'+phaseKey cellSpans key a dragged phase cell already uses.
+      if((seg.kind !== 'phase' && seg.kind !== 'phaseHiatus') || !seg.cell || seg.own === undefined) return;
       const ov = cellSpans[weekIso + '|' + seg.cell.key];
       if(!ov) return;
       // A width dragged out when the phase had the row to itself must not survive a phase moving
