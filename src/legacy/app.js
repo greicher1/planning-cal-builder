@@ -2755,11 +2755,16 @@ export function initLegacyApp() {
       const empty = val ? '' : ' hdr-empty';
       const editable = mvManual ? ' contenteditable="true"' : '';
       const editCls = mvManual ? ' hdr-editable' : '';
-      return `<div class="hdr-line ${cls}${empty}${editCls}" data-mvhid="${id}"${editable} spellcheck="false">${escHtml(val)}</div>`;
+      // FROZEN EDIT (owner-approved 31 Aug 2026): the month header's two lines take the same
+      // per-line formatting as the waterfall's nine, from their own mvHeaderFormat store --
+      // the two headers are independent by design (see mvHeaderManual).
+      const fmtCss = headerFormatCss(headerFmt(id, true));
+      return `<div class="hdr-line ${cls}${empty}${editCls}" data-mvhid="${id}"${editable} spellcheck="false" style="${fmtCss}">${escHtml(val)}</div>`;
     };
 
     return `<div class="month-view">
       <div class="mv-tools">
+        ${mvManual ? headerFmtToolbarHtml(true) : '<span class="hdr-fmt-spacer"></span>'}
         <button id="mv-hdr-mode-btn" class="${mvManual?'is-manual':''}" type="button"
           title="${mvManual?'Discard manual header edits and return to auto-filled values':'Take over the month header: snapshot the current values into editable lines'}"
           >${mvManual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
@@ -3160,19 +3165,30 @@ export function initLegacyApp() {
       const empty = val ? '' : ' hdr-empty';
       const editable = manual ? ' contenteditable="true"' : '';
       const editCls = manual ? ' hdr-editable' : '';
-      return `<div class="hdr-line ${cls||''}${empty}${editCls}" data-hid="${id}"${editable} spellcheck="false" style="${extraStyle||''}">${escH(val)}</div>`;
+      // FROZEN EDIT (owner-approved 31 Aug 2026), and deliberately the smallest possible one:
+      // the per-line format is APPENDED after extraStyle, so a user format wins over the
+      // hard-coded style this call site already passed (r1's font-weight:600), and everything
+      // about how the line is built otherwise is untouched.
+      const slotCls = HDR_NEW_SLOTS.includes(id) ? ' hdr-slot' : '';
+      const fmtCss = headerFormatCss(headerFmt(id, false));
+      return `<div class="hdr-line ${cls||''}${empty}${editCls}${slotCls}" data-hid="${id}"${editable} spellcheck="false" style="${extraStyle||''}${fmtCss}">${escH(val)}</div>`;
     };
 
     const headerBar = `<div class="hdr-tools">
+      ${manual ? headerFmtToolbarHtml(false) : '<span class="hdr-fmt-spacer"></span>'}
       <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
       <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?'Discard manual header edits and return to auto-filled values':'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?'Header: Manual \u2014 Switch to Auto':'Header: Auto \u2014 Switch to Manual'}</button>
     </div>
     <div class="cal-header-bar${manual?' hdr-manual-mode':''}">
-      <div class="cal-header-date">${hline('left','')}</div>
+      <div class="cal-header-date">
+        ${hline('left','')}
+        ${hline('l2','')}
+      </div>
       <div class="cal-header-center">
         ${hline('c1','hdr-title')}
         ${hline('c2','cal-subtitle')}
         ${hline('c3','cal-subtitle')}
+        ${hline('c4','cal-subtitle')}
       </div>
       <div class="cal-header-right"><div class="cal-header-right-content">
         ${hline('r1','cal-subtitle','font-weight:600;')}
@@ -3656,9 +3672,39 @@ export function initLegacyApp() {
     // Header lines come from the same auto defaults as the live view, with any per-line
     // manual overrides applied on top (see computeHeaderDefaults / headerOverrides).
     const hd = computeHeaderDefaults(schedule);
-    const todayStr = hdrSafe(headerLine('left', hd));
-    const cLines = ['c1','c2','c3'].map(id=>hdrSafe(headerLine(id, hd))).filter(Boolean);
-    const rLines = ['r1','r2','r3'].map(id=>hdrSafe(headerLine(id, hd))).filter(Boolean);
+    // FROZEN EDIT (owner-approved 31 Aug 2026): per-line formatting, plus the l2/c4 slots.
+    //
+    // ⚠️ &B AND &I ARE TOGGLES, NOT SETTERS. Excel's header codes are stateful across the whole
+    // string, so a per-line `&B` would stay on for every following line. The absolute
+    // `&"Calibri,<style>"` form is a SET, so each line states its own style outright and nothing
+    // leaks. Same reason the size is emitted as absolute digits before a quote-terminated font
+    // name -- the misparse the HSIZE comment below describes applies identically here.
+    //
+    // A section emits per-line codes ONLY if at least one of its lines is formatted. An untouched
+    // header therefore produces the exact same string it produced before this feature, which is
+    // what keeps the Excel parts-diff in gate.sh green until formatting is actually used.
+    const hdrLineCode = (id) => {
+      const f = headerFmt(id, false);
+      const size = f.size ? Math.round(f.size) : 12;
+      const bold = (f.bold === undefined) ? true : !!f.bold;   // header lines are bold by default
+      const style = bold && f.italic ? 'Bold Italic' : bold ? 'Bold' : f.italic ? 'Italic' : 'Regular';
+      // &K must carry six hex digits; default back to black rather than omitting it, or a
+      // previous line's colour would persist into this one.
+      const color = f.color ? String(f.color).replace('#','').toUpperCase() : '000000';
+      return `&${size}&"Calibri,${style}"&K${color}`;
+    };
+    const anyFmt = ids => ids.some(id => Object.keys(headerFmt(id, false)).length > 0);
+    const withCodes = (ids, on) => ids
+      .map(id => ({ id, text: hdrSafe(headerLine(id, hd)) }))
+      .filter(x => x.text)
+      .map(x => (on ? hdrLineCode(x.id) : '') + x.text);
+
+    const lIds = ['left','l2'], cIds = ['c1','c2','c3','c4'], rIds = ['r1','r2','r3'];
+    // The left section was a bare string and stays one; joining on \n means an empty l2 leaves it
+    // byte-identical to the old `todayStr`.
+    const todayStr = withCodes(lIds, anyFmt(lIds)).join('\n');
+    const cLines = withCodes(cIds, anyFmt(cIds));
+    const rLines = withCodes(rIds, anyFmt(rIds));
 
     // Header size codes: &B turns on bold, then place &12 immediately before a font-name
     // code (&"Calibri,Bold"). The quote after the size digits is a non-digit terminator, so
@@ -4549,6 +4595,195 @@ export function initLegacyApp() {
   let mvHeaderMode = 'auto';
   let mvHeaderManual = {}; // { title, today }
 
+  // ---------- Header text formatting (owner, 31 Aug 2026) ----------
+  // Per-LINE formatting, not per-character. Each header line is already its own element, and --
+  // the reason it has to be per line -- Excel's header/footer string and the PDF writer both
+  // format per SECTION, not per run of characters. Storing inline markup would produce a screen
+  // that the two exports could not reproduce, which for a tool whose product IS the export is a
+  // defect rather than a limitation.
+  //
+  // Shape: headerFormat[id] = { size, bold, italic, color, highlight, align }
+  //   size      number, pt-ish screen px at 1x (absent = the line's stylesheet default)
+  //   bold      bool        italic bool
+  //   color     '#rrggbb'   highlight '#rrggbb'
+  //   align     'left'|'center'|'right'
+  // Every key is OPTIONAL and absent means "inherit the default" -- so an untouched calendar
+  // serialises `{}` and renders exactly as it did before this feature existed.
+  let headerFormat = {};    // waterfall, keyed by hid  (left, l2, c1..c4, r1..r3)
+  let mvHeaderFormat = {};  // month view, keyed by mvhid (title, today)
+
+  // The nine waterfall header lines, in visual order per column. l2 and c4 are the two added
+  // 31 Aug 2026 ("middle left" and "middle bottom"); they default to EMPTY and are hidden unless
+  // manual mode is on, so auto mode renders byte-identically to before.
+  const HDR_IDS = ['left','l2','c1','c2','c3','c4','r1','r2','r3'];
+  const HDR_NEW_SLOTS = ['l2','c4'];
+
+  function headerFmt(id, mv){ return (mv ? mvHeaderFormat : headerFormat)[id] || {}; }
+
+  // Format -> inline CSS, for the two on-screen renderers.
+  function headerFormatCss(f){
+    if(!f) return '';
+    const out = [];
+    if(f.size)      out.push('font-size:' + f.size + 'px');
+    if(f.bold)      out.push('font-weight:700');
+    if(f.italic)    out.push('font-style:italic');
+    if(f.color)     out.push('color:' + f.color);
+    if(f.highlight) out.push('background-color:' + f.highlight);
+    if(f.align)     out.push('text-align:' + f.align);
+    return out.join(';') + (out.length ? ';' : '');
+  }
+
+  // Format -> Excel header/footer control codes, prefixed to the line's text.
+  // ⚠️ These cost characters against Excel's 255-CHARACTER TOTAL for the whole header string --
+  // the limit that makes Excel report the file as corrupt when exceeded (see exportExcel's
+  // HF_MAX). A colour alone is 9 characters. exportExcel's existing trimmer still runs after
+  // this, so a formatted header degrades by dropping trailing LINES exactly as an unformatted
+  // long one does -- it does not silently truncate mid-code.
+  // ⚠️ HIGHLIGHT IS DELIBERATELY ABSENT: an Excel header/footer has no text-background code at
+  // all. It applies on screen and in the PDF and cannot apply here; that gap is documented in
+  // README rather than faked.
+
+  // The header formatting toolbar. Shown only in manual mode -- in auto mode the lines mirror the
+  // inputs and are not editable, so formatting controls would be offering something that cannot
+  // be done.
+  //
+  // ⛔ NOT ONE CONTROL IN HERE HAS AN id. collectFieldValues() sweeps every input[id]/select[id]/
+  // textarea[id] in the document into saved files AND into the undo stack, so an id here would
+  // bake the toolbar's own transient position into every calendar and add phantom undo steps.
+  // Classes only -- the same reason the note editor's day/size selects use classes.
+
+  // ---------- Header formatting: behaviour ----------
+  // Delegated on #table-wrap, so it survives every render() rebuild without re-binding -- the
+  // toolbar and the header lines are both destroyed and recreated on each one.
+  //
+  // The toolbar acts on the LAST-FOCUSED header line, not the currently-focused one: clicking a
+  // toolbar button necessarily blurs the contenteditable, so "currently focused" is always the
+  // button by the time the handler runs.
+  let hdrFmtTarget = null;   // { id, mv } or null
+
+  function hdrLineFromEvent(t){
+    const el = t && t.closest ? t.closest('.hdr-line') : null;
+    if(!el) return null;
+    if(el.dataset.hid) return { id: el.dataset.hid, mv: false, el };
+    if(el.dataset.mvhid) return { id: el.dataset.mvhid, mv: true, el };
+    return null;
+  }
+  function hdrFmtStore(mv){ return mv ? mvHeaderFormat : headerFormat; }
+  function hdrFmtLabel(id){
+    return ({ left:'date', l2:'left 2', c1:'title', c2:'subtitle', c3:'subtitle 3', c4:'subtitle 4',
+              r1:'stat 1', r2:'stat 2', r3:'stat 3', title:'title', today:'date' })[id] || id;
+  }
+  // Reflect the target line's current formatting back into the controls, so the toolbar shows
+  // the state of what you are about to change rather than stale values from the last line.
+  function syncHdrFmtToolbar(){
+    document.querySelectorAll('.hdr-fmt').forEach(bar=>{
+      const mv = bar.dataset.mv === '1';
+      const active = hdrFmtTarget && hdrFmtTarget.mv === mv;
+      bar.classList.toggle('has-target', !!active);
+      const f = active ? (hdrFmtStore(mv)[hdrFmtTarget.id] || {}) : {};
+      const q = sel => bar.querySelector(sel);
+      q('.hf-size').value = f.size ? String(f.size) : '';
+      q('.hf-b').classList.toggle('is-on', !!f.bold);
+      q('.hf-i').classList.toggle('is-on', !!f.italic);
+      q('.hf-color').value = f.color || '#000000';
+      q('.hf-hl').value = f.highlight || '#ffff00';
+      bar.querySelectorAll('.hf-al').forEach(b=> b.classList.toggle('is-on', f.align === b.dataset.align));
+      q('.hf-target').textContent = active ? hdrFmtLabel(hdrFmtTarget.id) : 'click a header line';
+    });
+  }
+  // Apply to state, then paint the live element directly. Deliberately NOT a full update():
+  // re-rendering would destroy the contenteditable mid-edit and throw away the caret, and the
+  // exports read headerFormat at export time anyway, so state is what has to be right.
+  function applyHdrFmt(patch){
+    if(!hdrFmtTarget) return;
+    const store = hdrFmtStore(hdrFmtTarget.mv);
+    const cur = Object.assign({}, store[hdrFmtTarget.id] || {}, patch);
+    // Drop falsy keys so an untouched line serialises as {} and a cleared one does not keep
+    // `bold:false` noise in the save file.
+    Object.keys(cur).forEach(k=>{ if(cur[k] === '' || cur[k] === false || cur[k] == null) delete cur[k]; });
+    if(Object.keys(cur).length) store[hdrFmtTarget.id] = cur; else delete store[hdrFmtTarget.id];
+    const sel = hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`;
+    const el = document.querySelector('#table-wrap ' + sel);
+    if(el) el.setAttribute('style', headerFormatCss(cur));
+    syncHdrFmtToolbar();
+    markDirty();
+  }
+
+  document.getElementById('table-wrap').addEventListener('focusin', e=>{
+    const line = hdrLineFromEvent(e.target);
+    if(line && line.el.classList.contains('hdr-editable')){
+      hdrFmtTarget = { id: line.id, mv: line.mv };
+      syncHdrFmtToolbar();
+    }
+  });
+  // mousedown, not click: preventDefault here stops the contenteditable losing focus at all on
+  // browsers that would blur it before the click lands, so the caret stays where the user left it.
+  document.getElementById('table-wrap').addEventListener('mousedown', e=>{
+    if(e.target.closest && e.target.closest('.hdr-fmt') && !e.target.closest('input[type="color"]')) e.preventDefault();
+  });
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    const bar = e.target.closest && e.target.closest('.hdr-fmt');
+    if(!bar) return;
+    const store = hdrFmtTarget ? hdrFmtStore(hdrFmtTarget.mv) : null;
+    const cur = (store && hdrFmtTarget) ? (store[hdrFmtTarget.id] || {}) : {};
+    if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !cur.bold });
+    if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !cur.italic });
+    if(e.target.closest('.hf-clear')) {
+      if(hdrFmtTarget) delete hdrFmtStore(hdrFmtTarget.mv)[hdrFmtTarget.id];
+      const sel = hdrFmtTarget ? (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`) : null;
+      const el = sel ? document.querySelector('#table-wrap ' + sel) : null;
+      if(el) el.setAttribute('style', '');
+      syncHdrFmtToolbar(); markDirty();
+      return;
+    }
+    const al = e.target.closest('.hf-al');
+    if(al) return applyHdrFmt({ align: cur.align === al.dataset.align ? '' : al.dataset.align });
+  });
+  document.getElementById('table-wrap').addEventListener('input', e=>{
+    if(!e.target.closest || !e.target.closest('.hdr-fmt')) return;
+    if(e.target.classList.contains('hf-color')) return applyHdrFmt({ color: e.target.value });
+    if(e.target.classList.contains('hf-hl'))    return applyHdrFmt({ highlight: e.target.value });
+  });
+  document.getElementById('table-wrap').addEventListener('change', e=>{
+    if(!e.target.closest || !e.target.closest('.hdr-fmt')) return;
+    if(e.target.classList.contains('hf-size')) return applyHdrFmt({ size: e.target.value ? Number(e.target.value) : '' });
+  });
+
+  function headerFmtToolbarHtml(mv){
+    const sizes = mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
+    return `<div class="hdr-fmt" role="toolbar" aria-label="Header text formatting" data-mv="${mv?1:0}">
+      <select class="hf-ctl hf-size" title="Text size" aria-label="Text size">
+        <option value="">Size</option>
+        ${sizes.map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+      <button type="button" class="hf-ctl hf-btn hf-b" title="Bold" aria-label="Bold"><b>B</b></button>
+      <button type="button" class="hf-ctl hf-btn hf-i" title="Italic" aria-label="Italic"><i>I</i></button>
+      <label class="hf-ctl hf-swatch" title="Text color">
+        <span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-color" value="#000000" aria-label="Text color">
+      </label>
+      <label class="hf-ctl hf-swatch hf-swatch-hl" title="Highlight color">
+        <span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-hl" value="#ffff00" aria-label="Highlight color">
+      </label>
+      <button type="button" class="hf-ctl hf-btn hf-al" data-align="left" title="Align left" aria-label="Align left">&#8676;</button>
+      <button type="button" class="hf-ctl hf-btn hf-al" data-align="center" title="Align center" aria-label="Align center">&#8596;</button>
+      <button type="button" class="hf-ctl hf-btn hf-al" data-align="right" title="Align right" aria-label="Align right">&#8677;</button>
+      <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>
+      <span class="hf-target" aria-live="polite">click a header line</span>
+    </div>`;
+  }
+
+  function headerFormatExcel(f){
+    if(!f) return '';
+    let s = '';
+    if(f.size)   s += '&' + Math.round(f.size);
+    if(f.bold)   s += '&B';
+    if(f.italic) s += '&I';
+    if(f.color)  s += '&K' + String(f.color).replace('#','').toUpperCase();
+    return s;
+  }
+
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
     const today = new Date();
@@ -4583,7 +4818,9 @@ export function initLegacyApp() {
     }
     const numEpisodes = parseInt((document.getElementById('num-episodes').value||'').trim(), 10);
     if(!isNaN(numEpisodes) && numEpisodes > 0) r3 = `${numEpisodes} Episodes`;
-    return { left: todayStr, c1: titleLine, c2: 'Planning Calendar', c3: wrLine, r1, r2, r3 };
+    // l2 and c4 are the two slots added 31 Aug 2026: no auto value exists for them, so they are
+    // empty by default and stay invisible until someone types into them in manual mode.
+    return { left: todayStr, l2: '', c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
   }
   // Effective text for a header line: the manual value in manual mode, else the auto default.
   function headerLine(id, defaults){
@@ -5035,6 +5272,7 @@ export function initLegacyApp() {
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {};
     mvHeaderMode = 'auto'; mvHeaderManual = {};
+    headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
@@ -5404,7 +5642,7 @@ export function initLegacyApp() {
       version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
-      mvHeaderMode, mvHeaderManual, noteColors, noteFontSize, hiatusTexts, hiatusColors,
+      mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
       fields: collectFieldValues()
@@ -7185,9 +7423,16 @@ export function initLegacyApp() {
         ops.push(`${pdfRgb(hex)} RG ${pdfNum(wt)} w ${pdfNum(x1)} ${pdfNum(hPt-y1)} m `
                + `${pdfNum(x2)} ${pdfNum(hPt-y2)} l S`);
       },
-      text(str, x, baselineY, tag, sizePt, hex){
+      // FROZEN EDIT (owner-approved 31 Aug 2026): optional `skew` for synthetic italic.
+      // Only two Carlito faces are embedded -- regular and bold -- so there is no italic font to
+      // select. A text-matrix shear is exactly how a viewer fakes a missing italic, and it costs
+      // nothing: no third font, no change to ttfTextWidth (a shear does not alter advance widths,
+      // so every existing measurement stays valid). Defaults to 0, so all ~40 existing call sites
+      // emit a byte-identical `1 0 0 1` matrix and no other drawing changes at all.
+      text(str, x, baselineY, tag, sizePt, hex, skew){
         if(str === '' || str == null) return;
-        ops.push(`BT /${tag} ${pdfNum(sizePt)} Tf ${pdfRgb(hex)} rg 1 0 0 1 ${pdfNum(x)} `
+        const c = skew ? pdfNum(skew) : '0';
+        ops.push(`BT /${tag} ${pdfNum(sizePt)} Tf ${pdfRgb(hex)} rg 1 0 ${c} 1 ${pdfNum(x)} `
                + `${pdfNum(hPt-baselineY)} Tm (${pdfEscape(str)}) Tj ET`);
       },
       // clip the next drawing to a cell, so an over-long label cannot bleed into its neighbour
@@ -7298,11 +7543,16 @@ export function initLegacyApp() {
 
     // --- header block ------------------------------------------------------------------------
     const hd = computeHeaderDefaults(schedule);
-    const hLeft = headerLine('left', hd);
-    const hCentre = ['c1','c2','c3'].map(id=>headerLine(id, hd)).filter(Boolean);
-    const hRight = ['r1','r2','r3'].map(id=>headerLine(id, hd)).filter(Boolean);
+    // FROZEN EDIT (owner-approved 31 Aug 2026): the l2/c4 slots, and per-line formatting.
+    // Each entry keeps its id so the draw pass below can look its format up; ids are carried
+    // rather than a pre-resolved style so the format is read at draw time, from the same
+    // headerFmt() the screen and the workbook use -- one source, three outputs.
+    const hLeftArr = ['left','l2'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
+    const hCentre = ['c1','c2','c3','c4'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
+    const hRight = ['r1','r2','r3'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
+    const hLeft = hLeftArr.length ? hLeftArr[0].t : '';   // kept: the band-height math below reads it
     const HDR_TITLE_PT = 11, HDR_SUB_PT = 8, HDR_GAP_PT = 10;
-    const hdrLines = Math.max(hCentre.length, hRight.length, hLeft ? 1 : 0);
+    const hdrLines = Math.max(hCentre.length, hRight.length, hLeftArr.length);
     const headerH = hdrLines ? (HDR_TITLE_PT*1.35 + (hdrLines-1)*HDR_SUB_PT*1.35 + HDR_GAP_PT) : 0;
 
     // --- page, orientation and a WHOLE-PERCENT fit scale --------------------------------------
@@ -7386,16 +7636,39 @@ export function initLegacyApp() {
       const T = HDR_TITLE_PT*hS, U = HDR_SUB_PT*hS;
       const baseY = MARGIN_PT.hdr + asc*T;          // first baseline, inside the band
       const stackY = i => baseY + (i ? T*1.35 + (i-1)*U*1.35 : 0);
-      if(hLeft) page.text(hLeft, originX, baseY, 'F1', U, '#666666');
-      hCentre.forEach((ln, i)=>{
-        const size = i === 0 ? T : U;
-        const tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
-        page.text(ln, midX - ttfTextWidth(ttf, ln, size)/2, stackY(i), tag, size, '#000000');
-      });
-      hRight.forEach((ln, i)=>{
-        const tag = i === 0 ? 'F2' : 'F1', ttf = i === 0 ? bold : reg;
-        page.text(ln, rightEdge - ttfTextWidth(ttf, ln, U), baseY + i*U*1.35, tag, U, '#000000');
-      });
+      // One draw helper for all three sections, so a format means the same thing wherever the
+      // line sits. Every default is the value this code used before, so an unformatted line
+      // emits exactly the operators it emitted previously -- which is what keeps the PDF
+      // byte-compare in gate.sh green until formatting is actually used.
+      const drawHdr = (entry, i, opts) => {
+        const f = headerFmt(entry.id, false);
+        const size = f.size ? f.size * hS : opts.size;
+        const isBold = (f.bold === undefined) ? opts.bold : !!f.bold;
+        const tag = isBold ? 'F2' : 'F1', ttf = isBold ? bold : reg;
+        const color = f.color || opts.color;
+        const w = ttfTextWidth(ttf, entry.t, size);
+        // Per-line alignment overrides where the line sits WITHIN its own section's box; it
+        // cannot move a line to another section, because Excel's header has exactly three
+        // sections and the two outputs must agree.
+        const align = f.align || opts.align;
+        const x = align === 'center' ? opts.mid - w/2 : align === 'right' ? opts.right - w : opts.left;
+        const y = opts.y(i);
+        if(f.highlight){
+          // Behind the text, and sized to the glyph box rather than the line box: a highlight
+          // that spanned the full column would read as a filled band, not as highlighted words.
+          page.rect(x - size*0.15, y - size*0.82, w + size*0.3, size*1.08, f.highlight);
+        }
+        page.text(entry.t, x, y, tag, size, color, f.italic ? 0.21 : 0);
+      };
+      hLeftArr.forEach((e, i)=> drawHdr(e, i, {
+        size: U, bold: false, color: '#666666', align: 'left',
+        left: originX, mid: originX, right: originX, y: k => baseY + k*U*1.35 }));
+      hCentre.forEach((e, i)=> drawHdr(e, i, {
+        size: i === 0 ? T : U, bold: i === 0, color: '#000000', align: 'center',
+        left: midX, mid: midX, right: midX, y: stackY }));
+      hRight.forEach((e, i)=> drawHdr(e, i, {
+        size: U, bold: i === 0, color: '#000000', align: 'right',
+        left: rightEdge, mid: rightEdge, right: rightEdge, y: k => baseY + k*U*1.35 }));
     }
 
     // The grid always begins at the top margin; the header sat above it, in the margin.
@@ -8033,6 +8306,11 @@ export function initLegacyApp() {
     if(snap.mvHeaderMode === 'manual' || (snap.mvHeaderManual && Object.keys(snap.mvHeaderManual).length)){
       mvHeaderMode = 'manual';
       mvHeaderManual = Object.assign({}, snap.mvHeaderManual || {});
+      // Unconditional, both of them: a file saved before this feature existed has no
+      // headerFormat key at all, and must come back UNFORMATTED rather than inheriting whatever
+      // the previously-open calendar was wearing. (CLAUDE.md: "Restore unconditionally".)
+      headerFormat = snap.headerFormat ? Object.assign({}, snap.headerFormat) : {};
+      mvHeaderFormat = snap.mvHeaderFormat ? Object.assign({}, snap.mvHeaderFormat) : {};
     }
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';

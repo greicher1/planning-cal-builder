@@ -1285,7 +1285,53 @@
   .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); background:#faf5ff; }
   .hdr-line.hdr-editable.hdr-empty:not(:focus):hover::before{ content:'edit'; color:var(--text-faint); font-size:10px; }
   .cal-header-bar.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; }
-  .hdr-tools{display:flex; justify-content:flex-end; gap:6px; padding:4px 8px 0; background:#fff;}
+  /* space-between, not flex-end: the formatting toolbar sits at the LEFT end of this strip and
+     the mode button stays at the right (owner, 31 Aug 2026 -- "the opposite corner"). The spacer
+     keeps the mode button hard right in auto mode, when no toolbar is rendered. */
+  .hdr-tools{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 8px 0; background:#fff; flex-wrap:wrap;}
+  .hdr-fmt-spacer{ flex:1; }
+
+  /* ---------- Header formatting toolbar ---------- */
+  /* Only ever rendered in manual mode -- in auto mode the lines mirror the inputs and cannot be
+     edited, so the controls would offer something impossible. */
+  .hdr-fmt{ display:flex; align-items:center; gap:3px; flex:1; min-width:0; flex-wrap:wrap; }
+  .hf-ctl{
+    font-family:inherit; font-size:11px; line-height:1;
+    border:1px solid var(--mantine-color-gray-3); background:var(--mantine-color-white);
+    color:var(--mantine-color-gray-7); border-radius:var(--mantine-radius-sm);
+    height:22px; padding:0 6px; cursor:pointer;
+  }
+  .hf-ctl:hover{ background:var(--mantine-color-gray-0); border-color:var(--mantine-color-gray-4); }
+  .hf-ctl:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .hf-btn{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; padding:0 5px; }
+  /* The pressed state has to be unmistakable -- it is the only way to tell whether the line you
+     are looking at is bold because you set it or bold because it always was. */
+  .hf-btn.is-on{
+    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:700;
+  }
+  .hf-size{ height:22px; padding:0 4px; }
+  /* The two colour wells: a letter over a bar of the chosen colour, with the native picker
+     stretched invisibly across it -- an <input type=color> renders as a chunky OS control that
+     would tower over a 22px toolbar. */
+  .hf-swatch{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:24px; overflow:hidden; }
+  .hf-swatch .hf-swatch-ink{ font-size:11px; font-weight:700; pointer-events:none; }
+  .hf-swatch input[type="color"]{
+    position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; border:none; padding:0;
+  }
+  .hf-swatch-hl .hf-swatch-ink{ background:#ffff00; padding:0 2px; border-radius:2px; }
+  /* Which line the toolbar will act on. Without this the controls look live but silently do
+     nothing until a line has been clicked. */
+  .hf-target{ font-size:10px; color:var(--mantine-color-gray-6); margin-left:2px; white-space:nowrap; }
+  .hdr-fmt:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  .hdr-fmt:not(.has-target) .hf-target{ font-style:italic; }
+
+  /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
+     min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift
+     the layout for people who never use them. Hidden until they hold text OR the header is in
+     manual mode, where they appear as empty editable slots. Scoped to .hdr-slot on purpose: the
+     PRE-EXISTING lines can also be empty (c3 with no writers-room date, r3 with no episode
+     count) and their current spacing is deliberate -- this must not change it. */
+  .hdr-line.hdr-slot.hdr-empty:not(.hdr-editable){ display:none; }
   #hdr-mode-btn, #notes-reset-btn{
     font-size:10px; padding:3px 8px;
     /* line-height is pinned, not decorative. Chrome's UA sheet styles <button> with the

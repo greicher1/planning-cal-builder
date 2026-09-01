@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — header text formatting, and two more header lines
+
+A formatting toolbar at the top-left of the header strip — opposite the mode button — with **text
+size, bold, italic, text colour, highlight and alignment**. It appears **only in manual mode**
+(in auto mode the lines mirror the inputs and cannot be edited, so the controls would be offering
+something impossible), and it works on both the **waterfall** and **month** headers, which keep
+their own independent formatting exactly as they already keep independent text.
+
+**The header grew from 7 lines to 9**: `l2` (middle left, under the date) and `c4` (middle bottom,
+under the subtitles). They have no auto value, so they are **hidden until used** — `.hdr-line`
+carries `min-height:14px`, and leaving them visible-but-empty would have added 28px to every
+header for people who never touch them.
+
+**Formatting is real everywhere — screen, Excel and PDF.** That is why this needed
+owner-approved edits to four frozen functions (`renderSpreadsheetView`, `renderMonthView`,
+`exportExcel`, `buildWaterfallPdf`). It is per **line**, not per selection, because Excel's
+header/footer and the PDF writer both format per section rather than per run of characters —
+inline markup would have produced a screen the exports could not reproduce.
+
+Three things worth knowing:
+
+- **Excel's `&B`/`&I` are toggles, not setters**, so per-line codes would have leaked into every
+  following line. Each line instead states its style outright via the absolute
+  `&"Calibri,<style>"` form, and resets colour explicitly — verified in a real export, where line
+  2 correctly comes back to `&12&"Calibri,Bold"&K000000`.
+- **Formatting costs Excel header budget.** The 255-character cap is unchanged, and codes count
+  against it, so a heavily formatted header drops trailing detail lines sooner. Measured on a
+  formatted 9-line header: 238 characters, inside the limit, with the existing trimmer dropping
+  the last four lines exactly as it does for an over-long unformatted one.
+- **Italic in the PDF is synthetic.** Only regular and bold Carlito are embedded, so italic is a
+  text-matrix shear — which is how a viewer fakes a missing italic, costs no third font, and does
+  not change advance widths, so every existing measurement stays valid.
+
+**One honest gap: highlight cannot reach Excel.** An Excel header/footer has no text-background
+code at all. Highlight applies on screen and in the PDF; in the workbook the line keeps its
+colour and weight but no background.
+
+**Verified.** `gate.sh` returns **byte-identical** results to the pre-change run — waterfall PDF
+identical to baseline, Excel parts identical, 0 clipped cells, grid width 797, 52 rows, no console
+errors — because an unformatted header emits exactly the operators and the exact header string it
+emitted before. Then with formatting applied: the Excel `oddHeader` carries the codes and the new
+`l2` line; the PDF draws **all nine** lines with the right font, size, colour, oblique and a
+highlight rect.
+
 ### Unreleased — the remove buttons showed two × instead of one
 
 Three buttons — remove custom phase, remove hiatus, delete custom holiday — rendered **`××`**.

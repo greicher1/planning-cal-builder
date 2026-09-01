@@ -422,6 +422,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 | `noteColors`, `hiatusTexts`, `hiatusColors` | per-cell appearance overrides |
 | `holidayView` | which holidays show in which view (`{sheet, month}`) |
 | `headerMode`/`headerManual`, `mvHeaderMode`/`mvHeaderManual` | auto vs. hand-edited header lines |
+| `headerFormat`, `mvHeaderFormat` | per-header-line size/bold/italic/colour/highlight/align. Consumed by **four** places — both renderers, `exportExcel` and `buildWaterfallPdf` — so screen and exports cannot disagree |
 | `mvExtraLanes` | extra note lanes per month-view week |
 | `customPhaseDefs`, `episodeDefs` | dynamic rows |
 | `noteFontSize`, `hiatusFontSize` | per-cell font size, set by the note editor or a row drag |
