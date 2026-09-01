@@ -59,12 +59,17 @@ export function PreviewToolbar() {
   // label flips between "Expand" and "Pull back", and the engine must never write a Mantine
   // Button's textContent -- that destroys its inner spans. So the label is DERIVED here from
   // bridged data, never pushed as a string.
-  const [gridSel, setGridSel] = useState({ count: 0, expandable: 0, allFilled: false })
+  const [gridSel, setGridSel] = useState({
+    count: 0, expandable: 0, allFilled: false,
+    swap: { visible: false, leftOk: false, rightOk: false, leftLabel: '', rightLabel: '' },
+  })
 
   useLayoutEffect(() => {
     installChrome({
       undoRedo: (patch) => setUndoRedo((s) => ({ ...s, ...patch })),
-      gridSelection: (s) => setGridSel(s),
+      // Defaulted here, not asserted: an older engine (a saved shareable copy opened in a newer
+      // build) pushes no `swap` key at all, and a bare `s.swap.leftOk` would throw during render.
+      gridSelection: (s) => setGridSel({ swap: { visible: false }, ...s }),
     })
   }, [])
 
@@ -222,6 +227,27 @@ export function PreviewToolbar() {
             {gridSel.allFilled ? 'Pull back' : 'Expand'} {gridSel.expandable || gridSel.count}
           </Button>
         </Tooltip>
+
+        {/* Column order (Feature 2). Same always-rendered rule as batch expand above -- the engine
+            resolves both by id with delegated click handlers, and anything it addresses by id must
+            exist at first commit. ⛔ These are deliberately NOT disabled when a direction is
+            unavailable: the click handler answers "why can't I" with a chip on the grid, and a
+            disabled button answers nothing. leftOk/rightOk only pick the variant. The word is
+            SWAP, never "move" -- the arrows two controls to the left move the calendar in TIME, and
+            these move a phase between columns. */}
+        <Group className="colswap-group" gap="xxs" wrap="nowrap"
+               style={{ display: gridSel.swap && gridSel.swap.visible ? undefined : 'none' }}>
+          <Tooltip label={(gridSel.swap && gridSel.swap.leftLabel) || 'Swap this phase’s column left'}
+                   position="bottom" withArrow multiline w={280}>
+            <Button id="colswap-left-btn" className="tools-btn" type="button" size="xs"
+                    variant={gridSel.swap && gridSel.swap.leftOk ? 'light' : 'default'}>◀ Swap</Button>
+          </Tooltip>
+          <Tooltip label={(gridSel.swap && gridSel.swap.rightLabel) || 'Swap this phase’s column right'}
+                   position="bottom" withArrow multiline w={280}>
+            <Button id="colswap-right-btn" className="tools-btn" type="button" size="xs"
+                    variant={gridSel.swap && gridSel.swap.rightOk ? 'light' : 'default'}>Swap ▶</Button>
+          </Tooltip>
+        </Group>
 
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
           <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>

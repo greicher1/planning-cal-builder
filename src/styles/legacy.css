@@ -1323,6 +1323,73 @@
   body.grid-selecting{ user-select:none; cursor:cell; }
   body.grid-cell-hover{ cursor:cell; }
 
+  /* ---------- Column order: the swap grips ---------- */
+  /* A SECOND layer, and the z-index is the entire reason for it. .grid-sel-layer has to stay at
+     z-index 1 so its rects scroll UNDER the frozen sticky header (`.sheet-table th`, z-index 2) --
+     but z-index 1 + position:absolute makes it a stacking context, and a knob trapped inside would
+     paint below `.grid-resize.is-col` (z-index 5, 7px wide, FULL table height, pointer-events:auto)
+     which is centred on exactly the seam a knob must be centred on. The knob would be unclickable at
+     its own centre. So: rects stay under the header, grips go above the handles. z-index 8 clears
+     .is-span (6) and .span-preview (7) as well.
+     Nothing here selects .sheet-*, .mv-* or #print-root, and nothing uses !important. */
+  .grid-swap-layer{ position:absolute; inset:0; pointer-events:none; z-index:8; overflow:hidden; }
+  /* 21px of ONE row, centred on the seam -- deliberately NOT a full-run-height rail on the column
+     boundary. A rail there is visually identical to .grid-resize.is-col's hover and to .is-span's
+     ::after (same purple swatch, same 3px rounded shape, ~4px apart), so a 4px pointer difference
+     flipped between "resize one cell" and "permute two phases across four weeks"; and it covered the
+     column boundary for EVERY row of the run. A dot leaves the rest of the boundary grabbable, and
+     the teal is outside the purple handle vocabulary entirely. */
+  .grid-swap-knob{
+    position:absolute; width:21px; height:21px; margin:-10.5px 0 0 -10.5px; box-sizing:border-box;
+    border-radius:50%; pointer-events:auto; touch-action:none; cursor:grab;
+    background:#0E7C8C; color:#fff; border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
+    display:flex; align-items:center; justify-content:center; user-select:none;
+    font:15px/1 'Inter',system-ui,sans-serif; transition:transform .1s, background .1s;
+  }
+  .grid-swap-knob:hover, .grid-swap-knob:focus-visible{ background:#0A6675; transform:scale(1.12); }
+  .grid-swap-knob.dragging{ background:#0A6675; cursor:grabbing; transform:scale(1.12); }
+  /* Where the two runs land. Solid = the run you are moving, dashed = the partner coming the other
+     way. ⛔ Rects only: rewriting colSpan on live cells reflows the whole table on every
+     pointermove, which is the documented reason frozen .span-preview is a ghost in the first place. */
+  .grid-swap-ghost{ position:absolute; box-sizing:border-box; border:2px solid #0E7C8C;
+    background:rgba(14,124,140,.16); border-radius:2px; }
+  .grid-swap-ghost.is-partner{ border-style:dashed; background:rgba(14,124,140,.06); }
+  /* Weeks OUTSIDE both runs whose layout the move changes -- the honest disclosure of a partial
+     swap's collateral, shown before the drop. Amber, because it is a consequence and not a target. */
+  .grid-swap-collateral{ position:absolute; box-sizing:border-box; border:2px dotted #B9791A;
+    background:rgba(232,163,61,.14); border-radius:2px; }
+  .grid-swap-chip{ position:absolute; max-width:340px; white-space:normal; pointer-events:none;
+    font:11px/1.35 'Inter',system-ui,sans-serif; padding:3px 8px; border-radius:10px;
+    background:rgba(45,45,48,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28); }
+  .grid-swap-chip.is-flash{ background:#0E7C8C; }
+  /* The frozen render replaces the table synchronously, so the real cells teleport. These two ghosts
+     carry the eye across in each phase's own colour; --dx is the measured delta and --lift arcs them
+     past each other in opposite directions. */
+  .grid-swap-settle{ position:absolute; border-radius:2px; pointer-events:none;
+    animation:gridSwapSettle .18s ease-out forwards; }
+  @keyframes gridSwapSettle{
+    0%   { transform:translate(0,0); opacity:.38; }
+    55%  { transform:translate(calc(var(--dx,0px) * .55), var(--lift,0px)); opacity:.38; }
+    100% { transform:translate(var(--dx,0px), 0); opacity:0; }
+  }
+  /* A column or row drag moves the grid live through frozen repositionColHandles, which knows
+     nothing about either layer -- hide rather than let them go stale. */
+  body.grid-resizing .grid-swap-layer{ display:none; }
+  body.grid-swapping{ user-select:none; cursor:grabbing; }
+  /* Feature 1's count chip is drawn just above the selection, which is exactly where the amber
+     collateral rects appear -- and those are the one thing the user has to be able to read BEFORE
+     letting go. Once the knob is grabbed, the batch-expand count is noise: hide it for the gesture.
+     Done in CSS rather than JS so there is only one place either chip's visibility is decided. */
+  body.grid-swapping .grid-sel-chip{ display:none; }
+  /* Suppress the motion, never the CONFIRMATION: finishSwapMove always flashes a chip when the
+     settle is unavailable, because a completed move must not be silent. The precedent is
+     #help-overlay's own reduced-motion block. */
+  @media (prefers-reduced-motion: reduce){
+    .grid-swap-settle{ display:none; }
+    .grid-swap-knob{ transition:none; }
+    .grid-swap-knob:hover, .grid-swap-knob:focus-visible, .grid-swap-knob.dragging{ transform:none; }
+  }
+
   .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
   .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
   .cal-header-date{font-family:'Carlito','Calibri',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}

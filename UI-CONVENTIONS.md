@@ -594,6 +594,68 @@ orphan-guard tests `activeNoteEditor` only; `activeMvNote` appears in no guard, 
 `openMvNoteEditor` registers neither a scroll nor a resize listener where `.note-pop` registers
 both. That is a live bug this work would fix as a side effect — not a regression to introduce.
 
+### 6a. ⛔ The grid's pointer budget, as an ordered total procedure
+
+Six gestures now compete for the same pixels inside `#table-wrap`, and four of them live within 7px
+of a column boundary. Written down because the next session **will** re-derive it wrongly, and
+because two of these orderings were established by measurement after a plausible version broke
+something else.
+
+Resolution order over a phase cell — the browser decides steps 1–2 by `z-index` and
+`pointer-events`, the code decides the rest by guard:
+
+| # | Owner | How it wins |
+|---:|---|---|
+| 1 | **`.grid-swap-knob`** (column swap) | `z-index:8` layer, `pointer-events:auto`, and it **exists only while a swap-eligible selection is live**. 21px of one row, so it does not monopolise the seam. |
+| 2 | `.span-preview` (7) → `.grid-resize.is-span` (6) → `.is-col` (5) → `.is-row` (4) | The frozen handle ladder. Everything else in either overlay is `pointer-events:none`. |
+| 3 | the frozen `.grid-resize` `pointerdown` | Unchanged, and **self-guarding** on `closest('.grid-resize')` — so a knob never matches it. Zero contention, no z-index games needed. |
+| 4 | the batch-expand marquee | Yields explicitly, in this order: `closest('.grid-resize')`, then `closest('.grid-sel-layer, .grid-swap-layer')`. |
+| 5 | `dblclick`-to-fill (single cell and batch) | Untouched. A knob is not `.sheet-phase-cell`, and `hitCell()` returns `null` over one — otherwise a double-click on the knob would batch-expand the cell beneath it. |
+| 6 | the note / hiatus editor opener | Untouched. A knob fails its `closest()` test. |
+
+Four rules that are not obvious from that table:
+
+- ⛔ **Never `preventDefault()` a `pointerdown` over a grid cell.** In Chromium it suppresses
+  `mousedown`, `mouseup`, `click` **and** `dblclick` outright — it silently kills the note editor and
+  double-click-to-fill. Suppress `selectstart` instead, and only for the life of the gesture.
+  ⚠️ `selectstart`'s target is a **text node**, which has no `.closest`; hop to `parentElement` first
+  or the guard never matches and the selection happens anyway.
+- ⛔ **Never `stopPropagation()` from a document CAPTURE listener here.** The note editor commits on
+  outside click via a document **bubble** listener, and `render()` discards an orphaned editor
+  *without* committing it — so a capture-phase stop destroys uncommitted note text.
+- **The `#table-wrap` click listener already `stopPropagation`s `td.sheet-note-cell` and
+  `td.sheet-hiatus-cell`.** A new document **bubble** click listener is therefore silently deaf to
+  note cells and per-phase hiatus bands — the failure that reads as "the gesture doesn't work on
+  hiatus cells only".
+- **`.sheet-phase-cell` is not proof the drag contract is present.** A per-phase hiatus band carries
+  the class unconditionally and the `data-own/lmin/rmax/a/b/nphases` set conditionally. Test
+  `Number.isFinite(+td.dataset.own)`.
+
+Layer geometry, and why there are two overlays rather than one:
+
+- `.grid-sel-layer` — `z-index:1`, `pointer-events:none`, `overflow:hidden`. Selection rects, the
+  marquee, the drag ghosts, the amber collateral rects and the settle animation. **1, deliberately
+  below the frozen sticky header** (`.sheet-table th` is `position:sticky; z-index:2`) so the overlay
+  scrolls under the pinned Date/year/Notes row instead of painting over it.
+- `.grid-swap-layer` — `z-index:8`, `pointer-events:none` with `auto` on the knob only. The knob and
+  the swap chip. It exists **because** the layer above is capped at 1: `z-index:1` +
+  `position:absolute` is a stacking context, and `.grid-resize.is-col` is `z-index:5`, 7px wide,
+  **full table height**, centred on exactly the seam the knob must be centred on. A knob trapped in
+  the selection layer is unclickable at its own centre. Since this layer paints *above* the header,
+  its contents are clamped below the header's live bottom edge and dropped when the run scrolls
+  behind it.
+- Both are siblings of `.grid-resize-layer` inside `.sheet-grid-wrap`, so they inherit the grid's
+  coordinate space, scroll with the pane in both axes, are clipped by it, and are absent from both
+  print paths. `body.grid-resizing` hides both — frozen `repositionColHandles` moves the grid live
+  and knows nothing about them.
+- ⛔ `overflow:hidden` on both is **not cosmetic**: `.sheet-grid-wrap` is `width:max-content` inside
+  an `overflow:auto` pane, so anything drawn past the grid's box extends the scroll extent — a
+  scrollbar that appears and vanishes with the selection.
+
+Chips stack **upwards** from the selection, never downwards: below, they covered the next week's
+labels, and the swap knob is centred vertically on the selected run, so a chip across the middle of
+it lands on the feature's primary affordance.
+
 ---
 
 ## 7. Responsiveness

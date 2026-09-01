@@ -188,6 +188,46 @@ chk(not hv.get('h'), f"gate: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- colswapmove: the column-order GESTURE, from a fixture with no stored order at all -----------
+# The two legs above both START from a store that already exists, so neither exercises the layer
+# that decides WHAT would move: the run walk, the whole-run restriction (owner ruling D7) and the
+# trial-and-gate verdict. This one meta-clicks ONE cell at real coordinates, waits for the knob (the
+# observable proof the verdict came back ok), presses the toolbar button, and requires the WHOLE
+# four-week run to move in one step. It then moves it back, which is the only way to prove the
+# reverse DELETES the pair rather than storing an identity -- if the entries survived as no-ops the
+# reconciler would bring the swap back on the next recompute.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-gesture "$HERE/run.sh" colswapmove 45 >/dev/null 2>&1
+python3 - "$HERE/colswapmove.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  colswapmove produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  colswapmove threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('naturalOrder') and a.get('aboveNarrowBefore'),
+    f"move: pre-state is the natural start order {a.get('before')}")
+chk(a.get('labelNamesBoth') and a.get('labelNamesRun'),
+    f"move: the knob names both phases and the whole run -- {a.get('knobLabel')}")
+chk(a.get('noRightKnob'), "move: no knob offered where there is no partner")
+chk(a.get('rightNoOp') and a.get('chipExplains'),
+    f"move: the unavailable direction moves nothing and says why -- {str(a.get('chipText'))[:80]}")
+chk(a.get('wholeRunMoved'), f"move: one gesture moved the whole 4-week run {a.get('movedWeeks')}/4")
+chk(a.get('aboveKeptSlot'), "move: unselected weeks kept their phase and slot")
+chk(a.get('aboveWidened') and a.get('confirmReportsCollateral'),
+    f"move: magnitude-1 collateral applied AND reported -- {str(a.get('confirmText'))[:80]}")
+chk(a.get('knobFollowed'), "move: the affordance followed the move")
+chk(a.get('reverseRestoredExactly'), f"move: moving back deleted the pair {a.get('afterReverse')}")
+chk(not a.get('errors'), f"move: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"move: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

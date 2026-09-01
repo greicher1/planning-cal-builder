@@ -29,6 +29,95 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — swap two phases' columns (Feature 2, Phase 1)
+
+Steps **F2-c and F2-d** of [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md),
+and the point where Feature 2 becomes something a user can see. F2-a gave the store and the
+reconciler, F2-b the gate; everything shipped so far was invisible. This adds the layer that decides
+*what would move*, and the gesture that moves it.
+
+**What you get.** Highlight a cell of the phase you want to move — ⌘-click one, or drag across a run
+of them — and a small teal circle appears on the column boundary beside it. Drag the circle across
+the boundary, or press **◀ Swap** / **Swap ▶** in the preview toolbar (Alt+← / Alt+→ does the same),
+and the two phases exchange columns for **every week they run alongside each other**, in one step and
+one undo. Nothing about the phases changes — same dates, same durations, same labels, same widths —
+only which column each occupies, and both exports follow because the swap happens upstream of the one
+shared layout pass.
+
+**Scope this round is whole runs** (owner ruling D7): at least one side of the swap must be a phase's
+entire run within the year block. That is exactly the case the request was made about — a four-week
+overlap where the later phase's whole life is inside it — and it is the half with no third phase to
+displace and no reachable column-count change. Arbitrary partial runs stay a separate, later
+decision.
+
+**One consequence is real and is disclosed rather than hidden.** Moving a phase out of a column can
+let it *widen* in the weeks above or below, because the column beside it is now free for its whole
+run. Measured on the request's own scenario: the two weeks above the overlap go from one column to
+two. That is the magnitude-1 collateral the owner sanctioned (D2), so it is previewed in amber
+**before** you let go and reported in a chip afterwards. A change of two columns or more still
+refuses the swap outright, and so does anything that would move a column width or the column count.
+
+**Refusals say why, and the buttons stay enabled so they can.** A disabled button explains nothing,
+and the top UX risk here is a gesture that appears to do nothing — so pressing an unavailable
+direction puts the reason on the grid: no phase in the column beside it, mismatched widths, a
+hand-set cell width to clear first, or Production's column being anchored to the Simultaneous Post
+lane.
+
+Details worth keeping:
+
+- **`computeSwapRun` reads the rendered `<td>`s**, not the layout internals — `data-week`,
+  `data-pkey`, `data-own`, `data-a`, `data-b`. So it carries no second copy of a span rule to drift
+  from `computePhaseRowLayout`, and the harness asserts the whole layer with no test hook. Two DOM
+  facts make the block-local coordinate space free: every year block starts at table row 0, so
+  `tr.dataset.row` **is** the block-local week index; and a year appears in exactly one block, so
+  `data-week`'s year **is** the block identity.
+- **The partner is found by scanning for the segment whose edge touches**, in both directions —
+  never by arithmetic on the seed's own slot. `own − 1` names a slot a spanned neighbour merely
+  covers, which silently never offers the left move; `own − span` can name a partner two slots away.
+- **`canSwapRun` installs the candidate store, recomputes, and reads the gate's return value**, then
+  always restores. It does *not* re-fingerprint afterwards: the gate has already reverted the bad
+  block by then, so a re-diff finds nothing and every candidate reads as legal — which is precisely
+  the "drag and see nothing" failure. It also saves and restores `swapSuppressed`, which the gate
+  rebuilds.
+- **Verdicts are debounced and cached**, never computed per repaint. One verdict is a trial
+  `computeSchedule` plus the gate's own passes, and the overlay repaints on every render — which is
+  every keystroke in a date field.
+- **A move that reverses one already stored deletes both entries** rather than storing an identity,
+  so a saved file never carries a no-op. The store write is derived by one function shared with the
+  trial, so a verdict can never describe a different write than the one that lands.
+- **The knob is keyboard-operable.** It carries `role="button" tabindex="0"` and a real aria-label
+  (*"Swap Post with Prod Prep (11/16/26–12/7/26)"*), so Enter or Space on it has to work — an element
+  that announces itself as a button and then ignores Enter is worse than one with no role. That is the
+  one path where a swap fires without a drag, and it is legitimate: focus is explicit, unlike the
+  stray click on a column boundary the 12px threshold exists to reject.
+- **A knob, not a rail on the seam.** An earlier draft drew a full-run-height purple rail on the
+  column boundary; it is visually identical to the two purple resize affordances already there, and
+  it covered the boundary for every row of the run. One 21px circle in a hue outside that vocabulary
+  leaves the boundary grabbable — verified: the column drag and its double-click-to-autofit both
+  still work on the shared seam, with a knob on it.
+- **Two overlay layers, one draw pass.** The selection rects must stay at `z-index:1` to scroll under
+  the frozen sticky header, but `z-index:1` makes that layer a stacking context — and a knob trapped
+  inside it sits below the full-height column handle centred on the same seam, unclickable at its own
+  centre. Grips therefore live in a sibling layer above the handles.
+- **Chip placement, three fixes, all from looking at it.** Feature 1's count chip moved **above** the
+  selection — below, it covered the next week's labels, and with the knob centred vertically on the
+  run it also landed squarely on the knob. It is hidden outright while the knob is held (CSS, via
+  `body.grid-swapping`) and while a column-order message is up, because both of those are usually
+  *about* the weeks beside the selection; the count is on the toolbar button throughout, so nothing
+  is withheld. And the confirmation chip sits on whichever side of the run the **collateral is not**
+  on — a chip reading "2 other weeks changed width" while covering those two weeks is worse than no
+  chip at all.
+- No frozen code changed, and no save-format change: `gridColSwaps` was added in F2-a.
+
+Verified: new `colswapmove` gate leg — from a fixture with no stored order at all, one ⌘-click at
+real coordinates plus one button press moves the whole four-week run, the unselected weeks keep their
+phase and slot, the sanctioned collateral applies **and** is reported, the affordance follows the
+move, and moving it back deletes the pair (proved by the layout returning byte-identically, since a
+surviving no-op would be re-applied by the reconciler). In the browser: the knob drag with its ghosts
+and amber collateral preview, the settle animation's measured ±77px deltas, one undo reverting the
+whole run, Alt+arrow, a dblclick on the knob staying inert, and the note editor still opening and
+committing.
+
 ### Unreleased — the column-order gate: refuse what would disturb the calendar, and say so
 
 Step F2-b of [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md). Still **no

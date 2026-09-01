@@ -13,14 +13,21 @@ it is a plan, not a record of work done.
 > recorded in `HANDOFF.md`. ⚠️ It covers **column order only** — not a cell's own appearance, its
 > text fitting, or the width model, all of which stay frozen. **D7 also granted: ship Phase 1**
 > (whole-run swaps, §6.8) first.
-> Feature 1 is **built** (§5, shipped 1 Sep 2026).
+> Feature 1 is **built** (§5, shipped 1 Sep 2026). **Feature 2 Phase 1 is built too** — steps 6–9
+> (F2-a…F2-d) all landed 1 Sep 2026 and are gated by three harness legs (`colswap`, `colswapgate`,
+> `colswapmove`). ⏭ Only **F2-e** (arbitrary partial runs) and **F1-e** (the batch edge drag) remain,
+> and each needs its own ruling — D7 explicitly reserved the first and D8 asks about the second.
 
 > ✅ **Already decided by the owner (1 Sep 2026) — do not re-open as an open question:**
 > **D2, collateral tolerance.** A swap may reflow an *unswapped* week by **at most one column**
 > (allowed, previewed, reported); **two or more columns refuses the swap**. This is a decision of
 > record, not a tunable default — it is what **G5 COLLATERAL** in §6.5 implements. It does **not**
 > loosen **G3 WIDTH**, which stays a hard reject on any change to a block's column widths; the two
-> axes were weighed separately and the reasoning is in §11 D2. Every other Dn in §11 is still open.
+> axes were weighed separately and the reasoning is in §11 D2.
+>
+> **D3, D4, D5, D9, D10 were taken as implemented defaults on 1 Sep 2026** — each this plan's own
+> recommendation, each named in the changelog, each reversible in one place. See §11 for what was
+> chosen. **D8 and F2-e are the only things still genuinely open.**
 
 > ⚠️ **This document quotes no line numbers, deliberately.** `tools/check-refs.py` scans docs for
 > them and the GitHub Action runs it — a number in prose fails the deploy. Every claim below names
@@ -1537,12 +1544,27 @@ buried inside a feature.
 5.  [STOP-AND-ASK] column-order sign-off recorded in HANDOFF.md
 6.  F2-a  gridColSwaps + reconciler + 9 save sites + harness leg   <- no gesture; drive from console
 7.  F2-b  layoutFingerprint + the gate + per-pair reject + notice  <- proves the model is safe
-8.  F2-c  computeSwapRun (WHOLE-run only) + canSwap + commitSwap
-9.  F2-d  knob + toolbar buttons + hover/collateral/settle/chips   <- ⭐ SHIPPABLE. F2 Phase 1
---- ship, ask the owner, wait ---
+8.  F2-c  computeSwapRun (WHOLE-run only) + canSwap + commitSwap   <- DONE 1 Sep 2026
+9.  F2-d  knob + toolbar buttons + hover/collateral/settle/chips   <- DONE. ⭐ F2 Phase 1 complete
+--- ship, ask the owner, wait ---   <-- WE ARE HERE
 10. F2-e  arbitrary partial runs                                  <- only if asked
 11. F1-e  batch edge drag                                         <- only if asked
 ```
+
+✅ **Steps 0–9 are all built.** Two places where the AS-BUILT differs from the design above, both
+deliberate and both explained where they live:
+
+- **F2-c reads the rendered `<td>`s for its block-local coordinate space**, as designed — but the
+  partner is found by scanning for the segment whose **edge** touches the seed's (`a === b₀+1` /
+  `b === a₀−1`), not by §6.3's `own`-based phrasing. Same intent as clause 3's warning, strictly more
+  accurate: the `own` form misses an actually-adjacent partner whenever a neighbour absorbed an empty
+  slot on its left.
+- **F2-d uses TWO overlay layers**, not one. §6.6's review said to reuse `.grid-sel-layer`; that
+  predates the layer being pushed to `z-index:1` so the selection rects would scroll under the frozen
+  sticky header. `z-index:1` makes it a stacking context, which caps a knob below the full-height
+  `.grid-resize.is-col` centred on the very seam the knob must sit on. The review's actual reason —
+  do not duplicate the geometry or the observer — still holds: there is one draw pass and one
+  observer. Recorded in `UI-CONVENTIONS.md` §6a.
 
 **Step 3 is the smallest shippable increment of Feature 1** and delivers the owner's whole request.
 **Step 9 is the smallest shippable increment of Feature 2** and delivers the owner's screenshot.
@@ -1813,19 +1835,23 @@ disturbance than the owner accepted, it is only 3.1% of eligible swaps, and it i
 the note in §2.6 on whole-run swaps. If the owner later wants width changes tolerated too, that is a
 **separate** ruling and G3 is where it would be relaxed.
 
-**D3 — HAND-DRAGGED COLUMN WIDTHS stay with the POSITION, not the phase.**
+**D3 — HAND-DRAGGED COLUMN WIDTHS stay with the POSITION, not the phase. ✅ TAKEN 1 Sep 2026** as
+the recommendation below. Nothing to implement: `colWidths` is keyed `y<year>:s<slot>` and the swap
+simply does not touch it.
 Recommended, because a partial swap puts one phase in two different columns in different weeks, so
 no single column width can follow it. Consequence: if you have dragged one phase column narrower and
 then swap, the other phase's labels sit under that narrower width (a chip says so). **With no
 hand-dragged widths nothing changes at all.** Confirm?
 
-**D4 — A SWAP IS REFUSED when a hand-set CELL width exists in the swapped weeks.**
+**D4 — A SWAP IS REFUSED when a hand-set CELL width exists in the swapped weeks. ✅ TAKEN 1 Sep 2026**
+as the recommendation (refuse and name the cell to clear), implemented as `reason:'width-override'`.
 Widths are stored relative to the phase's own column, so a fill that reached right becomes a claim on
 an occupied column. **Refuse and say which cell to clear** (recommended) — or **swap anyway and DROP
 that width override**? We will **not** transform the stored width: doing so is a permanent, silent
 loss of your work the moment the swap stops applying.
 
-**D5 — PRODUCTION + SIMULTANEOUS POST is refused outright**, in either role, in any year block
+**D5 — PRODUCTION + SIMULTANEOUS POST is refused outright. ✅ TAKEN 1 Sep 2026**, as written below.
+In either role, in any year block
 containing a SimPost week, because the SimPost lane is anchored to Production's *first* column in the
 block and a mid-block change can widen the whole grid by one column. A hard refusal with an
 explanatory chip — acceptable?
@@ -1849,14 +1875,19 @@ then a toolbar button or a double-click. A separate **batch edge drag** (grab on
 all selected rows follow with a live ghost) is the only part of Feature 1 that reimplements a frozen
 function's snap loop. Build it in v1, or defer?
 
-**D9 — NEW CHROME INSIDE THE GRID'S BOX.**
+**D9 — NEW CHROME INSIDE THE GRID'S BOX. ✅ TAKEN 1 Sep 2026** — built as described, and it is the one
+of these five that is genuinely visible, so it is the one most worth the owner's second look.
 Both features draw an overlay **on top of** the grid: selection outlines, a small count chip
 (*"4 cells · double-click to expand"*), the move knob, and a brief settle animation. None of it is in
 a cell, none of it prints, none of it exports, and it all vanishes with the selection. But it **is**
 new visible chrome inside `#table-wrap`'s box, and the appearance convention covers that box, so I
 would rather you ruled than I assumed.
 
-**D10 — NAMING.**
+**D10 — NAMING. ✅ TAKEN 1 Sep 2026: *swap columns* / *column order*.** The buttons read `◀ Swap` /
+`Swap ▶` and the Help text says "swapping two phases' columns". ⛔ The word **move** is avoided
+throughout the UI: the toolbar arrows two controls to the left move the calendar in TIME, and
+"Move ◀" beside them reads as that.
+The original question, kept for the record:
 Confirm the user-facing name — *"swap columns"* / *"column order"* — so it is never conflated with
 the sidebar phase reorder in the UI, the changelog or the docs. Shipping one **will** read as having
 shipped the other.

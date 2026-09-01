@@ -64,10 +64,14 @@ export const chrome = {
   dialog: (opts) => Promise.resolve(
     opts && opts.kind === 'confirm' ? window.confirm(opts.message) : (window.alert(opts && opts.message), true)
   ),
-  // { count, expandable, allFilled } — the multi-cell grid selection (batch expand). Bridged for
-  // the same reason as undoRedo: the button's disabled state has to be a real Mantine state, and
-  // its LABEL flips between Expand and Pull back, which the engine must never write as textContent
-  // (that destroys a Mantine Button's inner spans).
+  // { count, expandable, allFilled, swap:{ visible, leftOk, rightOk, leftLabel, rightLabel } } —
+  // the multi-cell grid selection: batch expand (Feature 1) and column order (Feature 2). Bridged
+  // for the same reason as undoRedo: the buttons' disabled state has to be a real Mantine state,
+  // and the batch label flips between Expand and Pull back, which the engine must never write as
+  // textContent (that destroys a Mantine Button's inner spans).
+  // ⚠️ The two swap labels are TOOLTIP text and double as the refusal reason -- the swap buttons
+  // stay enabled when a direction is unavailable, on purpose, so that pressing one can explain why
+  // nothing moved. leftOk/rightOk only drive the styling.
   gridSelection: noop,
   // { holidays: [{iso, name}], hiatuses: [{start, weeks}] } — the date-picker popovers' markers
   // (src/chrome/DatePop.jsx). Pushed by update() so the little calendars mark holidays and

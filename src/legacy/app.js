@@ -733,6 +733,9 @@ export function initLegacyApp() {
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
+      // A swap knob owns its own 21px, the same way a .grid-resize handle owns its band: without
+      // this, a double-click on the knob would batch-expand the cell underneath it.
+      if(el.classList && el.classList.contains('grid-swap-knob')) return null;
       const td = el.closest && el.closest('td.sheet-phase-cell');
       if(td && hasSpanContract(td)) return td;
     }
@@ -812,15 +815,19 @@ export function initLegacyApp() {
   // still do it: the button's enabled state and its Expand/Pull-back label live in React, so a
   // repaint that bails without pushing leaves the last-known count on screen -- an enabled button
   // for a selection that no longer exists, which then no-ops when pressed.
-  function pushGridSelection(count, expandable, allFilled){
+  // `swap` is the column-order half (Feature 2): whether either direction is available, and the
+  // tooltip for each -- which doubles as the REASON when a direction is refused, since the buttons
+  // stay enabled on purpose (a disabled button explains nothing, and "why can't I" is the top UX
+  // risk in that feature).
+  function pushGridSelection(count, expandable, allFilled, swap){
     if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
-      chrome.gridSelection({ count, expandable, allFilled });
+      chrome.gridSelection({ count, expandable, allFilled, swap: swap || { visible:false } });
     }
   }
 
   function redrawGridOverlay(marquee){
     const layer = ensureSelLayer();
-    if(!layer){ pushGridSelection(0, 0, false); return; }
+    if(!layer){ drawSwapLayer(null, null); pushGridSelection(0, 0, false); return; }
     // Prune against the live DOM. This is the design's ONE cleanup mechanism, and it is why
     // Feature 1 needs no entry in resetAll(), the 'Reset Notes & Hiatus' branch,
     // applyStateSnapshot() or shiftCalendar()'s re-key: every one of those paths ends in a render,
@@ -831,7 +838,7 @@ export function initLegacyApp() {
 
     layer.textContent = '';
     const g = selGeom();
-    if(!g){ pushGridSelection(gridSel.size, 0, false); return; }
+    if(!g){ drawSwapLayer(null, null); pushGridSelection(gridSel.size, 0, false); return; }
     const rows = selCells().map(spanRoom);
     // The counts and the verb must be computed from the CLAMPED rows -- the same resolveRowContention
     // the apply will run. Reading them off the raw rows reported cells as expandable that contention
@@ -871,7 +878,11 @@ export function initLegacyApp() {
       m.style.height = (marquee.b - marquee.t) + 'px';
       layer.appendChild(m);
     }
-    if(rows.length){
+    // ...and not while a column-order message is up. That message is transient and is usually ABOUT
+    // the weeks beside the selection, so a second chip stacked over them defeats it. The count is
+    // still on the toolbar button throughout, so nothing is actually withheld. (The drag itself hides
+    // this chip in CSS, via body.grid-swapping.)
+    if(rows.length && !swapFlash){
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
       const inert = rows.length - expandable;
@@ -884,22 +895,44 @@ export function initLegacyApp() {
           + ' · double-click to ' + (allFilled ? 'pull back' : 'expand')
         : rows.length + ' selected · no room to expand';
       layer.appendChild(chip);
-      // Clamp inside the layer's own box. overflow:hidden stops a chip below the last row from
+      // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
+      //   * below, it always covered the next week's phase labels -- the chip was reporting on the
+      //     selection by hiding the row the user was about to compare it with;
+      //   * Feature 2's swap knob is centred VERTICALLY on the selected run, at the column seam, so
+      //     a chip drawn across the middle of the selection lands squarely on top of the knob and
+      //     makes the feature's primary affordance unclickable (seen 1 Sep 2026).
+      // Above a multi-row selection cannot reach the knob; above a single-row one clears it too,
+      // since the knob's centre is the cell's centre and the chip's bottom is above the cell's top.
+      // Falls back to below only when there is no room above -- and the fallback is measured against
+      // the frozen STICKY header, which floats over the top of the pane and would otherwise hide it.
+      // Clamp inside the layer's own box: overflow:hidden stops a chip below the last row from
       // extending .sheet-scroll's scroll extent (a scrollbar that appears and vanishes with the
       // selection), so an unclamped chip would be clipped away entirely instead.
-      let foot = null;
+      let cap = null;
       rows.forEach(r=>{ const b = tdBox(r.td, g); if(!b) return;
-        if(!foot || b.wrapTop + b.wrapHeight > foot.bot){ foot = { bot: b.wrapTop + b.wrapHeight, left: b.wrapLeft, top: b.wrapTop }; } });
-      if(foot){
+        if(!cap){ cap = { top:b.wrapTop, bot:b.wrapTop + b.wrapHeight, left:b.wrapLeft }; return; }
+        cap.top = Math.min(cap.top, b.wrapTop);
+        cap.bot = Math.max(cap.bot, b.wrapTop + b.wrapHeight);
+        cap.left = Math.min(cap.left, b.wrapLeft);
+      });
+      if(cap){
         const cw = chip.offsetWidth, ch = chip.offsetHeight;
         const lw = layer.clientWidth, lh = layer.clientHeight;
-        let top = foot.bot + 4;
-        if(top + ch > lh) top = Math.max(0, foot.top - ch - 4);
-        chip.style.left = Math.max(0, Math.min(foot.left, lw - cw)) + 'px';
-        chip.style.top = top + 'px';
+        const thead = document.querySelector('#table-wrap table.sheet-table thead');
+        const headerBottom = thead ? thead.getBoundingClientRect().bottom - g.wrapRect.top : 0;
+        let top = cap.top - ch - 5;
+        if(top < headerBottom + 2) top = Math.min(lh - ch, cap.bot + 5);
+        chip.style.left = Math.max(0, Math.min(cap.left, lw - cw)) + 'px';
+        chip.style.top = Math.max(0, top) + 'px';
+        chip.dataset.top = String(top);
+        chip.dataset.h = String(ch);
       }
     }
-    pushGridSelection(rows.length, expandable, allFilled);
+    // Feature 2's knobs, ghosts and chip. Drawn from here because this is the SINGLE repaint entry
+    // point for the whole overlay -- the two features share one selection, one observer and one
+    // geometry pass, and only the layer differs (see ensureSwapLayer for why there are two).
+    drawSwapLayer(g, layer);
+    pushGridSelection(rows.length, expandable, allFilled, swapPayload());
   }
 
   // ⛔ childList ONLY, NO subtree. render()'s `tableEl.innerHTML =` is a DIRECT-CHILD mutation of
@@ -941,6 +974,9 @@ export function initLegacyApp() {
     // lean on (adding one to a td would be new frozen .sheet-* CSS).
     if(e.pointerType === 'touch') return;
     if(e.target.closest && e.target.closest('.grid-resize')) return;   // handles own their band
+    // ...and the overlay's own grips own theirs. Ordered exactly as UI-CONVENTIONS records it:
+    // .grid-resize first, then the overlay layers, then the cell.
+    if(e.target.closest && e.target.closest('.grid-sel-layer, .grid-swap-layer')) return;
     const td = hitCell(e.clientX, e.clientY);
     if(!td) return;
     // Keep receiving moves when the pointer outruns the cell or leaves the window -- the same
@@ -2587,6 +2623,718 @@ export function initLegacyApp() {
     reflectSwapNotice(res);
     return res;
   }
+
+
+  // ---------- Column order: the run, the verdict, the commit (F2-c) ----------
+  // F2-a gave the store and the reconciler, F2-b the gate. This is the decision layer: given a cell
+  // and a direction, WHAT would move, and WOULD it move cleanly. It is deliberately separate from
+  // the gesture below, because it is the half a test can drive without a pointer.
+  //
+  // Everything about the geometry comes off the rendered <td>s that frozen renderSpreadsheetView
+  // already stamps -- data-week, data-pkey, data-own, data-a, data-b -- so there is no second copy
+  // of a span rule here to drift from computePhaseRowLayout, and the harness can assert the whole
+  // layer with no test hook.
+  //
+  // TWO DOM facts make the block-local coordinate space free, and both are worth stating because
+  // deriving them again from slot maps is what makes a naive version block-blind:
+  //   * every year block starts at table row 0 (`idx = b.startIdx + r`), so `tr.dataset.row` IS the
+  //     block-local week index, for every block at once;
+  //   * a block is one contiguous run of weeks in ONE year and a year appears in exactly one block,
+  //     so data-week's year IS the block identity. No colgroup walk, no slot map, no straddling.
+
+  // Phase 1 (owner ruling D7) restricts a move to a run where at least ONE side is a phase's whole
+  // run inside the block -- exactly the owner's screenshot. Arbitrary partial runs are a separate,
+  // later decision (plan section 6.8) and this constant is the single place that enforces it.
+  const SWAP_WHOLE_RUN_ONLY = true;
+
+  // The phase segments of ONE week of ONE block, left to right, in block-local SLOT space.
+  function swapRowSegs(local, year){
+    const tr = document.querySelector('#table-wrap table.sheet-table tbody tr[data-row="' + local + '"]');
+    if(!tr) return [];
+    const out = [];
+    [...tr.querySelectorAll('td.sheet-phase-cell')].forEach(td=>{
+      // .sheet-phase-cell is NOT proof the drag contract is present -- a per-phase hiatus band
+      // carries the class unconditionally and the data-own set conditionally.
+      if(!hasSpanContract(td)) return;
+      const wk = td.dataset.week || '';
+      if(+wk.slice(0,4) !== year) return;
+      const a = +td.dataset.a, b = +td.dataset.b;
+      out.push({ td, key: td.dataset.pkey, weekIso: wk, own: +td.dataset.own, a, b, span: b - a + 1 });
+    });
+    return out.sort((x, y)=> x.a - y.a);
+  }
+
+  // ONE rule, both directions: the segment whose EDGE touches the seed's, found by SCANNING the
+  // row's segments.
+  // ⛔ Never by arithmetic on the seed's own slot. `own0 - 1` names a slot a spanned neighbour
+  // merely COVERS rather than owns, so the left move is silently never offered; and `own0 - span0`
+  // can name a partner two slots away, jumping the phase that is actually adjacent -- measured
+  // losing the seed a column, giving the partner nothing and leaving an empty column behind.
+  const swapPartnerOf = (segs, seed, dir) => segs.find(s => s !== seed &&
+    (dir > 0 ? s.a === seed.b + 1 : s.b === seed.a - 1)) || null;
+
+  const swapTdFor = (iso, key) => allPhaseTds().find(td =>
+    td.dataset.week === iso && td.dataset.pkey === key) || null;
+
+  // Simultaneous Post's lane is anchored to Production's FIRST column in the block, so moving
+  // Production can widen the whole year by a column (owner ruling D5: refused outright, either
+  // role, any block containing a SimPost week). Read off the schedule -- the frozen renderer stamps
+  // nothing on a simpost cell to test.
+  const swapBlockHasSimPost = year => ((currentSchedule && currentSchedule.weeks) || [])
+    .some(w => w.simPost && w.date.getUTCFullYear() === year);
+
+  // Given a seed cell and a direction, the contiguous run that can move as one rigid block --
+  // or the reason it cannot. Pure DOM reads: cheap enough to call on every repaint.
+  function swapRunFor(weekIso, phaseKey, dir){
+    const year = +String(weekIso).slice(0, 4);
+    const seedTd = swapTdFor(weekIso, phaseKey);
+    if(!seedTd || !seedTd.parentElement) return { ok:false, reason:'no-partner' };
+    const local0 = +seedTd.parentElement.dataset.row;
+    if(!Number.isFinite(local0)) return { ok:false, reason:'no-partner' };
+
+    const row0 = swapRowSegs(local0, year);
+    const seed = row0.find(s => s.key === phaseKey);
+    if(!seed) return { ok:false, reason:'no-partner' };
+    // A full-width cell has no partner slot at all, which is exactly why the owner's Prod Prep
+    // weeks 1-2 stay put while weeks 3-6 move.
+    const p0 = swapPartnerOf(row0, seed, dir);
+    if(!p0) return { ok:false, reason:'no-partner' };
+    // ⛔ Equal colspan is not a nicety. Without it a 1-wide hiatus band beside a 2-wide phase reads
+    // as eligible, and the swap DOUBLES the band's width and HALVES the phase's.
+    if(p0.span !== seed.span) return { ok:false, reason:'width-mismatch' };
+    const partnerKey = p0.key;
+
+    // Walk local weeks out from the seed while every invariant still holds. STOP, never skip: a
+    // week where the phase is absent, a week whose only cell is an all-phase hiatus band (which is
+    // where frozen phaseRunBounds breaks too), or a week where the partner changes identity or
+    // width. Swapping both sides of a band is two gestures, on purpose.
+    const holds = local => {
+      const segs = swapRowSegs(local, year);
+      if(!segs.length) return null;
+      const s = segs.find(x => x.key === phaseKey);
+      if(!s || s.own !== seed.own || s.span !== seed.span) return null;
+      const p = swapPartnerOf(segs, s, dir);
+      if(!p || p.key !== partnerKey || p.span !== seed.span) return null;
+      return s;
+    };
+    const weeks = [seed.weekIso];
+    for(let l = local0 - 1; l >= 0; l--){ const s = holds(l); if(!s) break; weeks.unshift(s.weekIso); }
+    for(let l = local0 + 1; l < local0 + MAX_WEEKS; l++){ const s = holds(l); if(!s) break; weeks.push(s.weekIso); }
+    const weekSet = new Set(weeks);
+
+    // "The entire phase moves as a block" (owner's words) -- a REPORTING flag computed from the
+    // rendered grid, not a second code path.
+    const blockWeeksOf = key => allPhaseTds()
+      .filter(td => td.dataset.pkey === key && +String(td.dataset.week).slice(0,4) === year)
+      .map(td => td.dataset.week);
+    const whole        = blockWeeksOf(phaseKey).every(w => weekSet.has(w));
+    const partnerWhole = blockWeeksOf(partnerKey).every(w => weekSet.has(w));
+
+    const run = { phaseKey, partnerKey, dir, weeks, weekSet, year, local0,
+                  span: seed.span, own: seed.own, whole, partnerWhole,
+                  label: 'Swap ' + phaseLabelFor(phaseKey) + ' with ' + phaseLabelFor(partnerKey)
+                         + ' (' + swapRunDates(weeks) + ')' };
+
+    if(SWAP_WHOLE_RUN_ONLY && !whole && !partnerWhole) return Object.assign(run, { ok:false, reason:'partial' });
+    if((phaseKey === 'production' || partnerKey === 'production') && swapBlockHasSimPost(year))
+      return Object.assign(run, { ok:false, reason:'simpost' });
+
+    // A hand-dragged CELL width is own-slot-RELATIVE, so a fill made at slot 0 becomes a claim on
+    // slots 1..2 once the phase sits at slot 1, and frozen applyCellSpanOverrides clamps it to one
+    // column -- a silent loss of the user's work.
+    // ⛔ DO NOT "fix" that by mirroring {l,r} -> {r,l} in the store. cellSpans is PERSISTED, so the
+    // mirror is permanent: when the swap later stops applying (partner deleted, dates reverted) the
+    // mirrored claim clamps to one column and the fill is gone from the saved file with no error.
+    // Refuse and name the cell instead (owner ruling D4).
+    const held = weeks.find(iso => {
+      const A = cellSpans[iso + '|' + phaseKey], B = cellSpans[iso + '|' + partnerKey];
+      return (A && (A.l || A.r)) || (B && (B.l || B.r));
+    });
+    if(held) return Object.assign(run, { ok:false, reason:'width-override', badWeek: held });
+
+    return Object.assign(run, { ok:true });
+  }
+
+  function swapRunDates(weeks){
+    const a = fmtShort(parseDateUTC(weeks[0]));
+    return weeks.length === 1 ? a : a + '–' + fmtShort(parseDateUTC(weeks[weeks.length - 1]));
+  }
+
+  // Remove every entry in ONE week that names `key` on either side, so a second move can never
+  // leave a one-sided pointer behind for swapPairsForWeek to have to discard.
+  function swapClearWeekFor(store, iso, key){
+    delete store[iso + '|' + key];
+    const pre = iso + '|';
+    Object.keys(store).forEach(k=>{
+      if(k.lastIndexOf(pre, 0) !== 0) return;
+      const v = store[k];
+      if(v && v.with === key) delete store[k];
+    });
+  }
+
+  // The store this run would produce. Used by BOTH the trial and the commit, so a verdict can never
+  // describe a different write than the one that actually lands.
+  function swapStoreAfter(run){
+    const next = Object.assign({}, gridColSwaps);
+    run.weeks.forEach(iso=>{
+      const a = next[iso + '|' + run.phaseKey], b = next[iso + '|' + run.partnerKey];
+      // Moving a phase back over the partner it is already swapped with DELETES the pair rather
+      // than storing an identity: natural order is restored and a saved file carries no no-ops.
+      const reversing = !!(a && a.with === run.partnerKey && b && b.with === run.phaseKey);
+      swapClearWeekFor(next, iso, run.phaseKey);
+      swapClearWeekFor(next, iso, run.partnerKey);
+      if(reversing) return;
+      next[iso + '|' + run.phaseKey]   = { with: run.partnerKey };
+      next[iso + '|' + run.partnerKey] = { with: run.phaseKey };
+    });
+    return next;
+  }
+
+  // Would this run move cleanly? Installs the candidate store, recomputes, ASKS THE GATE, and
+  // always restores. No render happens in between, so the transient mutation is unobservable.
+  //
+  // ⛔ READ THE GATE'S RETURN VALUE. An earlier draft of this design called the apply pass and then
+  // re-fingerprinted -- but the pass had ALREADY reverted the bad block, so the re-diff found
+  // nothing and the verdict was ALWAYS ok. The affordance was then offered for a swap the next
+  // update() would silently revert: precisely the "drags and sees nothing" failure this layer
+  // exists to prevent.
+  //
+  // ⛔ swapSuppressed is module state that runColSwapGate REBUILDS. Save and restore it, or a trial
+  // leaves the live pass believing a pair is suppressed that never was.
+  function canSwapRun(run){
+    if(!run || !run.ok || !run.weeks.length) return run || { ok:false, reason:'no-partner' };
+    if(!currentSchedule || !currentSchedule.weeks) return { ok:false, reason:'no-change' };
+    const savedStore = gridColSwaps, savedSup = swapSuppressed;
+    try {
+      const state = readState();
+      // Baseline is WHAT IS ON SCREEN, not a no-overrides grid: with another column order already
+      // applied elsewhere, a no-swap baseline would report its layout as this candidate's collateral.
+      const nowBlocks = computeYearBlocks(currentSchedule.weeks);
+      const fpNow = layoutFingerprint(currentSchedule, nowBlocks);
+
+      gridColSwaps = swapStoreAfter(run);
+      swapSuppressed = new Set();
+      const trial = computeSchedule(state);
+      const res = runColSwapGate(state, trial);
+      const after = res.schedule || trial;
+
+      // Was OUR pair among the refusals? Another stored swap failing is not this candidate's fault
+      // -- but a candidate that makes the refusal count GROW is.
+      const mine = res.rejected.find(r => run.weekSet.has(r.weekIso) &&
+        (r.a === run.phaseKey || r.b === run.phaseKey) &&
+        (r.a === run.partnerKey || r.b === run.partnerKey));
+      const liveRejected = ((_swapGateRes && _swapGateRes.rejected) || []).length;
+      if(mine) return { ok:false, reason: mine.reason };
+      if(res.rejected.length > liveRejected)
+        return { ok:false, reason: res.rejected[res.rejected.length - 1].reason };
+
+      const afterBlocks = computeYearBlocks(after.weeks);
+      const fpAfter = layoutFingerprint(after, afterBlocks);
+      // Swaps never touch dates, so the block structure is identical; if it somehow is not, say so
+      // rather than indexing two different grids against each other.
+      if(afterBlocks.length !== nowBlocks.length) return { ok:false, reason:'geometry' };
+
+      const collateral = [];
+      let changed = false;
+      afterBlocks.forEach((b, bi)=>{
+        const bNow = fpNow[bi], bAfter = fpAfter[bi];
+        if(!bNow || !bAfter || bNow.weeks.length !== bAfter.weeks.length){ changed = true; return; }
+        bAfter.weeks.forEach((wa, i)=>{
+          if(bNow.weeks[i] === wa) return;
+          changed = true;
+          const iso = isoOf(after.weeks[b.startIdx + i].date);
+          if(!run.weekSet.has(iso)) collateral.push(iso);
+        });
+      });
+      // A LONE phase's column change is invisible (it spans the whole row either way), so without
+      // this the gesture is offered where nothing will visibly happen.
+      if(!changed) return { ok:false, reason:'no-change' };
+      return { ok:true, collateral };
+    } finally {
+      gridColSwaps = savedStore;
+      swapSuppressed = savedSup;
+    }
+  }
+
+  // Write the run, as ONE undo step.
+  function commitSwapRun(run){
+    const verdict = canSwapRun(run);
+    if(!verdict.ok) return verdict;
+    // ⛔ Before anything renders. Any apply path can be reached with a note or hiatus editor open,
+    // and render() DISCARDS an orphaned editor without committing it -- the user's typed text
+    // vanishes with no error.
+    if(activeNoteEditor) commitActiveNoteEditor();
+    // pushUndoSnapshot() before mutating is a FLUSH (it early-returns when nothing changed); the
+    // TRAILING push is what commits this as exactly one step, the asOneUndoStep shape.
+    pushUndoSnapshot();
+    gridColSwaps = swapStoreAfter(run);
+    update();                     // the reconciler lives INSIDE computeSchedule, so rebuild the
+                                  // schedule -- never render(currentSchedule). One update() = one
+                                  // render = one captureScroll/restoreScroll pair.
+    pushUndoSnapshot();
+    markDirty();
+    return verdict;
+  }
+
+  // ---------- Column order: the gesture and the indicators (F2-d) ----------
+  // Two-step, not one: SELECT a run (Feature 1's marquee or a plain click), then MOVE it. The drag
+  // never starts on a <td>, so it cannot compete with .is-span, .is-col, .is-row, click-to-edit-note,
+  // dblclick-to-fill or the batch marquee.
+
+  const swapReducedMotion = () => !!(window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // What the user is told when a direction is not available. This is the single most important
+  // piece of feedback in the feature: the top UX risk is a gesture that appears to do nothing.
+  const SWAP_WHY = {
+    'no-partner':      'Swap needs a phase in the column beside it, in every week of the selection.',
+    'width-mismatch':  'The two columns are different widths — a swap needs them to match.',
+    'partial':         'Select a phase’s whole run within one year to swap its column.',
+    'no-change':       'Nothing would move — this phase already has the row to itself.',
+    'width-override':  'Clear the hand-set width first, then swap.',
+  };
+  function swapWhy(v){
+    if(!v || !v.reason) return '';
+    if(v.reason === 'width-override' && v.badWeek)
+      return 'Clear the hand-set width on ' + phaseLabelFor(v.phaseKey) + ' '
+           + fmtShort(parseDateUTC(v.badWeek)) + ' to swap its column.';
+    if(v.reason === 'simpost')
+      return phaseLabelFor('production') + '’s column can’t move while Simultaneous Post is on.';
+    if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];
+    return 'Can’t swap: ' + (SWAP_REASON_TEXT[v.reason] || v.reason) + '.';
+  }
+
+  // The cell the move is seeded from. The ANCHOR wins -- it is the cell the user last clicked or
+  // started the sweep on, so a single click is unambiguous and a sweep down one column seeds at its
+  // top. Only when the anchor is gone does this fall back to the phase with the most selected cells
+  // in one block (ties to the leftmost), which keeps the choice deterministic.
+  function swapSeed(){
+    if(viewMode !== 'sheet' || !gridSel.size) return null;
+    const tds = allPhaseTds().filter(td => gridSel.has(SEL_KEY(td)));
+    if(!tds.length) return null;
+    let pick = gridSelAnchor ? tds.find(td => SEL_KEY(td) === gridSelAnchor) : null;
+    if(!pick){
+      const groups = new Map();
+      tds.forEach(td=>{
+        const k = String(td.dataset.week).slice(0,4) + '|' + td.dataset.pkey;
+        if(!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(td);
+      });
+      let best = null;
+      groups.forEach(list=>{
+        list.sort((a, b)=> (+a.parentElement.dataset.row) - (+b.parentElement.dataset.row));
+        if(!best || list.length > best.length ||
+           (list.length === best.length && +list[0].dataset.own < +best[0].dataset.own)) best = list;
+      });
+      pick = best && best[0];
+    }
+    if(!pick) return null;
+    return { weekIso: pick.dataset.week, phaseKey: pick.dataset.pkey };
+  }
+
+  // ⚠️ A verdict is one computeSchedule for the trial plus the gate's own passes. That is fine on
+  // SELECTION and ruinous on every repaint -- and redrawGridOverlay runs on every render, which is
+  // every keystroke in a date field. So verdicts are computed at most once per settled state, off a
+  // debounce, and cached against a structural key that carries everything a verdict depends on.
+  let _swapCand = { key:'', left:null, right:null };
+  let _swapCandTimer = 0;
+  function swapCandKey(){
+    const seed = swapSeed();
+    if(!seed) return '';
+    const wk = (currentSchedule && currentSchedule.weeks) || [];
+    return seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
+      + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
+      + '|' + Object.keys(gridColSwaps).sort().join(',')
+      // VALUES, not just keys. The D4 refusal turns on a cell span's l/r, and a double-click fill
+      // rewrites those under an existing key -- invisible to a key-only signature, and nothing else
+      // in this key moves either, since cellSpans does not affect any week's col multiset.
+      + '|' + Object.keys(cellSpans).sort().map(k=>{
+          const v = cellSpans[k];
+          return k + ':' + (v && typeof v === 'object' ? (v.l|0) + ',' + (v.r|0) : '?');
+        }).join(',');
+  }
+  function ensureSwapCandidates(){
+    const key = swapCandKey();
+    if(key === _swapCand.key) return;
+    if(!key){                                   // selection gone: reset now, no timer
+      if(_swapCandTimer){ clearTimeout(_swapCandTimer); _swapCandTimer = 0; }
+      _swapCand = { key:'', left:null, right:null };
+      return;
+    }
+    if(_swapCandTimer) clearTimeout(_swapCandTimer);
+    _swapCandTimer = setTimeout(()=>{
+      _swapCandTimer = 0;
+      const k = swapCandKey();
+      if(!k){ _swapCand = { key:'', left:null, right:null }; return; }
+      const seed = swapSeed();
+      const evalDir = dir => {
+        const run = swapRunFor(seed.weekIso, seed.phaseKey, dir);
+        return run.ok ? Object.assign(run, canSwapRun(run)) : run;
+      };
+      _swapCand = { key:k, left: evalDir(-1), right: evalDir(1) };
+      redrawGridOverlay(null);                  // key now matches, so this cannot re-enter
+    }, 140);
+  }
+  const swapCandFor = dir => dir < 0 ? _swapCand.left : _swapCand.right;
+
+  // What the toolbar is told. The buttons stay ENABLED even when a direction is unavailable, and the
+  // label carries the reason instead: pressing one then explains why nothing moved, which a disabled
+  // button cannot do. Before the debounced verdict lands, the label is the generic invitation.
+  function swapPayload(){
+    if(!swapSeed()) return { visible:false, leftOk:false, rightOk:false, leftLabel:'', rightLabel:'' };
+    const L = swapCandFor(-1), R = swapCandFor(1);
+    const lab = (c, dir) => c ? (c.ok ? c.label : swapWhy(c))
+      : 'Swap this phase’s column ' + (dir < 0 ? 'left' : 'right');
+    return { visible:true, leftOk: !!(L && L.ok), rightOk: !!(R && R.ok),
+             leftLabel: lab(L, -1), rightLabel: lab(R, 1) };
+  }
+
+  // Transient narration: a confirmation after a move, or the reason a move was refused. Held in a
+  // var and drawn by the layer below rather than injected, so the next render cannot orphan it.
+  let swapFlash = '';
+  // Optional { weeks, phaseKey, place } -- WHICH run the message is about, and which side of it to
+  // sit on. Carried as data rather than as a captured box because the commit re-renders the table
+  // and every box goes stale; the draw resolves it from the live DOM by week + phase key.
+  let swapFlashAt = null;
+  let _swapFlashTimer = 0;
+  function flashSwapMsg(text, ms, at){
+    if(_swapFlashTimer) clearTimeout(_swapFlashTimer);
+    swapFlash = text || '';
+    swapFlashAt = swapFlash ? (at || null) : null;
+    if(!swapFlash){ redrawGridOverlay(null); return; }
+    _swapFlashTimer = setTimeout(()=>{
+      _swapFlashTimer = 0; swapFlash = ''; swapFlashAt = null; redrawGridOverlay(null);
+    }, ms || 4200);
+    redrawGridOverlay(null);
+  }
+  // Which side of the run a message should sit on: the side the COLLATERAL is not on. A chip that
+  // says "2 other weeks changed width" while covering those two weeks is worse than no chip.
+  function swapFlashSide(run, collateral){
+    const rowOf = iso => {
+      const td = allPhaseTds().find(t => t.dataset.week === iso);
+      return td && td.parentElement ? +td.parentElement.dataset.row : null;
+    };
+    const runRows = run.weeks.map(rowOf).filter(n => n !== null);
+    const colRows = (collateral || []).map(rowOf).filter(n => n !== null);
+    if(!runRows.length) return 'above';
+    return (colRows.length && Math.min.apply(null, colRows) < Math.min.apply(null, runRows))
+      ? 'below' : 'above';
+  }
+
+  // A SECOND layer, and the z-index is the whole reason. .grid-sel-layer must stay at z-index 1 so
+  // its rects and chip scroll UNDER the frozen sticky header (`.sheet-table th` is z-index 2) -- but
+  // z-index 1 + position:absolute makes it a stacking context, and a knob trapped inside it would
+  // sit below `.grid-resize.is-col` (z-index 5, 7px wide, FULL TABLE HEIGHT, pointer-events:auto),
+  // which is centred on exactly the seam the knob has to be centred on. The knob would be
+  // unclickable at its own centre. One draw pass, two layers.
+  function ensureSwapLayer(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    if(!wrap) return null;
+    let layer = wrap.querySelector(':scope > .grid-swap-layer');
+    if(layer) return layer;
+    layer = document.createElement('div');
+    layer.className = 'grid-swap-layer';
+    wrap.appendChild(layer);
+    return layer;
+  }
+
+  const swapUnion = boxes => boxes.reduce((u, b)=> !u ? { l:b.wrapLeft, t:b.wrapTop,
+      r:b.wrapLeft + b.wrapWidth, bo:b.wrapTop + b.wrapHeight } : {
+      l:Math.min(u.l, b.wrapLeft), t:Math.min(u.t, b.wrapTop),
+      r:Math.max(u.r, b.wrapLeft + b.wrapWidth), bo:Math.max(u.bo, b.wrapTop + b.wrapHeight) }, null);
+  const swapRunBoxes = (weeks, key, g) => weeks.map(iso => swapTdFor(iso, key))
+    .filter(Boolean).map(td => tdBox(td, g)).filter(Boolean);
+  // Every phase cell of one week of one block, as one box -- the honest footprint of a collateral
+  // reflow, which is a change to how that week's whole phase area is divided.
+  function swapWeekBox(iso, g){
+    const boxes = allPhaseTds().filter(td => td.dataset.week === iso).map(td => tdBox(td, g)).filter(Boolean);
+    return boxes.length ? swapUnion(boxes) : null;
+  }
+  function swapRect(cls, u){
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.left = u.l + 'px'; d.style.top = u.t + 'px';
+    d.style.width = Math.max(1, u.r - u.l) + 'px'; d.style.height = Math.max(1, u.bo - u.t) + 'px';
+    return d;
+  }
+
+  // Live drag state. `dir` is null until the pointer has crossed the 12px threshold, so a stray
+  // press on the knob is not a move.
+  let swapDrag = null;
+
+  // Drawn from redrawGridOverlay, which is the single repaint entry point for both features.
+  // `selLayer` is Feature 1's (pointer-events:none, under the header); this owns the interactive
+  // one above it.
+  function drawSwapLayer(g, selLayer){
+    const layer = ensureSwapLayer();
+    if(!layer) return;
+    layer.textContent = '';
+    if(viewMode !== 'sheet' || !g) return;
+    ensureSwapCandidates();
+
+    const seed = swapSeed();
+    const flash = swapFlash;
+    const cands = [swapCandFor(-1), swapCandFor(1)].filter(Boolean);
+    const eligible = cands.filter(c => c.ok);
+
+    // The sticky header floats over the top of the scroll pane, and this layer paints ABOVE it. A
+    // knob for a run scrolled up under the header would sit on top of "Date | 2026 | Notes", so
+    // clamp it below the header -- and drop it entirely once the run is out of sight.
+    let headerBottom = 0;
+    const thead = document.querySelector('#table-wrap table.sheet-table thead');
+    if(thead) headerBottom = thead.getBoundingClientRect().bottom - g.wrapRect.top;
+
+    eligible.forEach(run=>{
+      const mine = swapRunBoxes(run.weeks, run.phaseKey, g);
+      if(!mine.length) return;
+      const u = swapUnion(mine);
+      const x = run.dir > 0 ? u.r : u.l;
+      let y = (u.t + u.bo) / 2;
+      if(u.bo < headerBottom + 6) return;                  // run is behind the sticky header
+      y = Math.max(y, headerBottom + 12);
+      const k = document.createElement('div');
+      k.className = 'grid-swap-knob';
+      k.dataset.dir = String(run.dir);
+      k.style.left = x + 'px';
+      k.style.top = y + 'px';
+      k.setAttribute('role', 'button');
+      k.setAttribute('tabindex', '0');
+      k.setAttribute('aria-label', run.label);
+      k.title = run.label + ' — drag across the column boundary';
+      k.textContent = run.dir > 0 ? '›' : '‹';
+      if(swapDrag && swapDrag.dir === run.dir) k.classList.add('dragging');
+      layer.appendChild(k);
+    });
+
+    // The drag preview: solid ghost where the run lands, dashed where the partner lands, and dotted
+    // amber on every week OUTSIDE both runs whose layout the trial changes -- the honest disclosure
+    // of a partial swap's collateral, shown BEFORE the drop.
+    // ⛔ Rects only. Rewriting colSpan on live cells reflows the whole table on every pointermove,
+    // which is the documented reason frozen .span-preview is a ghost in the first place.
+    if(swapDrag && swapDrag.dir && swapDrag.run && selLayer){
+      const run = swapDrag.run;
+      const mine = swapRunBoxes(run.weeks, run.phaseKey, g);
+      const theirs = swapRunBoxes(run.weeks, run.partnerKey, g);
+      if(theirs.length) selLayer.appendChild(swapRect('grid-swap-ghost', swapUnion(theirs)));
+      if(mine.length) selLayer.appendChild(swapRect('grid-swap-ghost is-partner', swapUnion(mine)));
+      (run.collateral || []).forEach(iso=>{
+        const b = swapWeekBox(iso, g);
+        if(b) selLayer.appendChild(swapRect('grid-swap-collateral', b));
+      });
+    }
+
+    // One chip, and only when it says something the user needs. A passive "no phase beside it"
+    // on every single-column selection would be noise, so those reasons are reserved for the
+    // moment the user actually presses a button or completes a drag (flashSwapMsg).
+    let msg = flash;
+    if(!msg && !eligible.length && cands.length){
+      const interesting = cands.find(c => !c.ok && c.reason && c.reason !== 'no-partner'
+        && c.reason !== 'width-mismatch' && c.reason !== 'partial');
+      if(interesting) msg = swapWhy(interesting);
+    }
+    if(!msg || !seed) return;
+    const chip = document.createElement('div');
+    chip.className = 'grid-swap-chip' + (flash ? ' is-flash' : '');
+    chip.setAttribute('role', 'status');
+    chip.textContent = msg;
+    layer.appendChild(chip);
+    // Anchored to the whole RUN the message is about when there is one, otherwise to the seed cell.
+    let box = null, place = 'above';
+    if(flash && swapFlashAt){
+      const bs = swapRunBoxes(swapFlashAt.weeks, swapFlashAt.phaseKey, g);
+      if(bs.length){
+        const u = swapUnion(bs);
+        box = { wrapLeft:u.l, wrapTop:u.t, wrapWidth:u.r - u.l, wrapHeight:u.bo - u.t };
+      }
+      place = swapFlashAt.place || 'above';
+    }
+    if(!box){
+      const anchorTd = swapTdFor(seed.weekIso, seed.phaseKey);
+      box = anchorTd && tdBox(anchorTd, g);
+    }
+    if(box){
+      const cw = chip.offsetWidth, ch = chip.offsetHeight;
+      const lw = layer.clientWidth, lh = layer.clientHeight;
+      // STACKED above Feature 1's count chip, never over it. The two say different things (how many
+      // cells can expand / why a column will not move) and both can be live at once, so they queue
+      // upwards instead of fighting for one slot. Read off the sibling's recorded box rather than
+      // recomputed, so the two placements cannot disagree.
+      const count = selLayer && selLayer.querySelector('.grid-sel-chip');
+      const ceiling = count && count.dataset.top !== undefined && place === 'above'
+        ? Math.min(box.wrapTop, +count.dataset.top) : box.wrapTop;
+      let top = place === 'below' ? box.wrapTop + box.wrapHeight + 5 : ceiling - ch - 5;
+      if(top < headerBottom + 2) top = Math.min(lh - ch, box.wrapTop + box.wrapHeight + 5);
+      chip.style.left = Math.max(0, Math.min(box.wrapLeft, lw - cw)) + 'px';
+      chip.style.top = Math.max(0, Math.min(top, Math.max(0, lh - ch))) + 'px';
+    }
+  }
+
+  // The frozen render replaces the table synchronously, so the real cells teleport. Draw two ghosts
+  // at the PRE-move positions in each phase's own colour and animate them to where they landed, so
+  // the eye can follow the exchange. Removed on animationend AND on a safety timeout, because the
+  // element can be detached mid-animation by another render.
+  function playSwapSettle(run, pre){
+    if(swapReducedMotion()) return;
+    requestAnimationFrame(()=>{
+      const layer = ensureSelLayer();
+      const g = selGeom();
+      if(!layer || !g) return;
+      [[run.phaseKey, -3], [run.partnerKey, 3]].forEach(([key, lift], i)=>{
+        const from = pre[key];
+        const now = swapUnion(swapRunBoxes(run.weeks, key, g));
+        if(!from || !now) return;
+        const d = swapRect('grid-swap-settle', from);
+        d.style.background = pre.colors[key] || '#999';
+        d.style.setProperty('--dx', (now.l - from.l) + 'px');
+        d.style.setProperty('--lift', lift + 'px');
+        d.style.zIndex = String(2 + i);
+        const kill = ()=>{ if(d.parentNode) d.parentNode.removeChild(d); };
+        d.addEventListener('animationend', kill);
+        setTimeout(kill, 400);
+        layer.appendChild(d);
+      });
+    });
+  }
+  // Everything the settle needs, read BEFORE the commit renders it away.
+  function swapSettleSnapshot(run){
+    const g = selGeom();
+    if(!g) return null;
+    const out = { colors:{} };
+    [run.phaseKey, run.partnerKey].forEach(key=>{
+      const boxes = swapRunBoxes(run.weeks, key, g);
+      out[key] = boxes.length ? swapUnion(boxes) : null;
+      const td = swapTdFor(run.weeks[0], key);
+      out.colors[key] = td ? (td.style.backgroundColor || '') : '';
+    });
+    return out;
+  }
+
+  // The one place a move is performed, whatever triggered it.
+  function doSwapMove(dir){
+    if(viewMode !== 'sheet') return false;
+    const cand = swapCandFor(dir);
+    if(!cand){                       // verdict not in yet -- compute this one synchronously
+      const seed = swapSeed();
+      if(!seed){ flashSwapMsg('Select a phase cell first, then swap its column.'); return false; }
+      const run = swapRunFor(seed.weekIso, seed.phaseKey, dir);
+      const v = run.ok ? Object.assign(run, canSwapRun(run)) : run;
+      if(!v.ok){ flashSwapMsg(swapWhy(v)); return false; }
+      return finishSwapMove(v);
+    }
+    if(!cand.ok){ flashSwapMsg(swapWhy(cand)); return false; }
+    return finishSwapMove(cand);
+  }
+  function finishSwapMove(cand){
+    // ⛔ RE-DERIVE from the seed instead of trusting the cached candidate. Verdicts are debounced and
+    // cached (see swapCandKey), so the run in hand can be up to a beat stale -- and a run carries the
+    // D4 hand-set-width refusal, which canSwapRun does not re-check. Re-walking is cheap (pure DOM
+    // reads) and it is what makes the thing that moves identical to the thing that was just judged.
+    const run = swapRunFor(cand.weeks[0], cand.phaseKey, cand.dir);
+    if(!run.ok){ flashSwapMsg(swapWhy(run)); return false; }
+    const pre = swapSettleSnapshot(run);
+    const verdict = commitSwapRun(run);
+    if(!verdict.ok){ flashSwapMsg(swapWhy(Object.assign({}, run, verdict))); return false; }
+    if(pre) playSwapSettle(run, pre);
+    // A completed move must never be silent. Collateral is the case that genuinely needs narrating;
+    // under reduced motion there is no settle to see, so confirm every move.
+    const n = (verdict.collateral || []).length;
+    const at = { weeks: run.weeks, phaseKey: run.phaseKey,
+                 place: swapFlashSide(run, verdict.collateral) };
+    if(n) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + phaseLabelFor(run.partnerKey)
+        + '. ' + n + (n === 1 ? ' other week' : ' other weeks') + ' changed width to fit.', 0, at);
+    else if(swapReducedMotion()) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey)
+        + ' ↔ ' + phaseLabelFor(run.partnerKey) + ' (' + swapRunDates(run.weeks) + ')', 0, at);
+    else flashSwapMsg('');
+    return true;
+  }
+
+  // Fast path: drag the knob. DRAG ONLY -- a single click on a column boundary must never permute
+  // the schedule, and that boundary's documented double-click-to-autofit has to keep working.
+  // Delegated from the layer, never from document: the existing .grid-resize pointerdown
+  // self-guards on closest('.grid-resize'), so a knob never matches it. Zero contention.
+  document.addEventListener('pointerdown', e=>{
+    const k = e.target.closest && e.target.closest('.grid-swap-knob');
+    if(!k || e.button !== 0) return;
+    const dir = +k.dataset.dir;
+    const run = swapCandFor(dir);
+    if(!run || !run.ok) return;
+    // ⛔ No preventDefault: in Chromium preventDefault on pointerdown over the grid suppresses
+    // mousedown, mouseup, click AND dblclick outright. Suppress the text selection only, and only
+    // for the life of this gesture.
+    const killSel = ev=> ev.preventDefault();
+    document.addEventListener('selectstart', killSel, true);
+    try { k.setPointerCapture && k.setPointerCapture(e.pointerId); } catch(_){}
+    const x0 = e.clientX;
+    swapDrag = { dir:null, run, knob:k };
+    k.classList.add('dragging');
+    document.body.classList.add('grid-swapping');
+
+    const onMove = ev=>{
+      if(ev.buttons === 0){ onUp(ev); return; }
+      const dx = ev.clientX - x0;
+      const armed = (dir > 0 ? dx >= 12 : dx <= -12);
+      if(armed === !!swapDrag.dir) return;
+      swapDrag.dir = armed ? dir : null;
+      redrawGridOverlay(null);
+    };
+    const onUp = ev=>{
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('selectstart', killSel, true);
+      document.body.classList.remove('grid-swapping');
+      const fire = !!(swapDrag && swapDrag.dir);
+      swapDrag = null;
+      if(fire) doSwapMove(dir); else redrawGridOverlay(null);
+    };
+    const onKey = ev=>{
+      if(ev.key !== 'Escape') return;
+      ev.preventDefault();
+      if(swapDrag) swapDrag.dir = null;
+      onUp(ev);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+    document.addEventListener('keydown', onKey, true);
+  }, true);
+
+  // ⛔ A knob carries role="button" tabindex="0", so it MUST be operable from the keyboard -- an
+  // element that announces itself as a button and then does nothing when you press Enter on it is
+  // worse than one with no role at all. This is the one place a swap fires without a drag, and it is
+  // legitimate: focus is explicit, unlike the stray click on a column boundary the drag threshold
+  // exists to reject. Feature 1's Enter/Space handler only claims those keys when focus is on <body>,
+  // so a focused knob cannot make both fire.
+  document.addEventListener('keydown', e=>{
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    if(e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    const k = e.target.closest && e.target.closest('.grid-swap-knob');
+    if(!k) return;
+    e.preventDefault();
+    doSwapMove(+k.dataset.dir);
+  });
+
+  // Primary path: the toolbar buttons. This is what gives the feature discoverability, keyboard
+  // access and touch support, none of which a knob drag can provide -- and it is where a REFUSAL
+  // gets explained, since a disabled button explains nothing.
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('#colswap-left-btn, #colswap-right-btn');
+    if(!b) return;
+    e.preventDefault();
+    doSwapMove(b.id === 'colswap-left-btn' ? -1 : 1);
+  });
+
+  // Keyboard. Alt+Arrow rather than a bare arrow: the arrows belong to the page, and Alt is free.
+  document.addEventListener('keydown', e=>{
+    if(!e.altKey || e.metaKey || e.ctrlKey) return;
+    if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if(viewMode !== 'sheet' || !gridSel.size) return;
+    const a = document.activeElement;
+    if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+    e.preventDefault();
+    doSwapMove(e.key === 'ArrowLeft' ? -1 : 1);
+  });
 
   // ---------- UI: phase rows ----------
   function buildPhaseRows(){
