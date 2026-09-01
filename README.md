@@ -29,6 +29,63 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — expand a whole run of cells in one go
+
+The first of the two features in [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md).
+Closing the gap beside a phase cell used to be one double-click or one edge-drag **per cell**. Now
+you drag across a run of cells to highlight them — phase cells and per-phase hiatus bands alike,
+across columns and year blocks — and **Expand** in the preview toolbar (or a double-click on any
+highlighted cell) fills every one of them in a single step, each to its own row's limit. Again pulls
+them all back. Shift-click extends, ⌘/Ctrl-click toggles, Esc clears, and **one undo reverses the
+whole batch**.
+
+**No frozen code was edited and no save-format surface was added.** `cellSpans` already carried
+exactly the per-cell `{l,r,k}` a batch produces, so a batch is N of the writes it already accepts.
+The highlight itself is deliberately *not* state: it lives in module-scope session vars, never in
+`captureSnapshot()` — a highlight is not calendar data, and capturing it would bake one user's
+selection into another user's file and add phantom undo steps. It needs no entry in `resetAll()`,
+the Reset Notes & Hiatus branch, `applyStateSnapshot()` or `shiftCalendar()`'s re-key either: every
+one of those paths ends in a render, and the overlay's redraw prunes retired keys against the live
+DOM. That single cleanup mechanism is the whole reason the five-site checklist does not apply — noted
+here because "completing" it later would reintroduce stale keys.
+
+Things that had to be got right, each of which a simpler version gets wrong (all four were caught by
+the plan's adversarial review before any code existed, and re-verified in the browser):
+
+- **The apply gesture has to survive its own first click.** A plain "a bare click dismisses the
+  selection" rule clears it on the *first* pointerup of the double-click, so the batch handler always
+  bails and the single-cell handler fills exactly one cell — the batch would have been 100%
+  unreachable. A bare click *inside* a live selection is therefore a no-op.
+- **Cells are resolved geometrically, not from `e.target`.** The resize handles take pointer events
+  and cover roughly 29% of a 77px cell — all of a hand-narrowed one — and in that band the frozen
+  handle's own double-click runs instead and does the *opposite* thing. `document.elementsFromPoint`
+  walks past them.
+- **Uncommitted note text must not be destroyed.** The note editor commits on outside click via a
+  document *bubble* listener, and `render()` discards an orphaned editor without committing it — so
+  a capture-phase `stopPropagation` (the obvious way to stop the editor opening) silently loses
+  whatever you had typed. Instead one line in the opener, which is not frozen, declines to open while
+  letting the click bubble on so the commit still happens.
+- **Per-row contention.** Two highlighted cells in the same week can both reach the same empty
+  column. Writing both full claims stores a value the layout will never grant, and the loser's
+  over-claim survives to resurrect later and move a cell nobody touched. Claims are now clamped
+  left-to-right before writing, which is what makes "any state a batch can reach is reachable by N
+  manual double-clicks" actually true.
+- The marquee arms on a real drag threshold (10px, plus leaving the origin cell) rather than any
+  1px drift, or a stationary double-click near a 20px row boundary would start selecting instead of
+  filling. The overlay's `MutationObserver` watches `childList` **only, without `subtree`** — with
+  `subtree` it would observe its own paint and hang the tab.
+
+Verified in the browser on the build: a 4-cell sweep across two year blocks expands and pulls back
+as one step; one ⌘Z reverses all four; a mixed selection of phase cells and per-phase hiatus bands
+expands together; all-phase hiatus bands are structurally unselectable (no column of their own);
+typing a note then ⌘-clicking a phase cell **commits** the note rather than losing it. The toolbar
+button is present at first commit and hidden by `display` — never conditionally unmounted, per the
+rule that cost Save As earlier — and its label is derived from bridged state rather than written as
+`textContent`, which would destroy a Mantine Button's inner spans.
+`cd tests/harness && HARNESS_PAGE=/dist/index.html ./gate.sh` is green on every leg including 0
+console errors, a byte-identical waterfall PDF and identical Excel parts; the lone `restore` failure
+is the known environmental IndexedDB stall.
+
 ### Unreleased — the per-phase hiatus toggle's own label is the name field
 
 Simplification, requested right after the per-phase name field shipped: instead of a checkbox

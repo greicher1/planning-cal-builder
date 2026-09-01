@@ -55,9 +55,17 @@ export function PreviewToolbar() {
   // instead of `opacity:.4`, which composited to 1.72:1 on the app's ground: the worst contrast in
   // the file, on its two most-used disabled controls (UI-CONVENTIONS.md §3b).
   const [undoRedo, setUndoRedo] = useState({ undo: true, redo: true })
+  // The batch-expand button's state. Same justification as undoRedo above, plus one of its own: the
+  // label flips between "Expand" and "Pull back", and the engine must never write a Mantine
+  // Button's textContent -- that destroys its inner spans. So the label is DERIVED here from
+  // bridged data, never pushed as a string.
+  const [gridSel, setGridSel] = useState({ count: 0, expandable: 0, allFilled: false })
 
   useLayoutEffect(() => {
-    installChrome({ undoRedo: (patch) => setUndoRedo((s) => ({ ...s, ...patch })) })
+    installChrome({
+      undoRedo: (patch) => setUndoRedo((s) => ({ ...s, ...patch })),
+      gridSelection: (s) => setGridSel(s),
+    })
   }, [])
 
   // Renders the INTERIOR of .view-toggle-row, which stays in the static skeleton. #gap-warning has
@@ -198,6 +206,22 @@ export function PreviewToolbar() {
             <p className="tools-msg" data-tools-msg=""></p>
           </div>
         </div>
+
+        {/* Batch expand. ⛔ ALWAYS RENDERED, never conditionally mounted: the engine resolves it by
+            id with a delegated click handler, and the documented law here is that anything the
+            engine addresses by id must exist at first commit. Visibility is carried by `display`,
+            the same shape #file-menu-wrap uses. It is a real <button>, deliberately NOT an id'd
+            input/select/textarea -- collectFieldValues() sweeps those into every saved file and
+            adds phantom undo steps, and this control is transient UI. */}
+        <Tooltip label={gridSel.allFilled ? 'Pull the selected cells back to their own column'
+                                          : 'Expand every selected cell across its empty columns'}
+                 position="bottom" withArrow>
+          <Button id="batch-expand-btn" className="tools-btn" type="button" size="xs" variant="default"
+                  style={{ display: gridSel.count ? undefined : 'none' }}
+                  disabled={!gridSel.expandable}>
+            {gridSel.allFilled ? 'Pull back' : 'Expand'} {gridSel.expandable || gridSel.count}
+          </Button>
+        </Tooltip>
 
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
           <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>

@@ -645,6 +645,421 @@ export function initLegacyApp() {
     markDirty();
   });
 
+  // ---------- Multi-cell span selection ----------
+  // Select several phase / per-phase-hiatus cells, then expand them ALL in one action instead of
+  // one double-click or one edge-drag per cell (owner request, 1 Sep 2026). See
+  // GRID-DIRECT-MANIPULATION-PLAN.md section 5 for the full design and the reasoning behind each
+  // guard below -- most of them exist because a plausible simpler version was measured breaking
+  // something else in this grid.
+  //
+  // ⛔ NO new state reaches captureSnapshot(). cellSpans already carries exactly the per-cell
+  // {l,r,k} a batch produces, and l/r are own-slot-relative while k is that row's own nPhases --
+  // both necessarily differ per row, so one entry per cell is required, not merely acceptable.
+  // gridSel / gridSelAnchor / suppressGridClick are SESSION UI, the same class as isDirty: a
+  // highlight is not calendar data, and capturing it would bake one user's selection into another
+  // user's file and add phantom undo steps. They are module-scope vars, not id'd DOM controls, so
+  // collectFieldValues() cannot sweep them.
+  let gridSel = new Set();        // "<weekIso>|<phaseKey>"
+  let gridSelAnchor = null;       // last cell touched, for a Shift-click range
+  let suppressGridClick = false;  // one-shot: the click THIS gesture produces must not open an editor
+
+  const SEL_KEY = td => td.dataset.week + '|' + td.dataset.pkey;
+  // A per-phase hiatus band carries .sheet-phase-cell UNCONDITIONALLY, but its
+  // data-own/lmin/rmax/a/b/nphases set is emitted only when cell.own !== undefined. So the CLASS is
+  // not proof the drag contract is present -- test data-own. (The single-cell dblclick survives
+  // this only by accident: NaN makes `!maxL && !maxR` true and it early-returns.)
+  const hasSpanContract = td => Number.isFinite(+td.dataset.own);
+  function allPhaseTds(){
+    return [...document.querySelectorAll('td.sheet-phase-cell')].filter(hasSpanContract);
+  }
+  function selCells(){ return allPhaseTds().filter(td => gridSel.has(SEL_KEY(td))); }
+
+  // The single-cell dblclick's own math, factored so the batch cannot drift from it.
+  function spanRoom(td){
+    const own = +td.dataset.own;
+    return { td, own, key: SEL_KEY(td),
+             maxL: own - (+td.dataset.lmin), maxR: (+td.dataset.rmax) - own,
+             curL: own - (+td.dataset.a),    curR: (+td.dataset.b) - own,
+             k: +td.dataset.nphases || 1 };
+  }
+  const canExpand = r => !!(r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+
+  // elementsFromPoint (PLURAL). The .grid-resize handles take pointer events (z 4-6) and cover
+  // ~29% of a 77px cell -- ALL of a hand-narrowed one -- so elementFromPoint returns a handle for
+  // much of a cell's width and e.target misses the cell entirely. Walking the hit stack needs no
+  // CSS change and no pointer-events state to save and restore.
+  function hitCell(x, y){
+    for(const el of document.elementsFromPoint(x, y)){
+      const td = el.closest && el.closest('td.sheet-phase-cell');
+      if(td && hasSpanContract(td)) return td;
+    }
+    return null;
+  }
+
+  // Geometry for one pass, read from FROZEN spanHandleGeometry() rather than re-derived, so there
+  // is no second copy of the column-boundary walk to drift. colX is .sheet-grid-wrap-relative.
+  function selGeom(){
+    const geo = spanHandleGeometry();
+    if(!geo) return null;
+    return { colX: geo.colX, wrapRect: geo.wrap.getBoundingClientRect() };
+  }
+  // The td's own starting flat colgroup index -- the same accumulate-colSpan walk applyCellFitLive
+  // does. One <tr> holds every year block side by side, so a flat index is the only unambiguous
+  // horizontal address.
+  function tdFlatStart(td){
+    const tr = td.parentElement;
+    if(!tr) return -1;
+    let ci = 0;
+    for(const cell of tr.cells){
+      if(cell === td) return ci;
+      ci += cell.colSpan || 1;
+    }
+    return -1;
+  }
+  // The cell's OWN-SLOT box. Marquee membership tests THIS, never the td's bounding box: a
+  // colspan-2 cell straddles both phase columns, so a td-box test sweeping down ONE column
+  // silently selects every full-width row of a DIFFERENT phase -- which is exactly the owner's
+  // screenshot, and it would then make the column-swap run test fail on their own gesture.
+  function ownSlotBox(td, g){
+    const start = tdFlatStart(td);
+    if(start < 0 || !g) return null;
+    const flatOwn = start + (+td.dataset.own - +td.dataset.a);
+    const x0 = g.colX[flatOwn], x1 = g.colX[flatOwn + 1];
+    if(x0 === undefined || x1 === undefined) return null;
+    const r = td.getBoundingClientRect();
+    return { wrapLeft: x0, wrapWidth: Math.max(1, x1 - x0),
+             wrapTop: r.top - g.wrapRect.top, wrapHeight: r.height,
+             left: g.wrapRect.left + x0, right: g.wrapRect.left + x1,
+             top: r.top, bottom: r.bottom };
+  }
+
+  // The overlay lives as a SIBLING of .grid-resize-layer inside .sheet-grid-wrap: that inherits the
+  // grid's coordinate space, scrolls with the pane in both axes, is clipped by it so it can never
+  // paint over the sidebar, is absent from both print paths, and needs no buildSavedHtml strip
+  // entry. installGridResizers() clears its OWN layer only, so ours survives -- but the whole
+  // wrap is replaced on render, hence the observer below.
+  function ensureSelLayer(){
+    const wrap = document.querySelector('.sheet-grid-wrap');
+    if(!wrap) return null;
+    let layer = wrap.querySelector(':scope > .grid-sel-layer');
+    if(layer) return layer;
+    layer = document.createElement('div');
+    layer.className = 'grid-sel-layer';
+    wrap.appendChild(layer);
+    return layer;
+  }
+
+  // The SINGLE repaint entry point. Call it after EVERY mutation of gridSel, including the clear
+  // paths: a bare click that empties the selection does not render, so the observer never fires.
+  function redrawGridOverlay(marquee){
+    const layer = ensureSelLayer();
+    if(!layer) return;
+    // Prune against the live DOM. This is the design's ONE cleanup mechanism, and it is why
+    // Feature 1 needs no entry in resetAll(), the 'Reset Notes & Hiatus' branch,
+    // applyStateSnapshot() or shiftCalendar()'s re-key: every one of those paths ends in a render,
+    // and a retired key drops out here. Do not "complete" that five-site checklist later.
+    const live = new Set(allPhaseTds().map(SEL_KEY));
+    gridSel = new Set([...gridSel].filter(k => live.has(k)));
+    if(gridSelAnchor && !live.has(gridSelAnchor)) gridSelAnchor = null;
+
+    layer.textContent = '';
+    const g = selGeom();
+    if(!g) return;
+    const rows = selCells().map(spanRoom);
+    let expandable = 0, clampedNote = 0;
+    rows.forEach(r=>{
+      const b = ownSlotBox(r.td, g);
+      if(!b) return;
+      const on = canExpand(r);
+      if(on) expandable++;
+      const d = document.createElement('div');
+      d.className = 'grid-sel-cell' + (on ? '' : ' is-inert');
+      d.style.left = b.wrapLeft + 'px';
+      d.style.top = b.wrapTop + 'px';
+      d.style.width = b.wrapWidth + 'px';
+      d.style.height = b.wrapHeight + 'px';
+      layer.appendChild(d);
+    });
+    if(marquee){
+      const m = document.createElement('div');
+      m.className = 'grid-sel-marquee';
+      m.style.left = (marquee.l - g.wrapRect.left) + 'px';
+      m.style.top = (marquee.t - g.wrapRect.top) + 'px';
+      m.style.width = (marquee.r - marquee.l) + 'px';
+      m.style.height = (marquee.b - marquee.t) + 'px';
+      layer.appendChild(m);
+    }
+    if(rows.length){
+      const chip = document.createElement('div');
+      chip.className = 'grid-sel-chip';
+      const inert = rows.length - expandable;
+      chip.textContent = expandable
+        ? expandable + (expandable === 1 ? ' cell' : ' cells')
+          + (inert ? ' (' + inert + ' has no room)' : '')
+          + ' · double-click to expand'
+        : rows.length + ' selected · no room to expand';
+      layer.appendChild(chip);
+      // Clamp inside the layer's own box. overflow:hidden stops a chip below the last row from
+      // extending .sheet-scroll's scroll extent (a scrollbar that appears and vanishes with the
+      // selection), so an unclamped chip would be clipped away entirely instead.
+      let foot = null;
+      rows.forEach(r=>{ const b = ownSlotBox(r.td, g); if(!b) return;
+        if(!foot || b.wrapTop + b.wrapHeight > foot.bot){ foot = { bot: b.wrapTop + b.wrapHeight, left: b.wrapLeft, top: b.wrapTop }; } });
+      if(foot){
+        const cw = chip.offsetWidth, ch = chip.offsetHeight;
+        const lw = layer.clientWidth, lh = layer.clientHeight;
+        let top = foot.bot + 4;
+        if(top + ch > lh) top = Math.max(0, foot.top - ch - 4);
+        chip.style.left = Math.max(0, Math.min(foot.left, lw - cw)) + 'px';
+        chip.style.top = top + 'px';
+      }
+    }
+    if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
+      chrome.gridSelection({ count: rows.length, expandable,
+                             allFilled: expandable > 0 && rows.filter(canExpand)
+                               .every(r => r.curL === r.maxL && r.curR === r.maxR) });
+    }
+  }
+
+  // ⛔ childList ONLY, NO subtree. render()'s `tableEl.innerHTML =` is a DIRECT-CHILD mutation of
+  // #table-wrap, so this fires exactly once per render -- while every write into .grid-sel-layer
+  // (a descendant of .sheet-grid-wrap) stays unobserved. With subtree:true this observer would see
+  // its own paint, re-enter as a microtask and hang the tab; a re-entrancy flag is NOT sufficient,
+  // because records queued before the flag clears are still delivered.
+  // The month-view note editor's observer on this same node needs subtree:true and writes nothing
+  // inside it -- leave that one alone.
+  new MutationObserver(()=>{
+    if(viewMode !== 'sheet'){
+      if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; }
+      return;
+    }
+    redrawGridOverlay(null);
+  }).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // --header-h can change and move the scroll pane, and installGridResizers has no ResizeObserver
+  // either, so the overlay would go stale against the grid it is drawn over.
+  let _selResizeFrame = 0;
+  window.addEventListener('resize', ()=>{
+    if(_selResizeFrame) return;
+    _selResizeFrame = requestAnimationFrame(()=>{ _selResizeFrame = 0; if(gridSel.size) redrawGridOverlay(null); });
+  });
+
+  // Capture phase, so this runs BEFORE the #table-wrap click listener that stopPropagations note
+  // and hiatus cells.
+  document.addEventListener('pointerdown', e=>{
+    suppressGridClick = false;               // any new press retires a stale suppression
+    if(e.button !== 0 || viewMode !== 'sheet') return;
+    if(e.target.closest && e.target.closest('.grid-resize')) return;   // handles own their band
+    const td = hitCell(e.clientX, e.clientY);
+    if(!td) return;
+
+    // ⛔ NO preventDefault here. In Chromium, preventDefault on pointerdown suppresses mousedown,
+    // mouseup, click AND dblclick outright -- it would silently kill the note editor and the
+    // discoverable single-cell fill. Native text selection is suppressed via selectstart instead,
+    // and ONLY for the life of this gesture, so the contenteditable .hdr-line header fields (also
+    // inside #table-wrap) and the note cells' own text stay selectable.
+    // TRAP: selectstart's target is a TEXT NODE, which has no .closest -- a naive guard never
+    // matches and the selection happens anyway.
+    const killSel = ev=>{
+      const n = ev.target && ev.target.nodeType === 3 ? ev.target.parentElement : ev.target;
+      if(!n || !n.closest) return;
+      if(n.closest('.hdr-line, [contenteditable], input, textarea')) return;
+      if(n.closest('td.sheet-phase-cell')) ev.preventDefault();
+    };
+    document.addEventListener('selectstart', killSel, true);
+
+    const x0 = e.clientX, y0 = e.clientY;
+    const shiftKey = e.shiftKey, metaKey = e.metaKey || e.ctrlKey;
+    const baseSel = (shiftKey || metaKey) ? new Set(gridSel) : new Set();
+    let sweeping = false;
+
+    const onMove = ev=>{
+      if(!sweeping){
+        // BOTH conditions, not either. An `far || differentCell` test arms on a 1px drift across a
+        // row boundary (rows are ROW_DEFAULT_PX = 20), so a stationary double-click near an edge
+        // would create a selection instead of filling the cell. 10px clears Chromium's own 5px
+        // drag threshold and typical trackpad press drift.
+        const dist = Math.hypot(ev.clientX - x0, ev.clientY - y0);
+        if(dist < 10) return;
+        if(dist < 24 && hitCell(ev.clientX, ev.clientY) === td) return;
+        sweeping = true;
+        document.body.classList.add('grid-selecting');
+      }
+      const rect = { l:Math.min(x0,ev.clientX), r:Math.max(x0,ev.clientX),
+                     t:Math.min(y0,ev.clientY), b:Math.max(y0,ev.clientY) };
+      const g = selGeom();
+      gridSel = new Set(baseSel);
+      // Membership is GEOMETRIC but identity is data-week + data-pkey, never row/column index
+      // ranges: one <tr> holds every year block side by side, so an index range can straddle two
+      // unrelated blocks and two unrelated week ranges.
+      allPhaseTds().forEach(c=>{
+        const b = ownSlotBox(c, g);
+        if(b && b.right > rect.l && b.left < rect.r && b.bottom > rect.t && b.top < rect.b) gridSel.add(SEL_KEY(c));
+      });
+      gridSelAnchor = SEL_KEY(td);
+      redrawGridOverlay(rect);
+    };
+
+    const onUp = ev=>{
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('selectstart', killSel, true);
+      document.body.classList.remove('grid-selecting');
+      if(sweeping){
+        // A sweep that ends back on its start cell fires a click on that td, and the note-editor
+        // opener would open over the fresh selection. (A sweep ACROSS cells fires click on the
+        // <tr>, where the opener's closest() is null, so only this same-cell case needs it.)
+        suppressGridClick = true;
+        redrawGridOverlay(null);
+        return;
+      }
+      if(shiftKey && gridSelAnchor){
+        // Extend from the anchor to this cell, in visual order down the grid.
+        const all = allPhaseTds();
+        const ai = all.findIndex(c => SEL_KEY(c) === gridSelAnchor);
+        const bi = all.indexOf(td);
+        if(ai >= 0 && bi >= 0){
+          const [lo, hi] = ai <= bi ? [ai, bi] : [bi, ai];
+          gridSel = new Set(baseSel);
+          for(let i = lo; i <= hi; i++) gridSel.add(SEL_KEY(all[i]));
+        }
+        suppressGridClick = true;
+      } else if(metaKey){
+        const k = SEL_KEY(td);
+        if(gridSel.has(k)) gridSel.delete(k); else gridSel.add(k);
+        gridSelAnchor = k;
+        suppressGridClick = true;
+      }
+      // ⛔ A bare click INSIDE the live selection is a NO-OP. A plain "a bare click dismisses" rule
+      // cleared gridSel on the FIRST pointerup of a double-click, so the batch handler's
+      // `if(!gridSel.size) return` always bailed and the frozen single-cell handler filled exactly
+      // one cell -- the batch apply was 100% unreachable. Measured, not theorised.
+      else if(gridSel.size && !gridSel.has(SEL_KEY(td))){ gridSel.clear(); gridSelAnchor = null; }
+      redrawGridOverlay(null);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }, true);
+
+  // suppressGridClick is consumed by the note-editor opener, or retired by the next pointerdown.
+  // Belt and braces for the gap between those two: a click with NO preceding pointerdown would
+  // otherwise leave a stale suppression that eats the NEXT unrelated note click. Not reachable with
+  // a real pointer today (a <td> is not focusable, so no keyboard-synthesised click can target one)
+  // but found while testing, and cheap to close rather than leave as a latent trap. Capture phase
+  // + a task, so the opener -- a BUBBLE listener on #table-wrap -- still sees the flag first.
+  document.addEventListener('click', ()=>{
+    if(suppressGridClick) setTimeout(()=>{ suppressGridClick = false; }, 0);
+  }, true);
+
+  // ⛔ PER-ROW CONTENTION. Two selected cells in the SAME week can both reach into the SAME empty
+  // slot: data-lmin/rmax are per-cell reach as of the CURRENT render, and a batch reads them all up
+  // front. Writing both full claims stores a value applyCellSpanOverrides will never grant -- it
+  // awards the slot to whichever comes first and the loser's over-claim STAYS in the store, later
+  // resurrecting (e.g. when the winner's override is deleted by dblclick-autofit) and moving a cell
+  // the user never touched. Done sequentially this is unreachable, because the second double-click
+  // would have read a fresh data-lmin. Clamping here is what makes "any state a batch can reach is
+  // reachable by N manual double-clicks" TRUE -- which is the whole reason Feature 1 needs no
+  // save-format work.
+  function resolveRowContention(rows){
+    const byWeek = new Map();
+    rows.forEach(r=>{
+      const wk = r.key.slice(0, r.key.indexOf('|'));
+      if(!byWeek.has(wk)) byWeek.set(wk, []);
+      byWeek.get(wk).push(r);
+    });
+    const out = [];
+    byWeek.forEach(list=>{
+      list.sort((a,b)=> a.own - b.own);
+      const promised = new Set();
+      list.forEach(r=> promised.add(r.own));   // nobody may claim another selected cell's own slot
+      list.forEach(r=>{
+        let l = 0, rr = 0;
+        for(let s = r.own - 1; s >= r.own - r.maxL; s--){ if(promised.has(s)) break; promised.add(s); l++; }
+        for(let s = r.own + 1; s <= r.own + r.maxR; s++){ if(promised.has(s)) break; promised.add(s); rr++; }
+        out.push(Object.assign({}, r, { maxL:l, maxR:rr, clamped:(l !== r.maxL || rr !== r.maxR) }));
+      });
+    });
+    return out;
+  }
+
+  // Intent is decided ONCE for the whole batch (fill, unless every fillable cell is already filled,
+  // in which case pull them all back). A per-cell toggle on a mixed selection scrambles it into
+  // half filled / half not. Fill semantics with differing room: each row reaches ITS OWN maximum,
+  // never a shared minimum -- "expand the rows to fill across the column" means every selected row
+  // becomes as wide as its own row allows.
+  function batchFill(){
+    if(viewMode !== 'sheet') return false;
+    const rows = resolveRowContention(selCells().map(spanRoom).filter(canExpand));
+    const live = rows.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+    if(!live.length) return false;
+    const allFilled = live.every(r => r.curL === r.maxL && r.curR === r.maxR);
+    // pushUndoSnapshot() BEFORE mutating is a FLUSH, not the step -- it early-returns when nothing
+    // changed. The N cellSpans writes push nothing and render pushes nothing, so the TRAILING push
+    // is what commits the batch as exactly one entry (the asOneUndoStep shape). Relying on
+    // markDirty()'s debounce alone would let a keystroke inside that window fold into the same
+    // step, and one Cmd+Z would revert both.
+    pushUndoSnapshot();
+    live.forEach(r=>{
+      cellSpans[r.key] = allFilled ? { l:0, r:0, k:r.k } : { l:r.maxL, r:r.maxR, k:r.k };
+    });
+    render(currentSchedule);                 // ONE render -> ONE captureScroll/restoreScroll pair
+    pushUndoSnapshot();
+    markDirty();
+    return true;
+  }
+
+  // Double-click any SELECTED cell applies the batch. Extends the one gesture the code itself calls
+  // "the only one of the two that is discoverable without knowing the handles are there".
+  document.addEventListener('dblclick', e=>{
+    if(viewMode !== 'sheet') return;
+    // hitCell, NOT e.target.closest: the handles cover ~29% of a 77px cell and ALL of a narrow one,
+    // and in that band the frozen .grid-resize dblclick handler runs instead and performs the
+    // OPPOSITE action (delete cellSpans -> autofit ONE cell).
+    const td = hitCell(e.clientX, e.clientY);
+    if(!td) return;
+    if(!gridSel.size) return;                // no selection: the existing single-cell handler runs
+    if(!gridSel.has(SEL_KEY(td))){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); return; }
+    e.preventDefault();
+    e.stopPropagation();                     // exactly one apply, not two
+    batchFill();
+  }, true);
+
+  // The toolbar button is the PRIMARY path -- it is the one that gives this feature
+  // discoverability, keyboard access and touch support, none of which a marquee or a double-click
+  // can provide. DELEGATED from document, never a captured reference: React owns that node and
+  // remounts it, so a listener bound to the element at evaluation time would be orphaned (the
+  // documented Save As / export-button bug).
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('#batch-expand-btn');
+    if(!b) return;
+    e.preventDefault();
+    batchFill();
+  });
+
+  // Keyboard, once a selection exists. Same activeElement guard the Cmd+Z/Cmd+S handler uses, so
+  // typing a note or a phase name is never hijacked.
+  document.addEventListener('keydown', e=>{
+    if(!gridSel.size || viewMode !== 'sheet') return;
+    const a = document.activeElement;
+    if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+    if(e.key === 'Escape'){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); return; }
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); batchFill(); }
+  });
+
+  // Pre-gesture affordance without any frozen CSS: a td.sheet-phase-cell rule would be NEW frozen
+  // CSS (there is none today), but a cursor on <body> is ours.
+  let _hoverFrame = 0, _hoverOn = false;
+  document.addEventListener('pointermove', e=>{
+    if(_hoverFrame) return;
+    _hoverFrame = requestAnimationFrame(()=>{
+      _hoverFrame = 0;
+      const on = viewMode === 'sheet' && !document.body.classList.contains('grid-resizing')
+                 && !!hitCell(e.clientX, e.clientY);
+      if(on !== _hoverOn){ _hoverOn = on; document.body.classList.toggle('grid-cell-hover', on); }
+    });
+  });
 
   const _measureCanvas = document.createElement('canvas').getContext('2d');
   const _measureCache = new Map();
@@ -3392,6 +3807,15 @@ export function initLegacyApp() {
     if(viewMode !== 'sheet') return;
     const td = e.target.closest('td.sheet-note-cell, td.sheet-hiatus-cell');
     if(!td) return; // click wasn't on an editable cell
+    // A multi-cell selection gesture that ended on this cell suppresses only the EDITOR-OPENING
+    // behaviour. The click then continues to bubble, so the document outside-click listener still
+    // COMMITS an editor that was already open, and closeAllPops still runs.
+    // ⛔ Do NOT do this with a capture-phase stopPropagation instead. The note editor commits on
+    // outside click via a document BUBBLE listener, and render() DISCARDS an editor whose td has
+    // gone without committing it -- so swallowing the click silently destroys uncommitted note and
+    // hiatus text. Reproduced: click a hiatus band, type a new name, Cmd-click a phase cell, batch
+    // fill -> the typed name is gone, no error, no undo entry.
+    if(suppressGridClick){ suppressGridClick = false; return; }
     e.stopPropagation();
     if(activeNoteEditor && activeNoteEditor.td === td) return; // already editing this cell
     if(activeNoteEditor){

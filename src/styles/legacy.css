@@ -1286,6 +1286,35 @@
   body.grid-resizing.span{ cursor:ew-resize; }
   body.grid-resizing{ cursor:col-resize; user-select:none; }
   body.grid-resizing.row{ cursor:row-resize; }
+
+  /* ---------- Multi-cell span selection ---------- */
+  /* Drawn on an OVERLAY rather than as a td state: a td.sheet-phase-cell rule would be NEW frozen
+     .sheet-* CSS -- there is no such rule today -- and the freeze covers what a grid cell looks
+     like. Nothing here selects .sheet-*, .mv-* or #print-root, and nothing uses !important.
+     The layer is a sibling of .grid-resize-layer inside .sheet-grid-wrap, so it shares the grid's
+     coordinate space and is clipped by the scroll pane. */
+  .grid-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:8; overflow:hidden; }
+  .grid-sel-cell{ position:absolute; box-sizing:border-box; border:2px solid rgba(112,48,160,.9);
+    background:rgba(112,48,160,.14); border-radius:2px; }
+  /* Swept, but both neighbour slots are occupied -- nothing to expand into. SHOWN rather than
+     dropped, so the chip's count never disagrees with what the user dragged over. */
+  .grid-sel-cell.is-inert{ border:2px dashed rgba(112,48,160,.35); background:none; }
+  .grid-sel-marquee{ position:absolute; border:1px solid rgba(112,48,160,.7);
+    background:rgba(112,48,160,.07); }
+  .grid-sel-chip{ position:absolute; z-index:12; white-space:nowrap; pointer-events:none;
+    font:11px/1.4 'Inter',system-ui,sans-serif; padding:2px 7px; border-radius:10px;
+    background:rgba(112,48,160,.92); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  /* ⛔ overflow:hidden on the layer above is NOT cosmetic: .sheet-grid-wrap is width:max-content
+     with visible overflow inside an overflow:auto pane, so a chip drawn below the last row would
+     extend the scroll extent -- a scrollbar that appears and vanishes with the selection. The chip
+     is also clamped into the layer box in redrawGridOverlay, so it is never clipped away entirely.
+     A column or row drag moves the grid live through frozen repositionColHandles /
+     scheduleLiveUpdate, which know nothing about this layer, so hide it rather than let it go
+     stale -- reusing the class the frozen code already adds and removes. */
+  body.grid-resizing .grid-sel-layer{ display:none; }
+  body.grid-selecting{ user-select:none; cursor:cell; }
+  body.grid-cell-hover{ cursor:cell; }
+
   .sheet-scroll{overflow:auto; max-height:calc(100vh - var(--header-h) - 140px); border:1px solid var(--border-strong); border-radius:8px; background:#fff;}
   .cal-header-bar{display:flex; align-items:stretch; padding:10px 14px; background:#fff; border-bottom:1px solid #D9D7CE; gap:10px; min-height:52px; position:relative;}
   .cal-header-date{font-family:'Carlito','Calibri',sans-serif; font-size:11px; color:var(--text-muted); white-space:nowrap; padding-top:2px; min-width:55px;}
