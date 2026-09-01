@@ -29,6 +29,59 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the column-order gate: refuse what would disturb the calendar, and say so
+
+Step F2-b of [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md). Still **no
+gesture** — this is the safety layer, and it lands before anything can create a swap, because a gate
+that is wrong underneath a drag is undiagnosable.
+
+The swap model preserves each week's column multiset by construction, which is why the slot map
+cannot move. What construction does *not* protect is everything downstream: the Simultaneous Post
+lane is derived from Production's column, `sheetColumnWidths`' spanned-label pass sums a per-slot
+**maximum** (so a permutation genuinely can move every column's width), and splitting a phase's run
+changes what the automatic layout grants in weeks nobody selected. So the gate **measures the
+observable grid** rather than reasoning about it: `layoutFingerprint` calls the frozen pipeline
+read-only and compares the slot map, the column count, the SimPost lane, every column width, and
+each week's segment layout against the same fingerprint taken with the store suspended.
+
+Six checks, honestly labelled — three of the five an earlier draft proposed were tautologies sold as
+the primary detectors, so they are now marked as cheap sanity checks rather than protection. The one
+with real teeth confirms the two phases **actually traded places**, which catches the swaps that pass
+every structural test while one side merely gains a column at an empty run's expense.
+
+**Rejection is per pair, never per block.** Reverting a whole year block killed unrelated legal swaps
+in it — silently, permanently, re-running on every keystroke, recoverable only by Reset All or
+hand-editing the saved file. And rejected entries are **suppressed for the pass, never deleted**:
+the same rule a stale cell width follows, because otherwise a temporary duration typo would destroy
+the user's column order for good. The suppression set is rebuilt every pass, so an override starts
+applying again by itself the moment the schedule allows it.
+
+**Refusals are visible.** A new `#colswap-notice` strip (same shape and CSS as the legacy and update
+strips) names the phases, the week and the reason — *"Column order paused for Production and Post
+(11/30/26): it would re-flow weeks you did not select."* It carries no action button, because there
+is nothing safe to do automatically; fixing it means changing the schedule back or clearing the
+order, both the user's call. Dismissal is per message, so a different problem later still speaks up.
+When a swap applies *with* permitted collateral it says so too: *"Column order applied. 2 other weeks
+changed width to fit."*
+
+**Perf.** The reconciler stays inside `computeSchedule` (a per-week two-value exchange); the gate runs
+**once from `update()`**, never inside `computeSchedule`, which the backward date solver calls up to
+300 times. `update()` is bound undebounced to every phase date and duration field, so the gate is
+cached on a structural key covering week count, each week's column multiset, the stored overrides,
+the hand-dragged widths, and whether Simultaneous Post is on — the last because it flips the SimPost
+lane and can turn a legal swap illegal with no gesture involved.
+
+⚠️ **A bug this found in itself, worth recording.** The first version of the content check compared
+each week's whole segment list, `empty` filler included. A legal swap routinely makes an `empty`
+segment disappear when a cell absorbs the slot beside it — so the gate reported *"a cell would be
+lost"* and refused every correct swap, including the owner's own screenshot case. Filler is now
+excluded and only real occupants are compared. This is exactly the class of mistake that would have
+been undiagnosable behind a drag gesture, which is why the gate ships before one.
+
+New harness leg `colswapgate`, wired into `gate.sh` beside `colswap`: the two now prove opposite
+halves — a legal swap applies with its collateral disclosed, and an unsafe one is refused with the
+notice shown, a reason given, and all four store keys still present.
+
 ### Unreleased — the selection outline wraps the whole cell, and grows with it
 
 Reported: the purple highlight covered only part of the row. Two separate things were behind that,

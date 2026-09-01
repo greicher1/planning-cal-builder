@@ -56,6 +56,20 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Shown when a stored grid COLUMN ORDER can no longer be applied, or was applied but disturbed
+     weeks the user did not select. Same shape and same CSS as the two strips above.
+     ⛔ This strip is not decoration: without it a swap could silently stop applying after an
+     unrelated edit (add a phase -> the column count changes -> the gate rejects) and silently come
+     back when that edit was undone, while sitting in every saved file the whole time. An override
+     that has become inapplicable has to be VISIBLE, not an invisible permanent tax.
+     It carries no action button -- there is nothing safe to do automatically. Fixing it means
+     changing the schedule back or clearing the order, both of which are the user's call. -->
+<div id="colswap-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9707;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <div class="layout">
   <aside class="form-panel">
 

@@ -2281,6 +2281,10 @@ export function initLegacyApp() {
     // order instead of dropped.
     const want = new Map();
     byKey.forEach((c, key)=>{
+      // Suppressed by the gate on this pass (see runColSwapGate). Checked here rather than by
+      // deleting the entry, so the store keeps the user's intent and the override resumes on its own
+      // as soon as the schedule allows it.
+      if(swapSuppressed.has(weekIso + '|' + key)) return;
       const ov = gridColSwaps[weekIso + '|' + key];
       if(!ov || typeof ov !== 'object') return;
       if(typeof ov.with !== 'string') return;
@@ -2325,6 +2329,263 @@ export function initLegacyApp() {
       });
     });
     return applied;
+  }
+
+  // ---------- The column-swap gate ----------
+  // The swap model preserves each week's col MULTISET by construction, which is why frozen
+  // firstAppear / blockSlotMaps / phaseSlots cannot move (proved over 10k+ fuzzed permutations by
+  // tests/harness/prove-col-permutation.mjs). What construction does NOT guarantee is everything
+  // DOWNSTREAM of those: the Simultaneous Post lane reads Production's column, sheetColumnWidths'
+  // spanned-label pass sums a per-slot MAXIMUM (so a permutation can move every column's width),
+  // and splitting a phase's run changes what freeForRun grants in weeks nobody selected.
+  // So the gate measures the observable grid instead of reasoning about it.
+  //
+  // ⛔ It must run on EVERY update(), not only when a gesture fires: a swap that is legal while
+  // Simultaneous Post is OFF becomes a column-count change the moment it is switched ON, and a
+  // stored swap can be invalidated by any later edit to dates or durations.
+  const swapNoticeState = { text:'', dismissed:'' };
+
+  // The observable shape of the grid, computed by CALLING the frozen layout pipeline rather than
+  // re-deriving any of its rules -- reading from the frozen surface is sanctioned, and a second copy
+  // of the span rules would be a second source of truth free to drift.
+  function layoutFingerprint(schedule, blocks){
+    const bl     = computeBlockLayout(schedule, blocks);      // FROZEN, read-only
+    const widths = sheetColumnWidths(schedule, blocks, bl);   // FROZEN, read-only
+    return blocks.map((b, bi)=>({
+      slots: [...bl.blockSlotMaps[bi].entries()].sort((x,y)=>x[0]-y[0]).map(([c,s])=>c+'>'+s).join(','),
+      mc: bl.blockMaxConcurrent[bi],
+      simSlot: bl.blockSimSlot[bi],
+      // ⛔ NOT optional. sheetColumnWidths sums labelMax over only the slots a span COVERS, and
+      // labelMax is a per-slot MAXIMUM -- a maximum is not additive, so a within-week permutation
+      // CAN change every phase column's width in the block. Compare the CLAMPED `chars`, which is
+      // what the colgroup and both writers consume; never raw floats.
+      cols: widths[bi].cols.map(c => c.key + ':' + c.chars).join(','),
+      weeks: Array.from({length: b.count}, (_, local)=>{
+        const wk = schedule.weeks[b.startIdx + local];
+        if(wk.cells.length && wk.cells[0].type === 'hiatus') return 'HIATUS';
+        return computePhaseRowLayout(wk, bl.blockMaxConcurrent[bi], bl.blockSlotMaps[bi],
+                                     bl.blockOccupancy[bi], local, bl.blockSimSlot[bi])
+          .map(s => [s.kind, s.phaseKey || (s.cell && s.cell.key) || '',
+                     s.own === undefined ? '-' : s.own, s.colspan].join('~')).join('|');
+      })
+    }));
+  }
+
+  // The same fingerprint with the store SUSPENDED -- i.e. what the grid would look like with no
+  // column order applied at all. computeSchedule is re-run rather than the cols un-exchanged,
+  // because a revert has to reproduce the whole pipeline's view, not just the cell values.
+  function baselineFingerprint(state){
+    const saved = gridColSwaps;
+    gridColSwaps = {};
+    try {
+      const plain = computeSchedule(state);
+      return { fp: layoutFingerprint(plain, computeYearBlocks(plain.weeks)), schedule: plain };
+    } finally { gridColSwaps = saved; }
+  }
+
+  const maxColspan = wk => wk === 'HIATUS' ? 0 : Math.max(0, ...wk.split('|')
+    .filter(s => s.startsWith('phase~') || s.startsWith('phaseHiatus~'))
+    .map(s => +s.split('~')[3] || 0));
+  // The set of real OCCUPANTS in a week -- phases, per-phase hiatus bands and the Simultaneous Post
+  // marker. ⛔ 'empty' segments are deliberately EXCLUDED: they are layout filler, and a legitimate
+  // swap routinely makes one disappear when a cell absorbs the slot beside it. Counting them made
+  // this check fire on every correct swap and report "a cell would be lost" -- the gate refused the
+  // owner's own screenshot case until this was fixed.
+  const weekContent = wk => wk === 'HIATUS' ? 'HIATUS' : wk.split('|')
+    .filter(s => !s.startsWith('empty~'))
+    .map(s => s.split('~').slice(0,2).join('~')).sort().join(',');
+
+  // Diff one block pre/post and return the reason it must be refused, or null.
+  // Order matters: the most specific, most explicable reason wins, because the message the user
+  // reads is the whole point of refusing rather than silently reverting.
+  function blockRejectReason(before, after, swappedIsos, blockIsos){
+    if(!before || !after) return null;
+    if(before.slots !== after.slots) return 'slot-order';                  // G1
+    if(before.mc !== after.mc || before.simSlot !== after.simSlot) return 'geometry';   // G2
+    if(before.cols !== after.cols) return 'column-width';                  // G3
+    let changedUnswapped = 0, worstDelta = 0;
+    for(let i=0;i<after.weeks.length;i++){
+      const iso = blockIsos[i];
+      const wasSwapped = swappedIsos.has(iso);
+      const bw = before.weeks[i], aw = after.weeks[i];
+      if(wasSwapped) continue;
+      if(bw === aw) continue;
+      // S1 sanity: the same cells must still be present, just possibly re-sized.
+      if(weekContent(bw) !== weekContent(aw)) return 'content';
+      changedUnswapped++;
+      worstDelta = Math.max(worstDelta, Math.abs(maxColspan(aw) - maxColspan(bw)));
+    }
+    // G5, per the owner's magnitude-1 ruling (plan D2). A shift of one column in a week the user did
+    // not select is allowed and reported; two or more refuses the swap.
+    if(worstDelta > 1) return 'collateral-wide';
+    if(changedUnswapped > swappedIsos.size && changedUnswapped > 0) return 'collateral-many';
+    return null;
+  }
+
+  const SWAP_REASON_TEXT = {
+    'slot-order':      'the columns would be re-ordered for the whole year',
+    'geometry':        'it would change how many columns the year needs',
+    'column-width':    'it would change every column width in the year',
+    'column-exchange': 'the two phases would not actually trade places',
+    'content':         'a cell would be lost',
+    'collateral-wide': 'it would re-flow weeks you did not select',
+    'collateral-many': 'it would re-flow more weeks than it moves',
+    'simpost':         'Simultaneous Post is anchored to Production’s column',
+  };
+
+  // G4, the check with the real teeth: in every week a pair claims, the two phases must ACTUALLY
+  // have exchanged their column and kept their width. Measured on the design, ~7% of swaps that pass
+  // every structural check still fail this -- one side gains a column at an empty run's expense
+  // instead of trading places, which is not a swap at all.
+  function pairExchanged(beforeSchedule, afterSchedule, weekIdx, aKey, bKey){
+    const find = (sch, key)=>{
+      const wk = sch.weeks[weekIdx];
+      if(!wk) return null;
+      return wk.cells.find(c => c.key === key && c.col !== undefined) || null;
+    };
+    const b1 = find(beforeSchedule, aKey), b2 = find(beforeSchedule, bKey);
+    const a1 = find(afterSchedule, aKey),  a2 = find(afterSchedule, bKey);
+    if(!b1 || !b2 || !a1 || !a2) return false;
+    return a1.col === b2.col && a2.col === b1.col;
+  }
+
+  // Reject per PAIR, never per block. A pair revert is itself a within-week transposition, so pairs
+  // are independent -- reverting a whole BLOCK killed unrelated legal swaps in it, silently and
+  // permanently, re-running on every keystroke and recoverable only by Reset All or hand-editing the
+  // saved file. Reject the offender, re-diff, repeat; bounded by the number of applied pairs.
+  //
+  // ⛔ Rejected entries are SUPPRESSED for this pass, not deleted from the store. A duration typo
+  // must not permanently destroy the user's column order -- the same rule applyCellSpanOverrides
+  // follows for a stale width. The suppression set is rebuilt from scratch every pass, so an
+  // override starts applying again by itself the moment the schedule allows it.
+  let swapSuppressed = new Set();
+  function runColSwapGate(state, schedule){
+    const applied = schedule.appliedColSwaps || [];
+    if(!applied.length){
+      if(swapSuppressed.size){ swapSuppressed = new Set(); }
+      return { rejected: [], widened: [], reason: null };
+    }
+    const base = baselineFingerprint(state);
+    const blockIsosFor = sch => computeYearBlocks(sch.weeks).map(b =>
+      Array.from({length: b.count}, (_, i) => isoOf(sch.weeks[b.startIdx + i].date)));
+
+    const rejected = [];
+    let live = applied.slice();
+    let after = schedule, guard = 0;
+
+    while(guard++ < live.length + 2){
+      const blocks = computeYearBlocks(after.weeks);
+      const fpAfter = layoutFingerprint(after, blocks);
+      const isos = blockIsosFor(after);
+      let worst = null;
+
+      for(let bi = 0; bi < blocks.length; bi++){
+        const swappedIsos = new Set(live.filter(p => isos[bi].indexOf(p.weekIso) >= 0).map(p => p.weekIso));
+        const reason = blockRejectReason(base.fp[bi], fpAfter[bi], swappedIsos, isos[bi]);
+        if(reason){ worst = { bi, reason, isos: swappedIsos }; break; }
+      }
+      // G4 runs per pair regardless of block verdicts -- a failed exchange is that pair's fault.
+      if(!worst){
+        const bad = live.find(p => !pairExchanged(base.schedule, after, p.weekIdx, p.a, p.b));
+        if(bad) worst = { bi: -1, reason: 'column-exchange', pair: bad };
+      }
+      if(!worst) break;
+
+      // Suppress every pair implicated by the offending block (or the single bad pair) and recompute.
+      const drop = worst.pair ? [worst.pair]
+                              : live.filter(p => worst.isos && worst.isos.has(p.weekIso));
+      if(!drop.length) break;
+      drop.forEach(p=>{
+        swapSuppressed.add(p.weekIso + '|' + p.a);
+        swapSuppressed.add(p.weekIso + '|' + p.b);
+        rejected.push({ weekIso: p.weekIso, a: p.a, b: p.b, reason: worst.reason });
+      });
+      after = computeSchedule(state);          // re-runs the reconciler, now minus the suppressed keys
+      live = after.appliedColSwaps || [];
+      if(!live.length) break;
+    }
+
+    // Collateral that SURVIVED the gate is allowed (magnitude 1) but must still be reported.
+    const widened = [];
+    {
+      const blocks = computeYearBlocks(after.weeks);
+      const fpAfter = layoutFingerprint(after, blocks);
+      const isos = blockIsosFor(after);
+      blocks.forEach((b, bi)=>{
+        const swappedIsos = new Set(live.filter(p => isos[bi].indexOf(p.weekIso) >= 0).map(p => p.weekIso));
+        if(!swappedIsos.size) return;
+        fpAfter[bi].weeks.forEach((aw, i)=>{
+          const bw = base.fp[bi] && base.fp[bi].weeks[i];
+          if(bw === undefined || swappedIsos.has(isos[bi][i]) || bw === aw) return;
+          widened.push({ weekIso: isos[bi][i], year: b.year });
+        });
+      });
+    }
+    return { rejected, widened, reason: rejected.length ? rejected[0].reason : null, schedule: after };
+  }
+
+  // The notice. No action button: there is nothing safe to do automatically -- fixing it means
+  // changing the schedule back or clearing the column order, both the user's call.
+  function reflectSwapNotice(res){
+    const el = document.getElementById('colswap-notice');
+    if(!el) return;
+    const txt = el.querySelector('.ln-text');
+    let msg = '';
+    if(res.rejected.length){
+      const r = res.rejected[0];
+      const name = phaseLabelFor(r.a) + ' and ' + phaseLabelFor(r.b);
+      msg = 'Column order paused for ' + name + ' (' + fmtShort(parseDateUTC(r.weekIso)) + ')'
+          + ': ' + (SWAP_REASON_TEXT[r.reason] || r.reason) + '.'
+          + (res.rejected.length > 1 ? ' ' + res.rejected.length + ' swaps affected.' : '')
+          + ' It will apply again by itself once the schedule allows it.';
+    } else if(res.widened.length){
+      msg = 'Column order applied. ' + res.widened.length
+          + (res.widened.length === 1 ? ' other week' : ' other weeks')
+          + ' changed width to fit.';
+    }
+    swapNoticeState.text = msg;
+    // Dismissal is per MESSAGE, so a different problem later still speaks up.
+    if(!msg || swapNoticeState.dismissed === msg){ el.hidden = true; return; }
+    if(txt) txt.textContent = msg;
+    el.hidden = false;
+  }
+  function phaseLabelFor(key){
+    const def = getAllPhaseDefs().find(p => p.key === key);
+    return (def && def.label) || key;
+  }
+  document.addEventListener('click', e=>{
+    if(!(e.target.closest && e.target.closest('#colswap-notice .ln-x'))) return;
+    swapNoticeState.dismissed = swapNoticeState.text;
+    const el = document.getElementById('colswap-notice');
+    if(el) el.hidden = true;
+  });
+
+  // Cache the gate against a cheap structural key. Everything the verdict depends on is in it:
+  // how many weeks there are, each week's col multiset (the only thing the layout reads), the stored
+  // overrides, the hand-dragged widths that sheetColumnWidths' `pick` consults, and whether
+  // Simultaneous Post is on -- which flips blockSimSlot and can turn a legal swap illegal.
+  let _swapGateKey = '', _swapGateRes = null;
+  function maybeRunColSwapGate(state, schedule){
+    const applied = schedule.appliedColSwaps || [];
+    if(!applied.length && !swapSuppressed.size && !Object.keys(gridColSwaps).length){
+      if(_swapGateKey !== ''){ _swapGateKey = ''; _swapGateRes = null; reflectSwapNotice({rejected:[],widened:[]}); }
+      return null;
+    }
+    const key = schedule.weeks.length
+      + '|' + schedule.weeks.map(w => w.cells.map(c => c.col === undefined ? 'x' : c.col).sort().join('')).join('.')
+      + '|' + Object.keys(gridColSwaps).sort().join(',')
+      + '|' + Object.keys(colWidths).sort().map(k => k + '=' + colWidths[k]).join(',')
+      + '|' + (state.simultaneousPost && state.simultaneousPost.enabled ? '1' : '0');
+    if(key === _swapGateKey) return _swapGateRes;
+    // Recompute from a clean suppression set, or a pair suppressed by an edit that has since been
+    // undone would stay suppressed for the rest of the session.
+    swapSuppressed = new Set();
+    const fresh = computeSchedule(state);
+    const res = runColSwapGate(state, fresh);
+    _swapGateKey = key;
+    _swapGateRes = res;
+    reflectSwapNotice(res);
+    return res;
   }
 
   // ---------- UI: phase rows ----------
@@ -5689,6 +5950,13 @@ export function initLegacyApp() {
     const state = readState();
     syncHiatusNamesFromSidebar();
     currentSchedule = computeSchedule(state);
+    // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
+    // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
+    // update() is bound undebounced to the `input` event of every phase date/weeks field, so this is
+    // also cached on a cheap structural key: a fingerprint pass is one computeBlockLayout PLUS one
+    // sheetColumnWidths, and the latter measures every label and note of every week.
+    const gated = maybeRunColSwapGate(state, currentSchedule);
+    if(gated && gated.schedule) currentSchedule = gated.schedule;
     render(currentSchedule);
     reflectCountryLock();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and

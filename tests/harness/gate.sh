@@ -159,6 +159,35 @@ chk(not hv.get('h'), f"colswap: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- colswapgate: the gate REFUSES a swap it must refuse, and says so ---------------------------
+# The leg above proves a legal swap applies; this proves the half that protects the calendar. The
+# fixture stores a Production<->Post swap with Simultaneous Post on, which would re-flow weeks the
+# user never selected -- so it must be declined, the store must survive (suppressed, not deleted),
+# and the refusal must be VISIBLE with a reason.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-simpost-refuse "$HERE/run.sh" colswapgate 45 >/dev/null 2>&1
+python3 - "$HERE/colswapgate.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  colswapgate produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  colswapgate threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('refused'), f"gate: the unsafe swap was refused {a.get('overlapWeeks')}")
+chk(a.get('noticeShown') and a.get('noticeNamesReason'),
+    f"gate: refusal is visible and gives a reason -- {str(a.get('noticeText'))[:90]}")
+# Suppressed, never deleted: a temporary schedule change must not destroy the user's column order.
+chk(a.get('storeIntact'), f"gate: store intact after refusal ({a.get('storeKeyCount')} keys)")
+chk(not a.get('errors'), f"gate: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"gate: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL
