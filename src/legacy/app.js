@@ -700,8 +700,14 @@ export function initLegacyApp() {
   // not proof the drag contract is present -- test data-own. (The single-cell dblclick survives
   // this only by accident: NaN makes `!maxL && !maxR` true and it early-returns.)
   const hasSpanContract = td => Number.isFinite(+td.dataset.own);
+  // ⛔ Scoped to #table-wrap, NOT document. Both print paths fill #print-root with a SECOND complete
+  // renderSpreadsheetView(), carrying duplicate cells with the same data-week + data-pkey -- so a
+  // document-wide query would return each cell twice during an export, painting phantom overlay
+  // rects and doubling every row in the contention grouping.
   function allPhaseTds(){
-    return [...document.querySelectorAll('td.sheet-phase-cell')].filter(hasSpanContract);
+    const host = document.getElementById('table-wrap');
+    if(!host) return [];
+    return [...host.querySelectorAll('td.sheet-phase-cell')].filter(hasSpanContract);
   }
   function selCells(){ return allPhaseTds().filter(td => gridSel.has(SEL_KEY(td))); }
 
@@ -861,7 +867,15 @@ export function initLegacyApp() {
   // inside it -- leave that one alone.
   new MutationObserver(()=>{
     if(viewMode !== 'sheet'){
-      if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; }
+      // Clearing the store is not enough: the toolbar button's state lives in React and would keep
+      // the last-known count, so switching to Month view left an enabled "Expand 3" behind for a
+      // selection that no longer exists. Push the empty state explicitly.
+      if(gridSel.size || gridSelAnchor){
+        gridSel.clear(); gridSelAnchor = null;
+        if(typeof chrome === 'object' && chrome && typeof chrome.gridSelection === 'function'){
+          chrome.gridSelection({ count:0, expandable:0, allFilled:false });
+        }
+      }
       return;
     }
     redrawGridOverlay(null);
@@ -946,14 +960,24 @@ export function initLegacyApp() {
         return;
       }
       if(shiftKey && gridSelAnchor){
-        // Extend from the anchor to this cell, in visual order down the grid.
-        const all = allPhaseTds();
-        const ai = all.findIndex(c => SEL_KEY(c) === gridSelAnchor);
-        const bi = all.indexOf(td);
-        if(ai >= 0 && bi >= 0){
-          const [lo, hi] = ai <= bi ? [ai, bi] : [bi, ai];
+        // Extend from the anchor to this cell as a spreadsheet-style RECTANGLE, computed
+        // geometrically from the two cells' own-slot boxes -- the same membership test the marquee
+        // uses.
+        // ⛔ NOT a DOM-index range. allPhaseTds() is document order, which is row-major across ALL
+        // year blocks (one <tr> holds every block side by side), so an index range from a cell in
+        // 2026 to a cell lower down in 2026 also swept up every cell of 2027 in between. A
+        // rectangle cannot leak into another block unless the user's own drag actually spans it.
+        const g = selGeom();
+        const anchorTd = allPhaseTds().find(c => SEL_KEY(c) === gridSelAnchor);
+        const ab = anchorTd && ownSlotBox(anchorTd, g), tb = ownSlotBox(td, g);
+        if(ab && tb){
+          const rect = { l:Math.min(ab.left, tb.left),  r:Math.max(ab.right, tb.right),
+                         t:Math.min(ab.top, tb.top),    b:Math.max(ab.bottom, tb.bottom) };
           gridSel = new Set(baseSel);
-          for(let i = lo; i <= hi; i++) gridSel.add(SEL_KEY(all[i]));
+          allPhaseTds().forEach(c=>{
+            const bx = ownSlotBox(c, g);
+            if(bx && bx.right > rect.l && bx.left < rect.r && bx.bottom > rect.t && bx.top < rect.b) gridSel.add(SEL_KEY(c));
+          });
         }
         suppressGridClick = true;
       } else if(metaKey){
@@ -1026,6 +1050,15 @@ export function initLegacyApp() {
     const live = rows.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
     if(!live.length) return false;
     const allFilled = live.every(r => r.curL === r.maxL && r.curR === r.maxR);
+    // Would this actually change anything? A selection of cells that are all already at {0,0} with a
+    // stale override granting nothing writes the identical values back: both pushUndoSnapshot calls
+    // correctly no-op, but markDirty would still flag the file unsaved and schedule a backup for an
+    // edit that did not happen. Compare first.
+    const wouldChange = live.some(r=>{
+      const cur = cellSpans[r.key], next = allFilled ? { l:0, r:0 } : { l:r.maxL, r:r.maxR };
+      return !cur || cur.l !== next.l || cur.r !== next.r || cur.k !== r.k;
+    });
+    if(!wouldChange) return false;
     // pushUndoSnapshot() BEFORE mutating is a FLUSH, not the step -- it early-returns when nothing
     // changed. The N cellSpans writes push nothing and render pushes nothing, so the TRAILING push
     // is what commits the batch as exactly one entry (the asOneUndoStep shape). Relying on
@@ -1075,7 +1108,14 @@ export function initLegacyApp() {
     if(!gridSel.size || viewMode !== 'sheet') return;
     const a = document.activeElement;
     if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+    // Escape is safe from anywhere -- it never activates a control.
     if(e.key === 'Escape'){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); return; }
+    // ⛔ Enter and Space are the NATIVE activation keys for buttons, links and selects, so the
+    // INPUT/TEXTAREA guard above is not enough on its own: with focus on Undo (an ActionIcon, i.e.
+    // a <button>) after a click, Enter would fire the batch AND the button. Only claim these keys
+    // when nothing focusable holds focus -- i.e. focus is on <body>, which is where it sits after a
+    // marquee sweep, and where the toolbar button is the discoverable path anyway.
+    if(a && a !== document.body) return;
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); batchFill(); }
   });
 
@@ -8945,6 +8985,13 @@ export function initLegacyApp() {
   // stale "missing: Season, ..." notice on screen and the episode list empty. Keep this as the
   // single list so the three paths can't diverge again.
   function refreshAfterRestore(){
+    // A different document is replacing what is on screen, so a cell highlight from the PREVIOUS
+    // calendar must not survive it. The overlay's prune only drops keys with no matching cell, and
+    // two calendars can easily share a week + phase key -- so the highlight would silently reappear
+    // on unrelated cells of the newly opened file. Undo/redo comes through here too, where keeping
+    // the selection would be nicer; clearing is the safe direction, and the selection is cheap to
+    // re-make.
+    if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; }
     setSidebarTab(sidebarTab);
     syncRegionTracking();
     refreshEpisodesUI();

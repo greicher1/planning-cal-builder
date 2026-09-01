@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — six fixes to batch expand, from an adversarial review of the shipped code
+
+Design review and implementation review catch different classes of bug, so the batch-expand commit
+was put through its own adversarial pass. Six real defects, none of which the browser verification
+had surfaced:
+
+- **Shift-click could select cells in a year block you never touched.** It extended over a DOM-index
+  range from a document-order query — and document order is row-major across *all* year blocks,
+  because one `<tr>` holds every block side by side. Shift-clicking down one column of 2026 therefore
+  swept up everything in 2027 that sat between them in the DOM. It is now a spreadsheet-style
+  **rectangle** computed from the two cells' own-slot boxes, the same membership test the marquee
+  uses, which cannot leak into another block unless the drag genuinely spans it. Verified: a range in
+  2026 selects 4 cells, not the 44 of 2027.
+- **Enter could fire the batch *and* a focused button.** Enter and Space are the native activation
+  keys for buttons, so the INPUT/TEXTAREA guard borrowed from the ⌘Z handler wasn't enough: with
+  focus on Undo after a click, Enter did both. Those keys are now claimed only when nothing focusable
+  holds focus.
+- **The overlay query reached into `#print-root`.** Both print paths fill it with a *second* complete
+  render carrying duplicate `data-week`/`data-pkey`, so a document-wide query returned every cell
+  twice during an export. Scoped to `#table-wrap`.
+- **Month view kept a stale toolbar button.** Switching views cleared the selection but never pushed
+  the empty state through the bridge, so an enabled "Expand 3" survived for a selection that no
+  longer existed.
+- **An empty batch still dirtied the file.** A selection whose cells were all already at their limit
+  wrote identical values back — both undo pushes correctly no-op'd, but `markDirty()` fired anyway,
+  flagging unsaved changes for an edit that didn't happen. It now compares before writing.
+- **A highlight survived loading a different calendar.** The overlay's prune only drops keys with no
+  matching cell, and two calendars can share a week and phase key, so the highlight silently
+  reappeared on unrelated cells of the newly opened file. `refreshAfterRestore` clears it.
+
 ### Unreleased — grid column order: the store and the reconciler (no gesture yet)
 
 Step one of Feature 2 in [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md),
