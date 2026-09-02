@@ -298,13 +298,15 @@ long sessions — it is easy to forget precisely when it matters most.
 
 `index.html` — a **single self-contained HTML file** (~10,344 lines / ~667 KB) implementing the *SPT Planning Calendar Builder*: a TV production scheduling tool that turns phase start dates + durations into a week-by-week waterfall calendar, a month calendar, an Excel workbook, and a printable PDF.
 
-> ⚠️ **This describes the DEPLOYED `index.html`, and it is still exactly true of it. It is no longer
-> true of the repo.** As of 29 Aug 2026 there is a Vite + React + Mantine build in `src/` that
-> produces `dist/index.html` — the chrome's header, preview toolbar and static sidebar cards are
-> React now. The root `index.html` is untouched and still IS the live app, byte-identical to
-> `releases/v1.2.0.html`; nothing has been deployed. Read [`HANDOFF.md`](HANDOFF.md) §2b-3 for what
-> exists, and note that the product is still ONE self-contained file — that is what the build
-> produces.
+> ⚠️ **This describes the root `index.html`, which is NO LONGER the live app.** As of 29 Aug 2026
+> there is a Vite + React + Mantine build in `src/` that produces `dist/index.html` — the chrome's
+> header, preview toolbar and static sidebar cards are React now — and **since 31 Aug 2026
+> (owner-approved cutover) `.github/workflows/deploy.yml` publishes that build to Pages on every
+> push to `main`.** The root `index.html` stays in the repo untouched, byte-identical to
+> `releases/v1.2.0.html`, as the legacy app and the instant rollback. Read [`HANDOFF.md`](HANDOFF.md)
+> §1 and §2b-3 for what exists, and note that the product is still ONE self-contained file — that is
+> what the build produces. *(Corrected 2 Sep 2026; this note said "nothing has been deployed" for two
+> days after the cutover, and a push went out on that belief.)*
 
 The DEPLOYED FILE has no build step: it is one `<style>` block, static markup, and one `<script>` block wrapped in an IIFE — nothing inside is a global, so a test must drive the DOM rather than call functions. ExcelJS is the only runtime dependency, loaded from a CDN `<script>` tag.
 
@@ -322,7 +324,7 @@ There is a runner now, and fixtures. `tests/harness/` holds a headless-Chrome ha
 resolves §14's symbols against the root `index.html` only. Most work now lands in the build's engine,
 where the checker cannot see a thing, so a clean run there proves nothing about it.
 
-**Run the deployed app:** `open index.html` (macOS). Reload the browser to test changes.
+**Run the legacy root app:** `open index.html` (macOS). It is v1.2.0 and no longer what users get.
 
 **Run and prove the BUILD:** `npm run dev` serves `src/` for iteration; `npm run build` produces `dist/index.html` (one self-contained file, ~983 KB). Before calling any change to the grid, the exports or the save path done, run `cd tests/harness && ./gate.sh` — it is the gate the freeze rule above demands, and it compares the waterfall PDF and every Excel part against the baseline.
 

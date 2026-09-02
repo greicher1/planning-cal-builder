@@ -5,18 +5,22 @@ Written at the end of the session that ended at commit `cf51a29` (28 Aug 2026).
 **Last updated 2 Sep 2026** — the block swap (COLUMN-ORDER-PLAN.md) is now complete through step 6:
 store, reconciler, the one frozen line, the "Swap Block" button, mode inference, per-run outlines, and
 E1 finished. **Pushed 2 Sep 2026 as `2a75929`** (owner's call, per-action) — origin was already at
-`feacd58`, so that push carried only the four stint commits; the root `index.html` is untouched by
-all of them, so the live app is unchanged and the release question (§1) stands as before. The
-open-items table below (rows marked 2 Sep) is the record. **Previously updated 31 Aug 2026, on top
-of `6e3754d`.** ⚠️ **Read the master list in §2b-3 (rows 27–49)
+`feacd58`, so that push carried only the four stint commits. ⛔ **A push to `main` IS a deploy of the
+BUILD:** `.github/workflows/deploy.yml` builds `src/` and publishes `dist/` to Pages on every push
+(cutover 31 Aug 2026, owner-approved — §2b-3 row 7). Verified after this push: the live page is
+byte-identical to a local `npm run build` (SHA-256 `a51cbe50…`, 1,073,349 bytes) and carries the
+Swap Block button. **So the block swap is LIVE for users**, and §1 below has been corrected — it
+still said the live site was v1.0.0, which had been false since 31 Aug. The open-items table (rows
+marked 2 Sep) is the record. **Previously updated 31 Aug 2026, on top of `6e3754d`.** ⚠️ **Read the master list in §2b-3 (rows 27–49)
 and this preamble together — the rest of this file was written before three build rounds landed and
 parts of it are superseded by that table.** Where they disagree, the table is right.
 
 **Three rounds of real app code shipped 30–31 Aug 2026** (`7199ade` round 5, `7a968c1` round 6,
-`6e3754d` round 7), all **local, none deployed**. This reverses the previous entry here, which said
-the work had become "decisions, evidence and tooling rather than app code". The root `index.html` is
-still untouched and still byte-identical to `releases/v1.2.0.html`; every one of these rounds landed
-in `src/`, so **the live site is still v1.0.0 and the deploy candidate is still v1.2.0.**
+`6e3754d` round 7). This reverses the previous entry here, which said the work had become
+"decisions, evidence and tooling rather than app code". The root `index.html` is still untouched and
+still byte-identical to `releases/v1.2.0.html`; every one of these rounds landed in `src/`. ⚠️ *(This
+paragraph used to end "so the live site is still v1.0.0" — true when written, false since the 31 Aug
+cutover: the BUILD is the live site now. See the note at the top and §1.)*
 
 What those rounds did, in one paragraph: the terminology settled on **Load** for opening a file; the
 tool popovers got a loader-look picker (`SelectPop.jsx`) and stopped **destroying the edit** when the
@@ -70,20 +74,21 @@ change — see §5d.
 
 ## 1. Where the app stands
 
-`index.html` — the deploy candidate, untouched — is ~10,344 lines / ~667 KB, one file, no build
-step. ⚠️ **The repo is no longer that**: `src/` + Vite build a self-contained `dist/index.html`
-(~983 KB), and that is where all work since 29 Aug 2026 has landed. Deployed at
-<https://greicher1.github.io/planning-cal-builder/>.
+**The live site is the Vite BUILD.** `.github/workflows/deploy.yml` builds `src/` and publishes
+`dist/index.html` (~1,050 KB) to <https://greicher1.github.io/planning-cal-builder/> on every push
+to `main` — cutover 31 Aug 2026, owner-approved (§2b-3 row 7). Verified 2 Sep 2026: the live page is
+byte-identical to a local `npm run build` at `2a75929`. The root `index.html` (~10,344 lines /
+~667 KB, one file, no build step) is **no longer what users get**; it stays in the repo as the v1.2.0
+legacy app, byte-identical to `releases/v1.2.0.html`, and is the instant rollback (Pages Source →
+"Deploy from a branch", main, `/`).
 
-### ⚠️ v1.2.0 IS BUILT BUT NOT DEPLOYED — the live site is still v1.0.0
+### ✅ CORRECTED 2 Sep 2026 — this section used to say "v1.2.0 IS BUILT BUT NOT DEPLOYED — the live site is still v1.0.0"
 
-Verified 28 Aug 2026 by fetching the live URL: it is **byte-identical to `releases/v1.0.0.html`**
-(SHA-256 `0150be15…`) and contains no `SAVE_EXT`, no `sptcal`, no `SNAPSHOT_VERSION`.
-
-`main` is **several commits ahead of `origin/main`** — everything from the `.sptcal` format
-through the Stage 0 docs refresh to v1.2.0's update delivery. **`git log --oneline origin/main..main`
-is the live list** (a count written here would be wrong by the next commit); the oldest is
-`489f9ee`.
+That was verified true on 28 Aug 2026 (the live page then matched `releases/v1.0.0.html`, SHA-256
+`0150be15…`) and became false on 31 Aug when the cutover shipped — but the section was never
+rewritten, and a session on 2 Sep pushed believing the live app would be unchanged. **Every push to
+`main` deploys the build to real users.** `git log --oneline origin/main..main` is the list of what a
+push would ship; it is currently short.
 
 **Two tags are unpushed: `v1.0.0` and `v1.2.0`.** That is what makes the `releases/…` URLs in
 `README.md` 404. They need their own `git push --tags`; pushing `main` does not carry them.
@@ -340,10 +345,9 @@ dist/index.html              ← build output (gitignored), ~1.03 MB / 324 KB gz
 replaced: `header.app-header`, `.view-toggle-row`, `#sidebar-static`, and (Stage 1 only, now empty)
 `#react-root` as the root container.
 
-⛔ **The root `index.html` is deliberately untouched and must stay that way until an
-owner-approved cutover.** `main` auto-deploys it, so a source-only `index.html` at the root would
-break the live site the moment anyone pushed. Build with `npm run build`; gate with
-`cd tests/harness && ./gate.sh`.
+⛔ **The root `index.html` is deliberately untouched and stays that way.** It was the live app until
+the owner-approved cutover of 31 Aug 2026; now it is the v1.2.0 legacy copy and the one-click
+rollback. Build with `npm run build`; gate with `cd tests/harness && ./gate.sh`.
 
 #### The three architectural facts that were forced, not chosen
 
