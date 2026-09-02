@@ -538,6 +538,40 @@ chk(not hv.get('h'), f"export: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- stintchain: a second block swap in a year that already carries one -------------------------
+# ⭐ THE OWNER'S OWN CALENDAR (2 Sep 2026), schedule intact, titles genericised -- the first defect
+# this feature produced in real use, and it was a FALSE REFUSAL. applyStintSwaps validated each stored
+# group over the NATURAL, un-exchanged position of every phase outside it, so in a year that already
+# held Post <-> Pre Prep, a Writer's Rm <-> Production swap looked like a collision with a Post that
+# the first swap had already moved out of the way. The whole set is now validated together first.
+# If this leg fails with "same column in the same week", the isolation test has been reinstated.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-chained "$HERE/run.sh" stintchain 75 >/dev/null 2>&1
+python3 - "$HERE/stintchain.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintchain produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintchain threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('storedSwapApplied') and a.get('naturalRest'),
+    f"chain: the stored Post/Pre Prep swap restored and applied {a.get('before')}")
+chk(a.get('offered') and a.get('noCollideMessage'),
+    f"chain: the second swap is OFFERED, not refused -- {str(a.get('mode'))[:90]}")
+chk(a.get('landed'), f"chain: it lands -- Writer's Rm and Production trade columns {a.get('after')}")
+chk(a.get('bystandersUnmoved'), "chain: the pair already swapped in that year did not move")
+chk(a.get('nothingLost') and a.get('nothingReshaped'), "chain: no cell lost, nothing changed shape")
+chk(a.get('reversedExactly'), f"chain: reversing restores the year exactly {a.get('afterReverse')}")
+chk(not a.get('errors'), f"chain: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"chain: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

@@ -455,6 +455,10 @@ prove the change is **inert** until used.
    failure is the known `restore` IndexedDB stall.
 --- ship, ask, wait ---
 7. E4: retire or keep the per-week swap.
+7b. ✅ FIXED 2 Sep 2026 -- the first real-use defect. A block swap in a year that ALREADY carried
+   one was refused as a collision, because applyStintSwaps validated each group against every
+   other phase's NATURAL column rather than validating the whole set together. Gate leg
+   `stintchain`, on the owner's own calendar. See HANDOFF's table.
 8. ⚠️ Known limitation to raise with the owner: a block already swapped with one column cannot be
    swapped with a THIRD (refused as 'chained', stated in the chip). The store holds disjoint
    2-cycles and a 3-cycle is not one of them; the per-week store shares the limit. Lifting it

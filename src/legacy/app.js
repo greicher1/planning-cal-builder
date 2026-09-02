@@ -2570,31 +2570,50 @@ export function initLegacyApp() {
         });
         return m;
       };
+      // Returns the offending {weekIso, a, b} or null. ⚠️ It names the pair on purpose: a refusal the
+      // user cannot act on is barely better than a silent one, and this is also the only diagnostic
+      // there is when the gesture and this validator disagree.
       const wouldLoseACell = map => {
         for(let i=b.startIdx; i<b.startIdx+b.count; i++){
-          const seen = new Set();
+          const seen = new Map();
           for(const c of weeks[i].cells){
             if(c.col === undefined) continue;
             const col = map.has(c) ? map.get(c) : c.col;
-            if(seen.has(col)) return true;
-            seen.add(col);
+            if(seen.has(col)) return { weekIso: isoOf(weeks[i].date), a: seen.get(col), b: c.key };
+            seen.set(col, c.key);
           }
         }
-        return false;
+        return null;
       };
-      const refuse = (gp, reason)=> refused.push({ year:b.year, keys:gp.a.concat(gp.b), reason });
+      const refuse = (gp, reason, at)=> refused.push({ year:b.year, keys:gp.a.concat(gp.b), reason, at });
 
       // ⛔ Validate EVERY group before mutating ANY of them, then apply. Applying as we validate would
       // half-apply a block whose second group turns out to be illegal -- the same reason
       // swapPairsForWeek validates the whole relation before building a single pair.
-      const legal = groups.filter(gp => wouldLoseACell(newColFor([gp])) ? (refuse(gp, 'collide'), false) : true);
-      // Legal one by one is not legal together: two exchanges that share a column can collide with
-      // each other. Drop the block's whole set rather than guess which to keep.
-      const all = newColFor(legal);
-      if(!legal.length || wouldLoseACell(all)){
-        legal.forEach(gp => refuse(gp, 'collide'));
-        orders.push(null); return;
+      //
+      // ⛔ TEST THE WHOLE SET TOGETHER, and only look for an offender if that fails. Testing each
+      // group in ISOLATION was the previous shape and it REFUSED A LEGAL SWAP on the owner's own
+      // calendar (2 Sep 2026, the first real defect this feature produced in use). The reason is that
+      // a group is mapped over the NATURAL, un-exchanged position of every phase outside it: so in a
+      // block that already carries one stored swap, the next one appears to collide with a phase that
+      // the first swap has already moved out of the way. Measured there: 2027 held Post <-> Pre Prep
+      // already, and Writer's Rm <-> Production was then refused because Post's natural column IS
+      // Production's -- Post only sits elsewhere BECAUSE of the swap already stored. Applied together
+      // the four exchanges are collision-free, which is what the user could plainly see on screen.
+      let legal = groups;
+      if(wouldLoseACell(newColFor(legal))){
+        // Something genuinely collides. Find a safe subset deterministically: keep a group only while
+        // the accumulation stays clean. ⚠️ Order-dependent and deliberately conservative -- this path
+        // is now reached only by a drifted or hand-edited store, where refusing more than strictly
+        // necessary is the safe error and losing a cell is not.
+        legal = [];
+        groups.forEach(gp=>{
+          const at = wouldLoseACell(newColFor(legal.concat([gp])));
+          if(at) refuse(gp, 'collide', at); else legal = legal.concat([gp]);
+        });
       }
+      if(!legal.length){ orders.push(null); return; }
+      const all = newColFor(legal);
 
       orders.push(blockColOrder(weeks, b));    // ⛔ BEFORE a single col moves
       all.forEach((col, c)=>{ c.col = col; });
@@ -3370,7 +3389,7 @@ export function initLegacyApp() {
         : (st.applied || []).some(ap => touches(ap) && ap.a.length + ap.b.length === memberSet.size);
       if(!took){
         const r = (st.refused || []).find(x => x.year === run.year && x.keys.some(k => memberSet.has(k)));
-        return { ok:false, reason: r ? r.reason : 'no-change' };
+        return { ok:false, reason: r ? r.reason : 'no-change', collideAt: r && r.at };
       }
       const res = runColSwapGate(state, trial);      // per-week entries still ride on top
       const after = res.schedule || trial;
@@ -3515,6 +3534,12 @@ export function initLegacyApp() {
     if(v.reason === 'width-override' && v.badWeek)
       return phaseLabelFor(v.badKey || v.phaseKey) + ' ' + fmtShort(parseDateUTC(v.badWeek))
            + ' has a width you widened by hand. Double-click that cell to pull it back, then swap.';
+    // ⛔ Name the two phases and the week. "two phases would need the same column" told the owner
+    // nothing they could act on (2 Sep 2026) and told the next session nothing either.
+    if(v.reason === 'collide' && v.collideAt)
+      return phaseLabelFor(v.collideAt.a) + ' and ' + phaseLabelFor(v.collideAt.b)
+           + ' would both need the same column in the week of '
+           + fmtShort(parseDateUTC(v.collideAt.weekIso)) + '.';
     if(v.reason === 'simpost')
       return phaseLabelFor('production') + '’s column can’t move while Simultaneous Post is on.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];

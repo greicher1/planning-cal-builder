@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a block swap in a year that already had one was refused; it should not have been
+
+**Fixes the first defect the block swap produced in real use**, reported by the owner on their own
+calendar within an hour of the push: *"Can't swap: two phases would need the same column in the same
+week"* on a swap that is plainly legal on screen. Local, not pushed.
+
+**It was a false refusal, and the cause is one word: *isolation*.** `applyStintSwaps` checked each
+stored exchange on its own, mapping that group's cells and leaving every other phase at its
+**natural, un-exchanged column**. In a year that already carries one swap, that judges the new swap
+against a layout that no longer exists. Concretely: 2027 already held Post ↔ Pre Prep, and the whole
+effect of that swap is to move Post out of Production's column — Post's *natural* column **is**
+Production's; it renders elsewhere only because of the stored swap. A Writer's Rm ↔ Production swap
+was then refused for colliding with a Post that had already moved out of the way. Applied together,
+all four exchanges are collision-free, which is exactly what the screen showed.
+
+**Fix:** validate the whole set together first and apply if it is clean; only when something really
+does collide fall back to a deterministic greedy subset. That fallback is now reachable only by a
+drifted or hand-edited store, where refusing more than strictly necessary is the safe error.
+
+**A refusal now names names.** `collide` was the one reason in the feature with no subject — no
+phases, no week, no action. It now reads *"Post and Writer's Rm would both need the same column in
+the week of 4/12/27."*
+
+**The general lesson, worth more than the bug:** the gesture reasons about the **rendered** grid
+(slots, after swaps) while the reconciler reasons about the **schedule** (columns, before swaps).
+Those two spaces diverge precisely when a swap is already stored. Any new check has to say which
+space it is in.
+
+**Verified.** New gate leg `stintchain`, driven by the owner's own calendar — schedule intact, show
+titles genericised, since fixtures live in a public repo. It asserts the stored swap restores and
+applies, the second swap is *offered* rather than refused, it lands, the already-swapped pair does
+not move, no cell is lost or reshaped, and reversing restores the year exactly. `stintcollide` still
+proves a genuine cell-losing exchange is refused.
+
 ### Unreleased — the block swap has its gesture: "Swap Block", and a swap that names everyone it moves
 
 Steps 5 and 6 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md), plus the second half of owner
