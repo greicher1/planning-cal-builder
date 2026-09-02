@@ -387,6 +387,157 @@ chk(not a.get('errors'), f"collide: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 
+# ---- stintgroup: E1 complete -- a stint swap against a column with SEVERAL stints exchanges with ALL ----
+# Same schedule as stintcollide, store naming the whole group (Writer's Rm <-> Post AND Localization).
+# The reconciler reads the `with` relation as a graph: one connected component over two columns is one
+# exchange. Expected: Writer's Rm at slot 1 for all 20 weeks, both short stints at slot 0, every cell
+# present, nothing wider. stintcollide keeps proving that naming only ONE of them is still refused.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-group "$HERE/run.sh" stintgroup 45 >/dev/null 2>&1
+python3 - "$HERE/stintgroup.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintgroup produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintgroup threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('noCellLost'), f"group: not one week lost {a.get('weekCounts')}")
+chk(a.get('groupApplied'), f"group: the whole group traded columns {a.get('slots')}")
+chk(a.get('noReflow'), f"group: nothing changed shape {a.get('spans')}")
+chk(a.get('colKeysOk'), f"group: two phase columns still ({a.get('colKeys')})")
+chk(not a.get('errors'), f"group: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"group: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- stintoneside: a hand-edited ONE-SIDED stint entry yields no reorder, never a wrong one -------------
+# COLUMN-ORDER-PLAN.md section 6 item 6. `2026|writersRoom -> prePrep` with nothing pointing back: the
+# named stint has no entry of its own, so the block gets NO order at all -- natural start order stands.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-onesided "$HERE/run.sh" stintoneside 45 >/dev/null 2>&1
+python3 - "$HERE/stintoneside.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintoneside produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintoneside threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('naturalOrder'), f"oneside: natural order stands {a.get('slots')}")
+chk(a.get('noCellLost'), f"oneside: every cell present {a.get('weeks')}")
+chk(a.get('colKeysOk'), f"oneside: two phase columns still ({a.get('colKeys')})")
+chk(not a.get('errors'), f"oneside: 0 console errors {a.get('errors')}")
+sys.exit(bad)
+PY
+
+# ---- stintbtn: the "Swap Block" hover button and the mode inference, through the real user path --------
+# COLUMN-ORDER-PLAN.md sections 2.2 and 6 item 5, on the owner's screenshot shape with NO order stored.
+# Hover a middle week -> the button appears on the block's FIRST week, survives travel across the
+# block, re-anchors on another phase, disappears off the phases. Click -> every cell selected as ONE
+# outline (E3), the chip states the BLOCK mode and the partner BEFORE commit, the toolbar moves all six
+# weeks and NOT ONE changes width (contrast colswapmove, where the per-week swap widens two). Then a
+# partial selection resolves back to the per-week mode and the chip says so. A one-column block gets
+# no button at all.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-gesture "$HERE/run.sh" stintbtn 60 >/dev/null 2>&1
+python3 - "$HERE/stintbtn.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintbtn produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintbtn threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('naturalNarrow'), "btn: pre-state is the natural order, Prod Prep held to one column")
+chk(a.get('btnText')=='Swap Block' and a.get('btnPhase')=='prodPrep/2026', f"btn: the button says Swap Block for the hovered block ({a.get('btnText')}, {a.get('btnPhase')})")
+chk(a.get('btnOnFirstWeek') and a.get('btnInsideCell'), "btn: anchored to the block's FIRST week, inside the cell")
+chk(a.get('btnSurvivedTravel'), "btn: survives the pointer travelling across the block toward it")
+chk(a.get('btnFollowsPhase') and a.get('btnGoneOffPhase'), "btn: re-anchors on another phase, gone off the phases")
+chk(a.get('outlines')==1, f"btn: the whole block is drawn as ONE outline ({a.get('outlines')})")
+chk(a.get('modeSaysBlock') and a.get('knobSaysBlock'), f"btn: the chip states the BLOCK mode and the partner before commit -- {str(a.get('modeText'))[:90]}")
+chk(a.get('noLeftKnob'), "btn: no knob offered where there is no partner")
+chk(a.get('wholeBlockMoved') and a.get('noCellWidened'), "btn: all six weeks moved and NOT ONE changed width")
+chk(a.get('knobFollowed'), "btn: the affordance followed the move")
+chk(a.get('reverseRestoredExactly'), "btn: swapping back deleted the entry and restored the natural layout exactly")
+chk(a.get('partialSaysWeek') and a.get('partialOutlines')==2, f"btn: a partial selection resolves to the per-week mode and says so, drawn as two outlines across the gap (E3) -- {str(a.get('partialText'))[:90]}")
+chk(a.get('noBtnSingleColumn'), "btn: no button on a block with one phase column")
+chk(not a.get('errors'), f"btn: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"btn: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- stintmulti: E1 through the gesture -- several blocks in the neighbouring column, all named, all moved
+# The stintcollide schedule with NO order stored. From the long side: the knob and the chip name BOTH
+# Post and Localization before commit, the toolbar moves all three, the confirmation names them, and
+# swapping back restores the natural layout exactly. From the short side (Post): the chip says
+# Localization moves with it, and the result is the same.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-multi "$HERE/run.sh" stintmulti 60 >/dev/null 2>&1
+python3 - "$HERE/stintmulti.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintmulti produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintmulti threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('naturalOrder'), "multi: pre-state is the natural order, every cell one column wide")
+chk(a.get('namesBothA'), f"multi: from the long side, BOTH partners named before commit -- {str(a.get('knobA'))[:90]}")
+chk(a.get('groupMovedA'), f"multi: all three blocks traded, nothing lost, nothing wider {a.get('afterA')}")
+chk(a.get('flashNamesAllA'), f"multi: the confirmation names every block that moved -- {str(a.get('flashA'))[:90]}")
+chk(a.get('reversedA'), "multi: swapping back restored the natural layout exactly")
+chk(a.get('namesCompanionB') and a.get('noRightKnobB'), f"multi: from the short side, the companion is named -- {str(a.get('knobB'))[:90]}")
+chk(a.get('groupMovedB') and a.get('reversedB'), "multi: the same swap from the short side lands and reverses exactly")
+chk(a.get('colKeysOk'), f"multi: two phase columns throughout ({a.get('colKeys')})")
+chk(not a.get('errors'), f"multi: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"multi: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- stintexport: the block swap reaches the workbook and the waterfall PDF, with no width change ------
+# COLUMN-ORDER-PLAN.md section 6 item 7, by READING THE FILES BACK: the workbook via ExcelJS, the PDF by
+# inflating its content stream and pairing every text with its position. The 2/16 row must read
+# `Pre Prep | Writer's Rm` in all three, and every screen column width must appear in the PDF at the
+# page's fit scale.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-shared "$HERE/run.sh" stintexport 60 >/dev/null 2>&1
+python3 - "$HERE/stintexport.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintexport produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintexport threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('screenSwapped') and a.get('phaseColsEqual'), f"export: the screen shows the swap, phase columns equal ({a.get('gridWidthPt')} pt)")
+chk(a.get('xlsxSwapped') and a.get('xlsxPhaseColsEqual'), f"export: the workbook reads the same order, equal widths {a.get('xlsxRow')}")
+chk(a.get('pdfHasContent') and a.get('pdfSwapped'), f"export: the PDF reads the same order {a.get('pdfRow')}")
+chk(a.get('pdfWidthMatchesScreen'), f"export: every column width appears in the PDF at scale {a.get('pdfScale')} -- {a.get('pdfColumnsAtScale')}")
+chk(not a.get('errors'), f"export: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"export: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

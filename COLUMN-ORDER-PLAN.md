@@ -5,12 +5,15 @@ decides between a whole-column swap and a per-week one from what you selected.**
 
 Written 1 Sep 2026, at the owner's request, after using the shipped per-week swap.
 Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
-[`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md) first. This is a plan, not a
-record of work done. **Nothing here is built.**
+[`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md) first.
 
-> ⛔ **THIS REQUIRES A FROZEN EDIT and is NOT authorised yet.** It changes `computeBlockLayout`,
-> which feeds the screen, the Excel workbook and both PDF writers. `CLAUDE.md` requires a
-> stop-and-ask with a stated acceptance measurement. §6 is that measurement. **Owner decision E0.**
+> ✅ **STATUS, 2 Sep 2026: steps 1–6 are BUILT AND GATED, locally, not pushed.** The store, the
+> reconciler, the one authorised frozen line (E0), the "Swap Block" button (E2), the mode inference,
+> the one-outline-per-run change (E3), the complete E1 (a swap exchanges with *every* overlapping
+> stint in the neighbouring column and names them all), and §6 in full including items 6 and 7.
+> What remains is **E4** (retire or keep the per-week swap) — to be decided after the owner has used
+> both — and the ship itself. The sections below were written as a plan; the ✅ markers say what is
+> now measured rather than argued.
 
 ---
 
@@ -152,13 +155,18 @@ from both exports**. Measured with the guard removed: a 20-week phase rendered *
 would lose a cell — the same "a drifted store yields no change, never a wrong one" rule the rest of the
 file follows. Gate leg: `stintcollide`.
 
-⚠️ **E1 is therefore only PARTLY resolved.** "Move only the stints you selected" stands as the right
-answer, and refusing is the safe half. The **complete** answer, for the multi-occupant case, is to
-exchange your stint with **every stint in the neighbouring column that overlaps yours** — the only
-cell-preserving move available there — and to name all of them in the chip. That is not built: the
-gesture does not exist yet, so the case is unreachable except from a hand-edited file. ⛔ Build it
-before the "Swap Block" button ships, or the button will offer a swap that gets refused with no
-explanation the user can act on.
+✅ **E1 is now COMPLETE (2 Sep 2026).** "Move only the stints you selected" stands, and the
+multi-occupant case is handled rather than refused: the gesture (`stintRunFor`) **closes the set** —
+the other column's occupants over your stint's weeks join, then your column's occupants over *their*
+weeks, until nothing new joins — and every member is named in the knob's label, in the chip before
+commit, and in the confirmation after. segCol's rule bounds the walk at two steps (a lower column
+cannot be re-entered while a higher one is busy) but the code does not lean on that. The store's
+`with` relation is read as a **graph** (`stintSwapGroupsForBlock`): one connected component is one
+exchange, its members must sit in exactly two columns, every member trades one for the other; a
+mutual pair is the two-member case, so nothing written before reads differently. Refusal survives
+only for drift — a stint added into one of the two columns after the swap was stored — and for a
+hand-edited one-sided entry. Gate legs: `stintgroup`, `stintmulti` (both sides of the seam),
+`stintoneside`, and `stintcollide` unchanged.
 
 **How it is expressed — and why it needs both halves.** The override is a **stint-level mutual
 transposition** (§5), and it lands in two places, only one of which is frozen:
@@ -219,6 +227,10 @@ satisfiable and cannot be missed by a pixel. Everything downstream is already bu
 outline, the count chip, the knob, the verdict, the settle. **This is the single most valuable idea in
 the design** — it is what makes whole-column the *easy* path and per-week the deliberate one.
 
+✅ **BUILT 2 Sep 2026** — `drawStintButton` on `.grid-swap-layer`, gate leg `stintbtn`. All five
+below are implemented as written; one addition: it is not offered on touch (no hover), where the
+toolbar buttons still work.
+
 Five things it needs to get right, all of them mechanical rather than contested:
 
 - **It lives on the OVERLAY, never inside the `<td>`.** A control injected into a grid cell would be
@@ -267,7 +279,9 @@ claiming something false.
 **Recommended: one outline per contiguous run within the selection.** Exactly one box for the normal
 drag, an honest box per piece otherwise, and the count in the chip already says how many cells. A
 union outline (marching squares) is the only fully general answer and is not worth the code.
-**Owner decision E3.**
+**Owner decision E3.** ✅ **BUILT 2 Sep 2026** in `redrawGridOverlay`: a run also breaks where the
+rendered width changes, so a two-column cell gets its own rectangle and every outline is a true
+rectangle of selected cells. A mixed run keeps a solid outline and marks its no-room cells inside it.
 
 ---
 
@@ -391,12 +405,19 @@ prove the change is **inert** until used.
    20 weeks, a 4-week phase overlapping weeks 14–17. After a whole-column swap, **every cell of both
    phases keeps its `colspan`** and only its slot changes. **Zero** weeks reflow. That is the assertion
    that distinguishes this feature from the shipped one, and it is the claim §1 flagged as unmeasured.
-5. **A leg proving the mode inference**: selecting every cell resolves to the column swap, selecting a
-   subset resolves to the per-week one, and the chip says which **before** commit.
-6. **A leg proving the store survives a restore** and re-applies, driven by a real `.sptcal` fixture —
-   plus one proving a hand-edited one-sided entry yields no reorder rather than a wrong one.
-7. **Excel and both PDFs re-exported for the owner's calendar** and compared to the screen: the swapped
-   order must appear in all three, with no width change.
+5. ✅ **A leg proving the mode inference** (`stintbtn`): selecting every cell resolves to the column
+   swap, selecting a subset resolves to the per-week one, and the chip says which **before** commit.
+6. ✅ **A leg proving the store survives a restore** and re-applies, driven by a real `.sptcal` fixture
+   (every `stint*` leg loads its `.sptcal` through the inline saved-state path, which converges on the
+   same `applyStateSnapshot` the picker uses) — plus `stintoneside`, proving a hand-edited one-sided
+   entry yields no reorder rather than a wrong one. ⚠️ Not proven: the *picker* path itself, which
+   stalls on IndexedDB in headless Chrome like the `restore` leg.
+7. ✅ **Excel and the waterfall PDF re-exported and compared to the screen** (`stintexport`), by reading
+   the files back — ExcelJS for the workbook, an inflated content stream for the PDF: the swapped order
+   appears in both exactly as on screen, and every screen column width appears in the PDF at the page's
+   fit scale (0.9). ⚠️ The month PDF is a browser print and is not read back; it renders the month
+   view, which does not carry column order. The "owner's calendar" is the `stintswap-shared` fixture
+   shape, not a file of the owner's — none is in the repo.
 
 ---
 
@@ -405,9 +426,9 @@ prove the change is **inert** until used.
 | | Decision | Recommendation |
 |---|---|---|
 | **E0** | ✅ **AUTHORISED, GATED (owner, 1 Sep 2026).** The two-line edit to `computeBlockLayout` may be made, on the strength of §6 — and **only** on it: if any item in §6 fails, it does not ship. Recorded in `HANDOFF.md`. | — closed |
-| **E1** | 🔶 **PARTLY RESOLVED.** "Move only the stints you selected" stands and is built; the owner was right and the earlier "wholesale" recommendation was wrong. ⚠️ But §2.1's supporting argument was over-strong: the neighbouring column CAN host several stints inside yours, and exchanging with one of them loses cells (measured: 4 weeks). Currently **refused**. The complete answer — exchange with every overlapping stint in that column, and name them all — is **not built** and must land before the gesture does. | Finish before step 5 |
-| **E2** | ✅ **DECIDED.** The owner's hover button solves the selection problem (§2.2), and the label is **"Swap Block"** — not "Move", per their own D10 ruling. | — closed |
-| **E3** | ✅ **DECIDED:** one outline **per contiguous run** in the selection, not one bounding box. A ⌘-click set or a marquee that skipped a hiatus week would otherwise get a box enclosing cells that are not selected. | — closed |
+| **E1** | ✅ **RESOLVED AND BUILT (2 Sep 2026).** "Move only the stints you selected" stands; the owner was right and the earlier "wholesale" recommendation was wrong. The neighbouring column CAN host several stints inside yours (exchanging with one of them loses cells — measured, 4 weeks), so the gesture exchanges with **every** overlapping stint in that column and names them all, before and after the commit. The store reads `with` as a graph; a mutual pair is the two-member case. | — closed |
+| **E2** | ✅ **DECIDED AND BUILT.** The owner's hover button solves the selection problem (§2.2), and the label is **"Swap Block"** — not "Move", per their own D10 ruling. Gate leg `stintbtn`. | — closed |
+| **E3** | ✅ **DECIDED AND BUILT:** one outline **per contiguous run** in the selection, not one bounding box. A ⌘-click set or a marquee that skipped a hiatus week would otherwise get a box enclosing cells that are not selected. | — closed |
 | **E4** | ⏸ **DEFERRED by agreement** — is the per-week partial swap wanted at all once stint-level exists? Keeping it means keeping the collateral preview and the magnitude gate; retiring it deletes both. Decide after using both. **The only open decision.** | Decide after using both |
 | **E5** | ✅ **DECIDED:** keep the order for a year block that still exists; **drop** it for one that no longer does. A stint arriving in a new year gets that year's natural order until swapped there. | — closed |
 
@@ -426,10 +447,18 @@ prove the change is **inert** until used.
    stored the waterfall PDF and every Excel part are byte-identical to the baseline.
    ⏭ §6 item 6 (a .sptcal restore fixture + a one-sided-entry leg) and item 7 (re-export the
    owner's own calendar and compare to screen) are still outstanding.
-5. The "Swap Block" hover button (section 2.2) -- overlay only, no frozen change.
-6. Mode inference + the chip that states it + the outline change.                <- ⭐ SHIPPABLE
+4b. ✅ DONE -- E1 complete: the group model in the reconciler, the closure in the gesture,
+   every member named. Legs stintgroup, stintmulti, stintoneside.
+5. ✅ DONE -- the "Swap Block" hover button (section 2.2) -- overlay only, no frozen change.
+6. ✅ DONE -- mode inference + the chip that states it + the outline change.      <- ⭐ SHIPPABLE
+   §6 items 6-7 done too (stintoneside, stintexport). Gate: all stint legs pass; the only
+   failure is the known `restore` IndexedDB stall.
 --- ship, ask, wait ---
 7. E4: retire or keep the per-week swap.
+8. ⚠️ Known limitation to raise with the owner: a block already swapped with one column cannot be
+   swapped with a THIRD (refused as 'chained', stated in the chip). The store holds disjoint
+   2-cycles and a 3-cycle is not one of them; the per-week store shares the limit. Lifting it
+   means a permutation store ({takes:<key>}), a separate decision.
 ```
 
 **Step 1 was done before anything else**, and that ordering is the point: the premise was one

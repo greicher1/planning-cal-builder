@@ -1394,6 +1394,21 @@
      letting go. Once the knob is grabbed, the batch-expand count is noise: hide it for the gesture.
      Done in CSS rather than JS so there is only one place either chip's visibility is decided. */
   body.grid-swapping .grid-sel-chip{ display:none; }
+  /* The "Swap Block" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;
+     teal like the knob, because it belongs to the swap vocabulary and not to the purple resize one.
+     Sized to sit inside a 20px row (ROW_DEFAULT_PX) without touching the cell's borders. */
+  .grid-stint-btn{
+    position:absolute; pointer-events:auto; cursor:pointer; box-sizing:border-box; height:16px;
+    margin:0; padding:0 5px; border:1px solid #fff; border-radius:8px; background:#0E7C8C; color:#fff;
+    font:600 9px/14px 'Inter',system-ui,sans-serif; white-space:nowrap; letter-spacing:0;
+    box-shadow:0 1px 3px rgba(0,0,0,.3); user-select:none;
+  }
+  .grid-stint-btn:hover, .grid-stint-btn:focus-visible{ background:#0A6675; }
+  /* A marquee sweep or a knob drag crosses many cells; a button flickering along under the pointer
+     would be noise, and neither gesture can use it. */
+  body.grid-selecting .grid-stint-btn, body.grid-swapping .grid-stint-btn{ display:none; }
+  /* Inside a run outline (one per contiguous run, owner decision E3), a cell with no room of its own. */
+  .grid-sel-inert{ position:absolute; box-sizing:border-box; border:1px dashed rgba(112,48,160,.5); border-radius:2px; }
   /* Suppress the motion, never the CONFIRMATION: finishSwapMove always flashes a chip when the
      settle is unavailable, because a completed move must not be silent. The precedent is
      #help-overlay's own reduced-motion block. */

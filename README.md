@@ -29,6 +29,97 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the block swap has its gesture: "Swap Block", and a swap that names everyone it moves
+
+Steps 5 and 6 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md), plus the second half of owner
+decision E1 and §6 items 6 and 7. **Local, not pushed.** Nothing in the frozen surface changed.
+
+**The gesture (owner decision E2).** Hover any cell of a phase's block in the waterfall and a small
+teal **Swap Block** button appears at the top-right of that block's first visible week. One click
+selects every cell of the block, and the existing machinery takes it from there: one outline round
+the block, the blue knob at the seam, the toolbar's *◀ Swap / Swap ▶*, Alt+arrows. The button lives on
+the overlay layer, never inside a grid cell; it stays visible while the pointer is anywhere over the
+block or on the button itself (so travelling toward it cannot kill it); it anchors to the topmost
+*visible* week when the first is scrolled under the sticky header; and it does not appear at all on a
+block with one phase column, where nothing can move. It is not offered on touch, where there is no
+hover — the toolbar buttons still work there. ⛔ The label is *Swap*, never *Move*: the shift controls
+a few pixels away move the calendar in time (rulings D10 and E2).
+
+**Mode inference (§6 item 5).** A selection that is exactly every cell of one block resolves to the
+block swap; anything else resolves to the per-week swap, exactly as before. A near-complete selection
+is **never** snapped up to the whole block — that would be the assumptive behaviour the block swap
+exists to remove — and with the button there, nobody needs it. The chip states the resolved mode
+**before** commit: *"All 6 weeks of Prod Prep in 2026 — Swap ▶ trades the whole block with Post ·
+nothing re-flows"* against *"5 of 6 weeks of Prod Prep selected — Swap moves the 4-week run at
+11/16/26–12/7/26 only · Swap ▶: 2 weeks re-flow"*. The knob's label and the toolbar tooltips carry the
+same sentence.
+
+**E1, finished — a block swap exchanges with EVERY block in the neighbouring column that overlaps
+it, and names them all.** The previous commit refused such a pair outright (measured: exchanging with
+one of two loses four weeks, silently, in the grid and both exports). Now the gesture closes the set
+itself — the other column's occupants over the block's weeks, then this column's over theirs, until
+nothing new joins — and the store's `with` relation is read as a **graph**: each connected component
+is one exchange, its members must sit in exactly two columns, and every member trades one for the
+other. A mutual pair is the two-member case, so every store written before this reads exactly as it
+did. From the long side the chip says *"trades the whole block with Post and Localization"*; from
+the short side, *"trades the whole block with Writer's Rm (Localization moves with it)"*; the
+confirmation after the move names them all. The reconciler still refuses a group that would lose a
+cell — reachable now only by drift or a hand-edited file — and a hand-edited **one-sided** entry
+yields no reorder rather than a wrong one.
+
+**Two honest refusals that did not exist before, both stated in the chip.** *Mixed*: a block some of
+whose weeks are already swapped one by one cannot be block-swapped until those are swapped back —
+two orders at once is not something either store can express. *Chained*: a block already swapped
+with one column cannot be swapped with a third; the store holds disjoint pairs and a three-cycle is
+not one of them. The verdict detects it by reading where every member actually lands in the trial
+and refusing when that is not the column beside it. ⚠️ This is a real limitation for a block with
+three phase columns — recorded in `HANDOFF.md`, and the per-week swap shares it.
+
+**One thing the block swap deliberately does NOT refuse: a column-width change.** A column's width
+follows the labels in it, so two columns trading their phases trade their widths too. That *is* the
+two blocks looking the same in their new places; the per-week gate's G3 rule would have refused every
+block swap between phases of different label length. What it does check: the year still needs the
+same number of columns, the Simultaneous Post lane has not moved, and **every occupant of the block
+keeps its colspan** — any week where a cell changes shape is reported as collateral, and the chip says
+how many.
+
+**One outline per contiguous run (owner decision E3).** The selection used to draw one rectangle per
+cell. It now draws one per contiguous run, breaking wherever the rows stop being consecutive or the
+rendered width changes, so every outline is a true rectangle of selected cells: a ⌘-click set or a
+marquee that skipped an all-phase hiatus week gets an honest box per piece rather than one box
+enclosing cells that are not selected. A mixed run keeps its solid outline and marks its no-room cells
+inside it, so the count chip's "(2 has no room)" still points at something visible.
+
+**Verified — five new gate legs, all against `dist/index.html`:**
+
+- `stintgroup` — the collide schedule with the complete group stored: Writer's Rm to slot 1 for all
+  20 weeks, Post *and* Localization to slot 0, nothing lost, nothing wider. `stintcollide` keeps
+  proving that naming only one of them is still refused.
+- `stintoneside` — a hand-edited one-sided entry: natural order stands, every cell present (§6 item 6).
+- `stintbtn` — the button and the inference, through real pointer events on the owner's screenshot
+  shape: button on the first week, survives travel, re-anchors, disappears; one outline; the block
+  mode line before commit; all six weeks move and **not one changes width** (the per-week leg on the
+  same fixture widens two); the affordance follows; swapping back restores the natural layout exactly;
+  a partial selection resolves to the per-week mode and says so; no button on a one-column block.
+- `stintmulti` — E1 through the gesture, from both sides of the seam: both partners named before
+  commit, all three blocks move, the confirmation names them, the reverse is exact.
+- `stintexport` — §6 item 7, by reading the files back: the workbook via ExcelJS and the PDF by
+  inflating its content stream, both read `Pre Prep | Writer's Rm` in the swapped week exactly as the
+  screen does, and every screen column width appears in the PDF at the page's fit scale (0.9).
+
+Inertness still holds: with nothing stored the waterfall PDF and every Excel part are byte-identical
+to the baseline. `prove-col-permutation.mjs`: theorem holds. Gate: every leg passes except the known
+`restore` IndexedDB stall, identical on the untouched page.
+
+**Learned the hard way, in the harness.** (1) The hover handler was first written on
+`requestAnimationFrame`, and headless Chrome starves rAF the way a hidden pane does — the button was
+unreachable from the harness while looking fine by hand. It runs synchronously now: one
+`elementsFromPoint` per move, a draw only when the block under the pointer changes. (2) The cached
+swap verdicts were left standing for the 140 ms debounce after a selection changed, so the chip
+narrated the *previous* selection's swap for a beat; they are cleared the moment the key changes.
+(3) `DecompressionStream`, unlike `zlib.inflateSync`, refuses the newline every PDF stream carries
+before `endstream` — trim it, or the content stream silently reads as absent.
+
 ### Unreleased — a genuine block swap: two blocks trade sides and neither changes shape
 
 Steps 3 and 4 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md). **No gesture yet** — this is the
