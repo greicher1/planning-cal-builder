@@ -49,8 +49,39 @@ if (from < 0 || to < 0) {
   process.exit(1);
 }
 const body = source.slice(from, to + END.length) + '\n}';
-// The slice references only builtins (Map, Array.from, Math.*), so it evaluates standalone.
-const computeBlockLayout = new Function(`${body}; return computeBlockLayout;`)();
+// ⚠️ ONE non-builtin reference, injected here rather than sliced in: `stintOrderFor`, the non-frozen
+// helper the authorised slot-order hook calls (owner sign-off E0, 1 Sep 2026 -- see
+// COLUMN-ORDER-PLAN.md). The stub returns null, which is exactly what the real one returns when no
+// stint swap is stored -- so the sliced function behaves here as it does on an ordinary calendar, and
+// this file keeps testing the AUTOMATIC layout under column permutations, which is its whole subject.
+// ⛔ Do not make the stub return an order. The theorem being fuzzed is about the DERIVED order being
+// invariant under a within-week col permutation; pinning it would test something else and pass
+// vacuously. A stint swap's own invariants are covered by tests/harness/t/stintswap.js instead.
+// If a future edit adds another non-builtin reference, add it here the same way -- update the slice,
+// never the theorem.
+const stintOrderFor = () => null;
+const computeBlockLayout = new Function('stintOrderFor',
+  `${body}; return computeBlockLayout;`)(stintOrderFor);
+
+// ---- And slice blockColOrder, the ONE duplicated frozen rule in the stint-swap feature -----------
+// applyStintSwaps has to capture a block's column order BEFORE it exchanges anything, and it does so
+// with its own first-appearance walk rather than by calling computeBlockLayout -- because
+// computeSchedule runs up to 300 times in productionStartEndingBy's backward search and paying a full
+// layout pass each time is not affordable. That duplication is the feature's one drift risk: if the
+// two walks ever disagree, a stint swap pins the WRONG order and lands the phase in the wrong column.
+// So fuzz them against each other on the same generated schedules. This is the check app.js's comment
+// on blockColOrder promises.
+const CO_START = 'function blockColOrder(weeks, b){';
+const CO_END = '  }\n\n  // Resolve gridStintSwaps';
+const coFrom = source.indexOf(CO_START);
+const coTo = source.indexOf(CO_END, coFrom);
+if (coFrom < 0 || coTo < 0) {
+  console.error('FAIL: could not locate blockColOrder in src/legacy/app.js.');
+  console.error('Re-anchor this test before trusting it.');
+  process.exit(1);
+}
+const coBody = source.slice(coFrom, coTo) + '  }';
+const blockColOrder = new Function(`${coBody}; return blockColOrder;`)();
 
 // ---- A tiny deterministic RNG, so a failure is reproducible from its seed ------------------------
 let seed = 0x2545f491;
@@ -140,6 +171,7 @@ const slotSig = (m) => [...m.entries()].sort((a, b) => a[0] - b[0]).map(([c, s])
 const TRIALS = Number(process.argv[2] || 20000);
 let ran = 0;
 let slotViolations = 0, sizeViolations = 0;
+let orderDrift = 0;                                // blockColOrder vs computeBlockLayout: MUST be 0
 let mcDriftNoSim = 0, simDriftNoSim = 0;          // MUST be zero
 let mcDriftProdSim = 0;                            // the documented, designed-for exception
 const examples = [];
@@ -149,6 +181,18 @@ for (let t = 0; t < TRIALS; t++) {
   const blocks = blocksFor(schedule);
   const before = computeBlockLayout(schedule, blocks);
   const beforeSig = before.blockSlotMaps.map(slotSig);
+  // The duplicated-rule check, run on the UN-permuted schedule -- i.e. exactly the state
+  // applyStintSwaps captures the order in, before it exchanges anything. The order implied by
+  // blockSlotMaps is its columns read out in slot sequence; blockColOrder must reproduce that list.
+  for (let bi = 0; bi < blocks.length; bi++) {
+    const derived = [...before.blockSlotMaps[bi].entries()]
+      .sort((a, b) => a[1] - b[1]).map((e) => e[0]).join(',');
+    const mine = blockColOrder(schedule.weeks, blocks[bi]).join(',');
+    if (derived !== mine) {
+      orderDrift++;
+      if (examples.length < 3) examples.push({ kind: 'blockColOrder', bi, frozen: derived, mine });
+    }
+  }
   const beforeMc = [...before.blockMaxConcurrent];
   const beforeSim = [...before.blockSimSlot];
   const anySim = schedule.weeks.some((w) => w.simPost);
@@ -187,6 +231,7 @@ for (let t = 0; t < TRIALS; t++) {
 
 console.log(`computeBlockLayout invariance under within-week col transposition`);
 console.log(`  trials with a real permutation : ${ran} (of ${TRIALS} generated)`);
+console.log(`  blockColOrder vs frozen walk   : ${orderDrift}   (must be 0)`);
 console.log(`  blockSlotMaps changed          : ${slotViolations}   (must be 0)`);
 console.log(`  slotMap.size changed           : ${sizeViolations}   (must be 0)`);
 console.log(`  mc changed, no SimPost/Prod    : ${mcDriftNoSim}   (must be 0)`);
@@ -195,9 +240,11 @@ console.log(`  mc changed via Production+SimPost: ${mcDriftProdSim}   (EXPECTED 
 console.log(`      plan refuses Production swaps in a SimPost block, and why gate check G2 runs on`);
 console.log(`      every update() and not only at gesture time)`);
 
-const failed = slotViolations || sizeViolations || mcDriftNoSim || simDriftNoSim;
+const failed = slotViolations || sizeViolations || mcDriftNoSim || simDriftNoSim || orderDrift;
 if (failed) {
   console.error('\nTHEOREM VIOLATED. Do not ship the column-swap feature.');
+  if (orderDrift) console.error('blockColOrder has DRIFTED from computeBlockLayout\'s own first-appearance');
+  if (orderDrift) console.error('walk. A stint swap would pin the wrong order and move a phase to the wrong column.');
   console.error('Slot identity is what protects hand-dragged colWidths from being re-labelled onto');
   console.error('a different column, so a violation here is silent corruption of saved user work.');
   console.error(examples.map((e) => '  ' + JSON.stringify(e)).join('\n'));

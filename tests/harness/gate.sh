@@ -299,6 +299,67 @@ chk(not hv.get('h'), f"stale: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- stintswap: a STINT swap moves only the two stints named, even on shared columns -------------
+# Load-bearing claim of COLUMN-ORDER-PLAN.md section 2.1. A stint = a phase's weeks in ONE year block
+# (the UI calls it a block). The fixture shares BOTH columns -- slot 0 is Writer's Rm then
+# Localization, slot 1 is Pre Prep then Post -- and swaps Writer's Rm <-> Pre Prep only.
+# ⛔ The assertion that matters is that Localization and Post DO NOT MOVE. An earlier draft of the
+# plan recommended exchanging whole COLUMNS, which would have moved them; the owner rejected that and
+# was right. If this leg starts failing on bystanders, someone has gone back to a column permutation.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-shared "$HERE/run.sh" stintswap 45 >/dev/null 2>&1
+python3 - "$HERE/stintswap.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintswap produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintswap threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('swappedPair'), f"stint: the two named stints traded places {a.get('slots')}")
+chk(a.get('bystandersUnmoved'), "stint: the stints sharing those columns did NOT move")
+chk(a.get('noReflow'), f"stint: nothing changed shape {a.get('spans')}")
+chk(a.get('mcUnchanged'), f"stint: the year still needs two phase columns ({a.get('colKeys')})")
+chk(a.get('weekCountsOk'), f"stint: no cell lost or duplicated {a.get('weeks')}")
+chk(not a.get('errors'), f"stint: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"stint: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- stintnoreflow: the whole reason the feature exists ------------------------------------------
+# Same fixture as `colswapmove`, where the PER-WEEK swap widens 11/2 and 11/9 from one column to two.
+# A stint swap must reflow nothing: it moves the phase's ENTIRE run in the block, so the run is never
+# split and frozen freeForRun never grants the widen. The solo weeks travel WITH the block and stay
+# one column wide -- which is also the "narrow band on the right" layout an earlier session wrongly
+# told the owner was unreachable.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-noreflow "$HERE/run.sh" stintnoreflow 45 >/dev/null 2>&1
+python3 - "$HERE/stintnoreflow.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintnoreflow produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintnoreflow threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('swapped'), f"noreflow: the four shared weeks traded places {a.get('overlap')}")
+chk(a.get('soloMovedAndNarrow'),
+    f"noreflow: solo weeks travelled with the block and stayed narrow {a.get('solo')}")
+chk(a.get('everyPhaseCellOneWide'), "noreflow: not one cell in the grid changed shape")
+chk(a.get('mcUnchanged'), f"noreflow: column count unchanged ({a.get('colKeys')})")
+chk(not a.get('errors'), f"noreflow: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"noreflow: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

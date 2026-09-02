@@ -29,6 +29,82 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a genuine block swap: two blocks trade sides and neither changes shape
+
+Steps 3 and 4 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md). **No gesture yet** — this is the
+store, the reconciler and the one authorised frozen edit, landed and gated before any UI is built on
+top of them, the same way the per-week swap was.
+
+**Why this exists.** The shipped per-week swap reflows weeks you did not select: measured on the
+owner's own calendar, swapping a 4-week overlap widened **16** other weeks. Their verdict, and it
+reframed the feature — a swap should be *"a genuine swap, where the two blocks swap positions but look
+the same"*, and doing the widening for you is *"confusing and assumptive"* when **Expand** already
+does it in one click. A block swap reflows nothing: it moves the phase's *entire* run in that year, so
+the run is never split and the layout rule that was holding it narrow keeps holding it narrow.
+
+**Vocabulary.** The unit is a phase's weeks within **one year block** — the thing that actually owns a
+column. Production running Nov 2026 → Mar 2027 has two, each independently swappable. The UI calls it
+a **block** (the owner's word, and the right one for users); the code calls it a **`stint`**, because
+`block` already means the year group in 117 places in the engine and 577 in the harness. Same
+deliberate split as the app's user-facing *Load…* over the code's `open`.
+
+⛔ **It moves only the blocks you named — not the whole column.** An earlier draft of the plan argued
+this was impossible and recommended disclosing it as an unavoidable surprise. The owner rejected that
+(*"there's gotta be a way to just move the phase you selected"*) and was right. Re-reading `segCol` is
+what shows why: it reuses a freed column **only to the right of every earlier phase still running**, so
+two phases share a column only across a clean break in the whole schedule — which means the column
+beside your block, *during your block's life*, holds exactly one other block. A second occupant is
+adjacent to something else, months later, and has no business moving.
+
+⛔ **Two halves, and half of it alone visibly does nothing.** The move is a `col`-value exchange over
+the two blocks, in **non-frozen** `computeSchedule`, applied per **cell** within the block's week range
+(a phase has exactly one segment and therefore one column for its whole life, so exchanging at the
+segment level would move it in every year at once). On its own that is invisible: `blockSlotMaps`
+re-derives slot order from **first appearance**, so the phase present in week 1 is still sorted into
+slot 0 and nothing moves — the trap the store's own comment describes when it forbids a `seat` field.
+The frozen hook's only job is to **pin the order the block already had**, so the exchange shows
+through. Read it as *preserve*, not *reorder*.
+
+**The frozen edit, and why it is defensible.** Two functional lines inside `computeBlockLayout` — the
+`.map` gains an index, and the slot-order assignment takes its list from a non-frozen helper instead of
+the derived one. Owner sign-off E0, scoped to the slot-order assignment only. The safety argument is
+**inertness**, and it is measured, not promised: the helper returns `null` unless a swap is stored, and
+with nothing stored the gate's byte-compare shows the **waterfall PDF and every Excel part identical to
+the baseline**. One decision, four consumers — screen, workbook, direct PDF writer, and the gate's own
+fingerprint — so they cannot disagree.
+
+**Measured, not asserted.** Three results, each of which could have killed the design:
+
+- **Bystanders don't move.** A fixture where *both* columns are shared — slot 0 is Writer's Rm then
+  Localization, slot 1 is Pre Prep then Post — swapping Writer's Rm ↔ Pre Prep leaves Localization at
+  slot 0 and Post at slot 1. Column count unchanged, no cell lost.
+- **Nothing reflows.** On the exact fixture where a per-week swap widens two weeks, a block swap widens
+  **zero** — not one cell in the grid changes shape.
+- **A correction to something I told the owner earlier.** I said a phase alone in a row must fill the
+  row, so a narrow band sitting in the right-hand column with space to its left was unreachable. It is
+  reachable: the block's solo weeks travel *with* it and stay one column wide, because the left-absorb
+  branch refuses while the partner occupies that column inside the run. That is the layout the owner
+  described wanting, and it falls out of the design rather than needing anything extra.
+
+**Save format:** new `gridStintSwaps` key, keyed `'<year>|<phaseKey>'` — never by column or slot,
+because `col` is an opaque identity that shifts whenever any start date changes and a slot index means
+a different column in each year. Restored unconditionally (`? {...} : {}`), cleared by Reset All,
+deliberately **not** cleared by Reset Notes & Hiatus, and deliberately **not** re-keyed by a shift
+(owner ruling E5 — the keys hold a year, not a date; a block pushed into a new year simply has no entry
+there, and the old year's entry is *ignored* rather than deleted so undoing the shift brings it back).
+No `SNAPSHOT_VERSION` bump: an absent key means "no order", correct for every file ever written.
+
+Verified: `stintswap` and `stintnoreflow` gate legs (the two measurements above), the full existing
+gate still green at **68 checks** including the byte-identical PDF/Excel inertness proof, and
+`prove-col-permutation.mjs` still holding its theorem. That prover needed its slice updated — the
+frozen function now references one non-builtin — and it gained a second check while it was open: the
+reconciler's own first-appearance walk is fuzzed against `computeBlockLayout`'s across all 20,000
+generated schedules, because that duplication is the feature's one drift risk and a disagreement would
+pin the wrong order and land a phase in the wrong column.
+
+⏭ Still to build: the **Swap Block** hover button, the selection-driven mode inference, and the
+one-outline-per-run change. Nothing in the UI can create a block swap yet.
+
 ### Unreleased — fix: "clear the hand-set width" on a width nobody set
 
 Owner bug report: a swap was refused with *"Clear the hand-set width on Writer's Rm 9/7 to swap its

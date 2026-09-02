@@ -28,6 +28,13 @@ it is a plan, not a record of work done.
 > **D3, D4, D5, D9, D10 were taken as implemented defaults on 1 Sep 2026** — each this plan's own
 > recommendation, each named in the changelog, each reversible in one place. See §11 for what was
 > chosen. **D8 and F2-e are the only things still genuinely open.**
+>
+> ⛔ **AND THE FEATURE MAY BE THE WRONG PRIMITIVE.** Owner, 1 Sep 2026, after using it: a swap should
+> be *"a genuine swap, where the two blocks swap positions but look the same"*, and the reflow this
+> plan calls sanctioned collateral is *"confusing and assumptive"* when Expand already does it in one
+> click. A **whole-column** swap does not reflow at all (measured). See
+> [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md) — it needs a frozen edit and the owner's sign-off,
+> and it may retire the per-week swap along with D2, G5 and the collateral preview entirely.
 
 > ⚠️ **This document quotes no line numbers, deliberately.** `tools/check-refs.py` scans docs for
 > them and the GitHub Action runs it — a number in prose fails the deploy. Every claim below names
@@ -172,7 +179,7 @@ whole block and silently flips weeks the user never touched.
 
 `phaseRunBounds(occupiedSlot, localWeek)` walks contiguous **same-occupant-key** weeks in one slot.
 This makes it unexpectedly robust: a mid-run column change automatically **splits** the phase into
-two independent stints, each span-tested on its own terms. That is the strongest single piece of
+two independent runs, each span-tested on its own terms. That is the strongest single piece of
 evidence that per-week `col` is viable, and it is also the source of Feature 2's one unavoidable
 side effect:
 

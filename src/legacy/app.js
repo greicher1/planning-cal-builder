@@ -176,6 +176,31 @@ export function initLegacyApp() {
   // label lives in a separate name-<key> field).
   let gridColSwaps = {};
 
+  // ---------- Column order: the STINT-level swap (COLUMN-ORDER-PLAN.md) ----------
+  // A *stint* is a phase's weeks within ONE year block -- the unit that actually owns a column.
+  // Production running Nov 2026 -> Mar 2027 has two stints, each with its own column, each
+  // independently swappable. ⛔ The UI calls this a "block" (owner's word, and the right one for
+  // users); the code says `stint` because `block` already means the YEAR block everywhere in here.
+  // Same deliberate split as the app's user-facing "Load…" over the code's `open`.
+  //
+  // Shape: gridStintSwaps['<year>|<phaseKey>'] = { with: '<otherPhaseKey>' }, mutual, both sides.
+  // Deliberately the same mutual-pointer model as gridColSwaps -- validated as a whole before any
+  // pair is built, so a half-moved pair, a self-pointer or a hand-edited file yields NO reorder for
+  // that block rather than a wrong one.
+  //
+  // ⛔ WHY THIS EXISTS ALONGSIDE gridColSwaps, and why it is the better primitive (owner, 1 Sep
+  // 2026): a per-WEEK swap splits a phase's run in the column it leaves, and each half then finds
+  // the neighbouring column free for its whole (now shorter) run -- so it WIDENS. Measured on the
+  // owner's own calendar: swapping a 4-week overlap reflowed 16 other weeks. A stint swap never
+  // splits a run, so nothing reflows. The owner's words: a swap should be "a genuine swap, where the
+  // two blocks swap positions but look the same", and doing the widening for them is "confusing and
+  // assumptive" when Expand already does it in one click.
+  //
+  // ⛔ KEYED BY PHASE KEY, never by col or slot. `col` is an opaque identity from segCol's
+  // free-column reuse and SHIFTS whenever any start date changes; a slot index means a different
+  // column in each year block. A phase key is stable under both, and under renames.
+  let gridStintSwaps = {};
+
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
   // notes AND phase labels so a narrowed column of either kind behaves the same way. The
@@ -2315,9 +2340,13 @@ export function initLegacyApp() {
     // consistent schedule, which is what makes them unable to disagree.
     // The result is recorded on the schedule for the gate to inspect; it is derived and transient
     // (nothing serialises a schedule, and captureSnapshot never touches it).
+    // Stint swaps FIRST, then per-week ones on top: the stint swap is the coarser statement (a whole
+    // block trades columns) and a per-week entry then refines individual weeks of the result. The
+    // reverse order would let a week-level exchange be undone by the block-level one.
+    const stintOrder = applyStintSwaps(weeks);
     const appliedColSwaps = applyColSwaps(weeks);
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps};
+    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
   }
 
   // Resolve gridColSwaps into the disjoint transpositions that actually apply to ONE week.
@@ -2386,6 +2415,112 @@ export function initLegacyApp() {
       });
     });
     return applied;
+  }
+
+  // The order frozen computeBlockLayout WOULD derive for this block: columns by FIRST APPEARANCE,
+  // ties by column value.
+  // ⚠️ This mirrors that function's own walk, which is the one duplicated rule in this feature. It is
+  // duplicated on purpose: the alternative is calling computeBlockLayout from inside the reconciler,
+  // and computeSchedule runs up to 300 times in productionStartEndingBy's backward search. The
+  // `stintorder` harness leg asserts the two agree whenever no override is stored, so drift is caught
+  // rather than assumed away.
+  function blockColOrder(weeks, b){
+    const firstAppear = new Map();
+    for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+      const local = i - b.startIdx;
+      weeks[i].cells.forEach(c=>{
+        if(c.col !== undefined && !firstAppear.has(c.col)) firstAppear.set(c.col, local);
+      });
+    }
+    return Array.from(firstAppear.keys()).sort((x, y)=>{
+      const fx = firstAppear.get(x), fy = firstAppear.get(y);
+      return (fx - fy) || (x - y);
+    });
+  }
+
+  // Resolve gridStintSwaps into the disjoint transpositions that apply to ONE year block. Same
+  // whole-relation validation as swapPairsForWeek: validating pair-by-pair is what makes a trailing
+  // cycle guard dead code, so a real 3-cycle would get HALF-applied instead of dropped.
+  function stintSwapPairsForBlock(year, cellsByKey){
+    const want = new Map();
+    cellsByKey.forEach((_cells, key)=>{
+      const ov = gridStintSwaps[year + '|' + key];
+      if(!ov || typeof ov !== 'object') return;
+      if(typeof ov.with !== 'string') return;
+      if(ov.with === key) return;              // self-pointer
+      if(!cellsByKey.has(ov.with)) return;     // partner has no stint in this block
+      want.set(key, ov.with);
+    });
+    const named = new Map();
+    for(const [, pk] of want) named.set(pk, (named.get(pk) || 0) + 1);
+    for(const [k, pk] of want){
+      if(want.get(pk) !== k) return [];                        // not mutual
+      if(named.get(k) > 1 || named.get(pk) > 1) return [];      // named by more than one other
+    }
+    const pairs = [], done = new Set();
+    for(const [k, pk] of want){
+      if(done.has(k) || done.has(pk)) continue;
+      pairs.push([k, pk]); done.add(k); done.add(pk);
+    }
+    return pairs;
+  }
+
+  // Exchange two stints' column values, per BLOCK, and record the order the block had first.
+  //
+  // ⛔ TWO HALVES, and this is only the first. On its own it is INVISIBLE: frozen blockSlotMaps
+  // re-derives slot order from first appearance, so after the exchange the phase that appears in
+  // week 1 is still sorted into slot 0 and nothing moves. That is exactly the trap gridColSwaps'
+  // comment describes when it forbids a `seat` field. The second half is stintOrderFor(), which the
+  // frozen hook calls to PIN the pre-exchange order so the exchange shows through.
+  //
+  // ⛔ Per CELL, not per segment. A phase has exactly ONE segment and therefore one col for its whole
+  // life (verified: state.allDefs.forEach pushes at most one), so exchanging at the segment level
+  // would move the phase in EVERY year block at once. Confining the writes to the block's week range
+  // is what makes this per-stint at all.
+  function applyStintSwaps(weeks){
+    if(!Object.keys(gridStintSwaps).length) return null;   // zero cost when unused
+    const orders = [], applied = [];
+    computeYearBlocks(weeks).forEach(b=>{
+      const cellsByKey = new Map();
+      for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+        weeks[i].cells.forEach(c=>{
+          // A type:'hiatus' all-phase band carries neither key nor col, so it can never take part --
+          // correct, it renders full width. A phaseHiatus band DOES carry both and travels with its
+          // phase, which is what keeps a renamed band with the stint it belongs to.
+          if(c.col === undefined || !c.key) return;
+          if(!cellsByKey.has(c.key)) cellsByKey.set(c.key, []);
+          cellsByKey.get(c.key).push(c);
+        });
+      }
+      const pairs = stintSwapPairsForBlock(b.year, cellsByKey);
+      if(!pairs.length){ orders.push(null); return; }
+      orders.push(blockColOrder(weeks, b));    // ⛔ BEFORE a single col moves
+      pairs.forEach(([ka, kb])=>{
+        const ca = cellsByKey.get(ka), cb = cellsByKey.get(kb);
+        const colA = ca[0].col, colB = cb[0].col;
+        if(colA === colB) return;              // already sharing a column: nothing to exchange
+        ca.forEach(c=>{ c.col = colB; });
+        cb.forEach(c=>{ c.col = colA; });
+        applied.push({ year:b.year, a:ka, b:kb, from:colA, to:colB });
+      });
+    });
+    return { orders, applied };
+  }
+
+  // The second half, and the ONLY thing the frozen hook asks for. Returns the order to pin for this
+  // block, or null to let the derived one stand.
+  // ⛔ Read it as "preserve", not "reorder" -- see applyStintSwaps.
+  function stintOrderFor(schedule, blockIdx, sortedSlots){
+    const st = schedule && schedule.stintOrder;
+    if(!st || !st.orders) return null;
+    const pinned = st.orders[blockIdx];
+    if(!Array.isArray(pinned) || pinned.length !== sortedSlots.length) return null;
+    // A mutual exchange preserves each block's column SET exactly, so the pinned order must be a
+    // permutation of the derived one. Anything else is a stale stash -- fall back rather than
+    // silently drop or invent a column.
+    const x = pinned.slice().sort((a, b)=>a - b), y = sortedSlots.slice().sort((a, b)=>a - b);
+    for(let i = 0; i < x.length; i++) if(x[i] !== y[i]) return null;
+    return pinned;
   }
 
   // ---------- The column-swap gate ----------
@@ -5981,7 +6116,7 @@ export function initLegacyApp() {
   // mc for a block accounts for Simultaneous Post needing its own slot in weeks where every
   // phase slot is already occupied, so the SimPost marker always has room.
   function computeBlockLayout(schedule, yearBlocks){
-    const blockSlotMaps = yearBlocks.map(b=>{
+    const blockSlotMaps = yearBlocks.map((b, bi)=>{
       const firstAppear = new Map();
       for(let i=b.startIdx; i<b.startIdx+b.count; i++){
         const local = i - b.startIdx;
@@ -5994,7 +6129,15 @@ export function initLegacyApp() {
         return (fa - fb) || (a - bv);
       });
       const map = new Map();
-      sortedSlots.forEach((slot, localIdx) => map.set(slot, localIdx));
+      // ⛔ THE ONE AUTHORISED EDIT TO THIS FROZEN FUNCTION (owner sign-off E0, 1 Sep 2026; scope:
+      // the slot-order assignment ONLY -- see COLUMN-ORDER-PLAN.md and HANDOFF.md). stintOrderFor is
+      // NOT frozen and returns null unless a stint swap is stored, in which case the line below is
+      // byte-for-byte the behaviour it always had. That inertness is the whole safety argument, and
+      // the gate proves it by byte-comparing the waterfall PDF and every Excel part.
+      // ⚠️ Its job is to PRESERVE this order across a col exchange done upstream in computeSchedule,
+      // not to reorder anything here. Read applyStintSwaps before touching either half.
+      (stintOrderFor(schedule, bi, sortedSlots) || sortedSlots)
+        .forEach((slot, localIdx) => map.set(slot, localIdx));
       return map;
     });
     // Simultaneous Post gets ONE fixed column per block, immediately to the right of the
@@ -7255,7 +7398,7 @@ export function initLegacyApp() {
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
     // them. gridColSwaps follows that same rule on purpose: its absence from the notes-reset branch
     // is a decision, not an oversight, so do not "complete the checklist" by adding it there.
-    colWidths = {}; rowHeights = {}; cellSpans = {}; gridColSwaps = {};
+    colWidths = {}; rowHeights = {}; cellSpans = {}; gridColSwaps = {}; gridStintSwaps = {};
     update();
   }
 
@@ -7625,7 +7768,7 @@ export function initLegacyApp() {
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
-      gridColSwaps,
+      gridColSwaps, gridStintSwaps,
       fields: collectFieldValues()
     };
   }
@@ -7924,6 +8067,14 @@ export function initLegacyApp() {
     // and swapPairsForWeek's mutual-pointer check drops any inconsistent survivor rather than
     // half-applying it -- which is exactly the case where a ripple moves one phase and not the other.
     gridColSwaps = shiftKeyedMap(gridColSwaps, days, hiatusKeyStays);
+    // ⛔ gridStintSwaps is deliberately NOT re-keyed, and the omission is owner ruling E5, not an
+    // oversight. Its keys are '<year>|<phaseKey>' -- a YEAR, not a week -- so there is no date in
+    // them to shift. A stint pushed from December into January simply has no entry for its new year
+    // block and gets that year's natural order until swapped there, which is exactly what E5 asked
+    // for. The old year's entry is IGNORED rather than deleted (stintSwapPairsForBlock drops any
+    // pair whose partner has no stint in the block), so undoing the shift brings the order back --
+    // the same "a stale override is ignored, never destroyed" rule applyCellSpanOverrides follows.
+    // ⚠️ Do NOT "complete the checklist" by adding a shiftKeyedMap call here.
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
@@ -10279,6 +10430,9 @@ export function initLegacyApp() {
     // the PREVIOUS file's column order applied to this one -- the exact bug the
     // restore-unconditionally rule exists to prevent. An absent key means "no overrides", always.
     gridColSwaps = (snap.gridColSwaps && typeof snap.gridColSwaps === 'object') ? Object.assign({}, snap.gridColSwaps) : {};
+    // Same rule, same reason: `: {}` is the point, not defensiveness. A file with no stint swaps must
+    // clear the previous file's, or one calendar's column order silently applies to another.
+    gridStintSwaps = (snap.gridStintSwaps && typeof snap.gridStintSwaps === 'object') ? Object.assign({}, snap.gridStintSwaps) : {};
     // Clear first, then repopulate -- a plain merge would leave behind entries the snapshot
     // being applied doesn't have (stale after an undo step, or leaked in from a previously open
     // file). dayNotes/userNotes are declared const and mutated in place elsewhere, so they're
