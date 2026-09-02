@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — fix: "clear the hand-set width" on a width nobody set
+
+Owner bug report: a swap was refused with *"Clear the hand-set width on Writer's Rm 9/7 to swap its
+column"* — on a column that had never been hand-set. Both halves of that complaint were right, and
+they turned out to be the same defect in two places.
+
+**The mechanism.** Frozen `applyCellSpanOverrides` deliberately **keeps** a cell-width override that
+the schedule has moved under — its own comment says *"a stale override shrinks to whatever is
+genuinely free rather than being dropped outright"* — so that the fill comes back if the dates move
+back. The consequence is that a claim written while a week still had a free column beside it survives
+**invisibly** once another phase moves into that column. Nothing on screen is wide. Nothing is
+clearable. But the entry is still in `cellSpans`.
+
+Both features were reading that store rather than asking whether the override was doing anything:
+
+- **The swap refusal (D4)** tested `cellSpans[week|phase]` directly, so it blocked over a width that
+  granted nothing and named a cell the user could do nothing about. It now refuses only when a stored
+  claim exists **and** the cell is genuinely drawn wider than its own column — i.e. only when there is
+  real work to lose. A consequence worth stating: with two phases sharing a two-column block, neither
+  cell can be wider than its own column, so this refusal is now rare by construction. That is the
+  point of it, not a weakening.
+- **Batch expand's chip** had the same shape (`cellSpans[key] !== undefined`), which is why the
+  screenshot offered *"1 cell · double-click to pull back"* on a cell one column wide. It now needs
+  the override to be currently widening the cell. ⚠️ The clause could not simply be deleted: a cell
+  *filled* by an override has no empty neighbour left, so `maxL`/`maxR` are zero and that clause is
+  the only thing that lets it be pulled back at all. And it has to stay gated on the override
+  existing, or a batch could write `{0,0}` over an **automatic** span and narrow a cell nobody had
+  ever touched — which the frozen single-cell handler explicitly refuses to do.
+
+**The message was also wrong even when the refusal was right.** It said "…to swap its column", which
+reads as a claim that the *column* had been hand-set. It is a **cell** width. It now names the cell,
+says what state it is in, and says what to do: *"Prod Prep 11/16 has a width you widened by hand.
+Double-click that cell to pull it back, then swap."*
+
+⛔ What deliberately did **not** change: the stale entries are neither deleted nor mirrored. `cellSpans`
+is persisted, and the user's fill has to come back if the schedule moves back — the gate leg asserts
+the claims survive the swap untouched.
+
+Verified: new `colswapstale` gate leg, driven by a fixture carrying two claims on overlap weeks where
+the phase has no room. It asserts the claims are genuinely inert first (or the leg would silently stop
+testing anything), then that the swap is offered with no width complaint, that no phantom "pull back"
+is offered, that the swap applies, and that the claims are still there afterwards.
+
 ### Unreleased — swap two phases' columns however little they overlap
 
 Two restrictions removed, both on the owner's instruction, both of which were blocking the feature's

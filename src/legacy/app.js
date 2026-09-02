@@ -719,7 +719,23 @@ export function initLegacyApp() {
              curL: own - (+td.dataset.a),    curR: (+td.dataset.b) - own,
              k: +td.dataset.nphases || 1 };
   }
-  const canExpand = r => !!(r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+  // Can this cell actually do something? Room on either side, OR an override that is currently
+  // WIDENING it and could therefore be pulled back.
+  // ⛔ `cellSpans[key] !== undefined` on its own was wrong, and it is the same defect as the
+  // column-swap one (owner, 1 Sep 2026 -- the chip offered "double-click to pull back" on a cell one
+  // column wide). frozen applyCellSpanOverrides KEEPS an override the schedule has moved under, so an
+  // inert claim sits in the store invisibly; counting it drew the cell as actionable, put it in the
+  // batch, and offered a pull-back with nothing to pull.
+  // ⚠️ The clause cannot simply be dropped either: a cell FILLED by an override has maxL = maxR = 0
+  // (its neighbour is no longer an empty segment, so emptyLeft/emptyRight do not count it), so
+  // without it a filled cell could never be pulled back at all. Requiring curL/curR keeps that case
+  // and drops only the inert one.
+  // ⚠️ And it must stay gated on the override EXISTING. A cell the automatic layout widened on its
+  // own also has curR > 0, and the frozen single-cell handler deliberately refuses to touch that
+  // (`if(!maxL && !maxR && cellSpans[key] === undefined) return`). Offering it here would let a batch
+  // write {0,0} over an automatic span -- narrowing a cell nobody had ever hand-set.
+  const canExpand = r => !!(r.maxL || r.maxR ||
+    (cellSpans[r.key] !== undefined && (r.curL || r.curR)));
 
   // elementsFromPoint (PLURAL). The .grid-resize handles take pointer events (z 4-6) and cover
   // ~29% of a 77px cell -- ALL of a hand-narrowed one -- so elementFromPoint returns a handle for
@@ -846,7 +862,10 @@ export function initLegacyApp() {
     const resolved = resolveRowContention(rows.filter(canExpand));
     const byKey = new Map(resolved.map(r => [r.key, r]));
     const effective = r => byKey.get(r.key) || r;
-    const grantable = resolved.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+    // canExpand, not a re-typed copy of it. Three sites used to inline this test and they have to
+    // agree exactly: the count in the chip, the solid/dashed rect, and what the apply actually
+    // touches. An inline copy is how one of them kept counting inert overrides.
+    const grantable = resolved.filter(canExpand);
     const clampedOut = resolved.filter(r => r.clamped && !r.maxL && !r.maxR).length;
     const allFilled = grantable.length > 0 && grantable.every(r => r.curL === r.maxL && r.curR === r.maxR);
     let expandable = 0;
@@ -859,7 +878,7 @@ export function initLegacyApp() {
       // "Can this cell actually do something" -- post-clamp, so a cell that lost its only free slot
       // to a neighbour in the same week is drawn dashed rather than solid, matching the outcome.
       const er = effective(r);
-      const on = !!(er.maxL || er.maxR || cellSpans[r.key] !== undefined);
+      const on = canExpand(er);
       if(on) expandable++;
       const d = document.createElement('div');
       d.className = 'grid-sel-cell' + (on ? '' : ' is-inert');
@@ -1143,7 +1162,9 @@ export function initLegacyApp() {
     // here re-renders and detaches every td, which is exactly why this cannot go after selCells().
     if(activeNoteEditor) commitActiveNoteEditor();
     const rows = resolveRowContention(selCells().map(spanRoom).filter(canExpand));
-    const live = rows.filter(r => r.maxL || r.maxR || cellSpans[r.key] !== undefined);
+    // Re-tested AFTER contention clamping: a cell whose only free slot was awarded to a neighbour in
+    // the same week has nothing left to do, and must not have {0,0} written over an inert override.
+    const live = rows.filter(canExpand);
     if(!live.length) return false;
     const allFilled = live.every(r => r.curL === r.maxL && r.curR === r.maxR);
     // Would this actually change anything? A selection of cells that are all already at {0,0} with a
@@ -2747,11 +2768,14 @@ export function initLegacyApp() {
       if(!s || s.own !== seed.own || s.span !== seed.span) return null;
       const p = swapPartnerOf(segs, s, dir);
       if(!p || p.key !== partnerKey || p.span !== seed.span) return null;
-      return s;
+      return { s, p };
     };
+    // Keep each week's two segments as the walk goes: the hand-set-width test below has to know how
+    // wide the cells ACTUALLY render, not just what the store says.
+    const segsByWeek = new Map([[seed.weekIso, { s: seed, p: p0 }]]);
     const weeks = [seed.weekIso];
-    for(let l = local0 - 1; l >= 0; l--){ const s = holds(l); if(!s) break; weeks.unshift(s.weekIso); }
-    for(let l = local0 + 1; l < local0 + MAX_WEEKS; l++){ const s = holds(l); if(!s) break; weeks.push(s.weekIso); }
+    for(let l = local0 - 1; l >= 0; l--){ const g = holds(l); if(!g) break; weeks.unshift(g.s.weekIso); segsByWeek.set(g.s.weekIso, g); }
+    for(let l = local0 + 1; l < local0 + MAX_WEEKS; l++){ const g = holds(l); if(!g) break; weeks.push(g.s.weekIso); segsByWeek.set(g.s.weekIso, g); }
     const weekSet = new Set(weeks);
 
     // "The entire phase moves as a block" (owner's words) -- a REPORTING flag computed from the
@@ -2778,11 +2802,26 @@ export function initLegacyApp() {
     // mirror is permanent: when the swap later stops applying (partner deleted, dates reverted) the
     // mirrored claim clamps to one column and the fill is gone from the saved file with no error.
     // Refuse and name the cell instead (owner ruling D4).
-    const held = weeks.find(iso => {
-      const A = cellSpans[iso + '|' + phaseKey], B = cellSpans[iso + '|' + partnerKey];
-      return (A && (A.l || A.r)) || (B && (B.l || B.r));
-    });
-    if(held) return Object.assign(run, { ok:false, reason:'width-override', badWeek: held });
+    //
+    // ⛔ THE TEST IS ON THE EFFECT, NOT ON THE STORE, and getting that wrong shipped a bug (owner,
+    // 1 Sep 2026: "it's saying to clear the hand-set width but it was not hand set"). frozen
+    // applyCellSpanOverrides deliberately KEEPS an override the schedule has moved under -- "a stale
+    // override shrinks to whatever is genuinely free rather than being dropped outright" -- so a
+    // claim written while a week had a free column beside it survives, invisibly, once a phase moves
+    // in. Reading `cellSpans` alone therefore refused swaps over a width that grants nothing and
+    // named a cell with nothing on screen to clear. There is no user work to lose in that case.
+    // So: refuse only when a stored claim exists AND the cell really is drawn wider than its own
+    // slot. If it renders one slot wide the override is inert, and the swap is safe.
+    const spans = seg => seg.a < seg.own || seg.b > seg.own;   // drawn wider than its own column
+    const claimed = key => { const v = cellSpans[key]; return !!(v && (v.l || v.r)); };
+    let badWeek = null, badKey = null;
+    for(const iso of weeks){
+      const g = segsByWeek.get(iso);
+      if(!g) continue;
+      if(claimed(iso + '|' + phaseKey)   && spans(g.s)){ badWeek = iso; badKey = phaseKey;   break; }
+      if(claimed(iso + '|' + partnerKey) && spans(g.p)){ badWeek = iso; badKey = partnerKey; break; }
+    }
+    if(badWeek) return Object.assign(run, { ok:false, reason:'width-override', badWeek, badKey });
 
     return Object.assign(run, { ok:true });
   }
@@ -2927,9 +2966,12 @@ export function initLegacyApp() {
   };
   function swapWhy(v){
     if(!v || !v.reason) return '';
+    // ⛔ Never say "column" here. This is a CELL width (cellSpans), and the old wording -- "clear the
+    // hand-set width ... to swap its column" -- was read as a claim that the COLUMN had been hand
+    // set, which it had not (owner, 1 Sep 2026). Name the cell, and say what to do to it.
     if(v.reason === 'width-override' && v.badWeek)
-      return 'Clear the hand-set width on ' + phaseLabelFor(v.phaseKey) + ' '
-           + fmtShort(parseDateUTC(v.badWeek)) + ' to swap its column.';
+      return phaseLabelFor(v.badKey || v.phaseKey) + ' ' + fmtShort(parseDateUTC(v.badWeek))
+           + ' has a width you widened by hand. Double-click that cell to pull it back, then swap.';
     if(v.reason === 'simpost')
       return phaseLabelFor('production') + '’s column can’t move while Simultaneous Post is on.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];

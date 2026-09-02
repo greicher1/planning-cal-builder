@@ -1,0 +1,236 @@
+{
+ "version": 1,
+ "customPhaseDefs": [],
+ "customPhaseCounter": 0,
+ "phaseColorOverride": {},
+ "episodeDefs": [],
+ "episodeCounter": 0,
+ "userNotes": {},
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "headerMode": "auto",
+ "headerManual": {},
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {},
+ "hiatusColors": {},
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {},
+ "holidayView": {},
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "sidebarTab": "phases",
+ "colWidths": {},
+ "rowHeights": {},
+ "cellSpans": {
+  "2026-11-16|prodPrep": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  },
+  "2026-11-23|prodPrep": {
+   "l": 0,
+   "r": 1,
+   "k": 1
+  }
+ },
+ "gridColSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "Colswap Stale-Span Fixture"
+   },
+   "season-num": {
+    "value": ""
+   },
+   "shoot-days-per-ep": {
+    "value": ""
+   },
+   "num-episodes": {
+    "value": ""
+   },
+   "union-country": {
+    "value": ""
+   },
+   "union-usregion": {
+    "value": "US-GEN"
+   },
+   "union-subregion": {
+    "value": "CA-BC"
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": ""
+   },
+   "weeks-writersRoom": {
+    "value": ""
+   },
+   "phiatus-en-writersRoom": {
+    "checked": false
+   },
+   "phiatus-name-writersRoom": {
+    "value": ""
+   },
+   "phiatus-start-writersRoom": {
+    "value": ""
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": ""
+   },
+   "weeks-prePrep": {
+    "value": ""
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": "2026-11-02"
+   },
+   "weeks-prodPrep": {
+    "value": "6"
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": ""
+   },
+   "weeks-production": {
+    "value": ""
+   },
+   "phiatus-en-production": {
+    "checked": false
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": ""
+   },
+   "phiatus-weeks-production": {
+    "value": "2"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": "2026-11-16"
+   },
+   "weeks-post": {
+    "value": "4"
+   },
+   "phiatus-en-post": {
+    "checked": false
+   },
+   "phiatus-name-post": {
+    "value": ""
+   },
+   "phiatus-start-post": {
+    "value": ""
+   },
+   "phiatus-weeks-post": {
+    "value": "2"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": ""
+   },
+   "weeks-localization": {
+    "value": ""
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2026-12-21",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2027-12-20",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2028-12-18",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2029-12-24",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   }
+  ]
+ }
+}

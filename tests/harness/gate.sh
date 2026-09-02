@@ -264,6 +264,41 @@ chk(not hv.get('h'), f"mid: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- colswapstale: a STALE cell-width override must not block a swap, and must not be reported ----
+# Owner bug report 1 Sep 2026: "it's saying to clear the hand-set width but the column was not hand
+# set." Both halves were true. frozen applyCellSpanOverrides deliberately KEEPS an override the
+# schedule has moved under, so a claim written while a week still had a free column beside it lives on
+# invisibly once another phase moves in -- and BOTH features read the store rather than its effect.
+# The fixture carries two claims on overlap weeks where the phase has no room at all.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=colswap-stalespan "$HERE/run.sh" colswapstale 45 >/dev/null 2>&1
+python3 - "$HERE/colswapstale.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  colswapstale produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  colswapstale threw: '+str(a['EX'])); sys.exit(1)
+# If the fixture ever stops being inert this leg silently stops testing anything, so assert it first.
+chk(a.get('fixtureHasClaims'), f"stale: the fixture really carries the claims {a.get('storedClaims')}")
+chk(a.get('claimsAreInert'), f"stale: every claimed cell still renders one column wide {a.get('claimedCells')}")
+chk(a.get('knobOffered') and a.get('noWidthComplaint'),
+    "stale: the swap is offered, with no 'hand-set width' complaint")
+chk(a.get('selChipHonest'), f"stale: no phantom 'pull back' offer -- {a.get('selChipText')}")
+chk(a.get('swapApplied'), f"stale: the swap applied over the claims ({a.get('movedWeeks')}/4 weeks)")
+# Refusing was wrong; deleting or mirroring would be worse. cellSpans is persisted and the fill has
+# to come back if the schedule moves back, so nothing may have written to the store.
+chk(a.get('claimedStillInert'), "stale: the claims survived untouched")
+chk(not a.get('errors'), f"stale: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"stale: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL
