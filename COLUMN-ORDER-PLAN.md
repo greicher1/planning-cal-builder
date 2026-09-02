@@ -130,15 +130,35 @@ recommended disclosing that as an unavoidable surprise. The owner pushed back �
 way to just move the phase you selected and not the entire column"* — and they were right. The
 argument was wrong, and re-reading `segCol` is what shows why.
 
-**Why the surprise case is much narrower than it looked.** `segCol` lets a phase reuse a freed column
-**only when that column sits to the right of every earlier phase still running** — its own comment
-says so, and `minCol` is computed as one past the highest currently-busy column. Two phases therefore
-share a column only when they are separated by a clean break in the *whole* schedule. Consequence: the
-column beside your stint, **during your stint's life**, holds exactly one other stint. A second
-occupant of that column is adjacent to something else, later, and has no business moving.
+**Why moving only the selected stints is right.** `segCol` lets a phase reuse a freed column **only
+when that column sits to the right of every earlier phase still running** — its own comment says so,
+and `minCol` is one past the highest currently-busy column. So a stint's neighbours are genuinely
+local: a phase that occupies the column beside yours at some *other* time of the year is adjacent to
+something else then, and has no business moving because you swapped yours.
 
-So "move only the stint you selected" is not merely the friendlier option — it is the **correct** one.
-Exchanging whole columns would move stints that were never beside yours.
+⛔ **CORRECTION — an earlier draft of this section over-claimed, and the over-claim is dangerous.** It
+said the column beside your stint holds *exactly one* other stint during your stint's life. That is
+false. `minCol` only requires being right of phases still **running**, so a long phase holding column 0
+keeps `minCol` at 1 indefinitely while *several* short phases take turns in column 1. Measured: with
+Writer's Rm holding column 0 for 20 weeks, Post (wks 6–9) and Localization (wks 14–17) both land on
+column 1, and both sit inside Writer's Rm's run.
+
+**Consequence, and it is a live hazard rather than a curiosity.** Exchanging your stint with *one* of
+those two puts your stint in a column the other still occupies — two cells claiming one column in the
+same week, frozen `bySlot[]` keeping only one, and the other's weeks **silently gone from the grid and
+from both exports**. Measured with the guard removed: a 20-week phase rendered **16 weeks**. No error.
+
+`applyStintSwaps` therefore **validates every pair before mutating any of them** and refuses one that
+would lose a cell — the same "a drifted store yields no change, never a wrong one" rule the rest of the
+file follows. Gate leg: `stintcollide`.
+
+⚠️ **E1 is therefore only PARTLY resolved.** "Move only the stints you selected" stands as the right
+answer, and refusing is the safe half. The **complete** answer, for the multi-occupant case, is to
+exchange your stint with **every stint in the neighbouring column that overlaps yours** — the only
+cell-preserving move available there — and to name all of them in the chip. That is not built: the
+gesture does not exist yet, so the case is unreachable except from a hand-edited file. ⛔ Build it
+before the "Swap Block" button ships, or the button will offer a swap that gets refused with no
+explanation the user can act on.
 
 **How it is expressed — and why it needs both halves.** The override is a **stint-level mutual
 transposition** (§5), and it lands in two places, only one of which is frozen:
@@ -174,10 +194,11 @@ Production ↔ Casting:
 Two stints move, two stay. `mc` is unchanged at 2. Neither untouched stint collides with its
 new neighbour, because the exchange preserves each column's occupancy multiset over time.
 
-⚠️ **REASONED, NOT MEASURED.** This table is a reading of `segCol`, `blockSlotMaps` and
-`computePhaseRowLayout`, not an observation. It is now the plan's load-bearing claim in place of the
-one §1 settled, and **sequencing step 1 must verify it before anything else is built** — in
-particular that `mc` really does not grow and that neither untouched stint reflows.
+✅ **MEASURED** — `stintswap` drives exactly this four-phase shape with both columns shared and
+confirms every row of the table: the two named stints trade places, Localization and Post do not move,
+`mc` stays 2, no cell is lost, and nothing changes shape. ⚠️ Note the fixture's two column-sharers are
+separated by a whole-schedule gap; the harder shape, where the sharers both sit *inside* the swapped
+stint's run, is the collision case above and is currently refused rather than handled.
 
 ### 2.2 ✅ SOLVED by the owner — the "Move Block" affordance
 
@@ -384,7 +405,7 @@ prove the change is **inert** until used.
 | | Decision | Recommendation |
 |---|---|---|
 | **E0** | ✅ **AUTHORISED, GATED (owner, 1 Sep 2026).** The two-line edit to `computeBlockLayout` may be made, on the strength of §6 — and **only** on it: if any item in §6 fails, it does not ship. Recorded in `HANDOFF.md`. | — closed |
-| **E1** | ✅ **RESOLVED — it moves only the stints you selected.** The owner was right and this plan's earlier "wholesale" recommendation was wrong; §2.1 has the mechanism and the reason (`segCol` only reuses a column to the right of everything still running). | — closed, pending step 1 |
+| **E1** | 🔶 **PARTLY RESOLVED.** "Move only the stints you selected" stands and is built; the owner was right and the earlier "wholesale" recommendation was wrong. ⚠️ But §2.1's supporting argument was over-strong: the neighbouring column CAN host several stints inside yours, and exchanging with one of them loses cells (measured: 4 weeks). Currently **refused**. The complete answer — exchange with every overlapping stint in that column, and name them all — is **not built** and must land before the gesture does. | Finish before step 5 |
 | **E2** | ✅ **DECIDED.** The owner's hover button solves the selection problem (§2.2), and the label is **"Swap Block"** — not "Move", per their own D10 ruling. | — closed |
 | **E3** | ✅ **DECIDED:** one outline **per contiguous run** in the selection, not one bounding box. A ⌘-click set or a marquee that skipped a hiatus week would otherwise get a box enclosing cells that are not selected. | — closed |
 | **E4** | ⏸ **DEFERRED by agreement** — is the per-week partial swap wanted at all once stint-level exists? Keeping it means keeping the collateral preview and the magnitude gate; retiring it deletes both. Decide after using both. **The only open decision.** | Decide after using both |

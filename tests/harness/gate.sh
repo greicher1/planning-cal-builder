@@ -360,6 +360,33 @@ chk(not hv.get('h'), f"noreflow: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- stintcollide: a stint pair that would LOSE A CELL must be refused, not half-applied ---------
+# The column beside a long stint can host SEVERAL short stints inside its run -- segCol's minCol only
+# requires being right of phases still RUNNING, so a phase holding column 0 for 20 weeks keeps minCol
+# at 1 while Post and Localization take turns in column 1. Exchange with only one of them and your
+# stint lands in a column the other still holds: two cells claim one column in the same week, frozen
+# bySlot[] keeps one, and the other's weeks vanish from the grid AND both exports.
+# MEASURED with the guard disabled: a 20-week phase rendered 16 weeks, silently, no error.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-collide "$HERE/run.sh" stintcollide 45 >/dev/null 2>&1
+python3 - "$HERE/stintcollide.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintcollide produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintcollide threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('noCellLost'), f"collide: not one week lost {a.get('weekCounts')}")
+chk(a.get('refusedNotApplied'), f"collide: refused outright, natural order stands {a.get('slots')}")
+chk(a.get('colKeysOk'), f"collide: two phase columns still ({a.get('colKeys')})")
+chk(not a.get('errors'), f"collide: 0 console errors {a.get('errors')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

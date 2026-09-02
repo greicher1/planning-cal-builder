@@ -2494,11 +2494,57 @@ export function initLegacyApp() {
       }
       const pairs = stintSwapPairsForBlock(b.year, cellsByKey);
       if(!pairs.length){ orders.push(null); return; }
-      orders.push(blockColOrder(weeks, b));    // ⛔ BEFORE a single col moves
-      pairs.forEach(([ka, kb])=>{
+
+      // ⛔ WOULD THIS LOSE A CELL? Refuse the pair outright if so -- measured 1 Sep 2026, and it
+      // destroyed a whole phase. The column beside your stint can host MORE THAN ONE stint during
+      // your stint's life: segCol's minCol only requires being right of phases still RUNNING, so
+      // while Production holds column 0 for 20 weeks, Post (wks 6-9) and Localization (wks 14-17)
+      // both land on column 1. Exchange Production with Post alone and Production takes column 1 --
+      // which Localization still holds inside Production's run. Two cells then share a column in the
+      // same week and frozen bySlot[] keeps only ONE of them, so the other's weeks vanish -- from the
+      // grid AND from both exports, since computePhaseRowLayout feeds all of them.
+      // MEASURED with the guard disabled (tests/fixtures/stintswap-collide.sptcal): a 20-week phase
+      // rendered 16 weeks. Four weeks gone, silently, no error anywhere.
+      //
+      // ⚠️ An earlier note in COLUMN-ORDER-PLAN.md argued from segCol that the neighbouring column
+      // holds exactly one stint during yours. That is WRONG -- it requires a clean break in the whole
+      // schedule, and a long phase holding a column keeps minCol up without ever ending. Do not
+      // reinstate that reasoning.
+      //
+      // Refusing is the safe half of the answer and matches this file's standing rule that a drifted
+      // store yields NO change rather than a wrong one. The complete answer -- exchange with every
+      // stint in the neighbouring column that overlaps yours, which is the only cell-preserving move
+      // available there -- is deliberately not attempted here; the gesture is not built yet and this
+      // cannot be reached except from a hand-edited file.
+      const wouldLoseACell = (ca, cb, colA, colB)=>{
+        const inA = new Set(ca), inB = new Set(cb);
+        for(let i=b.startIdx; i<b.startIdx+b.count; i++){
+          const seen = new Set();
+          for(const c of weeks[i].cells){
+            if(c.col === undefined) continue;
+            const col = inA.has(c) ? colB : (inB.has(c) ? colA : c.col);
+            if(seen.has(col)) return true;
+            seen.add(col);
+          }
+        }
+        return false;
+      };
+
+      // ⛔ Validate EVERY pair before mutating ANY of them, then apply. Applying as we validate would
+      // half-apply a block whose second pair turns out to be illegal -- the same reason
+      // swapPairsForWeek validates the whole relation before building a single pair.
+      const legal = pairs.filter(([ka, kb])=>{
         const ca = cellsByKey.get(ka), cb = cellsByKey.get(kb);
         const colA = ca[0].col, colB = cb[0].col;
-        if(colA === colB) return;              // already sharing a column: nothing to exchange
+        if(colA === colB) return false;        // already sharing a column: nothing to exchange
+        return !wouldLoseACell(ca, cb, colA, colB);
+      });
+      if(!legal.length){ orders.push(null); return; }
+
+      orders.push(blockColOrder(weeks, b));    // ⛔ BEFORE a single col moves
+      legal.forEach(([ka, kb])=>{
+        const ca = cellsByKey.get(ka), cb = cellsByKey.get(kb);
+        const colA = ca[0].col, colB = cb[0].col;
         ca.forEach(c=>{ c.col = colB; });
         cb.forEach(c=>{ c.col = colA; });
         applied.push({ year:b.year, a:ka, b:kb, from:colA, to:colB });
