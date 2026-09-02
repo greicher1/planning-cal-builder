@@ -32,7 +32,7 @@ way a user would notice or a future session would need to return to. See
 ### Unreleased — the block swap has its gesture: "Swap Block", and a swap that names everyone it moves
 
 Steps 5 and 6 of [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md), plus the second half of owner
-decision E1 and §6 items 6 and 7. **Local, not pushed.** Nothing in the frozen surface changed.
+decision E1 and §6 items 6 and 7. Pushed as `2a75929`; the deployed `index.html` is unchanged by it. Nothing in the frozen surface changed.
 
 **The gesture (owner decision E2).** Hover any cell of a phase's block in the waterfall and a small
 teal **Swap Block** button appears at the top-right of that block's first visible week. One click

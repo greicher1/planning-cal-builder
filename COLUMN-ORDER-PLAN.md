@@ -7,7 +7,7 @@ Written 1 Sep 2026, at the owner's request, after using the shipped per-week swa
 Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md) first.
 
-> ✅ **STATUS, 2 Sep 2026: steps 1–6 are BUILT AND GATED, locally, not pushed.** The store, the
+> ✅ **STATUS, 2 Sep 2026: steps 1–6 are BUILT, GATED and PUSHED (`2a75929`).** The store, the
 > reconciler, the one authorised frozen line (E0), the "Swap Block" button (E2), the mode inference,
 > the one-outline-per-run change (E3), the complete E1 (a swap exchanges with *every* overlapping
 > stint in the neighbouring column and names them all), and §6 in full including items 6 and 7.
