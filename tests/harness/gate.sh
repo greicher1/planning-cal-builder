@@ -638,7 +638,7 @@ if 'EX' in a:
 chk(a.get('inertAtBoot'), f"prefs: inert with nothing stored -- no preference, no interior rules in the PDF ({a.get('pdfNoneInterior')})")
 chk(a.get('controlFound') and a.get('insideExcludedCard'),
     "prefs: the control exists and sits inside .prefs-card (the collectFieldValues exclusion)")
-chk(a.get('optionValues')==',solid,dashed,none', f"prefs: three options plus Default ({a.get('optionValues')})")
+chk(a.get('optionValues')=='none,solid,dashed', f"prefs: exactly three options, None the default ({a.get('optionValues')})")
 chk(a.get('reachesPdf'), f"prefs: choosing Dashed puts interior rules INTO THE PDF ({a.get('pdfNoneInterior')} -> {a.get('pdfDashedInterior')})")
 chk(a.get('reallyDashed'),
     f"prefs: they are really DASHED, and the dash state is reset after every stroke ({a.get('dashOps')} set / {a.get('dashResets')} reset)")
@@ -650,7 +650,7 @@ chk(a.get('neverTravels'),
     f"prefs: ⭐ the preference is ABSENT from a real saved copy (key={a.get('snapHasPrefKey')}, id={a.get('snapHasControlId')}, {a.get('fieldIdCount')} field ids)")
 chk(a.get('editorUntouched') and a.get('noBodyClass'),
     f"prefs: ⭐ the LIVE EDITOR is unchanged by the setting -- owner ruling ({a.get('cellAfter')})")
-chk(a.get('resetClean'), f"prefs: Default removes the key rather than storing '' {a.get('storedAfterReset')}")
+chk(a.get('resetClean'), f"prefs: choosing None removes the key rather than storing it {a.get('storedAfterReset')}")
 chk(not a.get('errors'), f"prefs: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"prefs: 0 horizontally clipped cells {hv.get('h')}")

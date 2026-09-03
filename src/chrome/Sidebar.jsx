@@ -143,12 +143,15 @@ export function PreferencesCard() {
         {/* ⛔ Export-only, and the description says so: the owner ruled 3 Sep 2026 that this is
             "about the pdf export ... not in the live app view". The editor's own gridlines are
             unchanged by it. */}
+        {/* ⛔ No separate "Default" entry (owner, 3 Sep 2026): None IS the default, and a Default
+            that merely meant None was a second name for the same output. None is listed first for
+            that reason -- it is what a fresh calendar exports and what the reference exports look
+            like. */}
         <NativeSelect id="pref-gridlines" label="Grid lines in exports"
                       description="The PDF and Excel. The editor's own grid is unchanged.">
-          <option value="">Default</option>
+          <option value="none">None</option>
           <option value="solid">Solid</option>
           <option value="dashed">Dashed (Excel style)</option>
-          <option value="none">None</option>
         </NativeSelect>
       </div>
     </section>

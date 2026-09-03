@@ -244,6 +244,13 @@ a line number has crept back into any of the seven prose docs. Last run CLEAN, 2
 ✅ **The store exists and grid lines own it.** `PREFS_KEY = 'sptcal.prefs'`, one flat JSON object
 with a `version` field, `loadPrefs()` / `savePrefs()`, try/catch on every access. A **Preferences**
 card sits third in the Settings tab, above *Export App With Data*. Gate leg `prefs`.
+⛔ **None IS the default and there is no "Default" entry** (owner, 3 Sep 2026): an absent key and a
+chosen None are the same output, so choosing None *removes* the key and the store never holds a value
+that changes nothing. ⚠️ The dashed pattern is **1.5pt on / 1pt off** (owner's pick, 3 Sep 2026, from
+three sampled exports). An equal `2 2` reads as a grey hairline at export scale and `3 2` is too
+coarse. ⚠️ Judge it at 100% zoom or on paper — a viewer smears a fine dash into a solid line at low
+zoom, so a value that looks wrong on screen can be right in print. One constant, `interiorDash`,
+feeds both axes.
 
 ⛔ **IT IS AN EXPORT SETTING, NOT A VIEW SETTING** (owner, 3 Sep 2026: *"these gridline settings are
 about the pdf export, thats where it matters, not in the live app view"*). An earlier cut of the same

@@ -6668,17 +6668,24 @@ export function initLegacyApp() {
   // time, so re-assigning the identifier is the whole mechanism and nothing has to be re-rendered.
   // The live editor is deliberately UNCHANGED by it: an earlier cut drove the on-screen grid from a
   // body class and that was removed. The waterfall editor keeps the look it has always had.
+  // ⛔ 'none' IS THE DEFAULT (owner, 3 Sep 2026: "We don't need both default and none. None can be
+  // the default"). There is no separate "Default" entry: an ABSENT key and a stored 'none' mean the
+  // same thing and render the same way, so the store never holds a value that changes nothing --
+  // and the byte-identical baseline still holds for a fresh user, because absent still resolves to
+  // 'none'.
   function reflectGridlines(){
     // The select is UNCONTROLLED and written imperatively, the same contract #tool-anchor-date has:
     // React renders the options, the engine owns the value. Re-asserted whenever the Settings tab
     // opens, so a late React commit cannot leave it showing the wrong choice.
     const sel = document.getElementById('pref-gridlines');
-    if(sel) sel.value = prefs.gridlines || '';
+    if(sel) sel.value = prefs.gridlines || 'none';
   }
   document.addEventListener('change', e=>{
     if(!e.target || e.target.id !== 'pref-gridlines') return;
     const v = e.target.value;
-    if(v) prefs.gridlines = v; else delete prefs.gridlines;
+    // Choosing the default REMOVES the key rather than storing 'none': a store that only ever holds
+    // real choices is one a later migration can read without guessing which entries were meaningful.
+    if(v && v !== 'none') prefs.gridlines = v; else delete prefs.gridlines;
     savePrefs();
     SHEET_GRIDLINES = v || 'none';
     // No render: nothing on screen depends on this, and both writers read SHEET_GRIDLINES when the
@@ -10529,7 +10536,13 @@ export function initLegacyApp() {
     // Dash arrays in POINTS, not scaled: a dash that shrank with the fit scale would read as solid
     // on a densely packed calendar, which is the one place the distinction matters most. 'solid'
     // passes none, so the `d` operator is omitted from its strokes entirely.
-    const interiorDash = SHEET_GRIDLINES === 'dashed' ? '2 2'
+    // ⚠️ `1.5 1` is CHOSEN, not calculated (owner, 3 Sep 2026, against a reference image and three
+    // sampled exports). The route matters if it is ever revisited: `2 2` (equal dash and gap) reads
+    // as a grey hairline at export scale; `3 2` reads as dashed but too coarse; the owner asked for
+    // "smaller and tighter" and picked 1.5/1 from 2/1, 1.5/1 and 1/0.7. ⚠️ Judge any change at 100%
+    // zoom or on paper -- a PDF viewer smears a fine dash into a solid line at low zoom, so a value
+    // that looks wrong on screen can be right in print. Both axes read this one value.
+    const interiorDash = SHEET_GRIDLINES === 'dashed' ? '1.5 1'
                        : SHEET_GRIDLINES === 'dotted' ? '0.5 2' : '';
 
     // --- column header row ---------------------------------------------------------------------

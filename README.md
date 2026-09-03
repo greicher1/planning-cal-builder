@@ -34,7 +34,10 @@ way a user would notice or a future session would need to return to. See
 The first user-settings work, and the first use of `localStorage` in this app. Local, not pushed.
 
 **A Preferences card** now sits third in the Settings tab, above *Export App With Data*, with one
-control: **Grid lines in exports — Default / Solid / Dashed (Excel style) / None**. It carries a line
+control: **Grid lines in exports — None / Solid / Dashed (Excel style)**, None being the default.
+⛔ There is deliberately no separate *Default* entry (owner, 3 Sep 2026): a Default that merely meant
+None was a second name for the same output, and it let the store hold a value that changed nothing.
+An absent key and a chosen None are the same thing, so choosing None **removes** the key. It carries a line
 saying these stay on this computer and are not part of a saved calendar, because nothing else in that
 tab behaves that way — Production Region and Holidays above it *do* travel inside a `.sptcal`.
 
@@ -70,7 +73,11 @@ and Excel's `solid` had no branch at all, so choosing it produced dashed borders
   unchanged — which is exactly what keeps the baseline compare valid.
 - `interior` gained a `solid` branch (`#D4D4D4`) and a per-style dash array, in points rather than
   scaled: a dash that shrank with the fit scale would read as solid on a dense calendar, which is
-  where the distinction matters most.
+  where the distinction matters most. ⚠️ The dash is **1.5pt on / 1pt off**, chosen by the
+  owner against a reference image and three sampled exports. The route is worth keeping: an equal
+  `2 2` reads as a grey hairline at export scale, `3 2` reads as dashed but too coarse. ⚠️ Judge any
+  future change at 100% zoom or on paper — a viewer smears a fine dash into a solid line at low zoom.
+  Both axes take that one value, so it is tuned in one place.
 - **The PDF now draws interior column rules.** Body only, below the grey header band, and drawn
   *before* the frame and block separators so a heavier edge always paints over an interior rule at
   the same x.
@@ -80,7 +87,7 @@ and Excel's `solid` had no branch at all, so choosing it produced dashed borders
 later stroke on the page — the black frame included — inherits it. The leg asserts set-count equals
 reset-count for exactly that reason.
 
-**Verified.** New gate leg `prefs`, measured by reading the exported files back: unset produces no
+**Verified.** New gate leg `prefs`, measured by reading the exported files back: None produces no
 interior rules; Dashed produces 57 with 56 balanced dash set/reset pairs and real verticals; Solid
 produces 56 in `#D4D4D4` with **zero** dash operators; the preference is absent from a real saved
 copy; the editor is untouched throughout. And the safety argument for the frozen edits: **with nothing

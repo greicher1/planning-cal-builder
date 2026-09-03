@@ -67,7 +67,7 @@ window.addEventListener('load', function () { (async function () {
     if (!sel) throw new Error('no #pref-gridlines');
     out.insideExcludedCard = !!sel.closest('.prefs-card');
     out.optionValues = Array.prototype.map.call(sel.options, function (o) { return o.value; }).join(',');
-    out.valueAtBoot = sel.value;
+    out.valueAtBoot = sel.value;   // 'none' IS the default; there is no separate Default entry
     out.storeAtBoot = (function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return 'THREW: ' + e.name; } })();
 
     // 1. Unset: no interior rules in the PDF at all.
@@ -75,7 +75,7 @@ window.addEventListener('load', function () { (async function () {
     var pdfNone = await pdfStream();
     out.pdfNoneLen = pdfNone.length;
     out.pdfNoneInterior = strokes(pdfNone, DASH_RG);
-    out.inertAtBoot = out.valueAtBoot === '' && out.storeAtBoot === null && out.pdfNoneInterior <= 1;
+    out.inertAtBoot = out.valueAtBoot === 'none' && out.storeAtBoot === null && out.pdfNoneInterior <= 1;
 
     // 2. Choose Dashed through the real change event; the PDF must gain interior lines.
     sel.value = 'dashed';
@@ -90,14 +90,15 @@ window.addEventListener('load', function () { (async function () {
     // One interior rule per body row: the fixture has ~50, so require a decisive jump rather than
     // any increase at all.
     out.reachesPdf = out.pdfDashedInterior >= out.pdfNoneInterior + 20;
-    // ⭐ It must read as DASHED, not merely grey: the `d` operator with a 2/2 array, and reset to
-    // solid after each stroke or every later line on the page (the black frame included) inherits it.
-    out.dashOps = (pdfDashed.match(/\[2 2\] 0 d/g) || []).length;
+    // ⭐ It must read as DASHED, not merely grey: the `d` operator with the 1.5/1 array the owner
+    // chose, and reset to solid after each stroke -- or every later line on the page (the black
+    // frame included) inherits it.
+    out.dashOps = (pdfDashed.match(/\[1\.5 1\] 0 d/g) || []).length;
     out.dashResets = (pdfDashed.match(/\[\] 0 d/g) || []).length;
     out.reallyDashed = out.dashOps > 20 && out.dashOps === out.dashResets;
     // ⭐ VERTICALS: the writer drew none before this. Dashed strokes split into horizontal rules
     // (one per row) and column rules (one per internal boundary per year block).
-    out.dashedVerticals = (pdfDashed.match(/\[2 2\] 0 d [\d.]+ [\d.]+ [\d.]+ RG [\d.]+ w ([\d.]+) [\d.]+ m \1 /g) || []).length;
+    out.dashedVerticals = (pdfDashed.match(/\[1\.5 1\] 0 d [\d.]+ [\d.]+ [\d.]+ RG [\d.]+ w ([\d.]+) [\d.]+ m \1 /g) || []).length;
     out.hasVerticals = out.dashedVerticals > 0;
 
     // 2b. Solid: its own colour, and NO dash operator at all.
@@ -107,7 +108,7 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(900);
     var pdfSolid = await pdfStream();
     out.pdfSolidInterior = strokes(pdfSolid, SOLID_RG);
-    out.pdfSolidDashOps = (pdfSolid.match(/\[2 2\] 0 d/g) || []).length;
+    out.pdfSolidDashOps = (pdfSolid.match(/\[1\.5 1\] 0 d/g) || []).length;
     out.solidDistinct = out.pdfSolidInterior >= 20 && out.pdfSolidDashOps === 0;
     await T.sleep(800);
     sel.value = 'dashed';
@@ -135,8 +136,9 @@ window.addEventListener('load', function () { (async function () {
     out.editorUntouched = out.cellBefore === out.cellAfter && out.cellAfter === 'solid rgb(212, 212, 212)';
     out.noBodyClass = !/wf-grid-/.test(document.body.className);
 
-    // 5. Back to Default removes the key rather than storing ''.
-    sel.value = '';
+    // 5. Back to None removes the key rather than storing 'none': absent and 'none' are the same
+    //    output, so the store never holds an entry that changes nothing.
+    sel.value = 'none';
     sel.dispatchEvent(new Event('change', { bubbles: true }));
     await T.sleep(200);
     out.storedAfterReset = (function () { try { return localStorage.getItem('sptcal.prefs'); } catch (e) { return 'THREW'; } })();
@@ -144,7 +146,7 @@ window.addEventListener('load', function () { (async function () {
 
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
-    out.PASS = out.controlFound && out.insideExcludedCard && out.optionValues === ',solid,dashed,none' &&
+    out.PASS = out.controlFound && out.insideExcludedCard && out.optionValues === 'none,solid,dashed' &&
                out.inertAtBoot && out.persisted && out.reachesPdf && out.reallyDashed &&
                out.hasVerticals && out.solidDistinct && out.neverTravels &&
                out.editorUntouched && out.noBodyClass && out.resetClean &&
