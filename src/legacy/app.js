@@ -1361,6 +1361,42 @@ export function initLegacyApp() {
     { key:'post',        label:'Post',       color:'#FBE5D6', textColor:'#8A4A1F', template:n=>`Post wk ${n}` },
     { key:'localization',label:'Localization',  color:'#EDEDED', textColor:'#525252', template:n=>`Localization wk ${n}` },
   ];
+  // ---------- User preferences ----------
+  // ⛔ PREFERENCES ARE NOT CALENDAR DATA. They live per USER and per MACHINE, and they must never
+  // reach captureSnapshot(): one person's gridline choice riding inside another person's saved
+  // calendar is exactly the confusion this store exists to avoid. Calendar data goes in the
+  // .sptcal; this goes in localStorage; the two never mix.
+  //
+  // ⚠️ FIRST USE OF localStorage IN THIS APP. The crash backup and the file handles are IndexedDB
+  // (idbSet / HANDLE_DB), so there was no read/write helper to copy and this shape is the
+  // precedent every later preference will follow. Keep it: one key, one flat JSON object, a
+  // `version` for when it has to migrate, and try/catch on EVERY access.
+  //
+  // ⚠️ Every access is wrapped because localStorage THROWS outright in some contexts -- a private
+  // window, site data disabled -- rather than returning null. A throw here would take the whole
+  // IIFE down before the grid ever rendered, so the app must start correctly with no store at all.
+  //
+  // MEASURED 3 Sep 2026 in headless Chrome: localStorage works from `file://`, persists across
+  // loads, and every file:// copy on one machine shares ONE bucket (origin is the bare `file://`),
+  // so a preference set in one emailed copy is honoured by the next. The deployed https site keeps
+  // its own separate bucket -- preferences do not travel between the two, and cannot be made to.
+  const PREFS_KEY = 'sptcal.prefs';
+  let prefs = {};
+  function loadPrefs(){
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      const o = raw ? JSON.parse(raw) : null;
+      return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+    } catch(_){ return {}; }
+  }
+  // Returns whether it stuck, so a caller can tell the user their choice will not survive a reload
+  // rather than pretending it saved. Nothing does that yet; the return value is here so it can.
+  function savePrefs(){
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(Object.assign({ version:1 }, prefs))); return true; }
+    catch(_){ return false; }
+  }
+  prefs = loadPrefs();
+
   const SHOOT_DAYS_PER_WEEK = 5;
   const HIATUS_COLOR = '#FF0000', HIATUS_TEXT = '#FFFFFF';
   // Interior gridlines are a genuine per-team preference, not a house style: the reference
@@ -1369,7 +1405,20 @@ export function initLegacyApp() {
   // drives BOTH the Excel export and the waterfall PDF from one place so they can never
   // disagree, and it is the first entry of the style config the Settings menu will own.
   // 'none' matches the reference export; 'dashed' is what the tool shipped before.
-  const SHEET_GRIDLINES = 'none'; // 'none' | 'dashed' | 'dotted'
+  //
+  // ⛔ `let`, NOT `const`, and that is the whole mechanism (owner request, 3 Sep 2026: a gridline
+  // setting). Every reader -- exportExcel, buildWaterfallPdf, the print fallback -- is FROZEN and
+  // reads this identifier at call time, so re-assigning it changes all three at once with no
+  // frozen line touched. This is the pattern CLAUDE.md records under "change the DECLARATION, not
+  // the call sites", the same one that turned the export paths' eight alert() calls into the app's
+  // own dialogs. ⛔ Do not turn it back into a const, and do not read it into a local at load time.
+  //
+  // ⚠️ ABSENT MEANS TODAY'S BEHAVIOUR, deliberately: 'none' keeps every export byte-identical to
+  // the baseline, and the screen keeps the solid lines table.sheet-table has always drawn, because
+  // reflectGridlines() adds no class until the user actually picks one. So the feature is INERT
+  // until used -- which is what lets it ship without changing anyone's output unasked.
+  let SHEET_GRIDLINES = (prefs.gridlines === 'dashed' || prefs.gridlines === 'dotted' ||
+                         prefs.gridlines === 'solid') ? prefs.gridlines : 'none'; // 'none' | 'solid' | 'dashed' | 'dotted'
   // How the waterfall PDF is produced. 'direct' writes the file byte-by-byte from the shared
   // column model; 'print' is the original route through window.print(), kept working so the two
   // can be compared and so there is somewhere to fall back to.
@@ -6555,8 +6604,12 @@ export function initLegacyApp() {
     // interior clean, which is what the reference exports look like.
     ws.pageSetup.showGridLines = false;
     if(SHEET_GRIDLINES !== 'none'){
+      // FROZEN EDIT (owner-approved 3 Sep 2026): 'solid' had no branch, so choosing it produced
+      // DASHED borders in the workbook. Excel's thin style is its plain solid hairline.
       const line = (SHEET_GRIDLINES === 'dotted')
         ? {style:'dotted', color:{argb:'FFDBDBDB'}}
+        : (SHEET_GRIDLINES === 'solid')
+        ? {style:'thin', color:{argb:'FFD4D4D4'}}
         : {style:'dashed', color:{argb:'FFBFBFBF'}};
       const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
       const totalColsForGrid = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
@@ -6608,6 +6661,30 @@ export function initLegacyApp() {
   let viewMode = 'sheet';
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
+  // ---------- Gridlines preference ----------
+  // ⛔ AN EXPORT SETTING, NOT A VIEW SETTING (owner, 3 Sep 2026: "these gridline settings are about
+  // the pdf export, thats where it matters, not in the live app view"). It drives SHEET_GRIDLINES,
+  // which is read by exportExcel, buildWaterfallPdf and the print fallback -- all three at export
+  // time, so re-assigning the identifier is the whole mechanism and nothing has to be re-rendered.
+  // The live editor is deliberately UNCHANGED by it: an earlier cut drove the on-screen grid from a
+  // body class and that was removed. The waterfall editor keeps the look it has always had.
+  function reflectGridlines(){
+    // The select is UNCONTROLLED and written imperatively, the same contract #tool-anchor-date has:
+    // React renders the options, the engine owns the value. Re-asserted whenever the Settings tab
+    // opens, so a late React commit cannot leave it showing the wrong choice.
+    const sel = document.getElementById('pref-gridlines');
+    if(sel) sel.value = prefs.gridlines || '';
+  }
+  document.addEventListener('change', e=>{
+    if(!e.target || e.target.id !== 'pref-gridlines') return;
+    const v = e.target.value;
+    if(v) prefs.gridlines = v; else delete prefs.gridlines;
+    savePrefs();
+    SHEET_GRIDLINES = v || 'none';
+    // No render: nothing on screen depends on this, and both writers read SHEET_GRIDLINES when the
+    // user actually exports.
+  });
+
   let sidebarTab = 'show';
   function setSidebarTab(tab){
     if(tab === 'holidays') tab = 'settings';   // pre-rename saves
@@ -6622,7 +6699,9 @@ export function initLegacyApp() {
     document.querySelectorAll('.form-panel section.card[data-tab]').forEach(s=>{
       s.classList.toggle('tab-hidden', s.dataset.tab !== tab);
     });
+    reflectGridlines();
   }
+  reflectGridlines();
   (function(){
     const track = document.querySelector('.side-tabs-track');
     if(!track) return;
@@ -8069,6 +8148,13 @@ export function initLegacyApp() {
       // Matched on the CLASS, not an id: there is one popover per tool now, so an id-based test
       // silently stops matching the moment the markup is reorganised.
       if(el.closest('.tools-menu')) return;
+      // ⛔ Preferences are per-USER and per-MACHINE, and this sweep is what would silently bake them
+      // into every saved calendar -- and add a phantom undo step every time one changed. Matched on
+      // the CLASS for the same reason .tools-menu is: an id-based test stops matching the moment the
+      // markup is reorganised, and it would fail SILENTLY, which is how a preference ends up inside
+      // someone else's file. ⚠️ Any new control in the Preferences card is covered automatically;
+      // any preference control placed OUTSIDE that card is not.
+      if(el.closest('.prefs-card')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -10173,9 +10259,16 @@ export function initLegacyApp() {
         if(w <= 0 || h <= 0) return;
         ops.push(`${pdfRgb(hex)} rg ${pdfNum(x)} ${pdfNum(hPt-(y+h))} ${pdfNum(w)} ${pdfNum(h)} re f`);
       },
-      line(x1, y1, x2, y2, hex, wt){
-        ops.push(`${pdfRgb(hex)} RG ${pdfNum(wt)} w ${pdfNum(x1)} ${pdfNum(hPt-y1)} m `
-               + `${pdfNum(x2)} ${pdfNum(hPt-y2)} l S`);
+      // FROZEN EDIT (owner-approved 3 Sep 2026): optional `dash`, for the gridlines preference.
+      // A PDF dash is the `d` operator -- `[on off] phase d` -- and it is GRAPHICS STATE, so it
+      // persists until reset; without the trailing `[] 0 d` every later stroke on the page would
+      // come out dashed too, including the black frame. Defaults to none, so all ~40 existing call
+      // sites emit exactly the bytes they did before and the baseline compare stays byte-identical.
+      line(x1, y1, x2, y2, hex, wt, dash){
+        ops.push((dash ? `[${dash}] 0 d ` : '')
+               + `${pdfRgb(hex)} RG ${pdfNum(wt)} w ${pdfNum(x1)} ${pdfNum(hPt-y1)} m `
+               + `${pdfNum(x2)} ${pdfNum(hPt-y2)} l S`
+               + (dash ? ' [] 0 d' : ''));
       },
       // FROZEN EDIT (owner-approved 31 Aug 2026): optional `skew` for synthetic italic.
       // Only two Carlito faces are embedded -- regular and bold -- so there is no italic font to
@@ -10428,8 +10521,16 @@ export function initLegacyApp() {
     // The grid always begins at the top margin; the header sat above it, in the margin.
     const gridTop = originY;
     const HEADER_FILL_PDF = '#D9D9D9', FRAME = '#1E1D1B', HDR_RULE = '#BFBFBF';
+    // FROZEN EDIT (owner-approved 3 Sep 2026), the gridlines preference: 'solid' had no branch, so
+    // it fell through to the dashed colour and was indistinguishable from it in the PDF.
     const interior = SHEET_GRIDLINES === 'none' ? null
+                   : SHEET_GRIDLINES === 'solid' ? '#D4D4D4'
                    : (SHEET_GRIDLINES === 'dotted' ? '#DBDBDB' : '#BFBFBF');
+    // Dash arrays in POINTS, not scaled: a dash that shrank with the fit scale would read as solid
+    // on a densely packed calendar, which is the one place the distinction matters most. 'solid'
+    // passes none, so the `d` operator is omitted from its strokes entirely.
+    const interiorDash = SHEET_GRIDLINES === 'dashed' ? '2 2'
+                       : SHEET_GRIDLINES === 'dotted' ? '0.5 2' : '';
 
     // --- column header row ---------------------------------------------------------------------
     let hy = gridTop, hh = S(HDR_ROW_PT);
@@ -10533,12 +10634,33 @@ export function initLegacyApp() {
       });
 
       if(interior && r < maxRows-1)
-        page.line(originX, ry+rh, originX + S(gridW), ry+rh, interior, 0.4);
+        page.line(originX, ry+rh, originX + S(gridW), ry+rh, interior, 0.4, interiorDash);
       ry += rh;
     }
 
-    // --- frame and year-block separators -----------------------------------------------------
+    // --- interior column rules -----------------------------------------------------------------
+    // FROZEN EDIT (owner-approved 3 Sep 2026). The writer drew horizontal row separators ONLY, so a
+    // gridlines setting could never produce a grid in the PDF -- which is where the owner said it
+    // matters. Drawn per year block at each internal column boundary.
+    // ⚠️ BODY ONLY, below the grey header row: a rule through the header would cut the year label,
+    // and Excel's own header band is filled rather than ruled.
+    // ⚠️ Drawn BEFORE the frame and the block separators on purpose -- those are heavier FRAME
+    // strokes at the same x, and painting them after means a block edge never shows an interior
+    // rule underneath it.
     const gridBottom = ry, right = originX + S(gridW);
+    if(interior){
+      const bodyTop = gridTop + hh;
+      yearBlocks.forEach((b, bi)=>{
+        const bc = blockCols[bi];
+        let x = originX + S(blockX[bi]);
+        for(let ci=0; ci<bc.length-1; ci++){
+          x += S(bc[ci].w);
+          page.line(x, bodyTop, x, gridBottom, interior, 0.4, interiorDash);
+        }
+      });
+    }
+
+    // --- frame and year-block separators -----------------------------------------------------
     page.line(originX, gridTop, right, gridTop, FRAME, 1.2);
     page.line(originX, gridBottom, right, gridBottom, FRAME, 1.2);
     page.line(originX, gridTop, originX, gridBottom, FRAME, 1.2);

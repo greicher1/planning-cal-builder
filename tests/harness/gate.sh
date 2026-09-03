@@ -611,6 +611,52 @@ chk(not hv.get('h'), f"reshape: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- prefs: the user-preference store, and the rule that a preference never reaches a file -----
+# First use of localStorage in this app (the crash backup and file handles are IndexedDB), so this
+# leg also fixes the SHAPE every later preference will copy: one key, flat JSON, a version field.
+# ⭐ The assertion that matters most is `neverTravels`: collectFieldValues() sweeps every id'd input
+# in the document, so without the .prefs-card exclusion the control is baked into every saved
+# calendar AND adds a phantom undo step per change. It is proved against a real exported copy.
+# ⛔ IT IS AN EXPORT SETTING, NOT A VIEW SETTING (owner, 3 Sep 2026: "these gridline settings are
+# about the pdf export, thats where it matters, not in the live app view"). So the leg measures the
+# PDF by reading the file back, and asserts the live editor is UNCHANGED in both states -- that
+# assertion is the regression guard for the ruling. `inertAtBoot` is the other half of the
+# byte-identical PDF/Excel compare above: with nothing stored, nothing anywhere changes.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" prefs 120 >/dev/null 2>&1
+python3 - "$HERE/prefs.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  prefs produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  prefs threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('inertAtBoot'), f"prefs: inert with nothing stored -- no preference, no interior rules in the PDF ({a.get('pdfNoneInterior')})")
+chk(a.get('controlFound') and a.get('insideExcludedCard'),
+    "prefs: the control exists and sits inside .prefs-card (the collectFieldValues exclusion)")
+chk(a.get('optionValues')==',solid,dashed,none', f"prefs: three options plus Default ({a.get('optionValues')})")
+chk(a.get('reachesPdf'), f"prefs: choosing Dashed puts interior rules INTO THE PDF ({a.get('pdfNoneInterior')} -> {a.get('pdfDashedInterior')})")
+chk(a.get('reallyDashed'),
+    f"prefs: they are really DASHED, and the dash state is reset after every stroke ({a.get('dashOps')} set / {a.get('dashResets')} reset)")
+chk(a.get('hasVerticals'), f"prefs: the PDF now draws interior COLUMN rules, which it never did ({a.get('dashedVerticals')} found)")
+chk(a.get('solidDistinct'),
+    f"prefs: Solid is its own look -- #D4D4D4 and no dash operator ({a.get('pdfSolidInterior')} rules, {a.get('pdfSolidDashOps')} dashes)")
+chk(a.get('persisted'), f"prefs: it reached localStorage with a version field {a.get('storedAfter')}")
+chk(a.get('neverTravels'),
+    f"prefs: ⭐ the preference is ABSENT from a real saved copy (key={a.get('snapHasPrefKey')}, id={a.get('snapHasControlId')}, {a.get('fieldIdCount')} field ids)")
+chk(a.get('editorUntouched') and a.get('noBodyClass'),
+    f"prefs: ⭐ the LIVE EDITOR is unchanged by the setting -- owner ruling ({a.get('cellAfter')})")
+chk(a.get('resetClean'), f"prefs: Default removes the key rather than storing '' {a.get('storedAfterReset')}")
+chk(not a.get('errors'), f"prefs: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"prefs: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

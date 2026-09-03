@@ -239,7 +239,39 @@ Two things found while doing it, both fixed:
 `python3 tools/check-refs.py` after any edit to it — it verifies all 74 rows *and* fails the run if
 a line number has crept back into any of the seven prose docs. Last run CLEAN, 29 Aug 2026.
 
-### 2b. Settings menu + per-user persistence
+### 2b. Settings menu + per-user persistence — ◐ **STORE BUILT, FIRST TENANT SHIPPED** (3 Sep 2026)
+
+✅ **The store exists and grid lines own it.** `PREFS_KEY = 'sptcal.prefs'`, one flat JSON object
+with a `version` field, `loadPrefs()` / `savePrefs()`, try/catch on every access. A **Preferences**
+card sits third in the Settings tab, above *Export App With Data*. Gate leg `prefs`.
+
+⛔ **IT IS AN EXPORT SETTING, NOT A VIEW SETTING** (owner, 3 Sep 2026: *"these gridline settings are
+about the pdf export, thats where it matters, not in the live app view"*). An earlier cut of the same
+day drove the on-screen grid from a body class; it was **removed**, and the leg now asserts the editor
+is unchanged in every state. Do not reintroduce a screen variant without a new instruction — the
+appearance convention holds the waterfall editor as it is.
+
+⛔ **`.prefs-card` IS LOAD-BEARING.** `collectFieldValues()` sweeps every `input[id]`/`select[id]`/
+`textarea[id]` in the document; the engine skips that class. Without it the control is baked into
+every saved calendar **and** adds a phantom undo step per change. Matched on the class for the same
+reason `.tools-menu` is. **Any new preference control must live inside that card.**
+
+✅ **E-SIGN-OFF, FROZEN EDIT (owner, 3 Sep 2026).** Three edits in `buildWaterfallPdf` plus one in
+`exportExcel`, because neither could express the setting: `page.line` gained an optional `dash`;
+`interior` gained a `solid` branch (`#D4D4D4`) and a per-style dash array; **the PDF now draws
+interior COLUMN rules, which it never did** (horizontal row separators only, always solid, colour
+only — so Solid and Dashed were indistinguishable in the file); and Excel's `solid` had no branch, so
+choosing it produced dashed borders. ⚠️ **A PDF dash is GRAPHICS STATE** — without the trailing
+`[] 0 d` every later stroke on the page, the black frame included, inherits it; the leg asserts
+set-count equals reset-count. Inertness measured: with nothing stored the waterfall PDF and every
+Excel part are **byte-identical to the baseline**, because every existing `page.line` call site
+passes no dash.
+
+⏭ Still to come: more tenants (`GRID_TEXT_COLOR`, `WF_PDF_MODE`), and **header style presets**
+(owner chose style-only, 3 Sep 2026 — no `headerManual`, so nothing forces the header out of auto
+mode; a named list of `{headerFormat, mvHeaderFormat}` in the same store, applied as one undo step).
+
+**Original ask, for context:**
 
 The original ask that started this arc: *"Each sub-team within production has slight quirks in how
 they like to build their calendars, especially the waterfall. We are going to need a global
@@ -262,10 +294,16 @@ file (see §4, "what NOT to do").
 
 **⚠️ Two things checked 29 Aug 2026 that change how this must be built:**
 
-1. **`localStorage` is used NOWHERE in the app today** — zero occurrences. The crash backup is
-   IndexedDB (`idbSet(BACKUP_KEY, …)`), not `localStorage`, whatever older prose in `CLAUDE.md`
-   implied (now corrected). So this stage *introduces* `localStorage`; it does not join an
-   existing mechanism, and there is no established read/write helper to copy.
+1. ~~**`localStorage` is used NOWHERE in the app today**~~ — true when written, **false since
+   3 Sep 2026**: `PREFS_KEY` is its first and only use. The crash backup and the file handles are
+   still IndexedDB (`idbSet(BACKUP_KEY, …)`, `HANDLE_DB`), so the two mechanisms sit side by side and
+   should not be confused. ⚠️ **MEASURED 3 Sep 2026 in headless Chrome:** `localStorage` works from
+   `file://`, persists across loads, and every `file://` copy on one machine shares ONE bucket (the
+   origin is the bare `file://`) — so a preference set in an emailed copy is honoured by the next one
+   opened. The deployed https site keeps a separate bucket; preferences do not travel between the
+   two and cannot be made to. ⚠️ Clearing cookies clears it — in Chrome/Edge "Cookies and other site
+   data" is one control — and the same action wipes the IndexedDB recents list and crash backup,
+   which cost far more. Nothing irreplaceable goes in either; saved `.sptcal` files are untouched.
 
 2. **All three constants are read from INSIDE the frozen surface**, which decides the design:
 

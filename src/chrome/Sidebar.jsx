@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconShare } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 
 const SEASONS = [
@@ -114,6 +114,42 @@ export function RegionCard() {
         Locked — changing the Region would recompute Production’s dates and misplace your
         comment/hiatus edits. Use “Reset Notes &amp; Hiatus” above the calendar first.
       </p>
+      </div>
+    </section>
+  )
+}
+
+// ⛔ PREFERENCES, NOT CALENDAR DATA -- and the card says so, because nothing else in this tab
+// behaves that way. Production Region and Holidays above it travel INSIDE a saved .sptcal; these
+// stay on this computer and never enter captureSnapshot(). Users will not guess that split.
+//
+// ⛔ `prefs-card` is load-bearing, not decorative: collectFieldValues() sweeps every input[id] /
+// select[id] / textarea[id] in the document, and the engine skips this class. Without it the
+// control would be baked into every saved calendar AND add a phantom undo step on every change.
+// Any future preference control belongs INSIDE this card for that reason alone.
+export function PreferencesCard() {
+  return (
+    <section className="card prefs-card" data-tab="settings">
+      <h2>
+        <IconSliders className="card-ic" /><span>Preferences</span>
+        <InfoHint label="Preferences" width={300}>
+          These stay on this computer and are not part of a saved calendar — send someone a
+          calendar and they keep their own settings.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
+        {/* Uncontrolled ON PURPOSE: the engine writes .value in reflectGridlines(), the same
+            contract #tool-anchor-date has. A controlled input would ignore that write. */}
+        {/* ⛔ Export-only, and the description says so: the owner ruled 3 Sep 2026 that this is
+            "about the pdf export ... not in the live app view". The editor's own gridlines are
+            unchanged by it. */}
+        <NativeSelect id="pref-gridlines" label="Grid lines in exports"
+                      description="The PDF and Excel. The editor's own grid is unchanged.">
+          <option value="">Default</option>
+          <option value="solid">Solid</option>
+          <option value="dashed">Dashed (Excel style)</option>
+          <option value="none">None</option>
+        </NativeSelect>
       </div>
     </section>
   )

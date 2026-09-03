@@ -29,6 +29,64 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — user settings: a preference store, and grid lines you choose for the exports
+
+The first user-settings work, and the first use of `localStorage` in this app. Local, not pushed.
+
+**A Preferences card** now sits third in the Settings tab, above *Export App With Data*, with one
+control: **Grid lines in exports — Default / Solid / Dashed (Excel style) / None**. It carries a line
+saying these stay on this computer and are not part of a saved calendar, because nothing else in that
+tab behaves that way — Production Region and Holidays above it *do* travel inside a `.sptcal`.
+
+⛔ **It is an export setting, not a view setting** (owner: *"these gridline settings are about the pdf
+export, thats where it matters, not in the live app view"*). An earlier cut of the same day drove the
+on-screen grid from a body class; it was removed. The waterfall editor keeps the solid `#D4D4D4` lines
+it has always drawn, and the gate leg asserts that in every state rather than merely omitting it.
+
+**The store.** One key, one flat JSON object with its own `version`, try/catch on every access —
+`localStorage` throws outright in a private window or with site data disabled, and a throw would take
+the whole engine down before the grid rendered. Choosing *Default* **removes** the key rather than
+storing an empty string. ⚠️ Measured: `localStorage` works from `file://`, persists, and every
+`file://` copy on one machine shares one bucket, so a preference set in an emailed copy is honoured by
+the next one opened. The deployed site keeps a separate bucket.
+
+⛔ **A preference never reaches a saved calendar**, and the mechanism is one line: `collectFieldValues()`
+sweeps every id'd input in the document, and the engine skips `.prefs-card`. Without that, the control
+would be baked into every save *and* add a phantom undo step per change. Proved against a real exported
+copy — the snapshot contains neither the value nor the control's id, and `fields.byId` is unchanged at
+54 ids.
+
+**No frozen edit was needed to wire the setting itself.** `SHEET_GRIDLINES` went `const` → `let`,
+seeded from the store; all three readers — `exportExcel`, `buildWaterfallPdf`, the print fallback —
+read the identifier at call time, so re-assigning it reaches every output with no frozen line touched.
+That is the "change the declaration, not the call sites" pattern.
+
+**But the PDF could not express the setting, so four frozen edits were made — owner-approved,
+and gated.** The writer drew **horizontal row separators only**: no vertical column rules, always
+solid, with only the colour varying. Solid and Dashed were therefore *indistinguishable in the file*,
+and Excel's `solid` had no branch at all, so choosing it produced dashed borders in the workbook.
+
+- `page.line` gained an optional `dash`. Every existing call site passes none, so their bytes are
+  unchanged — which is exactly what keeps the baseline compare valid.
+- `interior` gained a `solid` branch (`#D4D4D4`) and a per-style dash array, in points rather than
+  scaled: a dash that shrank with the fit scale would read as solid on a dense calendar, which is
+  where the distinction matters most.
+- **The PDF now draws interior column rules.** Body only, below the grey header band, and drawn
+  *before* the frame and block separators so a heavier edge always paints over an interior rule at
+  the same x.
+- `exportExcel` gained its `solid` branch — Excel's `thin` style is its plain solid hairline.
+
+⚠️ **A PDF dash is graphics state, not a per-stroke argument.** Without the trailing `[] 0 d` every
+later stroke on the page — the black frame included — inherits it. The leg asserts set-count equals
+reset-count for exactly that reason.
+
+**Verified.** New gate leg `prefs`, measured by reading the exported files back: unset produces no
+interior rules; Dashed produces 57 with 56 balanced dash set/reset pairs and real verticals; Solid
+produces 56 in `#D4D4D4` with **zero** dash operators; the preference is absent from a real saved
+copy; the editor is untouched throughout. And the safety argument for the frozen edits: **with nothing
+stored the waterfall PDF and every Excel part are byte-identical to the baseline.** Gate: 144 pass,
+1 fail — the known `restore` IndexedDB stall.
+
 ### Unreleased — a block swap can reshape a block, so it now says which one, and paints the weeks
 
 Second report from the owner's own use, and it corrects the premise this whole feature was built on.

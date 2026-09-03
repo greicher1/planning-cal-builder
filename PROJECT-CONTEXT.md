@@ -393,7 +393,8 @@ undo/redo stacks, which are **not** persisted (history is per-session and reset 
 
 **Deliberately NOT state:** `autosaveNeedsFile`, `autosaveFailed`, `isDirty`, `suppressDirty` and
 the legacy-notice visibility are session UI. Per-user *preferences* (`SHEET_GRIDLINES`,
-`WF_PDF_MODE`, `GRID_TEXT_COLOR`, once the Settings menu owns them) belong in `localStorage`,
+`WF_PDF_MODE`, `GRID_TEXT_COLOR`, once the Settings menu owns them) belong in `localStorage`
+(`SHEET_GRIDLINES` got there 3 Sep 2026 — key `sptcal.prefs`, HANDOFF §2b),
 **never** in `captureSnapshot()` — they are not calendar data and must not travel inside someone
 else's file.
 

@@ -94,6 +94,18 @@ export function IconTable(props) {
   )
 }
 
+// Three sliders: the settings idiom, and it reads at 16px where a cog's teeth turn to mush.
+export function IconSliders(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2 4h5M11 4h3M2 8h9M13.5 8h.5M2 12h3M9 12h5" />
+      <circle cx="9" cy="4" r="1.6" />
+      <circle cx="12.5" cy="8" r="1.6" />
+      <circle cx="7" cy="12" r="1.6" />
+    </svg>
+  )
+}
+
 export function IconShare(props) {
   return (
     <svg {...base} {...props}>
