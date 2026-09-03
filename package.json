@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.2.0",
   "type": "module",
-  "description": "SPT Planning Calendar Builder \u2014 builds to a single self-contained dist/index.html.",
+  "description": "SPT Calendar Builder \u2014 builds to a single self-contained dist/index.html.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -66,7 +66,7 @@ export function Header() {
             (owner, round 5). The drawn navy-chip glyph this replaced lives on in icons.jsx as
             IconCalendarPlain; the brand now carries the app's actual icon instead. */}
         <img className="app-brand-mark" src={APP_ICON} alt="" aria-hidden="true" />
-        <span className="app-brand-name">SPT Planning Calendar</span>
+        <span className="app-brand-name">SPT Calendar Builder</span>
       </div>
       <div className="app-toolbar-div" aria-hidden="true" />
 

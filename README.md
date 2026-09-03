@@ -29,6 +29,52 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — renamed to SPT Calendar Builder, and the header's Principal Photography date was wrong
+
+Two changes. Local, not pushed at time of writing.
+
+**The app is now "SPT Calendar Builder".** The PWA manifest `name`, the browser tab title, the help
+panel, and the brand in the top-left all follow. `short_name` and the iOS home-screen title are the
+shorter **"SPT Calendar"** — those sit under an icon and both platforms truncate hard. ⛔ The root
+`index.html` is deliberately untouched: it is byte-identical to `releases/v1.2.0.html` and is the
+one-click rollback, so only the build was renamed. ⚠️ Changing a manifest `name` changes the
+installed identity — anyone who already installed the PWA may see this as a **new install** rather
+than a rename, with the old icon lingering until they remove it. The *documents* were not renamed:
+export filenames, the Excel worksheet tab, the file-picker type label and the calendar's own
+"Planning Calendar" header line all still say Planning Calendar, because they describe the document
+rather than the app.
+
+**The wrap date was right; the date beside it was not.** Reported as *"the wrap date sometimes seems
+wrong"*. It isn't — verified against an independent day-by-day walk across five shapes, including a
+start buried in a hiatus, a start on a holiday and a per-phase Production hiatus: **5 of 5 correct**.
+
+The bug was the other half of the same line. `Principal Photography <date>` printed
+`mondayOf(entered start)` — the date you typed, snapped to its Monday — while `Wrap:` printed a
+*computed last shoot day*. One end measured, the other a calendar guess. Whenever that Monday was a
+union holiday or fell inside a hiatus, the header named a day nothing happens **and contradicted the
+grid beside it**. Measured: a Production entered as 12/21/26 — inside the default winter hiatus —
+claimed *12/21* while the grid plainly showed it starting **1/4/27**. Two weeks out. A start on
+Memorial Day Monday was out by a day.
+
+**The same bug was in the grid**, found while fixing it: the *Start Principal Photography* auto-note
+was dropped on that same entered Monday, so it could land on a hiatus week where nothing shoots.
+
+`simulateProductionSchedule` already walked to the first real shoot day, so the fix is to keep it:
+`productionInfo` now carries **`firstShootDay`** alongside `startDate`, and both the header and the
+note use it. The two are deliberately distinct — `startDate` is the Monday the phase's first *week*
+begins, which is what the grid lays out; `firstShootDay` is when the camera actually rolls.
+
+⚠️ **Worth recording, because it is the trap here:** the first version of the probe reported the wrap
+as wrong in *every* case, and the probe was wrong — it hardcoded a holiday list (counting Veterans
+Day, which is US-NY only, not US-GEN) and ignored the four `DEFAULT_HIATUSES` the app ships with. The
+wrap legitimately jumps ~2 weeks whenever a shoot crosses December, which is exactly what makes it
+*look* wrong. The gate leg now reads holidays and hiatus rows **from the app**, so it cannot repeat
+that mistake.
+
+**Verified.** New gate leg `wrapdate`: five scenarios, each comparing both ends of the line against
+an independent walk, with the two previously-broken cases pinned by name — a start inside the winter
+hiatus must report 1/4/27, a start on Memorial Day must report 6/1/27.
+
 ### Unreleased — user settings: a preference store, and grid lines you choose for the exports
 
 The first user-settings work, and the first use of `localStorage` in this app. Local, not pushed.
