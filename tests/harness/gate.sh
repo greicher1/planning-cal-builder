@@ -657,6 +657,43 @@ chk(not hv.get('h'), f"prefs: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- wrapdate: both ends of the header's Principal Photography line are REAL SHOOT DAYS --------
+# The line reads "Principal Photography <first shoot day> / Wrap: <last shoot day>". It used to print
+# the ENTERED Monday against a computed last shoot day -- one end a calendar guess, the other
+# measured -- so whenever that Monday was a union holiday or fell inside a hiatus the header
+# contradicted the grid beside it. Measured before the fix: Production entered as 12/21/26, inside
+# the default winter hiatus, claimed 12/21 while the grid showed it starting 1/4/27.
+# ⚠️ The scenarios read the holiday list and the hiatus rows FROM THE APP, not from a hardcoded list.
+# The first version of this probe hardcoded them, got both wrong (it ignored the four DEFAULT_HIATUSES
+# and counted Veterans Day, which is US-NY only) and reported the app's CORRECT wrap as a bug.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" wrapdate 120 >/dev/null 2>&1
+python3 - "$HERE/wrapdate.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  wrapdate produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  wrapdate threw: '+str(a['EX'])); sys.exit(1)
+cases=a.get('cases') or []
+chk(len(cases)==5, f"wrap: all five scenarios ran ({len(cases)})")
+chk(a.get('allWrapOk'), "wrap: the Wrap date matches an independent day-walk in every scenario")
+chk(a.get('allStartOk'), "wrap: the Principal Photography date is the FIRST REAL SHOOT DAY in every scenario")
+chk(a.get('hiatusStartCase')=='2027-01-04',
+    f"wrap: a start inside the default winter hiatus reports 1/4/27, not the entered 12/21 ({a.get('hiatusStartCase')})")
+chk(a.get('holidayStartCase')=='2027-06-01',
+    f"wrap: a start on Memorial Day reports 6/1/27, not the holiday itself ({a.get('holidayStartCase')})")
+for c in cases:
+    if not (c.get('WRAP_OK') and c.get('START_OK')):
+        print('        '+c['name']+': '+str(c.get('header'))+'  (first real shoot day '+str(c.get('firstRealShootDay'))+')')
+chk(not a.get('errors'), f"wrap: 0 console errors {a.get('errors')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

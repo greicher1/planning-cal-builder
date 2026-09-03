@@ -1,4 +1,4 @@
-// The SPT Planning Calendar Builder's original application script, moved out of index.html's
+// The SPT Calendar Builder's original application script, moved out of index.html's
 // single inline <script> and into a module, VERBATIM. Nothing between initLegacyApp()'s braces has
 // been changed from the v1.2.0 build -- the wrapper is the whole diff.
 //
@@ -2128,6 +2128,10 @@ export function initLegacyApp() {
       let current = start;
       let count = 0;
       let lastShootDay = null;
+      // The FIRST day production actually shoots, which is not necessarily `start`: that Monday can
+      // be a union holiday, or sit inside a hiatus, in which case the shoot begins days or weeks
+      // later. The header and the grid note both need this rather than the entered date.
+      let firstShootDay = null;
       const holidaysHit = [];
       const shootDays = [];   // the actual working days Production shoots (for the month view)
       let safety = 0;
@@ -2144,13 +2148,14 @@ export function initLegacyApp() {
             holidaysHit.push({date:current, name:holiday.name});
           } else {
             count++;
+            if(!firstShootDay) firstShootDay = current;
             lastShootDay = current;
             shootDays.push(iso);
           }
         }
         current = addDays(current, 1);
       }
-      return {lastShootDay: lastShootDay || start, holidaysHit, shootDays};
+      return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start, holidaysHit, shootDays};
     }
 
     const segments = [];
@@ -2180,7 +2185,16 @@ export function initLegacyApp() {
             if(!inHiatus) workedWeeks++;
           }
           weeksForSegment = workedWeeks;
-          productionInfo = {startDate:start, lastShootDay:sim.lastShootDay, holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
+          // ⛔ startDate and firstShootDay are DIFFERENT and the difference is the point (fixed
+          // 3 Sep 2026). `startDate` is the Monday the phase's first WEEK begins -- the segment's own
+          // start, which is what the grid lays out. `firstShootDay` is the first day the camera
+          // actually rolls, which is later whenever that Monday is a holiday or falls inside a
+          // hiatus. Measured before the fix: a Production entered as 12/21/26 -- inside the default
+          // winter hiatus -- had the header and the note both claiming 12/21 while the grid plainly
+          // showed Production starting 1/4/27, two weeks later. Anything describing PRINCIPAL
+          // PHOTOGRAPHY wants firstShootDay; anything laying out weeks wants startDate.
+          productionInfo = {startDate:start, firstShootDay:sim.firstShootDay, lastShootDay:sim.lastShootDay,
+                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
           shootDaysForSegment = sim.shootDays;
         } else {
           end = extendEndForHiatus(start, cfg.weeks, p.key);
@@ -2403,7 +2417,7 @@ export function initLegacyApp() {
     }
 
     if(productionInfo){
-      addNote(productionInfo.startDate, 'Start Principal Photography');
+      addNote(productionInfo.firstShootDay, 'Start Principal Photography');
       addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
     }
     // Holiday notes: one per phase-spanning holiday, tagged so each view -- and each individual
@@ -7618,7 +7632,10 @@ export function initLegacyApp() {
         !isNaN(shootDaysPerEp) && shootDaysPerEp > 0 ? `${shootDaysPerEp}-Day Shooting Schedule` : '',
       ].filter(Boolean);
       r1 = parts.join(' / ');
-      r2 = `Principal Photography ${fmt(prodInfo.startDate)} / Wrap: ${fmt(prodInfo.lastShootDay)}`;
+      // Both ends of this line are REAL SHOOT DAYS. It used to print the entered Monday against a
+      // computed last shoot day, so one end was a calendar guess and the other was measured -- and
+      // when the Monday was a holiday or inside a hiatus the line contradicted the grid beside it.
+      r2 = `Principal Photography ${fmt(prodInfo.firstShootDay || prodInfo.startDate)} / Wrap: ${fmt(prodInfo.lastShootDay)}`;
     }
     const numEpisodes = parseInt((document.getElementById('num-episodes').value||'').trim(), 10);
     if(!isNaN(numEpisodes) && numEpisodes > 0) r3 = `${numEpisodes} Episodes`;
