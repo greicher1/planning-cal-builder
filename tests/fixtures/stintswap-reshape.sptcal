@@ -1,0 +1,521 @@
+{
+ "version": 1,
+ "customPhaseDefs": [
+  {
+   "key": "custom2",
+   "colorIndex": 7
+  }
+ ],
+ "customPhaseCounter": 2,
+ "phaseColorOverride": {
+  "prodPrep": 1,
+  "prePrep": 3
+ },
+ "episodeDefs": [
+  {
+   "id": "ep1",
+   "name": "Episode 1",
+   "days": "20",
+   "nameEdited": false,
+   "daysEdited": true
+  },
+  {
+   "id": "ep2",
+   "name": "Episode 2",
+   "days": "20",
+   "nameEdited": false,
+   "daysEdited": true
+  },
+  {
+   "id": "ep3",
+   "name": "Episode 3",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep4",
+   "name": "Episode 4",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep5",
+   "name": "Episode 5",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep6",
+   "name": "Episode 6",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep7",
+   "name": "Episode 7",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep8",
+   "name": "Episode 8",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep9",
+   "name": "Episode 9",
+   "days": 17,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep10",
+   "name": "Episode 10",
+   "days": "17",
+   "nameEdited": false,
+   "daysEdited": true
+  }
+ ],
+ "episodeCounter": 10,
+ "userNotes": {
+  "2026-11-23": {
+   "text": "Start Principal Photography 11/23/26"
+  }
+ },
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "headerMode": "auto",
+ "headerManual": {},
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {
+  "2027-01-11": "Production Wk 7.5 + Hiatus (Last Day 201/202 PP on 12/22/26)",
+  "2026-01-12|writersRoom": "Writer's Room",
+  "2026-01-19|writersRoom": "Writer's Room"
+ },
+ "hiatusColors": {
+  "2027-01-11": "#92D050"
+ },
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {
+  "2026-01-12|writersRoom": "Writer's Room",
+  "2026-01-19|writersRoom": "Writer's Room"
+ },
+ "holidayView": {
+  "day-after-thanksgiving@2026": {
+   "sheet": true
+  },
+  "thanksgiving@2026": {
+   "sheet": true
+  },
+  "2026-11-11": {
+   "sheet": true
+  },
+  "martin-luther-king-jr-day@2027": {
+   "sheet": true
+  },
+  "presidents-day@2027": {
+   "sheet": true
+  },
+  "good-friday@2027": {
+   "sheet": true
+  },
+  "memorial-day@2027": {
+   "sheet": true
+  },
+  "juneteenth-observed@2027": {
+   "sheet": true
+  },
+  "independence-day-observed@2027": {
+   "sheet": true
+  }
+ },
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "sidebarTab": "show",
+ "colWidths": {
+  "y2027:s0": 25.38,
+  "y2026:s0": 29.95,
+  "y2026:notes": 29,
+  "y2028:date": 9.57,
+  "y2025:date": 12.43,
+  "y2027:s1": 29.38,
+  "y2028:s0": 24.81,
+  "y2026:s1": 13.95
+ },
+ "rowHeights": {
+  "45": 23,
+  "46": 24,
+  "49": 20,
+  "50": 21
+ },
+ "cellSpans": {
+  "2026-09-21|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 1
+  },
+  "2027-09-06|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-09-13|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-09-20|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-09-27|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-10-04|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-10-11|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-10-18|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-10-25|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-11-01|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-11-15|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-11-08|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-11-22|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-11-29|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-12-06|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-12-13|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2027-07-19|production": {
+   "l": 0,
+   "r": 1
+  },
+  "2026-09-28|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-10-05|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-10-12|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-10-19|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-10-26|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-11-09|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-11-02|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-11-16|prodPrep": {
+   "l": 2,
+   "r": 0
+  },
+  "2026-08-31|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-09-07|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-09-14|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-08-31|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-09-07|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2026-09-14|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  }
+ },
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "Reshape Fixture"
+   },
+   "season-num": {
+    "value": "2"
+   },
+   "shoot-days-per-ep": {
+    "value": "17"
+   },
+   "num-episodes": {
+    "value": "10"
+   },
+   "union-country": {
+    "value": "US"
+   },
+   "union-usregion": {
+    "value": "US-GEN"
+   },
+   "union-subregion": {
+    "value": "CA-BC"
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": "2025-11-10"
+   },
+   "weeks-writersRoom": {
+    "value": "41"
+   },
+   "phiatus-en-writersRoom": {
+    "checked": true
+   },
+   "phiatus-name-writersRoom": {
+    "value": "Writer's Room "
+   },
+   "phiatus-start-writersRoom": {
+    "value": "2026-01-12"
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": "2026-08-31"
+   },
+   "weeks-prePrep": {
+    "value": "6"
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": "2026-09-28"
+   },
+   "weeks-prodPrep": {
+    "value": "8"
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": "2026-11-23"
+   },
+   "weeks-production": {
+    "value": "176"
+   },
+   "phiatus-en-production": {
+    "checked": true
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": "2027-01-25"
+   },
+   "phiatus-weeks-production": {
+    "value": "1"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": "2027-08-30"
+   },
+   "weeks-post": {
+    "value": "48"
+   },
+   "phiatus-en-post": {
+    "checked": false
+   },
+   "phiatus-name-post": {
+    "value": ""
+   },
+   "phiatus-start-post": {
+    "value": ""
+   },
+   "phiatus-weeks-post": {
+    "value": "2"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": ""
+   },
+   "weeks-localization": {
+    "value": ""
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   },
+   "name-custom2": {
+    "value": "Pick-Ups"
+   },
+   "start-custom2": {
+    "value": "2027-08-30"
+   },
+   "weeks-custom2": {
+    "value": "1"
+   },
+   "phiatus-en-custom2": {
+    "checked": false
+   },
+   "phiatus-name-custom2": {
+    "value": ""
+   },
+   "phiatus-start-custom2": {
+    "value": ""
+   },
+   "phiatus-weeks-custom2": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2026-12-21",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2027-12-20",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2028-12-18",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2029-12-24",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2025-12-22",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   }
+  ]
+ }
+}

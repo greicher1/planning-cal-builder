@@ -3416,7 +3416,14 @@ export function initLegacyApp() {
       const at = (k, slot) => { const v = landed.get(k); return !!v && v.size === 1 && v.has(slot); };
       if(!run.movers.every(k => at(k, run.other)) || !run.partners.every(k => at(k, run.own)))
         return { ok:false, reason:'chained' };
+      // ⚠️ A BLOCK SWAP CAN RESHAPE, and the count alone was not enough warning (owner, 2 Sep 2026).
+      // Moving a block changes WHICH column is beside it, and the new neighbour may be free for its
+      // whole run where the old one was not -- so in a block with three or more phase columns a
+      // block can widen after the move. Measured on the owner's calendar: Writer's Rm went from one
+      // column to two for 34 of its 37 weeks. Record the phase, the new width and the week count, so
+      // the chip can name it instead of saying "34 weeks re-flow".
       const collateral = [];
+      const reshaped = new Map();
       let changed = false;
       const spans = w => new Map(segs(w).map(x => [x[0] + '~' + x[1], x[3]]));
       bAfter.weeks.forEach((wa, i)=>{
@@ -3425,11 +3432,22 @@ export function initLegacyApp() {
         changed = true;
         const ma = spans(wa), mb = spans(wb);
         let diff = ma.size !== mb.size;
-        ma.forEach((cs, k)=>{ if(mb.get(k) !== cs) diff = true; });
+        ma.forEach((cs, k)=>{
+          if(mb.get(k) === cs) return;
+          diff = true;
+          const pk = k.split('~')[1];
+          if(!reshaped.has(pk)) reshaped.set(pk, { key:pk, weeks:0, from:new Set(), to:new Set() });
+          const e = reshaped.get(pk);
+          e.weeks++;
+          if(mb.get(k) !== undefined) e.from.add(+mb.get(k));
+          e.to.add(+cs);
+        });
         if(diff) collateral.push(isoOf(after.weeks[afterBlocks[bi].startIdx + i].date));
       });
       if(!changed) return { ok:false, reason:'no-change' };
-      return { ok:true, collateral };
+      return { ok:true, collateral, reshaped: [...reshaped.values()].map(e=>({
+        key:e.key, weeks:e.weeks,
+        from:[...e.from].sort((x,y)=>x-y), to:[...e.to].sort((x,y)=>x-y) })) };
     } finally {
       gridStintSwaps = savedStore;
       swapSuppressed = savedSup;
@@ -3464,6 +3482,20 @@ export function initLegacyApp() {
     return run.ok ? Object.assign(run, canSwapRun(run)) : run;
   }
 
+  // "Writer's Rm would widen to 2 columns in 34 weeks" -- the phase, the new width, the extent.
+  // Deliberately not a bare count: "34 weeks re-flow" told the owner a number but not what it meant,
+  // and the whole promise of a block swap is that blocks keep their shape.
+  function reshapeText(list, tense){
+    if(!list || !list.length) return '';
+    return list.map(r=>{
+      const to = r.to[r.to.length - 1], from = r.from.length ? r.from[0] : null;
+      const verb = (from !== null && to > from) ? 'widen' : (from !== null && to < from) ? 'narrow' : 'change';
+      return phaseLabelFor(r.key) + (tense === 'past' ? ' ' + verb + 'ed' : ' would ' + verb)
+        + ' to ' + to + (to === 1 ? ' column' : ' columns')
+        + ' in ' + r.weeks + (r.weeks === 1 ? ' week' : ' weeks');
+    }).join('; ');
+  }
+
   function finishStintMove(cand){
     // Re-derive from the selection, as finishSwapMove does: the cached candidate can be a beat stale.
     const run = stintRunFor(cand.year, cand.phaseKey, cand.dir);
@@ -3479,7 +3511,9 @@ export function initLegacyApp() {
     const others = run.members.filter(k => k !== run.phaseKey).map(phaseLabelFor);
     const at = { weeks: run.weeks, phaseKey: run.phaseKey, place: swapFlashSide(run, verdict.collateral) };
     const head = 'Swapped the ' + run.year + ' block of ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + joinNames(others) + '.';
-    if(n) flashSwapMsg(head + ' ' + n + (n === 1 ? ' week' : ' weeks') + ' changed shape to fit.', 0, at);
+    const rs = reshapeText(verdict.reshaped, 'past');
+    if(rs) flashSwapMsg(head + ' ⚠ ' + rs + '.', 0, at);
+    else if(n) flashSwapMsg(head + ' ' + n + (n === 1 ? ' week' : ' weeks') + ' changed shape to fit.', 0, at);
     else if(others.length > 1 || swapReducedMotion()) flashSwapMsg(head, 0, at);
     else flashSwapMsg('');
     return true;
@@ -3494,17 +3528,23 @@ export function initLegacyApp() {
     const reflow = c => { const n = (c.collateral || []).length;
       return n ? n + (n === 1 ? ' week re-flows' : ' weeks re-flow') : 'nothing re-flows'; };
     if(mode.mode === 'stint'){
-      return 'All ' + mode.count + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' in ' + mode.year + ' — '
-        + eligible.map(c => arrow(c) + ' trades the whole block with ' + joinNames(c.partners.map(phaseLabelFor))
-            + (c.movers.length > 1 ? ' (' + joinNames(c.movers.filter(k => k !== mode.phaseKey).map(phaseLabelFor)) + ' moves with it)' : '')
-            + ' · ' + reflow(c)).join(' · ');
+      let warn = false;
+      const text = 'All ' + mode.count + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' in ' + mode.year + ' — '
+        + eligible.map(c => {
+            const rs = reshapeText(c.reshaped);
+            if(rs) warn = true;
+            return arrow(c) + ' trades the whole block with ' + joinNames(c.partners.map(phaseLabelFor))
+              + (c.movers.length > 1 ? ' (' + joinNames(c.movers.filter(k => k !== mode.phaseKey).map(phaseLabelFor)) + ' moves with it)' : '')
+              + ' · ' + (rs ? '⚠ ' + rs : reflow(c));
+          }).join(' · ');
+      return { text, warn };
     }
     const c = eligible[0];
     const head = mode.total
       ? mode.selected + ' of ' + mode.total + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' selected'
       : 'Cells from ' + (mode.stints || 1) + ' blocks selected';
-    return head + ' — Swap moves the ' + c.weeks.length + '-week run at ' + swapRunDates(c.weeks) + ' only · '
-      + eligible.map(x => arrow(x) + ': ' + reflow(x)).join(' · ');
+    return { text: head + ' — Swap moves the ' + c.weeks.length + '-week run at ' + swapRunDates(c.weeks) + ' only · '
+      + eligible.map(x => arrow(x) + ': ' + reflow(x)).join(' · '), warn:false };
   }
 
   // ---------- Column order: the gesture and the indicators (F2-d) ----------
@@ -3785,6 +3825,29 @@ export function initLegacyApp() {
       });
     }
 
+    // ⚠️ THE AMBER PREVIEW IS DRAWN ON SELECTION for a block swap, not only mid-drag (owner ruling,
+    // 2 Sep 2026: "keep offering it, warn harder"). A block swap can reshape a block when the year has
+    // three or more phase columns, and the toolbar buttons commit without any drag at all -- so a
+    // preview that only appeared during a knob drag was no warning for the primary path. Drawn only
+    // when exactly ONE direction is eligible and reshapes: with two, the chip names both and an amber
+    // wash could not say which one it belonged to.
+    if(!swapDrag && selLayer){
+      const warned = eligible.filter(c => c.mode === 'stint' && (c.reshaped || []).length);
+      if(warned.length === 1){
+        // One pass over the cells, not one query per week: this redraws on every render.
+        const need = new Set(warned[0].collateral || []);
+        const byWeek = new Map();
+        if(need.size) allPhaseTds().forEach(td=>{
+          if(!need.has(td.dataset.week)) return;
+          const b = tdBox(td, g);
+          if(!b) return;
+          if(!byWeek.has(td.dataset.week)) byWeek.set(td.dataset.week, []);
+          byWeek.get(td.dataset.week).push(b);
+        });
+        byWeek.forEach(list => selLayer.appendChild(swapRect('grid-swap-collateral', swapUnion(list))));
+      }
+    }
+
     // One chip, and only when it says something the user needs. A passive "no phase beside it"
     // on every single-column selection would be noise, so those reasons are reserved for the
     // moment the user actually presses a button or completes a drag (flashSwapMsg).
@@ -3797,11 +3860,11 @@ export function initLegacyApp() {
     // The MODE, stated before commit (COLUMN-ORDER-PLAN.md §2.2): whether Swap trades the whole block
     // or only a run of weeks, with whom, and what else re-flows. A block swap with several partners
     // names every one of them -- the second half of E1 -- so nothing moves unannounced.
-    let info = false;
-    if(!msg && eligible.length){ msg = swapModeText(eligible); info = !!msg; }
+    let info = false, warn = false;
+    if(!msg && eligible.length){ const m = swapModeText(eligible); msg = m.text; info = !!msg; warn = m.warn; }
     if(!msg || !seed) return;
     const chip = document.createElement('div');
-    chip.className = 'grid-swap-chip' + (flash ? ' is-flash' : info ? ' is-info' : '');
+    chip.className = 'grid-swap-chip' + (flash ? ' is-flash' : warn ? ' is-warn' : info ? ' is-info' : '');
     chip.setAttribute('role', 'status');
     chip.textContent = msg;
     layer.appendChild(chip);

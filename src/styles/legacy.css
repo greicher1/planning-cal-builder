@@ -1375,6 +1375,11 @@
     font:11px/1.35 'Inter',system-ui,sans-serif; padding:3px 8px; border-radius:10px;
     background:rgba(45,45,48,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28); }
   .grid-swap-chip.is-flash{ background:#0E7C8C; }
+  /* A block swap that would RESHAPE a block. Amber, matching .grid-swap-collateral's rects, because
+     it is describing exactly those weeks -- and distinct from the neutral dark chip, which is the
+     point: the promise of a block swap is that blocks keep their shape, so the exception has to look
+     like one. Owner ruling 2 Sep 2026: keep offering the swap, warn harder. */
+  .grid-swap-chip.is-warn{ background:#8A5A12; }
   /* The frozen render replaces the table synchronously, so the real cells teleport. These two ghosts
      carry the eye across in each phase's own colour; --dx is the measured delta and --lift arcs them
      past each other in opposite directions. */

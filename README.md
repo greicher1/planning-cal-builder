@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a block swap can reshape a block, so it now says which one, and paints the weeks
+
+Second report from the owner's own use, and it corrects the premise this whole feature was built on.
+Local, not pushed.
+
+**What they saw.** Swapping Pre Prep ↔ Writer's Rm traded the columns correctly — and then Writer's
+Rm widened from one column to two for **34 of its 37 weeks**. Nothing was lost, no column width
+changed, nothing clipped, and the chip did say *"34 weeks re-flow"* first. But a bare count is not a
+warning, and the sprawl is the opposite of what a block swap promises.
+
+⚠️ **The premise was wrong, and this is the correction.** [`COLUMN-ORDER-PLAN.md`](COLUMN-ORDER-PLAN.md)
+§1 argued — and measured — that a block swap reflows nothing: the phase keeps its whole run in the new
+column, and the neighbour that held it narrow still sits inside that run. **True with two phase
+columns. False with three or more.** Moving a block changes *which* column is beside it. Here Writer's
+Rm sat at slot 0, held to one column because Pre Prep occupied slot 1 inside its run; after the swap
+it sits at slot 1, on the far side of Pre Prep, and its new right-hand neighbour is slot 2 — empty for
+its entire run, because Prod Prep does not start until after Writer's Rm ends. So it absorbs it. The
+three weeks that stay narrow are exactly the three it shares with Pre Prep, where the even-share cap
+holds every phase to one column. The original measurement used a fixture where the phase was blocked
+in *both* directions, which is precisely the gap §1 flagged as unmeasured.
+
+**Owner ruling (2 Sep 2026): keep offering it, warn harder.** So:
+
+- **The warning names the phase, the new width and the extent** — *"⚠ Writer's Rm would widen to 2
+  columns in 34 weeks"* — instead of *"34 weeks re-flow"*. The confirmation after the move says the
+  same in the past tense, so nothing is discovered only afterwards.
+- **The chip turns amber** (`.grid-swap-chip.is-warn`), matching the collateral rectangles, because
+  the promise of a block swap is that blocks keep their shape and the exception should look like one.
+- **The amber preview is painted on selection, not only mid-drag.** One rectangle per affected week —
+  34 here. This matters because the toolbar buttons commit with no drag at all, so a preview that
+  only appeared while dragging the knob was no warning for the primary path.
+
+**Verified.** New gate leg `stintreshape`, driven by the owner's second calendar — schedule intact,
+titles genericised. It asserts three phase columns and Writer's Rm held to one for all 37 weeks; the
+warning naming phase, width and extent; the amber chip; exactly 34 amber rectangles *before* the
+commit; the widening actually landing; the confirmation matching; no cell lost; no clipping; and the
+reverse restoring the year exactly.
+
 ### Unreleased — a block swap in a year that already had one was refused; it should not have been
 
 **Fixes the first defect the block swap produced in real use**, reported by the owner on their own
@@ -164,8 +202,11 @@ top of them, the same way the per-week swap was.
 owner's own calendar, swapping a 4-week overlap widened **16** other weeks. Their verdict, and it
 reframed the feature — a swap should be *"a genuine swap, where the two blocks swap positions but look
 the same"*, and doing the widening for you is *"confusing and assumptive"* when **Expand** already
-does it in one click. A block swap reflows nothing: it moves the phase's *entire* run in that year, so
-the run is never split and the layout rule that was holding it narrow keeps holding it narrow.
+does it in one click. A block swap moves the phase's *entire* run in that year, so the run is never
+split and the layout rule that was holding it narrow keeps holding it narrow. ⚠️ **Corrected 2 Sep
+2026: that last sentence originally read "a block swap reflows nothing", and it is only true when the
+year has TWO phase columns** — with three or more, moving a block changes *which* column is beside it
+and the new neighbour may be free where the old one was not. See the entry above.
 
 **Vocabulary.** The unit is a phase's weeks within **one year block** — the thing that actually owns a
 column. Production running Nov 2026 → Mar 2027 has two, each independently swappable. The UI calls it

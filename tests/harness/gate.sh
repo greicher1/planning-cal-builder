@@ -572,6 +572,45 @@ chk(not hv.get('h'), f"chain: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- stintreshape: a block swap CAN reshape, and it must say so in words before the commit ------
+# ⭐ THE OWNER'S SECOND CALENDAR, schedule intact, titles genericised -- the counter-example to the
+# plan's founding premise. A block swap reflows nothing when the block has TWO phase columns; with
+# THREE it can, because moving a block changes WHICH column is beside it and the new one may be free
+# for its whole run where the old one was not. Here Writer's Rm (37 wks, slot 0, held narrow by Pre
+# Prep in slot 1) lands at slot 1 after the swap, where slot 2 is empty for its entire run -- Prod
+# Prep starts after it ends -- so it widens to two columns for 34 weeks.
+# Owner ruling 2 Sep 2026: keep offering the swap, warn harder. So this leg asserts the WARNING, not
+# the absence of the widening: the phase named, the new width named, the extent named, an amber chip
+# and one amber rectangle per affected week, all BEFORE anything is committed.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=stintswap-reshape "$HERE/run.sh" stintreshape 75 >/dev/null 2>&1
+python3 - "$HERE/stintreshape.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  stintreshape produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  stintreshape threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('threeColumns') and a.get('narrowBefore'),
+    f"reshape: three phase columns, Writer's Rm held to one for all 37 weeks {a.get('before')}")
+chk(a.get('warnNamesIt'),
+    f"reshape: the warning NAMES the phase, the new width and the extent -- {str(a.get('chipText'))[:110]}")
+chk(a.get('warnIsAmber'), f"reshape: the chip is the amber warning, not the neutral one ({a.get('chipClass')})")
+chk(a.get('amberMatchesCount'), f"reshape: one amber rectangle per affected week before commit ({a.get('amberRects')}/34)")
+chk(a.get('swapped') and a.get('widened'), f"reshape: the swap lands and the widening is real {a.get('after')}")
+chk(a.get('flashNamesIt'), f"reshape: the confirmation says the same thing -- {str(a.get('flash'))[:110]}")
+chk(a.get('nothingLost'), "reshape: reshaping is not cell loss -- every week of both blocks survives")
+chk(a.get('reversedExactly'), f"reshape: reversing restores the year exactly {a.get('afterReverse')}")
+chk(not a.get('errors'), f"reshape: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"reshape: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

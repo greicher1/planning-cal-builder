@@ -78,7 +78,26 @@ block, Production's run in its new column is all 20 weeks again, and Casting sti
 column during weeks 14–17 — inside that run. The same rule that holds it narrow today holds it narrow
 after. Nothing changes shape.
 
-### ✅ MEASURED 1 Sep 2026 — the premise holds, and no code was changed to prove it
+### ⛔ CORRECTED 2 Sep 2026 — THE PREMISE IS TRUE FOR TWO COLUMNS AND FALSE FOR THREE
+
+**Read this before the measurement below, which is real but narrower than it was taken to be.** A
+block swap reflows nothing **when the year block has two phase columns**. With three or more it can,
+and the reason is not in the measurement's blind spot by accident — §1's own ⚠️ note flagged it:
+
+Moving a block changes **which** column is beside it. A phase held narrow because its neighbour sits
+inside its run may, in its new position, have a *different* neighbour that is free for its whole run —
+and it absorbs it. Measured on the owner's second calendar (2 Sep 2026, gate leg `stintreshape`):
+Writer's Rm, 37 weeks at slot 0, held to one column because Pre Prep occupies slot 1 inside its run.
+After swapping with Pre Prep it sits at slot 1, and its new right-hand neighbour is slot 2 — empty
+across its entire run, because Prod Prep starts after Writer's Rm ends. It widened to two columns for
+**34** of its 37 weeks. The three that stayed narrow are the three it shares with Pre Prep, where the
+even-share cap holds every phase to one column.
+
+**Owner ruling: keep offering the swap, warn harder** (2 Sep 2026) — the warning now names the phase,
+the new width and the extent, turns the chip amber, and paints the affected weeks on *selection*
+rather than only during a knob drag, because the toolbar commits with no drag at all.
+
+### ✅ MEASURED 1 Sep 2026 — the premise holds for the two-column case, and no code was changed to prove it
 
 The claim above was a reading of the frozen code, and it was the single thing the whole plan rested
 on. It is now measured, on the deployed build, using **real data only** — because the target layout
@@ -105,10 +124,12 @@ leftward over a long run), and the left-absorb branch **refuses** via `freeForRu
 neighbour occupies that column anywhere inside the phase's run — which is exactly the condition a
 whole-column swap preserves.
 
-⚠️ **One honest gap in the measurement.** This scenario has three phase columns, not two, so
-Production is blocked from spanning in *both* directions. The mechanism is the same either way
-(`freeForRun(s, n)` does not care which side `n` is on) but the two-column case is not directly
-measured. §6 item 4 is still required, and it is the one that measures it.
+⚠️ **One honest gap in the measurement — and it is the gap the defect came through.** This scenario
+has three phase columns, not two, so Production is blocked from spanning in *both* directions. That
+made the result look general when it was not: what it actually proves is that a phase blocked on both
+sides stays narrow. ⛔ **A phase blocked on ONE side, moved to where its other side is free, widens.**
+That is the 2 Sep 2026 correction above. `freeForRun(s, n)` indeed does not care which side `n` is on
+— which is exactly why the answer changes when the move changes which slot `n` is.
 
 ---
 
