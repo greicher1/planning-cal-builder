@@ -14,10 +14,13 @@ record of work done. **Nothing here is built.**
 > it (the `-a` is mandatory — the file carries embedded base64 font data and plain `grep` calls it
 > binary).
 
-> ✅ **No frozen edit is required for the core feature.** §4 shows why, and it is the single most
-> important fact in this plan: build it the way §4 describes and the freeze is never in question.
-> Two optional conveniences (§8 H2, H6) would each be a one-line frozen edit and each needs its own
-> owner sign-off. Do not fold them into the core build.
+> ✅ **ONE gated, one-line frozen edit — and only one.** Every consumer's text path, the editability
+> gate, Excel and the PDF are untouched (§4). The single edit is the mode button's **label** gaining a
+> third case, *Header: Template* (owner sign-off **H3b**, 1 Sep 2026, conditional on the gate in §7).
+> Two optional conveniences (§8 H2, H6) would each be a further frozen edit and stay out of this build.
+
+> ✅ **Owner decisions H1–H8 are ALL settled** (1 Sep 2026) — see §8. The design below is the decided
+> one; where an earlier draft differed, the change is marked **(H3)**.
 
 > ⚠️ **This supersedes an earlier ruling.** `HANDOFF.md` §2b records that on 3 Sep 2026 the owner
 > chose *style-only* header presets ("no `headerManual`, so nothing forces the header out of auto
@@ -34,9 +37,10 @@ record of work done. **Nothing here is built.**
   as typed. `[ … ]` renders only if every token inside it resolved to something.
 - **Resolution happens in `headerLine()`**, the one non-frozen function all three consumers call —
   screen, Excel, PDF — so they cannot disagree and nothing frozen changes.
-- **No new mode.** Auto stays byte-identical (§2.4). Manual lines are now templates; a line with no
-  tokens behaves exactly as today. Applying a preset writes nine templates + nine formats into the
-  existing `headerManual` / `headerFormat` stores and switches to Manual.
+- **Three modes (H3): Auto · Template · Manual.** Auto stays byte-identical (§2.4). **Template** lines
+  are live templates. **Manual** lines are literal text and are **never resolved** — exactly today's
+  behaviour, so no existing file can change. Applying a preset writes nine templates + nine formats into
+  the existing `headerManual` / `headerFormat` stores and switches to Template.
 - **`{version}`** reads a new Show Info field (`show-version`), renders as `v` + the number, and is
   the auto default for the bottom-left slot `l2`. Empty version → empty line → hidden, so existing
   calendars render identically until someone types one.
@@ -283,40 +287,70 @@ Empty tokens: a token whose value is empty resolves to `''`. Inside a `[group]` 
 in Excel (the `&L` section stays the bare date); filtered in the PDF. The gate's byte-compare stays
 green. **This is the smallest shippable increment and ships first (§10).**
 
-### 3.4 Modes stay as they are; Manual lines become templates
+### 3.4 Three modes — Auto, Template, Manual **(H3)**
 
-- `headerLine()` becomes: in Manual, `resolveHeaderTemplate(headerManual[id] ?? defaults[id], ctx)`;
-  in Auto, `defaults[id]` unchanged. `ctx` is built once by `buildHeaderCtx(schedule)` and passed in
-  by `computeHeaderDefaults`'s callers — simplest: `computeHeaderDefaults` attaches it as a
-  non-enumerable `defaults.__ctx` so the three frozen call sites need no signature change. ⛔ Do not
-  add a parameter to `headerLine`; its call sites are inside frozen functions.
-- **Auto → Manual** keeps snapshotting the *resolved* strings. So the documented behaviour — "stops
-  auto-updating" — is unchanged, and the Help text stays true. A user who wants live data in Manual
-  types a token or applies a preset.
-- **Editing a template line.** The frozen `hline()` emits the *resolved* text, so a user clicking into
-  a line would otherwise see `v3` and, on blur, commit the literal `v3` — silently destroying the
-  token. Fix, without a frozen edit: a delegated `focusin` listener on `#table-wrap` swaps
-  `line.textContent` to the **raw** `headerManual[id]` when a Manual line gains focus; the existing
-  `focusout` commit then stores the raw text and re-renders, which shows it resolved again. Both
-  listeners are non-frozen. ⛔ Only swap on focus when `id in headerManual` — a line still showing its
-  auto default has no raw form to show.
-- **Applying a preset** (§3.5) = `headerManual = {…preset.lines}; headerFormat = {…preset.format};
-  headerMode = 'manual'; render; markDirty` inside `asOneUndoStep`. **Header: Auto** afterwards
-  discards it, exactly as it discards hand edits today (H3).
-- **The Default preset.** Ships built in, read-only, first in every list:
+| mode | what a line is | editable? | tokens resolve? | how you get there |
+|---|---|---|---|---|
+| **Auto** | the hand-coded default (§2.4), plus `l2` = version | no | n/a — hand-coded | *Header: Auto* |
+| **Template** | a template string, resolved live | yes — **raw** shown while focused | **yes** | apply a preset, or pick it in the mode menu |
+| **Manual** | literal text | yes | **never** | pick it in the mode menu — a snapshot of resolved values, as today |
 
-  ```js
-  const DEFAULT_HEADER_TEMPLATE = {
-    left: '{today}',  l2: '{version}',
-    c1: '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
-    r1: '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
-  };
-  ```
-  It exists so a user can *start from* the auto header and change one line. ⚠️ It is a **second
-  statement of the auto header**, and the two can drift. The `hdrdefault` gate leg (§7) asserts that
-  resolving this template equals `computeHeaderDefaults()`'s nine strings on the baseline calendar.
-  Do not "simplify" by making Auto read the template — Auto's hand-coded strings are the
-  byte-identical baseline and stay as they are.
+**How it is stored, and why the frozen layer never learns about the third mode.** Frozen
+`renderSpreadsheetView` gates editability and the format toolbar on `const manual = headerMode ===
+'manual'`. That gate is **not** edited. Instead:
+
+- `headerMode` stays `'auto' | 'manual'` on disk and in memory. Template mode is `headerMode ===
+  'manual'` **plus** a new module-level flag `let headerTemplates = false;` — a `let` the frozen
+  function reads at call time, the exact mechanism `SHEET_GRIDLINES` uses (`CLAUDE.md`, *"change the
+  DECLARATION, not the call sites"*).
+- `headerManual` holds **raw templates** when the flag is on and **literal text** when it is off. One
+  store, one flag.
+- `headerLine()` resolves **only** when `headerTemplates === true`. Manual therefore behaves
+  byte-for-byte as it does today, and **H4's residual risk is gone by construction** — a legacy
+  Manual header containing `{today}` prints `{today}`, because no file written before this feature
+  has the flag.
+- The frozen edit (**H3b**) is the label expression only: `${manual ? (headerTemplates ? 'Header:
+  Template' : 'Header: Manual') : 'Header: Auto'}`, and the matching `title` text in the same
+  expression. ⛔ **Do not widen it** into the `manual` gate or the `hline()` builder; with the flag
+  false the expression yields exactly today's two strings, which is what keeps the base leg green.
+
+**The mode menu.** The existing non-frozen click handler for `#hdr-mode-btn` (a delegated listener on
+`#table-wrap`) stops toggling and instead opens a small **body-level popover anchored to the button**
+— chrome, explicitly fair game — with three choices and a one-line description each. Transitions, all
+inside `asOneUndoStep` with `markDirty()`:
+
+| from → to | what happens |
+|---|---|
+| Auto → Template | `headerManual = {…DEFAULT_HEADER_TEMPLATE}` (raw, so lines keep tracking data); `headerTemplates = true`; `headerMode = 'manual'` |
+| Auto → Manual | exactly today: `headerManual = computeHeaderDefaults(currentSchedule)` (resolved snapshot); flag false |
+| Template → Manual | **bake**: every `headerManual[id]` is replaced by its resolved text; flag false. Values freeze, tokens are gone — the popover says so before it does it |
+| Manual → Template | keep the literal strings (they are valid templates with no tokens); flag true; the palette appears |
+| Template or Manual → Auto | discard `headerManual` and `headerFormat`, exactly as *Header: Auto* discards hand edits today |
+
+**Editing a Template line.** Frozen `hline()` emits the *resolved* text, so a user clicking into a
+line would otherwise see `v3` and, on blur, commit the literal `v3` — silently destroying the token.
+Fix, non-frozen: a delegated `focusin` listener on `#table-wrap` swaps `line.textContent` to the raw
+`headerManual[id]` when a line gains focus **and `headerTemplates` is on**; the existing `focusout`
+commit stores the raw text and re-renders, which shows it resolved again. ⛔ Only swap when `id in
+headerManual` — a line still showing its auto default has no raw form.
+
+**Applying a preset** = `headerManual = {…preset.lines}; headerFormat = {…preset.format};
+headerTemplates = true; headerMode = 'manual'; render; markDirty` inside `asOneUndoStep`.
+
+**The Default preset.** Ships built in, read-only, first in every list, and is also what *Auto →
+Template* seeds from:
+
+```js
+const DEFAULT_HEADER_TEMPLATE = {
+  left: '{today}',  l2: '{version}',
+  c1: '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
+  r1: '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
+};
+```
+⚠️ It is a **second statement of the auto header**, and the two can drift. The `hdrdefault` gate leg
+(§7) asserts that resolving this template equals `computeHeaderDefaults()`'s nine strings on the
+baseline calendar. Do not "simplify" by making Auto read the template — Auto's hand-coded strings are
+the byte-identical baseline and stay as they are.
 
 ### 3.5 Presets — the per-user library
 
@@ -334,11 +368,13 @@ prefs.headerPresets = [
   The calendar's header travels in `headerManual`/`headerFormat` as it always has, so a `.sptcal` is
   self-contained without the preset.
 - **Ids** are generated (`'hp_' + random`), never the name — a rename must not orphan anything.
-- **Save current header as preset** captures **raw templates**, not resolved text: `headerManual` as
-  it stands (falling back per line to `DEFAULT_HEADER_TEMPLATE[hid]` for any line not in
-  `headerManual`, so a preset saved from a half-edited Manual header still tracks data), plus a copy
-  of `headerFormat`. ⛔ It must never capture the *value* of `{version}` or `{title}` — those are
-  calendar data. A preset saying `v3` in `l2` would stamp v3 on every calendar it is applied to.
+- **Save current header as preset** captures **raw templates**, not resolved text (**H8**): in
+  Template mode, `headerManual` as it stands (falling back per line to `DEFAULT_HEADER_TEMPLATE[hid]`
+  for any line not yet in `headerManual`); in Auto mode, `DEFAULT_HEADER_TEMPLATE` itself; in both
+  cases plus a copy of `headerFormat`. ⛔ **In Manual mode Save-as is disabled**, with the reason shown
+  (*"Switch to Template to save this header as a preset"*): Manual lines are literal values, and saving
+  them would be exactly the value-pinning H8 rejects — a preset saying `v3` in `l2` would stamp v3 on
+  every calendar it is applied to.
 - **Apply** = §3.4, one undo step, marks dirty (it changed calendar data).
 - **Rename / Delete** edit `prefs.headerPresets` and `savePrefs()`. The built-in Default cannot be
   deleted or renamed.
@@ -387,7 +423,10 @@ its returned HTML is inserted by the frozen renderer. Add, for `mv === false` on
 control listing the §3.2 tokens grouped (Show · Dates · Phases · Snippets), inserting `{token}` at the
 caret of `hdrFmtTarget` (the last-focused line, which is how the toolbar already targets a line).
 Snippets are literal text the owner named: `Planning Calendar`, and the compound tokens. ⛔ Classes
-only, no ids (the toolbar's own rule). Visible only in Manual mode, like the rest of that toolbar.
+only, no ids (the toolbar's own rule). The toolbar itself shows in Template and Manual (the frozen
+`manual` gate); the **Insert ▾** control renders only when `headerTemplates` is true — the function
+is non-frozen and reads the flag at call time — because a token typed into a Manual line would print
+as braces.
 
 **Optional — a Presets ▾ button on the header strip itself**, beside *Header: Manual*. That strip
 (`.hdr-tools`) is built inline inside frozen `renderSpreadsheetView`, so this is a one-line frozen
@@ -417,12 +456,15 @@ calls 250 still produces a workbook `check-xlsx.sh` accepts.
 | Token palette | no | inside `headerFmtToolbarHtml`'s returned string; the frozen call site is untouched |
 | Show Info field | no | React chrome, `src/chrome/Sidebar.jsx` |
 | Preset library and files | no | prefs store, chrome, engine helpers |
+| Three modes | no | `headerMode` stays `'auto'\|'manual'` for the frozen gate; the third mode is a `let` flag read at call time; the mode menu is a body-level popover |
+| **Mode button label** | **YES — the one edit** | the label/title expression gains a third case (**H3b**); inert while the flag is false |
 
 This is `CLAUDE.md`'s sanctioned pattern #2 — *drive the effect from outside, and ask the frozen code
-for nothing it does not already give*. The renderer keeps emitting `escH(val)`; `val` is simply a
-resolved string now. Excel keeps stripping `&` and trimming to 255; the PDF keeps filtering empties.
+for nothing it does not already give* — plus one pattern-#1 declaration read (`headerTemplates`),
+plus the single label edit. The renderer keeps emitting `escH(val)`; `val` is simply a resolved string
+now. Excel keeps stripping `&` and trimming to 255; the PDF keeps filtering empties.
 
-The two things that **would** be frozen edits, and are therefore separate rulings:
+The two things that would be **further** frozen edits, and are therefore separate rulings:
 
 - **H2** — a Presets button in `.hdr-tools`.
 - **H6** — the month-view header: `mvLine()` inside `renderMonthView` reads `mvHeaderManual[id]`
@@ -433,9 +475,13 @@ The two things that **would** be frozen edits, and are therefore separate ruling
 
 ## 5. Save-format contract
 
-- **New snapshot keys: none.** The applied header rides in `headerManual` / `headerFormat`, which are
-  already in `captureSnapshot()` and already restored unconditionally by `applyStateSnapshot()`. A
-  template string is just a string.
+- **New snapshot key: `headerTemplates` (boolean).** True means `headerManual` holds raw templates
+  (Template mode); absent or false means literal text (Manual, or Auto with an empty store). Restore
+  unconditionally: `headerTemplates = snap.headerTemplates === true` — never `if(snap.headerTemplates)`,
+  which would leave the previous file's flag in place. `headerMode` keeps its two values. The applied
+  header itself rides in `headerManual` / `headerFormat` as it always has.
+- **An older build opening a newer file** (unsupported, forward-only) sees `headerMode:'manual'` with
+  raw templates and prints the braces literally. Degraded, legible, nothing lost.
 - **New `fields.byId` key: `show-version`.** Swept automatically. Append-only. Its id is now format.
 - **`SNAPSHOT_VERSION` stays 1.** An absent `show-version` restores empty; an old `headerManual`
   with no tokens resolves to itself. Nothing needs a migration branch.
@@ -454,9 +500,12 @@ The two things that **would** be frozen edits, and are therefore separate ruling
 `input` listener; the `resetAll` clear. Gate: existing byte-compare green with the field empty; new
 leg `hdrversion`.
 
-**Step 2 — the engine.**
-`buildHeaderCtx(schedule)` (all §3.2 values, computed once), `resolveHeaderTemplate(str, ctx)`,
-`headerLine` resolving in Manual, `defaults.__ctx` carriage, the `focusin` raw swap. Unit-test the
+**Step 2 — the engine and the third mode.**
+`buildHeaderCtx(schedule)` (all §3.2 values, computed once), `resolveHeaderTemplate(str, ctx)`, the
+`headerTemplates` flag, `headerLine` resolving only when the flag is on, `defaults.__ctx` carriage,
+the `focusin` raw swap, the snapshot key (capture / restore / `resetAll`), the mode popover with the
+five transitions of §3.4, and **the one frozen label edit (H3b)** — landed with the base leg's
+byte-compare run immediately after. Unit-test the
 resolver in Node (`tests/harness/prove-header-template.mjs`, slicing the verbatim function the way
 `prove-col-permutation.mjs` slices `computeBlockLayout`): every §3.1 rule, every §3.2 token against a
 fixed ctx, unknown-token passthrough, escapes, empty-group collapse, one-pass resolution.
@@ -497,9 +546,16 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 4. **`hdrdefault`** — resolving `DEFAULT_HEADER_TEMPLATE` against the baseline calendar's ctx equals
    `computeHeaderDefaults()` for all nine hids, byte for byte. This is the drift guard for the one
    duplicated statement of the auto header.
-5. **`hdrtemplate`** — fixture in Manual with templated lines: screen shows resolved text; focusing a
-   line shows the raw template; blurring commits raw and re-renders resolved; Excel and PDF carry the
-   resolved text (and the Excel `&L` still has no format codes when none is set).
+5. **`hdrtemplate`** — fixture in Template mode (`headerTemplates:true`) with templated lines:
+   screen shows resolved text; focusing a line shows the raw template; blurring commits raw and
+   re-renders resolved; Excel and PDF carry the resolved text (and the Excel `&L` still has no format
+   codes when none is set). A second fixture in **Manual** with the same strings shows the **braces
+   literally** everywhere — the proof that H4's risk is gone.
+5b. **`hdrmode`** — the button reads *Header: Auto* / *Header: Template* / *Header: Manual* in the
+   three states; each transition of §3.4 is one undo step; Template → Manual bakes values (the line
+   text no longer changes when Show Info does); Manual → Template keeps the literals; either → Auto
+   empties both stores; the flag round-trips a `.sptcal`. **Inertness of H3b:** with the flag false the
+   button's text and title are byte-identical to today's.
 6. **`hdrpreset`** — save current header as a preset → `prefs.headerPresets` gains one entry whose
    `l2` is `{version}` (raw), **not** `v3`; apply another preset → `headerMode === 'manual'`, one
    undo step reverts all nine lines and formats; the preset never appears in `captureSnapshot()`;
@@ -516,16 +572,17 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 
 ## 8. Owner decisions
 
-| | decision | recommendation |
+| | decision | ruling (owner, 1 Sep 2026) |
 |---|---|---|
-| **H1** | **Version label.** Always `v` + the input with any leading `v`/`V` stripped (so `3`, `v3`, `V3` all read `v3`)? Any string accepted (`3.1`, `3a`)? | Yes to both; the field is a label, not a number. |
-| **H2** | **A Presets ▾ button on the header strip** beside *Header: Manual*. One-line **frozen edit** to `renderSpreadsheetView`'s `.hdr-tools`. | Build the core without it; rule separately after using the Preferences-card path. |
-| **H3** | **Applying a preset switches the header to Manual** (it must — Auto is the hand-coded default), and *Header: Auto* then discards it like any hand edit. Acceptable? | Yes; it is the existing mental model. |
-| **H4** | **Compatibility judgement.** Turning Manual lines into templates means a legacy header that literally contains a *known* token name in braces — e.g. someone typed `{today}` — starts resolving. Unknown names are untouched. Accept that residual? | Accept; the alternative (a new mode or a flag per file) costs more than the risk. |
-| **H5** | **What `{phase.close}` means.** Friday of the final week (recommended: names a day the phase is active), or the Monday of the final week, or the exclusive `seg.end`? Production's is always the real last shoot day. | Friday of the final week. |
-| **H6** | **Month-view header in scope?** Needs a frozen edit (`mvLine` reads its store directly). | Out of scope for this build; separate ruling. |
-| **H7** | **File extension `.spthdr`** and a **"Calendar header preset"** picker description. | As stated. |
-| **H8** | **Presets store templates, never values.** `{version}`, not `v3`. Confirm — it means a preset cannot pin a title or version onto calendars. | Confirm; that is what Show Info is for. |
+| **H1** | Version label | ✅ Always `v` + the input with a leading `v`/`V` stripped; any text accepted (`3.1`, `3a`). A `TextInput`, not a `NumberInput`. |
+| **H2** | Presets ▾ button on the header strip (frozen edit) | ⏸ **Later** — build the core with the Preferences card and the toolbar palette; rule on the strip button after using it. |
+| **H3** | Mode model | ✅ **Three modes: Auto / Template / Manual.** Not the two-mode design an earlier draft proposed. §3.4. |
+| **H3b** | How the third label reaches the frozen button | ✅ **One-line frozen edit, gated** — the label/title expression gains a case. Same precedent as the 31 Aug header edits. ⛔ Scope is that expression only. |
+| **H4** | Legacy header containing a known token in braces | ✅ Accept — and **moot under H3**: Manual never resolves, and no pre-existing file carries `headerTemplates:true`. |
+| **H5** | `{phase.close}` | ✅ **Friday of the final week** (`addDays(seg.end, -3)`). Production's stays the real last shoot day. |
+| **H6** | Month-view header | ✅ **Out of scope** for this build; separate ruling (frozen edit + month-PDF diff). |
+| **H7** | File extension / picker label | ✅ `.spthdr`, "Calendar header preset" — adopted as recommended, not separately contested. |
+| **H8** | Presets store templates, never values | ✅ **Confirmed.** Save-as is disabled in Manual mode for exactly this reason (§3.5). |
 
 ---
 
@@ -544,6 +601,14 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 - ⛔ **Snapshot raw, resolve late.** A preset captures templates; the frozen renderer receives
   resolved strings; the `focusin` swap shows raw only while editing. Get one of those backwards and
   either tokens are destroyed on the first edit or literal `v3` is stamped into presets.
+- ⛔ **`headerTemplates` is a `let` the frozen renderer reads at call time.** Do not turn it into a
+  `const`, do not copy it into a local at load, and do not make the frozen `manual` gate read it — the
+  authorised edit is the label expression and nothing else.
+- ⛔ **Template → Manual is a BAKE, and it is irreversible short of Undo.** The popover states it
+  before doing it. Manual → Template does not un-bake; it only makes the literals editable as
+  templates.
+- ⚠️ **Restore the flag with `=== true`.** `if(snap.headerTemplates)` leaves the previous file's mode
+  behind — the exact failure `CLAUDE.md`'s "restore unconditionally" rule exists for.
 - ⚠️ **`focusout` commits `textContent` trimmed with ` ` → space.** Raw templates survive that;
   do not add further normalisation (a template with deliberate double spaces inside a group should
   keep them).
@@ -566,7 +631,7 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 
 ```
 1. Step 1 (version field + {version} in l2)       <- ⭐ smallest shippable; ship, confirm on live
-2. Step 2 (engine) + prove-header-template.mjs
+2. Step 2 (engine + third mode + the ONE frozen label edit) + prove-header-template.mjs + hdrmode
 3. Step 3 (Default template + palette) + hdrdefault leg
 4. Step 4 (library in Preferences) + hdrpreset leg  <- ⭐ Feature complete for R1-R5 except files
 5. Step 5 (files) + hdrfile leg

@@ -282,7 +282,13 @@ in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md): header lines become templ
 `{writersRoom.open}`, `[ … ]` conditional groups) resolved in non-frozen `headerLine()`, the one
 function all three consumers call, so the core needs **no frozen edit**; presets live in this store
 under `prefs.headerPresets` and export/import as `.spthdr` files. Applying one necessarily switches the
-header to Manual (decision H3). Eight owner decisions H1–H8 are listed there; none is answered yet.
+header to Manual (decision H3). **H1–H8 are all settled (1 Sep 2026).** The decided design has **three header modes — Auto /
+Template / Manual** (H3): `headerMode` stays `'auto'|'manual'` for the frozen editability gate, and a
+new `let headerTemplates` flag (a new snapshot key, restored with `=== true`) marks Template. Manual
+never resolves tokens, so no existing file can change. ✅ **H3b is a written sign-off for ONE frozen
+edit**: the mode button's label/title expression in `renderSpreadsheetView` gains a *Header: Template*
+case — scope is that expression only, and it must be byte-identical with the flag false. H2 (a strip
+button) and H6 (month header) are deferred frozen edits with no sign-off.
 
 **Original ask, for context:**
 
