@@ -694,6 +694,98 @@ chk(not a.get('errors'), f"wrap: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 
+# ---- hdrversion: a version number typed into Show Info reaches the header's bottom-left slot -----
+# Owner request, 1 Sep 2026 -- "a version number (lowercase 'v' then a number you input) ... in the
+# very bottom left side text box of the header". HEADER-PRESETS-PLAN.md Step 1.
+# ⭐ THE ASSERTION THAT MATTERS MOST IS `inert*`, all three of them. The l2 slot was '' before this
+# feature, and every calendar ever saved has no version -- so an EMPTY field has to produce exactly
+# what it produced before, or the byte-identical PDF/Excel compare above goes red on files nobody
+# has touched. versionLabel() returning a bare "v" for an empty field is the way that happens, which
+# is why "v" alone and "   " are both asserted to come out empty.
+# The other half is that it arrives in all THREE consumers. Screen, Excel and PDF read one source
+# (headerLine), so a leg that checked only the screen would not notice the exports disagreeing.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrversion 140 >/dev/null 2>&1
+python3 - "$HERE/hdrversion.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrversion produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdrversion threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('fieldFound') and a.get('fieldTag')=='INPUT:text',
+    f"hdrversion: #show-version is a text input, not a number one -- owner H1 ({a.get('fieldTag')})")
+chk(a.get('insideShowInfo') and not a.get('insidePrefsCard'),
+    "hdrversion: it sits in Show info and NOT in .prefs-card -- a version is calendar data and must be swept into the file")
+chk(a.get('inertScreen'), f"hdrversion: ⭐ empty -> the l2 line is hidden on screen ({a.get('beforeL2')})")
+chk(a.get('inertExcel'), f"hdrversion: ⭐ empty -> the workbook's &L is the bare date ({a.get('beforeExcelL')!r})")
+chk(a.get('inertPdf'), f"hdrversion: ⭐ empty -> nothing under the date in the PDF's left column ({a.get('beforePdfLeftCol')})")
+chk(a.get('bareVInert') and a.get('blankInert'),
+    "hdrversion: ⭐ a bare 'v' and a field of spaces are BOTH still no version, not a version called v")
+chk(a.get('screenShowsVersion'), f"hdrversion: typing 3 shows v3 on screen, and the slot becomes visible ({a.get('afterL2',{}).get('text')!r})")
+chk(a.get('caseNormalised'), f"hdrversion: typing V3 also reads v3 -- one leading v/V stripped ({a.get('upperVText')!r})")
+chk(a.get('excelHasVersion'), f"hdrversion: the workbook's &L is <date> then v3 ({a.get('afterExcelL')!r})")
+chk(a.get('excelNoFormatCodes'),
+    f"hdrversion: no per-line format codes appear -- nothing was formatted ({a.get('excelFontCodes')} font code)")
+chk(a.get('pdfTwoLeftLines'),
+    f"hdrversion: the PDF's left column gained exactly one line, under the date -- {a.get('beforePdfLeftCol')} -> {a.get('afterPdfLeftCol')}")
+chk(a.get('captured') and a.get('snapVersion')=='3',
+    f"hdrversion: ⭐ the value is in a REAL saved calendar's fields.byId ({a.get('snapVersion')!r}, {a.get('fieldIdCount')} field ids)")
+chk(a.get('roundTrips'),
+    f"hdrversion: it survives captureSnapshot -> JSON -> applyStateSnapshot, driven through undo/redo ({a.get('afterUndoField')!r} -> {a.get('afterRedoField')!r})")
+chk(a.get('clearedScreen') and a.get('clearedExcel'),
+    f"hdrversion: ⭐ clearing the field hides the line again and restores the bare &L ({a.get('clearedExcelL')!r})")
+chk(a.get('notInCompleteness'),
+    "hdrversion: it is NOT part of Show Info's completeness test -- a version must never gate Production")
+chk(not a.get('errors'), f"hdrversion: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrversion: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- hdrverload: the same version RESTORED from a file, and absent from one saved before it -------
+# Run TWICE, against two real fixtures, because the two directions are different rules:
+#   * hdrversion.sptcal   carries "show-version":"3" -> the field and the header must come back;
+#   * colswap-2col.sptcal was written before the field existed -> the field must be EMPTY and the
+#     slot hidden. applyStateSnapshot() replays the SNAPSHOT's keys, so without the guard above its
+#     step 3 a field the snapshot never mentions keeps the PREVIOUSLY OPEN calendar's value -- open a
+#     calendar with version 3, then open a pre-Step-1 file, and the second show's header prints v3.
+#     That is CLAUDE.md's "a missing key falls back to a default, never to whatever is in memory".
+# ⚠️ Both go through the INLINE ?state= path, which is the same applyStateSnapshot the picker uses.
+# The two-files-in-sequence case needs the picker, which stalls on IndexedDB here -- see the
+# `restore` leg above, which fails for exactly that reason. Not proved by this harness; said out loud.
+for HVFIX in hdrversion colswap-2col; do
+HARNESS_PAGE="$PAGE" HARNESS_STATE="$HVFIX" "$HERE/run.sh" hdrverload 90 >/dev/null 2>&1
+python3 - "$HERE/hdrverload.json" "$HVFIX" <<'PY' || FAIL=1
+import json,sys
+bad=0; fix=sys.argv[2]
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print(f'  FAIL  hdrverload[{fix}] produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print(f'  FAIL  hdrverload[{fix}] threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('stateApplied'), f"hdrverload[{fix}]: the fixture reached the page ({a.get('stateBytes')} bytes, {a.get('fixtureFieldIds')} field ids)")
+chk(a.get('fieldRestored'),
+    f"hdrverload[{fix}]: the field matches the fixture -- key {'present' if a.get('fixtureHasKey') else 'ABSENT'}, value {a.get('fieldValue')!r}")
+chk(a.get('headerMatches'), f"hdrverload[{fix}]: l2 reads {a.get('l2Text')!r}, which is what {a.get('fixtureVersion')!r} should render")
+chk(a.get('visibilityMatches'),
+    f"hdrverload[{fix}]: the slot is {'visible' if a.get('l2Visible') else 'hidden'}, which is right for that value")
+chk(a.get('excelMatches'), f"hdrverload[{fix}]: the workbook's &L came back as {a.get('excelL')!r}")
+chk(not a.get('errors'), f"hdrverload[{fix}]: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrverload[{fix}]: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+done
+
 say ""
 if [[ $FAIL == 0 ]]; then say "=== GATE PASSED ==="; else say "=== GATE FAILED ==="; fi
 exit $FAIL

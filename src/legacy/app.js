@@ -7602,6 +7602,29 @@ export function initLegacyApp() {
     return s;
   }
 
+  // The version number as it appears in the header: a lowercase "v" and then whatever was typed.
+  //
+  // Owner decision H1 (1 Sep 2026): the label is ALWAYS "v" + the input, with a leading v/V
+  // stripped so that typing "3" and typing "v3" both read "v3", and ANY text is accepted -- owners
+  // write 3, 3.1 and 3a. That is a LABEL, not arithmetic, which is why the field is a TextInput and
+  // not a NumberInput.
+  //
+  // ⛔ AN EMPTY FIELD MUST RETURN THE EMPTY STRING, never a bare "v". That single line is the whole
+  // of this feature's inertness. computeHeaderDefaults() puts this value in the l2 slot, and an
+  // EMPTY l2 is filtered out of the workbook by withCodes(), filtered out of the direct PDF by
+  // .filter(x=>x.t), and hidden on screen by .hdr-line.hdr-slot.hdr-empty -- but only while it is
+  // empty. Return "v" for an empty field and every calendar ever saved gains a stray line in all
+  // three outputs, and the gate's byte-identical PDF/Excel compare goes red. What buys that is the
+  // FIRST trim plus the `num ?` ternary: "v" and "v  " both trim to "v", strip to "", and the
+  // ternary returns "". The SECOND trim is a different job -- interior whitespace, so "v  3" reads
+  // "v3" rather than "v  3".
+  function versionLabel(){
+    const el = document.getElementById('show-version');
+    const raw = el ? String(el.value || '').trim() : '';
+    const num = raw.replace(/^[vV]/, '').trim();
+    return num ? 'v' + num : '';
+  }
+
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
     const today = new Date();
@@ -7639,9 +7662,13 @@ export function initLegacyApp() {
     }
     const numEpisodes = parseInt((document.getElementById('num-episodes').value||'').trim(), 10);
     if(!isNaN(numEpisodes) && numEpisodes > 0) r3 = `${numEpisodes} Episodes`;
-    // l2 and c4 are the two slots added 31 Aug 2026: no auto value exists for them, so they are
-    // empty by default and stay invisible until someone types into them in manual mode.
-    return { left: todayStr, l2: '', c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
+    // l2 and c4 are the two slots added 31 Aug 2026. c4 still has no auto value. l2 now carries the
+    // VERSION NUMBER, which is what the bottom-left slot is FOR as far as a user is concerned
+    // (owner, 1 Sep 2026: "I also want this version number thing to be part of the default header
+    // and be in the very bottom left side text box of the header"). It stays EMPTY -- and so stays
+    // invisible on screen, absent from the workbook's &L section and undrawn in the PDF -- until
+    // someone types a version into Show Info. See versionLabel() for why empty must mean empty.
+    return { left: todayStr, l2: versionLabel(), c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
   }
   // Effective text for a header line: the manual value in manual mode, else the auto default.
   function headerLine(id, defaults){
@@ -8054,6 +8081,11 @@ export function initLegacyApp() {
     });
   })();
   document.getElementById('show-title').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
+  // render(), not update(): the version number is not a schedule input, so there is nothing to
+  // recompute -- it only changes what the header's bottom-left slot prints. Same shape as the title
+  // above, and unguarded for the same reason: src/main.jsx commits the React chrome with flushSync
+  // BEFORE initLegacyApp() runs, so the field exists by the time this line evaluates.
+  document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
@@ -8097,6 +8129,7 @@ export function initLegacyApp() {
     document.getElementById('season-num').value = '';
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
+    document.getElementById('show-version').value = '';
     episodeDefs = []; episodeCounter = 0;
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {};
@@ -11157,6 +11190,21 @@ export function initLegacyApp() {
       // locked, which matches how those calendars behaved (nothing shifted them).
       snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name));
     }
+
+    // ⚠️ RESTORE UNCONDITIONALLY -- and step 3 below cannot do that on its own. It iterates the
+    // SNAPSHOT's keys, so any id'd field the snapshot does not mention keeps whatever the
+    // PREVIOUSLY OPEN calendar left in it. That was harmless while every id'd field predated the
+    // save format; #show-version is the first one that does not. Open a calendar with version 3,
+    // then open one saved before this field existed, and the second show's header would print
+    // "v3" -- someone else's version number, on screen and in both exports. CLAUDE.md's rule is
+    // exact: a missing key falls back to a DEFAULT, never to whatever is in memory.
+    //
+    // Cleared HERE rather than in resetAll(), because the open path deliberately does not call
+    // resetAll() -- openRecentFile() replays a snapshot straight onto the live document. Undo/redo
+    // arrives here too and is unaffected: captureSnapshot() sweeps this field like any other, so an
+    // undo snapshot always carries the key and this branch never fires for one.
+    const verEl = document.getElementById('show-version');
+    if(verEl && !(snap.fields && snap.fields.byId && ('show-version' in snap.fields.byId))) verEl.value = '';
 
     // 3. Apply saved values to every id'd field
     if(snap.fields && snap.fields.byId){

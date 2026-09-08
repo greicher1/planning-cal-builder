@@ -22,7 +22,7 @@ checked by hand against the source, and every one held:
 | **Seven** `document.getElementById('table-wrap').addEventListener(...)` calls, all unguarded, all at IIFE-body scope | ✅ seven, all at indent 2, none null-checked |
 | The print selectors are **child** combinators — `body.printing-calendar > *:not(#print-root)` and the `printing-waterfall` twin | ✅ both, exactly as written |
 | `#sheet-scroll-container` is emitted by `renderSpreadsheetView`, so a print-fallback export puts **two** elements under that id | ✅ one id, one renderer, injected into `#print-root` too |
-| `.card.tab-hidden{display:none !important}` is why an inactive sidebar tab still has live inputs, and `computeHeaderDefaults` has **three unguarded** field reads | ✅ `show-title`, `shoot-days-per-ep`, `num-episodes` — all bare `.value` |
+| `.card.tab-hidden{display:none !important}` is why an inactive sidebar tab still has live inputs, and `computeHeaderDefaults` has **three unguarded** field reads | ✅ `show-title`, `shoot-days-per-ep`, `num-episodes` — all bare `.value`. ⚠️ **Still three after `show-version` joined (8 Sep 2026)**: it is read through `versionLabel()`, which guards. Do not correct this to four. |
 | `--header-h` is written by a `ResizeObserver` on `document.querySelector('header.app-header')` | ✅ |
 | `font-carlito-400` / `font-carlito-700` are **element ids read at runtime** by the font loader | ✅ `document.getElementById('font-carlito-' + weight)` |
 | `*{ print-color-adjust:exact !important }` is what keeps fills in both PDFs | ✅ one rule, on `*` |
@@ -125,9 +125,12 @@ names).
 - **Sidebar tab panels must stay mounted.** `setSidebarTab` hides with
   `classList.toggle('tab-hidden', …)` against `.card.tab-hidden{display:none !important}`. That is
   the only reason `computeHeaderDefaults` — called from *both* writers — can read `show-title`,
-  `season-num`, `shoot-days-per-ep`, `num-episodes` and `start-writersRoom` no matter which tab is
-  showing. A Mantine `Tabs` that conditionally renders inactive panels throws a `TypeError` inside
-  `exportExcel`/`buildWaterfallPdf` (three of those five reads are unguarded).
+  `season-num`, `shoot-days-per-ep`, `num-episodes`, `start-writersRoom` and (since 8 Sep 2026)
+  `show-version` no matter which tab is showing. A Mantine `Tabs` that conditionally renders inactive
+  panels throws a `TypeError` inside `exportExcel`/`buildWaterfallPdf` (three of those **six** reads
+  are unguarded). ⚠️ **Still three, not four:** `show-version` is read through `versionLabel()`, which
+  guards (`el ? … : ''`). It is the first field `computeHeaderDefaults` reads null-safely, and that is
+  why adding it did not move the count — do not "correct" the three to a four.
 - **The toolbar's rendered height is measured by the print fallback.** `--header-h` feeds
   `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}`, and `exportWaterfallPdf`
   measures the injected copy in **screen** media, where `#print-root .sheet-scroll{max-height:none
@@ -701,6 +704,32 @@ Verified against `tests/fixtures/v1.0.0-saved.html`, a real pre-`.sptcal` calend
 
 - **Singletons (9):** `show-title`, `season-num`, `shoot-days-per-ep`, `num-episodes`,
   `union-country`, `union-usregion`, `union-subregion`, `custom-hol-name`, `custom-hol-date`.
+
+⚠️ **SINCE THAT FIXTURE, three things changed, and the counts above deliberately did not.** 48 and 9
+are right *for `v1.0.0-saved.html`*, which is what makes them a stable assertion — §6.7's gate item 7
+compares against exactly that file, so **do not renumber them.** What has joined the format since:
+
+- `phiatus-name-<key>` × 6 (1 Sep 2026) — per-phase hiatus names.
+- **`show-version` (8 Sep 2026)** — the version number, in the Show info card. `HEADER-PRESETS-PLAN.md`
+  Step 1. It reaches both writers through `computeHeaderDefaults()`'s `l2` slot, so it is in §6.3 too.
+
+And one that is **deliberately NOT** in the format, which is the more instructive case:
+
+- `pref-gridlines` (3 Sep 2026) — a *preference*, not calendar data. It lives inside `.prefs-card`,
+  and `collectFieldValues()` skips that class, so it never enters a saved file. ⛔ The rule the two
+  cases draw between them: *how this person likes headers/gridlines* is a preference and must sit
+  inside `.prefs-card`; *which version this calendar is* is the calendar and must sit outside it. Put
+  either on the wrong side of that class and it fails **silently** — a preference baked into everyone
+  else's file, or a version number that never saves.
+
+⚠️ **`formSignature()` in the harness is NOT a proxy for this list, despite `gate.sh` gate 5's comment
+saying it "reports `fields.byId`".** It is a raw `input[id], select[id], textarea[id]` sweep with
+neither the `.tools-menu` nor the `.prefs-card` exclusion, so it reports a **superset**: the eight
+`tool-*` ids and `pref-gridlines` included. Its baseline in
+`tests/baselines/2026-08-29-stage-7/restore.json` records 56 ids and predates both `pref-gridlines`
+and `show-version`, so gate 5 would go red today on untouched code — masked only because the
+`restore` leg throws on the IndexedDB stall. Fix it by giving `formSignature()` the same two skips,
+**then** append `show-version` alone; that is the version of gate 5 that tests the actual save format.
 - **Sim-post (3):** `simpost-enabled`, `simpost-offset`, `simpost-count`.
 - **Six per phase × six built-in phases (36):** `name-<key>`, `start-<key>`, `weeks-<key>`,
   `phiatus-en-<key>`, `phiatus-start-<key>`, `phiatus-weeks-<key>`.
@@ -719,9 +748,10 @@ per-phase hiatus from every existing calendar.
 ### 6.3 Ids that reach an export
 
 Beyond the save format: `show-title`, `season-num`, `start-writersRoom`, `shoot-days-per-ep`,
-`num-episodes` (via `computeHeaderDefaults` into both writers' printed headers — three of the five
-reads are **unguarded**, so a missing id is a `TypeError` surfacing as "Something went wrong…", not
-a blank line); `font-carlito-400` and `font-carlito-700` (§4.5); every scheduling input via
+`num-episodes`, `show-version` (via `computeHeaderDefaults` into both writers' printed headers — three
+of the six reads are **unguarded**, so a missing id is a `TypeError` surfacing as "Something went
+wrong…", not a blank line; `show-version` is the guarded one, read through `versionLabel()`, which is
+why six reads still carry three unguarded); `font-carlito-400` and `font-carlito-700` (§4.5); every scheduling input via
 `readState()` → `computeSchedule()`; `table-wrap`; `print-root`; `sheet-scroll-container`;
 `saved-state` (literally in the on-disk format for every legacy `.html`, found by regex in
 `parseCalendarText()`).

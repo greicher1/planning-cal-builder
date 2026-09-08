@@ -239,8 +239,12 @@ Found 29 Aug 2026 while porting the preview toolbar, where `syncAnchorDate()` wr
 `#tool-anchor-date`'s value every time the popover opens. It is why the two tool dates stayed native
 `<input type="date">`.
 
-**This governs the entire sidebar stage.** Every control in `fields.byId` — 56 ids — is written by
-`applyStateSnapshot()`. So either:
+**This governs the entire sidebar stage.** Every control in `fields.byId` is written by
+`applyStateSnapshot()`. ⚠️ **The count that used to sit here (56) is gone on purpose** — it was a
+live claim that had to be maintained in two places and was stale within days (`phiatus-name-<key>` × 6
+on 1 Sep 2026, `show-version` on 8 Sep). The inventory lives in `MANTINE-SEAM.md` §6.2, pinned to the
+`v1.0.0-saved.html` fixture so it stays a stable assertion, with a dated list of what has joined
+since. Read it there. So either:
 
 1. **Uncontrolled everywhere** (native inputs, or Mantine components used uncontrolled with a real
    `id` and no `value` prop), keeping `collectFieldValues()` / `applyStateSnapshot()` exactly as

@@ -7,7 +7,15 @@ bottom-left slot by default.**
 
 Written 1 Sep 2026 for Opus 5 to build from. Self-contained: assumes no memory of the analysis that
 produced it. Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) first. This is a plan, not a
-record of work done. **Nothing here is built.**
+record of work done.
+
+> ◐ **BUILD STATUS, 8 Sep 2026 — STEP 1 OF SIX IS BUILT; STEPS 2–6 ARE NOT.** Everything in §3.3
+> (the `show-version` field, `versionLabel()`, `l2`'s auto default, the listener, the `resetAll()`
+> clear) has landed, with no frozen edit, and gate legs `hdrversion` + `hdrverload`. The template
+> engine, the three modes, the palette, the preset library, the files and the budget meter — §§3.1,
+> 3.2, 3.4–3.8 and steps 2–6 — are still exactly as planned and **not built**. The single authorised
+> frozen edit (**H3b**) belongs to Step 2 and has **not** been made. See `README.md`'s changelog entry
+> and `HANDOFF.md` §2b for what was verified and what is not proven.
 
 > ⚠️ **This document quotes no line numbers, deliberately.** `tools/check-refs.py` fails the deploy on
 > a number in prose. Every claim names a symbol; `LC_ALL=C grep -ano 'symbol' src/legacy/app.js` finds
@@ -220,7 +228,7 @@ schedule facts from `currentSchedule` (`segments`, `productionInfo`, `weeks`), p
 | `{title}` | `#show-title`, trimmed | no title |
 | `{season}` | `S` + `#season-num` | no season |
 | `{titleSeason}` | exactly today's `c1`: title, then `' S'` + season if any | both empty |
-| `{version}` | `v` + `#show-version` with any leading `v`/`V` stripped, trimmed | field empty |
+| `{version}` | `v` + `#show-version` with **a** leading `v`/`V` stripped, trimmed | field empty |
 | `{episodes}` | `#num-episodes` as a number | not a positive number |
 | `{shootDaysPerEp}` | `#shoot-days-per-ep` | not a positive number |
 | `{shootDays}` | `showInfoStatus().totalShootDays` | 0 |
@@ -275,9 +283,21 @@ Empty tokens: a token whose value is empty resolves to `''`. Inside a `[group]` 
    where `versionLabel()` is the same helper the token uses. Nothing else in that function changes.
    With the field empty the function returns exactly what it returns today.
 5. **Save format.** `show-version` is swept into `fields.byId` by `collectFieldValues()` and restored
-   by `applyStateSnapshot()` like every other id'd field. Append-only; a file without the key restores
-   an empty field. Its **id is now part of the file format** — rename it and every saved version is
-   silently dropped (`CLAUDE.md`, "fields.byId is keyed by DOM element id").
+   by `applyStateSnapshot()` like every other id'd field. Append-only. Its **id is now part of the file
+   format** — rename it and every saved version is silently dropped (`CLAUDE.md`, "fields.byId is keyed
+   by DOM element id").
+   ⛔ **CORRECTED 8 Sep 2026 — this item used to end "a file without the key restores an empty field",
+   and that was FALSE.** `applyStateSnapshot()` step 3 iterates the **snapshot's** keys, and the open
+   path deliberately does not call `resetAll()` first, so a field the snapshot never mentions keeps
+   whatever the previously open calendar left in it. Harmless for years because every id'd field
+   predated the save format; `show-version` is the first that can be absent. Symptom: open a calendar
+   with version 3, then open one saved before this field existed, and the second show's header prints
+   `v3`. **Step 1 therefore added a guard immediately above step 3** that clears the field when the
+   snapshot has no such key — `CLAUDE.md`'s "a missing key falls back to a default, never to whatever
+   is in memory". ⚠️ **Step 2 must not inherit the wrong assumption for `headerTemplates`**: §5's
+   `snap.headerTemplates === true` idiom happens to be immune, because it assigns unconditionally
+   rather than relying on the replay loop — safe by construction, not by luck, but for a different
+   reason than this item implied. Any *further* new id'd field needs the same guard `show-version` has.
 6. **Reset.** `resetAll()` clears `#show-title`, `#season-num`, `#shoot-days-per-ep`, `#num-episodes`
    by id — add `#show-version` beside them.
 7. **Month view** (`mvDefaults` in `renderMonthView`) does **not** gain the version. Its header is
@@ -536,7 +556,16 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 
 1. **Inertness** — existing legs: with no version and Auto header, waterfall PDF and every Excel part
    byte-identical to the baseline; 0 clipped cells; `gridWidthPt` unchanged. **After every step.**
-2. **`hdrversion`** — fixture with `show-version = "3"`, Auto mode: screen `l2` reads `v3` and is
+2. ✅ **`hdrversion` — BUILT 8 Sep 2026**, and it grew a companion the plan did not name:
+   **`hdrverload`**, run twice through the inline `?state=` path, against
+   `tests/fixtures/hdrversion.sptcal` (a real minted snapshot carrying `"show-version":"3"`) and
+   against `colswap-2col.sptcal` (written before the field existed, so the field must come back
+   EMPTY). ⚠️ The plan's own wording below — *"survives a `.sptcal` round-trip via the `?state=`
+   path"* — is what `hdrverload` does; `hdrversion` proves capture through a real shareable-copy
+   export plus an undo/redo round trip instead, because that needs no fixture. ⛔ The
+   **two-files-in-sequence** case (open a versioned calendar, then a version-less one) is proved by
+   inspection only: it needs the real picker, which stalls on IndexedDB in headless Chrome. Original
+   text, for the record: fixture with `show-version = "3"`, Auto mode: screen `l2` reads `v3` and is
    visible; Excel `oddHeader` `&L` section is `<date>\nv3`; PDF left column has two lines; typing
    `V3` also yields `v3`; clearing the field hides the line again; the value survives a `.sptcal`
    round-trip via the `?state=` path.
@@ -630,7 +659,7 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 ## 10. Sequencing
 
 ```
-1. Step 1 (version field + {version} in l2)       <- ⭐ smallest shippable; ship, confirm on live
+1. Step 1 (version field + {version} in l2)       <- ✅ BUILT 8 Sep 2026; legs hdrversion + hdrverload
 2. Step 2 (engine + third mode + the ONE frozen label edit) + prove-header-template.mjs + hdrmode
 3. Step 3 (Default template + palette) + hdrdefault leg
 4. Step 4 (library in Preferences) + hdrpreset leg  <- ⭐ Feature complete for R1-R5 except files

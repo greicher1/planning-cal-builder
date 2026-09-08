@@ -29,6 +29,113 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a version number typed once in Show Info, and the header slot that was waiting for it
+
+Step 1 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), shipped alone because it is
+the smallest piece worth having on its own. Local, not pushed at time of writing.
+
+**Show Info has a `Version` field, and the header's bottom-left line prints it.** Asked for directly
+(owner, 1 Sep 2026): *"a version number (lowercase "v" then a number you input. I also want this
+version number thing to be part of the default header and be in the very bottom left side text box of
+the header. You should be able to type your version number into the "Show Info" section and this
+should autopopulate into the header."* Type `3` and `v3` appears in the `l2` slot — on screen, in the
+workbook's `&L` section and in the waterfall PDF's left column, from that one field, with no header
+mode to switch into first.
+
+**`l2` was chosen because `l2` had no job.** It and `c4` are the two header slots added 31 Aug 2026.
+Neither carried an auto value and CSS hides them while empty
+(`.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable){display:none}`), so the only way to put anything in
+the bottom-left was to take the whole header into Manual mode and type it — which stops every other
+line auto-updating. Now `computeHeaderDefaults()` returns `l2: versionLabel()` and the slot has
+exactly one thing to say.
+
+**The label is always `v` + what you typed, with one leading `v`/`V` stripped** (owner decision H1):
+`3` and `v3` both read `v3`, `V3.1` reads `v3.1`, `3a` reads `v3a`. A `TextInput`, deliberately not a
+`NumberInput` — owners write `3.1` and `3a`, so this is a label and not arithmetic. It is **not** part
+of `showInfoStatus()`'s completeness test and can never gate Production: a calendar with no version
+number is a complete calendar.
+
+⛔ **An empty field returns the empty string, never a bare `v`** — and that one line is the whole of
+this feature's inertness. Every calendar ever saved has no version, and an empty `l2` is filtered out
+of the workbook by `withCodes()`, filtered out of the direct PDF by `.filter(x=>x.t)` and hidden on
+screen by the CSS above. Return `v` for an empty field and every existing calendar silently gains a
+stray line in all three outputs. What buys it is the first `.trim()` plus the `num ?` ternary, so `v`,
+`V` and a field of spaces all come out empty; the second `.trim()` is a different job — `v  3` reads
+`v3`.
+
+⚠️ **One change beyond the plan's six items, because the plan's own claim about it was wrong.**
+§3.3 says *"a file without the key restores an empty field."* It does not.
+`applyStateSnapshot()` step 3 iterates the **snapshot's** keys, and the open path deliberately does
+not call `resetAll()` first — so a field the snapshot never mentions keeps whatever the previously
+open calendar left in it. That has been harmless for years because every id'd field predated the save
+format, so no key was ever absent; `show-version` is the first that can be. Open a calendar with
+version 3, then open one saved before this field existed, and the second show's header prints **`v3`**
+— someone else's version number, on screen and in both exports. A guard immediately above step 3 now
+clears the field when the snapshot has no such key, which is `CLAUDE.md`'s *"a missing key falls back
+to a default, never to whatever is in memory"*. It is cleared there rather than in `resetAll()`
+because the open path does not go through `resetAll()`; undo/redo is unaffected, since
+`collectFieldValues()` always sweeps the field and an undo snapshot therefore always carries the key.
+⚠️ **This is a narrow instance of a general defect.** The same leak waits for every future new id'd
+field. Generalise it when the second one arrives.
+
+**No frozen edit.** All five engine changes are in non-frozen code — `versionLabel()` and
+`computeHeaderDefaults()`, the `input` listener, `resetAll()`, `applyStateSnapshot()` — and the React
+field is chrome. The three consumers' text paths, the editability gate, Excel and the PDF are
+untouched. The one authorised frozen edit in that plan (**H3b**, the mode button gaining a
+*Header: Template* label) belongs to Step 2 and has not been made.
+
+**Verified.** Two new gate legs, both against the build:
+
+- `hdrversion` — with the field empty, the `l2` line is hidden, the workbook's `&L` is the bare date
+  `9.8.26` and the PDF's left column holds one string, `["9.8.26"]`. A bare `v` and a field of spaces
+  are both still no version. Typing `V3` reads `v3`; typing `3` reads `v3`, `&L` becomes
+  `"9.8.26\nv3"` with one font code and no per-line format codes, and the PDF's left column gains
+  **exactly one** line, `["9.8.26", "v3"]`, drawn at the same x and 9 pt below the date. A real
+  shareable-copy export carries `"show-version": {"value": "3"}` in `fields.byId`, which goes from 54
+  ids to 55. The value survives `captureSnapshot` → JSON → `applyStateSnapshot`, driven through
+  undo/redo. Clearing the field restores the bare `&L` character for character.
+- `hdrverload` — the same version **restored from a file**, with nothing typed, run twice against two
+  real fixtures through the inline `?state=` path. `hdrversion.sptcal` (minted from a real
+  `captureSnapshot()`, 55 ids) comes back with the field at `3` and `l2` reading `v3`;
+  `colswap-2col.sptcal`, written before the field existed, comes back with the field **empty** and the
+  slot hidden — the guard above, doing its job on a legacy file.
+
+The byte-compare that matters was run before and after: the waterfall PDF and every Excel part are
+identical to `tests/baselines/2026-08-29-stage-7/`, with only the header's date stamp normalised. Gate
+before the change, on untouched `HEAD`: **150 pass, 1 fail**. After: **181 pass, 1 fail** — the same
+one, the known `restore` IndexedDB stall, which fails identically on untouched code. Running the gate
+first, before any edit, is what makes that a measured fact rather than an assumption.
+
+⚠️ **What is NOT proven, said plainly.**
+
+- **`gate.sh`'s gate 5 — the `fields.byId` key-set compare — can neither pass nor fail here, and that
+  predates this change.** The `restore` leg throws on the IndexedDB stall, so gate 5 never executes;
+  if it did it would go red, because its baseline records 56 swept ids and does not contain
+  `pref-gridlines` either (added 3 Sep, inside `.prefs-card`, and a false positive by design —
+  `formSignature()` is a raw sweep with none of `collectFieldValues()`'s exclusions, so it reports a
+  *superset* of the save format, and `gate.sh`'s comment claiming otherwise is wrong). So the single
+  riskiest thing here — a DOM id becoming file format forever — arrives with its dedicated automated
+  check inoperative. The baseline was **deliberately not re-cut** in this commit: it cannot be
+  verified in this environment either, and re-cutting a baseline inside a commit about a text field is
+  how a real regression gets absorbed. The `hdrverload` leg is the insurance actually built instead.
+- **The two-files-in-sequence case is proved by inspection, not by the harness.** Both `hdrverload`
+  runs go through the inline `?state=` path; opening a second file needs the real picker, which stalls
+  on IndexedDB in headless Chrome. That is the same missing insurance `CLAUDE.md` already names for
+  §0 rule 3.
+- **The field's `description` renders at 9 px**, a size `theme.js` explicitly retired — Mantine's
+  `InputWrapper` computes `xs (11px) − 2px` and `legacy.css` pins the label but not the description.
+  Pre-existing: `#pref-gridlines`'s description already does this, so this is the second site, not the
+  first. One line fixes both, and it is not this step's business.
+- The description says *"Shows as “v3” in the header’s bottom-left."* ⚠️ It is **false in Manual
+  mode** — `headerLine()` returns `headerManual[id]` there, so a version typed onto a manual header
+  changes nothing. Title has behaved that way since the header gained modes; the difference is that
+  Title makes no claim. Step 2's mode popover is where that gets explained, not in 9 px of copy.
+
+**Not a version cut.** `APP_VERSION`, `version.json` and `package.json` all stay at `1.2.0`. This is
+one of six steps, and bumping `version.json` raises the *"a new version is available"* strip on every
+installed PWA — for one optional text field. That mechanism only works while it stays credible.
+
+
 ### Unreleased — renamed to SPT Calendar Builder, and the header's Principal Photography date was wrong
 
 Two changes. Local, not pushed at time of writing.

@@ -47,6 +47,22 @@ export function ShowInfoCard() {
                      min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
         <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
                      min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
+            and 3a, so the field is a LABEL and not arithmetic. The engine's versionLabel() strips a
+            leading v/V, so typing either "3" or "v3" prints "v3".
+            ⛔ It is NOT part of showInfoStatus()'s completeness test and must never gate
+            Production -- a calendar with no version number is a complete calendar.
+            The description answers the one question this field raises that the others do not: where
+            does it come out? Nothing else on screen shows it -- the l2 slot is hidden while empty, so
+            before you type there is no slot to associate the field with.
+            ⚠️ "Shows", not "Prints": the value appears on screen as well as in both exports, and
+            "prints" reads as export-only. It is also deliberately weaker than a promise, because it
+            is NOT true in Manual mode -- headerLine() returns headerManual[id] there, so a version
+            typed onto a manual header changes nothing. Title has behaved that way since the header
+            gained modes; the difference is that Title makes no claim. Step 2's mode popover is where
+            Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
+        <TextInput id="show-version" label="Version" placeholder="e.g. 3"
+                   description={'Shows as “v3” in the header’s bottom-left.'} />
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>

@@ -104,6 +104,8 @@ you are testing*. `gate.sh` overrides it to `/dist/index.html`; `run.sh` does no
 | `pdfcmp.py` | byte-compares two waterfall PDFs with ONLY the header's today-stamp normalised (see below) |
 | `t/fence.js` | every computed style on the frozen surface, so two pages can be compared property by property |
 | `t/fsprobe.js` | diagnostic only: is the file menu hidden because IndexedDB never opened? Run it on BOTH pages |
+| `t/hdrversion.js` | the version number typed into Show Info reaches the header's bottom-left slot — and an EMPTY field changes nothing on screen, in `&L` or in the PDF |
+| `t/hdrverload.js` | the same version RESTORED from a file, nothing typed. Needs `HARNESS_STATE`; run twice — `hdrversion` (carries a version) and `colswap-2col` (written before the field existed, so the field must come back empty) |
 
 ## Traps this harness has already fallen into
 
