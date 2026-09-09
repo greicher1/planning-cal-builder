@@ -7635,6 +7635,15 @@ export function initLegacyApp() {
     </span>`;
   }
 
+  // The nine slots have ids, not names. The palette has to tell a user WHERE a token is about to
+  // land, and "l2" is not an answer -- so give them the names a person would use looking at the
+  // header. ⚠️ Display only; nothing keys off these.
+  const HDR_SLOT_NAMES = {
+    left: 'Top left',  l2: 'Bottom left',
+    c1: 'Title',       c2: 'Centre, 2nd', c3: 'Centre, 3rd', c4: 'Centre, 4th',
+    r1: 'Right, 1st',  r2: 'Right, 2nd',  r3: 'Right, 3rd',
+  };
+
   function headerFmtToolbarHtml(mv){
     const sizes = mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
     return `<div class="hdr-fmt" role="toolbar" aria-label="Header text formatting" data-mv="${mv?1:0}">
@@ -8016,6 +8025,17 @@ export function initLegacyApp() {
   // (headerLine only resolves when the flag is on), so offering the palette there would be offering
   // a feature that does nothing. headerFmtToolbarHtml() is non-frozen and reads the flag at call
   // time, so the control simply is not built unless it would work.
+  // ⭐ EVERY ENTRY CARRIES ITS LIVE VALUE, not just its name. A list of {shootDaysPerEp} and
+  // {production.summary} is jargon you have to decode before you can choose; the same list showing
+  // "8" and "16-Week Production Span / 8-Day Shooting Schedule" is something you can shop from. A
+  // token with nothing to say right now falls back to its description and is dimmed, which is
+  // itself the useful signal -- it tells you the data is missing, not the token.
+  function hdrTokenPreview(tok, ctx){
+    try {
+      const v = resolveHeaderTemplate(tok, ctx);
+      return (v && v !== tok) ? v : '';
+    } catch(e){ return ''; }
+  }
   function hdrTokenGroups(){
     const groups = [
       { name: 'Show', items: [
@@ -8051,7 +8071,11 @@ export function initLegacyApp() {
       ['{production.summary}', 'Span and shooting schedule'],
       ['{production.dates}', 'Principal photography and wrap'],
       ['{writersRoom.line}', "Writer's Room Opens: date"],
+      // ⭐ TWO BRACKET FORMS, deliberately. The [ ] grammar is the non-obvious half of templates and
+      // a menu that only inserts {tokens} never teaches it. Seeing a square-bracket entry disappear
+      // from the preview when its data is missing explains the idea faster than any tooltip.
       ['[{episodes} Episodes]', 'Hidden when there is no count'],
+      ['[{version}]', 'Hidden until a version is set'],
     ]});
     return groups;
   }
@@ -8061,10 +8085,22 @@ export function initLegacyApp() {
     if(activeHdrTokenPop){ activeHdrTokenPop.remove(); activeHdrTokenPop = null; }
     document.removeEventListener('mousedown', onHdrTokenPopOutside, true);
     window.removeEventListener('resize', closeHdrTokenPop);
-    window.removeEventListener('scroll', closeHdrTokenPop, true);
+    window.removeEventListener('scroll', onHdrTokenPopScroll, true);
   }
   function onHdrTokenPopOutside(e){
     if(activeHdrTokenPop && !activeHdrTokenPop.contains(e.target)) closeHdrTokenPop();
+  }
+  // ⛔ THE PALETTE SCROLLS, SO ITS OWN SCROLLING MUST NOT CLOSE IT. The other body-level popovers
+  // close on any scroll -- correct for them, because a panel anchored to a moving element should
+  // not be left pointing at nothing, and none of them is tall enough to scroll internally. This one
+  // runs to forty-odd entries and has overflow-y:auto, and the listener is CAPTURE-phase, so a
+  // wheel inside the list reached the window handler and shut the menu before it moved a pixel.
+  // Reported as "I can't scroll in the Insert menu", and it was: every attempt closed it.
+  // A scroll that starts inside the panel is the user reading it; anything else still closes.
+  function onHdrTokenPopScroll(e){
+    if(activeHdrTokenPop && e.target && e.target.nodeType &&
+       (activeHdrTokenPop === e.target || activeHdrTokenPop.contains(e.target))) return;
+    closeHdrTokenPop();
   }
   // Put `text` where the caret is, inside the line the toolbar is targeting.
   //
@@ -8074,10 +8110,21 @@ export function initLegacyApp() {
   // the panel (below), and the range is re-validated here rather than trusted -- if the saved
   // selection is not inside the target line any more, the token goes at the END, which is the
   // predictable answer rather than a silent no-op.
+  // Which line a token would land in. ⛔ NEVER null in Template mode: refusing to insert because
+  // nothing is focused was a dead end at exactly the moment someone is exploring -- open the menu
+  // to find out what tokens exist, and it told you to go away and click something first. Default to
+  // the TITLE line, which is the one people edit, and say so in the menu so it is never a surprise.
+  function hdrInsertTargetId(){
+    if(hdrFmtTarget && !hdrFmtTarget.mv) return hdrFmtTarget.id;
+    return 'c1';
+  }
   function insertHdrToken(text){
-    if(!hdrFmtTarget || hdrFmtTarget.mv) return false;
-    const line = document.querySelector('#table-wrap .hdr-line[data-hid="' + hdrFmtTarget.id + '"]');
+    const id = hdrInsertTargetId();
+    const line = document.querySelector('#table-wrap .hdr-line[data-hid="' + id + '"]');
     if(!line) return false;
+    // Adopt the fallback as the real target, so the formatting toolbar and a second insert both
+    // agree about which line is being worked on.
+    hdrFmtTarget = { id, mv: false };
     line.focus();
     const sel = window.getSelection();
     let range = null;
@@ -8101,41 +8148,55 @@ export function initLegacyApp() {
     line.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
     return true;
   }
-  function openHdrTokenPop(anchorEl){
+  // `browse` opens the same list with the previews but no insertion -- what the mode menu offers
+  // before you commit to Template, so the tokens are visible while you are still deciding.
+  function openHdrTokenPop(anchorEl, browse){
     closeHdrTokenPop();
     const pop = document.createElement('div');
     pop.className = 'hdr-token-pop';
-    if(!hdrFmtTarget || hdrFmtTarget.mv){
-      const hint = document.createElement('div');
-      hint.className = 'hdr-token-hint';
-      hint.textContent = 'Click a header line first, then insert a token into it.';
-      pop.appendChild(hint);
-    } else {
-      hdrTokenGroups().forEach(g=>{
-        const h = document.createElement('div');
-        h.className = 'hdr-token-group';
-        h.textContent = g.name;
-        pop.appendChild(h);
-        g.items.forEach(([tok, desc])=>{
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'hdr-token-item';
-          const code = document.createElement('span');
-          code.className = 'hdr-token-code';
-          code.textContent = tok;
-          const d = document.createElement('span');
-          d.className = 'hdr-token-desc';
-          d.textContent = desc;
-          b.appendChild(code); b.appendChild(d);
+    // Say where a token will go, always -- not only when falling back. "l2" is not an answer, so
+    // this is the one place the nine slots get human names.
+    const targetId = hdrInsertTargetId();
+    const head = document.createElement('div');
+    head.className = 'hdr-token-hint';
+    head.textContent = browse
+      ? 'Live data you can put in a header line. Switch to Template to use these.'
+      : 'Inserting into: ' + (HDR_SLOT_NAMES[targetId] || targetId);
+    pop.appendChild(head);
+    // Built once per open, so every preview is this calendar's real data as of right now.
+    let ctx = null;
+    try { ctx = buildHeaderCtx(currentSchedule); } catch(e){ ctx = null; }
+    hdrTokenGroups().forEach(g=>{
+      const h = document.createElement('div');
+      h.className = 'hdr-token-group';
+      h.textContent = g.name;
+      pop.appendChild(h);
+      g.items.forEach(([tok, desc])=>{
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'hdr-token-item';
+        const code = document.createElement('span');
+        code.className = 'hdr-token-code';
+        code.textContent = tok;
+        const d = document.createElement('span');
+        const live = ctx ? hdrTokenPreview(tok, ctx) : '';
+        // The live value when there is one, the description when there is not -- and the empty case
+        // is dimmed, because "this token has nothing to say on this calendar" is worth seeing.
+        d.className = 'hdr-token-desc' + (live ? ' is-live' : '');
+        d.textContent = live || desc;
+        b.appendChild(code); b.appendChild(d);
+        if(browse){
+          b.disabled = true;
+        } else {
           b.addEventListener('click', ev=>{
             ev.stopPropagation();
             closeHdrTokenPop();
             insertHdrToken(tok);
           });
-          pop.appendChild(b);
-        });
+        }
+        pop.appendChild(b);
       });
-    }
+    });
     // ⚠️ Keep the caret. Without this the mousedown blurs the contenteditable line and the
     // selection is gone before the click handler above ever runs.
     pop.addEventListener('mousedown', ev=>{ ev.preventDefault(); });
@@ -8152,7 +8213,7 @@ export function initLegacyApp() {
     setTimeout(()=>{
       document.addEventListener('mousedown', onHdrTokenPopOutside, true);
       window.addEventListener('resize', closeHdrTokenPop);
-      window.addEventListener('scroll', closeHdrTokenPop, true);
+      window.addEventListener('scroll', onHdrTokenPopScroll, true);
     }, 0);
   }
 
@@ -8525,6 +8586,21 @@ export function initLegacyApp() {
         warn.className = 'hdr-mode-warn';
         warn.textContent = 'Freezes today’s values and removes the tokens.';
         row.appendChild(warn);
+      }
+      // ⭐ The tokens are invisible while you are deciding whether Template is worth trying, which
+      // is the wrong way round -- they ARE the reason to try it. Offer a look from here.
+      if(c.key === 'template'){
+        const peek = document.createElement('span');
+        peek.className = 'hdr-mode-peek';
+        peek.textContent = 'See what you can put in a line';
+        peek.addEventListener('click', ev=>{
+          ev.stopPropagation();
+          ev.preventDefault();
+          const anchor = row;
+          closeHeaderModePop();
+          openHdrTokenPop(anchor, true);
+        });
+        row.appendChild(peek);
       }
       if(c.key === current){
         row.disabled = true;

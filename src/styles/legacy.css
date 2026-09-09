@@ -517,8 +517,29 @@
   }
   .hdr-token-desc{
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
-    margin-left:auto; text-align:right; white-space:nowrap;
+    margin-left:auto; text-align:right;
+    /* A live preview can be a whole header line ("16-Week Production Span / 8-Day Shooting
+       Schedule"), so it truncates rather than forcing the panel wider or wrapping under the token. */
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:58%;
   }
+  /* ⭐ A LIVE VALUE, not a description. Full-strength ink because it is the thing you are choosing
+     by: you pick "v3", not "{version}". The dimmed fallback below means the token has nothing to
+     say on this calendar, which is a useful signal in its own right -- the data is missing, not the
+     token. */
+  .hdr-token-desc.is-live{ color:var(--mantine-color-gray-9); }
+  /* Insert ▾ does a different job from the formatting icons beside it, so it is separated rather
+     than reading as one more styling control. */
+  .hdr-fmt .hf-insert{
+    margin-left:var(--mantine-spacing-sm); padding-left:var(--mantine-spacing-sm);
+    border-left:1px solid var(--mantine-color-gray-3); font-weight:600;
+  }
+  /* "See what you can put in a line", inside the mode menu's Template row. The tokens are the
+     reason to choose Template, so they are reachable before you commit to it. */
+  .hdr-mode-peek{
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-7);
+    text-decoration:underline; text-underline-offset:2px; cursor:pointer; margin-top:3px;
+  }
+  .hdr-mode-peek:hover{ color:var(--mantine-color-gray-9); }
   /* ---- The header preset library, in the Preferences card (HEADER-PRESETS-PLAN.md §3.5) ----
      ⛔ Every control here is a PLAIN element with a class and no id, on purpose: collectFieldValues()
      sweeps id'd inputs into saved calendars, and a Mantine Modal would portal OUTSIDE .prefs-card

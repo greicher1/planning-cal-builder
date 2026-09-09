@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the token menu existed and could not be used: it dead-ended, and it would not scroll
+
+Owner feedback on the shipped Step 3 palette, and one of the two problems was reported in the
+plainest possible terms — *"I also don't seem to be able to scroll within the Insert menu."* Local,
+not pushed at time of writing.
+
+⛔ **It would not scroll, and that was literal.** The panel has forty-odd entries and
+`overflow-y:auto`, so it scrolls — but the window `scroll` listener that closes it is
+**capture-phase**, copied from `openPhaseColorPop`, which is a nine-swatch grid that can never
+scroll internally. So a wheel inside the list reached the window handler and shut the menu before it
+moved a pixel. A scroll that starts inside the panel is now the user reading it; anything else still
+closes it, because a panel anchored to a moving element should not be left pointing at nothing.
+
+⛔ **Opening it with no line focused was a dead end.** It answered *"Click a header line first"* — at
+exactly the moment someone opens the menu to find out what tokens even exist. It now defaults to the
+Title line and **says which line it will use**, so the fallback is never a surprise. The nine slots
+get human names (*Top left*, *Title*, *Right, 2nd*) for this one purpose; `l2` is not an answer.
+
+**Every entry shows its live value now, not its name.** `{titleSeason} → Test Show S2`,
+`{shootDaysPerEp} → 8`, `{production.summary} → 16-Week Production Span / 8-Day Shooting Schedule`.
+A list of tokens is jargon you have to decode before you can choose; the same list showing what you
+would actually get is something you can shop from. A token with nothing to say falls back to its
+description and stays dimmed — which is its own signal: the *data* is missing, not the token.
+
+**The tokens are reachable before you commit to Template.** They are the reason to choose that mode,
+so the mode menu's Template row offers *"See what you can put in a line"* — the same list with the
+same live previews, read-only.
+
+**Two smaller things:** Insert ▾ is now separated from the formatting icons by a divider, because it
+does a different kind of job; and Snippets gained `[{version}]` beside `[{episodes} Episodes]`, so
+the square-bracket grammar — the non-obvious half of templates — is discoverable by seeing an entry
+vanish from the preview when its data is missing.
+
+**Verified.** The `hdrtemplate` leg now guards all of it: the palette opens with nothing focused and
+names its target (41 usable entries), 40 of 41 show live values, it is scrollable, **it survives its
+own scroll** and still closes on an outside one, and the browse view is read-only. Byte-compare
+re-run: waterfall PDF and every Excel part still identical to the baseline.
+
+
 ### Unreleased — the Excel header has a 255-character cliff, so now the app says how close you are
 
 Step 6 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the last.

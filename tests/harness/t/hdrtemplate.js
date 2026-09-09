@@ -131,6 +131,66 @@ window.addEventListener('load', function () { (async function () {
     // ⛔ Waterfall + Template only: a token in a MANUAL line prints as braces, so offering the
     // palette there would offer a feature that does nothing.
     out.insertBtnInTemplate = !!document.querySelector('#table-wrap .hf-insert');
+
+    // ---- 2c-i. ⭐ THE PALETTE MUST NOT DEAD-END, AND MUST SCROLL --------------------------------
+    // Both of these were real defects, and both are the same kind: the menu existed and could not
+    // be used.
+    //
+    //   * Opening Insert ▾ with no line focused used to answer "click a header line first" -- a
+    //     dead end at exactly the moment someone is exploring. It now defaults to the Title line
+    //     and SAYS SO, so the fallback is never a surprise.
+    //   * The panel scrolls (forty-odd entries), and its own scrolling used to CLOSE it: the
+    //     window scroll listener is capture-phase, copied from the colour picker, which is never
+    //     tall enough to scroll internally. Reported as "I can't scroll in the Insert menu", and
+    //     that was literally true -- every attempt shut the menu before it moved.
+    (function () { var p = document.querySelector('.hdr-token-pop'); if (p) p.remove(); })();
+    document.querySelector('#table-wrap .hf-insert').click();
+    await T.until(function () { return !!document.querySelector('.hdr-token-pop'); },
+                  'the palette with nothing focused', 40, 100);
+    var cold = document.querySelector('.hdr-token-pop');
+    out.paletteOpensCold = !!cold;
+    var coldHint = cold.querySelector('.hdr-token-hint');
+    out.paletteColdHint = coldHint ? (coldHint.textContent || '').trim() : null;
+    out.paletteNamesTarget = /Inserting into:/.test(out.paletteColdHint || '');
+    out.paletteColdUsable = [].filter.call(cold.querySelectorAll('.hdr-token-item'),
+                                           function (b) { return !b.disabled; }).length;
+    out.noDeadEnd = out.paletteOpensCold && out.paletteNamesTarget && out.paletteColdUsable > 20;
+    // ⭐ Live previews: the reason the list is usable at all. Most entries show this calendar's real
+    // value rather than a description of themselves.
+    out.paletteLiveCount = cold.querySelectorAll('.hdr-token-desc.is-live').length;
+    out.paletteSample = [].slice.call(cold.querySelectorAll('.hdr-token-item'), 0, 4).map(function (b) {
+      return b.querySelector('.hdr-token-code').textContent + ' -> ' + b.querySelector('.hdr-token-desc').textContent;
+    });
+    out.hasLivePreviews = out.paletteLiveCount >= 10;
+    // ⭐ SCROLLABLE, AND SCROLLING DOES NOT CLOSE IT.
+    out.paletteScrollable = cold.scrollHeight > cold.clientHeight + 2;
+    cold.scrollTop = 150;
+    cold.dispatchEvent(new Event('scroll', { bubbles: true }));
+    await T.sleep(350);
+    var after = document.querySelector('.hdr-token-pop');
+    out.paletteSurvivesScroll = !!after && after.scrollTop > 0;
+    // ...but a scroll OUTSIDE it still closes it, which is why the listener exists at all.
+    window.dispatchEvent(new Event('scroll'));
+    await T.sleep(300);
+    out.paletteClosesOnOutsideScroll = !document.querySelector('.hdr-token-pop');
+
+    // ---- 2c-ii. the tokens are visible BEFORE committing to Template ---------------------------
+    // They are the reason to choose Template, so the mode menu offers a look without switching.
+    (function () { var p = document.querySelector('.hdr-mode-pop'); if (p) p.remove(); })();
+    btn().click();
+    await T.until(function () { return !!document.querySelector('.hdr-mode-pop'); }, 'the mode popover', 40, 100);
+    var peek = document.querySelector('.hdr-mode-peek');
+    out.peekOffered = !!peek;
+    if (peek) {
+      peek.click();
+      await T.until(function () { return !!document.querySelector('.hdr-token-pop'); }, 'the browse palette', 40, 100);
+      var br = document.querySelector('.hdr-token-pop');
+      out.browseHint = (br.querySelector('.hdr-token-hint') || {}).textContent;
+      // Browse is read-only: it lists what exists, it does not edit a header from the mode menu.
+      out.browseReadOnly = [].every.call(br.querySelectorAll('.hdr-token-item'), function (b) { return b.disabled; });
+      br.remove();
+    }
+    out.peekWorks = out.peekOffered && out.browseReadOnly === true;
     // ⚠️ PLACE A REAL CARET, do not just dispatch focusin. A synthetic FocusEvent sets
     // hdrFmtTarget but moves no focus and creates no selection, so insertHdrToken()'s own
     // line.focus() supplies one -- and Chrome puts that caret at position 0, which made a first cut
@@ -389,6 +449,9 @@ window.addEventListener('load', function () { (async function () {
     out.PASS = out.h3bAutoInert && out.h3bManualInert &&
                out.defaultMatchesAuto && out.insertScoped &&
                out.paletteHasPhases && out.paletteHasSnippets &&
+               out.noDeadEnd && out.hasLivePreviews &&
+               out.paletteScrollable && out.paletteSurvivesScroll &&
+               out.paletteClosesOnOutsideScroll && out.peekWorks &&
                out.insertedAtCaret && out.insertedResolved && out.paletteClosed &&
                out.tplIsTemplate && out.tplEditable &&
                out.resolvesOnScreen && out.unknownSurvives && out.groupsWork && out.noCompoundDrift &&
