@@ -137,8 +137,21 @@ window.addEventListener('load', function () { (async function () {
                                out.canvasStyle.indexOf('font-weight:700') >= 0;
 
     // ---- 5. ⭐ EDIT IN PLACE: raw on focus, resolved on blur, and it lands on the calendar --------
+    // ⭐ REGRESSION, owner-reported 9 Sep 2026: "the font/size of the header text lines are changing
+    // when you click into them". .hde-line.is-editing used to set font-family:monospace and
+    // font-size:10.5px, so every line jumped as you moved between them -- in the one panel whose
+    // whole purpose is showing what the header will look like. Measured, because this is invisible
+    // in a screenshot taken a moment later and would creep back the next time someone wants the raw
+    // template to "read as code".
+    var typeOf = function (el) {
+      var c = getComputedStyle(el);
+      return c.fontFamily + '|' + c.fontSize + '|' + c.fontWeight + '|' + c.fontStyle;
+    };
+    out.typeBeforeFocus = typeOf(line('c1'));
     line('c1').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     await T.sleep(350);
+    out.typeAfterFocus = typeOf(line('c1'));
+    out.focusDoesNotRestyle = out.typeBeforeFocus === out.typeAfterFocus;
     out.rawOnFocus = (line('c1').textContent || '').trim();
     out.showsRaw = out.rawOnFocus === '{titleSeason}';
     line('c1').textContent = '{titleSeason} - {version}';
@@ -179,6 +192,17 @@ window.addEventListener('load', function () { (async function () {
     out.railTokens = panel().querySelectorAll('.hde-rail-list .hdr-token-item').length;
     out.railLive = panel().querySelectorAll('.hde-rail-list .hdr-token-desc.is-live').length;
     out.railShared = out.railTokens > 30 && out.railLive > 15;
+    // ⭐ REGRESSION, owner-reported 9 Sep 2026: "the text is truncated in the insert section."
+    // .hdr-token-desc truncates with an ellipsis, which is right for the ANCHORED popover and wrong
+    // here -- showing a live value instead of a description is the whole point of the list, and half
+    // a value is not one. The rail overrides it to wrap. ⚠️ Asserted by measurement, not by reading
+    // the CSS: scrollWidth > clientWidth is the only thing that actually knows.
+    out.railClipped = [].filter.call(panel().querySelectorAll('.hde-rail-list .hdr-token-desc'),
+      function (d) { return d.scrollWidth > d.clientWidth + 1; })
+      .map(function (d) { return (d.textContent || '').slice(0, 40); });
+    out.railFullyReadable = out.railClipped.length === 0;
+    // ...and the popover it shares a class with must STILL truncate, or this override leaked.
+    out.railWidth = Math.round(panel().querySelector('.hde-rail').getBoundingClientRect().width);
     out.budgetText = (el('.hde-budget').textContent || '').trim();
     out.budgetReads = /^Excel header: about \d+ of 255 characters/.test(out.budgetText);
     // This leg has bolded, resized and lengthened lines by now, so the budget SHOULD be over --
@@ -222,8 +246,8 @@ window.addEventListener('load', function () { (async function () {
                out.threePerColumn && out.noIds && !out.c4OfferedWhenUnused &&
                out.barLiveOnOpen && out.barFollowsSelection &&
                out.barWoke && out.barNamesRight && out.stylingReachesHeader &&
-               out.showsRaw && out.notASecondRenderer &&
-               out.placeholdersAreEditorOnly && out.railShared &&
+               out.showsRaw && out.focusDoesNotRestyle && out.notASecondRenderer &&
+               out.placeholdersAreEditorOnly && out.railShared && out.railFullyReadable &&
                out.budgetReads && out.defaultFitsExcel && out.budgetWarnsWhenOver &&
                out.doneCloses && out.c4OnCalendar && out.c4KeptNotDropped &&
                out.escapeCloses && out.headerSurvives &&

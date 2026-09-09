@@ -591,7 +591,11 @@
   .hde-panel{
     background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4);
     border-radius:10px; box-shadow:0 16px 40px rgba(30,29,27,.24);
-    width:min(1040px, 100%); overflow:hidden; margin:auto;
+    /* Widened from 1040px (owner, 9 Sep 2026: "the text is truncated in the insert section. Can you
+       widen the entire window?"). The rail's live previews are whole header lines -- "16-Week
+       Production Span / 8-Day Shooting Schedule" -- and the point of showing a live value instead of
+       a description is lost when you can only read the first third of it. */
+    width:min(1280px, 100%); overflow:hidden; margin:auto;
   }
   .hde-head{ display:flex; align-items:baseline; gap:10px; padding:13px 18px;
     border-bottom:1px solid var(--mantine-color-gray-2); }
@@ -668,7 +672,17 @@
   }
   .hde-line:hover{ border-color:var(--mantine-color-gray-3); }
   .hde-line.is-sel{ border-color:var(--mantine-color-info-9); box-shadow:0 0 0 2px rgba(27,74,122,.14); }
-  .hde-line.is-editing{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:10.5px; background:#F1F6FC; }
+  /* ⛔ THIS RULE USED TO SET font-family:monospace AND font-size:10.5px, AND THAT WAS A BUG.
+     Reported by the owner, 9 Sep 2026: "the font/size of the header text lines are changing when
+     you click into them". They were -- an unstyled line went 11px serif to 10.5px monospace on
+     focus, so every line visibly jumped as you moved between them. The stage exists to show what
+     the header will LOOK like; a stage that restyles itself the moment you touch it is not showing
+     you that. The tint alone says "you are seeing the raw template now", and the template fields
+     below are monospace, which is where reading tokens as code belongs.
+     ⚠️ Do not put font-family or font-size back. Per-line size arrives as an INLINE style from
+     headerFormatCss(), so a stylesheet font-size here silently disagrees with the styling bar for
+     unstyled lines only -- which is exactly the kind of half-wrong that is hard to see. */
+  .hde-line.is-editing{ background:#F1F6FC; }
   .hde-line:focus{ outline:none; }
   /* An empty slot still needs something to click. The real header hides it; the stage note says so. */
   .hde-line.is-blank{ border-style:dashed; border-color:var(--mantine-color-gray-4); min-width:56px; }
@@ -678,7 +692,7 @@
     margin:8px 2px 0; line-height:1.5; }
 
   /* ---- templates + palette ---- */
-  .hde-body{ display:grid; grid-template-columns:minmax(0,1fr) 280px; }
+  .hde-body{ display:grid; grid-template-columns:minmax(0,1fr) 400px; }
   .hde-slots-wrap{ padding:14px 18px 16px; min-width:0; }
   .hde-slots-head, .hde-glabel{ font-size:var(--mantine-font-size-xxs); font-weight:700;
     letter-spacing:.06em; text-transform:uppercase; color:var(--mantine-color-gray-5); }
@@ -702,6 +716,16 @@
   .hde-rail-head span{ display:block; font-weight:400; color:var(--mantine-color-gray-6);
     font-size:var(--mantine-font-size-xxs); margin-top:2px; }
   .hde-rail-list{ overflow-y:auto; max-height:340px; padding:6px 8px 10px; }
+  /* ⭐ THE RAIL WRAPS; THE ANCHORED POPOVER STILL TRUNCATES. Scoped deliberately: .hdr-token-desc's
+     nowrap/ellipsis is correct for .hdr-token-pop, which is a narrow panel floating over the
+     calendar and must not grow. The rail is a fixed column in a modal with vertical room to spare,
+     so a long live value should be READABLE rather than tidy -- truncating the value defeats the
+     reason the list shows values instead of descriptions. */
+  .hde-rail-list .hdr-token-item{ flex-wrap:wrap; align-items:baseline; }
+  .hde-rail-list .hdr-token-desc{
+    max-width:100%; white-space:normal; overflow:visible; text-overflow:clip;
+    line-height:1.35; padding-left:var(--mantine-spacing-sm);
+  }
 
   .hde-grammar{ margin:0; padding:10px 18px; border-top:1px solid var(--mantine-color-gray-2);
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.55;
@@ -722,8 +746,8 @@
 
   /* The panel is tall; on a short window it scrolls as a whole rather than trapping the footer
      off-screen, which is why the overlay -- not the panel -- owns the scrolling. */
-  @media (max-width:900px){
-    .hde-body{ grid-template-columns:1fr; }
+  @media (max-width:980px){
+    .hde-body{ grid-template-columns:1fr; }   /* ⚠️ keep this above the 400px rail + slots minimum */
     .hde-rail{ border-left:0; border-top:1px solid var(--mantine-color-gray-2); }
   }
 

@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the live header restyled itself when you clicked it, and the Insert rail cut its values in half
+
+Both owner-reported, immediately after the editor shipped, and both are the same kind of mistake:
+a detail that reads as a nice touch in isolation and undermines the panel's whole job in context.
+Local, not pushed at time of writing.
+
+⛔ **The stage restyled itself the moment you touched it.** *"The font/size of the header text lines
+are changing when you click into them."* `.hde-line.is-editing` set `font-family:monospace` and
+`font-size:10.5px` — my idea, to signal *you are looking at raw template code now*. But the stage
+exists to show what the header will **look like**, and one that changes font the instant you click a
+line is not showing you that. Worse, it was **half wrong in a way that hides**: per-line size arrives
+as an *inline* style from `headerFormatCss()`, which outranks a stylesheet rule — so a line you had
+sized to 18px kept its size and only changed face, while an unstyled line changed both. Two different
+wrong behaviours depending on state. The tint stays as the raw-mode signal, and the template fields
+below are still monospace, which is where reading tokens as code belongs.
+
+⛔ **The Insert rail truncated the values it exists to show.** *"The text is truncated in the insert
+section. Can you widen the entire window?"* `.hdr-token-desc` truncates with an ellipsis, which is
+**correct** for the anchored popover — a narrow panel floating over the calendar that must not grow.
+It is wrong in a fixed rail inside a modal, and the reason is the point of the feature: this list
+shows live values instead of descriptions so you can pick by what you would actually get, and half a
+value is not one. The window is wider (1040 → 1280px), the rail is wider (280 → 400px), and the rail
+**wraps** rather than truncating — scoped to `.hde-rail-list`, so the popover still truncates.
+Measured, not eyeballed: **0 of 41 entries clipped**, and the longest live value —
+`16-Week Production Span / 8-Day Shooting Schedule` — now fits on one line.
+
+**Verified.** Two new assertions in the `hdreditor` leg, both measuring rather than reading the CSS:
+computed `font-family`/`size`/`weight`/`style` identical before and after focus (on a line already
+styled to 18px/700, so it covers the case the inline style was masking), and `scrollWidth <=
+clientWidth` on every description in the rail. Full gate re-run green.
+
 ### Unreleased — a screen for building a header, and a third line in the left column
 
 Owner, 9 Sep 2026, after using the Insert menu: *"I still feel like you miss the Insert button.

@@ -341,6 +341,25 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⚠️ **TWO OWNER-REPORTED BUGS, FIXED THE SAME DAY THE EDITOR SHIPPED — and both are worth keeping,
+because both were things I added deliberately that turned out to fight the panel's purpose.**
+
+1. **The stage restyled itself on click.** `.hde-line.is-editing` set `font-family:monospace` and
+   `font-size:10.5px` so the raw template would "read as code". But the stage's only job is showing
+   what the header will LOOK like. ⛔ **And it failed in two different ways depending on state, which
+   is why it is worth a note:** per-line size is an INLINE style from `headerFormatCss()` and
+   outranks a stylesheet rule, so a line sized to 18px changed face only, while an unstyled line
+   changed face *and* size. Anything that styles `.hde-line` from the stylesheet is in a fight with
+   the inline style it is supposed to be displaying — don't. The tint alone is the raw-mode signal.
+2. **The Insert rail truncated its live values.** `.hdr-token-desc`'s nowrap/ellipsis is **right**
+   for `.hdr-token-pop` — anchored, narrow, must not grow — and wrong in a fixed rail inside a modal.
+   The panel went 1040 → 1280px, the rail 280 → 400px, and the rail now wraps, **scoped to
+   `.hde-rail-list`** so the popover is untouched. ⛔ The general lesson: `.hdr-token-*` is shared by
+   two hosts with opposite constraints. Override per host; do not change the shared rule.
+
+Both are now asserted by measurement in the `hdreditor` leg — computed type identical across focus,
+and `scrollWidth <= clientWidth` on all 41 rail descriptions. A screenshot would have caught neither.
+
 ⛔ **A HOLE IN THE GATE ITSELF, FOUND ON THE WAY PAST AND CLOSED (9 Sep 2026).** `gate.sh` serves
 `dist/index.html` and **never rebuilds it**. So the obvious sequence — edit `src/legacy/app.js`, run
 `./gate.sh` — gates **the previous build** and prints `GATE PASSED`. That is the worst failure mode

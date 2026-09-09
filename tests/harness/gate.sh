@@ -1088,6 +1088,10 @@ chk(a.get('notASecondRenderer'),
     f"hdreditor: ⭐ an edit made in the panel resolves IDENTICALLY on the real header ({a.get('canvasAfterEdit')!r} == {a.get('realAfterEdit')!r})")
 chk(a.get('placeholdersAreEditorOnly'),
     f"hdreditor: ⭐ a token with no data draws a dashed placeholder in the EDITOR ONLY ({a.get('placeholderShown')!r}; the header prints {a.get('realL3WhilePlaceheld')!r})")
+chk(a.get('focusDoesNotRestyle'),
+    f"hdreditor: ⭐ clicking into a line does NOT restyle it -- owner-reported 9 Sep ({a.get('typeBeforeFocus')!r})")
+chk(a.get('railFullyReadable'),
+    f"hdreditor: ⭐ no live value in the Insert rail is truncated at {a.get('railWidth')}px -- owner-reported 9 Sep {a.get('railClipped')}")
 chk(a.get('railShared'),
     f"hdreditor: the Insert rail is the shared token list, with live previews ({a.get('railTokens')} tokens, {a.get('railLive')} live)")
 chk(a.get('budgetReads') and a.get('budgetWarnsWhenOver'),
