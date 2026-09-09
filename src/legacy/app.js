@@ -7767,6 +7767,148 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ---------- Preset FILES: .spthdr (HEADER-PRESETS-PLAN.md §3.6, Step 5) ----------
+  //
+  // "Save to your computer" was half the original ask: a preset should be sendable to a colleague,
+  // not trapped in one browser's localStorage.
+  //
+  // ⛔ THIS IS NOT A CALENDAR FILE AND MUST NEVER GO THROUGH parseCalendarText(). That function is
+  // the ONE reader of calendar files and is contract (CLAUDE.md §0 rule 3) -- teaching it a third
+  // shape would put every saved calendar's restore path at risk to serve a preference file. A
+  // preset gets its own small reader, below, and the two never meet.
+  const HDR_PRESET_EXT = '.spthdr';
+  const HDR_PRESET_MIME = 'application/json';
+  const HDR_PRESET_KIND = 'spt-header-preset';
+  const HDR_PRESET_TYPES = [{ description: 'Calendar header preset',
+                              accept: { [HDR_PRESET_MIME]: [HDR_PRESET_EXT] } }];
+  // The six format keys a line may carry. Anything else in an imported file is DROPPED rather than
+  // trusted: a preset arrives from another machine, and headerFormat is read by both writers.
+  const HDR_FMT_KEYS = ['size','bold','italic','color','highlight','align'];
+
+  function headerPresetToJson(p){
+    return JSON.stringify({
+      kind: HDR_PRESET_KIND,
+      version: 1,                       // exists so a later shape can migrate rather than guess
+      name: p.name,
+      lines: p.lines,
+      format: p.format || {},
+    }, null, 1);
+  }
+  // A filename a person can find again. Punctuation that filesystems dislike becomes a space, and
+  // an empty result still yields something openable rather than a bare extension.
+  function headerPresetFileName(name){
+    const safe = String(name || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return (safe || 'Header preset') + HDR_PRESET_EXT;
+  }
+  async function exportHeaderPreset(id){
+    const p = findHeaderPreset(id);
+    if(!p) return false;
+    const text = headerPresetToJson(p);
+    const name = headerPresetFileName(p.name);
+    // Same two-branch shape as saveAsFile: the real picker where the File System Access API exists,
+    // a plain download everywhere else.
+    if(supportsFsAccess){
+      let handle;
+      try {
+        handle = await window.showSaveFilePicker({ suggestedName: name, types: HDR_PRESET_TYPES });
+      } catch(e){ if(e && e.name === 'AbortError') return false; throw e; }
+      const w = await handle.createWritable();
+      await w.write(text);
+      await w.close();
+      return true;
+    }
+    downloadTextFile(text, HDR_PRESET_MIME, name);
+    return true;
+  }
+
+  // The reader. Small, strict, and total: it either returns a preset or says why not.
+  //
+  // ⛔ VALIDATE, DO NOT TRUST. This file came from someone else's machine. `kind` is the gate;
+  // unknown line ids are dropped rather than stored (headerManual is keyed by hid and a stray key
+  // would sit there forever); format values are filtered to the six known keys. A file that fails
+  // is refused ENTIRELY -- never half-imported, because a half-imported preset is a preset the user
+  // believes in and cannot see the holes in.
+  //
+  // ⚠️ Nothing here is executed or injected. Templates are strings resolved by the §3.1 scanner, and
+  // the renderer escapes them with escH exactly as it escapes today's manual text.
+  function parseHeaderPresetText(text){
+    let o;
+    try { o = JSON.parse(text); }
+    catch(e){ return { ok:false, reason:'That file is not a header preset -- it is not readable as JSON.' }; }
+    if(!o || typeof o !== 'object' || Array.isArray(o)){
+      return { ok:false, reason:'That file is not a header preset.' };
+    }
+    if(o.kind !== HDR_PRESET_KIND){
+      return { ok:false, reason:'That file is not a header preset. Header presets are ' + HDR_PRESET_EXT + ' files.' };
+    }
+    const srcLines = (o.lines && typeof o.lines === 'object') ? o.lines : {};
+    const lines = {};
+    let dropped = 0;
+    Object.keys(srcLines).forEach(k=>{
+      if(HDR_IDS.indexOf(k) < 0){ dropped++; return; }        // an id this app has no slot for
+      lines[k] = String(srcLines[k] == null ? '' : srcLines[k]);
+    });
+    const srcFmt = (o.format && typeof o.format === 'object') ? o.format : {};
+    const format = {};
+    Object.keys(srcFmt).forEach(k=>{
+      if(HDR_IDS.indexOf(k) < 0){ dropped++; return; }
+      const f = srcFmt[k];
+      if(!f || typeof f !== 'object') { dropped++; return; }
+      const clean = {};
+      Object.keys(f).forEach(fk=>{
+        if(HDR_FMT_KEYS.indexOf(fk) < 0){ dropped++; return; }
+        clean[fk] = f[fk];
+      });
+      if(Object.keys(clean).length) format[k] = clean;
+    });
+    if(!Object.keys(lines).length){
+      return { ok:false, reason:'That preset has no header lines in it.' };
+    }
+    const name = String(o.name || '').trim() || 'Imported preset';
+    return { ok:true, preset: { name, lines, format }, dropped };
+  }
+  async function importHeaderPresetText(text){
+    const res = parseHeaderPresetText(text);
+    if(!res.ok){ uiAlert(res.reason); return false; }
+    const list = headerPresetsStore().slice();
+    // ⛔ A FRESH id, always. The file may carry one, and two machines can trivially mint the same
+    // name -- but an imported preset is a NEW entry here, and reusing an id from a file would let
+    // one import silently overwrite an existing preset.
+    list.push({ id: newHeaderPresetId(), name: res.preset.name, createdAt: new Date().toISOString(),
+                lines: res.preset.lines, format: res.preset.format });
+    writeHeaderPresets(list);
+    pushHeaderPresets();
+    if(res.dropped) uiAlert('Imported "' + res.preset.name + '". ' + res.dropped +
+                            ' unrecognised entr' + (res.dropped === 1 ? 'y was' : 'ies were') + ' ignored.');
+    return true;
+  }
+  async function importHeaderPresetViaPicker(){
+    if(supportsFsAccess){
+      let handle;
+      try { [handle] = await window.showOpenFilePicker({ types: HDR_PRESET_TYPES, multiple: false }); }
+      catch(e){ if(e && e.name === 'AbortError') return false; throw e; }
+      const file = await handle.getFile();
+      return importHeaderPresetText(await file.text());
+    }
+    // Fallback: a hidden file input, created on demand and removed again.
+    // ⛔ NO id -- collectFieldValues() sweeps every input[id] in the document, and this one is not
+    // calendar data. It also lives outside .prefs-card for the moment it exists, so the class
+    // exclusion would not have covered it. Created, used, removed.
+    return new Promise(resolve=>{
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = HDR_PRESET_EXT + ',' + HDR_PRESET_MIME;
+      inp.style.display = 'none';
+      inp.addEventListener('change', async ()=>{
+        const f = inp.files && inp.files[0];
+        document.body.removeChild(inp);
+        resolve(f ? await importHeaderPresetText(await f.text()) : false);
+      });
+      document.body.appendChild(inp);
+      inp.click();
+    });
+  }
+
   // ⛔ NOTHING HERE ADDS AN UNDO STEP OR A FIELD. Saving, renaming and deleting a preset are
   // PREFERENCE edits, not calendar edits: they must not markDirty(), must not push an undo
   // snapshot, and must not put an id'd control into the document. Only APPLY touches the calendar.
@@ -7795,6 +7937,12 @@ export function initLegacyApp() {
       const res = saveHeaderPresetAs(input ? input.value : '');
       if(!res.ok){ uiAlert(res.reason); return; }
       chrome.headerPresets({ naming:false });
+    } else if(action === 'export'){
+      try { await exportHeaderPreset(id); }
+      catch(err){ console.error(err); uiAlert('Could not save that preset: ' + err.message); }
+    } else if(action === 'import'){
+      try { await importHeaderPresetViaPicker(); }
+      catch(err){ console.error(err); uiAlert('Could not read that preset file: ' + err.message); }
     }
   });
 

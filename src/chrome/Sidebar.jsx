@@ -249,6 +249,12 @@ function HeaderPresets() {
         </>
       )}
 
+      {/* Import is always offered: it is how someone gets their FIRST preset, when the list is
+          still just Default and there is nothing of their own to export. */}
+      <button type="button" className="hdr-preset-btn hdr-preset-import" data-hdrpreset="import">
+        Import preset file…
+      </button>
+
       {userPresets.length ? (
         <div className="hdr-preset-list">
           {userPresets.map((p) => (
@@ -268,6 +274,8 @@ function HeaderPresets() {
                   <span className="hdr-preset-row-name">{p.name}</span>
                   <button type="button" className="hdr-preset-link"
                           onClick={() => setEditing(p.id)}>Rename</button>
+                  <button type="button" className="hdr-preset-link"
+                          data-hdrpreset="export" data-preset-id={p.id}>Export…</button>
                   <button type="button" className="hdr-preset-link hdr-preset-link-danger"
                           data-hdrpreset="delete" data-preset-id={p.id}>Delete</button>
                 </>

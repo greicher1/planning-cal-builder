@@ -539,6 +539,7 @@
   .hdr-preset-btn:disabled{ color:var(--mantine-color-gray-5); cursor:default; }
   .hdr-preset-save-open{ width:100%; margin-top:var(--mantine-spacing-sm); text-align:center; }
   .hdr-preset-btn-quiet{ border-color:transparent; }
+  .hdr-preset-import{ width:100%; margin-top:var(--mantine-spacing-xs); text-align:center; }
   .hdr-preset-list{ margin-top:var(--mantine-spacing-sm); display:flex; flex-direction:column; gap:1px; }
   .hdr-preset-row{
     display:flex; align-items:center; gap:var(--mantine-spacing-sm);

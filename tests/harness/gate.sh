@@ -917,6 +917,45 @@ chk(not hv.get('h'), f"hdrpreset: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- hdrfile: presets as .spthdr files, and the validation between a stranger's file and us ------
+# HEADER-PRESETS-PLAN.md Step 5, gate item 7.
+# ⛔ A preset file NEVER goes through parseCalendarText(). That function is the one reader of
+# CALENDAR files and is contract; teaching it a third shape would risk every saved calendar's
+# restore path to serve a preference file. The preset has its own small, strict reader.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrfile 150 >/dev/null 2>&1
+python3 - "$HERE/hdrfile.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrfile produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdrfile threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('pickerCalled') and a.get('suggestedLooksRight'),
+    f"hdrfile: Export opens the real picker with a sensible name ({a.get('suggestedName')!r}, {a.get('pickerTypeDesc')!r})")
+chk(a.get('fileKind')=='spt-header-preset' and a.get('fileVersion')==1,
+    f"hdrfile: the file declares its kind and version ({a.get('fileKind')!r} v{a.get('fileVersion')})")
+chk(a.get('fileHasTemplates'),
+    "hdrfile: ⭐ the FILE carries templates, not values -- or every recipient gets this calendar's data baked in")
+chk(a.get('roundTrip'), "hdrfile: export -> import returns the same nine lines")
+chk(a.get('freshId'), "hdrfile: ⭐ an imported preset gets a FRESH id, so an import cannot overwrite an existing preset")
+chk(a.get('refusesJunk'), f"hdrfile: a file without `kind` is refused ENTIRELY ({a.get('countAfterJunk')} presets, unchanged)")
+chk(a.get('refusesGarbage'), "hdrfile: ...and so is something that is not JSON at all")
+chk(a.get('dropsUnknown'),
+    f"hdrfile: ⭐ unknown line ids and format keys are DROPPED, not stored {a.get('junkLines')} {a.get('junkFormat')}")
+chk(a.get('importedIsUsable'),
+    f"hdrfile: an imported preset applies like any other ({a.get('appliedLabel')!r}, l2={a.get('appliedL2')!r})")
+chk(a.get('stillNeverTravels'), "hdrfile: and it still never reaches a saved calendar")
+chk(not a.get('errors'), f"hdrfile: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrfile: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

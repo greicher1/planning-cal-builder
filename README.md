@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — presets as files, so a header can be sent to someone
+
+Step 5 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
+writing.
+
+**Export and Import, as `.spthdr` files.** *"Save to your computer"* was half the original ask: a
+preset should be sendable to a colleague, not trapped in one browser's `localStorage`. Export writes
+`{ kind:'spt-header-preset', version:1, name, lines, format }` through the same picker +
+download-fallback pair `saveAsFile` uses; Import reads one back. Import is offered even with an empty
+library — it is how someone gets their *first* preset.
+
+⛔ **A preset file never goes through `parseCalendarText()`.** That function is the one reader of
+*calendar* files and is contract (`CLAUDE.md` §0 rule 3): teaching it a third shape would put every
+saved calendar's restore path at risk to serve a preference file. The preset gets its own small,
+strict reader and the two never meet.
+
+⛔ **Validate, do not trust — the file came from someone else's machine.** `kind` is the gate.
+Unknown line ids are dropped rather than stored (`headerManual` is keyed by hid and a stray key would
+sit there forever); format values are filtered to the six known keys, because `headerFormat` is read
+by *both* writers. A file that fails is refused **entirely** — never half-imported, because a
+half-imported preset is one the user believes in and cannot see the holes in. Nothing is executed or
+injected: templates are strings resolved by the §3.1 scanner, and the renderer escapes them with
+`escH` exactly as it escapes today's manual text.
+
+⛔ **An imported preset gets a fresh `hp_…` id**, even when the file carries one. Two machines can
+trivially mint the same id, and reusing the file's would let one import silently overwrite an
+existing preset.
+
+**Verified.** New leg `hdrfile`: Export opens the real picker with `Studio standard.spthdr` and the
+*Calendar header preset* type, the written file carries **templates** (`{version}`, `{titleSeason}`)
+rather than values, export → import is identity with a **different** id, a file without `kind` and a
+file that is not JSON are both refused with the list unchanged, a file carrying `notAHeaderId` and an
+`evilKey` format entry imports as `{c1, l2}` / `{c1:{bold}}` with both dropped, the imported preset
+applies like any other, and it still never reaches a saved calendar. Byte-compare re-run: waterfall
+PDF and every Excel part still identical to the baseline.
+
+
 ### Unreleased — header presets: save an arrangement once, apply it to any calendar
 
 Step 4 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the plan's own
