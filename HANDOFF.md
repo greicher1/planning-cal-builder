@@ -341,6 +341,24 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⛔ **THE SIDEBAR NOW HAS TWO `.prefs-card` SECTIONS, NOT ONE (9 Sep 2026).** The owner split
+Preferences into **Export Preferences** (gridlines) and **Headers** (editor + budget + presets).
+`prefs-card` has **no styling** — grep `legacy.css` and you find only comments — and exists solely so
+`collectFieldValues()` skips it. **Both sections carry it, and any third one must.** Nothing in
+Headers has an `id` today; the class is there for the control that gets added later, not for
+anything present now. `hdrpreset` asserts `.hdr-presets` still resolves `.closest('.prefs-card')`,
+which is the guard that would catch a future split done carelessly.
+
+⚠️ **AND A SECOND SHARED-CLASS COLLISION, FOUND THE SAME WAY AS `.hde-ph`.** `.hdr-presets-hint` was
+worn by BOTH the Excel budget and the "why Save-as is disabled" line, so `querySelector` returned
+whichever came first in the markup. Re-ordering them changed what every lookup found, and the
+`hdrpreset` leg silently began comparing the budget string against the save hint. The budget is
+`.hdr-presets-budget` now; they share the CSS **rule**, not the class. ⛔ `hdrexcel` had been living
+with the same collision by scanning every `.hdr-presets-hint` and matching on the rendered words
+*"Excel header"* — a test that keys off user-visible copy passes until someone rewrites a sentence.
+It asks for the class directly now. **Two of these in one day: when two elements must look alike,
+share the rule, never the class.**
+
 ⚠️ **TWO OWNER-REPORTED BUGS, FIXED THE SAME DAY THE EDITOR SHIPPED — and both are worth keeping,
 because both were things I added deliberately that turned out to fight the panel's purpose.**
 

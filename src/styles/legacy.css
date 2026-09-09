@@ -548,8 +548,13 @@
   .hdr-presets{ margin-top:var(--mantine-spacing-lg); padding-top:var(--mantine-spacing-lg);
     border-top:1px solid var(--mantine-color-gray-2); }
   .hdr-presets-label{ display:block; }
-  .hdr-presets-desc{ display:block; margin-top:2px; line-height:1.35; }
-  .hdr-presets-hint{ display:block; margin-top:4px; line-height:1.35; }
+  /* ⛔ TWO CLASSES, TWO MEANINGS -- .hdr-presets-hint is the "why Save-as is disabled" line, and
+     .hdr-presets-budget is the Excel character count. They shared one class until 9 Sep 2026, which
+     meant querySelector('.hdr-presets-hint') returned whichever happened to sit first in the markup;
+     re-ordering them silently changed what every such lookup found, and the hdrpreset leg started
+     asserting the budget text against the save hint. Same collision .hde-ph had the same day. If
+     they must look identical, share the RULE, not the class. */
+  .hdr-presets-hint, .hdr-presets-budget{ display:block; margin-top:4px; line-height:1.35; }
   .hdr-preset-btn{
     font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500;
     color:var(--mantine-color-gray-9); background:var(--mantine-color-white);

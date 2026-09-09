@@ -43,11 +43,13 @@ window.addEventListener('load', function () { (async function () {
 
     var btn = function () { return document.getElementById('hdr-mode-btn'); };
     var lineEl = function (hid) { return document.querySelector('#table-wrap .hdr-line[data-hid="' + hid + '"]'); };
+    // ⚠️ This used to sweep every .hdr-presets-hint and pick the one whose TEXT said "Excel header",
+    // because the budget and the Save-as hint shared that class and document order decided which a
+    // querySelector found. The budget has its own class as of 9 Sep 2026, so ask for it directly --
+    // matching on rendered copy meant a wording change would have quietly returned null here.
     var meterText = function () {
-      var els = document.querySelectorAll('.hdr-presets .hdr-presets-hint');
-      var t = null;
-      els.forEach(function (e) { if (/Excel header/.test(e.textContent || '')) t = (e.textContent || '').trim(); });
-      return t;
+      var e = document.querySelector('.hdr-presets .hdr-presets-budget');
+      return e ? (e.textContent || '').trim() : null;
     };
     var meterNumber = function () {
       var t = meterText();

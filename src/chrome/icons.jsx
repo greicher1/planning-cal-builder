@@ -106,6 +106,18 @@ export function IconSliders(props) {
   )
 }
 
+// A page with its top band emphasised -- the header. Deliberately NOT IconRows, which is the
+// Waterfall view toggle: two cards in the same sidebar wearing the same glyph read as related.
+export function IconHeading(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+      <path d="M2 6.4h12" />
+      <path d="M4.4 9.4h7.2M4.4 11.4h4.6" opacity=".55" />
+    </svg>
+  )
+}
+
 export function IconShare(props) {
   return (
     <svg {...base} {...props}>

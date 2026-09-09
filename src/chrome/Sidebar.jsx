@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 
@@ -149,8 +149,8 @@ export function PreferencesCard() {
   return (
     <section className="card prefs-card" data-tab="settings">
       <h2>
-        <IconSliders className="card-ic" /><span>Preferences</span>
-        <InfoHint label="Preferences" width={300}>
+        <IconSliders className="card-ic" /><span>Export Preferences</span>
+        <InfoHint label="Export Preferences" width={300}>
           These stay on this computer and are not part of a saved calendar — send someone a
           calendar and they keep their own settings.
         </InfoHint>
@@ -165,13 +165,40 @@ export function PreferencesCard() {
             that merely meant None was a second name for the same output. None is listed first for
             that reason -- it is what a fresh calendar exports and what the reference exports look
             like. */}
-        <NativeSelect id="pref-gridlines" label="Grid lines in exports"
-                      description="The PDF and Excel. The editor's own grid is unchanged.">
+        {/* ⚠️ The visible description was removed 9 Sep 2026 at the owner's request ("remove the
+            descriptions, theyre not necessary"). Its content -- export-only, the editor's own grid
+            is unchanged -- moved into the ⓘ above rather than being deleted: it is the answer to
+            "why did nothing change on screen?", and the card title alone does not give it. */}
+        <NativeSelect id="pref-gridlines" label="Grid lines in exports">
           <option value="none">None</option>
           <option value="solid">Solid</option>
           <option value="dashed">Dashed (Excel style)</option>
         </NativeSelect>
+      </div>
+    </section>
+  )
+}
 
+// ⛔ SECOND CARD, SAME MARKER CLASS -- and `prefs-card` is the whole reason this split needed care.
+// It carries no styling whatsoever (grep legacy.css: there is no `.prefs-card` rule). It exists for
+// exactly one job: collectFieldValues() sweeps every input[id] / select[id] / textarea[id] in the
+// document and skips this class. Split the card and forget the class on the new half, and every
+// control in it is silently baked into every saved calendar with a phantom undo step per keystroke.
+// Nothing in here carries an id today, so nothing would break TODAY -- which is precisely why the
+// class must be here now, before someone adds the first id'd control and finds out the hard way.
+// The hdrpreset leg asserts `.hdr-presets` still resolves `.closest('.prefs-card')`.
+export function HeadersCard() {
+  return (
+    <section className="card prefs-card" data-tab="settings">
+      <h2>
+        <IconHeading className="card-ic" /><span>Headers</span>
+        <InfoHint label="Headers" width={320}>
+          The header is the block of text printed above the calendar in the PDF and the workbook.
+          Templates and presets stay on this computer; the header you apply travels inside the
+          calendar you save.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
         <HeaderPresets />
       </div>
     </section>
@@ -206,16 +233,31 @@ function HeaderPresets() {
 
   return (
     <div className="hdr-presets">
-      <Text size="xs" fw={500} className="hdr-presets-label">Header presets</Text>
-      <Text size="xxs" c="dimmed" className="hdr-presets-desc">
-        A saved arrangement of the nine header lines. Applying one changes this calendar; the preset
-        itself stays on this computer.
-      </Text>
-
-      {/* The editor is the place you BUILD a header; the controls below are for reusing one. */}
+      {/* ⚠️ The "Header presets" label and its description are gone (owner, 9 Sep 2026). The label
+          was also actively WRONG once the editor button landed under it: editing a template is not
+          a preset operation, and the description said "the nine header lines" when the format now
+          has ten. The card's own title says Headers; the presets get their own sub-label below. */}
       <button type="button" className="hdr-preset-btn hdr-preset-edit" data-hdrpreset="edit">
         Edit header template…
       </button>
+
+      {/* The Excel budget. Excel rejects a header over 255 characters IN TOTAL, codes included, and
+          fails ungracefully -- the workbook writes, then Excel calls it corrupt on open. The export
+          trimmer drops trailing lines to stay under, so nothing breaks; the user just loses lines
+          without being told. Templates make long headers easy to write, so show the number.
+          ⚠️ "about" is not hedging: this is a second copy of a frozen function's arithmetic and can
+          drift. exportExcel stays authoritative; the hdrexcel leg is the guard.
+          ⚠️ Moved here 9 Sep 2026: it describes THIS calendar's header, and among the preset
+          controls it read as a property of the selected preset. */}
+      {excelBudget ? (
+        <Text size="xxs" c={excelBudget.over ? 'danger.9' : 'dimmed'} className="hdr-presets-budget">
+          {excelBudget.over
+            ? `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters — too long, so the last lines will be dropped from the workbook.`
+            : `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters.`}
+        </Text>
+      ) : null}
+
+      <Text size="xs" fw={500} className="hdr-presets-label">Presets</Text>
 
       <Group gap="sm" wrap="nowrap" mt="xs">
         {/* Plain <select>, no id: legacy.css styles it, and nothing can sweep it into a file. */}
@@ -253,20 +295,6 @@ function HeaderPresets() {
           ) : null}
         </>
       )}
-
-      {/* The Excel budget. Excel rejects a header over 255 characters IN TOTAL, codes included, and
-          fails ungracefully -- the workbook writes, then Excel calls it corrupt on open. The export
-          trimmer drops trailing lines to stay under, so nothing breaks; the user just loses lines
-          without being told. Templates make long headers easy to write, so show the number.
-          ⚠️ "about" is not hedging: this is a second copy of a frozen function's arithmetic and can
-          drift. exportExcel stays authoritative; the hdrexcel leg is the guard. */}
-      {excelBudget ? (
-        <Text size="xxs" c={excelBudget.over ? 'danger.9' : 'dimmed'} className="hdr-presets-hint">
-          {excelBudget.over
-            ? `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters — too long, so the last lines will be dropped from the workbook.`
-            : `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters.`}
-        </Text>
-      ) : null}
 
       {/* Import is always offered: it is how someone gets their FIRST preset, when the list is
           still just Default and there is nothing of their own to export. */}

@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Preferences splits into Export Preferences and Headers
+
+Owner, 9 Sep 2026: *"this UI needs work. First remove the descriptions, theyre not necessary. Next,
+lets seperate preferences into 'Export Preferences' and a seperate section for 'Headers'."* Local,
+not pushed at time of writing.
+
+One card had become two unrelated things — a gridlines dropdown and the whole header system — under
+a heading that described neither. It is now **Export Preferences** (gridlines) and **Headers**
+(the template editor, the Excel budget, and the preset library), and the explanatory paragraphs
+under each control are gone; what was load-bearing in them moved into the ⓘ, which is where an
+explanation belongs once you already know what the control is.
+
+⛔ **`prefs-card` is the reason this needed care, and it carries no styling at all.** `grep` it in
+`legacy.css` and you find only comments — the class exists for exactly one job: `collectFieldValues()`
+sweeps every `input[id]` / `select[id]` / `textarea[id]` in the document and skips it. Split the card
+and forget the class on the new half, and every control in that half is silently baked into every
+saved calendar with a phantom undo step per keystroke. **Both** cards carry it. Nothing in Headers
+has an `id` today, so nothing would have broken today — which is precisely why it is there now,
+rather than after someone adds the first id'd control.
+
+**Two things fixed on the way, both in the app rather than the tests.** *Header presets* was the
+label above the *Edit header template…* button, and editing a template is not a preset operation;
+the presets now have their own sub-label under the card's own title. And the Excel budget moved up
+beside the editor button, because it describes **this calendar's header** and among the preset
+controls it read as a property of the selected preset.
+
+⛔ **Moving it exposed a class collision — the second of the day.** The budget and the "why Save-as
+is disabled" line both used `.hdr-presets-hint`, so `querySelector` returned whichever sat first in
+the markup; re-ordering them changed what every such lookup found, and the `hdrpreset` leg began
+asserting the budget text against the save hint. The budget is `.hdr-presets-budget` now and the two
+share the CSS **rule**, not the class. `hdrexcel` had been working around the same collision by
+scanning every hint and matching on the rendered words *"Excel header"* — a wording change would
+have quietly returned null; it asks for the class directly now.
+
+**Verified.** `hdrpreset` green (`.hdr-presets` still resolves `.closest('.prefs-card')`, zero ids in
+the block), `prefs` green, `hdrexcel` green. Full gate re-run.
+
 ### Unreleased — the live header restyled itself when you clicked it, and the Insert rail cut its values in half
 
 Both owner-reported, immediately after the editor shipped, and both are the same kind of mistake:

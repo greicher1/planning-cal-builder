@@ -94,6 +94,8 @@ window.addEventListener('load', function () { (async function () {
     // ---- 2. ⭐ H8: Save-as is refused in MANUAL, and says why -----------------------------------
     await mode('Manual');
     out.manualSaveDisabled = !!document.querySelector('.hdr-preset-save-open').disabled;
+    // ⚠️ .hdr-presets-hint is THE SAVE-AS HINT ONLY. The Excel budget is .hdr-presets-budget; the
+    // two shared this class until 9 Sep 2026, and this line then found whichever came first.
     var hintEl = document.querySelector('.hdr-presets-hint');
     out.manualHint = hintEl ? (hintEl.textContent || '').trim() : null;
     out.manualExplains = !!out.manualHint && /Template/.test(out.manualHint);
