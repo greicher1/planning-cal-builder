@@ -29,6 +29,105 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — header lines can be templates now, and there are three modes rather than two
+
+Step 2 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the largest. Local, not
+pushed at time of writing.
+
+**A header line can hold live data.** Write `Principal Photography {production.open} / Wrap:
+{production.wrap}` and it renders from the same schedule the auto header reads. Four constructs and
+nothing else: `{token}`, `{token:format}`, `[ … ]` conditional groups that vanish when any token
+inside them is empty, and `{{` `}}` `[[` `]]` for a literal brace or bracket. Every phase gets
+`.open` `.close` `.weeks` `.name` — built-in and custom alike — plus Show Info, dates in four
+formats, and three compound tokens that reproduce today's composite lines verbatim.
+
+**Three modes: Auto · Template · Manual** (owner decision H3). The mode button stopped being a
+two-state toggle and now opens a small menu, because a toggle cannot express three.
+
+⛔ **The frozen layer never learns about the third mode, and that is the whole design.**
+`renderSpreadsheetView` gates editability and the format toolbar on `headerMode === 'manual'`. That
+gate is untouched: `headerMode` keeps its two values, and Template is `manual` **plus** a new
+module-level `let headerTemplates` that the frozen function reads at call time — the pattern
+`CLAUDE.md` sanctions and `SHEET_GRIDLINES` already uses. `headerManual` holds raw templates while
+the flag is on and literal text while it is off. One store, one flag.
+
+**Resolution happens in `headerLine()`** — the one function the screen, `exportExcel` and
+`buildWaterfallPdf` all call. So the three consumers cannot disagree, and its signature did not
+change (three of its call sites are frozen). The token context rides on `computeHeaderDefaults()`'s
+return value.
+
+⚠️ **That carriage had a trap the plan did not catch, and it would have polluted the save format
+forever.** The plan says to hang the context on `defaults.__ctx`. But that return value is assigned
+*directly* to `headerManual` in two places — the popover's Auto → Manual snapshot and the legacy
+`headerOverrides` restore path — and `headerManual` goes into `captureSnapshot()`. An ordinary
+property would therefore have been serialised into every saved calendar and every undo frame, as a
+junk key in a permanent contract. It is defined **non-enumerable**, which `JSON.stringify`,
+`Object.assign` and spread all skip while `defaults.__ctx` still reads normally. The `hdrtemplate`
+leg asserts the consequence rather than trusting the flag.
+
+**⛔ ONE FROZEN EDIT, and it is the one that was signed off** (H3b, 1 Sep 2026): the mode button's
+label and title expressions each gain a case for *Header: Template*. Nothing else in
+`renderSpreadsheetView` changed — not the `class` expression, not the `manual` gate, not `hline()`.
+With the flag false both expressions collapse to today's exact strings, which is what the sign-off
+was conditional on, and the leg asserts it in both Auto and Manual.
+⚠️ The Auto and Manual **titles are left verbatim** even though the button now opens a menu, so
+*"Take over the header: snapshot the current values into editable lines"* is no longer quite what a
+click does. Rewriting them would change the flag-false output and widen an edit whose scope is
+"gains a case". Correcting that wording is a second frozen edit and needs its own ruling.
+
+**Editing a template line shows the template.** Frozen `hline()` emits *resolved* text, so a line
+holding `{version}` displays `v3` — and committing that on blur would have destroyed the token
+silently. A `focusin` listener swaps the raw template in while the line has focus; blurring
+re-renders it resolved.
+
+⚠️ **The leg found a real bug in that pair while it was being written.** The `focusout` handler
+returned early when the text was unchanged — correct for Manual, wrong for Template, because the
+swap had already put the raw form on screen. Focus a template line, blur without typing, and
+`{version}` stayed visible until something else happened to re-render. It now re-renders in that
+case, and deliberately does **not** mark the file dirty: a repaint is not an edit.
+
+⚠️ **A design flaw in the resolver, caught by its own test.** The first cut resolved in stages —
+protect the escapes, then groups, then tokens — and staged passes cannot tokenise `{{{title}}}`: the
+escape pass eats the leading `{{` and then the first `}}` it meets, which is the token's own closing
+brace plus one, so the token never forms and the line came out `{{title}}` — neither literal nor
+resolved. Replaced with a single left-to-right scanner, which also makes **one pass** true by
+construction rather than by sentinel trickery: a resolved value is appended to the output and never
+looked at again, so a show titled `{today}` prints the words `{today}`.
+
+**Verified.**
+
+- **`prove-header-template.mjs`** — 73 cases in Node against the **real** resolver, its source
+  sliced verbatim out of `src/legacy/app.js` so the test cannot drift from the implementation. Every
+  §3.1 rule, every §3.2 token, all four date formats, the unknown-token and escape rules, group
+  collapse, and both local/UTC formatting paths.
+- **`hdrtemplate`** — the engine end to end in the real app: tokens resolve on screen, in the
+  workbook's header and in the PDF's drawn text; no *known* token survives unresolved in either
+  export; the compound tokens still equal the hand-coded auto lines (the drift guard for the one
+  duplicated statement); a real saved copy stores `T={title} V={version} E={episodes}` **raw**;
+  `__ctx` is absent from the snapshot; the bake warns before it bakes; each transition is one undo
+  step; and Manual prints `Draft {today} - {version} - {episodes}` **with the braces**.
+- **`hdrverload`** now runs against a third fixture, `hdrmanualbraces.sptcal` — real
+  `captureSnapshot()` output saved in Manual with braces in two header lines. It reopens rendering
+  every stored line verbatim. ⭐ That is decision **H4** proved against an actual file rather than by
+  construction, and it is the assertion that says this feature is safe for calendars already in the
+  wild.
+- ⭐ **Both Node provers now run inside `gate.sh`, and neither ever did.**
+  `prove-col-permutation.mjs` has existed since the column-swap work and was named in a comment as
+  something to run *by hand* — so the invariance theorem that whole feature rests on was, in
+  practice, unguarded. They are sub-second. They run now, and both are green
+  (`RESULT: THEOREM HOLDS.`).
+
+**Gate: 220 pass, 0 fail.** ⭐ **And the freeze claim was checked mechanically, not by eye:** of the
+460 lines this step adds to `src/legacy/app.js`, brace-matching every frozen function's range against
+the diff puts exactly **one** inside any of them — the authorised H3b line. The other 459 are
+outside the frozen surface.
+
+⏭ **Steps 3–6 remain.** The built-in `DEFAULT_HEADER_TEMPLATE` and the token palette (Step 3), the
+preset library (Step 4), `.spthdr` files (Step 5), the Excel budget meter (Step 6). Auto → Template
+currently seeds from the resolved auto values rather than the default template, which is honest but
+means the seeded lines carry no tokens until Step 3 lands.
+
+
 ### Unreleased — gate 5 had not run since the baseline was cut, and the stall everyone blamed was never the problem
 
 Local, not pushed at time of writing. No app code changed: this is entirely the test harness and the

@@ -52,7 +52,15 @@ window.addEventListener('load', function () { (async function () {
     // or a broken versionLabel would agree with itself. Owner decision H1 -- "v" plus the input with
     // a single leading v/V stripped, and an empty field is EMPTY, never a bare "v".
     var stripped = fixtureValue.trim().replace(/^[vV]/, '').trim();
-    out.expectedLabel = stripped ? 'v' + stripped : '';
+    // What l2 SHOULD read. Normally the auto default -- "v" plus the version field. But a fixture
+    // saved in Manual or Template stores its own l2, and a stored line wins over the default
+    // (headerLine checks `id in headerManual` first). In Manual that stored text is literal, which
+    // is the only case this leg's fixtures exercise; a Template fixture would need resolving and is
+    // covered by t/hdrtemplate.js instead.
+    var storedL2 = (fixture.headerManual || {})['l2'];
+    out.expectedLabel = (storedL2 !== undefined && fixture.headerMode === 'manual')
+      ? String(storedL2).trim()
+      : (stripped ? 'v' + stripped : '');
 
     await T.until(function () {
       return document.querySelectorAll('table.sheet-table tbody tr').length > 1;
@@ -103,10 +111,51 @@ window.addEventListener('load', function () { (async function () {
     out.excelL = String(sections.L || '').replace(/&(?:"[^"]*"|K[0-9A-Fa-f]{6}|\d{1,3}(?=&")|[A-Z])/g, '');
     out.excelMatches = out.excelL === (out.expectedLabel ? todayStr + '\n' + out.expectedLabel : todayStr);
 
+    // ---- the header MODE came back with the file, and Manual still never resolves ---------------
+    // ⭐ THE H4 PROOF FOR FILES ALREADY IN THE WILD. A calendar saved in Manual whose header happens
+    // to contain braces must reopen printing those braces. It is safe by construction -- no file
+    // written before this feature carries headerTemplates, so the flag restores false and
+    // headerLine() never calls the resolver -- but "by construction" is exactly the kind of claim
+    // that is worth an actual file. hdrmanualbraces.sptcal is that file: real captureSnapshot()
+    // output, headerMode 'manual', headerTemplates false, and {today}/{version}/{episodes} sitting
+    // in a header line.
+    var btn = document.getElementById('hdr-mode-btn');
+    out.modeLabel = btn ? (btn.textContent || '').trim() : null;
+    var fixtureMode = fixture.headerMode === 'manual'
+      ? (fixture.headerTemplates === true ? 'Header: Template' : 'Header: Manual')
+      : 'Header: Auto';
+    out.expectedModeLabel = fixtureMode;
+    out.modeMatches = out.modeLabel === fixtureMode;
+
+    // Every header line the fixture stored, against what the app rendered for it.
+    var stored = fixture.headerManual || {};
+    var rendered = {};
+    document.querySelectorAll('#table-wrap .hdr-line[data-hid]').forEach(function (l) {
+      rendered[l.dataset.hid] = (l.textContent || '').trim();
+    });
+    out.storedLines = stored;
+    out.renderedLines = rendered;
+    // In MANUAL (the flag false) a stored line must render VERBATIM -- braces and all. In Template
+    // it must not: the tokens are the point.
+    if (fixture.headerMode === 'manual' && fixture.headerTemplates !== true) {
+      var mismatched = Object.keys(stored).filter(function (hid) {
+        return rendered[hid] !== String(stored[hid] || '').trim();
+      });
+      out.manualVerbatimMismatches = mismatched;
+      out.manualRendersVerbatim = mismatched.length === 0;
+      var withBraces = Object.keys(stored).filter(function (hid) { return String(stored[hid]).indexOf('{') >= 0; });
+      out.linesWithBraces = withBraces;
+      out.bracesSurvived = withBraces.every(function (hid) { return rendered[hid].indexOf('{') >= 0; });
+    } else {
+      out.manualRendersVerbatim = true;   // not the case under test for this fixture
+      out.bracesSurvived = true;
+    }
+
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
     out.PASS = out.stateApplied && out.fieldFound && out.fieldRestored &&
                out.l2Found && out.headerMatches && out.visibilityMatches && out.excelMatches &&
+               out.modeMatches && out.manualRendersVerbatim && out.bracesSurvived &&
                out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {
     out.EX = e && (e.message || String(e));

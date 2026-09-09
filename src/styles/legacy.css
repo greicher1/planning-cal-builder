@@ -455,6 +455,33 @@
   .phase-color-pop .pc-sw{ width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; }
   .phase-color-pop .pc-sw:hover{ transform:scale(1.12); }
   .phase-color-pop .pc-sw.selected{ outline:2px solid #333; outline-offset:1px; }
+
+  /* The header MODE menu (Auto / Template / Manual). A body-level panel anchored to
+     #hdr-mode-btn, built by openHeaderModePop() the same way the colour picker above is built --
+     so it takes the same white/gray-3/shadow-md treatment every other floating panel wears.
+     ⛔ Nothing in here carries an id: collectFieldValues() sweeps id'd controls into every saved
+     calendar, so this menu is buttons and classes only. */
+  .hdr-mode-pop{
+    position:absolute; z-index:200; background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
+    padding:var(--mantine-spacing-xs); box-shadow:var(--mantine-shadow-md);
+    display:flex; flex-direction:column; gap:2px; width:290px;
+  }
+  .hdr-mode-choice{
+    display:flex; flex-direction:column; gap:1px; align-items:flex-start; text-align:left;
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md);
+    border:1px solid transparent; border-radius:var(--mantine-radius-sm);
+    background:transparent; cursor:pointer; font-family:inherit; width:100%;
+  }
+  .hdr-mode-choice:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  /* The current mode is the disabled row, so it reads as "where you are" rather than as a
+     dead control -- full-strength ink, and a tinted ground instead of the usual grey-out. */
+  .hdr-mode-choice:disabled{ cursor:default; background:var(--mantine-color-gray-1); }
+  .hdr-mode-name{ font-size:var(--mantine-font-size-sm); font-weight:600; color:var(--mantine-color-gray-9); }
+  .hdr-mode-desc{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.35; }
+  /* The bake warning on Template -> Manual. Said before the click, because the tokens do not
+     come back except through undo. */
+  .hdr-mode-warn{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-danger-9); line-height:1.35; }
   /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
      Holiday hiatus, but scoped to the single phase it sits under. */
   /* The per-phase hiatus reads as its own ruled-off section of the block, not a stray toggle. */

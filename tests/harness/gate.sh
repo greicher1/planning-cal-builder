@@ -764,14 +764,20 @@ PY
 # Run TWICE, against two real fixtures, because the two directions are different rules:
 #   * hdrversion.sptcal   carries "show-version":"3" -> the field and the header must come back;
 #   * colswap-2col.sptcal was written before the field existed -> the field must be EMPTY and the
-#     slot hidden. applyStateSnapshot() replays the SNAPSHOT's keys, so without the guard above its
+#     slot hidden.
+#   * hdrmanualbraces.sptcal is saved in MANUAL with {today}/{version}/{episodes} sitting in two
+#     header lines -> every stored line must render VERBATIM, braces and all. ⭐ That is decision
+#     H4 proved against a real file rather than by construction: no calendar written before the
+#     template engine carries headerTemplates, so the flag restores false and headerLine() never
+#     calls the resolver. It is the assertion that says the whole feature is safe for calendars
+#     already in the wild. applyStateSnapshot() replays the SNAPSHOT's keys, so without the guard above its
 #     step 3 a field the snapshot never mentions keeps the PREVIOUSLY OPEN calendar's value -- open a
 #     calendar with version 3, then open a pre-Step-1 file, and the second show's header prints v3.
 #     That is CLAUDE.md's "a missing key falls back to a default, never to whatever is in memory".
 # ⚠️ Both go through the INLINE ?state= path, which is the same applyStateSnapshot the picker uses.
 # The two-files-in-sequence case needs the picker, which stalls on IndexedDB here -- see the
 # `restore` leg above, which fails for exactly that reason. Not proved by this harness; said out loud.
-for HVFIX in hdrversion colswap-2col; do
+for HVFIX in hdrversion colswap-2col hdrmanualbraces; do
 HARNESS_PAGE="$PAGE" HARNESS_STATE="$HVFIX" "$HERE/run.sh" hdrverload 90 >/dev/null 2>&1
 python3 - "$HERE/hdrverload.json" "$HVFIX" <<'PY' || FAIL=1
 import json,sys
@@ -797,6 +803,86 @@ hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"hdrverload[{fix}]: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
+done
+
+# ---- hdrtemplate: the template engine and the THREE header modes --------------------------------
+# HEADER-PRESETS-PLAN.md Step 2. Carries BOTH §7 item 5 and item 5b in one leg -- every leg costs its
+# full timeout in wall-clock whether it needs it or not, and the assertions are what matter.
+# ⭐ FOUR ASSERTIONS ARE THE EXPENSIVE ONES TO GET WRONG:
+#   h3b*Inert    -- the mode button's label/title is the ONE authorised frozen edit in this plan, and
+#                   the sign-off is conditional on it being byte-identical while the flag is false.
+#   storesRaw    -- headerManual holds TEMPLATES, the consumers get TEXT. Backwards, and either a
+#                   preset stamps one calendar's values onto every other one, or the user's first
+#                   click into a line destroys the token.
+#   ctxLeaked    -- computeHeaderDefaults() hangs the token context on its return value, and that
+#                   value is assigned straight to headerManual in two places. It is defined
+#                   NON-ENUMERABLE so JSON.stringify/Object.assign/spread cannot see it; this asserts
+#                   the consequence rather than trusting the flag.
+#   manualPrintsBraces -- Manual never resolves. Decision H4.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrtemplate 170 >/dev/null 2>&1
+python3 - "$HERE/hdrtemplate.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrtemplate produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdrtemplate threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('h3bAutoInert'),
+    f"hdrtemplate: ⭐ H3b inert in Auto -- the button is byte-identical to before the frozen edit ({a.get('autoLabel')!r})")
+chk(a.get('h3bManualInert'),
+    f"hdrtemplate: ⭐ H3b inert in Manual -- likewise ({a.get('manualLabel')!r})")
+chk(a.get('tplIsTemplate'), f"hdrtemplate: the third mode reads 'Header: Template' ({a.get('tplLabel')!r})")
+chk(a.get('tplEditable') and a.get('tplToolbar'),
+    "hdrtemplate: Template IS manual to the frozen gate -- lines editable, format toolbar present")
+chk(a.get('resolvesOnScreen'), f"hdrtemplate: tokens resolve on screen ({a.get('c4Resolved')!r})")
+chk(a.get('unknownSurvives'), f"hdrtemplate: an unknown token and an escape survive as typed ({a.get('c2Resolved')!r})")
+chk(a.get('groupsWork'),
+    f"hdrtemplate: an unsatisfiable [group] collapses, a satisfied one renders ({a.get('emptyGroup')!r} / {a.get('fullGroup')!r})")
+chk(a.get('noCompoundDrift'),
+    f"hdrtemplate: ⭐ the compound tokens still equal the hand-coded auto lines -- the drift guard {a.get('compoundVsAuto')}")
+chk(a.get('focusShowsRaw'), f"hdrtemplate: ⭐ focusing a line shows the RAW template, so an edit cannot destroy the token ({a.get('rawOnFocus')!r})")
+chk(a.get('blurRestoresResolved'), f"hdrtemplate: blurring puts the resolved text back ({a.get('afterBlur')!r})")
+chk(a.get('excelHasNoUnresolved') and a.get('excelCarriesResolved'),
+    f"hdrtemplate: the workbook carries resolved text and no unresolved token {a.get('excelUnresolved')}")
+chk(a.get('pdfDrewResolved') and a.get('pdfHasNoUnresolved'),
+    f"hdrtemplate: the PDF drew resolved text and no unresolved token {a.get('pdfUnresolved')}")
+chk(a.get('storesRaw'), f"hdrtemplate: ⭐ a real saved calendar stores the RAW template, not the value ({a.get('snapRawC4')!r})")
+chk(a.get('flagTravels'), f"hdrtemplate: headerTemplates travels in the file (mode={a.get('snapHeaderMode')!r}, flag={a.get('snapHeaderTemplates')})")
+chk(not a.get('ctxLeaked'), "hdrtemplate: ⭐ __ctx is NOT in the save format -- the non-enumerable carriage holds")
+chk(not a.get('popInCopy'), f"hdrtemplate: no stray mode popover baked into a shareable copy ({a.get('popElementsInCopy')} elements)")
+chk(a.get('warnsBeforeBaking'), f"hdrtemplate: Template -> Manual warns BEFORE it bakes -- {a.get('bakeWarning')!r}")
+chk(a.get('bakeFroze') and a.get('noSwapInManual'),
+    f"hdrtemplate: the bake froze the values and the tokens are gone ({a.get('bakedC4')!r})")
+chk(a.get('manualPrintsBraces'), f"hdrtemplate: ⭐ MANUAL NEVER RESOLVES -- decision H4 ({a.get('manualBraces')!r})")
+chk(a.get('autoEmptiedStore'), "hdrtemplate: -> Auto discards headerManual, as 'Header: Auto' always has")
+chk(a.get('oneUndoStep'), f"hdrtemplate: each transition is ONE undo step ({a.get('afterAuto')!r} -> undo -> {a.get('afterUndo')!r})")
+chk(not a.get('errors'), f"hdrtemplate: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrtemplate: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
+# ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
+# ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
+# column-swap work and was mentioned in a comment above as something to run BY HAND -- so the
+# invariance theorem the whole swap feature rests on was unguarded in CI in practice. They are Node,
+# they take under a second each, and they slice their subject verbatim out of src/legacy/app.js, so
+# a shape change fails loudly rather than testing a stale copy. Run them.
+for PROVER in prove-header-template prove-col-permutation; do
+  if [[ ! -f "$HERE/$PROVER.mjs" ]]; then bad "prover $PROVER.mjs is missing"; continue; fi
+  if POUT="$(node "$HERE/$PROVER.mjs" 2>&1)"; then
+    # Pull the verdict LINES, not a fixed offset from the end: the two provers do not print the
+    # same shape (one ends on a count then a RESULT, the other on a RESULT alone), and `tail -2 |
+    # head -1` picked a blank line for the second one.
+    ok "$PROVER: $(print -r -- "$POUT" | grep -E 'checks passed|^RESULT' | tr '\n' ' ')"
+  else
+    bad "$PROVER FAILED: $(print -r -- "$POUT" | tail -6 | tr '\n' ' ')"
+  fi
 done
 
 say ""

@@ -105,7 +105,10 @@ you are testing*. `gate.sh` overrides it to `/dist/index.html`; `run.sh` does no
 | `t/fence.js` | every computed style on the frozen surface, so two pages can be compared property by property |
 | `t/fsprobe.js` | diagnostic only: is the file menu hidden because IndexedDB never opened? Run it on BOTH pages |
 | `t/hdrversion.js` | the version number typed into Show Info reaches the header's bottom-left slot — and an EMPTY field changes nothing on screen, in `&L` or in the PDF |
-| `t/hdrverload.js` | the same version RESTORED from a file, nothing typed. Needs `HARNESS_STATE`; run twice — `hdrversion` (carries a version) and `colswap-2col` (written before the field existed, so the field must come back empty) |
+| `t/hdrverload.js` | the same version RESTORED from a file, nothing typed, plus the header MODE that came with it. Needs `HARNESS_STATE`; run three times — `hdrversion` (carries a version), `colswap-2col` (written before the field existed, so the field must come back empty) and `hdrmanualbraces` (saved in Manual with braces in two header lines, which must render verbatim — decision H4 against a real file) |
+| `t/hdrtemplate.js` | the template engine and the three modes end to end: tokens resolve in all three consumers, the store holds RAW templates, `__ctx` never reaches the save format, the bake warns first, Manual never resolves, and the ONE frozen edit (H3b) is inert while the flag is false |
+| `prove-header-template.mjs` | 73 cases against the REAL resolver in Node, its source sliced verbatim out of `src/legacy/app.js`. Every §3.1 rule and §3.2 token. ⭐ Run by `gate.sh` |
+| `prove-col-permutation.mjs` | the column-swap invariance theorem, fuzzed against the real `computeBlockLayout`. ⚠️ **Was never run by `gate.sh` until 8 Sep 2026** — it was named in a comment as something to run by hand, so the theorem the swap feature rests on was unguarded in practice. It runs now |
 
 ## Traps this harness has already fallen into
 

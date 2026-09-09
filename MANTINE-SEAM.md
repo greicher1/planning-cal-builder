@@ -715,6 +715,21 @@ compares against exactly that file, so **do not renumber them.** What has joined
 
 And one that is **deliberately NOT** in the format, which is the more instructive case:
 
+⚠️ **Since 8 Sep 2026 `computeHeaderDefaults()` returns a CARRIER, not just nine strings.** It hangs
+the header-template token context on its return value as a **non-enumerable** `__ctx`, because
+`headerLine(id, defaults)`'s signature cannot change (three frozen call sites) and the context has to
+reach it. Non-enumerable is load-bearing rather than tidy: that same return value is assigned
+directly to `headerManual` in two places, and `headerManual` is in `captureSnapshot()`, so an
+ordinary property would be serialised into every saved calendar. `JSON.stringify`, `Object.assign`
+and spread all skip it. ⛔ Anything that copies the defaults object must copy the NINE STRINGS
+(`Object.assign({}, …)`), never adopt the object itself.
+
+⚠️ **A sixth body-level panel exists: `.hdr-mode-pop`** (8 Sep 2026), the Auto/Template/Manual menu.
+It is in both panel lists it has to be in — `OVER_PANEL`, so `hitCell()` stops descending through it,
+and `buildSavedHtml()`'s clone strip, so a Share click with the menu open does not bake it into the
+copy. Asserted by the `hdrtemplate` leg (parsed, not regexed — the copy legitimately contains the
+string in its inlined stylesheet and in the engine's own source).
+
 - `pref-gridlines` (3 Sep 2026) — a *preference*, not calendar data. It lives inside `.prefs-card`,
   and `collectFieldValues()` skips that class, so it never enters a saved file. ⛔ The rule the two
   cases draw between them: *how this person likes headers/gridlines* is a preference and must sit

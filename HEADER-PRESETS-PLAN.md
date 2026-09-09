@@ -9,13 +9,20 @@ Written 1 Sep 2026 for Opus 5 to build from. Self-contained: assumes no memory o
 produced it. Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) first. This is a plan, not a
 record of work done.
 
-> ◐ **BUILD STATUS, 8 Sep 2026 — STEP 1 OF SIX IS BUILT; STEPS 2–6 ARE NOT.** Everything in §3.3
-> (the `show-version` field, `versionLabel()`, `l2`'s auto default, the listener, the `resetAll()`
-> clear) has landed, with no frozen edit, and gate legs `hdrversion` + `hdrverload`. The template
-> engine, the three modes, the palette, the preset library, the files and the budget meter — §§3.1,
-> 3.2, 3.4–3.8 and steps 2–6 — are still exactly as planned and **not built**. The single authorised
-> frozen edit (**H3b**) belongs to Step 2 and has **not** been made. See `README.md`'s changelog entry
-> and `HANDOFF.md` §2b for what was verified and what is not proven.
+> ◐ **BUILD STATUS, 8 Sep 2026 — STEPS 1 AND 2 ARE BUILT; STEPS 3–6 ARE NOT.**
+> **Step 1** (§3.3): the `show-version` field, `versionLabel()`, `l2`'s auto default, the listener,
+> the `resetAll()` clear. No frozen edit. Legs `hdrversion` + `hdrverload`.
+> **Step 2** (§§3.1, 3.2, 3.4): `buildHeaderCtx()`, `resolveHeaderTemplate()` and its scanner, the
+> `headerTemplates` flag, `headerLine()` resolving, the `__ctx` carriage, the `focusin` raw swap, the
+> snapshot key, the mode popover with all five transitions, **and the one authorised frozen edit
+> (H3b) — now MADE**, scoped to the label/title expressions and inert while the flag is false. Legs
+> `hdrtemplate` + `prove-header-template.mjs` (73 cases) + a third `hdrverload` fixture.
+> **Not built:** the `DEFAULT_HEADER_TEMPLATE` and the palette (§3.7, Step 3), the preset library
+> (§3.5, Step 4), `.spthdr` files (§3.6, Step 5), the budget meter (§3.8, Step 6).
+> ⚠️ **Two things the plan got wrong, corrected in place:** §3.3 item 5 (a missing key does NOT
+> restore an empty field) and the `defaults.__ctx` carriage, which must be **non-enumerable** or it
+> is serialised into every saved calendar — see §3.4's note. See `README.md`'s changelog entries and
+> `HANDOFF.md` §2b for what was verified and what is not.
 
 > ⚠️ **This document quotes no line numbers, deliberately.** `tools/check-refs.py` fails the deploy on
 > a number in prose. Every claim names a symbol; `LC_ALL=C grep -ano 'symbol' src/legacy/app.js` finds
@@ -213,6 +220,19 @@ function resolveHeaderTemplate(str, ctx){
 }
 ```
 
+> ⛔ **THE FOUR-STAGE SHAPE ABOVE DOES NOT WORK, and Step 2 replaced it with a single left-to-right
+> scanner.** Staged passes cannot tokenise `{{{title}}}`: the escape pass eats the leading `{{` and
+> then the FIRST `}}` it meets — which is the token's own closing brace plus one — so the token never
+> forms and the line renders `{{title}}`, neither literal nor resolved. Caught by
+> `prove-header-template.mjs`. One scan reads `{{` → literal, `{title}` → token, `}}` → literal,
+> which is the reading a person would give it. It also makes **one pass** true by construction rather
+> than by protecting values with sentinels: a resolved value is appended to the output and the
+> scanner never looks at it again.
+>
+> ⚠️ **One case §3.1 does not state, decided in Step 2:** an **unknown** token inside a `[group]` is
+> literal text and does **not** gate the group. That follows from "unknown renders as typed" — it
+> never resolved, so it cannot have resolved empty. So `[a {unknown} b]` renders `a {unknown} b`.
+
 ### 3.2 The token catalogue — every value the header can show
 
 All values are read the way `computeHeaderDefaults` already reads them: Show Info from the DOM by id,
@@ -356,6 +376,19 @@ headerManual` — a line still showing its auto default has no raw form.
 
 **Applying a preset** = `headerManual = {…preset.lines}; headerFormat = {…preset.format};
 headerTemplates = true; headerMode = 'manual'; render; markDirty` inside `asOneUndoStep`.
+⚠️ **`asOneUndoStep` is NOT in scope from the header code** (found in Step 2): it is declared inside
+the shift-tools IIFE, along with the `refreshMenuFromCalendar()` it calls. Step 2 added
+`asOneHeaderStep()` beside the header code with the same contract and a smaller body; use that.
+
+> ⛔ **CORRECTED 8 Sep 2026 — `defaults.__ctx` MUST BE NON-ENUMERABLE.** The plan says to carry the
+> token context on the defaults object, which is right, but an ordinary property is unsafe:
+> `computeHeaderDefaults()`'s return value is assigned **directly** to `headerManual` in two places
+> — the Auto → Manual snapshot, and the legacy `headerOverrides` restore path — and `headerManual`
+> is in `captureSnapshot()`. So a plain `__ctx` is serialised into every saved calendar and every
+> undo frame, as a junk key in a permanent contract. Step 2 defines it with
+> `Object.defineProperty(out, '__ctx', { value: …, enumerable: false })`: `JSON.stringify`,
+> `Object.assign` and `{...spread}` all skip non-enumerable properties, while `defaults.__ctx` still
+> reads normally. The `hdrtemplate` leg asserts the snapshot does not contain the string `__ctx`.
 
 **The Default preset.** Ships built in, read-only, first in every list, and is also what *Auto →
 Template* seeds from:

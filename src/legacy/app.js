@@ -770,7 +770,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -5817,7 +5817,7 @@ export function initLegacyApp() {
     const headerBar = `<div class="hdr-tools">
       ${manual ? headerFmtToolbarHtml(false) : '<span class="hdr-fmt-spacer"></span>'}
       <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
-      <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?'Discard manual header edits and return to auto-filled values':'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?'Header: Manual':'Header: Auto'}</button>
+      <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?(headerTemplates?'Header lines are templates -- your text plus live data in braces. Click to change mode':'Discard manual header edits and return to auto-filled values'):'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?(headerTemplates?'Header: Template':'Header: Manual'):'Header: Auto'}</button>
     </div>
     <div class="cal-header-bar${manual?' hdr-manual-mode':''}">
       <div class="cal-header-date">
@@ -5862,13 +5862,43 @@ export function initLegacyApp() {
   // Commit an edited line on blur: if the text differs from the auto default it becomes a
   // per-line override (empty text = intentionally blank line); if it matches the default the
   // override is removed so the line goes back to auto-updating.
+  // ⭐ RAW ON FOCUS -- the other half of the focusout commit below, and without it Template mode
+  // destroys a token on the user's first click.
+  //
+  // Frozen hline() emits the RESOLVED text, because that is what the screen has to show. So a line
+  // holding `{version}` displays "v3"; a user clicks in, and the focusout handler below commits
+  // whatever textContent says -- the literal "v3". The token is gone, silently, and the line stops
+  // tracking the data it was written to track. Swapping the raw template in on focus is what makes
+  // the edit round-trip: you edit what you wrote, and blurring re-renders it resolved.
+  //
+  // ⛔ ONLY when the id is already in headerManual. A line still showing its auto default has no raw
+  // form to show, and writing one would invent a manual override the user never made.
+  document.getElementById('table-wrap').addEventListener('focusin', e=>{
+    if(headerMode !== 'manual' || !headerTemplates) return;
+    const line = e.target && e.target.closest ? e.target.closest('.hdr-line[data-hid]') : null;
+    if(!line) return;
+    const id = line.dataset.hid;
+    if(!(id in headerManual)) return;
+    const raw = headerManual[id];
+    if(line.textContent !== raw) line.textContent = raw;
+  });
   document.getElementById('table-wrap').addEventListener('focusout', e=>{
     if(headerMode !== 'manual') return;
     const line = e.target.closest && e.target.closest('.hdr-line');
     if(!line) return;
     const id = line.dataset.hid;
     const text = (line.textContent || '').replace(/\u00a0/g,' ').trim();
-    if((headerManual[id] || '') === text) return; // nothing changed
+    if((headerManual[id] || '') === text){
+      // ⚠️ NOTHING CHANGED -- but in Template mode the line is still showing its RAW form, because
+      // the focusin swap above put it there. Returning here without a render leaves `{version}`
+      // sitting in the header until something else happens to re-render, which reads as the token
+      // having failed to resolve. Found by the hdrtemplate leg: focus a template line, blur without
+      // typing, and the braces stayed on screen. Re-render to put the resolved text back.
+      // ⛔ No markDirty(): nothing about the calendar changed, so this must not create an undo step
+      // or mark the file unsaved. A render is a repaint, not an edit.
+      if(headerTemplates) render(currentSchedule);
+      return;
+    }
     headerManual[id] = text;
     render(currentSchedule);
     markDirty(); // was previously missing here -- header edits were invisible to save-dirty tracking and undo
@@ -5914,16 +5944,9 @@ export function initLegacyApp() {
 
   document.getElementById('table-wrap').addEventListener('click', e=>{
     if(e.target && e.target.id === 'hdr-mode-btn'){
-      if(headerMode === 'auto'){
-        // Switch to Manual: snapshot the current auto values into editable lines.
-        headerManual = computeHeaderDefaults(currentSchedule);
-        headerMode = 'manual';
-      } else {
-        // Switch to Auto: discard manual edits, go back to live auto-fill.
-        headerMode = 'auto';
-        headerManual = {};
-      }
-      render(currentSchedule);
+      // ⭐ Was a two-state TOGGLE; it now opens a three-choice menu, because there are three modes
+      // (H3) and a toggle cannot express three. The transitions live in setHeaderMode().
+      openHeaderModePop(e.target);
       return;
     }
     if(e.target && e.target.id === 'notes-reset-btn'){
@@ -7303,6 +7326,22 @@ export function initLegacyApp() {
   // the seven editable lines when in manual mode.
   let headerMode = 'auto';
   let headerManual = {}; // { left, c1, c2, c3, r1, r2, r3 }
+  // ⛔ THE THIRD MODE, AND WHY IT IS A FLAG RATHER THAN A THIRD VALUE OF headerMode (decision H3).
+  // Frozen renderSpreadsheetView gates editability and the format toolbar on
+  // `const manual = headerMode === 'manual'`. That gate is NOT edited, so headerMode keeps its two
+  // values -- on disk and in memory -- and Template mode is `manual` PLUS this flag. A `let` the
+  // frozen function can read at call time is the pattern CLAUDE.md sanctions ("change the
+  // DECLARATION, not the call sites"), and it is what SHEET_GRIDLINES already does.
+  //
+  // headerManual holds RAW TEMPLATES while this is true and LITERAL TEXT while it is false. One
+  // store, one flag. headerLine() resolves only when it is true, so Manual behaves byte-for-byte as
+  // it always has -- a legacy manual header containing "{today}" prints {today}, because no file
+  // written before this feature carries the flag.
+  //
+  // ⛔ Do not turn this into a const, do not copy it into a local at load, and do not let the frozen
+  // `manual` gate read it. The one authorised frozen edit (H3b) is the mode button's label
+  // expression and nothing else.
+  let headerTemplates = false;
   // The month view has its own header with its own auto/manual switch. It's deliberately
   // INDEPENDENT of the waterfall header above: the two documents are printed separately and
   // often want different wording, so taking one manual never touches the other.
@@ -7625,6 +7664,369 @@ export function initLegacyApp() {
     return num ? 'v' + num : '';
   }
 
+  // ---------- Header templates (HEADER-PRESETS-PLAN.md Step 2) ----------
+  //
+  // A header line can be a TEMPLATE: literal text mixed with {tokens} that resolve from the same
+  // data the auto header reads. `Principal Photography {production.open}` renders live.
+  //
+  // ⛔ RESOLUTION HAPPENS IN headerLine(), THE ONE FUNCTION ALL THREE CONSUMERS CALL -- the screen
+  // inside frozen renderSpreadsheetView, exportExcel and buildWaterfallPdf. That is the whole
+  // design: they cannot disagree, and not one frozen line changes. Do not resolve anywhere else.
+
+  // ⚠️ LOCAL vs UTC is not a style choice. {today} is the reader's own calendar date -- that is what
+  // computeHeaderDefaults() has always printed -- while every schedule date is UTC midnight
+  // (parseDateUTC / mondayOf). Format one with the other's getters and the date lands a day out for
+  // readers west of UTC. So a date token carries the flag with it rather than letting the formatter
+  // guess.
+  function hdrDate(d, local){ return d ? { __hdrDate: d, local: !!local } : ''; }
+  const HDR_MONTHS = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+  function fmtHeaderDate(box, fmt){
+    const d = box.__hdrDate, L = box.local;
+    const y   = L ? d.getFullYear() : d.getUTCFullYear();
+    const m   = (L ? d.getMonth()   : d.getUTCMonth()) + 1;
+    const day = L ? d.getDate()     : d.getUTCDate();
+    switch(fmt){
+      case 'slash': return `${m}/${day}/${String(y).slice(2)}`;   // the grid's fmtShort
+      case 'long':  return `${HDR_MONTHS[m-1]} ${day}, ${y}`;
+      case 'iso':   return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      default:      return `${m}.${day}.${String(y).slice(2)}`;   // 'dot' -- the header's own form
+    }
+  }
+
+  // Every value a token can carry, built ONCE per render and handed to headerLine() on the defaults
+  // object. Reads exactly what computeHeaderDefaults() reads: Show Info from the DOM by id, schedule
+  // facts from the schedule it is passed, phase names from getAllPhaseDefs().
+  //
+  // A token's value is '' when it has nothing to say -- that is what empties a [group]. A token that
+  // is not in this map AT ALL is unknown and renders as typed, braces included, which is what makes
+  // turning existing hand-typed manual text into templates safe for every file already saved.
+  function buildHeaderCtx(schedule){
+    const t = {};
+    const val = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+
+    // ---- Show and version --------------------------------------------------------------------
+    const title = val('show-title');
+    const season = val('season-num');
+    t.title = title;
+    t.season = season ? 'S' + season : '';
+    // Verbatim c1: the season is a SUFFIX, and its leading space appears only when there is a title
+    // to separate it from -- so a season with no title reads "S2", never " S2".
+    t.titleSeason = title + (season ? (title ? ' ' : '') + 'S' + season : '');
+    t.version = versionLabel();
+    const numEpisodes = parseInt(val('num-episodes'), 10);
+    t.episodes = (!isNaN(numEpisodes) && numEpisodes > 0) ? String(numEpisodes) : '';
+    const perEp = parseInt(val('shoot-days-per-ep'), 10);
+    t.shootDaysPerEp = (!isNaN(perEp) && perEp > 0) ? String(perEp) : '';
+    let totalShootDays = 0;
+    try { totalShootDays = showInfoStatus().totalShootDays || 0; } catch(e){ totalShootDays = 0; }
+    t.shootDays = totalShootDays ? String(totalShootDays) : '';
+
+    // ---- Dates -------------------------------------------------------------------------------
+    t.today = hdrDate(new Date(), true);   // LOCAL -- see the note above
+
+    // ---- Phases, generic over every built-in AND custom key ----------------------------------
+    const segs = (schedule && schedule.segments) || [];
+    let defs = [];
+    try { defs = getAllPhaseDefs(); } catch(e){ defs = []; }
+    defs.forEach(p => {
+      const seg = segs.find(sg => sg.key === p.key);
+      t[p.key + '.name'] = p.label || '';
+      if(!seg){
+        t[p.key + '.open'] = ''; t[p.key + '.close'] = ''; t[p.key + '.weeks'] = '';
+        return;
+      }
+      t[p.key + '.open'] = hdrDate(seg.start, false);
+      // H5: the FRIDAY of the final week. seg.end is the EXCLUSIVE Monday after the last delivered
+      // week (extendEndForHiatus counts delivered weeks and returns the Monday following them), so
+      // seg.end is itself a day the phase is already over. "Writer's Room closes 3.6.26" has to name
+      // a day the room is still open.
+      t[p.key + '.close'] = seg.end ? hdrDate(addDays(seg.end, -3), false) : '';
+      t[p.key + '.weeks'] = seg.weeks ? String(seg.weeks) : '';
+    });
+
+    // Production is special-cased to REAL SHOOT DAYS, exactly as the auto header already is. The
+    // entered Monday can be a union holiday or fall inside a hiatus, in which case it is a calendar
+    // guess and the grid beside it says something else -- the bug README records as "the wrap date
+    // was right; the date beside it was a calendar guess".
+    const prodInfo = schedule && schedule.productionInfo;
+    if(prodInfo){
+      t['production.open']  = hdrDate(prodInfo.firstShootDay || prodInfo.startDate, false);
+      t['production.wrap']  = hdrDate(prodInfo.lastShootDay, false);
+      t['production.close'] = t['production.wrap'];   // an alias, per §3.2
+    } else {
+      t['production.wrap']  = '';
+      t['production.close'] = '';
+    }
+
+    // ---- Compound tokens: the composite auto lines, so a preset can BE the auto header ---------
+    // ⚠️ THIS IS A SECOND STATEMENT OF r1 / r2 / c3 AND THE TWO CAN DRIFT. computeHeaderDefaults()
+    // stays hand-coded on purpose -- its strings are the byte-identical baseline the gate compares
+    // against. The `hdrtemplate` leg asserts these three resolve to exactly what that function
+    // returns on the fixture, so a drift fails loudly instead of quietly changing someone's header.
+    // Keep them in step by hand; do not "fix" the duplication by making Auto read the template.
+    let prodWeeks = 0;
+    if(schedule && schedule.weeks){
+      for(const w of schedule.weeks){
+        if(w.cells.some(c => c.key === 'production' || (c.label && c.label.startsWith('Production')))) prodWeeks++;
+      }
+    }
+    t['production.summary'] = [
+      prodWeeks ? `${prodWeeks}-Week Production Span` : '',
+      t.shootDaysPerEp ? `${t.shootDaysPerEp}-Day Shooting Schedule` : '',
+    ].filter(Boolean).join(' / ');
+    t['production.dates'] = prodInfo
+      ? `Principal Photography ${fmtHeaderDate(t['production.open'], 'dot')} / Wrap: ${fmtHeaderDate(t['production.wrap'], 'dot')}`
+      : '';
+    // ⚠️ Read from the FIELD, not from the segment, because that is what c3 does: the entered date
+    // snapped to its Monday. Deriving it from the segment would be a different number the day a
+    // hiatus or a solver moves the phase, and this token's contract is "verbatim c3".
+    const wrRaw = val('start-writersRoom');
+    let wrLine = '';
+    if(wrRaw){
+      const parsed = parseDateUTC(wrRaw);
+      if(parsed) wrLine = `Writer's Room Opens: ${fmtHeaderDate(hdrDate(mondayOf(parsed), false), 'dot')}`;
+    }
+    t['writersRoom.line'] = wrLine;
+
+    return { tokens: t };
+  }
+
+  // One token, resolved. Returns undefined for an UNKNOWN name -- the caller leaves those exactly as
+  // typed -- and '' for a known token with nothing to say.
+  function lookupHeaderToken(name, ctx){
+    if(!ctx || !ctx.tokens) return undefined;
+    const raw = String(name).trim();
+    // {date:2026-10-05} and {date:2026-10-05:long} take their VALUE as the first argument, so they
+    // cannot go through the generic key:format split below.
+    if(raw === 'date' || raw.indexOf('date:') === 0){
+      const parts = raw.split(':');
+      const d = parseDateUTC((parts[1] || '').trim());
+      return d ? fmtHeaderDate(hdrDate(d, false), (parts[2] || '').trim() || 'dot') : '';
+    }
+    const ci = raw.indexOf(':');
+    const key = (ci < 0 ? raw : raw.slice(0, ci)).trim();
+    const fmt = ci < 0 ? '' : raw.slice(ci + 1).trim();
+    if(!(key in ctx.tokens)) return undefined;
+    const v = ctx.tokens[key];
+    if(v === '' || v == null) return '';
+    if(v && v.__hdrDate) return fmtHeaderDate(v, fmt || 'dot');
+    return String(v);
+  }
+
+  // Resolve one template line. PURE: no DOM, no module state -- everything arrives in `ctx`, which
+  // is what lets tests/harness/prove-header-template.mjs slice this function out of the file
+  // verbatim and fuzz it in Node. Keep it that way.
+  //
+  // ⚠️ A SINGLE LEFT-TO-RIGHT SCAN, and that is a correctness decision rather than a style one.
+  // The first cut of this resolved in stages -- protect the {{ }} escapes, then groups, then the
+  // remaining tokens -- and staged passes cannot tokenise `{{{title}}}`: the escape pass eats the
+  // leading `{{` and then the FIRST `}}` it meets, which is the token's own closing brace plus one,
+  // so the token never forms and the line came out `{{title}}` -- neither literal nor resolved.
+  // Caught by prove-header-template.mjs. One scan decides `{{` -> literal, then `{title}` -> token,
+  // then `}}` -> literal, which is the reading a person would give it.
+  //
+  // ⭐ ONE PASS IS THEN TRUE BY CONSTRUCTION, which is the rule that matters most here: a resolved
+  // value is appended to the output and the scanner never looks at it again, so a show titled
+  // "{today}" prints the words {today} and a value containing "[x]" is not read as a group. No
+  // sentinels, no re-scanning, nothing to get subtly wrong later.
+  //
+  // Anything malformed falls back to LITERAL -- an unterminated `{`, a `[` with no `]`, a name
+  // containing a brace. The rule the grammar exists to protect is that text a user typed before
+  // templates existed must render as they typed it.
+  function resolveHeaderTemplate(str, ctx){
+    if(!str) return str;
+    const s = String(str);
+    if(s.indexOf('{') < 0 && s.indexOf('[') < 0) return s;   // fast path: nothing to resolve
+    return hdrScan(s, 0, false, ctx, { empty: false }).out;
+  }
+  // The scanner. `stopAtBracket` is set for the inside of a [group]: a lone `]` ends it, and a `[`
+  // is literal there because groups do not nest (§3.1). `state.empty` is how a group learns that one
+  // of its tokens resolved to nothing -- which collapses the whole group, its literal text and the
+  // spaces inside the brackets with it.
+  function hdrScan(s, i, stopAtBracket, ctx, state){
+    let out = '';
+    while(i < s.length){
+      const c = s[i], n = s[i+1];
+      if(c === '{'){
+        if(n === '{'){ out += '{'; i += 2; continue; }          // {{ -> a literal brace
+        const close = s.indexOf('}', i+1);
+        const name = close < 0 ? null : s.slice(i+1, close);
+        // A name that runs to the end of the line, or that swallows another `{`, is not a token.
+        if(name === null || name.indexOf('{') >= 0){ out += c; i++; continue; }
+        const v = lookupHeaderToken(name, ctx);
+        if(v === undefined) out += '{' + name + '}';            // unknown -> exactly as typed
+        else if(v === '') state.empty = true;                   // known but empty -> gates the group
+        else out += v;
+        i = close + 1; continue;
+      }
+      if(c === '}'){
+        if(n === '}'){ out += '}'; i += 2; continue; }          // }} -> a literal brace
+        out += c; i++; continue;
+      }
+      if(c === '['){
+        if(n === '['){ out += '['; i += 2; continue; }          // [[ -> a literal bracket
+        if(stopAtBracket){ out += c; i++; continue; }           // no nesting: literal inside a group
+        const sub = { empty: false };
+        const r = hdrScan(s, i + 1, true, ctx, sub);
+        if(!r.closed){ out += c; i++; continue; }               // unterminated group -> literal
+        out += sub.empty ? '' : r.out;
+        i = r.i; continue;
+      }
+      if(c === ']'){
+        if(n === ']'){ out += ']'; i += 2; continue; }          // ]] -> a literal bracket
+        if(stopAtBracket) return { out, i: i + 1, closed: true };
+        out += c; i++; continue;
+      }
+      out += c; i++;
+    }
+    return { out, i, closed: false };
+  }
+
+  // ---------- The three header modes, and the popover that picks between them ----------
+  //
+  // Auto / Template / Manual (decision H3). What each one MEANS is documented on the
+  // headerTemplates declaration; this is the machine that moves between them.
+
+  // One undo step for a whole transition, so ⌘Z puts all nine lines and their formats back
+  // together rather than one at a time.
+  // ⚠️ Deliberately NOT the shift tools' asOneUndoStep(): that one is declared inside the
+  // shift-tools IIFE, along with the refreshMenuFromCalendar() it calls, so it is not in scope
+  // here -- and the file menu does not quote header text, so there is nothing for it to refresh.
+  // Same contract, smaller body.
+  function asOneHeaderStep(fn){
+    pushUndoSnapshot();
+    const out = fn();
+    pushUndoSnapshot();
+    return out;
+  }
+
+  // The five transitions of §3.4. Every one of them ends in a render and a markDirty(), because
+  // every one of them changes what the calendar prints.
+  // ⚠️ The OLD toggle never called markDirty() on Auto -> Manual -- a header takeover left the file
+  // showing "Saved" and could not be undone. Same bug class as the one the notes-reset branch
+  // carries a comment about. Fixed by construction here: one exit path, and it always marks.
+  function setHeaderMode(next){
+    const from = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
+    if(next === from) return;
+    asOneHeaderStep(()=>{
+      if(next === 'auto'){
+        // Discards hand edits AND formatting, exactly as "Header: Auto" always has.
+        headerMode = 'auto'; headerManual = {}; headerFormat = {}; headerTemplates = false;
+      } else if(next === 'template'){
+        if(from === 'auto'){
+          // Seed from the built-in default so the lines keep TRACKING the data, which is the whole
+          // point of the mode. DEFAULT_HEADER_TEMPLATE arrives with Step 3; until then seed from the
+          // resolved auto values, which are valid templates containing no tokens -- so this
+          // transition is honest either way and gains tokens when the default lands.
+          headerManual = (typeof DEFAULT_HEADER_TEMPLATE !== 'undefined')
+            ? Object.assign({}, DEFAULT_HEADER_TEMPLATE)
+            : Object.assign({}, computeHeaderDefaults(currentSchedule));
+        }
+        // Manual -> Template keeps the literal strings as they are: text with no tokens is a valid
+        // template, so nothing is lost and the user can add tokens to what is already there.
+        headerMode = 'manual'; headerTemplates = true;
+      } else {
+        // -> Manual. From Template this is a BAKE: every line becomes the text it currently
+        // resolves to, and the tokens are gone. Irreversible short of this undo step, which is why
+        // the popover says so on the row before you click it.
+        if(from === 'template'){
+          const hd = computeHeaderDefaults(currentSchedule);
+          const baked = {};
+          HDR_IDS.forEach(id=>{ if(id in headerManual) baked[id] = headerLine(id, hd); });
+          headerManual = baked;
+        } else if(from === 'auto'){
+          // Exactly as it always was: a snapshot of the resolved auto values.
+          // ⚠️ Object.assign onto a fresh object, NOT the returned object itself -- computeHeaderDefaults
+          // hangs a non-enumerable __ctx on what it returns, and while Object.assign would not copy
+          // it, assigning the object wholesale would carry it into headerManual and therefore into
+          // the undo stack. Copy the nine strings and nothing else.
+          headerManual = Object.assign({}, computeHeaderDefaults(currentSchedule));
+        }
+        headerMode = 'manual'; headerTemplates = false;
+      }
+      render(currentSchedule);
+      markDirty();
+    });
+  }
+
+  // The mode menu. A body-level popover anchored to the button -- chrome, and explicitly fair game.
+  // Built the way openPhaseColorPop() builds its picker: created on demand, appended to <body>,
+  // clamped to the viewport, closed by an outside mousedown or any scroll/resize.
+  // ⛔ NOT ONE id ANYWHERE IN HERE. collectFieldValues() sweeps every input[id]/select[id] into
+  // every saved calendar and adds an undo step per change; these are buttons, and they carry
+  // classes only. Same rule the header format toolbar follows.
+  let activeHdrModePop = null;
+  function closeHeaderModePop(){
+    if(activeHdrModePop){ activeHdrModePop.remove(); activeHdrModePop = null; }
+    document.removeEventListener('mousedown', onHdrModePopOutside, true);
+    window.removeEventListener('resize', closeHeaderModePop);
+    window.removeEventListener('scroll', closeHeaderModePop, true);
+  }
+  function onHdrModePopOutside(e){
+    if(activeHdrModePop && !activeHdrModePop.contains(e.target)) closeHeaderModePop();
+  }
+  const HDR_MODE_CHOICES = [
+    { key:'auto',     label:'Auto',
+      desc:'Every line mirrors Show Info and the schedule. Not editable.' },
+    { key:'template', label:'Template',
+      desc:'Lines you write, with live data in {braces}. Edit a line to see its tokens.' },
+    { key:'manual',   label:'Manual',
+      desc:'Plain text you type. Nothing updates itself.' },
+  ];
+  function openHeaderModePop(anchorEl){
+    closeHeaderModePop();
+    const current = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
+    const pop = document.createElement('div');
+    pop.className = 'hdr-mode-pop';
+    HDR_MODE_CHOICES.forEach(c=>{
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'hdr-mode-choice' + (c.key === current ? ' is-current' : '');
+      const name = document.createElement('span');
+      name.className = 'hdr-mode-name';
+      name.textContent = c.label;
+      const desc = document.createElement('span');
+      desc.className = 'hdr-mode-desc';
+      desc.textContent = c.desc;
+      row.appendChild(name);
+      row.appendChild(desc);
+      // ⚠️ The bake warning is stated ON THE ROW, before the click, because Template -> Manual
+      // throws the tokens away. The plan requires it be said first; an undo step is the only way
+      // back.
+      if(c.key === 'manual' && current === 'template'){
+        const warn = document.createElement('span');
+        warn.className = 'hdr-mode-warn';
+        warn.textContent = 'Freezes today’s values and removes the tokens.';
+        row.appendChild(warn);
+      }
+      if(c.key === current){
+        row.disabled = true;
+      } else {
+        row.addEventListener('click', ev=>{
+          ev.stopPropagation();
+          closeHeaderModePop();
+          setHeaderMode(c.key);
+        });
+      }
+      pop.appendChild(row);
+    });
+    document.body.appendChild(pop);
+    const r = anchorEl.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    activeHdrModePop = pop;
+    // Bound on the next tick, or the click that OPENED the popover closes it again.
+    setTimeout(()=>{
+      document.addEventListener('mousedown', onHdrModePopOutside, true);
+      window.addEventListener('resize', closeHeaderModePop);
+      window.addEventListener('scroll', closeHeaderModePop, true);
+    }, 0);
+  }
+
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
     const today = new Date();
@@ -7668,11 +8070,41 @@ export function initLegacyApp() {
     // and be in the very bottom left side text box of the header"). It stays EMPTY -- and so stays
     // invisible on screen, absent from the workbook's &L section and undrawn in the PDF -- until
     // someone types a version into Show Info. See versionLabel() for why empty must mean empty.
-    return { left: todayStr, l2: versionLabel(), c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
+    const out = { left: todayStr, l2: versionLabel(), c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
+    // The token context rides on the return value, because headerLine(id, defaults)'s SIGNATURE
+    // cannot change -- three of its call sites are inside frozen functions (§9). Built once here,
+    // so a nine-line header costs one ctx rather than nine.
+    //
+    // ⚠️ NON-ENUMERABLE, and that is the whole trick rather than fastidiousness. This object is
+    // assigned DIRECTLY to headerManual in two places -- the popover's Auto -> Manual snapshot, and
+    // the legacy headerOverrides restore path -- and headerManual goes into captureSnapshot(). An
+    // ordinary property would be serialised into every saved calendar and every undo frame, as a
+    // junk key in a format that is a permanent contract. Object.assign, {...spread} and
+    // JSON.stringify all skip non-enumerable properties; `defaults.__ctx` still reads normally.
+    Object.defineProperty(out, '__ctx', { value: buildHeaderCtx(schedule), enumerable: false });
+    return out;
   }
   // Effective text for a header line: the manual value in manual mode, else the auto default.
+  //
+  // ⛔ THIS IS THE CHOKE POINT THE WHOLE FEATURE HANGS OFF. All three consumers call it -- the
+  // screen inside frozen renderSpreadsheetView, exportExcel, buildWaterfallPdf -- so resolving here
+  // is what makes it impossible for them to disagree, and what keeps every frozen function
+  // untouched. ⛔ Do not change the signature: three of those call sites are frozen (§9).
+  //
+  // Two things are deliberate about WHAT gets resolved:
+  //   * only when headerTemplates is true. With the flag false this function is byte-for-byte what
+  //     it always was, which is what makes every already-saved Manual header safe.
+  //   * only the headerManual branch. The `defaults[id]` fallback is computeHeaderDefaults()'s
+  //     hand-coded output -- already final text, never a template -- so resolving it would be
+  //     asking the resolver to re-read a value, which is exactly what the one-pass rule forbids.
   function headerLine(id, defaults){
-    if(headerMode === 'manual') return (id in headerManual) ? headerManual[id] : (defaults[id] || '');
+    if(headerMode === 'manual'){
+      if(id in headerManual){
+        const raw = headerManual[id];
+        return headerTemplates ? resolveHeaderTemplate(raw, defaults && defaults.__ctx) : raw;
+      }
+      return defaults[id] || '';
+    }
     return defaults[id] || '';
   }
   function update(){
@@ -8132,7 +8564,7 @@ export function initLegacyApp() {
     document.getElementById('show-version').value = '';
     episodeDefs = []; episodeCounter = 0;
     refreshEpisodesUI();
-    headerMode = 'auto'; headerManual = {};
+    headerMode = 'auto'; headerManual = {}; headerTemplates = false;
     mvHeaderMode = 'auto'; mvHeaderManual = {};
     headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
@@ -8272,7 +8704,10 @@ export function initLegacyApp() {
     // build -- so without the strip a copy exported by that click would carry the open calendar.
     // .select-pop added with the tool-popover phase pickers (round 5), for the same same-tick
     // reason as .date-pop.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop').forEach(el=>el.remove());
+    // .hdr-mode-pop added 8 Sep 2026 with the three header modes -- same reason as the rest: it is
+    // a body-level panel, and a Share click with it open would export a menu hanging over the
+    // calendar pointing at nothing.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =
@@ -8519,7 +8954,7 @@ export function initLegacyApp() {
     return {
       version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
-      userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual,
+      userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual, headerTemplates,
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
@@ -11280,6 +11715,13 @@ export function initLegacyApp() {
       headerFormat = snap.headerFormat ? Object.assign({}, snap.headerFormat) : {};
       mvHeaderFormat = snap.mvHeaderFormat ? Object.assign({}, snap.mvHeaderFormat) : {};
     }
+    // ⚠️ `=== true`, AND OUTSIDE THE BRANCHES BELOW, both deliberately. `if(snap.headerTemplates)`
+    // would leave the PREVIOUS file's mode in place when the new snapshot has no such key -- the
+    // exact failure CLAUDE.md's "restore unconditionally" rule exists for, and the one that made
+    // Step 1 add a guard to the fields.byId replay. Every file written before this feature has no
+    // key, so it must land on false, which is Manual: literal text, tokens never resolved, and
+    // therefore byte-for-byte what that file has always rendered.
+    headerTemplates = snap.headerTemplates === true;
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';
       headerManual = Object.assign({}, snap.headerManual || {});
