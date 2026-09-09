@@ -132,10 +132,17 @@ reason attached; this is the index.
   `#union-country`'s default option is `value=""`, so an empty string is the *correct* fresh state
   and also what a dead page shows; `#file-menu-label` ships the literal text "Untitled" in the
   markup. A probe a dead page also satisfies turns a broken page into a "broken feature". The
-  ⚠️ **The probe that "works" has moved three times, and the version this README used to
-  recommend — `#file-menu` having children — is DEAD.** Mantine renders the dropdown's items from
-  React's first commit, so a page whose engine never started satisfies it. `appReady()` now waits on
-  `#file-menu-wrap`'s computed `display` instead, which only `renderRecents()` clears.
+  ⚠️ **The probe that "works" has moved FOUR times.** The version this README used to recommend —
+  `#file-menu` having children — is DEAD: Mantine renders the dropdown's items from React's first
+  commit, so a page whose engine never started satisfies it. It then waited on `#file-menu-wrap`'s
+  computed `display`, which only `renderRecents()` clears — correct as a liveness signal, but
+  `renderRecents()` is behind the IndexedDB stall below, so it could never fire and the `restore`
+  leg failed on **every** run. ✅ **Since 8 Sep 2026 `appReady()` waits on engine-generated sidebar
+  markup** — `#start-production` (minted by `buildPhaseRows()`, which React cannot produce and the
+  static skeleton does not carry) plus the four `DEFAULT_HIATUSES` rows. Live-code-only, and
+  IndexedDB-free. ⛔ Do **not** substitute `table.sheet-table` here: a blank page has no grid until
+  Show Info is complete, so it never appears before a file is opened. That was tried first and it
+  timed out in a way that looks identical to the bug it was fixing.
 - ⛔ **IndexedDB NEVER SETTLES in headless Chrome — this is not a one-in-three flake.** It was
   written up that way for two rounds ("fresh-profile stall, roughly one run in three"); round 7
   measured it directly with `t/fsprobe.js` and the truth is worse and simpler:
@@ -150,6 +157,18 @@ reason attached; this is the index.
   — tried, and `--dump-dom` then emits nothing at all, because the budget is what makes Chrome wait
   before dumping. Fixing it properly means changing how the harness waits (CDP, or a real-time run
   with an explicit dump trigger) and is its own piece of work.
+  ✅ **BUT IT NEVER BLOCKED THE OPEN PATH — only the probe that waited on it.** Measured 8 Sep 2026:
+  `#file-menu` is `keepMounted`, so its `Open…` item is in the DOM and enabled while the wrap is
+  still `display:none`; the engine binds ONE delegated listener to `#file-menu`, so a `.click()` on
+  the hidden item reaches it and bubbles regardless of visibility; and `window.showSaveFilePicker`
+  **is** a function in headless, so `supportsFsAccess` is true and `openFileViaPicker()` does not
+  early-return. With `appReady()` moved off IndexedDB the `restore` leg runs, and **gate 5 — the
+  save-format key-set check — executes again after not having run since the baseline was cut.**
+  The stall itself is still real, still unfixed, and `t/fsprobe.js` still documents it; it now costs
+  only the recents list and the crash backup in headless, neither of which any leg asserts.
+  ⏭ **Now cheap, and still missing:** no test opens a **`.sptcal`** through the real picker —
+  `restore` opens the legacy `.html` fixture. `CLAUDE.md` names that as the outstanding insurance for
+  §0 rule 3. The picker path is provably drivable now, so this is a short leg rather than a project.
   Two consequences: **gate a test only on the subsystem it actually uses** (`base` deliberately does
   not call `appReady()`, because it never touches the file menu), and when `restore` or `sharecopy`
   times out on the file menu, **prove it environmental** with

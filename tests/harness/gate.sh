@@ -87,9 +87,16 @@ if diff -rq /tmp/gate-xa /tmp/gate-xb >/dev/null 2>&1; then ok "Excel parts iden
 else bad "Excel parts differ: $(diff -rq /tmp/gate-xa /tmp/gate-xb | head -3)"; fi
 
 # ---- restore: a real pre-.sptcal calendar still opens ------------------------------------------
-# ⚠️ Retried once. renderRecents() sits behind an IndexedDB round trip and on a fresh profile it
-# fails to resolve within 20s roughly one run in three, while the app is completely healthy. That
-# stall is an environment fact, not a regression -- see the README.
+# ⭐ THIS LEG RUNS AGAIN AS OF 8 Sep 2026, and gate 5 with it. It had been failing 100% of the time,
+# not one run in three: appReady() waited for renderRecents() to reveal the file menu, and
+# indexedDB.open() NEVER settles in headless Chrome under --virtual-time-budget (t/fsprobe.js
+# measures it, identically on the untouched deployed page). The stall is real and unfixed -- but it
+# never blocked the Open path itself, only the probe that waited on it: #file-menu is keepMounted,
+# so the Open... item is in the DOM and clickable while the wrap is still display:none, and the
+# engine's delegated listener is bound to #file-menu. appReady() now waits on engine-generated
+# sidebar markup instead, which needs no IndexedDB.
+# ⚠️ The retry below is kept. The stall it was written for is gone, but a retry costs 60s only when
+# something has already failed, and this is the only test of the real Open path there is.
 for attempt in 1 2; do
   HARNESS_PAGE="$PAGE" "$HERE/run.sh" restore 60 >/dev/null 2>&1
   python3 -c "import json,sys; d=json.load(open('$HERE/restore.json')); sys.exit(1 if 'EX' in d else 0)" 2>/dev/null && break
@@ -110,6 +117,12 @@ chk(a.get('hClip')==0, f"restore horizontally clipped = {a.get('hClip')} (must b
 chk(a.get('sig')==b.get('sig'), "restored grid signature identical")
 # Gate 5: the SAVE FORMAT contract. fields.byId is keyed by DOM element id, so the key SET is the
 # thing that must not move -- not merely that the values resolve. formSignature() reports it.
+# ⚠️ IT DID NOT, until 8 Sep 2026, and this comment asserted that it did. formSignature() was a raw
+# input[id]/select[id]/textarea[id] sweep with none of collectFieldValues()'s exclusions, so it
+# reported a SUPERSET: the eight transient tool-* ids, and pref-gridlines -- a per-user PREFERENCE
+# that must never enter a saved file and would have shown up here as a format change. It now carries
+# the same two .closest() skips the engine has, and its 55 keys were checked against a real
+# .sptcal's fields.byId in both directions. See the baseline's README for the re-cut.
 fa, fb = a.get('form'), b.get('form')
 chk(fa==fb, f"fields.byId key set identical ({len(fa or [])} ids)")
 # form is a DICT ({id: value}), so equality above is keys AND values. The detail print below used

@@ -188,15 +188,44 @@ window.__T = (function(){
   // before it: a dead page reads as a live one, and the real breakage surfaces later as a "feature"
   // that does nothing.
   //
-  // #file-menu-wrap's display is still a live-code-only signal: it ships display:none from React's
-  // state default and is cleared only by renderRecents(), which runs inside loadRecents().then(...)
-  // -- an IndexedDB round trip, and on a fresh --user-data-dir the database has to be created
-  // first. That round trip is the real source of the ~1-in-3 flake.
+  // ⚠️ MOVED A FOURTH TIME, 8 Sep 2026 -- and this one was not a wrong probe, it was a probe that
+  // could not fire. It waited on #file-menu-wrap's display, which is cleared only by
+  // renderRecents(), which runs inside loadRecents().then(...) -- an IndexedDB round trip. And
+  // `indexedDB.open('spt-planning-cal')` NEVER SETTLES in headless Chrome under
+  // --virtual-time-budget: no success, no error, no `blocked` (measured by t/fsprobe.js, and
+  // identically on the untouched deployed page, which is what proves it environmental). So the wrap
+  // is never revealed, appReady() always timed out, and the `restore` leg -- the ONLY test of the
+  // real Open path, and the only thing that runs gate 5 -- failed 100% of the time. It was recorded
+  // as a known environmental flake and ignored, which quietly cost us the save-format check.
+  //
+  // ⭐ THE STALL NEVER BLOCKED THE OPEN PATH ITSELF; it only blocked this probe. Measured 8 Sep 2026:
+  // #file-menu is `keepMounted`, so its Open... item is in the DOM and enabled while the wrap is
+  // still display:none; the engine's ONE delegated listener is bound to #file-menu, so a click on
+  // the hidden item reaches it; and window.showSaveFilePicker IS a function in headless, so
+  // supportsFsAccess is true and openFileViaPicker() does not early-return. A .click() dispatches
+  // and bubbles regardless of visibility.
+  //
+  // So wait for the ENGINE-GENERATED SIDEBAR instead. #start-production is minted by
+  // buildPhaseRows() as an HTML string -- the Phases card is deliberately NOT a React component
+  // (Sidebar.jsx's header says why: those generators mint the ids that ARE the save-file format).
+  // React cannot produce it, the static skeleton does not carry it, and it needs no IndexedDB. The
+  // four DEFAULT_HIATUSES rows are the same kind of evidence, so require both: two independent
+  // engine writes, in two different cards.
+  //
+  // ⛔ Keep this a signal ONLY LIVE CODE CAN PRODUCE -- the rule the three previous moves each
+  // broke. #file-menu having children does NOT qualify (React commits those before the engine
+  // starts); neither does #file-menu-label's text (the markup ships "Untitled"), nor
+  // #union-country's value (its default option is value="", which is also what a dead page shows).
+  // ⚠️ And do NOT reach for `table.sheet-table` here: a BLANK page has no grid at all --
+  // computePhaseRowLayout() returns [] until Show Info is complete -- so it never appears before a
+  // file is opened. That was the first attempt at this fix and it timed out for a reason that
+  // looks identical to the bug it was fixing. It is the right probe for base.js, which builds a
+  // fixture first; it is the wrong one here.
   async function appReady(){
     await until(function(){
-      var wrap = document.getElementById('file-menu-wrap');
-      return wrap && getComputedStyle(wrap).display !== 'none';
-    }, 'renderRecents() to reveal the file menu (IndexedDB-backed; see README)', 200, 100);
+      return !!document.getElementById('start-production') &&
+             document.querySelectorAll('#hiatus-list .hiatus-entry').length > 0;
+    }, 'the engine to build the sidebar (IndexedDB-free; see the note above)', 200, 100);
   }
   async function openViaFakePicker(url, name){
     var txt = await (await fetch(url)).text();
@@ -224,9 +253,24 @@ window.__T = (function(){
     return txt.length;
   }
   // Everything a restored calendar should bring back, in one comparable blob.
+  //
+  // ⛔ THE TWO SKIPS ARE THE POINT, and their absence made gate 5 assert the wrong thing for a week.
+  // This must mirror collectFieldValues() EXACTLY, because gate 5's claim is "the fields.byId key
+  // set is unchanged" -- the save-format contract. Without the skips this was a raw sweep reporting
+  // a SUPERSET: the eight transient tool-* popover ids, which collectFieldValues() deliberately
+  // drops, and pref-gridlines, which is a per-user PREFERENCE and must never enter a saved file.
+  // So a preference appearing here read as a save-format change (a false alarm), while a genuine
+  // format change could hide among the tool ids. Matched on the CLASS, not an id, for the same
+  // reason the engine matches on the class: an id-based test stops matching the moment the markup
+  // is reorganised, and it fails silently.
+  //
+  // ⚠️ Keep this function and collectFieldValues() in step. If the engine ever gains a third
+  // exclusion, this needs it the same day, or the gate starts lying in one direction or the other.
   function formSignature(){
     var o={};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(e){
+      if(e.closest('.tools-menu')) return;
+      if(e.closest('.prefs-card')) return;
       if(e.type==='checkbox'||e.type==='radio') o[e.id]=e.checked?'1':'0'; else o[e.id]=e.value;
     });
     return o;

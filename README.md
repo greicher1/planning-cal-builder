@@ -29,6 +29,75 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — gate 5 had not run since the baseline was cut, and the stall everyone blamed was never the problem
+
+Local, not pushed at time of writing. No app code changed: this is entirely the test harness and the
+docs that described it.
+
+**Gate 5 is the save-format contract check** — `fields.byId` is keyed by DOM element id, so its key
+SET is what must not move, and a silent change there is how every saved calendar loses a setting. It
+had not executed since 29 Aug 2026. Nobody knew, because it fails *quietly*: it sits downstream of
+the `restore` leg, and when that leg throws the gate prints one honest failure and never reaches the
+assertion at all.
+
+**Three separate things were wrong. All three are fixed.**
+
+**1. The readiness probe could not fire.** `appReady()` waited for `renderRecents()` to reveal the
+file menu. `renderRecents()` runs inside `loadRecents().then(...)`, and
+`indexedDB.open('spt-planning-cal')` never settles in headless Chrome under
+`--virtual-time-budget` — no `success`, no `error`, no `blocked` (measured by `t/fsprobe.js`, and
+identically on the untouched deployed page, which is what proved it environmental). So the `restore`
+leg failed on **every** run, not the "roughly one in three" it had been written up as. It was
+recorded as a known environmental flake and routed around, and that write-off is what cost us the
+save-format check for ten days.
+
+⭐ **The stall never blocked the Open path — only the probe that waited on it.** Measured directly:
+`#file-menu` is `keepMounted`, so its `Open…` item is in the DOM and enabled while `#file-menu-wrap`
+is still `display:none`; the engine binds **one** delegated listener to `#file-menu`, so a `.click()`
+on the hidden item reaches it and bubbles regardless of visibility; and `window.showSaveFilePicker`
+**is** a function in headless, so `supportsFsAccess` is true and `openFileViaPicker()` does not
+early-return. A probe stubbing `showOpenFilePicker` confirmed the engine really is reached.
+`appReady()` now waits on engine-generated sidebar markup — `#start-production`, minted by
+`buildPhaseRows()` as an HTML string that React cannot produce and the static skeleton does not
+carry, plus the four `DEFAULT_HIATUSES` rows. Live-code-only, IndexedDB-free.
+⛔ **Not `table.sheet-table`** — a blank page has no grid until Show Info is complete, so it never
+appears before a file is opened. That was the first attempt and it timed out in a way that looks
+identical to the bug it was fixing.
+
+**2. The assertion tested the wrong set.** `formSignature()` was a raw
+`input[id], select[id], textarea[id]` sweep with **neither** of `collectFieldValues()`'s exclusions,
+so it reported a *superset* of the save format: the eight transient `tool-*` popover ids the engine
+deliberately drops, plus `pref-gridlines` — a per-user **preference**, which must never enter a saved
+file and would have shown up here as a format change. Two different questions had merged into one
+assertion. It now carries the same two `.closest()` skips the engine has. Verified rather than
+assumed: its 55 keys are **identical, in both directions**, to the key set inside a real
+`captureSnapshot()` output (`tests/fixtures/hdrversion.sptcal`).
+
+**3. `gate.sh`'s own comment asserted the thing that was false** — *"`formSignature()` reports it"*.
+Corrected, with the reason, so the next reader does not re-derive this.
+
+**The baseline's `form` was re-cut, 56 keys → 55, with not one value changed.** Recorded in
+`tests/baselines/2026-08-29-stage-7/README.md` with the full list and dates: 8 `tool-*` **removed**
+(never in the format), 6 `phiatus-name-<key>` **added** (1 Sep 2026), `show-version` **added**
+(8 Sep 2026), `pref-gridlines` **still absent** and now correctly so. ⛔ Re-cutting a red baseline is
+normally how a real regression gets absorbed; it is defensible here only because the leg now runs, so
+the new set could be checked against a real saved file rather than declared.
+
+**Verified.** The `restore` leg runs and matches the baseline exactly — 52 rows, 154 cells,
+`gridWidthPt` 324, `bytes` 756,473, identical grid signature, 0 horizontally clipped, no alerts.
+Gate: **188 pass, 0 fail** — green, with nothing skipped and nothing written off. ⚠️ Not claimed as
+a first: the baseline's own `restore.json` records `menuWrapShown: true`, so IndexedDB evidently
+worked on the machine that cut it 29 Aug 2026 and the gate was presumably green then too. What is
+certain is that it has not been green in this environment for as long as the stall has been recorded,
+and that gate 5 had not executed in that time.
+
+⏭ **Still missing, and now cheap.** No test opens a **`.sptcal`** through the real picker; `restore`
+opens the legacy `.html` fixture. `CLAUDE.md` names that as the outstanding insurance for §0 rule 3.
+The picker path is provably drivable now, so it is a short leg rather than a project. The IndexedDB
+stall itself is still real and still unfixed — it now costs only the recents list and the crash
+backup in headless, neither of which any leg asserts.
+
+
 ### Unreleased — a version number typed once in Show Info, and the header slot that was waiting for it
 
 Step 1 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), shipped alone because it is
@@ -108,7 +177,10 @@ first, before any edit, is what makes that a measured fact rather than an assump
 
 ⚠️ **What is NOT proven, said plainly.**
 
-- **`gate.sh`'s gate 5 — the `fields.byId` key-set compare — can neither pass nor fail here, and that
+- ~~**`gate.sh`'s gate 5 — the `fields.byId` key-set compare — can neither pass nor fail here.**~~
+  ✅ **FIXED the same day — see the entry above.** Left here rather than deleted, because it was true
+  when written and the next entry is the answer to it.
+- **The original text, for the record:** gate 5 **can neither pass nor fail here, and that
   predates this change.** The `restore` leg throws on the IndexedDB stall, so gate 5 never executes;
   if it did it would go red, because its baseline records 56 swept ids and does not contain
   `pref-gridlines` either (added 3 Sep, inside `.prefs-card`, and a false positive by design —
