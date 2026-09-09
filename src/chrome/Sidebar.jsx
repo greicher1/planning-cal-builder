@@ -193,14 +193,14 @@ export function PreferencesCard() {
 // the component never receives a preset's templates: only names and ids come across the bridge, so a
 // re-render cannot become a place where preset content is edited.
 function HeaderPresets() {
-  const [state, setState] = useState({ items: [], canSave: false, saveHint: '', naming: false })
+  const [state, setState] = useState({ items: [], canSave: false, saveHint: '', naming: false, excelBudget: null })
   const [editing, setEditing] = useState(null)   // the id being renamed, or null
 
   useLayoutEffect(() => {
     installChrome({ headerPresets: (patch) => setState((s) => ({ ...s, ...patch })) })
   }, [])
 
-  const { items, canSave, saveHint, naming } = state
+  const { items, canSave, saveHint, naming, excelBudget } = state
   // Default is always present and always first, so a list of one means "no saved presets yet".
   const userPresets = items.filter((p) => !p.builtin)
 
@@ -248,6 +248,20 @@ function HeaderPresets() {
           ) : null}
         </>
       )}
+
+      {/* The Excel budget. Excel rejects a header over 255 characters IN TOTAL, codes included, and
+          fails ungracefully -- the workbook writes, then Excel calls it corrupt on open. The export
+          trimmer drops trailing lines to stay under, so nothing breaks; the user just loses lines
+          without being told. Templates make long headers easy to write, so show the number.
+          ⚠️ "about" is not hedging: this is a second copy of a frozen function's arithmetic and can
+          drift. exportExcel stays authoritative; the hdrexcel leg is the guard. */}
+      {excelBudget ? (
+        <Text size="xxs" c={excelBudget.over ? 'danger.9' : 'dimmed'} className="hdr-presets-hint">
+          {excelBudget.over
+            ? `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters — too long, so the last lines will be dropped from the workbook.`
+            : `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters.`}
+        </Text>
+      ) : null}
 
       {/* Import is always offered: it is how someone gets their FIRST preset, when the list is
           still just Default and there is nothing of their own to export. */}

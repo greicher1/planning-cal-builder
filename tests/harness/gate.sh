@@ -770,14 +770,18 @@ PY
 #     H4 proved against a real file rather than by construction: no calendar written before the
 #     template engine carries headerTemplates, so the flag restores false and headerLine() never
 #     calls the resolver. It is the assertion that says the whole feature is safe for calendars
-#     already in the wild. applyStateSnapshot() replays the SNAPSHOT's keys, so without the guard above its
+#     already in the wild.
+#   * hdrtemplated.sptcal is the MIRROR of it: the same kind of braces, saved in TEMPLATE mode with
+#     headerTemplates:true -> every stored token must RESOLVE on restore, and no known token may
+#     survive in a rendered line. The two fixtures together are the whole of decision H3: same text,
+#     opposite outcome, decided by one flag that no pre-existing file carries. applyStateSnapshot() replays the SNAPSHOT's keys, so without the guard above its
 #     step 3 a field the snapshot never mentions keeps the PREVIOUSLY OPEN calendar's value -- open a
 #     calendar with version 3, then open a pre-Step-1 file, and the second show's header prints v3.
 #     That is CLAUDE.md's "a missing key falls back to a default, never to whatever is in memory".
 # ⚠️ Both go through the INLINE ?state= path, which is the same applyStateSnapshot the picker uses.
 # The two-files-in-sequence case needs the picker, which stalls on IndexedDB here -- see the
 # `restore` leg above, which fails for exactly that reason. Not proved by this harness; said out loud.
-for HVFIX in hdrversion colswap-2col hdrmanualbraces; do
+for HVFIX in hdrversion colswap-2col hdrmanualbraces hdrtemplated; do
 HARNESS_PAGE="$PAGE" HARNESS_STATE="$HVFIX" "$HERE/run.sh" hdrverload 90 >/dev/null 2>&1
 python3 - "$HERE/hdrverload.json" "$HVFIX" <<'PY' || FAIL=1
 import json,sys
@@ -955,6 +959,55 @@ hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"hdrfile: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
+
+# ---- hdrexcel: the 255-character Excel header cap, and the estimate that warns about it -----------
+# HEADER-PRESETS-PLAN.md Step 6, gate item 8.
+# Excel rejects a header over 255 characters IN TOTAL, codes included, and fails UNGRACEFULLY: the
+# workbook writes and validates as XML, then Excel calls it corrupt on open. exportExcel's trimmer
+# drops trailing lines to stay under, so nothing breaks and the user silently loses lines.
+# ⚠️ estimateExcelHeaderLength() is a SECOND COPY of that frozen arithmetic and can drift, which is
+# what this leg is really for: the claim is not "the estimate is exact" but "a header the estimate
+# calls near the limit still produces a workbook check-xlsx.sh accepts, and the trimmer drops the
+# lines it is supposed to, in the order it is supposed to".
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrexcel 150 >/dev/null 2>&1
+python3 - "$HERE/hdrexcel.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrexcel produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdrexcel threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('meterShowsNumber') and a.get('autoUnderLimit'),
+    f"hdrexcel: the meter reads sanely on an ordinary header ({a.get('meterAtAuto')!r})")
+chk(a.get('estimatorSaysOver') and a.get('meterWarns'),
+    f"hdrexcel: an overlong header is called out before export ({a.get('overTotal')} of 255)")
+chk(a.get('oddHeaderUnderCap'),
+    f"hdrexcel: ⭐ the workbook's header is inside Excel's cap ({a.get('oddHeaderLen')} <= 255)")
+chk(a.get('trimOrderIntact'),
+    f"hdrexcel: ⭐ the trimmer drops the RIGHT lines in the RIGHT order {a.get('sectionLines')} -- right-hand detail first, every section keeps its lead line")
+chk(a.get('estimateAgreesDirectionally'),
+    "hdrexcel: the estimate saw the problem the real assembly had (it exceeds; the real header was trimmed)")
+chk(not a.get('errors'), f"hdrexcel: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrexcel: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+# ⭐ And the real file, through the checker that rejects a workbook the way EXCEL does rather than
+# the way a parser does. This is the assertion the whole leg exists for.
+if [[ -f "$HERE/hdrexcel.xlsx" ]]; then
+  if "$HERE/check-xlsx.sh" "$HERE/hdrexcel.xlsx" >/dev/null 2>&1; then
+    ok "hdrexcel: ⭐ the overlong-header workbook still opens -- check-xlsx.sh accepts it"
+  else
+    bad "hdrexcel: the overlong-header workbook is REJECTED by check-xlsx.sh"
+  fi
+else
+  bad "hdrexcel produced no workbook to check"
+fi
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

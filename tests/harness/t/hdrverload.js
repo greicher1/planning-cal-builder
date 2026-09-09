@@ -58,9 +58,17 @@ window.addEventListener('load', function () { (async function () {
     // is the only case this leg's fixtures exercise; a Template fixture would need resolving and is
     // covered by t/hdrtemplate.js instead.
     var storedL2 = (fixture.headerManual || {})['l2'];
-    out.expectedLabel = (storedL2 !== undefined && fixture.headerMode === 'manual')
-      ? String(storedL2).trim()
-      : (stripped ? 'v' + stripped : '');
+    var isTemplateFixture = fixture.headerTemplates === true;
+    // ⚠️ A stored line wins over the auto default (headerLine checks `id in headerManual` first),
+    // and what it RENDERS as depends on the flag. In Manual it is literal text. In Template it is a
+    // template, and the one this leg's fixture carries is exactly `{version}` -- so the expectation
+    // is the version label, the same string Auto would have produced. Anything more elaborate
+    // belongs in t/hdrtemplate.js, which drives the resolver properly.
+    var versionLabel = stripped ? 'v' + stripped : '';
+    if (storedL2 === undefined) out.expectedLabel = versionLabel;
+    else if (!isTemplateFixture) out.expectedLabel = String(storedL2).trim();
+    else out.expectedLabel = (String(storedL2).trim() === '{version}') ? versionLabel : null;
+    out.templateFixture = isTemplateFixture;
 
     await T.until(function () {
       return document.querySelectorAll('table.sheet-table tbody tr').length > 1;
@@ -109,7 +117,16 @@ window.addEventListener('load', function () { (async function () {
     // engine's HSIZE comment warns Excel makes. A size code here is always followed by a font-name
     // code, so anchor on that and strip in one left-to-right pass.
     out.excelL = String(sections.L || '').replace(/&(?:"[^"]*"|K[0-9A-Fa-f]{6}|\d{1,3}(?=&")|[A-Z])/g, '');
-    out.excelMatches = out.excelL === (out.expectedLabel ? todayStr + '\n' + out.expectedLabel : todayStr);
+    // ⚠️ The &L section is `left` then `l2`, and a fixture that STORES a `left` line overrides the
+    // auto date -- hdrmanualbraces carries the literal "9.8.26" it was minted with, so expecting
+    // today's date fails a day later for no reason. Derive the expectation from the fixture, exactly
+    // as expectedLabel is derived, and fall back to the auto date only when nothing is stored.
+    var storedLeft = (fixture.headerManual || {})['left'];
+    var expectedLeft = (storedLeft !== undefined && fixture.headerMode === 'manual' && !isTemplateFixture)
+      ? String(storedLeft).trim()
+      : todayStr;
+    out.expectedLeft = expectedLeft;
+    out.excelMatches = out.excelL === (out.expectedLabel ? expectedLeft + '\n' + out.expectedLabel : expectedLeft);
 
     // ---- the header MODE came back with the file, and Manual still never resolves ---------------
     // ⭐ THE H4 PROOF FOR FILES ALREADY IN THE WILD. A calendar saved in Manual whose header happens
@@ -146,8 +163,30 @@ window.addEventListener('load', function () { (async function () {
       var withBraces = Object.keys(stored).filter(function (hid) { return String(stored[hid]).indexOf('{') >= 0; });
       out.linesWithBraces = withBraces;
       out.bracesSurvived = withBraces.every(function (hid) { return rendered[hid].indexOf('{') >= 0; });
+    } else if (fixture.headerTemplates === true) {
+      // ⭐ The mirror of the Manual case, and the reason both fixtures exist. Same braces, opposite
+      // outcome: in Template a stored token must RESOLVE, so no rendered line may still show one.
+      out.manualRendersVerbatim = true;   // not the claim for this fixture
+      var tokenLines = Object.keys(stored).filter(function (hid) { return String(stored[hid]).indexOf('{') >= 0; });
+      out.linesWithBraces = tokenLines;
+      // ⚠️ NOT "no braces at all". A template may legitimately render braces -- an UNKNOWN token
+      // stays as typed, and {{ }} is an escape -- so this fixture's c2 (`Draft {nope} {{escaped}}`)
+      // correctly comes back with braces. A first cut asserted no braces and failed on correct
+      // output, the same mistake the hdrtemplate leg made. The real claim is narrower: no KNOWN
+      // token may survive unresolved.
+      var KNOWN = ['{title}','{titleSeason}','{version}','{episodes}','{today}',
+                   '{production.summary}','{production.dates}','{writersRoom.line}'];
+      out.unresolvedKnown = Object.keys(rendered).filter(function (hid) {
+        return KNOWN.some(function (k) { return (rendered[hid] || '').indexOf(k) >= 0; });
+      });
+      // And resolution really happened: at least one stored token line reads differently now.
+      out.someLineResolved = tokenLines.some(function (hid) {
+        return (rendered[hid] || '') !== String(stored[hid] || '').trim();
+      });
+      out.tokensResolved = out.unresolvedKnown.length === 0 && out.someLineResolved;
+      out.bracesSurvived = true;          // not the claim for this fixture either
     } else {
-      out.manualRendersVerbatim = true;   // not the case under test for this fixture
+      out.manualRendersVerbatim = true;
       out.bracesSurvived = true;
     }
 
@@ -156,6 +195,7 @@ window.addEventListener('load', function () { (async function () {
     out.PASS = out.stateApplied && out.fieldFound && out.fieldRestored &&
                out.l2Found && out.headerMatches && out.visibilityMatches && out.excelMatches &&
                out.modeMatches && out.manualRendersVerbatim && out.bracesSurvived &&
+               (out.templateFixture ? out.tokensResolved === true : true) &&
                out.errors.length === 0 && !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {
     out.EX = e && (e.message || String(e));

@@ -274,7 +274,20 @@ set-count equals reset-count. Inertness measured: with nothing stored the waterf
 Excel part are **byte-identical to the baseline**, because every existing `page.line` call site
 passes no dash.
 
-⏭ Still to come: more tenants (`GRID_TEXT_COLOR`, `WF_PDF_MODE`), and the rest of **header presets**
+⏭ Still to come: more tenants (`GRID_TEXT_COLOR`, `WF_PDF_MODE`).
+✅ **HEADER PRESETS ARE BUILT — ALL SIX STEPS (8–9 Sep 2026).** ⛔ **And this store is now their
+home:** `prefs.headerPresets` is its second tenant. A preset is *how this person likes headers* and
+lives here, per user and per machine; the APPLIED header is *this calendar's header* and travels in
+`headerManual`/`headerFormat` inside the `.sptcal`. ⛔ Getting that split backwards fails silently in
+both directions, so both are asserted by the `hdrpreset` leg. ⛔ **Presets store TEMPLATES, never
+values** (H8) — which is why Save-as is disabled in Manual mode, with the reason shown. Deleting the
+last preset removes the key, the same rule gridlines follows. Steps 3–6 also added the
+`DEFAULT_HEADER_TEMPLATE`, the **Insert ▾** palette, `.spthdr` files with their own strict reader
+(⛔ **never** `parseCalendarText()`), and an Excel budget meter that warns before the 255-character
+cap silently drops header lines. ⏸ **H2** (a Presets button on the header strip) and **H6** (the
+month-view header) are still deferred — both are further frozen edits with no sign-off.
+
+**Steps 1 and 2, for the record:**
 — ✅ **STEPS 1 AND 2 OF SIX ARE BUILT (8 Sep 2026), and nothing of either is in this store.**
 **Step 2** landed the template engine and the third mode: `buildHeaderCtx()`,
 `resolveHeaderTemplate()`, the `headerTemplates` flag (a new snapshot key, restored with

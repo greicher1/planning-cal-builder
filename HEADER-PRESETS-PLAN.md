@@ -9,7 +9,18 @@ Written 1 Sep 2026 for Opus 5 to build from. Self-contained: assumes no memory o
 produced it. Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) first. This is a plan, not a
 record of work done.
 
-> ◐ **BUILD STATUS, 8 Sep 2026 — STEPS 1 AND 2 ARE BUILT; STEPS 3–6 ARE NOT.**
+> ✅ **BUILD STATUS, 9 Sep 2026 — ALL SIX STEPS ARE BUILT.** Steps 3–6 landed the
+> `DEFAULT_HEADER_TEMPLATE` and the **Insert ▾** token palette (§3.7), the preset library in the
+> Preferences card (§3.5), `.spthdr` export/import with its own strict reader (§3.6), and the Excel
+> budget meter, Help copy and restore-path fixtures (§3.8). Gate legs `hdrtemplate`, `hdrpreset`,
+> `hdrfile`, `hdrexcel`, `hdrverload` × 4 fixtures, and `prove-header-template.mjs`.
+> ⚠️ **Still deferred, both needing their own ruling:** **H2** (a Presets ▾ button on the header
+> strip — a further frozen edit) and **H6** (the month-view header — a further frozen edit plus a
+> month-PDF diff). Neither has a sign-off and neither was built.
+>
+> The original per-step status, for the record:
+>
+> ◐ **8 Sep 2026 — STEPS 1 AND 2 ARE BUILT; STEPS 3–6 ARE NOT.**
 > **Step 1** (§3.3): the `show-version` field, `versionLabel()`, `l2`'s auto default, the listener,
 > the `resetAll()` clear. No frozen edit. Legs `hdrversion` + `hdrverload`.
 > **Step 2** (§§3.1, 3.2, 3.4): `buildHeaderCtx()`, `resolveHeaderTemplate()` and its scanner, the
@@ -693,6 +704,8 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 
 ```
 1. Step 1 (version field + {version} in l2)       <- ✅ BUILT 8 Sep 2026; legs hdrversion + hdrverload
+   Steps 2-6                                      <- ✅ ALL BUILT (2 on 8 Sep, 3-6 on 9 Sep 2026)
+   H2 and H6                                      <- ⏸ still deferred, no sign-off
 2. Step 2 (engine + third mode + the ONE frozen label edit) + prove-header-template.mjs + hdrmode
 3. Step 3 (Default template + palette) + hdrdefault leg
 4. Step 4 (library in Preferences) + hdrpreset leg  <- ⭐ Feature complete for R1-R5 except files

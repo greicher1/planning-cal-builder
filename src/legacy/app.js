@@ -5902,6 +5902,8 @@ export function initLegacyApp() {
     headerManual[id] = text;
     render(currentSchedule);
     markDirty(); // was previously missing here -- header edits were invisible to save-dirty tracking and undo
+    // The Excel budget is a function of the header text, so it moves whenever a line does.
+    pushHeaderPresets();
   });
   // Enter commits (no newlines inside a header line)
   document.getElementById('table-wrap').addEventListener('keydown', e=>{
@@ -7718,10 +7720,13 @@ export function initLegacyApp() {
   // React re-render cannot become a place where preset content is edited.
   function pushHeaderPresets(){
     const cap = headerPresetCapture();
+    let budget = null;
+    try { budget = estimateExcelHeaderLength(); } catch(e){ budget = null; }
     chrome.headerPresets({
       items: headerPresetList(),
       canSave: !!cap.ok,
       saveHint: cap.ok ? '' : cap.reason,
+      excelBudget: budget,
     });
   }
   // Applying is a CALENDAR edit: it changes what the header prints, so it marks dirty and lands as
@@ -7765,6 +7770,59 @@ export function initLegacyApp() {
     writeHeaderPresets(headerPresetsStore().filter(p=>p.id !== id));
     pushHeaderPresets();
     return true;
+  }
+
+  // ---------- The Excel header budget (HEADER-PRESETS-PLAN.md §3.8, Step 6) ----------
+  //
+  // Excel rejects a header/footer string over 255 characters IN TOTAL, codes included -- and it does
+  // not fail gracefully: the workbook still writes and still validates as XML, but Excel refuses it
+  // on open with "We found a problem with some content", which reads as a corrupt file rather than a
+  // too-long header. exportExcel's trimmer drops trailing lines to stay under, so nothing breaks --
+  // but the user loses lines without being told, and templates make long headers very easy to write.
+  // So show the number before they hit it.
+  //
+  // ⚠️ THIS IS A SECOND COPY OF A FROZEN FUNCTION'S ARITHMETIC AND IT CAN DRIFT. exportExcel stays
+  // authoritative -- it is the thing that actually writes the file and it is frozen. This is an
+  // ESTIMATE and the UI says "about" for that reason. The `hdrexcel` gate leg is the guard: a header
+  // this function scores near the limit must still produce a workbook check-xlsx.sh accepts.
+  // ⛔ Do not "fix" the duplication by calling into exportExcel. It builds an entire workbook.
+  function estimateExcelHeaderLength(){
+    // Mirrors exportExcel's assembly exactly: three sections, each prefixed by HSIZE, lines joined
+    // by a newline, per-line codes only when some line in that section is formatted.
+    const HSIZE_COST = '&B&12&"Calibri,Bold"'.length;      // 20, and there are three of them
+    const hd = computeHeaderDefaults(currentSchedule);
+    const safe = s => String(s).replace(/&/g, '').trim();  // hdrSafe
+    const lineCodeCost = id => {
+      const f = headerFmt(id, false);
+      const size = f.size ? Math.round(f.size) : 12;
+      const bold = (f.bold === undefined) ? true : !!f.bold;
+      const style = bold && f.italic ? 'Bold Italic' : bold ? 'Bold' : f.italic ? 'Italic' : 'Regular';
+      const color = f.color ? String(f.color).replace('#','').toUpperCase() : '000000';
+      return ('&' + size + '&"Calibri,' + style + '"&K' + color).length;
+    };
+    const anyFmt = ids => ids.some(id => Object.keys(headerFmt(id, false)).length > 0);
+    const section = (ids) => {
+      const on = anyFmt(ids);
+      const texts = ids.map(id => ({ id, text: safe(headerLine(id, hd)) })).filter(x => x.text);
+      if(!texts.length) return { lines: 0, cost: 0 };
+      let cost = 2 + HSIZE_COST;                            // "&L" / "&C" / "&R", then HSIZE
+      texts.forEach((x, i) => {
+        cost += (on ? lineCodeCost(x.id) : 0) + x.text.length + (i ? 1 : 0);   // +1 for the \n
+      });
+      return { lines: texts.length, cost };
+    };
+    const L = section(['left','l2']);
+    const C = section(['c1','c2','c3','c4']);
+    const R = section(['r1','r2','r3']);
+    // ⚠️ &L is emitted even when its section is empty (exportExcel's `&L${HSIZE}${hL}` is
+    // unconditional, unlike the &C and &R branches), so charge for it either way.
+    const total = (L.cost || (2 + HSIZE_COST)) + C.cost + R.cost;
+    return { total, max: 255, over: total > 255 };
+  }
+  function pushExcelBudget(){
+    let b = null;
+    try { b = estimateExcelHeaderLength(); } catch(e){ b = null; }
+    chrome.headerPresets({ excelBudget: b });
   }
 
   // ---------- Preset FILES: .spthdr (HEADER-PRESETS-PLAN.md §3.6, Step 5) ----------

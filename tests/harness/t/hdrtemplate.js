@@ -309,6 +309,10 @@ window.addEventListener('load', function () { (async function () {
     out.flagTravels = out.snapHeaderTemplates === true && out.snapHeaderMode === 'manual';
     // ⭐ The non-enumerable __ctx must be invisible to JSON.stringify, Object.assign and spread.
     out.ctxLeaked = snapText.indexOf('__ctx') >= 0;
+    // Emitted so the gate step can mint tests/fixtures/hdrtemplated.sptcal from a REAL
+    // captureSnapshot() taken in TEMPLATE mode -- the restore-path fixture Step 6 owes, and the
+    // counterpart to hdrmanualbraces.sptcal (same braces, flag false, must NOT resolve).
+    out.templateSnapshot = snap;
     // And no body-level mode popover may be baked into a copy. ⚠️ PARSED, not regexed: the copy
     // legitimately contains the string "hdr-mode-pop" twice over -- in the inlined stylesheet, and
     // in the engine's own source -- so a text search reports a leak that is not one. A first cut did

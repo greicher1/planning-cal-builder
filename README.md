@@ -29,6 +29,47 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Excel header has a 255-character cliff, so now the app says how close you are
+
+Step 6 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the last.
+**All six steps of the header-presets plan are now built.** Local, not pushed at time of writing.
+
+**A budget meter under the preset controls** — *"Excel header: about 67 of 255 characters."* Excel
+rejects a header/footer string over **255 characters in total**, codes included, and it does not fail
+gracefully: the workbook still writes and still validates as XML, but Excel refuses it on open with
+*"We found a problem with some content"*, which reads as a corrupt file rather than a long header. A
+real calendar hit this at exactly 256. `exportExcel`'s trimmer drops trailing lines to stay under, so
+nothing breaks — the user just loses lines without being told. Templates make long headers very easy
+to write, so the number is now on screen before they hit it, and turns red past the cap.
+
+⚠️ **"about" is not hedging.** `estimateExcelHeaderLength()` is a **second copy** of a frozen
+function's arithmetic and can drift; `exportExcel` stays authoritative because it is the thing that
+actually writes the file. The `hdrexcel` leg is the guard, and its claim is deliberately not "the
+estimate is exact" — it is *a header the estimate calls near the limit still produces a workbook
+`check-xlsx.sh` accepts, and the trimmer drops the lines it is supposed to, in the order it is
+supposed to*. Measured: an estimate of **439** produced a **195**-character header in the file, and
+the sections came back 2 / 1 / 1 — right-hand detail given up first, every section keeping its lead
+line, exactly as documented.
+
+**Help rewritten for three modes.** The old entry described a two-state toggle. It now explains Auto,
+Template and Manual, what square brackets do, where **Insert ▾** lives, and that Template → Manual
+freezes values — plus a second paragraph on presets, and the one rule a user needs to know about
+them: they stay on your computer and are never part of a saved calendar.
+
+**A fourth restore fixture, `hdrtemplated.sptcal`** — a real `captureSnapshot()` taken in Template
+mode. It is the mirror of `hdrmanualbraces.sptcal`: **the same kind of braces, the opposite
+outcome**, decided by one flag that no pre-existing file carries. Together they are the whole of
+decision H3, proved against actual files rather than by construction.
+
+**Verified.** New leg `hdrexcel`, plus `hdrverload` now running against four fixtures.
+⚠️ **Two more of my own assertions were wrong before the code was** — the Manual fixture stores a
+*baked* date (`9.8.26`) that overrides the auto default, so expecting today's date failed a day after
+minting; and a Template line may legitimately render braces (an unknown token, an escape), so
+"no braces" was too strong and became "no *known* token survives unresolved". Both are the same
+mistake in different clothes: asserting the absence of a character rather than the absence of the
+thing that matters.
+
+
 ### Unreleased — presets as files, so a header can be sent to someone
 
 Step 5 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
