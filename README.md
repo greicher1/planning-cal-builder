@@ -29,6 +29,47 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Default template, and a menu that tells you which tokens exist
+
+Step 3 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
+writing.
+
+**`DEFAULT_HEADER_TEMPLATE` — the auto header, written as templates.** *Header: Auto → Template* now
+seeds from it, so the lines keep **tracking** the data. Before this, that transition seeded from the
+resolved values: the header looked identical and then quietly stopped updating, which is Manual
+wearing Template's name.
+
+⚠️ **It is a second statement of the auto header, and the `hdrdefault` check is what stops it
+drifting.** The leg captures the nine lines in Auto — `computeHeaderDefaults()`'s hand-coded output —
+switches to Template, and requires the nine resolved lines to be **identical**. They are.
+⛔ Do not "simplify" by making Auto read the template: Auto's strings are the byte-identical baseline
+the gate compares against. Note `r3` is `[{episodes} Episodes]`, not `{episodes} Episodes` — the auto
+line is *empty* with no episode count, and only the conditional group reproduces that.
+
+**A token palette.** The header format toolbar gains **Insert ▾** — Show, Dates, one group per phase
+(built-in *and* custom, under their current names), and Snippets. Picking one inserts it at the caret
+of the line you are editing. Nobody can type `{production.summary}` without being told it exists.
+
+⛔ **Waterfall and Template only.** A token in a Manual line prints as braces, so offering the palette
+there would offer a feature that does nothing. `headerFmtToolbarHtml()` is non-frozen and reads the
+flag at call time, so the control simply is not built unless it would work.
+
+⚠️ **The caret is the whole difficulty.** The line is `contenteditable` and the palette is a
+body-level panel, so a click in the panel would normally blur the line and destroy the selection
+before the insert runs. Two things prevent it: `mousedown` is `preventDefault`ed over the panel, and
+the range is re-validated rather than trusted — if the saved selection is no longer inside the target
+line, the token goes at the end rather than silently nowhere. The insert then commits through the
+*same* `focusout` path a typed edit uses, so there is one definition of "a line changed".
+
+**Verified.** Gate legs green, and the inertness byte-compare re-run: waterfall PDF and every Excel
+part still identical to the baseline. ⚠️ **Two false alarms in the test, both mine, both worth
+recording** — the palette insert was first asserted against `c4`, which the Default template leaves
+**empty**, so "append at the caret" had nothing to append after and read as the insert replacing the
+line; and a synthetic `focusin` sets `hdrFmtTarget` but creates no selection, so Chrome supplies a
+caret at position 0 and the token landed at the start. Both are artefacts of driving the DOM, not
+app behaviour; the leg now places a real caret and targets a line with content.
+
+
 ### Unreleased — header lines can be templates now, and there are three modes rather than two
 
 Step 2 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the largest. Local, not

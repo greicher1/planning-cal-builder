@@ -482,6 +482,47 @@
   /* The bake warning on Template -> Manual. Said before the click, because the tokens do not
      come back except through undo. */
   .hdr-mode-warn{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-danger-9); line-height:1.35; }
+
+  /* The token palette (Insert ▾). A body-level panel like the mode menu, but a LIST rather than a
+     menu -- it can run to forty-odd entries once a calendar has custom phases, so it scrolls.
+     ⛔ Classes only, no ids: collectFieldValues() sweeps id'd controls into every saved calendar. */
+  .hdr-token-pop{
+    position:absolute; z-index:200; background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
+    padding:var(--mantine-spacing-xs); box-shadow:var(--mantine-shadow-md);
+    display:flex; flex-direction:column; gap:1px; width:300px;
+    max-height:min(420px, 60vh); overflow-y:auto;
+  }
+  /* A group heading, not a control -- sticky so the phase you are scrolling through stays named. */
+  .hdr-token-group{
+    position:sticky; top:calc(var(--mantine-spacing-xs) * -1);
+    background:var(--mantine-color-white);
+    font-size:var(--mantine-font-size-xxs); font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md) 2px;
+  }
+  .hdr-token-group:first-child{ padding-top:2px; }
+  .hdr-token-item{
+    display:flex; align-items:baseline; gap:var(--mantine-spacing-sm); text-align:left; width:100%;
+    padding:3px var(--mantine-spacing-md);
+    border:1px solid transparent; border-radius:var(--mantine-radius-sm);
+    background:transparent; cursor:pointer; font-family:inherit;
+  }
+  .hdr-token-item:hover{ background:var(--mantine-color-gray-0); }
+  /* The token itself is the thing you are picking, so it reads as code and takes the ink. */
+  .hdr-token-code{
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-9);
+    white-space:nowrap;
+  }
+  .hdr-token-desc{
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
+    margin-left:auto; text-align:right; white-space:nowrap;
+  }
+  .hdr-token-hint{
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); line-height:1.4;
+  }
   /* Per-phase hiatus controls: a toggle plus (when on) a start date + weeks, mirroring the
      Holiday hiatus, but scoped to the single phase it sits under. */
   /* The per-phase hiatus reads as its own ruled-off section of the block, not a stray toggle. */

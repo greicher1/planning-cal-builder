@@ -770,7 +770,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -7371,6 +7371,27 @@ export function initLegacyApp() {
   const HDR_IDS = ['left','l2','c1','c2','c3','c4','r1','r2','r3'];
   const HDR_NEW_SLOTS = ['l2','c4'];
 
+  // The built-in Default preset: the auto header, written as templates. It is what Auto -> Template
+  // seeds from, and (Step 4) the read-only first entry in the preset list.
+  //
+  // ⚠️ IT IS A SECOND STATEMENT OF THE AUTO HEADER AND THE TWO CAN DRIFT. computeHeaderDefaults()
+  // stays hand-coded -- its strings are the byte-identical baseline the gate compares against -- so
+  // this is a duplicate guarded by a test rather than a single source. The `hdrdefault` assertion in
+  // the hdrtemplate leg resolves all nine of these against the live calendar and requires them to
+  // equal computeHeaderDefaults() exactly, byte for byte, on a calendar with data and on an empty
+  // one. ⛔ Do not "simplify" by making Auto read this template: Auto's hand-coded strings are what
+  // every existing calendar renders, and routing them through the resolver puts the byte-identical
+  // baseline at risk for no user-visible gain.
+  //
+  // Note r3: `[{episodes} Episodes]` rather than `{episodes} Episodes`. The auto r3 is EMPTY when
+  // there is no episode count, and only the conditional group reproduces that -- without the
+  // brackets an empty count would render the bare word "Episodes".
+  const DEFAULT_HEADER_TEMPLATE = {
+    left: '{today}',      l2: '{version}',
+    c1:   '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
+    r1:   '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
+  };
+
   function headerFmt(id, mv){ return (mv ? mvHeaderFormat : headerFormat)[id] || {}; }
 
   // Which way a line sits when it has no explicit align -- i.e. what its column already does.
@@ -7523,6 +7544,9 @@ export function initLegacyApp() {
   document.getElementById('table-wrap').addEventListener('click', e=>{
     const bar = e.target.closest && e.target.closest('.hdr-fmt');
     if(!bar) return;
+    // Insert ▾ opens the token palette. Handled FIRST and returned, because everything below this
+    // point is about FORMATTING the target line and would otherwise run pointlessly on the way past.
+    if(e.target.closest('.hf-insert')){ openHdrTokenPop(e.target.closest('.hf-insert')); return; }
     const store = hdrFmtTarget ? hdrFmtStore(hdrFmtTarget.mv) : null;
     const cur = (store && hdrFmtTarget) ? (store[hdrFmtTarget.id] || {}) : {};
     // Toggle from what the line ACTUALLY looks like right now, not from the stored value: the
@@ -7628,7 +7652,160 @@ export function initLegacyApp() {
       </label>
       ${alignMenuHtml()}
       <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>
+      ${(!mv && headerTemplates) ? '<button type="button" class="hf-ctl hf-btn hf-insert" title="Insert live data into this line" aria-label="Insert token">Insert &#9662;</button>' : ''}
     </div>`;
+  }
+
+  // ---------- The token palette: Insert ▾ (HEADER-PRESETS-PLAN.md §3.7, Step 3) ----------
+  //
+  // Nobody can type `{production.summary}` without being told it exists. The palette is the
+  // discovery surface for §3.2, and it inserts at the caret of the line the user is editing.
+  //
+  // ⛔ NOT ONE id IN HERE. collectFieldValues() sweeps every input[id]/select[id]/textarea[id] into
+  // every saved calendar and adds an undo step per change; the whole toolbar follows that rule and
+  // so does this. Buttons and classes only.
+  // ⛔ Waterfall only, and only in Template mode. A token typed into a MANUAL line prints as braces
+  // (headerLine only resolves when the flag is on), so offering the palette there would be offering
+  // a feature that does nothing. headerFmtToolbarHtml() is non-frozen and reads the flag at call
+  // time, so the control simply is not built unless it would work.
+  function hdrTokenGroups(){
+    const groups = [
+      { name: 'Show', items: [
+        ['{title}', 'Show title'],
+        ['{season}', 'Season, as S2'],
+        ['{titleSeason}', 'Title and season'],
+        ['{version}', 'Version, as v3'],
+        ['{episodes}', 'Episode count'],
+        ['{shootDaysPerEp}', 'Shoot days per episode'],
+        ['{shootDays}', 'Total shoot days'],
+      ]},
+      { name: 'Dates', items: [
+        ['{today}', "Today, as 9.8.26"],
+        ['{today:long}', 'Today, as September 8, 2026'],
+        ['{today:slash}', 'Today, as 9/8/26'],
+        ['{today:iso}', 'Today, as 2026-09-08'],
+      ]},
+    ];
+    // Every phase the calendar actually has, built-in and custom, under its CURRENT name -- so a
+    // renamed phase offers tokens that read the way the sidebar reads.
+    let defs = [];
+    try { defs = getAllPhaseDefs(); } catch(e){ defs = []; }
+    defs.forEach(p=>{
+      groups.push({ name: p.label || p.key, items: [
+        ['{' + p.key + '.open}',  'Opens'],
+        ['{' + p.key + '.close}', p.key === 'production' ? 'Wrap (last shoot day)' : 'Closes (Friday of the final week)'],
+        ['{' + p.key + '.weeks}', 'Weeks'],
+        ['{' + p.key + '.name}',  'Phase name'],
+      ]});
+    });
+    groups.push({ name: 'Snippets', items: [
+      ['Planning Calendar', 'Literal text'],
+      ['{production.summary}', 'Span and shooting schedule'],
+      ['{production.dates}', 'Principal photography and wrap'],
+      ['{writersRoom.line}', "Writer's Room Opens: date"],
+      ['[{episodes} Episodes]', 'Hidden when there is no count'],
+    ]});
+    return groups;
+  }
+
+  let activeHdrTokenPop = null;
+  function closeHdrTokenPop(){
+    if(activeHdrTokenPop){ activeHdrTokenPop.remove(); activeHdrTokenPop = null; }
+    document.removeEventListener('mousedown', onHdrTokenPopOutside, true);
+    window.removeEventListener('resize', closeHdrTokenPop);
+    window.removeEventListener('scroll', closeHdrTokenPop, true);
+  }
+  function onHdrTokenPopOutside(e){
+    if(activeHdrTokenPop && !activeHdrTokenPop.contains(e.target)) closeHdrTokenPop();
+  }
+  // Put `text` where the caret is, inside the line the toolbar is targeting.
+  //
+  // ⚠️ THE CARET IS THE WHOLE DIFFICULTY. The line is contenteditable and the palette is a
+  // body-level panel, so a click in the panel would ordinarily blur the line and destroy the
+  // selection before the insert runs. Two things prevent that: mousedown is preventDefault'ed over
+  // the panel (below), and the range is re-validated here rather than trusted -- if the saved
+  // selection is not inside the target line any more, the token goes at the END, which is the
+  // predictable answer rather than a silent no-op.
+  function insertHdrToken(text){
+    if(!hdrFmtTarget || hdrFmtTarget.mv) return false;
+    const line = document.querySelector('#table-wrap .hdr-line[data-hid="' + hdrFmtTarget.id + '"]');
+    if(!line) return false;
+    line.focus();
+    const sel = window.getSelection();
+    let range = null;
+    if(sel && sel.rangeCount){
+      const r = sel.getRangeAt(0);
+      if(line.contains(r.commonAncestorContainer)) range = r;
+    }
+    if(!range){
+      range = document.createRange();
+      range.selectNodeContents(line);
+      range.collapse(false);            // the end
+    }
+    range.deleteContents();
+    const node = document.createTextNode(text);
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    if(sel){ sel.removeAllRanges(); sel.addRange(range); }
+    // Commit through the SAME path a typed edit uses, so there is one definition of "a line
+    // changed" -- storing raw, re-rendering resolved, and marking dirty exactly once.
+    line.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    return true;
+  }
+  function openHdrTokenPop(anchorEl){
+    closeHdrTokenPop();
+    const pop = document.createElement('div');
+    pop.className = 'hdr-token-pop';
+    if(!hdrFmtTarget || hdrFmtTarget.mv){
+      const hint = document.createElement('div');
+      hint.className = 'hdr-token-hint';
+      hint.textContent = 'Click a header line first, then insert a token into it.';
+      pop.appendChild(hint);
+    } else {
+      hdrTokenGroups().forEach(g=>{
+        const h = document.createElement('div');
+        h.className = 'hdr-token-group';
+        h.textContent = g.name;
+        pop.appendChild(h);
+        g.items.forEach(([tok, desc])=>{
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'hdr-token-item';
+          const code = document.createElement('span');
+          code.className = 'hdr-token-code';
+          code.textContent = tok;
+          const d = document.createElement('span');
+          d.className = 'hdr-token-desc';
+          d.textContent = desc;
+          b.appendChild(code); b.appendChild(d);
+          b.addEventListener('click', ev=>{
+            ev.stopPropagation();
+            closeHdrTokenPop();
+            insertHdrToken(tok);
+          });
+          pop.appendChild(b);
+        });
+      });
+    }
+    // ⚠️ Keep the caret. Without this the mousedown blurs the contenteditable line and the
+    // selection is gone before the click handler above ever runs.
+    pop.addEventListener('mousedown', ev=>{ ev.preventDefault(); });
+    document.body.appendChild(pop);
+    const r = anchorEl.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8){
+      pop.style.top = (window.scrollY + Math.max(8, r.top - pr.height - 5)) + 'px';
+    }
+    activeHdrTokenPop = pop;
+    setTimeout(()=>{
+      document.addEventListener('mousedown', onHdrTokenPopOutside, true);
+      window.addEventListener('resize', closeHdrTokenPop);
+      window.addEventListener('scroll', closeHdrTokenPop, true);
+    }, 0);
   }
 
   function headerFormatExcel(f){
@@ -7915,13 +8092,11 @@ export function initLegacyApp() {
         headerMode = 'auto'; headerManual = {}; headerFormat = {}; headerTemplates = false;
       } else if(next === 'template'){
         if(from === 'auto'){
-          // Seed from the built-in default so the lines keep TRACKING the data, which is the whole
-          // point of the mode. DEFAULT_HEADER_TEMPLATE arrives with Step 3; until then seed from the
-          // resolved auto values, which are valid templates containing no tokens -- so this
-          // transition is honest either way and gains tokens when the default lands.
-          headerManual = (typeof DEFAULT_HEADER_TEMPLATE !== 'undefined')
-            ? Object.assign({}, DEFAULT_HEADER_TEMPLATE)
-            : Object.assign({}, computeHeaderDefaults(currentSchedule));
+          // Seed from the built-in default, so the lines keep TRACKING the data -- which is the
+          // whole point of the mode. Seeding from the RESOLVED values instead (as this did before
+          // Step 3) produced a header that looked identical and then silently stopped updating,
+          // which is Manual wearing Template's name.
+          headerManual = Object.assign({}, DEFAULT_HEADER_TEMPLATE);
         }
         // Manual -> Template keeps the literal strings as they are: text with no tokens is a valid
         // template, so nothing is lost and the user can add tokens to what is already there.
@@ -8707,7 +8882,7 @@ export function initLegacyApp() {
     // .hdr-mode-pop added 8 Sep 2026 with the three header modes -- same reason as the rest: it is
     // a body-level panel, and a Share click with it open would export a menu hanging over the
     // calendar pointing at nothing.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =

@@ -101,6 +101,8 @@ window.addEventListener('load', function () { (async function () {
     out.h3bAutoInert = auto.label === 'Header: Auto' &&
       auto.title === 'Take over the header: snapshot the current values into editable lines';
 
+    out.insertBtnInAuto = !!document.querySelector('#table-wrap .hf-insert');
+
     // ---- 2. Auto -> Template -------------------------------------------------------------------
     await pick('Template');
     var tpl = modeState();
@@ -111,6 +113,78 @@ window.addEventListener('load', function () { (async function () {
     out.tplEditable = lineEl('c1').getAttribute('contenteditable') === 'true';
     out.tplToolbar = !!document.querySelector('#table-wrap .hdr-fmt-bar, #table-wrap .hf-ctl');
     out.tplIsTemplate = tpl.label === 'Header: Template';
+
+    // ---- 2b. ⭐ `hdrdefault` -- THE DRIFT GUARD FOR THE ONE DUPLICATED STATEMENT ----------------
+    // DEFAULT_HEADER_TEMPLATE is the auto header written as templates, and Auto -> Template seeds
+    // headerManual from it. So the nine lines showing NOW are that template RESOLVED, and the nine
+    // captured a moment ago in Auto are computeHeaderDefaults()'s hand-coded output. They must be
+    // identical, line for line. If they ever diverge, picking Template silently changes what the
+    // header says -- which is the failure this assertion exists to make loud.
+    out.tplLines = lines();
+    out.defaultDiffs = Object.keys(out.autoLines).filter(function (hid) {
+      return out.autoLines[hid] !== out.tplLines[hid];
+    }).map(function (hid) { return hid + ': auto=' + JSON.stringify(out.autoLines[hid]) +
+                                   ' tpl=' + JSON.stringify(out.tplLines[hid]); });
+    out.defaultMatchesAuto = out.defaultDiffs.length === 0;
+
+    // ---- 2c. the token palette (Insert ▾) ------------------------------------------------------
+    // ⛔ Waterfall + Template only: a token in a MANUAL line prints as braces, so offering the
+    // palette there would offer a feature that does nothing.
+    out.insertBtnInTemplate = !!document.querySelector('#table-wrap .hf-insert');
+    // ⚠️ PLACE A REAL CARET, do not just dispatch focusin. A synthetic FocusEvent sets
+    // hdrFmtTarget but moves no focus and creates no selection, so insertHdrToken()'s own
+    // line.focus() supplies one -- and Chrome puts that caret at position 0, which made a first cut
+    // of this test report the token landing at the START of the line and look like a bug. A user
+    // clicking into a line always has a caret where they clicked; this reproduces that, at the end.
+    // ⛔ c1, NOT c4. The Default template leaves c4 EMPTY, so inserting into it cannot demonstrate
+    // "at the caret" -- there is nothing to append after, and the line simply becomes the token.
+    // A first cut used c4 and read that as the insert replacing the line. c1 carries
+    // {titleSeason}, so an append is visible as an append.
+    (function () {
+      var el = lineEl('c1');
+      el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));   // sets hdrFmtTarget
+      el.focus();
+      var r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);                                                // the end, as if clicked there
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    })();
+    await T.sleep(200);
+    document.querySelector('#table-wrap .hf-insert').click();
+    await T.until(function () { return !!document.querySelector('.hdr-token-pop'); },
+                  'the token palette', 40, 100);
+    var palette = document.querySelector('.hdr-token-pop');
+    out.paletteGroups = [].map.call(palette.querySelectorAll('.hdr-token-group'),
+                                    function (g) { return g.textContent; });
+    out.paletteTokens = [].map.call(palette.querySelectorAll('.hdr-token-code'),
+                                    function (c) { return c.textContent; });
+    // Every phase the calendar has must be offered, under its CURRENT name -- including the
+    // renamed built-ins the fixture carries.
+    out.paletteHasPhases = out.paletteTokens.indexOf('{writersRoom.open}') >= 0 &&
+                           out.paletteTokens.indexOf('{production.close}') >= 0 &&
+                           out.paletteTokens.indexOf('{localization.weeks}') >= 0;
+    out.paletteHasSnippets = out.paletteTokens.indexOf('{production.summary}') >= 0 &&
+                             out.paletteTokens.indexOf('[{episodes} Episodes]') >= 0;
+    // Insert one, and it must land AT THE CARET -- appended here, not prepended -- and resolve.
+    var target = null;
+    palette.querySelectorAll('.hdr-token-item').forEach(function (b) {
+      if ((b.querySelector('.hdr-token-code').textContent || '') === '{episodes}') target = b;
+    });
+    target.click();
+    await T.sleep(800);
+    out.afterInsert = lines().c1;
+    // The raw form, read the way the user would see it: focus swaps the template back in.
+    lineEl('c1').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    await T.sleep(250);
+    out.afterInsertRaw = (lineEl('c1').textContent || '').trim();
+    lineEl('c1').dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    await T.sleep(500);
+    // Appended, so the Default template's own token still leads and the new one follows it.
+    out.insertedAtCaret = out.afterInsertRaw === '{titleSeason}{episodes}';
+    out.insertedResolved = out.afterInsert === 'Test Show S210';
+    out.paletteClosed = !document.querySelector('.hdr-token-pop');
 
     // ---- 3. ⭐ RESOLUTION: tokens in, live data out, in all three consumers ---------------------
     await commit('c4', 'T={title} V={version} E={episodes}');
@@ -244,6 +318,7 @@ window.addEventListener('load', function () { (async function () {
     out.popInCopy = out.popElementsInCopy > 0;
 
     // ---- 8. ⭐ TEMPLATE -> MANUAL BAKES, and the popover says so first --------------------------
+    out.preBakeC4 = lines().c4;
     var stale2 = document.querySelector('.hdr-mode-pop');
     if (stale2) stale2.remove();
     btn().click();
@@ -264,7 +339,13 @@ window.addEventListener('load', function () { (async function () {
     out.h3bManualInert = man.label === 'Header: Manual' &&
       man.title === 'Discard manual header edits and return to auto-filled values';
     out.bakedC4 = lines().c4;
-    out.bakeFroze = out.bakedC4 === 'T=Test Show V=v3 E=10';
+    // ⚠️ Compared against what the line SHOWED just before the bake, not a literal: the palette
+    // insert above changed that line, and a hardcoded expectation here broke the moment Step 3
+    // landed. The claim is "the bake freezes what was on screen", so state it that way.
+    out.bakeFroze = out.bakedC4 === out.preBakeC4;
+    out.insertBtnInManual = !!document.querySelector('#table-wrap .hf-insert');
+    // The palette is offered in Template and nowhere else.
+    out.insertScoped = out.insertBtnInTemplate && !out.insertBtnInAuto && !out.insertBtnInManual;
     // The tokens are gone: focusing shows the baked text, not a template.
     lineEl('c4').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     await T.sleep(250);
@@ -302,6 +383,9 @@ window.addEventListener('load', function () { (async function () {
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
     out.PASS = out.h3bAutoInert && out.h3bManualInert &&
+               out.defaultMatchesAuto && out.insertScoped &&
+               out.paletteHasPhases && out.paletteHasSnippets &&
+               out.insertedAtCaret && out.insertedResolved && out.paletteClosed &&
                out.tplIsTemplate && out.tplEditable &&
                out.resolvesOnScreen && out.unknownSurvives && out.groupsWork && out.noCompoundDrift &&
                out.focusShowsRaw && out.blurRestoresResolved &&
