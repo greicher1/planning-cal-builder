@@ -867,6 +867,56 @@ chk(not hv.get('h'), f"hdrtemplate: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- hdrpreset: the preset library, and the two rules that keep data where it belongs ------------
+# HEADER-PRESETS-PLAN.md Step 4, gate item 6.
+# ⭐ storesTemplates  -- decision H8. A preset holds the nine TEMPLATES, never their resolved values.
+#                       Save a header whose l2 says "v3" and that preset stamps v3 onto every
+#                       calendar it is ever applied to. Also why Save-as is DISABLED in Manual.
+# ⭐ neverInSnapshot  -- a preset is a PREFERENCE: sptcal.prefs, per user and per machine, never
+#                       captureSnapshot(). The exact mirror of the version field, which IS calendar
+#                       data and must travel. Getting either backwards fails silently.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdrpreset 150 >/dev/null 2>&1
+python3 - "$HERE/hdrpreset.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrpreset produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdrpreset threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('blockFound') and a.get('insidePrefsCard'),
+    "hdrpreset: the block exists and sits inside .prefs-card")
+chk(a.get('noIdsInBlock'), f"hdrpreset: ⛔ not one id on any preset control {a.get('idsInBlock')}")
+chk(a.get('defaultFirst') and a.get('defaultNotEditable'),
+    f"hdrpreset: Default ships built in, first, and read-only {a.get('optionsAtBoot')}")
+chk(a.get('storeEmptyAtBoot'), "hdrpreset: nothing is stored until the user saves something")
+chk(a.get('manualSaveDisabled') and a.get('manualExplains'),
+    f"hdrpreset: ⭐ H8 -- Save-as is refused in Manual, and says why ({a.get('manualHint')!r})")
+chk(a.get('templateSaveEnabled'), "hdrpreset: ...and offered in Template")
+chk(a.get('storesTemplates'),
+    f"hdrpreset: ⭐ H8 -- the preset stores TEMPLATES, not values (l2={((a.get('savedLines') or {}).get('l2'))!r})")
+chk(a.get('idGenerated'), f"hdrpreset: ids are generated, never the name ({a.get('savedId')!r})")
+chk(a.get('listGrew') and a.get('twoSaved'), "hdrpreset: saving adds to the list")
+chk(a.get('applySwitchedMode') and a.get('applyResolved'),
+    f"hdrpreset: applying switches to Template and the lines resolve ({a.get('afterApplyLabel')!r})")
+chk(a.get('applyIsOneUndoStep'), f"hdrpreset: applying is ONE undo step ({a.get('afterUndoLabel')!r})")
+chk(a.get('neverInSnapshot'),
+    f"hdrpreset: ⭐ a preset NEVER travels in a calendar (key={a.get('snapHasPresetKey')}, name={a.get('snapHasPresetName')}, {a.get('fieldIdCount')} field ids)")
+chk(a.get('appliedHeaderTravels'),
+    "hdrpreset: ...but the APPLIED header does -- that is how a .sptcal renders elsewhere")
+chk(a.get('renameWorked'), f"hdrpreset: rename keeps the id, so nothing is orphaned ({a.get('renamedTo')!r})")
+chk(a.get('deleteClean'),
+    f"hdrpreset: deleting the last preset REMOVES the key, and Default survives {a.get('prefsAfterDelete')}")
+chk(not a.get('errors'), f"hdrpreset: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdrpreset: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

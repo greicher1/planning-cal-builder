@@ -17,9 +17,11 @@
 // would silently fail to come back when someone opens a saved calendar — while still saving
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
+import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
+import { installChrome } from './bridge.js'
 
 const SEASONS = [
   { value: '', label: '—' },
@@ -169,8 +171,112 @@ export function PreferencesCard() {
           <option value="solid">Solid</option>
           <option value="dashed">Dashed (Excel style)</option>
         </NativeSelect>
+
+        <HeaderPresets />
       </div>
     </section>
+  )
+}
+
+// The header PRESET library (HEADER-PRESETS-PLAN.md §3.5). Lives in the Preferences card because a
+// preset IS a preference -- how this person likes headers, not what this calendar says.
+//
+// ⛔ NOT ONE `id` ON ANY CONTROL IN HERE, and the .prefs-card skip is not the reason. That skip
+// covers controls inside the card; the rule is kept absolutely because it is simpler to hold than to
+// audit, and because the one Mantine component that would break it -- `Modal` -- portals to <body>,
+// OUTSIDE the card, where the skip does not reach. That is why the Save-as name field is INLINE
+// rather than a modal, and why these are plain elements with classes: legacy.css's plain-control
+// rules give them the Mantine look, the same way the engine-generated Phases card gets it.
+//
+// ⛔ THE ENGINE OWNS EVERY ACTION. React renders `data-hdrpreset` attributes and the engine's one
+// delegated click handler matches them -- the fileMenu pattern. Nothing here mutates a preset, and
+// the component never receives a preset's templates: only names and ids come across the bridge, so a
+// re-render cannot become a place where preset content is edited.
+function HeaderPresets() {
+  const [state, setState] = useState({ items: [], canSave: false, saveHint: '', naming: false })
+  const [editing, setEditing] = useState(null)   // the id being renamed, or null
+
+  useLayoutEffect(() => {
+    installChrome({ headerPresets: (patch) => setState((s) => ({ ...s, ...patch })) })
+  }, [])
+
+  const { items, canSave, saveHint, naming } = state
+  // Default is always present and always first, so a list of one means "no saved presets yet".
+  const userPresets = items.filter((p) => !p.builtin)
+
+  return (
+    <div className="hdr-presets">
+      <Text size="xs" fw={500} className="hdr-presets-label">Header presets</Text>
+      <Text size="xxs" c="dimmed" className="hdr-presets-desc">
+        A saved arrangement of the nine header lines. Applying one changes this calendar; the preset
+        itself stays on this computer.
+      </Text>
+
+      <Group gap="sm" wrap="nowrap" mt="xs">
+        {/* Plain <select>, no id: legacy.css styles it, and nothing can sweep it into a file. */}
+        <select className="hdr-preset-select" aria-label="Header preset"
+                style={{ flex: '1 1 0', minWidth: 0 }}>
+          {items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button type="button" className="hdr-preset-btn" data-hdrpreset="apply" style={{ flex: 'none' }}>
+          Apply
+        </button>
+      </Group>
+
+      {naming ? (
+        <Group gap="sm" wrap="nowrap" mt="sm">
+          <input type="text" className="hdr-preset-name-input" placeholder="Preset name"
+                 aria-label="Preset name" autoFocus style={{ flex: '1 1 0', minWidth: 0 }} />
+          <button type="button" className="hdr-preset-btn" data-hdrpreset="save" style={{ flex: 'none' }}>
+            Save
+          </button>
+          <button type="button" className="hdr-preset-btn hdr-preset-btn-quiet" style={{ flex: 'none' }}
+                  onClick={() => setState((s) => ({ ...s, naming: false }))}>
+            Cancel
+          </button>
+        </Group>
+      ) : (
+        <>
+          <button type="button" className="hdr-preset-btn hdr-preset-save-open" disabled={!canSave}
+                  onClick={() => setState((s) => ({ ...s, naming: true }))}>
+            Save current header as preset…
+          </button>
+          {/* The reason, not just a dead control. Manual lines are literal values, and saving them
+              would pin one calendar's data onto every calendar the preset is applied to (H8). */}
+          {!canSave && saveHint ? (
+            <Text size="xxs" c="dimmed" className="hdr-presets-hint">{saveHint}</Text>
+          ) : null}
+        </>
+      )}
+
+      {userPresets.length ? (
+        <div className="hdr-preset-list">
+          {userPresets.map((p) => (
+            <div className="hdr-preset-row" key={p.id}>
+              {editing === p.id ? (
+                <>
+                  <input type="text" className="hdr-preset-rename-input" defaultValue={p.name}
+                         aria-label={'Rename ' + p.name} autoFocus
+                         style={{ flex: '1 1 0', minWidth: 0 }} />
+                  <button type="button" className="hdr-preset-link" data-hdrpreset="rename"
+                          data-preset-id={p.id} onClick={() => setEditing(null)}>Save</button>
+                  <button type="button" className="hdr-preset-link"
+                          onClick={() => setEditing(null)}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <span className="hdr-preset-row-name">{p.name}</span>
+                  <button type="button" className="hdr-preset-link"
+                          onClick={() => setEditing(p.id)}>Rename</button>
+                  <button type="button" className="hdr-preset-link hdr-preset-link-danger"
+                          data-hdrpreset="delete" data-preset-id={p.id}>Delete</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 

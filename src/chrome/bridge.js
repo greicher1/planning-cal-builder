@@ -73,6 +73,12 @@ export const chrome = {
   // stay enabled when a direction is unavailable, on purpose, so that pressing one can explain why
   // nothing moved. leftOk/rightOk only drive the styling.
   gridSelection: noop,
+  // { items:[{id,name,builtin}], canSave, saveHint, naming } — the header PRESET library
+  // (HEADER-PRESETS-PLAN.md §3.5). Names and ids ONLY: the chrome never sees a preset's templates,
+  // so a React re-render cannot become a place where preset content is edited. `canSave` is false in
+  // Manual mode and `saveHint` says why (decision H8 — a preset must store templates, never values).
+  // The engine handles every click by delegated `data-hdrpreset`, the fileMenu pattern.
+  headerPresets: noop,
   // { holidays: [{iso, name}], hiatuses: [{start, weeks}] } — the date-picker popovers' markers
   // (src/chrome/DatePop.jsx). Pushed by update() so the little calendars mark holidays and
   // all-phase hiatus weeks without the popover ever reaching into the engine.

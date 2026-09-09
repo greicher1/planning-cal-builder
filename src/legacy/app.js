@@ -7656,6 +7656,148 @@ export function initLegacyApp() {
     </div>`;
   }
 
+  // ---------- The header preset library (HEADER-PRESETS-PLAN.md §3.5, Step 4) ----------
+  //
+  // A preset is a named set of nine TEMPLATES plus a sparse format map. It lives in `sptcal.prefs`
+  // -- per user, per machine -- and never in captureSnapshot().
+  //
+  // ⛔ THAT SPLIT IS THE POINT, and it is the opposite of the version field's. A preset is *how this
+  // person likes headers*; the applied header is *this calendar's header*. Applying a preset COPIES
+  // its lines into headerManual/headerFormat, which do travel in the .sptcal -- so a calendar opened
+  // on another machine renders correctly without that machine owning the preset, and a preset never
+  // rides inside someone else's file.
+  //
+  // ⛔ PRESETS STORE TEMPLATES, NEVER VALUES (decision H8). A preset whose l2 said "v3" would stamp
+  // v3 onto every calendar it was ever applied to. That is why Save-as is DISABLED in Manual mode:
+  // Manual lines are literal text, and saving them is exactly the value-pinning H8 forbids.
+  const HDR_PRESET_DEFAULT_ID = '__default';
+  // Ids are GENERATED and never derived from the name -- a rename must not orphan anything, and two
+  // presets may legitimately share a name.
+  function newHeaderPresetId(){
+    return 'hp_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  }
+  function headerPresetsStore(){
+    return Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [];
+  }
+  function writeHeaderPresets(list){
+    // ⛔ An empty list REMOVES the key rather than storing []. Same rule the gridlines preference
+    // follows: the store never holds an entry that means nothing, so a later migration can read it
+    // without guessing which entries were deliberate.
+    if(list && list.length) prefs.headerPresets = list; else delete prefs.headerPresets;
+    savePrefs();
+  }
+  // What Save-as would capture right now, and whether it may. RAW templates in every case.
+  function headerPresetCapture(){
+    const mode = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
+    if(mode === 'manual'){
+      return { ok:false, reason:'Switch to Template to save this header as a preset.' };
+    }
+    const lines = {};
+    HDR_IDS.forEach(id=>{
+      // In Template the store IS the templates; a line the user has not touched has no entry yet, so
+      // fall back to the built-in default for that slot. In Auto there is no store at all, and the
+      // Default template is what the header currently means.
+      lines[id] = (mode === 'template' && (id in headerManual))
+        ? headerManual[id]
+        : (DEFAULT_HEADER_TEMPLATE[id] || '');
+    });
+    return { ok:true, lines, format: Object.assign({}, headerFormat) };
+  }
+  // Default first, always, and read-only. It is the one preset every user has.
+  function headerPresetList(){
+    return [{ id: HDR_PRESET_DEFAULT_ID, name: 'Default', builtin: true }]
+      .concat(headerPresetsStore().map(p=>({ id: p.id, name: p.name, builtin: false })));
+  }
+  function findHeaderPreset(id){
+    if(id === HDR_PRESET_DEFAULT_ID){
+      return { id, name:'Default', builtin:true, lines: DEFAULT_HEADER_TEMPLATE, format: {} };
+    }
+    return headerPresetsStore().find(p=>p.id === id) || null;
+  }
+  // Push names and ids only -- the chrome never needs the templates, and keeping them out means a
+  // React re-render cannot become a place where preset content is edited.
+  function pushHeaderPresets(){
+    const cap = headerPresetCapture();
+    chrome.headerPresets({
+      items: headerPresetList(),
+      canSave: !!cap.ok,
+      saveHint: cap.ok ? '' : cap.reason,
+    });
+  }
+  // Applying is a CALENDAR edit: it changes what the header prints, so it marks dirty and lands as
+  // ONE undo step covering all nine lines and their formats.
+  function applyHeaderPreset(id){
+    const p = findHeaderPreset(id);
+    if(!p) return false;
+    asOneHeaderStep(()=>{
+      headerManual = Object.assign({}, p.lines);
+      headerFormat = Object.assign({}, p.format || {});
+      headerTemplates = true;
+      headerMode = 'manual';
+      render(currentSchedule);
+      markDirty();
+    });
+    pushHeaderPresets();
+    return true;
+  }
+  function saveHeaderPresetAs(name){
+    const cap = headerPresetCapture();
+    if(!cap.ok) return { ok:false, reason: cap.reason };
+    const clean = String(name || '').trim();
+    if(!clean) return { ok:false, reason:'Give the preset a name.' };
+    const list = headerPresetsStore().slice();
+    list.push({ id: newHeaderPresetId(), name: clean, createdAt: new Date().toISOString(),
+                lines: cap.lines, format: cap.format });
+    writeHeaderPresets(list);
+    pushHeaderPresets();
+    return { ok:true };
+  }
+  function renameHeaderPreset(id, name){
+    const clean = String(name || '').trim();
+    if(!clean || id === HDR_PRESET_DEFAULT_ID) return false;
+    const list = headerPresetsStore().map(p => p.id === id ? Object.assign({}, p, { name: clean }) : p);
+    writeHeaderPresets(list);
+    pushHeaderPresets();
+    return true;
+  }
+  function deleteHeaderPreset(id){
+    if(id === HDR_PRESET_DEFAULT_ID) return false;   // the built-in cannot be deleted
+    writeHeaderPresets(headerPresetsStore().filter(p=>p.id !== id));
+    pushHeaderPresets();
+    return true;
+  }
+
+  // ⛔ NOTHING HERE ADDS AN UNDO STEP OR A FIELD. Saving, renaming and deleting a preset are
+  // PREFERENCE edits, not calendar edits: they must not markDirty(), must not push an undo
+  // snapshot, and must not put an id'd control into the document. Only APPLY touches the calendar.
+  document.addEventListener('click', async e=>{
+    const btn = e.target && e.target.closest ? e.target.closest('[data-hdrpreset]') : null;
+    if(!btn) return;
+    const action = btn.dataset.hdrpreset;
+    const id = btn.dataset.presetId || '';
+    if(action === 'apply'){
+      const sel = document.querySelector('.hdr-preset-select');
+      const pick = sel ? sel.value : id;
+      if(pick) applyHeaderPreset(pick);
+    } else if(action === 'delete'){
+      const p = findHeaderPreset(id);
+      if(!p || p.builtin) return;
+      if(!(await uiConfirm('Delete the preset "' + p.name + '"?\n\nCalendars you already applied it to keep their header.',
+                           { title:'Delete preset', confirmLabel:'Delete', danger:true }))) return;
+      deleteHeaderPreset(id);
+    } else if(action === 'rename'){
+      const p = findHeaderPreset(id);
+      if(!p || p.builtin) return;
+      const input = document.querySelector('.hdr-preset-rename-input');
+      if(input) renameHeaderPreset(id, input.value);
+    } else if(action === 'save'){
+      const input = document.querySelector('.hdr-preset-name-input');
+      const res = saveHeaderPresetAs(input ? input.value : '');
+      if(!res.ok){ uiAlert(res.reason); return; }
+      chrome.headerPresets({ naming:false });
+    }
+  });
+
   // ---------- The token palette: Insert ▾ (HEADER-PRESETS-PLAN.md §3.7, Step 3) ----------
   //
   // Nobody can type `{production.summary}` without being told it exists. The palette is the
@@ -8123,6 +8265,9 @@ export function initLegacyApp() {
       render(currentSchedule);
       markDirty();
     });
+    // Save-as is disabled in Manual (H8), so the preset block's state depends on the mode. Re-push
+    // it here rather than leaving the button stale after a switch.
+    pushHeaderPresets();
   }
 
   // The mode menu. A body-level popover anchored to the button -- chrome, and explicitly fair game.
@@ -12136,6 +12281,19 @@ export function initLegacyApp() {
     }
     window.addEventListener('appinstalled', ()=>{ if(installBtn) installBtn.style.display = 'none'; });
   })();
+
+  // The preset list is chrome OUTPUT, so it has to be pushed once at boot: React renders an empty
+  // block until the engine tells it what exists.
+  //
+  // ⛔ LAST, and that is not tidiness. pushHeaderPresets() reads HDR_IDS, DEFAULT_HEADER_TEMPLATE,
+  // headerMode, headerTemplates and headerFormat -- all `let`/`const`, all declared further down the
+  // IIFE than the boot code near reflectGridlines() where this first sat. Calling it there threw
+  // "Cannot access ... before initialization" from the TEMPORAL DEAD ZONE and took the REST OF THE
+  // IIFE with it: React still rendered the chrome, so the page looked alive while the engine was
+  // dead and the sidebar had no phase rows at all. Found in the browser, not by the harness -- the
+  // legs build a fixture and would have failed with a confusing "no #start-production".
+  // ⚠️ Anything else that must run at boot AND reads the header stores belongs here too, not there.
+  pushHeaderPresets();
 })();
 
 }

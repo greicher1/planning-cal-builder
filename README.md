@@ -29,6 +29,55 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — header presets: save an arrangement once, apply it to any calendar
+
+Step 4 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the plan's own
+feature-complete milestone for what the owner asked for — everything except the `.spthdr` files.
+Local, not pushed at time of writing.
+
+**A Header presets block in the Preferences card.** Pick a preset and Apply; save the current header
+under a name; rename and delete your own. *Default* ships built in, first in the list, and cannot be
+renamed or deleted.
+
+⛔ **A preset is a PREFERENCE, and that is the whole reason it lives in that card.** It goes in
+`sptcal.prefs` — per user, per machine — and never into `captureSnapshot()`. Applying one **copies**
+its lines into `headerManual`/`headerFormat`, which *do* travel in a `.sptcal`, so a calendar opened
+on another machine renders correctly without that machine owning the preset. It is the exact mirror
+of the version field, which is calendar data and must travel. Getting either backwards fails
+silently, so both directions are asserted.
+
+⛔ **Presets store templates, never values** (decision H8), and **Save-as is disabled in Manual mode**
+with the reason shown — *"Switch to Template to save this header as a preset."* Manual lines are
+literal text; a preset whose `l2` said `v3` would stamp v3 onto every calendar it was ever applied
+to. The leg asserts the saved `l2` is `{version}`.
+
+⛔ **Not one `id` on any control in the block.** `collectFieldValues()` sweeps every id'd input into
+saved calendars; the `.prefs-card` skip covers this card, but a Mantine `Modal` portals to `<body>`
+*outside* it — which is why the Save-as name field is inline rather than a modal, and why these are
+plain elements with classes taking their look from `legacy.css`.
+
+**Ids are generated (`hp_…`), never the name** — a rename must not orphan anything, and two presets
+may legitimately share a name. **Applying is one undo step** covering all nine lines and their
+formats. **Deleting the last preset removes the key** rather than storing `[]`, the same rule the
+gridlines preference follows.
+
+⚠️ **A temporal-dead-zone crash, found in the browser and not by the harness.** The boot-time
+`pushHeaderPresets()` first sat beside `reflectGridlines()`, which runs far earlier in the IIFE than
+the `let`/`const` declarations it reads (`HDR_IDS`, `DEFAULT_HEADER_TEMPLATE`, `headerMode`,
+`headerTemplates`, `headerFormat`). It threw *"Cannot access … before initialization"* and **took the
+rest of the IIFE with it** — React still rendered the chrome, so the page looked alive while the
+engine was dead and the sidebar had no phase rows at all. The call now runs last. A gate leg would
+have reported a confusing *"no #start-production"*; loading the page said exactly what was wrong.
+
+**Verified.** New leg `hdrpreset`: the block is inside `.prefs-card` with **zero** ids, Default is
+first and read-only, Save-as refused in Manual and offered in Template, the saved preset's lines are
+`{today}` / `{version}` / `{titleSeason}` / `[{episodes} Episodes]`, ids match `hp_`, applying
+switches to Template and resolves and reverts in **one** undo step, the preset is absent from a real
+shareable copy while the applied header is present in it, rename keeps the id, and deleting the last
+preset leaves `{"version":1}` behind. `fields.byId` unchanged at 55. Byte-compare re-run: waterfall
+PDF and every Excel part still identical to the baseline.
+
+
 ### Unreleased — the Default template, and a menu that tells you which tokens exist
 
 Step 3 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of

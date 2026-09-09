@@ -519,6 +519,45 @@
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
     margin-left:auto; text-align:right; white-space:nowrap;
   }
+  /* ---- The header preset library, in the Preferences card (HEADER-PRESETS-PLAN.md §3.5) ----
+     ⛔ Every control here is a PLAIN element with a class and no id, on purpose: collectFieldValues()
+     sweeps id'd inputs into saved calendars, and a Mantine Modal would portal OUTSIDE .prefs-card
+     where the exclusion does not reach. legacy.css's plain-control rules give them the Mantine look,
+     the same way the engine-generated Phases card gets it. */
+  .hdr-presets{ margin-top:var(--mantine-spacing-lg); padding-top:var(--mantine-spacing-lg);
+    border-top:1px solid var(--mantine-color-gray-2); }
+  .hdr-presets-label{ display:block; }
+  .hdr-presets-desc{ display:block; margin-top:2px; line-height:1.35; }
+  .hdr-presets-hint{ display:block; margin-top:4px; line-height:1.35; }
+  .hdr-preset-btn{
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+    padding:5px 10px; cursor:pointer;
+  }
+  .hdr-preset-btn:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .hdr-preset-btn:disabled{ color:var(--mantine-color-gray-5); cursor:default; }
+  .hdr-preset-save-open{ width:100%; margin-top:var(--mantine-spacing-sm); text-align:center; }
+  .hdr-preset-btn-quiet{ border-color:transparent; }
+  .hdr-preset-list{ margin-top:var(--mantine-spacing-sm); display:flex; flex-direction:column; gap:1px; }
+  .hdr-preset-row{
+    display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    padding:3px 0; min-width:0;
+  }
+  .hdr-preset-row-name{
+    flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-9);
+  }
+  /* Row actions are text links, not buttons: three bordered buttons per row would out-shout the
+     preset name they belong to. */
+  .hdr-preset-link{
+    flex:none; font-family:inherit; font-size:var(--mantine-font-size-xxs);
+    color:var(--mantine-color-gray-6); background:none; border:none; padding:2px 3px;
+    cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+  }
+  .hdr-preset-link:hover{ color:var(--mantine-color-gray-9); }
+  .hdr-preset-link-danger:hover{ color:var(--mantine-color-danger-9); }
+
   .hdr-token-hint{
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); line-height:1.4;
