@@ -713,6 +713,17 @@ compares against exactly that file, so **do not renumber them.** What has joined
 - **`show-version` (8 Sep 2026)** — the version number, in the Show info card. `HEADER-PRESETS-PLAN.md`
   Step 1. It reaches both writers through `computeHeaderDefaults()`'s `l2` slot, so it is in §6.3 too.
 
+⚠️ **The header's slot list grew twice and it is `HDR_IDS`, not an id sweep, that defines it.** The
+header lines are keyed by `data-hid`, not by element `id`, so they are **not** in `fields.byId` at
+all — they travel as `headerManual` / `headerFormat`, both keyed by those same short names. The list
+went from seven to nine on 31 Aug 2026 (`l2`, `c4`) and to **ten on 9 Sep 2026** (`l3`, so the columns
+read 3 / 4 / 3 in the format and 3 / 3 / 3 in the editor). Every addition has been made the same way
+and must continue to be: **empty by default**, so it is hidden on screen, dropped from the workbook by
+`withCodes()` and from the PDF by `.filter(x=>x.t)`, and therefore inert on every calendar already
+saved. ⛔ `c4` is the case that shows the rule has teeth — the editor stopped **offering** it on
+9 Sep 2026 but it is still rendered, still exported, still restored, and still revealed in the editor
+for any calendar that uses it. A slot can leave the UI; it cannot leave the format.
+
 And one that is **deliberately NOT** in the format, which is the more instructive case:
 
 ⚠️ **Since 8 Sep 2026 `computeHeaderDefaults()` returns a CARRIER, not just nine strings.** It hangs
@@ -724,11 +735,27 @@ ordinary property would be serialised into every saved calendar. `JSON.stringify
 and spread all skip it. ⛔ Anything that copies the defaults object must copy the NINE STRINGS
 (`Object.assign({}, …)`), never adopt the object itself.
 
-⚠️ **A sixth body-level panel exists: `.hdr-mode-pop`** (8 Sep 2026), the Auto/Template/Manual menu.
-It is in both panel lists it has to be in — `OVER_PANEL`, so `hitCell()` stops descending through it,
-and `buildSavedHtml()`'s clone strip, so a Share click with the menu open does not bake it into the
-copy. Asserted by the `hdrtemplate` leg (parsed, not regexed — the copy legitimately contains the
-string in its inlined stylesheet and in the engine's own source).
+⚠️ **THREE more body-level panels exist, taking the count from five to eight.** Each is in both
+panel lists it has to be in — `OVER_PANEL`, so `hitCell()` stops descending through it, and
+`buildSavedHtml()`'s clone strip, so a Share click with one open does not bake it into the copy.
+Asserted by the `hdrtemplate` and `hdreditor` legs (parsed, not regexed — the copy legitimately
+contains these strings in its inlined stylesheet and in the engine's own source).
+
+| Panel | Added | What it is |
+|---|---|---|
+| `.hdr-mode-pop` | 8 Sep 2026 | The Auto / Template / Manual menu on the header strip. Its Template row **opens the editor below** — since 9 Sep 2026 it no longer offers a read-only token list. |
+| `.hdr-token-pop` | 8 Sep 2026 | The Insert ▾ token palette, anchored to a header line. |
+| `.hde-overlay` | 9 Sep 2026 | The header template **editor** — a full modal, not an anchored popover. |
+
+⛔ **`.hde-overlay` is the one to be careful with, and the reason is `collectFieldValues()`.** It is
+body-level, therefore **outside `.prefs-card`**, and it contains ten text inputs, two colour inputs, a
+`<select>` and a checkbox. `collectFieldValues()` sweeps `input[id], select[id], textarea[id]` and
+skips only `.tools-menu` and `.prefs-card` — so **a single `id` on any control in that panel is baked
+into every saved calendar, with a phantom undo step per keystroke.** The panel therefore carries **no
+`id` at all**, on anything, and the `hdreditor` leg asserts exactly that (`idsInPanel` must be empty).
+This is the same hazard the preset block has, and the same answer: classes only. If a future control
+in there genuinely needs an `id` (a `<label for>`, say), the fix is to add the panel's class to
+`collectFieldValues()`'s skip list **first**.
 
 - `pref-gridlines` (3 Sep 2026) — a *preference*, not calendar data. It lives inside `.prefs-card`,
   and `collectFieldValues()` skips that class, so it never enters a saved file. ⛔ The rule the two
@@ -737,14 +764,20 @@ string in its inlined stylesheet and in the engine's own source).
   either on the wrong side of that class and it fails **silently** — a preference baked into everyone
   else's file, or a version number that never saves.
 
-⚠️ **`formSignature()` in the harness is NOT a proxy for this list, despite `gate.sh` gate 5's comment
-saying it "reports `fields.byId`".** It is a raw `input[id], select[id], textarea[id]` sweep with
-neither the `.tools-menu` nor the `.prefs-card` exclusion, so it reports a **superset**: the eight
-`tool-*` ids and `pref-gridlines` included. Its baseline in
-`tests/baselines/2026-08-29-stage-7/restore.json` records 56 ids and predates both `pref-gridlines`
-and `show-version`, so gate 5 would go red today on untouched code — masked only because the
-`restore` leg throws on the IndexedDB stall. Fix it by giving `formSignature()` the same two skips,
-**then** append `show-version` alone; that is the version of gate 5 that tests the actual save format.
+✅ **`formSignature()` IS a proxy for this list now — it was not until 9 Sep 2026, and the gap was
+hidden.** It used to be a raw `input[id], select[id], textarea[id]` sweep with neither the
+`.tools-menu` nor the `.prefs-card` exclusion, so it reported a **superset** — the eight `tool-*` ids
+and `pref-gridlines` included — which meant gate 5 was comparing something other than the save
+format, and would have gone red on untouched code once `pref-gridlines` and `show-version` landed.
+It did not go red, and that is the instructive part: **the `restore` leg had been throwing on the
+IndexedDB stall for ten days, so the comparison never ran.** A broken probe upstream of a wrong
+assertion reads exactly like a passing gate.
+
+Both fixes are in: `formSignature()` carries the same two skips the app does, and the baseline in
+`tests/baselines/2026-08-29-stage-7/restore.json` was re-cut from 56 ids to **55** — the eight
+`tool-*` and `pref-gridlines` out, `show-version` in. ⛔ Keep the two skips in step with
+`collectFieldValues()`: the whole point of the leg is that the harness and the app agree on what
+counts as calendar data, and a skip in one and not the other silently restores the old gap.
 - **Sim-post (3):** `simpost-enabled`, `simpost-offset`, `simpost-count`.
 - **Six per phase × six built-in phases (36):** `name-<key>`, `start-<key>`, `weeks-<key>`,
   `phiatus-en-<key>`, `phiatus-start-<key>`, `phiatus-weeks-<key>`.
@@ -770,6 +803,12 @@ why six reads still carry three unguarded); `font-carlito-400` and `font-carlito
 `readState()` → `computeSchedule()`; `table-wrap`; `print-root`; `sheet-scroll-container`;
 `saved-state` (literally in the on-disk format for every legacy `.html`, found by regex in
 `parseCalendarText()`).
+
+⚠️ **The header slots reach the exports too, and they are `data-hid` values rather than ids** —
+`exportExcel`'s `lIds` / `cIds` / `rIds` and `buildWaterfallPdf`'s `hLeftArr` / centre / right arrays
+name them literally. Those four literal arrays are the **only** places the slot list is written out
+inside frozen code, which is why adding a slot costs exactly one line in each: `left, l2, l3` /
+`c1, c2, c3, c4` / `r1, r2, r3` as of 9 Sep 2026.
 
 **A missing id is a crash, not a lost setting.** There are 38 unguarded dereference sites —
 `readState`'s `getElementById('start-'+p.key).value`, `getElementById('simpost-enabled').checked`,

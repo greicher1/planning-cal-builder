@@ -770,7 +770,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -5823,6 +5823,7 @@ export function initLegacyApp() {
       <div class="cal-header-date">
         ${hline('left','')}
         ${hline('l2','')}
+        ${hline('l3','')}
       </div>
       <div class="cal-header-center">
         ${hline('c1','hdr-title')}
@@ -6383,7 +6384,7 @@ export function initLegacyApp() {
       .filter(x => x.text)
       .map(x => (on ? hdrLineCode(x.id) : '') + x.text);
 
-    const lIds = ['left','l2'], cIds = ['c1','c2','c3','c4'], rIds = ['r1','r2','r3'];
+    const lIds = ['left','l2','l3'], cIds = ['c1','c2','c3','c4'], rIds = ['r1','r2','r3'];
     // The left section was a bare string and stays one; joining on \n means an empty l2 leaves it
     // byte-identical to the old `todayStr`.
     const todayStr = withCodes(lIds, anyFmt(lIds)).join('\n');
@@ -7370,8 +7371,15 @@ export function initLegacyApp() {
   // The nine waterfall header lines, in visual order per column. l2 and c4 are the two added
   // 31 Aug 2026 ("middle left" and "middle bottom"); they default to EMPTY and are hidden unless
   // manual mode is on, so auto mode renders byte-identically to before.
-  const HDR_IDS = ['left','l2','c1','c2','c3','c4','r1','r2','r3'];
-  const HDR_NEW_SLOTS = ['l2','c4'];
+  // ⚠️ ORDER IS NOT COSMETIC: this is the order the slots are written and read in, and l3 is
+  // appended to the LEFT group rather than to the end of the array so the list still reads
+  // column-by-column. Nothing keys off the index -- headerManual and headerFormat are keyed by id --
+  // but a reader who assumes the array is grouped should stay right.
+  const HDR_IDS = ['left','l2','l3','c1','c2','c3','c4','r1','r2','r3'];
+  // Slots that carry no auto value and are hidden when empty. l2 and c4 arrived 31 Aug 2026; l3
+  // arrived 9 Sep 2026 (owner: "left, centre, and right should have 3 each"), by the same argument
+  // and with the same guarantee -- empty by default, so every calendar ever saved renders unchanged.
+  const HDR_NEW_SLOTS = ['l2','l3','c4'];
 
   // The built-in Default preset: the auto header, written as templates. It is what Auto -> Template
   // seeds from, and (Step 4) the read-only first entry in the preset list.
@@ -7389,7 +7397,7 @@ export function initLegacyApp() {
   // there is no episode count, and only the conditional group reproduces that -- without the
   // brackets an empty count would render the bare word "Episodes".
   const DEFAULT_HEADER_TEMPLATE = {
-    left: '{today}',      l2: '{version}',
+    left: '{today}',      l2: '{version}',        l3: '',
     c1:   '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
     r1:   '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
   };
@@ -7401,7 +7409,7 @@ export function initLegacyApp() {
   // shrunk block has to be re-positioned by margins or it jumps to the left of its column.
   function headerDefaultAlign(id, mv){
     if(mv) return id === 'today' ? 'right' : 'center';
-    if(id === 'left' || id === 'l2') return 'left';
+    if(id === 'left' || id === 'l2' || id === 'l3') return 'left';
     if(id[0] === 'r') return 'right';
     return 'center';
   }
@@ -7639,10 +7647,24 @@ export function initLegacyApp() {
   // land, and "l2" is not an answer -- so give them the names a person would use looking at the
   // header. ⚠️ Display only; nothing keys off these.
   const HDR_SLOT_NAMES = {
-    left: 'Top left',  l2: 'Bottom left',
-    c1: 'Title',       c2: 'Centre, 2nd', c3: 'Centre, 3rd', c4: 'Centre, 4th',
-    r1: 'Right, 1st',  r2: 'Right, 2nd',  r3: 'Right, 3rd',
+    left: 'Left 1',  l2: 'Left 2',   l3: 'Left 3',
+    c1: 'Centre 1',  c2: 'Centre 2', c3: 'Centre 3', c4: 'Centre 4',
+    r1: 'Right 1',   r2: 'Right 2',  r3: 'Right 3',
   };
+  // The three columns, in the order they sit on the page. ⛔ c4 IS DELIBERATELY NOT HERE.
+  //
+  // The header editor offers three slots per column (owner, 9 Sep 2026). c4 is the fourth centre
+  // slot, added 31 Aug 2026 and already part of the save format -- so it is KEPT AND HIDDEN rather
+  // than removed: it still renders, still exports, still restores, and a calendar that has text in
+  // it loses nothing. The editor simply does not offer it as a new place to type, and reveals it
+  // only for a calendar that is already using it. Deleting it outright would silently drop a line
+  // from someone's header, which is the one thing the save-format contract forbids.
+  const HDR_EDITOR_COLUMNS = [
+    { key:'left',  label:'Left',   ids:['left','l2','l3'] },
+    { key:'mid',   label:'Centre', ids:['c1','c2','c3'] },
+    { key:'right', label:'Right',  ids:['r1','r2','r3'] },
+  ];
+  const HDR_LEGACY_SLOTS = ['c4'];
 
   function headerFmtToolbarHtml(mv){
     const sizes = mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
@@ -7665,6 +7687,452 @@ export function initLegacyApp() {
       <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>
       ${(!mv && headerTemplates) ? '<button type="button" class="hf-ctl hf-btn hf-insert" title="Insert live data into this line" aria-label="Insert token">Insert &#9662;</button>' : ''}
     </div>`;
+  }
+
+  // ---------- The header template EDITOR (owner request, 9 Sep 2026) ----------
+  //
+  // A dedicated pop-up for BUILDING a header, as opposed to tweaking one. The in-place editing on
+  // the calendar stays and is still the right tool for changing one line; this is for laying out all
+  // of them, which the header bar cannot do -- it shows one line at a time, in a cramped strip, with
+  // the raw/resolved swap happening under you, so you can never see the shape of what you are making.
+  //
+  // ⭐ THE LIVE HEADER IS THE CANVAS, not a preview. Click a line to select it, type in it, style it
+  // with the bar above. That is the owner's ask and it is also the right model: a preview you cannot
+  // touch makes you edit in one place and judge in another.
+  //
+  // ⛔ NOT ONE id ON ANYTHING IN HERE. collectFieldValues() sweeps every input[id]/select[id]/
+  // textarea[id] in the DOCUMENT into every saved calendar and adds an undo step per change. This
+  // panel is body-level -- outside .prefs-card, where the class exclusion does not reach -- and it
+  // contains ten text inputs and a select. With ids, every one of them would be baked into every
+  // .sptcal from the moment this shipped. Classes only, and the hdreditor leg asserts it.
+  //
+  // ⛔ IT IS NOT A SECOND RENDERER. Every value on screen comes from buildHeaderCtx() +
+  // resolveHeaderTemplate() -- the same pair headerLine() uses for the screen, the workbook and the
+  // PDF. If this panel resolved its own way it would eventually disagree with what prints, which is
+  // exactly the divergence the one-choke-point design exists to prevent.
+  //
+  // ⛔ IT WRITES THROUGH THE SAME STORES. headerManual and headerFormat, then render() -- no private
+  // copy of the header, so the panel and the calendar behind it cannot drift.
+
+  // A token with nothing to say renders as a bracketed stand-in HERE ONLY, so a header can be laid
+  // out on a calendar that has no dates in it yet. ⛔ It never reaches the real header: the trick is
+  // a modified CTX rather than a modified resolver, so resolveHeaderTemplate stays untouched and
+  // one-pass, and a [group] full of placeholders correctly does NOT collapse in the editor while
+  // still collapsing for real.
+  const HDR_PH_OPEN = String.fromCharCode(0xE000), HDR_PH_CLOSE = String.fromCharCode(0xE001);   // private-use, cannot occur in user text
+  const HDR_PH_NAMES = {
+    title:'Show Title', season:'Season', titleSeason:'Show Title S#', version:'Version',
+    episodes:'##', shootDaysPerEp:'#', shootDays:'##',
+    'production.summary':'Production Span / Shooting Schedule',
+    'production.dates':'Principal Photography — / Wrap: —',
+    'writersRoom.line':"Writer's Room Opens: —",
+  };
+  function hdrPlaceholderFor(name, ctx){
+    if(HDR_PH_NAMES[name]) return HDR_PH_NAMES[name];
+    const base = String(name).split(':')[0];
+    if(HDR_PH_NAMES[base]) return HDR_PH_NAMES[base];
+    const bits = base.split('.');
+    if(bits.length === 2){
+      const phase = (ctx.tokens[bits[0] + '.name'] || bits[0]);
+      const what = { open:'Opens', close:'Closes', wrap:'Wrap', weeks:'# wks', name:'Phase' }[bits[1]] || bits[1];
+      return phase + ' ' + what;
+    }
+    return base;
+  }
+  function hdrCtxWithPlaceholders(ctx){
+    const t = {};
+    Object.keys(ctx.tokens).forEach(k=>{
+      const v = ctx.tokens[k];
+      t[k] = (v === '' || v == null) ? (HDR_PH_OPEN + hdrPlaceholderFor(k, ctx) + HDR_PH_CLOSE) : v;
+    });
+    return { tokens: t };
+  }
+  // Escape for innerHTML, then mark the placeholders. Two steps, because the marker has to survive
+  // escaping and the text must not.
+  function hdrEditorHtml(s){
+    const esc = String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return esc.split(HDR_PH_OPEN).map((chunk, i)=>{
+      if(!i) return chunk;
+      const end = chunk.indexOf(HDR_PH_CLOSE);
+      if(end < 0) return chunk;
+      return '<span class="hde-ph">' + chunk.slice(0, end) + '</span>' + chunk.slice(end + 1);
+    }).join('');
+  }
+
+  function hdrEditorFootText(sawPh){
+    return sawPh
+      ? 'Dashed words stand in for data this calendar has not got yet — they are not printed. Empty lines show a dotted box so you can click them; the real header hides them.'
+      : 'Empty lines show a dotted box so you can click them; the real header hides them entirely.';
+  }
+
+  let hdrEditor = null;   // { root, selected, editing, placeholders }
+
+  function closeHeaderEditor(){
+    if(!hdrEditor) return;
+    document.removeEventListener('keydown', onHeaderEditorKey, true);
+    hdrEditor.root.remove();
+    hdrEditor = null;
+    closeHdrTokenPop();
+  }
+  function onHeaderEditorKey(e){
+    // Escape closes -- unless a line is being edited, where it should abandon that edit first.
+    if(e.key !== 'Escape' || !hdrEditor) return;
+    if(hdrEditor.editing){ hdrEditor.editing = null; paintHeaderEditor(); e.stopPropagation(); return; }
+    closeHeaderEditor();
+    e.stopPropagation();
+  }
+
+  // Which slots the editor shows. Three per column, plus any LEGACY slot that this particular
+  // calendar is actually using -- see HDR_EDITOR_COLUMNS for why c4 is handled that way.
+  function hdrEditorSlots(){
+    const cols = HDR_EDITOR_COLUMNS.map(c=>({ key:c.key, label:c.label, ids:c.ids.slice() }));
+    HDR_LEGACY_SLOTS.forEach(id=>{
+      if((headerManual[id] || '').trim()){
+        const mid = cols.find(c=>c.key === 'mid');
+        if(mid) mid.ids.push(id);
+      }
+    });
+    return cols;
+  }
+
+  function paintHeaderEditor(){
+    if(!hdrEditor) return;
+    const root = hdrEditor.root;
+    const ctx = buildHeaderCtx(currentSchedule);
+    const phCtx = hdrCtxWithPlaceholders(ctx);
+    const usePh = hdrEditor.placeholders;
+    let sawPh = false;
+
+    // ---- the live header ----------------------------------------------------------------------
+    const stage = root.querySelector('.hde-sheet');
+    stage.innerHTML = '';
+    hdrEditorSlots().forEach(col=>{
+      const host = document.createElement('div');
+      host.className = 'hde-col hde-col-' + col.key;
+      col.ids.forEach(id=>{
+        const raw = (id in headerManual) ? headerManual[id] : '';
+        const real = resolveHeaderTemplate(raw, ctx);
+        const shown = usePh ? resolveHeaderTemplate(raw, phCtx) : real;
+        if(shown !== real) sawPh = true;
+        const el = document.createElement('div');
+        el.className = 'hde-line' + (hdrEditor.selected === id ? ' is-sel' : '') +
+                       (real ? '' : ' is-blank') + (HDR_LEGACY_SLOTS.indexOf(id) >= 0 ? ' is-legacy' : '');
+        el.dataset.hid = id;
+        el.contentEditable = 'true';
+        el.spellcheck = false;
+        el.setAttribute('style', headerFormatCss(headerFmt(id, false), id, false));
+        if(hdrEditor.editing === id){ el.classList.add('is-editing'); el.textContent = raw; }
+        else el.innerHTML = shown ? hdrEditorHtml(shown) : '';
+        host.appendChild(el);
+      });
+      stage.appendChild(host);
+    });
+    root.querySelector('.hde-stage-foot').textContent = hdrEditorFootText(sawPh);
+
+    // ---- the template list ----------------------------------------------------------------------
+    const list = root.querySelector('.hde-slots');
+    list.innerHTML = '';
+    hdrEditorSlots().forEach(col=>{
+      const g = document.createElement('div');
+      g.className = 'hde-group';
+      const gl = document.createElement('div');
+      gl.className = 'hde-glabel'; gl.textContent = col.label;
+      g.appendChild(gl);
+      col.ids.forEach((id, i)=>{
+        const row = document.createElement('div');
+        row.className = 'hde-row';
+        const lab = document.createElement('div');
+        lab.className = 'hde-rlabel';
+        lab.textContent = HDR_LEGACY_SLOTS.indexOf(id) >= 0 ? (String(i + 1) + '*') : String(i + 1);
+        if(HDR_LEGACY_SLOTS.indexOf(id) >= 0) lab.title = 'A fourth centre line this calendar already uses. It is kept so nothing is lost.';
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'hde-tpl' + (hdrEditor.selected === id ? ' is-sel' : '');
+        inp.value = (id in headerManual) ? headerManual[id] : '';
+        inp.setAttribute('aria-label', HDR_SLOT_NAMES[id] || id);
+        inp.dataset.hid = id;
+        row.appendChild(lab); row.appendChild(inp);
+        g.appendChild(row);
+      });
+      list.appendChild(g);
+    });
+
+    syncHeaderEditorBar();
+    const b = estimateExcelHeaderLength();
+    const bud = root.querySelector('.hde-budget');
+    bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
+      (b.over ? ' — too long, the last lines will be dropped' : '.');
+    bud.classList.toggle('is-over', !!b.over);
+  }
+
+  // The bar REFLECTS the selected line rather than holding state of its own, the same contract
+  // syncHdrFmtToolbar() has for the toolbar on the calendar.
+  function syncHeaderEditorBar(){
+    if(!hdrEditor) return;
+    const root = hdrEditor.root, id = hdrEditor.selected;
+    const f = id ? headerFmt(id, false) : {};
+    root.querySelector('.hde-fmt').classList.toggle('is-idle', !id);
+    root.querySelector('.hde-target').innerHTML = id
+      ? 'Styling <b>' + escHtml(HDR_SLOT_NAMES[id] || id) + '</b>'
+      : 'Select a header line to style it';
+    root.querySelector('.hde-size').value = f.size ? String(f.size) : '';
+    root.querySelector('.hde-b').classList.toggle('is-on', !!f.bold);
+    root.querySelector('.hde-i').classList.toggle('is-on', !!f.italic);
+    const ink = f.color || '#000000';
+    root.querySelector('.hde-ink').value = ink;
+    root.querySelector('.hde-ink-bar').style.background = ink;
+    const hl = f.highlight || '#FFFF00';
+    root.querySelector('.hde-hl').value = hl;
+    root.querySelector('.hde-hl-bar').style.background = hl;
+    const al = f.align || (id ? headerDefaultAlign(id, false) : null);
+    root.querySelectorAll('.hde-align').forEach(btn=>{
+      btn.classList.toggle('is-on', !!id && btn.dataset.align === al);
+    });
+  }
+
+  // One place that changes a line's FORMAT, and one that changes its TEXT. Both write the same
+  // stores the calendar reads, then render() -- so the header behind the panel updates too.
+  function hdrEditorFormat(patch){
+    if(!hdrEditor || !hdrEditor.selected) return;
+    const id = hdrEditor.selected;
+    const cur = Object.assign({}, headerFmt(id, false), patch);
+    Object.keys(cur).forEach(k=>{ if(cur[k] === undefined || cur[k] === null || cur[k] === '') delete cur[k]; });
+    if(Object.keys(cur).length) headerFormat[id] = cur; else delete headerFormat[id];
+    render(currentSchedule);
+    markDirty();
+    paintHeaderEditor();
+  }
+  function hdrEditorSetText(id, text){
+    const clean = String(text == null ? '' : text).replace(/\u00a0/g,' ').trim();
+    if((headerManual[id] || '') === clean) return false;
+    headerManual[id] = clean;
+    render(currentSchedule);
+    markDirty();
+    return true;
+  }
+
+  function openHeaderEditor(){
+    if(hdrEditor){ closeHeaderEditor(); return; }
+    // The editor edits TEMPLATES, so it puts the header in Template mode on the way in. From Auto
+    // that seeds DEFAULT_HEADER_TEMPLATE; from Manual it keeps the literal strings, which are valid
+    // templates with no tokens. Either way it is the existing transition, and therefore one undo
+    // step -- opening the editor is never a silent, unrepeatable change.
+    if(!(headerMode === 'manual' && headerTemplates)) setHeaderMode('template');
+
+    const root = document.createElement('div');
+    root.className = 'hde-overlay';
+    root.innerHTML =
+      '<div class="hde-panel" role="dialog" aria-modal="true" aria-label="Header template">' +
+        '<div class="hde-head">' +
+          '<h2 class="hde-title">Header template</h2>' +
+          '<span class="hde-ctx"></span>' +
+          '<button type="button" class="hde-close" aria-label="Close">✕</button>' +
+        '</div>' +
+        '<div class="hde-fmt is-idle">' +
+          '<select class="hde-ctl hde-size" aria-label="Text size" title="Text size">' +
+            '<option value="">Size</option>' +
+            [8,9,10,11,12,13,14,16,18,22].map(n=>'<option>' + n + '</option>').join('') +
+          '</select>' +
+          '<button type="button" class="hde-ctl hde-btn hde-b" title="Bold"><b>B</b></button>' +
+          '<button type="button" class="hde-ctl hde-btn hde-i" title="Italic"><i>I</i></button>' +
+          '<label class="hde-well" title="Text colour"><span>A</span>' +
+            '<i class="hde-ink-bar"></i><input type="color" class="hde-ink" aria-label="Text colour"></label>' +
+          '<label class="hde-well" title="Highlight"><span>A</span>' +
+            '<i class="hde-hl-bar"></i><input type="color" class="hde-hl" aria-label="Highlight colour"></label>' +
+          '<span class="hde-sep"></span>' +
+          '<button type="button" class="hde-ctl hde-btn hde-align" data-align="left" title="Align left">⮨</button>' +
+          '<button type="button" class="hde-ctl hde-btn hde-align" data-align="center" title="Align centre">≡</button>' +
+          '<button type="button" class="hde-ctl hde-btn hde-align" data-align="right" title="Align right">⮩</button>' +
+          '<span class="hde-sep"></span>' +
+          '<button type="button" class="hde-ctl hde-btn hde-clear" title="Clear formatting on this line">∅</button>' +
+          '<span class="hde-target"></span>' +
+        '</div>' +
+        '<div class="hde-stage">' +
+          '<div class="hde-stage-label"><span>Live header — click a line to edit it</span>' +
+            '<span class="hde-grow"></span>' +
+            '<label class="hde-ph-toggle">'
+            // ⛔ NOT .hde-ph -- that is the placeholder MARKER on the canvas. One class for both
+            // meant root.querySelector('.hde-ph') found this box only by markup order, and the
+            // marker's dashed underline was landing on the checkbox.
+            + '<input type="checkbox" class="hde-phbox" checked>' +
+            ' Show placeholders for data you have not entered</label></div>' +
+          '<div class="hde-sheet-scroll"><div class="hde-sheet"></div></div>' +
+          '<p class="hde-stage-foot"></p>' +
+        '</div>' +
+        '<div class="hde-body">' +
+          '<div class="hde-slots-wrap"><div class="hde-slots-head">Templates</div>' +
+            '<div class="hde-slots"></div></div>' +
+          '<aside class="hde-rail"><div class="hde-rail-head">Insert' +
+            '<span>Drops into the line you have selected.</span></div>' +
+            '<div class="hde-rail-list"></div></aside>' +
+        '</div>' +
+        '<p class="hde-grammar">Square brackets hide everything inside them when a token in them is ' +
+          'empty — so <code>[{episodes} Episodes]</code> prints nothing until you enter an ' +
+          'episode count. <code>{{</code> and <code>}}</code> give a literal brace. Anything ' +
+          'unrecognised stays exactly as you typed it.</p>' +
+        '<div class="hde-foot">' +
+          '<span class="hde-budget"></span><span class="hde-grow"></span>' +
+          '<button type="button" class="hde-ctl hde-wide" data-hdrpreset="import">Import preset file…</button>' +
+          '<button type="button" class="hde-ctl hde-wide hde-saveas">Save as preset…</button>' +
+          '<button type="button" class="hde-ctl hde-wide hde-primary hde-done">Done</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(root);
+    hdrEditor = { root: root, selected: 'c1', editing: null, placeholders: true };
+
+    const title = (document.getElementById('show-title') || {}).value || '';
+    root.querySelector('.hde-ctx').textContent = title ? title : 'Untitled calendar';
+
+    // ---- the canvas ---------------------------------------------------------------------------
+    const sheet = root.querySelector('.hde-sheet');
+    sheet.addEventListener('mousedown', e=>{
+      const el = e.target.closest && e.target.closest('.hde-line');
+      if(!el) return;
+      if(hdrEditor.selected !== el.dataset.hid){
+        hdrEditor.selected = el.dataset.hid; hdrEditor.editing = null; paintHeaderEditor();
+      }
+    });
+    sheet.addEventListener('focusin', e=>{
+      const el = e.target.closest && e.target.closest('.hde-line');
+      if(!el) return;
+      const id = el.dataset.hid;
+      if(hdrEditor.editing === id) return;
+      // ⭐ Swap to the RAW template while the line has focus, exactly as the header on the calendar
+      // does. Without it the first keystroke commits resolved text and the token is gone.
+      hdrEditor.selected = id; hdrEditor.editing = id;
+      paintHeaderEditor();
+      const fresh = sheet.querySelector('.hde-line[data-hid="' + id + '"]');
+      if(fresh){
+        fresh.focus();
+        const r = document.createRange(); r.selectNodeContents(fresh); r.collapse(false);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      }
+    });
+    sheet.addEventListener('focusout', e=>{
+      const el = e.target.closest && e.target.closest('.hde-line');
+      if(!el || !hdrEditor) return;
+      const id = el.dataset.hid;
+      if(hdrEditor.editing !== id) return;
+      hdrEditorSetText(id, el.textContent);
+      hdrEditor.editing = null;
+      paintHeaderEditor();
+    });
+    sheet.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); if(e.target.blur) e.target.blur(); }
+    });
+
+    // ---- the styling bar ------------------------------------------------------------------------
+    root.querySelector('.hde-size').addEventListener('change', function(){
+      hdrEditorFormat({ size: this.value ? parseInt(this.value, 10) : undefined });
+    });
+    root.querySelector('.hde-b').addEventListener('click', ()=>{
+      hdrEditorFormat({ bold: !headerFmt(hdrEditor.selected, false).bold });
+    });
+    root.querySelector('.hde-i').addEventListener('click', ()=>{
+      hdrEditorFormat({ italic: !headerFmt(hdrEditor.selected, false).italic });
+    });
+    root.querySelector('.hde-ink').addEventListener('input', function(){ hdrEditorFormat({ color: this.value }); });
+    root.querySelector('.hde-hl').addEventListener('input', function(){ hdrEditorFormat({ highlight: this.value }); });
+    root.querySelectorAll('.hde-align').forEach(btn=>{
+      btn.addEventListener('click', ()=> hdrEditorFormat({ align: btn.dataset.align }));
+    });
+    root.querySelector('.hde-clear').addEventListener('click', ()=>{
+      if(!hdrEditor.selected) return;
+      delete headerFormat[hdrEditor.selected];
+      render(currentSchedule); markDirty(); paintHeaderEditor();
+    });
+
+    // ---- the template list ------------------------------------------------------------------------
+    const slots = root.querySelector('.hde-slots');
+    slots.addEventListener('focusin', e=>{
+      const inp = e.target.closest && e.target.closest('.hde-tpl');
+      if(!inp) return;
+      hdrEditor.selected = inp.dataset.hid; hdrEditor.editing = null;
+      syncHeaderEditorBar();
+      slots.querySelectorAll('.hde-tpl').forEach(o=>o.classList.toggle('is-sel', o === inp));
+      sheet.querySelectorAll('.hde-line').forEach(o=>o.classList.toggle('is-sel', o.dataset.hid === inp.dataset.hid));
+    });
+    // ⚠️ Repaint on CHANGE, not on every keystroke. Repainting on input rebuilds the list and
+    // therefore destroys the field being typed into.
+    slots.addEventListener('input', e=>{
+      const inp = e.target.closest && e.target.closest('.hde-tpl');
+      if(!inp) return;
+      headerManual[inp.dataset.hid] = String(inp.value).trim();
+      render(currentSchedule);
+      markDirty();
+      repaintHeaderEditorStage();
+    });
+
+    // ---- palette, presets, close ------------------------------------------------------------------
+    root.querySelector('.hde-rail-list').appendChild(buildHdrTokenList(tok=>{
+      const id = hdrEditor.selected || 'c1';
+      hdrEditor.selected = id;
+      headerManual[id] = ((id in headerManual) ? headerManual[id] : '') + tok;
+      render(currentSchedule); markDirty(); paintHeaderEditor();
+    }));
+    // Save-as opens an inline name field in the footer rather than a nested dialog -- the same
+    // shape the Preferences block uses, and for the same reason: a modal inside a modal is a trap,
+    // and any id'd input would be swept into every saved calendar.
+    root.querySelector('.hde-saveas').addEventListener('click', ()=>{
+      const foot = root.querySelector('.hde-foot');
+      if(foot.querySelector('.hde-name')) return;
+      const wrap = document.createElement('span');
+      wrap.className = 'hde-naming';
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'hde-ctl hde-name'; inp.placeholder = 'Preset name';
+      inp.setAttribute('aria-label', 'Preset name');
+      const ok = document.createElement('button');
+      ok.type = 'button'; ok.className = 'hde-ctl hde-wide hde-primary'; ok.textContent = 'Save';
+      const no = document.createElement('button');
+      no.type = 'button'; no.className = 'hde-ctl hde-wide'; no.textContent = 'Cancel';
+      const done = ()=> wrap.remove();
+      ok.addEventListener('click', ()=>{
+        const res = saveHeaderPresetAs(inp.value);
+        if(!res.ok){ uiAlert(res.reason); return; }
+        done();
+      });
+      no.addEventListener('click', done);
+      inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); ok.click(); } });
+      wrap.appendChild(inp); wrap.appendChild(ok); wrap.appendChild(no);
+      foot.appendChild(wrap);
+      inp.focus();
+    });
+    root.querySelector('.hde-done').addEventListener('click', closeHeaderEditor);
+    root.querySelector('.hde-close').addEventListener('click', closeHeaderEditor);
+    root.addEventListener('mousedown', e=>{ if(e.target === root) closeHeaderEditor(); });
+    root.querySelector('.hde-phbox').addEventListener('change', function(){
+      hdrEditor.placeholders = this.checked; hdrEditor.editing = null; paintHeaderEditor();
+    });
+    document.addEventListener('keydown', onHeaderEditorKey, true);
+
+    paintHeaderEditor();
+  }
+  // Repaint the canvas WITHOUT rebuilding the template inputs -- used while typing in one of them.
+  function repaintHeaderEditorStage(){
+    if(!hdrEditor) return;
+    const ctx = buildHeaderCtx(currentSchedule);
+    const phCtx = hdrCtxWithPlaceholders(ctx);
+    let sawPh = false;
+    hdrEditor.root.querySelectorAll('.hde-line').forEach(el=>{
+      const id = el.dataset.hid;
+      if(hdrEditor.editing === id) return;
+      const raw = (id in headerManual) ? headerManual[id] : '';
+      const real = resolveHeaderTemplate(raw, ctx);
+      const shown = hdrEditor.placeholders ? resolveHeaderTemplate(raw, phCtx) : real;
+      if(shown !== real) sawPh = true;
+      el.innerHTML = shown ? hdrEditorHtml(shown) : '';
+      el.classList.toggle('is-blank', !real);
+      el.setAttribute('style', headerFormatCss(headerFmt(id, false), id, false));
+    });
+    // ⚠️ The note has to move with the stage. Typing a token that has no data must flip it to the
+    // placeholder wording immediately -- leaving the full-repaint version behind meant the panel
+    // showed dashed placeholders under a note that said nothing about them.
+    hdrEditor.root.querySelector('.hde-stage-foot').textContent = hdrEditorFootText(sawPh);
+    const b = estimateExcelHeaderLength();
+    const bud = hdrEditor.root.querySelector('.hde-budget');
+    bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
+      (b.over ? ' — too long, the last lines will be dropped' : '.');
+    bud.classList.toggle('is-over', !!b.over);
   }
 
   // ---------- The header preset library (HEADER-PRESETS-PLAN.md §3.5, Step 4) ----------
@@ -7820,7 +8288,7 @@ export function initLegacyApp() {
       });
       return { lines: texts.length, cost };
     };
-    const L = section(['left','l2']);
+    const L = section(['left','l2','l3']);
     const C = section(['c1','c2','c3','c4']);
     const R = section(['r1','r2','r3']);
     // ⚠️ &L is emitted even when its section is empty (exportExcel's `&L${HSIZE}${hL}` is
@@ -8007,6 +8475,8 @@ export function initLegacyApp() {
     } else if(action === 'export'){
       try { await exportHeaderPreset(id); }
       catch(err){ console.error(err); uiAlert('Could not save that preset: ' + err.message); }
+    } else if(action === 'edit'){
+      openHeaderEditor();
     } else if(action === 'import'){
       try { await importHeaderPresetViaPicker(); }
       catch(err){ console.error(err); uiAlert('Could not read that preset file: ' + err.message); }
@@ -8078,6 +8548,41 @@ export function initLegacyApp() {
       ['[{version}]', 'Hidden until a version is set'],
     ]});
     return groups;
+  }
+
+  // The token list itself, as a fragment -- shared by the toolbar popover and the header editor's
+  // rail, so the two can never drift into offering different tokens or different previews.
+  // `onPick` null means BROWSE: the same list, every entry disabled, for looking rather than using.
+  function buildHdrTokenList(onPick){
+    const frag = document.createDocumentFragment();
+    // Built once per open, so every preview is this calendar's real data as of right now.
+    let ctx = null;
+    try { ctx = buildHeaderCtx(currentSchedule); } catch(e){ ctx = null; }
+    hdrTokenGroups().forEach(g=>{
+      const h = document.createElement('div');
+      h.className = 'hdr-token-group';
+      h.textContent = g.name;
+      frag.appendChild(h);
+      g.items.forEach(([tok, desc])=>{
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'hdr-token-item';
+        const code = document.createElement('span');
+        code.className = 'hdr-token-code';
+        code.textContent = tok;
+        const d = document.createElement('span');
+        const live = ctx ? hdrTokenPreview(tok, ctx) : '';
+        // The live value when there is one, the description when there is not -- and the empty case
+        // is dimmed, because "this token has nothing to say on this calendar" is worth seeing.
+        d.className = 'hdr-token-desc' + (live ? ' is-live' : '');
+        d.textContent = live || desc;
+        b.appendChild(code); b.appendChild(d);
+        if(!onPick) b.disabled = true;
+        else b.addEventListener('click', ev=>{ ev.stopPropagation(); onPick(tok); });
+        frag.appendChild(b);
+      });
+    });
+    return frag;
   }
 
   let activeHdrTokenPop = null;
@@ -8163,40 +8668,10 @@ export function initLegacyApp() {
       ? 'Live data you can put in a header line. Switch to Template to use these.'
       : 'Inserting into: ' + (HDR_SLOT_NAMES[targetId] || targetId);
     pop.appendChild(head);
-    // Built once per open, so every preview is this calendar's real data as of right now.
-    let ctx = null;
-    try { ctx = buildHeaderCtx(currentSchedule); } catch(e){ ctx = null; }
-    hdrTokenGroups().forEach(g=>{
-      const h = document.createElement('div');
-      h.className = 'hdr-token-group';
-      h.textContent = g.name;
-      pop.appendChild(h);
-      g.items.forEach(([tok, desc])=>{
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'hdr-token-item';
-        const code = document.createElement('span');
-        code.className = 'hdr-token-code';
-        code.textContent = tok;
-        const d = document.createElement('span');
-        const live = ctx ? hdrTokenPreview(tok, ctx) : '';
-        // The live value when there is one, the description when there is not -- and the empty case
-        // is dimmed, because "this token has nothing to say on this calendar" is worth seeing.
-        d.className = 'hdr-token-desc' + (live ? ' is-live' : '');
-        d.textContent = live || desc;
-        b.appendChild(code); b.appendChild(d);
-        if(browse){
-          b.disabled = true;
-        } else {
-          b.addEventListener('click', ev=>{
-            ev.stopPropagation();
-            closeHdrTokenPop();
-            insertHdrToken(tok);
-          });
-        }
-        pop.appendChild(b);
-      });
-    });
+    pop.appendChild(buildHdrTokenList(browse ? null : (tok)=>{
+      closeHdrTokenPop();
+      insertHdrToken(tok);
+    }));
     // ⚠️ Keep the caret. Without this the mousedown blurs the contenteditable line and the
     // selection is gone before the click handler above ever runs.
     pop.addEventListener('mousedown', ev=>{ ev.preventDefault(); });
@@ -8590,15 +9065,18 @@ export function initLegacyApp() {
       // ⭐ The tokens are invisible while you are deciding whether Template is worth trying, which
       // is the wrong way round -- they ARE the reason to try it. Offer a look from here.
       if(c.key === 'template'){
+        // ⭐ Opens the EDITOR, not a read-only peek. The editor shows the same tokens and lets you
+        // use them, so a browse-only list is strictly worse now that it exists -- and this is the
+        // discovery path for the whole feature: it is reachable from Auto, before you have chosen
+        // anything, and opening it switches you into Template as one undo step.
         const peek = document.createElement('span');
         peek.className = 'hdr-mode-peek';
-        peek.textContent = 'See what you can put in a line';
+        peek.textContent = 'Open the template editor…';
         peek.addEventListener('click', ev=>{
           ev.stopPropagation();
           ev.preventDefault();
-          const anchor = row;
           closeHeaderModePop();
-          openHdrTokenPop(anchor, true);
+          openHeaderEditor();
         });
         row.appendChild(peek);
       }
@@ -8672,7 +9150,7 @@ export function initLegacyApp() {
     // and be in the very bottom left side text box of the header"). It stays EMPTY -- and so stays
     // invisible on screen, absent from the workbook's &L section and undrawn in the PDF -- until
     // someone types a version into Show Info. See versionLabel() for why empty must mean empty.
-    const out = { left: todayStr, l2: versionLabel(), c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
+    const out = { left: todayStr, l2: versionLabel(), l3: '', c1: titleLine, c2: 'Planning Calendar', c3: wrLine, c4: '', r1, r2, r3 };
     // The token context rides on the return value, because headerLine(id, defaults)'s SIGNATURE
     // cannot change -- three of its call sites are inside frozen functions (§9). Built once here,
     // so a nine-line header costs one ctx rather than nine.
@@ -9309,7 +9787,7 @@ export function initLegacyApp() {
     // .hdr-mode-pop added 8 Sep 2026 with the three header modes -- same reason as the rest: it is
     // a body-level panel, and a Share click with it open would export a menu hanging over the
     // calendar pointing at nothing.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =
@@ -11488,7 +11966,7 @@ export function initLegacyApp() {
     // Each entry keeps its id so the draw pass below can look its format up; ids are carried
     // rather than a pre-resolved style so the format is read at draw time, from the same
     // headerFmt() the screen and the workbook use -- one source, three outputs.
-    const hLeftArr = ['left','l2'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
+    const hLeftArr = ['left','l2','l3'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
     const hCentre = ['c1','c2','c3','c4'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
     const hRight = ['r1','r2','r3'].map(id=>({id, t:headerLine(id, hd)})).filter(x=>x.t);
     const hLeft = hLeftArr.length ? hLeftArr[0].t : '';   // kept: the band-height math below reads it

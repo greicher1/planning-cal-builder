@@ -580,6 +580,153 @@
   .hdr-preset-link:hover{ color:var(--mantine-color-gray-9); }
   .hdr-preset-link-danger:hover{ color:var(--mantine-color-danger-9); }
 
+  /* ================= The header template EDITOR (owner request, 9 Sep 2026) =================
+     A body-level modal for BUILDING a header, where the live header is itself the editing surface.
+     ⛔ Nothing in it carries an id -- it sits outside .prefs-card, where collectFieldValues()'s
+     class exclusion does not reach, and it holds ten text inputs. Classes only. */
+  .hde-overlay{
+    position:fixed; inset:0; z-index:400; display:flex; align-items:flex-start; justify-content:center;
+    padding:28px 16px; overflow-y:auto; background:rgba(30,29,27,.34);
+  }
+  .hde-panel{
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4);
+    border-radius:10px; box-shadow:0 16px 40px rgba(30,29,27,.24);
+    width:min(1040px, 100%); overflow:hidden; margin:auto;
+  }
+  .hde-head{ display:flex; align-items:baseline; gap:10px; padding:13px 18px;
+    border-bottom:1px solid var(--mantine-color-gray-2); }
+  .hde-title{ font-size:var(--mantine-font-size-md); font-weight:600; margin:0; color:var(--mantine-color-gray-9); }
+  .hde-ctx{ font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
+  .hde-close{ margin-left:auto; background:none; border:none; cursor:pointer; font-size:15px;
+    line-height:1; color:var(--mantine-color-gray-6); padding:2px 4px; }
+  .hde-close:hover{ color:var(--mantine-color-gray-9); }
+
+  /* ---- the styling bar: the same seven controls the calendar's header toolbar carries ---- */
+  .hde-fmt{ display:flex; align-items:center; gap:5px; flex-wrap:wrap; padding:9px 18px;
+    border-bottom:1px solid var(--mantine-color-gray-2); }
+  .hde-fmt.is-idle{ opacity:.45; }
+  .hde-ctl{
+    font-family:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-9);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:5px; height:26px; padding:0 7px; cursor:pointer;
+  }
+  .hde-ctl:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .hde-ctl:focus-visible{ outline:2px solid var(--mantine-color-info-9); outline-offset:1px; }
+  .hde-btn{ min-width:28px; display:inline-flex; align-items:center; justify-content:center; }
+  .hde-btn.is-on{ background:var(--mantine-color-gray-9); border-color:var(--mantine-color-gray-9); color:#fff; }
+  .hde-well{ position:relative; width:28px; height:26px; border:1px solid var(--mantine-color-gray-3);
+    border-radius:5px; overflow:hidden; cursor:pointer; display:inline-block; }
+  .hde-well span{ position:absolute; inset:0 0 4px; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700; color:var(--mantine-color-gray-9); }
+  .hde-well i{ position:absolute; left:0; right:0; bottom:0; height:4px; display:block; }
+  .hde-well input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .hde-sep{ width:1px; height:20px; background:var(--mantine-color-gray-2); margin:0 4px; }
+  /* ⚠️ WIDTH HAS TO BE STATED. legacy.css's plain-control rules are what give this panel the
+     Mantine look without wiring every element through React -- but they also set width:100% on a
+     bare <select>, which made the size picker eat the whole first row of the bar and push the
+     other six controls onto a second line. */
+  .hde-fmt .hde-size{ width:auto; min-width:74px; }
+  /* ⚠️ EVERY child needs flex:none, not just the .hde-ctl ones. In a wrapping flex row the default
+     is shrink:1, and the two colour wells collapsed to 2px and the separators to 0 before this --
+     the bar looked like it had lost half its controls. */
+  .hde-fmt > *{ flex:0 0 auto; }
+  /* The target label is the one thing that may take the slack, and it must not wrap to three lines
+     when the panel is narrow. */
+  .hde-fmt .hde-target{ flex:1 1 auto; min-width:0; text-align:right; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .hde-target{ margin-left:auto; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); }
+  .hde-target b{ color:var(--mantine-color-gray-9); font-weight:600; }
+
+  /* ---- the live header, which is the canvas ---- */
+  .hde-stage{ padding:14px 18px 13px; background:var(--mantine-color-gray-1);
+    border-bottom:1px solid var(--mantine-color-gray-2); }
+  .hde-stage-label{ display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    font-size:var(--mantine-font-size-xxs); font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--mantine-color-gray-6); margin-bottom:8px; }
+  .hde-grow{ flex:1 1 auto; }
+  .hde-ph-toggle{ display:inline-flex; align-items:center; gap:5px; text-transform:none; letter-spacing:0;
+    font-size:var(--mantine-font-size-xxs); font-weight:400; color:var(--mantine-color-gray-6); cursor:pointer; }
+  /* The header does not reflow on paper, so a narrow panel SCROLLS it rather than squeezing every
+     line into an ellipsis -- which would defeat the one thing this stage is for. */
+  .hde-sheet-scroll{ overflow-x:auto; }
+  .hde-sheet{
+    background:#fff; border:1px solid var(--mantine-color-gray-3); border-radius:4px;
+    padding:12px 14px 13px; font-family:'Carlito','Calibri',sans-serif;
+    display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:12px; align-items:start;
+    min-height:92px; min-width:580px;
+  }
+  /* align-items, not stretch: an EMPTY line is a dotted click-target, and a stretched one reads as
+     a wide empty box rather than a short placeholder. Each column packs its lines to its own edge,
+     which is also where the real header puts them. */
+  .hde-col{ display:flex; flex-direction:column; gap:1px; min-width:0; align-items:flex-start; }
+  .hde-col-mid{ align-items:center; }
+  .hde-col-right{ align-items:flex-end; }
+  .hde-line{
+    font-size:11px; color:#000; line-height:1.4; max-width:100%;
+    padding:1px 4px; border-radius:3px; border:1px solid transparent; cursor:text;
+    white-space:pre-wrap; word-break:break-word; min-height:17px; min-width:16px;
+  }
+  .hde-line:hover{ border-color:var(--mantine-color-gray-3); }
+  .hde-line.is-sel{ border-color:var(--mantine-color-info-9); box-shadow:0 0 0 2px rgba(27,74,122,.14); }
+  .hde-line.is-editing{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:10.5px; background:#F1F6FC; }
+  .hde-line:focus{ outline:none; }
+  /* An empty slot still needs something to click. The real header hides it; the stage note says so. */
+  .hde-line.is-blank{ border-style:dashed; border-color:var(--mantine-color-gray-4); min-width:56px; }
+  .hde-line.is-legacy{ border-left:2px solid var(--mantine-color-warn-6); }
+  .hde-ph{ color:#8A867C; border-bottom:1px dashed var(--mantine-color-gray-4); }
+  .hde-stage-foot{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
+    margin:8px 2px 0; line-height:1.5; }
+
+  /* ---- templates + palette ---- */
+  .hde-body{ display:grid; grid-template-columns:minmax(0,1fr) 280px; }
+  .hde-slots-wrap{ padding:14px 18px 16px; min-width:0; }
+  .hde-slots-head, .hde-glabel{ font-size:var(--mantine-font-size-xxs); font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--mantine-color-gray-5); }
+  .hde-slots-head{ margin-bottom:8px; }
+  .hde-group{ margin-bottom:12px; }
+  .hde-glabel{ margin-bottom:5px; }
+  .hde-row{ display:grid; grid-template-columns:22px minmax(0,1fr); align-items:center; gap:8px; padding:2px 0; }
+  .hde-rlabel{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); text-align:right; }
+  .hde-tpl{
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:11.5px;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+    padding:5px 7px; width:100%; min-width:0;
+  }
+  .hde-tpl:focus{ outline:2px solid var(--mantine-color-info-9); outline-offset:-1px; }
+  .hde-tpl.is-sel{ border-color:var(--mantine-color-info-9); }
+  .hde-rail{ border-left:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-gray-0);
+    display:flex; flex-direction:column; min-width:0; }
+  .hde-rail-head{ padding:11px 14px 8px; font-size:var(--mantine-font-size-xs); font-weight:600;
+    border-bottom:1px solid var(--mantine-color-gray-2); color:var(--mantine-color-gray-9); }
+  .hde-rail-head span{ display:block; font-weight:400; color:var(--mantine-color-gray-6);
+    font-size:var(--mantine-font-size-xxs); margin-top:2px; }
+  .hde-rail-list{ overflow-y:auto; max-height:340px; padding:6px 8px 10px; }
+
+  .hde-grammar{ margin:0; padding:10px 18px; border-top:1px solid var(--mantine-color-gray-2);
+    font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.55;
+    background:var(--mantine-color-gray-0); }
+  .hde-grammar code{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    color:var(--mantine-color-gray-9); }
+  .hde-foot{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:12px 18px;
+    border-top:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-gray-0); }
+  .hde-budget{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
+    font-variant-numeric:tabular-nums; }
+  .hde-budget.is-over{ color:var(--mantine-color-danger-9); font-weight:500; }
+  .hde-wide{ padding:0 12px; font-weight:500; }
+  .hde-primary{ background:var(--mantine-color-gray-9); border-color:var(--mantine-color-gray-9); color:#fff; }
+  .hde-primary:hover:not(:disabled){ background:var(--mantine-color-gray-8); }
+  .hde-naming{ display:inline-flex; align-items:center; gap:6px; }
+  .hde-name{ font-family:inherit; min-width:150px; }
+  .hdr-preset-edit{ width:100%; margin-bottom:var(--mantine-spacing-sm); font-weight:600; }
+
+  /* The panel is tall; on a short window it scrolls as a whole rather than trapping the footer
+     off-screen, which is why the overlay -- not the panel -- owns the scrolling. */
+  @media (max-width:900px){
+    .hde-body{ grid-template-columns:1fr; }
+    .hde-rail{ border-left:0; border-top:1px solid var(--mantine-color-gray-2); }
+  }
+
   .hdr-token-hint{
     font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); line-height:1.4;

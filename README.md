@@ -29,6 +29,71 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a screen for building a header, and a third line in the left column
+
+Owner, 9 Sep 2026, after using the Insert menu: *"I still feel like you miss the Insert button.
+Would it be crazy for there to be a separate screen entirely for building your header templates?"*
+Mocked up first, then built to the mock. Local, not pushed at time of writing.
+
+**The header is now three lines per column, not 2 / 4 / 3.** The left column had two slots and the
+centre had four, which is the shape the header grew into rather than one anybody chose. Adding `l3`
+is **three frozen edits** — `renderSpreadsheetView`'s left column, `exportExcel`'s `lIds`,
+`buildWaterfallPdf`'s `hLeftArr` — taken under exactly the guarantee `l2` and `c4` were given on
+31 Aug: the slot is **empty by default**, hidden on screen by
+`.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable)`, dropped from the workbook by `withCodes()` and
+from the PDF by `.filter(x=>x.t)`. So no calendar that has not used it renders differently, and the
+byte-compare says so rather than the argument. **528 lines of `app.js` changed; 3 are inside a
+frozen function, and they are those three.**
+
+⛔ **`c4` is kept and hidden, not deleted.** Three-per-column retires the fourth centre slot from
+what the editor *offers*, not from the *format*. `c4` shipped on 31 Aug and is already in saved
+files, so it still renders, still exports, still restores — and a calendar that has text in it sees
+it in the editor, marked `4*`, with a note saying it is kept so nothing is lost. Removing it would
+silently drop a line from someone's header, which is the one thing the save-format contract forbids.
+
+**The editor itself.** A body-level modal, not another tab, opened from the header's mode button
+(*Open the template editor…*) or the sidebar. Top to bottom: the styling bar, then a **live header**
+you edit directly, then the nine template fields, with the token rail beside them.
+
+- **The live view is the editing surface, not a preview beside one.** Click a line and type; the raw
+  template swaps in on focus and the resolved text comes back on blur, the same contract the header
+  on the calendar has. The styling bar above it is the same six controls the manual header has and
+  writes to the same `headerFormat` store — so styling done in the panel *is* the header's styling,
+  and the gate proves it by reading the resulting `style` attribute off the real header behind the
+  modal. There is no second renderer: the canvas calls `buildHeaderCtx()` + `resolveHeaderTemplate()`,
+  the pair `headerLine()` uses.
+- **It fills in what you have not entered yet.** A token with no data draws a dashed placeholder —
+  `{localization.open}` → *Localization Opens* — so you can lay out a header before the dates exist.
+  Editor-only: the real header prints nothing for it, and a toggle turns them off.
+- **The Excel budget is on screen while you build**, because the 255-character cliff is invisible
+  until Excel calls the file corrupt. ⚠️ Worth knowing: the **default** template on a fully-filled
+  calendar measures **241 of 255**. That is 14 characters of headroom, and a long show title spends
+  it. The gate now asserts the default still fits, so this stops being a surprise.
+
+**Two fixes found while building it.** The mode menu's Template row used to open a read-only copy of
+the token list; it opens the editor now, which shows the same tokens *and* lets you use them.
+And `.hde-ph` was the class on **both** the placeholder marker and the show-placeholders checkbox —
+`querySelector('.hde-ph')` found the checkbox only because the toggle happens to sit above the stage
+in the markup, so moving the stage up would have bound the change listener to a `<span>` and killed
+the toggle silently. The checkbox is `.hde-phbox` now.
+
+**Verified.** New `hdreditor` gate leg, 17 assertions: `l3` present and hidden while empty, three
+slots per column, **not one `id` anywhere in the panel** (it is body-level, so `.prefs-card` does not
+cover it and one `id` would bake every field into every saved calendar), styling reaching the real
+header, an edit resolving identically in both places, placeholders staying editor-only, `c4`
+revealed only when used, the budget warning firing. Byte-compare re-run after the three frozen
+edits: waterfall PDF and every Excel part still identical to the baseline, 0 clipped cells. Full
+gate green — 285 checks, 0 failures.
+
+⛔ **And a hole in the gate itself, closed on the way past.** `gate.sh` serves `dist/index.html` and
+**never rebuilds it**, so editing `src/legacy/app.js` and running the gate without `npm run build`
+gates *the previous build* and prints `GATE PASSED` — the worst possible failure, because the green
+is exactly what you were trying to earn. It now refuses (exit 2) when any source is newer than
+`dist/index.html`, rather than warning: a warning scrolls past 285 lines of PASS. Same family as the
+`run.sh` / `gate.sh` different-default-page trap already in `CLAUDE.md`. Also: `hdrtemplate`'s
+mode-menu section still expected the read-only token list and would have thrown once that row began
+opening the editor — rewritten, and `gate.sh` now asserts `peekWorks`, which it never had.
+
 ### Unreleased — the token menu existed and could not be used: it dead-ended, and it would not scroll
 
 Owner feedback on the shipped Step 3 palette, and one of the two problems was reported in the

@@ -174,23 +174,33 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(300);
     out.paletteClosesOnOutsideScroll = !document.querySelector('.hdr-token-pop');
 
-    // ---- 2c-ii. the tokens are visible BEFORE committing to Template ---------------------------
-    // They are the reason to choose Template, so the mode menu offers a look without switching.
+    // ---- 2c-ii. the tokens are reachable BEFORE committing to Template -------------------------
+    // They are the reason to choose Template, so the mode menu's Template row offers a way in.
+    //
+    // ⚠️ THIS ROW CHANGED ON 9 Sep 2026 AND THIS SECTION CHANGED WITH IT. It used to open a
+    // READ-ONLY copy of the token palette -- browse, do not touch. It now opens the header template
+    // EDITOR, which shows the same tokens with the same live previews AND lets you use them, so a
+    // look-but-do-not-touch list is strictly worse than the thing that replaced it. What this
+    // section asserts is unchanged in substance: from Auto, before committing to anything, the row
+    // exists and leads somewhere that shows you the tokens. The editor's own behaviour is the
+    // hdreditor leg's job, not this one's.
     (function () { var p = document.querySelector('.hdr-mode-pop'); if (p) p.remove(); })();
     btn().click();
     await T.until(function () { return !!document.querySelector('.hdr-mode-pop'); }, 'the mode popover', 40, 100);
     var peek = document.querySelector('.hdr-mode-peek');
     out.peekOffered = !!peek;
+    out.peekLabel = peek ? (peek.textContent || '').trim() : null;
     if (peek) {
       peek.click();
-      await T.until(function () { return !!document.querySelector('.hdr-token-pop'); }, 'the browse palette', 40, 100);
-      var br = document.querySelector('.hdr-token-pop');
-      out.browseHint = (br.querySelector('.hdr-token-hint') || {}).textContent;
-      // Browse is read-only: it lists what exists, it does not edit a header from the mode menu.
-      out.browseReadOnly = [].every.call(br.querySelectorAll('.hdr-token-item'), function (b) { return b.disabled; });
-      br.remove();
+      await T.until(function () { return !!document.querySelector('.hde-overlay'); }, 'the template editor', 60, 100);
+      var ed = document.querySelector('.hde-overlay');
+      out.peekTokens = ed.querySelectorAll('.hde-rail-list .hdr-token-item').length;
+      // Closed the way a user closes it, so the editor's own teardown runs -- .remove() would leave
+      // its document-level keydown listener behind and the rest of this leg would run under it.
+      ed.querySelector('.hde-done').click();
+      await T.until(function () { return !document.querySelector('.hde-overlay'); }, 'the editor to close', 40, 100);
     }
-    out.peekWorks = out.peekOffered && out.browseReadOnly === true;
+    out.peekWorks = out.peekOffered && out.peekTokens > 30 && !document.querySelector('.hde-overlay');
     // ⚠️ PLACE A REAL CARET, do not just dispatch focusin. A synthetic FocusEvent sets
     // hdrFmtTarget but moves no focus and creates no selection, so insertHdrToken()'s own
     // line.focus() supplies one -- and Chrome puts that caret at position 0, which made a first cut

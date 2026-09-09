@@ -37,6 +37,30 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BASE="$HERE/../baselines/2026-08-29-stage-7"
 PAGE="${1:-/dist/index.html}"
+
+# ⛔ THE BUILD IS NOT REBUILT BY THIS SCRIPT, AND A STALE ONE PASSES SILENTLY.
+# gate.sh serves dist/index.html; `npm run build` is a separate step nobody is reminded to run. Edit
+# src/legacy/app.js, run the gate, and it gates YESTERDAY'S BUILD and says GATE PASSED -- the worst
+# possible failure mode, because the green is the thing you were trying to earn. Same family as the
+# run.sh/gate.sh default-page trap in CLAUDE.md: the harness tests a different program than you think.
+# Refuse rather than warn: a warning scrolls past 200 lines of PASS.
+if [[ "$PAGE" == "/dist/index.html" ]]; then
+  REPO="$(cd "$HERE/../.." && pwd)"
+  DIST="$REPO/dist/index.html"
+  if [[ ! -f "$DIST" ]]; then
+    print -r -- "gate.sh: dist/index.html does not exist. Run: npm run build" >&2
+    exit 2
+  fi
+  # -nt is a zsh builtin and needs no `find`; check every source the build inlines.
+  for SRCF in "$REPO"/src/**/*.(js|jsx|css|html)(N) "$REPO"/vite.config.js(N) "$REPO"/package.json(N); do
+    [[ -f "$SRCF" ]] || continue
+    if [[ "$SRCF" -nt "$DIST" ]]; then
+      print -r -- "gate.sh: dist/index.html is OLDER than ${SRCF#$REPO/} -- you would be gating a stale build." >&2
+      print -r -- "         Run: npm run build" >&2
+      exit 2
+    fi
+  done
+fi
 FAIL=0
 say() { print -r -- "$@" }
 ok()  { say "  PASS  $1" }
@@ -849,6 +873,8 @@ chk(a.get('groupsWork'),
     f"hdrtemplate: an unsatisfiable [group] collapses, a satisfied one renders ({a.get('emptyGroup')!r} / {a.get('fullGroup')!r})")
 chk(a.get('noCompoundDrift'),
     f"hdrtemplate: ⭐ the compound tokens still equal the hand-coded auto lines -- the drift guard {a.get('compoundVsAuto')}")
+chk(a.get('peekWorks'),
+    f"hdrtemplate: the mode menu's Template row leads to the tokens BEFORE you commit -- {a.get('peekLabel')!r}, {a.get('peekTokens')} of them")
 chk(a.get('focusShowsRaw'), f"hdrtemplate: ⭐ focusing a line shows the RAW template, so an edit cannot destroy the token ({a.get('rawOnFocus')!r})")
 chk(a.get('blurRestoresResolved'), f"hdrtemplate: blurring puts the resolved text back ({a.get('afterBlur')!r})")
 chk(a.get('excelHasNoUnresolved') and a.get('excelCarriesResolved'),
@@ -1008,6 +1034,75 @@ if [[ -f "$HERE/hdrexcel.xlsx" ]]; then
 else
   bad "hdrexcel produced no workbook to check"
 fi
+
+# ---- hdreditor: the header template EDITOR, and the third left slot ------------------------------
+# HEADER-PRESETS-PLAN.md Step 6. Owner, 9 Sep 2026: a separate pop-up for BUILDING a header, with a
+# live view at the top, the same styling controls the manual header has, and three slots per column.
+#
+# ⛔ THE THIRD LEFT SLOT IS THREE FROZEN EDITS -- renderSpreadsheetView's left column, exportExcel's
+# lIds, buildWaterfallPdf's hLeftArr. The sign-off rests on exactly the guarantee l2 and c4 were
+# given on 31 Aug: the slot is EMPTY by default, hidden on screen by
+# .hdr-line.hdr-slot.hdr-empty:not(.hdr-editable), dropped from the workbook by withCodes() and from
+# the PDF by .filter(x=>x.t) -- so every calendar ever saved renders byte-for-byte as it did. THE
+# OTHER HALF OF THAT PROOF IS THE PDF/EXCEL BYTE-COMPARE ABOVE, not this leg. This leg proves the
+# slot is there and inert; that one proves nothing moved.
+#
+# The rest of it is the panel, and two of its assertions are worth more than the others:
+#   * noIds -- the panel is BODY-LEVEL, so it is outside .prefs-card and collectFieldValues()'s class
+#     exclusion does not reach it. It holds ten text inputs, two colour inputs, a select and a
+#     checkbox. ONE id on any of them and it is baked into every saved calendar with an undo step
+#     per keystroke -- the same hazard hdrpreset guards for the preset block.
+#   * notASecondRenderer -- the canvas is asserted by reading the result off the REAL header behind
+#     the modal. A live preview that draws its own text is a second renderer, and a second renderer
+#     drifts; if these two ever disagree the panel is lying about what prints.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" hdreditor 170 >/dev/null 2>&1
+python3 - "$HERE/hdreditor.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdreditor produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  hdreditor threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('l3Inert'),
+    f"hdreditor: ⭐ l3 is on the calendar and HIDDEN while empty -- the frozen edits are inert (present={a.get('l3OnCalendar')})")
+chk(a.get('editorOpened') and a.get('opensFromAuto'),
+    f"hdreditor: it opens from AUTO and switches to Template on the way in ({a.get('modeBeforeOpen')!r} -> {a.get('modeAfterOpen')!r})")
+chk(a.get('threePerColumn'),
+    f"hdreditor: three slots per column, left to right {a.get('canvasSlots')}")
+chk(a.get('noIds'),
+    f"hdreditor: ⛔ not ONE id anywhere in the panel {a.get('idsInPanel')} -- it is body-level, so .prefs-card does not cover it")
+chk(not a.get('c4OfferedWhenUnused'),
+    "hdreditor: c4 is NOT offered on a calendar that does not use it")
+chk(a.get('barWoke') and a.get('barNamesRight'),
+    f"hdreditor: the styling bar wakes on the selected line and names it ({a.get('barNamesLine')!r})")
+chk(a.get('stylingReachesHeader'),
+    f"hdreditor: ⭐ styling in the panel IS the header's styling -- one store, one renderer ({a.get('canvasStyle')!r} == {a.get('realStyle')!r})")
+chk(a.get('showsRaw'),
+    f"hdreditor: focusing a line on the canvas shows the RAW template ({a.get('rawOnFocus')!r})")
+chk(a.get('notASecondRenderer'),
+    f"hdreditor: ⭐ an edit made in the panel resolves IDENTICALLY on the real header ({a.get('canvasAfterEdit')!r} == {a.get('realAfterEdit')!r})")
+chk(a.get('placeholdersAreEditorOnly'),
+    f"hdreditor: ⭐ a token with no data draws a dashed placeholder in the EDITOR ONLY ({a.get('placeholderShown')!r}; the header prints {a.get('realL3WhilePlaceheld')!r})")
+chk(a.get('railShared'),
+    f"hdreditor: the Insert rail is the shared token list, with live previews ({a.get('railTokens')} tokens, {a.get('railLive')} live)")
+chk(a.get('budgetReads') and a.get('budgetWarnsWhenOver'),
+    f"hdreditor: the Excel budget reads and warns when it is blown ({a.get('budgetText')!r})")
+chk(a.get('defaultFitsExcel'),
+    f"hdreditor: ⚠️ the DEFAULT template on a full calendar fits Excel's cap -- {a.get('budgetAtRest')!r}")
+chk(a.get('c4KeptNotDropped'),
+    f"hdreditor: ⭐ c4 is KEPT AND HIDDEN, not dropped -- a calendar already using it still sees it, marked {a.get('c4Label')!r} ({a.get('c4Value')!r})")
+chk(a.get('doneCloses') and a.get('escapeCloses') and a.get('headerSurvives'),
+    "hdreditor: Done and Escape both close it, and the header it built survives")
+chk(not a.get('errors'), f"hdreditor: 0 console errors {a.get('errors')}")
+hv=a.get('clipped') or {}
+chk(not hv.get('h'), f"hdreditor: 0 horizontally clipped cells {hv.get('h')}")
+sys.exit(bad)
+PY
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

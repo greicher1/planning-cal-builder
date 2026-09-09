@@ -212,6 +212,11 @@ function HeaderPresets() {
         itself stays on this computer.
       </Text>
 
+      {/* The editor is the place you BUILD a header; the controls below are for reusing one. */}
+      <button type="button" className="hdr-preset-btn hdr-preset-edit" data-hdrpreset="edit">
+        Edit header template…
+      </button>
+
       <Group gap="sm" wrap="nowrap" mt="xs">
         {/* Plain <select>, no id: legacy.css styles it, and nothing can sweep it into a file. */}
         <select className="hdr-preset-select" aria-label="Header preset"

@@ -948,6 +948,13 @@ Nothing in this document ships without all of these, every stage:
    not a negative "no `m_` class" assertion — §8.6 explains why the negative one passes while the
    bug ships.
 8. **NEW — month PDF diffed with the network on and off**, for §9.1 only.
+9. **NEW — no `id` on any control inside a body-level panel** (9 Sep 2026). Item 6 generalised, and
+   it needed generalising: `collectFieldValues()` skips exactly two classes, `.tools-menu` and
+   `.prefs-card`, so a panel appended to `<body>` is swept in full. The header template editor
+   (`.hde-overlay`) holds fourteen form controls and carries **no `id` at all** for this reason —
+   one would bake all fourteen into every saved calendar with a phantom undo step per keystroke.
+   Assert the panel's `[id]` set is **empty**, open, the way `hdreditor` and `hdrpreset` both do. The
+   alternative — adding the panel's class to the skip list — is fine, but it has to happen **first**.
 
 ---
 

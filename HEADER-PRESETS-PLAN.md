@@ -705,6 +705,9 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 ```
 1. Step 1 (version field + {version} in l2)       <- ✅ BUILT 8 Sep 2026; legs hdrversion + hdrverload
    Steps 2-6                                      <- ✅ ALL BUILT (2 on 8 Sep, 3-6 on 9 Sep 2026)
+   Step 7, THE EDITOR + l3                        <- ✅ BUILT 9 Sep 2026; leg hdreditor. NOT IN THIS
+                                                     PLAN -- see §11, added after the owner used
+                                                     what §10 shipped and asked for a screen.
    H2 and H6                                      <- ⏸ still deferred, no sign-off
 2. Step 2 (engine + third mode + the ONE frozen label edit) + prove-header-template.mjs + hdrmode
 3. Step 3 (Default template + palette) + hdrdefault leg
@@ -716,3 +719,59 @@ All in `tests/harness/gate.sh`, all against `/dist/index.html`, plus the Node pr
 ```
 
 The gate's byte-compare runs after every step; a red compare on any step is a stop, not a note.
+
+## 11. Step 7 — the header template editor, and `l3` (added 9 Sep 2026, after the fact)
+
+⚠️ **This step is not part of the plan above. It was written after the plan finished**, because the
+owner used what the plan shipped and told us what it was missing:
+
+> *"I still feel like you miss the Insert button. Would it be crazy for there to be a separate screen
+> entirely for building your header templates?"*
+
+and then, on the mock-up:
+
+> *"left, centre, and right should have 3 collumns each… most importantly, i want to actually see a
+> live view of what that header will look like while I add the parameters"* … *"you also need to have
+> all the same styling controls that you do in the regular manual header… you should be able to
+> edit/change/style in the live viewer itself. The styling menu can sit above the live view"*
+
+**What that says about §3.7.** The plan put the controls where they fitted — a palette anchored to a
+line, a preset block in Preferences — and each is defensible alone. Together they made **building** a
+header a job you do in three places while looking at a fourth. The editor is one place, and the thing
+you are building is the thing you are looking at. Worth remembering the next time a plan distributes
+a workflow across the panels that happen to exist.
+
+### 11.1 What it cost against the freeze
+
+⛔ **`l3` is three frozen edits**, one line each: `renderSpreadsheetView`'s left column,
+`exportExcel`'s `lIds`, `buildWaterfallPdf`'s `hLeftArr`. **The sign-off is the owner's "3 collumns
+each" plus "build it for real" — a design instruction, not an H-numbered written authorisation like
+H3b.** It is recorded that way deliberately so the next reader can judge it rather than inherit it.
+
+The edits are gated by the same argument §4 makes and the 31 Aug additions of `l2` and `c4` used: the
+slot is **empty by default**, hidden on screen by `.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable)`,
+dropped from the workbook by `withCodes()` and from the PDF by `.filter(x=>x.t)`. Measured: **528
+lines of `app.js` changed, 3 inside a frozen function**, byte-compare green.
+
+### 11.2 The three rules the editor is built on
+
+1. ⛔ **No `id`, anywhere in the panel.** It is body-level, therefore outside `.prefs-card`, and
+   `collectFieldValues()` skips only `.tools-menu` and `.prefs-card`. One `id` on any of its fourteen
+   controls bakes them all into every saved calendar with an undo step per keystroke. Add
+   `.hde-overlay` to that skip list **before** any control in there needs an `id`.
+2. ⛔ **One renderer.** The canvas calls `buildHeaderCtx()` + `resolveHeaderTemplate()` — the pair
+   `headerLine()` uses — and the styling bar writes `headerFormat`, the store the manual header
+   reads. The `hdreditor` leg asserts this by editing in the panel and reading the result off the
+   **real header behind the modal**. A preview that draws its own text is a second renderer, and it
+   will drift.
+3. ⛔ **A slot can leave the UI; it cannot leave the format.** Three-per-column retires `c4` from
+   what the editor offers, not from the format: `HDR_EDITOR_COLUMNS` is the offer, `HDR_IDS` is the
+   format, `HDR_LEGACY_SLOTS` bridges them, and a calendar already using `c4` still sees it, marked
+   `4*`. Deleting it would silently drop a line from someone's saved header.
+
+### 11.3 One number to carry forward
+
+⚠️ **The DEFAULT template on a fully-filled calendar measures 241 of Excel's 255 characters.** The
+budget meter (§3.8) shows it live in the editor, and the `hdreditor` leg asserts the default still
+fits — so widening the default template fails the gate rather than surprising someone whose show has
+a long title.
