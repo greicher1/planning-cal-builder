@@ -1167,6 +1167,12 @@ chk(a.get('keysStayNumeric'),
     f"onecol: ⛔ column keys stay y<digits>:s<n>, or installGridResizers' regex dies silently {a.get('onCkeys')}")
 chk(a.get('snapHasKey') and a.get('notInFieldIds'),
     "onecol: ⭐ it travels in a REAL saved calendar, as a snapshot key and NOT also as a swept field id")
+chk(a.get('swapWorksInOneCol'),
+    f"onecol: ⭐ column swapping works WITH the setting on -- the button names the BLOCK year {a.get('swapBtnYear')!r}, not the week's ({a.get('swapBefore')!r} -> {a.get('swapAfter')!r}, persists={a.get('swapPersists')})")
+chk(a.get('rowHeightFollowsWeek'),
+    f"onecol: ⭐ a dragged row height follows its WEEK across the toggle, not its row number ({a.get('offHeight')}px on row {a.get('sizeWeekRowOff')} -> row {a.get('sizeWeekRowOn')})")
+chk(a.get('widthsArePerLayout') and a.get('widthRoundTripLossless'),
+    f"onecol: ⭐ each layout keeps its OWN column widths, and a round trip is lossless (off s0={(a.get('offWidths') or {}).get('y2026:s0')}, on s0={(a.get('onWidths') or {}).get('y2026:s0')})")
 chk(a.get('offIsInert'),
     "onecol: ⭐ toggling back is byte-identical to never having toggled -- same rows, cols, keys, headers and width")
 chk(a.get('oneUndoStep'),
@@ -1174,6 +1180,35 @@ chk(a.get('oneUndoStep'),
 chk(not a.get('errors'), f"onecol: 0 console errors {a.get('errors')}")
 chk(on.get('clippedH')==0 and off.get('clippedH')==0,
     f"onecol: 0 horizontally clipped cells in either layout (off={off.get('clippedH')}, on={on.get('clippedH')})")
+sys.exit(bad)
+PY
+
+# ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
+# ⛔ THE FORWARD-COMPATIBILITY HALF of moving rowHeights from row-index keys to week keys, and the
+# risky half: every calendar anyone has ever dragged a row in stores `rowHeights: {"<index>": px}`.
+# Without the migration in syncRowHeights() those files open with every dragged row silently back
+# to its default height, and nothing says so. The fixture is a genuine minted save with the three
+# keys that build could not have written stripped out.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=rowheightlegacy "$HERE/run.sh" rowmigrate 130 >/dev/null 2>&1
+python3 - "$HERE/rowmigrate.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  rowmigrate produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  rowmigrate threw: '+str(a['EX'])); sys.exit(1)
+chk(a.get('migratedToRightWeek') and a.get('onlyThatWeekIsTall'),
+    f"rowmigrate: ⭐ the legacy row-index key resolved to the RIGHT week and only that one {a.get('tallRows')} {a.get('restored')}")
+chk(a.get('btnStartsOff'),
+    "rowmigrate: a file saved before one-column mode existed opens with it OFF")
+chk(a.get('movedRow') and a.get('heightFollowedWeek') and a.get('stillOnlyOneTall'),
+    f"rowmigrate: ⭐ ...and the height follows its WEEK into the other layout ({a.get('afterToggle')})")
+chk(not a.get('errors'), f"rowmigrate: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 

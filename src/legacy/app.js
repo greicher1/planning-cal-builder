@@ -132,6 +132,21 @@ export function initLegacyApp() {
   // different weeks -- so there is no single date to key on.
   let colWidths = {};    // 'date' | 'notes' | 'y2027:s0'  ->  width in Excel char units
   let rowHeights = {};   // row index -> height in screen px
+  // ⛔ rowHeights ABOVE IS THE RENDER-FACING STORE AND MUST STAY INDEX-KEYED -- renderSpreadsheetView,
+  // exportExcel and buildWaterfallPdf all read `rowHeights[r]` by row number, and all three are
+  // frozen. This is the PERSISTED truth instead, keyed by the week's ISO date, and rowHeights is
+  // rebuilt from it whenever the schedule changes.
+  //
+  // Why (owner's call, 10 Sep 2026): a row index means a different WEEK in each layout. Measured --
+  // row 4 is 2/2/26 with one-column off (the grid is padded to 1 Jan) and 11/2/26 with it on. So a
+  // height dragged onto one week silently moved to another the moment you toggled. Keyed by week it
+  // follows its week, which is also how userNotes and every other per-week store already works.
+  let rowHeightsByWeek = {};   // 'YYYY-MM-DD' -> height in screen px
+  // The INACTIVE layout's column widths; colWidths is always the ACTIVE layout's set, and the two
+  // swap on toggle. Column keys are `y<year>:s<slot>`, which name different columns in the two
+  // layouts -- so one shared set meant widths silently applying to the wrong column, or vanishing.
+  // Two sets means each layout looks the way you left it, and nothing is ever discarded.
+  let colWidthsAlt = {};
   // How far a single phase cell reaches across the empty columns beside it, keyed
   // '<week ISO>|<phase key>' -> {l, r} = slots claimed LEFT and RIGHT of the phase's own column.
   //
@@ -645,6 +660,10 @@ export function initLegacyApp() {
         colWidths[ckey] = screenPxToChars(parseFloat(col.style.width) || 0);
       } else {
         rowHeights[rowIdx] = Math.round(parseFloat(tr.style.height) || ROW_DEFAULT_PX);
+        // ...and into the persisted, week-keyed store, or the drag is forgotten on the next
+        // schedule change -- syncRowHeights() rebuilds rowHeights from that map, not the reverse.
+        const wk = currentSchedule && currentSchedule.weeks && currentSchedule.weeks[rowIdx];
+        if(wk) rowHeightsByWeek[isoOf(wk.date)] = rowHeights[rowIdx];
       }
       render(currentSchedule);
       markDirty();
@@ -697,6 +716,11 @@ export function initLegacyApp() {
     if(store[key] === undefined) return;      // already auto -- nothing to undo
     pushUndoSnapshot();
     delete store[key];
+    // ⛔ And from the persisted store, or syncRowHeights() puts it straight back on the next update.
+    if(!isCol){
+      const wk = currentSchedule && currentSchedule.weeks && currentSchedule.weeks[key];
+      if(wk) delete rowHeightsByWeek[isoOf(wk.date)];
+    }
     render(currentSchedule);
     markDirty();
   });
@@ -907,7 +931,7 @@ export function initLegacyApp() {
     rows.forEach(r=>{
       const b = tdBox(r.td, g);
       if(!b) return;
-      const sk = String(r.td.dataset.week).slice(0, 4) + '|' + r.td.dataset.pkey;
+      const sk = String(blockYearOf(r.td.dataset.week)) + '|' + r.td.dataset.pkey;
       if(!byStint.has(sk)) byStint.set(sk, []);
       byStint.get(sk).push({ r, b, row: +r.td.parentElement.dataset.row });
     });
@@ -1870,6 +1894,25 @@ export function initLegacyApp() {
       {date:'2029-12-26', name:'Boxing Day'},
     ],
   };
+
+  // ⛔ WHICH COLUMN BLOCK DOES THIS WEEK BELONG TO? Until 10 Sep 2026 that was the same question as
+  // "what year is this week in", so ten sites across the swap and selection machinery derived it
+  // with String(weekIso).slice(0, 4) -- and they were right, because there was exactly one block
+  // per calendar year.
+  //
+  // One-column mode breaks that equivalence: there is a SINGLE block, labelled with the FIRST
+  // year, so a week in a later year still belongs to block <first year>. ⚠️ Getting it wrong fails
+  // SILENTLY and completely: the swap machinery looks up `y<year>:s1`, finds no such column,
+  // returns early, and the Swap Block button simply never appears. No error, no clue.
+  //
+  // ⭐ Returns exactly `+weekIso.slice(0,4)` whenever singleColumn is off, so every existing
+  // calendar behaves identically -- the inertness is by construction, not by testing.
+  function blockYearOf(weekIso){
+    if(singleColumn && currentSchedule && currentSchedule.weeks && currentSchedule.weeks.length){
+      return currentSchedule.weeks[0].date.getUTCFullYear();
+    }
+    return +String(weekIso).slice(0, 4);
+  }
 
   function computeYearBlocks(weeks){
     // ⭐ ONE BLOCK, spanning everything. Every consumer -- computeBlockLayout, sheetColumnWidths,
@@ -3045,7 +3088,7 @@ export function initLegacyApp() {
       // carries the class unconditionally and the data-own set conditionally.
       if(!hasSpanContract(td)) return;
       const wk = td.dataset.week || '';
-      if(+wk.slice(0,4) !== year) return;
+      if(blockYearOf(wk) !== year) return;
       const a = +td.dataset.a, b = +td.dataset.b;
       out.push({ td, key: td.dataset.pkey, weekIso: wk, own: +td.dataset.own, a, b, span: b - a + 1 });
     });
@@ -3074,7 +3117,7 @@ export function initLegacyApp() {
   // Given a seed cell and a direction, the contiguous run that can move as one rigid block --
   // or the reason it cannot. Pure DOM reads: cheap enough to call on every repaint.
   function swapRunFor(weekIso, phaseKey, dir){
-    const year = +String(weekIso).slice(0, 4);
+    const year = blockYearOf(weekIso);
     const seedTd = swapTdFor(weekIso, phaseKey);
     if(!seedTd || !seedTd.parentElement) return { ok:false, reason:'no-partner' };
     const local0 = +seedTd.parentElement.dataset.row;
@@ -3116,7 +3159,7 @@ export function initLegacyApp() {
     // "The entire phase moves as a block" (owner's words) -- a REPORTING flag computed from the
     // rendered grid, not a second code path.
     const blockWeeksOf = key => allPhaseTds()
-      .filter(td => td.dataset.pkey === key && +String(td.dataset.week).slice(0,4) === year)
+      .filter(td => td.dataset.pkey === key && blockYearOf(td.dataset.week) === year)
       .map(td => td.dataset.week);
     const whole        = blockWeeksOf(phaseKey).every(w => weekSet.has(w));
     const partnerWhole = blockWeeksOf(partnerKey).every(w => weekSet.has(w));
@@ -3289,7 +3332,7 @@ export function initLegacyApp() {
   // buttons, same Alt+arrows, same chip -- only the run, the store and the verdict differ.
 
   const stintTds = (year, key) => allPhaseTds()
-    .filter(td => td.dataset.pkey === key && +String(td.dataset.week).slice(0, 4) === year)
+    .filter(td => td.dataset.pkey === key && blockYearOf(td.dataset.week) === year)
     .sort((x, y) => (+x.parentElement.dataset.row) - (+y.parentElement.dataset.row));
 
   // Which mode the live selection resolves to: { mode:'stint', year, phaseKey, count } when the
@@ -3302,7 +3345,7 @@ export function initLegacyApp() {
     if(viewMode !== 'sheet' || !gridSel.size) return { mode:'week' };
     const groups = new Map();
     selCells().forEach(td=>{
-      const sk = String(td.dataset.week).slice(0, 4) + '|' + td.dataset.pkey;
+      const sk = String(blockYearOf(td.dataset.week)) + '|' + td.dataset.pkey;
       groups.set(sk, (groups.get(sk) || 0) + 1);
     });
     if(groups.size !== 1) return { mode:'week', stints: groups.size };
@@ -3335,7 +3378,7 @@ export function initLegacyApp() {
     if(other < 0) return Object.assign(base, { reason:'no-partner' });
     const byKey = new Map();
     allPhaseTds().forEach(td=>{
-      if(+String(td.dataset.week).slice(0, 4) !== year) return;
+      if(blockYearOf(td.dataset.week) !== year) return;
       const k = td.dataset.pkey;
       if(!byKey.has(k)) byKey.set(k, { key:k, tds:[], slots:new Set(), rows:new Set() });
       const e = byKey.get(k);
@@ -3682,7 +3725,7 @@ export function initLegacyApp() {
     if(!pick){
       const groups = new Map();
       tds.forEach(td=>{
-        const k = String(td.dataset.week).slice(0,4) + '|' + td.dataset.pkey;
+        const k = String(blockYearOf(td.dataset.week)) + '|' + td.dataset.pkey;
         if(!groups.has(k)) groups.set(k, []);
         groups.get(k).push(td);
       });
@@ -4206,7 +4249,7 @@ export function initLegacyApp() {
       if(e.target && e.target.closest && e.target.closest('.grid-stint-btn, .grid-swap-knob')) next = stintHover;
       else {
         const td = hitCell(e.clientX, e.clientY);
-        if(td) next = { year:+String(td.dataset.week).slice(0, 4), phaseKey: td.dataset.pkey };
+        if(td) next = { year: blockYearOf(td.dataset.week), phaseKey: td.dataset.pkey };
       }
     }
     if(sameStint(next, stintHover)) return;
@@ -9291,6 +9334,31 @@ export function initLegacyApp() {
     }
     return defaults[id] || '';
   }
+  // Rebuild the render-facing rowHeights from the by-week truth. ⚠️ Called from update() only,
+  // which is correct and not laziness: the index<->week mapping can only change when the SCHEDULE
+  // changes, and computeSchedule runs nowhere else. The ~30 bare render() calls elsewhere repaint
+  // the same week list and need no resync.
+  function syncRowHeights(schedule){
+    const weeks = (schedule && schedule.weeks) || [];
+    // ⭐ MIGRATION, forward-only, for every file saved before 10 Sep 2026: those carry index-keyed
+    // rowHeights and no by-week store. Detected by state rather than a flag -- an un-migrated file
+    // is the only way to have index keys and an empty by-week map, and once converted the map is
+    // non-empty so this cannot run twice. A calendar with no dragged rows has both empty and needs
+    // nothing.
+    if(!Object.keys(rowHeightsByWeek).length && Object.keys(rowHeights).length && weeks.length){
+      Object.keys(rowHeights).forEach(k=>{
+        const i = +k;
+        if(Number.isInteger(i) && weeks[i]) rowHeightsByWeek[isoOf(weeks[i].date)] = rowHeights[k];
+      });
+    }
+    const next = {};
+    weeks.forEach((w, i)=>{
+      const h = rowHeightsByWeek[isoOf(w.date)];
+      if(h !== undefined) next[i] = h;
+    });
+    rowHeights = next;
+  }
+
   function update(){
     // Belt and braces around render()'s own snapshot: reflectCountryLock() and markDirty() below
     // both touch the DOM after the grid is rebuilt, and update() is what the handlers that add or
@@ -9306,6 +9374,8 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
+    syncRowHeights(currentSchedule);
     render(currentSchedule);
     reflectCountryLock();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
@@ -9422,7 +9492,15 @@ export function initLegacyApp() {
     if(singleColumn === !!next) return;
     // ⛔ ONE UNDO STEP. This changes the week range AND the column layout, so an un-grouped
     // version would take two ctrl-Z to undo and leave a state that was never on screen in between.
-    asOneHeaderStep(()=>{ singleColumn = !!next; });
+    asOneHeaderStep(()=>{
+      singleColumn = !!next;
+      // ⭐ Each layout keeps its OWN column widths. `y2026:s0` names a different column blocked vs
+      // single, so one shared set meant a width you dragged in one layout landing on the wrong
+      // column in the other -- or silently doing nothing, for a year that no longer has a block.
+      // Swapping is lossless in both directions: toggle back and forth and each looks as you left
+      // it. ⚠️ Inside asOneHeaderStep, so the swap is part of the same single undo step.
+      const keep = colWidths; colWidths = colWidthsAlt; colWidthsAlt = keep;
+    });
     reflectSingleColumn();
     update();
     markDirty();
@@ -9790,7 +9868,8 @@ export function initLegacyApp() {
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
     // them. gridColSwaps follows that same rule on purpose: its absence from the notes-reset branch
     // is a decision, not an oversight, so do not "complete the checklist" by adding it there.
-    colWidths = {}; rowHeights = {}; cellSpans = {}; gridColSwaps = {}; gridStintSwaps = {};
+    colWidths = {}; colWidthsAlt = {}; rowHeights = {}; rowHeightsByWeek = {};
+    cellSpans = {}; gridColSwaps = {}; gridStintSwaps = {};
     update();
   }
 
@@ -10169,7 +10248,12 @@ export function initLegacyApp() {
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual, headerTemplates,
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
-      holidayOff, customHolidays, viewMode, singleColumn, sidebarTab, colWidths, rowHeights, cellSpans,
+      holidayOff, customHolidays, viewMode, singleColumn, sidebarTab,
+      // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
+      // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
+      // truth this build reads. Dropping either legacy key would make a calendar saved here open
+      // wrong in a build from last week.
+      colWidths, colWidthsAlt, rowHeights, rowHeightsByWeek, cellSpans,
       gridColSwaps, gridStintSwaps,
       fields: collectFieldValues()
     };
@@ -12883,6 +12967,13 @@ export function initLegacyApp() {
     // Reassigned, not merged: an absent store in the snapshot means "no overrides", and a merge
     // would keep a previous file's hand-dragged widths on this one.
     colWidths  = (snap.colWidths  && typeof snap.colWidths  === 'object') ? Object.assign({}, snap.colWidths)  : {};
+    colWidthsAlt = (snap.colWidthsAlt && typeof snap.colWidthsAlt === 'object')
+      ? Object.assign({}, snap.colWidthsAlt) : {};
+    // ⛔ Unconditional and defaulting to {}: a file without the key must not inherit the previously
+    // open calendar's row heights. An older file has index-keyed rowHeights and no by-week map, and
+    // syncRowHeights() migrates it on the first update() -- when the week list finally exists.
+    rowHeightsByWeek = (snap.rowHeightsByWeek && typeof snap.rowHeightsByWeek === 'object')
+      ? Object.assign({}, snap.rowHeightsByWeek) : {};
     rowHeights = (snap.rowHeights && typeof snap.rowHeights === 'object') ? Object.assign({}, snap.rowHeights) : {};
     cellSpans  = (snap.cellSpans  && typeof snap.cellSpans  === 'object') ? Object.assign({}, snap.cellSpans)  : {};
     // ⛔ The `: {}` branch is the whole point, not defensiveness. `if(snap.x) x = snap.x` would leave

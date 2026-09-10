@@ -29,6 +29,75 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — dragged row heights follow their week; each layout keeps its own column widths
+
+The two problems the previous entry left open, both found by testing rather than by a report.
+Local, not pushed at time of writing.
+
+⭐ **A dragged row height now belongs to a WEEK, not a row number.** It was keyed by row index, and
+a row index means a different week in each layout — measured, row 4 is `2/2/26` with one-column off
+(the grid is padded to 1 January) and `11/2/26` with it on. So you would make one week taller,
+toggle, and find a *different* week tall instead. `rowHeightsByWeek` is the stored truth now, keyed
+by ISO date, the way `userNotes` and every other per-week store already works.
+
+⛔ **The render-facing `rowHeights` stays index-keyed and that is not laziness** —
+`renderSpreadsheetView`, `exportExcel` and `buildWaterfallPdf` all read `rowHeights[r]` by row
+number and all three are frozen. It is rebuilt from the by-week map in `update()`, which is the only
+place the week list can change. **No frozen edit; 0 lines inside a frozen function.**
+
+⭐ **Each layout keeps its own column widths.** `y2026:s0` names a different column blocked vs
+single, so one shared set meant widths landing on the wrong column, or on none at all for a year
+with no block. `colWidths` is now always the *active* layout's set and `colWidthsAlt` the other;
+they swap on toggle, inside the same undo step. Lossless in both directions — verified by round trip.
+
+⛔ **The risky half is old files, and it has its own gate leg.** Every calendar anyone has dragged a
+row in stores `rowHeights: {"<index>": px}`. Without a migration those open with every dragged row
+silently back to default. `syncRowHeights()` converts on first update — detected by state (index
+keys present, by-week map empty) rather than a flag, so it cannot run twice and a calendar with no
+dragged rows needs nothing. New `rowmigrate` leg drives a **genuine minted save** with the three keys
+this build added stripped back out: row 40 = the week of `10/12/26` at 45px restores onto exactly
+that week and no other, the setting defaults off, and toggling moves the week to row 1 **carrying
+its height**.
+
+**Verified.** `onecol` gained three assertions — the height follows its week across a toggle (row 40
+→ row 1, still 45px), each layout has its own widths (161 vs 92 on the same key), and a round trip
+is byte-identical — plus the `rowmigrate` leg's four. ⚠️ The sizing section runs **last** in `onecol`
+on purpose: it drags things, and running it earlier made the pre-existing "toggling back is
+identical" assertion fail against a grid the test itself had resized — which reads exactly like a
+regression in the app.
+
+### Unreleased — column swapping was silently dead in one-column mode
+
+Found by testing at the owner's request — *"also test collumn swapping and report back"* — rather
+than by anyone hitting it. Local, not pushed at time of writing.
+
+⛔ **The Swap Block button simply never appeared with the setting on, and nothing said so.** The swap
+and selection machinery identified a column BLOCK by the hovered week's own calendar year, via
+`String(weekIso).slice(0, 4)`, at **ten sites**. That was correct for as long as there was exactly
+one block per calendar year. One-column mode has a single block labelled with the **first** year, so
+a cell in Feb 2027 reported `2027`, the code looked up the column `y2027:s1`, found nothing, and
+returned early. No error, no console output — the affordance just did not exist.
+
+Diagnosed by control: the same overlap week, the same two phases, the same visible cell and the same
+synthetic hover — works blocked, does nothing single. That comparison is what turned "my test
+harness is probably wrong" into "the feature is broken".
+
+**`blockYearOf(weekIso)` is the fix** — *which block does this week belong to*, rather than *what
+year is it*. Nine call sites now use it; the tenth reads the year back out of a key those sites
+build, so it needed no change. ⭐ It returns exactly `+weekIso.slice(0,4)` whenever the setting is
+off, so every existing calendar is unaffected by construction. All ten sites were in **non-frozen**
+code — `swapRowSegs`, `swapRunFor`, `swapSelectionMode`, `stintRunFor`, `swapSeed`,
+`redrawGridOverlay` and two module-level handlers.
+
+**Verified.** `onecol` gained a swap section: with the setting on the button appears naming the
+BLOCK year (`2026`, not the hovered week's `2027`), the swap lands
+(`prePrep@1 writersRoom@0` → `prePrep@0 writersRoom@1`) and **survives the next render** — a swap
+that only paints is not a swap. Blocked mode is asserted unchanged alongside it.
+
+⚠️ **Two related findings from the same test session, NOT yet fixed** — manual column widths and row
+heights are keyed in ways that do not survive the toggle cleanly. Neither is destructive and both
+are recorded in `HANDOFF.md`; they are awaiting an owner decision.
+
 ### Unreleased — One column: a multi-year calendar that runs down a single column
 
 Owner, 10 Sep 2026, with a reference calendar running `10/5/26 → 10/4/27` in one column: *"I want to

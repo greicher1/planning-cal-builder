@@ -341,6 +341,43 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⛔ **ONE-COLUMN MODE BROKE COLUMN SWAPPING ON FIRST SHIP, SILENTLY — FIXED 10 Sep 2026.** The swap
+and selection machinery identified a column BLOCK by the hovered week's own calendar year
+(`String(weekIso).slice(0,4)`) at **ten sites**, which was correct while there was one block per
+year. One-column mode has a single block labelled with the FIRST year, so a cell in Feb 2027
+reported 2027, the code looked up `y2027:s1`, found no such column and returned — **the Swap Block
+button never appeared, with no error**. ⭐ **`blockYearOf(weekIso)` is now the only way to ask that
+question**; it returns exactly `+weekIso.slice(0,4)` while the setting is off, so existing calendars
+are unaffected by construction. ⚠️ **If you add a new site that needs a block identity, use
+`blockYearOf` — never `slice(0,4)`.** The one remaining raw `slice(0,4)` in that machinery decodes a
+key those sites build, and `holidaySlug`'s is a holiday's year, not a block.
+
+⚠️ **THE GENERAL LESSON, worth more than the bug:** *"one block per calendar year"* was an
+unwritten invariant that ten separate places depended on, none of which named it. A feature that
+merges blocks breaks every one of them at once, and the failure mode was **an affordance that
+quietly stopped existing** rather than anything that throws. When an invariant is implicit, grep for
+the EXPRESSION that encodes it (`slice(0, 4)` here), not for the concept.
+
+✅ **SIZING ACROSS THE TOGGLE — FIXED 10 Sep 2026 (owner: (b) for rows, (c) for columns).**
+- **Row heights are keyed by WEEK now** (`rowHeightsByWeek`, ISO date), because a row index means a
+  different week in each layout — row 4 is `2/2/26` padded and `11/2/26` trimmed. ⛔ **The
+  render-facing `rowHeights` MUST stay index-keyed**: `renderSpreadsheetView`, `exportExcel` and
+  `buildWaterfallPdf` all read `rowHeights[r]` by row number and all three are frozen. It is
+  rebuilt from the by-week map in `update()` — the only place the week list can change, which is
+  why the ~30 bare `render()` calls need no resync. **0 lines inside a frozen function.**
+- **Column widths are per layout**: `colWidths` is the ACTIVE set, `colWidthsAlt` the other, swapped
+  inside the toggle's undo step. `y2026:s0` names a different column in each layout, so one shared
+  set was silently wrong; two are lossless both ways.
+- ⛔ **The migration is the risky part and has its own leg.** Every calendar with a dragged row
+  stores `rowHeights: {"<index>": px}` and no by-week map. `syncRowHeights()` converts on the first
+  `update()`, **detected by state** (index keys present, by-week map empty) rather than a flag — so
+  it cannot run twice, and a calendar with no dragged rows needs nothing. `rowmigrate` drives
+  `tests/fixtures/rowheightlegacy.sptcal`, a genuine minted save with this build's three new keys
+  stripped back out.
+- ⚠️ **`captureSnapshot()` now carries FOUR sizing keys**, and the two legacy ones are not dead
+  weight: `rowHeights` and `colWidths` are what an OLDER build reads, so dropping them would make a
+  calendar saved here open wrong in last week's build.
+
 ⭐ **ONE CONTINUOUS COLUMN (10 Sep 2026) — AND THE REASON IT IS ONE FLAG DOING TWO THINGS.** Owner
 asked for a multi-year calendar that fits in a single column, with a reference running
 `10/5/26 → 10/4/27`. The obvious half — `computeYearBlocks` stops splitting per calendar year — is
