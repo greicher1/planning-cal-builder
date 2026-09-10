@@ -174,6 +174,7 @@ window.addEventListener('load', function () { (async function () {
     out.placeholderShown = (line('l3').textContent || '').trim();
     out.placeholderMarked = !!line('l3').querySelector('.hde-ph');
     out.footMentionsPlaceholders = /Dashed words/.test(el('.hde-stage-foot').textContent || '');
+    out.footHiddenWhilePh = el('.hde-stage-foot').hidden;   // must be FALSE -- it has something to say
     // ...and it is EDITOR-ONLY: the real header prints nothing for a token with no data.
     out.realL3WhilePlaceheld = realLine('l3') ? (realLine('l3').textContent || '').trim() : null;
     // ⚠️ NOT display:none here, and that is correct. .hdr-line.hdr-slot.hdr-empty is hidden
@@ -184,9 +185,35 @@ window.addEventListener('load', function () { (async function () {
     el('.hde-phbox').click();                       // ⚠️ .hde-phbox, not .hde-ph -- see openHeaderEditor
     await T.sleep(500);
     out.withoutPlaceholders = (line('l3').textContent || '').trim();
+    // ⭐ SILENCE IS THE POINT. The foot used to always say something -- it explained the dotted
+    // empty-slot boxes, which already look like things you click. Owner removed that 9 Sep 2026, so
+    // with no dashed word on screen the foot must say nothing AND take no space: an empty <p> keeps
+    // its margin, which is why this asserts the measured height and not just the text.
+    out.footTextWhenSilent = (el('.hde-stage-foot').textContent || '').trim();
+    out.footHiddenWhenSilent = el('.hde-stage-foot').hidden;
+    out.footHeightWhenSilent = Math.round(el('.hde-stage-foot').getBoundingClientRect().height);
+    out.footCollapsesWhenSilent = out.footTextWhenSilent === '' && out.footHiddenWhenSilent === true &&
+                                  out.footHeightWhenSilent === 0;
     out.placeholdersAreEditorOnly = out.placeholderShown === 'Localization Opens' &&
       out.placeholderMarked && out.footMentionsPlaceholders &&
       out.withoutPlaceholders === '' && out.realL3WhilePlaceheld === '' && out.realL3IsEmptySlot;
+
+    // ---- 6b. ⭐ THE CHROME THE OWNER CUT STAYS CUT ------------------------------------------------
+    // Three strings were removed on 9 Sep 2026 for saying the obvious next to the thing they
+    // described. Asserted because deleted copy is the easiest thing in the world to reinstate by
+    // reflex, and nothing else in the gate would notice.
+    // ⚠️ LOCAL, not on `out`. The panel's full textContent is ~2 KB of token previews; putting it
+    // in the result truncated the JSON and would have left gate.sh unable to parse the leg at all.
+    // A result file is a report, not a DOM dump.
+    var panelText = (panel().textContent || '');
+    out.noLiveHeaderLabel = !/Live header/.test(panelText);
+    out.noDottedBoxSentence = !/dotted box/.test(panelText);
+    out.grammarText = (el('.hde-grammar').textContent || '').trim();
+    // The rewrite leads with a worked example rather than the rule, and drops the {{ }} escape --
+    // still supported, still proven by prove-header-template, just not worth a third of the only
+    // sentence most people read.
+    out.grammarLeadsWithExample = /^\[\{episodes\} Episodes\] prints/.test(out.grammarText);
+    out.grammarDropsBraceEscape = !/literal brace/.test(out.grammarText);
 
     // ---- 7. the palette rail is the SHARED list, with live previews -------------------------------
     out.railTokens = panel().querySelectorAll('.hde-rail-list .hdr-token-item').length;
@@ -247,7 +274,10 @@ window.addEventListener('load', function () { (async function () {
                out.barLiveOnOpen && out.barFollowsSelection &&
                out.barWoke && out.barNamesRight && out.stylingReachesHeader &&
                out.showsRaw && out.focusDoesNotRestyle && out.notASecondRenderer &&
-               out.placeholdersAreEditorOnly && out.railShared && out.railFullyReadable &&
+               out.placeholdersAreEditorOnly && out.footCollapsesWhenSilent &&
+               out.noLiveHeaderLabel && out.noDottedBoxSentence &&
+               out.grammarLeadsWithExample && out.grammarDropsBraceEscape &&
+               out.railShared && out.railFullyReadable &&
                out.budgetReads && out.defaultFitsExcel && out.budgetWarnsWhenOver &&
                out.doneCloses && out.c4OnCalendar && out.c4KeptNotDropped &&
                out.escapeCloses && out.headerSurvives &&

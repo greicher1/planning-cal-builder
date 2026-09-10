@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — three help strings cut, and the bracket rule rewritten around an example
+
+Owner, 9 Sep 2026, reading the editor: cut *"Live header — click a line to edit it"* and *"Empty
+lines show a dotted box so you can click them; the real header hides them entirely."* — then, of the
+bracket paragraph, *"rewrite and give me a few better options cuz im confused what this means."*
+Options were offered and the example-first one chosen. Local, not pushed at time of writing.
+
+**Both cut labels described something already obvious from looking at it** — a header with a cursor
+sitting under a formatting toolbar, and a dotted box that looks exactly like a thing you click.
+
+⭐ **The stage note now says nothing at all when it has nothing to say.** It used to always print a
+sentence; it now appears only when a dashed placeholder is actually on screen, which is the one
+thing here that is genuinely unguessable — why words the user never typed are showing up in their
+header. ⚠️ It is `hidden`, not blanked: an empty `<p>` keeps its margin, so the leg asserts the
+measured height is 0 rather than just that the text is empty.
+
+**The bracket rule was confusing for three reasons, and the third was the worst.** It led with the
+*mechanism* — "square brackets hide everything inside them when a token in them is empty" — an
+abstract conditional stated before you know why you would ever want one. It spent a third of its
+length on `{{` / `}}`, the literal-brace escape, for a case almost nobody hits. And it closed with
+"anything unrecognised stays exactly as you typed it", reassurance about a failure that has not
+happened, crowding out the one rule people need. It now reads:
+
+> `[{episodes} Episodes]` prints "10 Episodes" — or nothing at all, if you haven't entered an
+> episode count. That's what the square brackets do: hide the whole chunk when the data inside it
+> is missing.
+
+⚠️ **`{{` and `}}` still work** — still resolved, still covered by `prove-header-template`, still
+specified in `HEADER-PRESETS-PLAN` §3.1. They are just no longer in the sentence most people read.
+
+⚠️ **One near-miss worth recording.** The new assertions first stored the panel's whole
+`textContent` on the result object to grep it. That is ~2 KB of token previews, and it **truncated
+the JSON**, which would have left `gate.sh` unable to parse the leg at all — a leg that reports
+nothing reads like a leg that is fine. It is a local variable now. **A result file is a report, not
+a DOM dump.**
+
+**Verified.** Four new `hdreditor` assertions: the foot collapses to 0px when silent, both cut
+strings stay cut, and the bracket rule leads with the example. Full gate re-run.
+
 ### Unreleased — primary buttons now wear the accent, like the active tab
 
 Owner, 9 Sep 2026, with a screenshot of the active Settings tab: *"can we make primary buttons this

@@ -341,6 +341,17 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⚠️ **THE EDITOR'S HELP COPY WAS CUT BACK (9 Sep 2026), AND THE RULE IT LEAVES BEHIND IS WORTH
+KEEPING.** The owner removed two labels that described what was already visible, and said of the
+bracket paragraph *"im confused what this means"*. The rewrite leads with a worked example and names
+the rule second; the `{{`/`}}` escape came out of the sentence entirely (still supported, still
+proven by `prove-header-template`, still in `HEADER-PRESETS-PLAN` §3.1). ⭐ **The stage note now
+shows only when a dashed placeholder is on screen** — silence is a valid state, and it is `hidden`
+rather than blanked because an empty `<p>` keeps its margin. ⛔ **The near-miss: the new assertions
+first put the panel's entire `textContent` (~2 KB) on the result object, which TRUNCATED the JSON
+and would have made `gate.sh` unable to parse the leg** — and a leg that reports nothing looks a lot
+like a leg that is fine. Grep in a local. A result file is a report, not a DOM dump.
+
 ⛔ **THE SIDEBAR NOW HAS TWO `.prefs-card` SECTIONS, NOT ONE (9 Sep 2026).** The owner split
 Preferences into **Export Preferences** (gridlines) and **Headers** (editor + budget + presets).
 `prefs-card` has **no styling** — grep `legacy.css` and you find only comments — and exists solely so

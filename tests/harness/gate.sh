@@ -1094,6 +1094,12 @@ chk(a.get('focusDoesNotRestyle'),
     f"hdreditor: ⭐ clicking into a line does NOT restyle it -- owner-reported 9 Sep ({a.get('typeBeforeFocus')!r})")
 chk(a.get('railFullyReadable'),
     f"hdreditor: ⭐ no live value in the Insert rail is truncated at {a.get('railWidth')}px -- owner-reported 9 Sep {a.get('railClipped')}")
+chk(a.get('footCollapsesWhenSilent'),
+    f"hdreditor: the stage note says NOTHING and takes no space when there is nothing to explain ({a.get('footHeightWhenSilent')}px)")
+chk(a.get('noLiveHeaderLabel') and a.get('noDottedBoxSentence'),
+    "hdreditor: the two labels the owner cut on 9 Sep stay cut")
+chk(a.get('grammarLeadsWithExample') and a.get('grammarDropsBraceEscape'),
+    f"hdreditor: the bracket rule leads with a worked example ({a.get('grammarText')!r})")
 chk(a.get('railShared'),
     f"hdreditor: the Insert rail is the shared token list, with live previews ({a.get('railTokens')} tokens, {a.get('railLive')} live)")
 chk(a.get('budgetReads') and a.get('budgetWarnsWhenOver'),

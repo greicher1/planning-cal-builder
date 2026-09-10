@@ -7759,10 +7759,20 @@ export function initLegacyApp() {
     }).join('');
   }
 
+  // ⛔ EMPTY IS A VALID ANSWER HERE, and that is the point. This used to always say something --
+  // "Empty lines show a dotted box so you can click them" -- which explained a dotted box that
+  // already looks exactly like a thing you click. Removed 9 Sep 2026 at the owner's request. What
+  // survives is the one line that explains something genuinely unguessable: why words the user
+  // never typed are appearing in their header. It shows ONLY when such a word is on screen.
   function hdrEditorFootText(sawPh){
-    return sawPh
-      ? 'Dashed words stand in for data this calendar has not got yet — they are not printed. Empty lines show a dotted box so you can click them; the real header hides them.'
-      : 'Empty lines show a dotted box so you can click them; the real header hides them entirely.';
+    return sawPh ? 'Dashed words are placeholders — they are not printed.' : '';
+  }
+  // The <p> keeps its margin when empty, so hide it rather than blanking it.
+  function setHdrEditorFoot(root, sawPh){
+    const p = root.querySelector('.hde-stage-foot');
+    const t = hdrEditorFootText(sawPh);
+    p.textContent = t;
+    p.hidden = !t;
   }
 
   let hdrEditor = null;   // { root, selected, editing, placeholders }
@@ -7827,7 +7837,7 @@ export function initLegacyApp() {
       });
       stage.appendChild(host);
     });
-    root.querySelector('.hde-stage-foot').textContent = hdrEditorFootText(sawPh);
+    setHdrEditorFoot(root, sawPh);
 
     // ---- the template list ----------------------------------------------------------------------
     const list = root.querySelector('.hde-slots');
@@ -7948,7 +7958,11 @@ export function initLegacyApp() {
           '<span class="hde-target"></span>' +
         '</div>' +
         '<div class="hde-stage">' +
-          '<div class="hde-stage-label"><span>Live header — click a line to edit it</span>' +
+          // ⚠️ "Live header — click a line to edit it" was removed 9 Sep 2026 (owner: "you can get
+          // rid of" it). It labelled the most self-evident thing on the screen -- a header, with a
+          // cursor, directly under a formatting toolbar -- and every line of chrome here competes
+          // with the thing it is describing. The row is kept for the checkbox alone.
+          '<div class="hde-stage-label">' +
             '<span class="hde-grow"></span>' +
             '<label class="hde-ph-toggle">'
             // ⛔ NOT .hde-ph -- that is the placeholder MARKER on the canvas. One class for both
@@ -7966,10 +7980,22 @@ export function initLegacyApp() {
             '<span>Drops into the line you have selected.</span></div>' +
             '<div class="hde-rail-list"></div></aside>' +
         '</div>' +
-        '<p class="hde-grammar">Square brackets hide everything inside them when a token in them is ' +
-          'empty — so <code>[{episodes} Episodes]</code> prints nothing until you enter an ' +
-          'episode count. <code>{{</code> and <code>}}</code> give a literal brace. Anything ' +
-          'unrecognised stays exactly as you typed it.</p>' +
+        // ⚠️ REWRITTEN 9 Sep 2026: the owner read the old wording and said "im confused what this
+        // means", which is the only review that matters for a help string. Three problems, and the
+        // third was the worst:
+        //   1. It led with the MECHANISM ("square brackets hide everything inside them when a token
+        //      in them is empty") -- an abstract conditional, stated before you know why you would
+        //      ever want one. It now leads with a concrete before/after and names the rule second.
+        //   2. It documented <code>{{</code> / <code>}}</code>, the literal-brace escape. Still
+        //      SUPPORTED, still covered by prove-header-template, still specified in
+        //      HEADER-PRESETS-PLAN §3.1 -- just not worth a third of the only sentence most people
+        //      will read, for a case almost nobody hits.
+        //   3. "Anything unrecognised stays exactly as you typed it" is reassurance about a failure
+        //      that has not happened yet. It answered a question nobody had while crowding out the
+        //      one rule they actually need.
+        '<p class="hde-grammar"><code>[{episodes} Episodes]</code> prints “10 Episodes” — or ' +
+          'nothing at all, if you haven’t entered an episode count. That’s what the square ' +
+          'brackets do: hide the whole chunk when the data inside it is missing.</p>' +
         '<div class="hde-foot">' +
           '<span class="hde-budget"></span><span class="hde-grow"></span>' +
           '<button type="button" class="hde-ctl hde-wide" data-hdrpreset="import">Import preset file…</button>' +
@@ -8127,7 +8153,7 @@ export function initLegacyApp() {
     // ⚠️ The note has to move with the stage. Typing a token that has no data must flip it to the
     // placeholder wording immediately -- leaving the full-repaint version behind meant the panel
     // showed dashed placeholders under a note that said nothing about them.
-    hdrEditor.root.querySelector('.hde-stage-foot').textContent = hdrEditorFootText(sawPh);
+    setHdrEditorFoot(hdrEditor.root, sawPh);
     const b = estimateExcelHeaderLength();
     const bud = hdrEditor.root.querySelector('.hde-budget');
     bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
