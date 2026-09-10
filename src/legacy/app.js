@@ -1872,6 +1872,18 @@ export function initLegacyApp() {
   };
 
   function computeYearBlocks(weeks){
+    // ⭐ ONE BLOCK, spanning everything. Every consumer -- computeBlockLayout, sheetColumnWidths,
+    // sheetRowCount, exportExcel, buildWaterfallPdf -- takes yearBlocks as DATA, so changing what
+    // this returns changes all four outputs with no edit inside any renderer or writer.
+    //
+    // ⛔ `year` MUST STAY NUMERIC. It is interpolated into the column keys that
+    // sheetColumnWidths() emits -- `y${b.year}:s${slot}` -- and installGridResizers matches those
+    // with /^(y\d+):s(\d+)$/. A first cut labelled the merged block '2026 – 2027', which produced
+    // `y2026 – 2027:s0`, failed that regex, and silently broke column resizing and stint swaps.
+    // The header therefore reads as the START year, which is also what the owner's reference does.
+    if(singleColumn && weeks.length){
+      return [{ year: weeks[0].date.getUTCFullYear(), startIdx: 0, count: weeks.length }];
+    }
     const blocks = [];
     let currentYear = null, start = 0;
     weeks.forEach((w,i)=>{
@@ -2223,15 +2235,24 @@ export function initLegacyApp() {
     // Show the FULL calendar year(s) touched by the schedule -- from the first Monday of the
     // earliest year through the end of the latest year -- so every export is a consistent,
     // familiar full-year shape instead of starting wherever the first phase happens to land.
+    //
+    // ⛔ SKIPPED IN SINGLE-COLUMN MODE, and this is the half of that feature that is easy to miss.
+    // Without it a 52-week show that straddles a year end still renders Jan of the first year
+    // through Dec of the last -- 104 rows for 52 weeks of work -- and one column of 104 rows prints
+    // at half today's scale. The owner's reference starts on the first working week for exactly
+    // this reason. ⚠️ Default OFF, so every existing calendar keeps the full-year shape and the
+    // byte-compare stays green.
     const allStarts = [...naturalStarts];
     const allEnds = [...naturalEnds];
-    if(naturalStarts.length){
-      const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
-      allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
-    }
-    if(naturalEnds.length){
-      const lastActiveDay = addDays(new Date(Math.max.apply(null, naturalEnds)), -1);
-      allEnds.push(firstMondayOfYear(lastActiveDay.getUTCFullYear()+1).getTime());
+    if(!singleColumn){
+      if(naturalStarts.length){
+        const naturalStartYear = new Date(Math.min.apply(null, naturalStarts)).getUTCFullYear();
+        allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
+      }
+      if(naturalEnds.length){
+        const lastActiveDay = addDays(new Date(Math.max.apply(null, naturalEnds)), -1);
+        allEnds.push(firstMondayOfYear(lastActiveDay.getUTCFullYear()+1).getTime());
+      }
     }
     // fall back to whichever bound was actually supplied if one list is empty
     if(allStarts.length===0) allStarts.push(allEnds[0]);
@@ -6735,6 +6756,20 @@ export function initLegacyApp() {
   // ---------- wire up ----------
   let currentSchedule = {weeks:[], maxConcurrent:0};
   let viewMode = 'sheet';
+  // ⭐ ONE CONTINUOUS COLUMN (owner, 10 Sep 2026): stop splitting the waterfall into one block per
+  // calendar year, and stop padding the schedule out to whole years -- run from the first working
+  // week to the last, in a single column.
+  //
+  // ⛔ IT IS ONE FLAG DRIVING TWO CHANGES, AND THAT IS DELIBERATE. Measured on a 52-week run that
+  // straddles a year end (the owner's reference): merging the blocks ALONE takes the grid from
+  // 52 rows x 7 cols to 104 x 4, and since both writers fit the whole grid to ONE page
+  // (fitToWidth:1/fitToHeight:1, and the PDF's own fit()) that halves the print scale, 0.81 -> 0.41.
+  // Dropping the whole-year padding as well gives 53 x 4 at 0.80 -- the same size as today. Ship
+  // them apart and the obvious half is the one that makes calendars worse.
+  //
+  // ⛔ CALENDAR DATA, NOT A PREFERENCE (owner's call): it is in captureSnapshot() beside viewMode,
+  // so a calendar you send someone opens laid out the way you built it.
+  let singleColumn = false;
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
   // ---------- Gridlines preference ----------
@@ -9372,6 +9407,27 @@ export function initLegacyApp() {
     if(hint) hint.style.display = locked ? 'block' : 'none';
   }
 
+  // The toggle REFLECTS `singleColumn`; it never holds the state itself -- same contract the
+  // Waterfall/Month buttons have, and the reason a restore only has to set the flag and call this.
+  // ⚠️ Hidden in Month view: the month calendar has no year columns, so the control would be a
+  // switch that visibly does nothing.
+  function reflectSingleColumn(){
+    const b = document.getElementById('one-col-btn');
+    if(!b) return;
+    b.classList.toggle('active', singleColumn);
+    b.setAttribute('aria-pressed', singleColumn ? 'true' : 'false');
+    b.hidden = viewMode !== 'sheet';
+  }
+  function setSingleColumn(next){
+    if(singleColumn === !!next) return;
+    // ⛔ ONE UNDO STEP. This changes the week range AND the column layout, so an un-grouped
+    // version would take two ctrl-Z to undo and leave a state that was never on screen in between.
+    asOneHeaderStep(()=>{ singleColumn = !!next; });
+    reflectSingleColumn();
+    update();
+    markDirty();
+  }
+
   function setViewMode(mode){
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
@@ -9379,6 +9435,7 @@ export function initLegacyApp() {
       if(b) b.classList.toggle('active', m===mode);
     });
     refreshEpisodesUI();
+    reflectSingleColumn();      // it is waterfall-only, so it appears and disappears with the view
     update();
   }
 
@@ -9438,6 +9495,11 @@ export function initLegacyApp() {
     if(inp){ inp.value = isoOf(d); update(); }
   }
 
+  (function(){
+    const b = document.getElementById('one-col-btn');
+    if(b) b.addEventListener('click', ()=> setSingleColumn(!singleColumn));
+    reflectSingleColumn();
+  })();
   document.getElementById('view-sheet-btn').addEventListener('click', ()=> setViewMode('sheet'));
   document.getElementById('view-month-btn').addEventListener('click', ()=> setViewMode('month'));
 
@@ -9692,6 +9754,7 @@ export function initLegacyApp() {
     customPhaseDefs = [];
     document.getElementById('custom-phase-rows').innerHTML = '';
     addDefaultHiatuses();
+    singleColumn = false; reflectSingleColumn();
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -10106,7 +10169,7 @@ export function initLegacyApp() {
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual, headerTemplates,
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
-      holidayOff, customHolidays, viewMode, sidebarTab, colWidths, rowHeights, cellSpans,
+      holidayOff, customHolidays, viewMode, singleColumn, sidebarTab, colWidths, rowHeights, cellSpans,
       gridColSwaps, gridStintSwaps,
       fields: collectFieldValues()
     };
@@ -12904,6 +12967,12 @@ export function initLegacyApp() {
     // Runs after snap.fields is applied above, so the region selects already hold their saved
     // values and the date->name lookup resolves against the right list.
     migrateHolidayViewKeys();
+    // ⛔ UNCONDITIONAL, per CLAUDE.md: `if(snap.x) x = snap.x` would leave the PREVIOUSLY open
+    // calendar's layout in place when the incoming file has no such key -- so a full-year calendar
+    // opened after a single-column one would silently render single-column. A file saved before
+    // 10 Sep 2026 has no key, and false is the shape it was written in.
+    singleColumn = snap.singleColumn === true;
+    reflectSingleColumn();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

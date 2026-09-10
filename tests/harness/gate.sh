@@ -1122,6 +1122,61 @@ chk(not hv.get('h'), f"hdreditor: 0 horizontally clipped cells {hv.get('h')}")
 sys.exit(bad)
 PY
 
+# ---- onecol: one continuous column, instead of a block per calendar year ------------------------
+# Owner, 10 Sep 2026, with a reference calendar running 10/5/26 -> 10/4/27 down a single column.
+#
+# ⛔ ONE FLAG, TWO CHANGES, AND THE MEASUREMENT IS WHY. computeYearBlocks stops splitting per year
+# AND computeSchedule stops padding out to whole calendar years. Measured on a 52-week run that
+# straddles a year end: merging the blocks ALONE gives 104 rows x 4 cols, and because both writers
+# fit the entire grid to ONE page (fitToWidth:1/fitToHeight:1, and the PDF's own fit()) that halves
+# the print scale -- 0.81 -> 0.41. Dropping the padding too gives 53 x 4 at 0.80, the same size as
+# today. Shipping the obvious half alone would have made calendars worse, quietly.
+#
+# ⭐ NO EDIT INSIDE ANY RENDERER OR WRITER. computeBlockLayout, sheetColumnWidths, sheetRowCount,
+# exportExcel and buildWaterfallPdf all take yearBlocks as DATA, so changing what produces it
+# changes all four outputs -- the "change the DECLARATION, not the call sites" pattern.
+#
+# ⚠️ DEFAULT OFF, and the byte-compare above is what proves it: with the flag off every calendar
+# ever saved renders exactly as before. This leg asserts the shape round-trips and that toggling
+# back is identical to never having toggled.
+HARNESS_PAGE="$PAGE" "$HERE/run.sh" onecol 170 >/dev/null 2>&1
+python3 - "$HERE/onecol.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  onecol produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  onecol threw: '+str(a['EX'])); sys.exit(1)
+off=a.get('off') or {}; on=a.get('on') or {}
+chk(a.get('btnExists') and a.get('btnStartsOff') and a.get('btnIsButton'),
+    "onecol: the toggle exists, starts off, and is a <button> -- so collectFieldValues() cannot sweep it into a saved file")
+chk(a.get('offIsBlocked') and a.get('offStartsAtYearTop'),
+    f"onecol: OFF is today -- a block per year, padded to 1 Jan ({off.get('rows')} rows x {off.get('cols')} cols, from {off.get('first')!r})")
+chk(a.get('oneBlock'),
+    f"onecol: ⭐ ON gives ONE year header, not one per year {a.get('onYearHeaders')}")
+chk(a.get('startsAtWork'),
+    f"onecol: ⭐ ...and the whole-year padding is gone -- it starts on the first WORKING week ({on.get('first')!r} -> {on.get('lastDate')!r})")
+chk(a.get('bothHalves'),
+    f"onecol: ⭐ BOTH halves, so the row count stays sane -- {off.get('rows')}x{off.get('cols')} -> {on.get('rows')}x{on.get('cols')} (blocks-only would be ~104 rows and half the print scale)")
+chk(a.get('keysStayNumeric'),
+    f"onecol: ⛔ column keys stay y<digits>:s<n>, or installGridResizers' regex dies silently {a.get('onCkeys')}")
+chk(a.get('snapHasKey') and a.get('notInFieldIds'),
+    "onecol: ⭐ it travels in a REAL saved calendar, as a snapshot key and NOT also as a swept field id")
+chk(a.get('offIsInert'),
+    "onecol: ⭐ toggling back is byte-identical to never having toggled -- same rows, cols, keys, headers and width")
+chk(a.get('oneUndoStep'),
+    f"onecol: it is ONE undo step, not two ({a.get('beforeUndo')} rows -> undo -> {a.get('afterUndo')})")
+chk(not a.get('errors'), f"onecol: 0 console errors {a.get('errors')}")
+chk(on.get('clippedH')==0 and off.get('clippedH')==0,
+    f"onecol: 0 horizontally clipped cells in either layout (off={off.get('clippedH')}, on={on.get('clippedH')})")
+sys.exit(bad)
+PY
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

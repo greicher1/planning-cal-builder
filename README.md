@@ -29,6 +29,63 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — One column: a multi-year calendar that runs down a single column
+
+Owner, 10 Sep 2026, with a reference calendar running `10/5/26 → 10/4/27` in one column: *"I want to
+add an option to build a multi-year calendar like in the example that can fit all in a single
+column. Please consider very carefully how we can implement this feature."* Local, not pushed at
+time of writing.
+
+**A new toggle beside Waterfall/Month.** Off by default, and off is exactly today.
+
+⛔ **IT IS ONE FLAG DRIVING TWO CHANGES, AND THE MEASUREMENT IS THE REASON.** The obvious half —
+stop splitting the waterfall into a block per calendar year — is **not enough on its own, and alone
+it makes calendars worse.** `computeSchedule` also pads every calendar out to whole years (*"so
+every export is a consistent, familiar full-year shape"*), so a 52-week show that straddles a year
+end really spans Jan of the first year to Dec of the last. Measured on exactly that shape:
+
+| | rows × cols | print scale |
+|---|---|---|
+| Today (a block per year) | 52 × 7 | **0.81** |
+| Merge the blocks only | 104 × 4 | **0.41** |
+| Merge **and** drop the padding | 53 × 4 | **0.80** |
+
+Both writers fit the entire grid onto **one page** (`fitToWidth:1`/`fitToHeight:1`, and the PDF's own
+`fit()`), so rows drive legibility directly. Merging alone halves the print size. Doing both costs
+essentially nothing and reproduces the reference exactly — `10/5/26 → 10/4/27`, one `2026` header.
+
+⭐ **No edit inside any renderer or writer.** `computeBlockLayout`, `sheetColumnWidths`,
+`sheetRowCount`, `exportExcel` and `buildWaterfallPdf` all take `yearBlocks` as **data**, so changing
+what produces it changes all four outputs — the *change the declaration, not the call sites* pattern.
+
+⛔ **Three traps found while prototyping, all of which would have shipped silently:**
+
+1. **Column keys are `y<year>:s<slot>`, matched by `/^(y\d+):s(\d+)$/`.** A first cut labelled the
+   merged block `'2026 – 2027'`, producing `y2026 – 2027:s0` — which fails that regex and kills
+   column resizing and stint swaps with no error. `year` stays **numeric**; the header shows the
+   start year, which is what the reference does anyway.
+2. **`rowHeights` is keyed by row INDEX**, and dropping the leading padding shifts every index. Both
+   it and `colWidths` are in `captureSnapshot()`, so this is save-format territory.
+3. **The toggle is a `<button>`, not a checkbox.** `collectFieldValues()` sweeps `input[id]` into
+   every saved calendar, so an id'd `<input>` would store this **twice** — once in `fields.byId`,
+   once as the snapshot key — and the two could disagree on restore. The Waterfall/Month buttons
+   carry ids safely for the same reason.
+
+**Calendar data, not a preference** (owner's call): it sits in `captureSnapshot()` beside `viewMode`,
+so a calendar you send someone opens laid out the way you built it. Restored **unconditionally** —
+a file without the key gets `false`, never the previously open calendar's value.
+
+⚠️ **A documentation discrepancy found on the way:** `computeYearBlocks` is in MANTINE-SEAM's frozen
+geometry list but **missing from CLAUDE.md's**, and CLAUDE.md says to read the freeze *by its symbol
+list*. Added to CLAUDE.md so the two agree; treated as frozen throughout.
+
+**Verified.** New `onecol` gate leg, 11 assertions: off is today, on gives one year header starting
+on the first working week, the row count stays sane (the guard against re-splitting the two halves),
+column keys stay numeric, it travels in a real saved calendar and is not double-stored, **toggling
+back is byte-identical to never having toggled**, and it is one undo step. ⚠️ That last one first
+passed vacuously — it fired a Cmd+Z that nothing listens for, since undo here is `#undo-btn` only.
+Full gate re-run.
+
 ### Unreleased — Template mode is read-only on the calendar; the header is edited only in the editor
 
 Owner, 10 Sep 2026: *"the app needs to freeze editing the header when you're on template mode in the

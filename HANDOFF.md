@@ -341,6 +341,37 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⭐ **ONE CONTINUOUS COLUMN (10 Sep 2026) — AND THE REASON IT IS ONE FLAG DOING TWO THINGS.** Owner
+asked for a multi-year calendar that fits in a single column, with a reference running
+`10/5/26 → 10/4/27`. The obvious half — `computeYearBlocks` stops splitting per calendar year — is
+**not enough, and alone it is worse than doing nothing.** `computeSchedule` also pads every calendar
+out to whole years, so a 52-week show straddling a year end really spans Jan(first) → Dec(last).
+⛔ **Both writers fit the WHOLE grid to ONE page** (`fitToWidth:1`/`fitToHeight:1`, and the PDF's own
+`fit()`), so rows drive legibility directly. Measured on that shape: today 52×7 at **0.81**; merging
+blocks only 104×4 at **0.41**; merging *and* dropping the padding 53×4 at **0.80**. Ship the obvious
+half alone and every straddling calendar prints at half size. **If anyone later splits these into
+two settings, the `bothHalves` assertion in `onecol` is the thing that should stop them.**
+
+⭐ **No edit inside any renderer or writer**: `computeBlockLayout`, `sheetColumnWidths`,
+`sheetRowCount`, `exportExcel` and `buildWaterfallPdf` all take `yearBlocks` as DATA.
+
+⛔ **THREE TRAPS, ALL SILENT, ALL HIT WHILE PROTOTYPING:**
+1. **Column keys are `y<year>:s<slot>` and `installGridResizers` matches `/^(y\d+):s(\d+)$/`.**
+   Labelling the merged block `'2026 – 2027'` yields `y2026 – 2027:s0`, fails the regex, and kills
+   column resizing and stint swaps with **no error**. `year` stays numeric; the header shows the
+   start year (which is what the owner's reference does).
+2. **`rowHeights` is keyed by row INDEX**, so dropping leading padding shifts every dragged height.
+   With `colWidths` it is in `captureSnapshot()` — save-format territory. ⚠️ Note the keys also
+   *collide* across layouts: `y2026:s0` names a different column blocked vs single.
+3. **The toggle is a `<button>`, deliberately.** `collectFieldValues()` sweeps `input[id]`, so an
+   id'd `<input>` would store this twice — `fields.byId` **and** the snapshot key — and they could
+   disagree on restore. Waterfall/Month carry ids safely for exactly this reason.
+
+⚠️ **Calendar data, not a preference** (owner's call): in `captureSnapshot()` beside `viewMode`,
+restored **unconditionally** so a file without the key gets `false` rather than the previously open
+calendar's value. ⚠️ **`computeYearBlocks` was missing from CLAUDE.md's frozen symbol list** while
+being in MANTINE-SEAM's — the two documents disagreed. CLAUDE.md now lists it.
+
 ⛔ **TEMPLATE MODE IS READ-ONLY ON THE CALENDAR AS OF 10 Sep 2026 — AND THIS IS A FROZEN EDIT.**
 Owner: *"the app needs to freeze editing the header when you're on template mode in the regular app
 view. It should only be editable in the template editor screen. This means also remove the styling

@@ -62,7 +62,11 @@ there for a specific, measured reason, and the reasons are not visible from the 
   `EXCEL_CELL_PAD = 5`, `COL_PAD_CHARS = 1.15`, `ROW_DEFAULT_PX = 20`.
 - **Grid rendering + geometry:** `render`, `renderSpreadsheetView`, `renderMonthView`,
   `computeBlockLayout`, `phaseRunBounds`, `computePhaseRowLayout`, `applyCellSpanOverrides`,
-  `sheetRowCount`, `sheetGridMetrics`, `sheetPageOrientation`, `sheetColumnWidths`.
+  `sheetRowCount`, `sheetGridMetrics`, `sheetPageOrientation`, `sheetColumnWidths`,
+  `computeYearBlocks`. *(⚠️ `computeYearBlocks` was missing from this list until 10 Sep 2026 while
+  being present in [`MANTINE-SEAM.md`](MANTINE-SEAM.md) §6 all along — so the two documents
+  disagreed about whether it is frozen, and this rule says to read the freeze BY ITS SYMBOL LIST.
+  It decides how many column blocks every output has; it is frozen.)*
 - **Text fitting + measurement:** `measureTextPx`, `pxToChars`, `charsToPx`, `charsToScreenPx`,
   `clampChars`, `screenPxToChars`, `wrapLineCount`, `cellTextFit`.
 - **Direct manipulation:** `installGridResizers`, `beginSpanDrag`, `spanHandleGeometry`,
