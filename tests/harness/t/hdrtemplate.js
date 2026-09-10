@@ -108,11 +108,41 @@ window.addEventListener('load', function () { (async function () {
     var tpl = modeState();
     out.tplLabel = tpl.label;
     out.tplTitleStarts = tpl.title.slice(0, 30);
-    // The frozen editability gate reads headerMode === 'manual', and Template IS manual to it --
-    // so the lines must be contenteditable and the format toolbar must be present.
-    out.tplEditable = lineEl('c1').getAttribute('contenteditable') === 'true';
-    out.tplToolbar = !!document.querySelector('#table-wrap .hdr-fmt-bar, #table-wrap .hf-ctl');
+    // ⛔ THIS ASSERTION WAS INVERTED ON 10 Sep 2026, AND THE OLD ONE WAS NOT WRONG -- IT RECORDED A
+    // DECISION THE OWNER LATER CHANGED. It used to read "Template IS manual to the frozen gate, so
+    // the lines must be contenteditable and the format toolbar must be present", which was an exact
+    // description of what shipped on 8 Sep. The owner's instruction of 10 Sep 2026: "the app needs
+    // to freeze editing the header when you're on template mode in the regular app view. It should
+    // only be editable in the template editor screen. This means also remove the styling menu view
+    // from there." So Template mode is now READ-ONLY here, and the frozen renderer gates on
+    // `manualEdit = manual && !headerTemplates`.
+    //
+    // ⚠️ Manual mode is asserted UNCHANGED in section 5 below -- that is the half of this that
+    // proves the frozen edit is inert rather than merely intended, because `manual && !false` is
+    // only equal to `manual` if nothing else moved with it.
+    out.tplEditableAttr = lineEl('c1').getAttribute('contenteditable');
+    out.tplReadOnly = out.tplEditableAttr === null;
+    out.tplHasEditableCls = lineEl('c1').classList.contains('hdr-editable');
+    out.tplToolbarGone = !document.querySelector('#table-wrap .hdr-fmt');
+    out.tplSpacerInstead = !!document.querySelector('#table-wrap .hdr-fmt-spacer');
+    out.tplLockedHere = out.tplReadOnly && !out.tplHasEditableCls &&
+                        out.tplToolbarGone && out.tplSpacerInstead;
+    // ...and the read-only line still LEADS SOMEWHERE: clicking it opens the editor at that line,
+    // because a header that looks clickable and does nothing is worse than one that does not.
+    out.tplCursor = getComputedStyle(lineEl('c1')).cursor;
+    (function(){ var o = document.querySelector('.hde-overlay'); if(o) o.remove(); })();
+    lineEl('c2').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     out.tplIsTemplate = tpl.label === 'Header: Template';
+
+    await T.until(function () { return !!document.querySelector('.hde-overlay'); },
+                  'a header click to open the editor', 60, 100);
+    var ov = document.querySelector('.hde-overlay');
+    out.clickOpensEditor = !!ov;
+    // ⭐ AT THE LINE YOU CLICKED, not always at c1 -- the click carried an intent and it survives.
+    out.clickSelectsThatLine = !!(ov && ov.querySelector('.hde-line[data-hid="c2"].is-sel'));
+    ov.querySelector('.hde-done').click();
+    await T.until(function () { return !document.querySelector('.hde-overlay'); },
+                  'the editor to close', 40, 100);
 
     // ---- 2b. ⭐ `hdrdefault` -- THE DRIFT GUARD FOR THE ONE DUPLICATED STATEMENT ----------------
     // DEFAULT_HEADER_TEMPLATE is the auto header written as templates, and Auto -> Template seeds
@@ -127,53 +157,25 @@ window.addEventListener('load', function () { (async function () {
                                    ' tpl=' + JSON.stringify(out.tplLines[hid]); });
     out.defaultMatchesAuto = out.defaultDiffs.length === 0;
 
-    // ---- 2c. the token palette (Insert ▾) ------------------------------------------------------
-    // ⛔ Waterfall + Template only: a token in a MANUAL line prints as braces, so offering the
-    // palette there would offer a feature that does nothing.
-    out.insertBtnInTemplate = !!document.querySelector('#table-wrap .hf-insert');
-
-    // ---- 2c-i. ⭐ THE PALETTE MUST NOT DEAD-END, AND MUST SCROLL --------------------------------
-    // Both of these were real defects, and both are the same kind: the menu existed and could not
-    // be used.
+    // ---- 2c. ⛔ THE ANCHORED Insert ▾ PALETTE IS NOW UNREACHABLE, AND THAT IS A CONSEQUENCE ------
+    // `.hf-insert` was only ever rendered when `!mv && headerTemplates` -- the waterfall header, in
+    // Template mode. It lived INSIDE the format toolbar, and the owner's 10 Sep 2026 instruction
+    // removed that toolbar from exactly that mode. So the button's own condition can no longer be
+    // satisfied anywhere: Template is the only mode that would draw it and Template no longer draws
+    // the bar that holds it.
     //
-    //   * Opening Insert ▾ with no line focused used to answer "click a header line first" -- a
-    //     dead end at exactly the moment someone is exploring. It now defaults to the Title line
-    //     and SAYS SO, so the fallback is never a surprise.
-    //   * The panel scrolls (forty-odd entries), and its own scrolling used to CLOSE it: the
-    //     window scroll listener is capture-phase, copied from the colour picker, which is never
-    //     tall enough to scroll internally. Reported as "I can't scroll in the Insert menu", and
-    //     that was literally true -- every attempt shut the menu before it moved.
-    (function () { var p = document.querySelector('.hdr-token-pop'); if (p) p.remove(); })();
-    document.querySelector('#table-wrap .hf-insert').click();
-    await T.until(function () { return !!document.querySelector('.hdr-token-pop'); },
-                  'the palette with nothing focused', 40, 100);
-    var cold = document.querySelector('.hdr-token-pop');
-    out.paletteOpensCold = !!cold;
-    var coldHint = cold.querySelector('.hdr-token-hint');
-    out.paletteColdHint = coldHint ? (coldHint.textContent || '').trim() : null;
-    out.paletteNamesTarget = /Inserting into:/.test(out.paletteColdHint || '');
-    out.paletteColdUsable = [].filter.call(cold.querySelectorAll('.hdr-token-item'),
-                                           function (b) { return !b.disabled; }).length;
-    out.noDeadEnd = out.paletteOpensCold && out.paletteNamesTarget && out.paletteColdUsable > 20;
-    // ⭐ Live previews: the reason the list is usable at all. Most entries show this calendar's real
-    // value rather than a description of themselves.
-    out.paletteLiveCount = cold.querySelectorAll('.hdr-token-desc.is-live').length;
-    out.paletteSample = [].slice.call(cold.querySelectorAll('.hdr-token-item'), 0, 4).map(function (b) {
-      return b.querySelector('.hdr-token-code').textContent + ' -> ' + b.querySelector('.hdr-token-desc').textContent;
-    });
-    out.hasLivePreviews = out.paletteLiveCount >= 10;
-    // ⭐ SCROLLABLE, AND SCROLLING DOES NOT CLOSE IT.
-    out.paletteScrollable = cold.scrollHeight > cold.clientHeight + 2;
-    cold.scrollTop = 150;
-    cold.dispatchEvent(new Event('scroll', { bubbles: true }));
-    await T.sleep(350);
-    var after = document.querySelector('.hdr-token-pop');
-    out.paletteSurvivesScroll = !!after && after.scrollTop > 0;
-    // ...but a scroll OUTSIDE it still closes it, which is why the listener exists at all.
-    window.dispatchEvent(new Event('scroll'));
-    await T.sleep(300);
-    out.paletteClosesOnOutsideScroll = !document.querySelector('.hdr-token-pop');
-
+    // ⚠️ THE ~45 LINES THAT USED TO SIT HERE TESTED THAT PANEL and are deliberately gone rather
+    // than left running against something no user can open. What they proved -- the palette must
+    // not dead-end with nothing focused, and it must survive its own scroll -- was real work from
+    // 9 Sep and is preserved in the README changelog and in HANDOFF §2b, not in a test of a dead
+    // path. Token insertion is now the editor rail's job and `hdreditor` asserts it there
+    // (railTokens / railLive / railFullyReadable).
+    //
+    // ⛔ THE PALETTE CODE ITSELF IS STILL PRESENT AND STILL REFERENCED -- buildHdrTokenList() backs
+    // the editor's rail, and openHdrTokenPop()/.hdr-token-pop are what is now orphaned. Left in
+    // place pending an owner decision; flagged, not silently deleted.
+    out.insertBtnInTemplate = !!document.querySelector('#table-wrap .hf-insert');
+    out.tokenPopUnreachable = !out.insertBtnInTemplate;
     // ---- 2c-ii. the tokens are reachable BEFORE committing to Template -------------------------
     // They are the reason to choose Template, so the mode menu's Template row offers a way in.
     //
@@ -201,60 +203,13 @@ window.addEventListener('load', function () { (async function () {
       await T.until(function () { return !document.querySelector('.hde-overlay'); }, 'the editor to close', 40, 100);
     }
     out.peekWorks = out.peekOffered && out.peekTokens > 30 && !document.querySelector('.hde-overlay');
-    // ⚠️ PLACE A REAL CARET, do not just dispatch focusin. A synthetic FocusEvent sets
-    // hdrFmtTarget but moves no focus and creates no selection, so insertHdrToken()'s own
-    // line.focus() supplies one -- and Chrome puts that caret at position 0, which made a first cut
-    // of this test report the token landing at the START of the line and look like a bug. A user
-    // clicking into a line always has a caret where they clicked; this reproduces that, at the end.
-    // ⛔ c1, NOT c4. The Default template leaves c4 EMPTY, so inserting into it cannot demonstrate
-    // "at the caret" -- there is nothing to append after, and the line simply becomes the token.
-    // A first cut used c4 and read that as the insert replacing the line. c1 carries
-    // {titleSeason}, so an append is visible as an append.
-    (function () {
-      var el = lineEl('c1');
-      el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));   // sets hdrFmtTarget
-      el.focus();
-      var r = document.createRange();
-      r.selectNodeContents(el);
-      r.collapse(false);                                                // the end, as if clicked there
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-    })();
-    await T.sleep(200);
-    document.querySelector('#table-wrap .hf-insert').click();
-    await T.until(function () { return !!document.querySelector('.hdr-token-pop'); },
-                  'the token palette', 40, 100);
-    var palette = document.querySelector('.hdr-token-pop');
-    out.paletteGroups = [].map.call(palette.querySelectorAll('.hdr-token-group'),
-                                    function (g) { return g.textContent; });
-    out.paletteTokens = [].map.call(palette.querySelectorAll('.hdr-token-code'),
-                                    function (c) { return c.textContent; });
-    // Every phase the calendar has must be offered, under its CURRENT name -- including the
-    // renamed built-ins the fixture carries.
-    out.paletteHasPhases = out.paletteTokens.indexOf('{writersRoom.open}') >= 0 &&
-                           out.paletteTokens.indexOf('{production.close}') >= 0 &&
-                           out.paletteTokens.indexOf('{localization.weeks}') >= 0;
-    out.paletteHasSnippets = out.paletteTokens.indexOf('{production.summary}') >= 0 &&
-                             out.paletteTokens.indexOf('[{episodes} Episodes]') >= 0;
-    // Insert one, and it must land AT THE CARET -- appended here, not prepended -- and resolve.
-    var target = null;
-    palette.querySelectorAll('.hdr-token-item').forEach(function (b) {
-      if ((b.querySelector('.hdr-token-code').textContent || '') === '{episodes}') target = b;
-    });
-    target.click();
-    await T.sleep(800);
-    out.afterInsert = lines().c1;
-    // The raw form, read the way the user would see it: focus swaps the template back in.
-    lineEl('c1').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
-    await T.sleep(250);
-    out.afterInsertRaw = (lineEl('c1').textContent || '').trim();
-    lineEl('c1').dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-    await T.sleep(500);
-    // Appended, so the Default template's own token still leads and the new one follows it.
-    out.insertedAtCaret = out.afterInsertRaw === '{titleSeason}{episodes}';
-    out.insertedResolved = out.afterInsert === 'Test Show S210';
-    out.paletteClosed = !document.querySelector('.hdr-token-pop');
+    // ---- 2d. ⛔ THE INSERT-AT-CARET TEST MOVED, IT WAS NOT DROPPED -------------------------------
+    // ~55 lines here drove `.hf-insert` -> `.hdr-token-pop` -> click a token -> assert it landed at
+    // the caret and resolved. All of it ran through the panel that 10 Sep 2026 made unreachable.
+    // ⭐ THE COVERAGE MOVED TO `hdreditor`, WHICH IS WHERE TOKEN INSERTION NOW LIVES: the rail must
+    // offer every phase under its CURRENT name, must offer the bracket snippets, and clicking an
+    // entry must APPEND to the selected line rather than replace it. Deleting a test because its
+    // button moved would have quietly retired three real assertions.
 
     // ---- 3. ⭐ RESOLUTION: tokens in, live data out, in all three consumers ---------------------
     await commit('c4', 'T={title} V={version} E={episodes}');
@@ -418,8 +373,11 @@ window.addEventListener('load', function () { (async function () {
     // landed. The claim is "the bake freezes what was on screen", so state it that way.
     out.bakeFroze = out.bakedC4 === out.preBakeC4;
     out.insertBtnInManual = !!document.querySelector('#table-wrap .hf-insert');
-    // The palette is offered in Template and nowhere else.
-    out.insertScoped = out.insertBtnInTemplate && !out.insertBtnInAuto && !out.insertBtnInManual;
+    // ⛔ WAS "offered in Template and nowhere else". As of 10 Sep 2026 it is offered NOWHERE on the
+    // calendar: Template mode was the only mode that drew it, and Template mode no longer draws the
+    // toolbar it sat in. Asserted as absent in all three modes so that a future change which
+    // resurrects the button has to come here and say so on purpose.
+    out.insertGoneEverywhere = !out.insertBtnInTemplate && !out.insertBtnInAuto && !out.insertBtnInManual;
     // The tokens are gone: focusing shows the baked text, not a template.
     lineEl('c4').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     await T.sleep(250);
@@ -457,13 +415,10 @@ window.addEventListener('load', function () { (async function () {
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
     out.PASS = out.h3bAutoInert && out.h3bManualInert &&
-               out.defaultMatchesAuto && out.insertScoped &&
-               out.paletteHasPhases && out.paletteHasSnippets &&
-               out.noDeadEnd && out.hasLivePreviews &&
-               out.paletteScrollable && out.paletteSurvivesScroll &&
-               out.paletteClosesOnOutsideScroll && out.peekWorks &&
-               out.insertedAtCaret && out.insertedResolved && out.paletteClosed &&
-               out.tplIsTemplate && out.tplEditable &&
+               out.defaultMatchesAuto && out.insertGoneEverywhere && out.tokenPopUnreachable &&
+                out.peekWorks &&
+               out.tplIsTemplate && out.tplLockedHere &&
+               out.clickOpensEditor && out.clickSelectsThatLine &&
                out.resolvesOnScreen && out.unknownSurvives && out.groupsWork && out.noCompoundDrift &&
                out.focusShowsRaw && out.blurRestoresResolved &&
                out.excelHasNoUnresolved && out.excelCarriesResolved &&

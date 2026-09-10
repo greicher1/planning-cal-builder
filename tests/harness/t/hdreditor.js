@@ -230,6 +230,39 @@ window.addEventListener('load', function () { (async function () {
     out.railFullyReadable = out.railClipped.length === 0;
     // ...and the popover it shares a class with must STILL truncate, or this override leaked.
     out.railWidth = Math.round(panel().querySelector('.hde-rail').getBoundingClientRect().width);
+    // ⭐ PORTED FROM hdrtemplate ON 10 Sep 2026, when the anchored Insert ▾ palette became
+    // unreachable. These are the assertions that panel carried; the button moved, so the coverage
+    // moved with it rather than being retired.
+    out.railTokenList = [].map.call(panel().querySelectorAll('.hde-rail-list .hdr-token-code'),
+                                    function (c) { return c.textContent; });
+    // Every phase the calendar has, under its CURRENT name -- a renamed phase whose token still
+    // reads by the old name is a token that silently resolves to nothing.
+    out.railHasPhases = out.railTokenList.indexOf('{writersRoom.open}') >= 0 &&
+                        out.railTokenList.indexOf('{production.close}') >= 0 &&
+                        out.railTokenList.indexOf('{localization.weeks}') >= 0;
+    // The bracket snippets, which are how the square-bracket grammar is discoverable at all.
+    out.railHasSnippets = out.railTokenList.indexOf('{production.summary}') >= 0 &&
+                          out.railTokenList.indexOf('[{episodes} Episodes]') >= 0;
+    // ⭐ AND CLICKING ONE APPENDS TO THE SELECTED LINE rather than replacing it. c2 is selected and
+    // holds 'Planning Calendar' from the Default template, so an append is visible AS an append --
+    // the same reason hdrtemplate used c1 rather than an empty slot for this.
+    line('c2').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    await T.sleep(300);
+    out.beforeInsert = tplInput('c2') ? tplInput('c2').value : null;
+    var pick = null;
+    panel().querySelectorAll('.hde-rail-list .hdr-token-item').forEach(function (b) {
+      if ((b.querySelector('.hdr-token-code').textContent || '') === '{episodes}') pick = b;
+    });
+    out.railTokenFound = !!pick;
+    if (pick) pick.click();
+    await T.sleep(700);
+    out.afterInsert = tplInput('c2') ? tplInput('c2').value : null;
+    out.railInsertAppends = out.beforeInsert === 'Planning Calendar' &&
+                            out.afterInsert === 'Planning Calendar{episodes}';
+    // ...and it resolves on the canvas, which is the point of inserting it.
+    out.afterInsertCanvas = (line('c2').textContent || '').trim();
+    out.railInsertResolves = out.afterInsertCanvas === 'Planning Calendar10';
+
     out.budgetText = (el('.hde-budget').textContent || '').trim();
     out.budgetReads = /^Excel header: about \d+ of 255 characters/.test(out.budgetText);
     // This leg has bolded, resized and lengthened lines by now, so the budget SHOULD be over --
@@ -278,6 +311,8 @@ window.addEventListener('load', function () { (async function () {
                out.noLiveHeaderLabel && out.noDottedBoxSentence &&
                out.grammarLeadsWithExample && out.grammarDropsBraceEscape &&
                out.railShared && out.railFullyReadable &&
+               out.railHasPhases && out.railHasSnippets &&
+               out.railInsertAppends && out.railInsertResolves &&
                out.budgetReads && out.defaultFitsExcel && out.budgetWarnsWhenOver &&
                out.doneCloses && out.c4OnCalendar && out.c4KeptNotDropped &&
                out.escapeCloses && out.headerSurvives &&

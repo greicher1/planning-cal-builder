@@ -29,6 +29,57 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Template mode is read-only on the calendar; the header is edited only in the editor
+
+Owner, 10 Sep 2026: *"the app needs to freeze editing the header when you're on template mode in the
+regular app view. It should only be editable in the template editor screen. This means also remove
+the styling menu view from there."* Local, not pushed at time of writing.
+
+Template mode's header lines are no longer `contenteditable` on the calendar, and the header
+formatting bar is gone from that mode. Auto and Manual are **untouched** — Manual still edits in
+place with its full styling bar, exactly as it always has.
+
+⛔ **This is a frozen edit: four code lines in `renderSpreadsheetView`.** `manual` still means *the
+header is hand-controlled* and still drives the mode button and the `.hdr-manual-mode` tint; a new
+`manualEdit = manual && !headerTemplates` means the narrower *and you edit it here*. One name rather
+than the condition written three times, because three copies are three chances for one to drift.
+⚠️ **Inert by construction while `headerTemplates` is false** — `manual && !false === manual`, so
+Auto and Manual render byte-for-byte what they did, and no calendar saved before Template mode
+existed (8 Sep 2026) can reach the new branch. The byte-compare is the other half of that claim.
+
+⭐ **Clicking a header line now opens the editor, at that line.** Not requested, but the header still
+*looks* like text you would click, and after this change it would have done nothing at all — a dead
+affordance is worse than none. The line you point at arrives selected. ⚠️ The hover-and-pointer
+affordance is CSS that **derives** the state instead of tracking it: in Manual every line carries
+`.hdr-editable`, in Auto the bar has no `.hdr-manual-mode`, so
+`.cal-header-bar.hdr-manual-mode .hdr-line:not(.hdr-editable)` matches Template and only Template —
+no body class, no observer, nothing to go stale. ⛔ `cursor` and inset `box-shadow` only: a
+ResizeObserver measures the header into `--header-h`, which frozen
+`.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads and the print-fallback PDF
+measures too, so nothing here may change the header's rendered height.
+
+⚠️ **A CONSEQUENCE WORTH KNOWING ABOUT: the anchored Insert ▾ token palette is now unreachable.**
+`.hf-insert` was only ever rendered when `!mv && headerTemplates` — the waterfall header, in Template
+mode — and it lived *inside* the bar this change removes from exactly that mode. So its condition can
+no longer be satisfied anywhere. Token insertion now happens only in the editor's rail. **The code is
+left in place and flagged, not silently deleted**: `buildHdrTokenList()` still backs the rail;
+`openHdrTokenPop()` and `.hdr-token-pop` are what is orphaned, pending a decision.
+
+**And the tests moved with the feature rather than being retired.** About 100 lines of `hdrtemplate`
+drove that panel — the dead-end fix, the scroll fix, insert-at-caret. What they actually proved is
+now asserted in `hdreditor` against the rail: every phase offered under its **current** name, the
+bracket snippets present, and clicking an entry **appending** to the selected line and resolving
+(`'Planning Calendar'` → `'Planning Calendar{episodes}'` → `'Planning Calendar10'`). Deleting a test
+because its button moved would have quietly retired three real assertions.
+
+⛔ **Two `gate.sh` assertions were INVERTED, and the old ones were not wrong** — they recorded a
+decision this one reverses. `gate.sh` used to assert *"Template IS manual to the frozen gate — lines
+editable, format toolbar present"*, which was an exact description of what shipped on 8 Sep.
+
+**Verified.** `hdrtemplate` green (Template read-only, toolbar gone, spacer in its place, click opens
+the editor at the clicked line, Insert ▾ absent in all three modes); `hdreditor` green with the four
+ported assertions. Full gate re-run.
+
 ### Unreleased — three help strings cut, and the bracket rule rewritten around an example
 
 Owner, 9 Sep 2026, reading the editor: cut *"Live header — click a line to edit it"* and *"Empty

@@ -5800,11 +5800,26 @@ export function initLegacyApp() {
     const hdrDefaults = computeHeaderDefaults(schedule);
     const escH = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
     const manual = headerMode === 'manual';
+    // ⛔ FROZEN EDIT (owner, 10 Sep 2026): "the app needs to freeze editing the header when you're
+    // on template mode in the regular app view. It should only be editable in the template editor
+    // screen. This means also remove the styling menu view from there."
+    //
+    // ⭐ WHY A SEPARATE NAME RATHER THAN `manual && !headerTemplates` WRITTEN THREE TIMES: it is
+    // used by three expressions below, and three copies of one condition is three chances for one
+    // of them to drift. `manual` still means "the header is hand-controlled" -- it keeps driving the
+    // mode button and the .hdr-manual-mode tint. `manualEdit` means the narrower "and you edit it
+    // HERE", which is now false in Template mode.
+    //
+    // ⚠️ INERT BY CONSTRUCTION while `headerTemplates` is false: `manual && !false` === `manual`,
+    // so Auto and Manual render byte-for-byte what they rendered before, and no calendar saved
+    // before Template mode existed (8 Sep 2026) can even reach the new branch. The PDF/Excel
+    // byte-compare is the other half of that claim; this comment is not.
+    const manualEdit = manual && !headerTemplates;
     const hline = (id, cls, extraStyle) => {
       const val = headerLine(id, hdrDefaults);
       const empty = val ? '' : ' hdr-empty';
-      const editable = manual ? ' contenteditable="true"' : '';
-      const editCls = manual ? ' hdr-editable' : '';
+      const editable = manualEdit ? ' contenteditable="true"' : '';
+      const editCls = manualEdit ? ' hdr-editable' : '';
       // FROZEN EDIT (owner-approved 31 Aug 2026), and deliberately the smallest possible one:
       // the per-line format is APPENDED after extraStyle, so a user format wins over the
       // hard-coded style this call site already passed (r1's font-weight:600), and everything
@@ -5815,7 +5830,7 @@ export function initLegacyApp() {
     };
 
     const headerBar = `<div class="hdr-tools">
-      ${manual ? headerFmtToolbarHtml(false) : '<span class="hdr-fmt-spacer"></span>'}
+      ${manualEdit ? headerFmtToolbarHtml(false) : '<span class="hdr-fmt-spacer"></span>'}
       <button id="notes-reset-btn" title="Reset every note, holiday, and hiatus band back to its auto-generated text and default highlight color" type="button">Reset Notes &amp; Hiatus</button>
       <button id="hdr-mode-btn" class="${manual?'is-manual':''}" title="${manual?(headerTemplates?'Header lines are templates -- your text plus live data in braces. Click to change mode':'Discard manual header edits and return to auto-filled values'):'Take over the header: snapshot the current values into editable lines'}" type="button">${manual?(headerTemplates?'Header: Template':'Header: Manual'):'Header: Auto'}</button>
     </div>
@@ -5874,6 +5889,13 @@ export function initLegacyApp() {
   //
   // ⛔ ONLY when the id is already in headerManual. A line still showing its auto default has no raw
   // form to show, and writing one would invent a manual override the user never made.
+  // ⚠️ DEAD SINCE 10 Sep 2026, AND DELIBERATELY LEFT IN PLACE. Its guard requires Template mode,
+  // and Template-mode lines are no longer contenteditable, so a <div> with no tabindex cannot take
+  // focus and this never fires. The equivalent swap now lives in the editor's own canvas
+  // (openHeaderEditor's sheet focusin), which is where template editing happens. Kept because
+  // MANTINE-SEAM §4 counts the unguarded #table-wrap listeners as load-bearing structure, and
+  // because Template mode becoming editable here again -- if that decision is ever revisited --
+  // needs this exact behaviour back.
   document.getElementById('table-wrap').addEventListener('focusin', e=>{
     if(headerMode !== 'manual' || !headerTemplates) return;
     const line = e.target && e.target.closest ? e.target.closest('.hdr-line[data-hid]') : null;
@@ -5911,6 +5933,20 @@ export function initLegacyApp() {
     if(e.key==='Enter' && e.target.closest && e.target.closest('.hdr-line')){
       e.preventDefault(); e.target.blur();
     }
+  });
+  // ⭐ The header is READ-ONLY in Template mode now, so a click on it would otherwise do NOTHING --
+  // and it still looks exactly like text you would click, sitting under a toolbar, in a header the
+  // user has deliberately taken control of. A dead affordance is worse than no affordance. Send the
+  // click where the editing actually lives, with the line you pointed at already selected.
+  // ⛔ Scoped to `.cal-header-bar .hdr-line[data-hid]`: the month-view header's lines carry
+  // data-mvhid and have their own click handler below, which must keep them.
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    if(headerMode !== 'manual' || !headerTemplates) return;
+    if(hdrEditor) return;                    // already open -- do not stack a second one
+    const line = e.target && e.target.closest
+      ? e.target.closest('.cal-header-bar .hdr-line[data-hid]') : null;
+    if(!line) return;
+    openHeaderEditor(line.dataset.hid);
   });
 
   // Month-view header: mode toggle + capturing edits. Independent of the waterfall header.
@@ -7921,7 +7957,9 @@ export function initLegacyApp() {
     return true;
   }
 
-  function openHeaderEditor(){
+  // `initialId` selects a slot on the way in -- used when the click came from that very line on the
+  // calendar, so the editor opens with the thing you pointed at already selected.
+  function openHeaderEditor(initialId){
     if(hdrEditor){ closeHeaderEditor(); return; }
     // The editor edits TEMPLATES, so it puts the header in Template mode on the way in. From Auto
     // that seeds DEFAULT_HEADER_TEMPLATE; from Manual it keeps the literal strings, which are valid
@@ -8004,7 +8042,12 @@ export function initLegacyApp() {
         '</div>' +
       '</div>';
     document.body.appendChild(root);
-    hdrEditor = { root: root, selected: 'c1', editing: null, placeholders: true };
+    hdrEditor = {
+      root: root,
+      selected: (initialId && HDR_IDS.indexOf(initialId) >= 0) ? initialId : 'c1',
+      editing: null,
+      placeholders: true,
+    };
 
     const title = (document.getElementById('show-title') || {}).value || '';
     root.querySelector('.hde-ctx').textContent = title ? title : 'Untitled calendar';

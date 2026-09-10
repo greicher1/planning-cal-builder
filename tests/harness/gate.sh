@@ -865,8 +865,10 @@ chk(a.get('h3bAutoInert'),
 chk(a.get('h3bManualInert'),
     f"hdrtemplate: ⭐ H3b inert in Manual -- likewise ({a.get('manualLabel')!r})")
 chk(a.get('tplIsTemplate'), f"hdrtemplate: the third mode reads 'Header: Template' ({a.get('tplLabel')!r})")
-chk(a.get('tplEditable') and a.get('tplToolbar'),
-    "hdrtemplate: Template IS manual to the frozen gate -- lines editable, format toolbar present")
+chk(a.get('tplLockedHere'),
+    f"hdrtemplate: ⭐ Template mode is READ-ONLY on the calendar and the styling bar is gone -- owner, 10 Sep (contenteditable={a.get('tplEditableAttr')!r}, toolbar gone={a.get('tplToolbarGone')}, spacer={a.get('tplSpacerInstead')})")
+chk(a.get('clickOpensEditor') and a.get('clickSelectsThatLine'),
+    f"hdrtemplate: ...and clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
 chk(a.get('resolvesOnScreen'), f"hdrtemplate: tokens resolve on screen ({a.get('c4Resolved')!r})")
 chk(a.get('unknownSurvives'), f"hdrtemplate: an unknown token and an escape survive as typed ({a.get('c2Resolved')!r})")
 chk(a.get('groupsWork'),
@@ -1102,6 +1104,10 @@ chk(a.get('grammarLeadsWithExample') and a.get('grammarDropsBraceEscape'),
     f"hdreditor: the bracket rule leads with a worked example ({a.get('grammarText')!r})")
 chk(a.get('railShared'),
     f"hdreditor: the Insert rail is the shared token list, with live previews ({a.get('railTokens')} tokens, {a.get('railLive')} live)")
+chk(a.get('railHasPhases') and a.get('railHasSnippets'),
+    "hdreditor: ⭐ the rail offers every phase under its CURRENT name, and the bracket snippets (ported from hdrtemplate, 10 Sep)")
+chk(a.get('railInsertAppends') and a.get('railInsertResolves'),
+    f"hdreditor: ⭐ clicking a rail token APPENDS to the selected line and resolves ({a.get('beforeInsert')!r} -> {a.get('afterInsert')!r} -> {a.get('afterInsertCanvas')!r})")
 chk(a.get('budgetReads') and a.get('budgetWarnsWhenOver'),
     f"hdreditor: the Excel budget reads and warns when it is blown ({a.get('budgetText')!r})")
 chk(a.get('defaultFitsExcel'),

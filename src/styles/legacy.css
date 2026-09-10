@@ -1771,6 +1771,20 @@
   .hdr-line.hdr-editable:hover{ box-shadow:inset 0 0 0 1px var(--border-strong); }
   .hdr-line.hdr-editable:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); background:#faf5ff; }
   .hdr-line.hdr-editable.hdr-empty:not(:focus):hover::before{ content:'edit'; color:var(--text-faint); font-size:10px; }
+  /* ⭐ TEMPLATE MODE: read-only here, click to open the editor (owner, 10 Sep 2026).
+     ⚠️ THE SELECTOR DERIVES THE STATE RATHER THAN TRACKING IT, on purpose. In Manual every line
+     carries .hdr-editable, so `:not(.hdr-editable)` matches nothing; in Auto .hdr-manual-mode is
+     absent, so it matches nothing; in Template the bar has .hdr-manual-mode and NO line is
+     editable, so it matches all nine. No body class, no observer, nothing that can go stale
+     against the render that produced it.
+     ⛔ cursor and INSET box-shadow only -- both layout-neutral. Nothing here may change the
+     header's rendered HEIGHT: a ResizeObserver measures it into --header-h, which frozen
+     `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` reads, and the print-fallback
+     waterfall PDF measures the same box. A ::after with content would move both. */
+  .cal-header-bar.hdr-manual-mode .hdr-line:not(.hdr-editable){ cursor:pointer; }
+  .cal-header-bar.hdr-manual-mode .hdr-line:not(.hdr-editable):hover{
+    box-shadow:inset 0 0 0 1px var(--border-strong);
+  }
   .cal-header-bar.hdr-manual-mode{ background:#faf7ff; box-shadow:inset 0 0 0 1px #e5d5f5; }
   /* space-between, not flex-end: the formatting toolbar sits at the LEFT end of this strip and
      the mode button stays at the right (owner, 31 Aug 2026 -- "the opposite corner"). The spacer

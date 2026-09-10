@@ -341,6 +341,37 @@ match (it had been asserting a `.hdr-token-pop` that no longer appears, and woul
 in the markup, so re-ordering the panel would have bound the change listener to a `<span>` and killed
 the toggle with no error. The checkbox is `.hde-phbox` now.
 
+⛔ **TEMPLATE MODE IS READ-ONLY ON THE CALENDAR AS OF 10 Sep 2026 — AND THIS IS A FROZEN EDIT.**
+Owner: *"the app needs to freeze editing the header when you're on template mode in the regular app
+view. It should only be editable in the template editor screen. This means also remove the styling
+menu view from there."* Four code lines in `renderSpreadsheetView`: a new
+`manualEdit = manual && !headerTemplates`, used by `contenteditable`, the `hdr-editable` class and
+the format-toolbar ternary. ⚠️ **Inert while `headerTemplates` is false by construction**
+(`manual && !false === manual`), so Auto and Manual are byte-identical and no pre-8-Sep calendar can
+reach the branch. ⛔ **`manual` and `manualEdit` are NOT interchangeable** — `manual` still means
+"hand-controlled" and still drives the mode button and the tint; only editability and the toolbar
+use the narrower one. Conflating them would put the styling bar back.
+
+⭐ **Clicking a read-only header line opens the editor at that line** (not requested; added because
+the change would otherwise leave a header that looks clickable and does nothing). ⚠️ **The CSS
+affordance DERIVES the mode rather than tracking it**:
+`.cal-header-bar.hdr-manual-mode .hdr-line:not(.hdr-editable)` matches Template only — in Manual
+every line has `.hdr-editable`, in Auto the bar has no `.hdr-manual-mode`. No body class, no
+observer, nothing to go stale against the render that produced it. ⛔ Layout-neutral properties
+ONLY (`cursor`, inset `box-shadow`): `--header-h` is measured off this box by a ResizeObserver and
+read by frozen `.sheet-scroll`, and the print-fallback PDF measures it too.
+
+⛔ **CONSEQUENCE: THE ANCHORED Insert ▾ PALETTE IS NOW UNREACHABLE, AND IS AWAITING AN OWNER
+DECISION.** `.hf-insert` renders only when `!mv && headerTemplates`, and it sits inside the bar this
+change removes from that very mode — so nothing can open `.hdr-token-pop` any more.
+`buildHdrTokenList()` is still live (it backs the editor rail); `openHdrTokenPop()` and the
+`.hdr-token-pop` CSS are orphaned. **Left in place and flagged rather than deleted.** ⚠️ Roughly 100
+lines of `hdrtemplate` tested that panel; the assertions worth keeping were **ported to `hdreditor`
+against the rail** (phases under current names, bracket snippets, insert APPENDS to the selected
+line and resolves) rather than deleted — a test whose button moved is not a test that stopped
+mattering. And two `gate.sh` assertions were **inverted**; the old ones were not wrong, they
+recorded the 8 Sep decision this reverses.
+
 ⚠️ **THE EDITOR'S HELP COPY WAS CUT BACK (9 Sep 2026), AND THE RULE IT LEAVES BEHIND IS WORTH
 KEEPING.** The owner removed two labels that described what was already visible, and said of the
 bracket paragraph *"im confused what this means"*. The rewrite leads with a worked example and names
