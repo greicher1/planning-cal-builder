@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — primary buttons now wear the accent, like the active tab
+
+Owner, 9 Sep 2026, with a screenshot of the active Settings tab: *"can we make primary buttons this
+same bg color? For example 'edit header template' and 'Save current header as preset'."* Local, not
+pushed at time of writing.
+
+Not a new colour — the **same two tokens** `.side-tab-btn.active` and `button.secondary.add-hiatus-btn`
+already use, whose comment has said since August that it is *"a deliberate echo of the active tab so
+the accent reads as one system"*. The header buttons just were not part of that system yet. Now
+**Edit header template…**, **Apply** and **Save current header as preset…** are, along with the
+**Save** that confirms a new preset's name.
+
+⚠️ **Two judgement calls worth stating, since neither was in the request.** *Import preset file…*
+stays plain — it is the rarer path, and three identically-weighted full-width buttons in one stack
+rank nothing. And **disabled drops the tint entirely** rather than dimming the label: Save-as is
+refused in Manual mode (H8), and an accent-filled button that does nothing when clicked is worse
+than a plain grey one, because the tint is precisely how the app says *press this*.
+
+⚠️ **One trap found while testing, now written into UI-CONVENTIONS §3b.** `.side-tab-btn` transitions
+`background` over `.12s`, so reading a live tab's computed background returns `rgba(0,0,0,0)` if the
+read lands before the transition advances — which it did, in the harness *and* in a browser, and it
+reads exactly like "the rule is not applying". The assertion measures an **off-screen probe carrying
+the class** instead, and compares the buttons to **that** rather than to a hardcoded `#D3DAE1` — a
+literal would pass while the two grounds silently drifted apart, which is the only failure worth
+catching here.
+
+**Verified.** New `hdrpreset` assertion: all 3 primary buttons render the same ground as
+`.side-tab-btn.active`, Import does not. Full gate re-run.
+
 ### Unreleased — Preferences splits into Export Preferences and Headers
 
 Owner, 9 Sep 2026: *"this UI needs work. First remove the descriptions, theyre not necessary. Next,

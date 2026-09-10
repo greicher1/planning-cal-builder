@@ -321,6 +321,30 @@ explicit override on icon buttons, not a token.
 
 ### 3b. Colour
 
+⭐ **A PRIMARY ACTION WEARS THE ACCENT TINT — `--mantine-primary-color-light` on
+`--mantine-primary-color-light-color`, hovering to `-light-hover`** (owner, 9 Sep 2026, pointing at
+the active Settings tab: *"can we make primary buttons this same bg color?"*). This was already the
+app's answer in two places before it was written down — `.side-tab-btn.active` and
+`button.secondary.add-hiatus-btn`, whose comment calls it *"a deliberate echo of the active tab so
+the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third.
+
+Three rules go with it:
+
+- ⛔ **Reach for the tokens, never the hex.** `#D3DAE1` in a rule is a copy that stops tracking the
+  theme, and the failure is invisible: the two grounds simply drift apart.
+- ⛔ **Disabled must DROP the tint, not just dim the label.** The tint is the app's signal for *this
+  is the thing to press*; an accent-filled button that does nothing is worse than a plain one. Save
+  current header as preset… is disabled in Manual mode (H8) and falls back to `gray-1`/`gray-2`.
+- ⚠️ **Not everything that acts is primary.** *Import preset file…* deliberately stays plain: it is
+  the rarer path, and three identically-weighted full-width buttons in one stack rank nothing.
+
+⚠️ **Testing it: assert EQUALITY WITH THE ACTIVE-TAB CLASS, never against a hex** — a hardcoded
+value passes while the two drift, which is the only bug the assertion exists to catch. And measure
+an **off-screen probe carrying `.side-tab-btn active`**, not a real tab: `.side-tab-btn` transitions
+`background` over `.12s`, so reading a live tab returns `rgba(0,0,0,0)` whenever the read lands
+before the transition advances. That cost a false "the rule is not applying" in both the harness and
+a browser. `hdrpreset` does it this way.
+
 **`primaryColor: 'navy'`**, one custom tuple anchored so today's accent is reproduced byte for byte:
 `navy[6] = #2C3E50`, `navy[7] = #1C2833`. Mantine's `primaryShade` default is `{light:6, dark:8}`
 and `-filled` / `-filled-hover` resolve to shades 6 and 7 — so the anchor points are exactly the two

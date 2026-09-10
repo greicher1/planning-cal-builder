@@ -562,6 +562,26 @@
     padding:5px 10px; cursor:pointer;
   }
   .hdr-preset-btn:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  /* ⭐ PRIMARY ACTIONS wear the accent tint (owner, 9 Sep 2026, pointing at the active Settings
+     tab: "can we make primary buttons this same bg color?"). This is not a new style -- it is the
+     SAME pair of tokens .side-tab-btn.active and button.secondary.add-hiatus-btn already use, so
+     the accent stays one system rather than becoming three near-identical greys. ⛔ Reach for the
+     tokens, never a literal: the light/light-color/light-hover triple is what keeps the ink legible
+     on the ground if the primary hue is ever changed in one place.
+     ⚠️ Only the buttons that ACT are primary. Import preset file… is deliberately not -- it is the
+     rarer path, and a stack of three identically-weighted full-width buttons ranks nothing. */
+  .hdr-preset-btn.is-primary{
+    background:var(--mantine-primary-color-light);
+    border-color:transparent;
+    color:var(--mantine-primary-color-light-color);
+  }
+  .hdr-preset-btn.is-primary:hover:not(:disabled){ background:var(--mantine-primary-color-light-hover); }
+  /* ⛔ Disabled must DROP the tint, not merely dim the label. Save-as is disabled in Manual mode,
+     and an accent-filled button that does nothing when clicked is worse than a plain grey one --
+     the tint is the app's signal that a control is the thing to press. */
+  .hdr-preset-btn.is-primary:disabled{
+    background:var(--mantine-color-gray-1); border-color:var(--mantine-color-gray-2);
+  }
   .hdr-preset-btn:disabled{ color:var(--mantine-color-gray-5); cursor:default; }
   .hdr-preset-save-open{ width:100%; margin-top:var(--mantine-spacing-sm); text-align:center; }
   .hdr-preset-btn-quiet{ border-color:transparent; }

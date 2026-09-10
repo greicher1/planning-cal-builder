@@ -237,7 +237,7 @@ function HeaderPresets() {
           was also actively WRONG once the editor button landed under it: editing a template is not
           a preset operation, and the description said "the nine header lines" when the format now
           has ten. The card's own title says Headers; the presets get their own sub-label below. */}
-      <button type="button" className="hdr-preset-btn hdr-preset-edit" data-hdrpreset="edit">
+      <button type="button" className="hdr-preset-btn is-primary hdr-preset-edit" data-hdrpreset="edit">
         Edit header template…
       </button>
 
@@ -265,7 +265,7 @@ function HeaderPresets() {
                 style={{ flex: '1 1 0', minWidth: 0 }}>
           {items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <button type="button" className="hdr-preset-btn" data-hdrpreset="apply" style={{ flex: 'none' }}>
+        <button type="button" className="hdr-preset-btn is-primary" data-hdrpreset="apply" style={{ flex: 'none' }}>
           Apply
         </button>
       </Group>
@@ -274,7 +274,7 @@ function HeaderPresets() {
         <Group gap="sm" wrap="nowrap" mt="sm">
           <input type="text" className="hdr-preset-name-input" placeholder="Preset name"
                  aria-label="Preset name" autoFocus style={{ flex: '1 1 0', minWidth: 0 }} />
-          <button type="button" className="hdr-preset-btn" data-hdrpreset="save" style={{ flex: 'none' }}>
+          <button type="button" className="hdr-preset-btn is-primary" data-hdrpreset="save" style={{ flex: 'none' }}>
             Save
           </button>
           <button type="button" className="hdr-preset-btn hdr-preset-btn-quiet" style={{ flex: 'none' }}
@@ -284,7 +284,7 @@ function HeaderPresets() {
         </Group>
       ) : (
         <>
-          <button type="button" className="hdr-preset-btn hdr-preset-save-open" disabled={!canSave}
+          <button type="button" className="hdr-preset-btn is-primary hdr-preset-save-open" disabled={!canSave}
                   onClick={() => setState((s) => ({ ...s, naming: true }))}>
             Save current header as preset…
           </button>

@@ -921,6 +921,8 @@ if 'EX' in a:
 chk(a.get('blockFound') and a.get('insidePrefsCard'),
     "hdrpreset: the block exists and sits inside .prefs-card")
 chk(a.get('noIdsInBlock'), f"hdrpreset: ⛔ not one id on any preset control {a.get('idsInBlock')}")
+chk(a.get('primaryMatchesTab') and a.get('secondaryStaysPlain'),
+    f"hdrpreset: ⭐ all {a.get('primaryCount')} primary buttons wear the ACTIVE TAB's ground ({a.get('activeTabBg')}), and Import stays plain ({a.get('importBg')})")
 chk(a.get('defaultFirst') and a.get('defaultNotEditable'),
     f"hdrpreset: Default ships built in, first, and read-only {a.get('optionsAtBoot')}")
 chk(a.get('storeEmptyAtBoot'), "hdrpreset: nothing is stored until the user saves something")

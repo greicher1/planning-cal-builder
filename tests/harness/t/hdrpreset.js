@@ -84,6 +84,36 @@ window.addEventListener('load', function () { (async function () {
     // does not reach, which is why the Save-as field is inline and every control here is plain.
     out.idsInBlock = [].map.call(document.querySelectorAll('.hdr-presets [id]'), function (n) { return n.id; });
     out.noIdsInBlock = out.idsInBlock.length === 0;
+    // ---- 1b. ⭐ THE PRIMARY BUTTONS WEAR THE ACTIVE TAB'S GROUND -------------------------------
+    // Owner, 9 Sep 2026, pointing at the Settings tab: "can we make primary buttons this same bg
+    // color?" ⚠️ Asserted as EQUAL TO THE TAB, never against a hex. The whole point is that one
+    // accent drives every primary affordance, so re-theming must move them together or fail here --
+    // a hardcoded #D3DAE1 would pass while the two drifted apart, which is the bug it exists to
+    // catch. .side-tab-btn.active and .hdr-preset-btn.is-primary read the same two tokens.
+    var bgOf = function (el) { return el ? getComputedStyle(el).backgroundColor : null; };
+    // ⚠️ MEASURE THE CLASS, NOT THE LIVE TAB. .side-tab-btn carries `transition: background .12s`,
+    // so reading the real active tab returns rgba(0,0,0,0) whenever the read lands before the
+    // transition has advanced -- which it did, both here and in a browser, and it looks exactly
+    // like "the rule is not applying". An off-screen probe renders the same rule with no animation
+    // in flight, so this asserts what .side-tab-btn.active IS rather than what one tab happens to
+    // be part-way through becoming.
+    var probe = document.createElement('button');
+    probe.className = 'side-tab-btn active';
+    probe.style.cssText = 'position:fixed;left:-9999px;top:0;transition:none';
+    document.body.appendChild(probe);
+    out.activeTabBg = bgOf(probe);
+    probe.remove();
+    out.liveActiveTabBg = bgOf(document.querySelector('.side-tab-btn.active'));   // diagnostic only
+    out.primaryBgs = [].map.call(document.querySelectorAll('.hdr-preset-btn.is-primary:not(:disabled)'),
+                                 function (b) { return bgOf(b); });
+    out.primaryCount = out.primaryBgs.length;
+    out.primaryMatchesTab = out.primaryCount > 0 && !!out.activeTabBg &&
+      out.activeTabBg !== 'rgba(0, 0, 0, 0)' &&
+      out.primaryBgs.every(function (c) { return c === out.activeTabBg; });
+    // ...and a SECONDARY one does not, or the ranking says nothing.
+    out.importBg = bgOf(document.querySelector('.hdr-preset-import'));
+    out.secondaryStaysPlain = out.importBg !== out.activeTabBg;
+
     // Default ships built in, first, and read-only -- no Rename/Delete row of its own.
     out.optionsAtBoot = optionNames();
     out.defaultFirst = out.optionsAtBoot[0] === 'Default';
@@ -249,6 +279,7 @@ window.addEventListener('load', function () { (async function () {
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
     out.PASS = out.blockFound && out.insidePrefsCard && out.noIdsInBlock &&
+               out.primaryMatchesTab && out.secondaryStaysPlain &&
                out.defaultFirst && out.defaultNotEditable && out.storeEmptyAtBoot &&
                out.manualSaveDisabled && out.manualExplains && out.templateSaveEnabled &&
                out.storesTemplates && out.idGenerated && out.listGrew && out.twoSaved &&
