@@ -12259,8 +12259,27 @@ export function initLegacyApp() {
     // Header type is NOT scaled with the grid: Excel's page header keeps its point size however
     // hard the sheet is shrunk to fit.
     if(hdrLines){
-      const midX = originX + gridW*scale/2;
-      const rightEdge = originX + gridW*scale;
+      // ⛔ FROZEN EDIT (owner, 10 Sep 2026): "the single column mode is messing up the entire header
+      // in the export -- the header should look/work exactly the same as it always does even in
+      // single collumn mode."
+      //
+      // The header band was pinned to the GRID's own edges, which is right when the grid fills the
+      // page: Excel centres a shrunk sheet and puts &L/&C/&R over it. One-column mode makes the
+      // grid narrow -- measured, 4 columns instead of 7 -- so it is centred with wide side margins
+      // and the header collapsed with it: the three sections went from spanning 543pt to 338pt,
+      // the date sliding from x=20 to x=123. Cramped at best, and overlapping as soon as the show
+      // title or the production summary is long.
+      //
+      // ⭐ So the band spans the printable WIDTH in that mode instead of the grid, which is what
+      // "the same as it always does" means in practice -- in every other layout the grid already
+      // fills the page, so grid width and printable width are the same thing.
+      // ⚠️ INERT BY CONSTRUCTION with singleColumn off: hdrLeftX collapses to originX and hdrRightX
+      // to originX + gridW*scale, so midX and rightEdge are the expressions they always were, and
+      // the PDF byte-compare stays green.
+      const hdrLeftX  = singleColumn ? MARGIN_PT.l : originX;
+      const hdrRightX = singleColumn ? MARGIN_PT.l + availW : originX + gridW*scale;
+      const midX = (hdrLeftX + hdrRightX) / 2;
+      const rightEdge = hdrRightX;
       // The band runs from the header margin to the top margin; the grid begins immediately
       // below it. Three header lines at full size need more room than that band has, and the
       // overflow ran straight into the grid's top edge -- so the header type shrinks to fit
@@ -12303,7 +12322,7 @@ export function initLegacyApp() {
       };
       hLeftArr.forEach((e, i)=> drawHdr(e, i, {
         size: U, bold: false, color: '#666666', align: 'left',
-        left: originX, mid: originX, right: originX, y: k => baseY + k*U*1.35 }));
+        left: hdrLeftX, mid: hdrLeftX, right: hdrLeftX, y: k => baseY + k*U*1.35 }));
       hCentre.forEach((e, i)=> drawHdr(e, i, {
         size: i === 0 ? T : U, bold: i === 0, color: '#000000', align: 'center',
         left: midX, mid: midX, right: midX, y: stackY }));

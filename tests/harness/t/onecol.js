@@ -167,6 +167,70 @@ window.addEventListener('load', function () { (async function () {
     out.swapWorksInOneCol = !!out.swapBtnAppears && out.swapBtnUsesBlockYear &&
                             !!out.swapLanded && !!out.swapPersists;
 
+    // ---- 3d. ⭐ THE PRINTED HEADER IS THE SAME IN BOTH LAYOUTS -------------------------------------
+    // ⛔ THIS SHIPPED BROKEN AND THE OWNER CAUGHT IT: "the single column mode is messing up the
+    // entire header in the export". buildWaterfallPdf pinned the header band to the GRID's edges,
+    // which is right when the grid fills the page. One column makes the grid narrow, so it is
+    // centred with wide side margins and the header collapsed with it -- measured, 543pt of header
+    // became 338pt and the date slid from x=20 to x=123. The band spans the printable width in
+    // that mode now.
+    // ⚠️ Measured off the REAL PDF content stream, because this is a coordinate bug: nothing about
+    // the header's TEXT changed, so any assertion on strings would have passed straight through it.
+    async function pdfHeaderSpan() {
+      await T.sleep(900);
+      var pb = await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF');
+      var bytes = new Uint8Array(await pb.arrayBuffer());
+      var latin = ''; for (var i = 0; i < bytes.length; i += 8192) latin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+      var content = null, re = /stream\r?\n/g, m;
+      while ((m = re.exec(latin))) {
+        var s0 = m.index + m[0].length, en = latin.indexOf('endstream', s0);
+        if (en < 0) continue;
+        while (en > s0 && (bytes[en-1] === 10 || bytes[en-1] === 13 || bytes[en-1] === 32)) en--;
+        try {
+          var ds = new DecompressionStream('deflate'); var w = ds.writable.getWriter();
+          w.write(bytes.subarray(s0, en)); w.close();
+          var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), sTxt = '';
+          for (var j = 0; j < u.length; j += 8192) sTxt += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
+          if (/\bTf\b/.test(sTxt) && /\bTj\b/.test(sTxt)) { content = sTxt; break; }
+        } catch (e) { /* font streams */ }
+      }
+      var items = [], rx = /1 0 0 1 (-?[\d.]+) (-?[\d.]+) Tm[\s\S]{0,220}?\(((?:\\.|[^\\)])*)\)\s*Tj/g, t;
+      while ((t = rx.exec(content || ''))) items.push({ x:+t[1], y:+t[2] });
+      if (!items.length) return null;
+      var maxY = Math.max.apply(null, items.map(function (i) { return i.y; }));
+      var band = items.filter(function (i) { return i.y > maxY - 60; }).map(function (i) { return i.x; });
+      return { minX: Math.round(Math.min.apply(null, band)), maxX: Math.round(Math.max.apply(null, band)) };
+    }
+    async function xlsxHeader() {
+      var xb = await T.captureExport('export-btn', 'the .xlsx blob');
+      var wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await xb.arrayBuffer());
+      return (wb.worksheets[0].headerFooter || {}).oddHeader || '';
+    }
+    // currently ON from section 3b/3c above -- measure here, then again with it off.
+    out.hdrSpanOn = await pdfHeaderSpan();
+    out.xlsxHdrOn = await xlsxHeader();
+    btn().click(); await T.sleep(1700);
+    var lh=-1, sh=0;
+    await T.until(function(){ var n=document.querySelectorAll('table.sheet-table tbody tr').length;
+      sh=(n===lh)?sh+1:0; lh=n; return sh>=5; }, 'off for the header compare', 150, 100);
+    out.hdrSpanOff = await pdfHeaderSpan();
+    out.xlsxHdrOff = await xlsxHeader();
+    btn().click(); await T.sleep(1700);
+    var lj=-1, sj=0;
+    await T.until(function(){ var n=document.querySelectorAll('table.sheet-table tbody tr').length;
+      sj=(n===lj)?sj+1:0; lj=n; return sj>=5; }, 'on again', 150, 100);
+    out.hdrWidthOn  = out.hdrSpanOn  ? out.hdrSpanOn.maxX  - out.hdrSpanOn.minX  : null;
+    out.hdrWidthOff = out.hdrSpanOff ? out.hdrSpanOff.maxX - out.hdrSpanOff.minX : null;
+    // Within 20pt of each other -- the two are not pixel-identical (one is centred on the grid,
+    // the other on the page margins) and need not be; what matters is that one is not ~60% of the
+    // other, which is what the bug looked like.
+    out.headerSpansMatch = out.hdrWidthOn !== null && out.hdrWidthOff !== null &&
+                           Math.abs(out.hdrWidthOn - out.hdrWidthOff) <= 20;
+    // ⭐ And the WORKBOOK's header is byte-identical -- &L/&C/&R are page-relative, so the layout
+    // must not reach them at all.
+    out.xlsxHeaderIdentical = out.xlsxHdrOn === out.xlsxHdrOff && out.xlsxHdrOn.length > 0;
+
     // ---- 4. back OFF returns to exactly the shape we started from ---------------------------------
     btn().click();
     await T.sleep(1500);
@@ -272,7 +336,7 @@ window.addEventListener('load', function () { (async function () {
                out.oneBlock && out.startsAtWork && out.bothHalves &&
                out.keysStayNumeric && out.narrower &&
                out.snapHasKey && out.notInFieldIds &&
-               out.swapWorksInOneCol &&
+               out.swapWorksInOneCol && out.headerSpansMatch && out.xlsxHeaderIdentical &&
                out.rowHeightFollowsWeek && out.widthsArePerLayout && out.widthRoundTripLossless &&
                out.offIsInert && out.oneUndoStep &&
                out.errors.length === 0 && out.on.clippedH === 0 && out.off.clippedH === 0;

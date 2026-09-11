@@ -1169,6 +1169,10 @@ chk(a.get('snapHasKey') and a.get('notInFieldIds'),
     "onecol: ⭐ it travels in a REAL saved calendar, as a snapshot key and NOT also as a swept field id")
 chk(a.get('swapWorksInOneCol'),
     f"onecol: ⭐ column swapping works WITH the setting on -- the button names the BLOCK year {a.get('swapBtnYear')!r}, not the week's ({a.get('swapBefore')!r} -> {a.get('swapAfter')!r}, persists={a.get('swapPersists')})")
+chk(a.get('headerSpansMatch'),
+    f"onecol: ⭐ the printed header spans the same width in BOTH layouts -- {a.get('hdrWidthOff')}pt off vs {a.get('hdrWidthOn')}pt on (it collapsed to 338pt when this shipped)")
+chk(a.get('xlsxHeaderIdentical'),
+    "onecol: ⭐ the WORKBOOK's page header is byte-identical either way -- &L/&C/&R are page-relative and the layout must not reach them")
 chk(a.get('rowHeightFollowsWeek'),
     f"onecol: ⭐ a dragged row height follows its WEEK across the toggle, not its row number ({a.get('offHeight')}px on row {a.get('sizeWeekRowOff')} -> row {a.get('sizeWeekRowOn')})")
 chk(a.get('widthsArePerLayout') and a.get('widthRoundTripLossless'),

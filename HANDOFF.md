@@ -410,6 +410,21 @@ the sweep *and* stored by the snapshot, and the two disagree as soon as the file
 reads only one. ⚠️ The card's ⓘ had to be rewritten at the same time — it promised nothing in there
 travels in a saved calendar, which this contradicts. ⚠️ It no longer hides itself in Month view.
 
+⛔ **ONE-COLUMN MODE COLLAPSED THE PRINTED HEADER, AND STRING ASSERTIONS COULD NEVER HAVE CAUGHT
+IT (fixed 10 Sep 2026).** `buildWaterfallPdf` pinned the header band to the GRID's edges — right
+when the grid fills the page, wrong once the grid is narrow and centred. Measured: 543pt of header
+became 338pt, the date sliding from x=20 to x=123. The band spans the printable width in that mode
+now; **5 code lines, frozen, inert with the setting off** (`hdrLeftX` collapses to `originX`, so
+`midX`/`rightEdge` are the expressions they always were — and the blocked span measured 543pt both
+before and after).
+
+⚠️ **THE LESSON: this was a COORDINATE bug in a feature whose tests all compared TEXT.** Every
+header assertion in the suite checks what the header *says*, and the header said exactly the right
+thing throughout. `onecol` now measures header x-positions out of the real PDF content stream and
+compares the two layouts **against each other**, so the guard does not rot when the header's
+wording changes. ⚠️ The workbook was never affected — `&L`/`&C`/`&R` are page-relative — but that
+is now asserted too, because the report said "the export" and this app has four of them.
+
 ⭐ **ONE CONTINUOUS COLUMN (10 Sep 2026) — AND THE REASON IT IS ONE FLAG DOING TWO THINGS.** Owner
 asked for a multi-year calendar that fits in a single column, with a reference running
 `10/5/26 → 10/4/27`. The obvious half — `computeYearBlocks` stops splitting per calendar year — is

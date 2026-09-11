@@ -174,11 +174,26 @@ export function PreferencesCard() {
             descriptions, theyre not necessary"). Its content -- export-only, the editor's own grid
             is unchanged -- moved into the ⓘ above rather than being deleted: it is the answer to
             "why did nothing change on screen?", and the card title alone does not give it. */}
-        <NativeSelect id="pref-gridlines" label="Grid lines in exports">
-          <option value="none">None</option>
-          <option value="solid">Solid</option>
-          <option value="dashed">Dashed (Excel style)</option>
-        </NativeSelect>
+        {/* Label left, small control right -- the same row shape as Single Column Mode below, so
+            the card reads as a list of settings rather than two unrelated widgets (owner, 10 Sep
+            2026). The label is a <Text size="sm"> rather than NativeSelect's own `label` prop
+            precisely so the two rows share one type scale; the built-in label is a different size.
+            ⚠️ "EXPORTS", PLURAL, AND THAT PLURAL IS LOAD-BEARING. This drives SHEET_GRIDLINES, which
+            BOTH writers read -- exportExcel draws the workbook's cell borders from it just as
+            buildWaterfallPdf draws the PDF's. It briefly shipped as "Grid Lines in PDF Export",
+            which was flagged as understating the reach and corrected by the owner the same day.
+            ⛔ Uncontrolled, as before: the engine writes .value in reflectGridlines(). */}
+        <Group justify="space-between" wrap="nowrap" gap="sm">
+          <Text component="label" htmlFor="pref-gridlines" size="sm" style={{ cursor: 'pointer' }}>
+            Grid Lines in Exports
+          </Text>
+          <NativeSelect id="pref-gridlines" size="xs" w={132}
+                        aria-label="Grid Lines in Exports">
+            <option value="none">None</option>
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed (Excel style)</option>
+          </NativeSelect>
+        </Group>
 
         {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
             stacked with nothing between them read as one confusing group. */}

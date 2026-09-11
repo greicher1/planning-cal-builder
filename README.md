@@ -29,13 +29,62 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Single Column Mode was collapsing the printed header
+
+Owner: *"the single column mode is messing up the entire header in the export — the header should
+look/work exactly the same as it always does even in single collumn mode."* Local, not pushed at
+time of writing.
+
+⛔ **`buildWaterfallPdf` pinned the header band to the GRID's edges, not the page's.** That is
+correct when the grid fills the page — Excel centres a shrunk sheet and puts `&L`/`&C`/`&R` over it,
+and the PDF matches. One column makes the grid narrow (4 columns instead of 7), so it is centred
+with wide side margins — and the header collapsed with it.
+
+Measured off the real PDF content stream, before and after:
+
+| | header span | date drawn at |
+|---|---|---|
+| Blocked | **543pt** (x 20 → 563) | x = 20 |
+| Single, before | **338pt** (x 123 → 461) | x = 123 |
+| Single, after | **548pt** (x 18 → 566) | x = 18 |
+
+Cramped at best, and overlapping as soon as the show title or the production summary is long. The
+band now spans the printable **width** in that mode instead of the grid — which is what "the same
+as it always does" means in practice, since in every other layout the grid already fills the page
+and the two are the same thing.
+
+⛔ **A frozen edit, 5 code lines in `buildWaterfallPdf`**, and inert by construction with the
+setting off: `hdrLeftX` collapses to `originX` and `hdrRightX` to `originX + gridW*scale`, so `midX`
+and `rightEdge` are the expressions they always were. Confirmed empirically as well as by
+inspection — the blocked span measured 543pt before the change and 543pt after.
+
+⚠️ **The workbook was never affected** and is now asserted not to be: Excel's `&L`/`&C`/`&R` are
+page-relative, so the grid's width cannot reach them. Checked rather than assumed, because the
+report said "the export" and this app has four of them.
+
+⚠️ **Nothing about the header's TEXT changed, which is why nothing caught it.** This was a pure
+coordinate bug, and every existing header assertion compares strings. The new `onecol` checks
+measure **positions** out of the PDF content stream, and compare the two layouts against each
+other rather than against a baseline — so the guard survives any future change to what the header
+says.
+
 ### Unreleased — Preferences gets a real switch, and a divider between its settings
 
 Owner: *"this should be a toggle like in iOS settings and there needs to be visible seperation
 between the different settings. Refer to mantine for styling ideas."* Local, not pushed at time of
 writing.
 
-Named **Single Column Mode** at the owner's request in the same breath.
+Named **Single Column Mode** at the owner's request in the same breath, and the grid-lines control
+was reshaped to match it: label left at the same `size="sm"`, a small selector right, both controls
+flush to the same right edge so the card reads as a list of settings rather than two unrelated
+widgets. Its label is a plain `Text` rather than `NativeSelect`'s own `label` prop precisely so the
+two rows share one type scale — the built-in label renders at a different size.
+
+⚠️ **It reads "Grid Lines in Exports", and the plural is load-bearing.** It was first written as
+*"Grid Lines in PDF Export"*; the setting drives `SHEET_GRIDLINES`, which **both** writers read —
+`exportExcel` draws the workbook's cell borders from it just as `buildWaterfallPdf` draws the PDF's
+— so PDF-only understated its reach. Flagged rather than silently corrected, because naming is the
+owner's call, and corrected by the owner the same day.
 
 A full-width button that changed colour was standing in for a switch. It is a Mantine **`Switch`**
 now — label left, 46×24 pill right, the settings-row shape everyone already knows — with a
