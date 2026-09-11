@@ -410,6 +410,21 @@ the sweep *and* stored by the snapshot, and the two disagree as soon as the file
 reads only one. ⚠️ The card's ⓘ had to be rewritten at the same time — it promised nothing in there
 travels in a saved calendar, which this contradicts. ⚠️ It no longer hides itself in Month view.
 
+⭐ **SINGLE COLUMN MODE STRETCHES ITS COLUMNS TO FILL THE PAGE WIDTH (10 Sep 2026).** One column is
+tall and narrow and both writers fit the whole grid to one page, so the scale is pinned by HEIGHT and
+the leftover WIDTH was simply wasted — measured, 358pt printed of a 576pt printable area, 38% empty
+at the sides. `sheetColumnWidths` grows the columns by `f = (availW*gridH)/(availH*gridW)`, taking
+the fill from 62% to **98%** of the page width. ⭐ `gridH` is derived from the row COUNT, not from
+column widths, so there is no feedback loop and one pass is exact.
+
+⛔ **A frozen edit, written as a POST-PASS** on the existing return value so nothing above it moved,
+and dead while `singleColumn` is false — the blocked layout's widths measured identical before and
+after. ⛔ **Hand-dragged columns are NOT stretched**: doing so would move a user's own drag out from
+under them and leave no way to set a width that stayed set; the auto columns take the slack.
+⚠️ It sizes against PORTRAIT (with one block `sheetPageOrientation` prefers portrait and only flips
+if landscape prints 15% larger, which a tall narrow grid never does), and it applies AFTER
+`clampChars`, so the notes column may exceed `COL_MAX_CHARS_NOTES` in this mode — deliberately.
+
 ⛔ **ONE-COLUMN MODE COLLAPSED THE PRINTED HEADER, AND STRING ASSERTIONS COULD NEVER HAVE CAUGHT
 IT (fixed 10 Sep 2026).** `buildWaterfallPdf` pinned the header band to the GRID's edges — right
 when the grid fills the page, wrong once the grid is narrow and centred. Measured: 543pt of header

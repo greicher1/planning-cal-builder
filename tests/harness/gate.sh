@@ -1169,6 +1169,8 @@ chk(a.get('snapHasKey') and a.get('notInFieldIds'),
     "onecol: ⭐ it travels in a REAL saved calendar, as a snapshot key and NOT also as a swept field id")
 chk(a.get('swapWorksInOneCol'),
     f"onecol: ⭐ column swapping works WITH the setting on -- the button names the BLOCK year {a.get('swapBtnYear')!r}, not the week's ({a.get('swapBefore')!r} -> {a.get('swapAfter')!r}, persists={a.get('swapPersists')})")
+chk(a.get('fillsPageWidth') and a.get('fillsPageHeight'),
+    f"onecol: ⭐ the single column FILLS the page -- {(a.get('fillOn') or {}).get('pctW')}% of the printable width and {(a.get('fillOn') or {}).get('pctH')}% of its height (it was 62% wide before the columns were stretched)")
 chk(a.get('headerSpansMatch'),
     f"onecol: ⭐ the printed header spans the same width in BOTH layouts -- {a.get('hdrWidthOff')}pt off vs {a.get('hdrWidthOn')}pt on (it collapsed to 338pt when this shipped)")
 chk(a.get('xlsxHeaderIdentical'),

@@ -231,6 +231,46 @@ window.addEventListener('load', function () { (async function () {
     // must not reach them at all.
     out.xlsxHeaderIdentical = out.xlsxHdrOn === out.xlsxHdrOff && out.xlsxHdrOn.length > 0;
 
+    // ---- 3e. ⭐ THE SINGLE COLUMN FILLS THE PAGE, NOT JUST ITS HEIGHT -----------------------------
+    // Owner: "how would you make adjustments such that the collumn fills the vertical page as
+    // shown in the example". It already filled it VERTICALLY -- one column is tall and narrow, so
+    // both writers (which fit the whole grid to one page) end up height-bound. What was wasted was
+    // the WIDTH: measured, the grid printed 358pt of a 576pt printable area, 38% of the page empty
+    // at the sides. sheetColumnWidths now grows the columns by
+    // f = (availW*gridH)/(availH*gridW) in this mode, so the height-bound scale also fills the width.
+    // ⚠️ Constants mirror SHEET_PAGE_MARGIN_PT / SHEET_PAPER_PT.portrait -- if those ever move, this
+    // arithmetic is wrong and the assertion should be the thing that notices.
+    var AVAIL_W = 612 - 18 - 18, AVAIL_H = 792 - 54 - 18 - 21.6;
+    function pageFill() {
+      var rows = document.querySelectorAll('table.sheet-table tbody tr').length;
+      var gw = T.gridWidthPt(), gh = (rows + 1) * 20 * 0.75;
+      var sc = Math.min(AVAIL_W / gw, AVAIL_H / gh);
+      return { gridWPt: Math.round(gw), scale: +sc.toFixed(3),
+               pctW: Math.round(gw * sc / AVAIL_W * 100), pctH: Math.round(gh * sc / AVAIL_H * 100) };
+    }
+    out.fillOn = pageFill();
+    btn().click(); await T.sleep(1700);
+    var lf=-1, sf=0;
+    await T.until(function(){ var n=document.querySelectorAll('table.sheet-table tbody tr').length;
+      sf=(n===lf)?sf+1:0; lf=n; return sf>=5; }, 'off for the fill compare', 150, 100);
+    out.fillOff = pageFill();
+    btn().click(); await T.sleep(1700);
+    var lg=-1, sg=0;
+    await T.until(function(){ var n=document.querySelectorAll('table.sheet-table tbody tr').length;
+      sg=(n===lg)?sg+1:0; lg=n; return sg>=5; }, 'on again', 150, 100);
+    // ⭐ >= 95% of the printable width. Before the stretch this was 62%.
+    out.fillsPageWidth = out.fillOn.pctW >= 95;
+    out.fillsPageHeight = out.fillOn.pctH >= 99;
+    // ⚠️ THERE WAS A `blockedFillUnchanged` CHECK HERE AND IT WAS DELETED, NOT WEAKENED. It asserted
+    // the blocked layout still printed at under 95% of the page width, as a proxy for "the stretch
+    // did not reach it" -- and it failed, because by this point section 3c has dragged a blocked
+    // column to 161px, which legitimately makes that layout width-bound at 100%. The proxy was
+    // wrong, not the feature.
+    // ⭐ The claim it was reaching for is already proven exactly, and earlier:
+    // `widthRoundTripLossless` shows the blocked widths come back byte-identical after a round
+    // trip through single-column mode. A second, vaguer version of a fact already nailed down is
+    // worth less than nothing -- it fails for reasons that have nothing to do with the feature.
+
     // ---- 4. back OFF returns to exactly the shape we started from ---------------------------------
     btn().click();
     await T.sleep(1500);
@@ -337,6 +377,7 @@ window.addEventListener('load', function () { (async function () {
                out.keysStayNumeric && out.narrower &&
                out.snapHasKey && out.notInFieldIds &&
                out.swapWorksInOneCol && out.headerSpansMatch && out.xlsxHeaderIdentical &&
+               out.fillsPageWidth && out.fillsPageHeight &&
                out.rowHeightFollowsWeek && out.widthsArePerLayout && out.widthRoundTripLossless &&
                out.offIsInert && out.oneUndoStep &&
                out.errors.length === 0 && out.on.clippedH === 0 && out.off.clippedH === 0;

@@ -7386,7 +7386,7 @@ export function initLegacyApp() {
     // A hand-dragged override wins over the measurement outright -- that is the whole point of
     // dragging -- and double-clicking the handle deletes the override to get autofit back.
     const pick = (k, auto) => (colWidths[k] !== undefined ? colWidths[k] : auto);
-    return yearBlocks.map((b, bi)=>{
+    const out = yearBlocks.map((b, bi)=>{
       const m = maxByBlock[bi];
       const kd = 'y' + b.year + ':date';
       const kn = 'y' + b.year + ':notes';
@@ -7405,6 +7405,55 @@ export function initLegacyApp() {
         .concat([{ key:kn, chars:notes }]);
       return { date, labels, notes, cols };
     });
+
+    // ⭐ SINGLE-COLUMN MODE: GROW THE COLUMNS TO FILL THE PAGE WIDTH (owner, 10 Sep 2026: "how
+    // would you make adjustments such that the collumn fills the vertical page as shown in the
+    // example").
+    //
+    // ⛔ FROZEN EDIT, and it is a post-pass on purpose -- everything above is untouched and this
+    // cannot run at all while singleColumn is false, so every other calendar gets byte-identical
+    // widths. The PDF/Excel byte-compare is the proof, not this comment.
+    //
+    // THE PROBLEM IT SOLVES. One column is tall and narrow, so BOTH writers -- which fit the whole
+    // grid onto one page -- end up HEIGHT-constrained. Measured on the owner's reference: the grid
+    // is 416 x 810pt against a printable 576 x 698, so the scale is 698/810 = 0.86 and the grid
+    // prints 416*0.86 = 358pt wide, leaving 38% of the page empty at the sides. It already filled
+    // the page vertically; it was the width that was wasted.
+    //
+    // THE FACTOR. At a height-bound scale the grid fills the width when
+    // gridW' = availW / scale = availW * gridH / availH, so f = (availW*gridH)/(availH*gridW).
+    // ⚠️ gridH does NOT depend on column widths -- sheetGridMetrics computes it from the row COUNT
+    // -- so there is no feedback loop and one pass is exact.
+    if(singleColumn){
+      const M = SHEET_PAGE_MARGIN_PT, PP = SHEET_PAPER_PT.portrait;
+      const availW = PP.w - M.l - M.r, availH = PP.h - M.t - M.b - M.hdr - M.ftr;
+      const rows = sheetRowCount(schedule, yearBlocks);
+      const gridH = (rows + 1) * ROW_DEFAULT_PX * ROW_PX_TO_PT;
+      let gridW = 0;
+      out.forEach(bk => bk.cols.forEach(c => { gridW += charsToScreenPx(c.chars); }));
+      // ⚠️ Portrait deliberately: with one block sheetPageOrientation prefers portrait and only
+      // flips if landscape prints 15% larger, which a tall narrow grid never does. Sizing against
+      // the orientation that will actually be chosen keeps this one pass rather than two.
+      const f = (gridW > 0 && gridH > 0) ? (availW * gridH) / (availH * gridW) : 1;
+      // ⚠️ Only GROW, and only when it is worth doing: f <= 1 means the grid is already
+      // width-bound, and shrinking it here would fight the fit that is about to happen anyway.
+      if(f > 1.02){
+        out.forEach(bk => {
+          // ⛔ A hand-dragged column keeps EXACTLY the width it was dropped at. Stretching it too
+          // would move the user's own drag out from under them, and there would be no way to set
+          // a width that stayed set. The auto columns take up the remaining slack instead.
+          const grow = (k, v) => (colWidths[k] === undefined ? v * f : v);
+          bk.cols.forEach(c => { c.chars = grow(c.key, c.chars); });
+          // The three named fields are a SECOND view of the same numbers -- exportExcel reads
+          // widths.labels/notes while the renderer walks cols -- so they have to move together or
+          // the workbook and the screen disagree about the same column.
+          bk.date  = bk.cols[0].chars;
+          bk.notes = bk.cols[bk.cols.length - 1].chars;
+          bk.labels = bk.cols.slice(1, -1).map(c => c.chars);
+        });
+      }
+    }
+    return out;
   }
   function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.

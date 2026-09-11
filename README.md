@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Single Column Mode now fills the page width, not just its height
+
+Owner: *"how would you make adjustments such that the collumn fills the vertical page as shown in
+the example."* Local, not pushed at time of writing.
+
+⚠️ **It already filled the page vertically — the wasted space was at the sides.** One column is tall
+and narrow, and both writers fit the whole grid onto one page, so the scale is pinned by HEIGHT.
+Measured on the reference calendar: printable area 576 × 698pt, grid 416 × 810pt, so the scale was
+698/810 = 0.86 and the grid printed **358pt wide of 576** — 38% of the page empty at the sides,
+while being exactly as tall as the page allows.
+
+`sheetColumnWidths` now grows the columns in that mode by
+**`f = (availW × gridH) / (availH × gridW)`** — the factor that makes a height-bound grid fill the
+width too. ⭐ `gridH` does not depend on column widths (`sheetGridMetrics` derives it from the row
+*count*), so there is no feedback loop and one pass is exact.
+
+| | grid | printed | fills |
+|---|---|---|---|
+| Blocked | 572 × 795 | 502 × 698 | 87% wide, 100% tall |
+| Single, before | 416 × 810 | 358 × 698 | **62% wide** |
+| Single, after | 655 × 810 | 565 × 698 | **98% wide**, 100% tall |
+
+Columns grow proportionally — date 53→89, phases 92→158, notes 144→250 — so the proportions you see
+on screen are kept. 0 clipped cells either way.
+
+⛔ **A frozen edit in `sheetColumnWidths`, written as a POST-PASS so everything above it is
+untouched**, and it cannot run at all while the setting is off — the blocked layout's widths measured
+byte-identical before and after. ⛔ **A hand-dragged column keeps exactly the width it was dropped
+at**: stretching those too would move the user's own drag out from under them and leave no way to
+set a width that stayed set, so the auto columns absorb the slack instead.
+
+⚠️ **Two assumptions worth knowing.** It sizes against **portrait** — with one block
+`sheetPageOrientation` prefers portrait and only flips if landscape prints 15% larger, which a tall
+narrow grid never does, so sizing against the orientation that will actually be chosen keeps this to
+one pass. And the stretch is applied **after** `clampChars`, so the notes column may exceed
+`COL_MAX_CHARS_NOTES` in this mode — deliberately, since filling the page is the point.
+
 ### Unreleased — Single Column Mode was collapsing the printed header
 
 Owner: *"the single column mode is messing up the entire header in the export — the header should
