@@ -29,6 +29,51 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Preferences gets a real switch, and a divider between its settings
+
+Owner: *"this should be a toggle like in iOS settings and there needs to be visible seperation
+between the different settings. Refer to mantine for styling ideas."* Local, not pushed at time of
+writing.
+
+Named **Single Column Mode** at the owner's request in the same breath.
+
+A full-width button that changed colour was standing in for a switch. It is a Mantine **`Switch`**
+now — label left, 46×24 pill right, the settings-row shape everyone already knows — with a
+**`Divider`** between it and the grid-lines select so two unrelated controls stop reading as one
+group. The on-state is the app's own primary (`#2C3E50`), so it matches the active tab without a
+line of custom CSS.
+
+⛔ **A Mantine component added without its per-component CSS renders as a bare checkbox, silently.**
+This app imports `@mantine/core` styles **one file per component**, so `Switch` needed
+`Switch.layer.css` adding — and **the order of that list is derived, never alphabetical**: they
+share one `@layer`, so order decides the cascade, and sorting it once put `UnstyledButton` after
+`Button` and stripped every button in the app of its background, border and padding. I read the
+canonical position off the byte offsets of each component's first hashed class in
+`node_modules/@mantine/core/styles.layer.css` rather than guessing: Switch sits **after Stack**, and
+the app's existing list already matched that bundle order exactly. Verified afterwards that buttons
+still have their background, border and padding — that being the documented way this goes wrong.
+
+⚠️ **THE SWITCH IS AN `input[id]`, WHICH `collectFieldValues()` SWEEPS — and it is safe only because
+of the card.** `.prefs-card` is the one class that sweep skips, so the switch is **not** in
+`fields.byId`; One column travels through `captureSnapshot()`'s own key, which stays the single
+source of truth. `pref-gridlines` is the same arrangement and predates it.
+
+⛔ **A comment I wrote yesterday was wrong and is corrected in place.** It claimed a checkbox here
+"would be skipped by the sweep AND stored by the snapshot, and the two would disagree". Skipped by
+the sweep means exactly **one** store, so nothing can disagree. The genuine hazard is the mirror
+image — an id'd control of any kind placed **outside** that card lands in `fields.byId` *and* the
+snapshot, and those two can drift.
+
+⚠️ **The gate assertion changed with it, and the old one would have rotted.** `onecol` asserted the
+control "is a `<button>`, so the sweep cannot reach it". That stops being the reason the moment it
+becomes a `Switch` — the tag check would have stayed green while guarding nothing. It now asserts
+what is actually load-bearing: the control sits inside `.prefs-card`, and (already there) its id
+never appears in a saved calendar's `fields.byId`.
+
+**Verified.** `onecol` and `rowmigrate` both pass against the switch — `btnTag` reports `INPUT`,
+`btnSkippedBySweep` and `notInFieldIds` both true. Clicking it still takes the calendar from 52×7
+(`1/5/26 → 12/28/26`) to 53×4 (`10/5/26 → 10/4/27`).
+
 ### Unreleased — One column moves into Preferences, and that card gets its name back
 
 Owner: *"what if instead the button goes under 'Preferences' in settings and we just retitle that

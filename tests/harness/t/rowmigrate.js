@@ -52,7 +52,7 @@ window.addEventListener('load', function () { (async function () {
     // The fixture predates one-column mode entirely, so its singleColumn key is absent and the flag
     // must default to off. Turning it on moves 10/12/26 to a different ROW; the height must follow
     // the week, which is the whole point of the re-keying.
-    out.btnStartsOff = document.getElementById('one-col-btn').getAttribute('aria-pressed') === 'false';
+    out.btnStartsOff = document.getElementById('one-col-btn').checked === false;
     document.getElementById('one-col-btn').click();
     await T.sleep(1700);
     var l2 = -1, s2 = 0;

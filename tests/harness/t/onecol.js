@@ -64,10 +64,14 @@ window.addEventListener('load', function () { (async function () {
     // ---- 1. OFF is today, unchanged -------------------------------------------------------------
     out.off = shape();
     out.btnExists = !!btn();
-    out.btnStartsOff = out.btnExists && btn().getAttribute('aria-pressed') === 'false';
-    // ⛔ NOT a swept input: collectFieldValues() takes input[id]/select[id]/textarea[id]. A <button>
-    // is none of those, which is why the view toggles have ids safely too.
-    out.btnIsButton = out.btnExists && btn().tagName === 'BUTTON';
+    out.btnStartsOff = out.btnExists && btn().checked === false;
+    // ⛔ IT IS AN input[id] AND collectFieldValues() SWEEPS THOSE -- it is safe only because it sits
+    // inside .prefs-card, the one class that sweep skips. So assert the CARD, not the tag: the
+    // control was a <button> until 10 Sep 2026 and "is a button" would have gone green forever
+    // while quietly guarding nothing once it became a Mantine <Switch>. The real claim is "the
+    // sweep cannot reach it", and `notInFieldIds` below is the other half of it.
+    out.btnTag = out.btnExists ? btn().tagName : null;
+    out.btnSkippedBySweep = out.btnExists && !!btn().closest('.prefs-card');
     out.offIsBlocked = out.off.headers.filter(function (h) { return /^\d{4}$/.test(h); }).length >= 2;
     out.offStartsAtYearTop = /^1\//.test(out.off.first || '');
 
@@ -80,8 +84,8 @@ window.addEventListener('load', function () { (async function () {
       s2 = (n === l2) ? s2 + 1 : 0; l2 = n; return s2 >= 5;
     }, 'the single-column grid to settle', 150, 100);
     out.on = shape();
-    out.btnNowPressed = btn().getAttribute('aria-pressed') === 'true';
-    out.btnNowActive = btn().classList.contains('active');
+    out.btnNowPressed = btn().checked === true;
+    out.btnNowActive = out.btnNowPressed;
     // ONE year header, not two.
     out.onYearHeaders = out.on.headers.filter(function (h) { return /^\d{4}$/.test(h); });
     out.oneBlock = out.onYearHeaders.length === 1;
@@ -262,7 +266,7 @@ window.addEventListener('load', function () { (async function () {
 
 
     out.errors = (window.__ERR || []).slice(0, 6);
-    out.PASS = out.btnExists && out.btnStartsOff && out.btnIsButton &&
+    out.PASS = out.btnExists && out.btnStartsOff && out.btnSkippedBySweep &&
                out.offIsBlocked && out.offStartsAtYearTop &&
                out.btnNowPressed && out.btnNowActive &&
                out.oneBlock && out.startsAtWork && out.bothHalves &&

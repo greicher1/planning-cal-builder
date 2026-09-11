@@ -402,22 +402,10 @@
     border-bottom:1px solid var(--mantine-color-gray-2);
     padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
   }
-  /* ⭐ The one-column toggle. It sat beside Waterfall/Month until 10 Sep 2026 and now lives in the
-     Preferences card, so it takes .hdr-preset-btn's shape -- the same full-width control the header
-     preset buttons use -- rather than a view tab's.
-     ⚠️ ON reuses the app's ONE accent pair (UI-CONVENTIONS §3b), the same ground the active tab and
-     every primary button wear, so "this is switched on" reads the same everywhere. Keyed on
-     `.active` because that is what the engine's reflectSingleColumn() writes; `.is-primary` is the
-     always-primary treatment and would be permanently lit. */
-  .one-col-btn{
-    width:100%; margin-top:var(--mantine-spacing-sm); text-align:center;
-  }
-  .one-col-btn.active{
-    background:var(--mantine-primary-color-light);
-    color:var(--mantine-primary-color-light-color);
-    border-color:transparent;
-  }
-  .one-col-btn.active:hover{ background:var(--mantine-primary-color-light-hover); }
+  /* ⚠️ The one-column control was a full-width .hdr-preset-btn until 10 Sep 2026 and is a Mantine
+     <Switch> now (owner: "this should be a toggle like in iOS settings"). Mantine styles the switch
+     itself from the theme -- including the on-state, which is the app's primary colour, so it
+     matches the active tab without a rule here. Nothing to override; the class is gone with it. */
 
   .side-tabs-track{
     display:flex; gap:var(--mantine-spacing-xxs);

@@ -9487,8 +9487,10 @@ export function initLegacyApp() {
   function reflectSingleColumn(){
     const b = document.getElementById('one-col-btn');
     if(!b) return;
-    b.classList.toggle('active', singleColumn);
-    b.setAttribute('aria-pressed', singleColumn ? 'true' : 'false');
+    // ⚠️ A Mantine <Switch> since 10 Sep 2026, so the state is .checked -- it was a <button> with
+    // .active/aria-pressed before. Writing it here is what makes the control uncontrolled from
+    // React's side: the engine is the single owner of this value, exactly as for #pref-gridlines.
+    b.checked = singleColumn;
   }
   function setSingleColumn(next){
     if(singleColumn === !!next) return;
@@ -9576,7 +9578,10 @@ export function initLegacyApp() {
 
   (function(){
     const b = document.getElementById('one-col-btn');
-    if(b) b.addEventListener('click', ()=> setSingleColumn(!singleColumn));
+    // ⚠️ 'change', not 'click'. A checkbox flips its own .checked before the click handler runs, so
+    // a click-based `setSingleColumn(!singleColumn)` would be reasoning about the flag while the DOM
+    // already said otherwise -- and it would miss a keyboard toggle (Space) entirely.
+    if(b) b.addEventListener('change', ()=> setSingleColumn(b.checked));
     reflectSingleColumn();
   })();
   document.getElementById('view-sheet-btn').addEventListener('click', ()=> setViewMode('sheet'));

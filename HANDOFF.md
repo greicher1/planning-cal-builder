@@ -378,6 +378,26 @@ the EXPRESSION that encodes it (`slice(0, 4)` here), not for the concept.
   weight: `rowHeights` and `colWidths` are what an OLDER build reads, so dropping them would make a
   calendar saved here open wrong in last week's build.
 
+⛔ **ADDING A MANTINE COMPONENT MEANS ADDING ITS CSS FILE, IN A DERIVED POSITION (10 Sep 2026).**
+`src/main.jsx` imports `@mantine/core` styles **one file per component**. A component used without
+its file renders **unstyled and silently** — `Switch` came through as a bare checkbox until
+`Switch.layer.css` was added. ⚠️ **The order of that list is not alphabetical and must not be
+sorted**: the files share one `@layer`, so order decides the cascade, and sorting it once put
+`UnstyledButton` after `Button` and stripped every button in the app. ⭐ **How to find the right
+position without guessing:** each component's CSS file starts with a hashed `.m_…` class; find that
+class's byte offset in `node_modules/@mantine/core/styles.layer.css` and sort by offset — that is
+Mantine's own order. Switch sits after Stack. Afterwards, check a button still has its background,
+border and padding, because that is the documented way this goes wrong.
+
+⚠️ **THE ONE-COLUMN CONTROL IS A MANTINE `Switch` — an `input[id]` — AND IS SAFE ONLY BECAUSE IT IS
+INSIDE `.prefs-card`.** That class is the one `collectFieldValues()` skips, so it never reaches
+`fields.byId`; the setting travels through `captureSnapshot()`'s `singleColumn` key alone.
+⛔ **A comment here previously claimed a checkbox would be stored twice and disagree with itself.
+That was wrong** — skipped by the sweep means one store. The real hazard is an id'd control placed
+*outside* the card, which lands in both. ⚠️ The `onecol` leg used to assert "it is a `<button>`,
+therefore not swept"; that reason evaporated when it became a Switch, so it now asserts the card
+membership and the absence from `fields.byId`, which are the facts that actually hold.
+
 ⚠️ **THE ONE-COLUMN TOGGLE LIVES IN THE PREFERENCES CARD, NOT THE PREVIEW TOOLBAR** (moved 10 Sep
 2026 after the owner asked "wait how do i turn it on"). It launched beside Waterfall/Month because
 it changes that view's shape and because `viewMode` is driven from there — reasoning about the code

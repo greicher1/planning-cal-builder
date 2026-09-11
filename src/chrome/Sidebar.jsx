@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
-import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box } from '@mantine/core'
+import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
@@ -180,22 +180,36 @@ export function PreferencesCard() {
           <option value="dashed">Dashed (Excel style)</option>
         </NativeSelect>
 
-        {/* ⭐ Moved here from the preview toolbar, 10 Sep 2026 -- the owner went looking for it in
-            Settings and did not find it beside Waterfall/Month.
-            ⛔ IT IS A <button>, AND INSIDE .prefs-card THAT MATTERS MORE THAN USUAL, NOT LESS.
-            collectFieldValues() skips this card, so anything id'd in here is deliberately kept OUT
-            of saved calendars -- but One column is calendar data and MUST travel, which it does via
-            captureSnapshot()'s own key. A <button> is never swept, so both facts hold at once. ⚠️ If
-            you ever replace this with an <input type="checkbox" id=...>, it will be skipped by the
-            sweep AND stored by the snapshot, and the two will disagree the moment someone opens the
-            file in a build that reads only one of them.
-            ⚠️ The engine owns its state: it binds by id and writes .active / aria-pressed in
-            reflectSingleColumn(). React must never write them or a commit will fight the engine. */}
-        <button type="button" id="one-col-btn" className="hdr-preset-btn one-col-btn"
-                aria-pressed="false"
-                title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year">
-          One continuous column
-        </button>
+        {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
+            stacked with nothing between them read as one confusing group. */}
+        <Divider my="sm" />
+
+        {/* ⭐ A real switch, not a button that changes colour (owner: "this should be a toggle like
+            in iOS settings"). Mantine's Switch, label left and switch right, which is the settings-row
+            shape everyone already knows.
+            ⛔ IT IS AN <input type="checkbox"> WITH AN id, INSIDE .prefs-card, AND THAT IS SAFE --
+            but only because of the card. collectFieldValues() sweeps `input[id]` into every saved
+            calendar and skips this class, so the switch is NOT in fields.byId; One column travels
+            instead through captureSnapshot()'s own `singleColumn` key, which is the single source of
+            truth. `pref-gridlines` is the same arrangement and predates it.
+            ⚠️ AN EARLIER COMMENT HERE CLAIMED A CHECKBOX WOULD BE STORED TWICE AND DISAGREE WITH
+            ITSELF. That was wrong, and the correction is worth keeping: skipped-by-the-sweep means
+            exactly ONE store, so nothing can disagree. The genuine hazard is the mirror image -- an
+            id'd control of any kind placed OUTSIDE this card would be in fields.byId AND the
+            snapshot, and those two can drift.
+            ⛔ UNCONTROLLED ON PURPOSE: no `checked` prop. The engine owns the state and writes
+            .checked in reflectSingleColumn(); a controlled input would fight it on every commit,
+            the same contract #pref-gridlines has. */}
+        {/* ⚠️ Named by the owner, 10 Sep 2026. The id stays `one-col-btn`: it is the engine's
+            binding and both gate legs' handle, and renaming it would buy nothing but breakage. */}
+        <Group justify="space-between" wrap="nowrap" gap="sm">
+          <Text component="label" htmlFor="one-col-btn" size="sm" style={{ cursor: 'pointer' }}>
+            Single Column Mode
+          </Text>
+          <Switch id="one-col-btn" size="md"
+                  aria-label="Single Column Mode"
+                  title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
+        </Group>
       </div>
     </section>
   )

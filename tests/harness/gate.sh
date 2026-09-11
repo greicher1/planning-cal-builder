@@ -1153,8 +1153,8 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  onecol threw: '+str(a['EX'])); sys.exit(1)
 off=a.get('off') or {}; on=a.get('on') or {}
-chk(a.get('btnExists') and a.get('btnStartsOff') and a.get('btnIsButton'),
-    "onecol: the toggle exists, starts off, and is a <button> -- so collectFieldValues() cannot sweep it into a saved file")
+chk(a.get('btnExists') and a.get('btnStartsOff') and a.get('btnSkippedBySweep'),
+    f"onecol: the toggle exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it into a saved file (it is an {a.get('btnTag')}, which IS swept anywhere else)")
 chk(a.get('offIsBlocked') and a.get('offStartsAtYearTop'),
     f"onecol: OFF is today -- a block per year, padded to 1 Jan ({off.get('rows')} rows x {off.get('cols')} cols, from {off.get('first')!r})")
 chk(a.get('oneBlock'),

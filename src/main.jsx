@@ -63,6 +63,12 @@ import '@mantine/core/styles/Modal.layer.css'
 import '@mantine/core/styles/NumberInput.layer.css'
 import '@mantine/core/styles/Tooltip.layer.css'
 import '@mantine/core/styles/Stack.layer.css'
+// ⛔ AFTER Stack, and that position is DERIVED, NOT ALPHABETICAL. These share one @layer, so
+// order decides the cascade -- sorting this list once put UnstyledButton after Button and
+// stripped every button in the app of its background, border and padding (CLAUDE.md). The
+// order here is Mantine's own, read off the byte offsets of each component's first class in
+// node_modules/@mantine/core/styles.layer.css; Switch sits last of the ones this app uses.
+import '@mantine/core/styles/Switch.layer.css'
 import './styles/inter.css'
 import './styles/legacy.css'
 
