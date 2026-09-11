@@ -402,22 +402,22 @@
     border-bottom:1px solid var(--mantine-color-gray-2);
     padding:var(--mantine-spacing-md) var(--mantine-spacing-lg);
   }
-  /* ⭐ The one-column toggle borrows .view-toggle-btn's shape but stands OUTSIDE the segmented
-     Waterfall/Month group -- it is not a third view, it is a modifier on the first one. The gap and
-     its own border are what say so. Active state reuses the app's one accent pair (UI-CONVENTIONS
-     §3b) rather than inventing a third highlight. */
+  /* ⭐ The one-column toggle. It sat beside Waterfall/Month until 10 Sep 2026 and now lives in the
+     Preferences card, so it takes .hdr-preset-btn's shape -- the same full-width control the header
+     preset buttons use -- rather than a view tab's.
+     ⚠️ ON reuses the app's ONE accent pair (UI-CONVENTIONS §3b), the same ground the active tab and
+     every primary button wear, so "this is switched on" reads the same everywhere. Keyed on
+     `.active` because that is what the engine's reflectSingleColumn() writes; `.is-primary` is the
+     always-primary treatment and would be permanently lit. */
   .one-col-btn{
-    margin-left:var(--mantine-spacing-sm);
-    border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-default);
-    background:var(--mantine-color-white);
+    width:100%; margin-top:var(--mantine-spacing-sm); text-align:center;
   }
   .one-col-btn.active{
     background:var(--mantine-primary-color-light);
     color:var(--mantine-primary-color-light-color);
     border-color:transparent;
   }
-  .one-col-btn[hidden]{ display:none; }
+  .one-col-btn.active:hover{ background:var(--mantine-primary-color-light-hover); }
 
   .side-tabs-track{
     display:flex; gap:var(--mantine-spacing-xxs);

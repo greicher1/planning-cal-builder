@@ -378,6 +378,18 @@ the EXPRESSION that encodes it (`slice(0, 4)` here), not for the concept.
   weight: `rowHeights` and `colWidths` are what an OLDER build reads, so dropping them would make a
   calendar saved here open wrong in last week's build.
 
+⚠️ **THE ONE-COLUMN TOGGLE LIVES IN THE PREFERENCES CARD, NOT THE PREVIEW TOOLBAR** (moved 10 Sep
+2026 after the owner asked "wait how do i turn it on"). It launched beside Waterfall/Month because
+it changes that view's shape and because `viewMode` is driven from there — reasoning about the code
+rather than about where a person looks for a setting. ⛔ **It is a `<button>` with an id, inside
+`.prefs-card`, and that combination is deliberate:** the class is what `collectFieldValues()` skips,
+so id'd controls in that card are kept OUT of saved calendars — but this setting is calendar data
+and must travel, which it does through `captureSnapshot()`'s own key. A `<button>` is never swept,
+so both hold. **Never turn it into an `<input type="checkbox" id=…>`**: it would then be skipped by
+the sweep *and* stored by the snapshot, and the two disagree as soon as the file meets a build that
+reads only one. ⚠️ The card's ⓘ had to be rewritten at the same time — it promised nothing in there
+travels in a saved calendar, which this contradicts. ⚠️ It no longer hides itself in Month view.
+
 ⭐ **ONE CONTINUOUS COLUMN (10 Sep 2026) — AND THE REASON IT IS ONE FLAG DOING TWO THINGS.** Owner
 asked for a multi-year calendar that fits in a single column, with a reference running
 `10/5/26 → 10/4/27`. The obvious half — `computeYearBlocks` stops splitting per calendar year — is

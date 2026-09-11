@@ -9479,14 +9479,16 @@ export function initLegacyApp() {
 
   // The toggle REFLECTS `singleColumn`; it never holds the state itself -- same contract the
   // Waterfall/Month buttons have, and the reason a restore only has to set the flag and call this.
-  // ⚠️ Hidden in Month view: the month calendar has no year columns, so the control would be a
-  // switch that visibly does nothing.
+  // ⚠️ IT USED TO HIDE ITSELF IN MONTH VIEW, and stopped when it moved from the preview toolbar to
+  // the Preferences card (10 Sep 2026). Beside the view toggle, a control that did nothing to the
+  // month calendar was noise; in a settings card it is a property of the calendar you are free to
+  // set whenever, and a row that vanishes depending on which view you happen to be looking at is
+  // the more confusing of the two.
   function reflectSingleColumn(){
     const b = document.getElementById('one-col-btn');
     if(!b) return;
     b.classList.toggle('active', singleColumn);
     b.setAttribute('aria-pressed', singleColumn ? 'true' : 'false');
-    b.hidden = viewMode !== 'sheet';
   }
   function setSingleColumn(next){
     if(singleColumn === !!next) return;
@@ -9513,7 +9515,6 @@ export function initLegacyApp() {
       if(b) b.classList.toggle('active', m===mode);
     });
     refreshEpisodesUI();
-    reflectSingleColumn();      // it is waterfall-only, so it appears and disappears with the view
     update();
   }
 

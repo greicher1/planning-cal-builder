@@ -149,10 +149,15 @@ export function PreferencesCard() {
   return (
     <section className="card prefs-card" data-tab="settings">
       <h2>
-        <IconSliders className="card-ic" /><span>Export Preferences</span>
-        <InfoHint label="Export Preferences" width={300}>
-          These stay on this computer and are not part of a saved calendar — send someone a
-          calendar and they keep their own settings.
+        <IconSliders className="card-ic" /><span>Preferences</span>
+        {/* ⛔ THIS CARD NO LONGER HOLDS ONE KIND OF THING, AND THE HINT HAS TO SAY SO. It used to
+            promise "these stay on this computer and are not part of a saved calendar", which was
+            true of gridlines and is FALSE of One column -- that one is calendar data, in
+            captureSnapshot(), so it travels inside a file you send. Leaving the old wording would
+            have been a confident lie about where someone's settings go. */}
+        <InfoHint label="Preferences" width={330}>
+          Grid lines stay on this computer — send someone a calendar and they keep their own.
+          One column belongs to the calendar itself, so it travels with a file you send.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -174,6 +179,23 @@ export function PreferencesCard() {
           <option value="solid">Solid</option>
           <option value="dashed">Dashed (Excel style)</option>
         </NativeSelect>
+
+        {/* ⭐ Moved here from the preview toolbar, 10 Sep 2026 -- the owner went looking for it in
+            Settings and did not find it beside Waterfall/Month.
+            ⛔ IT IS A <button>, AND INSIDE .prefs-card THAT MATTERS MORE THAN USUAL, NOT LESS.
+            collectFieldValues() skips this card, so anything id'd in here is deliberately kept OUT
+            of saved calendars -- but One column is calendar data and MUST travel, which it does via
+            captureSnapshot()'s own key. A <button> is never swept, so both facts hold at once. ⚠️ If
+            you ever replace this with an <input type="checkbox" id=...>, it will be skipped by the
+            sweep AND stored by the snapshot, and the two will disagree the moment someone opens the
+            file in a build that reads only one of them.
+            ⚠️ The engine owns its state: it binds by id and writes .active / aria-pressed in
+            reflectSingleColumn(). React must never write them or a commit will fight the engine. */}
+        <button type="button" id="one-col-btn" className="hdr-preset-btn one-col-btn"
+                aria-pressed="false"
+                title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year">
+          One continuous column
+        </button>
       </div>
     </section>
   )

@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — One column moves into Preferences, and that card gets its name back
+
+Owner: *"what if instead the button goes under 'Preferences' in settings and we just retitle that
+section to just 'Preferences'."* Prompted by the plainest possible signal — *"wait how do i turn it
+on"*. Local, not pushed at time of writing.
+
+The toggle sat beside Waterfall/Month because it changes the shape of that view, and because
+`viewMode`, its closest relative, is driven from there. That reasoning was about the code, not about
+where anyone would look for a setting. It is now the last row of the **Preferences** card, which
+drops the *Export* qualifier it picked up in yesterday's split.
+
+⛔ **The card's ⓘ had to change with it, and this is the part worth keeping.** It promised *"These
+stay on this computer and are not part of a saved calendar — send someone a calendar and they keep
+their own settings."* That is true of grid lines and **false of One column**, which is calendar data
+by the owner's own ruling — it is in `captureSnapshot()` and travels inside a file you send. Moving
+the control without the copy would have left the app confidently lying about where someone's
+settings go. It now names both cases.
+
+⛔ **It is a `<button>`, and inside `.prefs-card` that matters MORE, not less.** That class is what
+`collectFieldValues()` skips, so anything id'd in there is deliberately kept out of saved calendars
+— while this setting must travel, and does, via its own snapshot key. A `<button>` is never swept,
+so both facts hold at once. ⚠️ Replace it with an `<input type="checkbox" id=…>` and it would be
+skipped by the sweep **and** stored by the snapshot, and the two would disagree the moment the file
+met a build that reads only one of them.
+
+⚠️ **It no longer hides itself in Month view.** Beside the view toggle, a control that did nothing
+to the month calendar was noise; in a settings card, a row that vanishes depending on which view you
+happen to be looking at is the more confusing of the two.
+
+**Verified.** The id is unchanged, so the engine binding and both gate legs moved with it untouched:
+`onecol` passes in full from the new location — one block, starting on the first working week,
+swapping works, row heights follow their week, widths are per layout, toggling back is
+byte-identical, one undo step.
+
 ### Unreleased — dragged row heights follow their week; each layout keeps its own column widths
 
 The two problems the previous entry left open, both found by testing rather than by a report.
@@ -105,7 +139,8 @@ add an option to build a multi-year calendar like in the example that can fit al
 column. Please consider very carefully how we can implement this feature."* Local, not pushed at
 time of writing.
 
-**A new toggle beside Waterfall/Month.** Off by default, and off is exactly today.
+**A new toggle.** Off by default, and off is exactly today. *(It launched beside Waterfall/Month
+and moved into the Preferences card on 10 Sep 2026 — see the later entry.)*
 
 ⛔ **IT IS ONE FLAG DRIVING TWO CHANGES, AND THE MEASUREMENT IS THE REASON.** The obvious half —
 stop splitting the waterfall into a block per calendar year — is **not enough on its own, and alone

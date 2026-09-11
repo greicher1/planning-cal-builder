@@ -89,20 +89,9 @@ export function PreviewToolbar() {
         </button>
       </div>
 
-      {/* ⭐ One continuous column (owner, 10 Sep 2026). Sits beside the view toggle because it is a
-          view-SHAPE control, and beside `viewMode` is where its state lives too -- both are in
-          captureSnapshot(), so a calendar opens laid out the way it was built.
-          ⛔ A <button>, not a checkbox, and that is load-bearing: collectFieldValues() sweeps
-          `input[id]` into every saved calendar, so an id'd <input> here would be stored TWICE --
-          once in fields.byId and once as the snapshot key -- and the two could disagree on restore.
-          The Waterfall/Month buttons carry ids for the same reason and are safe for the same one.
-          ⚠️ The engine owns it entirely: it binds by id, toggles .active/aria-pressed, and hides it
-          in Month view. React must never write its state, or a commit would fight reflectSingleColumn(). */}
-      <button className="view-toggle-btn one-col-btn" id="one-col-btn" type="button"
-              aria-pressed="false"
-              title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year">
-        <IconRows className="vt-ic" /><span>One column</span>
-      </button>
+      {/* ⚠️ "One column" LIVED HERE until 10 Sep 2026 and now sits in the Preferences card
+          (Sidebar.jsx). The owner could not find it beside the view toggle. It kept its id, so the
+          engine binding and both gate legs were unaffected by the move. */}
 
       <div className="preview-tools">
         {/* Shift All is a SPLIT control: the arrows act on one click (much the most-used thing
