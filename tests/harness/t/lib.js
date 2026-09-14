@@ -36,8 +36,7 @@ window.__T = (function(){
     set('season-num','2');
     set('num-episodes','10');
     set('shoot-days-per-ep','8');
-    set('union-country','US');
-    set('union-usregion','US-GEN');
+    set('union-place','us-general');
     set('start-writersRoom','2026-01-05'); set('weeks-writersRoom','12');
     set('start-prePrep','2026-04-06');     set('weeks-prePrep','6');
     set('start-prodPrep','2026-05-18');    set('weeks-prodPrep','6');
@@ -174,7 +173,7 @@ window.__T = (function(){
   //
   // ⚠️ ** Pick a readiness signal only LIVE CODE can produce. ** This probe was wrong twice before
   // ** it was right, and both wrong versions looked reasonable:
-  //     #union-country .value  -- its default option is value="" ("None"), so an empty string is
+  //     #union-place .value  -- its default option is value="" ("None"), so an empty string is
   //                               the correct fresh state AND what a dead page shows.
   //     #file-menu-label text  -- the markup ships the literal text "Untitled" already.
   // A probe a dead page also satisfies turns a broken page into a "broken feature", which is how
@@ -215,7 +214,7 @@ window.__T = (function(){
   // ⛔ Keep this a signal ONLY LIVE CODE CAN PRODUCE -- the rule the three previous moves each
   // broke. #file-menu having children does NOT qualify (React commits those before the engine
   // starts); neither does #file-menu-label's text (the markup ships "Untitled"), nor
-  // #union-country's value (its default option is value="", which is also what a dead page shows).
+  // #union-place's value (its default option is value="", which is also what a dead page shows).
   // ⚠️ And do NOT reach for `table.sheet-table` here: a BLANK page has no grid at all --
   // computePhaseRowLayout() returns [] until Show Info is complete -- so it never appears before a
   // file is opened. That was the first attempt at this fix and it timed out for a reason that
@@ -283,7 +282,7 @@ window.__T = (function(){
       // #file-menu is empty in the markup; only renderRecents() fills it. Non-zero means the
       // app's init actually completed, which is NOT the same as the page merely having loaded.
       menuItems: (document.getElementById('file-menu') || {children: []}).children.length,
-      country: (document.getElementById('union-country') || {}).value || '',
+      country: (document.getElementById('union-place') || {}).value || '',
       hasGrid: !!document.querySelector('table.sheet-table'),
       excelJs: typeof window.ExcelJS,
       fontsLoaded: (document.fonts && document.fonts.check) ? document.fonts.check('11pt Carlito') : null

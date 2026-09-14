@@ -138,7 +138,7 @@ reason attached; this is the index.
 - **Allow ~2 s after triggering a restore.** It is async; measuring too early reports an empty
   calendar, which looks like a restore failure.
 - **Pick a readiness probe only LIVE CODE can satisfy.** This was wrong twice before it was right.
-  `#union-country`'s default option is `value=""`, so an empty string is the *correct* fresh state
+  `#union-place`'s default option is `value=""`, so an empty string is the *correct* fresh state
   and also what a dead page shows; `#file-menu-label` ships the literal text "Untitled" in the
   markup. A probe a dead page also satisfies turns a broken page into a "broken feature". The
   ⚠️ **The probe that "works" has moved FOUR times.** The version this README used to recommend —

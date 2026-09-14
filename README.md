@@ -29,6 +29,74 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Production Region became a LOCATION picker, and the holiday data was regenerated from rules
+
+Applied from `city-select.patch` (written 14 Sep 2026 against `5c069bc`). Local, not pushed.
+
+**The user now picks where they shoot; the agreement resolves behind it and is never selected.** Three
+selects — `#union-country` plus a dependent `#union-usregion` / `#union-subregion` — became one
+`#union-place` with 27 options under five `<optgroup>`s: 20 production markets, six province-wide
+Canadian entries, and an *Elsewhere in the U.S. — Area Standards* fallback so nothing the old model
+could express was lost. A UPM knows the city and should not have to know that Florida is an Area
+Standards market. Nine US markets share one list, so `20 places → 12 lists` is structural, not a
+coincidence. Under the select, two lines say what the city name hides — which agreement it resolved
+to and which locals hold the card — and Chicago, San Francisco, New Orleans, Oahu and Puerto Rico
+carry an amber caveat, because their list is a **proxy** rather than a finding.
+
+⚠️ **This is a deliberate save-format change, and the migration is the whole risk.**
+`applyStateSnapshot()`'s replay is `const node = document.getElementById(id); if(!node) return;` — so
+the moment `#union-usregion` stopped existing, a v1.2.0 save would have had its region **silently
+dropped**: a New York calendar reopening on the General list, a different wrap date, and no error
+anywhere. `migrateRegionSnapshot()` runs as the **first statement of `applyStateSnapshot()`**, before
+the replay can ever see the legacy keys. Two rules inside it are easy to get wrong: a blank
+`union-country` meant *None* while the other two selects still held resting values — promoting those
+would switch holidays **on** for a calendar that deliberately had none — and a province-level save
+migrates to the **province-wide** entry, not that province's city, so a restore is faithful to what
+the user actually picked.
+
+**Holiday data is now generated from rules by `tools/gen_holidays.py`, never transcribed.** Change a
+rule and regenerate; do not edit a date. Four new lists (`UK-EW`, `UK-SCT`, `AU-VIC`, `LT`), every
+list extended to 2030, and two corrections:
+
+| | before | after |
+|---|---|---|
+| Ontario | 9 days | **11** — gained the August Civic Holiday and the National Day for Truth and Reconciliation |
+| United Kingdom | one `UK` list carrying **both** August bank holidays — correct for neither nation | split into `UK-EW` (31 Aug) and `UK-SCT` (3 Aug, plus 2nd January and St Andrew's Day, no Easter Monday) |
+
+Verified by set-differencing every `date:` line across the diff: the **only** removals in 2026–2029
+are the four bogus `Summer Bank Holiday (Scotland)` entries from the old merged `UK` list. `US-GEN`,
+`US-NY`, `CA-BC`, `CA-QC`, `CA-AB`, `CA-MB` and `CA-NS` are date-identical — which is why the grid
+gates could be held to *unchanged* rather than merely *explained*.
+
+**What was verified.** `node tests/verify_migration.mjs` → **105/105** legacy combinations resolve to
+the same holiday list, plus eight edge cases, exit 0; it reads `PLACES` and `migrateRegionSnapshot`
+out of `app.js` at runtime so it cannot drift from what it tests. The real `v1.0.0-saved.html`
+fixture restores through the picker to `union-place: "us-general"` on `US-GEN` with an **identical
+grid signature** — 52 rows, 154 cells, `gridWidthPt` 324, 0 clipped. Gates 1–4 unchanged (waterfall
+PDF byte-identical, Excel parts identical). Gate 5 failed by design and was re-cut: `fields.byId`
+moves **55 → 53** ids, `changed: []`. In the browser: Mantine's `NativeSelect` passes `<optgroup>`
+through intact (5 groups, 28 options), the caveat renders in the intended amber, and the holiday
+panel's empty state correctly distinguishes *no region picked* from *none in range*.
+
+⛔ **Three defects found in the patch and fixed here — it had never been built or run by its author.**
+
+- **`Reset All` was dead on arrival.** The reset block still cleared `#union-country` and read
+  `DEFAULT_PROVINCE` / `DEFAULT_US_AREA` / `lastCountry` / `lastSubregion` / `lastUsArea`, all six of
+  which the patch deletes. `null.value` threw **first**, so the reset died half-done: phases and
+  sim-post cleared, the show title, episodes, notes and hiatuses below it untouched. Now clears
+  `#union-place` to `''`, which is the same *None* the old `country=''` meant.
+- **`normalizeRegionSelection()`'s comment was false.** It claimed an unknown place "falls back to the
+  default rather than silently resolving to None". A `<select>` coerces an unmatched value to `''` at
+  assignment, so the guard is already false and the fallback never fires. Behaviour left alone —
+  *None* is the safer landing, and forward compatibility is out of scope — but the comment now says
+  what actually happens.
+- One stale `union-country` reference in a code comment.
+
+⚠️ **Found while re-cutting: five keys in the committed `restore.json` baseline were already
+stale**, from the 8 Sep probe rework and not from this change — proven by running the leg against a
+stashed pre-patch tree. Only `form` was re-cut; the rest were left alone and written up rather than
+silently absorbed.
+
 ### Unreleased — Single Column Mode now fills the page width, not just its height
 
 Owner: *"how would you make adjustments such that the collumn fills the vertical page as shown in

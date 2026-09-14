@@ -89,6 +89,68 @@ deliberate: rows are a fixed height and text is fitted to the row, so a three-li
 row is clipped by design once the shrink floor is reached. Only horizontal clipping is the padding
 trap that has landed twice (`HANDOFF.md` §3), and only horizontal clipping is the gate.
 
+## ✅ `restore.json`'s `form` RE-CUT — 55 keys to 53 (14 Sep 2026)
+
+**DONE 14 Sep 2026**, and only after the migration was proved by hand — this section was written
+ahead of time saying "not done here", and is updated in place so the working shows. Same reason the
+8 Sep re-cut above is written up rather than just made.
+
+The Production Region stopped being a country plus a dependent sub-region and became a single
+LOCATION picker. `fields.byId` is keyed by DOM element id, so the key set moves:
+
+| | ids | why |
+|---|---|---|
+| **removed (3)** | `union-country`, `union-usregion`, `union-subregion` | the three-select region model is gone |
+| **added (1)** | `union-place` | one select, 27 places, resolved to an agreement through `PLACES` |
+
+**Net 55 → 53.** The `v1.0.0-saved.html` fixture carries `union-country: "US"` and
+`union-usregion: "US-GEN"`, so this leg exercises `migrateRegionSnapshot()` for real: it should
+restore to `union-place: "us-general"` and the same `US-GEN` holiday list it always had. If it
+restores to anything else, the migration is wrong — do **not** re-cut past that.
+
+⛔ `form` is compared as a **dict**, so this is keys *and* values. A value-only difference here is
+not a format change and must not be waved through with a key-set re-cut.
+
+Unchanged by this: `hClipCount`, `gridWidthPt`, `cols`, rows, and the PDF/Excel captures. The region
+seeds to the same holiday list it did before, so nothing about the grid moves — which is the point,
+and is worth checking rather than assuming.
+
+### What was actually observed, 14 Sep 2026
+
+Checked, and it matches the prediction above:
+
+| | |
+|---|---|
+| removed | `union-country`, `union-usregion`, `union-subregion` |
+| added | `union-place` = **`us-general`** |
+| **changed among shared keys** | **none** — the gate's own output said `changed: []` |
+| count | **55 → 53** |
+
+`sig` (the full grid signature), `rows` 52, `cells` 154, `gridWidthPt` 324, `bytes` 756473 and
+`hClip` 0 all came back **identical**, so the migration is faithful and not merely non-fatal. Gates
+1–4 passed unchanged, including a byte-identical waterfall PDF. The re-cut replaced **only the
+`form` object**; the write was guarded by assertions on each of the four claims above and would have
+aborted rather than absorb a value change.
+
+### ⚠️ Found while re-cutting: five NON-`form` keys in this baseline were ALREADY STALE
+
+Not caused by the city-select change, and deliberately **not** re-cut. Proven by running the
+`restore` leg against a stashed pre-patch tree and comparing three ways — committed baseline vs
+pre-patch vs post-patch:
+
+| key | baseline | pre-patch | post-patch |
+|---|---|---|---|
+| `legacyNotice` | `false` | `true` | `true` |
+| `hasOpenPicker` / `hasSavePicker` | `"function"` | absent | absent |
+| `menuWrapShown` | `true` | absent | absent |
+| `health` | absent | present | present |
+
+The pre-patch and post-patch columns are identical, so **this patch moved none of them** — they
+drifted when the readiness probe was reworked on 8 Sep and the baseline was not re-cut for it. Gate
+5 reads only `form`, so they gate nothing today; they are recorded here because a future reader
+comparing this file against a fresh capture would otherwise suspect a regression. `legacyNotice:
+true` is the *correct* value — opening a legacy `.html` should raise the upgrade strip.
+
 ## Reproducing it
 
 ```bash

@@ -83,47 +83,66 @@ export function RegionCard() {
             this takes only the explanation — #union-lock-hint below stays visible. */}
         <InfoHint label="Production Region">
           Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
-          pushing the schedule out. Canada is picked by province — the statutory lists genuinely differ.
+          pushing the schedule out. Canada is picked by province and the UK by nation — the statutory lists genuinely differ.
         </InfoHint>
       </h2>
       <div className="side-block">
       {/* Same round-5 spacing as the Show card. */}
       <Stack gap="xl">
-        <NativeSelect id="union-country" label="Country">
+        {/* ONE control. The user picks WHERE THEY SHOOT; the agreement resolves behind it and is
+            never selected directly -- which is the right way round, because a UPM knows the city
+            and should not have to know that Florida is an Area Standards market.
+            ⚠️ The option set stays STATIC so a restored save can set any value directly; that is
+            the same contract the three old selects had, and the reason none of them were ever
+            repopulated per country. */}
+        <NativeSelect id="union-place" label="Location">
           <option value="">None</option>
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-          <option value="UK">United Kingdom</option>
-          {/* Legacy value from files saved before Canada was split by province. Kept (hidden) so a
-              restored file still selects Canada; normalizeRegionSelection() then rewrites it. */}
-          <option value="CAN" hidden>Canada</option>
+          <optgroup label="United States">
+            <option value="us-atlanta">Atlanta, GA</option>
+            <option value="us-chicago">Chicago, IL</option>
+            <option value="us-florida">Florida — statewide</option>
+            <option value="us-los-angeles">Los Angeles, CA</option>
+            <option value="us-maryland">Maryland / DC</option>
+            <option value="us-miami">Miami, FL</option>
+            <option value="us-new-mexico">New Mexico</option>
+            <option value="us-new-orleans">New Orleans, LA</option>
+            <option value="us-new-york">New York, NY</option>
+            <option value="us-oahu">Oahu, HI</option>
+            <option value="us-pittsburgh">Pittsburgh, PA</option>
+            <option value="us-puerto-rico">Puerto Rico</option>
+            <option value="us-san-francisco">San Francisco, CA</option>
+            <option value="us-general">Elsewhere in the U.S. — Area Standards</option>
+          </optgroup>
+          <optgroup label="Canada">
+            <option value="ca-montreal">Montreal, QC</option>
+            <option value="ca-toronto">Toronto, ON</option>
+            <option value="ca-vancouver">Vancouver, BC</option>
+            <option value="ca-alberta">Alberta — province-wide</option>
+            <option value="ca-bc">British Columbia — province-wide</option>
+            <option value="ca-manitoba">Manitoba — province-wide</option>
+            <option value="ca-nova-scotia">Nova Scotia — province-wide</option>
+            <option value="ca-ontario">Ontario — province-wide</option>
+            <option value="ca-quebec">Quebec — province-wide</option>
+          </optgroup>
+          <optgroup label="United Kingdom">
+            <option value="uk-london">London</option>
+            <option value="uk-scotland">Scotland</option>
+          </optgroup>
+          <optgroup label="Australia">
+            <option value="au-melbourne">Melbourne, VIC</option>
+          </optgroup>
+          <optgroup label="Europe">
+            <option value="eu-lithuania">Lithuania</option>
+          </optgroup>
         </NativeSelect>
 
-        {/* US area picker. IATSE's West Coast Studio Local Agreements and the Area Standards
-            Agreement carry the SAME 11 holidays, so one "General" list covers LA, Atlanta,
-            Albuquerque etc. New York (Local 52) is the genuine exception: it swaps Good Friday for
-            Veterans Day. Kept as its own <select> (rather than reusing the province one) so both
-            option sets stay static and a restored save can set either value directly.
-            ⚠️ display:none is the INITIAL state only — reflectRegionUI() owns it from then on. */}
-        <Box id="union-usregion-row" style={{ display: 'none' }}>
-          <NativeSelect id="union-usregion" label="Area">
-            <option value="US-GEN">General (incl. CA, GA, NM, LA)</option>
-            <option value="US-NY">New York (Local 52)</option>
-          </NativeSelect>
-        </Box>
-
-        {/* Province picker: only meaningful for Canada, whose statutory holidays genuinely differ by
-            province (Boxing Day is Ontario-only here; Remembrance Day is BC/AB; Truth and
-            Reconciliation is BC/MB; the Fête nationale is Quebec-only). */}
-        <Box id="union-subregion-row" style={{ display: 'none' }}>
-          <NativeSelect id="union-subregion" label="Province">
-            <option value="CA-BC">British Columbia</option>
-            <option value="CA-ON">Ontario</option>
-            <option value="CA-QC">Quebec</option>
-            <option value="CA-AB">Alberta</option>
-            <option value="CA-MB">Manitoba</option>
-            <option value="CA-NS">Nova Scotia</option>
-          </NativeSelect>
+        {/* What the city name hides. Written by reflectRegionUI(), so they stay plain elements. */}
+        <Box>
+          <p id="union-resolves" className="region-resolves"></p>
+          <p id="union-locals" className="region-locals"></p>
+          {/* Chicago and San Francisco are ASA carve-outs whose agreements are unpublished, so
+              their list is a proxy. This is the line a region key had no way to say. */}
+          <div id="union-caveat" className="region-caveat" style={{ display: 'none' }}></div>
         </Box>
       </Stack>
       {/* Names three specific controls, so it is a field error rather than an advisory — but it is

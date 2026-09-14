@@ -167,24 +167,39 @@ hand-transcribed — regenerate it rather than editing dates by hand.**
 
 ### Region model
 
-The region is a **country + a sub-region**, held in **three separate `<select>` elements** so
-every option set stays static and a restored save can set any value directly:
+*(Rewritten 14 Sep 2026. Three selects became one; this section used to describe the old shape.)*
 
-| Element | Values |
-|---|---|
-| `#union-country` | `US`, `CA`, `UK` (+ hidden legacy `CAN`) |
-| `#union-usregion` | `US-GEN`, `US-NY` |
-| `#union-subregion` | `CA-BC`, `CA-ON`, `CA-QC`, `CA-AB`, `CA-MB`, `CA-NS` |
+The region is a **place**, held in ONE `<select>` — `#union-place` — whose option set is static, so
+a restored save can set any value directly. 27 options under five `<optgroup>`s: the 20 production
+markets, plus province-wide Canadian entries and an "Elsewhere in the U.S. — Area Standards"
+fallback, so nothing the old three selects could express was lost.
+
+**The user picks WHERE THEY SHOOT. The agreement resolves behind it and is never selected**, because
+a UPM knows the city and should not have to know that Florida is an Area Standards market. Nine US
+markets share one list, so `20 places → 12 lists` is structural, not coincidence.
+
+`PLACES[value] = {region, label, locals, caveat}`. **`caveat` is the thing a region key could never
+express**: Chicago and San Francisco are carved out of the Area Standards Agreement *by name* and
+neither local publishes its agreement, so their list is a **proxy, not a finding** — and the UI says
+so under the control.
 
 Supporting functions:
 
-- **`effectiveRegionKey()`** resolves country + sub-region to ONE `HOLIDAYS` key.
-  The bare `US`/`CA` values are **never** keys.
-- **`reflectRegionUI()`** shows whichever sub-region row applies (UK has none).
-- **`normalizeRegionSelection()`** rewrites the legacy `CAN` value from pre-split saves
-  and fills a missing sub-region with that country's default (`CA-BC` / `US-GEN`).
+- **`effectiveRegionKey()`** is now a `PLACES` lookup returning ONE `HOLIDAYS` key, or null.
+- **`reflectRegionUI()`** no longer shows/hides dependent rows — there are none. It writes the
+  resolution line (`#union-resolves`), the locals line (`#union-locals`) and the caveat banner
+  (`#union-caveat`).
+- **`normalizeRegionSelection()`** falls an unknown value back to `DEFAULT_PLACE` rather than
+  letting it resolve to "None", which would silently shorten the schedule.
+- **`migrateRegionSnapshot(snap)`** folds the three legacy keys into `union-place`. ⛔ It runs as the
+  **first statement of `applyStateSnapshot()`, before the `fields.byId` replay** — that replay does
+  `if(!node) return`, so a v1.2.0 save's region would otherwise be silently dropped and a New York
+  calendar would reopen on the General list.
 - **`syncRegionTracking()`** re-baselines the change-guard after any programmatic
   load/restore, so the next user change isn't compared against a stale value.
+
+⛔ **This moved the save-format key set** (−`union-country` −`union-usregion` −`union-subregion`
++`union-place`), so **gate 5's baseline had to be re-cut deliberately.** See HANDOFF.md.
 
 ### THE RESEARCH FINDINGS (verified against primary sources — do not silently change these)
 
@@ -228,7 +243,20 @@ word-for-word identical, so **LA = Atlanta = Albuquerque**):
 | **Aug civic holiday** | ✅ BC Day | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Fête nationale (24 Jun)** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 
-Totals: **BC 11 · ON 9 · QC 8 · AB 9 · MB 9 · NS 6**
+Totals: **BC 11 · ON 11 · QC 8 · AB 9 · MB 9 · NS 6**
+
+*(ON moved 9 → 11 on 14 Sep 2026: DGC Ontario Art. ON4.02 enumerates eleven, adding the August
+Civic Holiday and Truth & Reconciliation. Under-reserving a wrap date is not recoverable;
+over-reserving is, and every holiday is individually switchable off.)*
+
+**UK — split by nation 14 Sep 2026.** `UK-EW` (8) and `UK-SCT` (9). The old single `UK` list
+carried BOTH August bank holidays and was correct for neither nation. Scotland adds 2 January
+and St Andrew's Day, has **no** Easter Monday, and takes its summer holiday in early August.
+GOV.UK publishes `gov.uk/bank-holidays.json` — the only official machine-readable source of the
+twelve, and the only one that carries one-off holidays (Scotland had a World Cup bank holiday on
+15 June 2026 that no rule produces). Sync from it rather than trusting rules alone.
+
+**Added 14 Sep 2026:** `AU-VIC` (13) and `LT` (16).
 
 \* Ontario's IATSE Local 873 treats 30 Sept as a *"Proclaimed Holiday"*, not statutory, with an
 auto-upgrade clause if Ontario legislates it.

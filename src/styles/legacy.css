@@ -1919,7 +1919,7 @@
      same shape as the button.primary/.secondary cleanup on 29 Aug 2026. The line-height concern
      that old block's comment raised is still handled -- the surviving block above sets
      line-height:1, which overrides the button font-shorthand reset the same way. */
-  #union-country.locked, #union-subregion.locked, #union-usregion.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
+  #union-place.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
   table.sheet-table{
@@ -2248,5 +2248,19 @@
      paired with `flex-direction:column` on the same <label>. The React version is a plain Box, so
      without this the select becomes a flex ITEM and shrinks to its content width instead of filling
      the card. Restored here rather than by changing the engine, which sets 'flex' for both rows. */
-  #union-usregion-row, #union-subregion-row{ flex-direction:column; }
-  #union-usregion-row > *, #union-subregion-row > *{ width:100%; }
+
+
+/* ---- Production Region: what the city name resolves to -------------------------------------
+   Written by reflectRegionUI(). Sizes are theme.js tokens (xxs 10px / xs 11px), colours are the
+   warm gray ramp -- not Mantine's cool neutral, per theme.js rule 2. */
+.region-resolves{
+  margin:6px 0 0; font-family:var(--mantine-font-family-monospace);
+  font-size:10px; line-height:1.45; color:#726F68;           /* gray[6] */
+}
+.region-locals{
+  margin:8px 0 0; font-size:11px; line-height:1.5; color:#726F68;
+}
+.region-caveat{
+  margin:10px 0 0; padding:9px 11px; border-radius:7px; font-size:11px; line-height:1.5;
+  background:#FEF6E7; border:1px solid #F0D9A8; color:#7A5B14;   /* warn 0 / 2 / 9 */
+}

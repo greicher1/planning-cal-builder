@@ -2,6 +2,116 @@
 
 Written at the end of the session that ended at commit `cf51a29` (28 Aug 2026).
 
+**Last updated 14 Sep 2026 — the Production Region became a LOCATION picker, and this is a
+deliberate SAVE-FORMAT change.** Not yet pushed; nothing is live until you push.
+
+⛔ **Gate 5's baseline must be re-cut before this can pass.** `fields.byId` is keyed by DOM element
+id, and the key set moves by exactly four keys:
+
+| | |
+|---|---|
+| removed | `union-country`, `union-usregion`, `union-subregion` |
+| added | `union-place` |
+
+That is the whole point of gate 5, so it *should* fail until the baseline is deliberately re-cut.
+⚠️ The target is **`restore.json` → `form`**, not `base.json` — gate 5 reads `formSignature()` off
+the `restore` leg, and compares it as a dict, so **keys AND values** both have to match:
+
+```
+npm run build
+cd tests/harness && ./run.sh restore 35
+# then copy the new restore.json's `form` object into
+# tests/baselines/2026-08-29-stage-7/restore.json
+```
+
+The field count in that baseline's README table moves **55 → 53** (three ids out, one in). Record
+the re-cut in the baseline README the way the 8 Sep 2026 one was — a table of what moved and why —
+because an undocumented re-cut is indistinguishable from absorbing a real regression.
+
+**What replaced them.** One `#union-place` select, 27 options under five `<optgroup>`s — the 20
+markets plus province-wide Canadian entries and an "Elsewhere in the U.S." fallback, so nothing the
+old three selects could express was lost. A new `PLACES` map resolves a place to a `HOLIDAYS` key;
+`effectiveRegionKey()` is now a `PLACES` lookup, and the two dependent rows are gone along with
+`reflectRegionUI()`'s show/hide job — it now writes the resolution line, the locals line and the
+caveat banner instead.
+
+**The migration is the dangerous part, and it runs on the SNAPSHOT, not the DOM.**
+`applyStateSnapshot()`'s replay is `const node = document.getElementById(id); if(!node) return;` —
+so the instant `#union-usregion` stopped existing, a v1.2.0 save would have had its region
+**silently dropped** and a New York calendar would have reopened on the General list, with a
+different wrap date and no error anywhere. `migrateRegionSnapshot(snap)` folds the three legacy keys
+into one and is called as the **first statement** of `applyStateSnapshot()`. Two rules inside it
+that are easy to get wrong:
+
+- a blank `union-country` meant **"None"**, and the other two selects still carried their resting
+  values — promoting those would switch holidays ON for a calendar that deliberately had none, and
+  silently lengthen its schedule;
+- a province-level save migrates to the **province-wide** entry, not to that province's city, so a
+  restore is faithful to what the user actually picked. Same list either way; only the label differs.
+
+Verified: **105/105** legacy country × area × province combinations resolve to the same list they did
+before, plus six edge cases (pre-region files, already-migrated files, unknown values from a newer
+build, absent sub-selects, legacy `CAN`, and "None" staying None). `tests/verify_migration.mjs`
+is the harness and it reads the migration out of `app.js` so it cannot drift from it.
+
+✅ **BUILT AND GATED 14 Sep 2026** — this paragraph used to say the opposite ("not built or gated
+here"; the authoring sandbox could not reach the npm registry). `npm run build` → 1,154,268 bytes,
+`npm run check` 12/12, `tests/harness/gate.sh` run in full. **Gates 1–4 PASS unchanged**, gate 5
+failed by design and was re-cut. `node tests/verify_migration.mjs` → 105/105, exit 0.
+✅ **The Mantine `NativeSelect` × `<optgroup>` risk is CLEARED** — the author flagged it as unproven
+and it renders intact: five groups, 28 options. No flatten-to-plain-`<select>` fallback is needed.
+The caveat banner and resolution line, also flagged as "never seen", render in the intended amber
+(`#FEF6E7` on `#F0D9A8`, text `#7A5B14`).
+
+⛔ **"Also expect gates 2 and 4 to move" was WRONG — they did not move, and holding them to
+*unchanged* is the stronger claim.** The reasoning was right in the abstract (Ontario went 9 → 11,
+and the old single `UK` list — which mixed England & Wales with Scotland's early-August bank holiday
+and was correct for neither — split into `UK-EW` and `UK-SCT`) but no BASELINE FIXTURE is in either
+jurisdiction: they all seed `us-general` → `US-GEN`. Established before running anything, by
+set-differencing every `date:` line in the diff: the only removals in 2026–2029 are the four bogus
+`Summer Bank Holiday (Scotland)` entries, and `US-GEN`, `US-NY`, `CA-BC`, `CA-QC`, `CA-AB`, `CA-MB`
+and `CA-NS` are date-identical. The waterfall PDF came back byte-identical and the Excel parts
+identical. **Do that set-difference first on any future holiday-data change** — it converts "the
+diffs need eyes" into a falsifiable prediction, and a moved gate then means a regression.
+
+⚠️ **Coverage gap, stated honestly: no fixture's Production phase spans an early-August week under
+a UK region**, so the one date that actually changed is proven by data inspection, not by a gate leg.
+`stintswap-chained.sptcal` is the only UK fixture and its Production runs from 2026-11-02.
+
+**FIVE references would have shipped broken — the patch fixed four and MISSED THE WORST ONE.**
+⛔ The fifth is `Reset All` (`app.js`, the `reset-btn` handler): it still cleared `#union-country`
+and read `DEFAULT_PROVINCE` / `DEFAULT_US_AREA` / `lastCountry` / `lastSubregion` / `lastUsArea`,
+every one of which this change deletes. `null.value` threw FIRST, so Reset All died **half done** —
+phases and sim-post cleared, the show title, episodes, notes and hiatuses below it untouched, and a
+`TypeError` in the console. Fixed 14 Sep 2026: it now clears `#union-place` to `''`, which is the
+same *None* the old `country=''` meant. **The lesson is the grep, not the bug** — the patch's own
+note said "four references are already fixed, but grep if anything behaves oddly", and the grep is
+what found the fifth. Run it and read every hit; do not trust a count.
+
+⛔ **A third defect: `normalizeRegionSelection()`'s comment described behaviour that CANNOT HAPPEN.**
+It claimed an unknown place value "falls back to the default rather than silently resolving to None
+and quietly shortening the schedule". A `<select>` coerces an unmatched value to `''` **at
+assignment**, so by the time the function runs `el.value` is already `''` and its own `el.value &&`
+guard is false — the `DEFAULT_PLACE` line never fires. Verified in the browser. The BEHAVIOUR was
+left alone on purpose (forward compatibility is explicitly out of scope, and *None* is the safer
+landing — silently applying a US holiday list to a place the build cannot identify would be worse
+than applying none); only the comment changed, to say what actually happens. ⚠️ **Comments that
+describe a guard are worth testing, not just reading** — this one read as precision.
+
+✅ **The strongest migration evidence is the fixtures, and it is not mentioned in the patch.** All 17
+`.sptcal` fixtures carry legacy region keys, and **12 of them are exactly the trap case** —
+`union-country: ''` with `union-usregion: 'US-GEN'` and `union-subregion: 'CA-BC'` still sitting in
+the resting selects. Every gate leg that loads them passes with an unchanged grid, so "None stays
+None" is proven on real saved files through the inline `?state=` path, not only by the 105 synthetic
+combinations. Four more carry `US` and one carries `UK`, so all three migration branches are
+exercised by real files.
+
+The four the patch did fix — worth knowing because `grep` for the old ids is the only thing that
+finds them: `app.js`'s holiday-panel empty-state check (it read
+`#union-country` to decide between "no region picked" and "none in range", and would have said "no
+region picked" forever), the `.locked` CSS selector, two responsive rules for the removed rows, and
+three seeds in the test harness (`t/lib.js`, `t/wrapdate.js`).
+
 **Last updated 2 Sep 2026** — the block swap (COLUMN-ORDER-PLAN.md) is now complete through step 6:
 store, reconciler, the one frozen line, the "Swap Block" button, mode inference, per-run outlines, and
 E1 finished. **Pushed 2 Sep 2026 as `2a75929`** (owner's call, per-action) — origin was already at

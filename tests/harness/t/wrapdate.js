@@ -66,7 +66,7 @@ window.addEventListener('load', function () { (async function () {
 
     async function scenario(name, opts) {
       T.set('show-title', 'Wrap Probe');
-      T.set('union-country', 'US'); T.set('union-usregion', 'US-GEN');
+      T.set('union-place', 'us-general');
       T.set('num-episodes', ''); T.set('shoot-days-per-ep', '');
       T.set('start-production', opts.start);
       T.set('weeks-production', String(opts.days));
