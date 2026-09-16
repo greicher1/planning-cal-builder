@@ -1836,6 +1836,46 @@ is not merely permitted, it is *required*: the fix restores v1.0.0's output. One
 two ids to the existing strip list in `buildSavedHtml()`. **Ask before applying it**, like any
 change to `index.html`.
 
+### 2j. Region coverage — ✅ **NI + WALES + GERMANY ADDED** (16 Sep 2026)
+
+31 places / 15 lists, was 27 / 12. Owner asked for these three by name after the city-select shipped.
+
+⛔ **Northern Ireland was the Scotland bug again.** The UK was split into two nations; GOV.UK's feed
+— already consumed by `tools/gen_holidays.py` — publishes **three**. NI = every E&W bank holiday plus
+St Patrick's Day and the Battle of the Boyne. A Belfast shoot had to pick *London* and lost both.
+**If another jurisdiction is ever split, check whether the source has more divisions than you took.**
+
+⚠️ **Germany went in as TWO regions and must stay that way: Studio Babelsberg is in Potsdam =
+BRANDENBURG, not Berlin.** Berlin has International Women's Day and no Reformation Day; Brandenburg
+the reverse, plus statutory Easter Sunday and Whit Sunday (always Sundays, so they never move a
+shoot date — in the law, therefore in the list). 10 days vs 12. Berlin's PLACES entry carries a
+caveat pointing at this; Brandenburg is labelled *"incl. Studio Babelsberg"*.
+⚠️ **Germany has NO substitute-day rule** — a weekend holiday is simply lost. Both use
+`observance="none"` and emit zero `(Observed)` rows. Verified in the generated output.
+
+⭐ **THE REGRESSION CHECK THAT MAKES NEW DATA TRUSTWORTHY — reuse it.** After adding three regions,
+all **12 pre-existing lists still reproduce BYTE-IDENTICALLY** from the generator. Extract `HOLIDAYS`
+from `src/legacy/app.js` and from a fresh `holidays.data.js`, compare each region's JSON. If the old
+ones are unchanged, the new ones came from machinery that provably works. Do this on every future
+region addition — it is a 20-line node script and it is the whole argument.
+
+⚠️ **PROVENANCE IS WEAKER FOR GERMANY AND IS LABELLED AS SUCH.** Every other region cites a union
+agreement that was read. The German entries cite each Land's holiday **statute** (Berlin's Sonn- und
+Feiertagsrecht; Brandenburg's FTG 2003), both read — but the crew agreement, **TV FFS**
+(ver.di / Produzentenallianz), had its holiday clause **NOT** verified. Same shape as `LT`, which is
+also statute-based. Closing this needs someone with access to the TV FFS.
+
+⛔ **`union-place` keys are SAVE FORMAT.** They live in `fields.byId`. Append-only — same rule as
+`PHASE_COLOR_OPTIONS`' array order. Renaming or removing one silently breaks every calendar saved
+with it. **This is why Germany went in as two entries rather than one**: shipping `de-germany` and
+splitting it later would have required a migration.
+
+**Still missing, in the owner's own priority order if they want more:** Hungary (Budapest — Origo /
+Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrandov), Ireland
+(Dublin / Wicklow). Australia has only Victoria — NSW (Sydney) and QLD (Gold Coast) are absent. US
+markets are nearly free to add (one `PLACES` line → `US-GEN`) but each needs checking for an Area
+Standards carve-out first, the way Chicago and San Francisco did.
+
 ### 2i. Month view ↔ waterfall linkage — ⏸ **ARCHITECTURE MAPPED, TWO QUESTIONS OPEN** (16 Sep 2026)
 
 Owner request: *"Help me formulate a plan for how the waterfall cal and month view cal should link

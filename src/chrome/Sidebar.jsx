@@ -126,7 +126,16 @@ export function RegionCard() {
           </optgroup>
           <optgroup label="United Kingdom">
             <option value="uk-london">London</option>
+            <option value="uk-wales">Wales</option>
             <option value="uk-scotland">Scotland</option>
+            <option value="uk-belfast">Belfast</option>
+          </optgroup>
+          {/* Germany is federal and the Länder genuinely differ, so it is NOT one entry. The pair
+              below is the trap this whole control exists to avoid: Studio Babelsberg is in Potsdam,
+              which is Brandenburg, so a "Berlin shoot" staging there is on the other list. */}
+          <optgroup label="Germany">
+            <option value="de-berlin">Berlin</option>
+            <option value="de-brandenburg">Brandenburg — incl. Studio Babelsberg</option>
           </optgroup>
           <optgroup label="Australia">
             <option value="au-melbourne">Melbourne, VIC</option>

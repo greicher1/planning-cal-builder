@@ -158,6 +158,23 @@ UK_COMMON = [
     ("Boxing Day",              ("fixed", 12, 26)),
 ]
 
+# The nine holidays every German Land observes. Germany is federal: each Land legislates its
+# own calendar on top of these, and the spread is wide -- Bavaria reaches 14, Berlin 10. There is
+# NO substitute-day rule anywhere in Germany, so a holiday falling on a weekend is simply lost;
+# that is why both DE regions below use observance="none".
+DE_FEDERAL = [
+    ("New Year's Day",                          ("fixed", 1, 1)),
+    ("Good Friday (Karfreitag)",                ("easter", -2)),
+    ("Easter Monday (Ostermontag)",             ("easter", 1)),
+    ("Labour Day (Tag der Arbeit)",             ("fixed", 5, 1)),
+    ("Ascension Day (Christi Himmelfahrt)",     ("easter", 39)),
+    ("Whit Monday (Pfingstmontag)",             ("easter", 50)),
+    ("German Unity Day (Tag der Deutschen Einheit)", ("fixed", 10, 3)),
+    ("Christmas Day (1. Weihnachtstag)",        ("fixed", 12, 25)),
+    ("Boxing Day (2. Weihnachtstag)",           ("fixed", 12, 26)),
+]
+
+
 REGIONS = {
 
     # ---------------------------------------------------------------- UNITED STATES
@@ -284,6 +301,63 @@ REGIONS = {
         ],
     ),
 
+    "UK-NI": dict(
+        label="Northern Ireland",
+        agreement="Pact/Bectu Scripted TV Agreement cl. 11 · Major Motion Picture Agreement cl. 5.6",
+        term="Scripted TV from 2023-01-01 · MMP as amended 2021-04-05",
+        source="https://www.gov.uk/bank-holidays",
+        observance="roll_fwd",
+        note="Same crew agreements as England & Wales, and it keeps every E&W bank holiday -- then "
+             "adds two: St Patrick's Day and the Battle of the Boyne (Orangemen's Day). Ten bank "
+             "holidays, the longest list of the four UK nations. GOV.UK publishes NI as its own "
+             "division alongside england-and-wales and scotland, so this was always in the feed.",
+        caveat="Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT "
+               "on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
+        rules=UK_COMMON + [
+            ("Easter Monday",          ("easter", 1)),
+            ("St Patrick's Day",       ("fixed", 3, 17)),
+            ("Battle of the Boyne",    ("fixed", 7, 12)),
+            ("Summer Bank Holiday",    ("nth", 8, MON, -1)),
+        ],
+    ),
+
+    # ---------------------------------------------------------------- GERMANY
+    # ⚠️ PROVENANCE IS STATUTORY, NOT CONTRACTUAL. The two entries below are sourced from each
+    # Land's holiday act, which was read. The relevant crew agreement is the TV FFS
+    # (Tarifvertrag für Film- und Fernsehschaffende, ver.di / Produzentenallianz); its treatment
+    # of public holidays was NOT verified here. Same shape as LT, which is also statute-based.
+    "DE-BE": dict(
+        label="Berlin",
+        agreement="Statutory — Gesetz über die Sonn- und Feiertage (Berlin). Crew: TV FFS (ver.di / Produzentenallianz), holiday clause UNVERIFIED",
+        term="n/a — statutory",
+        source="https://www.berlin.de/sen/inneres/buerger-und-staat/verfassungs-und-verwaltungsrecht/artikel.1435639.php",
+        observance="none",
+        note="Ten days: the federal nine plus International Women's Day. Berlin does NOT observe "
+             "Reformation Day, which neighbouring Brandenburg does -- see the DE-BB note, because "
+             "the two are easy to confuse and Studio Babelsberg is in the other one.",
+        rules=DE_FEDERAL + [
+            ("International Women's Day (Internationaler Frauentag)", ("fixed", 3, 8)),
+        ],
+    ),
+    "DE-BB": dict(
+        label="Brandenburg",
+        agreement="Statutory — Feiertagsgesetz (FTG) Brandenburg 2003. Crew: TV FFS (ver.di / Produzentenallianz), holiday clause UNVERIFIED",
+        term="n/a — statutory",
+        source="https://bravors.brandenburg.de/gesetze/ftg_2003/6",
+        observance="none",
+        note="⚠️ STUDIO BABELSBERG IS IN POTSDAM, WHICH IS BRANDENBURG -- NOT BERLIN. A production "
+             "that calls itself a Berlin shoot but stages at Babelsberg is on THIS list. The two "
+             "differ in both directions: Brandenburg has Reformation Day and no Women's Day. "
+             "Brandenburg is also one of the few Länder that make Easter Sunday and Whit Sunday "
+             "statutory; both always fall on a Sunday, so they never move a shoot date here, but "
+             "they are in the law and so they are in the list.",
+        rules=DE_FEDERAL + [
+            ("Easter Sunday (Ostersonntag)",     ("easter", 0)),
+            ("Whit Sunday (Pfingstsonntag)",     ("easter", 49)),
+            ("Reformation Day (Reformationstag)", ("fixed", 10, 31)),
+        ],
+    ),
+
     # -------------------------------------------------------------------- AUSTRALIA
     "AU-VIC": dict(
         label="Victoria (Melbourne)",
@@ -404,6 +478,11 @@ PLACES = [
      "PROXY: the Area Standards Agreement expressly excludes Local 16's jurisdiction. Northern "
      "California sits outside both national agreements. The ASA list is a placeholder — confirm before locking dates."),
     ("Scotland",       "UK-SCT", "Bectu / Pact — same agreements as London", None),
+    ("Belfast",        "UK-NI",  "Bectu / Pact — same agreements as London", None),
+    ("Wales",          "UK-EW",  "Bectu / Pact — same agreements and same bank holidays as England", None),
+    ("Berlin",         "DE-BE",  "ver.di / Produzentenallianz (TV FFS)", None),
+    ("Brandenburg",    "DE-BB",  "ver.di / Produzentenallianz (TV FFS)",
+     "Studio Babelsberg is in Potsdam = BRANDENBURG, not Berlin. Pick this one for a Babelsberg stage."),
     ("Toronto",        "CA-ON",  "IATSE Local 873 crew, DGC Ontario", None),
     ("Vancouver BC",   "CA-BC",  "IATSE 891, Teamsters 155, ICG 669 (BCCFU)", None),
 ]

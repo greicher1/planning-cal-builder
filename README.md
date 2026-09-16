@@ -29,6 +29,64 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Northern Ireland, Wales, and Germany as Berlin + Brandenburg
+
+Owner: *"add northern ireland, wales, and germany as berlin + brandenburg"*. Local, not pushed at
+time of writing. **31 places, 15 lists** (was 27 / 12).
+
+⛔ **Northern Ireland was the same bug we had just fixed for Scotland.** The UK was split into two
+nations — but `gov.uk/bank-holidays.json`, the feed `tools/gen_holidays.py` already reads, publishes
+**three**. NI keeps every England & Wales bank holiday and adds two: **St Patrick's Day** (17 Mar)
+and the **Battle of the Boyne** (12 Jul). Ten days, the longest list of the four nations. Until now
+a Belfast shoot — Titanic Studios is a real production centre — had to pick *London* and silently
+lost both. The data was sitting in a source already being consumed.
+
+**Wales cost one line.** It shares England's bank holidays exactly, so it is a label pointing at the
+existing `UK-EW`. Cardiff is a genuine hub and there was no way to say so.
+
+⚠️ **Germany is NOT one entry, and the reason is a trap worth knowing: Studio Babelsberg is in
+Potsdam, which is BRANDENBURG, not Berlin.** Germany is federal — nine holidays nationwide and
+thirteen more that vary by *Land*. Berlin and Brandenburg differ **in both directions**:
+
+| | Berlin (`DE-BE`) | Brandenburg (`DE-BB`) |
+|---|---|---|
+| International Women's Day, 8 Mar | ✅ | — |
+| Reformation Day, 31 Oct | — | ✅ |
+| Easter Sunday / Whit Sunday | — | ✅ statutory |
+| **Days/year** | **10** | **12** |
+
+So a production calling itself a Berlin shoot but staging at Babelsberg is on the *other* list.
+Picking Berlin for it loses Reformation Day and invents Women's Day. Berlin's entry carries a
+caveat saying exactly this, and Brandenburg is labelled *"incl. Studio Babelsberg"*.
+
+⭐ Brandenburg is one of the few Länder making **Easter Sunday and Whit Sunday** statutory. Both
+always fall on a Sunday, so they can never move a shoot date — but they are in the law, so they are
+in the list. ⚠️ **Germany has no substitute-day rule at all**: a holiday landing on a weekend is
+simply lost, which is why both German regions use `observance="none"` and emit no `(Observed)` rows.
+Verified in the output — the German lists contain none.
+
+**What was verified.** The regression that matters: after adding three regions, **all 12
+pre-existing lists still reproduce BYTE-IDENTICALLY** from the generator — checked by extracting
+`HOLIDAYS` from both `app.js` and the regenerated `holidays.data.js` and comparing each region's
+JSON. That is what makes the new data trustworthy: it comes from the same machinery that provably
+reproduces the old. Date spot-checks against Easter 2026 (5 Apr): Good Friday 3 Apr, Ascension +39 =
+14 May, Whit Sunday +49 = 24 May, Whit Monday 25 May — all correct. The Boyne falls on a Sunday in
+2026 and correctly rolls to Monday 13 July. `npm run check` 12/12, `verify_migration.mjs` reports
+all 31 places resolve and all 15 lists reachable, and the four new options were driven in a browser.
+
+⚠️ **PROVENANCE IS WEAKER FOR GERMANY AND THE CODE SAYS SO.** Every other region cites a union
+agreement that was read. The German entries cite each Land's **holiday statute**, which was read —
+Berlin's Sonn- und Feiertagsrecht and the Brandenburg Feiertagsgesetz (FTG) 2003. The relevant crew
+agreement, the **TV FFS** (ver.di / Produzentenallianz), had its holiday clause **NOT** verified.
+Brandenburg's caveat says so to the user. This matches how `LT` was already handled — statute-based,
+and labelled as such — but it is a lower standard than the IATSE and Pact/Bectu entries and should
+be closed by someone with access to the TV FFS.
+
+⛔ **`union-place` values are part of the save format now** — they live in `fields.byId`. Adding
+places is safe (append-only, same rule as `PHASE_COLOR_OPTIONS`). **Renaming or removing one breaks
+every calendar saved with it.** Splitting Germany later would have needed a migration, which is
+exactly why it went in as two entries rather than one.
+
 ### Unreleased — a one-time notice when a corrected holiday list moves your dates
 
 Owner request, after asking what happens to previously-saved calendars when the holiday data ships.
