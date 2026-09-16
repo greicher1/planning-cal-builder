@@ -1876,7 +1876,14 @@ Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrando
 markets are nearly free to add (one `PLACES` line → `US-GEN`) but each needs checking for an Area
 Standards carve-out first, the way Chicago and San Francisco did.
 
-### 2i. Month view ↔ waterfall linkage — ⏸ **ARCHITECTURE MAPPED, TWO QUESTIONS OPEN** (16 Sep 2026)
+### 2i. Month view ↔ waterfall linkage — ✅ **PLANNED AND RULED ON** (16 Sep 2026)
+
+→ **[`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) is the live document. Read it, not this section**, which
+is kept only for the survey that produced it. All four blocking rulings are recorded there:
+the frozen edit to `renderMonthView` is **APPROVED** for half-day shading and drag handles against a
+stated gate; half-day remainders **over-deliver**; non-Monday starts are a **per-phase snap toggle**
+defaulting to on; and both views show the **same wrap date**, the waterfall merely rounding its
+displayed day count up. Half days are **semantic** — they move the wrap.
 
 Owner request: *"Help me formulate a plan for how the waterfall cal and month view cal should link
 to each other. Should it be a one way manual push … or should there be a link and unlink button?
