@@ -1880,10 +1880,17 @@ Standards carve-out first, the way Chicago and San Francisco did.
 
 → **[`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) is the live document. Read it, not this section**, which
 is kept only for the survey that produced it. All four blocking rulings are recorded there:
-the frozen edit to `renderMonthView` is **APPROVED** for half-day shading and drag handles against a
-stated gate; half-day remainders **over-deliver**; non-Monday starts are a **per-phase snap toggle**
-defaulting to on; and both views show the **same wrap date**, the waterfall merely rounding its
-displayed day count up. Half days are **semantic** — they move the wrap.
+the frozen edit to `renderMonthView` is **APPROVED** for day-override marks and drag handles against
+a stated gate; half-day remainders **over-deliver**; non-Monday starts are a **per-phase snap
+toggle** defaulting to on; and both views show the **same wrap date**, the waterfall merely
+rounding its displayed day count up.
+
+⭐ **Half days generalised into `dayOverrides`** (`half` / `off` / `on`, keyed by ISO date) after the
+owner asked for week-by-week Production control. The literal reading — give every week its own
+start date — would have turned Production from `{start, days}` into a list of independently-dated
+blocks; one per-day map gives the same power and keeps Production **derivable from its inputs**,
+which is what makes the two views incapable of disagreeing. Dragging moves phases
+**independently**; mid-phase drag is out of scope (no representation — hiatuses are week-granular).
 
 Owner request: *"Help me formulate a plan for how the waterfall cal and month view cal should link
 to each other. Should it be a one way manual push … or should there be a link and unlink button?

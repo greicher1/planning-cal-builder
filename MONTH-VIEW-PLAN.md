@@ -63,38 +63,75 @@ starts Wednesday, the rest of this plan holds.
 |---|---|
 | `computeSchedule`, `simulateProductionSchedule`, `extendEndForHiatus`, `readState` | **No** — absent from the list |
 | `segCoversDate`, `pillRunsForWeek` | **No** — absent from both `CLAUDE.md` and `MANTINE-SEAM.md` |
-| `halfDays` store, save format, shift re-key | **No** |
+| `dayOverrides` store, save format, shift re-key | **No** |
 | Sidebar controls, the `meta-<key>` hint line, popovers (body-level panels) | **No** |
 | Waterfall drawing whatever weeks a segment covers | **No frozen EDIT** — the frozen renderers just draw what `schedule.weeks` gives them |
-| **New markup inside `renderMonthView`** (drag handles, half-day shading) | ⛔ **YES** |
+| **New markup inside `renderMonthView`** (drag handles, `half`/`off`/`on` marks) | ⛔ **YES** |
 | `installGridResizers`, `beginSpanDrag`, `spanHandleGeometry` | ⛔ **YES** |
 
 ⛔ **`renderMonthView` is frozen because it IS the month PDF** — `exportMonthPdf` injects its output
 into `#print-root` and prints that (`MANTINE-SEAM.md` §5.2). Not chrome. An export renderer.
 
-**So exactly two things need an owner ruling: half-day shading, and drag handles.** Everything else
-in this plan is unblocked.
+**So exactly two things touch frozen code: the day-override marks, and the drag handles.** Both are
+✅ approved against §6.5's gate. Everything else in this plan was never blocked.
 
 ---
 
-## 4. Half days — SEMANTIC (owner ruled 16 Sep 2026)
+## 4. `dayOverrides` — per-day control of the shoot (supersedes "half days only")
 
-> *"no i think half days do affect the actual total days"*
+> Owner, 16 Sep 2026, on per-week Production control: *"you should be able to move weeks, and adjust
+> the start and end of each week at a week by week level, not just the entire phase"*
 
-A half day counts **0.5** toward the shoot-day total, so the wrap date moves.
+⭐ **This is ONE map, not a restructure.** The literal reading — give every week its own start date —
+would turn Production from `{start, days}` into a list of independently-dated blocks, rippling
+through the simulation, episode slicing, week numbering, the save format and the shift tools.
+Not needed. What a week-by-week change actually means on a shoot is a **per-day decision about which
+days are shot**, and that is a map:
+
+```js
+dayOverrides = { '2026-07-15': 'half' | 'off' | 'on' }
+```
+
+| Override | Meaning |
+|---|---|
+| `half` | the day counts **0.5** toward the shoot-day total |
+| `off` | not shot, though it would normally be a working day |
+| `on` | shot, though it would normally be skipped — a Saturday, or a holiday being worked |
+
+**What that buys, with no change to Production's shape:**
+
+| Owner wants | Overrides |
+|---|---|
+| Week starts Tuesday | Mon → `off` |
+| Week runs into Saturday | Sat → `on` |
+| Four-day week | one day → `off` |
+| Work through a holiday | that day → `on` |
+| Half day | → `half` |
+
+⛔ **Production must stay DERIVABLE from its inputs.** `start + count + holidays + hiatuses +
+dayOverrides` → `shootDays[]`. That is what makes the two views incapable of disagreeing (§1). Do
+not store a computed extent.
 
 ### 4.1 Storage
 
-`halfDays = {}` keyed by ISO date. Added to `captureSnapshot()` **and** `applyStateSnapshot()` **and**
-the resets — all three, or it silently fails to survive a save (`CLAUDE.md`, State model).
-⛔ Restore unconditionally: `snap.halfDays ? {...snap.halfDays} : {}`, never `if(snap.x) x = snap.x`.
+`dayOverrides = {}` keyed by ISO date. Added to `captureSnapshot()` **and** `applyStateSnapshot()`
+**and** the resets — all three, or it silently fails to survive a save (`CLAUDE.md`, State model).
+⛔ Restore unconditionally: `snap.dayOverrides ? {...snap.dayOverrides} : {}`, never
+`if(snap.x) x = snap.x`.
+⚠️ **Absent must mean "no overrides"**, so every calendar saved before this ships keeps its dates.
 
 ### 4.2 Math
 
-`simulateProductionSchedule` counts `halfDays[iso] ? 0.5 : 1` per working day and accumulates until
-`count >= shootDaysRequested`. Not frozen.
+`simulateProductionSchedule` consults the map as it walks: `off` skips the day, `on` forces it in
+even if weekend/holiday, `half` contributes 0.5 instead of 1. Not frozen — it is absent from
+`CLAUDE.md`'s frozen symbol list, which covers rendering, geometry, text fitting, direct
+manipulation and exports.
 
-### 4.3 ⛔ Half days SHIFT. They are the first day-keyed store that does.
+⚠️ **`on` is the one that can surprise.** It overrides a *union holiday*, which is the thing the
+whole holiday dataset exists to protect. It must be a deliberate per-day act and should be visibly
+distinct in the month view, not a silent state.
+
+### 4.3 ⛔ `dayOverrides` SHIFTS. It is the first day-keyed store that does.
 
 `shiftCalendar` carries this warning:
 
@@ -103,46 +140,46 @@ the resets — all three, or it silently fails to survive a save (`CLAUDE.md`, S
 // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
 ```
 
-That rule is correct for notes — *"wrap party booked"* belongs to a **date**. A half day belongs to a
-**shoot day**. Move the production a week and the half day must travel with it, or the tool has
-silently changed which day is half. **`halfDays` therefore DOES get a `shiftKeyedMap` call, and that
-comment must be amended to say why it is the exception** — otherwise a future session will read the
-warning and "fix" it.
+Correct for notes — *"wrap party booked"* belongs to a **date**. An override belongs to a **shoot
+day**. Move the production a week and the overrides must travel, or the tool has silently changed
+which days are half or off. **`dayOverrides` therefore DOES get a `shiftKeyedMap` call, and that
+comment must be amended to say why it is the exception** — otherwise a future session reads the
+warning and "fixes" it back.
 
-### 4.4 ✅ RULED: the remainder over-delivers
+### 4.4 ✅ RULED: the half-day remainder over-delivers
 
 > Owner, 16 Sep 2026: **"Over-deliver — wrap at 60.5"**
 
 Keep walking until the count reaches **or passes** the target. The last day stays a full day and the
 production delivers up to half a day more than requested. ⚠️ **Never under-deliver** — that is the
-property this rule buys, and it is why the alternative (auto-marking the final day as a half) was
-rejected: the tool would be inventing a half day the user never set.
+property this buys, and why auto-marking the final day as a half was rejected: the tool would be
+inventing an override the user never set.
 
-⚠️ **Say this in a comment at the accumulation site.** A shoot reporting 60.5 days against a
-requested 60 reads as an off-by-something to anyone who has not seen this ruling.
+⚠️ **Say this in a comment at the accumulation site.** 60.5 against a requested 60 reads as an
+off-by-something to anyone who has not seen this ruling.
 
 ### 4.5 ✅ RULED: both views show the SAME wrap; the waterfall rounds its COUNT up
 
-> Owner, 16 Sep 2026: **"the waterfall counts half days as full days ... it rounds up to the
-> nearest full number of days"**, and, on whether the two views can disagree about the wrap:
-> **"Same wrap — both say 20 Jul"**.
+> Owner: **"the waterfall counts half days as full days ... rounds up to the nearest full number of
+> days"**, and on whether the views may disagree: **"Same wrap — both say 20 Jul"**.
 
-⛔ **These two statements together mean: the wrap DATE is identical in both views and both exports.
-Only the displayed day COUNT differs.** The waterfall deals in whole days, so where it shows a
-number it rounds **up** — a schedule delivering 60.5 reads as **61** there, while the month view
-shows the real 60.5. The date is the same date.
+⛔ **Together these mean the wrap DATE is identical in both views and both exports. Only the
+displayed day COUNT differs.** The waterfall deals in whole days, so it `Math.ceil()`s a *displayed
+number* — 60.5 reads as 61 there, 60.5 in the month view. Same date.
 
-⛔ **Do not implement this as a second calculation.** There is one schedule. The waterfall applies
-`Math.ceil()` to a *displayed number*; it must never re-run the simulation with halves counted as
-1.0, because that produces a genuinely different wrap date and puts the Excel export and the month
-PDF in disagreement — explicitly rejected above.
+⛔ **Never implement this as a second calculation.** Re-running the simulation with halves counted as
+1.0 produces a genuinely different wrap and puts the Excel export and the month PDF in
+disagreement — explicitly rejected.
 
-**Worked example, to test against:** Production = 10 shoot days from Mon 6 Jul 2026. Wed 8th and Thu
-9th marked half. Both views wrap **Mon 20 Jul**. Month view reads 10 days (2 of them half); the
-waterfall reads 10. Where a fractional total arises, the waterfall rounds up and the month view does
-not.
+**Worked example to test against:** Production = 10 shoot days from Mon 6 Jul 2026, Wed 8th and Thu
+9th marked `half`. Both views wrap **Mon 20 Jul**.
 
----
+### 4.6 ⚠️ What the waterfall cannot show, and it is inherent
+
+A week worked Tue–Sat renders identically to Mon–Fri. The waterfall's atom is a week; it can say
+"this week has Production" but not "these days within it". Same trade already accepted for half
+days. If that becomes unacceptable, the answer is not a divergent waterfall — it is week-level
+annotation, and that is a separate ruling.
 
 ## 5. Per-phase start day (owner request, 16 Sep 2026)
 
@@ -180,57 +217,106 @@ grid cell is a week. The save format does not move. ✅ Confirmed by reading the
 
 ---
 
-## 6. Drag to adjust phases — ✅ APPROVED, against the §6 gate
+## 6. Drag to adjust — ✅ APPROVED, against the §6 gate
 
-> *"you should be able to individually drag and adjust phases (like click/drag the bars to change
-> start and end dates of each and any phase of any type"*
+> Owner, 16 Sep 2026: **"Approve both, against that gate"**, then: **"You should either be able to
+> drag the start or end of a phase one day at a time in either direction"**, and on whole-phase
+> moves: confirmed they move **independently** of neighbouring phases.
 
-> Owner, 16 Sep 2026: **"Approve both, against that gate"** — half-day shading AND drag handles.
+### 6.1 Three gestures, and body-drag is the CHEAPEST
 
-Drag handles on month-view pills are **new interactive markup inside `renderMonthView`**, which is
-the month PDF's document. The frozen edit is approved; the gate below is the condition.
-⛔ **If the gate fails, STOP and report. Do not re-cut the baseline to make it pass** — that is the
-one move `tests/baselines/2026-08-29-stage-7/README.md` says is indistinguishable from absorbing a
-regression.
+| Gesture | Means | Model support |
+|---|---|---|
+| Drag **body** | move the whole phase; duration unchanged | ✅ `start-<key> += n` — one stored field, **no new markup** |
+| Drag **start** edge | change start; end fixed | ✅ `start-<key>`, needs a handle element |
+| Drag **end** edge | change duration; start fixed | ✅ `weeks-<key>`, needs a handle element |
+| Drag a **middle** portion | insert/remove a mid-phase gap | ⛔ **Not in scope** — see §6.4 |
 
-⚠️ **And the handles must not print.** Whatever is added for dragging has to be invisible in
-`#print-root`, or every month PDF grows grab handles. That is the specific risk the gate must cover.
+⭐ **Body-drag needs no new frozen markup** — the pill itself is the target — so it is strictly less
+frozen-surface work than the edge handles. Build it first: it exercises the whole drag plumbing
+(hit detection, live preview, commit on release) before a single handle element exists.
 
-**Proposed gate (not yet ruled):**
+**Phases move independently.** There is no dependency graph; each phase owns its `start-<key>`.
+Dragging Production later leaves Post where it is, which may open a gap or an overlap. ⚠️ **That is
+not an error** — phases legitimately run concurrently, which is what `maxConcurrent` is for, and it
+is already reachable today by typing a date. Relationship-preserving moves are what the Adjustments
+menu (Shift All / Shift From / Anchor To / Rebuild From) is for. Drag moves one thing.
+
+### 6.2 ⛔ A phase is MANY pills, so most pill edges are NOT phase edges
+
+`pillRunsForWeek()` returns one pill per contiguous run **per week**, so a 6-week phase is ~6
+separate pills down the month grid. Only the first pill's left edge is the real start and only the
+last pill's right edge is the real end. Every other edge is a **week boundary**.
+
+| Pill | Left edge | Body | Right edge |
+|---|---|---|---|
+| First | start handle | move phase | move phase |
+| Middle | move phase | move phase | move phase |
+| Last | move phase | move phase | end handle |
+
+**Two handles per phase, ever.** Getting this wrong makes dragging a middle pill's "edge" do
+something arbitrary.
+
+### 6.3 ⚠️ The snap toggle governs the drag INCREMENT
+
+With snap ON, dragging one day snaps straight back to Monday and the feature looks broken. So:
+
+- **snap on** → drag moves in whole **weeks**
+- **snap off** → drag moves by the **day**
+
+That makes the §5 toggle mean something visible, keeps snapped calendars behaving exactly as they do
+now, and means nobody drags a bar and watches it refuse to move.
+
+### 6.4 Mid-phase drag is OUT of scope, deliberately
+
+"Drag week 4 out by 4 days" has **no representation**: Production's extent is derived, and the only
+mid-phase gap mechanism is a per-phase hiatus, which is week-granular (`{start, weeks}`,
+`mondayOf()`-snapped). Within Production, `dayOverrides` (§4) covers it — mark the days `off`. For
+other phases it would need day-granular hiatuses, which is a separate save-format change and is not
+planned here.
+
+### 6.5 ⛔ The gate — and the stop condition
+
 1. Month PDF diffed against a pre-change export — **only** the intended new elements differ.
 2. `mvNoteLineCount()` row heights unchanged (it measures against Inter; heights feed the print).
-3. Zero drag affordances present in `#print-root` output.
+3. **Zero drag affordances present in `#print-root` output.** Handles live in the same markup
+   `exportMonthPdf` injects and prints — get this wrong and every month PDF grows grab handles.
 4. Gates 1–5 unchanged.
 
----
+⛔ **If the gate fails, STOP and report. Do not re-cut the baseline** — the one move
+`tests/baselines/2026-08-29-stage-7/README.md` calls indistinguishable from absorbing a regression.
 
-## 7. ✅ Rulings received (16 Sep 2026) — and the one question left
+
+## 7. ✅ Rulings received (16 Sep 2026)
 
 | # | Question | Ruling |
 |---|---|---|
-| 1 | Frozen edit to `renderMonthView` | **Approved — both** shading and drag handles, against §6's gate |
+| 1 | Frozen edit to `renderMonthView` | **Approved — both** day-override marks and drag handles, against §6.5's gate |
 | 2 | Half-day remainder | **Over-deliver**; never under-deliver (§4.4) |
 | 3 | Non-Monday starts | **Per-phase snap toggle**, default on (§5) |
 | 4 | Waterfall vs month view | **Same wrap date**; waterfall rounds its displayed COUNT up (§4.5) |
+| 5 | Do phases move independently when dragged? | **Yes** — no dependency graph; the Adjustments menu owns relationship-preserving moves (§6.1) |
+| 6 | Per-week Production control | **`dayOverrides`**, not per-week start dates — Production stays derivable (§4) |
 
-⏸ **Still unanswered:** do any of the *"other adjustments"* the owner mentioned also move dates? Ask
-before scoping anything beyond half days, per-phase starts and drag.
+⏸ **Still unanswered:** whether any remaining *"adjustments"* the owner has in mind also move dates.
+Ask before scoping beyond §4–§6.
 
----
 
 ## 8. Suggested order
 
-Everything in steps 1–3 is unblocked and can ship before any ruling.
+Steps 1–4 touch no frozen code and can ship before anything is drawn.
 
-1. **Per-phase start day.** Smallest, and it proves §2's claim. Sidebar control + drop the snap +
-   update `snapNote()`. Month view goes day-accurate for free.
-2. **Half-day store, math, save format, shift re-key.** No display yet — prove the wrap moves
-   correctly with a harness leg before anything is drawn.
-3. **The waterfall hint line** (§4.5), so the moved wrap is explicable.
-4. ⛔ *Ruling gate* — half-day shading and drag handles.
-5. Half-day display in the month cell.
-6. Drag to adjust.
+1. **Per-phase snap toggle** (§5). Smallest, and it proves §2's claim — the month view should go
+   day-accurate the moment the snap is off, with no renderer change. ⚠️ **Verify that before
+   building anything else**; the rest of the plan rests on it.
+2. **`dayOverrides`: store, save format, shift re-key** (§4.1, §4.3). No UI yet.
+3. **The math** (§4.2) — `off` / `on` / `half` in `simulateProductionSchedule`, with a harness leg
+   proving the wrap moves correctly. ⚠️ Prove it before drawing anything.
+4. **The waterfall's rounded count** (§4.5), so the moved wrap is explicable in Excel.
+5. **Body-drag** (§6.1) — needs no new markup, exercises the whole drag plumbing.
+6. ⛔ *Frozen work begins.* Day-override marks in the month cell, against §6.5's gate.
+7. ⛔ Start/end handles (§6.2), against the same gate.
 
-⚠️ **Cut a `.sptcal` fixture at each of steps 1, 2 and 5.** The save format moves in every one of
-them, and `tests/fixtures/` is how the restore path is proven. `HANDOFF.md` §2j has the
+⚠️ **Cut a `.sptcal` fixture at steps 1, 2 and 6.** The save format moves in each, and
+`tests/fixtures/` is how the restore path is proven. `HANDOFF.md` §2j has the
 byte-identical-reproduction check to reuse for any data change.
