@@ -10452,7 +10452,7 @@ export function initLegacyApp() {
     // banner naming SOMEONE ELSE'S file and urging the recipient to upgrade a file they do not
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
-    clone.querySelectorAll('#legacy-notice, #update-notice').forEach(el=>{ el.hidden = true; });
+    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -11375,6 +11375,61 @@ export function initLegacyApp() {
     refreshSaveBtn();
     return 'saveas';
   }
+
+  // ---------- The "this region's holidays were corrected" notice ----------
+  // ⛔ WHY THIS EXISTS. A saved calendar stores INPUTS -- start dates, durations, notes -- and
+  // never computed dates, so opening one recomputes the schedule against whatever holiday data
+  // the app now has. On 14 Sep 2026 two lists were corrected, which means a calendar in either
+  // reopens with a DIFFERENT WRAP DATE and its owner was never told. Measured on the real builds:
+  //   Ontario, 60 shoot days from 2026-07-06   wrap 9/28/26 -> 9/29/26   (Civic Holiday added)
+  //   London,  40 shoot days from 2026-07-06   wrap  9/1/26 -> 8/28/26, and the grid loses a
+  //                                            whole week (the old single UK list wrongly charged
+  //                                            England for Scotland's early-August bank holiday)
+  // The old dates were wrong and the new ones are right, so this is not a regression to hide --
+  // but a UPM who planned around 1 September must not discover the change by noticing it.
+  // ⚠️ A note keyed to a week that the shorter schedule no longer covers SURVIVES but is stranded:
+  // it stays on its calendar week with no phase beside it. Nothing is destroyed and it returns if
+  // the schedule grows again, which is why this informs rather than tries to repair anything.
+  const HOLIDAY_FIX_NOTE = {
+    'CA-ON': 'Ontario\u2019s list was missing the <strong>August Civic Holiday</strong> and the ' +
+             '<strong>National Day for Truth and Reconciliation</strong> (9 recognised days, now 11).',
+    'UK-EW': 'The old single UK list carried <strong>both</strong> August bank holidays, so it was ' +
+             'correct for neither nation. England &amp; Wales does not observe the early-August one.',
+    'UK-SCT':'The old single UK list carried <strong>both</strong> August bank holidays, so it was ' +
+             'correct for neither nation. Scotland\u2019s list now also carries 2nd January and ' +
+             'St Andrew\u2019s Day, and drops Easter Monday.'
+  };
+  const HOLIDAY_NOTICE_PREF = 'holidayFixNoticeSeen';
+  function maybeShowHolidayNotice(){
+    const el = document.getElementById('holiday-notice');
+    if(!el) return;
+    if(!restoredFileIsPreHolidayFix) return;          // a current-format file cannot be affected
+    if(prefs[HOLIDAY_NOTICE_PREF]) return;            // one time, ever, per browser
+    const key = effectiveRegionKey();
+    const why = key && HOLIDAY_FIX_NOTE[key];
+    if(!why) return;                                  // every other list is date-identical
+    el.querySelector('.ln-text').innerHTML =
+      'Heads up \u2014 this calendar\u2019s <strong>holiday list was corrected</strong>, so its dates ' +
+      'may have shifted since you last opened it. ' + why +
+      ' Your plan is unchanged; only the days the shoot skips are. Worth re-checking the wrap date.';
+    el.hidden = false;
+  }
+  function hideHolidayNotice(){
+    const el = document.getElementById('holiday-notice');
+    if(el) el.hidden = true;
+  }
+  (function wireHolidayNotice(){
+    const el = document.getElementById('holiday-notice');
+    if(!el) return;
+    // Dismissal is a per-user PREFERENCE, not calendar data: localStorage, never captureSnapshot(),
+    // or it would travel inside someone else's file. These are <button>s, so collectFieldValues()'s
+    // input/select/textarea sweep cannot pick them up either.
+    el.querySelector('.ln-x').addEventListener('click', ()=>{
+      hideHolidayNotice();
+      prefs[HOLIDAY_NOTICE_PREF] = true;
+      savePrefs();
+    });
+  })();
 
   // ---------- The "this is an old-format file" notice ----------
   // Raised by openRecentFile() when parseCalendarText() reports it read a legacy .html, cleared by
@@ -13334,6 +13389,10 @@ export function initLegacyApp() {
     refreshEpisodesUI();
     refreshSimPostUI();
     update();
+    // After syncRegionTracking(), so effectiveRegionKey() reflects the file that was just applied
+    // rather than the one before it. Gated on the migration flag, so it fires only for files that
+    // actually predate the correction.
+    maybeShowHolidayNotice();
   }
 
   // Apply a captured state snapshot (see captureSnapshot()) to the live document: DOM fields,
@@ -13353,11 +13412,17 @@ export function initLegacyApp() {
     'CA-BC':'ca-bc', 'CA-ON':'ca-ontario', 'CA-QC':'ca-quebec',
     'CA-AB':'ca-alberta', 'CA-MB':'ca-manitoba', 'CA-NS':'ca-nova-scotia'
   };
+  let restoredFileIsPreHolidayFix = false;
+  // ⛔ RETURNS whether it migrated; it must NOT read or write anything outside itself.
+  // tests/verify_migration.mjs lifts this function out of the source and evals it in an isolated
+  // scope with only LEGACY_PROVINCE_PLACE supplied -- that is what stops the test drifting from
+  // the code. A free variable here is a ReferenceError in the harness, which is how the first
+  // version of the holiday notice was caught.
   function migrateRegionSnapshot(snap){
     const byId = snap && snap.fields && snap.fields.byId;
-    if(!byId) return;
-    if('union-place' in byId) return;                    // already current
-    if(!('union-country' in byId)) return;               // nothing to migrate
+    if(!byId) return false;
+    if('union-place' in byId) return false;              // already current
+    if(!('union-country' in byId)) return false;         // nothing to migrate
     const country = (byId['union-country'] || {}).value || '';
     const usArea  = (byId['union-usregion'] || {}).value || '';
     const prov    = (byId['union-subregion'] || {}).value || '';
@@ -13379,10 +13444,15 @@ export function initLegacyApp() {
     delete byId['union-country'];
     delete byId['union-usregion'];
     delete byId['union-subregion'];
+    // Reaching here means the file PREDATES the 14 Sep 2026 holiday-data correction -- the legacy
+    // keys are the proof, and nothing else in the app can tell. A file written by this build or
+    // later already carries union-place and returns above, so it can never raise the notice.
+    return true;
   }
 
   function applyStateSnapshot(snap){
-    migrateRegionSnapshot(snap);
+    // Assigned per restore, so an undo back onto a current-format file cannot inherit a stale true.
+    restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
     if(Array.isArray(snap.episodeDefs)){
       episodeDefs = snap.episodeDefs.map(e=>({

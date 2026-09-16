@@ -88,6 +88,38 @@ same *None* the old `country=''` meant. **The lesson is the grep, not the bug** 
 note said "four references are already fixed, but grep if anything behaves oddly", and the grep is
 what found the fifth. Run it and read every hit; do not trust a count.
 
+✅ **SHIPPED WITH IT: a one-time `#holiday-notice`, because the data fix MOVES EXISTING DATES.**
+Owner asked what happens to previously-saved calendars; the answer was measured by driving one
+calendar through both builds. A saved file stores inputs, never computed dates, so opening it
+recomputes against the current holiday data:
+
+| Region | Old | New |
+|---|---|---|
+| Ontario, 60 days from 2026-07-06 | wraps 9/28/26 | wraps **9/29/26** |
+| London, 40 days from 2026-07-06 | wraps 9/1/26, 9 weeks | wraps **8/28/26, 8 weeks** |
+
+⚠️ **And a note on a week the shorter schedule no longer covers is STRANDED, not lost** —
+reproduced with a legacy UK save carrying "FINAL DAY" on the week of 31 Aug: the note stays on its
+calendar week with no phase beside it, three days after the real wrap. It returns if the schedule
+grows again. The notice therefore INFORMS; it does not try to repair anything.
+
+⛔ **The firing condition is the migration, not the region.** `migrateRegionSnapshot()` now RETURNS
+whether it migrated — legacy region keys are the only reliable proof a file predates the fix. A
+current-format file carrying `union-place` returns early and can never raise the notice, which was
+verified: legacy UK fires, legacy Ontario fires, legacy US stays silent (date-identical list), and
+a current-format UK file stays silent *even though it resolves to UK-EW*.
+
+⚠️ **`migrateRegionSnapshot()` MUST STAY FREE OF OUTER REFERENCES.** The first version set a
+module-scope flag and instantly broke `tests/verify_migration.mjs`, which lifts the function out of
+the source and evals it in an isolated scope precisely so it cannot drift. A free variable is a
+`ReferenceError` there. Return values only.
+
+⚠️ **`tests/harness/t/sharecopy.js` was extended for the new strip and the extension is UNVERIFIED.**
+The leg times out earlier — waiting for the Export-shareable-copy menu item — on the UNMODIFIED
+build too (confirmed against a stashed tree), and it is not in `gate.sh`'s list. Someone should
+work out whether that leg is recoverable; the clone guard itself was confirmed by hand in the
+built bundle.
+
 ⛔ **A third defect: `normalizeRegionSelection()`'s comment described behaviour that CANNOT HAPPEN.**
 It claimed an unknown place value "falls back to the default rather than silently resolving to None
 and quietly shortening the schedule". A `<select>` coerces an unmatched value to `''` **at

@@ -29,6 +29,66 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a one-time notice when a corrected holiday list moves your dates
+
+Owner request, after asking what happens to previously-saved calendars when the holiday data ships.
+Local, not pushed at time of writing.
+
+⚠️ **The question had a real answer and it is not "nothing".** A saved calendar stores INPUTS —
+start dates, durations, notes — and never computed dates, so opening one recomputes the schedule
+against whatever holiday data the app now has. Measured by running one calendar through both builds
+side by side:
+
+| Region | 40–60 shoot days from 2026-07-06 | Old | New |
+|---|---|---|---|
+| Ontario | 60 days | wraps **9/28/26** | wraps **9/29/26** |
+| London | 40 days | wraps **9/1/26**, 9 weeks | wraps **8/28/26**, **8 weeks** |
+
+Ontario slips a day because the Civic Holiday is now correctly a non-shoot day. London comes back
+four days early and **one grid row shorter**, because the old single UK list was charging England
+for Scotland's early-August bank holiday. Every other list is date-identical, so every US calendar
+— the majority — reopens unchanged.
+
+⚠️ **A note on a week the shorter schedule no longer covers SURVIVES but is stranded.** Reproduced
+with a legacy UK save carrying "FINAL DAY — wrap party booked" on the week of 31 Aug: after the fix
+that row renders as `8/31/26 | | FINAL DAY...` — the note intact, the phase label gone, three days
+after the real wrap. Nothing is destroyed and it returns if the schedule grows again, which is why
+the notice **informs rather than trying to repair anything**.
+
+**`#holiday-notice`** is a third strip in the existing `#legacy-notice` / `#update-notice` family
+(same markup shape, same amber as the legacy strip — HANDOFF §6 warns this app already has more
+warning looks than it should). It names which list changed and why, and says the plan is unchanged
+— only the days the shoot skips.
+
+**It fires only for files that genuinely predate the fix.** `migrateRegionSnapshot()` now RETURNS
+whether it migrated, which is the only reliable signal: legacy region keys prove the file was
+written before the correction, and a file carrying `union-place` already returns early and can
+never raise it. Verified across four fixtures — legacy UK ✅ fires, legacy Ontario ✅ fires, legacy
+US ❌ silent (date-identical list), current-format UK ❌ silent **even though it resolves to UK-EW**.
+
+⛔ **Two traps this had to clear, both already documented and both live.**
+
+- **`collectFieldValues()` sweeps every `input[id]`/`select[id]`/`textarea[id]`.** The dismiss
+  control is a `<button>`, so it cannot be swept into a saved file or add a phantom undo step. The
+  dismissal itself is a per-user PREFERENCE in `localStorage` (`sptcal.prefs.holidayFixNoticeSeen`),
+  never `captureSnapshot()` — it must not travel inside someone else's calendar.
+- **The shareable-copy clone.** The strip ships `hidden` and is un-hidden with `el.hidden = false`,
+  which REMOVES the attribute that `outerHTML` serialises — exactly the bug that once baked a
+  permanent banner naming someone else's file into exported copies. `#holiday-notice` is added to
+  the clone's re-hide list alongside the other two.
+
+⚠️ **The first version broke `tests/verify_migration.mjs`** by having `migrateRegionSnapshot()` set
+a module-scope flag. That harness lifts the function out of the source and evals it in an isolated
+scope on purpose — which is what stops it drifting from the code — so a free variable is an instant
+`ReferenceError`. Returning the fact instead is both the fix and the better design. **Keep that
+function free of outer references.**
+
+⚠️ **`tests/harness/t/sharecopy.js` was extended to cover the new strip, and that extension is
+UNVERIFIED** — the leg times out earlier, waiting for the Export-shareable-copy menu item, on the
+unmodified build too (checked against a stashed tree). It is not in `gate.sh`'s list, consistent
+with being a known-broken manual leg. The clone guard itself was confirmed present in the built
+bundle by hand.
+
 ### Unreleased — the Production Region became a LOCATION picker, and the holiday data was regenerated from rules
 
 Applied from `city-select.patch` (written 14 Sep 2026 against `5c069bc`). Local, not pushed.

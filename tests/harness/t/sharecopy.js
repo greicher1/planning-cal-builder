@@ -28,6 +28,15 @@ window.addEventListener('load',function(){ (async function(){
     await T.until(function(){
       return !!document.querySelector('#file-menu .file-menu-item[data-action="share"]');
     }, 'the Export-shareable-copy item', 60, 100);
+    // #holiday-notice joins the same strip list (14 Sep 2026). The fixture opened above is a
+    // legacy US calendar and US-GEN is date-identical, so the holiday notice would never raise
+    // itself here -- force it up instead. That reproduces the EXACT hazard: `hidden = false`
+    // removes the attribute, and outerHTML serialises attributes, so an unstripped clone would
+    // carry a permanent banner into someone else's file.
+    var hn = document.getElementById('holiday-notice');
+    if(hn){ hn.querySelector('.ln-text').textContent = 'HOLIDAY STRIP MUST NOT TRAVEL'; hn.hidden = false; }
+    out.holidayStripForcedUp = hn ? !hn.hidden : null;
+
     var cap = T.captureDownload();
     document.querySelector('#file-menu .file-menu-item[data-action="share"]').click();
     await T.until(cap.peek, 'the shareable-copy blob', 200, 100);
@@ -44,6 +53,11 @@ window.addEventListener('load',function(){ (async function(){
     out.updateHiddenInFile = u ? /\shidden(\s|>|=)/.test(u[0]) : null;
     // The strip's text is written into .ln-text by showLegacyNotice(); if it travelled, the
     // recipient sees the SENDER's filename.
+    var h = html.match(/<div id="holiday-notice"[^>]*>/);
+    out.holidayTag = h ? h[0] : null;
+    out.holidayHiddenInFile = h ? /\shidden(\s|>|=)/.test(h[0]) : null;
+    out.holidayTextTravelled = /HOLIDAY STRIP MUST NOT TRAVEL/.test(html);
+
     var t = html.match(/<span class="ln-text">([\s\S]{0,160})/);
     out.legacyTextInFile = t ? t[1].replace(/\s+/g,' ').trim().slice(0,120) : null;
     // Control: the things buildSavedHtml DOES strip, to prove the test is reading the right file.

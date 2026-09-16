@@ -46,6 +46,17 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Shown ONCE, when a calendar saved before 14 Sep 2026 is opened in a region whose holiday
+     list was CORRECTED that day. Its dates are recomputed on open (a saved file stores inputs,
+     never computed dates), so its wrap date can move without the user touching anything. Amber
+     like the legacy strip: nothing is broken and no data is at risk -- but a date they planned
+     around has changed, and they must not find that out by noticing it. -->
+<div id="holiday-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9432;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <!-- Shown when the DEPLOYED app is newer than this copy. Same shape as the legacy notice above
      on purpose: nothing has gone wrong and nothing is urgent, so it must not interrupt. It never
      reloads on its own -- the user may be mid-edit with unsaved work. -->

@@ -237,20 +237,20 @@
      has a newer version". Sharing the structural rules and varying only the hue keeps them
      reading as one family -- this app already has more warning looks than it should
      (HANDOFF §6), and a second strip built from scratch would have made that worse. */
-  #legacy-notice, #update-notice, #colswap-notice{
+  #legacy-notice, #update-notice, #colswap-notice, #holiday-notice{
     display:flex; align-items:center; gap:9px; padding:8px 28px;
     border-bottom:1px solid; font-size:12px;
   }
   #legacy-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
   #update-notice{ background:#EDF4FD; border-bottom-color:#C3D9F2; color:#1B4A7A; }
-  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden]{ display:none; }
+  #legacy-notice[hidden], #update-notice[hidden], #colswap-notice[hidden], #holiday-notice[hidden]{ display:none; }
   /* A paused column order is a state to notice, not a failure: amber like the legacy strip
      rather than red, because nothing is broken and no data is at risk -- the override is still
      stored and resumes by itself when the schedule allows it again. */
   #colswap-notice{ background:#FBF3FF; border-bottom-color:#E0CCEF; color:#5F2E7E; }
-  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon{ font-size:13px; flex:none; }
-  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text{ flex:1; min-width:0; }
-  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong{ font-weight:600; }
+  #legacy-notice .ln-icon, #update-notice .ln-icon, #colswap-notice .ln-icon, #holiday-notice .ln-icon{ font-size:13px; flex:none; }
+  #legacy-notice .ln-text,  #update-notice .ln-text, #colswap-notice .ln-text, #holiday-notice .ln-text{ flex:1; min-width:0; }
+  #legacy-notice .ln-text strong, #update-notice .ln-text strong, #colswap-notice .ln-text strong, #holiday-notice .ln-text strong{ font-weight:600; }
   #legacy-notice .ln-go, #update-notice .ln-go{
     flex:none; font-family:inherit; font-size:11.5px; font-weight:500; padding:5px 10px;
     background:#fff; border:1px solid; border-radius:7px; cursor:pointer;
@@ -259,12 +259,17 @@
   #legacy-notice .ln-go:hover{ background:#FFFBF2; border-color:#B8912F; }
   #update-notice .ln-go{ border-color:#8FB4DE; color:#1B4A7A; }
   #update-notice .ln-go:hover{ background:#F7FAFE; border-color:#5A8CC4; }
-  #legacy-notice .ln-x, #update-notice .ln-x{
+  #legacy-notice .ln-x, #update-notice .ln-x, #holiday-notice .ln-x{
     flex:none; border:none; background:none; font-size:16px; line-height:1;
     cursor:pointer; padding:0 2px; border-radius:4px;
   }
   #legacy-notice .ln-x{ color:#A98B3D; }
   #legacy-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
+  /* Same amber as the legacy strip on purpose: both say "something about this file is not what
+     you expected", and HANDOFF §6 warns this app already has more warning looks than it should. */
+  #holiday-notice{ background:#FEF6E7; border-bottom-color:#F0D9A8; color:#7A5B14; }
+  #holiday-notice .ln-x{ color:#A98B3D; }
+  #holiday-notice .ln-x:hover{ color:#7A5B14; background:rgba(0,0,0,.06); }
   #update-notice .ln-x{ color:#6D93BF; }
   #update-notice .ln-x:hover{ color:#1B4A7A; background:rgba(0,0,0,.06); }
 
