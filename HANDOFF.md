@@ -1836,6 +1836,81 @@ is not merely permitted, it is *required*: the fix restores v1.0.0's output. One
 two ids to the existing strip list in `buildSavedHtml()`. **Ask before applying it**, like any
 change to `index.html`.
 
+### 2i. Month view ↔ waterfall linkage — ⏸ **ARCHITECTURE MAPPED, TWO QUESTIONS OPEN** (16 Sep 2026)
+
+Owner request: *"Help me formulate a plan for how the waterfall cal and month view cal should link
+to each other. Should it be a one way manual push … or should there be a link and unlink button?
+Basically i want users to be able to make more specific changes to the month view (including new
+features such as half days, plus additional comments, showing more holidays, and other
+adjustments)."*
+
+**No code written.** What follows is the survey, so the next session does not redo it.
+
+#### What is actually true today — measured, not assumed
+
+⭐ **The two views are TOTALLY linked on schedule and ALREADY fully independent on annotations.**
+One line does the whole coupling:
+
+```js
+tableEl.innerHTML = (viewMode==='month') ? renderMonthView(schedule)
+                                         : renderSpreadsheetView(schedule);
+```
+
+Same `schedule` object, two renderers. There is no second schedule anywhere. But the month view
+already owns: `dayNotes`, `dayNoteColors`, `mvExtraLanes`, its own header
+(`mvHeaderMode` / `mvHeaderManual` / `mvHeaderFormat`), and `holidayView` is **literally keyed
+`{sheet, month}`**.
+
+⭐ **That reframes the request: two of the four asks need NO linking mechanism at all.**
+*Additional comments* is `dayNotes`, already month-only. *Showing more holidays* is
+`holidayView.month`, already divergent from `holidayView.sheet`. Both are feature work inside the
+month view, not coupling questions. **The linkage question only bites on things that change the
+SCHEDULE.**
+
+⭐ **The day-level hook already exists.** `simulateProductionSchedule()` walks day by day and the
+schedule carries `shootDays` — an ISO array whose own comment reads *"the actual working days
+Production shoots (for the month view)"*. A half-day map keyed by ISO date slots in beside it.
+
+#### The recommendation given (owner has not ruled)
+
+**Neither a manual push nor link/unlink. A third model:** the schedule stays single-source and
+always live; the month view owns a DECORATION LAYER on top that never feeds back.
+
+- ⛔ **Against link/unlink:** the moment the month view can hold a different schedule, the Excel
+  export and the month PDF can disagree about the wrap date. That is the exact class of bug this
+  project spent weeks killing — three independent column-width systems, and `computePhaseRowLayout()`
+  made the single source. Reintroducing a divergent source cuts against the grain of the codebase.
+- ⛔ **Against manual push:** it makes the month view stale by default. A confidently-wrong month PDF
+  is worse than none, and it creates the same "which one is right?" moment, just less often.
+
+#### ⚠️ "Half days" is TWO different features and the answer changes everything
+
+| | What it is | Where it belongs | Cost |
+|---|---|---|---|
+| **Cosmetic** | Shading/label; does **not** move the wrap | Month decoration layer | small |
+| **Semantic** | Counts 0.5 toward the shoot-day total, so the wrap **moves** | `computeSchedule` — it is a fact about the SHOOT, not a rendering; must show in BOTH views | ~3–4× |
+
+#### ⛔ THE BLOCKER: `renderMonthView` IS THE MONTH PDF
+
+542 lines (`renderMonthView` → `renderSpreadsheetView` in `src/legacy/app.js`), and **frozen** — not
+as chrome, but because `exportMonthPdf` injects its output into `#print-root` and prints it
+(`MANTINE-SEAM.md` §5.2). Every visual item on the owner's list — half-day shading, extra holiday
+rows, more comment lanes — edits it. Per `CLAUDE.md` that needs **explicit owner sign-off plus an
+acceptance measurement agreed up front**. H2 and H6 are already parked on exactly this.
+
+**Proposed gate, not yet ruled on:** month PDF diffed against a pre-change export with only the
+intended new elements differing, and `mvNoteLineCount()` row heights unchanged.
+
+#### The two questions the owner still owes
+
+1. **Cosmetic or semantic half-days?**
+2. **Do any of the "other adjustments" move dates?** That is the line between a contained decoration
+   layer and a much larger change.
+
+Next step once answered: write `MONTH-VIEW-PLAN.md` (the convention `COLUMN-ORDER-PLAN.md` /
+`HEADER-PRESETS-PLAN.md` follow), so the frozen-edit ruling is made **once against a concrete list**
+rather than per feature.
+
 ### 2e. Known, deliberately left alone
 
 - **Month view** still tints phase bars with the palette's `textColor`; the waterfall was changed to
