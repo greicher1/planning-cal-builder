@@ -2581,7 +2581,12 @@ export function initLegacyApp() {
       if(p.key === 'production' && info.complete) rawValue = info.totalShootDays;
       if(startStr && parseDateUTC(startStr)===null) hasInvalidYear = true;
       const weeks = rawValue>0 ? rawInputToWeeks(p, rawValue) : NaN;
-      phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue} : null;
+      // Missing checkbox (an older row, or a phase built before this shipped) reads as SNAPPED,
+      // which is the pre-existing behaviour. `!== false` rather than a truthiness test so the
+      // intent survives someone later storing the flag as a string.
+      const snapEl = document.getElementById('snap-'+p.key);
+      const snap = snapEl ? !!snapEl.checked : true;
+      phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue, snap} : null;
     });
     const hiatuses = [];
     document.querySelectorAll('.hiatus-entry').forEach(el=>{
@@ -2719,7 +2724,14 @@ export function initLegacyApp() {
       if(cfg && cfg.start && cfg.weeks>0){
         const parsed = parseDateUTC(cfg.start);
         if(!parsed) return;
-        const start = mondayOf(parsed);
+        // ⭐ THE ONE LINE. Everything downstream is already day-accurate: segCoversDate() compares
+        // `date >= s.start && date < s.end` per day and pillRunsForWeek() walks i = 0..6, so the
+        // month view draws a Wednesday start ON the Wednesday with no renderer change. The
+        // waterfall still renders whole week rows -- that is a resolution difference, not a
+        // disagreement (MONTH-VIEW-PLAN.md §1).
+        // ⚠️ Only the PHASE start is conditional. Every other mondayOf() in this file keys weeks for
+        // notes, spans and row heights, and those stay Monday-based because a grid cell IS a week.
+        const start = (cfg.snap === false) ? parsed : mondayOf(parsed);
         let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null;
         if(p.key==='production'){
           // Only ENABLED holidays cost a shoot day; a holiday switched off in Settings is treated
@@ -4822,12 +4834,19 @@ export function initLegacyApp() {
       // Production's total is never typed: it's the sum of the episode list, which Show Info
       // builds. The input still exists (hidden) because it remains the single place the rest
       // of the app reads that number from -- it's just now written to rather than edited.
+      // ⚠️ `checked` in the MARKUP is the whole back-compatibility mechanism: a calendar saved before
+      // this existed has no `snap-<key>` in fields.byId, applyStateSnapshot never touches the box,
+      // and it stays checked -- so every existing file keeps its Monday-snapped dates. Absent means
+      // snapped. Do not move this default into JS.
+      const snapHtml = `<label class="phase-snap" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
       const fieldsHtml = (p.key === 'production')
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
+           ${snapHtml}
            <input type="hidden" id="weeks-${p.key}">
            <div class="prod-total-readout" id="prod-total-readout"></div>`
         : `<label>Start date <input type="date" id="start-${p.key}"></label>
-           <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>`;
+           <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+           ${snapHtml}`;
       const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
       row.innerHTML = `
         <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
@@ -5024,6 +5043,7 @@ export function initLegacyApp() {
       <div class="phase-fields">
         <label>Start date <input type="date" id="start-${key}"></label>
         <label>Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
+        <label class="phase-snap" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
       </div>
       <div class="phase-meta" id="meta-${key}"></div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
@@ -5107,6 +5127,11 @@ export function initLegacyApp() {
     if(d.getUTCDay() === 1) return '';
     return 'Snapped to Mon ' + fmtShort(mondayOf(d));
   }
+  // ⭐ NO per-phase snap hint is needed here, and adding one was a mistake worth recording.
+  // render() already writes meta-<key> as `note += '\nSnapped to Mon X'` guarded by
+  // `if(cfg.start !== start.toISOString().slice(0,10))` -- it compares WHAT YOU TYPED against WHAT
+  // WAS RESOLVED, not "is this a Monday". So with the snap off those are equal and the frozen code
+  // removes its own hint, correctly, with no edit. A second hint in the same row only duplicated it.
   function refreshSnapNotes(){
     document.querySelectorAll('.hiatus-entry').forEach(row=>{
       const inp = row.querySelector('.hiatus-start');
@@ -10252,6 +10277,11 @@ export function initLegacyApp() {
   PHASES.forEach(p=>{
     document.getElementById('start-'+p.key).addEventListener('input', update);
     document.getElementById('weeks-'+p.key).addEventListener('input', update);
+    // ⚠️ Built-in phase rows bind BY ID here; only the custom-phase builder does a blanket
+    // row.querySelectorAll('input'). A new control added to buildPhaseRows() and nowhere else is
+    // inert on the six built-ins and works on custom phases -- which looks like a per-phase bug.
+    const snapEl = document.getElementById('snap-'+p.key);
+    if(snapEl) snapEl.addEventListener('change', update);
   });
   // Simultaneous Post lives inside the Production row, which buildPhaseRows() creates. Bind by
   // delegation rather than to the elements directly: a direct listener would be silently lost

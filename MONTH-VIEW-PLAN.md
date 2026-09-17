@@ -49,9 +49,10 @@ So a phase whose `start` is a Wednesday draws as a pill starting Wednesday **wit
 `renderMonthView` at all**. Production is already fully day-accurate — it carries an exact
 `shootDays` ISO array.
 
-⚠️ **Verify this claim before building on it** (it is the load-bearing one): set a phase start to a
-Wednesday in a scratch build, drop the `mondayOf()` call, and look at the month view. If the pill
-starts Wednesday, the rest of this plan holds.
+✅ **VERIFIED 16 Sep 2026, and it holds.** With `prePrep` starting Wed 8 Jul 2026 and snap off, the
+month-view pill renders at `grid-column: 4 / 7` against day headers `Sun Mon Tue Wed Thu Fri Sat` —
+column 4 is Wednesday. **Zero changes to `renderMonthView`.** The rest of this plan rests on this and
+the foundation is sound.
 
 ---
 
@@ -306,9 +307,12 @@ Ask before scoping beyond §4–§6.
 
 Steps 1–4 touch no frozen code and can ship before anything is drawn.
 
-1. **Per-phase snap toggle** (§5). Smallest, and it proves §2's claim — the month view should go
-   day-accurate the moment the snap is off, with no renderer change. ⚠️ **Verify that before
-   building anything else**; the rest of the plan rests on it.
+1. ~~**Per-phase snap toggle** (§5)~~ — ✅ **SHIPPED 16 Sep 2026.** §2's claim verified by
+   measurement. Gate 5 re-cut 53 → 59 (six `snap-<key>` ids); `v1.0.0-saved.html` restores with an
+   identical grid signature and every toggle reading `"1"`. Two traps found in the doing: the frozen
+   `meta-<key>` hint **self-corrects** (its guard compares typed-vs-resolved, not "is it a Monday"),
+   and built-in phase rows **bind inputs by id** so a new control is inert there until bound
+   explicitly.
 2. **`dayOverrides`: store, save format, shift re-key** (§4.1, §4.3). No UI yet.
 3. **The math** (§4.2) — `off` / `on` / `half` in `simulateProductionSchedule`, with a harness leg
    proving the wrap moves correctly. ⚠️ Prove it before drawing anything.

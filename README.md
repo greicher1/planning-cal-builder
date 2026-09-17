@@ -29,6 +29,66 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — phases can start on any day: a per-phase Monday-snap toggle
+
+`MONTH-VIEW-PLAN.md` step 1. Owner: *"right now start dates of phases snap to the closest monday.
+thats fine as the default, but i want you to have the option to change that start date to a
+different day for each phase."* Local, not pushed at time of writing.
+
+Every phase row — the six built-ins and every custom phase — gets a **Snap to Mon** checkbox,
+**default on**. Off, the date you typed is the date used.
+
+⭐ **The month view went day-accurate for free, and that was the point of doing this first.** It was
+already a day-level renderer and nobody had noticed: `segCoversDate()` is
+`date >= s.start && date < s.end`, Production carries an exact `shootDays` ISO array, and
+`pillRunsForWeek()` walks `i = 0..6` asking per day. Neither is on the frozen list. The view only
+*looked* Monday-aligned because `computeSchedule` snapped starts before the renderer saw them.
+**Measured, not assumed** — with `prePrep` starting Wed 8 Jul 2026 and snap off, the pill renders at
+`grid-column: 4 / 7` against day headers `Sun Mon Tue Wed Thu Fri Sat`. Column 4 is Wednesday.
+**Zero changes to `renderMonthView`.**
+
+So the whole change is one conditional plus a checkbox:
+
+```js
+const start = (cfg.snap === false) ? parsed : mondayOf(parsed);
+```
+
+⚠️ **Only the PHASE start is conditional.** The other 34 `mondayOf()` call sites key weeks for notes,
+spans and row heights, and stay Monday-based — a grid cell **is** a week, and the save format
+depends on it.
+
+**The waterfall is unchanged by design.** It renders whole week rows, so a Wednesday-start phase
+occupies that week. That is a resolution difference, not a disagreement: one schedule, two views
+(`MONTH-VIEW-PLAN.md` §1).
+
+⭐ **The frozen hint corrected itself, which was a genuine surprise.** `render()` is frozen and writes
+`meta-<key>`, including `note += '\nSnapped to Mon X'`. Its guard turns out to be
+`if(cfg.start !== start.toISOString().slice(0,10))` — comparing **what you typed against what was
+resolved**, not "is this a Monday". So with snap off they are equal and the frozen code drops its own
+hint, correctly, with no edit. **A second hint was written and then deleted**; a comment now records
+why none is needed.
+
+⚠️ **Built-in phase rows bind inputs BY ID**, while only the custom-phase builder does a blanket
+`row.querySelectorAll('input')`. The checkbox worked on custom phases and was **inert on all six
+built-ins** until bound explicitly in `PHASES.forEach`. That reads as a per-phase bug; the binding
+site now carries a warning.
+
+**Save format.** `snap-<key>` per phase, swept into `fields.byId` like any `input[id]` — correct,
+because it changes dates. ⛔ **`checked` lives in the MARKUP, which is the entire back-compat
+mechanism**: an older calendar has no `snap-*` key, `applyStateSnapshot()` never touches the box, it
+stays checked. Absent means snapped.
+
+**Verified.** Gate: **294 assertions, one real failure — gate 5, by design** (`lost: []`,
+`gained:` the six ids, `changed: []`, 53 → 59), re-cut after checking the rest. `v1.0.0-saved.html`
+restores with an **identical grid signature** and all six toggles reading `"1"`. Waterfall PDF
+byte-identical, Excel parts identical, 0 clipped cells, `npm run check` 12/12.
+
+⚠️ **A second gate failure was investigated and dismissed, with evidence.** `onecol` timed out after
+20 s waiting for its `.xlsx` blob. Not a regression: it passed in both prior gate runs, it passes
+**standalone now with this change** (`PASS: true`, every assertion including `xlsxHeaderIdentical`),
+the failure was a timeout rather than a mismatch, and gates 1–4 in the same run reported Excel parts
+identical. Contention during a ~25-minute run. **Recorded rather than silently re-run.**
+
 ### Unreleased — Northern Ireland, Wales, and Germany as Berlin + Brandenburg
 
 Owner: *"add northern ireland, wales, and germany as berlin + brandenburg"*. Local, not pushed at

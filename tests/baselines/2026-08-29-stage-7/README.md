@@ -151,6 +151,32 @@ drifted when the readiness probe was reworked on 8 Sep and the baseline was not 
 comparing this file against a fresh capture would otherwise suspect a regression. `legacyNotice:
 true` is the *correct* value — opening a legacy `.html` should raise the upgrade strip.
 
+## ✅ `restore.json`'s `form` RE-CUT AGAIN — 53 keys to 59 (16 Sep 2026)
+
+The per-phase Monday-snap toggle (`MONTH-VIEW-PLAN.md` §5) adds one `input[type=checkbox]` per
+phase, and `collectFieldValues()` sweeps every `input[id]`, so the key set moves:
+
+| | ids | why |
+|---|---|---|
+| **added (6)** | `snap-writersRoom`, `snap-prePrep`, `snap-prodPrep`, `snap-production`, `snap-post`, `snap-localization` | the toggle is calendar data — it changes dates |
+| **removed** | none | |
+| **changed** | none | |
+
+**Net 53 → 59.** ⭐ **The back-compat proof is in the values.** `v1.0.0-saved.html` predates this
+feature and carries no `snap-*` keys at all, yet all six restore as **`"1"`** — checked, snapped,
+exactly as that calendar has always behaved. `checked` is set in the MARKUP, so
+`applyStateSnapshot()` simply never touches them. **Absent means snapped**, proven on a real file
+rather than asserted.
+
+⚠️ `formSignature()` (`t/lib.js`) stores checkboxes as the **strings** `'1'` / `'0'`, not booleans —
+`o[e.id] = e.checked ? '1' : '0'`. A re-cut script asserting `is True` will fire a false alarm.
+
+Unchanged by this: **`sig` (the full grid signature), `rows` 52, `cells` 154, `gridWidthPt` 324,
+`bytes` 756473, `hClip` 0** — plus a byte-identical waterfall PDF and identical Excel parts. The
+toggle defaults to on, so no existing calendar's dates move. The re-cut replaced **only** the `form`
+object and was guarded by assertions on each claim above; it would have aborted rather than absorb a
+value change.
+
 ## Reproducing it
 
 ```bash

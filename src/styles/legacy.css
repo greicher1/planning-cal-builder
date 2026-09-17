@@ -2242,6 +2242,15 @@
 
   /* .hv-custom is its own .side-block now; the old border-top section break retired with it. */
 
+  /* Per-phase Monday-snap toggle. Sits under the date/weeks pair in a phase row, deliberately
+     quiet: it is an escape hatch, not a primary control, and the default (on) is what every
+     calendar has always done. */
+  .phase-snap{
+    display:flex; align-items:center; gap:6px; flex:none;
+    font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
+  }
+  .phase-snap input{ margin:0; cursor:pointer; }
+
   /* The region lock hint. Roman, amber, and it names the three controls it applies to. */
   .lock-hint{
     margin:var(--mantine-spacing-sm) 0 0;
