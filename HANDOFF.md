@@ -1876,6 +1876,30 @@ Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrando
 markets are nearly free to add (one `PLACES` line → `US-GEN`) but each needs checking for an Area
 Standards carve-out first, the way Chicago and San Francisco did.
 
+### 2k. Shooting BLOCKS mode — ⏸ **PLANNED, NOT BUILT** (16 Sep 2026)
+
+→ **[`BLOCKS-PLAN.md`](BLOCKS-PLAN.md)**. Owner asked for a Show-tab toggle between *Episodes* and
+*Blocks*; in Blocks mode you enter a block count and days-per-block, episodes divide evenly among
+the blocks, you drag episodes between blocks, and each shooting week in the **month view** gets small
+subtext naming its block. Owner explicitly asked for it as a separate doc to implement later.
+
+⛔ **The central problem: it introduces a SECOND way to compute Production's length.** Episodes
+already drive it — `showInfoStatus()` sums `episodeDefs[].days` and `computeSchedule` does
+`if(p.key === 'production' && info.complete) rawValue = info.totalShootDays`. Blocks × days-per-block
+can disagree with episodes × days-per-episode. The plan resolves it by making the MODE choose which
+input drives the schedule, inside `showInfoStatus()` (not frozen) so there stays exactly one
+function deciding the total.
+
+⚠️ **AND IT CANNOT USE THE MONTH-VIEW PLAN'S GATE.** That gate's second condition is
+*"`mvNoteLineCount()` row heights unchanged"*, and per-week subtext is **precisely** a height change
+— the feature would fail its own acceptance test. `BLOCKS-PLAN.md` §5 proposes a separate gate whose
+key condition is that the month view is **byte-identical with Blocks mode off**, so no existing
+calendar's PDF can move. The real risk it guards is pagination: taller rows can push a month onto an
+extra page.
+
+⏸ Four rulings owed before building — uneven-split rule, mid-week block boundaries, the second
+frozen-edit ruling, and whether per-block day counts are uniform. See §7 of the plan.
+
 ### 2i. Month view ↔ waterfall linkage — ✅ **PLANNED AND RULED ON** (16 Sep 2026)
 
 → **[`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) is the live document. Read it, not this section**, which
