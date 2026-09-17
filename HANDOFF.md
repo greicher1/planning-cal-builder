@@ -1897,8 +1897,16 @@ key condition is that the month view is **byte-identical with Blocks mode off**,
 calendar's PDF can move. The real risk it guards is pagination: taller rows can push a month onto an
 extra page.
 
-⏸ Four rulings owed before building — uneven-split rule, mid-week block boundaries, the second
-frozen-edit ruling, and whether per-block day counts are uniform. See §7 of the plan.
+✅ **All four rulings received 16 Sep 2026.** Uneven episode splits **front-load** (10 / 3 → 4,3,3);
+a week straddling a boundary names **both** blocks (`Block 1 / 2`); per-block day counts get
+**individual overrides**, which makes Blocks mode structurally identical to Episodes mode — both are
+`Σ rows[].days` with a flat fallback, so `showInfoStatus()` reads a different array rather than
+running a second code path; and the frozen edit is **approved** against §5's gate — ⛔ **with the
+owner seeing both month PDFs (blocks on and off) BEFORE anything is committed.**
+
+⚠️ **Width trap to measure, not assume:** a week can touch THREE blocks once per-block overrides
+allow a block shorter than five shoot days. `Block 1 / 2 / 3` must not overflow or clip the day
+column. Same class of bug as the two padding failures in §3.
 
 ### 2i. Month view ↔ waterfall linkage — ✅ **PLANNED AND RULED ON** (16 Sep 2026)
 

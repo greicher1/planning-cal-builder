@@ -1,6 +1,6 @@
 # BLOCKS-PLAN.md
 
-**Status:** plan only. No code. Owner asked for it as a separate document to implement later.
+**Status:** plan only. No code. **All four rulings received 16 Sep 2026** (§7).
 **Written:** 16 Sep 2026, against `3338f55`.
 **Related:** [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) — §5 of this plan collides with its gate.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md).
@@ -65,10 +65,11 @@ total, as now. It is not frozen.
 
 ## 4. Blocks and the episodes inside them
 
-### 4.1 Default split
+### 4.1 ✅ RULED: default split, remainder to the FRONT
 
-10 episodes / 5 blocks → 2 each. ⏸ **Ruling needed for the uneven case:** 10 episodes / 3 blocks is
-`4,3,3` or `3,3,4`. Pick one and say so in a comment; either is defensible, silence is not.
+10 episodes / 5 blocks → 2 each. Uneven splits front-load: **10 / 3 → `4,3,3`**, not `3,3,4`.
+⚠️ **Say this in a comment.** It is a coin-flip rule, and the next reader will wonder whether the
+other order was a bug.
 
 ### 4.2 A block holds a SET of episodes, not a range
 
@@ -84,7 +85,28 @@ view says. Dragging an episode from block 2 to block 3 must **not** move a singl
 ⛔ That is the property that keeps this feature cheap. If assignment ever affects duration, blocks
 become a scheduling model and this plan is void.
 
-### 4.4 Where the drag lives
+### 4.4 ✅ RULED: per-block day counts get INDIVIDUAL overrides
+
+> Owner, 16 Sep 2026: **"should get individual overrides"**
+
+So `days-per-block` is a **default applied to new blocks**, not a global constant — exactly the shape
+`episodeDefs` already has:
+
+```js
+blockDefs = [{ id, name, days, daysEdited }]     // mirrors episodeDefs
+```
+
+⭐ **This makes both modes structurally identical, which is the point:**
+
+| Mode | Total shoot days | Fallback before rows exist |
+|---|---|---|
+| Episodes | `Σ episodeDefs[].days` | `perEp × numEp` |
+| Blocks | `Σ blockDefs[].days` | `numBlocks × daysPerBlock` |
+
+`showInfoStatus()` already implements the left column. Blocks mode is the same function reading a
+different array — not a second code path. **Build it that way.**
+
+### 4.5 Where the drag lives
 
 *"within the phases section"* — the Phases tab. That is **chrome, not frozen**: sidebar markup and
 its own popovers. No freeze ruling needed for the drag-between-blocks UI itself.
@@ -112,18 +134,28 @@ every shooting week is exactly a height change.** The feature cannot pass its ow
    an extra page, which changes the page count of every month PDF.
 3. No change at all to the month view with Blocks mode **off** — byte-identical output.
 4. Gates 1–5 unchanged.
+5. ⛔ **Two PDFs shown to the owner BEFORE anything is committed** — one with Blocks mode on, one
+   with it off — so the subtext and the page count are seen, not merely asserted by a test.
+
+> Owner, 16 Sep 2026: **"Approved, but show me the PDF first"** — the frozen edit is approved
+> against this gate, with condition 5 as an explicit precondition to committing.
 
 ⚠️ **Condition 3 is the important one.** It means the whole feature is invisible unless switched on,
 so no existing calendar's PDF can move. Build it that way and the blast radius is zero.
 
-### 5.1 ⏸ Block boundaries will not align to weeks
+### 5.1 ✅ RULED: a split week names BOTH blocks
 
-A block boundary falls mid-week whenever `daysPerBlock` is not a multiple of 5 — which is most of
-the time. So a single week can contain the end of block 2 and the start of block 3.
+> Owner, 16 Sep 2026: **"Both — 'Block 1 / 2'"**
 
-**Ruling needed.** Options: tag with both (`B2 / B3`), tag with whichever owns more shoot days in
-that week, or tag with whichever the week *starts* in. No default is obviously right, and the answer
-changes the markup.
+A block boundary falls mid-week whenever a block's day count is not a multiple of 5 — which is most
+of the time. Such a week is tagged with every block it touches: **`Block 1 / 2`**. Nothing is hidden
+from whoever reads the calendar, which is the reason it won over "whichever owns more days".
+
+⚠️ **A week can touch THREE blocks** if a block is shorter than five shoot days — legal once §4.4
+allows per-block overrides. `Block 1 / 2 / 3` must not overflow the day column or silently clip.
+**Measure it at the narrowest month-view column before assuming it fits**, and decide then whether
+to abbreviate (`B1/2/3`). This is the same width trap that has bitten the grid twice before
+(`HANDOFF.md` §3).
 
 ---
 
@@ -144,17 +176,17 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 
 ---
 
-## 7. ⏸ What the owner owes before this is built
+## 7. ✅ Rulings received (16 Sep 2026)
 
-1. **Uneven split rule** (§4.1) — `4,3,3` or `3,3,4`.
-2. **Mid-week block boundaries** (§5.1) — both, dominant, or starting block.
-3. **A second frozen-edit ruling**, against §5's gate — *not* the `MONTH-VIEW-PLAN.md` one, which
-   this feature cannot satisfy.
-4. **Are per-block day counts uniform?** The request says *"the number of days per shooting block"*,
-   singular. Per-block overrides — mirroring how `episodeDefs[].daysEdited` already works — would be
-   the natural extension, but they are not in scope unless asked for.
+| # | Question | Ruling |
+|---|---|---|
+| 1 | Uneven episode split | **Front-loaded** — 10 / 3 → `4,3,3` (§4.1) |
+| 2 | Mid-week block boundaries | **Name both** — `Block 1 / 2` (§5.1) |
+| 3 | Frozen edit to `renderMonthView` | **Approved**, against §5's gate, **and the two PDFs must be shown before committing** |
+| 4 | Per-block day counts | **Individual overrides**, mirroring `episodeDefs` (§4.4) |
 
----
+Nothing outstanding. This plan is ready to build when the owner wants it.
+
 
 ## 8. Suggested order
 
@@ -164,6 +196,7 @@ Steps 1–3 touch no frozen code.
    switching modes and back restores dates exactly.
 2. **Block model + even split** (§4.1), no UI beyond the numbers.
 3. **Drag episodes between blocks** in the Phases tab (§4.4) — chrome.
-4. ⛔ *Frozen work.* Month-view subtext, against §5's gate, **off by default**.
+4. ⛔ *Frozen work.* Month-view subtext, against §5's gate, **off by default** — and ⛔ **export both
+   PDFs and show the owner before committing** (§5 condition 5).
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1 and 2** — the save format moves in both.
