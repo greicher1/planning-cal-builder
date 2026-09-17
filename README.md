@@ -29,6 +29,97 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — `dayOverrides`: per-day control of the shoot (store, simulation, and the waterfall's explanation)
+
+`MONTH-VIEW-PLAN.md` steps 2 and 3. Owner asked to *"move weeks, and adjust the start and end of
+each week at a week by week level"*. This is the mechanism. **No UI yet**, so it is inert for users
+until something can set it. Local, not pushed at time of writing.
+
+```js
+dayOverrides = { 'YYYY-MM-DD': 'half' | 'off' | 'on' }
+```
+
+⭐ **One map, not a restructure.** The literal reading — give every week its own start date — would
+have turned Production from `{start, days}` into a list of independently-dated blocks. Instead:
+*"week starts Tuesday"* is `Mon:'off'`, *"runs into Saturday"* is `Sat:'on'`. Production stays
+derivable from `start + count + holidays + hiatuses + this map`, which is the property that makes
+the waterfall and the month view incapable of disagreeing.
+
+**Measured against hand-traced predictions** — 10 shoot days from Mon 6 Jul 2026, region None:
+
+| Overrides | Wrap |
+|---|---|
+| none | Fri 17 Jul |
+| Wed + Thu `half` | **Mon 20 Jul** — two halves are a day short, so +1 |
+| Wed `off` | **Mon 20 Jul** |
+| Sat `on` | **Thu 16 Jul** — Saturday worked, finishes a day EARLY |
+| one `half` (odd) | **Mon 20 Jul** — count reaches 10.5, over-delivers |
+
+And the month view draws the forced Saturday as a real shoot day (`mv-pill` at `grid-column: 7 / 8`)
+— no change to `renderMonthView`, the same as the snap toggle.
+
+⭐ **The over-deliver ruling needed no new code.** The loop was already
+`while(count < shootDaysRequested)`, so making `count` fractional implements it exactly: 9.5 of 10
+takes one more full day and delivers 10.5. **The shoot can never come up short.**
+
+⛔ **`dayOverrides` SHIFTS — the first day-addressed store that does.** `shiftCalendar` carries a
+standing warning *not* to add a `shiftKeyedMap` call there, because `dayNotes` / `dayNoteColors` /
+`mvExtraLanes` belong to a **date** — "wrap party booked" must stay put. An override belongs to a
+**shoot day**. The warning has been extended rather than left for someone to "correct" back.
+
+⚠️ **A bug introduced earlier in this same work, found and fixed.** The shift first used
+`hiatusKeyStays` as its predicate — which keeps a bare-ISO key when that ISO is in
+`stayingHiatusWeeks`, the week Mondays of **locked** hiatuses. Override keys are DAY ISOs, so one
+landing on such a Monday would have **stayed behind while every other override moved**, silently
+changing which day is half. The test that "passed" did so only because none of its four dates
+collided. It now shifts with **no predicate**: every override moves, always.
+
+⚠️ **Restore copies values VERBATIM and filters nothing** — proven with a deliberately unknown value
+(`'futuristic'`) surviving a full round trip, read back out of the crash backup. A round trip must
+never lose data; ignoring unrecognised values is the simulation's job. Otherwise opening and
+re-saving someone's file would silently strip whatever this build did not understand.
+
+⚠️ **Reset All clears the map; "Reset Notes & Hiatus" deliberately does NOT** — an override moves
+the wrap date, so wiping it from a *notes* reset would silently reschedule the shoot. **Verified by
+code inspection, not execution**: the Reset Notes button was not reachable in the view under test
+and the attempted probe returned `buttonFound: false`, so it proves nothing.
+
+**Two judgment calls, not owner rulings — both flagged for confirmation:**
+
+1. **`on` does not override a hiatus.** It forces past weekends and union holidays, which are
+   calendar facts; a hiatus is a stop-work period deliberately scheduled, and a per-day flag
+   punching through it would make the hiatus band meaningless. To work during a hiatus, shorten it.
+2. **A half day still goes into `shootDays`**, because the month view draws from that array and the
+   day *is* worked. ⛔ **Known consequence:** `episodeSpans()` slices it by **count**, so an 8-day
+   episode gets 8 *entries* — fewer than 8 days of work once any are half. Episode boundaries drift
+   against half days. Commented at the push site rather than papered over.
+
+#### Step 4 — the waterfall says why the wrap moved
+
+A sibling line under the Production row, shown **only** when an override is in range:
+
+```
+2 half · 1 off · 1 added — 11 days on the floor for 10 of 10
+```
+
+Two numbers, which is the whole of the owner's §4.5 ruling: **11 days on the floor** (every override
+day counted as a full day — the waterfall's view) delivering **10 days of work** (halves at 0.5 — the
+month view's). One wrap date, two displayed counts. Verified by hand: overrides Wed ½, Thu ½, Fri off,
+Sat on gives Mon 6, Tue 7, Wed½, Thu½, Sat, Mon 13–Fri 17, Mon 20 = 11 days delivering
+`1+1+.5+.5+1+1+1+1+1+1+1 = 10`, wrapping 7/20/26 — exactly what the line reports.
+
+⚠️ **This corrected an error in `MONTH-VIEW-PLAN.md` §4.5**, which called the `meta-<key>` hint
+"chrome, not frozen". That conflated the **element** (a sidebar div) with the **code that writes
+it**: `metaEl.textContent` is written inside `render()`, which **is** frozen. So this is a *sibling*
+element filled from `update()` after `render()` returns — `CLAUDE.md`'s sanctioned *"drive the effect
+from outside"* pattern, the same one `reflectStartDateValidity()` uses. **No frozen edit.**
+
+⭐ **Silent on every calendar that has none** — empty text plus a `:empty{display:none}` rule, verified
+against a fixture with no overrides. Since there is still no UI to set them, this ships invisible.
+
+⚠️ `'off'` days are absent from `shootDays` by definition, so they cannot be counted the way `half`
+and `on` are — they are counted across the span between the first and last shoot day instead.
+
 ### Unreleased — phases can start on any day: a per-phase Monday-snap toggle
 
 `MONTH-VIEW-PLAN.md` step 1. Owner: *"right now start dates of phases snap to the closest monday.

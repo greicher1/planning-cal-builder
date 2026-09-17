@@ -313,10 +313,17 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    `meta-<key>` hint **self-corrects** (its guard compares typed-vs-resolved, not "is it a Monday"),
    and built-in phase rows **bind inputs by id** so a new control is inert there until bound
    explicitly.
-2. **`dayOverrides`: store, save format, shift re-key** (§4.1, §4.3). No UI yet.
-3. **The math** (§4.2) — `off` / `on` / `half` in `simulateProductionSchedule`, with a harness leg
-   proving the wrap moves correctly. ⚠️ Prove it before drawing anything.
-4. **The waterfall's rounded count** (§4.5), so the moved wrap is explicable in Excel.
+2. ~~**`dayOverrides`: store, save format, shift re-key**~~ — ✅ **SHIPPED 17 Sep 2026.** Round trip
+   proven lossless (including an unknown value) out of the crash backup; shift proven +7 on every
+   key. ⚠️ A bug was introduced and fixed here: `hiatusKeyStays` was the wrong shift predicate.
+3. ~~**The math** (§4.2)~~ — ✅ **SHIPPED 17 Sep 2026.** All four behaviours measured against
+   hand-traced predictions; the over-deliver ruling needed no new code (the loop condition already
+   implemented it once `count` went fractional). ⏸ **Two judgment calls await confirmation:** `on`
+   does not override a hiatus, and half days in `shootDays` make `episodeSpans()` boundaries drift.
+4. ~~**The waterfall's rounded count** (§4.5)~~ — ✅ **SHIPPED 17 Sep 2026** as a sibling line:
+   `2 half · 1 off · 1 added — 11 days on the floor for 10 of 10`. ⚠️ §4.5 was WRONG that the
+   `meta-<key>` hint is "chrome, not frozen" — the ELEMENT is chrome, the CODE that writes it is
+   frozen `render()`. Filled from `update()` after `render()` returns instead. No frozen edit.
 5. **Body-drag** (§6.1) — needs no new markup, exercises the whole drag plumbing.
 6. ⛔ *Frozen work begins.* Day-override marks in the month cell, against §6.5's gate.
 7. ⛔ Start/end handles (§6.2), against the same gate.

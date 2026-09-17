@@ -2694,27 +2694,53 @@ export function initLegacyApp() {
       const holidaysHit = [];
       const shootDays = [];   // the actual working days Production shoots (for the month view)
       let safety = 0;
+      // ⚠️ `count` is FRACTIONAL now -- a 'half' day adds 0.5. The loop condition is unchanged and
+      // that is what implements the owner's over-deliver ruling (MONTH-VIEW-PLAN.md §4.4): it runs
+      // while count < requested, so reaching 9.5 of 10 takes one more FULL day and delivers 10.5.
+      // The shoot never comes up SHORT, which is the property that was wanted.
       while(count < shootDaysRequested && safety < 5000){
         safety++;
         const dow = current.getUTCDay();
         const isWeekday = dow>=1 && dow<=5;
         const inHiatus = hiatuses.some(h=> current>=h.start && current<h.end)
                          || (ownHi && current>=ownHi.start && current<ownHi.end);
-        if(isWeekday && !inHiatus){
-          const iso = current.toISOString().slice(0,10);
-          const holiday = holidayList.find(h=>h.date===iso);
-          if(holiday){
-            holidaysHit.push({date:current, name:holiday.name});
-          } else {
-            count++;
-            if(!firstShootDay) firstShootDay = current;
-            lastShootDay = current;
-            shootDays.push(iso);
-          }
+        const iso = current.toISOString().slice(0,10);
+        const ov = dayOverrides[iso];
+        const holiday = holidayList.find(h=>h.date===iso);
+        // ⛔ 'on' forces a day the CALENDAR would skip -- a weekend, or a union holiday being
+        // worked. It does NOT override a hiatus: a hiatus is a stop-work period the user
+        // deliberately scheduled, not a calendar fact, and letting a per-day flag punch through it
+        // would make the hiatus band mean nothing. To work during a hiatus, shorten the hiatus.
+        // ⚠️ JUDGMENT CALL, not an owner ruling -- flagged for confirmation.
+        const forced = (ov === 'on') && !inHiatus;
+        // An unrecognised value behaves as no override at all. applyStateSnapshot copies values
+        // through verbatim so a round trip is lossless; ignoring what we do not understand is this
+        // function's job, not the restore path's.
+        const skipped = (ov === 'off');
+        // A holiday only COSTS a day, and only earns its auto-note, when it would otherwise have
+        // been shot. A day turned off, or one being deliberately worked, is not a lost day.
+        if(!skipped && !inHiatus && isWeekday && holiday && !forced){
+          holidaysHit.push({date:current, name:holiday.name});
+        }
+        const shoots = !skipped && !inHiatus && (forced || (isWeekday && !holiday));
+        if(shoots){
+          count += (ov === 'half') ? 0.5 : 1;
+          if(!firstShootDay) firstShootDay = current;
+          lastShootDay = current;
+          // ⚠️ A half day is STILL a shoot day and goes in this array, because the month view draws
+          // from it (segCoversDate) -- the day is worked, just not fully. ⛔ KNOWN CONSEQUENCE:
+          // episodeSpans() slices this array by COUNT, so an episode of 8 gets 8 ENTRIES, which is
+          // fewer than 8 days of work once any are half. Episode boundaries therefore drift against
+          // the half days. Not solved here -- step 3 is the simulation -- and flagged to the owner.
+          shootDays.push(iso);
         }
         current = addDays(current, 1);
       }
-      return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start, holidaysHit, shootDays};
+      // `delivered` is the FRACTIONAL total (halves count 0.5); shootDays.length is the count of
+      // calendar days actually on the floor. They differ the moment any override is in play, and
+      // the two views want different ones -- see refreshOverrideNote().
+      return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start,
+              holidaysHit, shootDays, delivered: count};
     }
 
     const segments = [];
@@ -2760,7 +2786,8 @@ export function initLegacyApp() {
           // showed Production starting 1/4/27, two weeks later. Anything describing PRINCIPAL
           // PHOTOGRAPHY wants firstShootDay; anything laying out weeks wants startDate.
           productionInfo = {startDate:start, firstShootDay:sim.firstShootDay, lastShootDay:sim.lastShootDay,
-                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays};
+                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays,
+                            delivered:sim.delivered, requested:cfg.rawValue};
           shootDaysForSegment = sim.shootDays;
         } else {
           end = extendEndForHiatus(start, cfg.weeks, p.key);
@@ -4843,7 +4870,8 @@ export function initLegacyApp() {
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
            ${snapHtml}
            <input type="hidden" id="weeks-${p.key}">
-           <div class="prod-total-readout" id="prod-total-readout"></div>`
+           <div class="prod-total-readout" id="prod-total-readout"></div>
+           <div class="phase-ov-note" id="prod-ov-note"></div>`
         : `<label>Start date <input type="date" id="start-${p.key}"></label>
            <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
            ${snapHtml}`;
@@ -5132,6 +5160,43 @@ export function initLegacyApp() {
   // `if(cfg.start !== start.toISOString().slice(0,10))` -- it compares WHAT YOU TYPED against WHAT
   // WAS RESOLVED, not "is this a Monday". So with the snap off those are equal and the frozen code
   // removes its own hint, correctly, with no edit. A second hint in the same row only duplicated it.
+  // ⛔ WHY THIS IS NOT PART OF THE meta-<key> LINE. That line is written by render(), which is
+  // FROZEN -- `metaEl.textContent = note`. MONTH-VIEW-PLAN.md §4.5 originally called the hint
+  // "chrome, not frozen"; that conflated the ELEMENT (a sidebar div, chrome) with the CODE that
+  // writes it (render(), frozen). So this is a SIBLING element, filled from update() after
+  // render() returns -- CLAUDE.md's sanctioned "drive the effect from outside" pattern, the same
+  // one reflectStartDateValidity() uses.
+  //
+  // ⭐ WHAT IT SAYS, and why the two numbers differ (the owner's §4.5 ruling):
+  //   shootDays.length -- calendar days ON THE FLOOR, every override day counted as a full day.
+  //                       This is "the waterfall counts half days as full days".
+  //   delivered        -- the fractional total of WORK, halves at 0.5. The month view's number.
+  // Both views share ONE wrap date; only these displayed counts differ. ⛔ Never recompute the
+  // schedule with halves as 1.0 to get the waterfall's figure -- that produces a genuinely
+  // different wrap and puts the Excel export and the month PDF in disagreement.
+  function refreshOverrideNote(){
+    const el = document.getElementById('prod-ov-note');
+    if(!el) return;
+    const info = currentSchedule && currentSchedule.productionInfo;
+    if(!info || !info.shootDays || !info.shootDays.length){ el.textContent = ''; return; }
+    // Only overrides INSIDE the shot range matter. One left behind on a date the shoot no longer
+    // covers is stale, not wrong -- ignored here and by the simulation, never deleted.
+    const n = k => info.shootDays.filter(iso => dayOverrides[iso] === k).length;
+    const halves = n('half'), ons = n('on');
+    // 'off' days are absent from shootDays by definition, so count them across the span instead.
+    const first = info.shootDays[0], last = info.shootDays[info.shootDays.length - 1];
+    const offs = Object.keys(dayOverrides).filter(iso =>
+      dayOverrides[iso] === 'off' && iso >= first && iso <= last).length;
+    if(!halves && !ons && !offs){ el.textContent = ''; return; }
+    const bits = [];
+    if(halves) bits.push(halves + ' half');
+    if(offs)   bits.push(offs + ' off');
+    if(ons)    bits.push(ons + ' added');
+    const work = Math.round(info.delivered * 2) / 2;   // count moves in halves; avoid 10.4999999
+    el.textContent = bits.join(' \u00b7 ') + ' \u2014 ' + info.shootDays.length
+                   + ' days on the floor for ' + work + ' of ' + info.requested;
+  }
+
   function refreshSnapNotes(){
     document.querySelectorAll('.hiatus-entry').forEach(row=>{
       const inp = row.querySelector('.hiatus-start');
@@ -7434,6 +7499,17 @@ export function initLegacyApp() {
   // the line it was added on and its own colour. Normalised by dayNoteList() below.
   const dayNotes = {};      // { 'YYYY-MM-DD': [ {text, lane, color} ] }
   let dayNoteColors = {};   // legacy per-day colour store, folded in by dayNoteList()
+  // ⛔ PER-DAY CONTROL OF THE SHOOT. Keyed by ISO date, one of three values:
+  //     'half' -- the day counts 0.5 toward the shoot-day total
+  //     'off'  -- not shot, though it would normally be a working day
+  //     'on'   -- shot, though it would normally be skipped (a weekend, or a holiday being worked)
+  // This is what gives week-by-week control -- "week starts Tuesday" is Mon:'off', "runs into
+  // Saturday" is Sat:'on' -- WITHOUT turning Production into a list of independently-dated blocks.
+  // Production stays derivable from start + count + holidays + hiatuses + this map, which is what
+  // makes the waterfall and the month view incapable of disagreeing (MONTH-VIEW-PLAN.md §1, §4).
+  // ⚠️ NOTHING READS IT YET. The simulation lands in step 3; this step is the store and the save
+  // format alone, deliberately, so the format is settled before behaviour depends on it.
+  let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' }
   // Normalise any stored shape (old single-object saves included) into a list.
   function dayNoteList(iso){
     const v = dayNotes[iso];
@@ -9950,6 +10026,8 @@ export function initLegacyApp() {
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
     syncRowHeights(currentSchedule);
     render(currentSchedule);
+    // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
+    refreshOverrideNote();
     reflectCountryLock();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
@@ -10527,6 +10605,11 @@ export function initLegacyApp() {
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     mvExtraLanes = {};
     dayNoteColors = {};
+    // ⚠️ RESET ALL clears these; "Reset Notes & Hiatus" deliberately DOES NOT. An override is
+    // schedule data -- it moves the wrap date -- not an annotation, so wiping it from a notes reset
+    // would silently reschedule the shoot. The two reset blocks look nearly identical; this is the
+    // line that differs, on purpose.
+    dayOverrides = {};
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
     holidayOff = {}; customHolidays = [];
@@ -10911,7 +10994,7 @@ export function initLegacyApp() {
     return {
       version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
-      userNotes, dayNotes, mvExtraLanes, dayNoteColors, headerMode, headerManual, headerTemplates,
+      userNotes, dayNotes, mvExtraLanes, dayNoteColors, dayOverrides, headerMode, headerManual, headerTemplates,
       mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, singleColumn, sidebarTab,
@@ -11227,7 +11310,20 @@ export function initLegacyApp() {
     // pair whose partner has no stint in the block), so undoing the shift brings the order back --
     // the same "a stale override is ignored, never destroyed" rule applyCellSpanOverrides follows.
     // ⚠️ Do NOT "complete the checklist" by adding a shiftKeyedMap call here.
-    // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put.
+    // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put:
+    // "wrap party booked" belongs to a DATE, so a shift must leave it on that date.
+    //
+    // ⛔ dayOverrides IS THE EXCEPTION, and it is deliberate -- do not "correct" it back.
+    // An override belongs to a SHOOT DAY, not a calendar date: 'half' says how that day of the
+    // shoot is worked. Move the production a week and the overrides must travel with it, or the
+    // tool has silently changed which days are half or off. It is the first day-addressed store
+    // that shifts, which is exactly why the warning above needed this paragraph.
+    // ⚠️ NO keep-predicate, and that is deliberate. hiatusKeyStays was used here first and was
+    // WRONG: it keeps a bare-ISO key when that ISO is in stayingHiatusWeeks -- the week Mondays of
+    // LOCKED hiatuses. dayOverrides keys are DAY ISOs, so an override that happened to land on such
+    // a Monday would have stayed behind while every other override moved, silently changing which
+    // day is half. Every override moves, always: they belong to shoot days, and shoot days all move.
+    dayOverrides = shiftKeyedMap(dayOverrides, days);
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
@@ -13790,6 +13886,12 @@ export function initLegacyApp() {
     if(snap.dayNoteColors && typeof snap.dayNoteColors === 'object'){
       dayNoteColors = Object.assign({}, snap.dayNoteColors);
     }
+    // ⛔ UNCONDITIONAL, and the else branch is the point: `if(snap.x) x = snap.x` would leave the
+    // PREVIOUS file's overrides in place when the newly opened one has none (CLAUDE.md, Save/restore).
+    // ⚠️ Values are copied through VERBATIM -- unknown ones are not filtered out here. A round trip
+    // must never lose data; it is the simulation's job (step 3) to ignore what it does not recognise.
+    dayOverrides = (snap.dayOverrides && typeof snap.dayOverrides === 'object')
+      ? Object.assign({}, snap.dayOverrides) : {};
     Object.keys(userNotes).forEach(k=>{ delete userNotes[k]; });
     if(snap.userNotes && typeof snap.userNotes === 'object'){
       Object.keys(snap.userNotes).forEach(k=>{

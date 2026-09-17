@@ -2251,6 +2251,14 @@
   }
   .phase-snap input{ margin:0; cursor:pointer; }
 
+  /* Why the wrap moved. Only appears when a day override is in range, so it is silent on every
+     calendar that has none -- which is all of them until the marking UI ships. */
+  .phase-ov-note{
+    flex-basis:100%; margin-top:4px;
+    font-size:11px; line-height:1.4; color:var(--mantine-color-warn-9);
+  }
+  .phase-ov-note:empty{ display:none; }
+
   /* The region lock hint. Roman, amber, and it names the three controls it applies to. */
   .lock-hint{
     margin:var(--mantine-spacing-sm) 0 0;
