@@ -29,6 +29,51 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month-view drag moves day by day, and "Snap to Mon" is left-aligned
+
+Two owner requests, 18 Sep 2026. Local, not pushed at time of writing.
+
+**The drag is day-granular now, always.** It used to move a snapped phase in whole WEEKS, because
+`computeSchedule` does `mondayOf()` on a phase's start and a one-day drag was therefore undone the
+instant it landed — the bar sat still through six days of pointer travel and then jumped.
+
+⛔ **The fix is not to quantise the gesture but to let it say what it means.** A snapped phase is
+Monday-only, so dragging one onto a Tuesday *is* the instruction "this phase starts on a Tuesday" —
+and the drag now turns that phase's snap toggle off rather than refusing to move. The toggle flips
+in the sidebar, so the state change is visible rather than silent (owner ruling: *drag turns snap
+off*).
+
+⭐ **ONE undo still restores BOTH the date and the toggle, with no extra bookkeeping.**
+`start-<key>` and `snap-<key>` are both id'd inputs, so `collectFieldValues()` sweeps them into the
+same `fields.byId` snapshot and the gesture banks exactly one of those. Measured: drag
+`2026-01-05 → 01-06 → 01-07 → 01-08` flips snap off on the first step; one undo returns the date to
+`01-05` **and** the toggle to on.
+
+⚠️ The checkbox is set with `.checked = false` and **no dispatched `change`** — its only listener is
+`update()`, which the next line calls anyway, so dispatching would run the whole schedule and render
+twice per drag. If a second listener is ever bound to it, dispatch there instead.
+
+**"Snap to Mon" was centred; it is left-aligned now.** ⛔ **A CSS SPECIFICITY COLLISION, and the
+bare class lost.** `.phase-fields label` is **(0,1,1)** — one class plus a type — against
+`.phase-snap`'s **(0,1,0)**, so it won and forced `flex-direction:column; flex:1 1 116px` onto the
+label. Correct for "Start date" stacked over its input; wrong here, where the checkbox belongs
+beside its caption. The visible result was the two children stacked *and* centred, because
+`.phase-snap`'s own `align-items:center` centres them horizontally once the direction is column — a
+checkbox floating above centred text, in a card where every other label is left-aligned.
+
+Fixed with `.phase-fields label.phase-snap` (0,2,1). ⚠️ **`flex-direction:row` is set EXPLICITLY**:
+the competing rule sets column, so relying on the row default silently loses the same way. Both the
+built-in and the custom-phase builders nest this label inside `.phase-fields`, so one selector covers
+both. Measured after: the checkbox's left edge is 33px, identical to the "Start date" and "Weeks"
+labels above it.
+
+⏭ **A third report is unresolved and NOT fixed here:** *"Hiatus is missing from the writer's room
+hiatus checkbox"*. Not reproducible — the caption reads "Writer's Rm Hiatus" in full when unticked,
+ticked, expanded, at 900px and at full width, and it needs 98px against 179 available. ⚠️ **The
+likely explanation is that the caption is a `placeholder`, not static text**: `phiatus-name-<key>` is
+in `fields.byId`, so a calendar carrying a *value* in that field shows the value and hides the
+placeholder entirely. Awaiting the owner on whether it is a fresh calendar or one opened from a file.
+
 ### Unreleased — new app icon: a calendar whose top band is a film slate
 
 Owner-supplied artwork, 18 Sep 2026 — a calendar with a clapperboard top, the hinged clapstick

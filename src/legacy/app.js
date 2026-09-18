@@ -5219,17 +5219,18 @@ export function initLegacyApp() {
       const dayW = cell ? cell.getBoundingClientRect().width : 0;
       const weekH = week ? week.getBoundingClientRect().height : 0;
       if(!(dayW > 1) || !(weekH > 1)) return;
-      // ⛔ THE SNAP TOGGLE GOVERNS THE INCREMENT. With snap ON a one-day drag would be snapped
-      // straight back to the Monday and the feature would look broken, so snapped phases move in
-      // whole WEEKS and unsnapped ones move by the DAY. This is what makes the toggle visible.
+      // ⛔ THE DRAG IS DAY-GRANULAR, ALWAYS (owner, 18 Sep 2026: "i want to drag day by day").
+      // It did not used to be: a snapped phase moved in whole WEEKS, because computeSchedule does
+      // mondayOf() on its start and a one-day drag was therefore undone the instant it landed --
+      // the bar sat still through six days of pointer travel and then jumped. The fix is not to
+      // quantise the gesture but to let it say what it means; see the snap handling in mousemove.
       const snapEl = document.getElementById('snap-' + key);
-      const step = (!snapEl || snapEl.checked) ? 7 : 1;
       // Flush whatever came before into its own step, so a date typed moments ago does not fold
       // into this drag -- one Cmd+Z would otherwise revert both, which is the trap the batch-expand
       // comment describes. It early-returns when nothing has changed, so a press that never becomes
       // a drag costs nothing.
       pushUndoSnapshot();
-      drag = {key, startEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, step, applied: 0};
+      drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0};
       // grid-swapping, NOT grid-selecting: both suppress text selection, but grid-selecting is
       // cursor:cell (the marquee cursor, for sweeping a selection) and this is a MOVE. It pairs
       // with the pill's own cursor:grab, and a body-level class is what keeps the cursor correct
@@ -5243,13 +5244,27 @@ export function initLegacyApp() {
       // following the pointer with the button up, and -- worse since the debounce is now cancelled
       // on every step -- the gesture's undo step would never be banked at all.
       if(!(e.buttons & 1)){ endDrag(); return; }
-      // A month row IS a week, so vertical movement is worth 7 days and horizontal 1.
-      const raw = Math.round((e.clientX - drag.x0) / drag.dayW)
-                + Math.round((e.clientY - drag.y0) / drag.weekH) * 7;
-      const days = Math.round(raw / drag.step) * drag.step;
+      // A month row IS a week, so vertical movement is worth 7 days and horizontal 1. No step
+      // quantisation: one column of travel is one day.
+      const days = Math.round((e.clientX - drag.x0) / drag.dayW)
+                 + Math.round((e.clientY - drag.y0) / drag.weekH) * 7;
       if(days === drag.applied) return;                // only re-render when the day actually changes
       drag.applied = days;
-      drag.startEl.value = isoOf(addDays(drag.base, days));
+      const iso = isoOf(addDays(drag.base, days));
+      drag.startEl.value = iso;
+      // ⛔ A SNAPPED PHASE IS MONDAY-ONLY, so a day-level drag on one would be silently undone by
+      // computeSchedule's mondayOf() and the bar would not move. Dragging a phase onto a Tuesday IS
+      // the instruction "this phase starts on a Tuesday", so the toggle comes off rather than the
+      // gesture being refused (owner ruling, 18 Sep 2026).
+      // ⭐ ONE undo still restores BOTH, with no extra bookkeeping: `start-<key>` and `snap-<key>`
+      // are id'd inputs, so collectFieldValues() sweeps them into the same `fields.byId` snapshot,
+      // and the gesture banks exactly one of those (see endDrag).
+      // ⚠️ Set .checked WITHOUT dispatching 'change'. The only listener on it is update(), which the
+      // next line calls anyway -- dispatching would run the whole schedule+render twice per drag.
+      // If a second listener is ever bound to this checkbox, dispatch here instead.
+      if(drag.snapEl && drag.snapEl.checked && parseDateUTC(iso).getUTCDay() !== 1){
+        drag.snapEl.checked = false;                   // visible in the sidebar; no extra UI needed
+      }
       // update() rebuilds the grid, destroying the pill under the cursor -- which is why every
       // reference held above is either a sidebar element or a plain number, never a grid node.
       update();

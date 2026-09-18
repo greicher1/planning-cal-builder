@@ -258,15 +258,24 @@ last pill's right edge is the real end. Every other edge is a **week boundary**.
 **Two handles per phase, ever.** Getting this wrong makes dragging a middle pill's "edge" do
 something arbitrary.
 
-### 6.3 ⚠️ The snap toggle governs the drag INCREMENT
+### 6.3 ⛔ SUPERSEDED 18 Sep 2026 — the drag is DAY-GRANULAR, and it turns the toggle off
 
-With snap ON, dragging one day snaps straight back to Monday and the feature looks broken. So:
+**What this section used to say**, and it shipped that way on 18 Sep: snap on → drag moves in whole
+**weeks**; snap off → by the **day**. The reasoning was sound as far as it went — with snap on, a
+one-day drag is undone by `computeSchedule`'s `mondayOf()` and the bar refuses to move.
 
-- **snap on** → drag moves in whole **weeks**
-- **snap off** → drag moves by the **day**
+⛔ **The owner rejected the week-stepping outright** (*"i want to drag day by day"*). The right
+resolution is not to quantise the gesture to the constraint but to let the gesture **lift** it: a
+snapped phase is Monday-only, so dragging one onto a Tuesday IS the instruction "this phase starts
+on a Tuesday". The drag therefore sets `snap-<key>` to false when it lands off-Monday, visibly, and
+moves by the day everywhere.
 
-That makes the §5 toggle mean something visible, keeps snapped calendars behaving exactly as they do
-now, and means nobody drags a bar and watches it refuse to move.
+⭐ **One undo restores both**, because `start-<key>` and `snap-<key>` are both swept into the same
+`fields.byId` snapshot — no extra bookkeeping, and no second store to keep in sync.
+
+⚠️ **The general shape is worth keeping:** when a gesture collides with a stored constraint, the
+choice is to refuse the gesture, quantise it, or change the constraint. Quantising looked like the
+conservative option and produced a control that appeared broken.
 
 ### 6.4 Mid-phase drag is OUT of scope, deliberately
 
