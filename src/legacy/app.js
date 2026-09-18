@@ -5961,11 +5961,32 @@ export function initLegacyApp() {
       // (the greyed-out neighbours from the previous/next month that fill the first and last
       // rows) show the schedule too: a cell states what's true of its DATE, so a hiatus running
       // Dec 28 - Jan 2 must look continuous on both pages rather than stopping at the 31st.
+      // ⛔ FROZEN EDIT, owner-instructed 18 Sep 2026: a hiatus band covers WORKING DAYS ONLY, so it
+      // stops at Friday and resumes on Monday. Nothing is shot at a weekend regardless, so a band
+      // painted across Saturday and Sunday said nothing and competed with the weekend tint for the
+      // same cells.
+      //
+      // ⚠️ UNLIKE THE OTHER FROZEN EDITS IN THIS VIEW, THIS ONE DELIBERATELY CHANGES THE MONTH PDF.
+      // `data-ph` and the `mv-day-*` classes were provably inert -- the printed DOM came back
+      // byte-identical. This does not, and it is not meant to. The before/after is the `monthprint`
+      // leg, and the intended difference is: weekend columns lose their hiatus band, and the
+      // orphaned one-day Sunday band described below disappears.
+      //
+      // ⭐ IT ALSO FIXES A STRAY BAND NOBODY HAD NAMED. A hiatus is Monday-snapped and whole weeks
+      // long (`mondayOf(h.start)`, `h.weeks*7`), so it runs Mon->Sun. A month row runs Sun->Sat, so
+      // a one-week hiatus used to paint Mon-Sat on one row AND a single orphan Sunday cell on the
+      // next -- a one-day band belonging to a hiatus that visually ended the week before. Skipping
+      // weekends removes it by construction.
+      //
+      // ⚠️ A weekend-only hiatus cannot exist (they are whole Monday-snapped weeks), so no hiatus
+      // can lose its band entirely here. If hiatuses ever become day-granular, re-check that.
       const hiRuns = [];
       let hrun = null;
       for(let i=0;i<7;i++){
         const d = addDays(weekStart, i);
-        if(isHiatusDate(schedule, d)){
+        const dow = d.getUTCDay();                       // month rows run Sun(0) .. Sat(6)
+        const isWeekend = (dow === 0 || dow === 6);
+        if(!isWeekend && isHiatusDate(schedule, d)){
           if(!hrun) hrun = {startCol:i, endCol:i, date:d}; else hrun.endCol = i;
         } else if(hrun){ hiRuns.push(hrun); hrun = null; }
       }

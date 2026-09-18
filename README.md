@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — month-view hiatus bands stop at Friday
+
+Owner instruction, 18 Sep 2026: *"hiatuses in the month view should not show up on Saturday and
+Sundays"*. Nothing is shot at a weekend regardless, so a band painted across Sat and Sun said
+nothing and competed with the weekend tint for the same cells. The phase pills already behaved this
+way — the hiatus band was the odd one out. Local, not pushed at time of writing.
+
+⛔ **FROZEN EDIT, AND UNLIKE THE OTHER THREE IN THIS VIEW IT DELIBERATELY CHANGES THE MONTH PDF.**
+`data-ph` and the `mv-day-*` classes were provably **inert** — the printed DOM came back
+byte-identical, which is what let them pass §6.5 condition 1 unchanged. This one does not and is not
+meant to. The intended difference, and the only one: weekend columns lose their hiatus band.
+
+⭐ **It also removes a stray band nobody had named.** A hiatus is Monday-snapped and whole weeks long
+(`mondayOf(h.start)`, `h.weeks * 7`), so it runs **Mon → Sun**. A month row runs **Sun → Sat**. So a
+one-week hiatus painted Mon–Sat on one row *and a single orphan Sunday cell on the next* — a one-day
+band belonging to a hiatus that had visually ended the week before. Skipping weekends removes it by
+construction.
+
+**Measured with the `monthprint` leg against the reference fixture** (whose range covers the
+2026-12-21 default hiatus), `HEAD` vs this change:
+
+| | before | after |
+|---|---|---|
+| hiatus bands | **4** — `Mon-Sat`, `Sun-Sat`, `Sun-Sat`, **`Sun-Sun`** | **3** — all `Mon-Fri` |
+| total elements in `#print-root` | 3751 | **3750** (exactly the one removed band) |
+| pages | 16 | 16 |
+| `mv-pill` · `data-ph` · note bars · day cells | 86 · 86 · 21 · 574 | **identical** |
+
+The `Sun-Sun` band in the before column is the orphan described above. The month PDF changes in
+exactly one way and nothing else moves.
+
+⚠️ **`tests/harness/prepost.py` needs a fix before its next use.** It strips `data-ph` from the POST
+capture before comparing, which was right when `HEAD` predated that attribute and is wrong now that
+`HEAD` carries it — it reports a false divergence on the first pill. Compare the two captures
+directly and normalise only the today-stamp.
+
+⚠️ **A weekend-only hiatus cannot exist**, because hiatuses are whole Monday-snapped weeks — so no
+hiatus can lose its band entirely. If hiatuses ever become day-granular, re-check that.
+
+⚠️ Scope: this is the month view's **rendering** of the band only. `isHiatusDate()` is untouched, so
+the schedule, the simulation and the waterfall are unaffected — a hiatus still pauses a phase across
+the full seven days.
+
 ### Unreleased — the month-view drag moves day by day, and "Snap to Mon" is left-aligned
 
 Two owner requests, 18 Sep 2026. Local, not pushed at time of writing.
