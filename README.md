@@ -29,6 +29,170 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — new app icon: a calendar whose top band is a film slate
+
+Owner-supplied artwork, 18 Sep 2026 — a calendar with a clapperboard top, the hinged clapstick
+pivoting open from the left. Replaces the flat red-header calendar tile the app had used since the
+beginning. Local, not pushed at time of writing.
+
+⛔ **There are TWO independent copies of the app icon and both had to change.** `HANDOFF.md` row 32
+flagged this and it is still the trap:
+
+| | feeds | what changed |
+|---|---|---|
+| `APP_ICON` in `src/chrome/appIcon.js` | the tab favicon, the `apple-touch-icon`, and the header brand mark | one 192px PNG, 3,750 → 6,502 B |
+| the manifest's `icons[]` | the **installed-PWA** identity | three PNGs: 192 `any`, 512 `any`, 512 `maskable` |
+
+Changing only the first leaves an installed app wearing the old icon forever, with nothing on screen
+to say so.
+
+**How the PNGs were made.** The source is an SVG; all four rasters come from it via headless Chrome
+at exact pixel sizes. ⚠️ Chrome's `--screenshot` **writes the file and then does not exit**, exactly
+as `run.sh` documents for `--dump-dom` — background it, poll for the file, kill it. A foreground
+chain hangs.
+
+⛔ **THE MASKABLE ICON WAS DROPPED, because it is what put a white box behind the app in the macOS
+Dock** (owner report). A `maskable` icon is *required* to be opaque — the platform crops it to a
+circle or squircle and transparency would show as holes — so it shipped as RGB with no alpha channel
+at all. That is correct on Android. **macOS does not crop app icons**, so when Chrome picked the
+maskable for the installed app you got the white square. The manifest now carries only the two
+transparent `any` icons.
+⚠️ **Cost:** an Android install no longer gets a purpose-built masked icon and the launcher will crop
+the `any` one itself, which can clip the corners. Acceptable here — the documented targets are
+Chrome/Edge on desktop — but restore the maskable if Android ever matters.
+⛔ **AN INSTALLED PWA CACHES ITS ICON AT INSTALL TIME.** Changing the manifest does **not** update an
+existing install's Dock icon; it has to be uninstalled and reinstalled. Expect no visible change
+otherwise, and do not read that as the fix having failed.
+
+⛔ **A REAL BUG THIS FOUND, worth more than the icon itself: `--window-size` BELOW ~400px IS CLAMPED
+BY macOS CHROME, and the screenshot is then a CROP of a larger render.** The first 192px icon was
+rendered directly at `--window-size=192,192` and came out as the top-left corner of a much bigger
+drawing — a fragment of the clapper arm and nothing else. It shipped into `APP_ICON` *and* the
+manifest, and it looked plausible in a file listing because it is a valid 192×192 PNG of the right
+size. ⭐ **Render large and downscale; never trust a small window.** The 192 is now a 4:1 box
+downscale of a 768px render, averaged in **premultiplied** alpha — averaging straight RGBA bleeds the
+colour of fully-transparent pixels into the edges and leaves a dark halo. ⚠️ **Check the centre pixel's
+alpha after any icon render**: opaque centre + transparent corners is the two-number test that would
+have caught this immediately.
+
+⚠️ **The manifest is a fully percent-encoded `data:` URI** (`+` → `%2B`, `/` → `%2F`, `=` → `%3D`),
+so splicing new base64 into it risks silently rewriting the whole thing. Guarded by proving the
+round-trip first: `quote(unquote(payload), safe='') == payload` is byte-identical, and only then were
+the three `src` values replaced. Re-verified after writing that `name`, `short_name`, `theme_color`
+and `start_url` are untouched.
+
+⭐ **Trimmed after a first look (owner: "too tall").** The gap below the last row of day cells was
+**110 units** against **62** between the red band and the first row — measurably bottom-heavy. The
+calendar body's bottom edge moved 716 → 668 and its corner arc 646 → 598, the darker slab moved up the
+same 48 keeping its 34-unit reveal, and the outer transform was re-centred `translate(40,58)
+scale(0.90)` → `translate(28,72) scale(0.95)` so the shorter artwork still fills the 800 square. Both
+gaps are now 62. ⚠️ The corner arc now starts *above* the last cell row — checked, not assumed: at
+y=606 the body edge sits at x=100.2 and the nearest cell starts at x=166, so nothing clips.
+
+⚠️ **At 16–32px the diagonal clapper stripes blur into a pink band.** The silhouette still reads as a
+red-topped calendar — the same shape the old favicon had — so it is legible, but the detail is at its
+floor. Do not add finer detail to this artwork expecting it to survive a favicon.
+
+⏭ **`theme_color` is still `#E74C3C` and was deliberately left alone.** The new artwork's clapper red
+is `#EF493C` — close but not the same. `theme_color` tints the browser chrome and the installed app's
+title bar, and `HANDOFF.md` already records it as deliberately not single-sourced from the icon. Say
+the word if it should follow the artwork.
+
+⚠️ Build cost: about 15 KB on `dist/index.html`, which is ~1.17 MB.
+
+### Unreleased — the app is **SPTCal**
+
+Owner rename, 18 Sep 2026, replacing *SPT Calendar Builder* (itself a rename from *SPT Planning
+Calendar Builder* on 3 Sep). Local, not pushed at time of writing.
+
+⭐ **The name was already half-shipped, which is most of the argument for it.** The save format is
+**`.sptcal`**, the preference store is `sptcal.prefs`, the IndexedDB is `spt-planning-cal`. People
+are already emailing each other "sptcal files" — the app now matches the file, and the extension
+stops looking arbitrary. It also never truncates under a home-screen icon, which *SPT Calendar* was
+borderline on.
+
+**Changed — the six surfaces that name the APP:** the PWA manifest `name` **and** `short_name` (both
+now `SPTCal`, where they previously differed), the tab `<title>`, `apple-mobile-web-app-title`, the
+header brand, and the help panel's heading and its `?` button tooltip.
+
+⛔ **Deliberately NOT changed — these name the DOCUMENT, not the app**, which is the same line the
+3 Sep rename drew and it still holds:
+
+| Left alone | Why |
+|---|---|
+| `<Show> Planning Calendar.xlsx` / `.pdf` | the file a user hands to a producer |
+| the Excel worksheet tab, `Planning Cal` | ditto, and it is inside every workbook ever exported |
+| the save/open picker type labels | describes the file being chosen |
+| the calendar's own `c2` header line, `Planning Calendar` | ⛔ **baked into every saved `.sptcal`** — changing it would rewrite what existing calendars print |
+
+⛔ **The root `index.html` was NOT renamed.** It is byte-identical to `releases/v1.2.0.html` and is
+the one-click rollback; only the build changed. Verified with `cmp` after the edit.
+
+⚠️ **A changed manifest `name` changes the INSTALLED identity.** An existing PWA install may appear
+as a *new* install rather than a rename — the same caveat logged for the 3 Sep rename, and it has
+never been observed in the wild either time, so treat it as a known unknown rather than a prediction.
+
+⚠️ **The manifest is a percent-encoded `data:` URI**, so the edit ran against `%22name%22%3A%22…%22`
+rather than readable JSON, and every token was count-verified before anything was written — a
+partial rename would leave the app calling itself two different things. Confirmed afterwards by
+fetching the manifest in the running app and parsing it: `name` and `short_name` both `SPTCal`, JSON
+still valid.
+
+### Unreleased — dragging a phase in the month view: it could not be clicked, and it was two undo steps
+
+`MONTH-VIEW-PLAN.md` step 5 (body-drag), shipped in the same working tree that added it. Two
+defects, one of which made the feature non-functional. Local, not pushed at time of writing.
+
+**The gesture could not receive a mouse press at all.** `.mv-bars` sets `pointer-events:none` so the
+bar layer does not swallow clicks meant for the day cells, and `.mv-pill` inherits it — so a real
+press on a pill landed on the `.mv-daycell` underneath and the handler never saw it. Measured:
+`elementFromPoint()` at a pill's exact centre returned `mv-daycell`, and the pill was absent from
+`elementsFromPoint()` entirely.
+
+It had looked verified because it was driven by dispatching events **straight at the pill node**,
+which skips hit-testing — exactly the trap `HANDOFF.md` already records (*"synthetic PointerEvents
+are not proof a gesture works for a real user"*). This is the second time that trap has been paid
+for; the first cost a shipped regression in the preview toolbar.
+
+⛔ **Fixed with a FROZEN CSS EDIT, owner-approved 18 Sep 2026:**
+`#table-wrap .mv-pill{ pointer-events:auto; cursor:grab }`. It is the same opt-in `.mv-note-click`
+already uses one screen down, not a new mechanism. ⭐ **Scoped to `#table-wrap` on purpose**: the
+unscoped form would also match inside `#print-root`, and although neither property can render,
+scoping makes *"the print path is untouched"* true by **construction** rather than by argument —
+`#print-root` is a sibling of `#table-wrap`, so nothing inside it can match. That is the claim a
+frozen edit should be able to make.
+
+⚠️ What it costs: a pill now takes clicks in its own ~17px lane, where they previously passed
+through. Measured on the reference fixture — **0 overlaps between the 4 pills and all 118
+`.mv-note-click` elements**, and nothing listens on `.mv-daycell` (the month view's click handlers
+are `.mv-note-click` and `.mv-row-expand`, both in their own lanes). So it is free today. Anything
+added to a day cell later must expect pills to be in front.
+
+**One drag was two undo steps.** Every increment calls `update()` → `markDirty()` →
+`scheduleUndoPush()`, which **clears and re-arms** a 500 ms timer (`UNDO_DEBOUNCE_MS`). Hold still
+longer than that — which is what aiming looks like — and it fires **mid-gesture**, banking an
+intermediate date the user never chose. Measured A/B on the same drag, `2026-01-05 → 01-12 → 01-19`
+with a 1.5 s pause: before, one undo landed on **`2026-01-12`** and a second was needed for
+`01-05`; after, one undo returns to `01-05`.
+
+⭐ **Why no other drag in the app needs this, which is the part worth keeping.**
+`installGridResizers` and `beginSpanDrag` mutate only **presentation** while dragging
+(`col.style.width`, `tr.style.height`) and write their store once, in `onUp` — so `markDirty()`
+runs exactly once and the single step falls out for free. This gesture cannot: a phase's start date
+**is** the state, and moving it is the whole preview. So it brackets itself with explicit pushes
+and cancels the pending one on each step, via a new `cancelPendingUndoPush()` helper declared
+beside `scheduleUndoPush()`. No frozen code involved.
+
+Also fixed while there: a `mouseup` released outside the window never arrived, so the pill kept
+following the pointer with the button up — and, once the debounce is cancelled, its undo step would
+never have been banked at all. A move with the primary button released now ends the drag. And the
+drag wore `body.grid-selecting` (`cursor:cell`, the **marquee** cursor) where `body.grid-swapping`
+(`cursor:grabbing`) already existed and is what a move means.
+
+New harness leg `tests/harness/t/monthdragundo.js` asserts the undo contract. ⚠️ Its header states
+plainly that it does **not** prove reachability — synthetic events exercise the handlers, not
+hit-testing, which is the whole reason the first defect survived.
+
 ### Unreleased — `dayOverrides`: per-day control of the shoot (store, simulation, and the waterfall's explanation)
 
 `MONTH-VIEW-PLAN.md` steps 2 and 3. Owner asked to *"move weeks, and adjust the start and end of

@@ -1326,6 +1326,28 @@
   .mv-out{ background:#FAFAF9; }
   .mv-out .mv-daynum{ opacity:.35; }
   .mv-weekend{ background:#F4F3F0; }
+  /* ---- Day overrides (MONTH-VIEW-PLAN.md §4). ⛔ HEIGHT-NEUTRAL BY CONSTRUCTION. ----
+     Every rule here paints or uses ::after on an element that already exists. Nothing adds a box
+     to the flow, so month-view row heights -- which come from lane and note-line counts -- cannot
+     move, which is the gate condition this feature had to satisfy.
+     ⚠️ Backgrounds print because `* { print-color-adjust: exact !important }` is in force; without
+     it both PDFs print as an empty grid (CLAUDE.md). Do not "tidy" these into a @layer. */
+  .mv-day-half .mv-daynum::after{
+    content:'\00BD';                      /* ½ -- sits beside the date number, in existing space */
+    margin-left:2px; font-weight:700; opacity:.75;
+  }
+  /* 'off' is the one with no pill to mark: the day is not shot, so the cell IS the only surface.
+     A hatch rather than a flat fill, so it cannot be mistaken for the weekend tint above. */
+  .mv-day-off{
+    background:repeating-linear-gradient(135deg,
+      #EFEFEF 0 4px, #F8F8F8 4px 8px);
+  }
+  .mv-day-off .mv-daynum{ text-decoration:line-through; opacity:.5; }
+  /* 'on' means a day the calendar would have skipped is being worked -- usually a weekend, and
+     ⚠️ sometimes a union holiday, which is the thing the holiday data exists to protect. It is
+     tinted rather than subtle on purpose: this one should never pass unnoticed. */
+  .mv-day-on{ background:#FFF4E2; }
+  .mv-day-on .mv-daynum{ color:#7A5B14; }
   /* Bars sit in normal flow ON TOP of the day grid, so tall content (a wrapped note) grows
      the week row rather than spilling over the week below. */
   .mv-bars{
@@ -1362,6 +1384,28 @@
   }
   /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
   .mv-pill{ border-radius:9px; }
+  /* ---- FROZEN EDIT (owner-approved 18 Sep 2026): make a phase pill DRAGGABLE. ----------------
+     ⛔ WITHOUT THIS THE BODY-DRAG GESTURE CANNOT FIRE AT ALL. `.mv-bars` above sets
+     pointer-events:none so the bar layer does not swallow clicks, and a pill inherits it -- so a
+     real mousedown on a pill lands on the .mv-daycell underneath and the handler never sees it.
+     Measured: elementFromPoint() at a pill's exact centre returns `mv-daycell`, and the pill is
+     absent from elementsFromPoint() entirely. The gesture only ever appeared to work because it
+     was verified by dispatching events straight at the pill node, which skips hit-testing --
+     exactly the trap HANDOFF.md records ("synthetic PointerEvents are not proof").
+
+     This is the SAME opt-in `.mv-note-click` already uses one screen down, not a new mechanism.
+
+     ⭐ SCOPED TO #table-wrap ON PURPOSE. The unscoped form would also match inside #print-root,
+     and while neither property can render -- a cursor has never appeared in a PDF and
+     pointer-events affects no layout or paint -- scoping makes "the print path is untouched"
+     true by CONSTRUCTION rather than by argument. That is the claim a frozen edit should be able
+     to make. It is why this rule cannot move MONTH-VIEW-PLAN.md §6.5's diff.
+
+     ⚠️ What it does cost: a pill now takes clicks in its own ~17px lane, where previously they
+     passed through to the day cell. Nothing listens on .mv-daycell today (the month view's click
+     handlers are .mv-note-click and .mv-row-expand, both in their own lanes), so this is free
+     right now -- but anything added to a day cell later must expect pills to be in front. */
+  #table-wrap .mv-pill{ pointer-events:auto; cursor:grab; }
   .mv-hiatus-bar{ border-radius:9px; text-align:center; }
   /* Notes are deliberately square so they read as a different class of thing than phases,
      and they sit on their exact day -- so instead of stealing width from neighbouring days,

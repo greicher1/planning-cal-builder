@@ -1,4 +1,4 @@
-// The SPT Calendar Builder's original application script, moved out of index.html's
+// SPTCal's original application script, moved out of index.html's
 // single inline <script> and into a module, VERBATIM. Nothing between initLegacyApp()'s braces has
 // been changed from the v1.2.0 build -- the wrapper is the whole diff.
 //
@@ -5174,6 +5174,93 @@ export function initLegacyApp() {
   // Both views share ONE wrap date; only these displayed counts differ. ⛔ Never recompute the
   // schedule with halves as 1.0 to get the waterfall's figure -- that produces a genuinely
   // different wrap and puts the Excel export and the month PDF in disagreement.
+  // ---------- Body-drag: move a whole phase by dragging its pill in the month view ----------
+  // ⭐ The CHEAPEST of the three drag gestures (MONTH-VIEW-PLAN.md §6.1): moving a phase is
+  // `start-<key> += n days` -- one stored field, duration untouched. The only frozen change it
+  // needed was the `data-ph` attribute on the pill; the behaviour lives entirely out here.
+  //
+  // ⚠️ PHASES MOVE INDEPENDENTLY (owner confirmed 16 Sep 2026). There is no dependency graph, so
+  // dragging Production leaves Post exactly where it is, which may open a gap or an overlap. That
+  // is NOT an error -- phases legitimately run concurrently, which is what maxConcurrent exists for
+  // -- and it is already reachable by typing a date. Relationship-preserving moves belong to the
+  // Adjustments menu (Shift All / Shift From / Anchor To / Rebuild From).
+  (function installMonthPillDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    let drag = null;
+    // Ends the gesture and banks it as EXACTLY ONE undo step. Shared by mouseup and by the
+    // button-released-off-window check in mousemove, so there is one exit and it cannot be missed.
+    const endDrag = ()=>{
+      if(!drag) return;
+      const moved = drag.applied;
+      drag = null;
+      document.body.classList.remove('grid-swapping');
+      // ⛔ THE TRAILING PUSH IS THE STEP. Each increment cancelled the debounce (see mousemove), so
+      // nothing has been banked yet; this is what commits the whole drag as one entry -- the same
+      // shape batch expand and every toolbar tool use. markDirty() then re-arms the debounce for
+      // whatever the user does NEXT, which is right: that is no longer this gesture.
+      // A click that never moved banks nothing, which is why `moved` gates both.
+      if(moved){ pushUndoSnapshot(); markDirty(); }
+    };
+    wrap.addEventListener('mousedown', e=>{
+      if(viewMode !== 'month') return;                 // guarded, unlike the seven older listeners
+      if(e.button !== 0) return;
+      const pill = e.target.closest && e.target.closest('.mv-pill[data-ph]');
+      if(!pill || !wrap.contains(pill)) return;
+      const key = pill.getAttribute('data-ph');
+      const startEl = document.getElementById('start-' + key);
+      if(!startEl || !startEl.value) return;
+      const base = parseDateUTC(startEl.value);
+      if(!base) return;
+      // Measure the grid rather than assume it: a day column and a week row are what a pixel delta
+      // has to be divided by, and both change with the window.
+      const cell = wrap.querySelector('.mv-daycell');
+      const week = pill.closest('.mv-week');
+      const dayW = cell ? cell.getBoundingClientRect().width : 0;
+      const weekH = week ? week.getBoundingClientRect().height : 0;
+      if(!(dayW > 1) || !(weekH > 1)) return;
+      // ⛔ THE SNAP TOGGLE GOVERNS THE INCREMENT. With snap ON a one-day drag would be snapped
+      // straight back to the Monday and the feature would look broken, so snapped phases move in
+      // whole WEEKS and unsnapped ones move by the DAY. This is what makes the toggle visible.
+      const snapEl = document.getElementById('snap-' + key);
+      const step = (!snapEl || snapEl.checked) ? 7 : 1;
+      // Flush whatever came before into its own step, so a date typed moments ago does not fold
+      // into this drag -- one Cmd+Z would otherwise revert both, which is the trap the batch-expand
+      // comment describes. It early-returns when nothing has changed, so a press that never becomes
+      // a drag costs nothing.
+      pushUndoSnapshot();
+      drag = {key, startEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, step, applied: 0};
+      // grid-swapping, NOT grid-selecting: both suppress text selection, but grid-selecting is
+      // cursor:cell (the marquee cursor, for sweeping a selection) and this is a MOVE. It pairs
+      // with the pill's own cursor:grab, and a body-level class is what keeps the cursor correct
+      // while update() destroys and rebuilds the pill under the pointer on every increment.
+      document.body.classList.add('grid-swapping');
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A mouseup released outside the window never reaches us. Without this the pill keeps
+      // following the pointer with the button up, and -- worse since the debounce is now cancelled
+      // on every step -- the gesture's undo step would never be banked at all.
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      // A month row IS a week, so vertical movement is worth 7 days and horizontal 1.
+      const raw = Math.round((e.clientX - drag.x0) / drag.dayW)
+                + Math.round((e.clientY - drag.y0) / drag.weekH) * 7;
+      const days = Math.round(raw / drag.step) * drag.step;
+      if(days === drag.applied) return;                // only re-render when the day actually changes
+      drag.applied = days;
+      drag.startEl.value = isoOf(addDays(drag.base, days));
+      // update() rebuilds the grid, destroying the pill under the cursor -- which is why every
+      // reference held above is either a sidebar element or a plain number, never a grid node.
+      update();
+      // ⛔ update() just called markDirty(), which RE-ARMED the 500ms undo debounce. Kill it: this
+      // gesture banks its own snapshot in endDrag(), and a timer allowed to fire first would split
+      // one drag into two steps at whatever date the pointer happened to be resting on.
+      cancelPendingUndoPush();
+    });
+    window.addEventListener('mouseup', endDrag);
+  })();
+
   function refreshOverrideNote(){
     const el = document.getElementById('prod-ov-note');
     if(!el) return;
@@ -5769,6 +5856,34 @@ export function initLegacyApp() {
     // top), so the eye can track a bar across weeks instead of it hopping rows.
     const laneSegs = segs.slice().sort((a,b)=> a.start - b.start);
     const epSpans = episodeSpans(schedule);
+    // ⛔ FROZEN EDIT, approved 16 Sep 2026 against MONTH-VIEW-PLAN.md §6.5 -- day-override marks.
+    // Built to be provably height-neutral: it adds a CLASS to an existing .mv-daycell and nothing
+    // else. No new element, no new lane, no extra text node. Row heights in this view come from
+    // how many lanes and note lines a week carries, so a class cannot move them -- which is what
+    // lets it pass the gate's "row heights unchanged" condition rather than needing a new one
+    // (BLOCKS-PLAN.md §5's per-week subtext is the case that genuinely cannot).
+    //
+    // ⚠️ WHY THE MARK IS ON THE CELL AND NOT THE PILL. An 'off' day is absent from shootDays by
+    // definition, so it has NO PILL to mark -- the cell is the only surface it has. And a pill
+    // spans a RUN of days, so it could not mark a single 'half' inside it without splitting runs,
+    // which WOULD change the rendered structure.
+    //
+    // Only overrides the simulation actually honoured are marked: 'half'/'on' must be in shootDays,
+    // 'off' must fall inside the shot span. A stale override left on a date the shoot no longer
+    // covers is ignored here exactly as it is ignored by simulateProductionSchedule -- never
+    // deleted, never drawn. Same rule refreshOverrideNote() applies, deliberately.
+    const _ovDays = (function(){
+      const pi = schedule.productionInfo;
+      if(!pi || !pi.shootDays || !pi.shootDays.length) return null;
+      const shot = new Set(pi.shootDays);
+      const first = pi.shootDays[0], last = pi.shootDays[pi.shootDays.length - 1];
+      return function(iso){
+        const v = dayOverrides[iso];
+        if(!v) return '';
+        if(v === 'off') return (iso >= first && iso <= last) ? 'off' : '';
+        return shot.has(iso) ? (v === 'half' ? 'half' : (v === 'on' ? 'on' : '')) : '';
+      };
+    })();
 
     const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
@@ -5785,6 +5900,9 @@ export function initLegacyApp() {
         const cls = ['mv-daycell'];
         if(!inMonth) cls.push('mv-out');
         if(dow===0 || dow===6) cls.push('mv-weekend');
+        // One extra class, or none. See the _ovDays note above.
+        const ov = _ovDays ? _ovDays(isoOf(d)) : '';
+        if(ov) cls.push('mv-day-' + ov);
         dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
 
@@ -5854,8 +5972,12 @@ export function initLegacyApp() {
             const bg = s.color || '#eee';
             const fg = s.textColor || textColorFor(bg);
             const lbl = segPillLabel(s, addDays(weekStart, r.startCol));
+            // ⛔ FROZEN EDIT, approved 16 Sep 2026 against MONTH-VIEW-PLAN.md §6.5. `data-ph` is the
+            // MINIMUM that makes a pill identifiable for body-drag: it renders nothing, occupies no
+            // space, changes no row height, and adds no affordance to #print-root. The `data` slot
+            // already existed in place(); it was simply passed ''.
             place(r.startCol, r.endCol, 'mv-bar mv-pill',
-              `background:${bg}; color:${fg};`, escHtml(lbl), escHtml(lbl), '');
+              `background:${bg}; color:${fg};`, escHtml(lbl), escHtml(lbl), `data-ph="${s.key}"`);
           });
         }
         // Episode pills occupy Production's lane.
@@ -5873,8 +5995,10 @@ export function initLegacyApp() {
             }
             if(run) runs.push(run);
             runs.forEach(r=>{
+              // ⚠️ Episode pills REPLACE Production's own pills whenever episodes exist, so without
+              // this Production would be undraggable on exactly the calendars that have them.
               place(r.startCol, r.endCol, 'mv-bar mv-pill',
-                `background:${bg}; color:${fg};`, escHtml(ep.name), escHtml(ep.name), '');
+                `background:${bg}; color:${fg};`, escHtml(ep.name), escHtml(ep.name), 'data-ph="production"');
             });
           });
         }
@@ -11088,6 +11212,18 @@ export function initLegacyApp() {
     clearTimeout(undoPushTimer);
     undoPushTimer = setTimeout(pushUndoSnapshot, UNDO_DEBOUNCE_MS);
   }
+  // ⛔ Cancel a pending debounced push. A CONTINUOUS GESTURE IS ONE UNDO STEP, and for a gesture
+  // that mutates state while it runs, the debounce above is what breaks that promise: every render
+  // inside the drag calls markDirty() -> scheduleUndoPush(), which clears and re-arms the timer, so
+  // holding still for longer than UNDO_DEBOUNCE_MS -- which is what aiming looks like -- fires it
+  // MID-GESTURE and banks an intermediate state the user never chose. One Cmd+Z then lands there.
+  //
+  // ⚠️ Most drags need none of this, and it is worth knowing why: installGridResizers and
+  // beginSpanDrag mutate only PRESENTATION while dragging (col.style.width, tr.style.height) and
+  // write their store once, in onUp -- so markDirty() is called exactly once and the single step
+  // falls out for free. Only a gesture that cannot preview without changing state has to call this
+  // after each step and bank its own snapshot on release.
+  function cancelPendingUndoPush(){ clearTimeout(undoPushTimer); }
   // Discards all undo/redo history and re-baselines on the current state. Called whenever a
   // different document replaces what's on screen (New, Open, a recent file, backup recovery, or
   // the initial page load) -- undoing "past" the start of a different calendar makes no sense.

@@ -287,6 +287,32 @@ planned here.
 ⛔ **If the gate fails, STOP and report. Do not re-cut the baseline** — the one move
 `tests/baselines/2026-08-29-stage-7/README.md` calls indistinguishable from absorbing a regression.
 
+### 6.6 ⛔ THE FROZEN EDITS ACTUALLY MADE, and how each met the gate
+
+Three, not the two this plan anticipated. Recorded here because §6.5's approval was given against a
+list, and the third was not on it.
+
+| Edit | Approved | How condition 1 was met |
+|---|---|---|
+| `data-ph` on month pills | 16 Sep 2026 | `monthprint` capture byte-identical once `data-ph` is stripped |
+| `mv-day-half/off/on` classes on day cells | 16 Sep 2026 | adds a CLASS to an existing cell — no element, no lane, no text node, so row heights cannot move |
+| `#table-wrap .mv-pill{pointer-events:auto; cursor:grab}` | **18 Sep 2026** | **scoped so it cannot match inside `#print-root`** — `#print-root` is a sibling of `#table-wrap`. Neither property renders in any case |
+
+⚠️ **The third was not foreseen and §6.1 is wrong about it.** *"Body-drag needs no new frozen
+markup — the pill itself is the target"* is true about markup and false about reachability: the
+pill is inside `.mv-bars`, which is `pointer-events:none`. Build it first was still the right call;
+the gesture just cost one more frozen line than the plan priced.
+
+⚠️ **Condition 2 (`mvNoteLineCount()` row heights) is untouched by all three** — none of them
+affects text measurement. Condition 3 is the open one: 86 inert `data-ph` attributes do travel into
+`#print-root`, and whether that counts as an "affordance" is still an owner call. The pill's
+`cursor`/`pointer-events` do NOT travel, by the scoping above.
+
+⛔ **NONE OF THE THREE IS EXERCISED BY A FIXTURE THAT USES IT.** No `.sptcal` in `tests/fixtures/`
+carries `dayOverrides` or `snap-*`, so the marks are proven **inert when unused** and unproven when
+used. §8's instruction to cut a fixture at steps 1, 2 and 6 has not been followed for any of them.
+That is the gap to close before step 7.
+
 
 ## 7. ✅ Rulings received (16 Sep 2026)
 
@@ -324,7 +350,21 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    `2 half · 1 off · 1 added — 11 days on the floor for 10 of 10`. ⚠️ §4.5 was WRONG that the
    `meta-<key>` hint is "chrome, not frozen" — the ELEMENT is chrome, the CODE that writes it is
    frozen `render()`. Filled from `update()` after `render()` returns instead. No frozen edit.
-5. **Body-drag** (§6.1) — needs no new markup, exercises the whole drag plumbing.
+5. ~~**Body-drag** (§6.1)~~ — ✅ **SHIPPED 18 Sep 2026, after two defects that both hid behind the
+   same thing: it was verified by dispatching events at the pill NODE.**
+   ⛔ **It could not be clicked at all.** `.mv-bars` sets `pointer-events:none` so the bar layer does
+   not swallow clicks meant for the day cells, and `.mv-pill` inherits it — a real press landed on
+   the `.mv-daycell` underneath. `elementFromPoint()` at the pill's exact centre returned
+   `mv-daycell`; the pill was absent from `elementsFromPoint()`. **This falsifies §6.1's claim that
+   body-drag "needs no new frozen markup"** — it needs no new *markup*, but it does need a frozen
+   CSS opt-in, which nobody costed. Fixed with `#table-wrap .mv-pill{pointer-events:auto;
+   cursor:grab}` (owner-approved 18 Sep 2026), scoped so it cannot reach `#print-root`.
+   ⛔ **And one drag was two undo steps** — `update()` re-arms the 500 ms undo debounce on every
+   increment, so a pause mid-drag banked an intermediate date. Fixed with `cancelPendingUndoPush()`
+   plus leading/trailing pushes; no frozen code. Leg `monthdragundo`.
+   ⭐ **THE RULE THIS LEAVES BEHIND, worth more than either fix:** assert
+   `document.elementsFromPoint(cx, cy)` **contains** the element before claiming an affordance
+   works. A dispatched event proves the handler; only hit-testing proves the user can reach it.
 6. ⛔ *Frozen work begins.* Day-override marks in the month cell, against §6.5's gate.
 7. ⛔ Start/end handles (§6.2), against the same gate.
 
