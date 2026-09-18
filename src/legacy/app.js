@@ -794,7 +794,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -5298,6 +5298,264 @@ export function initLegacyApp() {
     el.textContent = bits.join(' \u00b7 ') + ' \u2014 ' + info.shootDays.length
                    + ' days on the floor for ' + work + ' of ' + info.requested;
   }
+
+
+  // ---------- Day overrides: the UI (MONTH-VIEW-PLAN.md §4, spec in HANDOFF.md's START HERE) ----------
+  // Everything underneath this shipped 16-17 Sep 2026 and was DORMANT: the store, the save format,
+  // the shift re-key, the simulation math and the month-view marks were all live in production with
+  // no way for a user to set a single override. This is the gesture that turns them on, and it is
+  // the feature the owner originally asked for ("adjust the start and end of each week at a week by
+  // week level").
+  //
+  // ⭐ IT NEEDS NO FROZEN EDIT, and that is not luck -- it is what `.mv-bars{pointer-events:none}`
+  // buys. The bar layer is click-through by design so it does not swallow clicks meant for the day
+  // cells, and `.mv-daycell` is `pointer-events:auto`, so a delegated click on #table-wrap matching
+  // .mv-daycell already reaches the day. ⛔ VERIFY THAT CLAIM WITH elementsFromPoint, NEVER by
+  // dispatching an event at the node -- a dispatched event proves the handler, only hit-testing
+  // proves a user can reach it. That trap has been paid for twice in this project (the F2-d toolbar
+  // regression, then month-view body-drag shipping non-functional on 18 Sep 2026).
+  //
+  // ⚠️ A click on the "+" note affordance cannot be confused with a day click: `.mv-note-add` lives
+  // in `.mv-bars`, which is a SIBLING of `.mv-daygrid`, so closest('.mv-daycell') is null there. No
+  // guard is needed, and adding one would be dead code.
+  //
+  // ⚠️ KNOWN, and it is the owner's call: there is no hover affordance on a day cell, because
+  // `.mv-daycell` is a `.mv-*` rule and therefore FROZEN CSS -- the same category as the
+  // `#table-wrap .mv-pill{pointer-events:auto;cursor:grab}` line that body-drag needed and that was
+  // put to the owner on 18 Sep 2026. So the gesture works and is undiscoverable. Asking for one
+  // scoped `#table-wrap .mv-daycell{cursor:pointer}` is the obvious follow-up; it is deliberately
+  // not taken unilaterally.
+  (function installDayOverrideUI(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    let activeOv = null;    // {iso, row, col, cell, pop, place}
+
+    function closeDayOvPop(){
+      if(!activeOv) return;
+      window.removeEventListener('scroll', activeOv.place, true);
+      window.removeEventListener('resize', activeOv.place);
+      if(activeOv.pop && activeOv.pop.parentNode) activeOv.pop.parentNode.removeChild(activeOv.pop);
+      activeOv = null;
+    }
+
+    // ⛔ A .mv-daycell CARRIES NO DATE, and giving it one would be a frozen edit to renderMonthView.
+    // So the date is derived from WHERE THE CELL SITS: the month view draws one month, its weeks run
+    // Sun..Sat from the Sunday on/before the 1st, so (week index * 7 + column index) off that grid
+    // start is the day -- exactly the arithmetic renderMonthView itself does, read back out.
+    //
+    // ⚠️ IT IS CROSS-CHECKED AGAINST THE RENDERED DAY NUMBER rather than trusted. Positional
+    // derivation is a second copy of the renderer's layout rule, and a second copy can drift (this
+    // project's recurring failure: three independent column-width systems). The check costs one
+    // parseInt and turns any future drift into "the popover does not open" instead of "the wrong
+    // day was marked half", which is a silent corruption of someone's production plan.
+    function cellDate(cell){
+      const grid = cell.parentNode;
+      if(!grid || !grid.classList || !grid.classList.contains('mv-daygrid')) return null;
+      const week = grid.parentNode;
+      const body = week && week.parentNode;
+      if(!body || !body.classList || !body.classList.contains('mv-body')) return null;
+      const col = Array.prototype.indexOf.call(grid.children, cell);
+      const row = Array.prototype.indexOf.call(body.children, week);
+      if(col < 0 || row < 0 || !monthCursor) return null;
+      const first = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth(), 1));
+      const gridStart = addDays(first, -first.getUTCDay());
+      const d = addDays(gridStart, row*7 + col);
+      const num = cell.querySelector('.mv-daynum');
+      const shown = num ? parseInt(num.textContent, 10) : NaN;
+      if(shown !== d.getUTCDate()) return null;      // drift -- refuse rather than guess
+      return {date:d, row, col};
+    }
+
+    // What is true of this day, as far as the SIMULATION is concerned -- so the popover offers what
+    // will actually take effect and nothing else.
+    // ⛔ Returns null for a day the shoot does not cover. An override out there is inert by design
+    // (simulateProductionSchedule stops once the count is met, and renderMonthView's _ovDays draws
+    // nothing outside the shot span), so offering the choice would be offering a no-op.
+    function daySituation(d){
+      const info = currentSchedule && currentSchedule.productionInfo;
+      if(!info || !info.shootDays || !info.shootDays.length) return null;
+      const iso = isoOf(d);
+      const first = info.shootDays[0], last = info.shootDays[info.shootDays.length - 1];
+      if(iso < first || iso > last) return null;
+      const dow = d.getUTCDay();
+      const prodSeg = (currentSchedule.segments || []).find(s=>s.key === 'production');
+      const ownHi = prodSeg && prodSeg.phaseHiatus;
+      const wkIso = isoOf(mondayOf(d));
+      // Two kinds of hiatus stop the shoot and the month view only PAINTS one of them: an all-phase
+      // hiatus gets a band, Production's own does not. So a per-phase hiatus day looks like an
+      // ordinary unworked weekday with no reason given anywhere -- which is exactly the silence
+      // ruling 1 exists to end. Name both.
+      const inAllHi = (currentSchedule.hiatuses || []).some(h=> d >= h.start && d < h.end);
+      const inOwnHi = !!(ownHi && d >= ownHi.start && d < ownHi.end);
+      const hiatus = inAllHi ? hiatusTextFor(wkIso)
+                   : inOwnHi ? hiatusTextFor(wkIso + '|production')
+                   : null;
+      // The same list computeSchedule simulates against: only ENABLED holidays cost a day.
+      const holiday = fullHolidayList(effectiveRegionKey())
+        .filter(h=>h.enabled).find(h=>h.date === iso) || null;
+      return {iso, date:d, cur: dayOverrides[iso] || '', hiatus,
+              weekend: (dow === 0 || dow === 6), holiday};
+    }
+
+    function setOverride(iso, val){
+      // ⛔ ONE CHOICE IS ONE UNDO STEP, banked deterministically rather than left to the 500ms
+      // debounce. The leading push flushes whatever came before into its own step (so a date typed
+      // moments ago does not fold in); the trailing one banks this choice immediately. The debounce
+      // update() re-arms then fires into a no-op, because pushUndoSnapshot() early-returns when the
+      // snapshot is unchanged.
+      pushUndoSnapshot();
+      if(val) dayOverrides[iso] = val; else delete dayOverrides[iso];
+      update();
+      pushUndoSnapshot();
+    }
+
+    function openDayOvPop(cell, loc, sit){
+      closeDayOvPop();
+      // Every row is {value, label}. The value written to dayOverrides; '' means "no override",
+      // which is how this UI spells "back to automatic" -- the same idiom cellSpans, column widths
+      // and row heights already use for double-click.
+      const rows = [];
+      if(sit.hiatus){
+        // ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT with its
+        // reason, rather than hiding it. The BEHAVIOUR is unchanged -- 'on' still does not punch
+        // through a hiatus, because a hiatus is a stop-work period the user deliberately scheduled
+        // and a per-day flag that overrode it would make the band mean nothing. What changes is
+        // that the gap stops being silent, which is this project's standing rule that a refusal
+        // must name its reason.
+        rows.push({v:'on', label:'Work this day', disabled:true,
+                   reason:'Inside ' + sit.hiatus + ' — shorten the hiatus to work these days'});
+      } else if(sit.weekend || sit.holiday){
+        rows.push({v:'', label: sit.holiday ? 'Holiday — not shot' : 'Weekend — not shot'});
+        rows.push({v:'on', label:'Work this day',
+                   warn: sit.holiday ? ('Overrides ' + sit.holiday.name) : ''});
+      } else {
+        rows.push({v:'',     label:'Full day'});
+        rows.push({v:'half', label:'Half day'});
+        rows.push({v:'off',  label:'Off — not shot'});
+      }
+      // A stored value no row offers is INERT, not wrong: 'half' left on a Saturday never reaches
+      // shootDays, and a value from a newer build is ignored by the simulation verbatim (values are
+      // copied through on restore so a round trip stays lossless -- ignoring what we do not
+      // understand is the simulation's job, not the restore path's). Say so, and make sure there is
+      // always a way to remove it.
+      const matched = rows.some(r => r.v === sit.cur && !r.disabled);
+      const stale = sit.cur && !matched ? sit.cur : '';
+      if(sit.cur && !rows.some(r => r.v === '')) rows.push({v:'', label:'Clear override'});
+
+      const pop = document.createElement('div');
+      pop.className = 'day-ov-pop';
+      // ⛔ NO `id` ON ANY CONTROL IN HERE. collectFieldValues() sweeps every input[id] / select[id] /
+      // textarea[id] in the document into saved files AND the undo stack, so an id'd control would
+      // be baked into every calendar and add phantom undo steps. Classes only -- the same reason the
+      // note editor's day/size selects are class-only.
+      const opts = rows.map(r=>{
+        const cls = ['day-ov-opt'];
+        if(!r.disabled && r.v === sit.cur) cls.push('is-current');
+        if(r.disabled) cls.push('is-disabled');
+        return `<button type="button" class="${cls.join(' ')}"${r.disabled?' disabled':''}`
+             + ` data-ov="${r.v}">${escHtml(r.label)}`
+             + (r.reason ? `<span class="day-ov-reason">${escHtml(r.reason)}</span>` : '')
+             + (r.warn   ? `<span class="day-ov-warn">${escHtml(r.warn)}</span>`     : '')
+             + `</button>`;
+      }).join('');
+      pop.innerHTML = `<div class="day-ov-pop-day">${escHtml(fmtShort(sit.date))}</div>`
+        + `<div class="day-ov-opts">${opts}</div>`
+        + (stale ? `<div class="day-ov-stale">Stored “${escHtml(stale)}” — not in effect on this day</div>` : '')
+        + `<div class="day-ov-hint">Double‑click a marked day to clear it · Esc to close</div>`;
+      document.body.appendChild(pop);
+
+      // Anchor, then clamp using the popover's REAL measured size -- flip above the day when it
+      // would overflow the bottom and pull it in from the right edge, mirroring openPhaseColorPop
+      // and the month-view note editor. A day near the bottom-right of the screen otherwise opens
+      // partly off-screen and unreachable.
+      const place = ()=>{
+        const a = activeOv && activeOv.cell;
+        if(!a || !document.body.contains(a)) return;   // a rebuild is the guard's job, not ours
+        const r = a.getBoundingClientRect();
+        pop.style.top  = (window.scrollY + r.bottom + 4) + 'px';
+        pop.style.left = (window.scrollX + r.left) + 'px';
+        const p = pop.getBoundingClientRect();
+        if(p.right  > window.innerWidth  - 8) pop.style.left = (window.scrollX + window.innerWidth - p.width - 8) + 'px';
+        if(p.bottom > window.innerHeight - 8) pop.style.top  = (window.scrollY + r.top - p.height - 4) + 'px';
+      };
+      activeOv = {iso:sit.iso, row:loc.row, col:loc.col, cell, pop, place};
+      place();
+      // The preview PANE scrolls, not just the window, so this has to be capture-phase.
+      window.addEventListener('scroll', place, true);
+      window.addEventListener('resize', place);
+
+      pop.addEventListener('click', e=>{
+        e.stopPropagation();
+        const btn = e.target.closest && e.target.closest('.day-ov-opt');
+        if(!btn || btn.disabled) return;
+        const v = btn.getAttribute('data-ov') || '';
+        const iso = activeOv ? activeOv.iso : null;
+        closeDayOvPop();                 // a discrete choice closes its own menu
+        if(iso) setOverride(iso, v);
+      });
+    }
+
+    wrap.addEventListener('click', e=>{
+      if(viewMode !== 'month') return;                  // guarded, unlike the seven older listeners
+      const cell = e.target.closest && e.target.closest('.mv-daycell');
+      if(!cell || !wrap.contains(cell)) return;
+      const loc = cellDate(cell);
+      if(!loc) return;
+      // Clicking the day whose popover is open closes it. That is what makes double-click work as
+      // "clear": the second click closes, then dblclick clears, and nothing is left hanging.
+      if(activeOv && activeOv.iso === isoOf(loc.date)){ closeDayOvPop(); return; }
+      const sit = daySituation(loc.date);
+      if(!sit) return;                                  // outside the shoot -- nothing to offer
+      e.stopPropagation();
+      openDayOvPop(cell, loc, sit);
+    });
+
+    // Double-click means "back to automatic" everywhere else in this app (cellSpans, column widths,
+    // row heights), so it means it here too.
+    wrap.addEventListener('dblclick', e=>{
+      if(viewMode !== 'month') return;
+      const cell = e.target.closest && e.target.closest('.mv-daycell');
+      if(!cell || !wrap.contains(cell)) return;
+      const loc = cellDate(cell);
+      if(!loc) return;
+      const iso = isoOf(loc.date);
+      if(!dayOverrides[iso]) return;
+      e.stopPropagation();
+      closeDayOvPop();
+      setOverride(iso, '');
+    });
+
+    document.addEventListener('click', e=>{
+      if(!activeOv) return;
+      if(e.target.closest && e.target.closest('.day-ov-pop')) return;
+      closeDayOvPop();
+    });
+    document.addEventListener('keydown', e=>{
+      if(activeOv && e.key === 'Escape'){ e.preventDefault(); closeDayOvPop(); }
+    });
+
+    // The rebuild guard. render() replaces #table-wrap's contents on every edit, so a body-level
+    // popover outlives its anchor and hangs over the calendar pointing at nothing. The waterfall
+    // note editor gets this from INSIDE frozen render(); a MutationObserver gives the same
+    // protection from outside, and observing mutates nothing -- CLAUDE.md's sanctioned third
+    // pattern, with .mv-note-pop as the worked example.
+    // ⭐ It RE-POINTS rather than closing where it can: the cell is addressable by (week, column),
+    // so a re-render that leaves the same day in the same slot keeps the popover alive. That also
+    // makes this immune to renders it did not start -- committing an open note editor, an undo, a
+    // sidebar edit. It closes only when the day genuinely went away (month navigated, view
+    // switched, the shoot no longer covers it).
+    new MutationObserver(()=>{
+      if(!activeOv) return;
+      if(activeOv.cell && document.body.contains(activeOv.cell)) return;
+      const body = wrap.querySelector('.mv-body');
+      const week = body && body.children[activeOv.row];
+      const grid = week && week.querySelector('.mv-daygrid');
+      const cell = grid && grid.children[activeOv.col];
+      const loc  = cell && cellDate(cell);
+      if(loc && isoOf(loc.date) === activeOv.iso){ activeOv.cell = cell; activeOv.place(); }
+      else closeDayOvPop();
+    }).observe(wrap, { childList: true, subtree: true });
+  })();
 
   function refreshSnapNotes(){
     document.querySelectorAll('.hiatus-entry').forEach(row=>{
@@ -10907,7 +11165,10 @@ export function initLegacyApp() {
     // .hdr-mode-pop added 8 Sep 2026 with the three header modes -- same reason as the rest: it is
     // a body-level panel, and a Share click with it open would export a menu hanging over the
     // calendar pointing at nothing.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay').forEach(el=>el.remove());
+    // .day-ov-pop added 18 Sep 2026 with the day-override UI -- same reason again. It is anchored
+    // to a .mv-daycell but lives in <body> (the standing convention: never markup injected into the
+    // grid), so the #table-wrap emptying above does NOT remove it.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =

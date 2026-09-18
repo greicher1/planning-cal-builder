@@ -29,6 +29,96 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — day overrides get a UI: half days, days off, and worked weekends/holidays
+
+The feature the owner originally asked for (*"adjust the start and end of each week at a week by
+week level"*), and the one that turns on everything shipped 16–17 Sep. Local, not pushed at time of
+writing.
+
+**Click a day in the month view** and a small popover offers what that day can actually be. Choosing
+writes `dayOverrides[iso]` and the schedule recomputes immediately. **Double-click a marked day
+clears it** — the "back to automatic" idiom `cellSpans`, column widths and row heights already use.
+
+| the day is | the popover offers |
+|---|---|
+| a normal shoot day | **Full day** (default) · **Half day** · **Off — not shot** |
+| a weekend inside the shoot | **Weekend — not shot** (default) · **Work this day** |
+| a union holiday inside the shoot | **Holiday — not shot** (default) · **Work this day**, captioned *Overrides &lt;holiday name&gt;* |
+| inside a hiatus | **Work this day**, greyed out, captioned *Inside &lt;hiatus name&gt; — shorten the hiatus to work these days* |
+| outside the shoot span | nothing — an override there is inert by design |
+
+⭐ **IT NEEDED NO FROZEN EDIT, and that is not luck.** `.mv-bars` is `pointer-events:none` so the bar
+layer does not swallow clicks meant for the day cells, and `.mv-daycell` is `auto` — so a delegated
+click on `#table-wrap` matching `.mv-daycell` already reaches the day. The three frozen edits this
+feature depends on (`data-ph`, the `mv-day-*` marks, the pill's `pointer-events`) all shipped
+earlier; **they had been live in production rendering nothing, because there was no way to set an
+override.** The display half was dormant for two days.
+
+✅ **OWNER RULING (18 Sep 2026): a hiatus day shows "Work this day" GREYED OUT with its reason**,
+rather than hiding it. Behaviour is unchanged — `'on'` still does not punch through a hiatus — but
+the gap stops being silent, which is the project's standing rule that a refusal must name itself.
+
+⛔ **`episodeSpans()` still counts ENTRIES, not work** — an 8-day episode takes 8 calendar entries out
+of `shootDays`, which is only 7 days of work once two are halves, so episode boundaries drift against
+half days. **The owner chose this deliberately**, against the recommendation: an episode occupies 8
+shooting days on the calendar regardless of how full each one is. Do not "fix" it.
+
+**Verified in a real browser** (1024×768, built bundle, 10 × 8 = 80 shoot days from 6/29/26,
+`us-general`):
+
+| check | result |
+|---|---|
+| reachability — `elementsFromPoint` over the day-number band | `.mv-daycell` on top, **35/35 cells** |
+| reachability — cell **centre** | **0/35** — a `.mv-note-add` or a pill is always on top (see below) |
+| Half day on Mon 6 Jul | wrap **10/20/26 → 10/21/26**; sidebar reads *1 half — 81 days on the floor for 80.5 of 80* |
+| Work Sat 11 Jul | wrap pulls in a day → 10/27/26 |
+| Tue 7 Jul off | wrap pushes out a day → 10/28/26 |
+| double-click clears | mark gone, popover closed, *80 days for 80 of 80* |
+| undo / redo | exactly **one** step each way |
+| hiatus day | one disabled option, captioned *Inside Summer Break — shorten the hiatus to work these days* |
+| a day before the shoot starts | no popover |
+| grid rebuilt underneath it | popover **survives** and stays on the same day; applying then marks the right one |
+| month nav · view switch · outside click · Esc · same-day click | all close it |
+
+⚠️ **The click target is the day-number band, not the whole cell, and this is worth knowing.**
+HANDOFF's one-line claim that a cell click "already reaches the day" is true only there: at the cell
+centre the `+` note affordances (which fill every free lane) or a phase pill are on top in **every**
+cell. The reachable strip is the ~22 px of `.mv-bars` top padding where the date sits — measured, 16
+of 56 probes down a 112 px cell are the cell itself.
+
+✅ **So it shipped with a hover cue, owner-approved the same day:** a scoped
+`#table-wrap .mv-daycell{cursor:pointer}`. That is a **frozen CSS edit** — `.mv-daycell` is a `.mv-*`
+rule — of the same category and shape as the `#table-wrap .mv-pill{pointer-events:auto;cursor:grab}`
+line body-drag needed. Doubly inert in print: the scoping cannot reach `#print-root`, and `cursor`
+has no printed representation at all. ⚠️ **It is a weak cue on purpose** — it says "clickable" and
+no more, because `.mv-note-click` already sets `pointer` in the lanes below and `.mv-pill` sets
+`grab`. Saying more would mean painting the cell, which is a real appearance change to the grid.
+
+⚠️ **And the scoping argument these rules rest on was stated wrongly everywhere — now corrected.**
+The docs said *"`#print-root` is a SIBLING of `#table-wrap`"*. It is not: `#print-root` is a direct
+child of `<body>`, `#table-wrap` is `body > .layout > main.preview-panel > #table-wrap`. ⭐ The
+conclusion is unaffected and is **stronger** than the reason given — all the scoping needs is that
+`#print-root` is not a *descendant* of `#table-wrap`. Verified directly: `#print-root .mv-pill` and
+`#print-root .mv-daycell` match **0** elements, `#table-wrap .mv-daycell` matches all **35**. The
+shorthand stopped being true when the Mantine layout wrapped the preview panel and nobody
+re-checked it.
+
+**Save-format hygiene, each item a rule this project has already been bitten by:** `.day-ov-pop` is
+in `OVER_PANEL` **and** in `buildSavedHtml()`'s clone strip (proved by planting a marked ghost panel
+and reading the exported copy back: absent, while its CSS is still present); **no control inside it
+carries an `id`**, so `collectFieldValues()` cannot bake it into saved files or add phantom undo
+steps; a `MutationObserver` on `#table-wrap` tears it down from outside frozen `render()`. No
+save-format work was needed — `dayOverrides` has been in `captureSnapshot()` since 17 Sep.
+
+⭐ **And the fixture gap is closed.** `tests/fixtures/dayoverrides.sptcal` is the first saved calendar
+carrying real `dayOverrides` **and** a `snap-<key>` set to false — all four override kinds (`half`,
+`off`, `on` over a weekend, `on` over a union holiday), a non-Monday phase start (Pre Prep, Wed
+4/8/26), and a named hiatus. `MONTH-VIEW-PLAN.md` §8 asked for this at steps 1, 2 and 6 and it was
+never done, which left **all four month-view frozen edits proven inert when unused and unproven when
+used.** Restored through the inline `?state=` path it reproduces the saved calendar exactly: wrap
+10/27/26, *1 half · 1 off · 2 added*, snap off with the Wednesday start, and all four marks
+rendering.
+
 ### Unreleased — month-view hiatus bands stop at Friday
 
 Owner instruction, 18 Sep 2026: *"hiatuses in the month view should not show up on Saturday and

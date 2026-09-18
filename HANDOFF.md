@@ -1,5 +1,252 @@
 # HANDOFF.md
 
+---
+
+## 🔴 START HERE — session of 18 Sep 2026
+
+### Where things are
+
+**LIVE at `5019e03`** and verified on the deployed site, not just locally. Two pushes today:
+
+| | |
+|---|---|
+| `81733b1` | month-view drag made **reachable** + one undo step; **SPTCal** rename; new app icon |
+| `5019e03` | drag moves **day by day**; "Snap to Mon" left-aligned |
+
+`gate.sh` **PASSED on `5019e03`** — 312 assertions, 0 fails, both Node provers. `npm run check` 12/12.
+
+⛔ **UNCOMMITTED in the working tree, TWO things now:**
+
+| | |
+|---|---|
+| the month-view **hiatus change** — bands stop at Friday | ⛔ a **frozen edit**, evidenced (see below), **not gated, not pushed** |
+| the **`dayOverrides` UI** — `app.js`, `legacy.css`, a new fixture | ✅ built and verified 18 Sep; **no frozen edit**; see the section below |
+
+⛔ **A push needs a full `gate.sh` first**, on two of the policy’s counts at once: the hiatus change
+is a frozen edit, and the tree now carries a batch. Committing locally needs only the always-checks,
+which are green — `node --check` OK, `npm run build` + `npm run check` **12/12**,
+`python3 tools/check-refs.py` CLEAN.
+
+### The five frozen edits now in the month view, and the one that is different
+
+| Edit | Approved | Month PDF |
+|---|---|---|
+| `data-ph` on pills | 16 Sep | **inert** — byte-identical |
+| `mv-day-half/off/on` on day cells | 16 Sep | **inert** — a class on an existing cell |
+| `#table-wrap .mv-pill{pointer-events:auto;cursor:grab}` | 18 Sep | **inert** — scoped so it cannot match inside `#print-root` |
+| `#table-wrap .mv-daycell{cursor:pointer}` | 18 Sep | **inert** — same scoping, and `cursor` has no printed representation at all |
+| hiatus bands skip Sat/Sun | 18 Sep | ⛔ **CHANGES IT, deliberately** |
+
+⚠️ **The scoping argument for rows 3 and 4 was stated wrongly everywhere and is now corrected.**
+The docs said *"`#print-root` is a SIBLING of `#table-wrap`"*. It is not — measured: `#print-root` is
+a direct child of `<body>`, `#table-wrap` is `body > .layout > main.preview-panel > #table-wrap`.
+⭐ **The conclusion is unaffected and is stronger than the reason that was given for it**: all the
+scoping needs is that `#print-root` is not a DESCENDANT of `#table-wrap`. Verified directly —
+`#print-root .mv-pill` and `#print-root .mv-daycell` match **0** elements, `#table-wrap .mv-daycell`
+matches all **35**. The shorthand stopped being true when the Mantine layout wrapped the preview
+panel, and nobody re-checked it. **Comments that describe a guard are worth testing, not reading.**
+
+⚠️ **The fourth breaks the pattern of the first three and that matters for how §6.5 is read.** Its
+measured diff (`monthprint`, `HEAD` vs change, reference fixture): hiatus bands **4 → 3**
+(`Mon-Sat`,`Sun-Sat`,`Sun-Sat`,**`Sun-Sun`** → three × `Mon-Fri`), total elements **3751 → 3750**,
+and `mv-pill`/`data-ph`/note-bars/day-cells **all identical**. The vanished `Sun-Sun` was an orphan
+one-day band: hiatuses are Monday-snapped whole weeks (Mon→Sun) and month rows run Sun→Sat, so a
+one-week hiatus used to paint a single stray Sunday cell on the following row. Nobody had named it.
+
+### ✅ BUILT 18 Sep 2026: the `dayOverrides` UI. Not committed, not pushed.
+
+The feature the owner originally asked for (*"adjust the start and end of each week at a week by week
+level"*). Everything underneath it had shipped 16–17 Sep and was **dormant** — three frozen edits
+were live in production rendering nothing, because nothing could set an override. That is over.
+
+**The gesture, as built.** Click a day in the month view → a body-level popover anchored to it.
+Choosing writes `dayOverrides[iso]` and closes the menu. **Double-click a marked day clears it.**
+
+| the day is | the popover offers |
+|---|---|
+| a normal shoot day | **Full day** (default) · **Half day** · **Off — not shot** |
+| a weekend inside the shoot | **Weekend — not shot** (default) · **Work this day** |
+| a union holiday inside the shoot | **Holiday — not shot** (default) · **Work this day**, captioned *Overrides &lt;holiday name&gt;* |
+| inside a hiatus | **Work this day** GREYED OUT, captioned *Inside &lt;hiatus name&gt; — shorten the hiatus to work these days* |
+| outside the shoot span | nothing — an override there is inert by design |
+
+⭐ **NO FROZEN EDIT, confirmed by building it.** `.mv-bars` is `pointer-events:none` and
+`.mv-daycell` is `auto`, so a delegated click on `#table-wrap` matching `.mv-daycell` reaches the
+day. `.mv-note-add` lives in `.mv-bars`, a *sibling* of `.mv-daygrid`, so `closest('.mv-daycell')` is
+null there and no guard was needed.
+
+⛔ **BUT THE REACHABLE AREA IS THE DAY-NUMBER BAND, NOT THE CELL — and the old one-line claim hid
+that.** Measured on the built bundle at 1024×768:
+
+| probe | result |
+|---|---|
+| day-number band (`rect.top + 9`) | `.mv-daycell` on top — **35/35 cells** |
+| cell **centre** | **0/35** — a `.mv-note-add` or a `.mv-pill` is always on top |
+| vertical profile down a 112 px cell | only **16 of 56** probes are the cell, and they are **not contiguous** |
+
+The `+` note affordances fill *every free lane*, so they cover the whole middle of every cell. The
+usable strip is the ~22 px of `.mv-bars` top padding where the date number sits.
+
+✅ **A HOVER CUE WAS THEREFORE NEEDED, AND THE OWNER APPROVED ONE (18 Sep 2026):** a scoped
+`#table-wrap .mv-daycell{cursor:pointer}`. `.mv-daycell` is a `.mv-*` rule, so this is a **frozen CSS
+edit** — the same category and the same shape as the pill's `pointer-events` line. It is doubly
+inert in print: the scoping cannot reach `#print-root`, and `cursor` has no printed representation.
+⚠️ **It is a WEAK cue on purpose.** `cursor:pointer` says "clickable" and no more — it cannot
+distinguish a day override from adding a note, because `.mv-note-click` already sets `pointer` in the
+lanes below and `.mv-pill` sets `grab`. Saying more would mean painting the cell, which is a real
+appearance change to the grid rather than a free one, and that needs its own ask.
+
+**Everything on the implementation checklist was done and each item verified, not assumed:**
+
+- `.day-ov-pop` is in **`OVER_PANEL`** *and* in **`buildSavedHtml()`'s clone strip**. ⭐ Proved
+  behaviourally rather than by reading: a `.day-ov-pop` carrying a unique marker was planted in the
+  body (so nothing would close it), a shareable copy taken, and the output read back — the panel and
+  its marker are **absent**, while its CSS rule is still **present**, which is right: the copy is a
+  working app. ⚠️ In normal use it cannot happen anyway, because the document-level close handler is
+  registered ~7500 lines before the share handler and therefore runs first. The strip is the
+  belt-and-braces the `.date-pop` / `.select-pop` precedent asks for.
+- **No `id` on any control inside it** — classes only, so `collectFieldValues()` cannot bake it into
+  saved files or add phantom undo steps.
+- **Teardown on rebuild** via a `MutationObserver` on `#table-wrap`. ⭐ It **re-points rather than
+  closing**: the cell is addressable by (week index, column index), so a render the popover did not
+  start — committing a note, an undo, a sidebar edit — leaves it alive and on the same day. Verified
+  by rebuilding the grid underneath it and then applying a choice: it landed on the right day.
+- Repositions on **capture-phase scroll** and **resize**, and clamps into the window. The flip-above
+  branch was observed firing correctly (the 164 px panel would have reached y=782 against an
+  innerHeight of 768).
+- **One choice is one undo step**, banked deterministically: `pushUndoSnapshot()` either side of the
+  write rather than trusting the 500 ms debounce. Verified — one undo reverted exactly the override,
+  one redo restored it.
+- ⛔ **The date is derived POSITIONALLY**, because a `.mv-daycell` carries no date and giving it one
+  would be a frozen edit: `(week index × 7 + column index)` off the grid start, which is the same
+  arithmetic `renderMonthView` does. ⚠️ **It is cross-checked against the rendered day number** and
+  refuses rather than guessing on a mismatch — positional derivation is a second copy of the
+  renderer's layout rule, and this project's recurring failure mode is a second copy drifting.
+
+**Measured behaviour** (10 × 8 = 80 shoot days from 6/29/26, `us-general`):
+
+| action | wrap | sidebar line |
+|---|---|---|
+| — | 10/20/26 | — |
+| Half day on Mon 6 Jul | **10/21/26** | *1 half — 81 days on the floor for 80.5 of 80* |
+| + work Sat 11 Jul | **10/27/26** | *1 half · 1 added …* |
+| + Tue 7 Jul off | **10/28/26** | *1 half · 1 off · 1 added …* |
+| double-click clears the half | **10/27/26** | *1 off · 1 added — 80 days on the floor for 80 of 80* |
+
+The over-deliver ruling (§4.4) is visible in that second row: **80.5 delivered for 80 requested.**
+
+⭐ **THE FIXTURE GAP IS CLOSED.** `tests/fixtures/dayoverrides.sptcal` (6,326 bytes) is the first
+saved calendar carrying real `dayOverrides` **and** a `snap-<key>` set false: all four override kinds
+(`half`, `off`, `on` over a weekend, `on` over a union holiday), Pre Prep starting **Wed 4/8/26** with
+its snap off, and a named hiatus (*Summer Break*). `MONTH-VIEW-PLAN.md` §8 asked for this at steps 1,
+2 and 6 and it was never done, which left **all four month-view frozen edits proven inert when unused
+and unproven when used.** Restored through the inline `?state=` path it reproduces the calendar
+exactly — wrap 10/27/26, *1 half · 1 off · 2 added*, snap off with the Wednesday start, all four
+marks rendering, and the hiatus band at `grid-column: 2 / 7` (Mon–Fri, the uncommitted change).
+
+⚠️ **Cut from the crash backup, not from Save.** `supportsFsAccess` is evaluated once at module-eval
+time, so deleting `showSaveFilePicker` cannot force the download path afterwards. The backup in
+IndexedDB (`spt-planning-cal` / `handles` / `unsavedBackup`) stores `{state: captureSnapshot(), …}`,
+and `.sptcal` **is** `JSON.stringify(captureSnapshot(), null, 1)` — same object, no debug hook
+needed. Worth remembering: it is the cheapest way to get a snapshot out of a running app.
+
+⏭ **Not done, and deliberately left:** no `gate.sh` leg exercises this fixture yet. That is open
+item 4's territory (the month PDF is still the only one of the four outputs with no gate coverage),
+and folding a new leg in is its own piece of work.
+
+**✅ TWO OWNER RULINGS, 18 Sep 2026 — both honoured:**
+
+1. **A hiatus day shows "Work this day" GREYED OUT with its reason.** Built and verified: one
+   disabled option reading *Inside Summer Break — shorten the hiatus to work these days*. Behaviour
+   unchanged — `'on'` still does not punch through a hiatus. ⭐ **It names BOTH kinds of hiatus**,
+   which matters: the month view paints a band for an all-phase hiatus but **not** for Production's
+   own per-phase one, so a per-phase hiatus day looked like an ordinary unworked weekday with no
+   reason given anywhere. That silence is exactly what the ruling exists to end.
+2. ⛔ **`episodeSpans()` KEEPS COUNTING ENTRIES, NOT WORK.** Unchanged, deliberately. **Do not "fix"
+   it.** ⚠️ It is now a migration rather than a free change: calendars can contain half days.
+
+⚠️ **One limitation the spec implies but never says: you cannot work HALF a Saturday.** The
+simulation's `shoots` test is `forced || (isWeekday && !holiday)` where `forced` is `ov === 'on'`, so
+`'half'` on a weekend is never shot and the popover correctly does not offer it. If a half-day
+weekend is ever wanted, that is a change to the simulation, not to this menu.
+
+⚠️ **`CLAUDE.md` is out of date on one point found here:** it says *"There is no `version` field in
+the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`.
+
+### Traps learned today (each written up where it belongs; this is the index)
+
+- ⛔ **`elementsFromPoint` is the only proof an affordance is reachable.** Body-drag shipped
+  non-functional because `.mv-pill` inherits `pointer-events:none` from `.mv-bars`; it had been
+  "verified" by dispatching events *at the pill node*, which skips hit-testing. **Second time this
+  project has paid for that.** The check is two lines — see §2i.
+- ⛔ **A continuous gesture that mutates state must cancel the undo debounce.** `update()` re-arms a
+  500 ms timer, so a pause mid-drag banks an intermediate value. The grid resizers are immune only
+  because they mutate *presentation* and write their store once in `onUp`. New helper
+  `cancelPendingUndoPush()`.
+- ⛔ **`gate.sh` has no lock** and two runs raced today, silently corrupting both. Also: the process
+  presents as `/bin/zsh ./gate.sh`, so a `pgrep -f "tests/harness/gate.sh"` waiter never matches and
+  returns instantly — which reads as the run having died. See the harness section.
+- ⛔ **macOS Chrome clamps `--window-size` below ~400px** and the screenshot becomes a *crop* of a
+  larger render. A 192px icon rendered directly shipped as a fragment. Render large and downscale;
+  check centre-pixel alpha 255 and corner alpha 0.
+- ⚠️ **`tests/harness/prepost.py` is stale**: it strips `data-ph` from the POST capture, which was
+  right when `HEAD` predated that attribute and is wrong now. Compare the captures directly and
+  normalise only the today-stamp.
+- ⛔ **"`elementsFromPoint` returns the cell" IS NOT THE SAME CLAIM AS "the cell is clickable", and
+  the `dayOverrides` UI is where that bit.** The one-line note that a day click "already reaches the
+  day" was true only in the day-number band: at the cell CENTRE a `.mv-note-add` or a pill is on top
+  in **35 of 35** cells, because the `+` affordances fill every free lane. ⭐ **Probe a vertical
+  PROFILE, not a point** — 16 of 56 probes down a 112 px cell were the cell, and non-contiguous.
+  A single-point pass answers "is it reachable somewhere", never "is it reachable where a user
+  would aim".
+- ⚠️ **An empty `elementsFromPoint` stack means the POINT is wrong, not that the element is
+  unreachable** — and it reads exactly like "nothing is reachable". Two causes hit in one session:
+  the browser pane reported `innerWidth`/`innerHeight` of **0** until it was given a size, and a rect
+  measured in one evaluation then hit-tested in the next had moved, because the pane re-laid out
+  between them. **Assert the viewport, and read the rect and probe it in the SAME expression.**
+- ⚠️ **The screenshot frame and the page's CSS pixels are different coordinate systems**, and the
+  scale is not stable across a resize — an 800×600 shot of a 1440×900 viewport is not a uniform
+  scale, and a click computed on the wrong one landed on a note block and opened the wrong editor.
+  Re-read `innerWidth` and the shot's own size together, and check `shotH == innerH * shotW/innerW`
+  before converting.
+- ⭐ **The crash backup is the cheapest way to get a snapshot out of a running app.**
+  `.sptcal` IS `JSON.stringify(captureSnapshot(), null, 1)`, and IndexedDB
+  (`spt-planning-cal` / `handles` / `unsavedBackup`) holds `{state: captureSnapshot(), …}` 3 s after
+  any edit. ⚠️ Forcing the download path instead does NOT work: `supportsFsAccess` is evaluated
+  once at module-eval time, so deleting `showSaveFilePicker` afterwards changes nothing.
+
+### Still open
+
+- ⏳ **"Hiatus is missing from the writer's room hiatus checkbox"** — owner report, **not
+  reproduced**. Every code path builds that caption as `label + ' Hiatus'` and `p.label` is
+  `"Writer's Rm"`, so `"Writer's Room"` cannot be the placeholder. It must be a **value** in
+  `phiatus-name-writersRoom`. Leading theory is **browser autofill** (bare `<input type="text">`, no
+  `autocomplete` attribute); the fix would be `autocomplete="off"`. ⚠️ The owner's screenshot also
+  showed "Snap to Mon" still centred, i.e. a pre-`5019e03` build, so re-check on current code first.
+- ⏭ Wire `tests/fixtures/dayoverrides.sptcal` into a `gate.sh` leg. The fixture exists and restores
+  correctly, but nothing in the gate loads it, so the four month-view frozen edits are proven by hand
+  and not by the gate. Pairs naturally with the `monthprint` item below.
+- ⏭ Step 7: start/end drag handles (`MONTH-VIEW-PLAN.md` §6.2). Frozen, approved in principle.
+- ⏭ Commit a `monthprint` baseline and wire the leg into `gate.sh` — the month PDF is the only one
+  of the four outputs with no gate coverage. ⚠️ It **must** normalise the dotted `M.DD.YY` today
+  stamp or it false-fails daily, which is what made gates 2 and 3 useless for two rounds.
+- ⏭ `theme_color` is `#E74C3C`; the new artwork's red is `#EF493C`. Cosmetic, owner's call.
+- ⏭ The 86 inert `data-ph` attributes travel into `#print-root`. Metadata or affordance? Nothing can
+  act on them there (the listener is on `#table-wrap`, a sibling). Owner has not ruled.
+- ⏭ **Never answered, asked three times:** do any of the other "adjustments" the owner has in mind
+  move dates? That is the line between a contained decoration layer and a much larger change.
+- ⏭ **A half day on a weekend is not expressible**, and nothing says so out loud. The simulation
+  shoots a day when `forced || (isWeekday && !holiday)`, and `forced` is only `ov === 'on'` — so
+  `'half'` on a Saturday is inert. The popover correctly does not offer it. Changing that is a
+  simulation change, not a menu change.
+- ⚠️ **`CLAUDE.md` says "There is no `version` field in the snapshot yet." There is** —
+  `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`. Correct the rule when
+  something next touches the save format; the advice that follows it (branch on the version rather
+  than on the presence of individual keys) is still the right advice.
+- ⏸ `BLOCKS-PLAN.md` is fully ruled on and ready to build, untouched.
+
+---
+
 Written at the end of the session that ended at commit `cf51a29` (28 Aug 2026).
 
 **Last updated 14 Sep 2026 — the Production Region became a LOCATION picker, and this is a
@@ -1952,7 +2199,11 @@ dispatched event on the node proves the handler, never the reachability.
 `#table-wrap .mv-pill{ pointer-events:auto; cursor:grab }` — the same opt-in `.mv-note-click`
 already uses, not a new mechanism. ⭐ **Scoped to `#table-wrap` deliberately:** `#print-root` is a
 SIBLING of `#table-wrap`, so nothing inside it can match, which makes *"the print path is
-untouched"* true by construction rather than by argument. Neither property renders anyway, but a
+untouched"* true by construction rather than by argument. ⚠️ **"Sibling" is wrong — measured
+18 Sep 2026.** `#print-root` is a direct child of `<body>`; `#table-wrap` is
+`body > .layout > main.preview-panel > #table-wrap`. The conclusion stands and is stronger: the
+scoping only needs `#print-root` not to be a DESCENDANT of `#table-wrap`, and
+`#print-root .mv-pill` matches 0 elements. Fix the reason, keep the rule. Neither property renders anyway, but a
 frozen edit should be able to make the stronger claim. ⚠️ Cost, measured on the reference fixture:
 **0 overlaps between the 4 pills and all 118 `.mv-note-click` elements**, and nothing listens on
 `.mv-daycell`, so it is free today — but anything added to a day cell later sits BEHIND the pills.

@@ -1402,10 +1402,36 @@
      to make. It is why this rule cannot move MONTH-VIEW-PLAN.md §6.5's diff.
 
      ⚠️ What it does cost: a pill now takes clicks in its own ~17px lane, where previously they
-     passed through to the day cell. Nothing listens on .mv-daycell today (the month view's click
-     handlers are .mv-note-click and .mv-row-expand, both in their own lanes), so this is free
-     right now -- but anything added to a day cell later must expect pills to be in front. */
+     passed through to the day cell. ⛔ THAT COST IS NO LONGER HYPOTHETICAL -- this comment used to
+     end "nothing listens on .mv-daycell today ... but anything added to a day cell later must expect
+     pills to be in front", and on 18 Sep 2026 the day-override UI became that something. Measured:
+     at a cell's CENTRE the hit stack's top is a .mv-note-add or a pill in 35 of 35 cells, so the
+     day-override click lands only in the ~22px day-number band above the lanes. That is the whole
+     reason the rule below exists. */
   #table-wrap .mv-pill{ pointer-events:auto; cursor:grab; }
+  /* ⛔ FROZEN CSS EDIT, owner-approved 18 Sep 2026 -- the discoverability half of the day-override
+     UI. Without it the gesture worked and nothing said so: the click target is a ~22px strip at the
+     top of each cell and there was no cue of any kind.
+
+     ⭐ Scoped to #table-wrap for the same reason as the pill rule above, and it earns the same
+     double claim: #print-root is NOT A DESCENDANT of #table-wrap, so a `#table-wrap ...` selector
+     can never match inside it, AND `cursor` has no printed representation at all. It cannot move
+     the month PDF by construction.
+
+     ⚠️ THE DOCS SAY "SIBLING" FOR THAT AND IT IS FACTUALLY WRONG -- measured 18 Sep 2026.
+     #print-root is a direct child of <body>; #table-wrap is body > .layout > main.preview-panel >
+     #table-wrap. Different subtrees, not siblings. The CONCLUSION is unaffected and is actually
+     stronger: all the scoping needs is that #print-root is not INSIDE #table-wrap. Verified
+     directly -- `#print-root .mv-pill` and `#print-root .mv-daycell` match 0 elements, while
+     `#table-wrap .mv-daycell` matches all 35. State the property that is load-bearing, not a
+     convenient shorthand for it; the shorthand stopped being true when the Mantine layout wrapped
+     the preview panel in .layout > main.preview-panel.
+
+     ⚠️ It is a WEAK cue and deliberately so. `cursor:pointer` says "clickable"; it does not
+     distinguish a day override from adding a note, because .mv-note-click already sets pointer in
+     the lanes below and .mv-pill sets grab. Saying more than "clickable" would mean painting the
+     cell, which is a real appearance change to the grid rather than a free one. */
+  #table-wrap .mv-daycell{ cursor:pointer; }
   .mv-hiatus-bar{ border-radius:9px; text-align:center; }
   /* Notes are deliberately square so they read as a different class of thing than phases,
      and they sit on their exact day -- so instead of stealing width from neighbouring days,
@@ -2075,6 +2101,58 @@
     resize:vertical; line-height:1.4;
   }
   .mv-note-pop-hint{
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
+    line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
+  }
+
+  /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4). ----
+     ⭐ NOT FROZEN, and the distinction is exact: this is a BODY-LEVEL panel anchored to a day cell,
+     never markup inside the grid, so none of these selectors is a `.mv-*` rule and none of them can
+     reach #print-root. The month-view MARKS the overrides produce (.mv-day-half/off/on) are the
+     frozen half, and they are already shipped -- this only styles the menu that sets them.
+     Sized and shaped to match .mv-note-pop deliberately: the two open from the same grid, on the
+     same gesture, and a user should not have to learn two panels. */
+  .day-ov-pop{
+    position:absolute; z-index:60; width:228px; padding:var(--mantine-spacing-lg);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
+  }
+  .day-ov-pop-day{
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+    margin-bottom:var(--mantine-spacing-sm);
+  }
+  .day-ov-opts{ display:flex; flex-direction:column; gap:4px; }
+  .day-ov-opt{
+    display:block; width:100%; text-align:left; font-family:inherit;
+    font-size:var(--mantine-font-size-sm); color:var(--mantine-color-black);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4);
+    border-radius:var(--mantine-radius-md);
+    padding:var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    cursor:pointer; line-height:1.3;
+  }
+  .day-ov-opt:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  /* The state the day is in now. A tick rather than a fill, so the row still reads as a button --
+     picking it again is a no-op, not a second state. */
+  .day-ov-opt.is-current{ border-color:var(--edit-accent); font-weight:600; }
+  .day-ov-opt.is-current::after{ content:"\2713"; float:right; color:var(--edit-accent); }
+  /* ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT WITH ITS REASON,
+     rather than hiding the option. Greyed, not absent -- a refusal must name itself. */
+  .day-ov-opt.is-disabled, .day-ov-opt:disabled{
+    cursor:default; color:var(--text-faint); background:var(--mantine-color-gray-0);
+    border-color:var(--mantine-color-gray-3);
+  }
+  .day-ov-reason{
+    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
+    color:var(--text-faint); line-height:var(--mantine-line-height-xs); font-weight:400;
+  }
+  /* ⚠️ Working a union holiday overrides the thing the whole holiday dataset exists to protect.
+     It is allowed, and it is never silent. */
+  .day-ov-warn{
+    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
+    color:#7A5B14; line-height:var(--mantine-line-height-xs); font-weight:400;
+  }
+  .day-ov-stale, .day-ov-hint{
     font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }

@@ -1,6 +1,8 @@
 # MONTH-VIEW-PLAN.md
 
-**Status:** plan only. No code written. **All four blocking rulings received 16 Sep 2026** (§7).
+**Status:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
+on; step 7 remains. **All four blocking rulings received 16 Sep 2026** (§7). ⚠️ This header used to
+read *"plan only. No code written."*
 **Written:** 16 Sep 2026, against `4b0c3c5`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) §2i/§2j →
 [`MANTINE-SEAM.md`](MANTINE-SEAM.md) §5.2.
@@ -298,29 +300,45 @@ planned here.
 
 ### 6.6 ⛔ THE FROZEN EDITS ACTUALLY MADE, and how each met the gate
 
-Three, not the two this plan anticipated. Recorded here because §6.5's approval was given against a
-list, and the third was not on it.
+Four, not the two this plan anticipated. Recorded here because §6.5's approval was given against a
+list, and the last two were not on it — each was approved on its own as it was found to be needed.
 
 | Edit | Approved | How condition 1 was met |
 |---|---|---|
 | `data-ph` on month pills | 16 Sep 2026 | `monthprint` capture byte-identical once `data-ph` is stripped |
 | `mv-day-half/off/on` classes on day cells | 16 Sep 2026 | adds a CLASS to an existing cell — no element, no lane, no text node, so row heights cannot move |
-| `#table-wrap .mv-pill{pointer-events:auto; cursor:grab}` | **18 Sep 2026** | **scoped so it cannot match inside `#print-root`** — `#print-root` is a sibling of `#table-wrap`. Neither property renders in any case |
+| `#table-wrap .mv-pill{pointer-events:auto; cursor:grab}` | **18 Sep 2026** | **scoped so it cannot match inside `#print-root`** — `#print-root` is not a DESCENDANT of `#table-wrap`. Neither property renders in any case |
+| `#table-wrap .mv-daycell{cursor:pointer}` | **18 Sep 2026** | same — and `cursor` has no printed representation at all |
 
 ⚠️ **The third was not foreseen and §6.1 is wrong about it.** *"Body-drag needs no new frozen
 markup — the pill itself is the target"* is true about markup and false about reachability: the
 pill is inside `.mv-bars`, which is `pointer-events:none`. Build it first was still the right call;
 the gesture just cost one more frozen line than the plan priced.
 
-⚠️ **Condition 2 (`mvNoteLineCount()` row heights) is untouched by all three** — none of them
+⚠️ **"`#print-root` is a SIBLING of `#table-wrap`" is the reason these rows give, and it is
+FACTUALLY WRONG** — measured 18 Sep 2026. `#print-root` is a direct child of `<body>`; `#table-wrap`
+is `body > .layout > main.preview-panel > #table-wrap`. Different subtrees. ⭐ **The conclusion is
+unaffected and is stronger than the reason given**: all the scoping needs is that `#print-root` is
+not *inside* `#table-wrap`, which it is not. Verified directly — `#print-root .mv-pill` and
+`#print-root .mv-daycell` match 0 elements while `#table-wrap .mv-daycell` matches all 35. The
+shorthand stopped being true when the Mantine layout wrapped the preview panel.
+
+⚠️ **Condition 2 (`mvNoteLineCount()` row heights) is untouched by all four** — none of them
 affects text measurement. Condition 3 is the open one: 86 inert `data-ph` attributes do travel into
 `#print-root`, and whether that counts as an "affordance" is still an owner call. The pill's
 `cursor`/`pointer-events` do NOT travel, by the scoping above.
 
-⛔ **NONE OF THE THREE IS EXERCISED BY A FIXTURE THAT USES IT.** No `.sptcal` in `tests/fixtures/`
-carries `dayOverrides` or `snap-*`, so the marks are proven **inert when unused** and unproven when
-used. §8's instruction to cut a fixture at steps 1, 2 and 6 has not been followed for any of them.
-That is the gap to close before step 7.
+✅ **CLOSED 18 Sep 2026 — this paragraph used to say the opposite.** It read: *"NONE OF THE THREE IS
+EXERCISED BY A FIXTURE THAT USES IT … the marks are proven inert when unused and unproven when
+used."* `tests/fixtures/dayoverrides.sptcal` now carries all four override kinds (`half`, `off`, `on`
+over a weekend, `on` over a union holiday), a `snap-<key>` set **false** with a Wednesday phase start,
+and a named hiatus. Restored through the inline `?state=` path it reproduces its calendar exactly —
+wrap 10/27/26, *1 half · 1 off · 2 added*, all four marks rendering. §8's instruction at steps 1, 2
+and 6 is finally followed.
+
+⚠️ **Proven by hand, not by the gate.** No `gate.sh` leg loads that fixture yet, so a regression in
+the marks would still pass a green gate. Wiring one in is the remaining half, and it pairs with the
+`monthprint` baseline item.
 
 
 ## 7. ✅ Rulings received (16 Sep 2026)
@@ -374,7 +392,14 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    ⭐ **THE RULE THIS LEAVES BEHIND, worth more than either fix:** assert
    `document.elementsFromPoint(cx, cy)` **contains** the element before claiming an affordance
    works. A dispatched event proves the handler; only hit-testing proves the user can reach it.
-6. ⛔ *Frozen work begins.* Day-override marks in the month cell, against §6.5's gate.
+6. ~~⛔ *Frozen work begins.* Day-override marks in the month cell, against §6.5's gate.~~ —
+   ✅ **SHIPPED 16 Sep 2026** as `mv-day-half/off/on` classes on the existing day cell: no element,
+   no lane, no text node, so §6.5 condition 2 cannot move. ⭐ **And the UI THAT SETS THEM shipped
+   18 Sep 2026**, which this plan never gave a step number because §4 assumed the store was the hard
+   part. It is not frozen at all — `.mv-bars` is `pointer-events:none` and `.mv-daycell` is `auto`,
+   so a delegated click on `#table-wrap` reaches the day. Full record in `HANDOFF.md`'s START HERE
+   block. ⚠️ The reachable area is the **day-number band**, not the cell: the `+` note affordances
+   fill every free lane and sit on top at the centre of **35 of 35** cells.
 7. ⛔ Start/end handles (§6.2), against the same gate.
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1, 2 and 6.** The save format moves in each, and
