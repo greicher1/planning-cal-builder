@@ -15,17 +15,64 @@
 
 `gate.sh` **PASSED on `5019e03`** — 312 assertions, 0 fails, both Node provers. `npm run check` 12/12.
 
-⛔ **UNCOMMITTED in the working tree, TWO things now:**
+**Local commits ahead of `origin/main` (still at `5019e03`) — NOTHING PUSHED:**
 
 | | |
 |---|---|
-| the month-view **hiatus change** — bands stop at Friday | ⛔ a **frozen edit**, evidenced (see below), **not gated, not pushed** |
-| the **`dayOverrides` UI** — `app.js`, `legacy.css`, a new fixture | ✅ built and verified 18 Sep; **no frozen edit**; see the section below |
+| `b9d9c37` the month-view **hiatus change** — bands stop at Friday | ⛔ a **frozen edit**; committed, gated, **not pushed** |
+| `d5b94c2` the **`dayOverrides` UI** + the approved day-cell cursor + a new fixture | ✅ committed, gated, **not pushed** |
+| the **new app icon** — `art/app-icon.svg`, `tools/make-icon.py`, `appIcon.js`, the manifest | ✅ owner-supplied 18 Sep; **not re-gated by owner's call** — a `data:` URI swap touching no frozen symbol |
 
-⛔ **A push needs a full `gate.sh` first**, on two of the policy’s counts at once: the hiatus change
-is a frozen edit, and the tree now carries a batch. Committing locally needs only the always-checks,
-which are green — `node --check` OK, `npm run build` + `npm run check` **12/12**,
-`python3 tools/check-refs.py` CLEAN.
+✅ **`gate.sh` PASSED on both — 312 assertions, 0 fails, both Node provers**, run over the two
+commits together (18 Sep 2026). All five numbered gates green against
+`tests/baselines/2026-08-29-stage-7/`, and three of those results are the ones that matter here:
+
+| | |
+|---|---|
+| waterfall PDF | **identical to baseline** — the direct writer is untouched |
+| Excel parts | **identical** (core.xml timestamp + header date excluded) |
+| `fields.byId` key set | **identical, 59 ids** — proof the day-override UI added no swept control |
+
+⚠️ The hiatus change deliberately moves the month PDF, and **no gate leg covers the month PDF** —
+that is still open item 4. Its evidence is the `monthprint` capture recorded below, not the gate.
+
+### ⛔ GATE POLICY — amended by the owner, 18 Sep 2026. It was not written down anywhere until now.
+
+**A full `gate.sh` run is ~41 minutes and that is a FLOOR, not an estimate:** `run.sh` waits out each
+leg's full `--virtual-time-budget` regardless of when the work actually finishes (28 legs, budgets
+summing to 2445 s). Running it after every small change dominated an entire session. **It is no
+longer required after every change.**
+
+**ALWAYS, on every change** — seconds, so there is no excuse to skip:
+
+- `node --check src/legacy/app.js`
+- `npm run build && npm run check` (12/12: truncated bundle, external requests, the frozen
+  containers, the `SIM_KEY` NUL sentinel, `version.json` vs `package.json`)
+- **verify the actual change in a real browser**, with real coordinates where it is a gesture
+
+**A FULL `gate.sh` is required before a PUSH that includes ANY of:**
+
+- a frozen edit (the symbol list in `CLAUDE.md`), however small
+- anything touching the width model, either export writer, or the save format
+  (`captureSnapshot` / `applyStateSnapshot` / `collectFieldValues` / a new id'd field)
+- a batch of ~3+ changes accumulated since the last green gate
+- cutting a version, or a Mantine / dependency upgrade
+
+Otherwise ship on the always-checks, and run the full gate at the END of the session or before the
+next substantial push, so one run covers the batch.
+
+⚠️ **A SINGLE LEG DOES NOT GIVE A VERDICT.** The five numbered gates' comparisons live inside
+`gate.sh`'s python blocks, not in the legs — `./run.sh base 45` writes `base.json` and nothing diffs
+it against `tests/baselines/2026-08-29-stage-7/`. Use a leg to see BEHAVIOUR, never to prove
+non-regression.
+
+⭐ **THE BETTER LEVER: make the gate FASTER rather than RARER — and it is no longer a hypothesis.**
+`run.sh` waits for Chrome to EXIT, and Chrome does not exit after `--dump-dom` (documented,
+`PROJECT-CONTEXT.md` §11). Polling for the dumped file to appear and stabilise, then killing it,
+would cut most legs to a fraction of their budget. **This was proven incidentally on 18 Sep 2026**:
+`tools/make-icon.py` hit the identical trap with `--screenshot`, and poll-and-kill took it from a
+**120 s timeout to 2.1 s**. The pattern is ~15 lines and it is in that script, ready to copy. An
+hour of someone's time would make the 41 minutes a non-issue and this whole policy moot.
 
 ### The five frozen edits now in the month view, and the one that is different
 
@@ -209,6 +256,13 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   scale, and a click computed on the wrong one landed on a note block and opened the wrong editor.
   Re-read `innerWidth` and the shot's own size together, and check `shotH == innerH * shotW/innerW`
   before converting.
+- ⭐ **CHROME DOES NOT EXIT AFTER `--screenshot` EITHER, and fixing that is open item 3 in
+  miniature.** `PROJECT-CONTEXT.md` §11 records it for `--dump-dom`; it is just as true of
+  `--screenshot`. A plain `subprocess.run(timeout=120)` waited out the FULL timeout and reported
+  failure **after the render had already succeeded on disk** — which reads exactly like a broken
+  renderer. Polling for the file to appear and stop growing, then killing Chrome, took
+  `tools/make-icon.py` from **a 120 s timeout to 2.1 s**. ⭐ **`run.sh` waits on Chrome the same
+  way**, so this is direct evidence that open item 3 works — not a hypothesis any more.
 - ⭐ **The crash backup is the cheapest way to get a snapshot out of a running app.**
   `.sptcal` IS `JSON.stringify(captureSnapshot(), null, 1)`, and IndexedDB
   (`spt-planning-cal` / `handles` / `unsavedBackup`) holds `{state: captureSnapshot(), …}` 3 s after
@@ -230,7 +284,16 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
 - ⏭ Commit a `monthprint` baseline and wire the leg into `gate.sh` — the month PDF is the only one
   of the four outputs with no gate coverage. ⚠️ It **must** normalise the dotted `M.DD.YY` today
   stamp or it false-fails daily, which is what made gates 2 and 3 useless for two rounds.
-- ⏭ `theme_color` is `#E74C3C`; the new artwork's red is `#EF493C`. Cosmetic, owner's call.
+- ✅ ~~`theme_color` is `#E74C3C`; the new artwork's red is `#EF493C`.~~ **CLOSED 18 Sep 2026** —
+  new artwork again (the spectrum mark), and the owner chose **`#E8383F`**, the red the gradient
+  actually contains. Set via `tools/make-icon.py --theme-color`, never silently.
+- ⏭ **A maskable PWA icon does not exist and the docs claimed one did.** `appIcon.js` said the
+  manifest carried "192/512/512-maskable"; it carries 192 and 512 with no `purpose`. Adding a real
+  maskable icon needs its own artwork with the mark shrunk into the safe zone (Android crops to a
+  circle) — a design task, not a build flag. Owner has not been asked.
+- ⚠️ **The bundle is 1,254 KB, up 74 KB (+6%) from the new icon**, because a smooth gradient is the
+  worst case for PNG. Palette quantisation would claw back 76% at the cost of visible banding
+  (max channel delta 39) and was rejected for a brand mark. Revisit only if size becomes a problem.
 - ⏭ The 86 inert `data-ph` attributes travel into `#print-root`. Metadata or affordance? Nothing can
   act on them there (the listener is on `#table-wrap`, a sibling). Owner has not ruled.
 - ⏭ **Never answered, asked three times:** do any of the other "adjustments" the owner has in mind

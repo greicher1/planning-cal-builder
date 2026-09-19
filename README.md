@@ -29,6 +29,61 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — new app icon, and the icon is reproducible for the first time
+
+Owner supplied new artwork, 18 Sep 2026: the same calendar-as-film-slate mark — a fixed clapstick
+across the top with the hinged one pivoting open from the left — but the body now carries the full
+spectrum (yellow → red → purple → blue) instead of flat red. Local, not pushed at time of writing.
+
+⭐ **The bigger change is that it can now be regenerated.** `src/chrome/appIcon.js` said its bytes
+were *"rasterised at 192px from the source SVG"* — and **that SVG was never in the repo.** The icon
+could not be reproduced, re-cut at another size, or diffed against its own source; the blob was the
+only copy. The artwork now lives at `art/app-icon.svg` and `tools/make-icon.py` derives every PNG in
+the app from it:
+
+```
+python3 tools/make-icon.py --theme-color '#E8383F'
+```
+
+**All four surfaces are now literally the same bytes**, not merely the same artwork. Verified in the
+built app: favicon, apple-touch-icon, header brand mark and the manifest's 192px entry all hash to
+SHA-256 `84f0fd8877f6…`. The round-5 owner ruling (*the favicon and the header mark must be
+instances of ONE upload, never two independent copies*) now holds across the manifest too, which it
+did not before — the manifest was a separate encoding of the same picture.
+
+**`theme_color` is `#E8383F`** (owner's call), replacing `#E74C3C`. That closes a standing open item:
+the old value was never the artwork's red. It is a flag on the script, never a silent write — a
+spectrum has no derivable "the" colour, so the tool refuses to guess.
+
+⚠️ **Two corrections the work surfaced.** `appIcon.js` claimed the manifest carried *"three icons
+(192/512/512-maskable)"*. It carries **two**, and neither declares a `purpose`, so there is no
+maskable icon and never was. A maskable one is not a re-encode — it needs its own artwork with the
+mark shrunk into the safe zone, because Android crops to a circle. That is a design task, not a
+build flag.
+
+⛔ **The script had to work around Chrome not exiting, and the fix is worth reading.** `--screenshot`
+writes the PNG and then **the process stays alive** — the same behaviour `PROJECT-CONTEXT.md` §11
+records for `--dump-dom`. A plain `subprocess.run(timeout=120)` therefore waited out its whole
+timeout and reported failure *after the render had already succeeded*. Polling for the file to
+appear and stop growing, then killing Chrome, takes the render from **a 120 s timeout to 2.1 s**.
+⭐ **That is open item 3's hypothesis confirmed on real code:** `run.sh` waits for Chrome to exit
+the same way, and the same change would cut most of the 28 gate legs to a fraction of their
+`--virtual-time-budget`.
+
+⚠️ **Size, stated plainly: the bundle grew 1,180 KB → 1,254 KB (+74 KB, +6%).** A smooth gradient is
+the worst case for PNG, so the 192px icon is 16,979 bytes against roughly 5.5 KB before. Palette
+quantisation was measured rather than assumed — **76% smaller, but max channel delta 39 and ~8% of
+pixels off by more than 8**, i.e. visible banding across the body. Rejected: this is the brand mark.
+
+**Legibility measured, not assumed** — rendered from the shipped bytes at 16/20/24/32/48/64/128/192
+on white and on dark. Down to ~24px the silhouette holds (a rounded block with a dark diagonal band
+across the top). Below that the clapper stripes merge into a dark bar and the grid squares into
+texture; what still identifies it is the **colour**. Do not add finer detail.
+
+⚠️ **Not re-gated, and it did not need to be** (owner's call): the icon is a `data:` URI swap that
+touches no frozen symbol, no width-model constant, neither export writer and no save-format key.
+`npm run build` + `npm run check` 12/12.
+
 ### Unreleased — day overrides get a UI: half days, days off, and worked weekends/holidays
 
 The feature the owner originally asked for (*"adjust the start and end of each week at a week by

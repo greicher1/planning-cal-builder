@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="t d">
+<title id="t">Calendar clapperboard icon</title>
+<desc id="d">A month grid on a calendar whose top band is the fixed clapstick of a film slate, with the hinged clapstick pivoting open from the left.</desc>
+<defs>
+<clipPath id="fixClip"><path d="M100 226Q100 164 162 164H638Q700 164 700 226V236H100Z"/></clipPath>
+<clipPath id="armClip"><path d="M126 92H674Q700 92 700 118V138Q700 164 674 164H126Q100 164 100 138V118Q100 92 126 92Z"/></clipPath>
+<linearGradient id="spg" gradientUnits="userSpaceOnUse" x1="100" y1="164" x2="700" y2="164">
+  <stop offset="0" stop-color="#F7EC3A"/>
+  <stop offset="0.069" stop-color="#F6E23B"/>
+  <stop offset="0.1149" stop-color="#F19A3C"/>
+  <stop offset="0.1839" stop-color="#E8383F"/>
+  <stop offset="0.2299" stop-color="#E7373F"/>
+  <stop offset="0.3103" stop-color="#CB3A59"/>
+  <stop offset="0.3908" stop-color="#A93C78"/>
+  <stop offset="0.4828" stop-color="#91428D"/>
+  <stop offset="0.5632" stop-color="#7459A4"/>
+  <stop offset="0.6782" stop-color="#5F6FB5"/>
+  <stop offset="0.8276" stop-color="#4D80C2"/>
+  <stop offset="1" stop-color="#329CD8"/>
+</linearGradient>
+<linearGradient id="spgArm" gradientUnits="userSpaceOnUse" gradientTransform="rotate(10 114 164)" x1="100" y1="164" x2="700" y2="164">
+  <stop offset="0" stop-color="#F7EC3A"/>
+  <stop offset="0.069" stop-color="#F6E23B"/>
+  <stop offset="0.1149" stop-color="#F19A3C"/>
+  <stop offset="0.1839" stop-color="#E8383F"/>
+  <stop offset="0.2299" stop-color="#E7373F"/>
+  <stop offset="0.3103" stop-color="#CB3A59"/>
+  <stop offset="0.3908" stop-color="#A93C78"/>
+  <stop offset="0.4828" stop-color="#91428D"/>
+  <stop offset="0.5632" stop-color="#7459A4"/>
+  <stop offset="0.6782" stop-color="#5F6FB5"/>
+  <stop offset="0.8276" stop-color="#4D80C2"/>
+  <stop offset="1" stop-color="#329CD8"/>
+</linearGradient>
+</defs>
+<g transform="translate(40,58) scale(0.90)">
+<path d="M100 620V681Q100 750 169 750H631Q700 750 700 681V620Z" fill="url(#spg)"/>
+<path d="M100 620V681Q100 750 169 750H631Q700 750 700 681V620Z" fill="#000000" opacity=".22"/>
+<path d="M100 226Q100 164 162 164H638Q700 164 700 226V646Q700 716 630 716H170Q100 716 100 646Z" fill="url(#spg)"/>
+<g clip-path="url(#fixClip)">
+<rect x="100" y="164" width="600" height="72" fill="#000000"/>
+<g fill="#FFFFFF">
+<path d="M-22.2 240 L21.8 160 L81.8 160 L37.8 240 Z"/>
+<path d="M97.8 240 L141.8 160 L201.8 160 L157.8 240 Z"/>
+<path d="M217.8 240 L261.8 160 L321.8 160 L277.8 240 Z"/>
+<path d="M337.8 240 L381.8 160 L441.8 160 L397.8 240 Z"/>
+<path d="M457.8 240 L501.8 160 L561.8 160 L517.8 240 Z"/>
+<path d="M577.8 240 L621.8 160 L681.8 160 L637.8 240 Z"/>
+<path d="M697.8 240 L741.8 160 L801.8 160 L757.8 240 Z"/>
+</g>
+</g>
+<rect x="100" y="232" width="600" height="4" fill="#FFFFFF" opacity=".16"/>
+<g transform="rotate(-10 114 164)">
+<g clip-path="url(#armClip)">
+<rect x="100" y="92" width="600" height="72" fill="#000000"/>
+<g fill="#FFFFFF">
+<path d="M-102.6 168 L-58.6 88 L1.4 88 L-42.6 168 Z"/>
+<path d="M17.4 168 L61.4 88 L121.4 88 L77.4 168 Z"/>
+<path d="M137.4 168 L181.4 88 L241.4 88 L197.4 168 Z"/>
+<path d="M257.4 168 L301.4 88 L361.4 88 L317.4 168 Z"/>
+<path d="M377.4 168 L421.4 88 L481.4 88 L437.4 168 Z"/>
+<path d="M497.4 168 L541.4 88 L601.4 88 L557.4 168 Z"/>
+<path d="M617.4 168 L661.4 88 L721.4 88 L677.4 168 Z"/>
+<path d="M737.4 168 L781.4 88 L841.4 88 L797.4 168 Z"/>
+</g>
+<path d="M100 159H686Q700 159 700 145" fill="none" stroke="#FFFFFF" stroke-width="5" opacity=".18"/>
+</g>
+</g>
+<g fill="#000000" opacity=".45">
+<rect x="175" y="266" width="30" height="9" rx="4"/>
+<rect x="245" y="266" width="30" height="9" rx="4"/>
+<rect x="315" y="266" width="30" height="9" rx="4"/>
+<rect x="385" y="266" width="30" height="9" rx="4"/>
+<rect x="455" y="266" width="30" height="9" rx="4"/>
+<rect x="525" y="266" width="30" height="9" rx="4"/>
+<rect x="595" y="266" width="30" height="9" rx="4"/>
+</g>
+<g fill="#000000">
+<rect x="306" y="312" width="48" height="48"/>
+<rect x="376" y="312" width="48" height="48"/>
+<rect x="446" y="312" width="48" height="48"/>
+<rect x="516" y="312" width="48" height="48"/>
+<rect x="586" y="312" width="48" height="48"/>
+<rect x="166" y="382" width="48" height="48"/>
+<rect x="236" y="382" width="48" height="48"/>
+<rect x="306" y="382" width="48" height="48"/>
+<rect x="376" y="382" width="48" height="48"/>
+<rect x="446" y="382" width="48" height="48"/>
+<rect x="516" y="382" width="48" height="48"/>
+<rect x="586" y="382" width="48" height="48"/>
+<rect x="166" y="452" width="48" height="48"/>
+<rect x="236" y="452" width="48" height="48"/>
+<rect x="306" y="452" width="48" height="48"/>
+<rect x="376" y="452" width="48" height="48"/>
+<rect x="446" y="452" width="48" height="48"/>
+<rect x="516" y="452" width="48" height="48"/>
+<rect x="586" y="452" width="48" height="48"/>
+<rect x="166" y="522" width="48" height="48"/>
+<rect x="236" y="522" width="48" height="48"/>
+<rect x="306" y="522" width="48" height="48"/>
+<rect x="376" y="522" width="48" height="48"/>
+<rect x="446" y="522" width="48" height="48"/>
+<rect x="516" y="522" width="48" height="48"/>
+<rect x="586" y="522" width="48" height="48"/>
+<rect x="166" y="592" width="48" height="48"/>
+<rect x="236" y="592" width="48" height="48"/>
+<rect x="306" y="592" width="48" height="48"/>
+<rect x="376" y="592" width="48" height="48"/>
+<rect x="446" y="592" width="48" height="48"/>
+</g>
+</g>
+</svg>
