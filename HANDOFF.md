@@ -339,13 +339,16 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   (max channel delta 39) and was rejected for a brand mark. Revisit only if size becomes a problem.
 - ⏭ The 86 inert `data-ph` attributes travel into `#print-root`. Metadata or affordance? Nothing can
   act on them there (the listener is on `#table-wrap`, a sibling). Owner has not ruled.
-- ⏳ **A MONTH-VIEW HEADER TEMPLATE SYSTEM — owner asked 21 Sep 2026, design question answered, NOT
-  built and NOT yet planned.** The month header today is a two-state toggle (Auto ↔ Manual) over two
-  slots, `title` and `today`. The waterfall has three modes (Auto / Template / Manual), nine slots,
-  41 tokens, a dedicated template editor and `.spthdr` preset files. The month view has none of it.
-  ⭐ **Recommendation given: ONE preset file carrying BOTH sections, applied per view** — see the
-  next session's first task. Needs a `MONTH-HEADER-PLAN.md` before any code, per the convention
-  `COLUMN-ORDER-PLAN.md` / `HEADER-PRESETS-PLAN.md` / `MONTH-VIEW-PLAN.md` follow.
+- ⏳ **A MONTH-VIEW HEADER TEMPLATE SYSTEM — ✅ PLANNED 21 Sep 2026, NOT BUILT.**
+  → **[`MONTH-HEADER-PLAN.md`](MONTH-HEADER-PLAN.md)**. The month header today is a two-state toggle
+  over two slots (`title`, `today`); the waterfall has three modes, nine slots, 41 tokens, a template
+  editor and `.spthdr` files. ✅ **Owner ruled: ONE preset file, TWO sections (`sheet` / `month`),
+  each optional, applied per view.** ⭐ Two findings make it cheap: `buildHeaderCtx()` and
+  `resolveHeaderTemplate()` are **already view-agnostic** (verified), and the month's auto values are
+  **already duplicated** between frozen `renderMonthView` and the mode-toggle handler — so step 1
+  DELETES a latent divergence rather than adding surface. ⛔ **Four rulings still open** (plan §6),
+  the load-bearing one being whether the month header gains slots: that is the only change here that
+  adds height to every month PDF.
 - ⏭ **Never answered, asked three times:** do any of the other "adjustments" the owner has in mind
   move dates? That is the line between a contained decoration layer and a much larger change.
 - ⏭ **A half day on a weekend is not expressible**, and nothing says so out loud. The simulation
