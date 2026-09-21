@@ -29,7 +29,28 @@ five numbered gates green against `tests/baselines/2026-08-29-stage-7/`:
 ⚠️ **`62cc0dc` (the icon) was NOT gated** — owner's call, and defensible: a `data:` URI swap touching
 no frozen symbol, no width-model constant, neither export writer and no save-format key.
 
-⛔ **UNPUSHED LOCAL COMMITS — and the first one needs a FULL GATE before any push:**
+✅ **GATE PASSED OVER ALL FOUR UNPUSHED COMMITS — 21 Sep 2026, 313 assertions, 0 fails.** Run against
+`/dist/index.html` on a build taken immediately before it started. All five numbered gates green:
+
+| | |
+|---|---|
+| 1. horizontally clipped cells | **0** — and 0 on the `restore` leg too |
+| 2. waterfall PDF | **identical to baseline** (only the header date stamp normalised, 8.29.26 → 9.21.26) |
+| 3. Excel parts | **identical** (core.xml timestamp + header date excluded) |
+| 4. v1.0.0 saved calendar restores | **identical** — sig, headers, cols, noteCells, hClip, vClip all match |
+| 5. `fields.byId` key set | **identical, 59 ids** |
+
+⭐ **That clears `acc2a55`'s frozen edit for a push.** The half-day overlay is a month-view change and
+the two gated writers are untouched by it — which is what the run proves rather than assumes. The
+month PDF still has no gate leg, but its A/B was already taken by hand (structure hash identical
+across 3,511 elements; one `style` attribute differs).
+
+⚠️ **The run took ~51 minutes wall-clock, not the ~41 the policy quotes.** The 41 was computed from
+the sum of the `--virtual-time-budget`s; the real figure is higher because each leg also pays Chrome
+startup and teardown. Budget an hour. This is more evidence for open item 3 (poll-and-kill instead of
+waiting for Chrome to exit), not less.
+
+⛔ **THE FOUR COMMITS WERE STILL UNPUSHED AT THE TIME OF WRITING:**
 
 | | |
 |---|---|
@@ -323,11 +344,12 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
 
 ### Still open
 
-- ⛔ **FIRST THING NEXT SESSION: run `cd tests/harness && ./gate.sh`.** `acc2a55` carries a frozen
-  edit and is unpushed and ungated; the gate policy below requires one before any push. ⚠️ Check
-  `ps -Ao command | grep "gate.sh"` first — it has no lock and two concurrent runs silently corrupt
-  each other. Build before starting it (`npm run build`), and do NOT rebuild while it runs: it
-  serves `dist/index.html`, so a mid-run build splits the gate across two bundles.
+- ✅ ~~**FIRST THING NEXT SESSION: run `cd tests/harness && ./gate.sh`.**~~ **DONE 21 Sep 2026 —
+  313 assertions, 0 fails, all five numbered gates green.** See the table at the top. The procedure
+  held and is worth repeating verbatim: check `ps -Ao command | grep "gate.sh"` first (it has no lock
+  and presents as `/bin/zsh ./gate.sh`, so a `pgrep` on the full path never matches), `npm run build`
+  before starting, and do **not** rebuild while it runs — it serves `dist/index.html`, so a mid-run
+  build splits the gate across two bundles.
 - ⏳ **"Hiatus is missing from the writer's room hiatus checkbox"** — owner report, **not
   reproduced**. Every code path builds that caption as `label + ' Hiatus'` and `p.label` is
   `"Writer's Rm"`, so `"Writer's Room"` cannot be the placeholder. It must be a **value** in
@@ -360,9 +382,21 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   each optional, applied per view.** ⭐ Two findings make it cheap: `buildHeaderCtx()` and
   `resolveHeaderTemplate()` are **already view-agnostic** (verified), and the month's auto values are
   **already duplicated** between frozen `renderMonthView` and the mode-toggle handler — so step 1
-  DELETES a latent divergence rather than adding surface. ⛔ **Four rulings still open** (plan §6),
-  the load-bearing one being whether the month header gains slots: that is the only change here that
-  adds height to every month PDF.
+  DELETES a latent divergence rather than adding surface.
+  ✅ **ALL FOUR RULINGS LANDED 21 Sep 2026 and are written into plan §6. The plan is unblocked.**
+  (1) ONE preset file, TWO sections. (2) ⛔ **BOTH new slots — the left slot AND a new line.**
+  (3) The SAME editor popup, retargeted by view. (4) Keep `.spthdr`, validating `version` up front.
+  ⭐ **Ruling 2 was SPLIT before it was asked, because a measurement showed it was two questions:**
+  the month header is ONE 33 px row, and `.mv-titlebar::before` is **84 px of permanently blank
+  reserved space** (`--mv-today-w` is never assigned anywhere — grepped across `src/`) whose only
+  job is to balance the date so the title centres. **A left slot costs ZERO height.** ⚠️ It is only
+  ~7–8 chars at 20 px bold, so it needs `nowrap` and a measured budget — a wrap forfeits the whole
+  reason it was free. ⛔ **The NEW LINE is the half that costs, and not the way "adds height" implies:**
+  `exportMonthPdf` fits **each month to exactly one sheet**, measuring the header stack and dividing
+  the rest among the week rows — so a second line **does not lengthen the PDF or spill a page**, it
+  **shortens every week row on every page** (all 15 on the reference fixture) and pushes months
+  already in `scaleY` shrink-to-fit further down. It is step 7, done last and alone, with a
+  quantified before/after in front of the owner.
 - ⏭ **Never answered, asked three times:** do any of the other "adjustments" the owner has in mind
   move dates? That is the line between a contained decoration layer and a much larger change.
 - ⏭ **A half day on a weekend is not expressible**, and nothing says so out loud. The simulation

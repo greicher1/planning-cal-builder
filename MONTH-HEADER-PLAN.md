@@ -1,6 +1,7 @@
 # MONTH-HEADER-PLAN.md
 
 **Status:** plan only. **No code written.** Written 21 Sep 2026 against `2863460`.
+**✅ All four rulings in §6 landed 21 Sep 2026 — the plan is unblocked and ready to build.**
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md) §2–§3 (the waterfall system this extends) →
 [`MANTINE-SEAM.md`](MANTINE-SEAM.md) §5.2 (why `renderMonthView` is an export renderer).
@@ -20,7 +21,8 @@
 | **The recommendation** | **ONE preset file with TWO sections**, `sheet` and `month`, each optional, each applied to its own view. Separate *stores and slots*; **one shared resolver**. |
 | **The cost** | The month header markup lives **inside `renderMonthView`**, which is frozen and IS the month PDF. A third mode and any new slot is a **frozen edit**. |
 | **The free part** | `buildHeaderCtx()` and `resolveHeaderTemplate()` are **view-agnostic already** — verified, not assumed. Tokens cost nothing to reuse. |
-| **Blocking** | Four rulings in §6. Nothing should be built before they land. |
+| **Blocking** | ✅ **Nothing.** All four §6 rulings landed 21 Sep 2026. |
+| **The ruling that costs** | The month header gains **both** the free left slot **and** a new line. The new line shortens every week row on every page — §6 ruling 2. |
 
 ---
 
@@ -162,14 +164,15 @@ class-only for exactly this reason and the `hdreditor` leg asserts it.
 | `headerFmtToolbarHtml`, the preset store, the `.spthdr` reader/writer, the template editor popup | **No** |
 | `mvHeaderMode` / `mvHeaderManual` / `mvHeaderFormat` and the save format | **No** |
 | **`#mv-hdr-mode-btn` — two states → three** | ⛔ **YES** — it is markup inside `renderMonthView` |
-| **`mvLine()` / `.mv-titlebar` — any new slot** | ⛔ **YES**, and it **changes the month PDF's height** |
+| **`mvLine()` / `.mv-titlebar` — the LEFT slot** | ⛔ **YES**, but **free in height** — it fills the blank 84 px `::before` reservation (§6 ruling 2) |
+| **`mvLine()` / `.mv-titlebar` — the NEW LINE** | ⛔ **YES**, and it **shortens every week row on every page** — the one real cost here (§6 ruling 2) |
 | **`mvDefaults` → a resolved template** | ⛔ **YES**, though the output can be held identical |
 
 ⭐ **Two of those three can be made provably inert, and one cannot.** A third mode changes a
 **button's label and click behaviour** — the button is stripped from the print host
 (`.mv-tools`), so the month PDF cannot move. Replacing `mvDefaults` with a resolved template is
 inert **iff** the template resolves to the identical string, which is a measurement, not a hope.
-**A new slot is a real height change and needs its own ruling.**
+**A new slot is a real height change** — ✅ now ruled (§6 ruling 2): the left slot is free, the new line is not.
 
 ---
 
@@ -181,7 +184,11 @@ inert **iff** the template resolves to the identical string, which is a measurem
 2. **With a template that resolves to today's defaults, the hash is STILL unchanged.** This is the
    real test of §1.3 — it proves the template replaced the rule without changing the output.
 3. **`mvNoteLineCount()` row heights unchanged**, and the header's own rendered height unchanged
-   unless a slot was added under ruling 2.
+   **for the left slot** — it fills reserved blank space, so it must move nothing at all.
+   ⛔ **For the NEW LINE, the opposite is asserted:** row heights WILL change on every page, so the
+   A/B must *quantify* the change (header stack height before/after, each week row's rendered
+   height, and which months cross into `scaleY` shrink-to-fit) and put it in front of the owner.
+   A structure hash alone cannot see this — it excludes styles, and this is purely geometry.
 4. **Zero editor affordances in `#print-root`.** `.mv-tools` is stripped today; assert it, do not
    assume it.
 5. **Gates 1–5 unchanged**, and `fields.byId` key set unchanged — no new id'd control.
@@ -192,19 +199,62 @@ inert **iff** the template resolves to the identical string, which is a measurem
 
 ---
 
-## 6. ⏳ Rulings needed before any code
+## 6. ✅ Rulings — ALL FOUR LANDED 21 Sep 2026
 
-1. **One file with two sections — confirmed?** (§2. The owner has indicated yes; recorded here so
-   the build has a written ruling to point at.)
-2. **Does the month header get MORE than two slots?** Two is what exists. A subtitle or a left/right
-   pair would be genuinely useful for a template system — and it is the **one change here that
-   adds height to every month PDF**. If yes, it needs the same before/after the half-day overlay
-   got. **Default assumption: NO new slots**, template the two that exist.
-3. **Does the month use the SAME editor popup, retargeted, or its own?** Recommendation: the same
-   one, switched by view — it is already "not a second renderer" and reuse keeps it that way. Its
-   Insert rail is token-driven and needs no per-view work.
-4. **Does a v2 preset keep the `.spthdr` extension?** Recommendation: yes, with the reader
-   validating `version` up front and refusing anything it does not understand.
+Asked and answered in one pass. Nothing here is an assumption any more.
+
+**1. ✅ ONE preset file, TWO sections.** The §2 shape: `{sheet:{lines,format}, month:{lines,format}}`,
+either section optional, each applied to its own view. A preset is *"our header look"*, not *"our
+waterfall header"*. The reasoning that carried it: two files drift, and the failure is a colleague
+opening a shared preset and printing **one calendar with two identities**.
+
+**2. ⛔ BOTH — the month header gains the LEFT SLOT *and* a NEW LINE.** This is the expensive
+ruling and the only one that moves the month PDF.
+
+⭐ **The question was split before it was asked, because a measurement showed it was two questions
+wearing one coat.** Measured in a real browser at 1440×900 on `tests/fixtures/dayoverrides.sptcal`
+— the month header is **ONE 33 px row**, not a stack:
+
+| | measured |
+|---|---|
+| `.mv-titlebar` | 1000 × 33 px, `display:flex; align-items:baseline` |
+| `.mv-titlebar::before` | **84 px wide, `content:''` — permanently blank** |
+| `.mv-title` | 814 px, `flex:1`, centred (its centre sits 3 px off the titlebar's) |
+| `.mv-today` | 79 px, right, `white-space:nowrap` |
+
+⭐ **The 84 px spacer is reserved, blank space that exists ONLY to balance the date** so the title
+reads centred. `--mv-today-w` is **never assigned anywhere in the codebase** — verified by grep
+across `src/` — so the fallback `84px` is the only value it has ever had. **A left slot therefore
+costs ZERO height: it fills a reservation that is already there and already empty.**
+
+⚠️ **The free slot is NARROW and that constraint is load-bearing** — ~84 px is roughly 7–8
+characters at the current 20 px bold. Longer content either pushes the title off centre (horizontal
+only, still no height) or **wraps, which WOULD add height and forfeits the whole reason it was free**.
+Whatever ships here needs `white-space:nowrap` and a measured character budget, not a hope.
+`{version}` is the natural fit — Show Info already carries it and the waterfall already tokenises it.
+
+⛔ **The NEW LINE is the half that costs, and the cost is NOT what "adds height to every month PDF"
+suggests.** `exportMonthPdf` fits **each month to exactly one sheet**: it measures *"the header stack
+height (title + month bar + weekday row)"* and divides the remaining printable area among the week
+rows. So a second header line **does not lengthen the document and does not spill to a new page** —
+it **shortens every week row on every page**, and pushes any month already in shrink-to-fit
+(`scaleY`) further down. On the reference fixture that is all 15 pages.
+
+⛔ **It therefore needs the same before/after the half-day overlay got** — §5, condition 3, with the
+structure hash AND the rendered row heights, in front of the owner before it ships. Build it last
+(§7 step 6) so the cheap, inert work is already banked and provable when that A/B is taken.
+
+**3. ✅ The SAME editor popup, retargeted by view.** Not a second one. Its Insert rail is
+token-driven so it needs no per-view work, and one editor cannot drift from the other.
+⛔ It carries **no `id` at all** today, deliberately (`UI-CONVENTIONS.md` §10.9 — fourteen form
+controls that would otherwise be baked into every saved calendar with a phantom undo step per
+keystroke). Retargeting must not introduce one, and `hdreditor` already asserts the panel's `[id]`
+set is empty.
+
+**4. ✅ Keep the `.spthdr` extension; the reader validates `version` UP FRONT.** It refuses cleanly
+on anything it does not understand and **never half-applies**. `version: 1` is already in the format
+with a comment saying it exists so a later shape can migrate rather than guess — this is that later
+shape.
 
 ⏸ **Still unanswered from `MONTH-VIEW-PLAN.md`, asked four times now:** do any of the other
 "adjustments" the owner has in mind move dates?
@@ -221,8 +271,15 @@ Steps 1–3 touch **no frozen code** and can ship before anything is drawn.
 2. **`mvHeaderTemplates` in the stores, the save format and the resets.** Absent = today.
 3. **The `.spthdr` v2 shape, the migration, and the per-view apply.** Cut a fixture of each version.
 4. ⛔ *Frozen work begins.* **The third mode on `#mv-hdr-mode-btn`**, against §5.
-5. **The editor retargeted to the month view** (ruling 3).
-6. ⛔ **New slots, only if ruling 2 says so**, against §5 with a before/after in front of the owner.
+5. **The editor retargeted to the month view** — ✅ ruling 3: the SAME popup, switched by view.
+   ⛔ It must stay `id`-free; `hdreditor` asserts that and the assertion has to keep passing.
+6. ⛔ **The LEFT SLOT** — ✅ ruled in. Frozen markup, but **free in height**: it fills the blank
+   84 px `.mv-titlebar::before` reservation. Gate it as *inert* — structure hash AND rendered
+   geometry unchanged — and give it `white-space:nowrap` with a measured character budget, because
+   a wrap here forfeits the entire reason it was free.
+7. ⛔ **THE NEW LINE — ✅ ruled in, and this is the one that costs.** Do it LAST, on its own, with
+   the quantified before/after §5 condition 3 now demands in front of the owner. Every week row on
+   every page gets shorter; months already in `scaleY` shrink-to-fit go further down.
 
 ⚠️ **Cut a `.sptcal` fixture at steps 2 and 4**, and a `.spthdr` fixture of **both** versions at
 step 3. `tests/fixtures/` is how the restore path is proven, and the month-view frozen edits went
