@@ -29,6 +29,71 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — half days show in the BAR, the day target is obvious, and "Off" is just "Off"
+
+Three owner requests, 21 Sep 2026, after using the day-override menu for the first time. Local, not
+committed or pushed at time of writing.
+
+**1. A half day now shows in the pill.** Until now it showed only as a ½ beside the DATE — and the
+date is not what you read when you scan a month for the shape of a shoot. The bar is. So a half day
+looked exactly like a full one in the only place people actually look. The bottom half of that day's
+slice of the pill is now darkened, so a half day reads as **a bar that is half filled**.
+
+⛔ **FROZEN EDIT, and it deliberately changes the month PDF** — the second one that does, after the
+hiatus change. ⭐ **The code comment next to it said this could not be done, and its PREMISE was
+wrong rather than its logic.** It read: *"a pill spans a RUN of days, so it could not mark a single
+'half' inside it without splitting runs, which WOULD change the rendered structure."* True **if**
+marking means splitting. A background LAYER on the pill that already exists marks one day's slice
+while the element, its `grid-column` span, its lane and its text all stay exactly as they were.
+
+**Measured A/B against `62cc0dc`, same fixture, via the real `exportMonthPdf` path:**
+
+| | HEAD | with the change |
+|---|---|---|
+| total elements in `#print-root` | 3511 | **3511** |
+| pills · day cells · note bars · hiatus bars · pages | 76 · 539 · 4 · 4 · 15 | **identical** |
+| structure hash (every element's tag, class, `data-ph`, text) | `-380796107` | **`-380796107`** |
+| pills carrying a `background-image` | 0 | **1** |
+
+**The structure hash is identical**, so the only difference in the entire printed document is one
+`style` attribute gaining a `background-image`. That is §6.5 condition 1 met by measurement rather
+than by argument, and condition 2 (row heights) cannot move because nothing was added to the flow.
+
+⚠️ **Both pill paths had to be wired, and missing one would have been invisible in testing.**
+Episode pills REPLACE Production's own whenever episodes exist — which is most real calendars — so
+the overlay is emitted at both sites. Exactly the trap `data-ph` hit.
+
+⚠️ **The background-position maths is the part that could silently lie.** With
+`background-size:W% 100%`, a percentage `background-position` is not a straight offset: the browser
+maps `P%` onto the FREE space, so a slice starting at `O%` needs `P = O / (100 - W) × 100`, and a
+single-day pill (`W = 100`) divides by zero. Getting it wrong marks **the wrong day**, which is a
+silent corruption of someone's schedule rather than a visual glitch. Verified by measuring rendered
+pixels, not by reading: on a four-day pill (`grid-column:3 / 7`) the slice lands on the **second**
+day of the run, matching the cell's own ½ mark.
+
+**2. The click target is obvious now.** `cursor:pointer` alone only spoke once the pointer was
+already in the right place — the thing people were going to miss. Hovering a day now puts its date
+number in an accent chip and tints the strip.
+
+⭐ **The affordance cannot lie about its own hit area**, and that is why this shape was chosen.
+`.mv-daycell:hover` fires **only** where the cell is genuinely the hit target: the bar layer is a
+sibling subtree, so hovering a `+` or a pill puts those in the hover chain instead. The highlight
+therefore appears at exactly the pixels where a click opens the menu, and stays dark everywhere a
+click would do something else.
+
+⭐ **Height-neutral by construction, and this is a stronger argument than the `mv-day-*` marks had.**
+`.mv-daygrid` is `position:absolute; inset:0` — **out of flow**. The week row's height comes from
+`.mv-bars`, its in-flow sibling. So nothing inside the day grid can move a row height, padding and
+all — which is what lets this add a real box rather than only paint.
+
+⭐ **And it cannot print, twice over:** `#table-wrap` scoping keeps it out of `#print-root`, and
+`:hover` has no meaning in a print rendering. Confirmed on the real print path — `cursor` computes
+to `auto` on `#print-root`'s day cells, and 0 popovers reach it.
+
+**3. "Off — not shot" is now just "Off".** The em-dash half was a tautology; Off already means not
+shot. ⚠️ The other two keep theirs deliberately — *"Weekend — not shot"* and *"Holiday — not shot"*
+state the day's CURRENT state and the reason for it, which is information rather than repetition.
+
 ### Unreleased — new app icon, and the icon is reproducible for the first time
 
 Owner supplied new artwork, 18 Sep 2026: the same calendar-as-film-slate mark — a fixed clapstick

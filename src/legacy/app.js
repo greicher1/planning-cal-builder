@@ -5431,7 +5431,7 @@ export function initLegacyApp() {
       } else {
         rows.push({v:'',     label:'Full day'});
         rows.push({v:'half', label:'Half day'});
-        rows.push({v:'off',  label:'Off — not shot'});
+        rows.push({v:'off',  label:'Off'});
       }
       // A stored value no row offers is INERT, not wrong: 'half' left on a Saturday never reaches
       // shootDays, and a value from a newer build is ignored by the simulation verbatim (values are
@@ -6158,6 +6158,62 @@ export function initLegacyApp() {
       };
     })();
 
+    // ⛔ FROZEN EDIT, owner-instructed 21 Sep 2026: "can we visually show a half day in the pill
+    // somehow". Until now a half day showed only as a ½ beside the DATE -- and the date is not what
+    // you read when you scan a month for the shape of the shoot. The BAR is. So a half day looked
+    // exactly like a full one in the only place people actually look.
+    //
+    // ⭐ THE COMMENT ABOVE SAYS THIS COULD NOT BE DONE, AND ITS PREMISE WAS WRONG, NOT ITS LOGIC.
+    // It read: "a pill spans a RUN of days, so it could not mark a single 'half' inside it without
+    // splitting runs, which WOULD change the rendered structure." True IF marking means splitting.
+    // A background LAYER on the pill that already exists marks one day's slice while the element,
+    // its grid-column span, its lane and its text all stay exactly as they were -- so there is no
+    // new element, no new lane, no text node, and §6.5 condition 2 (row heights unchanged) is
+    // satisfied by construction, the same way the mv-day-* classes satisfy it.
+    //
+    // ⚠️ UNLIKE THE mv-day-* MARKS THIS DELIBERATELY CHANGES THE MONTH PDF, like the hiatus change
+    // before it. The intended difference is confined to the `style` attribute of pills that cover a
+    // half day; no element count, lane or text may move. That is the measurement.
+    //
+    // WHAT IT DRAWS: the bottom half of that day's slice is darkened, so a half day reads as a bar
+    // that is half filled. Chosen over a hatch because it SAYS "half" rather than merely "special",
+    // and over a lighter tint because the pill colours are user-chosen and a tint that reads on one
+    // palette vanishes on another -- a multiply-style darken works on all of them.
+    //
+    // ⚠️ THE BACKGROUND-POSITION MATHS IS THE PART TO GET RIGHT. With `background-size:W% 100%`, a
+    // percentage background-position is NOT a straight offset: the browser maps P% onto the FREE
+    // space, i.e. actual offset = P% × (100% - W%). So a slice that should start at O% needs
+    // P = O / (100 - W) × 100, and a single-day pill (W = 100) divides by zero -- there O is always
+    // 0, so P is pinned to 0. Getting this wrong shifts the mark onto the wrong DAY, which is a
+    // silent lie about someone's schedule rather than a visual glitch.
+    const halfSlices = (function(){
+      const pi = schedule.productionInfo;
+      if(!pi || !pi.shootDays || !pi.shootDays.length) return function(){ return ''; };
+      const shot = new Set(pi.shootDays);
+      // Only honoured half days, matching _ovDays: a 'half' the simulation ignored (stale, or on a
+      // day the shoot no longer covers) must not paint, or the bar disagrees with the wrap date.
+      return function(weekStart, startCol, endCol){
+        const span = endCol - startCol + 1;
+        const layers = [];
+        for(let i = startCol; i <= endCol; i++){
+          const iso = isoOf(addDays(weekStart, i));
+          if(dayOverrides[iso] !== 'half' || !shot.has(iso)) continue;
+          const W = 100 / span;
+          const O = ((i - startCol) / span) * 100;
+          const P = (span === 1) ? 0 : (O / (100 - W)) * 100;
+          layers.push({W: W, P: P});
+        }
+        if(!layers.length) return '';
+        const img = layers.map(function(){
+          return 'linear-gradient(to bottom, rgba(0,0,0,0) 0 50%, rgba(0,0,0,.34) 50% 100%)';
+        }).join(', ');
+        const size = layers.map(l => l.W.toFixed(4) + '% 100%').join(', ');
+        const pos  = layers.map(l => l.P.toFixed(4) + '% 0').join(', ');
+        return ' background-image:' + img + '; background-size:' + size
+             + '; background-position:' + pos + '; background-repeat:no-repeat;';
+      };
+    })();
+
     const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
 
@@ -6270,8 +6326,12 @@ export function initLegacyApp() {
             // MINIMUM that makes a pill identifiable for body-drag: it renders nothing, occupies no
             // space, changes no row height, and adds no affordance to #print-root. The `data` slot
             // already existed in place(); it was simply passed ''.
+            // ⚠️ The half-day overlay goes AFTER `background:` deliberately -- `background` is the
+            // shorthand and resets background-image, so emitting it the other way round would
+            // silently wipe the mark.
             place(r.startCol, r.endCol, 'mv-bar mv-pill',
-              `background:${bg}; color:${fg};`, escHtml(lbl), escHtml(lbl), `data-ph="${s.key}"`);
+              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol),
+              escHtml(lbl), escHtml(lbl), `data-ph="${s.key}"`);
           });
         }
         // Episode pills occupy Production's lane.
@@ -6291,8 +6351,12 @@ export function initLegacyApp() {
             runs.forEach(r=>{
               // ⚠️ Episode pills REPLACE Production's own pills whenever episodes exist, so without
               // this Production would be undraggable on exactly the calendars that have them.
+              // ⛔ EPISODE PILLS REPLACE PRODUCTION'S OWN whenever episodes exist, so omitting the
+              // overlay here would hide every half day on exactly the calendars that have episodes
+              // -- which is most of them. Same trap `data-ph` hit.
               place(r.startCol, r.endCol, 'mv-bar mv-pill',
-                `background:${bg}; color:${fg};`, escHtml(ep.name), escHtml(ep.name), 'data-ph="production"');
+                `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol),
+                escHtml(ep.name), escHtml(ep.name), 'data-ph="production"');
             });
           });
         }

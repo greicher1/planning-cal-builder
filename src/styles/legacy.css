@@ -1432,6 +1432,39 @@
      the lanes below and .mv-pill sets grab. Saying more than "clickable" would mean painting the
      cell, which is a real appearance change to the grid rather than a free one. */
   #table-wrap .mv-daycell{ cursor:pointer; }
+  /* ⛔ FROZEN CSS EDIT, owner-instructed 21 Sep 2026: "it needs to be more obvious where you click
+     to access this full day/half day/off menu because I'm worried people will miss it."
+     cursor:pointer alone was too quiet -- it only speaks once the pointer is already in the right
+     place, which is the thing people were going to miss.
+
+     ⭐ WHY THIS AFFORDANCE IS SELF-TEACHING, and it is the whole reason it works. `.mv-daycell:hover`
+     fires ONLY where the cell is genuinely the hit target. The bar layer is a SIBLING subtree, so
+     hovering a "+" or a pill puts THEM in the hover chain and not the cell -- which means the
+     highlight appears at exactly the pixels where a click opens the menu, and stays dark everywhere
+     a click would do something else. The cue cannot lie about its own hit area.
+
+     ⭐ HEIGHT-NEUTRAL BY CONSTRUCTION, and this is stronger than the mv-day-* marks' argument.
+     `.mv-daygrid` is `position:absolute; inset:0` -- OUT OF FLOW. The week row's height comes from
+     `.mv-bars`, which is the in-flow sibling. So NOTHING inside the day grid can move a row height,
+     padding and all, which is what lets this add a real box rather than only paint. §6.5 condition 2
+     cannot be violated from in here.
+
+     ⭐ And it cannot print: `#table-wrap` scoping keeps it out of #print-root (a different subtree),
+     AND :hover has no meaning in a print rendering. §6.5 condition 3 asks for zero affordances in the
+     print output; this one is absent twice over.
+
+     ⚠️ The negative margins are load-bearing: they let the chip grow without shifting the number it
+     sits behind, so the date does not jump on hover. */
+  #table-wrap .mv-daycell:hover .mv-daynum{
+    background:var(--edit-accent); color:#fff;
+    border-radius:var(--mantine-radius-sm);
+    padding:1px 5px; margin:-1px -5px;
+  }
+  /* The rest of the clickable band lifts very slightly, so the target reads as a BAND and not just
+     as the two digits -- the whole strip takes the click, not only the glyphs. */
+  #table-wrap .mv-daycell:hover{ background:var(--edit-accent-bg); }
+  /* An out-of-month day keeps its greyed number, but the chip must still be legible on it. */
+  #table-wrap .mv-out:hover .mv-daynum{ opacity:1; }
   .mv-hiatus-bar{ border-radius:9px; text-align:center; }
   /* Notes are deliberately square so they read as a different class of thing than phases,
      and they sit on their exact day -- so instead of stealing width from neighbouring days,

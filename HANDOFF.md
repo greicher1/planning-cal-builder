@@ -74,7 +74,7 @@ would cut most legs to a fraction of their budget. **This was proven incidentall
 **120 s timeout to 2.1 s**. The pattern is ~15 lines and it is in that script, ready to copy. An
 hour of someone's time would make the 41 minutes a non-issue and this whole policy moot.
 
-### The five frozen edits now in the month view, and the one that is different
+### The seven frozen edits now in the month view, and the two that are different
 
 | Edit | Approved | Month PDF |
 |---|---|---|
@@ -82,7 +82,9 @@ hour of someone's time would make the 41 minutes a non-issue and this whole poli
 | `mv-day-half/off/on` on day cells | 16 Sep | **inert** — a class on an existing cell |
 | `#table-wrap .mv-pill{pointer-events:auto;cursor:grab}` | 18 Sep | **inert** — scoped so it cannot match inside `#print-root` |
 | `#table-wrap .mv-daycell{cursor:pointer}` | 18 Sep | **inert** — same scoping, and `cursor` has no printed representation at all |
+| `.mv-daycell:hover` chip + tint | **21 Sep** | **inert** — same scoping, AND `:hover` has no meaning in a print rendering. Verified: `cursor` computes `auto` on `#print-root` cells |
 | hiatus bands skip Sat/Sun | 18 Sep | ⛔ **CHANGES IT, deliberately** |
+| half-day overlay on the pill | **21 Sep** | ⛔ **CHANGES IT, deliberately** — see the A/B below |
 
 ⚠️ **The scoping argument for rows 3 and 4 was stated wrongly everywhere and is now corrected.**
 The docs said *"`#print-root` is a SIBLING of `#table-wrap`"*. It is not — measured: `#print-root` is
@@ -92,6 +94,39 @@ scoping needs is that `#print-root` is not a DESCENDANT of `#table-wrap`. Verifi
 `#print-root .mv-pill` and `#print-root .mv-daycell` match **0** elements, `#table-wrap .mv-daycell`
 matches all **35**. The shorthand stopped being true when the Mantine layout wrapped the preview
 panel, and nobody re-checked it. **Comments that describe a guard are worth testing, not reading.**
+
+⭐ **THE HALF-DAY OVERLAY'S A/B (21 Sep 2026), and it is the cleanest evidence any frozen edit in
+this view has produced.** Captured through the real `exportMonthPdf` path on
+`tests/fixtures/dayoverrides.sptcal`, `62cc0dc` vs the change:
+
+| | HEAD | with the change |
+|---|---|---|
+| total elements in `#print-root` | 3511 | **3511** |
+| pills · day cells · note bars · hiatus bars · pages | 76 · 539 · 4 · 4 · 15 | **identical** |
+| structure hash (tag + class + `data-ph` + text of every element) | `-380796107` | **`-380796107`** |
+| pills carrying a `background-image` | 0 | **1** |
+
+**The structure hash is IDENTICAL**, so the whole printed document differs by exactly one `style`
+attribute. ⭐ **Hash the structure and leave the styles out of it** — that is what turns "only the
+intended thing changed" from an argument into a measurement, and it is reusable for every future
+frozen edit that changes appearance without changing structure.
+
+⭐ **The comment beside the mark said this was impossible, and its PREMISE was wrong, not its logic.**
+It read *"a pill spans a RUN of days, so it could not mark a single 'half' inside it without
+splitting runs, which WOULD change the rendered structure."* True **if** marking means splitting. A
+background LAYER on the existing pill marks a slice while element, span, lane and text all stay put.
+⚠️ **Worth generalising: a recorded impossibility is only as good as the mechanism it assumed.**
+
+⚠️ **`background-position` percentages are NOT offsets, and getting it wrong marks THE WRONG DAY** —
+a silent corruption of someone's schedule, not a visual glitch. With `background-size:W% 100%` the
+browser maps `P%` onto the FREE space, so a slice at `O%` needs `P = O / (100 - W) × 100`, and a
+single-day pill (`W = 100`) divides by zero. Verified by measuring RENDERED PIXELS against the day
+columns, not by reading the code: on a four-day pill (`grid-column:3 / 7`) the slice lands on the
+second day of the run, matching that cell's own ½.
+
+⚠️ **Both pill paths had to be wired.** Episode pills REPLACE Production's own whenever episodes
+exist — most real calendars — so omitting the second site would have hidden every half day on
+exactly the calendars that have them. Same trap `data-ph` hit.
 
 ⚠️ **The fourth breaks the pattern of the first three and that matters for how §6.5 is read.** Its
 measured diff (`monthprint`, `HEAD` vs change, reference fixture): hiatus bands **4 → 3**
