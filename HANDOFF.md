@@ -50,7 +50,32 @@ the sum of the `--virtual-time-budget`s; the real figure is higher because each 
 startup and teardown. Budget an hour. This is more evidence for open item 3 (poll-and-kill instead of
 waiting for Chrome to exit), not less.
 
-⛔ **THE FOUR COMMITS WERE STILL UNPUSHED AT THE TIME OF WRITING:**
+✅ **PUSHED AND VERIFIED ON PRODUCTION — 21 Sep 2026, owner-approved, one fast-forward
+`62cc0dc..233a306`.** All four commits below plus the docs commit recording the rulings and this
+gate. Both CI jobs green; the live file is **byte-identical to the gated local build** (1,255,211
+bytes, SHA-256 `cdc57b421310ce4b…`).
+
+⭐ **Then DRIVEN on production rather than hashed, at 1440×900**, on a fresh 10 × 8 = 80-day shoot
+from 6/29/26 with no region set:
+
+| | |
+|---|---|
+| day-number band reachable | **35/35 cells** — the documented measurement reproduces live |
+| the popover's third option | reads **`Off`**, not `Off — not shot` — `acc2a55`'s label change is live |
+| `[id]` inside `.day-ov-pop` | **none** — the id-hygiene rule holds in production |
+| half day applied | **1** pill carries a `background-image`, `background-size:20% 100%`, `background-position:0% 0px` (first day of a five-day run) |
+| the schedule recomputed | `80 shoot days → 16 wk · 6/29/26 → 10/16/26` became `→ 17 wk · → 10/19/26` |
+| the sidebar | *1 half — 81 days on the floor for 80.5 of 80* — the §4.4 over-deliver ruling, live |
+| one `cmd+z` | reverted **exactly** the override: meta back to 10/16/26, 0 marked cells, 0 pills with a background |
+
+⚠️ **A reading trap worth keeping: the wrap date was briefly misread as UNMOVED**, because it was
+compared against the 18 Sep table above (`10/20/26 → 10/21/26`) instead of against a measured
+before-state. That table's calendar had a region set and this one did not, so the absolute dates
+differ for a reason that has nothing to do with the feature. ⭐ **Undo IS the before-state** — it is
+cheaper than rebuilding the setup and it proves the undo step at the same time. Never diff a live
+reading against a number from a differently-configured run.
+
+⛔ **THE FOUR COMMITS, all now live:**
 
 | | |
 |---|---|
