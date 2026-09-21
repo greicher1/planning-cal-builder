@@ -2,30 +2,23 @@
 
 ---
 
-## 🔴 START HERE — session of 18 Sep 2026
+## 🔴 START HERE — sessions of 18 + 21 Sep 2026
 
 ### Where things are
 
-**LIVE at `5019e03`** and verified on the deployed site, not just locally. Two pushes today:
+**LIVE at `62cc0dc`**, verified on the deployed site — byte-identical to a local build (1,254,040
+bytes, SHA-256 `ee8b97599ede33f3…`) and then DRIVEN on production, not just grepped: the day-override
+popover opened on all four day types, a half day moved a real wrap date 10/27 → 10/28, and one undo
+put it back. Three pushes went out 21 Sep as one fast-forward:
 
 | | |
 |---|---|
-| `81733b1` | month-view drag made **reachable** + one undo step; **SPTCal** rename; new app icon |
-| `5019e03` | drag moves **day by day**; "Snap to Mon" left-aligned |
+| `b9d9c37` | month-view **hiatus bands stop at Friday** — ⛔ a frozen edit; deliberately moves the month PDF |
+| `d5b94c2` | the **`dayOverrides` UI** — the feature that turned on everything shipped 16–17 Sep |
+| `62cc0dc` | the **new app icon** + `art/app-icon.svg` + `tools/make-icon.py` |
 
-`gate.sh` **PASSED on `5019e03`** — 312 assertions, 0 fails, both Node provers. `npm run check` 12/12.
-
-**Local commits ahead of `origin/main` (still at `5019e03`) — NOTHING PUSHED:**
-
-| | |
-|---|---|
-| `b9d9c37` the month-view **hiatus change** — bands stop at Friday | ⛔ a **frozen edit**; committed, gated, **not pushed** |
-| `d5b94c2` the **`dayOverrides` UI** + the approved day-cell cursor + a new fixture | ✅ committed, gated, **not pushed** |
-| the **new app icon** — `art/app-icon.svg`, `tools/make-icon.py`, `appIcon.js`, the manifest | ✅ owner-supplied 18 Sep; **not re-gated by owner's call** — a `data:` URI swap touching no frozen symbol |
-
-✅ **`gate.sh` PASSED on both — 312 assertions, 0 fails, both Node provers**, run over the two
-commits together (18 Sep 2026). All five numbered gates green against
-`tests/baselines/2026-08-29-stage-7/`, and three of those results are the ones that matter here:
+`gate.sh` **PASSED over `b9d9c37` + `d5b94c2`** — 312 assertions, 0 fails, both Node provers, all
+five numbered gates green against `tests/baselines/2026-08-29-stage-7/`:
 
 | | |
 |---|---|
@@ -33,8 +26,24 @@ commits together (18 Sep 2026). All five numbered gates green against
 | Excel parts | **identical** (core.xml timestamp + header date excluded) |
 | `fields.byId` key set | **identical, 59 ids** — proof the day-override UI added no swept control |
 
-⚠️ The hiatus change deliberately moves the month PDF, and **no gate leg covers the month PDF** —
-that is still open item 4. Its evidence is the `monthprint` capture recorded below, not the gate.
+⚠️ **`62cc0dc` (the icon) was NOT gated** — owner's call, and defensible: a `data:` URI swap touching
+no frozen symbol, no width-model constant, neither export writer and no save-format key.
+
+⛔ **UNPUSHED LOCAL COMMITS — and the first one needs a FULL GATE before any push:**
+
+| | |
+|---|---|
+| `acc2a55` | half day shows **in the pill**; the day-cell **hover cue**; `Off — not shot` → `Off` — ⛔ **frozen edit, deliberately moves the month PDF, NOT GATED** |
+| `2863460` | the header styling toolbar **says why it is inert** — one CSS rule, no frozen edit |
+| `52b6b4e` | **[`MONTH-HEADER-PLAN.md`](MONTH-HEADER-PLAN.md)** — plan only, no code |
+
+⭐ **`acc2a55`'s A/B is already taken and it is the cleanest evidence any frozen edit here has
+produced** — see the half-day overlay section below. Structure hash IDENTICAL across 3,511 elements;
+the whole printed document differs by one `style` attribute. The gate is still required (policy
+below), but the month-PDF question is already answered.
+
+⚠️ **The month PDF still has NO gate leg** — the only one of the four outputs without coverage, and
+TWO shipped changes now move it deliberately. Open item 4.
 
 ### ⛔ GATE POLICY — amended by the owner, 18 Sep 2026. It was not written down anywhere until now.
 
@@ -314,6 +323,11 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
 
 ### Still open
 
+- ⛔ **FIRST THING NEXT SESSION: run `cd tests/harness && ./gate.sh`.** `acc2a55` carries a frozen
+  edit and is unpushed and ungated; the gate policy below requires one before any push. ⚠️ Check
+  `ps -Ao command | grep "gate.sh"` first — it has no lock and two concurrent runs silently corrupt
+  each other. Build before starting it (`npm run build`), and do NOT rebuild while it runs: it
+  serves `dist/index.html`, so a mid-run build splits the gate across two bundles.
 - ⏳ **"Hiatus is missing from the writer's room hiatus checkbox"** — owner report, **not
   reproduced**. Every code path builds that caption as `label + ' Hiatus'` and `p.label` is
   `"Writer's Rm"`, so `"Writer's Room"` cannot be the placeholder. It must be a **value** in
