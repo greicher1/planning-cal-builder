@@ -2006,6 +2006,32 @@
      what actually communicates "pick a line first", and each control keeps its own title
      attribute, so the words were carrying no weight the state was not already carrying. */
   .hdr-fmt:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  /* ⛔ THE DIMMING WAS NOT ENOUGH, AND THAT IS NOW MEASURED RATHER THAN ARGUED (owner, 21 Sep
+     2026: "the styling menu does not seem to work"). Reproduced: with no line selected EVERY control
+     is opacity:.45 AND pointer-events:none, so a click on Bold is not merely ignored -- it never
+     reaches a handler and the element is absent from the hit stack. Nothing anywhere said why. The
+     toolbar was refusing silently, which is the one thing this project's copy rules forbid: a
+     refusal must name its reason (same rule that gives the hiatus day's "Work this day" its
+     explanation).
+
+     ⚠️ THIS IS NOT A REVERT OF THE 31 AUG 2026 REMOVAL, and the distinction is the whole reason it
+     is safe to add. What the owner had removed was a READOUT naming the selected line -- it showed
+     AFTER you had clicked, where the focus ring already said the same thing, so it was redundant
+     chrome in the working state. This is the opposite message and the opposite moment: an EMPTY
+     STATE, shown only while nothing is selected, and it disappears the instant the toolbar arms.
+     The original objection is honoured -- there is still nothing extra once you are working.
+
+     Implemented as ::after so there is NO MARKUP CHANGE: headerFmtToolbarHtml() feeds both
+     renderSpreadsheetView() and renderMonthView(), and not adding a node keeps it impossible for
+     this to reach either print path. (.mv-tools is stripped from the month print host anyway --
+     belt and braces.) */
+  .hdr-fmt:not(.has-target)::after{
+    content:'Click a header line to format it';
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
+    white-space:nowrap; margin-left:var(--mantine-spacing-xs);
+    /* flex:none like every other item -- see .hdr-fmt above, nothing in this toolbar may grow. */
+    flex:none;
+  }
 
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
      min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift

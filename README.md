@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the header styling toolbar says why it is inert
+
+Owner report, 21 Sep 2026: *"the styling menu does not seem to work"* (month view). Local, not
+committed at time of writing.
+
+⛔ **IT WORKS. IT REFUSES SILENTLY, WHICH IS WORSE.** Reproduced and measured: with no header line
+selected, every control in the bar is `opacity:.45` **and `pointer-events:none`** — so a click on
+Bold is not merely ignored, it never reaches a handler and the button is absent from the hit stack
+entirely. Nothing anywhere said why. Click a line first and all of it works: Bold took the month
+title from `font-weight:700` → `400`, Size wrote `font-size:30px`, the colour pickers wrote
+`color:#cc0000` and `background-color:#ffff00`, Italic wrote `font-style:italic`. **No control was
+broken.**
+
+**The fix is one CSS rule**: while nothing is selected the toolbar reads *"Click a header line to
+format it"*, and it vanishes the instant a line is clicked. That is this project's standing rule
+applied to a control instead of a dialog — **a refusal must name its reason**, the same rule that
+gives a hiatus day's greyed-out "Work this day" its explanation.
+
+⚠️ **THIS IS NOT A REVERT OF THE 31 AUG 2026 REMOVAL, and the difference is why it is safe.** The
+CSS there records that a text readout was removed *at the owner's request*, on the reasoning that
+*"the dimming is what actually communicates 'pick a line first'"*. What was removed was a **readout
+naming the selected line** — shown AFTER you had clicked, where the focus ring already said the same
+thing. This is the opposite message at the opposite moment: an **empty state**, shown only while
+nothing is selected. Once you are working there is still nothing extra, so the original objection
+stands. Today's report is the evidence that the dimming alone did not carry the meaning.
+
+Implemented as `::after` so there is **no markup change at all** — `headerFmtToolbarHtml()` feeds
+both `renderSpreadsheetView()` and `renderMonthView()`, and adding no node makes it impossible for
+this to reach either print path. (`.mv-tools` is stripped from the month print host anyway.)
+
+⚠️ **A TESTING TRAP WORTH THE SAME WEIGHT AS `elementsFromPoint`: `element.focus()` DOES NOT
+DISPATCH FOCUS EVENTS in the browser pane.** The first diagnosis looked like a real month-view bug —
+`document.activeElement` became the header line, yet the toolbar never armed and **no `focusin`
+fired anywhere, not even on `document` in capture phase**. ⭐ **The control experiment is what saved
+it:** the WATERFALL header failed identically, and its `hdreditor` gate leg passes 20+ assertions,
+so the fault had to be the harness. A real click armed both instantly. **Synthetic focus is not
+focus, exactly as a dispatched event is not a click** — when a focus-driven feature looks broken,
+run the same probe against a surface known to work before believing it.
+
 ### Unreleased — half days show in the BAR, the day target is obvious, and "Off" is just "Off"
 
 Three owner requests, 21 Sep 2026, after using the day-override menu for the first time. Local, not

@@ -291,6 +291,14 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   scale, and a click computed on the wrong one landed on a note block and opened the wrong editor.
   Re-read `innerWidth` and the shot's own size together, and check `shotH == innerH * shotW/innerW`
   before converting.
+- ⛔ **`element.focus()` DOES NOT DISPATCH FOCUS EVENTS in the browser pane — the focus twin of the
+  `elementsFromPoint` trap.** Diagnosing the month header toolbar, `document.activeElement` became
+  the header line and yet **no `focusin` fired anywhere**, not even on `document` in capture phase,
+  so the toolbar never armed and it read as a real month-view bug. ⭐ **The control experiment is the
+  technique worth keeping:** run the identical probe against a surface KNOWN to work — the waterfall
+  header failed the same way, and its `hdreditor` leg passes 20+ assertions, which proved the fault
+  was the harness and not the product. A real click armed both instantly. **Synthetic focus is not
+  focus.** Before believing a focus-driven feature is broken, falsify the harness first.
 - ⭐ **CHROME DOES NOT EXIT AFTER `--screenshot` EITHER, and fixing that is open item 3 in
   miniature.** `PROJECT-CONTEXT.md` §11 records it for `--dump-dom`; it is just as true of
   `--screenshot`. A plain `subprocess.run(timeout=120)` waited out the FULL timeout and reported
@@ -331,6 +339,13 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   (max channel delta 39) and was rejected for a brand mark. Revisit only if size becomes a problem.
 - ⏭ The 86 inert `data-ph` attributes travel into `#print-root`. Metadata or affordance? Nothing can
   act on them there (the listener is on `#table-wrap`, a sibling). Owner has not ruled.
+- ⏳ **A MONTH-VIEW HEADER TEMPLATE SYSTEM — owner asked 21 Sep 2026, design question answered, NOT
+  built and NOT yet planned.** The month header today is a two-state toggle (Auto ↔ Manual) over two
+  slots, `title` and `today`. The waterfall has three modes (Auto / Template / Manual), nine slots,
+  41 tokens, a dedicated template editor and `.spthdr` preset files. The month view has none of it.
+  ⭐ **Recommendation given: ONE preset file carrying BOTH sections, applied per view** — see the
+  next session's first task. Needs a `MONTH-HEADER-PLAN.md` before any code, per the convention
+  `COLUMN-ORDER-PLAN.md` / `HEADER-PRESETS-PLAN.md` / `MONTH-VIEW-PLAN.md` follow.
 - ⏭ **Never answered, asked three times:** do any of the other "adjustments" the owner has in mind
   move dates? That is the line between a contained decoration layer and a much larger change.
 - ⏭ **A half day on a weekend is not expressible**, and nothing says so out loud. The simulation
