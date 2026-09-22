@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month PDF gets a gate, and the gate stops killing its own legs
+
+Harness only. No app code changed; the deployed file is untouched.
+
+**The month PDF is gated.** It was the only one of the four outputs with no gate coverage, while six
+frozen edits that move or could move it had shipped on hand-taken A/Bs. `gate.sh` now runs the
+`monthprint` leg on four calendars (the reference fixture, `dayoverrides`, `mvheader`,
+`mvheaderlegacy`; the last three were loaded by no leg until now) and `monthcmp.py` checks two
+things against `tests/baselines/2026-09-22-monthprint/`, cut from the build that was live
+(`ff1ecbe`):
+
+- **the document**: `#print-root` at the moment `exportMonthPdf` calls `window.print()`, byte for
+  byte, with the page's own today stamp normalised (both `M.DD.YY` and `M.D.YY`, from the clock the
+  app read, so it never false-fails on the day after the cut);
+- **the sheets**: Chrome *prints* that document through its real print pipeline
+  (`run.sh HARNESS_PRINT_PDF=1`), and every month must come out as exactly one sheet.
+
+The second half is needed, and that was shown by forcing a failure, not argued. A CSS-only edit
+(`.print-page` at `130vh`) left the document **byte-identical** and doubled the printout from 16
+sheets to 32. The other controls: a +4 px change to every row, which failed and was reported as
+"structure identical, only inline styles differ" with the per-month fit table; tomorrow's date via
+`TZ`, which passed; and the 1st-to-9th stamp case in Node, which passed. `BLOCKS-PLAN.md` §5's
+*"the month PDF still paginates the same"* now has an automated check.
+
+**`run.sh` polls for the dump instead of running a wall-clock timer.** The old loop killed Chrome
+after `[seconds]` *real* seconds, but that argument is a *virtual* time budget, and on a loaded
+machine it runs out later than that. So slow legs were killed before writing a byte and reported
+*"produced no result"*: three different legs did this in one session, and each passed when run on
+its own. `run.sh` now waits for the dump to end in `</html>` with its size held across two polls
+(the pattern from `tools/make-icon.py`), with a 3× + 30 s cap for a genuine hang. Because Chrome
+never exits after `--dump-dom`, the old loop also made every leg wait out its full budget.
+
+**Verified:** a full `gate.sh` passes with **339 assertions, 0 failures, in 3 min 19 s**. The last
+full run took ~51 min and lost `stintreshape` to the timer. All five numbered gates are green:
+0 clipped cells, waterfall PDF identical to baseline, Excel parts identical, v1.0.0 restore
+identical, `fields.byId` 59 ids identical. The `base` leg went from 49 s to 6 s. The count
+accounts exactly: 305 + the 10 `stintreshape` assertions + 24 new month-PDF checks.
+
 ### Unreleased — three month-editor bugs, found by driving production
 
 Shipped in `9bdf80c` and found minutes later by using the month header editor on the live site.

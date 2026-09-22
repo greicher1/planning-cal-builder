@@ -1,0 +1,207 @@
+{
+ "pages": 15,
+ "sheets": 15,
+ "mediaBoxes": [
+  "/MediaBox [0 0 792 612]"
+ ],
+ "stampHits": 15,
+ "bytes": 459436,
+ "elements": 3542,
+ "structSha1": "2c31fce4ff6e70d9c05bb5d9f7fe13fb49d11b20",
+ "docSha1": "26bc1f9decdc93f210d79858127a908101f05ff9",
+ "fit": [
+  {
+   "month": "January 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "91/g23",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "March 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "April 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "May 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "June 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "95/g19"
+   ]
+  },
+  {
+   "month": "July 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "95/g19",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "August 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "September 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "October 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "76/g38"
+   ]
+  },
+  {
+   "month": "November 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "December 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "January 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "March 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  }
+ ],
+ "run": {
+  "fromState": true,
+  "printCalls": 1,
+  "cleanedUp": true,
+  "classCleared": true,
+  "stamps": [
+   "9.22.26"
+  ],
+  "errors": [],
+  "leftInPrintState": true
+ }
+}

@@ -12,6 +12,9 @@
 #   3. the Excel opens without a corrupt alert  (check-xlsx.sh) AND its parts are unchanged
 #   4. a real v1.0.0 saved calendar restores identically
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
+#  10. the MONTH PDF: its printed document is byte-identical and it prints one sheet per month,
+#      on four calendars (monthprint + monthcmp.py; added 22 Sep 2026). Numbered to match
+#      UI-CONVENTIONS §10, whose items 6-9 are not automated here.
 #
 # ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
 # earlier revision of this comment listed it, which read as coverage that did not exist. There is
@@ -158,6 +161,30 @@ if fa!=fb and isinstance(fa,dict) and isinstance(fb,dict):
     print('        changed:', sorted(k for k in set(fa)&set(fb) if fa[k]!=fb[k])[:12])
 sys.exit(bad)
 PY
+
+# ---- monthprint (gate 10): the MONTH PDF -- the one output of four that had no gate coverage -----
+# ⭐ ADDED 22 Sep 2026. Six frozen edits that move or could move the month PDF had shipped with only
+# hand A/Bs behind them. The month PDF has no writer -- exportMonthPdf fills #print-root and calls
+# window.print() -- so the leg captures that document at the print call and ALSO has Chrome print it
+# for real (HARNESS_PRINT_PDF=1), because a CSS-only edit changes the printout without changing the
+# document. monthcmp.py compares both against tests/baselines/2026-09-22-monthprint/: the document
+# byte for byte (today stamp normalised in the page, from the clock the app read), and one printed
+# sheet per month. Its README records the controls it was proven to FAIL on, not only pass.
+#
+# Four calendars. `reference` is T.buildFixture(); the other three are restored through ?state= and
+# were, until this leg, loaded by nothing in the gate at all:
+#   dayoverrides    all four override kinds, snap-off start, a named hiatus
+#   mvheader        the month header in Template mode, all four slots
+#   mvheaderlegacy  a Manual header saved before templates existed -- braces must print literally
+# The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
+MPBASE="$HERE/../baselines/2026-09-22-monthprint"
+for MPCASE in reference dayoverrides mvheader mvheaderlegacy; do
+  MPSTATE="$MPCASE"; [[ $MPCASE == reference ]] && MPSTATE=""
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
+  cp -f "$HERE/monthprint.print.pdf" "$HERE/monthprint-$MPCASE.pdf" 2>/dev/null
+  cp -f "$HERE/monthprint.json" "$HERE/monthprint-$MPCASE.json" 2>/dev/null
+  python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPCASE" || FAIL=1
+done
 
 # ---- colswap: the grid COLUMN-ORDER reconciler, end to end through a real restore path ----------
 # Driven by HARNESS_STATE, which substitutes a fixture into the page's own <script id="saved-state">
@@ -834,8 +861,9 @@ PY
 done
 
 # ---- hdrtemplate: the template engine and the THREE header modes --------------------------------
-# HEADER-PRESETS-PLAN.md Step 2. Carries BOTH §7 item 5 and item 5b in one leg -- every leg costs its
-# full timeout in wall-clock whether it needs it or not, and the assertions are what matter.
+# HEADER-PRESETS-PLAN.md Step 2. Carries BOTH §7 item 5 and item 5b in one leg -- written when every
+# leg cost its full timeout in wall-clock whether it needed it or not. (No longer true since run.sh
+# went poll-and-kill, 22 Sep 2026: a leg now costs what its work costs. The one-leg shape stays.)
 # ⭐ FOUR ASSERTIONS ARE THE EXPENSIVE ONES TO GET WRONG:
 #   h3b*Inert    -- the mode button's label/title is the ONE authorised frozen edit in this plan, and
 #                   the sign-off is conditional on it being byte-identical while the flag is false.

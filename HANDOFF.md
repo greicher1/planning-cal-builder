@@ -2,7 +2,73 @@
 
 ---
 
-## 🔴 START HERE — sessions of 18 + 21 Sep 2026
+## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
+
+### ✅ DONE 22 Sep 2026 (the session after the build order was set): ITEMS 1 AND 2 OF THE OWNER'S ORDER
+
+**Harness only — not one line of `src/` changed.** The docs commits `41c6f71` + `f61509f` were pushed
+first (owner-approved) and verified: deploy green, live file still `82d3d0c9c696842f…`.
+
+**1. The month PDF is gated — `gate.sh`'s `monthprint` leg, "gate 10"** (numbered to match
+UI-CONVENTIONS §10; items 6–9 there are not automated). Four calendars — `reference`
+(`T.buildFixture()`), `dayoverrides`, `mvheader`, `mvheaderlegacy` — against
+**`tests/baselines/2026-09-22-monthprint/`**, cut from the build of `ff1ecbe` (hash-identical to
+production). **`monthcmp.py`** compares two things:
+
+| | |
+|---|---|
+| the document | `#print-root` at the `window.print()` call, **byte for byte**, today stamp normalised IN THE PAGE (both `M.DD.YY` and `M.D.YY`, from the clock the app read) |
+| the sheets | Chrome **prints** that document for real (`run.sh HARNESS_PRINT_PDF=1` — `--print-to-pdf` works in the same run as `--dump-dom`) and **every month must be exactly one sheet** |
+
+⭐ **THE SECOND HALF IS NOT OPTIONAL, AND THAT WAS PROVEN BY BREAKING IT.** `dist/` patched so
+`.print-page` is `130vh` — a CSS-only change — left the captured document **byte-identical** and
+doubled the printout, **16 → 32 sheets**. A frozen `.mv-*` CSS edit is invisible to an HTML diff;
+Chrome's page breaking is not. The other controls, each run before the baseline was committed: two
+fresh runs identical; **tomorrow's** local date (`TZ=Pacific/Kiritimati`) identical; the 1st–9th
+stamp case in Node; and `dist/` patched to write every row +4 px → FAIL, reported as *"structure
+IDENTICAL, only inline styles differ"* plus a per-month **fit table**. All recorded in the
+baseline's README.
+
+⭐ **`monthcmp.py ab` IS BLOCKS STEP 4'S A/B TOOL.** It compares two saved captures and prints, per
+month, the fit mode (`fill` / `scale`), the scale and every week's row height — which is exactly
+BLOCKS-PLAN §5 conditions 1–2 ("row heights change only on tagged weeks, by one line" / "paginates
+the same"). Cut the before into a scratch dir, make the change, cut the after, `ab` them. It
+replaces the stale `prepost.py` the trap list mentions (never committed).
+
+⚠️ **COVERAGE GAP: every month in all four baselines fits in `fill` mode.** `exportMonthPdf`'s
+`scale` (shrink-to-fit) branch is exercised by no baseline. A month tipping INTO `scale` still fails
+the gate (document differs, fit table names the mode change), but the branch's own output is
+unproven. A fixture with a comment-heavy week in a six-week month would close it.
+
+⚠️ **A bug in my own first cut, worth keeping:** Chrome serialises `flexGrow/flexShrink/flexBasis`
+as the **`flex:` shorthand**, so a parser reading `flex-basis` found nothing, every row read `?` on
+both sides, and the +4 px control reported an EMPTY fit table. Caught only because the control was
+run. **Read what the browser writes, not what the code set.**
+
+**2. `run.sh` is poll-and-kill.** It waits for `$T.html` to end in `</html>` **and** hold its size
+across two polls (either alone can stop early — the bundle contains `'</html>'` literals), with a
+`3 × seconds + 30` cap that only bounds a genuine hang. It reports the elapsed time on **stderr**, so
+stdout is still exactly `parse.js`'s output.
+
+| | before | after |
+|---|---|---|
+| `base 45` | 49 s | **6 s** |
+| `stintreshape 75` / `hdrtemplate 170` / `rowmigrate 130` (last session's three "flakes") | killed at random | **~2.6 s each** |
+| **full `gate.sh`** | ~51 min, and a verdict that could lie | **3 min 19 s — 339 pass, 0 fail** |
+
+✅ **THE GATE, 22 Sep 2026: 339 assertions, 0 fails, all five numbered gates green** (0 clipped,
+waterfall PDF identical, Excel parts identical, v1.0.0 restore identical, `fields.byId` 59 ids), plus
+all 24 month-PDF checks. **The count accounts exactly**: 305 (last run) + the 10 `stintreshape`
+assertions the timer ate + 24 new.
+
+⚠️ **What this changes about the gate policy — for the owner to rule, not assumed.** The policy
+below was set because a full gate was a ~41-minute FLOOR. It is now ~3 minutes, so the reason
+for rationing it is gone. The policy text is **unchanged** until the owner says otherwise. The
+obvious amendment would be "run the full gate before every push".
+
+⚠️ **`run.sh` piped into another command: NOT reproduced after the change** (3 of 3 clean, ~6 s each,
+and no headless Chrome, crashpad or `srv.js` process left behind). It was intermittent before, so
+this is "not seen", **not** "fixed". Redirect-then-parse is still the safe habit.
 
 ### ✅ BUILT 21 Sep 2026 (second half of the session): THE MONTH-VIEW HEADER TEMPLATE SYSTEM
 
@@ -155,9 +221,10 @@ each in a different run, each passing standalone. The cause is `run.sh`'s wait:
 that runs slowly (a loaded machine, an overnight system sleep, 28 legs back to back) is killed
 mid-render and reports as a product failure. ⛔ **This makes a full-gate verdict unreliable, and it
 promotes open item 3 from an optimisation to a correctness fix**: poll for the dumped file to appear
-and stabilise, then kill — the ~15-line pattern already proven in `tools/make-icon.py`. Until then,
-**re-run any "produced no result" leg with the invocation copied out of `gate.sh` before believing
-it**, and do not run a gate across a system sleep.
+and stabilise, then kill — the ~15-line pattern already proven in `tools/make-icon.py`.
+✅ **FIXED 22 Sep 2026** (top of this file). ⚠️ So *"produced no result"* now MEANS something: `run.sh`
+only kills early once the dump is complete, and at its cap it says `no complete dump` on stderr.
+Treat it as real, and still re-run with the invocation copied out of `gate.sh` before diagnosing.
 
 ⚠️ **PROVING THE FIRST ONE TOOK A SECOND MISTAKE WORTH RECORDING.** `rowmigrate` reported *"produced no result"* with a **0-byte** `rowmigrate.html` —
 Chrome dumped nothing. Re-running it standalone "failed" too, which looked like confirmation — but
@@ -180,7 +247,8 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 ### Where things are
 
 **LIVE at `ff1ecbe`** (22 Sep 2026) — the month header template system plus its three editor fixes,
-each verified by driving production. The note below describes the earlier `62cc0dc` state and is kept
+each verified by driving production. The docs commits `41c6f71` + `f61509f` were pushed on top the
+same day and changed nothing served (live file still `82d3d0c9c696842f…`). The note below describes the earlier `62cc0dc` state and is kept
 for the method it records.
 
 **Previously LIVE at `62cc0dc`**, verified on the deployed site — byte-identical to a local build (1,254,040
@@ -274,6 +342,8 @@ TWO shipped changes now move it deliberately. Open item 4.
 leg's full `--virtual-time-budget` regardless of when the work actually finishes (28 legs, budgets
 summing to 2445 s). Running it after every small change dominated an entire session. **It is no
 longer required after every change.**
+⚠️ **The premise changed 22 Sep 2026: a full gate is now ~3 min 20 s** (`run.sh` poll-and-kill). The
+policy below is the owner's and is left **as written** until the owner re-rules it.
 
 **ALWAYS, on every change** — seconds, so there is no excuse to skip:
 
@@ -505,7 +575,8 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   check centre-pixel alpha 255 and corner alpha 0.
 - ⚠️ **`tests/harness/prepost.py` is stale**: it strips `data-ph` from the POST capture, which was
   right when `HEAD` predated that attribute and is wrong now. Compare the captures directly and
-  normalise only the today-stamp.
+  normalise only the today-stamp. ✅ **Superseded 22 Sep 2026 by `monthcmp.py ab`**, which does
+  exactly that (and `prepost.py` was never committed).
 - ⛔ **"`elementsFromPoint` returns the cell" IS NOT THE SAME CLAIM AS "the cell is clickable", and
   the `dayOverrides` UI is where that bit.** The one-line note that a day click "already reaches the
   day" was true only in the day-number band: at the cell CENTRE a `.mv-note-add` or a pill is on top
@@ -546,6 +617,9 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
 
 ### ⭐ THE OWNER'S ORDER FOR THE NEXT SESSION, decided 22 Sep 2026: 1 → 2 → 3
 
+✅ **1 and 2 DONE 22 Sep 2026** — see the top of this file. **3 (Blocks) is next and its two
+preconditions are now met**: the month PDF has a gate, and the harness no longer kills its own legs.
+
 **1. `monthprint` baseline + gate leg. 2. Fix `run.sh`'s kill timer. 3. Block shooting.**
 
 ⛔ **1 AND 2 ARE PRECONDITIONS FOR 3, NOT HOUSEKEEPING, AND THAT IS WHY THEY COME FIRST.**
@@ -580,13 +654,12 @@ never blocked — it simply never got a session. It is the only fully-ruled, zer
   `phiatus-name-writersRoom`. Leading theory is **browser autofill** (bare `<input type="text">`, no
   `autocomplete` attribute); the fix would be `autocomplete="off"`. ⚠️ The owner's screenshot also
   showed "Snap to Mon" still centred, i.e. a pre-`5019e03` build, so re-check on current code first.
-- ⏭ Wire `tests/fixtures/dayoverrides.sptcal` into a `gate.sh` leg. The fixture exists and restores
-  correctly, but nothing in the gate loads it, so the four month-view frozen edits are proven by hand
-  and not by the gate. Pairs naturally with the `monthprint` item below.
+- ✅ ~~Wire `tests/fixtures/dayoverrides.sptcal` into a `gate.sh` leg.~~ **DONE 22 Sep 2026** — it is
+  one of `monthprint`'s four calendars, with `mvheader` and `mvheaderlegacy`.
 - ⏭ Step 7: start/end drag handles (`MONTH-VIEW-PLAN.md` §6.2). Frozen, approved in principle.
-- ⏭ Commit a `monthprint` baseline and wire the leg into `gate.sh` — the month PDF is the only one
-  of the four outputs with no gate coverage. ⚠️ It **must** normalise the dotted `M.DD.YY` today
-  stamp or it false-fails daily, which is what made gates 2 and 3 useless for two rounds.
+- ✅ ~~Commit a `monthprint` baseline and wire the leg into `gate.sh`.~~ **DONE 22 Sep 2026** —
+  `tests/baselines/2026-09-22-monthprint/`, gate 10. The stamp is normalised in the page and proven
+  against tomorrow's date. ⏭ Left open: no baseline month is in `scale` mode (see the top).
 - ✅ ~~`theme_color` is `#E74C3C`; the new artwork's red is `#EF493C`.~~ **CLOSED 18 Sep 2026** —
   new artwork again (the spectrum mark), and the owner chose **`#E8383F`**, the red the gradient
   actually contains. Set via `tools/make-icon.py --theme-color`, never silently.

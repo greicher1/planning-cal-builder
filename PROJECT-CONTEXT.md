@@ -926,6 +926,16 @@ node /tmp/testsrv.js & sleep 2
   exactly like the *test* hanging. Run Chrome in the background, poll for the file, then `kill -9`
   it and `pkill -f "user-data-dir=/tmp/tc-<name>"` before parsing. Do not put the parse step after
   Chrome in the same foreground chain.
+- ⛔ **Poll for the FILE, never for a duration — `--virtual-time-budget` is not wall-clock.** Chrome
+  fast-forwards virtual time through idle stretches and pays real time for real work, so the budget
+  can run out later than the same number of real seconds. `run.sh` used a wall-clock timer until
+  22 Sep 2026 and killed slow legs before they dumped anything, which read as product failures
+  (three in one session). It now waits for the dump to end in `</html>` with its size held across
+  two polls — and a whole leg typically costs ~3 s instead of its full budget.
+- **`--print-to-pdf` works in the SAME run as `--dump-dom`** (`--no-pdf-header-footer` too), and it
+  is Chrome's real print pipeline: print media, the `@page` box, real page breaking. Headless prints
+  on Letter, so the month PDF's `size:landscape` comes out `792 × 612`. `run.sh`'s
+  `HARNESS_PRINT_PDF=1` uses it; that is how the `monthprint` leg counts printed sheets.
 - ⚠️ **Never hold a NodeList across a click that re-renders its list.** Already recorded below for
   holidays, and it bit again immediately: a `forEach` over `#holiday-vis-list input.hv-cb` clicked
   14 boxes and turned on **one**, because the list rebuilt after the first click and the other 13

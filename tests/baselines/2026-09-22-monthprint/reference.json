@@ -1,0 +1,219 @@
+{
+ "pages": 16,
+ "sheets": 16,
+ "mediaBoxes": [
+  "/MediaBox [0 0 792 612]"
+ ],
+ "stampHits": 16,
+ "bytes": 492628,
+ "elements": 3782,
+ "structSha1": "db79ad8ead19510d4b57cf4293ec58e515de8bf8",
+ "docSha1": "19d67c9ea038a151fbafdda417d8cd30e683782f",
+ "fit": [
+  {
+   "month": "January 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "91/g23",
+    "57/g57",
+    "95/g19",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "March 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "April 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "May 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "June 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57",
+    "108/g6"
+   ]
+  },
+  {
+   "month": "July 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "108/g6",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "August 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "September 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "October 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "95/g19",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "November 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "97/g17",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "December 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "78/g36"
+   ]
+  },
+  {
+   "month": "January 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "78/g36",
+    "57/g57",
+    "57/g57",
+    "95/g19",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57",
+    "78/g36"
+   ]
+  },
+  {
+   "month": "March 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "78/g36",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "April 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  }
+ ],
+ "run": {
+  "fromState": false,
+  "printCalls": 1,
+  "cleanedUp": true,
+  "classCleared": true,
+  "stamps": [
+   "9.22.26"
+  ],
+  "errors": [],
+  "leftInPrintState": true
+ }
+}

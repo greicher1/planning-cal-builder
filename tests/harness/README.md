@@ -36,8 +36,14 @@ cd tests/harness
 
 `gate.sh` is the entry point the freeze rule in `CLAUDE.md` demands: it builds the fixture, measures
 the frozen grid, compares the **waterfall PDF** and every **Excel part** against
-`tests/baselines/2026-08-29-stage-7/`, restores the real v1.0.0 saved calendar, and asserts
-`fields.byId` is unchanged. It defaults to **`/dist/index.html`**.
+`tests/baselines/2026-08-29-stage-7/`, restores the real v1.0.0 saved calendar, asserts
+`fields.byId` is unchanged, and — since 22 Sep 2026 — compares the **month PDF** on four calendars
+against `tests/baselines/2026-09-22-monthprint/` (the printed document byte for byte, and one sheet
+per month in the PDF Chrome actually prints). It defaults to **`/dist/index.html`**.
+
+⭐ **A full gate is minutes now, not an hour.** `run.sh` used to wait out every leg's full budget
+in wall-clock, because Chrome does not exit after `--dump-dom`; since 22 Sep 2026 it polls for the
+dump to finish and kills Chrome then. The `base` leg went from 49 s to 6 s.
 
 ⛔ **`run.sh` DOES NOT.** It defaults to `HARNESS_PAGE=/index.html` — the **deployed** app — so the
 individual commands below test the single-file build unless you say otherwise:
@@ -82,15 +88,27 @@ Then validate the exports:
 node pdf-info.js base.pdf base.txt  # page box, text/rect counts, grid extent, every string
 ```
 
-Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS path), and
-⚠️ **`HARNESS_PAGE` (default `/index.html`)** — the one whose default silently changes *what program
-you are testing*. `gate.sh` overrides it to `/dist/index.html`; `run.sh` does not.
+Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS path),
+`HARNESS_STATE=<fixture>` (start from `tests/fixtures/<fixture>.sptcal` via the inline `?state=`
+path), `HARNESS_PRINT_PDF=1` (Chrome also **prints** the page to `<name>.print.pdf` when it dumps
+it — the real print pipeline, used by `monthprint`), and ⚠️ **`HARNESS_PAGE` (default
+`/index.html`)** — the one whose default silently changes *what program you are testing*.
+`gate.sh` overrides it to `/dist/index.html`; `run.sh` does not.
+
+⚠️ **The `[seconds]` argument is Chrome's VIRTUAL time budget, not a wall-clock limit.** `run.sh`
+waits for the dump to end in `</html>` and hold its size across two polls, then kills Chrome; it
+reports how long that took on **stderr** (`run.sh: base: dumped after 3.1s wall-clock`) so stdout
+stays exactly `parse.js`'s output. The wall-clock cap is `3 × seconds + 30` and exists only to bound
+a genuine hang — if it fires, stderr says `no complete dump`, and that is a real problem, not a
+timing flake.
 
 ## Files
 
 | | |
 |---|---|
-| `run.sh` | one test, end to end: start server → Chrome → hard-kill → parse → stop server |
+| `run.sh` | one test, end to end: start server → Chrome → **poll until the dump is complete** → kill → parse → stop server |
+| `t/monthprint.js` | the month PDF's document, captured at the `window.print()` call with the today stamp normalised, then put back into print state so `HARNESS_PRINT_PDF=1` prints exactly it. `gate.sh` runs it four times: the reference calendar, `dayoverrides`, `mvheader`, `mvheaderlegacy` |
+| `monthcmp.py` | ⭐ gate 10: a `monthprint` capture against `tests/baselines/2026-09-22-monthprint/` — the document byte for byte, one printed sheet per month, the stamp count. On a mismatch it says whether only inline styles moved and prints the per-month **fit table** (fill/scale, every week's height). `cut` makes a baseline; `ab` compares two saved captures, which is the A/B for a frozen edit that is *meant* to move the month PDF |
 | `srv.js` | serves the repo root; injects `t/lib.js` + `t/<name>.js` into `index.html?test=<name>` |
 | `parse.js` | lifts the `<pre id="R">` payload out of the dump, un-escapes it, splits off base64 files |
 | `t/lib.js` | shared helpers: fixture builder, clipping/width measurements, export capture, fake file picker |
@@ -125,6 +143,21 @@ reason attached; this is the index.
   stays alive, and the next command in the shell chain never runs — which looks exactly like the
   test hanging. `run.sh` backgrounds Chrome and hard-kills it for this reason. Never put the parse
   step after Chrome in the same foreground chain.
+- ⛔ **A wall-clock kill timer is not a deadline for virtual time — and it produced "flakes" that
+  were really kills.** Until 22 Sep 2026 `run.sh` killed Chrome after `[seconds]` REAL seconds. The
+  budget is VIRTUAL: Chrome fast-forwards idle time but pays real time for real work, so on a loaded
+  machine it ran out later than that and Chrome was killed before writing a byte. Three legs
+  (`rowmigrate`, `hdrtemplate`, `stintreshape`) reported *"produced no result"* on a 0-byte dump in
+  one session, each passing standalone. Fixed by polling for the dump itself. ⚠️ **The completion
+  test is `</html>` at the end AND a size held across two polls**: the app bundle contains `'</html>'`
+  string literals, so either test alone can stop early.
+- ⚠️ **An HTML capture cannot see a CSS-only change.** `monthprint` proved it on purpose: `dist/`
+  patched so `.print-page` is `130vh` left the captured document byte-identical while Chrome's
+  print went from 16 sheets to 32. That is why the leg also prints a real PDF.
+- ⚠️ **Chrome serialises `flexGrow` / `flexShrink` / `flexBasis` as the `flex:` shorthand.**
+  `monthcmp.py`'s first cut read `flex-basis` off the style attribute, found nothing, and reported an
+  empty fit table on a change that had moved every row. Read what the browser writes, not what the
+  code set.
 - **A NodeList held across a click that re-renders its list is detached.** A `forEach` over
   `#holiday-vis-list input.hv-cb` clicked 14 boxes and turned on **one**: the list rebuilds after
   each change. Detached clicks throw nothing and change nothing, so it reads as the app ignoring

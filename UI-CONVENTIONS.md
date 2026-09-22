@@ -991,6 +991,13 @@ Nothing in this document ships without all of these, every stage:
    one would bake all fourteen into every saved calendar with a phantom undo step per keystroke.
    Assert the panel's `[id]` set is **empty**, open, the way `hdreditor` and `hdrpreset` both do. The
    alternative — adding the panel's class to the skip list — is fine, but it has to happen **first**.
+10. **NEW — the month PDF is unchanged** (22 Sep 2026), automated by `gate.sh`'s `monthprint` leg
+    against `tests/baselines/2026-09-22-monthprint/` on four calendars: the document `exportMonthPdf`
+    hands to `window.print()` is **byte-identical** (today stamp normalised), and Chrome's real print
+    of it has **one sheet per month**. Both halves are needed — a CSS-only edit to a frozen `.mv-*`
+    rule changes the printout without changing the document, and was proven to (16 sheets → 32).
+    A frozen edit that is *meant* to move the month PDF A/Bs with `monthcmp.py ab` and puts the fit
+    table in front of the owner rather than re-cutting quietly.
 
 ---
 
