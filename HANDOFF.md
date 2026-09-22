@@ -4,12 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ DONE 22 Sep 2026: BLOCKS STEP 4 + RULINGS 7–10 — committed locally, ⛔ PUSH HELD BY THE OWNER
+### ✅ LIVE 22 Sep 2026: BLOCK SHOOTING (steps 1–4) + RULINGS 5–10 — pushed at `b49556e`, verified
 
-**Local commits not on origin:** `585fdbf` (Blocks steps 1–3) and the step-4 commit on top of it.
-The owner said **hold the push**, twice: ask again before pushing, and run the full gate first,
-since the push contains a frozen edit. Full record: **`BLOCKS-PLAN.md` §7 (rulings 7–10 + the
-owner's adjustments) and §10 (as built)**, plus the changelog.
+**Pushed on the owner's instruction ("push it"), one fast-forward `f312094..b49556e`.** Deploy green.
+The live file is **byte-identical to the gated build** (SHA-256 `58d2208d59b2b447…`, 1,272,924
+bytes; full gate 375 pass / 0 fail over exactly that build). ⭐ **Then DRIVEN on production**:
+- Episodes mode pills read *Production Week 1 · Ep. 201*.
+- Blocks mode reads *Block 1 · Ep. 201, 202 / Block 2 · Ep. 203, 204*.
+- A real mouse drag moved 203 into Block 1 without moving the wrap, and the pill became *Ep.
+  201–203*.
+- One Undo click reverted exactly that move; Redo re-applied it, and `cmd+z` reverted it again.
+- The Preferences rows are view-scoped, and the header reads *… / 5 Shooting Blocks*.
+
+⚠️ **A misreading worth keeping:** the first production pass seemed to show one undo jumping back
+past the drag. It was my sequence, not the app. Setup fields were set by script inside the 500 ms
+undo debounce, a "neutral" click landed on the month grid, and my own tab and view switches were
+undo steps too. **Re-run clean (pauses over 600 ms, only real gestures), it was exact.** Before
+calling undo broken, remove your own steps from the stack.
+
+Full record: **`BLOCKS-PLAN.md` §7 (rulings 7–10 + the owner's adjustments) and §10 (as built)**,
+plus the changelog.
 
 - **What the month view does now.** During production the pill always reads *"Production Week N"*
   (ruling 8, both modes). The grey text inside it is *Ep. 205, 202* (Episodes) or *Block 1 · Ep.
@@ -308,7 +322,8 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ### Where things are
 
-**LIVE at `ff1ecbe`** (22 Sep 2026) — the month header template system plus its three editor fixes,
+**LIVE at `b49556e`** (22 Sep 2026) — block shooting, shooting order and the month-view preferences
+(top of this file). Before that: **`ff1ecbe`** — the month header template system plus its three editor fixes,
 each verified by driving production. The docs commits `41c6f71` + `f61509f` were pushed on top the
 same day and changed nothing served (live file still `82d3d0c9c696842f…`). The note below describes the earlier `62cc0dc` state and is kept
 for the method it records.
@@ -767,7 +782,7 @@ never blocked — it simply never got a session. It is the only fully-ruled, zer
   `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`. Correct the rule when
   something next touches the save format; the advice that follows it (branch on the version rather
   than on the presence of individual keys) is still the right advice.
-- ✅ `BLOCKS-PLAN.md`: **all four steps BUILT 22 Sep 2026** (top of this file, plan §9–§10), committed locally, **push held by the owner**.
+- ✅ `BLOCKS-PLAN.md`: **all four steps BUILT and LIVE 22 Sep 2026** at `b49556e` (top of this file, plan §9–§10).
 
 ---
 
