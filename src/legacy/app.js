@@ -6109,15 +6109,12 @@ export function initLegacyApp() {
     const year = cursor.getUTCFullYear();
     const month = cursor.getUTCMonth();
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    // Header title carries the season as a short suffix, e.g. "Show Name S2".
-    const rawTitle = (document.getElementById('show-title').value || '').trim();
-    const seasonVal = (document.getElementById('season-num').value || '').trim();
-    const title = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
-    // Today's date for the header, in x.xx.xx form. Uses LOCAL date (not UTC): this is "today"
-    // for the person reading it, unlike the schedule dates which are deliberately UTC.
-    const now = new Date();
-    const todayStr = (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0')
-                     + '.' + String(now.getFullYear()).slice(2);
+    // ⛔ FROZEN EDIT (owner ruling, 21 Sep 2026 -- MONTH-HEADER-PLAN.md §6). The five locals that
+    // used to live here (rawTitle, seasonVal, title, now, todayStr) built the header's two auto
+    // strings, and the #mv-hdr-mode-btn handler rebuilt the SAME two strings verbatim so it could
+    // snapshot them. They are computeMvHeaderDefaults() now -- see mvDefaults below. They were
+    // DELETED rather than left in place: dead code that still looks like the source of truth is
+    // how a second copy drifts, and this file has paid for that before.
 
     // Grid starts on the Monday on/before the 1st.
     const first = new Date(Date.UTC(year, month, 1));
@@ -6507,38 +6504,49 @@ export function initLegacyApp() {
     }
 
     // Month header lines. In Auto they mirror Show Info; in Manual they're an editable
-    // snapshot. Kept separate from the waterfall header's mode on purpose.
-    const mvDefaults = {
-      title: (title ? title + ' ' : '') + 'Full Prelim Production Calendar',
-      today: todayStr
-    };
+    // snapshot; in Template they are templates resolved through the shared resolver. Kept separate
+    // from the waterfall header's mode on purpose -- separate stores, one grammar.
+    const mvDefaults = computeMvHeaderDefaults(schedule);
     const mvManual = mvHeaderMode === 'manual';
+    // ⛔ FROZEN EDIT (owner ruling, 21 Sep 2026). The waterfall's manualEdit, for the same reason:
+    // in Template mode the lines are edited in the template editor, not in place here, so the
+    // format toolbar and contenteditable both go away. INERT BY CONSTRUCTION while
+    // mvHeaderTemplates is false -- `mvManual && !false` === `mvManual` -- so Auto and Manual
+    // render byte-for-byte what they rendered before, and no calendar saved before today can
+    // reach the new branch.
+    const mvManualEdit = mvManual && !mvHeaderTemplates;
     const mvLine = (id, cls) => {
-      const val = mvManual
-        ? (mvHeaderManual[id] !== undefined ? mvHeaderManual[id] : mvDefaults[id])
-        : mvDefaults[id];
+      const val = mvHeaderLine(id, mvDefaults);
       const empty = val ? '' : ' hdr-empty';
-      const editable = mvManual ? ' contenteditable="true"' : '';
-      const editCls = mvManual ? ' hdr-editable' : '';
+      const editable = mvManualEdit ? ' contenteditable="true"' : '';
+      const editCls = mvManualEdit ? ' hdr-editable' : '';
       // FROZEN EDIT (owner-approved 31 Aug 2026): the month header's two lines take the same
       // per-line formatting as the waterfall's nine, from their own mvHeaderFormat store --
       // the two headers are independent by design (see mvHeaderManual).
       const fmtCss = headerFormatCss(headerFmt(id, true), id, true);
-      return `<div class="hdr-line ${cls}${empty}${editCls}" data-mvhid="${id}"${editable} spellcheck="false" style="${fmtCss}">${escHtml(val)}</div>`;
+      // ⛔ FROZEN EDIT (21 Sep 2026): `subtitle` is an MV_NEW_SLOT, so it carries .hdr-slot and the
+      // existing `.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable){display:none}` rule removes it
+      // entirely when empty. That is what makes the new LINE cost height only for a calendar that
+      // actually fills it -- every calendar ever saved prints exactly as it did. `tleft` is
+      // deliberately NOT in that list: it replaces an 84px blank spacer and must keep its box.
+      const slotCls = MV_NEW_SLOTS.includes(id) ? ' hdr-slot' : '';
+      return `<div class="hdr-line ${cls}${empty}${editCls}${slotCls}" data-mvhid="${id}"${editable} spellcheck="false" style="${fmtCss}">${escHtml(val)}</div>`;
     };
 
     return `<div class="month-view">
       <div class="mv-tools">
-        ${mvManual ? headerFmtToolbarHtml(true) : '<span class="hdr-fmt-spacer"></span>'}
+        ${mvManualEdit ? headerFmtToolbarHtml(true) : '<span class="hdr-fmt-spacer"></span>'}
         <button id="mv-hdr-mode-btn" class="${mvManual?'is-manual':''}" type="button"
-          title="${mvManual?'Discard manual header edits and return to auto-filled values':'Take over the month header: snapshot the current values into editable lines'}"
-          >${mvManual?'Header: Manual':'Header: Auto'}</button>
+          title="${mvManual?(mvHeaderTemplates?'Header lines are templates -- your text plus live data in braces. Click to change mode':'Discard manual header edits and return to auto-filled values'):'Take over the month header: snapshot the current values into editable lines'}"
+          >${mvManual?(mvHeaderTemplates?'Header: Template':'Header: Manual'):'Header: Auto'}</button>
       </div>
       <div class="mv-header${mvManual?' hdr-manual-mode':''}">
         <div class="mv-titlebar">
+          ${mvLine('tleft','mv-tleft')}
           ${mvLine('title','mv-title')}
           ${mvLine('today','mv-today')}
         </div>
+        ${mvLine('subtitle','mv-subtitle')}
       </div>
       <div class="mv-monthbar">
         <button class="mv-arrow" id="mv-prev" type="button" aria-label="Previous month"${(range && cursor <= range.first) ? ' disabled' : ''}>&#9664;</button>
@@ -7084,31 +7092,34 @@ export function initLegacyApp() {
     openHeaderEditor(line.dataset.hid);
   });
 
+  // The month's twin of the handler above: in Template mode the lines are not editable in place, so
+  // clicking one opens the editor with that slot selected. Without this the month header would be
+  // the one Template surface with no way into its own editor except the mode menu.
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    if(mvHeaderMode !== 'manual' || !mvHeaderTemplates) return;
+    if(hdrEditor) return;                    // already open -- do not stack a second one
+    const line = e.target && e.target.closest
+      ? e.target.closest('.mv-header .hdr-line[data-mvhid]') : null;
+    if(!line) return;
+    openHeaderEditor(line.dataset.mvhid, true);
+  });
+
   // Month-view header: mode toggle + capturing edits. Independent of the waterfall header.
   document.getElementById('table-wrap').addEventListener('click', e=>{
     if(e.target && e.target.id === 'mv-hdr-mode-btn'){
-      if(mvHeaderMode === 'auto'){
-        // Snapshot the current auto values so they become the starting point for editing.
-        const rawTitle = (document.getElementById('show-title').value || '').trim();
-        const seasonVal = (document.getElementById('season-num').value || '').trim();
-        const t = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
-        const now = new Date();
-        mvHeaderManual = {
-          title: (t ? t + ' ' : '') + 'Full Prelim Production Calendar',
-          today: (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0') + '.' + String(now.getFullYear()).slice(2)
-        };
-        mvHeaderMode = 'manual';
-      } else {
-        mvHeaderMode = 'auto';
-        mvHeaderManual = {};
-      }
-      render(currentSchedule);
-      markDirty();
+      // ⭐ Was a two-state TOGGLE that rebuilt the two auto strings inline -- a verbatim copy of the
+      // ones frozen renderMonthView built, which is the duplication MONTH-HEADER-PLAN §1.3 named.
+      // Both are computeMvHeaderDefaults() now, and this opens the same three-choice menu the
+      // waterfall uses, because there are three modes and a toggle cannot express three.
+      openHeaderModePop(e.target, true);
     }
   });
   document.getElementById('table-wrap').addEventListener('focusout', e=>{
     const line = e.target && e.target.closest ? e.target.closest('.hdr-line[data-mvhid]') : null;
-    if(!line || mvHeaderMode !== 'manual') return;
+    // ⚠️ `|| mvHeaderTemplates` is belt-and-braces rather than dead code. In Template mode the lines
+    // are not contenteditable, so nothing should blur out of one -- but if anything ever did, this
+    // handler would overwrite a RAW TEMPLATE with its RESOLVED text and silently destroy the tokens.
+    if(!line || mvHeaderMode !== 'manual' || mvHeaderTemplates) return;
     const id = line.dataset.mvhid;
     const text = line.textContent.replace(/\s+/g,' ').trim();
     if((mvHeaderManual[id] || '') === text) return;
@@ -8594,7 +8605,17 @@ export function initLegacyApp() {
   // INDEPENDENT of the waterfall header above: the two documents are printed separately and
   // often want different wording, so taking one manual never touches the other.
   let mvHeaderMode = 'auto';
-  let mvHeaderManual = {}; // { title, today }
+  let mvHeaderManual = {}; // { tleft, title, subtitle, today }
+  // ⛔ THE MONTH'S THIRD MODE, AND IT IS A FLAG FOR THE SAME REASON headerTemplates IS ONE (H3).
+  // Frozen renderMonthView gates editability on `const mvManual = mvHeaderMode === 'manual'`. That
+  // gate keeps its two values -- on disk and in memory -- and Template mode is `manual` PLUS this
+  // flag, so no calendar saved before this feature can reach the new branch and Manual behaves
+  // byte-for-byte as it always has. A legacy month header containing "{today}" still prints the
+  // literal {today}, because no file written before today carries the flag.
+  //
+  // mvHeaderManual holds RAW TEMPLATES while this is true and LITERAL TEXT while it is false.
+  // One store, one flag. mvHeaderLine() resolves only when it is true.
+  let mvHeaderTemplates = false;
 
   // ---------- Header text formatting (owner, 31 Aug 2026) ----------
   // Per-LINE formatting, not per-character. Each header line is already its own element, and --
@@ -8646,6 +8667,95 @@ export function initLegacyApp() {
     c1:   '{titleSeason}', c2: 'Planning Calendar', c3: '{writersRoom.line}', c4: '',
     r1:   '{production.summary}', r2: '{production.dates}', r3: '[{episodes} Episodes]',
   };
+
+
+  // ---------- The month header's slots (MONTH-HEADER-PLAN.md, owner rulings 21 Sep 2026) ----------
+  //
+  // The month header was two slots and a toggle. It is now four slots and the same three modes the
+  // waterfall has, sharing ONE resolver and ONE token catalogue -- separate stores, shared grammar.
+  //
+  // ⚠️ ORDER IS VISUAL, left to right, with `subtitle` under `title`. Nothing keys off the index
+  // (mvHeaderManual and mvHeaderFormat are keyed by id) but a reader should stay right.
+  const MV_HDR_IDS = ['tleft','title','subtitle','today'];
+  // Slots added 21 Sep 2026. ⛔ ONLY `subtitle` is an MV_NEW_SLOT, and leaving `tleft` OUT of this
+  // list is load-bearing rather than an oversight. .hdr-slot.hdr-empty is display:none, and the
+  // LEFT slot replaces `.mv-titlebar::before` -- an 84px blank box that exists to balance the date
+  // so the title reads centred. Hiding it when empty would collapse that reservation and shift the
+  // title in EVERY month PDF ever printed. .mv-tleft therefore keeps its box whether or not it has
+  // text, which is exactly why the left slot costs no height: it fills space already reserved.
+  // `subtitle` is a real new LINE, so it hides when empty and costs height only when someone fills
+  // it -- the same guarantee l2/l3/c4 give the waterfall.
+  const MV_NEW_SLOTS = ['subtitle'];
+  const MV_HDR_SLOT_NAMES = {
+    tleft: 'Top left', title: 'Title', subtitle: 'Subtitle', today: 'Date (top right)',
+  };
+  // The built-in month Default, written as templates. What Auto -> Template seeds from.
+  //
+  // ⚠️ IT IS A SECOND STATEMENT OF computeMvHeaderDefaults() AND THE TWO CAN DRIFT -- the same
+  // deliberate duplication DEFAULT_HEADER_TEMPLATE carries, guarded the same way: the `mvhdrdefault`
+  // assertion resolves these against a live calendar and requires them to equal
+  // computeMvHeaderDefaults() byte for byte, on a calendar with data and on an empty one.
+  //
+  // Note `[{titleSeason} ]` rather than `{titleSeason} `: the auto title is "Full Prelim Production
+  // Calendar" with NO leading space when there is no show title, and only the conditional group
+  // reproduces that -- the group collapses its literal text and the space inside the brackets along
+  // with the empty token. Same reason r3 is written `[{episodes} Episodes]`.
+  //
+  // ⛔ `{today:dotpad}`, NOT `{today}`. They are not the same string. {today} renders M.D.YY and the
+  // month header has always rendered M.DD.YY -- they agree on 279 days a year and DIFFER on the
+  // other 121 (every 1st to 9th). Verified by enumerating 400 consecutive days, not by looking at
+  // one. Using {today} here would have silently changed the printed date on a third of the days in
+  // the year, and would have passed a same-day browser check.
+  const DEFAULT_MV_TEMPLATE = {
+    tleft: '', title: '[{titleSeason} ]Full Prelim Production Calendar',
+    subtitle: '', today: '{today:dotpad}',
+  };
+
+  // The month header's auto values -- the ONE definition of what it says by default.
+  //
+  // ⭐ THIS DELETES A LIVE DUPLICATION. These two strings were built in frozen renderMonthView AND
+  // rebuilt verbatim in the #mv-hdr-mode-btn handler so that switching to Manual could snapshot
+  // them. Two copies of one rule, one of them frozen and therefore unfixable if they drifted. Both
+  // call this now.
+  //
+  // ⚠️ __ctx is attached ONLY when templates are on, and that is a cost decision, not tidiness:
+  // exportMonthPdf calls renderMonthView once per month (15 times on the reference fixture), and
+  // buildHeaderCtx walks every phase and reads the DOM. With the flag off the print path pays
+  // exactly what it paid before this feature existed.
+  function computeMvHeaderDefaults(schedule){
+    const rawTitle = (document.getElementById('show-title').value || '').trim();
+    const seasonVal = (document.getElementById('season-num').value || '').trim();
+    const t = rawTitle + (seasonVal ? (rawTitle ? ' ' : '') + 'S' + seasonVal : '');
+    // LOCAL date, not UTC: this is "today" for the person reading it, unlike the schedule dates.
+    const now = new Date();
+    const out = {
+      tleft: '',
+      title: (t ? t + ' ' : '') + 'Full Prelim Production Calendar',
+      subtitle: '',
+      today: (now.getMonth()+1) + '.' + String(now.getDate()).padStart(2,'0')
+             + '.' + String(now.getFullYear()).slice(2),
+    };
+    // Non-enumerable so it cannot reach a saved file, an Object.assign or the undo stack -- the
+    // same guard computeHeaderDefaults() uses and for the same reason.
+    if(mvHeaderTemplates){
+      Object.defineProperty(out, '__ctx', { value: buildHeaderCtx(schedule), enumerable: false });
+    }
+    return out;
+  }
+
+  // Effective text for one month header line. The month's twin of headerLine(), and the choke point
+  // the whole feature hangs off: frozen renderMonthView calls it, so resolving HERE is what keeps
+  // the screen and the month PDF unable to disagree.
+  //
+  // ⛔ Byte-for-byte what the old inline expression returned while mvHeaderTemplates is false --
+  // including the `=== undefined` test rather than `in`, which is what the frozen code used to do.
+  function mvHeaderLine(id, defaults){
+    const d = (defaults && defaults[id]) || '';
+    if(mvHeaderMode !== 'manual') return d;
+    if(mvHeaderManual[id] === undefined) return d;
+    const raw = mvHeaderManual[id];
+    return mvHeaderTemplates ? resolveHeaderTemplate(raw, defaults && defaults.__ctx) : raw;
+  }
 
   function headerFmt(id, mv){ return (mv ? mvHeaderFormat : headerFormat)[id] || {}; }
 
@@ -9037,9 +9147,31 @@ export function initLegacyApp() {
     e.stopPropagation();
   }
 
+  // ---------- The editor is ONE editor, retargeted by view (owner ruling 3, 21 Sep 2026) ----------
+  //
+  // Not a second editor. Its Insert rail is token-driven and the tokens are already view-agnostic,
+  // so the only things that differ between the two headers are WHICH STORES it reads and writes and
+  // WHICH SLOTS it lays out. These four accessors are that difference, in full -- every other line
+  // of the editor is shared. ⭐ The same shape headerFmt(id, mv) / headerFormatCss(f, id, mv) /
+  // headerFmtToolbarHtml(mv) already use, so the `mv` flag threads all the way through.
+  function hdeMv(){ return !!(hdrEditor && hdrEditor.mv); }
+  function hdeLines(){ return hdeMv() ? mvHeaderManual : headerManual; }
+  function hdeIds(){ return hdeMv() ? MV_HDR_IDS : HDR_IDS; }
+  function hdeFormats(){ return hdeMv() ? mvHeaderFormat : headerFormat; }
+
+  // The month's slot layout. Its header is one row -- a fixed left box, a centred title with an
+  // optional subtitle under it, and the date -- so "columns" here is Left / Centre / Right with the
+  // subtitle grouped under the title it belongs to.
+  const MV_HDR_EDITOR_COLUMNS = [
+    { key:'left',  label:'Left',   ids:['tleft'] },
+    { key:'mid',   label:'Centre', ids:['title','subtitle'] },
+    { key:'right', label:'Right',  ids:['today'] },
+  ];
+
   // Which slots the editor shows. Three per column, plus any LEGACY slot that this particular
   // calendar is actually using -- see HDR_EDITOR_COLUMNS for why c4 is handled that way.
   function hdrEditorSlots(){
+    if(hdeMv()) return MV_HDR_EDITOR_COLUMNS.map(c=>({ key:c.key, label:c.label, ids:c.ids.slice() }));
     const cols = HDR_EDITOR_COLUMNS.map(c=>({ key:c.key, label:c.label, ids:c.ids.slice() }));
     HDR_LEGACY_SLOTS.forEach(id=>{
       if((headerManual[id] || '').trim()){
@@ -9065,7 +9197,7 @@ export function initLegacyApp() {
       const host = document.createElement('div');
       host.className = 'hde-col hde-col-' + col.key;
       col.ids.forEach(id=>{
-        const raw = (id in headerManual) ? headerManual[id] : '';
+        const raw = (id in hdeLines()) ? hdeLines()[id] : '';
         const real = resolveHeaderTemplate(raw, ctx);
         const shown = usePh ? resolveHeaderTemplate(raw, phCtx) : real;
         if(shown !== real) sawPh = true;
@@ -9075,7 +9207,7 @@ export function initLegacyApp() {
         el.dataset.hid = id;
         el.contentEditable = 'true';
         el.spellcheck = false;
-        el.setAttribute('style', headerFormatCss(headerFmt(id, false), id, false));
+        el.setAttribute('style', headerFormatCss(headerFmt(id, hdeMv()), id, hdeMv()));
         if(hdrEditor.editing === id){ el.classList.add('is-editing'); el.textContent = raw; }
         else el.innerHTML = shown ? hdrEditorHtml(shown) : '';
         host.appendChild(el);
@@ -9100,11 +9232,12 @@ export function initLegacyApp() {
         lab.className = 'hde-rlabel';
         lab.textContent = HDR_LEGACY_SLOTS.indexOf(id) >= 0 ? (String(i + 1) + '*') : String(i + 1);
         if(HDR_LEGACY_SLOTS.indexOf(id) >= 0) lab.title = 'A fourth centre line this calendar already uses. It is kept so nothing is lost.';
+        if(hdeMv()) lab.title = MV_HDR_SLOT_NAMES[id] || id;
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className = 'hde-tpl' + (hdrEditor.selected === id ? ' is-sel' : '');
-        inp.value = (id in headerManual) ? headerManual[id] : '';
-        inp.setAttribute('aria-label', HDR_SLOT_NAMES[id] || id);
+        inp.value = (id in hdeLines()) ? hdeLines()[id] : '';
+        inp.setAttribute('aria-label', (hdeMv() ? MV_HDR_SLOT_NAMES[id] : HDR_SLOT_NAMES[id]) || id);
         inp.dataset.hid = id;
         row.appendChild(lab); row.appendChild(inp);
         g.appendChild(row);
@@ -9113,11 +9246,21 @@ export function initLegacyApp() {
     });
 
     syncHeaderEditorBar();
-    const b = estimateExcelHeaderLength();
     const bud = root.querySelector('.hde-budget');
-    bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
-      (b.over ? ' — too long, the last lines will be dropped' : '.');
-    bud.classList.toggle('is-over', !!b.over);
+    // ⛔ THE EXCEL BUDGET IS A WATERFALL FACT AND IT IS HIDDEN IN THE MONTH VIEW, not zeroed.
+    // Excel's 255-character cap applies to the WORKBOOK's page header, which only the waterfall
+    // writes; the month view's only export is a PDF and it has no such limit. Showing a budget
+    // here would be inventing a constraint, and showing "0 of 255" would be worse -- it reads as
+    // headroom for a thing that does not exist.
+    if(hdeMv()){
+      bud.textContent = '';
+      bud.classList.remove('is-over');
+    } else {
+      const b = estimateExcelHeaderLength();
+      bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
+        (b.over ? ' — too long, the last lines will be dropped' : '.');
+      bud.classList.toggle('is-over', !!b.over);
+    }
   }
 
   // The bar REFLECTS the selected line rather than holding state of its own, the same contract
@@ -9125,7 +9268,7 @@ export function initLegacyApp() {
   function syncHeaderEditorBar(){
     if(!hdrEditor) return;
     const root = hdrEditor.root, id = hdrEditor.selected;
-    const f = id ? headerFmt(id, false) : {};
+    const f = id ? headerFmt(id, hdeMv()) : {};
     root.querySelector('.hde-fmt').classList.toggle('is-idle', !id);
     root.querySelector('.hde-target').innerHTML = id
       ? 'Styling <b>' + escHtml(HDR_SLOT_NAMES[id] || id) + '</b>'
@@ -9150,17 +9293,21 @@ export function initLegacyApp() {
   function hdrEditorFormat(patch){
     if(!hdrEditor || !hdrEditor.selected) return;
     const id = hdrEditor.selected;
-    const cur = Object.assign({}, headerFmt(id, false), patch);
+    const cur = Object.assign({}, headerFmt(id, hdeMv()), patch);
     Object.keys(cur).forEach(k=>{ if(cur[k] === undefined || cur[k] === null || cur[k] === '') delete cur[k]; });
-    if(Object.keys(cur).length) headerFormat[id] = cur; else delete headerFormat[id];
+    // Mutated IN PLACE, never reassigned: hdeFormats() hands back a reference to the live store,
+    // and `hdeFormats() = {...}` is not a thing. Same reason hdrEditorSetText writes into hdeLines().
+    const fstore = hdeFormats();
+    if(Object.keys(cur).length) fstore[id] = cur; else delete fstore[id];
     render(currentSchedule);
     markDirty();
     paintHeaderEditor();
   }
   function hdrEditorSetText(id, text){
     const clean = String(text == null ? '' : text).replace(/\u00a0/g,' ').trim();
-    if((headerManual[id] || '') === clean) return false;
-    headerManual[id] = clean;
+    const store = hdeLines();
+    if((store[id] || '') === clean) return false;
+    store[id] = clean;
     render(currentSchedule);
     markDirty();
     return true;
@@ -9168,27 +9315,38 @@ export function initLegacyApp() {
 
   // `initialId` selects a slot on the way in -- used when the click came from that very line on the
   // calendar, so the editor opens with the thing you pointed at already selected.
-  function openHeaderEditor(initialId){
+  function openHeaderEditor(initialId, mv){
     if(hdrEditor){ closeHeaderEditor(); return; }
+    mv = !!mv;
     // The editor edits TEMPLATES, so it puts the header in Template mode on the way in. From Auto
-    // that seeds DEFAULT_HEADER_TEMPLATE; from Manual it keeps the literal strings, which are valid
+    // that seeds the built-in default; from Manual it keeps the literal strings, which are valid
     // templates with no tokens. Either way it is the existing transition, and therefore one undo
     // step -- opening the editor is never a silent, unrepeatable change.
-    if(!(headerMode === 'manual' && headerTemplates)) setHeaderMode('template');
+    if(mv){
+      if(!(mvHeaderMode === 'manual' && mvHeaderTemplates)) setMvHeaderMode('template');
+    } else {
+      if(!(headerMode === 'manual' && headerTemplates)) setHeaderMode('template');
+    }
 
     const root = document.createElement('div');
     root.className = 'hde-overlay';
     root.innerHTML =
-      '<div class="hde-panel" role="dialog" aria-modal="true" aria-label="Header template">' +
+      '<div class="hde-panel" role="dialog" aria-modal="true" aria-label="' +
+          (mv ? 'Month header template' : 'Header template') + '">' +
         '<div class="hde-head">' +
-          '<h2 class="hde-title">Header template</h2>' +
+          // Named by view, because both are reachable and a header that says only "Header template"
+          // cannot tell you which of the two documents you are about to change.
+          '<h2 class="hde-title">' + (mv ? 'Month header template' : 'Waterfall header template') + '</h2>' +
           '<span class="hde-ctx"></span>' +
           '<button type="button" class="hde-close" aria-label="Close">✕</button>' +
         '</div>' +
         '<div class="hde-fmt is-idle">' +
           '<select class="hde-ctl hde-size" aria-label="Text size" title="Text size">' +
             '<option value="">Size</option>' +
-            [8,9,10,11,12,13,14,16,18,22].map(n=>'<option>' + n + '</option>').join('') +
+            // The two headers are set at very different sizes -- the month title is 22px where the
+            // waterfall's is 13px -- so they offer different ladders. Same list headerFmtToolbarHtml
+            // already uses for each view; taken from there rather than restated.
+            (mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22]).map(n=>'<option>' + n + '</option>').join('') +
           '</select>' +
           '<button type="button" class="hde-ctl hde-btn hde-b" title="Bold"><b>B</b></button>' +
           '<button type="button" class="hde-ctl hde-btn hde-i" title="Italic"><i>I</i></button>' +
@@ -9253,10 +9411,14 @@ export function initLegacyApp() {
     document.body.appendChild(root);
     hdrEditor = {
       root: root,
-      selected: (initialId && HDR_IDS.indexOf(initialId) >= 0) ? initialId : 'c1',
+      mv: mv,
+      // The title line in both views: c1 for the waterfall, title for the month.
+      selected: (initialId && (mv ? MV_HDR_IDS : HDR_IDS).indexOf(initialId) >= 0)
+        ? initialId : (mv ? 'title' : 'c1'),
       editing: null,
       placeholders: true,
     };
+    if(mv) root.classList.add('is-mv');
 
     const title = (document.getElementById('show-title') || {}).value || '';
     root.querySelector('.hde-ctx').textContent = title ? title : 'Untitled calendar';
@@ -9316,7 +9478,7 @@ export function initLegacyApp() {
     });
     root.querySelector('.hde-clear').addEventListener('click', ()=>{
       if(!hdrEditor.selected) return;
-      delete headerFormat[hdrEditor.selected];
+      delete hdeFormats()[hdrEditor.selected];
       render(currentSchedule); markDirty(); paintHeaderEditor();
     });
 
@@ -9335,7 +9497,7 @@ export function initLegacyApp() {
     slots.addEventListener('input', e=>{
       const inp = e.target.closest && e.target.closest('.hde-tpl');
       if(!inp) return;
-      headerManual[inp.dataset.hid] = String(inp.value).trim();
+      hdeLines()[inp.dataset.hid] = String(inp.value).trim();
       render(currentSchedule);
       markDirty();
       repaintHeaderEditorStage();
@@ -9343,9 +9505,10 @@ export function initLegacyApp() {
 
     // ---- palette, presets, close ------------------------------------------------------------------
     root.querySelector('.hde-rail-list').appendChild(buildHdrTokenList(tok=>{
-      const id = hdrEditor.selected || 'c1';
+      const id = hdrEditor.selected || (hdeMv() ? 'title' : 'c1');
       hdrEditor.selected = id;
-      headerManual[id] = ((id in headerManual) ? headerManual[id] : '') + tok;
+      const store = hdeLines();
+      store[id] = ((id in store) ? store[id] : '') + tok;
       render(currentSchedule); markDirty(); paintHeaderEditor();
     }));
     // Save-as opens an inline name field in the footer rather than a nested dialog -- the same
@@ -9394,7 +9557,7 @@ export function initLegacyApp() {
     hdrEditor.root.querySelectorAll('.hde-line').forEach(el=>{
       const id = el.dataset.hid;
       if(hdrEditor.editing === id) return;
-      const raw = (id in headerManual) ? headerManual[id] : '';
+      const raw = (id in hdeLines()) ? hdeLines()[id] : '';
       const real = resolveHeaderTemplate(raw, ctx);
       const shown = hdrEditor.placeholders ? resolveHeaderTemplate(raw, phCtx) : real;
       if(shown !== real) sawPh = true;
@@ -9433,8 +9596,24 @@ export function initLegacyApp() {
   function newHeaderPresetId(){
     return 'hp_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   }
+  // ⭐ FORWARD-ONLY MIGRATION, in four lines, and it runs on READ rather than rewriting the store.
+  // Every preset saved before 21 Sep 2026 -- in localStorage and in every .spthdr file already sent
+  // to a colleague -- has top-level `lines`/`format` and no sections. Those ARE the waterfall, so
+  // they fold into `sheet` and the month section is absent, which means "leave the month header
+  // alone". Migrating on read rather than in place means a preset the user never opens is never
+  // touched, and the migration cannot half-finish. Same shape migrateRegionSnapshot() models.
+  function normalizeHeaderPreset(p){
+    if(!p || typeof p !== 'object') return null;
+    if(p.sheet || p.month){
+      return { id:p.id, name:p.name, createdAt:p.createdAt,
+               sheet: p.sheet || null, month: p.month || null };
+    }
+    return { id:p.id, name:p.name, createdAt:p.createdAt,
+             sheet: p.lines ? { lines:p.lines, format:p.format || {} } : null, month: null };
+  }
   function headerPresetsStore(){
-    return Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [];
+    return (Array.isArray(prefs.headerPresets) ? prefs.headerPresets : [])
+      .map(normalizeHeaderPreset).filter(Boolean);
   }
   function writeHeaderPresets(list){
     // ⛔ An empty list REMOVES the key rather than storing []. Same rule the gridlines preference
@@ -9443,22 +9622,68 @@ export function initLegacyApp() {
     if(list && list.length) prefs.headerPresets = list; else delete prefs.headerPresets;
     savePrefs();
   }
+  // ---------- A preset is ONE file with TWO sections (owner ruling 1, 21 Sep 2026) ----------
+  //
+  // `sheet` and `month`, each OPTIONAL. The two headers have structurally incompatible slots -- nine
+  // against four, and the waterfall's are capped by Excel's 255-character page header -- so a preset
+  // for one can never be APPLIED to the other. That argues for two SECTIONS and nothing more: the
+  // unit a user thinks in is one look across both outputs, and two separate files drift until one
+  // calendar prints two identities.
+  const HDR_PRESET_SECTIONS = ['sheet','month'];
+  function hdrSectionIds(sec){ return sec === 'month' ? MV_HDR_IDS : HDR_IDS; }
+  function hdrSectionDefaults(sec){ return sec === 'month' ? DEFAULT_MV_TEMPLATE : DEFAULT_HEADER_TEMPLATE; }
+  function hdrSectionLabel(sec){ return sec === 'month' ? 'month' : 'waterfall'; }
+
   // What Save-as would capture right now, and whether it may. RAW templates in every case.
-  function headerPresetCapture(){
-    const mode = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
-    if(mode === 'manual'){
-      return { ok:false, reason:'Switch to Template to save this header as a preset.' };
-    }
+  // ⚠️ A section is capturable in Auto and Template but NOT in Manual -- Manual is literal text a
+  // user typed, not a template, and saving it as one would hand someone a preset that silently
+  // never updates. That rule is unchanged; it now applies per SECTION rather than to the whole file,
+  // so a calendar with a Template waterfall and a Manual month saves the half that means something.
+  function headerPresetSection(sec){
+    const mode = sec === 'month'
+      ? (mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual'))
+      : (headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual'));
+    if(mode === 'manual') return null;
+    const store = sec === 'month' ? mvHeaderManual : headerManual;
+    const defs = hdrSectionDefaults(sec);
     const lines = {};
-    HDR_IDS.forEach(id=>{
+    hdrSectionIds(sec).forEach(id=>{
       // In Template the store IS the templates; a line the user has not touched has no entry yet, so
       // fall back to the built-in default for that slot. In Auto there is no store at all, and the
       // Default template is what the header currently means.
-      lines[id] = (mode === 'template' && (id in headerManual))
-        ? headerManual[id]
-        : (DEFAULT_HEADER_TEMPLATE[id] || '');
+      lines[id] = (mode === 'template' && (id in store)) ? store[id] : (defs[id] || '');
     });
-    return { ok:true, lines, format: Object.assign({}, headerFormat) };
+    const fmt = sec === 'month' ? mvHeaderFormat : headerFormat;
+    return { lines, format: Object.assign({}, fmt) };
+  }
+  function headerPresetMode(sec){
+    return sec === 'month'
+      ? (mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual'))
+      : (headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual'));
+  }
+  // ⛔ AT LEAST ONE SECTION MUST BE IN TEMPLATE, and that is decision H8 generalised rather than
+  // relaxed. H8 refused Save-as in Manual because a preset holds TEMPLATES, never resolved values.
+  // Sections made "is it Manual" ambiguous, and the first cut got it wrong: it offered Save-as
+  // whenever ANY section was capturable, so a user with a MANUAL waterfall and an untouched month
+  // could save a preset that silently omitted the header they were looking at and carried only the
+  // month's built-in defaults. That is the half-imported-preset failure wearing a different coat --
+  // caught by the hdrpreset leg, which is exactly what it is there for.
+  //
+  // An AUTO section still rides along with a Template one, because that is ruling 1's "one look
+  // across both outputs". What it may not do is be the only thing in the file.
+  function headerPresetCapture(){
+    const sheetMode = headerPresetMode('sheet'), monthMode = headerPresetMode('month');
+    if(sheetMode !== 'template' && monthMode !== 'template'){
+      return { ok:false, reason: (sheetMode === 'manual' || monthMode === 'manual')
+        ? 'Switch to Template to save this header as a preset. Manual lines are plain text, not templates.'
+        : 'Switch to Template to save this header as a preset.' };
+    }
+    const sheet = headerPresetSection('sheet');
+    const month = headerPresetSection('month');
+    return { ok:true, sheet, month,
+      // Named, not silent: a Manual section cannot be saved, so say which one is being left out
+      // rather than handing over a file that is quietly missing half its job.
+      omitted: HDR_PRESET_SECTIONS.filter(sec=>headerPresetMode(sec) === 'manual').map(hdrSectionLabel) };
   }
   // Default first, always, and read-only. It is the one preset every user has.
   function headerPresetList(){
@@ -9467,7 +9692,11 @@ export function initLegacyApp() {
   }
   function findHeaderPreset(id){
     if(id === HDR_PRESET_DEFAULT_ID){
-      return { id, name:'Default', builtin:true, lines: DEFAULT_HEADER_TEMPLATE, format: {} };
+      // The built-in carries BOTH sections, so "Default" means the default look everywhere rather
+      // than the default waterfall and whatever the month happened to be wearing.
+      return { id, name:'Default', builtin:true,
+               sheet: { lines: DEFAULT_HEADER_TEMPLATE, format: {} },
+               month: { lines: DEFAULT_MV_TEMPLATE, format: {} } };
     }
     return headerPresetsStore().find(p=>p.id === id) || null;
   }
@@ -9486,14 +9715,36 @@ export function initLegacyApp() {
   }
   // Applying is a CALENDAR edit: it changes what the header prints, so it marks dirty and lands as
   // ONE undo step covering all nine lines and their formats.
-  function applyHeaderPreset(id){
+  // `want` names which section the caller is asking for: 'sheet', 'month', or undefined for "every
+  // section this preset has". A view that asks for a section the preset does not carry is REFUSED
+  // BY NAME rather than silently doing nothing -- a preset that appears to apply and changes nothing
+  // is indistinguishable from a broken one.
+  function applyHeaderPreset(id, want){
     const p = findHeaderPreset(id);
     if(!p) return false;
+    const secs = (want ? [want] : HDR_PRESET_SECTIONS).filter(sec=>!!p[sec]);
+    if(!secs.length){
+      uiAlert(want
+        ? 'This preset has no ' + hdrSectionLabel(want) + ' header, so there is nothing to apply here.'
+        : 'That preset has no header lines in it.');
+      return false;
+    }
+    // ⛔ ONE undo step for the WHOLE apply, both sections together. Applying a preset is one act to
+    // the person doing it, and ⌘Z has to undo it as one -- not the month and then the waterfall.
     asOneHeaderStep(()=>{
-      headerManual = Object.assign({}, p.lines);
-      headerFormat = Object.assign({}, p.format || {});
-      headerTemplates = true;
-      headerMode = 'manual';
+      secs.forEach(sec=>{
+        if(sec === 'month'){
+          mvHeaderManual = Object.assign({}, p.month.lines);
+          mvHeaderFormat = Object.assign({}, p.month.format || {});
+          mvHeaderTemplates = true;
+          mvHeaderMode = 'manual';
+        } else {
+          headerManual = Object.assign({}, p.sheet.lines);
+          headerFormat = Object.assign({}, p.sheet.format || {});
+          headerTemplates = true;
+          headerMode = 'manual';
+        }
+      });
       render(currentSchedule);
       markDirty();
     });
@@ -9507,7 +9758,7 @@ export function initLegacyApp() {
     if(!clean) return { ok:false, reason:'Give the preset a name.' };
     const list = headerPresetsStore().slice();
     list.push({ id: newHeaderPresetId(), name: clean, createdAt: new Date().toISOString(),
-                lines: cap.lines, format: cap.format });
+                sheet: cap.sheet, month: cap.month });
     writeHeaderPresets(list);
     pushHeaderPresets();
     return { ok:true };
@@ -9598,14 +9849,27 @@ export function initLegacyApp() {
   // trusted: a preset arrives from another machine, and headerFormat is read by both writers.
   const HDR_FMT_KEYS = ['size','bold','italic','color','highlight','align'];
 
+  // ⛔ VERSION 2 (21 Sep 2026): two optional sections instead of one flat set of lines. `version: 1`
+  // was put in the format with a comment saying it existed so a later shape could migrate rather
+  // than guess -- this is that later shape, and the guess it avoids is real: a v1 file's flat
+  // `lines` are WATERFALL slot ids, and read as month ids they would all be dropped.
+  //
+  // ⚠️ A v2 file cannot be read by a build older than today, and that is unfixable by design
+  // (CLAUDE.md: old file into new app, forever; new file into old app, never). The blast radius is
+  // small -- presets are niche and the deployed build is current -- but the older reader gates on
+  // `kind` and would half-succeed, importing a preset with NO lines. Nothing can be done about
+  // already-shipped readers; what this side can do is refuse cleanly in the other direction, which
+  // parseHeaderPresetText() now does by checking `version` before it looks at anything else.
+  const HDR_PRESET_VERSION = 2;
   function headerPresetToJson(p){
-    return JSON.stringify({
-      kind: HDR_PRESET_KIND,
-      version: 1,                       // exists so a later shape can migrate rather than guess
-      name: p.name,
-      lines: p.lines,
-      format: p.format || {},
-    }, null, 1);
+    const out = { kind: HDR_PRESET_KIND, version: HDR_PRESET_VERSION, name: p.name };
+    // An ABSENT section is omitted entirely rather than written as null: "this preset has no month
+    // header" and "this preset has an empty month header" are different claims, and the reader
+    // distinguishes them by presence.
+    HDR_PRESET_SECTIONS.forEach(sec=>{
+      if(p[sec]) out[sec] = { lines: p[sec].lines, format: p[sec].format || {} };
+    });
+    return JSON.stringify(out, null, 1);
   }
   // A filename a person can find again. Punctuation that filesystems dislike becomes a space, and
   // an empty result still yields something openable rather than a bare extension.
@@ -9654,31 +9918,51 @@ export function initLegacyApp() {
     if(o.kind !== HDR_PRESET_KIND){
       return { ok:false, reason:'That file is not a header preset. Header presets are ' + HDR_PRESET_EXT + ' files.' };
     }
-    const srcLines = (o.lines && typeof o.lines === 'object') ? o.lines : {};
-    const lines = {};
+    // ⛔ VERSION IS CHECKED UP FRONT, BEFORE ANY CONTENT IS READ (owner ruling 4, 21 Sep 2026).
+    // A file from a NEWER build may put meaning in keys this reader does not know about, and a
+    // reader that shrugs and takes the parts it recognises produces a preset the user believes in
+    // and cannot see the holes in. Refuse the whole file and say which version it is.
+    const ver = (o.version === undefined || o.version === null) ? 1 : o.version;
+    if(typeof ver !== 'number' || !isFinite(ver) || ver < 1 || ver > HDR_PRESET_VERSION){
+      return { ok:false, reason:'That preset was made by a newer version of this app (format ' +
+               String(ver) + '; this build reads up to ' + HDR_PRESET_VERSION +
+               '). Update the app, or ask for it to be saved again from this version.' };
+    }
+    // ⭐ ONE reader for both versions: a v1 file's flat lines/format ARE the waterfall section, so
+    // it is normalised into v2's shape here and nothing downstream knows there were ever two shapes.
+    const src = (ver >= 2) ? o : { sheet: { lines: o.lines, format: o.format } };
+    const preset = { name: '', sheet: null, month: null };
     let dropped = 0;
-    Object.keys(srcLines).forEach(k=>{
-      if(HDR_IDS.indexOf(k) < 0){ dropped++; return; }        // an id this app has no slot for
-      lines[k] = String(srcLines[k] == null ? '' : srcLines[k]);
-    });
-    const srcFmt = (o.format && typeof o.format === 'object') ? o.format : {};
-    const format = {};
-    Object.keys(srcFmt).forEach(k=>{
-      if(HDR_IDS.indexOf(k) < 0){ dropped++; return; }
-      const f = srcFmt[k];
-      if(!f || typeof f !== 'object') { dropped++; return; }
-      const clean = {};
-      Object.keys(f).forEach(fk=>{
-        if(HDR_FMT_KEYS.indexOf(fk) < 0){ dropped++; return; }
-        clean[fk] = f[fk];
+    HDR_PRESET_SECTIONS.forEach(sec=>{
+      const sIn = src[sec];
+      if(!sIn || typeof sIn !== 'object') return;
+      const ids = hdrSectionIds(sec);
+      const srcLines = (sIn.lines && typeof sIn.lines === 'object') ? sIn.lines : {};
+      const lines = {};
+      Object.keys(srcLines).forEach(k=>{
+        if(ids.indexOf(k) < 0){ dropped++; return; }          // an id this app has no slot for
+        lines[k] = String(srcLines[k] == null ? '' : srcLines[k]);
       });
-      if(Object.keys(clean).length) format[k] = clean;
+      const srcFmt = (sIn.format && typeof sIn.format === 'object') ? sIn.format : {};
+      const format = {};
+      Object.keys(srcFmt).forEach(k=>{
+        if(ids.indexOf(k) < 0){ dropped++; return; }
+        const f = srcFmt[k];
+        if(!f || typeof f !== 'object'){ dropped++; return; }
+        const clean = {};
+        Object.keys(f).forEach(fk=>{
+          if(HDR_FMT_KEYS.indexOf(fk) < 0){ dropped++; return; }
+          clean[fk] = f[fk];
+        });
+        if(Object.keys(clean).length) format[k] = clean;
+      });
+      if(Object.keys(lines).length) preset[sec] = { lines, format };
     });
-    if(!Object.keys(lines).length){
+    if(!preset.sheet && !preset.month){
       return { ok:false, reason:'That preset has no header lines in it.' };
     }
-    const name = String(o.name || '').trim() || 'Imported preset';
-    return { ok:true, preset: { name, lines, format }, dropped };
+    preset.name = String(o.name || '').trim() || 'Imported preset';
+    return { ok:true, preset, dropped };
   }
   async function importHeaderPresetText(text){
     const res = parseHeaderPresetText(text);
@@ -9688,7 +9972,7 @@ export function initLegacyApp() {
     // name -- but an imported preset is a NEW entry here, and reusing an id from a file would let
     // one import silently overwrite an existing preset.
     list.push({ id: newHeaderPresetId(), name: res.preset.name, createdAt: new Date().toISOString(),
-                lines: res.preset.lines, format: res.preset.format });
+                sheet: res.preset.sheet, month: res.preset.month });
     writeHeaderPresets(list);
     pushHeaderPresets();
     if(res.dropped) uiAlert('Imported "' + res.preset.name + '". ' + res.dropped +
@@ -10029,6 +10313,11 @@ export function initLegacyApp() {
       case 'slash': return `${m}/${day}/${String(y).slice(2)}`;   // the grid's fmtShort
       case 'long':  return `${HDR_MONTHS[m-1]} ${day}, ${y}`;
       case 'iso':   return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      // ⛔ 'dotpad' is the MONTH header's form and it is NOT the same string as 'dot'. The month
+      // view has always zero-padded the day (M.DD.YY); the waterfall header never has (M.D.YY).
+      // They agree on 279 days a year and differ on the other 121 -- every 1st to 9th. Added so
+      // DEFAULT_MV_TEMPLATE can reproduce the month's printed date exactly rather than nearly.
+      case 'dotpad': return `${m}.${String(day).padStart(2,'0')}.${String(y).slice(2)}`;
       default:      return `${m}.${day}.${String(y).slice(2)}`;   // 'dot' -- the header's own form
     }
   }
@@ -10290,6 +10579,52 @@ export function initLegacyApp() {
     pushHeaderPresets();
   }
 
+  // The month's five transitions. The waterfall's setHeaderMode() in every respect except which
+  // stores it touches -- deliberately a separate function rather than a parameterised one, because
+  // the two differ in what they seed from and what they bake, and a shared body would be a chain of
+  // `mv ?` conditionals through every branch.
+  //
+  // ⚠️ Auto -> Manual MARKS DIRTY here. The old two-state toggle did too, but only because it
+  // happened to call markDirty() at the end; this makes it structural -- one exit path, and it
+  // always marks and always renders. Same fix setHeaderMode() records for the waterfall.
+  function setMvHeaderMode(next){
+    const from = mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual');
+    if(next === from) return;
+    asOneHeaderStep(()=>{
+      if(next === 'auto'){
+        // Discards hand edits AND formatting, exactly as "Header: Auto" always has.
+        mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderFormat = {}; mvHeaderTemplates = false;
+      } else if(next === 'template'){
+        if(from === 'auto'){
+          // Seed from the built-in default so the lines keep TRACKING the data -- seeding from the
+          // RESOLVED values gives a header that looks identical and then silently stops updating,
+          // which is Manual wearing Template's name.
+          mvHeaderManual = Object.assign({}, DEFAULT_MV_TEMPLATE);
+        }
+        // Manual -> Template keeps the literal strings: text with no tokens is a valid template.
+        mvHeaderMode = 'manual'; mvHeaderTemplates = true;
+      } else {
+        // -> Manual. From Template this is a BAKE: each line becomes the text it resolves to now
+        // and the tokens are gone. The menu says so on the row before it is clicked.
+        if(from === 'template'){
+          const md = computeMvHeaderDefaults(currentSchedule);
+          const baked = {};
+          MV_HDR_IDS.forEach(id=>{ if(id in mvHeaderManual) baked[id] = mvHeaderLine(id, md); });
+          mvHeaderManual = baked;
+        } else if(from === 'auto'){
+          // ⚠️ Object.assign onto a FRESH object, not the returned one: computeMvHeaderDefaults
+          // hangs a non-enumerable __ctx on what it returns, and assigning it wholesale would carry
+          // that into mvHeaderManual and therefore into the undo stack and the saved file.
+          mvHeaderManual = Object.assign({}, computeMvHeaderDefaults(currentSchedule));
+        }
+        mvHeaderMode = 'manual'; mvHeaderTemplates = false;
+      }
+      render(currentSchedule);
+      markDirty();
+    });
+    pushHeaderPresets();
+  }
+
   // The mode menu. A body-level popover anchored to the button -- chrome, and explicitly fair game.
   // Built the way openPhaseColorPop() builds its picker: created on demand, appended to <body>,
   // clamped to the viewport, closed by an outside mousedown or any scroll/resize.
@@ -10314,9 +10649,13 @@ export function initLegacyApp() {
     { key:'manual',   label:'Manual',
       desc:'Plain text you type. Nothing updates itself.' },
   ];
-  function openHeaderModePop(anchorEl){
+  // `mv` selects which header the menu drives. The rows, the copy and the bake warning are the
+  // same in both views -- the modes mean the same thing -- so this is one menu, not two.
+  function openHeaderModePop(anchorEl, mv){
     closeHeaderModePop();
-    const current = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
+    const current = mv
+      ? (mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual'))
+      : (headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual'));
     const pop = document.createElement('div');
     pop.className = 'hdr-mode-pop';
     HDR_MODE_CHOICES.forEach(c=>{
@@ -10354,7 +10693,7 @@ export function initLegacyApp() {
           ev.stopPropagation();
           ev.preventDefault();
           closeHeaderModePop();
-          openHeaderEditor();
+          openHeaderEditor(null, mv);
         });
         row.appendChild(peek);
       }
@@ -10364,7 +10703,7 @@ export function initLegacyApp() {
         row.addEventListener('click', ev=>{
           ev.stopPropagation();
           closeHeaderModePop();
-          setHeaderMode(c.key);
+          if(mv) setMvHeaderMode(c.key); else setHeaderMode(c.key);
         });
       }
       pop.appendChild(row);
@@ -11081,7 +11420,7 @@ export function initLegacyApp() {
     episodeDefs = []; episodeCounter = 0;
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {}; headerTemplates = false;
-    mvHeaderMode = 'auto'; mvHeaderManual = {};
+    mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false;
     headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
@@ -11480,7 +11819,7 @@ export function initLegacyApp() {
       version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, dayOverrides, headerMode, headerManual, headerTemplates,
-      mvHeaderMode, mvHeaderManual, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
+      mvHeaderMode, mvHeaderManual, mvHeaderTemplates, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, singleColumn, sidebarTab,
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
@@ -14404,15 +14743,30 @@ export function initLegacyApp() {
     }
     // 4b. Restore header mode + manual lines. Old saves used per-line headerOverrides;
     //     migrate any of those into manual mode so they aren't lost.
+    // ⚠️ `=== true` and OUTSIDE the branch, exactly as headerTemplates below: every file written
+    // before 21 Sep 2026 has no such key and must land on false, which is Manual -- literal text,
+    // tokens never resolved, byte-for-byte what that file has always rendered.
+    mvHeaderTemplates = snap.mvHeaderTemplates === true;
+    // ⛔ THE ELSE BRANCH IS A BUG FIX, NOT NEW PLUMBING (found 21 Sep 2026 while wiring templates).
+    // There was none, so opening a calendar whose month header is Auto, after one whose month
+    // header was Manual, left the PREVIOUS file's title and date sitting in mvHeaderManual -- and
+    // because mvHeaderMode was never reset either, they kept rendering. The waterfall's twin has
+    // had its else branch all along; this one never did. That is precisely the failure CLAUDE.md's
+    // "Restore unconditionally -- a missing key falls back to a default, never to whatever is in
+    // memory" rule exists for, and it silently showed one show's name on another show's calendar.
     if(snap.mvHeaderMode === 'manual' || (snap.mvHeaderManual && Object.keys(snap.mvHeaderManual).length)){
       mvHeaderMode = 'manual';
       mvHeaderManual = Object.assign({}, snap.mvHeaderManual || {});
-      // Unconditional, both of them: a file saved before this feature existed has no
-      // headerFormat key at all, and must come back UNFORMATTED rather than inheriting whatever
-      // the previously-open calendar was wearing. (CLAUDE.md: "Restore unconditionally".)
-      headerFormat = snap.headerFormat ? Object.assign({}, snap.headerFormat) : {};
-      mvHeaderFormat = snap.mvHeaderFormat ? Object.assign({}, snap.mvHeaderFormat) : {};
+    } else {
+      mvHeaderMode = 'auto'; mvHeaderManual = {};
     }
+    // Unconditional, both of them: a file saved before this feature existed has no
+    // headerFormat key at all, and must come back UNFORMATTED rather than inheriting whatever
+    // the previously-open calendar was wearing. (CLAUDE.md: "Restore unconditionally".)
+    // ⚠️ Hoisted OUT of the branch above by the same fix: they used to be reset only when the
+    // incoming file had a manual month header, so an Auto file inherited the last file's colours.
+    headerFormat = snap.headerFormat ? Object.assign({}, snap.headerFormat) : {};
+    mvHeaderFormat = snap.mvHeaderFormat ? Object.assign({}, snap.mvHeaderFormat) : {};
     // ⚠️ `=== true`, AND OUTSIDE THE BRANCHES BELOW, both deliberately. `if(snap.headerTemplates)`
     // would leave the PREVIOUS file's mode in place when the new snapshot has no such key -- the
     // exact failure CLAUDE.md's "restore unconditionally" rule exists for, and the one that made

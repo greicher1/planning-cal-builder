@@ -120,11 +120,20 @@ window.addEventListener('load', function () { (async function () {
     out.fileKind = parsed && parsed.kind;
     out.fileVersion = parsed && parsed.version;
     out.fileName = parsed && parsed.name;
-    out.fileLines = parsed && parsed.lines;
+    // ⚠️ SECTIONED since .spthdr v2 (21 Sep 2026, owner ruling 1): `sheet` and `month`, either
+    // optional. A deliberate format change, not a weakened test -- the template assertion below is
+    // unchanged and the month section is asserted with it.
+    out.fileLines = parsed && parsed.sheet && parsed.sheet.lines;
+    out.fileMonthLines = parsed && parsed.month && parsed.month.lines;
     // ⭐ The file carries TEMPLATES. If export resolved them, every recipient would get this
     // calendar's values baked in.
     out.fileHasTemplates = !!out.fileLines && out.fileLines.l2 === '{version}' &&
                            out.fileLines.c1 === '{titleSeason}';
+    // ⭐ ...and the same must be true of the month section, or a shared preset would hand over the
+    // sender's episode count and today's date frozen into someone else's calendar.
+    out.fileMonthHasTemplates = !!out.fileMonthLines &&
+                                out.fileMonthLines.today === '{today:dotpad}' &&
+                                out.fileMonthLines.title.indexOf('{titleSeason}') >= 0;
 
     // ---- 3. IMPORT the very same text -- identity, but a fresh id --------------------------------
     var realOpen = window.showOpenFilePicker;
@@ -140,7 +149,7 @@ window.addEventListener('load', function () { (async function () {
     var afterImport = readPrefs().headerPresets || [];
     out.countAfterImport = afterImport.length;
     var imported = afterImport[afterImport.length - 1];
-    out.importedLines = imported && imported.lines;
+    out.importedLines = imported && imported.sheet && imported.sheet.lines;
     out.roundTrip = JSON.stringify(out.importedLines) === JSON.stringify(out.fileLines);
     // ⭐ A fresh id, even though the file was produced by this very app moments ago.
     out.freshId = !!imported && imported.id !== out.originalId && /^hp_/.test(imported.id);
@@ -174,8 +183,11 @@ window.addEventListener('load', function () { (async function () {
     var list3 = readPrefs().headerPresets || [];
     var junky = list3[list3.length - 1];
     out.junkName = junky && junky.name;
-    out.junkLines = junky && junky.lines;
-    out.junkFormat = junky && junky.format;
+    // ⚠️ The junk fixture above is a V1 file (`version: 1`), so this ALSO exercises the forward-only
+    // migration: a v1 file's flat lines are the WATERFALL, and must land in `sheet`.
+    out.junkLines = junky && junky.sheet && junky.sheet.lines;
+    out.junkFormat = junky && junky.sheet && junky.sheet.format;
+    out.junkMigratedToSheet = !!(junky && junky.sheet) && !junky.month;
     out.droppedUnknownLine = !!out.junkLines && !('notAHeaderId' in out.junkLines) &&
                              out.junkLines.c1 === '{title}' && out.junkLines.l2 === '{version}';
     out.droppedUnknownFmt = !!out.junkFormat && !('alsoNotAnId' in out.junkFormat) &&
@@ -209,8 +221,12 @@ window.addEventListener('load', function () { (async function () {
 
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells();
+    // ⚠️ fileVersion 2 since 21 Sep 2026 -- the .spthdr two-section format (owner ruling 1). The two
+    // new conjuncts are the month section's templates and the v1 -> sheet migration; both are new
+    // guarantees, so PASS gets stricter here rather than merely being re-pointed at a new number.
     out.PASS = out.savedOne && out.exportBtnFound && out.pickerCalled && out.suggestedLooksRight &&
-               out.fileKind === 'spt-header-preset' && out.fileVersion === 1 && out.fileHasTemplates &&
+               out.fileKind === 'spt-header-preset' && out.fileVersion === 2 && out.fileHasTemplates &&
+               out.fileMonthHasTemplates && out.junkMigratedToSheet &&
                out.roundTrip && out.freshId &&
                out.refusesJunk && out.refusesGarbage && out.dropsUnknown &&
                out.importedIsUsable && out.stillNeverTravels &&

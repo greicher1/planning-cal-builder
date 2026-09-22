@@ -29,6 +29,113 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month header becomes a template system
+
+Owner ruling, 21 Sep 2026, on [`MONTH-HEADER-PLAN.md`](MONTH-HEADER-PLAN.md) §6: **one preset file
+with two sections**, **both** new slots, **the same editor** retargeted by view, and **`.spthdr`
+keeps its extension** with the reader validating `version` up front. Built against that plan.
+
+**What the month header is now.** Three modes — Auto / Template / Manual — over **four** slots
+instead of two, sharing the waterfall's resolver, its token catalogue and its template editor.
+Separate stores, one grammar: two resolvers would eventually disagree about what `{episodes}` means
+inside one document, which is the divergence `computePhaseRowLayout()` exists to prevent, applied
+to text.
+
+| | |
+|---|---|
+| slots | `tleft` · `title` · `subtitle` · `today` |
+| mode | `mvHeaderMode` + the new `mvHeaderTemplates` flag |
+| default | `DEFAULT_MV_TEMPLATE` — `[{titleSeason} ]Full Prelim Production Calendar` / `{today:dotpad}` |
+| editor | the existing one, switched by view |
+| preset file | `.spthdr` **v2**: `{sheet:{…}, month:{…}}`, either section optional |
+
+⭐ **THE LEFT SLOT IS FREE, AND THAT IS A MEASUREMENT RATHER THAN A CLAIM.** The month header was
+already carrying an **84 px blank box** — `.mv-titlebar::before`, `content:''`, whose only job was
+to balance the date on the right so the title read centred. (`--mv-today-w` was never assigned
+anywhere in the codebase, so its fallback was its only value.) `.mv-tleft` takes over that exact
+box, so an empty left slot occupies what the spacer did and a filled one costs **no height at all**.
+It is `min-width` rather than `width` so longer text grows and pushes the title instead of being
+clipped — losing someone's words in a PDF is worse than an off-centre title — and `white-space:
+nowrap`, because a wrap here would add a line box and forfeit the entire reason it was free.
+
+⭐ **THE SUBTITLE COSTS 26 px, AND ONLY WHEN IT IS USED.** It carries `.hdr-slot`, so the existing
+`.hdr-line.hdr-slot.hdr-empty` rule removes it entirely when empty — the same guarantee `l2`/`l3`/
+`c4` give the waterfall. Every calendar ever saved prints exactly as it did. ⚠️ And the cost is not
+what "adds height to every month PDF" suggests: `exportMonthPdf` fits **each month to one sheet**,
+so a filled subtitle does not lengthen the document or spill a page — it takes 26 px from the week
+rows on that page.
+
+⛔ **A REGRESSION THIS NEARLY SHIPPED, found by measuring rather than by reading the cascade.** In
+**Manual** mode every header line carries `.hdr-editable`, so
+`.hdr-slot.hdr-empty:not(.hdr-editable)` stops matching and the empty subtitle came back as a real
+24 px line — which would have landed in the PDF of every month calendar ever saved in Manual mode,
+breaking exactly the guarantee the slot was designed around. Fixed with two `#print-root` rules that
+hide an empty added slot and the dashed "there is a slot here" outline. ⚠️ **They sit OUTSIDE
+`@media print`**, for the reason the `.wf-print` block already records: the month export **measures
+`#print-root` off-screen** and divides the page between the week rows by what it measured, so a rule
+that applied only while printing would reserve 26 px the printed page never uses — a worse bug than
+the one it fixed.
+
+⛔ **`{today}` IS NOT THE MONTH'S DATE FORMAT, AND ASSUMING IT WAS WOULD HAVE CORRUPTED A THIRD OF
+THE YEAR.** The waterfall's `{today}` renders `M.D.YY`; the month header has always rendered
+`M.DD.YY`. Enumerating 400 consecutive days: they agree on **279** and differ on **121** — every
+1st to 9th of every month. Today, 21 Sep, is one of the days they agree on, so a same-day browser
+check would have "verified" it. `{today:dotpad}` was added for this and `DEFAULT_MV_TEMPLATE` uses
+it, so Template mode resolves **byte-identically** to Auto.
+
+**A latent duplication is deleted rather than added to.** The month's two auto strings were built
+inside frozen `renderMonthView` **and** rebuilt verbatim in the `#mv-hdr-mode-btn` handler so that
+switching to Manual could snapshot them — two copies of one rule, one of them frozen and therefore
+unfixable if they drifted. Both call `computeMvHeaderDefaults()` now.
+
+⛔ **A RESTORE BUG FIXED IN PASSING, and it is the failure CLAUDE.md's "restore unconditionally"
+rule exists for.** `applyStateSnapshot()` had **no else branch** for the month header, so opening a
+calendar whose month header was Auto, after one whose month header was Manual, left the previous
+file's title and date rendering — one show's name on another show's calendar, silently. The
+waterfall's twin has had its else branch all along. `mvHeaderFormat`/`headerFormat` were reset only
+when the incoming file had a manual month header, and are now hoisted out of the branch too.
+
+**Save format.** `mvHeaderTemplates` joins `captureSnapshot()`, restores with `=== true` outside the
+branches, and resets on New. Absent means `false`, which is Manual — so a legacy month header
+containing `{today}` still prints the literal `{today}`. Verified against a fixture written in the
+pre-feature shape.
+
+**Preset files.** `.spthdr` v2 carries `sheet` and `month` sections, either optional; an absent
+section is **omitted**, not written as `null`, because "has no month header" and "has an empty month
+header" are different claims. A v1 file's flat `lines` **are** the waterfall, so they fold into
+`sheet` and the month is left alone — migrated on read, so a preset never opened is never touched.
+A file from a newer format version is refused **entirely, before any content is read**: a
+half-imported preset is one the user believes in and cannot see the holes in. Applying a preset
+touches every section it has as **one** undo step, and a view asking for a section the preset lacks
+is refused **by name**.
+
+⛔ **THE GATE CAUGHT A REAL REGRESSION IN THIS WORK, WHICH IS WHY IT EXISTS.** The first cut of
+`headerPresetCapture()` offered Save-as whenever **any** section was capturable — so a user with a
+**Manual** waterfall and an untouched month could save a preset that silently omitted the header
+they were looking at and carried only the month's built-in defaults. `hdrpreset`'s H8 assertion
+(*"Save-as is refused in Manual, and says why"*) went red and named it. Decision H8 is now
+**generalised rather than relaxed**: at least one section must be in Template, an Auto section may
+ride along with a Template one but never be the only thing in the file, and the hint says which
+Manual section is being left out.
+
+⚠️ **Four other gate failures were the tests asserting the v1 file shape**, which changed
+deliberately under ruling 1. They were **updated, not relaxed** — each site carries a comment saying
+so — and both files now assert the v2 shape **plus two new guarantees**: the month section travels
+as templates, and a v1 file migrates into `sheet` with `month` absent.
+
+**Verified.** Print-container A/B against the pre-change build on `dayoverrides.sptcal`: page height,
+header, titlebar, title, date, month bar, day-name row, body, all five week rows, 4 pills and 35 day
+cells **all identical** — the DOM gains exactly 2 elements (`.mv-tleft`, and `.mv-subtitle` which is
+`display:none`). Template mode resolves byte-identically to Auto, with and without a show title.
+Two new fixtures (`mvheader.sptcal`, `mvheaderlegacy.sptcal`) restore correctly, the second proving
+braces stay literal. New Node prover `tests/harness/prove-header-preset.mjs` — **40 assertions** over
+the v1 migration, the v2 round trip, absent sections, the version refusal and per-section id
+filtering. `prove-header-template.mjs` still 73/73. **Full `gate.sh`: 305 pass, all five numbered gates green**
+— clipped cells 0, waterfall PDF and Excel parts identical to baseline, v1.0.0 restore identical,
+`fields.byId` 59 ids identical. ⚠️ One leg (`stintreshape`) reported *"produced no result"* with a
+0-byte dump and **passes standalone** with the gate's own invocation; three different legs hit that
+in one session, which is `run.sh`'s fixed wall-clock kill timer, not a product fault.
+
 ### Unreleased — the header styling toolbar says why it is inert
 
 Owner report, 21 Sep 2026: *"the styling menu does not seem to work"* (month view). Local, not

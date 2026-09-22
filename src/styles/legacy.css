@@ -1286,7 +1286,26 @@
   .mv-titlebar{ display:flex; align-items:baseline; gap:12px; }
   .mv-title{ flex:1; text-align:center; font-size:22px; font-weight:700; }
   .mv-today{ font-size:20px; font-weight:700; color:#000; white-space:nowrap; }
-  .mv-titlebar::before{ content:''; flex:0 0 auto; width:var(--mv-today-w, 84px); }
+  /* ⛔ THE LEFT SLOT REPLACES A BLANK SPACER, AND THAT IS WHY IT COSTS NO HEIGHT.
+     This used to be `.mv-titlebar::before{ content:''; flex:0 0 auto; width:var(--mv-today-w,84px) }`
+     -- 84px of permanently empty box whose only job was to balance the date on the right so the
+     title read centred. (--mv-today-w was never assigned anywhere, so 84px was its only value.)
+     .mv-tleft takes over that box, so an EMPTY left slot occupies exactly what the spacer did and
+     every month PDF ever printed is unchanged. Verified by measurement, not by reading this.
+
+     min-width, not width: text longer than the reservation grows the box and pushes the title
+     rather than being clipped -- losing a user's words in a PDF is worse than an off-centre title.
+     ⛔ white-space:nowrap is load-bearing: a wrap here would add a line box and forfeit the entire
+     reason this slot was free. box-sizing is border-box globally, so .hdr-line's `padding:0 3px`
+     is inside the 84px and the flex row totals what it always did. */
+  .mv-tleft{ flex:0 0 auto; min-width:var(--mv-today-w, 84px); white-space:nowrap;
+             font-size:20px; font-weight:700; }
+  /* Empty and editable, it needs to be findable -- the dashed outline .hdr-slot gets. It cannot USE
+     .hdr-slot (that hides it when empty, which would collapse the reservation), so it says so here. */
+  .mv-tleft.hdr-editable.hdr-empty{ outline:1px dashed var(--border-strong); outline-offset:1px; }
+  /* The subtitle is a real new LINE and hides when empty via .hdr-slot.hdr-empty, so it adds height
+     only to a calendar that actually fills it. Sits under the title, centred with it. */
+  .mv-subtitle{ text-align:center; font-size:16px; font-weight:400; color:var(--text); margin-top:2px; }
   .mv-arrow{
     font-family:inherit; font-size:13px; line-height:1; cursor:pointer;
     border:1px solid var(--border-strong); background:#fff; color:var(--text-muted);
@@ -1534,6 +1553,22 @@
   }
   /* ---------- Calendar PDF export (browser print) ---------- */
   #print-root{ display:none; }
+  /* ⛔ AN EMPTY ADDED SLOT MUST NOT PRINT, EVEN IN MANUAL MODE -- and without this it would.
+     `.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable){display:none}` hides an unused slot, but
+     MANUAL mode puts .hdr-editable on every line, so the `:not()` stops matching and the empty
+     subtitle came back as a real 24px line. On screen that is right -- it is the empty slot you
+     click to fill. On PAPER it is 24px of nothing, and it would have landed in the PDF of every
+     month calendar ever saved in Manual mode, which is precisely the guarantee the new slot was
+     designed around. Found by measuring a legacy Manual fixture, not by reading the cascade.
+     ⛔ OUTSIDE @media print, deliberately, for the reason the .wf-print block above states: the
+     month export MEASURES #print-root off-screen and divides the page between the week rows by
+     what it measured. A rule that applied only while printing would have the fit reserve 24px
+     that the printed page never uses, leaving a gap -- worse than the bug it fixed.
+     One id beats the four classes in the screen rule, so no !important is needed. */
+  #print-root .hdr-line.hdr-slot.hdr-empty{ display:none; }
+  /* Same category: the dashed "there is a slot here" outline on an empty left slot is an editing
+     affordance with no business on paper. The left slot keeps its 84px box either way. */
+  #print-root .mv-tleft.hdr-editable.hdr-empty{ outline:none; }
   /* Waterfall PDF look: compact rows + Excel's grey header, to read like the Excel print. Scoped
      to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
      fit-to-page measurement sees exactly the size that will print. */

@@ -941,6 +941,18 @@ inside frozen `render()`. Observing mutates nothing. ⚠️ The note's rendered 
 behaviour back in the cell were not touched and must not be; the frozen `renderMonthView` still emits
 its anchor.
 
+**9.7 — ⛔ NEW (21 Sep 2026): the month header's MANUAL-MODE TINT PRINTS.**
+`.mv-header.hdr-manual-mode` carries `background:#faf7ff`, an inset lavender ring and **`padding:8px`**,
+and **nothing strips it in `#print-root`** — `.mv-tools` beside it *is* stripped, this never was. So a
+month calendar in Manual or Template mode prints its header inside a pale purple editing box **16 px
+taller** than the same calendar in Auto. Found while measuring the new subtitle slot; it is
+**pre-existing** — Manual mode has always done this — and it is the waterfall's `.cal-header-bar.hdr-manual-mode`
+twin except that the waterfall's carries no padding, so only the month pays height for it.
+⚠️ **Not changed, deliberately:** fixing it moves the month PDF of every calendar ever saved in
+Manual mode, which is exactly the class of change the freeze reserves for an owner ruling. The fix
+is two lines beside the rules that already hide the empty added slot. **Recommended: strip it** — an
+editing affordance has no business on paper — with the month-PDF before/after the freeze demands.
+
 **9.6 — The single-file size budget.** ✅ **Settled by building it.** The projection was ~1.0–1.15 MB
 (`MANTINE-MIGRATION.md` §3) and the build landed at 1,096 KB with the full stylesheet. Round 7 then
 took the per-component CSS (26 files, not the 273 KB bundle) *and* added the embedded font, and the

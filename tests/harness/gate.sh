@@ -933,6 +933,8 @@ chk(a.get('manualSaveDisabled') and a.get('manualExplains'),
 chk(a.get('templateSaveEnabled'), "hdrpreset: ...and offered in Template")
 chk(a.get('storesTemplates'),
     f"hdrpreset: ⭐ H8 -- the preset stores TEMPLATES, not values (l2={((a.get('savedLines') or {}).get('l2'))!r})")
+chk(a.get('savedBothSections'),
+    "hdrpreset: ⭐ ruling 1 -- one preset carries BOTH sections, so a shared look reaches both outputs")
 chk(a.get('idGenerated'), f"hdrpreset: ids are generated, never the name ({a.get('savedId')!r})")
 chk(a.get('listGrew') and a.get('twoSaved'), "hdrpreset: saving adds to the list")
 chk(a.get('applySwitchedMode') and a.get('applyResolved'),
@@ -971,10 +973,18 @@ if 'EX' in a:
     print('  FAIL  hdrfile threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('pickerCalled') and a.get('suggestedLooksRight'),
     f"hdrfile: Export opens the real picker with a sensible name ({a.get('suggestedName')!r}, {a.get('pickerTypeDesc')!r})")
-chk(a.get('fileKind')=='spt-header-preset' and a.get('fileVersion')==1,
+# ⚠️ v2 since 21 Sep 2026 (owner ruling 1): one file, two optional sections. A DELIBERATE format
+# change -- see MONTH-HEADER-PLAN.md §6 and README's changelog, not a test relaxed to go green.
+# prove-header-preset.mjs covers the v1 -> v2 migration exhaustively; this leg proves the real
+# export/import path carries it.
+chk(a.get('fileKind')=='spt-header-preset' and a.get('fileVersion')==2,
     f"hdrfile: the file declares its kind and version ({a.get('fileKind')!r} v{a.get('fileVersion')})")
 chk(a.get('fileHasTemplates'),
     "hdrfile: ⭐ the FILE carries templates, not values -- or every recipient gets this calendar's data baked in")
+chk(a.get('fileMonthHasTemplates'),
+    "hdrfile: ⭐ ...and so does the MONTH section -- both outputs travel as templates, never as values")
+chk(a.get('junkMigratedToSheet'),
+    "hdrfile: ⭐ a V1 preset file migrates into the `sheet` section and leaves `month` absent")
 chk(a.get('roundTrip'), "hdrfile: export -> import returns the same nine lines")
 chk(a.get('freshId'), "hdrfile: ⭐ an imported preset gets a FRESH id, so an import cannot overwrite an existing preset")
 chk(a.get('refusesJunk'), f"hdrfile: a file without `kind` is refused ENTIRELY ({a.get('countAfterJunk')} presets, unchanged)")

@@ -147,7 +147,17 @@ window.addEventListener('load', function () { (async function () {
     var storedA = readPrefs().headerPresets || [];
     out.savedCount = storedA.length;
     out.savedName = storedA[0] && storedA[0].name;
-    out.savedLines = storedA[0] && storedA[0].lines;
+    // ⚠️ `.sheet.lines`, not `.lines`, since the .spthdr v2 format (21 Sep 2026): a preset is now
+    // one file with TWO optional sections, `sheet` and `month`. This is a DELIBERATE format change
+    // under owner ruling 1, not a test weakened to go green -- the assertion below is unchanged in
+    // substance and the month section is asserted alongside it.
+    out.savedSheet = storedA[0] && storedA[0].sheet;
+    out.savedMonth = storedA[0] && storedA[0].month;
+    out.savedLines = out.savedSheet && out.savedSheet.lines;
+    // ⭐ Ruling 1: saving captures the look across BOTH outputs, so the month section travels too.
+    out.savedBothSections = !!out.savedSheet && !!out.savedMonth &&
+      out.savedMonth.lines && out.savedMonth.lines.title === '[{titleSeason} ]Full Prelim Production Calendar' &&
+      out.savedMonth.lines.today === '{today:dotpad}';
     // ⭐ H8 itself: l2 is the token, not the rendered version.
     out.storesTemplates = !!out.savedLines &&
       out.savedLines.l2 === '{version}' &&
@@ -282,7 +292,8 @@ window.addEventListener('load', function () { (async function () {
                out.primaryMatchesTab && out.secondaryStaysPlain &&
                out.defaultFirst && out.defaultNotEditable && out.storeEmptyAtBoot &&
                out.manualSaveDisabled && out.manualExplains && out.templateSaveEnabled &&
-               out.storesTemplates && out.idGenerated && out.listGrew && out.twoSaved &&
+               out.storesTemplates && out.savedBothSections &&
+               out.idGenerated && out.listGrew && out.twoSaved &&
                out.applySwitchedMode && out.applyResolved && out.applyIsOneUndoStep &&
                out.neverInSnapshot && out.appliedHeaderTravels && out.renameWorked &&
                out.deleteClean &&

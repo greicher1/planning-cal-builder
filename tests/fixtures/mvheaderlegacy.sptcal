@@ -1,0 +1,374 @@
+{
+ "version": 1,
+ "customPhaseDefs": [],
+ "customPhaseCounter": 0,
+ "phaseColorOverride": {},
+ "episodeDefs": [
+  {
+   "id": "ep1",
+   "name": "Episode 201",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep2",
+   "name": "Episode 202",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep3",
+   "name": "Episode 203",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep4",
+   "name": "Episode 204",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep5",
+   "name": "Episode 205",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep6",
+   "name": "Episode 206",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep7",
+   "name": "Episode 207",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep8",
+   "name": "Episode 208",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep9",
+   "name": "Episode 209",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep10",
+   "name": "Episode 210",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  }
+ ],
+ "episodeCounter": 10,
+ "userNotes": {},
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "dayOverrides": {
+  "2026-07-11": "on",
+  "2026-07-07": "off",
+  "2026-07-03": "on",
+  "2026-07-06": "half"
+ },
+ "headerMode": "auto",
+ "headerManual": {},
+ "headerTemplates": false,
+ "mvHeaderMode": "manual",
+ "mvHeaderManual": {
+  "title": "Budget {titleSeason} — do not use {today}",
+  "today": "{version}"
+ },
+ "headerFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {
+  "2026-07-13": "Summer Break"
+ },
+ "hiatusColors": {},
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {
+  "2026-07-13": "Summer Break"
+ },
+ "holidayView": {
+  "martin-luther-king-jr-day@2026": {
+   "month": false
+  },
+  "presidents-day@2026": {
+   "month": false
+  },
+  "memorial-day@2026": {
+   "month": false
+  },
+  "juneteenth@2026": {
+   "month": false
+  },
+  "independence-day-observed@2026": {
+   "month": false
+  },
+  "independence-day@2026": {
+   "month": false
+  },
+  "labor-day@2026": {
+   "month": false
+  },
+  "thanksgiving@2026": {
+   "month": false
+  },
+  "day-after-thanksgiving@2026": {
+   "month": false
+  },
+  "christmas-day@2026": {
+   "month": false
+  },
+  "new-years-day@2027": {
+   "month": false
+  },
+  "martin-luther-king-jr-day@2027": {
+   "month": false
+  },
+  "presidents-day@2027": {
+   "month": false
+  }
+ },
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "month",
+ "singleColumn": false,
+ "sidebarTab": "show",
+ "colWidths": {},
+ "colWidthsAlt": {},
+ "rowHeights": {},
+ "rowHeightsByWeek": {},
+ "cellSpans": {},
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "Test Show"
+   },
+   "season-num": {
+    "value": "2"
+   },
+   "shoot-days-per-ep": {
+    "value": "8"
+   },
+   "num-episodes": {
+    "value": "10"
+   },
+   "show-version": {
+    "value": ""
+   },
+   "union-place": {
+    "value": "us-general"
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": "2026-01-05"
+   },
+   "weeks-writersRoom": {
+    "value": "12"
+   },
+   "snap-writersRoom": {
+    "checked": true
+   },
+   "phiatus-en-writersRoom": {
+    "checked": false
+   },
+   "phiatus-name-writersRoom": {
+    "value": ""
+   },
+   "phiatus-start-writersRoom": {
+    "value": ""
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": "2026-04-08"
+   },
+   "weeks-prePrep": {
+    "value": "6"
+   },
+   "snap-prePrep": {
+    "checked": false
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": "2026-05-18"
+   },
+   "weeks-prodPrep": {
+    "value": "6"
+   },
+   "snap-prodPrep": {
+    "checked": true
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": "2026-06-29"
+   },
+   "snap-production": {
+    "checked": true
+   },
+   "weeks-production": {
+    "value": "80"
+   },
+   "phiatus-en-production": {
+    "checked": false
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": ""
+   },
+   "phiatus-weeks-production": {
+    "value": "2"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": "2026-11-02"
+   },
+   "weeks-post": {
+    "value": "16"
+   },
+   "snap-post": {
+    "checked": true
+   },
+   "phiatus-en-post": {
+    "checked": false
+   },
+   "phiatus-name-post": {
+    "value": ""
+   },
+   "phiatus-start-post": {
+    "value": ""
+   },
+   "phiatus-weeks-post": {
+    "value": "2"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": ""
+   },
+   "weeks-localization": {
+    "value": ""
+   },
+   "snap-localization": {
+    "checked": true
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2026-12-21",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2027-12-20",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2028-12-18",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2029-12-24",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2026-07-13",
+    "weeks": "1",
+    "locked": true,
+    "name": "Summer Break"
+   }
+  ]
+ }
+}

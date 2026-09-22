@@ -1,7 +1,37 @@
 # MONTH-HEADER-PLAN.md
 
-**Status:** plan only. **No code written.** Written 21 Sep 2026 against `2863460`.
-**✅ All four rulings in §6 landed 21 Sep 2026 — the plan is unblocked and ready to build.**
+**Status:** ✅ **BUILT, 21 Sep 2026.** All seven steps of §7, against the four §6 rulings.
+Written as a plan against `2863460`; this header is the only part kept up to date after the build —
+the sections below are the plan as it was reasoned, and `README.md`'s changelog entry plus
+`HANDOFF.md` are what shipped.
+
+**What changed from the plan while building it, and why:**
+
+- ⭐ **Step 1 does NOT route Auto through the resolver.** The plan said the frozen `mvDefaults`
+  should "become a call rather than a rule" by resolving `DEFAULT_MV_TEMPLATE`. It became a call to
+  hand-coded `computeMvHeaderDefaults()` instead, because `DEFAULT_HEADER_TEMPLATE` carries an
+  explicit standing instruction not to do the other thing: *"Do not 'simplify' by making Auto read
+  this template… routing them through the resolver puts the byte-identical baseline at risk for no
+  user-visible gain."* The §1.3 duplication is still deleted — the mode-toggle handler's copy was
+  the live one — and `DEFAULT_MV_TEMPLATE` is guarded as a deliberate duplicate the same way its
+  waterfall twin is.
+- ⭐ **The third mode needed no new `mvHeaderMode` value.** `mvHeaderTemplates` is a FLAG, exactly
+  as `headerTemplates` is, so frozen `renderMonthView`'s `mvHeaderMode === 'manual'` gate is
+  untouched and no file saved before today can reach the new branch.
+- ⛔ **`{today}` was not a drop-in**, which §1.3 flagged as worth checking and which turned out to
+  matter on **121 days a year**. `{today:dotpad}` was added.
+- ⛔ **A regression the plan's gate would not have caught:** in Manual mode every line carries
+  `.hdr-editable`, so the "empty added slots are hidden" guarantee silently stopped applying and the
+  empty subtitle would have printed. See the changelog.
+- ⛔ **A pre-existing restore bug was found and fixed** — the month header had no else branch in
+  `applyStateSnapshot()`.
+
+⚠️ **One thing deliberately NOT changed, and it needs an owner ruling:** `.mv-header.hdr-manual-mode`
+carries `padding:8px` and a lavender tint, and **nothing strips it in print**. So a month calendar in
+Manual or Template mode already prints a 16 px taller header inside a pale purple box — an editing
+affordance on paper. That is **pre-existing** (Manual mode has always done it) and changing it would
+move the PDF of every existing Manual-mode month calendar, so it was left alone. `.mv-tools` next to
+it *is* stripped; this was simply never noticed.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md) §2–§3 (the waterfall system this extends) →
 [`MANTINE-SEAM.md`](MANTINE-SEAM.md) §5.2 (why `renderMonthView` is an export renderer).

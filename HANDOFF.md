@@ -4,6 +4,151 @@
 
 ## 🔴 START HERE — sessions of 18 + 21 Sep 2026
 
+### ✅ BUILT 21 Sep 2026 (second half of the session): THE MONTH-VIEW HEADER TEMPLATE SYSTEM
+
+`MONTH-HEADER-PLAN.md` steps 1–7, against the four §6 rulings the owner gave earlier the same day.
+**Not committed, not pushed at time of writing.** The full changelog entry is in `README.md`; this
+is what a next session needs that the changelog does not say.
+
+**The shape.** Three modes (Auto / Template / Manual) over **four** slots — `tleft`, `title`,
+`subtitle`, `today` — sharing the waterfall's resolver, token catalogue and template editor.
+Separate stores, one grammar.
+
+⛔ **`mvHeaderTemplates` IS A FLAG, NOT A THIRD `mvHeaderMode` VALUE**, exactly as `headerTemplates`
+is (decision H3). Frozen `renderMonthView`'s `mvHeaderMode === 'manual'` gate is untouched, so
+Template mode is `manual` PLUS the flag and no file saved before today can reach the new branch.
+**This is the single decision that kept the frozen edit small** — do not "tidy" it into a third
+enum value.
+
+**The five frozen edits, all in `renderMonthView`:** `mvDefaults` became a call to
+`computeMvHeaderDefaults()`; `mvManualEdit` was added (Template is not editable in place); `mvLine`
+calls the new `mvHeaderLine()` choke point and stamps `.hdr-slot` on new slots; the mode button's
+label/title gained the Template case; and the titlebar gained `tleft` + `subtitle`.
+
+⭐ **THE PRINT-CONTAINER A/B, which is the evidence that matters.** `#print-root`, `dayoverrides`
+fixture, pre-change build vs this one:
+
+| | |
+|---|---|
+| page height · header · titlebar · title · date | **all identical** |
+| month bar · day-name row · body | **all identical** |
+| all five week row heights (`38,94,56,56,56`) | **identical** |
+| pills · day cells | 4 · 35 — **identical** |
+| elements | 235 → **237** — `.mv-tleft` and `.mv-subtitle`, nothing else |
+
+⭐ **THE LEFT SLOT COSTS NOTHING BECAUSE THE SPACE WAS ALREADY RESERVED.** `.mv-titlebar::before`
+was an 84 px blank box balancing the date so the title read centred; `.mv-tleft` takes over that
+exact box. `min-width` not `width`, so long text grows and pushes the title rather than being
+clipped; `white-space:nowrap`, because a wrap adds a line box and forfeits the whole point.
+
+⛔ **THE REGRESSION THAT NEARLY SHIPPED, AND THE LESSON IS BIGGER THAN THE BUG.** The subtitle hides
+when empty via `.hdr-line.hdr-slot.hdr-empty:not(.hdr-editable)` — but **Manual mode puts
+`.hdr-editable` on every line**, so the `:not()` stopped matching and an empty subtitle came back as
+a real 24 px line. It would have landed in the PDF of every month calendar ever saved in Manual
+mode, which is exactly the guarantee the slot was designed around. ⭐ **Found by measuring a legacy
+Manual fixture inside `#print-root`, not by reading the cascade** — the on-screen Auto check was
+clean and said nothing about it. Fixed with two `#print-root` rules.
+
+⛔ **AND THOSE RULES SIT OUTSIDE `@media print`, WHICH IS NOT OPTIONAL.** They were written inside it
+first and were inert where it counts. `exportMonthPdf` **measures `#print-root` off-screen** — not in
+print media — and divides the page between the week rows by what it measured, so a print-only rule
+would have the fit reserve 26 px the printed page never uses. The `.wf-print` block above already
+records this exact trap; it is worth reading before touching anything in that band.
+
+⛔ **`{today}` IS NOT THE MONTH'S DATE FORMAT.** `{today}` is `M.D.YY`; the month header has always
+been `M.DD.YY`. Enumerated over 400 consecutive days: agree on **279**, differ on **121** — every
+1st to 9th. ⚠️ **Today (21 Sep) is one of the days they agree on**, so a same-day browser check
+would have passed and a third of the year would have printed the wrong date. `{today:dotpad}` was
+added to `fmtHeaderDate` for this.
+
+⛔ **A PRE-EXISTING RESTORE BUG, FIXED.** `applyStateSnapshot()` had **no else branch** for the month
+header, so opening an Auto-header calendar after a Manual-header one left the previous file's title
+and date rendering — one show's name on another show's calendar, silently. The waterfall's twin has
+had its else branch all along. `mvHeaderFormat`/`headerFormat` were also reset only inside that
+branch and are now hoisted out.
+
+**Preset files are `.spthdr` v2**: `{sheet:{…}, month:{…}}`, either section optional and an absent
+one **omitted** rather than written `null`. A v1 file's flat `lines` fold into `sheet`, migrated
+**on read** so a preset never opened is never touched. A newer version is refused **entirely**.
+New prover `tests/harness/prove-header-preset.mjs` — 40 assertions, and it slices the real functions
+out of `app.js` the way `prove-header-template.mjs` does.
+
+**Two new fixtures.** `mvheader.sptcal` (Template mode, all four slots, a format) and
+`mvheaderlegacy.sptcal` (Manual, brace-containing text, **no** `mvHeaderTemplates` key — the
+pre-feature shape). The second is the backward-compatibility proof: braces stay literal.
+
+⚠️ **NOT DONE, and it needs an owner ruling:** `.mv-header.hdr-manual-mode` has `padding:8px` and a
+lavender tint and **nothing strips it in print**, so a Manual/Template month calendar already prints
+a 16 px taller header inside a pale purple box. Pre-existing — Manual mode has always done it — and
+changing it moves every existing Manual-mode month PDF, so it was left alone. `.mv-tools` beside it
+*is* stripped.
+
+⏭ **No `gate.sh` leg loads either new fixture yet**, same gap the `dayoverrides` fixture has. The
+month PDF remains the only one of the four outputs with no gate coverage.
+
+### ⛔ THE GATE RUN OVER THIS WORK — what it caught, and what was done about it
+
+**All five numbered gates PASSED** on the first run over the month-header build: clipped cells 0,
+waterfall PDF **identical to baseline**, Excel parts **identical**, v1.0.0 restore **identical**,
+`fields.byId` **59 ids identical**. The frozen surface and the save-format contract never moved.
+
+⭐ **IT ALSO CAUGHT A REAL REGRESSION, WHICH IS WHY THE LEGS EXIST.** `hdrpreset`'s H8 assertion —
+*"Save-as is refused in Manual, and says why"* — went red. The first cut of `headerPresetCapture()`
+offered Save-as whenever **any** section was capturable, so a user with a **Manual waterfall** and an
+untouched month could save a preset that silently omitted the header they were looking at and
+carried only the month's built-in defaults. That is the half-imported-preset failure in a different
+coat. **Fixed**: at least one section must be in **Template**; an Auto section still rides along
+with a Template one (ruling 1's "one look"), but may not be the only thing in the file. The hint now
+names why, and `omitted` names any Manual section being left out.
+
+⚠️ **FOUR OTHER FAILURES WERE THE TESTS ASSERTING THE v1 FILE SHAPE** — `stored.lines`, `o.lines`,
+`version === 1` — a format that changed deliberately under ruling 1. They were **updated, not
+relaxed**, and each carries a comment saying so; `gate.sh` and both test files now assert the v2
+shape **plus two new guarantees**: the month section travels as templates, and a v1 file migrates
+into `sheet` with `month` absent. ⛔ **Do not read "tests updated" as "failure absorbed"** — the
+distinction is written at each site, and `prove-header-preset.mjs` covers the migration
+exhaustively in Node besides.
+
+### ✅ THE GATE, FINAL RUN (22 Sep 2026): 305 pass, 1 harness flake, all five numbered gates green
+
+Run clean, on a machine held awake, over the finished build. **All five numbered gates passed** —
+clipped cells 0, waterfall PDF **identical to baseline**, Excel parts **identical**, v1.0.0 restore
+**identical**, `fields.byId` **59 ids identical** — and every header leg passed, including the two
+that were red before the H8 fix.
+
+⛔ **ONE LEG FAILED AND IT IS A HARNESS FLAKE, WHICH IS NOW A PATTERN RATHER THAN AN INCIDENT.**
+`stintreshape` reported *"produced no result"* with a **0-byte** `stintreshape.html`. Re-run with
+`gate.sh`'s own invocation it passes — `PASS: True`, no exception, no console errors — and its dump
+is **1.66 MB**. So Chrome was killed before it wrote anything.
+
+⭐ **THREE DIFFERENT LEGS HIT THIS IN ONE SESSION** — `rowmigrate`, `hdrtemplate`, `stintreshape` —
+each in a different run, each passing standalone. The cause is `run.sh`'s wait:
+`for i in $(seq 1 $SECS); do sleep 1; done; kill -9`. It is a **fixed wall-clock timer**, so a leg
+that runs slowly (a loaded machine, an overnight system sleep, 28 legs back to back) is killed
+mid-render and reports as a product failure. ⛔ **This makes a full-gate verdict unreliable, and it
+promotes open item 3 from an optimisation to a correctness fix**: poll for the dumped file to appear
+and stabilise, then kill — the ~15-line pattern already proven in `tools/make-icon.py`. Until then,
+**re-run any "produced no result" leg with the invocation copied out of `gate.sh` before believing
+it**, and do not run a gate across a system sleep.
+
+⚠️ **PROVING THE FIRST ONE TOOK A SECOND MISTAKE WORTH RECORDING.** `rowmigrate` reported *"produced no result"* with a **0-byte** `rowmigrate.html` —
+Chrome dumped nothing. Re-running it standalone "failed" too, which looked like confirmation — but
+the re-run was **invalid**: `gate.sh` runs that leg as
+`HARNESS_STATE=rowheightlegacy ./run.sh rowmigrate 130`, and without the fixture there is no
+restored grid to wait for, so the timeout was guaranteed. ⭐ **This is the documented "a leg
+standalone silently tests a different program" trap wearing different clothes — not the PAGE this
+time, the STATE.** Run with the state and the budget the gate uses and it passes every assertion
+(`movedRow`, `heightFollowedWeek`, `stillOnlyOneTall`, 0 errors). **Copy the invocation out of
+`gate.sh`; do not retype it.**
+
+⚠️ **`run.sh` piped into another command hangs intermittently.** Several standalone legs sat well
+past `run.sh`'s own ~`SECS+5` self-limit when their output was piped straight into `python3 -c`.
+Redirecting to a file first and parsing it in a separate step works every time. A stale
+`srv.js 8231` left by a killed run makes it worse — clear it before re-running.
+
+---
+
+
 ### Where things are
 
 **LIVE at `62cc0dc`**, verified on the deployed site — byte-identical to a local build (1,254,040
