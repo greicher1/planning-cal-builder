@@ -114,6 +114,71 @@ window.addEventListener('load', function () { (async function () {
     var pills = [].map.call(document.querySelectorAll('#table-wrap .mv-pill'), function (p) { return (p.textContent || '').trim(); });
     out.mvEpisodePills = pills.filter(function (t) { return /^Episode\b/.test(t); }).length;
     out.mvProductionPills = pills.filter(function (t) { return /^Production\b/.test(t); }).length;
+
+    // ---- 4b. the block tag (step 4): present, and never clipped -------------------------------
+    // ⛔ BLOCKS-PLAN §5.1: "measure it at the narrowest month-view column before assuming it fits".
+    // A pill is nowrap + ellipsis on purpose (a wrap would grow the row), so "fits" means the pill's
+    // whole text -- label AND tag -- is inside its box. Measured on screen AND at the printed width: exportMonthPdf's own
+    // fit pass lays #print-root out at PRINT_W = round((11 - 2*8/25.4) * 96) = 996 px, off-screen, and
+    // that is what is replicated here.
+    function tagFit(root) {
+      // The tag is a span INSIDE Production's pill (owner, 22 Sep 2026), so what can clip is the
+      // PILL: nowrap + ellipsis, and a pill piece too short for label + tag truncates the tail.
+      // ⚠️ scrollWidth never drops below clientWidth, so their difference only says "clipped or
+      // not". Headroom is the content's own extent (a Range over the pill) against the pill's
+      // content box -- what a longer episode list would eat into.
+      var tags = root.querySelectorAll('.mv-pill-block');
+      var clipped = [], minSlack = Infinity;
+      [].forEach.call(tags, function (sp) {
+        var pill = sp.closest('.mv-pill');
+        var cs = getComputedStyle(pill);
+        var box = pill.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        var rg = document.createRange(); rg.selectNodeContents(pill);
+        var slack = Math.floor(box - rg.getBoundingClientRect().width);
+        if (slack < minSlack) minSlack = slack;
+        if (pill.scrollWidth > pill.clientWidth || slack < 0) clipped.push(pill.textContent);
+      });
+      // Ruling 7: a one-day piece of Production's pill carries NO tag. A pill's span is its
+      // grid-column, "a / b" with b - a days.
+      var oneDayTagged = [].filter.call(root.querySelectorAll('.mv-pill[data-ph="production"]'), function (p) {
+        var m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(p.getAttribute('style') || '');
+        return m && (+m[2] - +m[1]) === 1 && p.querySelector('.mv-pill-block');
+      }).length;
+      var oneDayPieces = [].filter.call(root.querySelectorAll('.mv-pill[data-ph="production"]'), function (p) {
+        var m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(p.getAttribute('style') || '');
+        return m && (+m[2] - +m[1]) === 1;
+      }).length;
+      return { n: tags.length, clipped: clipped, minSlack: tags.length ? minSlack : null,
+               oneDayTagged: oneDayTagged, oneDayPieces: oneDayPieces,
+               texts: [].map.call(tags, function (t) { return t.textContent; }),
+               pills: [].map.call(tags, function (t) { return t.closest('.mv-pill').textContent; }) };
+    }
+    out.tagScreen = tagFit(document.getElementById('table-wrap'));
+    async function printFit() {
+      // The export button is reClickGuard(600)-wrapped: a second click inside 600 ms is dropped
+      // silently, which read as "the export never ran" on the first cut of this leg.
+      await T.sleep(700);
+      var captured = false, realPrint = window.print;
+      window.print = function () { captured = true; };
+      document.getElementById('export-btn').click();
+      await T.until(function () { return captured; }, 'the month export', 200, 100);
+      var host = document.getElementById('print-root'), prev = host.style.cssText;
+      host.style.cssText = 'display:block; position:absolute; left:-99999px; top:0; width:996px;';
+      var r = tagFit(host);
+      host.style.cssText = prev;
+      window.dispatchEvent(new Event('afterprint'));
+      window.print = realPrint;
+      return r;
+    }
+    out.tagPrint = await printFit();
+    // The widest case the model allows: a block SHORTER than a week, so one row touches three.
+    var d2 = document.querySelector('.block-row[data-id="blk3"] .blk-days');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(d2, '2');
+    d2.dispatchEvent(new Event('input', { bubbles: true }));
+    await settle();
+    out.tagPrint3 = await printFit();
+    out.threeBlockWeek = out.tagPrint3.texts.filter(function (t) { return (t.match(/Block /g) || []).length >= 3; });
+
     document.getElementById('view-sheet-btn').click();
     await settle();
 

@@ -213,8 +213,9 @@ export function PreferencesCard() {
             captureSnapshot(), so it travels inside a file you send. Leaving the old wording would
             have been a confident lie about where someone's settings go. */}
         <InfoHint label="Preferences" width={330}>
-          Grid lines stay on this computer — send someone a calendar and they keep their own.
-          One column belongs to the calendar itself, so it travels with a file you send.
+          Grid lines and the two Month View settings stay on this computer — send someone a
+          calendar and they keep their own. One column belongs to the calendar itself, so it travels
+          with a file you send.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -252,36 +253,77 @@ export function PreferencesCard() {
           </NativeSelect>
         </Group>
 
-        {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
-            stacked with nothing between them read as one confusing group. */}
-        <Divider my="sm" />
+        {/* ✅ BY VIEW (owner, 22 Sep 2026): "Single column mode setting should only show in waterfall
+            view and the two show in month view settings should only show up in the month view".
+            Each view-specific row is wrapped WITH the divider above it, so hiding a row can never
+            leave a doubled or dangling rule. Shown/hidden in CSS off the view toggle's `.active`
+            (legacy.css, :has()), which setViewMode() already maintains -- no second copy of the view
+            state to drift. ⚠️ This REVERSES a 10 Sep 2026 decision recorded below, on the owner's
+            instruction; hiding a row changes nothing about what it stores. */}
+        <Box className="pref-view-sheet">
+          {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
+              stacked with nothing between them read as one confusing group. */}
+          <Divider my="sm" />
 
-        {/* ⭐ A real switch, not a button that changes colour (owner: "this should be a toggle like
-            in iOS settings"). Mantine's Switch, label left and switch right, which is the settings-row
-            shape everyone already knows.
-            ⛔ IT IS AN <input type="checkbox"> WITH AN id, INSIDE .prefs-card, AND THAT IS SAFE --
-            but only because of the card. collectFieldValues() sweeps `input[id]` into every saved
-            calendar and skips this class, so the switch is NOT in fields.byId; One column travels
-            instead through captureSnapshot()'s own `singleColumn` key, which is the single source of
-            truth. `pref-gridlines` is the same arrangement and predates it.
-            ⚠️ AN EARLIER COMMENT HERE CLAIMED A CHECKBOX WOULD BE STORED TWICE AND DISAGREE WITH
-            ITSELF. That was wrong, and the correction is worth keeping: skipped-by-the-sweep means
-            exactly ONE store, so nothing can disagree. The genuine hazard is the mirror image -- an
-            id'd control of any kind placed OUTSIDE this card would be in fields.byId AND the
-            snapshot, and those two can drift.
-            ⛔ UNCONTROLLED ON PURPOSE: no `checked` prop. The engine owns the state and writes
-            .checked in reflectSingleColumn(); a controlled input would fight it on every commit,
-            the same contract #pref-gridlines has. */}
-        {/* ⚠️ Named by the owner, 10 Sep 2026. The id stays `one-col-btn`: it is the engine's
-            binding and both gate legs' handle, and renaming it would buy nothing but breakage. */}
-        <Group justify="space-between" wrap="nowrap" gap="sm">
-          <Text component="label" htmlFor="one-col-btn" size="sm" style={{ cursor: 'pointer' }}>
-            Single Column Mode
-          </Text>
-          <Switch id="one-col-btn" size="md"
-                  aria-label="Single Column Mode"
-                  title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
-        </Group>
+          {/* ⭐ A real switch, not a button that changes colour (owner: "this should be a toggle like
+              in iOS settings"). Mantine's Switch, label left and switch right, which is the settings-row
+              shape everyone already knows.
+              ⛔ IT IS AN <input type="checkbox"> WITH AN id, INSIDE .prefs-card, AND THAT IS SAFE --
+              but only because of the card. collectFieldValues() sweeps `input[id]` into every saved
+              calendar and skips this class, so the switch is NOT in fields.byId; One column travels
+              instead through captureSnapshot()'s own `singleColumn` key, which is the single source of
+              truth. `pref-gridlines` is the same arrangement and predates it.
+              ⚠️ AN EARLIER COMMENT HERE CLAIMED A CHECKBOX WOULD BE STORED TWICE AND DISAGREE WITH
+              ITSELF. That was wrong, and the correction is worth keeping: skipped-by-the-sweep means
+              exactly ONE store, so nothing can disagree. The genuine hazard is the mirror image -- an
+              id'd control of any kind placed OUTSIDE this card would be in fields.byId AND the
+              snapshot, and those two can drift.
+              ⛔ UNCONTROLLED ON PURPOSE: no `checked` prop. The engine owns the state and writes
+              .checked in reflectSingleColumn(); a controlled input would fight it on every commit,
+              the same contract #pref-gridlines has. */}
+          {/* ⚠️ Named by the owner, 10 Sep 2026. The id stays `one-col-btn`: it is the engine's
+              binding and both gate legs' handle, and renaming it would buy nothing but breakage. */}
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <Text component="label" htmlFor="one-col-btn" size="sm" style={{ cursor: 'pointer' }}>
+              Single Column Mode
+            </Text>
+            <Switch id="one-col-btn" size="md"
+                    aria-label="Single Column Mode"
+                    title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
+          </Group>
+        </Box>
+
+        <Box className="pref-view-month">
+          <Divider my="sm" />
+
+          {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production pills carry as grey
+              text -- the block, and the episodes being shot. PER-USER, like the two settings above:
+              the owner chose this knowing two people printing one calendar can get different month
+              PDFs. ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a
+              saved calendar; the engine owns the state (prefs.mvBlocks / prefs.mvEpisodes, ABSENT =
+              ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like #one-col-btn. */}
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <Text component="label" htmlFor="pref-mv-blocks" size="sm" style={{ cursor: 'pointer' }}>
+              Show Blocks in Month View
+            </Text>
+            <Switch id="pref-mv-blocks" size="md" defaultChecked
+                    aria-label="Show Blocks in Month View"
+                    title="In Blocks mode, name each week's shooting block in grey inside the Production pill — on screen and in the month PDF" />
+          </Group>
+
+          {/* Same separation as every other row in this card (owner, 22 Sep 2026: the two toggles
+              "look pretty tight" without it -- the 10 Sep rule, applied to a related pair too). */}
+          <Divider my="sm" />
+
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <Text component="label" htmlFor="pref-mv-episodes" size="sm" style={{ cursor: 'pointer' }}>
+              Show Episodes in Month View
+            </Text>
+            <Switch id="pref-mv-episodes" size="md" defaultChecked
+                    aria-label="Show Episodes in Month View"
+                    title="Name the episodes being shot, in grey inside the Production pill — on screen and in the month PDF" />
+          </Group>
+        </Box>
       </div>
     </section>
   )

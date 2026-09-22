@@ -2,7 +2,7 @@
 """monthcmp.py -- the MONTH PDF's gate: a monthprint capture against a baseline capture.
 
     python3 monthcmp.py cut  <monthprint.json> <monthprint.print.pdf> <dir> <case>
-    python3 monthcmp.py gate <monthprint.json> <monthprint.print.pdf> <dir> <case>
+    python3 monthcmp.py gate <monthprint.json> <monthprint.print.pdf> <dir> <case> [label]
     python3 monthcmp.py ab   <dirA> <caseA> <dirB> <caseB>
 
 `cut` writes <dir>/<case>.json + <case>.html from a fresh run -- a BASELINE, so do it deliberately
@@ -241,7 +241,10 @@ def main(argv):
         except OSError as e:
             print(f"  FAIL  monthprint {case}: no baseline: {e}")
             return 1
-        return compare('monthprint ' + case, rec, html, base, base_html)
+        # [label] lets a run be held to ANOTHER case's baseline -- `blocksoff` against `reference`
+        # is the proof that a Blocks calendar switched to Episodes prints byte-identical to one that
+        # never had blocks at all.
+        return compare('monthprint ' + (argv[5] if len(argv) > 5 else case), rec, html, base, base_html)
     if len(argv) >= 5 and argv[0] == 'ab':
         a, a_html = load(argv[1], argv[2])
         b, b_html = load(argv[3], argv[4])

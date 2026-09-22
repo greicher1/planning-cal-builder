@@ -1,8 +1,8 @@
 # BLOCKS-PLAN.md
 
-**Status:** ✅ **steps 1–3 BUILT 22 Sep 2026** (§9) — no frozen code touched. ⏭ Step 4, the frozen
-month-view tag, is next and carries the owner's precondition (both PDFs shown before committing).
-**Six rulings**: four on 16 Sep 2026, two more on 22 Sep 2026 (§7).
+**Status:** ✅ **ALL FOUR STEPS BUILT 22 Sep 2026** (§9, §10) — steps 1–3 touch no frozen code;
+step 4's one frozen edit was shown to the owner as PDFs and approved before committing. Committed
+locally; **push held by the owner**. **Ten rulings**: four on 16 Sep 2026, six more on 22 Sep 2026 (§7).
 **Written:** 16 Sep 2026, against `3338f55`.
 **Related:** [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) — §5 of this plan collides with its gate.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md).
@@ -188,6 +188,21 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 | 4 | Per-block day counts | **Individual overrides**, mirroring `episodeDefs` (§4.4) |
 | 5 | *(22 Sep)* What Production's lane shows in Blocks mode | **Production's own pills, no episode pills — and the week tag names the block AND its episodes**, e.g. `Block 1 · 201, 202` |
 | 6 | *(22 Sep)* The waterfall header's "8-Day Shooting Schedule" in Blocks mode | **`… / 5 Shooting Blocks`** — the block count, which stays true when blocks differ in length |
+| 7 | *(22 Sep)* A pill piece too short for the tag (a one-day piece) | **Omit the tag on one-day pieces** (offered: shrink to fit; ellipsis) |
+| 8 | *(22 Sep)* Episodes mode, too | **"Production Week N" is always the pill's primary text; the episodes being shot are the grey text** — episode pills are retired in both modes |
+| 9 | *(22 Sep)* Shooting order | **Drag episodes to reorder in Episodes mode.** Numbers never change; only which days each episode occupies. The order also drives Blocks' automatic split |
+| 10 | *(22 Sep)* Turning the grey text off | **Per-user Preferences, "Show Blocks in Month View" / "Show Episodes in Month View", default on** — accepting that two people printing one calendar can differ |
+
+**Owner adjustments on seeing the PDFs, 22 Sep 2026, all made:**
+- *"why can't the block number/episode numbers be written in the green pills as smaller grey text
+  next to production wk"* — the tag moved **inside Production's pill**. The first cut was a lane of
+  its own (one line, 20 px, on every shooting week); inside the pill it costs **no height at all**.
+- *"Can we put 'Ep' before the episode numbers"*, then *"Maybe it should be 'Ep.'"* — **`Ep.`**, once
+  per list: `Ep. 205, 202`, `Block 1 · Ep. 201, 202`.
+- *"make sure there is enough spacing between those two toggles"* — the card's divider between them.
+- *"Single column mode setting should only show in waterfall view and the two show in month view
+  settings should only show up in the month view"* — done in CSS off the view toggle. ⚠️ It
+  reverses a 10 Sep decision that Single Column should NOT hide by view.
 
 **Why 5 and 6 were asked, when the plan said nothing was outstanding.** Both were found while
 building step 1, and both are consequences the plan did not see. (5) The month view draws each
@@ -243,3 +258,38 @@ identical (waterfall PDF, Excel, all four month-PDF cases, the v1.0.0 restore). 
 loaded after a Blocks one was scheduled **in Blocks mode, from the previous file's block count** —
 90 days, wrap 11/10/26, instead of 80 and 10/27/26. That is someone else's plan on your show, with
 no error anywhere.
+
+## 10. ✅ As built — step 4 and rulings 7–10 (22 Sep 2026)
+
+**The one frozen edit** is in `renderMonthView`'s Production-pill `place()` call, which appends
+`<span class="mv-pill-block">` holding `productionPillTag()`'s text, plus the frozen CSS rule
+`.mv-pill-block` (9 px, `#5C6470`, `vertical-align:top` so the smaller font cannot grow the line box).
+Everything else is non-frozen:
+- `episodeSpans()` returns `[]`, retiring episode pills (ruling 8); the renderer's episode branch is
+  now dead code, left in place.
+- `productionPillTag()` and `episodeListLabel()` build the grey text, which folds runs of 3+
+  consecutive episodes into a range (`203–205`).
+- `episodeShootOrder` and `effectiveShootOrder()` carry the shooting order (ruling 9).
+- `prefs.mvBlocks` / `prefs.mvEpisodes` carry ruling 10.
+
+| §5 condition | result |
+|---|---|
+| 1. row heights change only on tagged weeks, by one line, bounded | ⭐ **better than asked: no row height moves at all** in Blocks mode (A/B fit tables identical) |
+| 2. the month PDF paginates the same | ✅ every case one sheet per month, every month still `fill` |
+| 3. no change with Blocks off | ✅ `blocksoff` is byte-identical to `reference`. ⚠️ Ruling 8 then **deliberately** changed every episodic calendar's month PDF — re-cut, recorded, and shown to the owner |
+| 4. gates 1–5 unchanged | ✅ (gate 5 re-cut 59 → 62 in step 1, recorded) |
+| 5. two PDFs shown before committing | ✅ three rounds of PDFs, approved |
+
+⚠️ **The one row ruling 8 moved** is a pre-existing gap, now closed. A half day pushes a calendar's
+last shoot day past the episodes' total, and episode pills count entries, so the wrap day had **no
+pill at all**. Production's own pill now covers it. See the monthprint baseline README.
+
+**Measured, not assumed (§5.1):** in the fixtures no pill is ever clipped, on screen or at the
+printed width. There is at least 56 px of headroom in print, and the forced three-block week
+(`Block 2 · Ep. 203–205 / Block 3 · Ep. 206 / Block 4 · Ep. 207, 208`) still fits. Only a one-day
+piece could not fit, which is ruling 7.
+
+**Save format:** `episodeShootOrder` is a new snapshot key; `[]` means natural order and it is
+restored unconditionally. The two preferences are **not** calendar data: they sit inside
+`.prefs-card`, never in `fields.byId` or the snapshot, and the `shootorder` leg measures that
+flipping one pushes no undo step.

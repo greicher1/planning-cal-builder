@@ -20,10 +20,57 @@ variant of it.
 | `mvheader` | `HARNESS_STATE=mvheader` | 15 → 15 | 3,542 | 15 | month header in **Template** mode, all four slots filled, one format |
 | `mvheaderlegacy` | `HARNESS_STATE=mvheaderlegacy` | 15 → 15 | 4,232 | **0** | **Manual** header saved before templates existed: braces must print literally. 0 stamp hits is correct — its date slot holds the literal text `{version}` |
 
+### Added the same day: block shooting (BLOCKS-PLAN.md step 4)
+
+| case | how it is loaded | months → sheets | elements | why it is here |
+|---|---|---|---|---|
+| `blocks` | `HARNESS_STATE=blocks` | 16 → 16 | 3,790 | Blocks mode ON: Production's pills carry the **block tag** as smaller grey text inside the pill (the step-4 frozen edit, placed there by the owner on seeing the first PDFs). A one-day pill piece carries none (ruling 7) |
+| `blocksoff` | `HARNESS_STATE=blocksoff` | 16 → 16 | 3,782 | ⭐ **No baseline of its own — held to `reference`.** The same Blocks calendar with *Schedule by* set to Episodes, its five blocks and hand arrangement still in the file. Byte-identical to a baseline cut before Blocks existed is §5 condition 3 ("no change at all with Blocks off") as a measurement rather than a claim |
+
+**The step-4 A/B** (`monthcmp.py ab`, the Blocks fixture without the tag → with it): ⭐ **the fit
+tables are IDENTICAL** — not one row height moved in any month, every month is still `fill`, and 16
+months still print as 16 sheets. The whole difference is 22 `span.mv-pill-block` elements (one per
+tagged pill piece) and the pills' hover titles. §5 condition 1 allowed "one line, bounded"; the
+in-pill tag costs **none**.
+
+⚠️ **The first cut put the tag on its own lane** under the pill. Its A/B was the textbook §5 result —
+every tagged week exactly one lane (20 px) taller, nothing else moved — and the owner, on seeing
+the PDF, asked why it could not ride in the pill instead. It could, and the evidence above is why
+that is strictly better. Recorded because the lane version was gated green and would have shipped.
+
 Each case is two files: **`<case>.html`** is `#print-root`'s innerHTML at the moment
 `exportMonthPdf` calls `window.print()`, with the page's own today stamp replaced by `DATESTAMP`;
 **`<case>.json`** is what `monthcmp.py` derived from it plus the sheet count and page box of the PDF
 Chrome actually printed (`/MediaBox [0 0 792 612]`, landscape Letter, every case).
+
+## ✅ RE-CUT the same day for RULING 8 — episode pills become "Production Week N" + grey episodes
+
+A deliberate change to the month PDF of **every episodic calendar**, on the owner's instruction
+(22 Sep 2026): during production the pill's primary text is always *Production Week N*, and the
+episodes being shot are grey text inside it. `reference`, `dayoverrides`, `mvheader` and
+`mvheaderlegacy` were re-cut; `blocks` did not move, because Blocks mode never had episode pills.
+
+| case | episode pills | grey tags | sheets | row heights |
+|---|---|---|---|---|
+| `reference` | 31 → **0** | 21 | 16 → 16 | **none moved** |
+| `dayoverrides` | 30 → **0** | 21 | 15 → 15 | **one row** — Oct 2026, last week: 76 → 95 px |
+| `mvheader` | 30 → **0** | 21 | 15 → 15 | the same row (same calendar) |
+| `mvheaderlegacy` | 30 → **0** | 21 | 15 → 15 | the same row (same calendar) |
+
+⭐ **The one moved row is a pre-existing gap being closed, not a regression.** In `dayoverrides` a
+half day pushes the final shoot day past the episodes' total, and episode pills count ENTRIES (the
+owner's 18 Sep ruling). So under the old pills the **wrap day, Tue 10/27, had no pill at all**:
+episode 210's pill stopped on Monday. Production's own pill now covers every shoot day, so the
+*Principal Photography Wraps* note beside it drops one lane. Every other row, and every sheet
+count, is unchanged. The pre-R8 captures were kept outside the repo for the A/B.
+
+⚠️ **Re-cut once more, for text only:** the owner asked for "Ep" before the episode numbers, then
+settled on "Ep." ("Production Week 2 · Ep. 205, 202", "Block 1 · Ep. 201, 202"). Written once per
+list. All five cases
+kept their elements, row heights and sheet counts; only the text runs changed.
+
+`blocksoff` stays held to `reference`, which now means: a Blocks calendar switched to Episodes
+prints byte-identically to an Episodes calendar that never had blocks.
 
 ## What the leg asserts
 

@@ -108,6 +108,8 @@ timing flake.
 |---|---|
 | `run.sh` | one test, end to end: start server → Chrome → **poll until the dump is complete** → kill → parse → stop server |
 | `t/monthprint.js` | the month PDF's document, captured at the `window.print()` call with the today stamp normalised, then put back into print state so `HARNESS_PRINT_PDF=1` prints exactly it. `gate.sh` runs it four times: the reference calendar, `dayoverrides`, `mvheader`, `mvheaderlegacy` |
+| `t/blocks.js` | block shooting on the minted `blocks.sptcal`: the restore, labels-not-dates on a hand move, one-step undo, the Blocks↔Episodes round trip, the restore default through the REAL picker, and the in-pill tag's fit (screen, print width, a three-block week, a one-day piece carrying none) |
+| `t/shootorder.js` | Episodes mode's shooting order on the minted `shootorder.sptcal`: the grey "Ep." text in shooting order, both drop sides, labels-not-dates, one-step undo, and the two month-view Preferences (no undo step, not in `fields.byId`, rows scoped to their view) |
 | `monthcmp.py` | ⭐ gate 10: a `monthprint` capture against `tests/baselines/2026-09-22-monthprint/` — the document byte for byte, one printed sheet per month, the stamp count. On a mismatch it says whether only inline styles moved and prints the per-month **fit table** (fill/scale, every week's height). `cut` makes a baseline; `ab` compares two saved captures, which is the A/B for a frozen edit that is *meant* to move the month PDF |
 | `srv.js` | serves the repo root; injects `t/lib.js` + `t/<name>.js` into `index.html?test=<name>` |
 | `parse.js` | lifts the `<pre id="R">` payload out of the dump, un-escapes it, splits off base64 files |

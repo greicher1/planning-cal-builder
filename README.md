@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month view names blocks and episodes inside Production's pill; shooting order; two preferences
+
+Block shooting step 4, plus four owner rulings made the same day on seeing the PDFs (BLOCKS-PLAN.md
+§7 rows 7–10, §10). ⛔ **This deliberately changes the month PDF of every existing episodic
+calendar.** The owner saw and approved before/after PDFs first.
+
+- **"Production Week N" is always the pill during production** (ruling 8). Episode pills are
+  retired in both modes. The episodes being shot are smaller grey text inside the pill:
+  *Production Week 2 · Ep. 205, 202*. In Blocks mode it's *Block 1 · Ep. 201, 202*, and a week
+  split between blocks names each: *Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205*. Runs of three
+  or more consecutive episodes fold into a range. A one-day pill piece gets no grey text (ruling 7),
+  because it cannot fit.
+- **Shooting order** (ruling 9): in Episodes mode, drag an episode's ⋮⋮ grip to reorder the shoot.
+  Numbers never change (201 stays 201), and neither does Production's length or wrap; only which
+  days each episode occupies moves. Blocks' automatic split follows the same order. Each move is
+  one undo step.
+- **Preferences ▸ Show Blocks / Show Episodes in Month View** (ruling 10). These are per-user and on
+  by default; they apply on screen and in the month PDF, and never go into a saved calendar.
+  **Single Column Mode now shows only in Waterfall view, and these two only in Month view** (owner
+  instruction; this reverses a 10 Sep decision).
+
+**Verified.** The tag inside the pill adds **no row height** (the Blocks-mode A/B fit tables are
+identical) and nothing is clipped on screen or in print; the forced three-block week still fits
+with room to spare. Ruling 8 moved exactly **one** row in the baselines, and it closes a gap: on a
+half-day calendar the wrap day used to have **no pill at all**, because episode pills count
+entries, and Production's pill now covers it. The month baselines were re-cut and recorded. The
+new `shootorder` gate leg drives the drag (both drop sides), checks that the wrap and the whole
+grid are unchanged, confirms one-step undo, confirms a preference pushes no undo step and stays out
+of `fields.byId`, and checks the view-scoped rows. Real mouse drags, switch clicks and view clicks
+were driven in the browser. Full gate: **375 pass, 0 fail**. Save format: one new snapshot key,
+`episodeShootOrder` (`[]` = natural order).
+
 ### Unreleased — block shooting, steps 1–3: schedule by Blocks, and drag episodes between them
 
 The owner's request of 16 Sep 2026, built from [`BLOCKS-PLAN.md`](BLOCKS-PLAN.md) against its six

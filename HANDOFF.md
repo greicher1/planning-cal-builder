@@ -4,7 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ BUILT 22 Sep 2026: BLOCK SHOOTING, STEPS 1–3 — ⏭ STEP 4 (the frozen month-view tag) IS NEXT
+### ✅ DONE 22 Sep 2026: BLOCKS STEP 4 + RULINGS 7–10 — committed locally, ⛔ PUSH HELD BY THE OWNER
+
+**Local commits not on origin:** `585fdbf` (Blocks steps 1–3) and the step-4 commit on top of it.
+The owner said **hold the push**, twice: ask again before pushing, and run the full gate first,
+since the push contains a frozen edit. Full record: **`BLOCKS-PLAN.md` §7 (rulings 7–10 + the
+owner's adjustments) and §10 (as built)**, plus the changelog.
+
+- **What the month view does now.** During production the pill always reads *"Production Week N"*
+  (ruling 8, both modes). The grey text inside it is *Ep. 205, 202* (Episodes) or *Block 1 · Ep.
+  201, 202* (Blocks). There is no grey text on a one-day pill piece (ruling 7). ⛔ This changed the
+  month PDF of **every existing episodic calendar**; the owner approved it from PDFs.
+- **The one frozen edit** is the span in Production's pill `place()` call plus `.mv-pill-block`.
+  Everything else is non-frozen: `episodeSpans()` returns `[]`, and `productionPillTag()`,
+  `episodeListLabel()`, `effectiveShootOrder()` and `prefs.mvBlocks/mvEpisodes` do the rest.
+- **Shooting order (ruling 9)**: new snapshot key `episodeShootOrder`, `[]` = natural order. Drag
+  the ⋮⋮ grip in the episode rows. It drives Blocks' automatic split too.
+- **Preferences (ruling 10)**: "Show Blocks / Show Episodes in Month View", per-user, default on,
+  and it never enters a file. **Single Column Mode shows only in Waterfall, the two month switches
+  only in Month** (owner; this reverses 10 Sep). Pure CSS off `#view-month-btn.active`.
+- **Gate: 375 pass, 0 fail.** The monthprint baselines were re-cut twice (ruling 8, then "Ep."),
+  each recorded in that README. New legs/fixtures: `blocks` (+ tag-fit, three-block week, one-day
+  piece), `shootorder`, `blocksoff`. `blocksoff` is held to `reference`.
+- ⭐ **Traps worth keeping:**
+  - A synthetic drop into a **hidden tab** measures 0×0, so it always reads as "before".
+  - The browser pane's screenshot once **lagged a window scroll** (63 px); `getBoundingClientRect()`
+    was the truth.
+  - Chrome serialises flex longhands as the **`flex:` shorthand**, which silently emptied my first
+    fit table.
+  - A per-user preference must re-render **without `update()`**, or it dirties the calendar and
+    pushes an undo step.
+
+### ✅ BUILT 22 Sep 2026: BLOCK SHOOTING, STEPS 1–3 (step 4 followed the same day — see above)
 
 Full record in **`BLOCKS-PLAN.md` §9** and the changelog. Headlines a next session needs:
 
@@ -736,7 +767,7 @@ never blocked — it simply never got a session. It is the only fully-ruled, zer
   `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`. Correct the rule when
   something next touches the save format; the advice that follows it (branch on the version rather
   than on the presence of individual keys) is still the right advice.
-- ◐ `BLOCKS-PLAN.md`: **steps 1–3 BUILT 22 Sep 2026** (top of this file, plan §9); step 4 — the frozen month tag, PDFs to the owner first — is next.
+- ✅ `BLOCKS-PLAN.md`: **all four steps BUILT 22 Sep 2026** (top of this file, plan §9–§10), committed locally, **push held by the owner**.
 
 ---
 

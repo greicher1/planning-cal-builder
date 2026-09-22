@@ -1403,6 +1403,14 @@
   }
   /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
   .mv-pill{ border-radius:9px; }
+  /* ---- FROZEN EDIT (owner-approved 16 Sep 2026, BLOCKS-PLAN.md §5; placed by the owner 22 Sep):
+     the block tag, INSIDE Production's pill -- "smaller grey text next to production wk". It
+     inherits the pill's nowrap + ellipsis, so on a pill piece too short for it the tail truncates
+     rather than wrapping (a wrap would grow the row). ⚠️ vertical-align:top keeps the SMALLER font
+     from enlarging the pill's line box: mixed font sizes on one baseline can add a pixel of height,
+     and this tag's whole point is to add none. Only a Blocks calendar has an element with this
+     class. */
+  .mv-pill-block{ font-size:9px; font-weight:500; color:#5C6470; margin-left:7px; vertical-align:top; }
   /* ---- FROZEN EDIT (owner-approved 18 Sep 2026): make a phase pill DRAGGABLE. ----------------
      ⛔ WITHOUT THIS THE BODY-DRAG GESTURE CANNOT FIRE AT ALL. `.mv-bars` above sets
      pointer-events:none so the bar layer does not swallow clicks, and a pill inherits it -- so a
@@ -2417,6 +2425,12 @@
      absent show-mode means in the save format. Chrome/Edge are the target browsers (CLAUDE.md). */
   .card:has(#show-mode option[value="blocks"]:checked) .show-mode-episodes,
   .card:not(:has(#show-mode option[value="blocks"]:checked)) .show-mode-blocks{ display:none; }
+  /* Preferences rows that belong to one view (owner, 22 Sep 2026): Single Column Mode is a
+     waterfall layout, the two "Show … in Month View" switches are month-only. Keyed off the view
+     toggle's `.active`, which setViewMode() maintains and the markup ships on Waterfall -- the one
+     place the current view already lives -- so nothing can show a row for the view you are not in. */
+  body:has(#view-month-btn.active) .pref-view-sheet,
+  body:not(:has(#view-month-btn.active)) .pref-view-month{ display:none; }
   /* The Production row's block list (renderBlockRows). Engine-generated inside .ep-panel, which is
      the same bounded gray panel the episode rows use; these rules are only the block layout. Sizes
      come from the Mantine scale so the list reads as part of the sidebar, not a second system. */
@@ -2444,6 +2458,17 @@
   .blk-ep:hover{ border-color:var(--mantine-color-gray-6); }
   .blk-ep.is-dragging{ opacity:.4; }
   .blk-empty{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); font-style:italic; align-self:center; }
+  /* Episodes mode's shooting-order drag (ruling 9). The GRIP is the drag source, not the row: a
+     draggable row would steal the mouse from the name and day inputs inside it. The drop position
+     shows as a line on the side the episode will land. */
+  .ep-grip{
+    flex:none; width:14px; text-align:center; cursor:grab; user-select:none;
+    font-size:12px; line-height:1; letter-spacing:-3px; color:var(--mantine-color-gray-5);
+  }
+  .ep-grip:hover{ color:var(--mantine-color-gray-8); }
+  .episode-row.is-dragging{ opacity:.4; }
+  .episode-row.drop-before{ box-shadow:0 -2px 0 var(--mantine-color-blue-5); }
+  .episode-row.drop-after{ box-shadow:0 2px 0 var(--mantine-color-blue-5); }
   /* The holiday table's column header. Was six inline style= attributes; now one rule. */
   .hv-head{
     display:flex; align-items:flex-end;

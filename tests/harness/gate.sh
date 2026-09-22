@@ -176,14 +176,22 @@ PY
 #   dayoverrides    all four override kinds, snap-off start, a named hiatus
 #   mvheader        the month header in Template mode, all four slots
 #   mvheaderlegacy  a Manual header saved before templates existed -- braces must print literally
+#   blocks          block shooting ON: the step-4 block tag (BLOCKS-PLAN §5), a frozen edit
+#   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all, held to the
+#                   REFERENCE baseline -- BLOCKS-PLAN §5 condition 3 ("no change at all with Blocks
+#                   off") as byte identity against a baseline cut before Blocks existed
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
+# Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
-for MPCASE in reference dayoverrides mvheader mvheaderlegacy; do
-  MPSTATE="$MPCASE"; [[ $MPCASE == reference ]] && MPSTATE=""
+for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
+              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference; do
+  MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
+  [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
   cp -f "$HERE/monthprint.print.pdf" "$HERE/monthprint-$MPCASE.pdf" 2>/dev/null
   cp -f "$HERE/monthprint.json" "$HERE/monthprint-$MPCASE.json" 2>/dev/null
-  python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPCASE" || FAIL=1
+  MPLABEL="$MPCASE"; [[ $MPBCASE != $MPCASE ]] && MPLABEL="$MPCASE (vs the $MPBCASE baseline)"
+  python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPBCASE" "$MPLABEL" || FAIL=1
 done
 
 # ---- colswap: the grid COLUMN-ORDER reconciler, end to end through a real restore path ----------
@@ -1301,10 +1309,61 @@ chk(a.get('loadGuardAnswered') and a.get('oldMode')=='episodes' and a.get('oldNu
     and '10/27/26' in (a.get('oldMeta') or '') and (a.get('oldMeta') or '').startswith('80 shoot days')
     and a.get('oldBlockRows')==0 and a.get('oldEpisodeRows')==10,
     f"blocks: ⭐ a pre-Blocks .sptcal loaded AFTERWARDS through the picker opens in Episodes mode ({a.get('oldMode')}, {a.get('oldMeta')})")
+# Step 4 -- the frozen block tag, a span INSIDE Production's pill (owner, 22 Sep 2026). ⛔ BLOCKS-PLAN
+# §5.1: measured, not assumed. The pill is nowrap + ellipsis on purpose (a wrap would grow the row),
+# so a clipped pill is lost text, and "fits" is checked on screen, at the printed width, and on the
+# widest case the model allows -- a block shorter than a week, so one row names three -- which also
+# produces a ONE-DAY pill piece, where ruling 7 says no tag at all.
+tp, t3, ts = a.get('tagPrint') or {}, a.get('tagPrint3') or {}, a.get('tagScreen') or {}
+chk((tp.get('n') or 0) > 0 and not tp.get('clipped') and not ts.get('clipped'),
+    f"blocks: ⭐ the block tag prints in Production's pill and is never clipped ({tp.get('n')} tags, headroom >= {tp.get('minSlack')}px)")
+chk(len(a.get('threeBlockWeek') or [])>=1 and not t3.get('clipped'),
+    f"blocks: a row touching THREE blocks names all three and still fits ({(a.get('threeBlockWeek') or ['none'])[0]!r}, headroom {t3.get('minSlack')}px)")
+chk((t3.get('oneDayPieces') or 0) >= 1 and t3.get('oneDayTagged') == 0 and tp.get('oneDayTagged') == 0,
+    f"blocks: a ONE-DAY pill piece carries no tag (ruling 7) -- {t3.get('oneDayPieces')} such piece(s), {t3.get('oneDayTagged')} tagged")
 chk(not a.get('errors'), f"blocks: 0 console errors {a.get('errors')}")
 chk(not (a.get('clipped') or {}).get('h'), f"blocks: 0 horizontally clipped cells {(a.get('clipped') or {}).get('h')}")
 sys.exit(bad)
 PY
+
+# ---- shootorder: Episodes mode's SHOOTING ORDER + the month-view Preferences (rulings 8-10) -------
+# tests/fixtures/shootorder.sptcal was minted in the app: the reference calendar with 205 dragged to
+# the front of the shooting order and 201 to fifth. It carries NO preference keys.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootorder "$HERE/run.sh" shootorder 120 >/dev/null 2>&1
+python3 - "$HERE/shootorder.json" <<'PYS' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  shootorder produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  shootorder threw: '+str(a['EX'])); sys.exit(1)
+META='80 shoot days \u2192 17 wk \u00b7 6/29/26 \u2192 10/20/26'
+chk(a.get('mode')=='episodes' and a.get('restoredOrder')==['205','202','203','204','201','206','207','208','209','210']
+    and a.get('restoredMeta')==META,
+    f"shootorder: restores its hand shooting order, on the SAME dates as natural order ({a.get('restoredMeta')})")
+jp=a.get('julyPills') or []
+chk(a.get('episodePills')==0 and jp[:2]==[['Production Week 1','Ep. 205'],['Production Week 2','Ep. 205, 202']],
+    f"shootorder: ⭐ RULING 8 -- 'Production Week N' with the episodes as grey text, in SHOOTING order {jp[:2]}")
+chk(a.get('undoDisabledBefore') is True and a.get('undoDisabledAfterPref') is True and a.get('undoDisabledAfterBoth') is True,
+    "shootorder: a Preferences switch pushes NO undo step (Undo stays disabled through off and on)")
+chk(a.get('prefIdsInFields')==[] and all(p[1]=='' for p in (a.get('pillsEpsOff') or [['','x']]))
+    and a.get('pillsEpsBackOn')==jp,
+    "shootorder: 'Show Episodes' off drops the grey text, on restores it, and no pref- id is in fields.byId")
+chk(a.get('rowsInMonth')=={'onecol':False,'blocks':True,'eps':True} and a.get('rowsInSheet')=={'onecol':True,'blocks':False,'eps':False},
+    f"shootorder: Preferences rows follow the view -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
+chk((a.get('afterBefore') or [''])[0]=='210' and a.get('afterAfter')==['210','205','202','204','201','203','206','207','208','209'],
+    "shootorder: dragging a grip drops BEFORE (upper half) and AFTER (lower half) a row")
+chk(a.get('dragMetaSame') and a.get('dragGridSame'),
+    "shootorder: ⭐ LABELS, NOT DATES -- re-sequencing the shoot left the wrap and the whole grid untouched")
+chk(a.get('oneUndoExact'), "shootorder: each move is ONE undo step")
+chk(not a.get('errors'), f"shootorder: 0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYS
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
