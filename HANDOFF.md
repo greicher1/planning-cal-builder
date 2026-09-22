@@ -4,7 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 22 Sep 2026, after the push: the Blocks panel uses the SAME ⋮⋮ rows as the episode list
+### ✅ 22 Sep 2026: Production's row re-ordered — total above the list; hiatus above Sim Post
+
+Owner: *"move production hiatus to right above sim post and below the divider line. Also lets move
+this total shooting days (for both episodic and block) to just above the episode/block dragger
+block."* In `buildPhaseRows()` the Production row is now: dates → `.prod-total-block`
+(`#prod-total-readout` + `#prod-ov-note`, moved out of `.phase-fields`) → `#ep-panel` →
+`.phase-hiatus` → `.simpost-panel`. **Other phases are unchanged.** There is ONE dashed rule, set by
+`.ep-panel + .phase-hiatus`, and Sim Post drops its own. The ids are unchanged, so gate 5 holds at
+62. Gate 376/0.
+
+### ✅ LIVE at `aecc3f8` (22 Sep 2026): the Blocks panel uses the SAME ⋮⋮ rows as the episode list
 
 Owner: *"the block shooting UI window in the production phase editor should be the same UI look as
 the episodic one, meaning drag and drop with the three lines thing."* `renderBlockRows()` now emits
@@ -15,7 +25,10 @@ a header per block plus the same `.episode-row` + `.ep-grip` rows Episodes mode 
 - a drop on a block's header or empty space → `moveEpisodeToBlock()` (now to the END of that block
   in shooting order).
 
-Chrome only; gate 376/0. See the changelog for what was verified.
+Chrome only; gate 376/0. See the changelog for what was verified. **Pushed on the owner's
+instruction**; the live file is byte-identical to the build (`a4b31460…`). Driven on production: a
+real drag of 205 onto 201's lower half gave Block 1 = 201, 205, 202 with the wrap unmoved, and one
+Undo restored it exactly.
 
 ### ✅ LIVE 22 Sep 2026: BLOCK SHOOTING (steps 1–4) + RULINGS 5–10 — pushed at `b49556e`, verified
 
@@ -335,8 +348,8 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ### Where things are
 
-**LIVE at `b49556e`** (22 Sep 2026) — block shooting, shooting order and the month-view preferences
-(top of this file). Before that: **`ff1ecbe`** — the month header template system plus its three editor fixes,
+**LIVE at `aecc3f8`** (22 Sep 2026) — block shooting, shooting order, the month-view preferences and
+the grip-row Blocks panel (top of this file). Before that: **`ff1ecbe`** — the month header template system plus its three editor fixes,
 each verified by driving production. The docs commits `41c6f71` + `f61509f` were pushed on top the
 same day and changed nothing served (live file still `82d3d0c9c696842f…`). The note below describes the earlier `62cc0dc` state and is kept
 for the method it records.

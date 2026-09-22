@@ -4869,12 +4869,16 @@ export function initLegacyApp() {
       const fieldsHtml = (p.key === 'production')
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
            ${snapHtml}
-           <input type="hidden" id="weeks-${p.key}">
-           <div class="prod-total-readout" id="prod-total-readout"></div>
-           <div class="phase-ov-note" id="prod-ov-note"></div>`
+           <input type="hidden" id="weeks-${p.key}">`
         : `<label>Start date <input type="date" id="start-${p.key}"></label>
            <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
            ${snapHtml}`;
+      // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
+      // line. Also lets move this total shooting days (for both episodic and block) to just above the
+      // episode/block dragger block". So Production reads top to bottom: its dates, the TOTAL with the
+      // day-override note that explains it, the episode/block list that total is the sum of, then ONE
+      // divider, then the two things that pause or overlap the shoot (hiatus, Simultaneous Post).
+      // Only the ORDER moved: every id is the same, so the save format (fields.byId) cannot change.
       const swColor = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
       row.innerHTML = `
         <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
@@ -4886,12 +4890,17 @@ export function initLegacyApp() {
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
         <div class="phase-meta" id="meta-${p.key}"></div>
-        ${phaseHiatusBlockHtml(p.key, p.label)}
+        ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
+        <div class="prod-total-block">
+          <div class="prod-total-readout" id="prod-total-readout"></div>
+          <div class="phase-ov-note" id="prod-ov-note"></div>
+        </div>
         <div class="ep-panel" id="ep-panel" style="display:none;">
           <div class="ep-panel-warn" id="ep-panel-warn"></div>
           <div id="episode-rows"></div>
         </div>
+        ${phaseHiatusBlockHtml(p.key, p.label)}
         <div class="simpost-panel">
           <label class="simpost-toggle">
             <input type="checkbox" id="simpost-enabled">

@@ -29,6 +29,26 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Production's row reads top to bottom: dates, total, list, then hiatus and Sim Post
+
+Owner, 22 Sep 2026: *"move production hiatus to right above sim post and below the divider line.
+Also lets move this total shooting days (for both episodic and block) to just above the
+episode/block dragger block."* The Production row now reads, top to bottom:
+- its start date, *Snap to Mon*, *Start after*, and the dates line;
+- **Total Shooting Days**, with the day-override note that explains it;
+- the episode or block list that total is the sum of;
+- **one** dashed divider;
+- **Production Hiatus**;
+- **Simultaneous Post**.
+
+Two rules a few pixels apart became one: the hiatus takes the dashed divider, and Sim Post drops its
+own. Only the order changed; every id is the same, so the save format cannot move (gate 5: the same
+62 `fields.byId` ids).
+
+**Verified** in the browser in both modes: Blocks and Episodes order, a single rule in the row, the
+hiatus opening its date fields in the new place, and the override note under the total. Full gate:
+**376 pass, 0 fail**.
+
 ### Unreleased — the Blocks panel uses the same ⋮⋮ rows as the episode list
 
 Owner, 22 Sep 2026: *"the block shooting UI window in the production phase editor should be the same
