@@ -111,8 +111,10 @@ exhaustively in Node besides.
 
 ### ⛔ THREE EDITOR BUGS THE GATE DID NOT CATCH, FOUND BY DRIVING PRODUCTION (22 Sep 2026)
 
-Shipped in `9bdf80c`, found immediately afterwards by using the month editor on the live site, fixed
-locally. **All three are the same mistake**: a hardcoded `false` where the view flag belongs, in the
+✅ **FIXED AND LIVE at `ff1ecbe`**, verified by re-driving the editor on production: the budget stays
+blank on open **and** through typing, the Italic toggle applies, the month's italic **survives a
+keystroke**, and the grid reflects it (`font-style:italic`). Shipped in `9bdf80c`, found immediately
+afterwards by using the month editor on the live site. **All three are the same mistake**: a hardcoded `false` where the view flag belongs, in the
 paths the first pass missed.
 
 | | |
@@ -177,7 +179,11 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ### Where things are
 
-**LIVE at `62cc0dc`**, verified on the deployed site — byte-identical to a local build (1,254,040
+**LIVE at `ff1ecbe`** (22 Sep 2026) — the month header template system plus its three editor fixes,
+each verified by driving production. The note below describes the earlier `62cc0dc` state and is kept
+for the method it records.
+
+**Previously LIVE at `62cc0dc`**, verified on the deployed site — byte-identical to a local build (1,254,040
 bytes, SHA-256 `ee8b97599ede33f3…`) and then DRIVEN on production, not just grepped: the day-override
 popover opened on all four day types, a half day moved a real wrap date 10/27 → 10/28, and one undo
 put it back. Three pushes went out 21 Sep as one fast-forward:
