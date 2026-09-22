@@ -43,12 +43,41 @@ export function ShowInfoCard() {
         {/* ⛔ NativeSelect, never Select. Select puts the option LABEL in the id-bearing input, so
             this would save "Season 2" where the format expects "2". */}
         <NativeSelect id="season-num" label="Season" data={SEASONS} />
+        {/* Block shooting (BLOCKS-PLAN.md §3). The mode decides which input drives Production's
+            total: Σ episode days, or Σ block days. ⛔ Three NEW ids, and they are PERMANENT: every
+            id'd control here is swept into fields.byId, so `show-mode`, `num-blocks` and
+            `days-per-block` are part of the save format from the first calendar saved with them.
+            ⛔ NativeSelect, not SegmentedControl -- that mints a radio per segment with a generated
+            id outside any skipped container, which would bake junk keys into every saved file
+            (UI-CONVENTIONS §11). The VALUES are the contract ('episodes' | 'blocks'); the look can
+            change later without a migration.
+            ⚠️ An ABSENT show-mode must mean 'episodes', so every calendar saved before this field
+            existed schedules exactly as it did. The markup default does that for a fresh page;
+            applyStateSnapshot() does it for a file that lacks the key.
+            Which fields show is pure CSS off the select's CHECKED OPTION (legacy.css, `:has()`),
+            not an engine-toggled class -- so no restore, undo or open path can leave the visible
+            fields disagreeing with the mode that is actually scheduling. */}
+        <NativeSelect id="show-mode" label="Schedule by"
+                      data={[{ value: 'episodes', label: 'Episodes' }, { value: 'blocks', label: 'Blocks' }]} />
         {/* hideControls: the spinners cost width the sidebar does not have, and every one of these
             is typed rather than stepped. */}
-        <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
-                     min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        <Box className="show-mode-episodes">
+          <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
+                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        </Box>
         <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
                      min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
+            switching back must restore the previous dates exactly, so neither mode's inputs are
+            ever discarded (BLOCKS-PLAN §3). */}
+        <Box className="show-mode-blocks">
+          <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
+                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        </Box>
+        <Box className="show-mode-blocks">
+          <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
+                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+        </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
             and 3a, so the field is a LABEL and not arithmetic. The engine's versionLabel() strips a
             leading v/V, so typing either "3" or "v3" prints "v3".

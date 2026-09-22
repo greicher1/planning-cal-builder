@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — block shooting, steps 1–3: schedule by Blocks, and drag episodes between them
+
+The owner's request of 16 Sep 2026, built from [`BLOCKS-PLAN.md`](BLOCKS-PLAN.md) against its six
+rulings. No frozen code changed; step 4 (the month-view block tag) is next.
+
+**Show ▸ Schedule by: Episodes / Blocks.** In Blocks mode you enter a **number of blocks** and
+**shooting days per block**, and Production's length becomes the sum of the blocks, not of the
+episodes. Days per Episode is hidden but kept, so switching back restores the previous dates
+exactly. The Production row lists the blocks. Each one has its own day count, which can be
+overridden, and episode chips that **drag between blocks**. Episodes start evenly split with the
+remainder at the front (10 over 3 blocks is 4, 3, 3). ⭐ **Moving an episode changes labels, never
+dates**, and each move is one undo step.
+
+Also in Blocks mode: the month view draws Production's own pills and no episode pills (ruling 5),
+and the waterfall header reads *"18-Week Production Span / 5 Shooting Blocks"* instead of the
+hidden per-episode figure (ruling 6). **Episodes mode is byte-identical to before.**
+
+**Save format.** There are three new `fields.byId` ids (`show-mode`, `num-blocks`, `days-per-block`)
+and three new snapshot keys (`blockDefs`, `blockCounter`, `blockAssignEdited`), written in both
+modes. ⛔ **An absent `show-mode` means Episodes**, and `applyStateSnapshot()` enforces it. That
+was proven necessary by removing it: a pre-Blocks calendar loaded after a Blocks one was then
+scheduled *from the previous file's blocks*, at 90 days wrapping 11/10/26 instead of 80 days and
+10/27/26.
+
+**Verified.** The new `blocks` gate leg runs on a minted fixture (`tests/fixtures/blocks.sptcal`)
+and checks four things: labels-not-dates (the whole grid signature is unchanged by a move), the
+mode round trip, the restore default through the real picker path, and ruling 5 in the month view.
+In the dev build, a real mouse drag moved an episode, `cmd+z` reverted exactly that move, and
+`cmd+shift+z` redid it. Full gate: **351 pass, 0 fail**. Gate 5 was deliberately re-cut from 59 to
+62 ids (`v1.0.0-saved.html` restores as `show-mode: "episodes"`), and every other gate is
+identical, including all four month-PDF cases.
+
 ### Unreleased — the month PDF gets a gate, and the gate stops killing its own legs
 
 Harness only. No app code changed; the deployed file is untouched.

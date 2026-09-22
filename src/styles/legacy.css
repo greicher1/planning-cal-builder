@@ -2409,6 +2409,41 @@
   #help-body .help-foot{ margin-top:20px; padding-top:12px; border-top:1px solid var(--border); color:var(--text-muted); font-size:12.5px; }
 
   /* ---------- Sidebar cards that moved to React (src/chrome/Sidebar.jsx) ---------- */
+  /* Block shooting (BLOCKS-PLAN.md §3): the Show card's fields for the mode NOT in use are hidden --
+     never cleared, so switching back restores the dates exactly. Keyed off #show-mode's CHECKED
+     OPTION with :has() rather than a class the engine toggles: the select is the single source of
+     truth, so no restore/undo/open path can leave the visible fields out of step with the mode that
+     is actually scheduling. `:not(:has(...))` makes the no-value case Episodes, which is what an
+     absent show-mode means in the save format. Chrome/Edge are the target browsers (CLAUDE.md). */
+  .card:has(#show-mode option[value="blocks"]:checked) .show-mode-episodes,
+  .card:not(:has(#show-mode option[value="blocks"]:checked)) .show-mode-blocks{ display:none; }
+  /* The Production row's block list (renderBlockRows). Engine-generated inside .ep-panel, which is
+     the same bounded gray panel the episode rows use; these rules are only the block layout. Sizes
+     come from the Mantine scale so the list reads as part of the sidebar, not a second system. */
+  .blk-hint{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.4;
+    margin-bottom:var(--mantine-spacing-md); }
+  .block-row{
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default);
+    background:#fff; padding:var(--mantine-spacing-sm) var(--mantine-spacing-md);
+    margin-bottom:var(--mantine-spacing-sm);
+    transition:border-color .12s, background-color .12s;
+  }
+  /* The drop target while an episode is dragged over it. */
+  .block-row.is-over{ border-color:var(--mantine-color-blue-5); background:var(--mantine-color-blue-0); }
+  .block-head{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); }
+  .blk-name{ flex:1; min-width:0; font-size:var(--mantine-font-size-sm); font-weight:600; }
+  .block-head .blk-days{ width:62px; flex:none; }
+  .blk-days-unit{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); flex:none; }
+  .blk-eps{ display:flex; flex-wrap:wrap; gap:4px; margin-top:var(--mantine-spacing-sm); min-height:22px; }
+  .blk-ep{
+    font-size:var(--mantine-font-size-xs); line-height:1; padding:4px 7px;
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-xl);
+    background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-8);
+    cursor:grab; user-select:none;
+  }
+  .blk-ep:hover{ border-color:var(--mantine-color-gray-6); }
+  .blk-ep.is-dragging{ opacity:.4; }
+  .blk-empty{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); font-style:italic; align-self:center; }
   /* The holiday table's column header. Was six inline style= attributes; now one rule. */
   .hv-head{
     display:flex; align-items:flex-end;

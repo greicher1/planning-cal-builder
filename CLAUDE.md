@@ -400,6 +400,7 @@ State lives in module-scope mutable objects scattered through the script, *not* 
 | `colWidths`, `rowHeights` | manual grid sizing from `installGridResizers`; absent = automatic |
 | `cellSpans` | a cell dragged across the empty columns beside it |
 | `locked` on each `.hiatus-entry` | the "Lock in place" pin: a locked all-phase hiatus keeps its dates when the shift tools move the calendar |
+| `blockDefs`, `blockCounter`, `blockAssignEdited` | shooting blocks (BLOCKS-PLAN.md): in Blocks mode (`#show-mode`) Production's total is Σ `blockDefs[].days`. Which episodes sit in which block is **labels only** — it must never reach a date. An absent `show-mode` means Episodes |
 
 **Not** state, deliberately: `autosaveNeedsFile`, `autosaveFailed`, `isDirty`, `suppressDirty` and the legacy-notice visibility are all session UI, and none belongs in a saved file. Per-user *preferences* (`SHEET_GRIDLINES`, `WF_PDF_MODE`, `GRID_TEXT_COLOR`) belong in `localStorage`, **never** in `captureSnapshot()` — they are not calendar data and must not travel inside someone else's file. ⛔ `SHEET_GRIDLINES` is the first one built (3 Sep 2026, key `sptcal.prefs`): its control lives in the **Preferences** card, whose `.prefs-card` class is what `collectFieldValues()` skips. **A preference control outside that card is silently baked into every saved calendar.**
 

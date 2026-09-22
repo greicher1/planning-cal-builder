@@ -1,6 +1,8 @@
 # BLOCKS-PLAN.md
 
-**Status:** plan only. No code. **All four rulings received 16 Sep 2026** (§7).
+**Status:** ✅ **steps 1–3 BUILT 22 Sep 2026** (§9) — no frozen code touched. ⏭ Step 4, the frozen
+month-view tag, is next and carries the owner's precondition (both PDFs shown before committing).
+**Six rulings**: four on 16 Sep 2026, two more on 22 Sep 2026 (§7).
 **Written:** 16 Sep 2026, against `3338f55`.
 **Related:** [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) — §5 of this plan collides with its gate.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md).
@@ -184,8 +186,20 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 | 2 | Mid-week block boundaries | **Name both** — `Block 1 / 2` (§5.1) |
 | 3 | Frozen edit to `renderMonthView` | **Approved**, against §5's gate, **and the two PDFs must be shown before committing** |
 | 4 | Per-block day counts | **Individual overrides**, mirroring `episodeDefs` (§4.4) |
+| 5 | *(22 Sep)* What Production's lane shows in Blocks mode | **Production's own pills, no episode pills — and the week tag names the block AND its episodes**, e.g. `Block 1 · 201, 202` |
+| 6 | *(22 Sep)* The waterfall header's "8-Day Shooting Schedule" in Blocks mode | **`… / 5 Shooting Blocks`** — the block count, which stays true when blocks differ in length |
 
-Nothing outstanding. This plan is ready to build when the owner wants it.
+**Why 5 and 6 were asked, when the plan said nothing was outstanding.** Both were found while
+building step 1, and both are consequences the plan did not see. (5) The month view draws each
+episode as a pill spanning *its own* day count. In Blocks mode those counts drive nothing, so the
+pills would not cover the shoot: 10 × 8 = 80 days of pills over a 100-day block schedule. And block
+shooting cross-boards a block's episodes, so laying them end to end would draw a sequence that is
+not the shoot. (6) The Days per Episode field is hidden in Blocks mode but keeps its value, so the
+waterfall header would print a number nobody can see.
+
+⚠️ **Ruling 5 widens §5.1's width problem.** The tag now carries episodes as well as blocks, so a
+split week reads something like `Block 1 · 201, 202 / Block 2 · 203, 204`. Measure it at the
+narrowest month-view column *before* choosing an abbreviation. The §5.1 warning applies twice over.
 
 
 ## 8. Suggested order
@@ -200,3 +214,32 @@ Steps 1–3 touch no frozen code.
    PDFs and show the owner before committing** (§5 condition 5).
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1 and 2** — the save format moves in both.
+
+## 9. ✅ As built — steps 1–3 (22 Sep 2026)
+
+**No frozen code.** Chrome (`Sidebar.jsx`, `legacy.css`'s React-cards section) and non-frozen engine
+functions only. `episodeSpans()` is not on the frozen list, and ruling 5 is delivered there: it
+returns `[]` in Blocks mode, and the frozen renderer already draws Production whenever it is empty.
+
+| | |
+|---|---|
+| The switch | `#show-mode`, a `NativeSelect`, **Schedule by: Episodes / Blocks**. Not a `SegmentedControl` (a radio per segment, each with a generated id). The **values** are the contract; the look can change without a migration |
+| Which fields show | pure CSS off the select's **checked option** (`:has()`), not an engine-toggled class. The select is the only source of truth, so no restore, undo or open path can leave the fields out of step with the mode that is actually scheduling |
+| The driver | `showInfoStatus()` — one function; the Episodes branch is the old body verbatim. Blocks mode requires Season, Number of Episodes, Number of Blocks and Shooting Days per Block |
+| The model | `blockDefs = [{id, name, days, daysEdited, episodes:[episodeId]}]`, `blockCounter`, `blockAssignEdited` |
+| The split | front-loaded (ruling 1), recomputed while `blockAssignEdited` is false |
+| A hand arrangement | once an episode is dragged, the arrangement is the user's and is only ever **reconciled**: a gone episode drops out, and one no block holds (new, or whose block was removed) joins the **last** block. ⚠️ These two rules are mine, not rulings. They are the least-surprising defaults I could find, and cheap to change |
+| The drag | HTML5 drag-and-drop in the Production row's panel; the whole block row is the drop target; **one move = one undo step** (the flush/commit `pushUndoSnapshot()` pair). Desktop only: HTML5 drag does not work on touch |
+| Save format | three `fields.byId` ids (`show-mode`, `num-blocks`, `days-per-block`), and three snapshot keys, written in **both** modes. **An absent `show-mode` means Episodes**, enforced in `applyStateSnapshot()`, not merely by the markup default |
+| Header | ruling 6, in `computeHeaderDefaults()` r1 **and** the `{production.summary}` token, in lockstep; `{shootDaysPerEp}` is empty in Blocks mode |
+
+**Proved** by the new `blocks` gate leg on a minted fixture (`tests/fixtures/blocks.sptcal`), and by
+driving the dev build with real mouse gestures: a real drag moved an episode, one `cmd+z` put it
+back, and `cmd+shift+z` redid it. Full gate: **351 pass, 0 fail**, with every Episodes-mode output
+identical (waterfall PDF, Excel, all four month-PDF cases, the v1.0.0 restore). Gate 5 re-cut
+59 → 62 ids, recorded in that baseline's README.
+
+⭐ **The restore default was proven necessary by removing it.** Without it, a pre-Blocks calendar
+loaded after a Blocks one was scheduled **in Blocks mode, from the previous file's block count** —
+90 days, wrap 11/10/26, instead of 80 and 10/27/26. That is someone else's plan on your show, with
+no error anywhere.

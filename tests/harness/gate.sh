@@ -1256,6 +1256,56 @@ chk(not a.get('errors'), f"rowmigrate: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 
+# ---- blocks: block shooting (BLOCKS-PLAN.md steps 1-3) on a REAL saved Blocks calendar ----------
+# tests/fixtures/blocks.sptcal was minted in the app: 5 blocks x 18 days, Block 3 overridden to 13,
+# episode 205 dragged into Block 2. ⭐ The three properties the plan stands or falls on:
+#   labels-not-dates  a hand move changes NO date -- the whole grid signature and the meta line
+#   round trip        Blocks -> Episodes -> Blocks restores the dates AND the hand arrangement
+#   uncond. restore   a pre-Blocks file loaded AFTER this one opens in Episodes mode. Proven to
+#                     fail without applyStateSnapshot()'s default: the old calendar then scheduled
+#                     IN BLOCKS MODE from the previous file's blocks -- 90 days, wrap 11/10/26,
+#                     instead of 80 days, 10/27/26. Loaded through the real picker path.
+HARNESS_PAGE="$PAGE" HARNESS_STATE=blocks "$HERE/run.sh" blocks 120 >/dev/null 2>&1
+python3 - "$HERE/blocks.json" <<'PY' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  blocks produced no result: '+str(e)); sys.exit(1)
+if 'EX' in a:
+    print('  FAIL  blocks threw: '+str(a['EX'])); sys.exit(1)
+SAVED=['Block 1(18):201,202','Block 2(18):203,204,205','Block 3(13):206','Block 4(18):207,208','Block 5(18):209,210']
+BLOCKS_META='85 shoot days → 18 wk · 6/29/26 → 10/27/26'
+EP_META='80 shoot days → 17 wk · 6/29/26 → 10/20/26'
+chk(a.get('mode')=='blocks' and a.get('restoredRows')==SAVED and a.get('restoredMeta')==BLOCKS_META,
+    f"blocks: restores in Blocks mode with its hand arrangement and per-block override ({a.get('restoredMeta')})")
+chk('from 5 blocks' in (a.get('readout') or '') and '18-Week Production Span / 5 Shooting Blocks' in (a.get('hdr') or ''),
+    "blocks: the readout names blocks, and the header reads '... / 5 Shooting Blocks' (ruling 6)")
+chk(a.get('perEpHidden') and a.get('blockFieldsShown'), "blocks: Show card shows the block fields and hides Days per Episode")
+chk(a.get('idsInPanel')==[] and a.get('formHasBlockIds'),
+    f"blocks: no id inside the block panel {a.get('idsInPanel')}; show-mode/num-blocks/days-per-block are in fields.byId")
+chk(a.get('moveGridSame') and a.get('moveMetaSame') and (a.get('afterMove') or [''])[0]=='Block 1(18):201,202,206',
+    "blocks: ⭐ LABELS, NOT DATES -- moving 206 into Block 1 left the whole grid and the wrap untouched")
+chk(a.get('undoExact'), "blocks: the move is ONE undo step, reverting exactly the arrangement")
+chk(a.get('epMeta')==EP_META and '8-Day Shooting Schedule' in (a.get('epHdr') or '')
+    and a.get('epRowsShown')==10 and a.get('epBlockRows')==0,
+    f"blocks: Episodes mode schedules from the episode list, byte-identical header ({a.get('epMeta')})")
+chk(a.get('roundTrip'), f"blocks: ⭐ ROUND TRIP -- back to Blocks restores the dates and the hand arrangement ({a.get('backMeta')})")
+chk(a.get('mvEpisodePills')==0 and (a.get('mvProductionPills') or 0)>0,
+    f"blocks: month view draws Production's pills, no episode pills (ruling 5) -- {a.get('mvProductionPills')} / {a.get('mvEpisodePills')}")
+chk(a.get('loadGuardAnswered') and a.get('oldMode')=='episodes' and a.get('oldNumBlocks')=='' and a.get('oldDaysPerBlock')==''
+    and '10/27/26' in (a.get('oldMeta') or '') and (a.get('oldMeta') or '').startswith('80 shoot days')
+    and a.get('oldBlockRows')==0 and a.get('oldEpisodeRows')==10,
+    f"blocks: ⭐ a pre-Blocks .sptcal loaded AFTERWARDS through the picker opens in Episodes mode ({a.get('oldMode')}, {a.get('oldMeta')})")
+chk(not a.get('errors'), f"blocks: 0 console errors {a.get('errors')}")
+chk(not (a.get('clipped') or {}).get('h'), f"blocks: 0 horizontally clipped cells {(a.get('clipped') or {}).get('h')}")
+sys.exit(bad)
+PY
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

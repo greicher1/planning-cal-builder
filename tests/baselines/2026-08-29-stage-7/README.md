@@ -177,6 +177,29 @@ toggle defaults to on, so no existing calendar's dates move. The re-cut replaced
 object and was guarded by assertions on each claim above; it would have aborted rather than absorb a
 value change.
 
+## ✅ `restore.json`'s `form` RE-CUT — 59 keys to 62 (22 Sep 2026, block shooting)
+
+A deliberate **save-format** change: `BLOCKS-PLAN.md` §6 adds three Show-card fields, and every id'd
+control is swept into `fields.byId`, so gate 5 is *supposed* to fail until this is re-cut.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (3)** | `show-mode` | **`"episodes"`** |
+| | `num-blocks` | `""` |
+| | `days-per-block` | `""` |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the first value.** `v1.0.0-saved.html` predates Blocks and has no
+`show-mode` key, and it restores as **`"episodes"`** — the mode that calendar was built in, so its
+schedule cannot move. That is `applyStateSnapshot()`'s default doing its job; the markup default
+alone would not cover a file opened *after* a Blocks calendar, which is why the `blocks` leg tests
+exactly that and was proven to fail without it (the old calendar then scheduled 90 days, wrap
+11/10/26, instead of 80 and 10/27/26).
+
+Unchanged by this: **`sig`, `rows` 52, `cells` 154, `gridWidthPt` 324, `bytes` 756473,
+`hClip` 0.** Only `form` was replaced.
+
 ## Reproducing it
 
 ```bash

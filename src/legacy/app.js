@@ -5029,6 +5029,25 @@ export function initLegacyApp() {
   // Names of user-edited episodes discarded by lowering the episode count, shown once as a
   // warning so the loss isn't silent.
   let lastDroppedEpisodes = [];
+  // Shooting blocks (BLOCKS-PLAN.md). Each: {id, name, days, daysEdited, episodes:[episodeId]}.
+  // ⭐ Deliberately the SAME SHAPE as episodeDefs (§4.4): in Blocks mode Production's total is
+  // Σ blockDefs[].days exactly as it is Σ episodeDefs[].days in Episodes mode, so showInfoStatus()
+  // stays ONE function reading a different array rather than growing a second code path.
+  // `days-per-block` is the default a new block starts from; a typed day count marks the block
+  // daysEdited and stops it being managed (the per-block override, ruling 4).
+  // ⛔ `episodes` changes LABELS, never dates (§4.3). Which episodes sit in which block feeds the
+  // month view's tag and nothing else; no path from it may reach computeSchedule().
+  // ⚠️ Kept -- never cleared -- in Episodes mode, so switching back and forth restores the dates
+  // exactly (§3: "never discard the other mode's inputs").
+  let blockDefs = [];
+  let blockCounter = 0;
+  // false = the episode split is the automatic front-loaded one (ruling 1) and is recomputed
+  // whenever the episode or block count changes. true = someone moved an episode by hand, and the
+  // assignment is theirs: it is only ever reconciled (new episodes appended, gone ones dropped),
+  // never re-split. One flag rather than per block, because a hand move is a statement about the
+  // whole arrangement, not about one block.
+  let blockAssignEdited = false;
+  let lastDroppedBlocks = [];
 
   function getAllPhaseDefs(){
     const fixed = PHASES.map(p=>{
@@ -6573,34 +6592,62 @@ export function initLegacyApp() {
     const season = seasonEl ? seasonEl.value : '';
     const perEp = parseInt(perEpEl ? perEpEl.value : '', 10);
     const numEp = parseInt(numEpEl ? numEpEl.value : '', 10);
+    // ⭐ BLOCK SHOOTING CHOOSES THE DRIVER HERE AND NOWHERE ELSE (BLOCKS-PLAN.md §3). Every consumer
+    // of Production's length -- computeSchedule, the readout, the header -- already asks this
+    // function, so the mode is one branch in one place rather than a second code path to drift.
+    // ⛔ The Episodes branch below is the pre-Blocks function VERBATIM; every calendar saved before
+    // Blocks existed has no show-mode and lands in it.
+    const blocks = isBlocksMode();
+    const perBlock = parseInt((document.getElementById('days-per-block') || {}).value || '', 10);
+    const numBlocks = parseInt((document.getElementById('num-blocks') || {}).value || '', 10);
     const missing = [];
     if(!season) missing.push('Season');
-    if(!Number.isFinite(perEp) || perEp <= 0) missing.push('Shooting Days per Episode');
-    if(!Number.isFinite(numEp) || numEp <= 0) missing.push('Number of Episodes');
+    if(blocks){
+      if(!Number.isFinite(numEp) || numEp <= 0) missing.push('Number of Episodes');
+      if(!Number.isFinite(numBlocks) || numBlocks <= 0) missing.push('Number of Blocks');
+      if(!Number.isFinite(perBlock) || perBlock <= 0) missing.push('Shooting Days per Block');
+    } else {
+      if(!Number.isFinite(perEp) || perEp <= 0) missing.push('Shooting Days per Episode');
+      if(!Number.isFinite(numEp) || numEp <= 0) missing.push('Number of Episodes');
+    }
     const complete = missing.length === 0;
 
-    // Sum the actual episode rows. Falls back to the flat multiply before rows exist (e.g.
-    // during the first render pass, or if the list somehow hasn't been built yet).
+    // Sum the actual rows -- episodes, or blocks in Blocks mode (the SAME rule over a different
+    // array, §4.4). Falls back to the flat multiply before rows exist (e.g. during the first render
+    // pass, or if the list somehow hasn't been built yet).
+    const rows = blocks ? blockDefs : episodeDefs;
     let totalShootDays = 0;
     let hasRows = false;
-    if(episodeDefs.length){
+    if(rows.length){
       hasRows = true;
-      episodeDefs.forEach(e=>{
+      rows.forEach(e=>{
         const n = parseInt(e.days, 10);
         if(Number.isFinite(n) && n > 0) totalShootDays += n;
       });
     }
-    if(!hasRows && Number.isFinite(perEp) && Number.isFinite(numEp)) totalShootDays = perEp * numEp;
+    if(blocks){
+      if(!hasRows && Number.isFinite(perBlock) && Number.isFinite(numBlocks)) totalShootDays = perBlock * numBlocks;
+    } else if(!hasRows && Number.isFinite(perEp) && Number.isFinite(numEp)) totalShootDays = perEp * numEp;
 
-    // Which episodes the user has personally overridden, for the Show Info flag.
-    const overrides = episodeDefs
+    // Which rows the user has personally overridden, for the Show Info flag.
+    const overrides = rows
       .filter(e => e.daysEdited && parseInt(e.days,10) > 0)
       .map(e => ({ name: e.name || '', days: parseInt(e.days,10) }));
 
     return { complete, missing, season,
       perEp: Number.isFinite(perEp) ? perEp : 0,
       numEp: Number.isFinite(numEp) ? numEp : 0,
-      totalShootDays, overrides };
+      totalShootDays, overrides,
+      blocks,
+      perBlock: Number.isFinite(perBlock) ? perBlock : 0,
+      numBlocks: Number.isFinite(numBlocks) ? numBlocks : 0 };
+  }
+
+  // Blocks mode is on only when #show-mode SAYS 'blocks'. A missing element, an empty value or any
+  // other value is Episodes -- the mode every calendar saved before 22 Sep 2026 was built in.
+  function isBlocksMode(){
+    const el = document.getElementById('show-mode');
+    return !!el && el.value === 'blocks';
   }
 
   // Episode numbering follows the industry convention: season 1 -> 101, 102...; season 5 ->
@@ -6642,6 +6689,85 @@ export function initLegacyApp() {
     return dropped;
   }
 
+  // ---------- Shooting blocks (BLOCKS-PLAN.md steps 1-3) ----------
+  function defaultBlockDays(){
+    const v = parseInt((document.getElementById('days-per-block') || {}).value || '', 10);
+    return (Number.isFinite(v) && v > 0) ? v : '';
+  }
+
+  // The block list's twin of syncEpisodesFromShowInfo(): grow/shrink to "Number of Blocks", refresh
+  // every day count the user has not typed, then settle which episodes sit in which block. Runs in
+  // BOTH modes, like the episode sync -- the list must be right the moment someone switches.
+  // Returns the names of hand-edited blocks a lowered count discarded, so the caller can warn.
+  function syncBlocksFromShowInfo(){
+    const wanted = parseInt((document.getElementById('num-blocks') || {}).value || '', 10);
+    const dropped = [];
+    if(Number.isFinite(wanted) && wanted > 0){
+      while(blockDefs.length < wanted){
+        blockDefs.push({ id:'blk'+(++blockCounter), name:'', days:'', daysEdited:false, episodes:[] });
+      }
+      // A dropped block's EPISODES are not lost: reconcileBlockEpisodes() below finds them
+      // unassigned and hands them to the last block. Only its day override can be lost, and that is
+      // what the warning names.
+      while(blockDefs.length > wanted){
+        const last = blockDefs.pop();
+        if(last.daysEdited) dropped.push(last.name || 'a block');
+      }
+    }
+    blockDefs.forEach((b, i)=>{
+      // Always "Block N" by position: nothing renames a block yet, and the month view's tag
+      // ("Block 1 / 2", ruling 2) reads these.
+      b.name = 'Block ' + (i + 1);
+      if(!b.daysEdited) b.days = defaultBlockDays();
+    });
+    reconcileBlockEpisodes();
+    return dropped;
+  }
+
+  // Settle episodes into blocks. Two regimes, chosen by blockAssignEdited:
+  //  - untouched: the automatic split, recomputed every time. ✅ RULING 1 (16 Sep 2026): even, with
+  //    the remainder to the FRONT -- 10 episodes / 3 blocks is 4,3,3, NOT 3,3,4. It is a coin-flip
+  //    rule the owner chose, not a bug in the other order.
+  //  - hand-arranged: the user's grouping is kept and only ever RECONCILED. An episode that no
+  //    longer exists is dropped from its block; an episode no block holds (a new one, or one whose
+  //    block was removed) joins the LAST block, so none is ever silently unassigned.
+  // ⛔ LABELS ONLY (§4.3). Nothing here may touch a day count: moving an episode between blocks
+  // must not move a single date.
+  // A block holds a SET (§4.2) -- shoots group out of order -- so each list is kept in EPISODE
+  // order purely for display; the order carries no meaning.
+  function reconcileBlockEpisodes(){
+    if(!blockDefs.length) return;
+    const ids = episodeDefs.map(e=>e.id);
+    if(!blockAssignEdited){
+      const n = blockDefs.length, base = Math.floor(ids.length / n), extra = ids.length % n;
+      let k = 0;
+      blockDefs.forEach((b, i)=>{
+        const take = base + (i < extra ? 1 : 0);
+        b.episodes = ids.slice(k, k + take);
+        k += take;
+      });
+      return;
+    }
+    const pos = new Map(ids.map((id, i)=>[id, i]));
+    const seen = new Set();
+    blockDefs.forEach(b=>{
+      b.episodes = (Array.isArray(b.episodes) ? b.episodes : []).filter(id=>{
+        if(!pos.has(id) || seen.has(id)) return false;
+        seen.add(id); return true;
+      });
+    });
+    const orphans = ids.filter(id=> !seen.has(id));
+    if(orphans.length) blockDefs[blockDefs.length - 1].episodes.push(...orphans);
+    blockDefs.forEach(b=> b.episodes.sort((a, c)=> pos.get(a) - pos.get(c)));
+  }
+
+  // "Episode 201" -> "201": the number is what a UPM reads on a board. A name someone typed that
+  // does not follow the pattern ("Pilot") is shown whole.
+  function shortEpisodeName(e){
+    const nm = (e && e.name) || '';
+    return nm.replace(/^Episode\s+/i, '') || nm;
+  }
+
   function renderEpisodeRows(){
     const wrap = document.getElementById('episode-rows');
     if(!wrap) return;
@@ -6649,6 +6775,34 @@ export function initLegacyApp() {
       <div class="episode-row" data-id="${e.id}">
         <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name">
         <input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':e.days}" placeholder="Days">
+      </div>`).join('');
+  }
+
+  // Blocks mode's panel: one row per block -- its day count (the per-block override, ruling 4) and
+  // the episodes it holds, as chips that drag between blocks (step 3).
+  // ⛔ NO `id` ON ANY CONTROL IN HERE. collectFieldValues() sweeps every input[id] into fields.byId,
+  // so an id'd day box would bake a junk key into every saved calendar and add a phantom undo step
+  // per keystroke. The block's own store is blockDefs, which captureSnapshot() carries -- exactly
+  // the arrangement .ep-name/.ep-days have always had.
+  function renderBlockRows(){
+    const wrap = document.getElementById('episode-rows');
+    if(!wrap) return;
+    const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+    wrap.innerHTML = '<div class="blk-hint">Drag an episode to another block to regroup it. '
+      + 'Regrouping changes the calendar’s labels, never its dates.</div>'
+      + blockDefs.map(b=>`
+      <div class="block-row" data-id="${b.id}">
+        <div class="block-head">
+          <span class="blk-name">${escHtml(b.name)}</span>
+          <input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="1"
+                 value="${b.days===''?'':b.days}" placeholder="Days" aria-label="${escHtml(b.name)} shooting days">
+          <span class="blk-days-unit">days</span>
+        </div>
+        <div class="blk-eps" data-block="${b.id}">${
+          b.episodes.map(id=> byId.get(id)).filter(Boolean).map(e=>
+            `<span class="blk-ep" draggable="true" data-ep="${e.id}" title="${escHtml(e.name)}">${escHtml(shortEpisodeName(e))}</span>`
+          ).join('') || '<span class="blk-empty">No episodes — drop one here</span>'
+        }</div>
       </div>`).join('');
   }
 
@@ -6664,11 +6818,14 @@ export function initLegacyApp() {
 
     const readout = document.getElementById('prod-total-readout');
     if(readout){
+      // Blocks mode names what the total is actually the sum of. The Episodes string is unchanged.
+      const srcN = info.blocks ? blockDefs.length : episodeDefs.length;
+      const srcWord = info.blocks ? 'block' : 'episode';
       readout.innerHTML = info.complete
         ? '<span class="prod-total-label" title="Total Shooting Days">Total Shooting Days</span>'
           + '<span class="prod-total-value"><strong>' + info.totalShootDays + '</strong>'
-          + '<span class="prod-total-src">from ' + episodeDefs.length + ' episode'
-          + (episodeDefs.length===1?'':'s') + '</span></span>'
+          + '<span class="prod-total-src">from ' + srcN + ' ' + srcWord
+          + (srcN===1?'':'s') + '</span></span>'
         : '<span class="prod-total-empty">Total Shooting Days \u2014 set by Show Info</span>';
     }
 
@@ -6682,12 +6839,12 @@ export function initLegacyApp() {
       if(info.complete){
         infoNote.style.display = '';
         let html = '<strong>Production\u2019s Total Shooting Days: ' + info.totalShootDays + '</strong>'
-          + ' \u2014 the sum of the episode list in the Production phase. Used by the Waterfall'
+          + ' \u2014 the sum of the ' + (info.blocks ? 'block' : 'episode') + ' list in the Production phase. Used by the Waterfall'
           + ' view and the Excel export.';
         if(info.overrides.length){
           html += '<div class="show-info-flags">Manually changed: '
-            + info.overrides.map(o=> escHtml(o.name || 'Episode') + ' \u2192 <strong>' + o.days + ' days</strong>').join('; ')
-            + ' (default is ' + info.perEp + ').</div>';
+            + info.overrides.map(o=> escHtml(o.name || (info.blocks ? 'Block' : 'Episode')) + ' \u2192 <strong>' + o.days + ' days</strong>').join('; ')
+            + ' (default is ' + (info.blocks ? info.perBlock : info.perEp) + ').</div>';
         }
         infoNote.innerHTML = html;
       } else { infoNote.style.display = 'none'; }
@@ -6700,6 +6857,9 @@ export function initLegacyApp() {
     // shoot-day total is derived from it in every view, so it can't wait for the UI.
     const dropped = syncEpisodesFromShowInfo();
     if(dropped.length) lastDroppedEpisodes = dropped;
+    // AFTER the episode sync: the block split is computed over the episode list as it now stands.
+    const droppedBlocks = syncBlocksFromShowInfo();
+    if(droppedBlocks.length) lastDroppedBlocks = droppedBlocks;
     const panel = document.getElementById('ep-panel');
     const info = refreshDerivedInfo();
 
@@ -6727,17 +6887,35 @@ export function initLegacyApp() {
           + ' \u2014 lowering the episode count discarded '
           + (lastDroppedEpisodes.length===1?'an episode you had edited':'episodes you had edited') + '.';
         lastDroppedEpisodes = [];
+      } else if(lastDroppedBlocks.length){
+        // The block twin. Only a day override can be lost -- the block's episodes moved to the
+        // last remaining block -- so that is what it says.
+        warn.style.display = '';
+        warn.innerHTML = 'Removed ' + lastDroppedBlocks.map(n=>'<strong>'+escHtml(n)+'</strong>').join(', ')
+          + ' \u2014 lowering the block count discarded '
+          + (lastDroppedBlocks.length===1?'a day count you had edited':'day counts you had edited')
+          // Only true of a hand arrangement; the automatic split simply re-splits, which the panel
+          // below already shows.
+          + '.' + (blockAssignEdited ? ' Its episodes moved to the last block.' : '');
+        lastDroppedBlocks = [];
       } else {
         warn.style.display = 'none';
       }
     }
-    renderEpisodeRows();
+    if(info.blocks) renderBlockRows(); else renderEpisodeRows();
   }
 
   // Lay episodes out across Production's shoot days, back to back: the first episode takes the
   // first N shoot days, the next takes the following N, and so on. Episodes without a day
   // count are skipped rather than guessed at.
   function episodeSpans(schedule){
+    // ✅ RULING 5 (owner, 22 Sep 2026): in Blocks mode there are NO episode pills -- Production's own
+    // pills show, and the block tag names each week's block(s) and their episodes. The episodes in
+    // a block are typically cross-boarded, so laying them end to end would draw a sequence the
+    // shoot does not have; and their day counts no longer drive anything, so the pills would not
+    // even cover the shoot. Returning [] is what hands the lane back to Production -- the frozen
+    // renderer already draws Production whenever this is empty.
+    if(isBlocksMode()) return [];
     if(!showInfoStatus().complete) return [];   // nothing reliable to lay out
     const prod = (schedule.segments||[]).find(s=>s.key==='production');
     if(!prod || !prod.shootDays || !prod.shootDays.length) return [];
@@ -10364,7 +10542,12 @@ export function initLegacyApp() {
     const numEpisodes = parseInt(val('num-episodes'), 10);
     t.episodes = (!isNaN(numEpisodes) && numEpisodes > 0) ? String(numEpisodes) : '';
     const perEp = parseInt(val('shoot-days-per-ep'), 10);
-    t.shootDaysPerEp = (!isNaN(perEp) && perEp > 0) ? String(perEp) : '';
+    // In Blocks mode the per-episode field is hidden and drives nothing, so its value is not a fact
+    // about this calendar any more: the token goes empty rather than printing a number nobody can
+    // see (ruling 6). Episodes mode is unchanged.
+    const blocksMode = isBlocksMode();
+    t.shootDaysPerEp = (!blocksMode && !isNaN(perEp) && perEp > 0) ? String(perEp) : '';
+    const numBlocks = parseInt(val('num-blocks'), 10);
     let totalShootDays = 0;
     try { totalShootDays = showInfoStatus().totalShootDays || 0; } catch(e){ totalShootDays = 0; }
     t.shootDays = totalShootDays ? String(totalShootDays) : '';
@@ -10418,9 +10601,11 @@ export function initLegacyApp() {
         if(w.cells.some(c => c.key === 'production' || (c.label && c.label.startsWith('Production')))) prodWeeks++;
       }
     }
+    // ⛔ KEEP IN STEP WITH computeHeaderDefaults()'s r1 -- including the Blocks branch (ruling 6).
     t['production.summary'] = [
       prodWeeks ? `${prodWeeks}-Week Production Span` : '',
-      t.shootDaysPerEp ? `${t.shootDaysPerEp}-Day Shooting Schedule` : '',
+      blocksMode ? shootingBlocksPhrase(numBlocks)
+                 : (t.shootDaysPerEp ? `${t.shootDaysPerEp}-Day Shooting Schedule` : ''),
     ].filter(Boolean).join(' / ');
     t['production.dates'] = prodInfo
       ? `Principal Photography ${fmtHeaderDate(t['production.open'], 'dot')} / Wrap: ${fmtHeaderDate(t['production.wrap'], 'dot')}`
@@ -10743,6 +10928,11 @@ export function initLegacyApp() {
     }, 0);
   }
 
+  // "5 Shooting Blocks" / "1 Shooting Block" -- r1's Blocks-mode half (ruling 6). '' without a count.
+  function shootingBlocksPhrase(n){
+    return (Number.isFinite(n) && n > 0) ? `${n} Shooting Block${n === 1 ? '' : 's'}` : '';
+  }
+
   // Compute the auto defaults for every header line from the current form inputs + schedule.
   function computeHeaderDefaults(schedule){
     const today = new Date();
@@ -10768,9 +10958,16 @@ export function initLegacyApp() {
         if(w.cells.some(c=>c.key==='production' || (c.label&&c.label.startsWith('Production')))) prodWeeks++;
       }
       const fmt = d => `${d.getUTCMonth()+1}.${d.getUTCDate()}.${String(d.getUTCFullYear()).slice(2)}`;
+      // ✅ RULING 6 (owner, 22 Sep 2026): in Blocks mode the per-episode half reads
+      // "5 Shooting Blocks". The block COUNT, not a day figure, because per-block overrides mean
+      // blocks can differ in length and "20-Day Blocks" would then be false. Episodes mode is the
+      // pre-Blocks string, byte for byte. ⛔ The {production.summary} token restates this line and
+      // the hdrtemplate leg requires the two to agree -- change both or neither.
       const parts = [
         prodWeeks ? `${prodWeeks}-Week Production Span` : '',
-        !isNaN(shootDaysPerEp) && shootDaysPerEp > 0 ? `${shootDaysPerEp}-Day Shooting Schedule` : '',
+        isBlocksMode()
+          ? shootingBlocksPhrase(parseInt((document.getElementById('num-blocks').value||'').trim(), 10))
+          : (!isNaN(shootDaysPerEp) && shootDaysPerEp > 0 ? `${shootDaysPerEp}-Day Shooting Schedule` : ''),
       ].filter(Boolean);
       r1 = parts.join(' / ');
       // Both ends of this line are REAL SHOOT DAYS. It used to print the entered Monday against a
@@ -11133,6 +11330,86 @@ export function initLegacyApp() {
     });
   })();
 
+  // Block shooting panel wiring (BLOCKS-PLAN.md §4.4-4.5). Delegated from the same container for
+  // the same reason: the panel lives inside the Production row, which buildPhaseRows() rebuilds.
+  (function(){
+    const host = document.getElementById('phase-rows');
+    if(!host) return;
+    // A block's own day count: the per-block override (ruling 4). This one DOES move dates --
+    // block durations are the schedule's input in Blocks mode -- so it recomputes.
+    host.addEventListener('input', (e)=>{
+      if(!e.target.classList || !e.target.classList.contains('blk-days')) return;
+      const row = e.target.closest('.block-row');
+      const def = row && blockDefs.find(b=> b.id === row.dataset.id);
+      if(!def) return;
+      def.days = e.target.value; def.daysEdited = true;
+      e.target.classList.add('is-edited');
+      refreshDerivedInfo();
+      update();
+    });
+
+    // Drag an episode chip onto another block. The whole block row is the drop target, not just
+    // its chip strip: a two-chip strip is a small thing to hit while dragging.
+    let dragEp = null;
+    const clearMarks = ()=> host.querySelectorAll('.blk-ep.is-dragging, .block-row.is-over')
+      .forEach(el=> el.classList.remove('is-dragging', 'is-over'));
+    host.addEventListener('dragstart', (e)=>{
+      const chip = e.target.closest && e.target.closest('.blk-ep');
+      if(!chip) return;
+      dragEp = chip.dataset.ep;
+      e.dataTransfer.effectAllowed = 'move';
+      // Some browsers refuse to start a drag that carries no data at all.
+      try { e.dataTransfer.setData('text/plain', shortEpisodeName(episodeDefs.find(x=> x.id === dragEp))); } catch(_){}
+      chip.classList.add('is-dragging');
+    });
+    host.addEventListener('dragover', (e)=>{
+      if(!dragEp) return;
+      const zone = e.target.closest && e.target.closest('.block-row');
+      if(!zone) return;
+      e.preventDefault();                 // what makes it a legal drop target
+      e.dataTransfer.dropEffect = 'move';
+      host.querySelectorAll('.block-row.is-over').forEach(el=>{ if(el !== zone) el.classList.remove('is-over'); });
+      zone.classList.add('is-over');
+    });
+    host.addEventListener('dragleave', (e)=>{
+      const zone = e.target.closest && e.target.closest('.block-row');
+      if(zone && !zone.contains(e.relatedTarget)) zone.classList.remove('is-over');
+    });
+    host.addEventListener('drop', (e)=>{
+      if(!dragEp) return;
+      const zone = e.target.closest && e.target.closest('.block-row');
+      if(!zone) return;
+      e.preventDefault();
+      const ep = dragEp;
+      dragEp = null;
+      clearMarks();
+      moveEpisodeToBlock(ep, zone.dataset.id);
+    });
+    host.addEventListener('dragend', ()=>{ dragEp = null; clearMarks(); });
+  })();
+
+  // Move one episode into another block -- the only way an arrangement becomes hand-made.
+  // ⛔ LABELS, NOT DATES (§4.3): nothing here touches a day count, so the schedule cannot move; the
+  // update() is for the month view's block tag and the dirty flag, not for dates.
+  // One move is ONE undo step, banked deterministically: the leading pushUndoSnapshot() is a flush
+  // (it no-ops when nothing changed) and the trailing one commits, the same shape the day-override
+  // menu uses -- rather than trusting update()'s 500 ms debounce, which would fold a quick second
+  // move into the same step.
+  function moveEpisodeToBlock(epId, blockId){
+    const to = blockDefs.find(b=> b.id === blockId);
+    const from = blockDefs.find(b=> b.episodes.includes(epId));
+    if(!to || !from || from === to) return false;
+    pushUndoSnapshot();
+    from.episodes = from.episodes.filter(x=> x !== epId);
+    to.episodes.push(epId);
+    blockAssignEdited = true;
+    reconcileBlockEpisodes();             // keeps each block in episode order
+    renderBlockRows();
+    update();
+    pushUndoSnapshot();
+    return true;
+  }
+
   // Fixed chain order for the built-in phases. autostartPhase() fills a phase's start date with the
   // week right after the nearest EARLIER phase that is actually scheduled -- skipping past any
   // hiatus so the new phase begins on a working week. Custom phases are intentionally not part of
@@ -11392,6 +11669,17 @@ export function initLegacyApp() {
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
+  // Block shooting (BLOCKS-PLAN.md §3). Switching mode changes which list drives Production, so it
+  // re-renders the panel AND recomputes -- and switching back must land on the previous dates
+  // exactly, which holds because neither mode's inputs are ever cleared.
+  ['show-mode'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
+  });
+  ['num-blocks', 'days-per-block'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
+  });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
   document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
   // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as
@@ -11437,6 +11725,10 @@ export function initLegacyApp() {
     document.getElementById('num-episodes').value = '';
     document.getElementById('show-version').value = '';
     episodeDefs = []; episodeCounter = 0;
+    // Back to Episodes, the mode every calendar starts in -- and the block list with it.
+    const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
+    ['num-blocks', 'days-per-block'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
+    blockDefs = []; blockCounter = 0; blockAssignEdited = false; lastDroppedBlocks = [];
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {}; headerTemplates = false;
     mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false;
@@ -11837,6 +12129,10 @@ export function initLegacyApp() {
     return {
       version: SNAPSHOT_VERSION,
       customPhaseDefs, customPhaseCounter, phaseColorOverride, episodeDefs, episodeCounter,
+      // Block shooting, 22 Sep 2026. ⛔ NEW KEYS ARE PERMANENT -- never rename one. All three are
+      // written in BOTH modes (an Episodes calendar carries its dormant blocks), which is what lets
+      // a file switch mode and back without losing either side (BLOCKS-PLAN §3).
+      blockDefs, blockCounter, blockAssignEdited,
       userNotes, dayNotes, mvExtraLanes, dayNoteColors, dayOverrides, headerMode, headerManual, headerTemplates,
       mvHeaderMode, mvHeaderManual, mvHeaderTemplates, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
@@ -14683,6 +14979,30 @@ export function initLegacyApp() {
     // undo snapshot always carries the key and this branch never fires for one.
     const verEl = document.getElementById('show-version');
     if(verEl && !(snap.fields && snap.fields.byId && ('show-version' in snap.fields.byId))) verEl.value = '';
+    // ⛔ THE SAME TRAP, AND A WORSE ONE: #show-mode chooses what drives Production. Open a Blocks
+    // calendar, then any calendar saved before 22 Sep 2026, and without this the second file would
+    // be SCHEDULED IN BLOCKS MODE from the first file's block count -- a different wrap date, on
+    // someone else's plan, with no error anywhere. An absent show-mode means Episodes, always.
+    const hasField = id => !!(snap.fields && snap.fields.byId && (id in snap.fields.byId));
+    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', '']].forEach(([id, dflt])=>{
+      const el = document.getElementById(id);
+      if(el && !hasField(id)) el.value = dflt;
+    });
+    // Block store: UNCONDITIONAL, defaulting to empty -- the rule above, applied to the arrays.
+    // `if(snap.blockDefs) blockDefs = ...` would leave the previous file's blocks behind, and its
+    // hand arrangement would then be reconciled onto this file's episodes.
+    blockDefs = Array.isArray(snap.blockDefs) ? snap.blockDefs.map(b=>({
+      id: (b && typeof b.id === 'string') ? b.id : ('blk' + (++blockCounter)),
+      name: (b && b.name) || '',
+      days: (b && b.days !== undefined) ? b.days : '',
+      daysEdited: !!(b && b.daysEdited),
+      episodes: (b && Array.isArray(b.episodes)) ? b.episodes.filter(x=> typeof x === 'string') : [],
+    })) : [];
+    // Never below the highest id already in use, so the next block cannot collide with a saved one.
+    blockCounter = Math.max(typeof snap.blockCounter === 'number' ? snap.blockCounter : 0,
+      ...blockDefs.map(b=> parseInt(String(b.id).replace(/^blk/, ''), 10) || 0));
+    blockAssignEdited = snap.blockAssignEdited === true;
+    lastDroppedBlocks = [];
 
     // 3. Apply saved values to every id'd field
     if(snap.fields && snap.fields.byId){

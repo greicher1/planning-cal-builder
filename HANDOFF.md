@@ -4,6 +4,37 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ BUILT 22 Sep 2026: BLOCK SHOOTING, STEPS 1–3 — ⏭ STEP 4 (the frozen month-view tag) IS NEXT
+
+Full record in **`BLOCKS-PLAN.md` §9** and the changelog. Headlines a next session needs:
+
+- **Two NEW OWNER RULINGS (22 Sep 2026), now plan §7 rows 5–6**, both found while building:
+  **(5)** Blocks mode draws Production's own pills and **no episode pills**, and the week tag names
+  the block **and its episodes** (`Block 1 · 201, 202`). **(6)** The waterfall header reads
+  `… / 5 Shooting Blocks`.
+- ⛔ **Ruling 5 makes step 4's width problem bigger.** A split week's tag now carries episodes too.
+  Measure at the narrowest month column **before** choosing an abbreviation.
+- **No frozen code in 1–3.** Ruling 5's "no episode pills" lives in `episodeSpans()`, which is not
+  frozen: it returns `[]` in Blocks mode, and the frozen renderer draws Production when it is empty.
+  ⚠️ But that DOES change what a Blocks calendar's month PDF shows, so it belongs in the step-4 PDFs
+  shown to the owner.
+- **Save format moved, deliberately**: three `fields.byId` ids and three snapshot keys. **Gate 5
+  re-cut 59 → 62**, recorded in the stage-7 baseline README. ⛔ **An absent `show-mode` is
+  enforced as Episodes in `applyStateSnapshot()`.** Proven by removing it: a pre-Blocks file loaded
+  after a Blocks one was then scheduled from the previous file's blocks (90 days, wrap 11/10/26,
+  instead of 80, 10/27/26).
+- **New fixture `tests/fixtures/blocks.sptcal`** — minted in the app and pulled out byte-exact. The
+  crash backup was POSTed to a throwaway local receiver, which avoided retyping 6 KB of JSON.
+  **New gate leg `blocks`**, 12 assertions, including the **first `.sptcal` opened through the
+  real picker path** (`openViaFakePicker`). That was the missing insurance CLAUDE.md names.
+- **Two decisions of mine, not rulings, and cheap to change:** in a hand arrangement, an episode no
+  block holds joins the **last** block; and the switch is a `NativeSelect` ("Schedule by").
+- ✅ **Full gate 351 pass, 0 fail.** Every Episodes-mode output is identical, including all four
+  month-PDF cases.
+- ⚠️ **NOT PUSHED, and it should not go out alone.** Until step 4, a Blocks calendar's month view
+  loses its episode pills with no tag to replace them. Recommend shipping 1–4 together, after the
+  owner has seen the two PDFs.
+
 ### ✅ DONE 22 Sep 2026 (the session after the build order was set): ITEMS 1 AND 2 OF THE OWNER'S ORDER
 
 **Harness only — not one line of `src/` changed.** The docs commits `41c6f71` + `f61509f` were pushed
@@ -617,8 +648,9 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
 
 ### ⭐ THE OWNER'S ORDER FOR THE NEXT SESSION, decided 22 Sep 2026: 1 → 2 → 3
 
-✅ **1 and 2 DONE 22 Sep 2026** — see the top of this file. **3 (Blocks) is next and its two
-preconditions are now met**: the month PDF has a gate, and the harness no longer kills its own legs.
+✅ **1 and 2 DONE 22 Sep 2026** — see the top of this file. **3 (Blocks): steps 1–3 BUILT the same
+day**, and its two preconditions were met first: the month PDF has a gate, and the harness no longer
+kills its own legs. Step 4 remains.
 
 **1. `monthprint` baseline + gate leg. 2. Fix `run.sh`'s kill timer. 3. Block shooting.**
 
@@ -704,7 +736,7 @@ never blocked — it simply never got a session. It is the only fully-ruled, zer
   `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`. Correct the rule when
   something next touches the save format; the advice that follows it (branch on the version rather
   than on the presence of individual keys) is still the right advice.
-- ⏸ `BLOCKS-PLAN.md` is fully ruled on and ready to build, untouched.
+- ◐ `BLOCKS-PLAN.md`: **steps 1–3 BUILT 22 Sep 2026** (top of this file, plan §9); step 4 — the frozen month tag, PDFs to the owner first — is next.
 
 ---
 

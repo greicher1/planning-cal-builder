@@ -7,8 +7,11 @@
  "form": {
   "show-title": "Legacy Fixture",
   "season-num": "2",
+  "show-mode": "episodes",
   "shoot-days-per-ep": "8",
   "num-episodes": "10",
+  "num-blocks": "",
+  "days-per-block": "",
   "show-version": "",
   "union-place": "us-general",
   "custom-hol-name": "",
