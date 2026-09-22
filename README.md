@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Blocks panel uses the same ⋮⋮ rows as the episode list
+
+Owner, 22 Sep 2026: *"the block shooting UI window in the production phase editor should be the same
+UI look as the episodic one, meaning drag and drop with the three lines thing."* In Blocks mode the
+Production row now lists each block's header (name and day count) with its episodes as the same grip
+rows Episodes mode uses, replacing the chips. Drop an episode on another row to move it into that
+row's block at that point in the shooting order; drop it on a block's header or empty space to send
+it to the end of that block. Moving never changes a date, and each move is one undo step. Sidebar
+chrome only, with no frozen code.
+
+**Verified:** real mouse drags in the browser for a row drop (204 before 201 → Block 1: 204, 201,
+202) and a header drop (206 → the end of Block 5, leaving Block 3's "drop one here" placeholder),
+with the wrap unmoved and each undo reverting exactly one move. The `blocks` gate leg now drives the
+grips and covers both drop kinds. Full gate: **376 pass, 0 fail**; every month-PDF case is
+identical.
+
 ### Unreleased — the month view names blocks and episodes inside Production's pill; shooting order; two preferences
 
 Block shooting step 4, plus four owner rulings made the same day on seeing the PDFs (BLOCKS-PLAN.md

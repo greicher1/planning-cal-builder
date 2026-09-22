@@ -21,8 +21,9 @@
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   function rows() {
+    // The episodes are the same grip rows Episodes mode uses (owner, 22 Sep 2026), not chips.
     return [].map.call(document.querySelectorAll('#episode-rows .block-row'), function (r) {
-      var eps = [].map.call(r.querySelectorAll('.blk-ep'), function (c) { return c.textContent; });
+      var eps = [].map.call(r.querySelectorAll('.episode-row .ep-name'), function (i) { return i.value.replace(/^Episode /, ''); });
       return r.querySelector('.blk-name').textContent + '(' + r.querySelector('.blk-days').value + '):' + eps.join(',');
     });
   }
@@ -34,15 +35,30 @@ window.addEventListener('load', function () { (async function () {
     var el = document.getElementById(id), box = el && el.closest('.show-mode-episodes, .show-mode-blocks');
     return !!box && getComputedStyle(box).display === 'none';
   }
+  function epRow(epLabel) {
+    return [].find.call(document.querySelectorAll('#episode-rows .episode-row'), function (r) {
+      return r.querySelector('.ep-name').value === 'Episode ' + epLabel; });
+  }
+  // Drop on a block's HEADER: the episode goes to the end of that block.
   function drag(epLabel, blockId) {
-    var chip = [].find.call(document.querySelectorAll('.blk-ep'), function (c) { return c.textContent === epLabel; });
-    var zone = document.querySelector('.block-row[data-id="' + blockId + '"]');
-    if (!chip || !zone) throw new Error('drag: no chip ' + epLabel + ' or block ' + blockId);
+    var row = epRow(epLabel), grip = row && row.querySelector('.ep-grip');
+    var head = document.querySelector('.block-row[data-id="' + blockId + '"] .blk-name');
+    if (!grip || !head) throw new Error('drag: no grip for ' + epLabel + ' or header for ' + blockId);
     var dt = new DataTransfer();
-    chip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
-    zone.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    zone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    chip.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    head.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    head.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    grip.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+  }
+  // Drop on another episode's ROW, before/after it. ⚠️ Needs the Phases tab VISIBLE: a hidden row
+  // measures 0x0, so every drop would read as "before".
+  function dragOnRow(epLabel, targetLabel, side) {
+    var grip = epRow(epLabel).querySelector('.ep-grip'), t = epRow(targetLabel), b = t.getBoundingClientRect();
+    var y = side === 'before' ? b.top + 2 : b.bottom - 2, dt = new DataTransfer();
+    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    t.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt, clientY: y }));
+    t.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt, clientY: y }));
+    grip.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
   }
   async function settle() {
     var last = -1, st = 0;
@@ -86,6 +102,19 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     out.afterUndo = rows();
     out.undoExact = JSON.stringify(out.afterUndo) === JSON.stringify(out.restoredRows);
+
+    // ---- 2b. the same move by ROW: joins that row's block at that point in the shooting order ----
+    var tabBtn = document.querySelector('.side-tab-btn[data-tab="phases"]'); if (tabBtn) tabBtn.click();
+    await T.sleep(200);
+    dragOnRow('204', '201', 'before');
+    await settle();
+    out.rowDrop = rows();
+    out.rowDropGridSame = JSON.stringify(T.gridSignature()) === gridBefore;
+    out.rowDropMetaSame = meta() === metaBefore;
+    document.getElementById('undo-btn').click();
+    await settle();
+    out.rowDropUndoExact = JSON.stringify(rows()) === JSON.stringify(out.restoredRows);
+    out.gripsInBlocks = document.querySelectorAll('#episode-rows .block-row .episode-row .ep-grip').length;
 
     // ---- 3. the mode round trip ------------------------------------------------------------
     T.set('show-mode', 'episodes');

@@ -6823,8 +6823,14 @@ export function initLegacyApp() {
       </div>`).join('');
   }
 
-  // Blocks mode's panel: one row per block -- its day count (the per-block override, ruling 4) and
-  // the episodes it holds, as chips that drag between blocks (step 3).
+  // Blocks mode's panel: one group per block -- its day count (the per-block override, ruling 4) as
+  // the header, then the episodes it holds as the SAME rows Episodes mode uses: a ⋮⋮ grip and the
+  // name (owner, 22 Sep 2026: "the block shooting UI window in the production phase editor should be
+  // the same UI look as the episodic one, meaning drag and drop with the three lines thing"). It
+  // replaced a strip of chips. Drag a row onto another row to join that row's block at that point in
+  // the shooting order, or onto a block's header to go to the end of that block.
+  // No per-episode day box: in Blocks mode those counts drive nothing, and a live-looking field
+  // that changes nothing is worse than none. They are kept, untouched, for a switch back.
   // ⛔ NO `id` ON ANY CONTROL IN HERE. collectFieldValues() sweeps every input[id] into fields.byId,
   // so an id'd day box would bake a junk key into every saved calendar and add a phantom undo step
   // per keystroke. The block's own store is blockDefs, which captureSnapshot() carries -- exactly
@@ -6833,8 +6839,8 @@ export function initLegacyApp() {
     const wrap = document.getElementById('episode-rows');
     if(!wrap) return;
     const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    wrap.innerHTML = '<div class="blk-hint">Drag an episode to another block to regroup it. '
-      + 'Regrouping changes the calendar’s labels, never its dates.</div>'
+    wrap.innerHTML = '<div class="blk-hint">Drag \u22EE\u22EE to move an episode to another block, or to change '
+      + 'the order it is shot in. It changes the calendar’s labels, never its dates.</div>'
       + blockDefs.map(b=>`
       <div class="block-row" data-id="${b.id}">
         <div class="block-head">
@@ -6843,11 +6849,11 @@ export function initLegacyApp() {
                  value="${b.days===''?'':b.days}" placeholder="Days" aria-label="${escHtml(b.name)} shooting days">
           <span class="blk-days-unit">days</span>
         </div>
-        <div class="blk-eps" data-block="${b.id}">${
-          b.episodes.map(id=> byId.get(id)).filter(Boolean).map(e=>
-            `<span class="blk-ep" draggable="true" data-ep="${e.id}" title="${escHtml(e.name)}">${escHtml(shortEpisodeName(e))}</span>`
-          ).join('') || '<span class="blk-empty">No episodes — drop one here</span>'
-        }</div>
+        ${ b.episodes.map(id=> byId.get(id)).filter(Boolean).map(e=>`
+        <div class="episode-row" data-id="${e.id}">
+          <span class="ep-grip" draggable="true" title="Drag to another block, or to change the shooting order" aria-label="Drag to move ${escHtml(e.name)}">\u22EE\u22EE</span>
+          <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name">
+        </div>`).join('') || '<div class="blk-empty">No episodes — drop one here</div>' }
       </div>`).join('');
   }
 
@@ -11505,50 +11511,14 @@ export function initLegacyApp() {
       update();
     });
 
-    // Drag an episode chip onto another block. The whole block row is the drop target, not just
-    // its chip strip: a two-chip strip is a small thing to hit while dragging.
-    let dragEp = null;
-    const clearMarks = ()=> host.querySelectorAll('.blk-ep.is-dragging, .block-row.is-over')
-      .forEach(el=> el.classList.remove('is-dragging', 'is-over'));
-    host.addEventListener('dragstart', (e)=>{
-      const chip = e.target.closest && e.target.closest('.blk-ep');
-      if(!chip) return;
-      dragEp = chip.dataset.ep;
-      e.dataTransfer.effectAllowed = 'move';
-      // Some browsers refuse to start a drag that carries no data at all.
-      try { e.dataTransfer.setData('text/plain', shortEpisodeName(episodeDefs.find(x=> x.id === dragEp))); } catch(_){}
-      chip.classList.add('is-dragging');
-    });
-    host.addEventListener('dragover', (e)=>{
-      if(!dragEp) return;
-      const zone = e.target.closest && e.target.closest('.block-row');
-      if(!zone) return;
-      e.preventDefault();                 // what makes it a legal drop target
-      e.dataTransfer.dropEffect = 'move';
-      host.querySelectorAll('.block-row.is-over').forEach(el=>{ if(el !== zone) el.classList.remove('is-over'); });
-      zone.classList.add('is-over');
-    });
-    host.addEventListener('dragleave', (e)=>{
-      const zone = e.target.closest && e.target.closest('.block-row');
-      if(zone && !zone.contains(e.relatedTarget)) zone.classList.remove('is-over');
-    });
-    host.addEventListener('drop', (e)=>{
-      if(!dragEp) return;
-      const zone = e.target.closest && e.target.closest('.block-row');
-      if(!zone) return;
-      e.preventDefault();
-      const ep = dragEp;
-      dragEp = null;
-      clearMarks();
-      moveEpisodeToBlock(ep, zone.dataset.id);
-    });
-    host.addEventListener('dragend', ()=>{ dragEp = null; clearMarks(); });
 
-    // Episodes mode: drag a row's grip to a new place in the shooting order (ruling 9). Dropped on
-    // a row's upper half it goes BEFORE that row, lower half AFTER -- the list-reorder convention.
+    // Drag a row's grip (ruling 9). Dropped on a row's upper half it goes BEFORE that row, lower half
+    // AFTER -- the list-reorder convention -- in the shooting order; in Blocks mode it also joins that
+    // row's block. Dropped on a Blocks-mode group's header or empty space (no row under the pointer),
+    // it goes to the END of that block. ONE handler for both modes, since the rows are the same rows.
     let dragRow = null;
-    const clearRowMarks = ()=> host.querySelectorAll('.episode-row.is-dragging, .episode-row.drop-before, .episode-row.drop-after')
-      .forEach(el=> el.classList.remove('is-dragging', 'drop-before', 'drop-after'));
+    const clearRowMarks = ()=> host.querySelectorAll('.episode-row.is-dragging, .episode-row.drop-before, .episode-row.drop-after, .block-row.is-over')
+      .forEach(el=> el.classList.remove('is-dragging', 'drop-before', 'drop-after', 'is-over'));
     const rowSide = (row, e)=>{ const r = row.getBoundingClientRect(); return (e.clientY < r.top + r.height / 2) ? 'before' : 'after'; };
     host.addEventListener('dragstart', (e)=>{
       const grip = e.target.closest && e.target.closest('.ep-grip');
@@ -11563,21 +11533,27 @@ export function initLegacyApp() {
     host.addEventListener('dragover', (e)=>{
       if(!dragRow) return;
       const row = e.target.closest && e.target.closest('.episode-row');
-      if(!row) return;
+      const zone = !row && isBlocksMode() && e.target.closest && e.target.closest('.block-row');
+      if(!row && !zone) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      host.querySelectorAll('.episode-row.drop-before, .episode-row.drop-after').forEach(el=> el.classList.remove('drop-before', 'drop-after'));
-      if(row.dataset.id !== dragRow) row.classList.add(rowSide(row, e) === 'before' ? 'drop-before' : 'drop-after');
+      host.querySelectorAll('.episode-row.drop-before, .episode-row.drop-after, .block-row.is-over')
+        .forEach(el=> el.classList.remove('drop-before', 'drop-after', 'is-over'));
+      if(row && row.dataset.id !== dragRow) row.classList.add(rowSide(row, e) === 'before' ? 'drop-before' : 'drop-after');
+      if(zone) zone.classList.add('is-over');
     });
     host.addEventListener('drop', (e)=>{
       if(!dragRow) return;
       const row = e.target.closest && e.target.closest('.episode-row');
-      if(!row) return;
+      const zone = !row && isBlocksMode() && e.target.closest && e.target.closest('.block-row');
+      if(!row && !zone) return;
       e.preventDefault();
       const id = dragRow; dragRow = null;
-      const side = rowSide(row, e);
+      const side = row ? rowSide(row, e) : null;
       clearRowMarks();
-      moveEpisodeInShootOrder(id, row.dataset.id, side);
+      if(zone) moveEpisodeToBlock(id, zone.dataset.id);
+      else if(isBlocksMode()) moveEpisodeInBlocks(id, row.dataset.id, side);
+      else moveEpisodeInShootOrder(id, row.dataset.id, side);
     });
     host.addEventListener('dragend', ()=>{ dragRow = null; clearRowMarks(); });
   })();
@@ -11617,7 +11593,47 @@ export function initLegacyApp() {
     from.episodes = from.episodes.filter(x=> x !== epId);
     to.episodes.push(epId);
     blockAssignEdited = true;
-    reconcileBlockEpisodes();             // keeps each block in episode order
+    // To the END of that block in the shooting order -- straight after its last episode, or, for an
+    // empty block, after the last episode of the nearest block before it that has any. Without this
+    // the episode would land wherever its old shooting position sorts it, which can be the top.
+    const order = effectiveShootOrder().filter(x=> x !== epId);
+    let anchor = -1;
+    for(let bi = blockDefs.indexOf(to); bi >= 0 && anchor < 0; bi--){
+      blockDefs[bi].episodes.filter(x=> x !== epId).forEach(x=>{ anchor = Math.max(anchor, order.indexOf(x)); });
+    }
+    order.splice(anchor + 1, 0, epId);
+    episodeShootOrder = order;
+    reconcileBlockEpisodes();             // keeps each block in shooting order
+    renderBlockRows();
+    update();
+    pushUndoSnapshot();
+    return true;
+  }
+
+  // Blocks mode: drop an episode BEFORE/AFTER another episode's row. It joins that row's block (a
+  // hand arrangement, if the block changed) at that point in the shooting order. ⛔ LABELS, NOT
+  // DATES, and ONE undo step, exactly as the two moves above.
+  // A move WITHIN one block cannot re-split an automatic arrangement: the order changes, but the
+  // prefix each block takes is the same set of episodes.
+  function moveEpisodeInBlocks(id, targetId, side){
+    if(!id || !targetId || id === targetId) return false;
+    const to = blockDefs.find(b=> b.episodes.includes(targetId));
+    const from = blockDefs.find(b=> b.episodes.includes(id));
+    if(!to || !from) return false;
+    const before = effectiveShootOrder();
+    const order = before.filter(x=> x !== id);
+    const at = order.indexOf(targetId);
+    if(at < 0) return false;
+    order.splice(side === 'before' ? at : at + 1, 0, id);
+    if(from === to && order.join('|') === before.join('|')) return false;
+    pushUndoSnapshot();
+    episodeShootOrder = order;
+    if(from !== to){
+      from.episodes = from.episodes.filter(x=> x !== id);
+      to.episodes.push(id);
+      blockAssignEdited = true;
+    }
+    reconcileBlockEpisodes();
     renderBlockRows();
     update();
     pushUndoSnapshot();

@@ -4,6 +4,19 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 22 Sep 2026, after the push: the Blocks panel uses the SAME ⋮⋮ rows as the episode list
+
+Owner: *"the block shooting UI window in the production phase editor should be the same UI look as
+the episodic one, meaning drag and drop with the three lines thing."* `renderBlockRows()` now emits
+a header per block plus the same `.episode-row` + `.ep-grip` rows Episodes mode uses; the chips
+(`.blk-ep`) and their drag handler are gone. One drag handler serves both modes:
+- a drop on a ROW → `moveEpisodeInBlocks()` (joins that row's block, before/after it in shooting
+  order);
+- a drop on a block's header or empty space → `moveEpisodeToBlock()` (now to the END of that block
+  in shooting order).
+
+Chrome only; gate 376/0. See the changelog for what was verified.
+
 ### ✅ LIVE 22 Sep 2026: BLOCK SHOOTING (steps 1–4) + RULINGS 5–10 — pushed at `b49556e`, verified
 
 **Pushed on the owner's instruction ("push it"), one fast-forward `f312094..b49556e`.** Deploy green.

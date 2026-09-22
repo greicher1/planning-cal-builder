@@ -2436,28 +2436,29 @@
      come from the Mantine scale so the list reads as part of the sidebar, not a second system. */
   .blk-hint{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); line-height:1.4;
     margin-bottom:var(--mantine-spacing-md); }
+  /* One group per block: its header (name + day count), then the SAME episode rows Episodes mode
+     uses (owner, 22 Sep 2026: "the same UI look as the episodic one"). A hairline between groups
+     is all the separation it takes; the old white card + chip strip is gone. */
   .block-row{
-    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-default);
-    background:#fff; padding:var(--mantine-spacing-sm) var(--mantine-spacing-md);
-    margin-bottom:var(--mantine-spacing-sm);
-    transition:border-color .12s, background-color .12s;
+    padding:var(--mantine-spacing-sm) 0 1px;
+    border-top:1px solid var(--mantine-color-gray-3);
+    transition:background-color .12s, box-shadow .12s;
   }
-  /* The drop target while an episode is dragged over it. */
-  .block-row.is-over{ border-color:var(--mantine-color-blue-5); background:var(--mantine-color-blue-0); }
-  .block-head{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); }
+  .blk-hint + .block-row{ border-top:none; padding-top:0; }
+  /* The drop target while an episode is dragged over a group's header or empty space. */
+  .block-row.is-over{
+    background:var(--mantine-color-blue-0);
+    box-shadow:inset 0 0 0 1px var(--mantine-color-blue-3);
+    border-radius:var(--mantine-radius-default);
+  }
+  .block-head{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); margin-bottom:5px; }
   .blk-name{ flex:1; min-width:0; font-size:var(--mantine-font-size-sm); font-weight:600; }
   .block-head .blk-days{ width:62px; flex:none; }
   .blk-days-unit{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); flex:none; }
-  .blk-eps{ display:flex; flex-wrap:wrap; gap:4px; margin-top:var(--mantine-spacing-sm); min-height:22px; }
-  .blk-ep{
-    font-size:var(--mantine-font-size-xs); line-height:1; padding:4px 7px;
-    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-xl);
-    background:var(--mantine-color-gray-0); color:var(--mantine-color-gray-8);
-    cursor:grab; user-select:none;
+  .blk-empty{
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); font-style:italic;
+    padding:4px 0 6px 20px;
   }
-  .blk-ep:hover{ border-color:var(--mantine-color-gray-6); }
-  .blk-ep.is-dragging{ opacity:.4; }
-  .blk-empty{ font-size:var(--mantine-font-size-xxs); color:var(--text-faint); font-style:italic; align-self:center; }
   /* Episodes mode's shooting-order drag (ruling 9). The GRIP is the drag source, not the row: a
      draggable row would steal the mouse from the name and day inputs inside it. The drop position
      shows as a line on the side the episode will land. */

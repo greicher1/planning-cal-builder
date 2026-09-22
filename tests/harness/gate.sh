@@ -1299,6 +1299,11 @@ chk(a.get('idsInPanel')==[] and a.get('formHasBlockIds'),
 chk(a.get('moveGridSame') and a.get('moveMetaSame') and (a.get('afterMove') or [''])[0]=='Block 1(18):201,202,206',
     "blocks: ⭐ LABELS, NOT DATES -- moving 206 into Block 1 left the whole grid and the wrap untouched")
 chk(a.get('undoExact'), "blocks: the move is ONE undo step, reverting exactly the arrangement")
+# The block list is the SAME grip rows Episodes mode uses (owner, 22 Sep 2026) -- a drop on a row
+# joins that row's block, before/after it in the shooting order.
+chk(a.get('gripsInBlocks')==10 and (a.get('rowDrop') or ['',''])[:2]==['Block 1(18):204,201,202','Block 2(18):203,205']
+    and a.get('rowDropGridSame') and a.get('rowDropMetaSame') and a.get('rowDropUndoExact'),
+    f"blocks: ⋮⋮ rows: 204 dropped before 201 joins Block 1 there, no date moves, one undo -- {(a.get('rowDrop') or [])[:2]}")
 chk(a.get('epMeta')==EP_META and '8-Day Shooting Schedule' in (a.get('epHdr') or '')
     and a.get('epRowsShown')==10 and a.get('epBlockRows')==0,
     f"blocks: Episodes mode schedules from the episode list, byte-identical header ({a.get('epMeta')})")

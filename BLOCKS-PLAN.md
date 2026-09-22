@@ -203,6 +203,13 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 - *"Single column mode setting should only show in waterfall view and the two show in month view
   settings should only show up in the month view"* — done in CSS off the view toggle. ⚠️ It
   reverses a 10 Sep decision that Single Column should NOT hide by view.
+- *(after shipping)* *"the block shooting UI window in the production phase editor should be the
+  same UI look as the episodic one, meaning drag and drop with the three lines thing"*. The block
+  panel's episodes are now the **same ⋮⋮ grip rows** Episodes mode uses, grouped under each block's
+  header (name + day count); the chip strip is gone. **Drop on a row**: the episode joins that row's
+  block, before/after it in the shooting order. **Drop on a block's header or empty space**: the
+  episode goes to the end of that block. The rows carry no per-episode day box, because in Blocks
+  mode those drive nothing. One drag handler serves both modes.
 
 **Why 5 and 6 were asked, when the plan said nothing was outstanding.** Both were found while
 building step 1, and both are consequences the plan did not see. (5) The month view draws each
