@@ -544,6 +544,28 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   any edit. ⚠️ Forcing the download path instead does NOT work: `supportsFsAccess` is evaluated
   once at module-eval time, so deleting `showSaveFilePicker` afterwards changes nothing.
 
+### ⭐ THE OWNER'S ORDER FOR THE NEXT SESSION, decided 22 Sep 2026: 1 → 2 → 3
+
+**1. `monthprint` baseline + gate leg. 2. Fix `run.sh`'s kill timer. 3. Block shooting.**
+
+⛔ **1 AND 2 ARE PRECONDITIONS FOR 3, NOT HOUSEKEEPING, AND THAT IS WHY THEY COME FIRST.**
+`BLOCKS-PLAN.md` §5's gate for its one frozen edit reads *"the month PDF still paginates the same"* —
+taller month rows can push a month onto an extra page. **There is no automated month-PDF coverage at
+all**: it is the only one of the four outputs with none, and **six** frozen edits that move or could
+move it have now shipped. Today that gate can only be checked by hand. And a flaky harness cannot
+answer it either — three legs reported *"produced no result"* in a single session, each passing
+standalone.
+
+| | | |
+|---|---|---|
+| **1** | `monthprint` baseline + leg in `gate.sh` | ⚠️ **Must normalise the dotted `M.DD.YY` today stamp** or it false-fails daily — that is exactly what made gates 2 and 3 useless for two rounds. Wire `dayoverrides.sptcal`, `mvheader.sptcal` and `mvheaderlegacy.sptcal` in while you are there; none is loaded by any leg today. |
+| **2** | poll-and-kill in `run.sh` | Replace `for i in $(seq 1 $SECS); do sleep 1; done; kill -9` with: poll for `$T.html` to appear and stop growing, then kill. ~15 lines, **already written** in `tools/make-icon.py` (it took that script from a 120 s timeout to 2.1 s). Fixes correctness *and* makes the ~50 min gate short enough to stop being rationed. |
+| **3** | **Block shooting** — `BLOCKS-PLAN.md` | Fully ruled 16 Sep 2026, four rulings, **nothing outstanding**. Steps 1–3 touch no frozen code. ⛔ Step 4 is the frozen month-view subtext and carries an explicit precondition: **export both PDFs and show the owner before committing**. |
+
+⏸ **Why Blocks stalled**: planned and ruled 16 Sep, then the 16–18 Sep sessions built the
+`dayOverrides` UI and 21–22 Sep went to the icon, the half-day overlay and the month header. It was
+never blocked — it simply never got a session. It is the only fully-ruled, zero-question plan here.
+
 ### Still open
 
 - ✅ ~~**FIRST THING NEXT SESSION: run `cd tests/harness && ./gate.sh`.**~~ **DONE 21 Sep 2026 —
