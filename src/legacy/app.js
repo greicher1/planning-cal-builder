@@ -9465,11 +9465,15 @@ export function initLegacyApp() {
     root.querySelector('.hde-size').addEventListener('change', function(){
       hdrEditorFormat({ size: this.value ? parseInt(this.value, 10) : undefined });
     });
+    // ⛔ hdeMv(), not false: these read the CURRENT state to decide which way to flip, so with a
+    // hardcoded waterfall lookup the month editor's Bold and Italic toggled against the WATERFALL's
+    // format -- a month line already bold would un-bold on the first click only if the waterfall's
+    // matching slot happened to be bold too. Same class of miss as the repaint's format store.
     root.querySelector('.hde-b').addEventListener('click', ()=>{
-      hdrEditorFormat({ bold: !headerFmt(hdrEditor.selected, false).bold });
+      hdrEditorFormat({ bold: !headerFmt(hdrEditor.selected, hdeMv()).bold });
     });
     root.querySelector('.hde-i').addEventListener('click', ()=>{
-      hdrEditorFormat({ italic: !headerFmt(hdrEditor.selected, false).italic });
+      hdrEditorFormat({ italic: !headerFmt(hdrEditor.selected, hdeMv()).italic });
     });
     root.querySelector('.hde-ink').addEventListener('input', function(){ hdrEditorFormat({ color: this.value }); });
     root.querySelector('.hde-hl').addEventListener('input', function(){ hdrEditorFormat({ highlight: this.value }); });
@@ -9563,17 +9567,32 @@ export function initLegacyApp() {
       if(shown !== real) sawPh = true;
       el.innerHTML = shown ? hdrEditorHtml(shown) : '';
       el.classList.toggle('is-blank', !real);
-      el.setAttribute('style', headerFormatCss(headerFmt(id, false), id, false));
+      // ⛔ hdeMv(), not a hardcoded false. This is the FAST repaint that runs on every keystroke, and
+      // it was reading the WATERFALL's format store while the month editor was open -- so a month
+      // line's size/colour/highlight vanished from the live preview the moment you typed, and came
+      // back only on a full paintHeaderEditor(). Found by driving the editor on production, not by
+      // reading: the slow path had already been made view-aware and looked correct.
+      el.setAttribute('style', headerFormatCss(headerFmt(id, hdeMv()), id, hdeMv()));
     });
     // ⚠️ The note has to move with the stage. Typing a token that has no data must flip it to the
     // placeholder wording immediately -- leaving the full-repaint version behind meant the panel
     // showed dashed placeholders under a note that said nothing about them.
     setHdrEditorFoot(hdrEditor.root, sawPh);
-    const b = estimateExcelHeaderLength();
+    // ⛔ The Excel budget is a WATERFALL fact and must stay hidden in the month view -- the same rule
+    // paintHeaderEditor() follows. It was missed here, so the budget was correctly blank when the
+    // month editor opened and then reappeared on the first keystroke, announcing a 255-character
+    // limit that does not exist for the month PDF. Inventing a constraint is exactly what the
+    // comment on the other site says not to do.
     const bud = hdrEditor.root.querySelector('.hde-budget');
-    bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
-      (b.over ? ' — too long, the last lines will be dropped' : '.');
-    bud.classList.toggle('is-over', !!b.over);
+    if(hdeMv()){
+      bud.textContent = '';
+      bud.classList.remove('is-over');
+    } else {
+      const b = estimateExcelHeaderLength();
+      bud.textContent = 'Excel header: about ' + b.total + ' of ' + b.max + ' characters' +
+        (b.over ? ' — too long, the last lines will be dropped' : '.');
+      bud.classList.toggle('is-over', !!b.over);
+    }
   }
 
   // ---------- The header preset library (HEADER-PRESETS-PLAN.md §3.5, Step 4) ----------

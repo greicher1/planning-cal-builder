@@ -109,6 +109,32 @@ into `sheet` with `month` absent. ⛔ **Do not read "tests updated" as "failure 
 distinction is written at each site, and `prove-header-preset.mjs` covers the migration
 exhaustively in Node besides.
 
+### ⛔ THREE EDITOR BUGS THE GATE DID NOT CATCH, FOUND BY DRIVING PRODUCTION (22 Sep 2026)
+
+Shipped in `9bdf80c`, found immediately afterwards by using the month editor on the live site, fixed
+locally. **All three are the same mistake**: a hardcoded `false` where the view flag belongs, in the
+paths the first pass missed.
+
+| | |
+|---|---|
+| `repaintHeaderEditorStage` wrote the **Excel budget** unconditionally | The month editor opened with it correctly blank and then announced *"about 215 of 255 characters"* on the first keystroke — a limit that does not exist for the month PDF. Inventing a constraint is exactly what the comment on the *other* site says not to do. |
+| the same function read `headerFmt(id, **false**)` | The fast repaint runs on **every keystroke** and was reading the WATERFALL's format store, so a month line's size/colour/italic vanished from the live preview as soon as you typed and came back only on a full repaint. |
+| the editor's **Bold / Italic** toggles read `headerFmt(sel, **false**)` | They read the current state to decide which way to flip, so in the month editor they toggled against the waterfall's. A month line already italic would only un-italic if the waterfall's matching slot happened to be italic too. |
+
+⭐ **THE LESSON IS ABOUT WHERE THE FIRST PASS LOOKED.** The *slow* path (`paintHeaderEditor`) had
+been made view-aware and read correctly, so an audit of it found nothing — the bugs were all in the
+**fast repaint and the event handlers**, which only run when you actually type or click. ⚠️ **A
+retarget is not done when the render function is threaded; it is done when every handler that
+*reads back* state is threaded too.** `grep -n "headerFmt(.*, false)"` is the check, and it takes
+five seconds — the remaining hits after the fix are all legitimately waterfall-only
+(`renderSpreadsheetView`, `exportExcel`, `estimateExcelHeaderLength`, `buildWaterfallPdf`).
+
+Verified after the fix on `mvheader.sptcal`: the budget stays blank through typing, the month's
+italic survives a keystroke, and one Italic click turns an already-italic month title **off** —
+which it could only do by reading the month's store. `hdrtemplate`, `hdrpreset` and `hdrfile` all
+pass. ⚠️ **No full gate for these three** — they touch only the template editor, which is not frozen,
+not a writer and not the save format, so the policy's always-checks apply.
+
 ### ✅ THE GATE, FINAL RUN (22 Sep 2026): 305 pass, 1 harness flake, all five numbered gates green
 
 Run clean, on a machine held awake, over the finished build. **All five numbered gates passed** —

@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — three month-editor bugs, found by driving production
+
+Shipped in `9bdf80c` and found minutes later by using the month header editor on the live site.
+**All three are one mistake** — a hardcoded `false` where the view flag belongs:
+
+- `repaintHeaderEditorStage` wrote the **Excel budget** unconditionally, so the month editor opened
+  with it correctly blank and then announced *"about 215 of 255 characters"* on the first keystroke.
+  That limit is a workbook page-header limit; the month view's only export is a PDF and has none.
+- the same function read the **waterfall's** format store. It is the fast repaint that runs on every
+  keystroke, so a month line's size, colour or italic disappeared from the live preview the moment
+  you typed and returned only on a full repaint.
+- the editor's **Bold / Italic** toggles read the waterfall's format to decide which way to flip, so
+  in the month editor they toggled against the wrong state.
+
+⭐ **The first pass audited the wrong half.** `paintHeaderEditor` — the slow, full repaint — had been
+threaded correctly and read clean, which is why an audit of it found nothing. Every one of these
+lives in the **fast repaint or an event handler**, code that only runs when someone types or clicks.
+A retarget is finished when every handler that *reads state back* is threaded, not when the render
+function is. `grep -n "headerFmt(.*, false)"` is the whole check; the hits that remain are
+legitimately waterfall-only.
+
+**Verified** on `mvheader.sptcal`: the budget stays blank through typing, the month's italic survives
+a keystroke, and one Italic click turns an already-italic month title **off** — which it can only do
+by reading the month's own store. `hdrtemplate`, `hdrpreset` and `hdrfile` pass. No full gate: these
+touch only the template editor, which is not frozen, not a writer and not the save format.
+
 ### Unreleased — the month header becomes a template system
 
 Owner ruling, 21 Sep 2026, on [`MONTH-HEADER-PLAN.md`](MONTH-HEADER-PLAN.md) §6: **one preset file
