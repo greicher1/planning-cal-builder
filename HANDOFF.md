@@ -4,6 +4,71 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏭ NEXT TASK (owner-approved 22 Sep 2026): the app window never scrolls — an app shell
+
+**Owner's instruction, in full:** make the app behave like a standard app window. The browser
+window itself must never scroll, and the layout must fit the window at any size. Only the sidebar,
+the waterfall grid and the month view scroll, each inside its own area. The owner approved the
+approach below, **including feeding the frozen grid-height rule a measured value (step 2)**.
+⛔ **If anything turns out to need an edit to a frozen symbol or rule body, stop and ask first.**
+
+**Why it scrolls today:**
+- The page is laid out like a website: `<body>` flows, and only the header and sidebar are sticky.
+- The notice strips (`#legacy-notice`, `#holiday-notice`, `#update-notice`, `#colswap-notice`) sit
+  between the header and `.layout`, so one showing pushes the layout past the window.
+- Frozen `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` assumes 140 px of chrome
+  above the grid. With `#gap-warning`, the view-toggle row, the Shift/Anchor/Rebuild toolbar and the
+  calendar header card it is now ~300 px, so the preview overruns the window by ~150 px.
+- The month view has no scroll box at all.
+
+**What to build:**
+1. **App shell, screen only, above the existing 960 px stacking breakpoint.**
+   - `body` becomes a full-height flex column: the header, then any visible notice strips at their
+     natural height, then `.layout` filling the rest.
+   - The window never scrolls. The sidebar keeps its own scroll, and `.preview-panel` becomes its
+     own scroll container (that is where the month view scrolls).
+   - ⛔ **Do NOT wrap or re-parent `<body>`'s children.** The print CSS depends on
+     `body.printing-* > *:not(#print-root)` child combinators, and `header.app-header` must stay a
+     direct child of body. Scope everything to `@media screen`, so both print paths are untouched.
+   - At 960 px and below, keep today's stacked layout with normal page scrolling.
+2. **The waterfall grid fills exactly the space left in the preview**, so there is ONE vertical
+   scrollbar there, not nested ones.
+   - Do not edit the frozen rule. Use CLAUDE.md's "change the DECLARATION, not the call site"
+     pattern: set `--header-h` on `.preview-panel` only, so the frozen rule computes the right
+     height. That value is `innerHeight − 140 − (distance from the .sheet-scroll top to the
+     preview's inner bottom edge)`.
+   - **MEASURED, never a constant.** Re-measure on window resize, on every `#table-wrap` re-render,
+     when `#gap-warning` or a notice strip shows or hides, and on view switches.
+   - The sidebar's own use of `--header-h` must be unaffected.
+   - Reading positions from inside `#table-wrap` is fine; writing there is not.
+3. **Month view:** it scrolls inside `.preview-panel`. Do not scale or restyle it.
+
+**Facts checked 22 Sep 2026, so the next session need not rediscover them (grep; no line numbers):**
+- The `:root` value comes from a ResizeObserver in `src/legacy/app.js`
+  (`documentElement.style.setProperty('--header-h', …)`). A value set on `.preview-panel` is closer,
+  so it wins for `.sheet-scroll` (inside `#table-wrap`, inside `main.preview-panel`). The sidebar
+  (`aside.form-panel`, whose sticky/max-height rules read `--header-h`) keeps the root value.
+  ⚠️ Grep every other reader of `--header-h` inside `.preview-panel` before scoping it.
+- `<body>`'s direct children today: `script#saved-state`, `header.app-header`, the four notice
+  divs, `.layout`, `#help-overlay`, `#react-root`, `#print-root`. Once body is a flex column,
+  **every one is a flex item** — check each (fixed / hidden / portal host) takes no height it should
+  not.
+- Print is already safe from the frozen rule: `#print-root .sheet-scroll{max-height:none !important}`.
+
+**Verify in a real browser before claiming it works:**
+- At 1024×768, 1440×900 and 1920×1080, in both views, the window cannot scroll
+  (`document.scrollingElement.scrollHeight === innerHeight`). Try wheel scrolling over the header.
+- The waterfall has exactly one vertical scroller, with its bottom edge at the bottom of the window.
+- Showing and hiding `#gap-warning` and a notice strip refits everything with no window scroll.
+- Grid resize handles, cell selection, the note and day-override popovers, and the grid's sticky
+  header row still line up after a resize.
+- Below 960 px it stacks and the page scrolls.
+- Full `gate.sh`: the waterfall PDF, Excel and all month-PDF cases unchanged.
+
+**Docs:** HANDOFF.md, the README changelog, UI-CONVENTIONS §7, and the `--header-h` paragraph in
+CLAUDE.md (it must explain the new preview-scoped value). Ask before committing, and separately
+before pushing.
+
 ### ✅ 22 Sep 2026: Production's total + the episode/block list restyled (Mantine idiom)
 
 Owner asked for both to be "nicer looking ... using mantine". Both are ENGINE HTML, so the markup was
