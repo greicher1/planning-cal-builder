@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ BUILT 22 Sep 2026: THE APP SHELL — the window never scrolls. GATED, not committed, not pushed
+### ✅ LIVE at `93a68da` (22 Sep 2026): THE APP SHELL — the window never scrolls. Gated, pushed, verified
 
 **The owner's instruction:** make the app behave like a standard app window. The browser window must
 never scroll, and only the sidebar, the waterfall grid and the month view scroll, each inside its
@@ -47,9 +47,18 @@ those:
 - **Gate: 376 pass, 0 fail, run twice**: once over the shell alone, and once over the final build
   (`ed88794d4d01609c…`, 1,279,083 bytes). Every numbered gate is identical, `fields.byId` has 62
   ids, and all six month-PDF cases match their baselines. After two comment-only edits the source
-  rebuilds to the same hash. **Not committed, not pushed.**
+  rebuilds to the same hash.
+- **Pushed on the owner's instruction**, as one fast-forward `11c9e55..93a68da`. The deploy is green,
+  and the live file is **byte-identical to the gated build** (`ed88794d…`) about 40 s after the push.
+  ⭐ **Then driven on production** (a recovered test calendar, 1440×900 and 1024×768):
+  - the window cannot scroll in either view;
+  - the grid box ends at 880 of 900, and the panel does not scroll (837/837);
+  - the month view scrolls in the panel;
+  - a notice strip refits (791/791) and hiding it restores 837/837;
+  - all four toolbar popovers sit inside the preview at 1024 px;
+  - Grid Lines is visible in Waterfall and hidden in Month.
 
-### ✅ BUILT 22 Sep 2026: "Grid Lines in Exports" shows only in the Waterfall view — not committed
+### ✅ LIVE at `93a68da` (22 Sep 2026): "Grid Lines in Exports" shows only in the Waterfall view
 
 Owner, mid-task: *"the grid lines in exports setting should only show in the waterfall view not the
 month view"*. It moved into the Preferences card's `.pref-view-sheet` box with Single Column Mode.
@@ -423,8 +432,9 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 **LIVE at `a9ec081`** (22 Sep 2026), verified byte-identical to its gated build (`e9d46ea6…`) and
 driven on production: block shooting, shooting order, the month-view preferences, the grip-row
-Blocks panel, the Production-row reorder and its Mantine restyle (top of this file). The app shell
-and the Grid Lines move above are **local only**. Before that: **`ff1ecbe`** — the month header template system plus its three editor fixes,
+Blocks panel, the Production-row reorder and its Mantine restyle. **Now superseded by `93a68da`**
+(the app shell and the Grid Lines move, top of this file), verified byte-identical to its gated
+build `ed88794d…`. Before that: **`ff1ecbe`** — the month header template system plus its three editor fixes,
 each verified by driving production. The docs commits `41c6f71` + `f61509f` were pushed on top the
 same day and changed nothing served (live file still `82d3d0c9c696842f…`). The note below describes the earlier `62cc0dc` state and is kept
 for the method it records.
