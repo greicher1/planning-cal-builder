@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Production's total and the episode/block list, restyled in Mantine's idiom
+
+Owner, 22 Sep 2026: *"Can we restyle this to be nicer looking and extend across. Style using
+mantine. Also restyle the block/episode selector to look nicer and follow mantine styling as well"*,
+plus *"why is it a dashed line above 'Production hiatus' instead of a solid line as it is with all
+the other phases"*.
+
+- **Total Shooting Days** is a full-width Mantine stat card: a caps label, then the number large with
+  "days", and a light badge on the right ("5 blocks" / "10 episodes").
+- **The episode/block list**: white cards on a gray-0 ground. Episodes mode is one card of
+  hairline-separated rows; Blocks mode has a card per block, with a gray header holding the name, a
+  light "2 eps" badge and the day count. Each row has a proper grip icon (Tabler's grip-vertical),
+  a name you edit in place (it reads as text until you point at it) and, in Episodes mode, a compact
+  day field with "days" inside it. Clicking the unit focuses the number.
+- **The line above Production Hiatus is solid again**, like every other phase's. It had borrowed Sim
+  Post's dashed line when the two lines were merged. Sim Post still drops its own, so there is one
+  line.
+
+These are engine-built HTML, deliberately kept out of React because their generators mint the ids
+that are the save format. So they are built the way ui.mantine.dev builds these patterns, from
+Mantine's tokens, at the sidebar's `xs` density (UI-CONVENTIONS §2b, §3d). **Verified** in the
+browser with real input:
+- clicking "days" focuses the field, and typing updates the total;
+- undo restores it;
+- the icon grip still drags (203 to the top, wrap unmoved);
+- the badge fits inside the card at sidebar width (the first cut ran "10 EPISODES" off the edge);
+- the hiatus rule is solid.
+
+Full gate: **376 pass, 0 fail**; `fields.byId` unchanged at 62 ids.
+
 ### Unreleased — Production's row reads top to bottom: dates, total, list, then hiatus and Sim Post
 
 Owner, 22 Sep 2026: *"move production hiatus to right above sim post and below the divider line.

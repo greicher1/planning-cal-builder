@@ -1291,8 +1291,11 @@ BLOCKS_META='85 shoot days → 18 wk · 6/29/26 → 10/27/26'
 EP_META='80 shoot days → 17 wk · 6/29/26 → 10/20/26'
 chk(a.get('mode')=='blocks' and a.get('restoredRows')==SAVED and a.get('restoredMeta')==BLOCKS_META,
     f"blocks: restores in Blocks mode with its hand arrangement and per-block override ({a.get('restoredMeta')})")
-chk('from 5 blocks' in (a.get('readout') or '') and '18-Week Production Span / 5 Shooting Blocks' in (a.get('hdr') or ''),
-    "blocks: the readout names blocks, and the header reads '... / 5 Shooting Blocks' (ruling 6)")
+# The readout is a stat card since 22 Sep 2026 (owner: "restyle ... using mantine"): its badge
+# reads "5 blocks" where the old caption read "from 5 blocks".
+chk('5 blocks' in (a.get('readout') or '') and '85' in (a.get('readout') or '')
+    and '18-Week Production Span / 5 Shooting Blocks' in (a.get('hdr') or ''),
+    "blocks: the readout's badge names blocks, and the header reads '... / 5 Shooting Blocks' (ruling 6)")
 chk(a.get('perEpHidden') and a.get('blockFieldsShown'), "blocks: Show card shows the block fields and hides Days per Episode")
 chk(a.get('idsInPanel')==[] and a.get('formHasBlockIds'),
     f"blocks: no id inside the block panel {a.get('idsInPanel')}; show-mode/num-blocks/days-per-block are in fields.byId")

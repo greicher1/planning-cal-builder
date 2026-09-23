@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 22 Sep 2026: Production's total + the episode/block list restyled (Mantine idiom)
+
+Owner asked for both to be "nicer looking ... using mantine". Both are ENGINE HTML, so the markup was
+reshaped (`refreshDerivedInfo`, `renderEpisodeRows`, `renderBlockRows`) and styled from Mantine
+tokens in legacy.css's React-cards section:
+- the total is a stat card (`.ptr-*`), with its badge on the number's line, because beside the label
+  it overflowed;
+- the lists are cards (`.ep-list` / `.block-row`) of rows with a CSS-masked grip icon, in-place name
+  edit, and `.num-suffix` day fields;
+- the old `.prod-total-*` / `.episode-row` / `.blk-*` rules were removed.
+
+⚠️ **The owner also asked whether the OTHER phase editors are Mantine.** The honest answer, given:
+the Phases and All-phase hiatus cards are engine HTML STYLED with Mantine tokens, and were never
+built from Mantine components, on purpose, because their generators mint the save-format ids
+(UI-CONVENTIONS §8). The Show/Region/Holidays/Preferences/Headers/App cards are real Mantine
+components. Converting the Phases card would be a save-format-risk project, not a restyle.
+
+Also fixed: the rule above Production Hiatus is SOLID again, like every phase's; the reorder had
+wrongly given it Sim Post's dashed style. Gate 376/0.
+
 ### ✅ 22 Sep 2026: Production's row re-ordered — total above the list; hiatus above Sim Post
 
 Owner: *"move production hiatus to right above sim post and below the divider line. Also lets move

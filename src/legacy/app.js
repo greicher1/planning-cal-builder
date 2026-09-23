@@ -6822,14 +6822,19 @@ export function initLegacyApp() {
     const wrap = document.getElementById('episode-rows');
     if(!wrap) return;
     const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    wrap.innerHTML = '<div class="blk-hint">Drag \u22EE\u22EE to set the shooting order. It moves which days each '
-      + 'episode is shot on, never how long Production runs.</div>'
-      + effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=>`
+    // Mantine's look without Mantine components (owner, 22 Sep 2026: "restyle ... to look nicer and
+    // follow mantine styling"): this list is engine HTML inside the Phases card, which stays out of
+    // React on purpose (Sidebar.jsx's header), so it is built the way ui.mantine.dev builds a
+    // draggable list -- one white card of hairline-separated rows, a grip icon, names edited in
+    // place, a compact day field with its unit inside. Classes only; still no id on any control.
+    wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to set the '
+      + 'shooting order. It moves which days each episode is shot on, never how long Production runs.</div>'
+      + '<div class="ep-list">' + effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=>`
       <div class="episode-row" data-id="${e.id}">
-        <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}">\u22EE\u22EE</span>
-        <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name">
-        <input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':e.days}" placeholder="Days">
-      </div>`).join('');
+        <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
+        <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
+        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':e.days}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
+      </div>`).join('') + '</div>';
   }
 
   // Blocks mode's panel: one group per block -- its day count (the per-block override, ruling 4) as
@@ -6848,22 +6853,26 @@ export function initLegacyApp() {
     const wrap = document.getElementById('episode-rows');
     if(!wrap) return;
     const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    wrap.innerHTML = '<div class="blk-hint">Drag \u22EE\u22EE to move an episode to another block, or to change '
-      + 'the order it is shot in. It changes the calendar’s labels, never its dates.</div>'
-      + blockDefs.map(b=>`
+    wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to move an '
+      + 'episode to another block, or to change the order it is shot in. It changes the calendar’s labels, '
+      + 'never its dates.</div>'
+      + blockDefs.map(b=>{
+        const eps = b.episodes.map(id=> byId.get(id)).filter(Boolean);
+        return `
       <div class="block-row" data-id="${b.id}">
         <div class="block-head">
           <span class="blk-name">${escHtml(b.name)}</span>
-          <input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="1"
-                 value="${b.days===''?'':b.days}" placeholder="Days" aria-label="${escHtml(b.name)} shooting days">
-          <span class="blk-days-unit">days</span>
+          <span class="blk-count">${eps.length} ep${eps.length === 1 ? '' : 's'}</span>
+          <label class="num-suffix" title="Shooting days in ${escHtml(b.name)}"><input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="1"
+                 value="${b.days===''?'':b.days}" placeholder="–" aria-label="${escHtml(b.name)} shooting days"><span>days</span></label>
         </div>
-        ${ b.episodes.map(id=> byId.get(id)).filter(Boolean).map(e=>`
-        <div class="episode-row" data-id="${e.id}">
-          <span class="ep-grip" draggable="true" title="Drag to another block, or to change the shooting order" aria-label="Drag to move ${escHtml(e.name)}">\u22EE\u22EE</span>
-          <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name">
-        </div>`).join('') || '<div class="blk-empty">No episodes — drop one here</div>' }
-      </div>`).join('');
+        <div class="blk-body">${ eps.map(e=>`
+          <div class="episode-row" data-id="${e.id}">
+            <span class="ep-grip" draggable="true" title="Drag to another block, or to change the shooting order" aria-label="Drag to move ${escHtml(e.name)}"></span>
+            <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
+          </div>`).join('') || '<div class="blk-empty">No episodes — drop one here</div>' }</div>
+      </div>`;
+      }).join('');
   }
 
   // Update everything derived from the episode list (the locked total, the hints/flags) WITHOUT
@@ -6881,12 +6890,17 @@ export function initLegacyApp() {
       // Blocks mode names what the total is actually the sum of. The Episodes string is unchanged.
       const srcN = info.blocks ? blockDefs.length : episodeDefs.length;
       const srcWord = info.blocks ? 'block' : 'episode';
+      // A Mantine stat card (owner, 22 Sep 2026: "restyle this to be nicer looking and extend
+      // across"): label and a light badge naming the source on one line, the number large below.
+      readout.classList.toggle('is-empty', !info.complete);
       readout.innerHTML = info.complete
-        ? '<span class="prod-total-label" title="Total Shooting Days">Total Shooting Days</span>'
-          + '<span class="prod-total-value"><strong>' + info.totalShootDays + '</strong>'
-          + '<span class="prod-total-src">from ' + srcN + ' ' + srcWord
-          + (srcN===1?'':'s') + '</span></span>'
-        : '<span class="prod-total-empty">Total Shooting Days \u2014 set by Show Info</span>';
+        // The badge rides on the NUMBER's line, right-aligned (Mantine's stats-card layout): beside
+        // the label, "10 EPISODES" ran off a sidebar-width card.
+        ? '<div class="ptr-head"><span class="ptr-label">Total shooting days</span></div>'
+          + '<div class="ptr-value"><strong>' + info.totalShootDays + '</strong><span class="ptr-unit">days</span>'
+          + '<span class="ptr-badge">' + srcN + ' ' + srcWord + (srcN===1?'':'s') + '</span></div>'
+        : '<div class="ptr-head"><span class="ptr-label">Total shooting days</span></div>'
+          + '<div class="ptr-empty">Set by Show Info</div>';
     }
 
     // Grey the Production row until Show Info can produce a total: with no manual field left,
