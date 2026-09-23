@@ -185,6 +185,25 @@ ResizeObserver measures the header and writes it, and the frozen
 may change height at all — the grid adapts *because* the value is measured rather than assumed. Keep
 it measured; do not replace it with a constant, and do not let the header wrap.
 
+⚠️ **Since 22 Sep 2026 there are TWO values, and the one the on-screen grid reads is not the
+header's.** Above 960 px the app is a fixed window (UI-CONVENTIONS §7, "the app shell"), and the
+waterfall must end exactly at the bottom of `.preview-panel`. So a second block in `app.js` ("THE
+APP SHELL'S GRID FIT") writes `--header-h` onto **`.preview-panel` only**, solved from the frozen
+rule's own computed `max-height`. That is sanctioned pattern 1 below: the declaration changes, the
+rule does not. It is re-measured on resize, on every `#table-wrap` re-render, and when `#gap-warning`,
+a notice strip or the toolbar changes. Keep the two apart:
+- **`:root`** holds the header's measured height. The sidebar's rules read it, although above 960 px
+  the shell sizes the sidebar from `.layout`, because a calc off the header cannot see a notice
+  strip. The print-fallback
+  waterfall PDF's `.sheet-scroll` inside `#print-root`, a direct child of `<body>`, which measures in
+  screen media (MANTINE-SEAM §3.1). Its arithmetic is unchanged.
+- **`.preview-panel`** holds a solved value that is NOT a height. It can be large or negative, and
+  only the live grid inherits it. Below 960 px it is removed, and the grid reads `:root` as it
+  always did.
+
+⛔ Never "simplify" these into one value. Writing the solved value on `:root` would resize the print
+fallback's measured copy and could flip its page orientation.
+
 ## ⛔ Every saved calendar must keep opening, forever
 
 **A saved `.html` calendar written by *any* past version must open in *every* future version.** A

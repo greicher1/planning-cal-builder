@@ -29,6 +29,60 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Grid Lines in Exports shows only in the Waterfall view
+
+Owner, 22 Sep 2026: *"the grid lines in exports setting should only show in the waterfall view not
+the month view"*. It joins Single Column Mode in the Preferences card's Waterfall-only group; the
+two month settings stay Month-only. The setting still applies to every waterfall export whichever
+view is showing: hiding a row changes nothing it stores. It is a waterfall setting by what it does,
+too. `SHEET_GRIDLINES` is read by the Excel workbook and both waterfall PDF paths, and by nothing
+in the month view or the month PDF. The dividers now sit only between rows of the same group, so
+neither view opens on a dangling rule.
+
+### Unreleased — The app window never scrolls: an app shell above 960 px
+
+Owner, 22 Sep 2026: *"make the app behave like a standard app window."* Above the 960 px stacking
+point the browser window can no longer scroll. Three things scroll, each inside its own box: the
+sidebar, the waterfall grid, and (through the preview panel) the month view. At 960 px and below,
+the stacked layout and its page scrolling are unchanged.
+
+**Why it scrolled.** The page flowed like a website. A notice strip pushed the layout past the
+window. The frozen grid rule `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}` also
+assumed 140 px of chrome around the grid, and it is 144–204 px now, more with a strip showing. The
+month view had no scroll box at all. Measured before, at 1440×900: the waterfall overran the window
+by 4 px, the month view by 66 px.
+
+**What changed:**
+- **The frame (CSS, screen only).** `<body>` is a `100vh` flex column: the header, any visible notice
+  strips, then `.layout` taking the rest. The sidebar fills the layout, and the preview panel scrolls
+  the month view. **Nothing was wrapped or re-parented**, because both print paths depend on
+  `body.printing-* > *:not(#print-root)` child combinators. Print media never sees these rules.
+- **The waterfall fills exactly the space left**, with one vertical scroller. The frozen rule is
+  untouched. Its `--header-h` is set on `.preview-panel` only, solved from the rule's own computed
+  max-height. The value is re-measured on resize, on every re-render, and when the gap warning, a
+  notice strip or the toolbar changes. The header's real height stays on `:root`, where the sidebar
+  and the print-fallback PDF's measured copy still read it.
+- **The toolbar popovers no longer spill out of the preview.** The preview panel is a scroll
+  container now, and at 1024 px it cut off the left 42 px of Shift All's popover (7 px of Shift
+  From's). An opened popover now slides right until it fits.
+
+**Verified** in the browser on the build, with real clicks and wheel scrolls:
+- The window cannot scroll at 1024×768, 1440×900 and 1920×1080 in both views
+  (`scrollHeight === innerHeight`).
+- The waterfall's grid box ends 20 px above the window bottom, at the panel's padding. The panel
+  itself never scrolls in that view.
+- Showing one or two notice strips, then hiding them, refits with no window scroll; so does the gap
+  warning going away ("Close all gaps") and coming back (Undo).
+- The wheel over the header scrolls nothing. The control: the wheel over the grid scrolls the grid.
+- After resizing with a live selection, every column and row handle sits within 0.5 px of its
+  boundary, and the selection still covers its cells.
+- The note, day-override and month-note popovers stay anchored as the preview panel scrolls.
+- The month view keeps its scroll position through a re-render, and does not jump when the gap
+  warning disappears above it.
+- Below 960 px it stacks and the page scrolls, and the grid's max-height is the frozen rule's own.
+
+Full gate: **376 pass, 0 fail**, over the final build (SHA-256 `ed88794d4d01609c…`, 1,279,083 bytes). Waterfall PDF, Excel parts, the v1.0.0 restore and all six month-PDF cases are identical to baseline, and `fields.byId` is unchanged at 62 ids. The month PDF matters most here, because the on-screen month cell width feeds it (MANTINE-SEAM §5.3).
+
 ### Unreleased — Production's total and the episode/block list, restyled in Mantine's idiom
 
 Owner, 22 Sep 2026: *"Can we restyle this to be nicer looking and extend across. Style using

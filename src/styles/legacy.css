@@ -343,6 +343,50 @@
 
   .preview-panel{flex:1; min-width:0; padding:20px 28px;}
 
+  /* ---------- The app shell: the WINDOW never scrolls (owner, 22 Sep 2026) ----------
+     "Make the app behave like a standard app window." Above the 960px stack point the window is a
+     fixed frame: <body> is a full-height flex column -- the header, then whichever notice strips
+     are showing at their natural height, then .layout taking everything left -- and only three
+     things scroll, each inside its own box: the sidebar, the waterfall grid and (via
+     .preview-panel) the month view. Before this the page flowed like a website, so a notice strip
+     pushed the layout past the window, and the frozen .sheet-scroll's 140px allowance for the
+     chrome around the grid (measured: 144px at 1440x900, 204px at 1024x768, more with a strip)
+     overran it by the difference.
+
+     ⛔ NOTHING IS WRAPPED OR RE-PARENTED, and that is the constraint that shaped this. Both print
+     paths hide the app with `body.printing-* > *:not(#print-root)` -- CHILD combinators -- and
+     header.app-header must stay a direct child of <body> for the --header-h ResizeObserver. So the
+     shell is built from <body>'s existing children, in place.
+
+     ⛔ SCREEN ONLY, and above 960px only. `(width > 960px)` is the exact complement of the stack
+     rules' `(max-width:960px)`, so there is no fractional-width gap where neither applies. Print
+     media never sees these rules, so neither print path changes; at 960px and below the stacked
+     layout and its normal page scrolling are exactly what they were.
+
+     ⚠️ Once <body> is a flex column EVERY child is a flex item: script#saved-state, the notices,
+     #help-fab, #help-overlay, #react-root, #print-root, and whatever the engine or Mantine appends
+     at runtime (popovers, portals, download anchors). `flex:none` keeps each at its natural size;
+     the fixed/absolute ones are out of flow anyway, #print-root is display:none on screen, and
+     #react-root is empty. Only .layout grows. `min-height:0` is what lets it SHRINK below its
+     content -- a flex item's automatic minimum is its content height, which is the overflow.
+
+     The sidebar is sized by .layout here rather than by its own calc(100vh - var(--header-h)):
+     that calc knows the header but not the notice strips, so with a strip showing the panel ran
+     past the window by the strip's height and its last rows could not be scrolled to. Its sticky
+     `top` is left alone -- with the window unable to scroll, and the panel filling its containing
+     block, sticky has nothing to do. The root --header-h value it reads is unchanged.
+
+     The waterfall's grid height is fitted by JS (the preview-scoped --header-h, app.js, "THE APP
+     SHELL'S GRID FIT"), so in that view .preview-panel's scroll never engages and the grid box is
+     the one vertical scroller. The month view has no scroll box of its own and scrolls here. */
+  @media screen and (width > 960px){
+    body{ height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+    body > *{ flex:none; }
+    body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
+    .form-panel{ align-self:stretch; min-height:0; max-height:none; }
+    .preview-panel{ min-height:0; overflow:auto; }
+  }
+
   /* The Mantine UI "application card": white on the grey ground, a hairline gray-3 border, md
      radius, md padding. Nothing else -- no shadow at rest, which is what keeps a column of them
      calm rather than busy. */

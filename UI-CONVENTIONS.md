@@ -772,6 +772,72 @@ becomes a Burger-toggled overlay, so `AppShell.Main` always starts directly unde
 Nobody builds a production calendar on a phone. Engineer `md` and `lg` properly; treat `sm` as "must
 not break, must not be pretty"; do nothing for `xs` beyond preventing horizontal overflow.
 
+### ✅ AS BUILT — the app shell: the window never scrolls (22 Sep 2026)
+
+Owner: *"make the app behave like a standard app window."* Above 960 px the **window cannot scroll**;
+three things scroll, each in its own box: the sidebar, the waterfall grid, and — through
+`.preview-panel` — the month view. At 960 px and below nothing changed: the layout stacks and the
+page scrolls, exactly as before.
+
+| | How |
+|---|---|
+| the frame | `@media screen and (width > 960px)` in `legacy.css` ("The app shell"): `<body>` is a `100vh` flex column with `overflow:hidden`; every child is `flex:none` except `.layout` (`flex:1 1 0; min-height:0`). The header and any visible notice strips take their natural height, and the layout gets the rest |
+| the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
+| the month view | `.preview-panel{overflow:auto}` — the view has no scroll box of its own, and it is not scaled or restyled |
+| the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
+
+⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
+`body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct
+child of `<body>`, so the shell is built from `<body>`'s existing children in place. It is screen
+media only, so neither print path sees it.
+
+⭐ **The grid fit changes the DECLARATION, not the frozen rule.** `.sheet-scroll{max-height:calc(100vh
+- var(--header-h) - 140px)}` assumed 140 px of chrome around the grid. Measured, it is 144 px at
+1440×900 with a gap warning, 204 px at 1024×768 (the toolbar wraps), and more with a strip showing. A block
+in `app.js` ("THE APP SHELL'S GRID FIT") writes `--header-h` onto **`.preview-panel` only**, solved
+from the rule's own computed `max-height` so that the grid box ends exactly at the panel's padding
+edge. It is measured, never declared, and re-measured on:
+- window resize and the 960 px media query flipping;
+- every `#table-wrap` re-render, which includes every view switch (a `childList` MutationObserver);
+- `#gap-warning` or a notice strip showing, hiding or changing text (a MutationObserver, **and** a
+  ResizeObserver on the panel's border box);
+- the toolbar wrapping (a ResizeObserver).
+
+⚠️ **The MutationObservers are not redundant.** A ResizeObserver only fires when the page renders.
+A hidden or backgrounded page never renders, so with the browser pane hidden a strip left the
+preview 46 px too tall until something rendered.
+
+The panel-scoped value reaches nothing else. `aside.form-panel` is outside `.preview-panel`, and
+`#print-root` is a direct child of `<body>`. So the print-fallback waterfall PDF, which **measures**
+its injected `.sheet-scroll` in screen media (MANTINE-SEAM §3.1), still reads the root value.
+Below 960 px the panel value is removed, and the frozen rule runs off the root value as it always did.
+
+⚠️ **A scroll container clips its descendants, and this bit the toolbar.** The four `.tools-menu`
+popovers are absolute inside the toolbar and hang left from their button. At 1024 px, Shift All's
+280 px panel began 42 px left of the preview, where it used to spill over the sidebar. The panel
+now cut it off, and leftward overflow is the one direction a scroll container can never scroll to.
+`openPop()` now slides an open panel right until it fits (`keepPopInPanel`), and does so again on
+resize. **Any new absolutely-positioned panel inside `.preview-panel` must be measured at 1024 px
+for the same reason.** Body-level popovers (`.note-pop`, `.mv-note-pop`, `.day-ov-pop`, the date and
+select pops) are unaffected, and their capture-phase scroll listeners follow the panel's scroll —
+verified by real wheel scrolls.
+
+**Measured on the build, `blocks.sptcal`** — `document.scrollingElement.scrollHeight === innerHeight`
+in both views at every size:
+
+| viewport | waterfall: grid box bottom / window bottom | month: panel scroll range |
+|---|---|---|
+| 1024×768 | 748 / 768 (the panel's 20 px padding) | 997 / 705 |
+| 1440×900 | 880 / 900 | 904 / 837 |
+| 1920×1080 | 1060 / 1080 | fits, no scroll |
+
+Before the shell, at 1440×900 the window overran by 4 px in the waterfall and by 66 px in the
+month view.
+
+The invariant stated above (*"the grid's top edge is header + ~140 px from the viewport top"*) is
+**retired above 960 px**. The fit measures where the grid's top actually is, so nothing needs that
+140 px to be true any more.
+
 ---
 
 ## 8. ⛔ Seven verified traps

@@ -241,26 +241,34 @@ export function PreferencesCard() {
             buildWaterfallPdf draws the PDF's. It briefly shipped as "Grid Lines in PDF Export",
             which was flagged as understating the reach and corrected by the owner the same day.
             ⛔ Uncontrolled, as before: the engine writes .value in reflectGridlines(). */}
-        <Group justify="space-between" wrap="nowrap" gap="sm">
-          <Text component="label" htmlFor="pref-gridlines" size="sm" style={{ cursor: 'pointer' }}>
-            Grid Lines in Exports
-          </Text>
-          <NativeSelect id="pref-gridlines" size="xs" w={132}
-                        aria-label="Grid Lines in Exports">
-            <option value="none">None</option>
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed (Excel style)</option>
-          </NativeSelect>
-        </Group>
 
         {/* ✅ BY VIEW (owner, 22 Sep 2026): "Single column mode setting should only show in waterfall
-            view and the two show in month view settings should only show up in the month view".
-            Each view-specific row is wrapped WITH the divider above it, so hiding a row can never
-            leave a doubled or dangling rule. Shown/hidden in CSS off the view toggle's `.active`
+            view and the two show in month view settings should only show up in the month view" --
+            and, the same day, "the grid lines in exports setting should only show in the waterfall
+            view not the month view". Shown/hidden in CSS off the view toggle's `.active`
             (legacy.css, :has()), which setViewMode() already maintains -- no second copy of the view
             state to drift. ⚠️ This REVERSES a 10 Sep 2026 decision recorded below, on the owner's
-            instruction; hiding a row changes nothing about what it stores. */}
+            instruction; hiding a row changes nothing about what it stores.
+            Grid lines is a waterfall setting by what it DOES, not only by ruling: SHEET_GRIDLINES is
+            read by exportExcel, buildWaterfallPdf and the print-fallback waterfall PDF, and by
+            nothing in the month view or exportMonthPdf. Hidden in Month view, it still applies to
+            every waterfall export -- exactly as before.
+            ⛔ THE DIVIDERS SIT ONLY BETWEEN ROWS OF THE SAME GROUP. Exactly one of these two boxes is
+            ever visible, so each opens on a control, never on a rule -- a leading divider in either
+            would dangle at the top of the card in that view. */}
         <Box className="pref-view-sheet">
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <Text component="label" htmlFor="pref-gridlines" size="sm" style={{ cursor: 'pointer' }}>
+              Grid Lines in Exports
+            </Text>
+            <NativeSelect id="pref-gridlines" size="xs" w={132}
+                          aria-label="Grid Lines in Exports">
+              <option value="none">None</option>
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed (Excel style)</option>
+            </NativeSelect>
+          </Group>
+
           {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
               stacked with nothing between them read as one confusing group. */}
           <Divider my="sm" />
@@ -294,8 +302,6 @@ export function PreferencesCard() {
         </Box>
 
         <Box className="pref-view-month">
-          <Divider my="sm" />
-
           {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production pills carry as grey
               text -- the block, and the episodes being shot. PER-USER, like the two settings above:
               the owner chose this knowing two people printing one calendar can get different month

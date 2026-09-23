@@ -13594,6 +13594,25 @@ export function initLegacyApp() {
         if(m){ m.textContent = ''; m.classList.remove('warn'); }
       });
     }
+    // The app shell (legacy.css) made .preview-panel a SCROLL CONTAINER, and a scroll container
+    // clips its descendants. These panels are absolute inside the toolbar and hang leftwards from
+    // their button (`right:0`), so one that used to spill over the sidebar is now cut off at the
+    // preview's left edge -- measured at 1024px wide, Shift All's 280px panel began 42px left of
+    // it and Shift From's 7px. Slide an open panel right until it fits, and no further. Leftward
+    // overflow is the one direction a scroll container can never reach, so this is not optional;
+    // a panel running past the BOTTOM only extends the scroll range and stays reachable.
+    function keepPopInPanel(menu){
+      menu.style.right = '';
+      const panel = menu.closest('.preview-panel');
+      if(!panel) return;
+      const minLeft = panel.getBoundingClientRect().left + panel.clientLeft + 8;
+      const over = minLeft - menu.getBoundingClientRect().left;
+      if(over > 0) menu.style.right = (-over) + 'px';
+    }
+    window.addEventListener('resize', ()=>{
+      const open = POPS.find(p=>p.menu.classList.contains('open'));
+      if(open) keepPopInPanel(open.menu);
+    });
     // Opening one closes the others: only ever one popover on screen, so they can't overlap each
     // other or leave two stale result lines showing.
     function openPop(target){
@@ -13602,6 +13621,7 @@ export function initLegacyApp() {
       if(wasOpen) return;
       refreshMenuFromCalendar();   // every dropdown quotes live dates
       target.menu.classList.add('open');
+      keepPopInPanel(target.menu);
       target.btn.setAttribute('aria-expanded','true');
     }
     POPS.forEach(p=>{
@@ -15460,6 +15480,104 @@ export function initLegacyApp() {
     sync();
     if(typeof ResizeObserver !== 'undefined'){ try { new ResizeObserver(sync).observe(hdr); } catch(e){} }
     window.addEventListener('resize', sync);
+  })();
+
+  // ⭐ THE APP SHELL'S GRID FIT (owner, 22 Sep 2026: the window itself never scrolls).
+  // Above the 960px stack point the window is a fixed frame (legacy.css, "The app shell") and the
+  // waterfall must fill exactly the space left in .preview-panel, so the preview has ONE vertical
+  // scroller -- the grid's own -- instead of a grid box nested inside a panel that also scrolls.
+  //
+  // ⛔ The grid's height comes from the FROZEN rule
+  // `.sheet-scroll{max-height:calc(100vh - var(--header-h) - 140px)}`, and the rule is not edited.
+  // Its 140px was the chrome around the grid when it was written. Measured now: 144px at 1440x900
+  // with a gap warning, 204px at 1024x768 (the toolbar wraps), and more with a notice strip
+  // showing -- which is why the window overran. So this changes the DECLARATION the rule reads rather
+  // than the rule (CLAUDE.md, sanctioned pattern 1): it writes --header-h onto .preview-panel
+  // ONLY, which is nearer than :root for the .sheet-scroll inside #table-wrap and reaches nothing
+  // else --
+  //   * aside.form-panel is not inside .preview-panel, so the sidebar keeps the root value;
+  //   * #print-root is a direct child of <body>, so the print-fallback waterfall PDF -- which
+  //     MEASURES its injected .sheet-scroll in screen media (MANTINE-SEAM §3.1) -- keeps the root
+  //     value as well, and its arithmetic is exactly what it was.
+  //
+  // MEASURED, never declared, for the same reason the root value is: everything above the grid
+  // changes height (the gap warning comes and goes, the toolbar wraps, a notice strip shows). And
+  // it is solved from the rule's OWN computed max-height, so nothing here assumes what 100vh or
+  // the 140 resolve to -- raising --header-h by d lowers the max-height by exactly d.
+  //
+  // It only READS inside #table-wrap (rects, computed style) and WRITES one custom property on
+  // .preview-panel. The observed boxes are chosen so that write cannot resize any of them: the
+  // panel is observed by BORDER box, which the flex layout fixes regardless of content (a
+  // scrollbar coming and going changes only its content box), and nothing above the grid depends
+  // on the grid's height. So an observation can never feed itself -- no ResizeObserver loop.
+  (function(){
+    const panel = document.querySelector('main.preview-panel');
+    const wrap = document.getElementById('table-wrap');
+    if(!panel || !wrap) return;
+    const shell = window.matchMedia('screen and (width > 960px)');
+    // A floor, so a very short window still shows some grid. Below it the panel scrolls as well --
+    // two scrollers, but everything stays reachable, which beats a grid squeezed to nothing.
+    const MIN_GRID_PX = 120;
+    const px = v => parseFloat(v) || 0;
+    const fit = ()=>{
+      if(!shell.matches){
+        // Stacked: the page scrolls, and the frozen rule runs off the root value as it always did.
+        if(panel.style.getPropertyValue('--header-h')) panel.style.removeProperty('--header-h');
+        return;
+      }
+      // The live grid only -- a direct child of #table-wrap, never the print copy in #print-root.
+      // In the month view (or the empty state) nothing reads the value, and it is left as it is so
+      // the grid comes back at the right height on the way back.
+      const scroll = wrap.querySelector(':scope > .sheet-scroll');
+      if(!scroll) return;
+      const cs = getComputedStyle(scroll);
+      const curMax = parseFloat(cs.maxHeight);
+      const curVar = parseFloat(cs.getPropertyValue('--header-h'));
+      if(!Number.isFinite(curMax) || !Number.isFinite(curVar)) return;
+      const pr = panel.getBoundingClientRect();
+      const sr = scroll.getBoundingClientRect();
+      // The grid box's top in the panel's CONTENT coordinates, so a panel that is scrolled (it was
+      // overflowing a moment ago) still yields the right answer.
+      const top = sr.top - (pr.top + panel.clientTop) + panel.scrollTop;
+      // Anything under the grid box inside the preview, so the whole column fits, not just the box.
+      const below = (wrap.getBoundingClientRect().bottom - sr.bottom) + px(getComputedStyle(wrap).marginBottom);
+      // Floored: a fractional overshoot is still an overflow, and would bring a 1px scrollbar.
+      const want = Math.max(MIN_GRID_PX,
+        Math.floor(panel.clientHeight - px(getComputedStyle(panel).paddingBottom) - top - below));
+      if(Math.abs(curMax - want) < 0.5) return;
+      panel.style.setProperty('--header-h', (curVar + (curMax - want)) + 'px');
+    };
+    fit();
+    // Every trigger the owner named: window resize, a re-render of #table-wrap (which is also
+    // every view switch), #gap-warning showing or hiding, and a notice strip -- which reaches the
+    // grid only by resizing .layout, and so arrives as the panel's own border box changing. The
+    // toolbar is observed too: it wraps, and a selection adds buttons to it.
+    const gap = document.getElementById('gap-warning');
+    if(typeof ResizeObserver !== 'undefined'){
+      try {
+        const ro = new ResizeObserver(fit);
+        ro.observe(panel, { box: 'border-box' });
+        if(gap) ro.observe(gap);
+        const bar = panel.querySelector('.view-toggle-row');
+        if(bar) ro.observe(bar);
+      } catch(e){}
+    }
+    // childList only: render() replaces #table-wrap's children wholesale. Observing mutates
+    // nothing (CLAUDE.md, sanctioned pattern 3).
+    new MutationObserver(fit).observe(wrap, { childList: true });
+    // The named triggers again, as DOM MUTATIONS. A ResizeObserver delivers only at a rendering
+    // opportunity, which a hidden or backgrounded page never gets -- found exactly that way: with
+    // the browser pane hidden, showing a strip left the preview overflowing by the strip's 46px
+    // until something rendered. A mutation record arrives regardless, and the layout reads inside
+    // fit() force the up-to-date geometry.
+    const mo = new MutationObserver(fit);
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
+    });
+    if(gap) mo.observe(gap, { childList: true, subtree: true, characterData: true });
+    window.addEventListener('resize', fit);
+    if(shell.addEventListener) shell.addEventListener('change', fit);
   })();
 
   restoreSavedState();
