@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ BUILT 24 Sep 2026: waterfall-PDF grid lines stop at merged cells — FROZEN EDIT, owner-approved
+### ✅ LIVE at `b7c2cf6` (24 Sep 2026): waterfall-PDF grid lines stop at merged cells — FROZEN EDIT, owner-approved
 
 **The report:** *"theres lines running thru the all phase hiatus blocks in the pdf export"*, with a
 screenshot. It happens only with **Grid Lines in Exports** set to Solid or Dashed.
@@ -38,7 +38,14 @@ untested for exactly that reason. A leg that exports Solid on a fixture with ban
 asserts "0 rules inside a merged cell", would close it. Not built; it is the owner's call.
 
 **Gate: 376 pass, 0 fail**, over `5f3a65a99fd5bab8…` (1,279,438 bytes). The waterfall PDF is identical to
-baseline and `fields.byId` has 62 ids. **Not committed, not pushed** at time of writing.
+baseline and `fields.byId` has 62 ids.
+- **Pushed on the owner's instruction**, as one fast-forward `93a68da..b7c2cf6` (it also carried the docs-only
+  `3d2c075`). The deploy is green, and the live file is **byte-identical to the gated build** (`5f3a65a9…`) about
+  60 s after the push.
+- ⭐ **Then driven on production.** `blocks.sptcal` was loaded and a Grid Lines = Solid waterfall PDF
+  exported, then its content stream was parsed in the page. It is 76,471 bytes (the pre-fix export was
+  76,467), has 5 vertical rules and **0 crossing the 4 hiatus bands**, and the rule extents are identical to
+  the local after-export. The preference was put back to None.
 
 ### ✅ LIVE at `93a68da` (22 Sep 2026): THE APP SHELL — the window never scrolls. Gated, pushed, verified
 
