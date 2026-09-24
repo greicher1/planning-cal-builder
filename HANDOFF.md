@@ -4,7 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ BUILT 24 Sep 2026: month-PDF lines + the purple header box (owner-ruled, frozen print edits) — see "As built" at the end of this block
+### ✅ LIVE at `a432613` (24 Sep 2026): month-PDF lines + the purple header box, and the header-styling fixes (`a4c5fd7`)
+
+**Pushed on the owner's instruction** as one fast-forward `b7c2cf6..a432613`. The live file is **byte-identical to the gated
+build** `3630896c…` (1,281,946 bytes; full gate 376/0) about 50 s after the push. ⭐ **Then driven on production:**
+- Month view → *Edit header template…* opens *Month header template*, with the stage title at 22px/700 and "Styling Title".
+- `monthscale.sptcal` was loaded from the repo and the month PDF's print document built with `print` stubbed. Normal months
+  print 2px dividers, week lines and bottom frame. August is `mv-scaled`, `scaleY(0.5881)`, `--mv-line-y: 3px`, and its last
+  week carries the 3px bottom line.
+- The next piece of this work is the owner-ruled **direct month-PDF writer** (native save dialog, no Chrome print
+  screen). It is not planned yet; write a plan doc first, like BLOCKS-PLAN.md.
+
+#### How it was built (was: BUILT 24 Sep 2026, month-PDF lines + the purple header box)
 
 **Owner's reports:** *"not all the calendar lines in the month view pdf export are rendering … its
 actually not just weekend lines, its random lines throughout"*, and *"the purple box around the
