@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month PDF: every grid line prints, and the purple header box is gone
+
+Owner, 24 Sep 2026:
+- *"not all the calendar lines in the month view pdf export are rendering … its actually not just
+  weekend lines, its random lines throughout"*;
+- *"the purple box around the header in rendering in the pdf export of the month view. It should
+  not do this."*
+
+Both are frozen print edits the owner ruled on: a quick fix now, with a direct month-PDF writer
+planned later.
+
+**What was wrong, measured.** The PDF file contained every line (a pixel scan of 15 pages found 0
+gaps), but three things made them look missing:
+1. **Too thin to display.** A 1 px border is a 0.75 pt line. PDF viewers smear a line that thin
+   according to where it falls against the screen's pixels. Under macOS Quartz (Preview), day
+   dividers rendered 62–143 grey and week lines **185**, nearly invisible on the weekend tint, and
+   which ones depended on position, so it looked random. Chrome snaps border widths to whole
+   pixels, and 1.33 px and 1.5 px measured identical to 1 px. 2 px is the first width that is
+   actually wider.
+2. **Covered bottom edges.** In print, each week's day cells overflowed onto the week's own bottom
+   border (a `1fr` grid row grows to its content), and children paint over their parent's border.
+   Between weeks the next week redraws the line, but under the last week nothing does. That
+   covered the frame's bottom line whenever the last row was at its minimum height.
+3. **Busy months shrunk to fit.** Squashing the whole grid vertically thinned every horizontal
+   line to about 0.45 pt (150–206 grey), and the month overran the sheet so its bottom frame was
+   cut off. No test month had ever reached this mode. New fixture `tests/fixtures/monthscale.sptcal`
+   does (August at 59% scale).
+
+**The fix:**
+- The printed grid is drawn at 2 px (1.5 pt).
+- Each week's grid row is capped at its box (`minmax(0, 1fr)`).
+- In shrink-to-fit, horizontal lines are counter-scaled so they print at 2 px, 8 px are held back
+  for the frame, and the frame's bottom line is drawn by the last week.
+- The Template/Manual header's editing tint and padding are stripped in print only. The on-screen
+  tint stays.
+
+**Verified** under Quartz at four viewer sizes, before → after:
+- Worst day divider 128–143 → **64**; worst week line **185 → 63–96**.
+- Shrink-to-fit week lines 152–206 → **23–100**, and the bottom frame is back.
+- One printed sheet per month in every case (reference 16, mvheader 15, dayoverrides 15,
+  monthscale 16).
+
+Full gate: **376 pass, 0 fail**, over the build `3630896cd2d1cd66…` (1,281,946 bytes). All six month-PDF cases are document-identical and still one sheet per month, because these edits are CSS plus inline styles on shrink-to-fit pages only, and no baseline month shrinks. The waterfall PDF, Excel, the v1.0.0 restore and the 62 `fields.byId` ids are unchanged. ⚠️ So the gate can't see this change. The Quartz measurements above are its evidence, and the before/after PDFs were shown to the owner. `hdreditor`'s Bold assertion was **updated, not relaxed**: it expected the first click on the bold-by-default title to leave it bold, which was the bug.
+
 ### Unreleased — Header styling: seven bugs across the builder and the Manual toolbar
 
 Three owner reports, 24 Sep 2026:

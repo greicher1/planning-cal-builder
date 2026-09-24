@@ -14172,7 +14172,26 @@ export function initLegacyApp() {
           // Even at minimum, the content is taller than the page: give each row exactly its content
           // height and scale the whole month down (scaleY) just enough to fit one page. Nothing is
           // dropped or overlapped; a very full month simply prints a little smaller.
-          const scale = d.avail / d.reqTotal;
+          // FROZEN EDIT (owner-ruled 24 Sep 2026), two parts, both about the grid's LINES:
+          //  1. The scale leaves room for the frame's bottom line. reqTotal is the weeks alone, but
+          //     the body also carries its bottom border, so `avail / reqTotal` scaled the month to
+          //     overrun the sheet by about that line -- and .print-page's overflow:hidden shaved it
+          //     off: every shrink-to-fit month printed with no bottom frame. Measured on the new
+          //     monthscale fixture (August at scaleY 0.5975). ⚠️ AND THE HEADER PRINTS TALLER THAN IT
+          //     MEASURES: `reserve` is read off-screen in screen media, and the printed header came out
+          //     ~1.5-3px taller, so with only the line held back the frame still landed on the sheet's
+          //     clip edge and printed as a sliver (measured 186-199 grey). A fill-mode month never sees
+          //     this -- flexbox absorbs the difference -- but a scaled one is sized FROM the
+          //     measurement. MV_SCALE_HOLDBACK covers both; a few px of blank under a shrunk month is
+          //     invisible, a missing frame line is not.
+          //  2. scaleY squashes every HORIZONTAL line by the same factor -- the week separators and
+          //     that bottom line printed at ~0.45pt and rendered 150-190 grey. --mv-line-y (read by
+          //     legacy.css's print line rules) makes them 1/scale thicker so they print at the
+          //     grid's weight. Rounded because Chrome snaps border widths to whole pixels anyway.
+          //     Vertical lines are untouched by scaleY and need nothing.
+          const MV_PRINT_LINE = 2;   // px -- must match legacy.css "THE MONTH GRID PRINTS AT 2px"
+          const MV_SCALE_HOLDBACK = MV_PRINT_LINE + 6;
+          const scale = Math.max(0.05, (d.avail - MV_SCALE_HOLDBACK) / d.reqTotal);
           d.weeks.forEach((wkEl, i)=>{
             wkEl.style.flexGrow = '0';
             wkEl.style.flexShrink = '0';
@@ -14184,6 +14203,13 @@ export function initLegacyApp() {
             body.style.flex = '0 0 auto';
             body.style.transformOrigin = 'top left';
             body.style.transform = 'scaleY(' + scale.toFixed(4) + ')';
+            body.style.setProperty('--mv-line-y', Math.max(MV_PRINT_LINE, Math.round(MV_PRINT_LINE / scale)) + 'px');
+            // ⛔ The frame's bottom line moves onto the LAST WEEK in this mode (legacy.css, .mv-scaled).
+            // Measured: Chrome's print does not paint the bottom border of this transformed body at
+            // all -- its side borders print, and the week separators (the CHILDREN's borders) print,
+            // but the body's own bottom edge came out missing or a one-pixel 186-199 sliver whatever
+            // the holdback. Drawn by the last week, like every separator above it, it prints.
+            body.classList.add('mv-scaled');
           }
         }
       });

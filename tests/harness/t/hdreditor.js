@@ -132,9 +132,16 @@ window.addEventListener('load', function () { (async function () {
     out.canvasStyle = line('c1').getAttribute('style');
     // ⭐ The SAME string on the real header: one store (headerFormat), one renderer.
     out.realStyle = realLine('c1') ? realLine('c1').getAttribute('style') : null;
+    // ⚠️ UPDATED 24 Sep 2026, NOT RELAXED: this used to require 'font-weight:700', which encoded the
+    // owner-reported bug. c1 is bold BY DEFAULT (.hdr-line.hdr-title), and the builder's Bold used to
+    // flip from the stored format, so this first click set bold:true on an already-bold line and
+    // nothing visibly changed. It now flips from the rendered look (hdrLiveLook), so one click on the
+    // bold title UN-bolds it -- 400. The contract this assertion exists for is unchanged and still
+    // checked in full: one store, one renderer (canvas === real header), size applied, and the Bold
+    // click's effect present on both.
     out.stylingReachesHeader = !!out.canvasStyle && out.canvasStyle === out.realStyle &&
                                out.canvasStyle.indexOf('font-size:18px') >= 0 &&
-                               out.canvasStyle.indexOf('font-weight:700') >= 0;
+                               out.canvasStyle.indexOf('font-weight:400') >= 0;
 
     // ---- 5. ⭐ EDIT IN PLACE: raw on focus, resolved on blur, and it lands on the calendar --------
     // ⭐ REGRESSION, owner-reported 9 Sep 2026: "the font/size of the header text lines are changing

@@ -1641,6 +1641,54 @@
   /* Same category: the dashed "there is a slot here" outline on an empty left slot is an editing
      affordance with no business on paper. The left slot keeps its 84px box either way. */
   #print-root .mv-tleft.hdr-editable.hdr-empty{ outline:none; }
+  /* ⛔ FROZEN PRINT EDIT (owner-ruled 24 Sep 2026): the purple box is an EDITING tint, not part of the
+     calendar. `.mv-header.hdr-manual-mode` gives a Manual/Template header 8px of padding, a lavender
+     fill and a hairline ring so you can see you have taken it over -- and nothing stripped it in
+     print, so every Manual or Template month PDF printed its header inside a pale purple box, 16px
+     taller. Owner: "the purple box around the header in rendering in the pdf export of the month
+     view. It should not do this." The on-screen tint is untouched. OUTSIDE @media print for the same
+     reason as the two rules above: the fit measures the header's height (`reserve`) off-screen, so a
+     print-only strip would leave the 16px it frees unused at the foot of the page. */
+  #print-root .print-page .mv-header.hdr-manual-mode{ background:none; box-shadow:none; border-radius:0; padding:0; }
+  /* ⛔ FROZEN PRINT EDIT (owner-ruled 24 Sep 2026): THE MONTH GRID PRINTS AT 2px (1.5pt), NOT 1px.
+     Owner: "not all the calendar lines in the month view pdf export are rendering … random lines
+     throughout." The PDF HAD every line -- measured, 0 gaps across 15 pages -- but a 1px border is a
+     0.75pt line, and a PDF viewer anti-aliases a line that thin by where it happens to fall against
+     the screen's pixels. Under macOS Quartz (Preview), dividers rendered 62-143 grey and horizontal
+     week lines 185 -- on the #F4F3F0 weekend tint, next to invisible -- and which ones depended on
+     sub-pixel position, so it read as random. ⚠️ 1.333px and 1.5px measured IDENTICAL to 1px:
+     Chrome snaps border widths to whole pixels, so 2px is the first width that is actually wider.
+     At 2px the worst line of every kind measured 63-75 at four viewer sizes.
+     OUTSIDE @media print, so the fit measures the same borders it prints (a print-only 2px would
+     make the header ~2px taller than measured and clip the frame's bottom line on a tight month).
+     `.print-page` is in the selectors to OUTRANK the 1px !important rules inside @media print below,
+     which are later in the file; specificity, not order, is what makes these win.
+     --mv-line-y is the HORIZONTAL line weight, set by exportMonthPdf only in shrink-to-fit mode:
+     there the whole body is scaleY(k)-ed, which squashed every horizontal line to k × its width
+     (0.45pt at k=0.6, measured 150-190 grey). The export counter-scales it so it prints at 2px. */
+  #print-root .print-page .mv-monthbar,
+  #print-root .print-page .mv-dowrow{ border-width:2px 2px 0 !important; }
+  #print-root .print-page .mv-body{ border-width:0 2px var(--mv-line-y, 2px) !important; }
+  #print-root .print-page .mv-week{ border-top-width:var(--mv-line-y, 2px) !important; }
+  #print-root .print-page .mv-week:first-child{ border-top-width:0 !important; }
+  #print-root .print-page .mv-daycell{ border-left-width:2px !important; }
+  #print-root .print-page .mv-daycell:first-child{ border-left-width:0 !important; }
+  /* Shrink-to-fit only (exportMonthPdf adds .mv-scaled): the frame's bottom line is drawn by the
+     last week, not by the scaled body -- Chrome's print did not paint that transformed body's own
+     bottom border at all (measured; its side borders and every week separator printed). */
+  /* ⭐ WHY A WEEK'S BOTTOM LINE COULD VANISH, and the fix that makes the line above sufficient. In
+     print a week is a 1x1 grid holding the day grid and the bars, stacked, and its row was `1fr` --
+     whose automatic MINIMUM is the content's height. The bars' content (reqH, measured) is taller
+     than the week's inner box by the week's own border widths, so the row grew past the box and the
+     day cells' BACKGROUNDS overflowed onto the week's bottom edge. Children paint after their
+     parent's border, so they covered it: the same week printed its top border black (68) and its
+     bottom one near-white (223), measured. Between weeks it never showed, because the NEXT week
+     paints its own top border afterwards; under the last week nothing comes after. minmax(0, 1fr)
+     holds the row to the box. Only the bars' empty bottom padding now overflows, and it paints
+     nothing. Inert in screen media, where a week is not a grid. */
+  #print-root .print-page .mv-week{ grid-template-rows:minmax(0, 1fr) !important; }
+  #print-root .print-page .mv-body.mv-scaled{ border-bottom-width:0 !important; }
+  #print-root .print-page .mv-body.mv-scaled > .mv-week:last-child{ border-bottom:var(--mv-line-y, 2px) solid #000 !important; }
   /* Waterfall PDF look: compact rows + Excel's grey header, to read like the Excel print. Scoped
      to .wf-print (only ever the export copy) and defined OUTSIDE @media print so the off-screen
      fit-to-page measurement sees exactly the size that will print. */

@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏭ IN PROGRESS 24 Sep 2026: month-PDF lines + the purple header box (owner-ruled, frozen print edits)
+### ✅ BUILT 24 Sep 2026: month-PDF lines + the purple header box (owner-ruled, frozen print edits) — see "As built" at the end of this block
 
 **Owner's reports:** *"not all the calendar lines in the month view pdf export are rendering … its
 actually not just weekend lines, its random lines throughout"*, and *"the purple box around the
@@ -37,6 +37,26 @@ header in rendering in the pdf export of the month view. It should not do this."
   invisible, and the **bottom row and frame are clipped** off the sheet. The text on that page also
   becomes Type 3 glyphs (poppler warns "Bad bounding box in Type 3 glyph"). **This is the first
   scale-mode month any test has printed**: the coverage gap recorded 22 Sep.
+
+**As built, all frozen print edits, owner-approved:**
+- **legacy.css**, beside the header precedent and outside `@media print` so the fit measures what
+  prints:
+  - the purple-box strip;
+  - every month-grid line at **2 px** (1.33/1.5 px measured identical to 1 px, because Chrome snaps
+    border widths);
+  - `grid-template-rows: minmax(0, 1fr)` on a printed week;
+  - `.mv-scaled` rules.
+  The selectors carry `.print-page` to outrank the 1 px `!important` rules inside `@media print`.
+- **exportMonthPdf's scale branch:** `MV_SCALE_HOLDBACK = MV_PRINT_LINE + 6`, `--mv-line-y` =
+  round(2/scale) px, and `.mv-scaled` on the body.
+- ⭐ **The covered-border mechanism** is the lesson worth keeping. A printed week's `1fr` row grows
+  to its content, so the day cells overflowed onto the week's own bottom border and covered it.
+  Measured: the same week's top border printed 68 and its bottom one 223. Separators survive only
+  because the next week redraws its top border. Under the last week nothing does.
+- ⚠️ Chrome's print also did not paint the transformed body's own bottom border at all (its side
+  borders printed fine). Hence the last week draws it in scale mode.
+- The check is Quartz on a single page split out by `pdfseparate`: `sips -s format png
+  --resampleWidth 1100`. The scratch scripts were not committed.
 
 ### ✅ BUILT 24 Sep 2026: header styling, seven bugs, verified with real clicks
 
