@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Header styling: seven bugs across the builder and the Manual toolbar
+
+Three owner reports, 24 Sep 2026:
+- *"When you click edit header template while in the month view, it brings up the header builder
+  for the waterfall"*;
+- *"it doesnt look like the styling is applying to the month view header"*;
+- *"the styling of the header not work in manual mode … you really gotta debug"*.
+
+Each was reproduced with real clicks before it was fixed.
+
+1. **Edit header template… opened the waterfall's builder in Month view.** It also quietly switched
+   the *waterfall* header to Template. The sidebar button never passed the view, and now does.
+2. **Bold looked dead in the builder.** It flipped from the stored format, so on a line that is bold
+   by default (the month title, the date, the left slot, the waterfall title) the first click set
+   it "bold" and nothing changed. Bold and Italic now flip from how the line actually looks. The
+   calendar toolbar always did this, and the two now share one helper.
+3. **The builder's preview was not a preview.** Every line showed at 11 px regular, so the month
+   title (22 px bold) previewed as body text. Pick 14 and the preview grew while the real title
+   shrank. Each slot now previews at its own header's default size, weight and font.
+4. **The builder's alignment buttons showed the waterfall's defaults** for month lines.
+5. **The builder's label read "Styling title"**, a raw id. It now uses the month's slot names.
+6. **Manual mode: after typing in a waterfall header line, the size menu and the colour wells did
+   nothing.** Leaving the line re-rendered the header, which rebuilt the toolbar under the pointer,
+   so the control you had just pressed was detached. Measured: the select was out of the document,
+   and focus was on `<body>`. The text is now committed immediately, and the repaint waits until
+   you leave the toolbar.
+7. **Formatting `r1` in any way un-bolded it** until the next render, because the live repaint
+   replaced its built-in `font-weight:600`. Also: a rebuilt toolbar now keeps showing which line
+   it will style, instead of looking inactive.
+
+**Verified in the browser with real clicks:**
+- Month view opens *Month header template*, with the month's size list.
+- The month builder's preview shows 22/20/16 px, matching the calendar.
+- One Bold click takes the month title from 700 to 400, on the calendar and in the preview.
+- Size 26 lands on both.
+- Waterfall Manual: typed " X" into `c3`, pressed Size, and the select stayed connected and
+  focused. The pick applied 16 px with the text kept, and leaving the toolbar re-rendered with
+  both intact.
+- `r1` keeps weight 600 with a colour.
+- The month Manual toolbar: Italic, size, colour and highlight apply and survive a month change.
+
+⚠️ macOS's native select popup can't be driven from the browser pane, so the final pick was
+dispatched on the still-connected select. Before the fix, that select was detached.
+
 ### Unreleased — Waterfall PDF: grid lines no longer cut through hiatus bands or merged cells
 
 Owner, 24 Sep 2026, with a screenshot: *"theres lines running thru the all phase hiatus blocks in

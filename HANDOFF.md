@@ -4,6 +4,53 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏭ IN PROGRESS 24 Sep 2026: month-PDF lines + the purple header box (owner-ruled, frozen print edits)
+
+**Owner's reports:** *"not all the calendar lines in the month view pdf export are rendering … its
+actually not just weekend lines, its random lines throughout"*, and *"the purple box around the
+header in rendering in the pdf export of the month view. It should not do this."*
+
+**Rulings (24 Sep 2026, AskUserQuestion):**
+- **Lines:** a quick fix in the current print path now, with a **direct month-PDF writer planned
+  later** as its own project. The owner asked for a "native device PDF saver" instead of Chrome's
+  print screen: a page cannot make a PDF without the print dialog, so that means the app writes the
+  month PDF itself, as `buildWaterfallPdf` does for the waterfall.
+- **Purple box:** remove it from print, showing before/after PDFs first. This resolves the
+  long-standing "awaiting ruling" item (`.mv-header.hdr-manual-mode`: 8 px padding and a lavender
+  tint, never stripped in print). Re-cut the `mvheader` and `mvheaderlegacy` month baselines, with
+  the owner's approval, and record it in that baseline's README.
+
+**Diagnosis, measured, not inferred:**
+- **The PDF has every line.** A pixel scan of all 15 pages of `monthprint-dayoverrides.pdf` found
+  0 gaps. A first scan was fooled twice, once by the day-name row (no dividers, by design) and once
+  by pills sitting over the dividers (by design). Classify a gap as cell background showing, never
+  just "not dark".
+- **Viewers draw them too thin.** Each 1 CSS px border is a **0.75 pt** line. Under Quartz (macOS
+  Preview; reproduced with `sips` on a single page split out by `pdfseparate`), dividers render as
+  anti-aliased grey **62–143**, never black. The shade depends on each line's sub-pixel position,
+  so it looks random, and the light ones nearly vanish on the weekend tint. Poppler (`pdftoppm`)
+  forces hairlines to one pixel, so **it cannot reproduce this. Do not judge line visibility with
+  poppler.**
+- **Shrink-to-fit months are worse.** New fixture `tests/fixtures/monthscale.sptcal` (derived from
+  blocks, 42 notes in one week of Aug 2026; untracked) puts Aug into `scale` at `scaleY(0.5975)`.
+  Horizontal lines are squashed to ~0.45 pt and render at **150–190 grey** under Quartz, effectively
+  invisible, and the **bottom row and frame are clipped** off the sheet. The text on that page also
+  becomes Type 3 glyphs (poppler warns "Bad bounding box in Type 3 glyph"). **This is the first
+  scale-mode month any test has printed**: the coverage gap recorded 22 Sep.
+
+### ✅ BUILT 24 Sep 2026: header styling, seven bugs, verified with real clicks
+
+Full list in the README changelog. The shape a next session needs:
+- **`hdrLiveLook(id, mv)`** is now the one rule for "is this line bold or italic as rendered". Both
+  toolbars and the builder flip from it.
+- **`hdrLineBaseCss`** mirrors r1's `font-weight:600` from frozen `hline`.
+- The builder's stage mirrors each header's default look through `.hde-overlay(.is-mv)` rules in
+  legacy.css.
+- ⛔ **The Manual-mode trap:** the waterfall line's blur `render()`ed, which detached the Size menu
+  and colour wells mid-press. That render is now deferred (`hdrRenderPending`, flushed when focus
+  leaves the toolbar). A `MutationObserver` re-syncs rebuilt toolbars.
+- `grep -n "openHeaderEditor("` is the audit: every caller must open the view it came from.
+
 ### ✅ LIVE at `b7c2cf6` (24 Sep 2026): waterfall-PDF grid lines stop at merged cells — FROZEN EDIT, owner-approved
 
 **The report:** *"theres lines running thru the all phase hiatus blocks in the pdf export"*, with a

@@ -766,6 +766,24 @@
   /* An empty slot still needs something to click. The real header hides it; the stage note says so. */
   .hde-line.is-blank{ border-style:dashed; border-color:var(--mantine-color-gray-4); min-width:56px; }
   .hde-line.is-legacy{ border-left:2px solid var(--mantine-color-warn-6); }
+  /* ⭐ EACH SLOT AT ITS OWN HEADER'S DEFAULT LOOK (owner report, 24 Sep 2026: "it doesnt look like
+     the styling is applying to the month view header"). Every stage line was 11px regular, so the
+     month title -- 22px bold on the calendar -- previewed as small body text. Styling was judged
+     against the wrong starting point: pick 14 and the preview GREW while the real title SHRANK, and
+     Bold looked dead because the line it previewed was not bold. These mirror the header's own rules
+     (.hdr-line.hdr-title and r1's inline 600 for the waterfall; .mv-title / .mv-today / .mv-tleft /
+     .mv-subtitle for the month), so an UNSTYLED line previews as it prints and a user format -- an
+     inline style from headerFormatCss() -- still wins over them, exactly as it does on the calendar.
+     ⚠️ Mirrors, not links: if a header's default size or weight ever changes, change it here too.
+     ⚠️ The warning on .hde-line.is-editing below still stands. That was a rule restyling a line on
+     FOCUS; these are per-slot constants that never change as you click. */
+  .hde-overlay:not(.is-mv) .hde-line[data-hid="c1"]{ font-size:13px; font-weight:700; }
+  .hde-overlay:not(.is-mv) .hde-line[data-hid="r1"]{ font-weight:600; }
+  .hde-overlay.is-mv .hde-sheet{ font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .hde-overlay.is-mv .hde-line[data-hid="title"]{ font-size:22px; font-weight:700; }
+  .hde-overlay.is-mv .hde-line[data-hid="today"],
+  .hde-overlay.is-mv .hde-line[data-hid="tleft"]{ font-size:20px; font-weight:700; }
+  .hde-overlay.is-mv .hde-line[data-hid="subtitle"]{ font-size:16px; }
   .hde-ph{ color:#8A867C; border-bottom:1px dashed var(--mantine-color-gray-4); }
   .hde-stage-foot{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6);
     margin:8px 2px 0; line-height:1.5; }

@@ -7407,7 +7407,20 @@ export function initLegacyApp() {
       return;
     }
     headerManual[id] = text;
-    render(currentSchedule);
+    // ⛔ NOT WHEN FOCUS IS GOING TO THE FORMATTING TOOLBAR (owner report, 24 Sep 2026: "the styling of
+    // the header not work in manual mode"). Type in a line, then press the Size menu or a colour well,
+    // and this blur used to render() -- which rebuilds the toolbar from scratch, so the control under
+    // the pointer was DETACHED mid-press: its menu or picker went nowhere and focus fell to <body>.
+    // Measured with real input: typed " X" into c3, pressed Size, and the select was no longer in the
+    // document. The buttons never hit it only because they keep focus in the line (mousedown
+    // preventDefault above). The text is committed to state right here either way; the repaint waits
+    // until focus leaves the toolbar (below). The line already SHOWS what was typed, so nothing on
+    // screen is stale in the meantime.
+    if(hdrFmtPressing || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.hdr-fmt'))){
+      hdrRenderPending = true;
+    } else {
+      render(currentSchedule);
+    }
     markDirty(); // was previously missing here -- header edits were invisible to save-dirty tracking and undo
     // The Excel budget is a function of the header text, so it moves whenever a line does.
     pushHeaderPresets();
@@ -9195,6 +9208,37 @@ export function initLegacyApp() {
   // button by the time the handler runs.
   let hdrFmtTarget = null;   // { id, mv } or null
 
+  // A press inside the formatting toolbar, recorded in the CAPTURE phase so it is known before the
+  // edited line's blur runs: a colour well is a <label> around an <input type=color>, and the blur it
+  // causes carries no relatedTarget, so relatedTarget alone cannot tell "going to the toolbar".
+  // Cleared a tick after release, so it cannot leak into a later keyboard-driven blur.
+  let hdrFmtPressing = false;
+  // A header-text render the waterfall line's blur deferred, because focus was going to a toolbar
+  // control and a render would have detached it (see that handler).
+  let hdrRenderPending = false;
+  document.addEventListener('pointerdown', e=>{
+    hdrFmtPressing = !!(e.target && e.target.closest && e.target.closest('.hdr-fmt'));
+  }, true);
+  document.addEventListener('pointerup', ()=>{ setTimeout(()=>{ hdrFmtPressing = false; }, 0); }, true);
+  // The deferred render runs once focus leaves the toolbar for anywhere but another toolbar control
+  // or a header line -- the same moment a plain line-to-elsewhere blur has always rendered at.
+  document.getElementById('table-wrap').addEventListener('focusout', e=>{
+    if(!hdrRenderPending) return;
+    if(!(e.target && e.target.closest && e.target.closest('.hdr-fmt'))) return;
+    const to = e.relatedTarget;
+    if(to && to.closest && (to.closest('.hdr-fmt') || to.closest('.cal-header-bar .hdr-line'))) return;
+    hdrRenderPending = false;
+    render(currentSchedule);
+  });
+  // Every render() rebuilds both toolbars from markup that knows nothing about the current target, so
+  // a rebuilt bar read as INERT -- "pick a line first" -- while the last-focused line was still the
+  // target the next click would format. Re-reflect it after each rebuild. Observing #table-wrap
+  // mutates nothing (CLAUDE.md, sanctioned pattern 3); any render also satisfies a pending one.
+  new MutationObserver(()=>{
+    hdrRenderPending = false;
+    if(hdrFmtTarget && document.querySelector('#table-wrap .hdr-fmt')) syncHdrFmtToolbar();
+  }).observe(document.getElementById('table-wrap'), { childList: true });
+
   function hdrLineFromEvent(t){
     const el = t && t.closest ? t.closest('.hdr-line') : null;
     if(!el) return null;
@@ -9203,6 +9247,28 @@ export function initLegacyApp() {
     return null;
   }
   function hdrFmtStore(mv){ return mv ? mvHeaderFormat : headerFormat; }
+  // What a header line LOOKS like right now -- bold and italic as rendered -- which is what a Bold or
+  // Italic toggle has to flip FROM. The stored format says nothing about lines the stylesheet
+  // already styles: the waterfall title (.hdr-title, 700) and r1 (inline 600), and in the month view
+  // the title, the date and the left slot (all 700). A toggle that read only the store turned an
+  // already-bold line "bold" and nothing visibly happened (owner report, 24 Sep 2026: the builder's
+  // Bold looked dead on the month title). The live line on the calendar is the authority; when its
+  // view is not showing there is none, and the stored value is all there is.
+  function hdrLiveLook(id, mv){
+    const f = headerFmt(id, mv);
+    const el = document.querySelector('#table-wrap ' + (mv ? `[data-mvhid="${id}"]` : `[data-hid="${id}"]`));
+    const cs = el ? getComputedStyle(el) : null;
+    return {
+      bold:   f.bold   !== undefined ? f.bold   : !!(cs && parseInt(cs.fontWeight, 10) >= 600),
+      italic: f.italic !== undefined ? f.italic : !!(cs && cs.fontStyle === 'italic'),
+    };
+  }
+  // The inline style a header line is BORN with, before any user format. Only r1 has one: frozen
+  // renderSpreadsheetView calls hline('r1','cal-subtitle','font-weight:600;') and APPENDS the user
+  // format after it. The live repaint below replaces the whole style attribute, so without this
+  // formatting r1 in any way -- a colour, a size -- visibly un-bolded it until the next render.
+  // ⚠️ A mirror of that call site; if the renderer ever passes another line an extraStyle, add it.
+  function hdrLineBaseCss(id, mv){ return (!mv && id === 'r1') ? 'font-weight:600;' : ''; }
   // Reflect the target line's current formatting back into the controls, so the toolbar shows
   // the state of what you are about to change rather than stale values from the last line.
   function syncHdrFmtToolbar(){
@@ -9213,8 +9279,11 @@ export function initLegacyApp() {
       const f = active ? (hdrFmtStore(mv)[hdrFmtTarget.id] || {}) : {};
       const q = sel => bar.querySelector(sel);
       q('.hf-size').value = f.size ? String(f.size) : '';
-      q('.hf-b').classList.toggle('is-on', !!f.bold);
-      q('.hf-i').classList.toggle('is-on', !!f.italic);
+      // Lit from what the line LOOKS like, not the store: an unstyled month title is bold, and a B
+      // that reads "off" over a bold line invites the click that then appears to do nothing.
+      const look = active ? hdrLiveLook(hdrFmtTarget.id, mv) : { bold:false, italic:false };
+      q('.hf-b').classList.toggle('is-on', look.bold);
+      q('.hf-i').classList.toggle('is-on', look.italic);
       q('.hf-color').value = f.color || '#000000';
       q('.hf-hl').value = f.highlight || '#ffff00';
       const effAlign = f.align || (active ? headerDefaultAlign(hdrFmtTarget.id, mv) : 'left');
@@ -9246,7 +9315,8 @@ export function initLegacyApp() {
     if(Object.keys(cur).length) store[hdrFmtTarget.id] = cur; else delete store[hdrFmtTarget.id];
     const sel = hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`;
     const el = document.querySelector('#table-wrap ' + sel);
-    if(el) el.setAttribute('style', headerFormatCss(cur, hdrFmtTarget.id, hdrFmtTarget.mv));
+    if(el) el.setAttribute('style', hdrLineBaseCss(hdrFmtTarget.id, hdrFmtTarget.mv) +
+                                    headerFormatCss(cur, hdrFmtTarget.id, hdrFmtTarget.mv));
     syncHdrFmtToolbar();
     markDirty();
   }
@@ -9282,19 +9352,15 @@ export function initLegacyApp() {
     // title is bold by default, so an unset `cur.bold` there means "currently bold" and the first
     // click has to turn it OFF. Reading the live computed style is the only way to know which
     // lines the stylesheet has already bolded.
-    const liveEl = hdrFmtTarget ? document.querySelector('#table-wrap ' +
-      (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`)) : null;
-    const liveBold = cur.bold !== undefined ? cur.bold
-      : !!(liveEl && parseInt(getComputedStyle(liveEl).fontWeight, 10) >= 600);
-    const liveItalic = cur.italic !== undefined ? cur.italic
-      : !!(liveEl && getComputedStyle(liveEl).fontStyle === 'italic');
-    if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !liveBold });
-    if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !liveItalic });
+    // hdrLiveLook() is the one statement of this rule; the builder's toggles use it too.
+    const look = hdrFmtTarget ? hdrLiveLook(hdrFmtTarget.id, hdrFmtTarget.mv) : { bold:false, italic:false };
+    if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !look.bold });
+    if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !look.italic });
     if(e.target.closest('.hf-clear')) {
       if(hdrFmtTarget) delete hdrFmtStore(hdrFmtTarget.mv)[hdrFmtTarget.id];
       const sel = hdrFmtTarget ? (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`) : null;
       const el = sel ? document.querySelector('#table-wrap ' + sel) : null;
-      if(el) el.setAttribute('style', '');
+      if(el) el.setAttribute('style', hdrLineBaseCss(hdrFmtTarget.id, hdrFmtTarget.mv));
       syncHdrFmtToolbar(); markDirty();
       return;
     }
@@ -9634,19 +9700,27 @@ export function initLegacyApp() {
     const root = hdrEditor.root, id = hdrEditor.selected;
     const f = id ? headerFmt(id, hdeMv()) : {};
     root.querySelector('.hde-fmt').classList.toggle('is-idle', !id);
+    // ⛔ The month's own slot names in the month editor -- HDR_SLOT_NAMES has none of its ids, so the
+    // label read "Styling title" (a raw id) instead of "Styling Title".
+    const slotName = id ? ((hdeMv() ? MV_HDR_SLOT_NAMES[id] : HDR_SLOT_NAMES[id]) || id) : '';
     root.querySelector('.hde-target').innerHTML = id
-      ? 'Styling <b>' + escHtml(HDR_SLOT_NAMES[id] || id) + '</b>'
+      ? 'Styling <b>' + escHtml(slotName) + '</b>'
       : 'Select a header line to style it';
     root.querySelector('.hde-size').value = f.size ? String(f.size) : '';
-    root.querySelector('.hde-b').classList.toggle('is-on', !!f.bold);
-    root.querySelector('.hde-i').classList.toggle('is-on', !!f.italic);
+    // Lit from what the line LOOKS like (hdrLiveLook), the rule the toggles below now flip from.
+    const look = id ? hdrLiveLook(id, hdeMv()) : { bold:false, italic:false };
+    root.querySelector('.hde-b').classList.toggle('is-on', look.bold);
+    root.querySelector('.hde-i').classList.toggle('is-on', look.italic);
     const ink = f.color || '#000000';
     root.querySelector('.hde-ink').value = ink;
     root.querySelector('.hde-ink-bar').style.background = ink;
     const hl = f.highlight || '#FFFF00';
     root.querySelector('.hde-hl').value = hl;
     root.querySelector('.hde-hl-bar').style.background = hl;
-    const al = f.align || (id ? headerDefaultAlign(id, false) : null);
+    // ⛔ hdeMv(), not false -- the fourth site of the 22 Sep hardcoded-view slip. With `false` the
+    // month's alignment buttons lit the WATERFALL's defaults for those ids, so the bar told you a
+    // month line was aligned one way while the header showed another.
+    const al = f.align || (id ? headerDefaultAlign(id, hdeMv()) : null);
     root.querySelectorAll('.hde-align').forEach(btn=>{
       btn.classList.toggle('is-on', !!id && btn.dataset.align === al);
     });
@@ -9693,7 +9767,8 @@ export function initLegacyApp() {
     }
 
     const root = document.createElement('div');
-    root.className = 'hde-overlay';
+    // is-mv lets the stage draw each slot at its own header's default size and weight (legacy.css).
+    root.className = 'hde-overlay' + (mv ? ' is-mv' : '');
     root.innerHTML =
       '<div class="hde-panel" role="dialog" aria-modal="true" aria-label="' +
           (mv ? 'Month header template' : 'Header template') + '">' +
@@ -9833,11 +9908,17 @@ export function initLegacyApp() {
     // hardcoded waterfall lookup the month editor's Bold and Italic toggled against the WATERFALL's
     // format -- a month line already bold would un-bold on the first click only if the waterfall's
     // matching slot happened to be bold too. Same class of miss as the repaint's format store.
+    // ⛔ AND FROM THE LIVE LOOK, not the store (owner report, 24 Sep 2026). `!stored.bold` turned the
+    // month title -- bold by default -- "bold" on the first click, which changed nothing anyone could
+    // see; only a second click un-bolded it. The calendar's own toolbar has always flipped from the
+    // rendered weight; hdrLiveLook() is that rule, shared.
     root.querySelector('.hde-b').addEventListener('click', ()=>{
-      hdrEditorFormat({ bold: !headerFmt(hdrEditor.selected, hdeMv()).bold });
+      if(!hdrEditor.selected) return;
+      hdrEditorFormat({ bold: !hdrLiveLook(hdrEditor.selected, hdeMv()).bold });
     });
     root.querySelector('.hde-i').addEventListener('click', ()=>{
-      hdrEditorFormat({ italic: !headerFmt(hdrEditor.selected, hdeMv()).italic });
+      if(!hdrEditor.selected) return;
+      hdrEditorFormat({ italic: !hdrLiveLook(hdrEditor.selected, hdeMv()).italic });
     });
     root.querySelector('.hde-ink').addEventListener('input', function(){ hdrEditorFormat({ color: this.value }); });
     root.querySelector('.hde-hl').addEventListener('input', function(){ hdrEditorFormat({ highlight: this.value }); });
@@ -10421,7 +10502,14 @@ export function initLegacyApp() {
       try { await exportHeaderPreset(id); }
       catch(err){ console.error(err); uiAlert('Could not save that preset: ' + err.message); }
     } else if(action === 'edit'){
-      openHeaderEditor();
+      // The header of the view you are LOOKING AT (owner report, 24 Sep 2026: in Month view this
+      // opened the waterfall's builder -- and silently switched the waterfall header to Template
+      // while leaving the month's alone). The month retarget of 22 Sep threaded `mv` through the
+      // header-line click and the mode menu's "Open the template editor…" but missed this, the
+      // button with no view in its label: the same hardcoded-view slip as that day's three
+      // month-editor bugs. `grep -n "openHeaderEditor("` is the audit: every caller must open the
+      // view it came from (a waterfall header line may omit the flag -- it can only be the waterfall).
+      openHeaderEditor(null, viewMode === 'month');
     } else if(action === 'import'){
       try { await importHeaderPresetViaPicker(); }
       catch(err){ console.error(err); uiAlert('Could not read that preset file: ' + err.message); }
