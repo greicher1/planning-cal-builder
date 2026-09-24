@@ -14609,12 +14609,20 @@ export function initLegacyApp() {
     page.line(originX, hy+hh, originX + S(gridW), hy+hh, HDR_RULE, 0.75);
 
     // --- body ------------------------------------------------------------------------------------
+    // FROZEN EDIT (owner-approved 24 Sep 2026): where each row's CELL EDGES are, per year block, so
+    // the interior column rules below can stop at a merged cell instead of cutting through it.
+    // vEdges[bi][r] = { y0, y1, set } -- `set` holds the boundary indices that are real edges in
+    // that row (boundary ci sits between column ci and ci+1 of the block), or null for "every
+    // boundary", which is what a blank row past a shorter block's end gets. Recorded only when
+    // there are rules to draw, so the default 'none' export runs exactly the code it always did.
+    const vEdges = yearBlocks.map(()=>[]);
     let ry = gridTop + hh;
     for(let r=0;r<maxRows;r++){
       const rh = S(rowPt[r]);
       yearBlocks.forEach((b, bi)=>{
         const cols = blockCols[bi];
         const bx = originX + S(blockX[bi]);
+        if(interior) vEdges[bi][r] = { y0: ry, y1: ry + rh, set: null };
         if(r >= b.count) return;                       // shorter block: leave the row blank
         const w = schedule.weeks[b.startIdx + r];
         if(!w) return;
@@ -14639,11 +14647,24 @@ export function initLegacyApp() {
           drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
                     textColorFor(hCol), 'F1', reg, bandW);
           page.clipPop();
+          // One band from the date cell to the block's right edge -- the workbook merges exactly
+          // this range -- so its only interior edge is the one beside the date.
+          if(interior) vEdges[bi][r].set = new Set([0]);
           return;
         }
 
         const layout = computePhaseRowLayout(w, blockMaxConcurrent[bi], blockSlotMaps[bi],
                                              blockOccupancy[bi], r, blockSimSlot[bi]);
+        // The row's edges are the layout's own colspans -- the same numbers the screen writes as
+        // colspan and exportExcel passes to mergeCells, empty cells included -- plus the date edge
+        // and the notes edge. Slots the layout does not reach stay ruled, as they always were.
+        if(interior){
+          const nSlots = cols.length - 2, set = new Set([0, nSlots]);
+          let s = 0;
+          layout.forEach(cell=>{ s += cell.colspan; set.add(s); });
+          for(let k = s; k < nSlots; k++) set.add(k);
+          vEdges[bi][r].set = set;
+        }
         let slot = 0, cx = bx + dw;
         layout.forEach(cell=>{
           let cw = 0, av = 0;
@@ -14704,15 +14725,34 @@ export function initLegacyApp() {
     // ⚠️ Drawn BEFORE the frame and the block separators on purpose -- those are heavier FRAME
     // strokes at the same x, and painting them after means a block edge never shows an interior
     // rule underneath it.
+    // FROZEN EDIT (owner-approved 24 Sep 2026): each rule stops at a MERGED cell. It used to run
+    // the full height of the block, painted over every fill, so it cut through every all-phase
+    // hiatus band and every cell spanning columns -- measured on the owner's report: 6 cuts through
+    // the bands of blocks.sptcal, and 9 bands plus 58 spanned phase cells on stintswap-reshape --
+    // while the screen (colspan) and the workbook (mergeCells) show those as single cells. A rule is
+    // now drawn in RUNS of consecutive rows where its boundary is a real edge (vEdges, above). A
+    // boundary no merge crosses is one run from the first row to the last, which is exactly the
+    // single line this drew before, so a plain calendar's rules are unchanged; and a run is one
+    // stroke, not a stroke per row, so a dashed rule keeps one continuous dash pattern.
     const gridBottom = ry, right = originX + S(gridW);
     if(interior){
-      const bodyTop = gridTop + hh;
       yearBlocks.forEach((b, bi)=>{
         const bc = blockCols[bi];
         let x = originX + S(blockX[bi]);
         for(let ci=0; ci<bc.length-1; ci++){
           x += S(bc[ci].w);
-          page.line(x, bodyTop, x, gridBottom, interior, 0.4, interiorDash);
+          let top = null, bottom = null;
+          for(let r=0; r<maxRows; r++){
+            const e = vEdges[bi][r];
+            if(!e.set || e.set.has(ci)){
+              if(top === null) top = e.y0;
+              bottom = e.y1;
+            } else if(top !== null){
+              page.line(x, top, x, bottom, interior, 0.4, interiorDash);
+              top = null;
+            }
+          }
+          if(top !== null) page.line(x, top, x, bottom, interior, 0.4, interiorDash);
         }
       });
     }

@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Waterfall PDF: grid lines no longer cut through hiatus bands or merged cells
+
+Owner, 24 Sep 2026, with a screenshot: *"theres lines running thru the all phase hiatus blocks in
+the pdf export"*. Only with **Grid Lines in Exports** set to Solid or Dashed; the default None was
+never affected.
+
+**Cause.** The interior column lines added on 3 Sep were drawn the **full height** of each year
+block, painted over every fill. So they cut through anything spanning columns: every all-phase
+hiatus band, every phase cell dragged across a column, and every merged empty area. The screen
+(`colspan`) and the Excel workbook (`mergeCells`) both show those as single cells. Measured from
+the PDF's own bytes:
+- `blocks.sptcal`: 6 cuts through its hiatus bands;
+- `stintswap-reshape.sptcal`: 9 bands and 58 spanned phase cells cut.
+
+**Fix** (a frozen edit to `buildWaterfallPdf`, owner-approved). Each line is drawn in runs of
+consecutive rows where its column boundary is a real cell edge. The edges come from the same
+layout colspans the screen and the workbook use. Kept by the owner's choice: the horizontal line
+between back-to-back hiatus weeks, which Excel and the screen show too.
+
+**Verified** on Solid and Dashed PDFs of both calendars:
+- 0 lines through any hiatus band or spanned cell;
+- the ruled edges match the on-screen grid's cell edges in every row of every year block, with 0
+  mismatches;
+- the horizontal lines and the dash pattern are unchanged;
+- with Grid Lines = None, both PDFs are byte-identical before and after.
+
+Full gate: **376 pass, 0 fail**, over the build `5f3a65a99fd5bab8…` (1,279,438 bytes). The waterfall PDF is byte-identical to baseline, because the baseline uses None. Excel parts are identical and `fields.byId` is unchanged at 62 ids. ⚠️ No gate leg renders a Solid or Dashed PDF, which is why the 3 Sep lines shipped with this defect.
+
 ### Unreleased — Grid Lines in Exports shows only in the Waterfall view
 
 Owner, 22 Sep 2026: *"the grid lines in exports setting should only show in the waterfall view not

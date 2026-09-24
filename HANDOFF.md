@@ -4,6 +4,42 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ BUILT 24 Sep 2026: waterfall-PDF grid lines stop at merged cells — FROZEN EDIT, owner-approved
+
+**The report:** *"theres lines running thru the all phase hiatus blocks in the pdf export"*, with a
+screenshot. It happens only with **Grid Lines in Exports** set to Solid or Dashed.
+
+**Cause.** `buildWaterfallPdf`'s interior column rules (the 3 Sep frozen edit) ran the full height
+of each year block, painted over the fills. So they cut every all-phase hiatus band and every cell
+spanning columns: 6 cuts on `blocks.sptcal`, and 9 bands plus 58 spanned cells on
+`stintswap-reshape.sptcal`. The screen and the workbook merge those cells.
+
+**Fix.** A per-row edge record (`vEdges`) taken while the body is drawn, from the same layout
+colspans the screen and `exportExcel`'s `mergeCells` use. Each rule is then drawn in runs of rows
+where its boundary is a real edge.
+- A boundary no merge crosses is one run, top to bottom: exactly the old single stroke, so a plain
+  calendar's rules are unchanged.
+- One stroke per run keeps a dashed rule's pattern continuous.
+- Kept by the owner's ruling: the horizontal line between back-to-back hiatus weeks (Excel and the
+  screen show it too).
+
+**Proof.**
+- On Solid and Dashed PDFs of both calendars: 0 lines through any band or spanned cell.
+- The ruled edges match the on-screen `colspan` edges in all 52 rows of every block, with 0
+  mismatches.
+- The horizontal rules are unchanged.
+- The None exports are byte-identical before and after.
+- The method (content-stream parse against the screen's td edges) is in the scratchpad scripts
+  of that session, not committed.
+
+⚠️ **THE GATE COULD NOT HAVE CAUGHT THIS, and still can't.** The stage-7 waterfall-PDF baseline is
+Grid Lines = **None**, so no leg ever renders a Solid or Dashed PDF. The 3 Sep rules shipped
+untested for exactly that reason. A leg that exports Solid on a fixture with bands and spans, and
+asserts "0 rules inside a merged cell", would close it. Not built; it is the owner's call.
+
+**Gate: 376 pass, 0 fail**, over `5f3a65a99fd5bab8…` (1,279,438 bytes). The waterfall PDF is identical to
+baseline and `fields.byId` has 62 ids. **Not committed, not pushed** at time of writing.
+
 ### ✅ LIVE at `93a68da` (22 Sep 2026): THE APP SHELL — the window never scrolls. Gated, pushed, verified
 
 **The owner's instruction:** make the app behave like a standard app window. The browser window must
