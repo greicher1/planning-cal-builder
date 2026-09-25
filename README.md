@@ -29,6 +29,122 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Export shareable copy opens once, and carries no preferences (audit H-2, L-21)
+
+**What was wrong.** Every shareable copy made since the Mantine cutover opened with the whole chrome
+rendered TWICE: two header control sets, two toolbars, twelve sidebar cards, a duplicate id for
+every control, and horizontal overflow. `buildSavedHtml` clones the document with React's rendered
+chrome inside it, and the copy's own `createRoot` renders a second set on open. The copy also
+carried the sender's Grid Lines preference and file-menu markup.
+
+**The fix** (`buildSavedHtml`, `reflectFieldsToAttributes`): the clone empties the five React host
+elements (`header.app-header`, `.view-toggle-row`, `#sidebar-static`, `#hiatus-hint-host`,
+`#react-root`), so the copy opens as the pristine skeleton React fills once — the exact shape the
+harness already serves every stateful test. `reflectFieldsToAttributes` skips `.prefs-card`, so
+preferences never travel. The live document is untouched; only the clone changes.
+
+**Verified:** new leg `sharecopy2` opens the captured copy in an iframe (a recipient's own document
+and React boot): one of every control, `docWidth ≤ 1024`, the calendar restored, and no rendered
+preference select. It fails on the pre-fix build (two of each, `docWidth 1429`).
+
+### Unreleased — A loaded calendar file can no longer inject markup (audit H-1, L-5, L-8, L-9)
+
+**What was wrong.** A saved calendar is untrusted input — it arrives by email and shared drive — and
+its values were copied into the stores verbatim, then into `innerHTML` by the renderers' template
+literals: a colour into `style="background:${c}"`, a header format into `style="${fmtCss}"`, a row
+height into `style="height:${rh}px"`, a holiday id into `data-hid="${id}"`. A crafted value that
+closed the attribute could add markup of its own the moment the file opened, on the shared
+`greicher1.github.io` origin, and it rode into every re-save, autosave, shareable copy and crash
+backup. The same held for an imported `.spthdr` preset and for one already stored in this browser.
+
+**The fix**, all in non-frozen code (the renderers are frozen and untouched):
+- `sanitizeSnapshot` runs first in `applyStateSnapshot`, holding every restored value to the shape
+  the app writes: colours match `#rrggbb`, sizes and heights are numbers in range, ids match a
+  strict pattern, dates are ISO. Anything else falls back to the key's default. It covers Load,
+  legacy `.html`, shareable copies, undo/redo and crash recovery. This is identity on every value
+  the app itself produces, so every saved calendar restores byte-identically.
+- `headerFormatCss` and the note/hiatus colour getters validate at the one point every value passes
+  through to a style attribute, covering presets stored before the fix.
+- The `.spthdr` reader type-checks each value (fixing `&NaN` in the Excel header and `NaN Tf` in the
+  PDF), refuses a preset over 256 KB, and rolls back if the browser store rejects it (L-8).
+- The header token resolver uses `hasOwnProperty` and caps its input length, so `{constructor}` no
+  longer prints an engine internal and a crafted template can't run quadratically (L-9).
+- XML-illegal characters (`U+0000–1F` except tab/newline, `U+FFFE/FFFF`) are stripped where text
+  enters — typed, pasted, or read from a file — so a note can no longer make the workbook corrupt,
+  and PowerPoint's soft return becomes a newline instead of merging lines (L-5).
+
+**Verified:** new leg `hostile` loads every `tests/fixtures/xss-*` file through the inline path, the
+real File ▸ Load picker and the `.spthdr` import/apply, and asserts zero inert markers fire (13/13
+pass; 10 fail on the pre-fix build). The `restore` acceptance leg still restores the real v1.0.0
+calendar identically (0 clipped cells, 62 `fields.byId` ids), and the 73-case header-template prover
+still passes.
+
+### Unreleased — Snap to Mon and per-phase hiatus names no longer leak into older files (audit M-5)
+
+**What was wrong.** A load only writes the field ids the file contains. A calendar saved before
+16 Sep 2026 has no `snap-<key>`, and one saved before 1 Sep has no `phiatus-name-<key>`. Both kept
+whatever the previously open calendar had:
+- **Wrong dates.** Open a calendar with a phase's Snap to Mon turned off, then an older file, and
+  that phase was scheduled UNSNAPPED. Measured: Pre Prep typed Wed 3/18/26 ran from 3/18 instead of
+  its Monday 3/16.
+- **Another show's label.** The previous show's per-phase hiatus name appeared on this show's grid.
+- **New and Reset All** kept both too.
+
+A measured diff of a real v1.0.0 save against a current one shows those two are the only per-phase
+ids an old file lacks. The rest (`show-mode`, the block fields, `show-version`, the region) were
+already defaulted.
+
+**The fix** (`applyStateSnapshot`, `resetAll`): an absent `snap-*` means snapped, and an absent
+`phiatus-name-*` means no name. The defaults are explicit constants, never markup defaults, which
+the shareable-copy export rewrites.
+
+**Verified:** `loadcarry` C5/C6. A snap-off calendar, then the v1.0.0 state with Pre Prep on a
+Wednesday (`tests/fixtures/v1.0.0-wed-state.html`), gives Pre Prep "3/16/26 → … Snapped to Mon", no
+inherited name, and New resets both. Both fail on the pre-fix engine.
+
+### Unreleased — A hiatus you blanked stays blank (audit M-3)
+
+**What was wrong.** Clearing a hiatus row's Weeks box switches that break off. The file correctly
+saves `weeks: ""`, but every restore rebuilt the row with `prefillWeeks||2`. So on Load, undo,
+crash recovery and in a shareable copy, the break silently came back as two weeks, and every phase
+crossing it moved two weeks later (Post: 2/15/27 → 3/1/27).
+
+**The fix** (`addHiatusRow`): the 2-week default applies only when no value is passed. All three
+places that create a new row pass 2 explicitly. The row's start and weeks values are now
+HTML-escaped too; they come straight out of a file (part of audit H-1).
+
+**Verified:** `hiatusblank` B1–B3 on the build (startup restore, undo, File ▸ Load): weeks stay
+blank, and Post ends 2/15/27. All three fail on the pre-fix build.
+
+### Unreleased — Loading a calendar no longer carries the previous one's custom phases (audit M-2, and HANDOFF known bug #1)
+
+**What was wrong:**
+- **Known bug #2, worse than recorded.** `applyStateSnapshot` rebuilt custom phases only when the
+  incoming file HAD some. Load show A (with a custom phase, e.g. "Casting"), then show B (without),
+  and A's phase stayed in B's sidebar, waterfall, month view and exports. Measured through a real
+  Save: B's own file then held A's 2 custom phases and 16 of their ids (7,198 bytes against 6,305
+  for B loaded fresh). Undoing past "Add phase" also left the row behind.
+- **Known bug #1, stale closures.** A restored custom phase whose key was not dense (`custom2` after
+  `custom1` had been deleted) had handlers holding the wrong key. Renaming never reached its hiatus
+  placeholder. Remove left a ghost definition in the saved file, and the next render threw
+  `Cannot read properties of null`.
+
+**The fix:**
+- The custom-phase block always clears and rebuilds, from the file's list or from nothing.
+- `customPhaseCounter` never drops below the highest key in use.
+- Each handler reads the row's current key when it fires.
+
+**Verified:** new leg `loadcarry` C1–C4, through the real File ▸ Load… path, reading what each
+calendar would SAVE:
+- **C1:** A→B leaves 0 custom rows.
+- **C2:** B's save is byte-identical to a fresh load of B.
+- **C3:** undo removes an added phase.
+- **C4:** a non-dense key renames and removes cleanly, with no errors.
+
+All four fail on the pre-fix engine. New harness helpers `T.memoryIDB()` (a settling in-memory
+IndexedDB) and a recording `createWritable` on `openViaFakePicker` make the Save path observable
+in headless Chrome.
+
 ### Unreleased — Month PDF: every grid line prints, and the purple header box is gone
 
 Owner, 24 Sep 2026:

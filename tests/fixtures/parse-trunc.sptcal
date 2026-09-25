@@ -1,0 +1,187 @@
+{
+ "version": 1,
+ "customPhaseDefs": [],
+ "customPhaseCounter": 0,
+ "phaseColorOverride": {},
+ "episodeDefs": [
+  {
+   "id": "ep1",
+   "name": "Episode 201",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep2",
+   "name": "Episode 202",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep3",
+   "name": "Episode 203",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep4",
+   "name": "Episode 204",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep5",
+   "name": "Episode 205",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep6",
+   "name": "Episode 206",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep7",
+   "name": "Episode 207",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep8",
+   "name": "Episode 208",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep9",
+   "name": "Episode 209",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep10",
+   "name": "Episode 210",
+   "days": 8,
+   "nameEdited": false,
+   "daysEdited": false
+  }
+ ],
+ "episodeCounter": 10,
+ "userNotes": {
+  "2026-07-06": {
+   "text": "A-NOTE"
+  }
+ },
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "dayOverrides": {
+  "2026-07-11": "on",
+  "2026-07-07": "off",
+  "2026-07-03": "on",
+  "2026-07-06": "half"
+ },
+ "headerMode": "auto",
+ "headerManual": {},
+ "headerTemplates": false,
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {
+  "2026-07-13": "Summer Break"
+ },
+ "hiatusColors": {},
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {
+  "2026-07-13": "Summer Break"
+ },
+ "holidayView": {
+  "martin-luther-king-jr-day@2026": {
+   "month": false
+  },
+  "presidents-day@2026": {
+   "month": false
+  },
+  "memorial-day@2026": {
+   "month": false
+  },
+  "juneteenth@2026": {
+   "month": false
+  },
+  "independence-day-observed@2026": {
+   "month": false
+  },
+  "independence-day@2026": {
+   "month": false
+  },
+  "labor-day@2026": {
+   "month": false
+  },
+  "thanksgiving@2026": {
+   "month": false
+  },
+  "day-after-thanksgiving@2026": {
+   "month": false
+  },
+  "christmas-day@2026": {
+   "month": false
+  },
+  "new-years-day@2027": {
+   "month": false
+  },
+  "martin-luther-king-jr-day@2027": {
+   "month": false
+  },
+  "presidents-day@2027": {
+   "month": false
+  }
+ },
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "singleColumn": false,
+ "sidebarTab": "show",
+ "colWidths": {},
+ "colWidthsAlt": {},
+ "rowHeights": {},
+ "rowHeightsByWeek": {},
+ "cellSpans": {},
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "SHOW A"
+   },
+   "season-num": {
+    "value": "2"
+   },
+   "shoot-days-per-ep": {
+    "value": "8"
+   },
+   "num-episodes": {
+    "value": "10"
+   },
+   "show-version": {
+    "value": "7"
+   },
+   "union-place": {
+    "value": "us-general"
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value":

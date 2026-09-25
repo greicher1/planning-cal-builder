@@ -60,8 +60,12 @@ http.createServer((q, r) => {
         '\n</script>');
       const lib = fs.readFileSync(path.join(TDIR, 'lib.js'), 'utf8');
       const js  = fs.readFileSync(path.join(TDIR, t + '.js'), 'utf8');
-      o = o.replace('</body>',
-        '<pre id="R">pending</pre>\n<script>\n' + lib + '\n</script>\n<script>\n' + js + '\n</script>\n</body>');
+      // ⛔ A FUNCTION replacement, never a string (found 25 Sep 2026). With a string, String.replace
+      // reads $' $& $` in the INJECTED CODE as patterns: a test containing `'^' + x + '$'` got the
+      // rest of the page spliced into its own source, every leg on the page -- base included --
+      // died silently, and each one reported "STILL PENDING", which reads as a broken app.
+      const inject = '<pre id="R">pending</pre>\n<script>\n' + lib + '\n</script>\n<script>\n' + js + '\n</script>\n</body>';
+      o = o.replace('</body>', () => inject);
     }
     // no-store, or a second run in the same Chrome profile silently tests the first run's page.
     r.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });

@@ -1,0 +1,24 @@
+{
+ "kind": "spt-header-preset",
+ "version": 2,
+ "name": "Hostile look",
+ "sheet": {
+  "lines": {
+   "c1": "{titleSeason}",
+   "c2": "Planning Calendar",
+   "c3": {
+    "nested": "not a string"
+   }
+  },
+  "format": {
+   "c1": {
+    "color": "#FF0000;\" data-pwn=\"presetcolor\"><img src=\"data:,\" data-pwn=\"presetcolor\"><i x=\"",
+    "bold": true,
+    "size": "12px;evil"
+   },
+   "c2": {
+    "highlight": "#FF0000;\" data-pwn=\"presethl\"><img src=\"data:,\" data-pwn=\"presethl\"><i x=\""
+   }
+  }
+ }
+}

@@ -226,19 +226,38 @@ window.__T = (function(){
              document.querySelectorAll('#hiatus-list .hiatus-entry').length > 0;
     }, 'the engine to build the sidebar (IndexedDB-free; see the note above)', 200, 100);
   }
-  async function openViaFakePicker(url, name){
-    var txt = await (await fetch(url)).text();
+  // opts (optional, added 25 Sep 2026 for the audit-fix legs):
+  //   opts.writes -- an array. The handle then gets a createWritable() that RECORDS every write as
+  //                  {file, text} instead of failing, and later getFile() calls return the last text
+  //                  written -- so a leg can assert exactly what Save / autosave put in WHICH file.
+  //   opts.text   -- use this text as the file's content instead of fetching url.
+  // Existing two-argument callers are unchanged: no createWritable, content fetched from url.
+  async function openViaFakePicker(url, name, opts){
+    opts = opts || {};
+    var txt = (typeof opts.text === 'string') ? opts.text : await (await fetch(url)).text();
     var called = false;
+    var handle = {
+      name: name,
+      kind: 'file',
+      queryPermission: async function(){ return 'granted'; },
+      requestPermission: async function(){ return 'granted'; },
+      isSameEntry: async function(other){ return other === handle; },
+      getFile: async function(){ return new File([txt], name, {type:'text/html'}); }
+    };
+    if(opts.writes){
+      handle.createWritable = async function(){
+        var parts = [];
+        return {
+          write: async function(c){
+            parts.push(typeof c === 'string' ? c : (c instanceof Blob ? await c.text() : String((c && c.data) || c)));
+          },
+          close: async function(){ txt = parts.join(''); opts.writes.push({file: name, text: txt}); }
+        };
+      };
+    }
     window.showOpenFilePicker = async function(){
       called = true;
-      return [{
-        name: name,
-        kind: 'file',
-        queryPermission: async function(){ return 'granted'; },
-        requestPermission: async function(){ return 'granted'; },
-        isSameEntry: async function(){ return false; },
-        getFile: async function(){ return new File([txt], name, {type:'text/html'}); }
-      }];
+      return [handle];
     };
     await appReady();
     document.querySelector('.file-menu-btn').click();  // NB: the id is Mantine's (Popover.Target injects it); the class is the contract
@@ -302,10 +321,92 @@ window.__T = (function(){
     throw new Error('timed out waiting for: ' + (label || 'condition')
       + ' (' + tries + ' polls, ' + Math.round(performance.now() - t0) + 'ms real)');
   }
-  function done(o){ document.getElementById('R').textContent=JSON.stringify(o); }
+  // ---- Added 25 Sep 2026 for the audit-fix legs (FIX-PLAN.md step 0) ----------------------------
+  //
+  // memoryIDB(): replace window.indexedDB with an in-memory fake, so the recents list, persistRecents()
+  // and the crash backup SETTLE in headless Chrome, where the real indexedDB.open() never fires
+  // success, error or blocked (README trap). ⛔ It only works if called SYNCHRONOUSLY at the top of a
+  // test script: the build's engine is a deferred <script type="module">, so an injected script runs
+  // BEFORE the engine boots -- and idbOpen() re-opens the database on every call, so everything after
+  // boot goes through the fake. Values are stored by reference (no structured clone), which is what
+  // lets a fake FileSystemFileHandle (an object with functions) sit in the recents list.
+  function memoryIDB(){
+    var dbs = {};
+    function later(fn){ Promise.resolve().then(fn); }
+    function request(){ return {result: undefined, error: null, onsuccess: null, onerror: null, onupgradeneeded: null}; }
+    var fake = {
+      open: function(name){
+        var r = request();
+        later(function(){
+          var isNew = !dbs[name];
+          if(isNew) dbs[name] = {};
+          var stores = dbs[name];
+          r.result = {
+            objectStoreNames: {contains: function(s){ return !!stores[s]; }},
+            createObjectStore: function(s){ stores[s] = stores[s] || new Map(); return {}; },
+            close: function(){},
+            transaction: function(){
+              var tx = {oncomplete: null, onerror: null, error: null};
+              tx.objectStore = function(s){
+                var m = stores[s] || (stores[s] = new Map());
+                function op(fn){ var q = request(); later(function(){ q.result = fn(); if(q.onsuccess) q.onsuccess({target: q}); }); return q; }
+                return {
+                  get: function(k){ return op(function(){ return m.get(k); }); },
+                  put: function(v, k){ m.set(k, v); return op(function(){ return k; }); },
+                  delete: function(k){ m.delete(k); return op(function(){ return undefined; }); }
+                };
+              };
+              later(function(){ later(function(){ if(tx.oncomplete) tx.oncomplete({target: tx}); }); });
+              return tx;
+            }
+          };
+          if(isNew && r.onupgradeneeded) r.onupgradeneeded({target: r});
+          if(r.onsuccess) r.onsuccess({target: r});
+        });
+        return r;
+      }
+    };
+    try { Object.defineProperty(window, 'indexedDB', {configurable: true, get: function(){ return fake; }}); }
+    catch(e){ window.__MEMIDB_FAILED = String(e); }
+    window.__MEMIDB = dbs;
+    return dbs;
+  }
+  // The app's OWN dialogs (uiAlert / uiConfirm) are Mantine modals. ⛔ Never read them with
+  // document.querySelector('[role="dialog"]'): the four toolbar tool popovers and #help-overlay are
+  // also role="dialog" and come FIRST in the document, so a first-match selector never sees the
+  // modal -- which made one audit result claim "no dialog" when the app had shown one.
+  function modalText(){
+    return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); })
+      .filter(Boolean).join(' || ');
+  }
+  function clickModalButton(label){
+    // ⛔ No dollar sign anywhere in this file or in a test (see srv.js): a label is matched EXACTLY,
+    // a RegExp as given.
+    var b = Array.from(document.querySelectorAll('.mantine-Modal-content button'))
+      .find(function(x){ var t = (x.innerText || x.textContent || '').trim(); return label instanceof RegExp ? label.test(t) : t === label; });
+    if(b) b.click();
+    return !!b;
+  }
+  // ⛔ Chrome's --dump-dom EXITS with a 0-byte dump when the DOM holds a lone UTF-16 surrogate --
+  // proven on a bare page with no app code (audit, 24 Sep 2026), so it is Chrome, not the app. A leg
+  // that types such text would read as "the page crashed". done() scrubs text nodes and field
+  // values first; the result JSON itself is safe (JSON.stringify escapes lone surrogates).
+  function scrubSurrogates(){
+    var bad = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, n = 0;
+    function fix(s){ return s.replace(bad, function(m, pre){ n++; return (pre || '') + '?'; }); }
+    var w = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_TEXT), t;
+    while((t = w.nextNode())){ if(/[\uD800-\uDFFF]/.test(t.data)) t.data = fix(t.data); }
+    document.querySelectorAll('input, textarea').forEach(function(e){
+      if(/[\uD800-\uDFFF]/.test(e.value)) e.value = fix(e.value);
+    });
+    return n;
+  }
+  function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
-          gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done};
+          gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
+          memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates};
 })();

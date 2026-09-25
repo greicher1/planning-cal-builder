@@ -4,6 +4,43 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⛔ 24 Sep 2026 (evening): DEPLOYMENT-READINESS AUDIT DONE — verdict NO-GO until six must-fix items land
+
+⭐ **25 Sep 2026: [`FIX-PLAN.md`](FIX-PLAN.md) is the plan for fixing EVERY audit finding, with the owner's nine
+rulings (R1–R9) in its §0.** It works in batches, each one a release: 0 is harness preparation, 1 is the must-fix
+items as **v1.3.0**, 2 is dates and data, 3 is the approved frozen export edits, 4 is hardening, and 5 is the
+suspected items. Key rulings:
+- the snap-off fix is approved, with before/after exports first;
+- day overrides travel **by shoot-day number** on every mover;
+- **all four frozen-edit groups are approved**;
+- a file changed on disk means **pause and ask**;
+- edited auto-notes are **rewritten on shift**;
+- **Chrome/Edge only** (a notice plus a doc fix);
+- the service-worker scope is fixed now, and a custom domain is planned later;
+- the shareable copy is **kept and fixed**.
+
+Nothing from the plan has been built yet.
+
+**Read [`AUDIT-REPORT.md`](AUDIT-REPORT.md) (also `AUDIT-REPORT.pdf`) before any fix work.** It covers
+the live build `a432613` / `dist` `3630896c…`. Nothing in `src/`, `index.html`, `tests/` or the
+baselines was changed. The owner ruled that **no fix happens without approval, one at a time,
+with the gate**. The direct month-PDF writer still comes after the fixes.
+
+- **Must fix before department deployment** (none frozen, no save-format key touched):
+  - H-1: stored XSS via crafted `.sptcal`/`.spthdr`. Validate values at `applyStateSnapshot` and the `.spthdr` reader.
+  - H-2: every shareable copy since the cutover opens with the chrome rendered TWICE. Empty the React hosts in `buildSavedHtml`'s clone.
+  - H-3 + H-4: snap-off phases are placed a week late, and a snap-off first phase moves every row off Monday. A fix in `computeSchedule`; ⚠️ it changes Excel/PDF output for snap-off calendars, so it needs the owner's ruling.
+  - M-1: a load that throws mid-apply leaves a hybrid calendar. **A real Save click then wrote it into the user's own file** (proved in the pane), and `suppressDirty` stays stuck, so no backup, undo or autosave follows.
+  - M-2: custom phases carry into the next loaded file. This is HANDOFF §2b-3 known bug #2, worse than recorded; undo triggers it too.
+  - M-3: a blanked hiatus re-arms as 2 weeks on load/undo, because of `prefillWeeks||2`.
+- **Month PDF:** the writer is NOT needed before deployment. The print-dialog measurements are in report §8: Scale >100% and A4 crop dense months, and background graphics, headers and portrait have no effect. The one-line `@page{size: letter landscape}` pin needs a ruling. Report §9 is the "writer must replicate" list.
+- **Two doc corrections the audit found, not yet applied:**
+  - §3 B's "opening is unaffected" on Safari/Firefox is wrong: with no File System Access API the Load menu is hidden (report L-20).
+  - CLAUDE.md's region paragraph still describes the three pre-14-Sep selects; `#union-place` replaced them.
+- ⛔ **A new harness trap.** Chrome `--dump-dom` EXITS with a 0-byte dump whenever the DOM contains a lone UTF-16 surrogate. A control on a bare page proves it is Chrome, not the app. Scrub text nodes and input values before `T.done()`.
+- ⚠️ **The audit's evidence lives in the session scratchpad and is not durable:** scripts, 36 hostile fixtures, run outputs, and CDP print/`file://` tools (`cdp-print.mjs`, `cdp-open.mjs`). The hostile fixtures are worth promoting into `tests/fixtures/` as regression legs when the fixes land. Ask the owner first.
+- ⚠️ **Auto mode blocks an `eval` hook in a scratch build** ("RCE surface"). What works is a scratch build exporting a frozen table of named engine functions as `window.__SPT`. Every finding was re-proved on the untouched `dist`.
+
 ### ✅ LIVE at `a432613` (24 Sep 2026): month-PDF lines + the purple header box, and the header-styling fixes (`a4c5fd7`)
 
 **Pushed on the owner's instruction** as one fast-forward `b7c2cf6..a432613`. The live file is **byte-identical to the gated

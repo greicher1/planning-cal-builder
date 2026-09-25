@@ -1,0 +1,11 @@
+{
+ "name": "budget-tracker",
+ "version": "2.1.0",
+ "private": true,
+ "scripts": {
+  "build": "vite build"
+ },
+ "dependencies": {
+  "react": "^19.0.0"
+ }
+}

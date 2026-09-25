@@ -5114,20 +5114,28 @@ export function initLegacyApp() {
       <div class="phase-meta" id="meta-${key}"></div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
+    // ⛔ Every handler below reads the row's key AT EVENT TIME (`row.dataset.key`), never the `key`
+    // this function minted. applyStateSnapshot() re-keys a restored row to its SAVED key (custom2,
+    // say, when custom1 was deleted before it was saved) by renaming ids and dataset.key -- it cannot
+    // rename a closure. A handler holding the mint-time key then looked up elements and defs that no
+    // longer existed: remove stranded a ghost def and the next update() threw in readState on the
+    // missing start-<key>, a colour pick never persisted, and a rename never reached its hiatus
+    // placeholder. HANDOFF §2b-3 known bug #1; fixed with M-2 (FIX-PLAN.md 1.1, 25 Sep 2026).
     row.querySelector('.remove-custom-phase').addEventListener('click', async ()=>{
+      const k = row.dataset.key;
       // Only prompt when there's something to lose -- an untouched blank row deletes freely.
       const nameEl = row.querySelector('.phase-name-input');
-      const startEl = document.getElementById('start-'+key);
-      const weeksEl = document.getElementById('weeks-'+key);
+      const startEl = document.getElementById('start-'+k);
+      const weeksEl = document.getElementById('weeks-'+k);
       const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim());
       if(hasData && !(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }))) return;
-      customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==key);
+      customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
       row.remove();
       update();
     });
     const swEl = row.querySelector('.swatch');
     swEl.addEventListener('click', ()=>{
-      const cp = customPhaseDefs.find(c=>c.key===key);
+      const cp = customPhaseDefs.find(c=>c.key===row.dataset.key);
       openPhaseColorPop(swEl, cp ? cp.colorIndex : 0, (i)=>{
         if(cp) cp.colorIndex = i;
         swEl.style.background = PHASE_COLOR_OPTIONS[i].color;
@@ -5138,7 +5146,7 @@ export function initLegacyApp() {
     // -- in step as it's typed.
     row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
       const defLabel = ((e.target.value.trim() || 'Phase')) + ' Hiatus';
-      const nameField = document.getElementById('phiatus-name-'+key);
+      const nameField = document.getElementById('phiatus-name-'+row.dataset.key);
       if(nameField) nameField.placeholder = defLabel;
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
@@ -5155,10 +5163,18 @@ export function initLegacyApp() {
     row.className = 'hiatus-entry';
     const locked = (prefillLocked === undefined) ? true : !!prefillLocked;
     const escAttr = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    // ⛔ The 2-week default applies ONLY when no weeks value was passed at all (audit M-3,
+    // FIX-PLAN.md 1.2, 25 Sep 2026). It was `prefillWeeks||2`, and a restore passes the SAVED value
+    // -- which is '' when the user cleared the box to switch a default break off. So the break
+    // re-armed at 2 weeks on every Load, undo, crash recovery and shareable copy, and every phase
+    // crossing it moved two weeks with no message. All three creating callers pass 2 explicitly.
+    // Both values are escaped: they come straight out of a file, and were the one unescaped
+    // interpolation left in this row (audit H-1).
+    const weeksVal = (prefillWeeks === undefined || prefillWeeks === null) ? 2 : prefillWeeks;
     row.innerHTML = `
       <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
-      <label>Start date <input type="date" class="hiatus-start" value="${prefillStart||''}"></label>
-      <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${prefillWeeks||2}"></label>
+      <label>Start date <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
+      <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
       <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
       <div class="snap-note"></div>
@@ -5730,16 +5746,16 @@ export function initLegacyApp() {
         : '';
       const wk = weekend ? ' title="Falls on a weekend — no shoot day to skip. Its (Observed) entry is the one that counts."' : '';
       const del = h.custom
-        ? '<button type="button" class="icon-btn hv-del" data-hid="'+h.hid+'" title="Remove this custom holiday">&times;</button>'
+        ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
         : '';
       return '<div class="hv-row">'
         + '<span class="hv-label'+dim+'" title="'+label+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'
         +   '<span class="hv-date">'+fmtShort(h.date)+'</span>'
         + '</span>'
-        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+h.hid+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
-        + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+h.hid+'" data-view="sheet"'+s+noteAttrs+'></span>'
-        + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+h.hid+'" data-view="month"'+m+noteAttrs+'></span>'
+        + '<span class="hv-cell"'+wk+'><input type="checkbox" class="hv-en" aria-label="Enable '+label+'" data-hid="'+escHtml(h.hid)+'"'+(on?' checked':'')+(weekend?' data-weekend="1"':'')+'></span>'
+        + '<span class="hv-cell'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Waterfall view" data-hid="'+escHtml(h.hid)+'" data-view="sheet"'+s+noteAttrs+'></span>'
+        + '<span class="hv-cell hv-cell-month'+dim+'"><input type="checkbox" class="hv-cb" aria-label="Show '+label+' in Month view" data-hid="'+escHtml(h.hid)+'" data-view="month"'+m+noteAttrs+'></span>'
         + del
         + '</div>';
     }).join('');
@@ -6830,10 +6846,10 @@ export function initLegacyApp() {
     wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to set the '
       + 'shooting order. It moves which days each episode is shot on, never how long Production runs.</div>'
       + '<div class="ep-list">' + effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=>`
-      <div class="episode-row" data-id="${e.id}">
+      <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
         <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
-        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':e.days}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
+        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
       </div>`).join('') + '</div>';
   }
 
@@ -6859,15 +6875,15 @@ export function initLegacyApp() {
       + blockDefs.map(b=>{
         const eps = b.episodes.map(id=> byId.get(id)).filter(Boolean);
         return `
-      <div class="block-row" data-id="${b.id}">
+      <div class="block-row" data-id="${escHtml(b.id)}">
         <div class="block-head">
           <span class="blk-name">${escHtml(b.name)}</span>
           <span class="blk-count">${eps.length} ep${eps.length === 1 ? '' : 's'}</span>
           <label class="num-suffix" title="Shooting days in ${escHtml(b.name)}"><input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="1"
-                 value="${b.days===''?'':b.days}" placeholder="–" aria-label="${escHtml(b.name)} shooting days"><span>days</span></label>
+                 value="${b.days===''?'':escHtml(b.days)}" placeholder="–" aria-label="${escHtml(b.name)} shooting days"><span>days</span></label>
         </div>
         <div class="blk-body">${ eps.map(e=>`
-          <div class="episode-row" data-id="${e.id}">
+          <div class="episode-row" data-id="${escHtml(e.id)}">
             <span class="ep-grip" draggable="true" title="Drag to another block, or to change the shooting order" aria-label="Drag to move ${escHtml(e.name)}"></span>
             <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
           </div>`).join('') || '<div class="blk-empty">No episodes — drop one here</div>' }</div>
@@ -8925,12 +8941,14 @@ export function initLegacyApp() {
     }
     return out;
   }
-  function noteColorFor(weekKey){ return noteColors[weekKey] || MILESTONE_COLOR; }
+  // ⛔ The two colour getters are what the frozen renderers read for style="background:${…}", so a
+  // colour that is not #rrggbb falls back to the default here, whatever put it in the store (H-1).
+  function noteColorFor(weekKey){ const c = noteColors[weekKey]; return isHexColor(c) ? c : MILESTONE_COLOR; }
   // undefined means "auto" -- the caller falls back to fitting the text to the row's line budget.
   function noteFontSizeFor(weekKey){ return noteFontSize[weekKey]; }
   function hiatusFontSizeFor(weekKey){ return hiatusFontSize[weekKey]; }
   function hiatusTextFor(weekKey){ return (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : HIATUS_DEFAULT_LABEL; }
-  function hiatusColorFor(weekKey){ return hiatusColors[weekKey] || HIATUS_COLOR; }
+  function hiatusColorFor(weekKey){ const c = hiatusColors[weekKey]; return isHexColor(c) ? c : HIATUS_COLOR; }
 
   // True if the user has made ANY manual edit to comments/holidays/hiatus (edited text,
   // cleared a note, or changed a highlight color / hiatus label). Used to lock the union
@@ -9150,7 +9168,16 @@ export function initLegacyApp() {
   function headerFormatCss(f, id, mv){
     if(!f) return '';
     const out = [];
-    if(f.size)      out.push('font-size:' + f.size + 'px');
+    // ⛔ Every value below is interpolated into style="…" by the frozen renderers, so each one is
+    // checked HERE, at the one place they all pass through (audit H-1). A header format can come
+    // from a file (sanitizeSnapshot), from a .spthdr preset, or from a preset stored in this
+    // browser before these checks existed -- this line covers all three. For every value the
+    // toolbar can produce the output is unchanged.
+    const sizeN = finiteNum(f.size);
+    const color = isHexColor(f.color) ? f.color : '';
+    const highlight = isHexColor(f.highlight) ? f.highlight : '';
+    const align = (f.align === 'left' || f.align === 'center' || f.align === 'right') ? f.align : '';
+    if(sizeN && sizeN > 0 && sizeN <= 400) out.push('font-size:' + sizeN + 'px');
     // Tri-state on purpose: undefined = inherit the stylesheet, true = force on, false = force
     // OFF. The title line is font-weight:700 by DEFAULT (.hdr-line.hdr-title), so without an
     // explicit 400 the Bold button could never un-bold it -- it looked broken because nothing
@@ -9159,10 +9186,10 @@ export function initLegacyApp() {
     else if(f.bold === false)  out.push('font-weight:400');
     if(f.italic === true)      out.push('font-style:italic');
     else if(f.italic === false) out.push('font-style:normal');
-    if(f.color)     out.push('color:' + f.color);
-    if(f.align)     out.push('text-align:' + f.align);
-    if(f.highlight){
-      out.push('background-color:' + f.highlight);
+    if(color)       out.push('color:' + color);
+    if(align)       out.push('text-align:' + align);
+    if(highlight){
+      out.push('background-color:' + highlight);
       // The highlight must cover the TEXT, not the whole column (owner, 31 Aug 2026). .hdr-line is
       // a block filling its column, so a background on it painted a full-width band. Shrinking to
       // the text and re-positioning with auto margins keeps the line where its column puts it
@@ -9170,7 +9197,7 @@ export function initLegacyApp() {
       // because fit-content is recomputed on every keystroke.
       // Only applied WITH a highlight: without one, a full-width line is the bigger click target
       // for putting the caret in, and that is worth keeping.
-      const al = f.align || headerDefaultAlign(id, mv);
+      const al = align || headerDefaultAlign(id, mv);
       out.push('width:fit-content');
       out.push('padding-left:4px', 'padding-right:4px');
       if(al === 'center') out.push('margin-left:auto', 'margin-right:auto');
@@ -10084,7 +10111,7 @@ export function initLegacyApp() {
     // follows: the store never holds an entry that means nothing, so a later migration can read it
     // without guessing which entries were deliberate.
     if(list && list.length) prefs.headerPresets = list; else delete prefs.headerPresets;
-    savePrefs();
+    return savePrefs();
   }
   // ---------- A preset is ONE file with TWO sections (owner ruling 1, 21 Sep 2026) ----------
   //
@@ -10198,13 +10225,15 @@ export function initLegacyApp() {
     asOneHeaderStep(()=>{
       secs.forEach(sec=>{
         if(sec === 'month'){
-          mvHeaderManual = Object.assign({}, p.month.lines);
-          mvHeaderFormat = Object.assign({}, p.month.format || {});
+          // Cleaned on the way in: a preset stored in this browser before the value checks existed
+          // may carry anything (audit H-1), and the writers read these stores directly.
+          mvHeaderManual = cleanHeaderLineMap(p.month.lines, { n: 0 });
+          mvHeaderFormat = cleanHeaderFormatMap(p.month.format || {}, { n: 0 });
           mvHeaderTemplates = true;
           mvHeaderMode = 'manual';
         } else {
-          headerManual = Object.assign({}, p.sheet.lines);
-          headerFormat = Object.assign({}, p.sheet.format || {});
+          headerManual = cleanHeaderLineMap(p.sheet.lines, { n: 0 });
+          headerFormat = cleanHeaderFormatMap(p.sheet.format || {}, { n: 0 });
           headerTemplates = true;
           headerMode = 'manual';
         }
@@ -10405,7 +10434,12 @@ export function initLegacyApp() {
       const lines = {};
       Object.keys(srcLines).forEach(k=>{
         if(ids.indexOf(k) < 0){ dropped++; return; }          // an id this app has no slot for
-        lines[k] = String(srcLines[k] == null ? '' : srcLines[k]);
+        // A header line is TEXT. An object or array used to be stored as "[object Object]"
+        // (audit L-8); null means an empty line, as it always did.
+        const lv = srcLines[k];
+        if(lv == null) lines[k] = '';
+        else if(typeof lv === 'string' || (typeof lv === 'number' && isFinite(lv))) lines[k] = String(lv);
+        else { dropped++; return; }
       });
       const srcFmt = (sIn.format && typeof sIn.format === 'object') ? sIn.format : {};
       const format = {};
@@ -10413,12 +10447,13 @@ export function initLegacyApp() {
         if(ids.indexOf(k) < 0){ dropped++; return; }
         const f = srcFmt[k];
         if(!f || typeof f !== 'object'){ dropped++; return; }
-        const clean = {};
-        Object.keys(f).forEach(fk=>{
-          if(HDR_FMT_KEYS.indexOf(fk) < 0){ dropped++; return; }
-          clean[fk] = f[fk];
-        });
-        if(Object.keys(clean).length) format[k] = clean;
+        // Each value held to what the toolbar writes (audit H-1 / L-8): a size that is not a number
+        // put '&NaN' in the Excel header and 'NaN Tf' in the PDF; a colour could break out of the
+        // header's style attribute. Shared with the file restore (cleanHeaderFormatEntry).
+        const bad = { n: 0 };
+        const clean = cleanHeaderFormatEntry(f, bad);
+        dropped += bad.n;
+        if(clean) format[k] = clean;
       });
       if(Object.keys(lines).length) preset[sec] = { lines, format };
     });
@@ -10429,15 +10464,26 @@ export function initLegacyApp() {
     return { ok:true, preset, dropped };
   }
   async function importHeaderPresetText(text){
+    // A real preset is a few KB. Refuse anything that could not be one before parsing it, so a
+    // huge file cannot stall the tab or fill this browser's storage (audit L-8).
+    if(typeof text === 'string' && text.length > 262144){ uiAlert('That file is too large to be a header preset.'); return false; }
     const res = parseHeaderPresetText(text);
     if(!res.ok){ uiAlert(res.reason); return false; }
+    const before = headerPresetsStore().slice();
     const list = headerPresetsStore().slice();
     // ⛔ A FRESH id, always. The file may carry one, and two machines can trivially mint the same
     // name -- but an imported preset is a NEW entry here, and reusing an id from a file would let
     // one import silently overwrite an existing preset.
     list.push({ id: newHeaderPresetId(), name: res.preset.name, createdAt: new Date().toISOString(),
                 sheet: res.preset.sheet, month: res.preset.month });
-    writeHeaderPresets(list);
+    if(!writeHeaderPresets(list)){
+      // localStorage full or blocked: say so and keep the in-memory list as it was, rather than
+      // showing a preset that will be gone on the next reload.
+      writeHeaderPresets(before);
+      pushHeaderPresets();
+      uiAlert('Could not store the preset in this browser (its storage is full or blocked).');
+      return false;
+    }
     pushHeaderPresets();
     if(res.dropped) uiAlert('Imported "' + res.preset.name + '". ' + res.dropped +
                             ' unrecognised entr' + (res.dropped === 1 ? 'y was' : 'ies were') + ' ignored.');
@@ -10913,7 +10959,10 @@ export function initLegacyApp() {
     const ci = raw.indexOf(':');
     const key = (ci < 0 ? raw : raw.slice(0, ci)).trim();
     const fmt = ci < 0 ? '' : raw.slice(ci + 1).trim();
-    if(!(key in ctx.tokens)) return undefined;
+    // OWN properties only (audit L-9): `in` also walks Object.prototype, so {constructor},
+    // {toString}, {__proto__} resolved to engine internals -- "function Object() { [native code] }"
+    // printed in a header, from a template anyone can share in a .spthdr preset.
+    if(!Object.prototype.hasOwnProperty.call(ctx.tokens, key)) return undefined;
     const v = ctx.tokens[key];
     if(v === '' || v == null) return '';
     if(v && v.__hdrDate) return fmtHeaderDate(v, fmt || 'dot');
@@ -10944,6 +10993,12 @@ export function initLegacyApp() {
     if(!str) return str;
     const s = String(str);
     if(s.indexOf('{') < 0 && s.indexOf('[') < 0) return s;   // fast path: nothing to resolve
+    // ⛔ A ceiling, not a rule change (audit L-9). Each unterminated `[` makes hdrScan rescan to the
+    // end of the line before falling back to a literal bracket, so a line of N lone `[` costs N² --
+    // a shared .spthdr preset of a few hundred KB could lock the tab. A real header line is a few
+    // hundred characters at most (Excel caps the whole header at 255), so anything longer than
+    // this is returned exactly as typed and every real template resolves byte-identically.
+    if(s.length > 4096) return s;
     return hdrScan(s, 0, false, ctx, { empty: false }).out;
   }
   // The scanner. `stopAtBracket` is set for the inside of a [group]: a lone `]` ends it, and a `[`
@@ -11313,8 +11368,12 @@ export function initLegacyApp() {
     }
     const next = {};
     weeks.forEach((w, i)=>{
-      const h = rowHeightsByWeek[isoOf(w.date)];
-      if(h !== undefined) next[i] = h;
+      // ⛔ A NUMBER or nothing: the frozen renderer writes this straight into
+      // `<tr style="height:${rh}px">`, so a string from a file could break out of the attribute
+      // (audit H-1). The drag writes numbers, and sanitizeSnapshot already holds restored values to
+      // that; this is the belt to its braces, at the last non-frozen step before the markup.
+      const h = finiteNum(rowHeightsByWeek[isoOf(w.date)]);
+      if(h !== null && h > 0) next[i] = h;
     });
     rowHeights = next;
   }
@@ -12039,6 +12098,10 @@ export function initLegacyApp() {
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
     document.querySelectorAll('.phiatus-start').forEach(el=>{ el.value = ''; });
     document.querySelectorAll('.phiatus-weeks').forEach(el=>{ el.value = '2'; });
+    // ...and the two per-phase controls this reset used to miss (audit M-5): New / Reset All kept
+    // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
+    document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
+    document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     refreshPhaseHiatusUI();
     customPhaseDefs = [];
     document.getElementById('custom-phase-rows').innerHTML = '';
@@ -12112,7 +12175,14 @@ export function initLegacyApp() {
   // Reflect every live input/select/textarea value into its HTML attributes so that,
   // when we serialize the DOM to a string, the user's entries are baked into the markup.
   function reflectFieldsToAttributes(){
+    // ⛔ Skip the Preferences card (audit L-21). Its controls are per-machine PREFERENCES, not
+    // calendar data -- collectFieldValues() already skips `.prefs-card` for exactly this reason. A
+    // shareable copy is built from the live DOM's attributes, so without this skip the sender's Grid
+    // Lines choice was baked into a copy emailed to a colleague as a `selected` option. Matched on the
+    // CLASS, like collectFieldValues(), so it keeps holding when the markup is reorganised.
+    const inPrefs = el => !!(el.closest && el.closest('.prefs-card'));
     document.querySelectorAll('input').forEach(el=>{
+      if(inPrefs(el)) return;
       if(el.type === 'checkbox' || el.type === 'radio'){
         if(el.checked) el.setAttribute('checked',''); else el.removeAttribute('checked');
       } else {
@@ -12120,11 +12190,12 @@ export function initLegacyApp() {
       }
     });
     document.querySelectorAll('select').forEach(sel=>{
+      if(inPrefs(sel)) return;
       Array.from(sel.options).forEach(opt=>{
         if(opt.selected) opt.setAttribute('selected',''); else opt.removeAttribute('selected');
       });
     });
-    document.querySelectorAll('textarea').forEach(t=>{ t.textContent = t.value; });
+    document.querySelectorAll('textarea').forEach(t=>{ if(!inPrefs(t)) t.textContent = t.value; });
   }
 
   function buildSavedFileName(ext){
@@ -12238,6 +12309,16 @@ export function initLegacyApp() {
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
     if(clone.body) clone.body.classList.remove('grid-cell-hover', 'grid-selecting', 'grid-resizing', 'row', 'span');
+    // EMPTY THE REACT HOSTS (audit H-2, FIX-PLAN.md 1.6, 25 Sep 2026). These ship as empty
+    // containers in the markup (src/index.html) and React renders the chrome INTO them at runtime:
+    // the header controls, the preview toolbar, the static sidebar cards, the hiatus hint. cloneNode
+    // captured them already filled, and when the copy opens, main.jsx's createRoot() renders a SECOND
+    // set on top -- two headers, two toolbars, twelve sidebar cards, a duplicate id for every control,
+    // horizontal overflow, and only one set wired to the engine. Emptying them restores the pristine
+    // skeleton, exactly the shape srv.js serves every stateful test, so the copy opens as one clean
+    // app. It also stops the sender's file-menu and recents markup travelling in the file (audit
+    // L-21). The live document is untouched -- this is the clone.
+    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #hiatus-hint-host, #react-root').forEach(el=> el.replaceChildren());
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -15348,7 +15429,290 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ---------- What a FILE may put into the stores (audit H-1, FIX-PLAN.md 1.4, 25 Sep 2026) ----------
+  // ⛔ A saved calendar is untrusted input. It arrives by email and shared drive, and every one of
+  // its values used to be copied into the stores VERBATIM -- and from there into innerHTML, because
+  // the renderers build markup with template literals: a colour becomes `style="background:${c}"`,
+  // a header format `style="${fmtCss}"`, a row height `style="height:${rh}px"`, a holiday id
+  // `data-hid="${id}"`. A crafted value that closed the attribute could therefore add markup of
+  // its own the moment the file was opened, on the shared greicher1.github.io origin, and it rode
+  // into every re-save, autosave, shareable copy and crash backup (AUDIT-REPORT H-1).
+  //
+  // Those sinks live in the FROZEN renderers, which may not be edited. They do not need to be: every
+  // value that reaches them enters through a restore boundary, and the UI itself can only produce
+  // well-formed values -- colours come from <input type="color"> (#rrggbb) or the #RRGGBB palettes,
+  // sizes and heights are numbers, ids are minted by the app. So the fix is to hold every restored
+  // value to the shape the app writes, here, before applyStateSnapshot copies anything.
+  //
+  // ⛔ IDENTITY ON EVERYTHING THE APP WRITES. Undo/redo replays the app's OWN snapshots through
+  // this function, and every calendar ever saved must keep opening unchanged (CLAUDE.md). A rule
+  // here that rejected a value the app can produce would silently drop real user data. Each rule
+  // below is the shape the app writes, checked against the real fixtures, and anything else falls
+  // back to the key's default -- which is exactly what an absent key already means.
+  // It is not a sanitiser for display text: notes, labels and names are escaped where they are
+  // rendered (escHtml), and they keep whatever characters the user typed.
+  const SNAP_HEX = /^#[0-9a-f]{6}$/i;
+  const SNAP_ISO = /^\d{4}-\d{2}-\d{2}$/;
+  const SNAP_ID = /^[\w-]{1,64}$/;           // ep7, blk3, cst-4k2j9az, custom12, production
+  const SNAP_KEY = /^[\w@|:.-]{1,96}$/;      // 2026-11-02, 2026-11-02|production, y2026:s0, mlk-day@2026, 40
+  const SNAP_LINE_ID = /^[a-z][a-z0-9]{0,15}$/; // header line ids: left, l2, c1, r3, title, today, tleft
+  let lastSanitizeDropped = 0;               // how many values the last restore could not accept
+  // ⛔ FUNCTION DECLARATIONS, not const arrows: headerFormatCss and the colour getters call these at
+  // RENDER time, and a const read before its line has executed throws from the temporal dead zone --
+  // HANDOFF records exactly that taking the whole engine down at boot (pushHeaderPresets).
+  function isPlainObj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+  function isHexColor(v){ return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v); }
+  function finiteNum(v){
+    const n = (typeof v === 'number') ? v : ((typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN);
+    return isFinite(n) ? n : null;
+  }
+  // A number the app would have written: finite, and within a generous range for its store.
+  const numIn = (lo, hi) => v => { const n = finiteNum(v); return (n !== null && n >= lo && n <= hi) ? n : undefined; };
+  // A day count or week count as the app stores it: a number, a numeric string (the block list
+  // writes "13"), or '' for a cleared box. Rendered straight into value="…", so nothing else passes.
+  const countVal = v => (v === '' || v === undefined || v === null) ? '' :
+    ((typeof v === 'number' && isFinite(v)) || (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim()))) ? v : '';
+  // One header line's format: the six keys the toolbar writes, each held to what the toolbar can
+  // produce. Shared by the file restore and the .spthdr reader so the two can never disagree.
+  function cleanHeaderFormatEntry(f, bad){
+    if(!isPlainObj(f)){ bad.n++; return null; }
+    const out = {};
+    Object.keys(f).forEach(k=>{
+      const v = f[k];
+      let ok = false;
+      if(k === 'size'){ const n = finiteNum(v); if(n !== null && n > 0 && n <= 400){ out.size = n; ok = true; } }
+      else if(k === 'bold' || k === 'italic'){ if(typeof v === 'boolean'){ out[k] = v; ok = true; } }
+      else if(k === 'color' || k === 'highlight'){ if(isHexColor(v)){ out[k] = v; ok = true; } }
+      else if(k === 'align'){ if(v === 'left' || v === 'center' || v === 'right'){ out.align = v; ok = true; } }
+      if(!ok) bad.n++;
+    });
+    return Object.keys(out).length ? out : null;
+  }
+  // A whole { lineId: format } map, cleaned entry by entry -- for presets, which never pass
+  // through sanitizeSnapshot on their way into headerFormat / mvHeaderFormat.
+  function cleanHeaderFormatMap(m, bad){
+    const out = {};
+    if(!isPlainObj(m)) return out;
+    Object.keys(m).forEach(id=>{
+      if(!/^[a-z][a-z0-9]{0,15}$/.test(id)){ bad.n++; return; }
+      const f = cleanHeaderFormatEntry(m[id], bad);
+      if(f) out[id] = f;
+    });
+    return out;
+  }
+  function cleanHeaderLineMap(m, bad){
+    const out = {};
+    if(!isPlainObj(m)) return out;
+    Object.keys(m).forEach(id=>{
+      const v = m[id];
+      if(typeof v === 'string') out[id] = v;
+      else if(typeof v === 'number' && isFinite(v)) out[id] = String(v);
+      else bad.n++;
+    });
+    return out;
+  }
+  // ---- Characters XML forbids (audit L-5, FIX-PLAN.md 1.4) ------------------------------------
+  // The workbook is XML, and ExcelJS strips C0 controls but NOT U+FFFE/U+FFFF: one of those in a
+  // note made sheet1.xml and sharedStrings.xml not well-formed, which Excel reports as a corrupt
+  // file. U+000B (PowerPoint's soft return, in any slide text pasted as plain text) was silently
+  // dropped, merging two lines. They are removed where text ENTERS the app -- typed or pasted
+  // (the listener below) and read from a file (sanitizeSnapshot) -- because the writers are frozen.
+  // \t \n \r are legal and untouched. No real calendar contains any of these, so every saved
+  // file restores byte-identically.
+  function stripXmlIllegal(v, vtAs){
+    return String(v).replace(/\u000B/g, vtAs).replace(/[\u0000-\u0008\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '');
+  }
+  document.addEventListener('input', (e)=>{
+    const t = e.target;
+    if(!t) return;
+    if(t.isContentEditable){
+      const txt = t.textContent || '';
+      if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/.test(txt)) t.textContent = stripXmlIllegal(txt, '\n');
+      return;
+    }
+    if((t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'search' || !t.type))) &&
+       /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/.test(t.value)){
+      t.value = stripXmlIllegal(t.value, t.tagName === 'TEXTAREA' ? '\n' : ' ');
+    }
+  }, true);
+  function sanitizeSnapshot(snapIn){
+    const bad = { n: 0 };
+    const s = Object.assign({}, snapIn);
+    // A map whose keys look like store keys and whose values pass `fn` (fn returns undefined to reject).
+    const cleanMap = (v, fn, keyRe) => {
+      if(v === undefined) return undefined;
+      if(!isPlainObj(v)){ bad.n++; return {}; }
+      const out = {};
+      Object.keys(v).forEach(k=>{
+        if(!(keyRe || SNAP_KEY).test(k)){ bad.n++; return; }
+        const r = fn(v[k]);
+        if(r === undefined) bad.n++; else out[k] = r;
+      });
+      return out;
+    };
+    const setMap = (name, fn, keyRe) => { if(name in s){ const r = cleanMap(s[name], fn, keyRe); if(r !== undefined) s[name] = r; } };
+    const colour = v => isHexColor(v) ? v : undefined;
+    const str = v => (typeof v === 'string') ? stripXmlIllegal(v, '\n') : undefined;
+    const bool = v => (typeof v === 'boolean') ? v : undefined;
+    // Colours -- every one of these reaches a style attribute.
+    setMap('noteColors', colour);
+    setMap('hiatusColors', colour);
+    setMap('dayNoteColors', colour);
+    // Numbers that reach style/attribute values (font-size, height, width, lanes).
+    setMap('noteFontSize', numIn(1, 400));
+    setMap('hiatusFontSize', numIn(1, 400));
+    setMap('rowHeights', numIn(1, 100000));
+    setMap('rowHeightsByWeek', numIn(1, 100000));
+    setMap('colWidths', numIn(0, 100000));
+    setMap('colWidthsAlt', numIn(0, 100000));
+    setMap('mvExtraLanes', numIn(0, 1000));
+    setMap('cellSpans', v => {
+      if(!isPlainObj(v)) return undefined;
+      const out = {};
+      for(const k of Object.keys(v)){ const n = finiteNum(v[k]); if(n === null || Math.floor(n) !== n) return undefined; out[k] = n; }
+      return out;
+    });
+    const swap = v => (isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with)) ? Object.assign({}, v) : undefined;
+    setMap('gridColSwaps', swap);
+    setMap('gridStintSwaps', swap);
+    // Strings and flags keyed by week / holiday.
+    setMap('hiatusTexts', str);
+    setMap('hiatusNameSyncedKeys', str);
+    setMap('holidayOff', bool);
+    setMap('holidayView', v => {
+      if(!isPlainObj(v)) return undefined;
+      const out = {};
+      ['sheet', 'month'].forEach(k=>{ if(typeof v[k] === 'boolean') out[k] = v[k]; });
+      return out;
+    });
+    // A day override is a plain word the simulation understands ('half' | 'off' | 'on'). Unknown
+    // WORDS are kept -- a round trip must never lose data, and the simulation ignores them -- but
+    // nothing that is not a lowercase word gets through.
+    setMap('dayOverrides', v => (typeof v === 'string' && /^[a-z]{1,16}$/.test(v)) ? v : undefined);
+    setMap('headerManual', str, SNAP_LINE_ID);
+    setMap('mvHeaderManual', str, SNAP_LINE_ID);
+    ['headerFormat', 'mvHeaderFormat'].forEach(name=>{
+      if(!(name in s)) return;
+      if(!isPlainObj(s[name])){ bad.n++; s[name] = {}; return; }
+      const out = {};
+      Object.keys(s[name]).forEach(id=>{
+        if(!SNAP_LINE_ID.test(id)){ bad.n++; return; }
+        const f = cleanHeaderFormatEntry(s[name][id], bad);
+        if(f) out[id] = f;
+      });
+      s[name] = out;
+    });
+    // Phase colours are INDICES into PHASE_COLOR_OPTIONS; an index this build does not have (a file
+    // from a build with more colours) falls back to the automatic colour rather than throwing.
+    setMap('phaseColorOverride', v => (Number.isInteger(v) && v >= 0 && v < PHASE_COLOR_OPTIONS.length) ? v : undefined, SNAP_ID);
+    if(Array.isArray(s.customPhaseDefs)){
+      s.customPhaseDefs = s.customPhaseDefs.map(cp=>{
+        if(!isPlainObj(cp) || typeof cp.key !== 'string' || !/^custom\d+$/.test(cp.key)){ bad.n++; return null; }
+        const okIdx = Number.isInteger(cp.colorIndex) && cp.colorIndex >= 0 && cp.colorIndex < PHASE_COLOR_OPTIONS.length;
+        if(!okIdx) bad.n++;
+        return Object.assign({}, cp, { colorIndex: okIdx ? cp.colorIndex : 0 });
+      }).filter(Boolean);
+    }
+    // Episodes, blocks, the shooting order: ids are minted by the app, day counts are numbers.
+    const cleanId = v => (typeof v === 'string' && SNAP_ID.test(v)) ? v : undefined;
+    if(Array.isArray(s.episodeDefs)){
+      s.episodeDefs = s.episodeDefs.filter(e=>{ if(isPlainObj(e)) return true; bad.n++; return false; }).map(e=>{
+        const o = Object.assign({}, e);
+        if(o.id !== undefined && !cleanId(o.id)){ bad.n++; delete o.id; }   // applyStateSnapshot mints a fresh one
+        if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
+        if(o.days !== undefined){ const d = countVal(o.days); if(d !== o.days) bad.n++; o.days = d; }
+        return o;
+      });
+    }
+    if(Array.isArray(s.blockDefs)){
+      s.blockDefs = s.blockDefs.filter(b=>{ if(isPlainObj(b)) return true; bad.n++; return false; }).map(b=>{
+        const o = Object.assign({}, b);
+        if(o.id !== undefined && !cleanId(o.id)){ bad.n++; delete o.id; }
+        if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
+        if(o.days !== undefined){ const d = countVal(o.days); if(d !== o.days) bad.n++; o.days = d; }
+        if(o.episodes !== undefined){
+          const eps = Array.isArray(o.episodes) ? o.episodes : [];
+          o.episodes = eps.filter(x=>{ if(cleanId(x)) return true; bad.n++; return false; });
+        }
+        return o;
+      });
+    }
+    if(Array.isArray(s.episodeShootOrder)){
+      s.episodeShootOrder = s.episodeShootOrder.filter(x=>{ if(cleanId(x)) return true; bad.n++; return false; });
+    }
+    if(Array.isArray(s.customHolidays)){
+      s.customHolidays = s.customHolidays.filter(c=>{
+        if(isPlainObj(c) && typeof c.name === 'string' && typeof c.date === 'string' && SNAP_ISO.test(c.date)) return true;
+        bad.n++; return false;
+      }).map(c=>{
+        const o = { id: c.id, name: stripXmlIllegal(c.name, ' '), date: c.date };
+        if(o.id !== undefined && !cleanId(o.id)){ bad.n++; delete o.id; }  // re-minted as cst-… on restore
+        return o;
+      });
+    }
+    // Notes: the TEXT is escaped wherever it is shown, so it keeps whatever the user typed. What is
+    // checked is the shape, and the colour and lane that reach style attributes.
+    setMap('userNotes', v => isPlainObj(v) ? (('text' in v) ? Object.assign({}, v, { text: stripXmlIllegal(v.text == null ? '' : v.text, '\n') }) : v) : undefined);
+    setMap('dayNotes', v => {
+      const one = e => {
+        if(!isPlainObj(e)) return null;
+        const o = Object.assign({}, e);
+        o.text = stripXmlIllegal(o.text == null ? '' : o.text, '\n');
+        if(o.color != null && !isHexColor(o.color)){ bad.n++; o.color = null; }
+        if(o.lane != null && !Number.isInteger(o.lane)){ bad.n++; o.lane = null; }
+        return o;
+      };
+      if(Array.isArray(v)) return v.map(one).filter(Boolean);
+      if(isPlainObj(v)) return one(v);
+      return undefined;
+    });
+    // The DOM-field replay: a value is a string (or a number, stringified) or a checked flag.
+    if(isPlainObj(s.fields)){
+      const f = Object.assign({}, s.fields);
+      if('byId' in f){
+        const out = {};
+        if(isPlainObj(f.byId)){
+          Object.keys(f.byId).forEach(id=>{
+            const v = f.byId[id];
+            if(!/^[\w-]{1,80}$/.test(id) || !isPlainObj(v)){ bad.n++; return; }
+            if('checked' in v){ out[id] = { checked: !!v.checked }; return; }
+            if('value' in v){
+              if(typeof v.value === 'string') out[id] = { value: stripXmlIllegal(v.value, ' ') };
+              else if(typeof v.value === 'number' && isFinite(v.value)) out[id] = { value: String(v.value) };
+              else bad.n++;
+              return;
+            }
+            bad.n++;
+          });
+        } else bad.n++;
+        f.byId = out;
+      }
+      if(Array.isArray(f.hiatuses)){
+        f.hiatuses = f.hiatuses.filter(h=>{ if(isPlainObj(h)) return true; bad.n++; return false; }).map(h=>{
+          const o = Object.assign({}, h);
+          if(o.start !== undefined && o.start !== '' && !(typeof o.start === 'string' && SNAP_ISO.test(o.start))){ bad.n++; o.start = ''; }
+          if(o.weeks !== undefined){ const w = countVal(o.weeks); if(w !== o.weeks) bad.n++; o.weeks = w; }
+          if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
+          if(o.locked !== undefined && typeof o.locked !== 'boolean'){ bad.n++; delete o.locked; }
+          return o;
+        });
+      } else if('hiatuses' in f && f.hiatuses !== undefined){ bad.n++; delete f.hiatuses; }
+      s.fields = f;
+    } else if('fields' in s && s.fields !== undefined){ bad.n++; delete s.fields; }
+    // Small enums and counters.
+    if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
+    if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
+    ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
+      if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
+    });
+    lastSanitizeDropped = bad.n;
+    if(bad.n) console.warn('SPTCal: ' + bad.n + ' value(s) in this calendar were not in a form the app writes, and were ignored.');
+    return s;
+  }
+
   function applyStateSnapshot(snap){
+    // ⛔ FIRST, before anything reads it: hold every value to the shape the app writes (audit H-1).
+    snap = sanitizeSnapshot(snap);
     // Assigned per restore, so an undo back onto a current-format file cannot inherit a stale true.
     restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
@@ -15360,19 +15724,32 @@ export function initLegacyApp() {
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
     }
-    if(Array.isArray(snap.customPhaseDefs) && snap.customPhaseDefs.length){
+    // ⛔ UNCONDITIONAL (audit M-2, FIX-PLAN.md 1.1, 25 Sep 2026). This block was gated on
+    // `snap.customPhaseDefs.length`, so a file with NO custom phases skipped it and the previously
+    // open calendar's custom rows stayed -- with their names, dates and colours -- and were scheduled
+    // into this calendar's grid and exports, then written into ITS file on the next save. Undo hit
+    // the same gate: undoing past "Add phase" left the row. An absent or empty list means NO custom
+    // phases, always (CLAUDE.md: restore unconditionally). Entries without a "custom<n>" key are
+    // skipped: every id below is rebuilt from that key, and no file this app ever wrote lacks one.
+    {
+      const savedDefs = Array.isArray(snap.customPhaseDefs)
+        ? snap.customPhaseDefs.filter(cp=> cp && typeof cp.key === 'string' && /^custom\d+$/.test(cp.key))
+        : [];
       document.getElementById('custom-phase-rows').innerHTML = '';
       customPhaseDefs = [];
       customPhaseCounter = 0;
-      snap.customPhaseDefs.forEach(()=> addCustomPhaseRow());
+      savedDefs.forEach(()=> addCustomPhaseRow());
       // align the generated keys/colorIndex/counter with what was saved
-      customPhaseDefs = snap.customPhaseDefs.map(cp=>({key:cp.key, colorIndex:cp.colorIndex}));
-      if(typeof snap.customPhaseCounter === 'number') customPhaseCounter = snap.customPhaseCounter;
+      customPhaseDefs = savedDefs.map(cp=>({key:cp.key, colorIndex:cp.colorIndex}));
+      // Never below the highest key in use, so the next "Add phase" cannot mint a key a restored
+      // row already carries (a file whose counter is missing or stale would otherwise collide).
+      customPhaseCounter = Math.max(typeof snap.customPhaseCounter === 'number' ? snap.customPhaseCounter : 0,
+        ...savedDefs.map(cp=> parseInt(cp.key.slice(6), 10) || 0));
       // re-key the freshly built rows to match saved keys (every id ends in "-<key>", where a
       // key is always "custom<n>"), then reflect the saved color onto the swatch.
       const rows = document.querySelectorAll('#custom-phase-rows .phase-row');
       rows.forEach((row, i)=>{
-        const saved = snap.customPhaseDefs[i];
+        const saved = savedDefs[i];
         if(!saved) return;
         row.dataset.key = saved.key;
         row.querySelectorAll('[id]').forEach(node=>{
@@ -15418,6 +15795,17 @@ export function initLegacyApp() {
       const el = document.getElementById(id);
       if(el && !hasField(id)) el.value = dflt;
     });
+    // ⛔ THE SAME TRAP, for the two per-phase controls added after v1.0.0 (audit M-5, FIX-PLAN.md
+    // 1.3, 25 Sep 2026). Measured: a v1.0.0 save lacks exactly show-mode, num-blocks,
+    // days-per-block, show-version, union-place (all handled above or by the region migration), and
+    // snap-<key> + phiatus-name-<key> for all six built-ins -- which were NOT handled. So a calendar
+    // saved before 16 Sep, opened after one with a phase's Snap to Mon off, was scheduled UNSNAPPED
+    // (Pre Prep moved from Mon 3/16/26 to its exact 3/18/26), and the previous show's per-phase
+    // hiatus name appeared on this show's grid. Absent means the default: snapped, no name. Explicit
+    // constants, never defaultChecked/defaultValue -- reflectFieldsToAttributes() rewrites the live
+    // document's attributes on every shareable-copy export, so the markup defaults can be stale.
+    document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ if(cb.id && !hasField(cb.id)) cb.checked = true; });
+    document.querySelectorAll('.phiatus-name').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = ''; });
     // Block store: UNCONDITIONAL, defaulting to empty -- the rule above, applied to the arrays.
     // `if(snap.blockDefs) blockDefs = ...` would leave the previous file's blocks behind, and its
     // hand arrangement would then be reconciled onto this file's episodes.
