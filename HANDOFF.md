@@ -19,7 +19,23 @@ suspected items. Key rulings:
 - the service-worker scope is fixed now, and a custom domain is planned later;
 - the shareable copy is **kept and fixed**.
 
-Nothing from the plan has been built yet.
+**Batch 1 status (25 Sep 2026): 5 of 7 items DONE and committed locally at `9c5a381` (NOT pushed).**
+Full gate 376/0; waterfall PDF + Excel parts identical to baseline; `fields.byId` unchanged (62 ids);
+v1.0.0 restores identically. Done: M-2 (+ known bug #1), M-3, M-5, H-1 (+L-5/L-8/L-9), H-2 (+L-21).
+Each has a leg that is red on the pre-fix build (`loadcarry`, `hiatusblank`, `hostile`, `sharecopy2`),
+and `tests/fixtures/` now holds the audit's inert hostile files with a README.
+- ⏭ **Still in batch 1:** **M-1** (all-or-nothing restore + version gate + shape gate — the plan's
+  step 1.5, not yet built) and **H-3/H-4** (snap-off week placement — step 1.7, **needs the owner's
+  before/after export approval** per R1). Then cut **v1.3.0**.
+- New harness helpers to reuse: `T.memoryIDB()` (a settling in-memory IndexedDB — call it
+  synchronously at the top of a leg), `openViaFakePicker(url, name, {writes})` (a recording
+  `createWritable`, so a leg can read what Save writes to which file), `T.modalText()` /
+  `T.clickModalButton()` (the app's Mantine modals — never the first `[role="dialog"]`), and
+  `T.scrubSurrogates()` (in `done()` already).
+- ⛔ **New harness trap fixed in `srv.js`:** it injected the test script with a STRING replacement, so
+  a `$'`/`` $` ``/`$&`/`$1` sequence in any leg's source was read as a replacement pattern and spliced
+  the page into the leg — every leg on the page then reported "STILL PENDING". Now a function
+  replacement. Keep it that way.
 
 **Read [`AUDIT-REPORT.md`](AUDIT-REPORT.md) (also `AUDIT-REPORT.pdf`) before any fix work.** It covers
 the live build `a432613` / `dist` `3630896c…`. Nothing in `src/`, `index.html`, `tests/` or the
