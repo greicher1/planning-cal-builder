@@ -12338,17 +12338,28 @@ export function initLegacyApp() {
   // rather than something the caller re-derives, because the caller has to act on it: opening a
   // legacy .html is the one moment we can offer to move that calendar onto the current format,
   // and a second "does this start with {" test somewhere else is a rule that would drift.
+  // \u26D4 A calendar snapshot ALWAYS has fields.byId as an object -- collectFieldValues() has returned
+  // { byId, hiatuses } since the first saved-state commit, and the v1.0.0 fixture has it. Requiring
+  // it is what lets us refuse a JSON file that is not a calendar (a package.json, a settings blob):
+  // without this gate such a file was accepted, applied as a hybrid onto the open calendar, became
+  // the Save target, and was then overwritten with calendar JSON by the next autosave (audit L-1).
+  // Only byId is required, to stay conservative -- some very old saves may lack fields.hiatuses.
+  function looksLikeCalendar(o){
+    return !!(o && typeof o === 'object' && !Array.isArray(o) &&
+              o.fields && typeof o.fields === 'object' && !Array.isArray(o.fields) &&
+              o.fields.byId && typeof o.fields.byId === 'object' && !Array.isArray(o.fields.byId));
+  }
   function parseCalendarText(text){
     const trimmed = String(text || '').replace(/^\uFEFF/, '').trimStart();
     // Data format: the file IS the snapshot.
     if(trimmed.startsWith('{')){
-      try { const o = JSON.parse(trimmed); return (o && typeof o === 'object') ? {format:'data', snapshot:o} : null; }
+      try { const o = JSON.parse(trimmed); return looksLikeCalendar(o) ? {format:'data', snapshot:o} : null; }
       catch(e){ return null; }
     }
     // Legacy HTML format: lift the embedded state block out of a full copy of the app.
     const m = text.match(/<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i);
     if(!m) return null;
-    try { const o = JSON.parse(m[1].trim()); return (o && typeof o === 'object') ? {format:'html', snapshot:o} : null; }
+    try { const o = JSON.parse(m[1].trim()); return looksLikeCalendar(o) ? {format:'html', snapshot:o} : null; }
     catch(e){ return null; }
   }
 
@@ -12673,6 +12684,29 @@ export function initLegacyApp() {
     clearTimeout(undoPushTimer);
     lastPushedSnapshotJSON = JSON.stringify(captureSnapshot());
     refreshUndoRedoUI();
+  }
+  // ---------- All-or-nothing restore (audit M-1, FIX-PLAN.md 1.5, 25 Sep 2026) ----------
+  // ⛔ applyStateSnapshot() mutates dozens of stores as it goes. If a value partway through makes it
+  // throw -- a future colour index, a shape the gate did not anticipate, a file from a newer build --
+  // it used to leave a HYBRID of the two calendars on screen: the previous show's notes with the new
+  // file's title and hiatuses. Worse, suppressDirty stayed true (dirty tracking, backup, undo and
+  // autosave all silently off), and the file handle still pointed at the user's own file, so their
+  // next Save wrote the hybrid into it. This wraps the apply so a throw rolls back to exactly what was
+  // on screen before. Re-applying the captured state cannot itself throw: it is what THIS build just
+  // produced with captureSnapshot(). The caller runs refreshAfterRestore() either way.
+  function applyStateSnapshotAtomically(snap){
+    const prev = JSON.stringify(captureSnapshot());
+    try {
+      applyStateSnapshot(snap);
+    } catch(e){
+      try { applyStateSnapshot(JSON.parse(prev)); } catch(_){ /* prev is this build's own output; it cannot fail */ }
+      throw e;
+    }
+  }
+  // A file written by a NEWER build can carry keys and shapes this build cannot apply. Refuse it
+  // whole rather than half-applying. A missing version is a pre-v1.1.0 file, which is fine.
+  function snapshotVersionOk(snap){
+    return !(snap && typeof snap.version === 'number' && snap.version > SNAPSHOT_VERSION);
   }
   function applySnapshotJSON(json){
     applyingUndoRedo = true;
@@ -13457,14 +13491,32 @@ export function initLegacyApp() {
 
     // Read the calendar out of the file -- either format, one code path (parseCalendarText).
     const parsed = parseCalendarText(text);
-    if(!parsed){ uiAlert('That file doesn\u2019t contain saved calendar data.'); return; }
+    if(!parsed){ uiAlert('That file doesn\u2019t contain saved calendar data.'); return false; }
     const snap = parsed.snapshot;
+    // Refuse a newer-format file BEFORE touching the open calendar (audit M-1). Half-applying it
+    // would leave a hybrid and could still throw later.
+    if(!snapshotVersionOk(snap)){
+      uiAlert('That calendar was saved by a newer version of SPTCal, so this version can\u2019t open it. Update the app and try again.');
+      return false;
+    }
     // Reset dynamic rows to defaults so restore rebuilds cleanly, then replay. applyStateSnapshot
     // is called directly rather than round-tripping through the live #saved-state element: that
     // detour existed only because the old Open path had the JSON as a string, and writing another
     // file's data into this document's state block was always a bit of a lie.
+    // ATOMIC (audit M-1): on any failure the previous calendar is restored, the file handle is NOT
+    // changed, and dirty tracking is turned back on -- so the user's own file is never overwritten
+    // with a half-loaded mix. Nothing below runs on failure, so this file never becomes the Save
+    // target and is not added to recents.
     suppressDirty = true;
-    applyStateSnapshot(snap);
+    try {
+      applyStateSnapshotAtomically(snap);
+    } catch(e){
+      refreshAfterRestore();
+      suppressDirty = false;
+      console.error(e);
+      uiAlert('That file looks like a calendar but couldn\u2019t be opened \u2014 it may be damaged. Your current calendar is unchanged.');
+      return false;
+    }
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // opening a different file starts a fresh undo history
@@ -13484,6 +13536,7 @@ export function initLegacyApp() {
     // the one moment it is relevant. Offer, not force: Save on this file still writes .html, and
     // the notice is dismissible.
     if(parsed.format === 'html') showLegacyNotice(entry.name); else hideLegacyNotice();
+    return true;
   }
 
   // "Load…" — pick any calendar from disk (either format) and load + track it.
@@ -13502,7 +13555,10 @@ export function initLegacyApp() {
     for(const f of recentFiles){ if(f.handle && handle.isSameEntry){ try{ if(await handle.isSameEntry(f.handle)){ dup=f; break; } }catch(e){} } }
     const target = dup || entry;
     if(!dup){ recentFiles.unshift(entry); }
-    await openRecentFile(target);
+    const ok = await openRecentFile(target);
+    // A file the app refused (not a calendar, a newer version, or damaged) must not linger in the
+    // recents list -- clicking it would just repeat the refusal (audit N-8).
+    if(!ok && !dup){ recentFiles = recentFiles.filter(f=> f !== entry); renderRecents(); }
   }
 
   // "New" — clear the active file link and reset to a blank calendar.
@@ -15343,7 +15399,12 @@ export function initLegacyApp() {
     let snap;
     try { snap = JSON.parse(el.textContent); } catch(e){ return; }
     if(!snap || typeof snap !== 'object') return;
-    applyStateSnapshot(snap);
+    // A shareable copy restores itself from this block at boot. If it is a newer version, or a
+    // hand-edited copy that throws partway, fall back to a blank working app rather than a zombie
+    // half-applied page with no autosave or unsaved-work protection (audit L-19 / M-1).
+    if(!snapshotVersionOk(snap)) return;
+    try { applyStateSnapshotAtomically(snap); }
+    catch(e){ console.error(e); }
   }
 
   // Everything that must run after a snapshot has been applied, to bring the visible UI back in

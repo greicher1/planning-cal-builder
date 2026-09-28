@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Loading a bad file can no longer corrupt the open calendar or the file (audit M-1, L-1, L-19)
+
+**What was wrong.** A file that parsed as JSON but failed partway through `applyStateSnapshot` (a
+value this build couldn't apply) left a hybrid of the two calendars on screen, turned off dirty
+tracking, crash backup, undo and autosave for the rest of the session, and left the file handle
+pointing at the user's own file — so the next Save wrote the hybrid into it. A non-calendar JSON
+(e.g. `package.json`) was accepted, became the Save target, and was overwritten with calendar JSON
+by autosave. A newer-version file was applied with no warning.
+
+**The fix**, all in the load paths (nothing frozen, no save-format key changed):
+- A **shape gate** in `parseCalendarText`: a file must have `fields.byId` as an object, or it is
+  refused with "doesn't contain saved calendar data". This turns away non-calendar JSON (L-1).
+- A **version gate**: a file whose `version` exceeds this build's is refused with a clear message,
+  before anything is touched.
+- **All-or-nothing apply**: `applyStateSnapshotAtomically` snapshots the current calendar first and,
+  if the apply throws, restores it exactly — so the previous calendar survives, dirty tracking stays
+  on, and the handle is never repointed. `openRecentFile` returns success, and a refused file is
+  removed from recents (N-8). The boot/shareable-copy restore falls back to a blank working app
+  instead of a zombie page (L-19).
+
+**Verified:** new leg `loadfail` — a newer-version file and a non-calendar JSON are both refused with
+SHOW A kept and Save writing SHOW A (not the bad file); a malformed-but-sanitizable file loads
+cleanly as its own show with no error (H-1 drops the bad bits); and a value forced to throw mid-apply
+rolls back to SHOW A with the handle kept. All four fail on the pre-fix build, where the non-calendar
+JSON is overwritten with calendar data. Full gate 376/0; `fields.byId` unchanged (62 ids).
+
 ### Unreleased — Export shareable copy opens once, and carries no preferences (audit H-2, L-21)
 
 **What was wrong.** Every shareable copy made since the Mantine cutover opened with the whole chrome
