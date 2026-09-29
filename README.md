@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
+
+**What was wrong.** Adding a line to an auto-note ("Start Principal Photography 6/29/26" + "Table
+read Thu") stores the whole text as a literal override. A shift then moved the override to its new
+week with the old date still in it, where it hid the correct auto-note: the Notes column stated the
+wrong start and wrap on screen, in Excel and in the waterfall PDF.
+
+**The fix** (in `shiftCalendar`, not frozen; no save-format change). Before a shift, each moving
+note's week auto text is read off the pre-shift schedule. After it, a note that still opens with that
+text (whole lines only) has it swapped for the auto text of the week it landed on, and the user's own
+lines are kept as typed. A note left holding nothing but auto text returns to plain auto, so it keeps
+updating from then on. Notes in the user's own words, and date-pinned notes (which stay put), are
+never touched. Shift All, Shift From and Anchor To all get it.
+
+**Verified:** new leg `autonote` on `v1.3.0-saved.sptcal`, with the edits typed through the real note
+editor: after Shift All +1 wk the start note reads "Start Principal Photography 7/6/26 / Table read
+Thu" and the wrap note "Principal Photography Wraps 10/26/26 / Wrap party Fri"; no note states
+6/29/26; a plain note just moves; one undo restores all three; earlier-then-later round-trips. On
+v1.3.0 A2–A4 fail. The leg also caught a bug in the first version, now fixed: in a week with no
+holidays the waterfall and month auto texts are identical, and preferring the month's wrote the next
+week's month-only holidays into a waterfall note. Also typed and clicked by hand in the browser pane.
+
 ### Unreleased — Half days, days off and worked days move with the shoot, by shoot-day number (audit M-4, owner ruling R2)
 
 **What was wrong.** The same plan got a different wrap depending on which tool moved it. Shift All

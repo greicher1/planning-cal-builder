@@ -18,6 +18,7 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-14 no empty year block after a late-December last week | ✅ done | `yearblock` (no fixture) |
 | M-15 caps: 200 episodes/blocks, hiatus weeks ≤ `MAX_WEEKS` before loops | ✅ done | `caps` |
 | M-4 day overrides by shoot-day number on every mover (R2) | ✅ done | `overrides` (`HARNESS_STATE=dayoverrides`, 20 cases) |
+| M-10 edited auto-notes rewritten on shift (R5) | ✅ done | `autonote` (`HARNESS_STATE=v1.3.0-saved`) |
 
 - ⭐ **M-4 is a BINDING, not a re-key** (`asShootDayMove()` beside `shiftCalendar`). Pins are taken
   against the NATURAL shoot days (the real simulation with `dayOverrides = {}`, so no second copy of the

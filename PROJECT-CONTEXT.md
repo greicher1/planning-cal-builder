@@ -495,6 +495,11 @@ its weekday in its reference shoot day's week, and one that lands on an ordinary
 in the result line. ⚠️ Half/off round-trip exactly; a worked day off need not (there may be no weekend
 or holiday at the matching place). Typing a start date is not a mover.
 
+**An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
+that still opens with the auto text of the week it left has that text swapped for the new week's
+(`weekAutoTexts` → `rewriteMovedAutoNotes`), keeping the user's own lines. Only a shift re-keys notes
+at all; Rebuild From, Close all gaps and the month drag leave every note on its week, as before.
+
 | Stays put | Why |
 |---|---|
 | Union holidays | Real calendar dates. Because Production is a day-level sim, shifting by exactly 7 days can move its **wrap** by more or less than 7 — the tools report the resulting wrap for this reason. |

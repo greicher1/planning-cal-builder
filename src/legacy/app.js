@@ -12894,6 +12894,57 @@ export function initLegacyApp() {
     return date ? {text, date} : {text};
   }
 
+  // The auto-note text a week shows in each view -- what the note editor pre-fills, so it is what an
+  // edited auto-note OPENS with. Both views, because a note edited from the month view starts with
+  // the month's auto text (holidays included; audit M-13).
+  function weekAutoTexts(schedule, weekIso){
+    const weeks = (schedule && schedule.weeks) || [];
+    const idx = weeks.findIndex(w => isoOf(w.date) === weekIso);
+    const list = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
+    return { sheet: autoNotesText(autoNotesForView(list, 'sheet')).trim(),
+             month: autoNotesText(autoNotesForView(list, 'month')).trim() };
+  }
+  // ⛔ R5 (owner, 25 Sep 2026) / audit M-10: an EDITED auto-note is rewritten when a shift moves it.
+  // Adding one line to "Start Principal Photography 6/29/26" stores the whole text as a literal
+  // override, so a shift used to carry "6/29/26" to the new week, where it hid the correct auto-note
+  // and stated the wrong start and wrap on screen, in Excel and in the PDF. Now a moved note that
+  // still opens with the auto text of the week it LEFT (whole lines only) has that text swapped for
+  // the auto text of the week it LANDED on; the user's own lines are kept as typed. No save-format
+  // change: it is the same string, corrected. A note left with nothing but auto text goes back to
+  // plain auto (saveNoteEdit's own rule), so it keeps updating from then on. A note that does not
+  // open with its week's auto text -- the user's own words, or two notes merged on arrival -- is
+  // never touched. `staleByOldKey` is weekAutoTexts() per moving note, read before the move.
+  function rewriteMovedAutoNotes(staleByOldKey, days){
+    let changed = 0;
+    Object.keys(staleByOldKey).forEach(oldKey=>{
+      const d = parseDateUTC(oldKey);
+      if(!d) return;
+      const newKey = isoOf(addDays(d, days));
+      const v = userNotes[newKey];
+      if(v === undefined || (v && typeof v === 'object' && Array.isArray(v.notes))) return;
+      const text = (typeof v === 'string') ? v : ((v && typeof v.text === 'string') ? v.text : '');
+      if(!text) return;                                   // '' is an explicit clear: leave it cleared
+      const stale = staleByOldKey[oldKey];
+      // Which view's auto text the note opens with. The SHEET's, unless the month's also matches AND
+      // is longer (it adds the month-only holidays). ⚠️ A tie goes to the sheet, and it must: in a
+      // week with no holidays the two texts are identical, and picking 'month' there wrote the NEXT
+      // week's month-only holidays into a waterfall note (caught by the leg: shift -1 then +1 turned
+      // "Start Principal Photography 6/29/26" into it plus two Independence Day lines).
+      const opensWith = w => !!stale[w] && (text === stale[w] || text.startsWith(stale[w] + '\n'));
+      const bySheet = opensWith('sheet'), byMonth = opensWith('month');
+      const view = (byMonth && (!bySheet || stale.month.length > stale.sheet.length)) ? 'month' : (bySheet ? 'sheet' : null);
+      if(!view) return;
+      const fresh = weekAutoTexts(currentSchedule, newKey);
+      if(fresh[view] === stale[view]) return;             // this week's milestones did not change
+      const rest = text.slice(stale[view].length).replace(/^\n/, '');
+      const next = [fresh[view], rest].filter(Boolean).join('\n');
+      if(!next || next === fresh.sheet) delete userNotes[newKey];
+      else userNotes[newKey] = (typeof v === 'string') ? next : Object.assign({}, v, {text: next});
+      changed++;
+    });
+    return changed;
+  }
+
   // ---------- Day overrides travel BY SHOOT-DAY NUMBER (owner ruling R2; audit M-4) ----------
   // A day override belongs to a DAY OF THE SHOOT, not to a calendar date: 'half' on day 5 says how
   // day 5 is worked. So when a tool MOVES the shoot, each mark must land on the same day of the new
@@ -13099,6 +13150,11 @@ export function initLegacyApp() {
     const pinnedWeeks = new Set(Object.keys(userNotes).filter(k => userNoteList(k).some(n => !!n.date)));
     // A note stays put if it is date-pinned OR (for a ripple) sits before the cutoff.
     const isPinnedWeek = k => pinnedWeeks.has(k) || !inRange(k);
+    // R5 / audit M-10: the auto text each MOVING note's week shows right now, so it can be swapped for
+    // the auto text of the week it lands on (rewriteMovedAutoNotes, after the refresh below). Read off
+    // currentSchedule, which is still the PRE-shift schedule: nothing recomputes it until then.
+    const staleAuto = {};
+    Object.keys(userNotes).forEach(k=>{ if(!isPinnedWeek(k)) staleAuto[k] = weekAutoTexts(currentSchedule, k); });
     // userNotes is declared const and mutated in place elsewhere, so it's cleared and repopulated
     // rather than reassigned.
     const shiftedNotes = shiftKeyedMap(userNotes, days, isPinnedWeek, mergeNoteValues);
@@ -13163,6 +13219,9 @@ export function initLegacyApp() {
     // month view has been opened once, in which case it picks its own start and needs no nudge.
     if(monthCursor) monthCursor = addDays(monthCursor, days);
     refreshAfterRestore();
+    // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
+    // feed the schedule, so a repaint is all it takes.
+    if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
 
     return {
       weeks: n, movedPhases, movedHiatuses, lockedHiatuses,
