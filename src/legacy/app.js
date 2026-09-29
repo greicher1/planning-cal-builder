@@ -8569,17 +8569,17 @@ export function initLegacyApp() {
       return `&${size}&"Calibri,${style}"&K${color}`;
     };
     const anyFmt = ids => ids.some(id => Object.keys(headerFmt(id, false)).length > 0);
+    // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit M-9, 29 Sep 2026): every line stays
+    // {code, text} until assembleHeader() joins it. The trimmer below used to work on the JOINED
+    // strings -- code + text, and the left section pre-joined on \n -- so its shave could slice a
+    // `&"Calibri,..."` code in half (the audit measured `unterminated &"font" at 59`) or shave the date
+    // away. Now it cuts only text. An untrimmed header assembles byte for byte as before.
     const withCodes = (ids, on) => ids
       .map(id => ({ id, text: hdrSafe(headerLine(id, hd)) }))
       .filter(x => x.text)
-      .map(x => (on ? hdrLineCode(x.id) : '') + x.text);
+      .map(x => ({ code: on ? hdrLineCode(x.id) : '', text: x.text }));
 
     const lIds = ['left','l2','l3'], cIds = ['c1','c2','c3','c4'], rIds = ['r1','r2','r3'];
-    // The left section was a bare string and stays one; joining on \n means an empty l2 leaves it
-    // byte-identical to the old `todayStr`.
-    const todayStr = withCodes(lIds, anyFmt(lIds)).join('\n');
-    const cLines = withCodes(cIds, anyFmt(cIds));
-    const rLines = withCodes(rIds, anyFmt(rIds));
 
     // Header size codes: &B turns on bold, then place &12 immediately before a font-name
     // code (&"Calibri,Bold"). The quote after the size digits is a non-digit terminator, so
@@ -8598,32 +8598,37 @@ export function initLegacyApp() {
     // Note the three `HSIZE` prefixes alone cost 60 of the 255, so the text budget is really ~195;
     // long show titles plus three right-hand stat lines can genuinely exceed it.
     const HF_MAX = 255;
-    let hL = todayStr, hC = cLines.slice(), hR = rLines.slice();
+    let hL = withCodes(lIds, anyFmt(lIds)), hC = withCodes(cIds, anyFmt(cIds)), hR = withCodes(rIds, anyFmt(rIds));
+    const joinLines = arr => arr.map(x => x.code + x.text).join('\n');
     const assembleHeader = () => [
-      `&L${HSIZE}${hL}`,
-      hC.length ? `&C${HSIZE}${hC.join('\n')}` : '',
-      hR.length ? `&R${HSIZE}${hR.join('\n')}` : '',
+      `&L${HSIZE}${joinLines(hL)}`,
+      hC.length ? `&C${HSIZE}${joinLines(hC)}` : '',
+      hR.length ? `&R${HSIZE}${joinLines(hR)}` : '',
     ].join('');
     let headerStr = assembleHeader();
-    // First give up trailing DETAIL lines -- the right-hand stats before the centre's subtitles --
-    // since losing "10 Episodes" reads better than a truncated show title. A block's first line is
-    // never dropped, so the date, the title and the headline stat always survive.
-    while(headerStr.length > HF_MAX && (hR.length > 1 || hC.length > 1)){
-      if(hR.length > 1) hR.pop(); else hC.pop();
+    // First give up trailing DETAIL lines -- the right-hand stats, then the centre's subtitles, then
+    // (owner ruling, 29 Sep 2026) the left block's -- since losing "10 Episodes" reads better than a
+    // truncated show title. A block's first line is never dropped here, so the date, the title and
+    // the headline stat always survive. ⚠️ The left block's details joined this pass with M-9: while
+    // the left section was one pre-joined string it could only be shaved, and the owner chose "detail
+    // lines first" over the literal reading, which would drop the headline stat on hdr-cut.sptcal.
+    // estimateExcelHeaderLength() mirrors this pass and the one below; keep them in step.
+    while(headerStr.length > HF_MAX && (hR.length > 1 || hC.length > 1 || hL.length > 1)){
+      if(hR.length > 1) hR.pop(); else if(hC.length > 1) hC.pop(); else hL.pop();
       headerStr = assembleHeader();
     }
     // Backstop for a single very long line (e.g. an enormous show title): shave the longest
-    // remaining line until it fits. Trimming the assembled string directly could cut through an
-    // "&..." control code and corrupt the formatting, so always cut inside a line's own text.
+    // remaining line's TEXT until it fits -- never its code, which is what the joined strings above
+    // used to expose. A line whose text runs out is dropped whole, code and all. Ties go left, then
+    // centre, then right, as the old default target was the left/date line.
     let hfGuard = 0;
     while(headerStr.length > HF_MAX && hfGuard++ < 400){
-      let arr = null, idx = -1, len = hL.length;      // default target: the left/date line
-      hC.forEach((s,i)=>{ if(s.length > len){ arr = hC; idx = i; len = s.length; } });
-      hR.forEach((s,i)=>{ if(s.length > len){ arr = hR; idx = i; len = s.length; } });
-      if(len <= 1) break;                              // nothing left worth cutting
-      const keep = Math.max(1, len - (headerStr.length - HF_MAX) - 1);
-      const cut = (arr ? arr[idx] : hL).slice(0, keep).replace(/\s+$/, '') + '…';
-      if(arr) arr[idx] = cut; else hL = cut;
+      let arr = null, idx = -1, len = 0;
+      [hL, hC, hR].forEach(a => a.forEach((x, i) => { if(x.text.length > len){ arr = a; idx = i; len = x.text.length; } }));
+      if(!arr) break;                                  // nothing left to cut
+      const keep = len - (headerStr.length - HF_MAX) - 1;   // -1 for the ellipsis
+      if(keep <= 0) arr.splice(idx, 1);
+      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/\s+$/, '') + '…' };
       headerStr = assembleHeader();
     }
     ws.headerFooter.oddHeader = headerStr;
@@ -10932,35 +10937,53 @@ export function initLegacyApp() {
   function estimateExcelHeaderLength(){
     // Mirrors exportExcel's assembly exactly: three sections, each prefixed by HSIZE, lines joined
     // by a newline, per-line codes only when some line in that section is formatted.
+    // ⭐ Since M-9 (29 Sep 2026) it ALSO mirrors exportExcel's trim, both passes, on the same
+    // {code, text} lines -- detail lines first (right, centre, then left), then shave the longest
+    // text, dropping a line whose text runs out -- so the sentence under the number can say what the
+    // workbook will actually lose instead of "the last lines will be dropped". `total` stays the
+    // UNTRIMMED length: that is the number the user is over by. The hdrcut leg holds this copy to
+    // the workbook's real header.
+    const HF_MAX = 255;
     const HSIZE_COST = '&B&12&"Calibri,Bold"'.length;      // 20, and there are three of them
     const hd = computeHeaderDefaults(currentSchedule);
     const safe = s => String(s).replace(/&/g, '').trim();  // hdrSafe
-    const lineCodeCost = id => {
+    const lineCode = id => {
       const f = headerFmt(id, false);
       const size = f.size ? Math.round(f.size) : 12;
       const bold = (f.bold === undefined) ? true : !!f.bold;
       const style = bold && f.italic ? 'Bold Italic' : bold ? 'Bold' : f.italic ? 'Italic' : 'Regular';
       const color = f.color ? String(f.color).replace('#','').toUpperCase() : '000000';
-      return ('&' + size + '&"Calibri,' + style + '"&K' + color).length;
+      return '&' + size + '&"Calibri,' + style + '"&K' + color;
     };
     const anyFmt = ids => ids.some(id => Object.keys(headerFmt(id, false)).length > 0);
-    const section = (ids) => {
+    const lines = ids => {
       const on = anyFmt(ids);
-      const texts = ids.map(id => ({ id, text: safe(headerLine(id, hd)) })).filter(x => x.text);
-      if(!texts.length) return { lines: 0, cost: 0 };
-      let cost = 2 + HSIZE_COST;                            // "&L" / "&C" / "&R", then HSIZE
-      texts.forEach((x, i) => {
-        cost += (on ? lineCodeCost(x.id) : 0) + x.text.length + (i ? 1 : 0);   // +1 for the \n
-      });
-      return { lines: texts.length, cost };
+      return ids.map(id => ({ id, text: safe(headerLine(id, hd)) })).filter(x => x.text)
+        .map(x => ({ code: on ? lineCode(x.id) : '', text: x.text, cut: false }));
     };
-    const L = section(['left','l2','l3']);
-    const C = section(['c1','c2','c3','c4']);
-    const R = section(['r1','r2','r3']);
-    // ⚠️ &L is emitted even when its section is empty (exportExcel's `&L${HSIZE}${hL}` is
+    const L = lines(['left','l2','l3']), C = lines(['c1','c2','c3','c4']), R = lines(['r1','r2','r3']);
+    const count = L.length + C.length + R.length;
+    // ⚠️ &L is emitted even when its section is empty (exportExcel's `&L${HSIZE}...` is
     // unconditional, unlike the &C and &R branches), so charge for it either way.
-    const total = (L.cost || (2 + HSIZE_COST)) + C.cost + R.cost;
-    return { total, max: 255, over: total > 255 };
+    const secLen = (a, always) => (a.length || always)
+      ? 2 + HSIZE_COST + a.reduce((n, x, i) => n + x.code.length + x.text.length + (i ? 1 : 0), 0) : 0;
+    const len = () => secLen(L, true) + secLen(C) + secLen(R);
+    const total = len();
+    while(len() > HF_MAX && (R.length > 1 || C.length > 1 || L.length > 1)){
+      if(R.length > 1) R.pop(); else if(C.length > 1) C.pop(); else L.pop();
+    }
+    let guard = 0;
+    while(len() > HF_MAX && guard++ < 400){
+      let arr = null, idx = -1, best = 0;
+      [L, C, R].forEach(a => a.forEach((x, i) => { if(x.text.length > best){ arr = a; idx = i; best = x.text.length; } }));
+      if(!arr) break;
+      const keep = best - (len() - HF_MAX) - 1;
+      if(keep <= 0) arr.splice(idx, 1);
+      else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/\s+$/, '') + '…', cut: true };
+    }
+    const kept = L.length + C.length + R.length;
+    const shortened = [L, C, R].reduce((n, a) => n + a.filter(x => x.cut).length, 0);
+    return { total, max: HF_MAX, over: total > HF_MAX, dropped: count - kept, shortened };
   }
   function pushExcelBudget(){
     let b = null;

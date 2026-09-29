@@ -378,6 +378,16 @@ export function HeadersCard() {
 // delegated click handler matches them -- the fileMenu pattern. Nothing here mutates a preset, and
 // the component never receives a preset's templates: only names and ids come across the bridge, so a
 // re-render cannot become a place where preset content is edited.
+// "drops 6 lines", "drops 2 lines and shortens 1 line", "shortens 1 line" -- what exportExcel's
+// trimmer will do to this header, as estimateExcelHeaderLength() reports it.
+function trimWords(b) {
+  const d = b.dropped || 0, s = b.shortened || 0
+  const parts = []
+  if (d) parts.push(`drops ${d} line${d === 1 ? '' : 's'}`)
+  if (s) parts.push(`shortens ${s} line${s === 1 ? '' : 's'}`)
+  return parts.length ? parts.join(' and ') : 'trims it to fit'
+}
+
 function HeaderPresets() {
   const [state, setState] = useState({ items: [], canSave: false, saveHint: '', naming: false, excelBudget: null })
   const [editing, setEditing] = useState(null)   // the id being renamed, or null
@@ -402,16 +412,19 @@ function HeaderPresets() {
 
       {/* The Excel budget. Excel rejects a header over 255 characters IN TOTAL, codes included, and
           fails ungracefully -- the workbook writes, then Excel calls it corrupt on open. The export
-          trimmer drops trailing lines to stay under, so nothing breaks; the user just loses lines
-          without being told. Templates make long headers easy to write, so show the number.
+          trimmer drops detail lines, then shortens the longest, to stay under, so nothing breaks;
+          but the user loses lines, and the sentence below says which. Templates make long headers easy to write, so show the number.
           ⚠️ "about" is not hedging: this is a second copy of a frozen function's arithmetic and can
           drift. exportExcel stays authoritative; the hdrexcel leg is the guard.
           ⚠️ Moved here 9 Sep 2026: it describes THIS calendar's header, and among the preset
           controls it read as a property of the selected preset. */}
+      {/* ⭐ Since M-9 (29 Sep 2026) the engine's estimate mirrors the trim itself, so the sentence
+          names what the workbook will lose -- whole lines dropped (detail lines go first), and any
+          line shortened with "…" -- rather than "the last lines will be dropped". */}
       {excelBudget ? (
         <Text size="xxs" c={excelBudget.over ? 'danger.9' : 'dimmed'} className="hdr-presets-budget">
           {excelBudget.over
-            ? `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters — too long, so the last lines will be dropped from the workbook.`
+            ? `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters — too long, so the workbook ${trimWords(excelBudget)}.`
             : `Excel header: about ${excelBudget.total} of ${excelBudget.max} characters.`}
         </Text>
       ) : null}

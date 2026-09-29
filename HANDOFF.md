@@ -103,6 +103,20 @@
     mismatch is not.
   - Full gate **560/0** (544 + `notewrap` 16).
 
+- ✅ **3.2 (M-9).** `exportExcel`'s lines stay `{code, text}` until `assembleHeader()`, and the
+  backstop shaves only text. ⭐ **Owner ruling (29 Sep 2026): detail lines first, the left block's
+  included** (right, then centre, then left). This keeps the "date, title, headline stat always
+  survive" promise. The literal FIX-PLAN reading kept `l2`/`l3` and dropped the headline stat on
+  `hdr-cut`. `estimateExcelHeaderLength()` mirrors both passes and returns `dropped`/`shortened`,
+  and `Sidebar.jsx`'s sentence names them (`trimWords`). `total` is still the UNTRIMMED length.
+  ⚠️ `hdr-cut` is NINE lines, not the five its `headerManual` lists: Manual mode keeps the auto
+  defaults for the blank ids (`l2` = the version "v3", `c3`, `r2`, `r3`), hence "about 541".
+  - Leg `hdrcut` reads the export back with the page's ExcelJS. Red before on H2/H4/H5/M1; green
+    after.
+  - Parts diff: only `<oddHeader>` moved, 255 → 240.
+  - Full gate **579/0** (560 + gate 10's 2 new cases × 6 + `hdrcut` 7). `hdrexcel` is unchanged and green.
+  - ⏭ **Owner's Excel.app check owed:** `tests/harness/hdrcut-before.xlsx` / `hdrcut-after.xlsx`
+    (gitignored; the leg re-makes them as `xlsxB64`).
 - ⏭ **Owner, 29 Sep 2026: continue batch 3 in THIS session** (the handoff was offered after 3.1 and
   declined).
 - ⏭ **Where 3.2–3.4 stand (read before starting them).** All three are in `exportExcel`, and 3.3 also
@@ -136,7 +150,7 @@
 | 3.5 | L-3 Letter pin | ✅ done (frozen print CSS, 1 rule; no baseline moved) | `printpaper` (Node + CDP, not a `t/` leg) |
 | 3.6 | L-16 / L-17 / N-1 | ✅ done (3 frozen edits in `renderMonthView` + a non-frozen `update()` check; no baseline moved) | `monthlanes` (`month-lanecap`), `hiatuslabel` |
 | 3.1 | M-8 (+ hiatus bands) | ✅ done (frozen edit in `buildWaterfallPdf`; `base.pdf` identical, no re-cut) | `notewrap` |
-| 3.2 | M-9 | ⏳ | |
+| 3.2 | M-9 | ✅ done (frozen edit in `exportExcel`'s trimmer + the meter's mirror; `base.xlsx` identical) | `hdrcut` (`hdr-cut`) |
 | 3.3 | L-2 | ⏳ | |
 | 3.4 | L-7 | ⏳ | |
 

@@ -1078,6 +1078,8 @@ Nothing in this document ships without all of these, every stage:
     the nearest-month clamp, and two Load guards) and `hiatuslabel` (a blank all-phase hiatus label
     in both views and both PDFs). Step 3.1 adds `notewrap`: the waterfall PDF word-wraps notes and
     hiatus bands on exactly the screen's line count (`data-notelines`), inside the cell, top-aligned.
+    Step 3.2 adds `hdrcut`: an over-long, formatted Excel header is trimmed without cutting a code,
+    detail lines first, and the budget meter names what was dropped.
 
 ---
 

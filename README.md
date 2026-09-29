@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A long, formatted header no longer breaks the workbook's header codes (audit M-9)
+
+**What changed** (a frozen edit to `exportExcel`'s header trimmer, owner-approved under FIX-PLAN
+R3): Excel caps a page header at 255 characters in total, codes included, so the export trims a
+longer one. Once header lines carry formatting, each line is a style code
+(`&<size>&"Calibri,<style>"&K<colour>`) followed by its text. The trimmer worked on the joined
+strings, so its cut could slice a code in half. The audit measured `unterminated &"font" at 59`,
+which garbles the header or makes Excel offer to repair the file. Each line now stays a separate
+{code, text} pair until the header is assembled, and only the text is ever cut.
+
+⭐ **Owner ruling (29 Sep 2026): detail lines go first, the left block's included.** The trimmer
+drops the second and third lines of each block (right, then centre, then left) before shortening
+anything. So the date, the title and the headline stat always survive, as the trimmer's own comment
+always promised. A line whose text runs out is dropped whole. On `hdr-cut.sptcal`, a 9-line header
+of 541 characters, the workbook now keeps the date, the title and the "16-Week…" line (240
+characters) and drops the six detail lines. Read literally, the plan would have kept the left
+block's details and dropped the headline stat instead.
+
+**The budget meter now says what the export will do.** Its estimate mirrors both trim passes, so
+the sentence reads, for example, "too long, so the workbook drops 6 lines", instead of "the last
+lines will be dropped".
+
+**Verified:**
+- New leg `hdrcut` (`hdr-cut.sptcal`) reads the real export back through the page's own ExcelJS.
+  **Red before:** a half-cut code at the end of the left block, the wrong code on that line, and a
+  meter sentence that didn't match what happened. **Green after:** every line is a whole code plus
+  plain text; exactly the date, title and headline stat remain; and the meter's "drops 6 lines"
+  matches the workbook.
+- The parts diff, before vs after: only `sheet1.xml`'s `<oddHeader>` differs, and both files pass
+  `check-xlsx.sh`. The gate's `base.xlsx` (238/255, never trimmed) is unchanged.
+- Full gate **579 pass / 0 fail**: 560, plus 12 checks for gate 10's two new calendars and `hdrcut`'s 7.
+  The existing `hdrexcel` leg, an unformatted 440-character header, still drops the right lines in the
+  right order.
+- ⚠️ **By hand, for the owner:** open `tests/harness/hdrcut-before.xlsx` and `hdrcut-after.xlsx` in
+  Excel.app and check the header, and that there is no repair prompt. They are gitignored, and
+  re-made by the leg.
+
 ### Unreleased — The waterfall PDF word-wraps notes and hiatus labels, as the screen does (audit M-8)
 
 **What changed** (a frozen edit to `buildWaterfallPdf`, owner-approved under FIX-PLAN R3; owner
