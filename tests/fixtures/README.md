@@ -71,6 +71,12 @@ they are a working demonstration against the live site. They ship in the same re
 | `month-lanecap.sptcal` | more than 60 lanes in one day (L-16) |
 | `hdr-cut.sptcal` | long, formatted header lines that the Excel trimmer must shave without cutting a `&"font"` code (M-9) |
 
+### Batch 2: dates and data (FIX-PLAN §4, v1.3.1)
+
+| File | Use |
+|---|---|
+| `shift-stores.sptcal` | `v1.3.0-saved.sptcal` plus an undated note on the week of 8/3/26 in a 60px dragged row, and a note pinned to 9/10/26 in a 45px row. A shift must move the first note's row height with it and leave the pinned one's (M-12, leg `rowheight`) |
+
 ### Parser robustness (these already PASS; keep them passing through the loader changes)
 
 `parse-bom.sptcal` (UTF-8 BOM before `{`), `parse-crlf.sptcal`, `parse-trunc.sptcal` (cut mid-JSON:

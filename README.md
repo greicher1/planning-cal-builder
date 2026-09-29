@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A dragged row height travels with its note on a shift (audit M-12)
+
+**What was wrong.** `shiftCalendar` re-keyed the week-keyed note stores (`userNotes`, `noteColors`,
+`noteFontSize`) but not `rowHeightsByWeek`. A row dragged taller to show a long note therefore stayed
+on the old week after any Shift All / Shift From / Anchor To: the note arrived in a 20px row and was
+cut off in the grid, Excel and the waterfall PDF, while an empty tall row sat where it had been.
+
+**The fix** (one line in `shiftCalendar`, not frozen): `rowHeightsByWeek` is re-keyed with the same
+stay-or-go predicate as the note it belongs to — it moves with an undated note and stays with a
+date-pinned one or with any row before a Shift From cutoff. `syncRowHeights()` rebuilds the grid's
+row heights from it on the next update, as before.
+
+**Verified:** new leg `rowheight` on new fixture `shift-stores.sptcal` (v1.3.0's real save plus an
+undated note in a 60px row and a date-pinned note in a 45px row): Shift All +1 wk moves the 60px
+height to 8/10/26 with its note and leaves 8/3/26 at the default; the pinned note keeps its 45px row;
+one undo restores both; Shift From Post leaves rows before the cutoff alone; 0 clipped cells. R1/R2
+fail on the pre-fix build. Also driven with a real click on the toolbar arrow in the browser pane.
+
 ## v1.3.0 — deployment-readiness audit fixes (28 Sep 2026)
 
 The first batch of fixes from the deployment-readiness audit ([`AUDIT-REPORT.md`](AUDIT-REPORT.md)):

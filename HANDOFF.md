@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 29 Sep 2026: BATCH 2 IN PROGRESS (FIX-PLAN §4 → v1.3.1). Committed locally, NOT pushed
+
+Order agreed with the owner 29 Sep 2026: M-12, M-14, M-15 → M-4, M-10, M-11 (+L-13/L-14/L-15) →
+M-7 → M-13 (the one frozen edit; `monthcmp.py ab` to the owner first) → M-6. Two scope calls, the
+owner's "go" covering both: R2's "every mover" includes the per-phase *Start after previous phase*
+button (Close all gaps runs through it); typing a date by hand is not a mover. An `on` mark that a
+move leaves on an ordinary weekday is kept (it is inert) and mentioned in the result line.
+
+| Fix | State | Leg (red on v1.3.0) |
+|---|---|---|
+| M-12 row heights follow a shift | ✅ done | `rowheight` (`HARNESS_STATE=shift-stores`) |
+
+- ⚠️ **The batch-1 legs are NOT in `gate.sh`** (`loadcarry`, `hiatusblank`, `hostile`, `sharecopy2`,
+  `loadfail`, `snapoff`) — the "376/0" never included them, although FIX-PLAN §1 says a leg guarding
+  the save format, an export or a date is wired in. Batch 2 adds one generic block to `gate.sh` for
+  every case-style leg (`{test, cases:[{id,pass}]}`), batch 1's included.
+- **Pane verification recipe:** `.claude/launch.json` → `cal-harness-8390` runs `srv.js` on the repo
+  root, so `http://localhost:8390/dist/index.html?state=<fixture>` opens the BUILD with a fixture
+  restored through the inline path, in the real browser pane, with nothing injected (no `test=`).
+
 ### ⛔ 24 Sep 2026 (evening): DEPLOYMENT-READINESS AUDIT DONE — verdict NO-GO until six must-fix items land
 
 ⭐ **25 Sep 2026: [`FIX-PLAN.md`](FIX-PLAN.md) is the plan for fixing EVERY audit finding, with the owner's nine
@@ -31,9 +51,10 @@ identically. Each fix has a leg red on the pre-fix build: `loadcarry`, `hiatusbl
   three (owner-confirmed). `releases/v1.3.0.html` byte-identical to the build
   (sha256 `09fc6b38…`). `tests/fixtures/v1.3.0-saved.sptcal` is a real save (62 ids), round-trips
   with 0 clipped cells. `npm run check` 12/12.
-- ⏭ **NEXT: the owner decides whether to PUSH v1.3.0** (deploys to the live site — separate approval,
-  §5a). After an approved push, verify the live URL is byte-identical to `dist` (~40–60 s) and bind
-  the CI. Then continue to batch 2.
+- ✅ **v1.3.0 is LIVE (pushed 28–29 Sep 2026, owner-approved).** `origin/main` = `8f1d621`; the live file
+  is byte-identical to the gated build (sha256 `09fc6b38…`, 1,290,333 bytes; full gate 376/0).
+  *(Corrected 29 Sep 2026: the bullet above said "committed locally, NOT pushed", and this one said the
+  push was still to be decided — both stale once the push went out.)*
 - ⏭ **Then batches 2–5** (FIX-PLAN §4–§7). Batch 2 = M-4 (day overrides by shoot-day, R2), M-6
   (conflict detection, R4), M-7 (holidays to 2031 — owner ruled 2031 not 2036), M-10 (auto-notes
   rewritten on shift, R5), M-11, M-12, M-13, M-14, M-15 and their lows.

@@ -481,6 +481,8 @@ a description — it reads as a distinction while distinguishing nothing.
 A shift that moved only the dates would leave every note behind on the old calendar date, silently
 detached from the phase it was written for. `shiftCalendar` therefore also re-keys the week-keyed
 stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `monthCursor`.
+Since v1.3.1 (audit M-12) **`rowHeightsByWeek` travels with its week's note** — same stay-or-go
+predicate as `noteFontSize` — so a row dragged tall for a long note is not left behind on the old week.
 
 | Stays put | Why |
 |---|---|

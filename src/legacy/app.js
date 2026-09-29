@@ -12907,6 +12907,12 @@ export function initLegacyApp() {
     // No merge for colours: a cell has one fill, and the note that stayed owns it.
     noteColors  = shiftKeyedMap(noteColors, days, isPinnedWeek);
     noteFontSize = shiftKeyedMap(noteFontSize, days, isPinnedWeek);
+    // A hand-dragged row height is almost always there FOR the week's note -- a row is dragged
+    // taller to show a long one -- so it makes the note's stay-or-go decision. Left behind (audit
+    // M-12), the note moved into a 20px row and was cut off in the grid, Excel and the PDF, while an
+    // empty tall row sat on the old week. syncRowHeights() rebuilds the render-facing rowHeights from
+    // this map on the update() that refreshAfterRestore() runs below.
+    rowHeightsByWeek = shiftKeyedMap(rowHeightsByWeek, days, isPinnedWeek);
     // A band's label, colour and text size have to make the SAME stay-or-go decision the band
     // made in steps 1-2, or they walk off it: a locked band would revert to the default red
     // "Holiday Hiatus" while "Christmas Break" ended up on a week with no band at all. Note this
