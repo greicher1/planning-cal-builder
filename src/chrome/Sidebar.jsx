@@ -65,14 +65,17 @@ export function ShowInfoCard() {
           <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
                        min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
         </Box>
+        {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
+            what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
+            clamps on blur too. */}
         <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
-                     min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+                     min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
             switching back must restore the previous dates exactly, so neither mode's inputs are
             ever discarded (BLOCKS-PLAN §3). */}
         <Box className="show-mode-blocks">
           <NumberInput id="num-blocks" label="Number of Blocks" placeholder="e.g. 5"
-                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+                       min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         </Box>
         <Box className="show-mode-blocks">
           <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"

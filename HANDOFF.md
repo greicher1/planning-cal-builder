@@ -16,6 +16,15 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 |---|---|---|
 | M-12 row heights follow a shift | ✅ done | `rowheight` (`HARNESS_STATE=shift-stores`) |
 | M-14 no empty year block after a late-December last week | ✅ done | `yearblock` (no fixture) |
+| M-15 caps: 200 episodes/blocks, hiatus weeks ≤ `MAX_WEEKS` before loops | ✅ done | `caps` |
+
+- ⭐ **Writing a value into a Mantine `NumberInput` from the engine (learned on M-15).** Use the
+  PROTOTYPE value setter (`capCountField()`), never `el.value =`. The engine's listener is bound on the
+  input itself and runs BEFORE React's root listener, so a prototype-set value is what React then reads
+  as the typed value and adopts; a plain assignment updates React's tracker, React sees "no change", and
+  the component's internal state keeps the old number to write back on blur. Verified by typing in the
+  pane. ⚠️ In the pane, `cmd+a` does not select an input's text — use `triple_click` before retyping, or
+  a "can't lower the count" false alarm follows (it happened).
 
 - ⚠️ **The batch-1 legs are NOT in `gate.sh`** (`loadcarry`, `hiatusblank`, `hostile`, `sharecopy2`,
   `loadfail`, `snapoff`) — the "376/0" never included them, although FIX-PLAN §1 says a leg guarding

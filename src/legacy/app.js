@@ -5665,7 +5665,12 @@ export function initLegacyApp() {
     // Shared by both kinds below: claim every week `name`'s row covers, but only where nothing
     // has hand-edited the band since we last claimed it.
     const applyRange = (name, startStr, weeksStr, makeKey) => {
-      const weeks = parseInt(weeksStr, 10);
+      // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
+      // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
+      // it: a named hiatus typed as 999999 weeks wrote ~550,000 hiatusTexts keys -- a 28 MB snapshot,
+      // copied into the crash backup and every undo step. A hiatus longer than the whole grid can
+      // show only ever names weeks nobody can see, so the cap loses nothing.
+      const weeks = Math.min(parseInt(weeksStr, 10), MAX_WEEKS);
       const startDate = startStr && parseDateUTC(startStr);
       if(!startDate || !(weeks > 0)) return;
       const monday = mondayOf(startDate);
@@ -6741,11 +6746,32 @@ export function initLegacyApp() {
     return (Number.isFinite(v) && v > 0) ? v : '';
   }
 
+  // ⛔ THE CEILING ON EPISODES AND ON BLOCKS (audit M-15, FIX-PLAN §0 defaults: 200). Nothing
+  // guarded either count, so a typo of 8000 built 8000 rows -- and 8000 entries in the snapshot, the
+  // crash backup and every undo step -- before any other limit could refuse the calendar. 200 is far
+  // past any real season and far short of hurting.
+  const MAX_SHOW_ROWS = 200;
+  // Read a count field, clamping it to MAX_SHOW_ROWS AND WRITING THE CLAMP BACK, so the field never
+  // claims a count the list does not have. ⚠️ Through the PROTOTYPE value setter, not `el.value =`:
+  // these are Mantine NumberInputs, and a plain assignment would update React's value tracker, so
+  // when React's own handler runs later in the same input event it would see "no change" and leave
+  // the component's internal value at 8000 -- to be written back over the field on blur. The engine's
+  // listener is bound on the input itself, so it runs BEFORE React's root listener: React then reads
+  // "200" as the typed value and adopts it (t/lib.js's set() relies on the same mechanism).
+  function capCountField(id){
+    const el = document.getElementById(id);
+    const n = parseInt(el ? el.value : '', 10);
+    if(!(Number.isFinite(n) && n > MAX_SHOW_ROWS)) return n;
+    const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    if(d && d.set) d.set.call(el, String(MAX_SHOW_ROWS)); else el.value = String(MAX_SHOW_ROWS);
+    return MAX_SHOW_ROWS;
+  }
+
   // Keep the episode list in step with Show Info: grow/shrink to "Number of Episodes", and
   // refresh any name/day value the user hasn't personally overridden.
   // Returns the names of any user-edited episodes that were discarded, so the caller can warn.
   function syncEpisodesFromShowInfo(){
-    const wanted = parseInt(document.getElementById('num-episodes').value, 10);
+    const wanted = capCountField('num-episodes');
     const dropped = [];
     if(Number.isFinite(wanted) && wanted > 0){
       while(episodeDefs.length < wanted){
@@ -6776,7 +6802,7 @@ export function initLegacyApp() {
   // BOTH modes, like the episode sync -- the list must be right the moment someone switches.
   // Returns the names of hand-edited blocks a lowered count discarded, so the caller can warn.
   function syncBlocksFromShowInfo(){
-    const wanted = parseInt((document.getElementById('num-blocks') || {}).value || '', 10);
+    const wanted = capCountField('num-blocks');   // capped at MAX_SHOW_ROWS, like the episode count
     const dropped = [];
     if(Number.isFinite(wanted) && wanted > 0){
       while(blockDefs.length < wanted){
@@ -12889,7 +12915,8 @@ export function initLegacyApp() {
       const startEl = row.querySelector('.hiatus-start');
       const d = startEl && startEl.value && mondayOf(parseDateUTC(startEl.value));
       if(!d) return;
-      const wks = Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1);
+      // Capped at MAX_WEEKS like the name sync (audit M-15): a typo'd 999999 must not loop a million times.
+      const wks = Math.min(MAX_WEEKS, Math.max(1, parseInt((row.querySelector('.hiatus-weeks')||{}).value, 10) || 1));
       for(let i=0;i<wks;i++) stayingHiatusWeeks.add(isoOf(addDays(d, i*7)));
     };
     document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{

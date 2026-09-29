@@ -29,6 +29,26 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Runaway counts are capped before they can freeze the tab (audit M-15, L-25)
+
+**What was wrong.** Nothing bounded Number of Episodes or Number of Blocks: a typo of 8000 built 8000
+rows (and 8000 entries in the snapshot, the crash backup and every undo step) before any guard. A
+named hiatus with a typo'd week count was worse: the sidebar name sync wrote one `hiatusTexts` key per
+week *before* the 600-week limit refused the calendar — measured at 550,353 keys, a 28.6 MB snapshot.
+
+**The fix** (not frozen; no save-format key changed):
+- Episodes and blocks are capped at **200** (FIX-PLAN §0 default). The engine clamps the count as it
+  syncs the list and writes the clamp back into the field, so the field never claims rows the list
+  does not have; the two `NumberInput`s also carry `max={200}`.
+- A hiatus's weeks are clamped at `MAX_WEEKS` (600) before the name-sync loop and the shift tools'
+  locked-hiatus loop. The calendar itself is still refused with the "typo" message, as before.
+
+**Verified:** new leg `caps`: 8000 episodes → 200 rows and a field reading 200; 8000 blocks → 200
+blocks; an ordinary 12 is untouched; a named 999,999-week hiatus writes 600 keys and a 35.9 KB
+snapshot (was 550,353 keys / 28.6 MB), while the calendar is still refused. C1, C3 and C4 fail on
+v1.3.0. Also typed by hand in the browser pane: "8000" shows 200 with 200 rows before and after blur,
+and selecting it and typing 12 gives 12 rows.
+
 ### Unreleased — No empty year block when the last week starts in late December (audit M-14)
 
 **What was wrong.** The full-year padding in `computeSchedule` asked which year the schedule's final
