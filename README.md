@@ -74,6 +74,8 @@ All 27 cases pass. Before the month-view edit below, 23 passed and the 4 mark ca
 Full gate 376/0: waterfall PDF, every Excel part and the month PDF on all six calendars are
 byte-identical. `overrides` 20/20, `npm run check` 12/12. New fixture
 `tests/fixtures/dayoverrides-onhalf.sptcal`, cut from the running app by the leg itself.
+**Re-gated on top of v1.3.1: 521/0** (v1.3.1's 494 checks plus `halfworked`, which is now part of
+`gate.sh`).
 
 **The month view marks it: ⛔ a frozen edit to `renderMonthView`, in its own commit, for the
 owner's review.** A half-worked day shows both existing marks at once: the worked-day tint with its
@@ -94,7 +96,157 @@ bottom half, like any half day.
   - four Production pills gaining one appended half-slice layer, landing on exactly those days.
 - Clicked through by hand in the browser pane.
 
-### Unreleased — An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
+## v1.3.1 — dates and data: the deployment-readiness audit, batch 2 (29 Sep 2026)
+
+The second batch of fixes from [`AUDIT-REPORT.md`](AUDIT-REPORT.md), per [`FIX-PLAN.md`](FIX-PLAN.md) §4:
+nine medium findings and their lows, each an entry below with its proof, and each with a harness leg
+that fails on v1.3.0. The legs now run inside `gate.sh`: batch 1's six never had, so they are wired in
+too. One approved frozen edit (M-13, `notesForWaterfallDate`); the month-PDF gate stayed
+byte-identical, so no baseline moved. No save-format key changed; every saved calendar keeps opening.
+
+Headline changes:
+- Half days, days off and worked days travel with the shoot, by shoot-day number, on every tool that
+  moves it.
+- A shift rewrites edited auto-notes and carries dragged row heights.
+- The tools respect Snap to Mon being off.
+- Holiday data runs 2024–2031, with a notice beyond that.
+- Month-only holidays survive an edited note.
+- Runaway counts are capped.
+- A file someone else saved is never silently overwritten: autosave pauses and Save asks.
+- Each page keeps its own crash backup.
+
+### A file changed on disk is never silently overwritten; one crash backup per page (audit M-6, SAVE-7, L-18, SAVE-14; owner ruling R4)
+
+**What was wrong.** Save, and autosave every 10 minutes, wrote straight back through the file handle
+without checking whether the file had changed since it was loaded. With two windows on one file, or
+two people on a shared or synced drive, whoever saved first lost their work with no message on either
+side. Three smaller problems sat alongside it:
+- There was one crash-backup slot for the whole site, so tab B's Save deleted tab A's recovery copy.
+- An autosave tick committed and closed a note editor the user was typing in.
+- Loading a file reported "unsaved" until an IndexedDB round-trip finished.
+
+**The fix** (not frozen; no save-format change):
+- The linked file is **stamped** (`lastModified`, `size`) when it is read and after each of our own
+  writes. Every Save and autosave compares first.
+  - On a mismatch **autosave pauses**; the status line reads *"File changed on disk — autosave
+    paused"*.
+  - **Save asks** (R4, "pause and ask"): *Overwrite*, *Load newer version* (re-opens the file as it
+    now is, discarding the edits here), or *Save a copy…* (a new file; theirs is left untouched).
+    Cancel writes nothing. The app's dialogs gained a `choice` kind for this.
+- **One crash-backup slot per page load** (`unsavedBackup:<id>`). A save deletes only its own slot.
+  Recovery offers the newest backup any page left behind, backs it up again under its own slot, and
+  retires the old one. A v1.3.0 backup (the old single slot) is still recoverable.
+- An autosave tick is skipped while a note editor is open (L-18).
+- Loading marks the calendar clean before the IndexedDB bookkeeping, not after (SAVE-14).
+
+**Verified:** new leg `conflict` (9 cases; the fake file handle now keeps a stable `lastModified` and
+can play "someone else saved it"): Save asks and writes nothing until a choice is made; Cancel,
+Overwrite, Load newer and Save a copy each do exactly that; autosave pauses on a changed file; an
+open note editor survives a tick and autosave resumes once it closes. New leg `backupslots` (5
+cases): recovery offers the newest slot and retires it, leaving an older one alone, and a Save
+deletes only this page's slot. On v1.3.0 8 of the 9 `conflict` cases and 4 of the 5 `backupslots`
+cases fail. Also checked in the browser pane with real clicks on Save and on the dialog: *Load newer
+version* loaded the other copy with no write, and *Overwrite* wrote ours once. (The dialog is wider
+now, because Overwrite had wrapped onto its own line.) Every batch-1 and batch-2 leg still passes.
+
+### Month-view holidays stay visible under an edited note, and are never baked into one (audit M-13, MONTH-6; owner ruling R3)
+
+**What was wrong.** Holidays are month-view-only by default. Editing a week's note in the waterfall
+made the week an override, and the month view then showed only the override's lines, so that week's
+holidays (Independence Day, Thanksgiving) vanished from the month view and the month PDF. The reverse
+also happened: editing a holiday week's note *from* the month view saved the holiday line into the
+waterfall note, where it then printed in the waterfall and in Excel.
+
+**The fix.**
+- ⛔ **Frozen edit, owner-approved (R3)**, in `notesForWaterfallDate`, which the month view and the
+  month PDF share: beneath an override, a holiday the month view shows and the waterfall does not is
+  still placed on its day, unless the override's text already carries that exact line (shown once,
+  never twice). A holiday visible in both views was in the waterfall editor's text, so an override
+  that dropped it did so on purpose and it stays dropped. Weeks with no override are untouched.
+- Not frozen, in the month-view note popover: month-only holiday lines are left out of what is saved
+  into the waterfall note (the month view puts them back anyway), and a waterfall note opened there
+  and left unchanged is not written at all. Before, the day pin froze an untouched auto-note into an
+  override.
+
+**Before/after (gate 10 and an A/B):** the `monthprint` gate's six calendars have no edited notes, and
+their printed documents are **byte-identical** to the baseline — no re-cut. On the affected fixture
+`monthnotes.sptcal`, `monthcmp.py ab` shows exactly the intended change: the Independence Day blocks
+on 7/3 and 7/4 (June and July pages) and Thanksgiving + Day After on 11/26–27. Three week rows grow
+(116→129 px twice, 78→97 px), and **every month still prints on one sheet (16 → 16)** with the same
+page box.
+
+**Verified:** new leg `monthnotes` (7 cases): Independence Day under the edited 6/29 note,
+Thanksgiving under the 11/23 override, Memorial Day once under the old baked note, and a month-view
+edit of Labor Day week saving "Crew BBQ" alone while the month view shows both lines. N1, N2, N4
+and N5 fail on v1.3.0. Also clicked and typed in the browser pane: the waterfall cell reads "Crew
+BBQ", and the month view shows it under "Labor Day 9/7/26".
+
+### Union-holiday data now covers 2024–2031, and a shoot outside it says so (audit M-7)
+
+**What was wrong.** The holiday table covered 2026–2030 only, in every region. A shoot running into
+2031, or starting in 2025, skipped no holidays at all — the wrap came out early and the Holidays card
+listed nothing — with no notice.
+
+**The fix** (data and one sidebar line; not frozen, no save-format change):
+- `HOLIDAYS` is regenerated from the rules for **2024–2031** (owner, 25 Sep 2026: "only go up to
+  2031"). ⭐ **2026–2030 is identical to what shipped, row for row, in all 15 regions**: the new
+  emitter reproduces the old 2026–2030 block byte for byte, and a set-and-order difference of the
+  new block against it is empty. Only 2024, 2025 and 2031 rows are added.
+- A rule can now record the year it began, and **Juneteenth does**: it joined the IATSE lists on
+  1 Jan 2025, so 2024 carries none (in either US list).
+- A line on the Production row when shoot days fall outside the covered years, e.g. *"Holiday dates
+  are only known for 2024–2031, so the 20 shoot days in 2032 skip no holidays. Add any that apply as
+  custom holidays (Settings)."* The span is read off the region's own data, so a later regeneration
+  moves it with no code change. No region chosen → no line.
+- `tools/gen_holidays.py` writes the engine's exact block (`holidays.app.js`) so a regeneration is a
+  splice, not a transcription; `tools/validate_holidays.py` checks every generated year against the
+  engine and says CLEAN (it had pointed at another machine and misread `\'` names).
+- ⚠️ 2024–2025 and 2031 apply each region's current rules, except where a rule records its start. A
+  past year under an older agreement may differ; check before relying on a 2024–2025 wrap.
+
+**Verified:** new leg `holidays2031`: a shoot from 10/7/30 now skips and lists New Year's Day and MLK
+Day 2031 (wrap 1/29/31 → 1/31/31); a 2024 shoot lists Independence and Labor Day 2024 but not
+Juneteenth; a 2025 shoot lists Juneteenth 2025; a shoot into 2032 raises the notice; no region, no
+notice. H1–H4 fail on v1.3.0. `validate_holidays.py` CLEAN (15/15, 2024–2031);
+`tests/verify_migration.mjs` 105/105. (That test had been unrunnable since v1.3.0, because
+`applyStateSnapshotAtomically` now sits above the migration and emptied its source slice. Fixed to
+brace-match the function.)
+
+### The shift and rebuild tools respect Snap to Mon being off, and four edges (audit M-11, L-13, L-14, L-15, L-24)
+
+**What was wrong.**
+- **M-11:** Rebuild From ignored a phase's Snap to Mon setting and moved a Wednesday start back to
+  Monday — for Production that pulled the first shoot day and the wrap earlier, silently. Its prefill,
+  Anchor To's, and every tool's phase list quoted the Monday too.
+- **L-24** (listed for batch 1 but not done then): "Start after previous phase" chained off a snap-off
+  phase that ends mid-week started the next phase on that Wednesday, so a *snapped* next phase snapped
+  back to the Monday and overlapped it by two days, adding a grid column.
+- **L-13:** Anchor To "ends by" treated a phase as ending on Sunday, so a Friday deadline cost a week.
+- **L-15:** Rebuild From said "Nothing to place" after it had already moved the pinned phase and banked
+  an undo step.
+- **L-14:** a shift that lands an undated note on an all-phase hiatus week hid it (the band covers the
+  notes column in the waterfall, Excel and the PDF) with no word.
+
+**The fix** (the tools only — not frozen, no save-format change):
+- A pinned phase whose Snap to Mon is off keeps the typed day in both Rebuild directions; the phases
+  rebuilt around it keep their Monday alignment. Prefills and phase lists quote a snap-off phase's real
+  start.
+- One chaining rule, now shared by "Start after previous phase", Close all gaps and Rebuild forwards
+  (`chainedStart`): the day after the previous phase ends, or the next Monday if the chained phase is
+  snapped — never earlier, so never overlapping — then past any all-phase hiatus. Identical to before
+  on an all-snapped calendar.
+- "Ends by" measures a phase's last workday (Production: its last shoot day).
+- Rebuild checks there is something to place before writing anything.
+- The shift result line names notes that moved under a hiatus band.
+
+**Verified:** new leg `snaptools` (14 cases) on `dayoverrides.sptcal`: the Rebuild prefill reads Wed
+4/8; forward from it keeps 4/8 and chains Prod Prep to Mon 5/25; backwards pinning Wed 4/15 keeps it;
+"Start after previous" gives 5/25 for a snapped phase and Wed 5/20 for a snap-off one; "ends by"
+prefills Fri 6/26 and a Friday deadline costs nothing; Rebuild with nothing to place moves nothing; the
+hiatus-note line appears; each step undoes. On v1.3.0 9 of the 14 fail. Also clicked through in the
+browser pane: Rebuild From ▸ Pre Prep ▸ Work forwards → Pre Prep 4/8 (still snap-off), Prod Prep 5/25.
+
+### An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
 
 **What was wrong.** Adding a line to an auto-note ("Start Principal Photography 6/29/26" + "Table
 read Thu") stores the whole text as a literal override. A shift then moved the override to its new
@@ -116,7 +268,7 @@ v1.3.0 A2–A4 fail. The leg also caught a bug in the first version, now fixed: 
 holidays the waterfall and month auto texts are identical, and preferring the month's wrote the next
 week's month-only holidays into a waterfall note. Also typed and clicked by hand in the browser pane.
 
-### Unreleased — Half days, days off and worked days move with the shoot, by shoot-day number (audit M-4, owner ruling R2)
+### Half days, days off and worked days move with the shoot, by shoot-day number (audit M-4, owner ruling R2)
 
 **What was wrong.** The same plan got a different wrap depending on which tool moved it. Shift All
 moved Production's day overrides by calendar days while holidays and locked hiatuses stayed put — so
@@ -135,7 +287,7 @@ and Rebuild backwards searches Production's latest start with the marks where th
 date by hand is not a mover, and leaves the marks on their dates as before.
 - A worked holiday can land on an ordinary shoot day, where "Work this day" does nothing. It is kept
   (inert — it can never mark a wrong day) unless that day carries its own mark, and the tool's result
-  line says so: *A worked-day mark no longer falls on a weekend or holiday.*
+  line says so: *A "Work this day" mark no longer falls on a weekend or holiday.*
 - ⚠️ Half days and days off always come back exactly when a move is reversed. A worked day off need
   not: the moved shoot may have no weekend or holiday where the original did. Undo always restores
   exactly.
@@ -148,7 +300,7 @@ phase" re-place them by shoot-day number too; every step is one undo. On v1.3.0 
 Also dragged with a real pointer in the browser pane: 7/6 → 11/3/26 with the July page marking the
 10th half, the 20th off and the 25th worked.
 
-### Unreleased — Runaway counts are capped before they can freeze the tab (audit M-15, L-25)
+### Runaway counts are capped before they can freeze the tab (audit M-15, L-25)
 
 **What was wrong.** Nothing bounded Number of Episodes or Number of Blocks: a typo of 8000 built 8000
 rows (and 8000 entries in the snapshot, the crash backup and every undo step) before any guard. A
@@ -168,7 +320,7 @@ snapshot (was 550,353 keys / 28.6 MB), while the calendar is still refused. C1, 
 v1.3.0. Also typed by hand in the browser pane: "8000" shows 200 with 200 rows before and after blur,
 and selecting it and typing 12 gives 12 rows.
 
-### Unreleased — No empty year block when the last week starts in late December (audit M-14)
+### No empty year block when the last week starts in late December (audit M-14)
 
 **What was wrong.** The full-year padding in `computeSchedule` asked which year the schedule's final
 week *ends* in (its Sunday), while `computeYearBlocks` files every week under the year of its
@@ -184,7 +336,7 @@ exports lose the empty block — the intended change.
 block (both gave two on v1.3.0); ending 12/23/30 (one block) and 1/6/31 (two blocks) are unchanged
 controls; 0 clipped cells.
 
-### Unreleased — A dragged row height travels with its note on a shift (audit M-12)
+### A dragged row height travels with its note on a shift (audit M-12)
 
 **What was wrong.** `shiftCalendar` re-keyed the week-keyed note stores (`userNotes`, `noteColors`,
 `noteFontSize`) but not `rowHeightsByWeek`. A row dragged taller to show a long note therefore stayed

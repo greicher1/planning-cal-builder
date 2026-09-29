@@ -71,10 +71,19 @@ they are a working demonstration against the live site. They ship in the same re
 | `month-lanecap.sptcal` | more than 60 lanes in one day (L-16) |
 | `hdr-cut.sptcal` | long, formatted header lines that the Excel trimmer must shave without cutting a `&"font"` code (M-9) |
 
+### Version fixtures (one per cut, CLAUDE.md)
+
+| File | What it is |
+|---|---|
+| `v1.0.0-saved.html` | a genuine pre-`.sptcal` calendar, saved by the v1.0.0 build (the `restore` leg, gate 4) |
+| `v1.3.0-saved.sptcal` | a real Save from the v1.3.0 build: `T.buildFixture()`'s reference calendar, 62 `fields.byId` ids |
+| `v1.3.1-saved.sptcal` | the same calendar saved by the v1.3.1 build (29 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.3.0's — batch 2 changed no save-format key. Minted with `t/mintfixture.js` (a real Save click through a recording handle; not a gate leg), and the `autonote` leg passes 9/9 on it |
+
 ### Batch 2: dates and data (FIX-PLAN §4, v1.3.1)
 
 | File | Use |
 |---|---|
+| `monthnotes.sptcal` | `v1.3.0-saved.sptcal` in the month view with three waterfall notes: an undated edit of the 6/29 week's auto-note (+ "Table Read"), a plain override on Thanksgiving week, and a 5/25 note carrying "Memorial Day 5/25/26" as the old month editor baked it. Month-only holidays must still show beneath the first two, and the third's only once (M-13, leg `monthnotes`); also the calendar the M-13 month-PDF A/B was taken on |
 | `shift-stores.sptcal` | `v1.3.0-saved.sptcal` plus an undated note on the week of 8/3/26 in a 60px dragged row, and a note pinned to 9/10/26 in a 45px row. A shift must move the first note's row height with it and leave the pinned one's (M-12, leg `rowheight`) |
 
 ### Parser robustness (these already PASS; keep them passing through the loader changes)

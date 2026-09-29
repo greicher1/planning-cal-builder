@@ -14,6 +14,10 @@
 //
 // Escape and outside-click both CANCEL a confirm — for a destructive decision, every ambiguous
 // dismissal must be the safe answer. For an alert they acknowledge.
+//
+// kind:'choice' (29 Sep 2026, audit M-6): { message, choices:[{value, label, danger?}] } resolves the
+// chosen `value`, or null for Cancel / Escape / outside-click -- again the safe answer, since the one
+// caller (a file changed on disk) writes nothing on null.
 import { useState, useLayoutEffect, useCallback, useRef } from 'react'
 import { Modal, Button, Text, Group } from '@mantine/core'
 import { installChrome } from './bridge.js'
@@ -45,12 +49,16 @@ export function Dialogs() {
   if (!dlg) return null
 
   const isConfirm = dlg.kind === 'confirm'
+  const isChoice = dlg.kind === 'choice'
   return (
     <Modal
       opened
-      onClose={() => finish(!isConfirm)}
+      onClose={() => finish(isChoice ? null : !isConfirm)}
       withinPortal={false}
       centered
+      /* A choice carries up to four buttons; at the default width the last one wrapped onto a line
+         of its own (seen in the pane, 29 Sep 2026). */
+      size={isChoice ? 'lg' : undefined}
       radius="lg"
       shadow="xl"
       title={dlg.title || (isConfirm ? 'Are you sure?' : 'Notice')}
@@ -61,6 +69,19 @@ export function Dialogs() {
       <Text size="sm" style={{ whiteSpace: 'pre-line' }}>
         {dlg.message}
       </Text>
+      {isChoice ? (
+        <Group justify="flex-end" mt="lg" gap="sm">
+          <Button variant="default" size="xs" onClick={() => finish(null)} data-autofocus>
+            {dlg.cancelLabel || 'Cancel'}
+          </Button>
+          {(dlg.choices || []).map((c) => (
+            <Button key={c.value} variant={c.danger ? 'filled' : 'light'} color={c.danger ? 'danger' : undefined}
+                    size="xs" onClick={() => finish(c.value)}>
+              {c.label}
+            </Button>
+          ))}
+        </Group>
+      ) : (
       <Group justify="flex-end" mt="lg" gap="sm">
         {isConfirm && (
           <Button variant="default" size="xs" onClick={() => finish(false)} data-autofocus>
@@ -77,6 +98,7 @@ export function Dialogs() {
           {dlg.confirmLabel || (isConfirm ? 'Continue' : 'OK')}
         </Button>
       </Group>
+      )}
     </Modal>
   )
 }

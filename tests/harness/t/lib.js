@@ -231,10 +231,18 @@ window.__T = (function(){
   //                  {file, text} instead of failing, and later getFile() calls return the last text
   //                  written -- so a leg can assert exactly what Save / autosave put in WHICH file.
   //   opts.text   -- use this text as the file's content instead of fetching url.
+  //   opts.control -- an object; it gets touch(text), which rewrites the file AS IF SOMEONE ELSE HAD
+  //                  (another window, a colleague, a sync client): new content, a later lastModified.
+  //                  Added 29 Sep 2026 for the M-6 conflict leg.
   // Existing two-argument callers are unchanged: no createWritable, content fetched from url.
+  //
+  // ⚠️ lastModified is STABLE: getFile() reports the time of the last write, like a real file. It
+  // used to mint a new File on every call with lastModified = now, which would read as "changed on
+  // disk" on every single check once the app started comparing (audit M-6).
   async function openViaFakePicker(url, name, opts){
     opts = opts || {};
     var txt = (typeof opts.text === 'string') ? opts.text : await (await fetch(url)).text();
+    var mtime = Date.now() - 60000;
     var called = false;
     var handle = {
       name: name,
@@ -242,8 +250,13 @@ window.__T = (function(){
       queryPermission: async function(){ return 'granted'; },
       requestPermission: async function(){ return 'granted'; },
       isSameEntry: async function(other){ return other === handle; },
-      getFile: async function(){ return new File([txt], name, {type:'text/html'}); }
+      getFile: async function(){ return new File([txt], name, {type:'text/html', lastModified: mtime}); }
     };
+    if(opts.control){
+      opts.control.handle = handle;
+      opts.control.touch = function(text){ txt = text; mtime = Math.max(Date.now(), mtime + 1000); };
+      opts.control.text = function(){ return txt; };
+    }
     if(opts.writes){
       handle.createWritable = async function(){
         var parts = [];
@@ -251,7 +264,7 @@ window.__T = (function(){
           write: async function(c){
             parts.push(typeof c === 'string' ? c : (c instanceof Blob ? await c.text() : String((c && c.data) || c)));
           },
-          close: async function(){ txt = parts.join(''); opts.writes.push({file: name, text: txt}); }
+          close: async function(){ txt = parts.join(''); mtime = Math.max(Date.now(), mtime + 1000); opts.writes.push({file: name, text: txt}); }
         };
       };
     }
@@ -353,7 +366,9 @@ window.__T = (function(){
                 return {
                   get: function(k){ return op(function(){ return m.get(k); }); },
                   put: function(v, k){ m.set(k, v); return op(function(){ return k; }); },
-                  delete: function(k){ m.delete(k); return op(function(){ return undefined; }); }
+                  delete: function(k){ m.delete(k); return op(function(){ return undefined; }); },
+                  // Per-tab crash-backup slots are found by key prefix (audit SAVE-7, 29 Sep 2026).
+                  getAllKeys: function(){ return op(function(){ return Array.from(m.keys()); }); }
                 };
               };
               later(function(){ later(function(){ if(tx.oncomplete) tx.oncomplete({target: tx}); }); });
@@ -402,11 +417,27 @@ window.__T = (function(){
     });
     return n;
   }
+  // The newest crash backup in the in-memory IndexedDB, whatever its slot: {key, at, state, fileName}.
+  // ⚠️ Since v1.3.1 each page load writes its OWN slot, 'unsavedBackup:<id>' (audit SAVE-7), so a
+  // leg must not read the old fixed 'unsavedBackup' key -- it is only ever read now, never written.
+  function latestBackup(){
+    var db = window.__MEMIDB && window.__MEMIDB['spt-planning-cal'];
+    var m = db && db.handles;
+    if(!m) return null;
+    var best = null;
+    m.forEach(function(v, k){
+      if(typeof k === 'string' && k.indexOf('unsavedBackup') === 0 && v && v.state && (!best || (v.at || 0) > (best.at || 0))){
+        best = {key: k, at: v.at, state: v.state, fileName: v.fileName};
+      }
+    });
+    return best;
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
-          memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates};
+          memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
+          latestBackup:latestBackup};
 })();

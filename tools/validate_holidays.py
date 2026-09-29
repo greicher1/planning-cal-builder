@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Diff generated dates against the HOLIDAYS object already in src/legacy/app.js.
-Every difference must be explained. Silent drift is the failure mode this prevents."""
+Every difference must be explained. Silent drift is the failure mode this prevents.
 
-import json, re, sys
+Run it from the directory gen_holidays.py wrote holidays.json into:
+    python3 tools/gen_holidays.py && python3 tools/validate_holidays.py
+It compares every year the generator produced (holidays.json's meta.years), region by region.
+(Fixed 29 Sep 2026: it pointed at another machine's checkout and only looked at 2026-2029.)"""
 
-APP = "/home/claude/planning-cal-builder/src/legacy/app.js"
+import json, os, re, sys
+
+APP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "legacy", "app.js")
 
 src = open(APP, encoding="utf-8", errors="replace").read()
 start = src.index("const HOLIDAYS = {")
@@ -20,15 +25,16 @@ block = src[start:i + 1]
 existing = {}
 for m in re.finditer(r"'([A-Z][A-Z-]*)':\s*\[(.*?)\n\s*\],", block, re.S):
     key, body = m.group(1), m.group(2)
-    rows = re.findall(r"date:'(\d{4}-\d{2}-\d{2})',\s*name:\s*(['\"])(.*?)\2", body)
-    existing[key] = {(d, n) for d, _, n in rows}
+    # Names are single-quoted with \' escapes ('New Year\'s Day'); a lazy (.*?) stopped at the
+    # escaped quote, so every such name read as "New Year\" and the diff reported them all.
+    rows = re.findall(r"date:'(\d{4}-\d{2}-\d{2})',\s*name:\s*'((?:[^'\\]|\\.)*)'", body)
+    existing[key] = {(d, n.replace("\\'", "'")) for d, n in rows}
 
 gen = json.load(open("holidays.json"))
-years = {str(y) for y in range(2026, 2030)}     # app only ships 2026-2029
+y0, y1 = gen["meta"]["years"]
+years = {str(y) for y in range(y0, y1 + 1)}
 
-MAP = {"US-GEN": "US-GEN", "US-NY": "US-NY", "CA-BC": "CA-BC", "CA-ON": "CA-ON",
-       "CA-QC": "CA-QC", "CA-AB": "CA-AB", "CA-MB": "CA-MB", "CA-NS": "CA-NS",
-       "UK": "UK-EW"}
+MAP = {k: k for k in gen["regions"]}      # the app keys its regions exactly as the generator does
 
 clean = True
 for old_key, new_key in MAP.items():
@@ -41,7 +47,7 @@ for old_key, new_key in MAP.items():
     only_app = sorted(have - want)
     only_gen = sorted(want - have)
     if not only_app and not only_gen:
-        print(f"✓  {old_key:7s} → {new_key:7s}  identical ({len(have)} rows, 2026-2029)")
+        print(f"✓  {old_key:7s} → {new_key:7s}  identical ({len(have)} rows, {y0}-{y1})")
         continue
 
     clean = False

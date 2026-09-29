@@ -51,8 +51,7 @@ window.addEventListener('load', function () { (async function () {
   async function snap(){
     var got = null;
     await T.until(function () {
-      var m = window.__MEMIDB && window.__MEMIDB['spt-planning-cal'] && window.__MEMIDB['spt-planning-cal'].handles;
-      got = m && m.get('unsavedBackup');
+      got = T.latestBackup();    // the page's own slot (per-page since v1.3.1)
       return !!(got && got.state && got.at > lastAt);
     }, 'a fresh crash backup', 150, 100);
     lastAt = got.at;

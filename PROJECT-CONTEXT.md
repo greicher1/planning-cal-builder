@@ -165,6 +165,15 @@ Using local-time `Date` math here causes off-by-one-day bugs that are painful to
 This was rebuilt from primary union-contract sources. **The data is generated from rules, not
 hand-transcribed — regenerate it rather than editing dates by hand.**
 
+**Years covered: 2024–2031** (v1.3.1; audit M-7). `python3 tools/gen_holidays.py` (default range) writes
+`holidays.app.js` — the engine's `HOLIDAYS` block exactly, per-region source line and all — to splice
+over the block in `src/legacy/app.js`; `python3 tools/validate_holidays.py`, run in the same directory,
+then diffs every generated year against the engine and must say CLEAN. A rule may carry
+`{"since": YEAR}` for a day an agreement added. ⚠️ 2024–2025 and 2031 otherwise apply each region's
+CURRENT rules; a past year under an older agreement may differ (Ontario's eleven days come from the
+2026–2028 ON4.02, for one). A shoot day outside the covered years skips no holidays, so the Production
+row says so (`refreshHolidayCoverageNote`, reading the span off the region's own data).
+
 ### Region model
 
 *(Rewritten 14 Sep 2026. Three selects became one; this section used to describe the old shape.)*
@@ -222,7 +231,9 @@ word-for-word identical, so **LA = Atlanta = Albuquerque**):
   never for General.
 - **Good Friday IS a US union holiday** (not Canada/UK-only).
 - **Day After Thanksgiving** is recognized (Basic + Low Budget, not AICP).
-- **Juneteenth** was added effective **1 Jan 2025** (2024 MOA), so it applies for 2026–2029.
+- **Juneteenth** was added effective **1 Jan 2025** (2024 MOA). Since v1.3.1 the data runs **2024–2031**
+  (owner, 25 Sep 2026; audit M-7), so the generator carries that start: its rule is
+  `("Juneteenth", ("fixed", 6, 19), {"since": 2025})`, and 2024 has no Juneteenth in either US list.
   The same MOA raised the unworked-holiday percentage 4% → 4.583%.
 - **MLK Day** was added to Local 52 effective **1 Jan 2023** (raising its percentage
   3.719% → 4%).
@@ -618,6 +629,15 @@ autosave.
 > says *"Autosave needs a file — click Save"*. Work is not at risk meanwhile: `writeBackup()` has
 > been keeping a rolling IndexedDB copy since three seconds after the first edit. **Do not "fix"
 > this by having autosave pick a location.**
+
+**A file changed on disk is never silently overwritten** (v1.3.1, owner ruling R4, audit M-6). The
+linked file is stamped `{lastModified, size}` when it is read and after each of the app's own writes
+(`savedFileStamp`). Save and autosave compare first: on a mismatch autosave **pauses**
+(`fileConflict`, status *"File changed on disk — autosave paused"*) and Save **asks** — *Overwrite*,
+*Load newer version* (re-opens the file, discarding the edits here), or *Save a copy…* (Save As). An
+autosave tick also skips while a note editor is open (audit L-18). The crash backup is **one slot per
+page load** (`unsavedBackup:<id>`, audit SAVE-7): a save deletes only its own, and recovery offers the
+newest slot any page left behind, then re-backs it up under its own slot and retires the old one.
 
 `markClean()` runs as soon as the bytes are on disk, **before** the `recordRecent()` IndexedDB
 round-trip. Doing it after left the status line saying "unsaved" for as long as IDB took —

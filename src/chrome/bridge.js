@@ -61,8 +61,12 @@ export const chrome = {
   // ⚠️ The default is the NATIVE dialog, not a no-op: a silent Promise.resolve(true) would
   // auto-answer destructive confirms if the chrome ever failed to mount. Degrading to the old
   // browser popups is the safe failure.
+  // kind:'choice' degrades to an alert and then null (Cancel): nothing is written on null, so a
+  // chrome that failed to mount can never pick a destructive option by default.
   dialog: (opts) => Promise.resolve(
-    opts && opts.kind === 'confirm' ? window.confirm(opts.message) : (window.alert(opts && opts.message), true)
+    opts && opts.kind === 'confirm' ? window.confirm(opts.message)
+      : opts && opts.kind === 'choice' ? (window.alert(opts.message), null)
+      : (window.alert(opts && opts.message), true)
   ),
   // { count, expandable, allFilled, swap:{ visible, leftOk, rightOk, leftLabel, rightLabel } } —
   // the multi-cell grid selection: batch expand (Feature 1) and column order (Feature 2). Bridged

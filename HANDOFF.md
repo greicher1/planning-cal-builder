@@ -4,13 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏳ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Branch `half-worked-days`, NOT merged, NOT pushed
+### ✅ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Merged into local `main` AFTER v1.3.1's push; NOT pushed
 
 The owner asked (29 Sep 2026) for a day to be flagged "both half and on", so a weekend or holiday can
 be worked half. It was built in a **separate worktree** (`.claude/worktrees/half-worked-days`, branch
 `half-worked-days`, off `ef178f4`). The batch-2 session was editing `src/legacy/app.js` in the main
 checkout at the same time, and one checkout would have mixed the two changes into each other's
-builds, gate runs and commits. **Merging into `main` is the owner's call** and has not been done.
+builds, gate runs and commits. The owner ruled: keep the frozen edit, merge only once batch 2 was
+idle, **no push**. Batch 2 asked for the merge to wait until its own push, so that v1.3.1 would not
+deploy commits its gate never covered. It pushed v1.3.1 (`f03739f`), and `main` was merged into the
+branch, re-gated, then fast-forwarded. ⛔ **So this is UNRELEASED:** local `main` is ahead of
+`origin/main` by exactly this work. Ask the owner before any push.
 The branch touches `simulateProductionSchedule`, the day popover, `refreshOverrideNote`,
 `beginShootDayMove`, `takeShootDayMoveNote`, `renderMonthView` (commit 2), README and this file.
 
@@ -35,12 +39,16 @@ The branch touches `simulateProductionSchedule`, the day popover, `refreshOverri
   wrap. `SNAPSHOT_VERSION` was deliberately not bumped, because a bump makes old builds refuse the
   whole file (M-1's gate). In chat I first said "a slightly earlier wrap"; that was wrong, because
   an unworked day can only push the wrap later.
-- **Evidence:** the new leg `halfworked` (27 cases, `HARNESS_STATE=dayoverrides`, run standalone
-  with `HARNESS_PAGE=/dist/index.html`; it is not in `gate.sh`, like the other batch-2 legs).
+- **Evidence:** the new leg `halfworked` (27 cases, `HARNESS_STATE=dayoverrides`). It is wired into
+  `gate.sh`'s audit-fix block, so the gate runs it.
   - Commit 1: 23 pass, and the 4 month-mark cases fail by design.
   - Commit 2: 27/27.
-  - Full gate 376/0 after each commit; `overrides` 20/20.
+  - Full gate 376/0 after each commit, on the pre-v1.3.1 base; `overrides` 20/20.
+  - **After merging v1.3.1 into the branch: full gate 521/0** (v1.3.1's 494 + `halfworked`'s 27), all
+    six month PDFs byte-identical.
   - New fixture `dayoverrides-onhalf.sptcal`, cut from the running app by the leg.
+  - ⚠️ The v1.3.1 merge broke the leg's `snap()`, because the crash backup is per-page since SAVE-7.
+    It now reads `T.latestBackup()`, as `overrides` does.
 - ⛔ **Commit 2 is a FROZEN EDIT to `renderMonthView`**, made for the owner's review: `_ovDays` gives
   `'onhalf'` both existing classes, and `halfSlices` reads `halfDays`. It adds no CSS.
   - **Inert when unused:** the gate's six month PDFs are byte-identical.
@@ -49,17 +57,34 @@ The branch touches `simulateProductionSchedule`, the day popover, `refreshOverri
     right day. Elements, text and the fit table are identical, and it prints 15 sheets on 15 months.
   - Commit 2 can be dropped on its own: the count still works without it, but the month view would
     show a half-worked day as unmarked.
-- ⏭ **After the owner signs off:** cut a `dayoverrides-onhalf` month-PDF baseline and add it to
-  `gate.sh`'s monthprint loop, recording why in the baseline dir's README. That is a new case, not a
-  re-cut of an existing one. Then merge the branch; expect conflicts at the top of README/HANDOFF,
-  where batch 2 also writes.
+- ✅ **The owner signed off on the frozen edit** (29 Sep 2026: keep it).
+- ⏭ **Still open:** cut a `dayoverrides-onhalf` month-PDF baseline and add it to `gate.sh`'s monthprint
+  loop, recording why in the baseline dir's README. That is a new case, not a re-cut of an existing
+  one. Until then the half-worked marks are gated on screen by `halfworked` (the same
+  `renderMonthView`), but the month PDF's pagination for such a calendar is not.
 - ⚠️ **Harness trap found here:** `T.memoryIDB()` stores the crash backup by REFERENCE, and
   `captureSnapshot()` hands out the live stores. A snapshot kept across steps therefore goes on
   changing: `s0.dayOverrides` grew a later mark and a correct count read as a failure. Real
   IndexedDB structured-clones. `halfworked`'s `snap()` copies it; any leg that keeps a snapshot
   across steps must copy it too.
 
-### ⏳ 29 Sep 2026: BATCH 2 IN PROGRESS (FIX-PLAN §4 → v1.3.1). Committed locally, NOT pushed
+### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT at `a236ad1` (tag `v1.3.1`), committed locally, NOT pushed
+
+- **Full gate 494 PASS / 0 FAIL** on the batch (numbered gates all green: 0 clipped, waterfall PDF +
+  Excel parts identical, v1.0.0 restores identically, `fields.byId` identical at 62 ids, month PDF
+  identical on all six calendars), and **re-run on the release build** after the version bump.
+- **v1.3.1:** `APP_VERSION` (`src/legacy/app.js`) + `version.json` + `package.json` = 1.3.1 (root
+  `index.html` stays 1.2.0, the frozen rollback). `releases/v1.3.1.html` byte-identical to `dist`
+  (sha256 `ea18f092…`, 1,320,231 bytes). `tests/fixtures/v1.3.1-saved.sptcal` is a real Save (62 ids,
+  43 keys — the SAME sets as v1.3.0's), minted by `t/mintfixture.js`. Tag `v1.3.1`.
+- ⏭ **NEXT: the owner decides whether to PUSH v1.3.1** (a push deploys; separate approval). After an
+  approved push, verify the live file is byte-identical to `releases/v1.3.1.html` (~40–60 s), check CI.
+- ⏭ **Then batch 3 (v1.4.0, FIX-PLAN §5), in a FRESH SESSION** — this one ran long. Every batch-3 step
+  is a frozen edit with a before/after and a deliberate, README-recorded baseline re-cut. ⚠️ Decide
+  L-3 against the secondary goal first: if the direct month-PDF writer is going ahead, skip L-3 (moot).
+- The owner-facing month-PDF A/B for M-13 (the batch's one frozen edit) is in the M-13 bullet below and
+  in the README entry: gate 10 byte-identical, and on the affected fixture only the intended holiday
+  blocks, three rows taller, 16 months → 16 sheets.
 
 Order agreed with the owner 29 Sep 2026: M-12, M-14, M-15 → M-4, M-10, M-11 (+L-13/L-14/L-15) →
 M-7 → M-13 (the one frozen edit; `monthcmp.py ab` to the owner first) → M-6. Two scope calls, the
@@ -74,6 +99,45 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-15 caps: 200 episodes/blocks, hiatus weeks ≤ `MAX_WEEKS` before loops | ✅ done | `caps` |
 | M-4 day overrides by shoot-day number on every mover (R2) | ✅ done | `overrides` (`HARNESS_STATE=dayoverrides`, 20 cases) |
 | M-10 edited auto-notes rewritten on shift (R5) | ✅ done | `autonote` (`HARNESS_STATE=v1.3.0-saved`) |
+| M-11 + L-13/L-14/L-15, and **L-24** (batch 1 missed it) | ✅ done | `snaptools` (`HARNESS_STATE=dayoverrides`, 14 cases) |
+| M-7 holidays 2024–2031 + coverage notice | ✅ done | `holidays2031` (no fixture) |
+| M-13 month-only holidays under edited notes — ⛔ the frozen edit (R3) | ✅ done | `monthnotes` (`HARNESS_STATE=monthnotes`) |
+| M-6 conflict "pause and ask" (R4) + SAVE-7 per-page backups + L-18 + SAVE-14 | ✅ done | `conflict` (budget **2400**: 3 autosave ticks of virtual time), `backupslots` |
+
+- ⚠️ **The crash backup's key moved** (`unsavedBackup` → `unsavedBackup:<page id>`, M-6/SAVE-7). A leg
+  that reads the backup must use `T.latestBackup()`; `caps`, `overrides`, `monthnotes` were switched.
+  `openViaFakePicker`'s file now keeps a stable `lastModified` (it minted `now` on every `getFile()`,
+  which would read as a conflict on every check) and takes `opts.control` → `touch(text)` to play
+  "someone else saved it". `memoryIDB()` gained `getAllKeys`.
+- ⚠️ **Not built, deliberately:** a live tab's slot is still offered to a NEW tab as "Recover unsaved
+  work" (as v1.3.0 offered its single slot). Telling a live page from a dead one needs a heartbeat or a
+  BroadcastChannel ping — not in FIX-PLAN; ask the owner if it matters.
+
+- ⛔ **M-13's frozen edit is in `notesForWaterfallDate`** (the month view's and month PDF's note
+  source). Gate 10 stays **byte-identical** — no baseline calendar has an edited note — so there was
+  no re-cut. The owner-facing A/B was `monthcmp.py ab` on `monthnotes.sptcal`: only the added holiday
+  blocks, three rows taller (116→129, 78→97 px), 16 months → 16 sheets. Captures were in the session
+  scratchpad (not durable); re-take with `HARNESS_STATE=monthnotes HARNESS_PRINT_PDF=1 ./run.sh
+  monthprint 60` + `monthcmp.py cut` on each build, then `monthcmp.py ab`.
+- ⭐ **For the direct month-PDF writer (secondary goal):** the holiday-under-override rule lives in
+  `notesForWaterfallDate`, not in `renderMonthView`, so a writer that reads its day notes from that
+  function inherits M-13 for free. Do not reimplement it.
+
+- ⭐ **M-7's proof is byte-level, not visual.** `tools/gen_holidays.py --years 2026 2030` with the new
+  `holidays.app.js` emitter reproduces the shipped block byte for byte; the 2024–2031 block's
+  2026–2030 rows equal it in set and order in all 15 regions. Only then was it spliced. Regenerate the
+  same way (default range), splice `holidays.app.js` over `const HOLIDAYS = { … };`, then run
+  `tools/validate_holidays.py` in the output directory — it must say CLEAN.
+- ⚠️ **`tests/verify_migration.mjs` was unrunnable from v1.3.0 until 29 Sep 2026** (batch 1's
+  `applyStateSnapshotAtomically` sits above the migration, so the source slice came out empty — a TDZ
+  error that looks like a broken migration). Fixed to brace-match; 105/105.
+- ✅ **L-26 checked by hand** (29 Sep 2026, pane): a 1-day Production, snap off, Fri 7/10/26, shows
+  "Production wk 1" on the 7/6/26 row — H-3's overlap fix covers it, as FIX-PLAN said. No leg.
+
+- ⚠️ **L-24 was mapped to batch-1 step 1.7 but never implemented** — not in the code, not in the
+  changelog — though START HERE called batch 1 "complete". Found 29 Sep 2026 while doing M-11 and fixed
+  there (`chainedStart`, shared by autostart, Close all gaps and Rebuild forwards). Read FIX-PLAN's
+  finding→step map against the changelog before calling a batch done.
 
 - ⭐ **M-4 is a BINDING, not a re-key** (`asShootDayMove()` beside `shiftCalendar`). Pins are taken
   against the NATURAL shoot days (the real simulation with `dayOverrides = {}`, so no second copy of the
@@ -136,9 +200,8 @@ identically. Each fix has a leg red on the pre-fix build: `loadcarry`, `hiatusbl
   is byte-identical to the gated build (sha256 `09fc6b38…`, 1,290,333 bytes; full gate 376/0).
   *(Corrected 29 Sep 2026: the bullet above said "committed locally, NOT pushed", and this one said the
   push was still to be decided — both stale once the push went out.)*
-- ⏭ **Then batches 2–5** (FIX-PLAN §4–§7). Batch 2 = M-4 (day overrides by shoot-day, R2), M-6
-  (conflict detection, R4), M-7 (holidays to 2031 — owner ruled 2031 not 2036), M-10 (auto-notes
-  rewritten on shift, R5), M-11, M-12, M-13, M-14, M-15 and their lows.
+- ✅ ~~**Then batches 2–5**~~ — batch 2 is DONE as v1.3.1 (top of this file). Batches 3–5 remain
+  (FIX-PLAN §5–§7).
 - ⚠️ **M-1 note for the next session:** H-1's `sanitizeSnapshot` already stops the specific
   null-value files from throwing (it drops the bad bits), so those load cleanly now. M-1's
   user-visible protection is the version gate + shape gate; the atomic rollback is the net for a
@@ -1011,7 +1074,7 @@ marks rendering, and the hiatus band at `grid-column: 2 / 7` (Mon–Fri, the unc
 
 ⚠️ **Cut from the crash backup, not from Save.** `supportsFsAccess` is evaluated once at module-eval
 time, so deleting `showSaveFilePicker` cannot force the download path afterwards. The backup in
-IndexedDB (`spt-planning-cal` / `handles` / `unsavedBackup`) stores `{state: captureSnapshot(), …}`,
+IndexedDB (`spt-planning-cal` / `handles` / `unsavedBackup` — ⚠️ since v1.3.1 `unsavedBackup:<page id>`, one per page load; read it with `T.latestBackup()`) stores `{state: captureSnapshot(), …}`,
 and `.sptcal` **is** `JSON.stringify(captureSnapshot(), null, 1)` — same object, no debug hook
 needed. Worth remembering: it is the cheapest way to get a snapshot out of a running app.
 
@@ -1094,7 +1157,7 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   way**, so this is direct evidence that open item 3 works — not a hypothesis any more.
 - ⭐ **The crash backup is the cheapest way to get a snapshot out of a running app.**
   `.sptcal` IS `JSON.stringify(captureSnapshot(), null, 1)`, and IndexedDB
-  (`spt-planning-cal` / `handles` / `unsavedBackup`) holds `{state: captureSnapshot(), …}` 3 s after
+  (`spt-planning-cal` / `handles` / `unsavedBackup:<page id>` since v1.3.1) holds `{state: captureSnapshot(), …}` 3 s after
   any edit. ⚠️ Forcing the download path instead does NOT work: `supportsFsAccess` is evaluated
   once at module-eval time, so deleting `showSaveFilePicker` afterwards changes nothing.
 
