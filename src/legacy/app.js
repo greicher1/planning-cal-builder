@@ -6607,6 +6607,24 @@ export function initLegacyApp() {
     const out = [];
     if(override !== undefined){
       const list = userNoteList(weekIso);
+      // ⛔ FROZEN EDIT, owner-approved (R3, 25 Sep 2026: "holidays under edited notes"; audit M-13).
+      // An override used to REPLACE the week's auto text here as well, so editing a week's note in
+      // the waterfall deleted that week's holidays from the month view and the month PDF -- holidays
+      // the waterfall does not even show (they default to month-only), so the edit could never have
+      // meant to remove them. Now a holiday the MONTH view shows and the WATERFALL does not is still
+      // placed on its day beneath an override, unless the override's own text already carries that
+      // exact line (a note the old month editor saved with the holiday baked in): once, never twice.
+      // A holiday visible in BOTH views was in the waterfall editor's text, so an override that
+      // dropped it did so on purpose, and it stays dropped. Weeks with no override are untouched,
+      // byte for byte -- which is every calendar in the monthprint gate.
+      const overrideLines = new Set();
+      list.forEach(n=> String(n.text || '').split('\n').forEach(l=>{ if(l.trim()) overrideLines.add(l.trim()); }));
+      autoNotes
+        .filter(n => n.holiday && !holidayVisibleIn(n.hid, 'sheet'))
+        .filter(n => n.date ? isoOf(n.date) === iso : date.getUTCDay() === 1)
+        .map(n => n.date ? `${n.label} ${fmtShort(n.date)}` : n.label)
+        .filter(t => !overrideLines.has(t))
+        .forEach(t => out.push(t));
       list.forEach(n=>{
         // A note's text may carry its own trailing date (the day picker stamps one in, and the
         // auto-notes are written that way too). That date is the truth about where the line
@@ -16046,11 +16064,25 @@ export function initLegacyApp() {
     if(kind === 'wf'){
       // A waterfall-owned note: write it back to the week store so the Waterfall and the Excel
       // export see the same edit. Pin it to this day so it stays where it was clicked.
-      const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
+      const weekAuto = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
-        return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
+        return idx>=0 ? (currentSchedule.notesByIdx[idx]||[]) : [];
       })() : [];
-      saveNoteEdit(weekKey, text, autoNotes, dayIso);
+      const autoNotes = autoNotesForView(weekAuto, 'month');
+      // ⛔ Audit M-13 (the reverse half, and not a frozen edit): the editor opens on everything the
+      // MONTH view shows for the week, month-only holidays included, and saving that text used to
+      // bake those holiday lines into the WATERFALL note -- where they then printed in the waterfall
+      // and in Excel, which deliberately hide them. So the month-only holiday lines are left out of
+      // what is saved; the month view shows them anyway (notesForWaterfallDate puts them back under
+      // any override), so nothing the user sees is lost. A holiday line the user CHANGED no longer
+      // matches, and is kept as their own text. And a note opened and left unchanged is not written
+      // at all: the day pin below would otherwise freeze an untouched auto-note into an override.
+      const monthOnly = new Set(weekAuto.filter(n => n.holiday && holidayVisibleIn(n.hid, 'month') && !holidayVisibleIn(n.hid, 'sheet'))
+                                        .map(n => autoNotesText([n])));
+      if(text !== String(activeMvNote.initialText || '').trim()){
+        const kept = text.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
+        saveNoteEdit(weekKey, kept, autoNotesForView(weekAuto, 'sheet'), dayIso);
+      }
       if(pendingColor){
         if(pendingColor.toUpperCase() === MILESTONE_COLOR.toUpperCase()) delete noteColors[weekKey];
         else noteColors[weekKey] = pendingColor;
@@ -16212,6 +16244,9 @@ export function initLegacyApp() {
     textarea.focus(); textarea.select();
     activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null,
                     anchor, place,
+                    // What the editor opened with, so a waterfall note that was opened and left
+                    // unchanged is not frozen into an override on the way out (audit M-13).
+                    initialText: curText,
                     // The same descriptor shape relocateNoteAnchor() takes — captured now so the
                     // rebuild guard can re-find the equivalent node in a freshly-rendered grid.
                     anchorDesc: { week: weekKey, day: dayIso, kind: isWf ? 'wf' : 'day',

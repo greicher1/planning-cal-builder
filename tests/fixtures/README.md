@@ -75,6 +75,7 @@ they are a working demonstration against the live site. They ship in the same re
 
 | File | Use |
 |---|---|
+| `monthnotes.sptcal` | `v1.3.0-saved.sptcal` in the month view with three waterfall notes: an undated edit of the 6/29 week's auto-note (+ "Table Read"), a plain override on Thanksgiving week, and a 5/25 note carrying "Memorial Day 5/25/26" as the old month editor baked it. Month-only holidays must still show beneath the first two, and the third's only once (M-13, leg `monthnotes`); also the calendar the M-13 month-PDF A/B was taken on |
 | `shift-stores.sptcal` | `v1.3.0-saved.sptcal` plus an undated note on the week of 8/3/26 in a 60px dragged row, and a note pinned to 9/10/26 in a 45px row. A shift must move the first note's row height with it and leave the pinned one's (M-12, leg `rowheight`) |
 
 ### Parser robustness (these already PASS; keep them passing through the loader changes)

@@ -21,6 +21,17 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-10 edited auto-notes rewritten on shift (R5) | ✅ done | `autonote` (`HARNESS_STATE=v1.3.0-saved`) |
 | M-11 + L-13/L-14/L-15, and **L-24** (batch 1 missed it) | ✅ done | `snaptools` (`HARNESS_STATE=dayoverrides`, 14 cases) |
 | M-7 holidays 2024–2031 + coverage notice | ✅ done | `holidays2031` (no fixture) |
+| M-13 month-only holidays under edited notes — ⛔ the frozen edit (R3) | ✅ done | `monthnotes` (`HARNESS_STATE=monthnotes`) |
+
+- ⛔ **M-13's frozen edit is in `notesForWaterfallDate`** (the month view's and month PDF's note
+  source). Gate 10 stays **byte-identical** — no baseline calendar has an edited note — so there was
+  no re-cut. The owner-facing A/B was `monthcmp.py ab` on `monthnotes.sptcal`: only the added holiday
+  blocks, three rows taller (116→129, 78→97 px), 16 months → 16 sheets. Captures were in the session
+  scratchpad (not durable); re-take with `HARNESS_STATE=monthnotes HARNESS_PRINT_PDF=1 ./run.sh
+  monthprint 60` + `monthcmp.py cut` on each build, then `monthcmp.py ab`.
+- ⭐ **For the direct month-PDF writer (secondary goal):** the holiday-under-override rule lives in
+  `notesForWaterfallDate`, not in `renderMonthView`, so a writer that reads its day notes from that
+  function inherits M-13 for free. Do not reimplement it.
 
 - ⭐ **M-7's proof is byte-level, not visual.** `tools/gen_holidays.py --years 2026 2030` with the new
   `holidays.app.js` emitter reproduces the shipped block byte for byte; the 2024–2031 block's

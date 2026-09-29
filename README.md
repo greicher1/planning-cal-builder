@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Month-view holidays stay visible under an edited note, and are never baked into one (audit M-13, MONTH-6; owner ruling R3)
+
+**What was wrong.** Holidays are month-view-only by default. Editing a week's note in the waterfall
+made the week an override, and the month view then showed only the override's lines, so that week's
+holidays (Independence Day, Thanksgiving) vanished from the month view and the month PDF. The reverse
+also happened: editing a holiday week's note *from* the month view saved the holiday line into the
+waterfall note, where it then printed in the waterfall and in Excel.
+
+**The fix.**
+- ⛔ **Frozen edit, owner-approved (R3)**, in `notesForWaterfallDate`, which the month view and the
+  month PDF share: beneath an override, a holiday the month view shows and the waterfall does not is
+  still placed on its day, unless the override's text already carries that exact line (shown once,
+  never twice). A holiday visible in both views was in the waterfall editor's text, so an override
+  that dropped it did so on purpose and it stays dropped. Weeks with no override are untouched.
+- Not frozen, in the month-view note popover: month-only holiday lines are left out of what is saved
+  into the waterfall note (the month view puts them back anyway), and a waterfall note opened there
+  and left unchanged is not written at all. Before, the day pin froze an untouched auto-note into an
+  override.
+
+**Before/after (gate 10 and an A/B):** the `monthprint` gate's six calendars have no edited notes, and
+their printed documents are **byte-identical** to the baseline — no re-cut. On the affected fixture
+`monthnotes.sptcal`, `monthcmp.py ab` shows exactly the intended change: the Independence Day blocks
+on 7/3 and 7/4 (June and July pages) and Thanksgiving + Day After on 11/26–27. Three week rows grow
+(116→129 px twice, 78→97 px), and **every month still prints on one sheet (16 → 16)** with the same
+page box.
+
+**Verified:** new leg `monthnotes` (7 cases): Independence Day under the edited 6/29 note,
+Thanksgiving under the 11/23 override, Memorial Day once under the old baked note, and a month-view
+edit of Labor Day week saving "Crew BBQ" alone while the month view shows both lines. N1, N2, N4
+and N5 fail on v1.3.0. Also clicked and typed in the browser pane: the waterfall cell reads "Crew
+BBQ", and the month view shows it under "Labor Day 9/7/26".
+
 ### Unreleased — Union-holiday data now covers 2024–2031, and a shoot outside it says so (audit M-7)
 
 **What was wrong.** The holiday table covered 2026–2030 only, in every region. A shoot running into
