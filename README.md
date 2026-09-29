@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month PDF prints on Letter whatever paper the print dialog offers (audit L-3)
+
+**What changed** (a frozen edit to the print CSS, owner-approved under FIX-PLAN R3): the month
+PDF's `@page{ size:landscape; margin:8mm }` becomes `size:letter landscape`. The month fit has
+always been computed for Letter, in JavaScript. The CSS, though, left the paper to Chrome's print
+dialog, which defaults to A4 outside the US and Canada. On A4, which is 6 mm shorter, a
+shrink-to-fit month lost its last week off the bottom of the sheet. With the size pinned, Save as
+PDF hides its Paper option, and an A4 printer shrinks the Letter page to fit instead of cropping
+it. A custom Scale in the dialog can still crop a month; no CSS can stop that, only a direct
+month-PDF writer.
+
+**Verified:**
+- A new leg, `printpaper` (`tests/harness/printpaper.mjs`, in `gate.sh`), prints
+  `monthscale.sptcal`'s month document over the DevTools protocol, at Letter and at A4 with the
+  page's CSS size preferred. That is what Save as PDF does. Before the pin it was **red**: A4 printed
+  on an 841.92 × 595.92 box, and August's last week was cut off, seen under Quartz. After, it is
+  **green**: the A4 request prints the same 16 Letter sheets, and all 344 content streams are identical.
+- The default Letter print is byte-identical before and after the pin (344 of 344 streams), and
+  gate 10's seven month PDFs are unchanged: the same document and one sheet per month.
+- Full gate **531 pass / 0 fail**: 521, plus 6 checks for the new month-PDF case and 4 for `printpaper`.
+- ⚠️ **By hand, for the owner:** export the month PDF in a UK-locale Chrome and confirm that Save
+  as PDF no longer offers a Paper size.
+
 ### Unreleased — Test harness: parallel sessions no longer collide, and the month-PDF gate covers half-worked days
 
 Tests only; the app is unchanged. Batch 3 of the audit fixes (FIX-PLAN §5) starts here.

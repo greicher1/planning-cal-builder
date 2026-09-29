@@ -1419,6 +1419,28 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- printpaper (audit L-3, FIX-PLAN 3.5): the month PDF's PAPER is pinned to Letter -------------
+# ⭐ ADDED 29 Sep 2026 (batch 3). The month fit is computed in JS for Letter, and the print CSS used
+# to say only @page{size:landscape}, leaving the paper to the dialog -- A4 by default outside the US
+# and Canada, where the last week of a shrink-to-fit month was cut off. run.sh cannot choose a
+# paper, so this is a Node script driving Chrome over CDP (Page.printToPDF): it prints the
+# monthprint leg's document at Letter and at A4-with-CSS-size-preferred (what Save as PDF does),
+# and passes only if the A4 request produces the SAME Letter pages, stream for stream. Red on the
+# build before the pin (A4 box 841.92 x 595.92, 345 vs 344 streams). It uses HARNESS_PORT, and a
+# non-default port namespaces its profile as run.sh does.
+node "$HERE/printpaper.mjs" --page "$PAGE" --state monthscale >/dev/null 2>&1
+python3 - "$HERE/printpaper.json" "printpaper (monthscale)" <<'PYPP' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYPP
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

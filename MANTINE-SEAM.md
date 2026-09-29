@@ -265,7 +265,8 @@ Two rules in there are load-bearing beyond appearance:
   same month twice gave different missing dividers." The screen `.mv-*` rules and these print rules
   are two halves of one mechanism.
 
-Also `@page{ size:landscape; margin:8mm }` (the month PDF's page box, re-derived arithmetically in
+Also `@page{ size:letter landscape; margin:8mm }` (Letter pinned 29 Sep 2026, audit L-3; it was
+`size:landscape`, leaving the paper to the dialog) (the month PDF's page box, re-derived arithmetically in
 JS — §5.4) and `<style id="wf-page-style">` with `setWfPageStyle`/`removeWfPageStyle`. At-rules
 resolve by source order and `setWfPageStyle` expects to be last; a leaked `#wf-page-style` prints
 the month PDF at 5mm margins while its fit was computed for 8mm.
@@ -513,7 +514,7 @@ print width instead of a live measurement — and that is an export change, not 
 | `MV_LANE_PX = 19` | `.mv-bars{ grid-auto-rows:17px; gap:2px 0 }` |
 | `MV_ROW_CHROME = 38` | `.mv-bars{ padding:24px 3px 14px }` |
 | `PAGE_PAD = 4` | `#print-root .print-page{ padding:2px }` |
-| `PAGE_H = (8.5 - 2*8/25.4) * 96`, `PRINT_W = round((11 - 2*8/25.4) * 96)` | `@page{ size:landscape; margin:8mm }` |
+| `PAGE_H = (8.5 - 2*8/25.4) * 96`, `PRINT_W = round((11 - 2*8/25.4) * 96)` | `@page{ size:letter landscape; margin:8mm }` (Letter pinned 29 Sep 2026; before that the JS assumed Letter while the CSS let the dialog pick the paper — audit L-3) |
 
 `tools/check-refs.py` verifies line numbers, not these. Restyle the bar layer or the print page
 without updating them and every month PDF fits wrongly — sparse months under-fill the sheet, dense

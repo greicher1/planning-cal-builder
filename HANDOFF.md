@@ -39,10 +39,22 @@
   stale whenever another session fast-forwards `main`: rebuild before any gate (it was still the v1.3.1
   build after the `onhalf` merge).
 
+- ✅ **L-3 (3.5): `@page{ size:letter landscape; margin:8mm }`** in `src/styles/legacy.css` (the root
+  `index.html` is untouched). ⭐ **Its leg is `tests/harness/printpaper.mjs`, a Node script driving
+  Chrome over CDP**, because `run.sh`'s `--print-to-pdf` cannot choose a paper. It loads the
+  `monthprint` leg (which leaves the month document in print state), then calls `Page.printToPDF`
+  at Letter and at A4 with `preferCSSPageSize` (what Save as PDF does). Red before the pin: an A4
+  box, and August's last week cut off under Quartz. Green after: the same 16 Letter sheets, 344/344
+  streams identical. The Letter print is byte-identical before and after, and gate 10 is unchanged.
+  Full gate **531/0** (521 + the 6 `dayoverrides-onhalf` month checks + 4 `printpaper` cases).
+  Reuse it for any future print-dialog finding: Node 24's built-in `WebSocket` means no
+  dependency, and it honours `HARNESS_PORT` like `run.sh`. ⏭ **Owner's manual check still owed:**
+  in a UK-locale Chrome, Save as PDF should no longer offer a Paper size.
+
 | Step | Finding | State | Leg |
 |---|---|---|---|
 | 0 | `onhalf` month-PDF case | ✅ done: gate 10 is now 7 calendars; new case 15 → 15 sheets, fit table identical to `dayoverrides` | `monthprint` (`dayoverrides-onhalf`) |
-| 3.5 | L-3 Letter pin | ⏳ | |
+| 3.5 | L-3 Letter pin | ✅ done (frozen print CSS, 1 rule; no baseline moved) | `printpaper` (Node + CDP, not a `t/` leg) |
 | 3.6 | L-16 / L-17 / N-1 | ⏳ | |
 | 3.1 | M-8 (+ hiatus bands) | ⏳ | |
 | 3.2 | M-9 | ⏳ | |

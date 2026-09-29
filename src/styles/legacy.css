@@ -1717,8 +1717,17 @@
   .wf-print .cal-header-bar{ padding:5px 12px; min-height:0; }
   .wf-print .phase-cell-label{ max-width:none; }
   @media print{
-    /* Landscape with minimal margins so the grid prints as large as the sheet allows. */
-    @page{ size:landscape; margin:8mm; }
+    /* Landscape with minimal margins so the grid prints as large as the sheet allows.
+       ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-3, 29 Sep 2026): the PAPER is pinned
+       to Letter. exportMonthPdf fits every month in JS for Letter (PAGE_H = (8.5in - 16mm) x 96,
+       PRINT_W from 11in), but `size:landscape` alone left the paper to the print dialog, which
+       defaults to A4 outside the US and Canada. On A4 (6 mm shorter) each 100vh .print-page is
+       smaller than the fit assumed, and overflow:hidden cut off the last week of a shrink-to-fit
+       month. With the size pinned, Save as PDF hides its Paper option and an A4 printer shrinks
+       the Letter page to fit instead of cropping it. Headless already printed Letter, so every
+       gate-10 month PDF is byte-identical; tests/harness/printpaper.mjs proves the A4 request now
+       prints the same pages. It does NOT stop a custom Scale -- no CSS can. */
+    @page{ size:letter landscape; margin:8mm; }
     /* Only the generated month pages print; the whole app UI is suppressed. */
     body.printing-calendar > *:not(#print-root){ display:none !important; }
     body.printing-calendar{ background:#fff; }

@@ -973,8 +973,11 @@ node /tmp/testsrv.js & sleep 2
   two polls — and a whole leg typically costs ~3 s instead of its full budget.
 - **`--print-to-pdf` works in the SAME run as `--dump-dom`** (`--no-pdf-header-footer` too), and it
   is Chrome's real print pipeline: print media, the `@page` box, real page breaking. Headless prints
-  on Letter, so the month PDF's `size:landscape` comes out `792 × 612`. `run.sh`'s
-  `HARNESS_PRINT_PDF=1` uses it; that is how the `monthprint` leg counts printed sheets.
+  on Letter, so the month PDF comes out `792 × 612` (and since 29 Sep 2026 the print CSS pins
+  `size:letter landscape` anyway, audit L-3). `run.sh`'s `HARNESS_PRINT_PDF=1` uses it; that is how
+  the `monthprint` leg counts printed sheets. ⚠️ It **cannot choose a paper** -- for that,
+  `tests/harness/printpaper.mjs` drives Chrome over CDP (`Page.printToPDF` with `paperWidth`/
+  `paperHeight`/`preferCSSPageSize`), dependency-free on Node 24's built-in `WebSocket`.
 - ⚠️ **Never hold a NodeList across a click that re-renders its list.** Already recorded below for
   holidays, and it bit again immediately: a `forEach` over `#holiday-vis-list input.hv-cb` clicked
   14 boxes and turned on **one**, because the list rebuilt after the first click and the other 13

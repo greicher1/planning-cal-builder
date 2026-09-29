@@ -1070,7 +1070,11 @@ Nothing in this document ships without all of these, every stage:
     gate before; batch 2 adds `rowheight`, `yearblock`, `caps`, `overrides`, `autonote`, `snaptools`,
     `holidays2031`, `monthnotes`, `conflict`, `backupslots`. Each judges itself (`cases[].pass`, or a
     top-level `pass`), and each was run red on the build before its fix. A leg that guards the save
-    format, an export or a date belongs in this list the day it is written (FIX-PLAN §1).
+    format, an export or a date belongs in this list the day it is written (FIX-PLAN §1). Batch 3
+    adds **`printpaper`** (29 Sep 2026, audit L-3), which is a Node script, not a `t/` leg:
+    `tests/harness/printpaper.mjs` drives Chrome over CDP, because only `Page.printToPDF` can choose
+    a paper size. It asks for A4 the way Save as PDF does and passes only if the result is the SAME
+    Letter pages, stream for stream.
 
 ---
 
