@@ -4,7 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏳ 29 Sep 2026 (afternoon): BATCH 3 IN PROGRESS (v1.4.0, FIX-PLAN §5): start state and rulings
+### ✅ 29 Sep 2026: BATCH 3 COMPLETE → v1.4.0 CUT at `649e183` (local, NOT pushed)
+
+- **All seven steps are done and committed locally**, each its own gated change with its before/after
+  shown to the owner first (the step table below). The last step gated **589/0**. The release build is
+  gated again at the cut: **589/0 on the release build**, then tag `v1.4.0` on `649e183`. `dist` and
+  `releases/v1.4.0.html` are byte-identical: sha256 `a6f56fdd…`,
+  1,323,233 bytes. `tests/fixtures/v1.4.0-saved.sptcal` has the same 62 ids and 43 keys as v1.3.1's.
+  The root `index.html` is untouched: it stays byte-identical to `releases/v1.2.0.html`.
+- ⚠️ **The next push deploys more than batch 3.** Local `main` carries everything since `f03739f`:
+  - the `onhalf` override (unreleased until now);
+  - the fixture/SRI clean-up `2b15444`;
+  - the harness prep and all of batch 3.
+  **Ask the owner, per push.** After an approved push, verify that the live file's hash equals
+  `releases/v1.4.0.html` and that CI is green.
+- ⏭ **Owed by the OWNER, by hand, never claimed here:**
+  - L-3: in a UK-locale Chrome, the month PDF's Save as PDF offers no Paper size.
+  - Excel.app, no repair prompt, on `tests/harness/hdrcut-{before,after}.xlsx` (3.2) and
+    `xlsxlimits-{single,oldfile}-{before,after}.xlsx` (3.3). Optionally `l7-dates-{before,after}.xlsx`
+    (3.4) in Quick Look. All gitignored; the legs re-make them.
+- ⏭ **Then batch 4 (FIX-PLAN §6), then batch 5.** The direct month-PDF writer comes after ALL audit
+  batches (owner ruling, 29 Sep 2026). ⚠️ **4.1 (L-4) is partly done already:** `2b15444` added
+  `integrity` + `crossorigin` to the ExcelJS tag in `src/index.html`. `defer`, the CSP meta, the
+  referrer meta and `check-build.mjs`'s inline-script hashes remain.
+- ⚠️ L-2's recorded limitation stands (block below): an old file's over-limit HAND width is clamped in
+  the workbook only.
+
+### ✅ 29 Sep 2026: BATCH 3 (v1.4.0, FIX-PLAN §5): start state, rulings and how each step was done
 
 - **Start state, verified.** Local `main` is at `2b15444`, 6 commits ahead of `origin/main` (`f03739f`,
   v1.3.1): `c794fa8` (HANDOFF), the `onhalf` work (`d4ee52d`, `bdfec60` + merges `c03e3ee`, `0f8327d`)
@@ -279,13 +305,13 @@ went live, so the NEXT push deploys it: `src/index.html` gains the ExcelJS hash.
   file is **byte-identical to `releases/v1.3.1.html`** (sha256 `ea18f092…`, 1,320,231 bytes) within ~5 s
   of the deploy finishing; live `version.json` reads 1.3.1. **Driven on production** in the pane: 8000
   episodes caps at 200 rows; a shoot from 10/6/31 raises "Holiday dates are only known for 2024–2031…".
-- ⏭ **NEXT: batch 3 (v1.4.0, FIX-PLAN §5) in a FRESH SESSION** (owner's choice, 29 Sep 2026).
+- ✅ ~~**NEXT: batch 3 (v1.4.0, FIX-PLAN §5) in a FRESH SESSION**~~ Done the same day: v1.4.0 cut at `649e183` (top of this file).
 - ⚠️ **A peer session merged `half-worked-days` into LOCAL main** (owner-approved, NO push): a new
   `'onhalf'` day override (a weekend/holiday worked as a half day), touching `simulateProductionSchedule`,
   the day-override popover, `beginShootDayMove`/`takeShootDayMoveNote` and a small frozen edit in
   `renderMonthView` (`_ovDays` / `halfSlices`). It merged main INTO its branch and re-gated there first
   (full gate 521/0); see the `onhalf` block above.
-  **The next session must read `git log origin/main..main` before starting batch 3** — those commits are
+  ✅ Read and re-gated at batch 3's start (521/0 on `0f8327d`). **The next session must read `git log origin/main..main` before starting batch 3** — those commits are
   not on the live site, and the next push would carry them.
 
 ### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT at `a236ad1` (tag `v1.3.1`)
@@ -299,7 +325,7 @@ went live, so the NEXT push deploys it: `src/index.html` gains the ExcelJS hash.
   43 keys — the SAME sets as v1.3.0's), minted by `t/mintfixture.js`. Tag `v1.3.1`.
 - ⏭ **NEXT: the owner decides whether to PUSH v1.3.1** (a push deploys; separate approval). After an
   approved push, verify the live file is byte-identical to `releases/v1.3.1.html` (~40–60 s), check CI.
-- ⏭ **Then batch 3 (v1.4.0, FIX-PLAN §5), in a FRESH SESSION** — this one ran long. Every batch-3 step
+- ✅ ~~**Then batch 3 (v1.4.0, FIX-PLAN §5), in a FRESH SESSION**~~ Done: v1.4.0 at `649e183`. — this one ran long. Every batch-3 step
   is a frozen edit with a before/after and a deliberate, README-recorded baseline re-cut. ⚠️ Decide
   L-3 against the secondary goal first: if the direct month-PDF writer is going ahead, skip L-3 (moot).
 - The owner-facing month-PDF A/B for M-13 (the batch's one frozen edit) is in the M-13 bullet below and
