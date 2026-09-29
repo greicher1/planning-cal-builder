@@ -4,7 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏳ 29 Sep 2026: BATCH 2 IN PROGRESS (FIX-PLAN §4 → v1.3.1). Committed locally, NOT pushed
+### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT, committed locally, NOT pushed
+
+- **Full gate 494 PASS / 0 FAIL** on the batch (numbered gates all green: 0 clipped, waterfall PDF +
+  Excel parts identical, v1.0.0 restores identically, `fields.byId` identical at 62 ids, month PDF
+  identical on all six calendars), and **re-run on the release build** after the version bump.
+- **v1.3.1:** `APP_VERSION` (`src/legacy/app.js`) + `version.json` + `package.json` = 1.3.1 (root
+  `index.html` stays 1.2.0, the frozen rollback). `releases/v1.3.1.html` byte-identical to `dist`
+  (sha256 `ea18f092…`, 1,320,231 bytes). `tests/fixtures/v1.3.1-saved.sptcal` is a real Save (62 ids,
+  43 keys — the SAME sets as v1.3.0's), minted by `t/mintfixture.js`. Tag `v1.3.1`.
+- ⏭ **NEXT: the owner decides whether to PUSH v1.3.1** (a push deploys; separate approval). After an
+  approved push, verify the live file is byte-identical to `releases/v1.3.1.html` (~40–60 s), check CI.
+- ⏭ **Then batch 3 (v1.4.0, FIX-PLAN §5), in a FRESH SESSION** — this one ran long. Every batch-3 step
+  is a frozen edit with a before/after and a deliberate, README-recorded baseline re-cut. ⚠️ Decide
+  L-3 against the secondary goal first: if the direct month-PDF writer is going ahead, skip L-3 (moot).
+- The owner-facing month-PDF A/B for M-13 (the batch's one frozen edit) is in the M-13 bullet below and
+  in the README entry: gate 10 byte-identical, and on the affected fixture only the intended holiday
+  blocks, three rows taller, 16 months → 16 sheets.
 
 Order agreed with the owner 29 Sep 2026: M-12, M-14, M-15 → M-4, M-10, M-11 (+L-13/L-14/L-15) →
 M-7 → M-13 (the one frozen edit; `monthcmp.py ab` to the owner first) → M-6. Two scope calls, the
@@ -120,9 +136,8 @@ identically. Each fix has a leg red on the pre-fix build: `loadcarry`, `hiatusbl
   is byte-identical to the gated build (sha256 `09fc6b38…`, 1,290,333 bytes; full gate 376/0).
   *(Corrected 29 Sep 2026: the bullet above said "committed locally, NOT pushed", and this one said the
   push was still to be decided — both stale once the push went out.)*
-- ⏭ **Then batches 2–5** (FIX-PLAN §4–§7). Batch 2 = M-4 (day overrides by shoot-day, R2), M-6
-  (conflict detection, R4), M-7 (holidays to 2031 — owner ruled 2031 not 2036), M-10 (auto-notes
-  rewritten on shift, R5), M-11, M-12, M-13, M-14, M-15 and their lows.
+- ✅ ~~**Then batches 2–5**~~ — batch 2 is DONE as v1.3.1 (top of this file). Batches 3–5 remain
+  (FIX-PLAN §5–§7).
 - ⚠️ **M-1 note for the next session:** H-1's `sanitizeSnapshot` already stops the specific
   null-value files from throwing (it drops the bad bits), so those load cleanly now. M-1's
   user-visible protection is the version gate + shape gate; the atomic rollback is the net for a

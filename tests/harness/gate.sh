@@ -1373,6 +1373,40 @@ chk(not a.get('errors'), f"shootorder: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYS
 
+# ---- the audit-fix legs (FIX-PLAN batches 1 + 2): one generic block --------------------------------
+# ⛔ ADDED 29 Sep 2026. FIX-PLAN §1 says a leg that guards the save format, an export or a date is
+# wired into this gate -- and batch 1's six legs never were: "full gate 376/0" at the v1.3.0 cut did
+# not include one of them. Each of these legs judges itself and reports either {cases:[{id,pass}]}
+# (every case must be pass === true) or a top-level {pass}. Their err lists are NOT checked here: the
+# hostile and loadfail legs log expected warnings by design and assert on them themselves.
+# Each spec is <leg>:<fixture, or - for none>:<virtual budget>. conflict needs 2400 virtual seconds:
+# three autosave ticks at 10 minutes each, fast-forwarded while the page is idle.
+for AFSPEC in loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:150 \
+              snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
+              rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
+              autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
+              monthnotes:monthnotes:150 conflict:-:2400 backupslots:-:120; do
+  AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
+  [[ $AFSTATE == - ]] && AFSTATE=""
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
+  python3 - "$HERE/$AFLEG.json" "$AFLEG${AFSTATE:+ ($AFSTATE)}" <<'PYAF' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases')
+if isinstance(cases, list) and cases:
+    bad = [c for c in cases if c.get('pass') is not True]
+    for c in cases:
+        print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+    sys.exit(1 if bad else 0)
+if a.get('pass') is True:
+    print('  PASS  '+label+': pass'); sys.exit(0)
+print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
+PYAF
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

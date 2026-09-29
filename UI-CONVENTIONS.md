@@ -1064,6 +1064,12 @@ Nothing in this document ships without all of these, every stage:
     rule changes the printout without changing the document, and was proven to (16 sheets → 32).
     A frozen edit that is *meant* to move the month PDF A/Bs with `monthcmp.py ab` and puts the fit
     table in front of the owner rather than re-cutting quietly.
+11. **NEW — every audit-fix leg passes** (29 Sep 2026), one generic block in `gate.sh`. Batch 1's
+    (`loadcarry`, `hiatusblank`, `hostile`, `sharecopy2`, `loadfail`, `snapoff` ×3) never ran in the
+    gate before; batch 2 adds `rowheight`, `yearblock`, `caps`, `overrides`, `autonote`, `snaptools`,
+    `holidays2031`, `monthnotes`, `conflict`, `backupslots`. Each judges itself (`cases[].pass`, or a
+    top-level `pass`), and each was run red on the build before its fix. A leg that guards the save
+    format, an export or a date belongs in this list the day it is written (FIX-PLAN §1).
 
 ---
 

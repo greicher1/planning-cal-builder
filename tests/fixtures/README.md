@@ -71,6 +71,14 @@ they are a working demonstration against the live site. They ship in the same re
 | `month-lanecap.sptcal` | more than 60 lanes in one day (L-16) |
 | `hdr-cut.sptcal` | long, formatted header lines that the Excel trimmer must shave without cutting a `&"font"` code (M-9) |
 
+### Version fixtures (one per cut, CLAUDE.md)
+
+| File | What it is |
+|---|---|
+| `v1.0.0-saved.html` | a genuine pre-`.sptcal` calendar, saved by the v1.0.0 build (the `restore` leg, gate 4) |
+| `v1.3.0-saved.sptcal` | a real Save from the v1.3.0 build: `T.buildFixture()`'s reference calendar, 62 `fields.byId` ids |
+| `v1.3.1-saved.sptcal` | the same calendar saved by the v1.3.1 build (29 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.3.0's — batch 2 changed no save-format key. Minted with `t/mintfixture.js` (a real Save click through a recording handle; not a gate leg), and the `autonote` leg passes 9/9 on it |
+
 ### Batch 2: dates and data (FIX-PLAN §4, v1.3.1)
 
 | File | Use |
