@@ -4,7 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 29 Sep 2026: BATCH 3 COMPLETE → v1.4.0 CUT at `649e183` (local, NOT pushed)
+### ✅ 29 Sep 2026: v1.4.0 is LIVE — pushed on the owner's approval, verified
+
+- **Pushed** `f03739f..f2d59a0` plus tag `v1.4.0`. CI run `36642107981` green (Build and check, Deploy to
+  Pages). The live file is **byte-identical to `releases/v1.4.0.html`** (sha256 `a6f56fdd…`, 1,323,233
+  bytes) within ~5 s of the deploy finishing, and the live `version.json` reads 1.4.0.
+- **Checked on production in the pane:** ExcelJS loads under its new integrity hash
+  (`sha384-Pqp51FUN…`, `crossorigin="anonymous"`), `ExcelJS.Workbook` is a function, and the console
+  has 0 errors. This is the first deploy of `2b15444`'s hash: if it were wrong, Excel export would fail
+  closed for everyone.
+- The owner's manual checks below are still owed.
+
+### ✅ 29 Sep 2026: BATCH 3 COMPLETE → v1.4.0 CUT at `649e183`
 
 - **All seven steps are done and committed locally**, each its own gated change with its before/after
   shown to the owner first (the step table below). The last step gated **589/0**. The release build is
@@ -12,7 +23,7 @@
   `releases/v1.4.0.html` are byte-identical: sha256 `a6f56fdd…`,
   1,323,233 bytes. `tests/fixtures/v1.4.0-saved.sptcal` has the same 62 ids and 43 keys as v1.3.1's.
   The root `index.html` is untouched: it stays byte-identical to `releases/v1.2.0.html`.
-- ⚠️ **The next push deploys more than batch 3.** Local `main` carries everything since `f03739f`:
+- ✅ ~~**The next push deploys more than batch 3.**~~ It did, as approved. At the push, local `main` carried everything since `f03739f`:
   - the `onhalf` override (unreleased until now);
   - the fixture/SRI clean-up `2b15444`;
   - the harness prep and all of batch 3.
