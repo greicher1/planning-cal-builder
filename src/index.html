@@ -1144,7 +1144,18 @@ Fxt4DVEJHJzKFvPQ4zFfDpjKy7JySMyThsSQh09GpoICvQ+MlO5gHW5ELOXt1Msp2YE51qhdq+E27B/T
 Sd8wFHEi/qcehKdHsrue+Ag81z77Icb2d/7AiMxloeM4c7UcF12rjye0OhzHPfP7HPtmzj4uZC44zloXunqPC66WExam5JwIU/BfLP7rPCF5TK3tLSfCjIac
 hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
 </script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- ExcelJS is the one script the app loads from another server, and it runs with full access to
+     the open calendar. The integrity hash makes the browser refuse any byte-different file, so a
+     tampered CDN copy cannot run here. Verified 29 Sep 2026: jsDelivr's file is byte-identical to
+     dist/exceljs.min.js in the npm tarball exceljs-4.4.0.tgz, whose sha512 matches the registry's
+     published integrity. crossorigin="anonymous" is required for the check on a cross-origin
+     script; jsDelivr answers Access-Control-Allow-Origin: *, and file:// copies send Origin: null.
+     ⚠️ Fail-closed on purpose: if jsDelivr ever served different bytes for 4.4.0, the export would
+     report ExcelJS as not loaded rather than run them. Changing the version means recomputing
+     the hash (openssl dgst -sha384 -binary <file> | openssl base64 -A). -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+        integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
+        crossorigin="anonymous"></script>
 <!-- The app. A module script, so it is deferred: it now runs AFTER the document is parsed rather
      than mid-parse as the old inline <script> did. That is strictly safer here -- the seven
      unguarded document.getElementById('table-wrap').addEventListener(...) calls in the IIFE

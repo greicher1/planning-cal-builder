@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — ExcelJS loads with an integrity check, and four test fixtures are rebuilt as synthetic calendars
+
+**ExcelJS now carries a Subresource Integrity hash** (`src/index.html`). It is the one script the app
+loads from another server, and it runs with full access to the open calendar. With the hash, the
+browser refuses any byte-different file, so a tampered CDN copy cannot run. The hash was taken from
+jsDelivr's `exceljs@4.4.0/dist/exceljs.min.js`, which is byte-identical to the same file in npm's
+`exceljs-4.4.0.tgz`; that tarball's sha512 matches the registry's published integrity. It fails
+closed: if the CDN ever served different bytes, Excel export would report ExcelJS as not loaded
+rather than run them. The root `index.html` (the frozen v1.2.0 rollback) is unchanged.
+
+**Four fixtures are rebuilt as synthetic calendars:** `stintswap-chained`, `stintswap-reshape`,
+`carry-rich` and `custom-nondense`. Each keeps its keys, its store shapes and the overlap pattern
+its leg depends on, on new dates, regions and episode structures. `stintchain` now measures the
+2028 block, and `stintreshape` the 2027 one (Writer's Rm is 31 weeks there and widens in 28).
+`tests/fixtures/README.md` gains a standing rule that every fixture is synthetic.
+
+**Verified:** full gate 376 pass / 0 fail over the new build. The waterfall PDF, every Excel part and
+the month PDF are identical to baseline, with the Excel export going through the integrity-checked
+load. The new `stintswap-chained` still gives the original "same column in the same week" refusal
+on the pre-fix build `5a8df0f`, identical to the old fixture, and passes from the fix `6b10d2c` on.
+`loadcarry` passes 6/6, and so do the other case-style legs: autonote, caps, hiatusblank, hostile,
+loadfail, overrides, rowheight, snaptools, yearblock, sharecopy2 and snapoff. In the browser pane,
+ExcelJS loads with the hash, and the same URL with a wrong hash is blocked ("Failed to find a valid
+digest").
+
 ### Unreleased — A weekend or holiday can be worked as a half day (`onhalf`)
 
 **What was asked.** The owner, 29 Sep 2026: flag a day as both *half* and *on*, so a weekend or a
@@ -3020,10 +3045,9 @@ in *both* directions, which is precisely the gap §1 flagged as unmeasured.
   34 here. This matters because the toolbar buttons commit with no drag at all, so a preview that
   only appeared while dragging the knob was no warning for the primary path.
 
-**Verified.** New gate leg `stintreshape`, driven by the owner's second calendar — schedule intact,
-titles genericised. It asserts three phase columns and Writer's Rm held to one for all 37 weeks; the
-warning naming phase, width and extent; the amber chip; exactly 34 amber rectangles *before* the
-commit; the widening actually landing; the confirmation matching; no cell lost; no clipping; and the
+**Verified.** New gate leg `stintreshape`, on a calendar with the reported layout. It asserts three
+phase columns and Writer's Rm held to one for all 37 weeks; the warning naming phase, width and
+extent; the amber chip; exactly 34 amber rectangles *before* the commit; the widening actually landing; the confirmation matching; no cell lost; no clipping; and the
 reverse restoring the year exactly.
 
 ### Unreleased — a block swap in a year that already had one was refused; it should not have been
@@ -3054,8 +3078,7 @@ the week of 4/12/27."*
 Those two spaces diverge precisely when a swap is already stored. Any new check has to say which
 space it is in.
 
-**Verified.** New gate leg `stintchain`, driven by the owner's own calendar — schedule intact, show
-titles genericised, since fixtures live in a public repo. It asserts the stored swap restores and
+**Verified.** New gate leg `stintchain`, on a calendar with the reported layout. It asserts the stored swap restores and
 applies, the second swap is *offered* rather than refused, it lands, the already-swapped pair does
 not move, no cell is lost or reshaped, and reversing restores the year exactly. `stintcollide` still
 proves a genuine cell-losing exchange is refused.

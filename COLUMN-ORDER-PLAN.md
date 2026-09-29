@@ -86,7 +86,7 @@ and the reason is not in the measurement's blind spot by accident — §1's own 
 
 Moving a block changes **which** column is beside it. A phase held narrow because its neighbour sits
 inside its run may, in its new position, have a *different* neighbour that is free for its whole run —
-and it absorbs it. Measured on the owner's second calendar (2 Sep 2026, gate leg `stintreshape`):
+and it absorbs it. Measured on the calendar the defect was reported on (2 Sep 2026, gate leg `stintreshape`):
 Writer's Rm, 37 weeks at slot 0, held to one column because Pre Prep occupies slot 1 inside its run.
 After swapping with Pre Prep it sits at slot 1, and its new right-hand neighbour is slot 2 — empty
 across its entire run, because Prod Prep starts after Writer's Rm ends. It widened to two columns for
@@ -479,7 +479,7 @@ prove the change is **inert** until used.
 7b. ✅ FIXED 2 Sep 2026 -- the first real-use defect. A block swap in a year that ALREADY carried
    one was refused as a collision, because applyStintSwaps validated each group against every
    other phase's NATURAL column rather than validating the whole set together. Gate leg
-   `stintchain`, on the owner's own calendar. See HANDOFF's table.
+   `stintchain` (its fixture regenerated as a synthetic calendar, 29 Sep 2026). See HANDOFF's table.
 8. ⚠️ Known limitation to raise with the owner: a block already swapped with one column cannot be
    swapped with a THIRD (refused as 'chained', stated in the chip). The store holds disjoint
    2-cycles and a 3-cycle is not one of them; the per-week store shares the limit. Lifting it

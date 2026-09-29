@@ -1,8 +1,14 @@
 # tests/fixtures/
 
-Real saved calendars, and deliberately damaged or hostile ones, for the headless harness
+Calendars saved by the app, and deliberately damaged or hostile ones, for the headless harness
 (`tests/harness/`). Load one at startup with `HARNESS_STATE=<name>` (the inline `?state=` path), or
 through the real picker with `T.openViaFakePicker('/tests/fixtures/<file>', '<file>')`.
+
+⛔ **Every fixture is synthetic, and must stay that way.** The repo is public, so never commit a
+calendar derived from a real production, not even with the titles removed: its dates, region,
+episode structure and phase lengths identify it on their own. When a real calendar reproduces a
+bug, rebuild its *overlap pattern* on made-up dates, then prove the new fixture is red on the
+pre-fix build. `stintswap-chained` and `stintswap-reshape` (29 Sep 2026) are the worked examples.
 
 The older fixtures (`blocks`, `colswap-*`, `stintswap-*`, `dayoverrides`, `v1.0.0-saved.html`, …) are
 described where their legs are, in `tests/harness/README.md` and `PROJECT-CONTEXT.md` §11.

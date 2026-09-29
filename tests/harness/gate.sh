@@ -611,8 +611,8 @@ sys.exit(bad)
 PY
 
 # ---- stintchain: a second block swap in a year that already carries one -------------------------
-# ⭐ THE OWNER'S OWN CALENDAR (2 Sep 2026), schedule intact, titles genericised -- the first defect
-# this feature produced in real use, and it was a FALSE REFUSAL. applyStintSwaps validated each stored
+# ⭐ The first defect this feature produced in real use (2 Sep 2026), reproduced on a SYNTHETIC
+# calendar (regenerated 29 Sep 2026), and it was a FALSE REFUSAL. applyStintSwaps validated each stored
 # group over the NATURAL, un-exchanged position of every phase outside it, so in a year that already
 # held Post <-> Pre Prep, a Writer's Rm <-> Production swap looked like a collision with a Post that
 # the first swap had already moved out of the way. The whole set is now validated together first.
@@ -645,12 +645,12 @@ sys.exit(bad)
 PY
 
 # ---- stintreshape: a block swap CAN reshape, and it must say so in words before the commit ------
-# ⭐ THE OWNER'S SECOND CALENDAR, schedule intact, titles genericised -- the counter-example to the
-# plan's founding premise. A block swap reflows nothing when the block has TWO phase columns; with
-# THREE it can, because moving a block changes WHICH column is beside it and the new one may be free
-# for its whole run where the old one was not. Here Writer's Rm (37 wks, slot 0, held narrow by Pre
-# Prep in slot 1) lands at slot 1 after the swap, where slot 2 is empty for its entire run -- Prod
-# Prep starts after it ends -- so it widens to two columns for 34 weeks.
+# ⭐ The counter-example to the plan's founding premise, found in real use (2 Sep 2026) and reproduced
+# on a SYNTHETIC calendar (regenerated 29 Sep 2026). A block swap reflows nothing when the block has
+# TWO phase columns; with THREE it can, because moving a block changes WHICH column is beside it and
+# the new one may be free for its whole run where the old one was not. Here Writer's Rm (31 wks in
+# 2027, slot 0, held narrow by Pre Prep in slot 1) lands at slot 1 after the swap, where slot 2 is
+# empty for its entire run -- Prod Prep starts after it ends -- so it widens to two columns for 28 weeks.
 # Owner ruling 2 Sep 2026: keep offering the swap, warn harder. So this leg asserts the WARNING, not
 # the absence of the widening: the phase named, the new width named, the extent named, an amber chip
 # and one amber rectangle per affected week, all BEFORE anything is committed.
@@ -668,11 +668,11 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  stintreshape threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('threeColumns') and a.get('narrowBefore'),
-    f"reshape: three phase columns, Writer's Rm held to one for all 37 weeks {a.get('before')}")
+    f"reshape: three phase columns, Writer's Rm held to one for all 31 weeks {a.get('before')}")
 chk(a.get('warnNamesIt'),
     f"reshape: the warning NAMES the phase, the new width and the extent -- {str(a.get('chipText'))[:110]}")
 chk(a.get('warnIsAmber'), f"reshape: the chip is the amber warning, not the neutral one ({a.get('chipClass')})")
-chk(a.get('amberMatchesCount'), f"reshape: one amber rectangle per affected week before commit ({a.get('amberRects')}/34)")
+chk(a.get('amberMatchesCount'), f"reshape: one amber rectangle per affected week before commit ({a.get('amberRects')}/28)")
 chk(a.get('swapped') and a.get('widened'), f"reshape: the swap lands and the widening is real {a.get('after')}")
 chk(a.get('flashNamesIt'), f"reshape: the confirmation says the same thing -- {str(a.get('flash'))[:110]}")
 chk(a.get('nothingLost'), "reshape: reshaping is not cell loss -- every week of both blocks survives")

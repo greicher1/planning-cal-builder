@@ -11,79 +11,65 @@
  "episodeDefs": [
   {
    "id": "ep1",
-   "name": "Episode 201",
-   "days": 8,
+   "name": "Episode 301",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep21",
-   "name": "Episode 202",
-   "days": 8,
+   "id": "ep2",
+   "name": "Episode 302",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep22",
-   "name": "Episode 203",
-   "days": 8,
+   "id": "ep3",
+   "name": "Episode 303",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep23",
-   "name": "Episode 204",
-   "days": 8,
+   "id": "ep4",
+   "name": "Episode 304",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep24",
-   "name": "Episode 205",
-   "days": 8,
+   "id": "ep5",
+   "name": "Episode 305",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep25",
-   "name": "Episode 206",
-   "days": 8,
+   "id": "ep6",
+   "name": "Episode 306",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep26",
-   "name": "Episode 207",
-   "days": 8,
+   "id": "ep7",
+   "name": "Episode 307",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   },
   {
-   "id": "ep27",
-   "name": "Episode 208",
-   "days": 8,
-   "nameEdited": false,
-   "daysEdited": false
-  },
-  {
-   "id": "ep28",
-   "name": "Episode 209",
-   "days": 8,
-   "nameEdited": false,
-   "daysEdited": false
-  },
-  {
-   "id": "ep31",
-   "name": "Episode 210",
-   "days": 8,
+   "id": "ep8",
+   "name": "Episode 308",
+   "days": 10,
    "nameEdited": false,
    "daysEdited": false
   }
  ],
- "episodeCounter": 31,
+ "episodeCounter": 8,
  "userNotes": {},
  "dayNotes": {
-  "2027-01-13": [
+  "2028-01-12": [
    {
     "text": "Test",
     "lane": 3,
@@ -92,26 +78,26 @@
   ]
  },
  "mvExtraLanes": {
-  "2027-01-04": 1
+  "2028-01-03": 1
  },
  "dayNoteColors": {},
  "headerMode": "manual",
  "headerManual": {
-  "left": "9.1.26",
+  "left": "8.30.27",
   "l2": "",
   "c1": "CHAINED SWAP FIXTURE",
   "c2": "Planning Calendar",
-  "c3": "Writer's Room Opens: 7.20.26",
+  "c3": "Writer's Room Opens: 8.2.27",
   "c4": "",
-  "r1": "16-Week Production Span / 8-Day Shooting Schedule",
-  "r2": "Principal Photography 11.2.26 / Wrap: 3.5.27",
-  "r3": "10 Episodes",
-  "undefined": "9.01.26"
+  "r1": "17-Week Production Span / 10-Day Shooting Schedule",
+  "r2": "Principal Photography 10.11.27 / Wrap: 2.16.28",
+  "r3": "8 Episodes",
+  "undefined": "8.30.27"
  },
  "mvHeaderMode": "manual",
  "mvHeaderManual": {
   "title": "Chained Swap Fixture",
-  "today": "9.01.26"
+  "today": "8.30.27"
  },
  "headerFormat": {
   "c1": {
@@ -138,105 +124,60 @@
  "viewMode": "sheet",
  "sidebarTab": "show",
  "colWidths": {
-  "y2026:s0": 25.19,
-  "y2026:date": 9.76,
-  "y2027:s0": 17.38
+  "y2027:s0": 25.19,
+  "y2027:date": 9.76,
+  "y2028:s0": 17.38
  },
  "rowHeights": {
   "28": 20
  },
  "cellSpans": {
-  "2026-07-20|writersRoom": {
+  "2027-08-02|writersRoom": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-07-27|writersRoom": {
+  "2027-08-09|writersRoom": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-08-03|writersRoom": {
+  "2028-02-21|writersRoom": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-08-10|writersRoom": {
+  "2028-05-29|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-08-17|writersRoom": {
+  "2028-06-05|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-08-24|writersRoom": {
+  "2028-06-12|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-08-31|writersRoom": {
+  "2028-06-19|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-09-07|writersRoom": {
+  "2028-06-26|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2026-09-14|writersRoom": {
+  "2028-07-03|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2027-03-08|writersRoom": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-06-21|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-06-28|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-07-05|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-07-12|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-07-19|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-07-26|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-08-02|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-08-09|prePrep": {
-   "l": 0,
-   "r": 0,
-   "k": 1
-  },
-  "2027-08-16|prePrep": {
+  "2028-07-10|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
@@ -244,16 +185,16 @@
  },
  "gridColSwaps": {},
  "gridStintSwaps": {
-  "2026|custom1": {
+  "2027|custom1": {
    "with": "prodPrep"
   },
-  "2026|prodPrep": {
+  "2027|prodPrep": {
    "with": "custom1"
   },
-  "2027|post": {
+  "2028|post": {
    "with": "prePrep"
   },
-  "2027|prePrep": {
+  "2028|prePrep": {
    "with": "post"
   }
  },
@@ -263,16 +204,16 @@
     "value": "Non-dense Custom Key"
    },
    "season-num": {
-    "value": "2"
+    "value": "3"
    },
    "shoot-days-per-ep": {
-    "value": "8"
-   },
-   "num-episodes": {
     "value": "10"
    },
+   "num-episodes": {
+    "value": "8"
+   },
    "union-country": {
-    "value": "UK"
+    "value": "US"
    },
    "union-usregion": {
     "value": "US-GEN"
@@ -290,10 +231,10 @@
     "value": "Writer's Rm"
    },
    "start-writersRoom": {
-    "value": "2026-07-20"
+    "value": "2027-08-02"
    },
    "weeks-writersRoom": {
-    "value": "45"
+    "value": "40"
    },
    "phiatus-en-writersRoom": {
     "checked": false
@@ -311,10 +252,10 @@
     "value": "Pre Prep"
    },
    "start-prePrep": {
-    "value": "2027-06-14"
+    "value": "2028-05-22"
    },
    "weeks-prePrep": {
-    "value": "10"
+    "value": "8"
    },
    "phiatus-en-prePrep": {
     "checked": false
@@ -323,19 +264,19 @@
     "value": ""
    },
    "phiatus-start-prePrep": {
-    "value": "2027-03-22"
+    "value": "2028-04-03"
    },
    "phiatus-weeks-prePrep": {
-    "value": "4"
+    "value": "3"
    },
    "name-prodPrep": {
     "value": "Prod Prep"
    },
    "start-prodPrep": {
-    "value": "2026-09-21"
+    "value": "2027-08-16"
    },
    "weeks-prodPrep": {
-    "value": "6"
+    "value": "8"
    },
    "phiatus-en-prodPrep": {
     "checked": false
@@ -353,7 +294,7 @@
     "value": "Production"
    },
    "start-production": {
-    "value": "2026-11-02"
+    "value": "2027-10-11"
    },
    "weeks-production": {
     "value": "80"
@@ -365,7 +306,7 @@
     "value": ""
    },
    "phiatus-start-production": {
-    "value": "2027-06-21"
+    "value": "2028-06-05"
    },
    "phiatus-weeks-production": {
     "value": ""
@@ -383,10 +324,10 @@
     "value": "Post"
    },
    "start-post": {
-    "value": "2027-03-15"
+    "value": "2028-02-28"
    },
    "weeks-post": {
-    "value": "14"
+    "value": "13"
    },
    "phiatus-en-post": {
     "checked": false
@@ -425,7 +366,7 @@
     "value": "Pickups"
    },
    "start-custom2": {
-    "value": "2027-02-01"
+    "value": "2028-02-07"
    },
    "weeks-custom2": {
     "value": "2"
@@ -444,12 +385,6 @@
    }
   },
   "hiatuses": [
-   {
-    "start": "2026-12-21",
-    "weeks": "2",
-    "locked": true,
-    "name": ""
-   },
    {
     "start": "2027-12-20",
     "weeks": "2",

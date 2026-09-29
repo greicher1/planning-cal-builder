@@ -14,79 +14,51 @@
  "episodeDefs": [
   {
    "id": "ep1",
-   "name": "Episode 1",
-   "days": "20",
+   "name": "Episode 101",
+   "days": "14",
    "nameEdited": false,
    "daysEdited": true
   },
   {
    "id": "ep2",
-   "name": "Episode 2",
-   "days": "20",
+   "name": "Episode 102",
+   "days": "14",
    "nameEdited": false,
    "daysEdited": true
   },
   {
    "id": "ep3",
-   "name": "Episode 3",
-   "days": 17,
+   "name": "Episode 103",
+   "days": 12,
    "nameEdited": false,
    "daysEdited": false
   },
   {
    "id": "ep4",
-   "name": "Episode 4",
-   "days": 17,
+   "name": "Episode 104",
+   "days": 12,
    "nameEdited": false,
    "daysEdited": false
   },
   {
    "id": "ep5",
-   "name": "Episode 5",
-   "days": 17,
+   "name": "Episode 105",
+   "days": 12,
    "nameEdited": false,
    "daysEdited": false
   },
   {
    "id": "ep6",
-   "name": "Episode 6",
-   "days": 17,
+   "name": "Episode 106",
+   "days": 12,
    "nameEdited": false,
    "daysEdited": false
-  },
-  {
-   "id": "ep7",
-   "name": "Episode 7",
-   "days": 17,
-   "nameEdited": false,
-   "daysEdited": false
-  },
-  {
-   "id": "ep8",
-   "name": "Episode 8",
-   "days": 17,
-   "nameEdited": false,
-   "daysEdited": false
-  },
-  {
-   "id": "ep9",
-   "name": "Episode 9",
-   "days": 17,
-   "nameEdited": false,
-   "daysEdited": false
-  },
-  {
-   "id": "ep10",
-   "name": "Episode 10",
-   "days": "17",
-   "nameEdited": false,
-   "daysEdited": true
   }
  ],
- "episodeCounter": 10,
+ "episodeCounter": 6,
  "userNotes": {
-  "2026-11-23": {
-   "text": "Start Principal Photography 11/23/26"
+  "2027-10-18": {
+   "text": "Start Principal Photography 10/18/27"
   }
  },
  "dayNotes": {},
@@ -101,200 +73,163 @@
  "noteColors": {},
  "noteFontSize": {},
  "hiatusTexts": {
-  "2027-01-11": "Production Wk 7.5 + Hiatus (Last Day 201/202 PP on 12/22/26)",
-  "2026-01-12|writersRoom": "Writer's Room",
-  "2026-01-19|writersRoom": "Writer's Room"
+  "2027-12-20": "Holiday Hiatus",
+  "2027-03-01|writersRoom": "WR Break",
+  "2027-03-08|writersRoom": "WR Break"
  },
  "hiatusColors": {
-  "2027-01-11": "#92D050"
+  "2027-12-20": "#92D050"
  },
  "hiatusFontSize": {},
  "hiatusNameSyncedKeys": {
-  "2026-01-12|writersRoom": "Writer's Room",
-  "2026-01-19|writersRoom": "Writer's Room"
+  "2027-03-01|writersRoom": "WR Break",
+  "2027-03-08|writersRoom": "WR Break"
  },
- "holidayView": {
-  "day-after-thanksgiving@2026": {
-   "sheet": true
-  },
-  "thanksgiving@2026": {
-   "sheet": true
-  },
-  "2026-11-11": {
-   "sheet": true
-  },
-  "martin-luther-king-jr-day@2027": {
-   "sheet": true
-  },
-  "presidents-day@2027": {
-   "sheet": true
-  },
-  "good-friday@2027": {
-   "sheet": true
-  },
-  "memorial-day@2027": {
-   "sheet": true
-  },
-  "juneteenth-observed@2027": {
-   "sheet": true
-  },
-  "independence-day-observed@2027": {
-   "sheet": true
-  }
- },
+ "holidayView": {},
  "holidayOff": {},
  "customHolidays": [],
  "viewMode": "sheet",
  "sidebarTab": "show",
- "colWidths": {
-  "y2027:s0": 25.38,
-  "y2026:s0": 29.95,
-  "y2026:notes": 29,
-  "y2028:date": 9.57,
-  "y2025:date": 12.43,
-  "y2027:s1": 29.38,
-  "y2028:s0": 24.81,
-  "y2026:s1": 13.95
- },
- "rowHeights": {
-  "45": 23,
-  "46": 24,
-  "49": 20,
-  "50": 21
- },
+ "colWidths": {},
+ "rowHeights": {},
  "cellSpans": {
-  "2026-09-21|prePrep": {
+  "2027-08-09|prePrep": {
    "l": 0,
    "r": 0,
    "k": 1
   },
-  "2027-09-06|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-09-13|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-09-20|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-09-27|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-10-04|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-10-11|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-10-18|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-10-25|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-11-01|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-11-15|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-11-08|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-11-22|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-11-29|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-12-06|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-12-13|post": {
-   "l": 0,
-   "r": 1
-  },
-  "2027-07-19|production": {
-   "l": 0,
-   "r": 1
-  },
-  "2026-09-28|prePrep": {
+  "2027-08-16|prePrep": {
    "l": 0,
    "r": 0,
    "k": 2
   },
-  "2026-10-05|prePrep": {
+  "2027-08-23|prePrep": {
    "l": 0,
    "r": 0,
    "k": 2
   },
-  "2026-10-12|prodPrep": {
+  "2027-08-30|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-07-19|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-07-26|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-08-02|prePrep": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-07-19|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-07-26|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-08-02|writersRoom": {
+   "l": 0,
+   "r": 0,
+   "k": 2
+  },
+  "2027-09-06|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-10-19|prodPrep": {
+  "2027-09-13|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-10-26|prodPrep": {
+  "2027-09-20|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-11-09|prodPrep": {
+  "2027-09-27|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-11-02|prodPrep": {
+  "2027-10-04|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-11-16|prodPrep": {
+  "2027-10-11|prodPrep": {
    "l": 2,
    "r": 0
   },
-  "2026-08-31|prePrep": {
+  "2028-03-13|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
   },
-  "2026-09-07|prePrep": {
+  "2028-03-20|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
   },
-  "2026-09-14|prePrep": {
+  "2028-03-27|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
   },
-  "2026-08-31|writersRoom": {
+  "2028-04-03|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
   },
-  "2026-09-07|writersRoom": {
+  "2028-04-10|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
   },
-  "2026-09-14|writersRoom": {
+  "2028-04-17|post": {
    "l": 0,
-   "r": 0,
-   "k": 2
+   "r": 1
+  },
+  "2028-04-24|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-05-01|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-05-08|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-05-15|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-05-22|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-05-29|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-06-05|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-06-12|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-06-19|post": {
+   "l": 0,
+   "r": 1
+  },
+  "2028-02-07|production": {
+   "l": 0,
+   "r": 1
   }
  },
  "gridColSwaps": {},
@@ -305,16 +240,16 @@
     "value": "Reshape Fixture"
    },
    "season-num": {
-    "value": "2"
+    "value": "1"
    },
    "shoot-days-per-ep": {
-    "value": "17"
+    "value": "12"
    },
    "num-episodes": {
-    "value": "10"
+    "value": "6"
    },
    "union-country": {
-    "value": "US"
+    "value": "CA"
    },
    "union-usregion": {
     "value": "US-GEN"
@@ -332,19 +267,19 @@
     "value": "Writer's Rm"
    },
    "start-writersRoom": {
-    "value": "2025-11-10"
+    "value": "2026-10-12"
    },
    "weeks-writersRoom": {
-    "value": "41"
+    "value": "39"
    },
    "phiatus-en-writersRoom": {
     "checked": true
    },
    "phiatus-name-writersRoom": {
-    "value": "Writer's Room "
+    "value": "WR Break"
    },
    "phiatus-start-writersRoom": {
-    "value": "2026-01-12"
+    "value": "2027-03-01"
    },
    "phiatus-weeks-writersRoom": {
     "value": "2"
@@ -353,10 +288,10 @@
     "value": "Pre Prep"
    },
    "start-prePrep": {
-    "value": "2026-08-31"
+    "value": "2027-07-19"
    },
    "weeks-prePrep": {
-    "value": "6"
+    "value": "7"
    },
    "phiatus-en-prePrep": {
     "checked": false
@@ -374,10 +309,10 @@
     "value": "Prod Prep"
    },
    "start-prodPrep": {
-    "value": "2026-09-28"
+    "value": "2027-08-16"
    },
    "weeks-prodPrep": {
-    "value": "8"
+    "value": "9"
    },
    "phiatus-en-prodPrep": {
     "checked": false
@@ -395,10 +330,10 @@
     "value": "Production"
    },
    "start-production": {
-    "value": "2026-11-23"
+    "value": "2027-10-18"
    },
    "weeks-production": {
-    "value": "176"
+    "value": "76"
    },
    "phiatus-en-production": {
     "checked": true
@@ -407,7 +342,7 @@
     "value": ""
    },
    "phiatus-start-production": {
-    "value": "2027-01-25"
+    "value": "2028-01-24"
    },
    "phiatus-weeks-production": {
     "value": "1"
@@ -425,10 +360,10 @@
     "value": "Post"
    },
    "start-post": {
-    "value": "2027-08-30"
+    "value": "2028-03-06"
    },
    "weeks-post": {
-    "value": "48"
+    "value": "30"
    },
    "phiatus-en-post": {
     "checked": false
@@ -467,7 +402,7 @@
     "value": "Pick-Ups"
    },
    "start-custom2": {
-    "value": "2027-08-30"
+    "value": "2028-03-06"
    },
    "weeks-custom2": {
     "value": "1"
@@ -499,19 +434,13 @@
     "name": ""
    },
    {
-    "start": "2028-12-18",
+    "start": "2028-12-25",
     "weeks": "2",
     "locked": true,
     "name": ""
    },
    {
     "start": "2029-12-24",
-    "weeks": "2",
-    "locked": true,
-    "name": ""
-   },
-   {
-    "start": "2025-12-22",
     "weeks": "2",
     "locked": true,
     "name": ""

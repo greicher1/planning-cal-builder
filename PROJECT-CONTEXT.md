@@ -22,12 +22,12 @@ calendar**, an **Excel workbook**, and **printable PDFs**.
 Above the preview sits a row of **adjustment tools** that move or rebuild a whole plan at once —
 see §7a, which is the densest part of the app added since the original version of this document.
 
-It is used by production/scheduling staff at a TV studio ("SPT" = Sony Pictures Television).
-The output is the sort of one-page planning calendar that gets circulated to a production team.
+It is used by production and scheduling staff to plan TV seasons. The output is the sort of one-page
+planning calendar that gets circulated to a production team.
 
 **Live URL:** https://greicher1.github.io/planning-cal-builder/
 **Repo:** https://github.com/greicher1/planning-cal-builder (public)
-**Owner:** Graham Reicher (grahamreicher@gmail.com)
+**Owner:** the repository owner, `greicher1` on GitHub
 
 ### The six built-in phases (in order)
 
@@ -905,7 +905,7 @@ Both, plus the print path that has never been measured outside Chrome, are in `H
 ```js
 // /tmp/testsrv.js — serve index.html with a test script injected
 const http=require('http'), fs=require('fs'), path=require('path');
-const ROOT='/Users/apple/Downloads/Calendar Builder';
+const ROOT=process.argv[2] || process.cwd();   // the repo root
 const INJECT=`
 <pre id="R">pending</pre>
 <script>

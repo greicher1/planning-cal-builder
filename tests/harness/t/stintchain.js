@@ -1,14 +1,15 @@
 // stintchain -- a block swap in a year that ALREADY carries one must not be refused as a collision.
 //
-// ⭐ THIS IS THE OWNER'S OWN CALENDAR (2 Sep 2026), schedule intact, show titles genericised. It is
-// the first defect the block swap produced in real use, and it was a FALSE REFUSAL: the chip said
-// "two phases would need the same column in the same week" for a swap that is plainly legal on screen.
+// ⭐ This reproduces the first defect the block swap produced in real use (2 Sep 2026), and it was a
+// FALSE REFUSAL: the chip said "two phases would need the same column in the same week" for a swap
+// that is plainly legal on screen. The fixture is SYNTHETIC (regenerated 29 Sep 2026): it keeps the
+// overlap pattern that triggered the defect, on made-up dates.
 //
-// The 2027 block, with the stored Post <-> Pre Prep swap already applied:
+// The 2028 block, with the stored Post <-> Pre Prep swap already applied:
 //
-//     slot 0:  Writer's Rm   1/4 .. 6/7    (rows 0-22)
-//     slot 1:  Production    1/4 .. 3/1    (rows 0-8)    +  Pre Prep  6/14 .. 8/16  (rows 23-32)
-//     slot 2:  Post          3/15 .. 6/14  (rows 10-23)
+//     slot 0:  Writer's Rm   1/3 .. 5/15   (rows 0-19)
+//     slot 1:  Production    1/3 .. 2/14   (rows 0-6)    +  Pre Prep  5/22 .. 7/10  (rows 20-27)
+//     slot 2:  Post          2/28 .. 5/22  (rows 8-20)
 //
 // Post's NATURAL column is Production's -- it sits at slot 2 only BECAUSE of the stored swap. The
 // validator used to map each stored group over the natural, un-exchanged position of every phase
@@ -33,11 +34,11 @@ window.addEventListener('load', function () { (async function () {
       return Array.prototype.filter.call(document.querySelectorAll('#table-wrap td.sheet-phase-cell'),
         function (td) { return Number.isFinite(+td.dataset.own); });
     }
-    // Every 2027 block as {slot, span, weeks} -- the three things a swap must keep honest.
-    function y27() {
+    // Every 2028 block as {slot, span, weeks} -- the three things a swap must keep honest.
+    function yBlock() {
       var m = {};
       tds().forEach(function (td) {
-        if (String(td.dataset.week).slice(0, 4) !== '2027') return;
+        if (String(td.dataset.week).slice(0, 4) !== '2028') return;
         var k = td.dataset.pkey;
         if (!m[k]) m[k] = { slots: {}, spans: {}, n: 0 };
         m[k].slots[td.dataset.own] = 1;
@@ -51,7 +52,7 @@ window.addEventListener('load', function () { (async function () {
       return o;
     }
     function cellOf(key) {
-      var l = tds().filter(function (td) { return td.dataset.pkey === key && String(td.dataset.week).slice(0, 4) === '2027'; });
+      var l = tds().filter(function (td) { return td.dataset.pkey === key && String(td.dataset.week).slice(0, 4) === '2028'; });
       return l.length ? l[Math.floor(l.length / 2)] : null;   // a MIDDLE week: the first is under the button
     }
     async function hover(el) {
@@ -67,9 +68,9 @@ window.addEventListener('load', function () { (async function () {
 
     // 1. The stored Post <-> Pre Prep swap restored and applied: Post at slot 2, Pre Prep at slot 1.
     //    (Naturally Post takes slot 1 -- Production's column, freed when it ends -- and Pre Prep 2.)
-    out.before = y27();
-    out.storedSwapApplied = /^2 x1 n14$/.test(out.before.post || '') && /^1 x1 n10$/.test(out.before.prePrep || '');
-    out.naturalRest = /^0 x1 n23$/.test(out.before.writersRoom || '') && /^1 x1 n9$/.test(out.before.production || '');
+    out.before = yBlock();
+    out.storedSwapApplied = /^2 x1 n13$/.test(out.before.post || '') && /^1 x1 n8$/.test(out.before.prePrep || '');
+    out.naturalRest = /^0 x1 n20$/.test(out.before.writersRoom || '') && /^1 x1 n7$/.test(out.before.production || '');
 
     // 2. ⭐ The swap that used to be refused is OFFERED, and the chip says it re-flows nothing.
     await hover(cellOf('writersRoom'));
@@ -80,17 +81,17 @@ window.addEventListener('load', function () { (async function () {
     var info = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
     out.mode = info ? info.textContent : '';
     out.offered = /block of Writer.s Rm with Production/.test(out.knob) &&
-                  /All 23 weeks of Writer/.test(out.mode) && /nothing re-flows/.test(out.mode);
+                  /All 20 weeks of Writer/.test(out.mode) && /nothing re-flows/.test(out.mode);
     // The old defect, asserted directly so it cannot come back silently.
     out.noCollideMessage = !/same column in the same week/.test(out.mode);
 
     // 3. It lands. Writer's Rm takes Production's column and Production takes Writer's Rm's; the pair
     //    already swapped in this same year does NOT move; every week of all four survives.
     document.getElementById('colswap-right-btn').click();
-    await T.until(function () { return (y27().writersRoom || '').indexOf('1 ') === 0; }, 'the second swap to land', 150, 100);
+    await T.until(function () { return (yBlock().writersRoom || '').indexOf('1 ') === 0; }, 'the second swap to land', 150, 100);
     await T.sleep(300);
-    out.after = y27();
-    out.landed = /^1 x1 n23$/.test(out.after.writersRoom || '') && /^0 x1 n9$/.test(out.after.production || '');
+    out.after = yBlock();
+    out.landed = /^1 x1 n20$/.test(out.after.writersRoom || '') && /^0 x1 n7$/.test(out.after.production || '');
     out.bystandersUnmoved = out.after.post === out.before.post && out.after.prePrep === out.before.prePrep;
     // n<count> is inside each string, so an unchanged string is also proof no cell was lost or gained.
     out.nothingLost = ['writersRoom', 'production', 'post', 'prePrep'].every(function (k) {
@@ -103,9 +104,9 @@ window.addEventListener('load', function () { (async function () {
     // 4. Reversing restores the year exactly -- including the OTHER swap, which must be untouched.
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 150, 100);
     document.getElementById('colswap-left-btn').click();
-    await T.until(function () { return (y27().writersRoom || '').indexOf('0 ') === 0; }, 'the reverse to land', 150, 100);
+    await T.until(function () { return (yBlock().writersRoom || '').indexOf('0 ') === 0; }, 'the reverse to land', 150, 100);
     await T.sleep(300);
-    out.afterReverse = y27();
+    out.afterReverse = yBlock();
     out.reversedExactly = same(out.afterReverse, out.before);
 
     out.errors = (window.__ERR || []).slice(0, 6);
