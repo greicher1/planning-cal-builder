@@ -2764,8 +2764,13 @@ export function initLegacyApp() {
           // as an ordinary working day.
           const holidayList = fullHolidayList(state.unionCountry).filter(h=>h.enabled);
           const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
-          const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-start)/DAY_MS/7) + 1;
-          end = addDays(start, weeksNeeded*7);
+          // ⛔ Measure the span in WHOLE WEEKS from the start's Monday (audit H-3). With a snap-off
+          // (non-Monday) start, using the raw start here rounded up and gave Production a phantom
+          // trailing week with no shoot day in it -- a wrap shown a week late in the exports. The
+          // shoot is day-accurate (simulateProductionSchedule); this only sets how many week rows
+          // the phase's segment spans. Monday-to-Monday, so it is idempotent for a snapped start.
+          const weeksNeeded = Math.round((mondayOf(sim.lastShootDay)-mondayOf(start))/DAY_MS/7) + 1;
+          end = addDays(mondayOf(start), weeksNeeded*7);
           // The calendar labels Production "wk 1, wk 2..." only on weeks it actually works --
           // hiatus weeks are stop-work and get a Hiatus band instead. Count the same way here
           // so the hint agrees with the grid rather than counting elapsed calendar weeks.
@@ -2804,8 +2809,17 @@ export function initLegacyApp() {
     // otherwise the always-present default hiatus entries (which span years) would force the
     // calendar to stretch across all of them even when nothing is scheduled nearby.
     const relevantHiatuses = hiatuses.filter(h => segments.some(s => h.start < s.end && h.end > s.start));
-    const naturalStarts = segments.map(s=>s.start.getTime()).concat(relevantHiatuses.map(h=>h.start.getTime()));
-    const naturalEnds   = segments.map(s=>s.end.getTime()).concat(relevantHiatuses.map(h=>h.end.getTime()));
+    // ⛔ SNAP THE GRID GEOMETRY TO MONDAYS (audit H-4, FIX-PLAN.md 1.7, 25 Sep 2026). A grid cell IS
+    // a week, and every week-keyed store (userNotes, hiatusTexts/Colors, rowHeightsByWeek, cellSpans)
+    // is keyed by the week's Monday. When a snap-off phase has a non-Monday start, its raw seg.start
+    // used to become the grid origin, so every row was dated Fri/Wed and NONE of those stores matched
+    // a row -- saved notes and named hiatuses vanished from the waterfall, Excel and PDF, and the
+    // date column printed the wrong weekday. The month view stays day-accurate: it reads seg.start
+    // directly, never these Monday-snapped bounds. Starts snap DOWN to their Monday; ends round UP to
+    // the next Monday so a non-Monday end still gets its own (partial) week row and totalWeeks does
+    // not lose it to Math.round. All idempotent for snapped phases and hiatuses (already Mondays).
+    const naturalStarts = segments.map(s=>mondayOf(s.start).getTime()).concat(relevantHiatuses.map(h=>h.start.getTime()));
+    const naturalEnds   = segments.map(s=>mondayOf(addDays(s.end,6)).getTime()).concat(relevantHiatuses.map(h=>h.end.getTime()));
 
     function firstMondayOfYear(year){
       const jan1 = new Date(Date.UTC(year,0,1));
@@ -2937,7 +2951,13 @@ export function initLegacyApp() {
       if(hiatus){
         cells.push({type:'hiatus', label:HIATUS_DEFAULT_LABEL});
       } else {
-        const active = segments.filter(s=> weekStart>=s.start && weekStart<s.end).sort((a,b)=>a.start-b.start);
+        // ⛔ OVERLAP, not containment (audit H-3). weekStart is a Monday; a snap-off phase's start
+        // and end can be any weekday. The old test `weekStart>=s.start` put a phase that starts on
+        // (say) a Wednesday into the FOLLOWING Monday's row -- a week late in the waterfall, Excel
+        // and PDF, while the month view showed it correctly. A phase is active in a week row when it
+        // overlaps that Mon-Sun span at all. For a snapped phase (start and end are Mondays) this is
+        // identical to the old test, so every existing calendar is byte-for-byte unchanged.
+        const active = segments.filter(s=> s.start < addDays(weekStart,7) && s.end > weekStart).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
           const ownHi = ph.phaseHiatus;
           if(ownHi && weekStart>=ownHi.start && weekStart<ownHi.end){

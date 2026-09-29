@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Phases with "Snap to Mon" off now land in the right week (audit H-3, H-4)
+
+**Owner-approved 28 Sep 2026 after reviewing before/after exports (R1): this deliberately changes
+the Excel and waterfall-PDF output for calendars that have a snap-off phase. Snapped calendars — all
+gate baselines — are byte-identical (gate 376/0).**
+
+**What was wrong.** A phase with Snap to Mon off, starting on a Tue–Sun, was placed a week late in
+the waterfall, Excel and waterfall PDF (the month view was already correct, so the two disagreed).
+When the *earliest* phase was snap-off with a non-Monday start, the whole grid re-anchored to that
+weekday — so every week-keyed store (notes, named hiatuses, row heights, spans) stopped matching a
+row, and those items silently vanished from the exports. A month-view pill drag turns snap off
+automatically, so ordinary use reached this. The gap banner also over-counted.
+
+**The fix** (three lines in `computeSchedule`, not frozen):
+- the grid geometry snaps to Mondays (starts down to their Monday, ends up to the next), so a cell is
+  a week again and the week-keyed stores match;
+- the week-activity test is an overlap, not containment, so a mid-week start shows in the week that
+  contains it;
+- Production's week span is measured Monday-to-Monday, dropping a phantom trailing week.
+
+For a snapped phase every value is already a Monday, so the tests are identical to before and no
+existing calendar changes — verified by the gate and by the refute's 400-calendar comparison.
+
+**Verified:** new leg `snapoff` on three fixtures — `snapoff-sheet` (Pre Prep 4/13 → its correct 4/6
+week, gap 2 wk → 1 wk), `snapoff-onecol` (dates Wednesday → Monday, and the saved "Table read" note
+and "Summer Break" hiatus label reappear), `snapoff-friday` (Friday-anchored → Monday). All three
+fail on the pre-fix build. One accepted edge: a phase starting Jan 1–4 with snap off has its week
+fall in late December, so the full-year view shows the prior year — identical to what a snapped
+late-December start already produces.
+
 ### Unreleased — Loading a bad file can no longer corrupt the open calendar or the file (audit M-1, L-1, L-19)
 
 **What was wrong.** A file that parsed as JSON but failed partway through `applyStateSnapshot` (a
