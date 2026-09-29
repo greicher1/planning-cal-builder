@@ -4,6 +4,51 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 29 Sep 2026 (afternoon): BATCH 3 IN PROGRESS (v1.4.0, FIX-PLAN §5): start state and rulings
+
+- **Start state, verified.** Local `main` is at `2b15444`, 6 commits ahead of `origin/main` (`f03739f`,
+  v1.3.1): `c794fa8` (HANDOFF), the `onhalf` work (`d4ee52d`, `bdfec60` + merges `c03e3ee`, `0f8327d`)
+  and the fixture/SRI clean-up `2b15444`. **None of it is live**; the next push carries all of it. The
+  full gate re-run in this session on `0f8327d` gave **521/0**, the peer's own count, with every numbered
+  gate green. The clean-up session gated `2b15444` at 521/0 on port 8297.
+- **Owner rulings for batch 3** (29 Sep 2026, picker):
+  - **L-3 is IN, and goes FIRST**, after step 0. The direct month-PDF writer waits until **every** audit
+    batch is done (3, 4 and 5), not just this one. The owner's words: "dont do the writer till we finish
+    everything with the audit fixes starting with l3".
+  - **M-8 covers notes AND both hiatus bands**, all-phase and per-phase. Both go through the same no-wrap
+    `drawLines`, and the screen and Excel wrap them.
+  - **L-17: a loaded file opens on its FIRST month, as today.** Only a range that shrinks in-session
+    clamps to the nearest month. `monthCursor` is never reset on Load, so this needs a non-frozen check
+    in the restore path; a bare clamp would open such a file on its LAST month.
+  - **Step 0 goes first:** a `dayoverrides-onhalf` month-PDF case in gate 10 (a new case, not a
+    re-cut), before 3.6 edits `renderMonthView`. It was the `onhalf` block's open item.
+- **Order:** harness prep → step 0 → 3.5 (L-3) → 3.6 → 3.1 → 3.2 → 3.3 → 3.4. 3.4 moves every Excel
+  baseline, so 3.2 and 3.3 are proved against the untouched one first.
+- **Stated to the owner before the picker, with no objection:**
+  - M-8 breaks lines with `measureTextPx`, the measure `wrapLineCount` itself uses, so the PDF draws
+    exactly `fit.lines` lines. `ttfTextWidth` still centres each line. The two can differ by kerning.
+  - "Top-aligned" puts the first line at the cell top, where an over-budget block already starts today.
+  - N-1: only the month view's ALL-phase band used `||`; its per-phase band already used `in`. The fix
+    reads `hiatusTextFor()`, the rule the waterfall, Excel and PDF share.
+  - ⚠️ Expected M-8 side effect: MANTINE-SEAM §5.8's capacity mismatch shows more often. An 80 px row
+    budgets 5 lines on screen and holds about 4 in the PDF. §5.13 says to preserve it; it is not unified.
+- ✅ **Harness prep (tests only).** A non-default `HARNESS_PORT` now namespaces `run.sh`'s Chrome
+  profile (`/tmp/tc<port>-<test>`) and `gate.sh`'s Excel diff dirs (`/tmp/gate<port>-xa|xb`). The
+  default port keeps the old paths. That fixes the parallel-session trap in the clean-up block below,
+  except between two sessions that both use the default port. ⚠️ `dist/` in the main checkout goes
+  stale whenever another session fast-forwards `main`: rebuild before any gate (it was still the v1.3.1
+  build after the `onhalf` merge).
+
+| Step | Finding | State | Leg |
+|---|---|---|---|
+| 0 | `onhalf` month-PDF case | ⏳ | `monthprint` (`dayoverrides-onhalf`) |
+| 3.5 | L-3 Letter pin | ⏳ | |
+| 3.6 | L-16 / L-17 / N-1 | ⏳ | |
+| 3.1 | M-8 (+ hiatus bands) | ⏳ | |
+| 3.2 | M-9 | ⏳ | |
+| 3.3 | L-2 | ⏳ | |
+| 3.4 | L-7 | ⏳ | |
+
 ### ✅ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Merged into local `main` AFTER v1.3.1's push; NOT pushed
 
 The owner asked (29 Sep 2026) for a day to be flagged "both half and on", so a weekend or holiday can
@@ -91,7 +136,8 @@ went live, so the NEXT push deploys it: `src/index.html` gains the ExcelJS hash.
   `/tmp/tc-$T` per TEST NAME, and `gate.sh` shares `/tmp/gate-xa|xb`. So two sessions running the harness
   at once kill each other's servers and Chrome, and clobber each other's Excel diffs. This session
   ran private copies with `HARNESS_PORT=8297`, `/tmp/tc-ccl-$T` and `/tmp/gate-ccl-x*`. Making both
-  scripts take a prefix would fix it for good.
+  scripts take a prefix would fix it for good. ✅ **Done the same day** (batch-3 prep, block above):
+  both scripts now key on `HARNESS_PORT`.
 - Gate: **521 pass / 0 fail** on `main` `0f8327d` + this commit. That is the same count as `main` alone, run in
   the private copies above (it was 376/0 on the original base, before batch 2 wired its case legs in).
   One intermediate run lost `stintnoreflow`'s dump while three sessions were running Chrome; the

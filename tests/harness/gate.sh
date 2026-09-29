@@ -103,15 +103,20 @@ else bad "waterfall PDF differs beyond the date stamp: $(print -r -- "$PDFOUT" |
 # ---- the workbook: valid, and unchanged apart from its timestamp -------------------------------
 if "$HERE/check-xlsx.sh" "$HERE/base.xlsx" >/dev/null 2>&1; then ok "Excel passes check-xlsx.sh"
 else bad "Excel fails check-xlsx.sh"; fi
-rm -rf /tmp/gate-xa /tmp/gate-xb; mkdir -p /tmp/gate-xa /tmp/gate-xb
-(cd /tmp/gate-xa && unzip -qo "$HERE/base.xlsx") 2>/dev/null
-(cd /tmp/gate-xb && unzip -qo "$BASE/base.xlsx") 2>/dev/null
-rm -f /tmp/gate-xa/docProps/core.xml /tmp/gate-xb/docProps/core.xml
+# Namespaced by HARNESS_PORT exactly as run.sh namespaces its Chrome profile (29 Sep 2026): two
+# sessions gating at once used to unzip into the SAME two directories and diff each other's
+# workbooks. The default port keeps the old paths.
+GTAG=""; [[ "${HARNESS_PORT:-8231}" != 8231 ]] && GTAG="$HARNESS_PORT"
+XA="/tmp/gate${GTAG}-xa"; XB="/tmp/gate${GTAG}-xb"
+rm -rf "$XA" "$XB"; mkdir -p "$XA" "$XB"
+(cd $XA && unzip -qo "$HERE/base.xlsx") 2>/dev/null
+(cd $XB && unzip -qo "$BASE/base.xlsx") 2>/dev/null
+rm -f $XA/docProps/core.xml $XB/docProps/core.xml
 # The header's left line carries todayStr in the same dotted form -- normalise that token only.
-for f in /tmp/gate-xa/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$TODAY/DATESTAMP/g" "$f"; done
-for f in /tmp/gate-xb/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$BASEDATE/DATESTAMP/g" "$f"; done
-if diff -rq /tmp/gate-xa /tmp/gate-xb >/dev/null 2>&1; then ok "Excel parts identical (core.xml timestamp + header date excluded)"
-else bad "Excel parts differ: $(diff -rq /tmp/gate-xa /tmp/gate-xb | head -3)"; fi
+for f in $XA/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$TODAY/DATESTAMP/g" "$f"; done
+for f in $XB/xl/worksheets/sheet1.xml; do [ -f "$f" ] && sed -i '' "s/$BASEDATE/DATESTAMP/g" "$f"; done
+if diff -rq $XA $XB >/dev/null 2>&1; then ok "Excel parts identical (core.xml timestamp + header date excluded)"
+else bad "Excel parts differ: $(diff -rq $XA $XB | head -3)"; fi
 
 # ---- restore: a real pre-.sptcal calendar still opens ------------------------------------------
 # ⭐ THIS LEG RUNS AGAIN AS OF 8 Sep 2026, and gate 5 with it. It had been failing 100% of the time,

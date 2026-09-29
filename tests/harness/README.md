@@ -88,7 +88,10 @@ Then validate the exports:
 node pdf-info.js base.pdf base.txt  # page box, text/rect counts, grid extent, every string
 ```
 
-Environment: `HARNESS_PORT` (default 8231), `CHROME` (default the standard macOS path),
+Environment: `HARNESS_PORT` (default 8231; ⛔ **any other session on this machine must pick its own** —
+a non-default port also namespaces the Chrome profile as `/tmp/tc<port>-<test>` and `gate.sh`'s Excel
+diff dirs as `/tmp/gate<port>-xa|xb`, since 29 Sep 2026; the default keeps `/tmp/tc-<test>`, so two
+sessions both on the default still kill each other's Chrome), `CHROME` (default the standard macOS path),
 `HARNESS_STATE=<fixture>` (start from `tests/fixtures/<fixture>.sptcal` via the inline `?state=`
 path), `HARNESS_PRINT_PDF=1` (Chrome also **prints** the page to `<name>.print.pdf` when it dumps
 it — the real print pipeline, used by `monthprint`), and ⚠️ **`HARNESS_PAGE` (default

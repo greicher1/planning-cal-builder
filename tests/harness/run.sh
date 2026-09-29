@@ -26,6 +26,15 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 T="${1:?usage: run.sh <test-name> [seconds]}"
 SECS="${2:-45}"
 PORT="${HARNESS_PORT:-8231}"
+# ⛔ PARALLEL SESSIONS (29 Sep 2026). Other sessions run this harness from .claude/worktrees/* on
+# the same machine, and nothing locks it. The server below is keyed by PORT, but the Chrome profile
+# was keyed by TEST NAME alone -- /tmp/tc-<test> -- and the cleanup pkills by that path, so two
+# sessions running the same leg deleted and killed each other's Chrome whatever port each used. A
+# NON-DEFAULT port now namespaces the profile as /tmp/tc<port>-<test>, which the default session's
+# pattern ("user-data-dir=/tmp/tc-<test>") cannot match. The default port keeps the old path, so a
+# lone session runs exactly as before. gate.sh namespaces its Excel diff directories the same way.
+TMPTAG=""; [[ "$PORT" != 8231 ]] && TMPTAG="$PORT"
+PROFILE="/tmp/tc${TMPTAG}-$T"
 # Which page to test. Defaults to the deployed single-file app at the repo root; set
 #   HARNESS_PAGE=/dist/index.html
 # to run the same test against the Vite build instead. The server always serves the REPO ROOT, so
@@ -60,9 +69,9 @@ PDF_FLAGS=()
 [[ -n "${HARNESS_PRINT_PDF:-}" ]] && PDF_FLAGS=(--no-pdf-header-footer "--print-to-pdf=$PDF_OUT")
 
 # A unique user-data-dir per test, or two runs share a profile and a stale one poisons the next.
-rm -rf "/tmp/tc-$T"
+rm -rf "$PROFILE"
 "$CHROME" --headless=new --disable-gpu --no-sandbox \
-  --user-data-dir="/tmp/tc-$T" --window-size=1600,1200 \
+  --user-data-dir="$PROFILE" --window-size=1600,1200 \
   --virtual-time-budget=$((SECS * 1000)) "${PDF_FLAGS[@]}" \
   --dump-dom "http://localhost:$PORT$PAGE?test=$T$STATE_Q" > "$OUT" 2>/dev/null &
 CPID=$!
@@ -108,7 +117,7 @@ while (( SECONDS - T0 < CAP )); do
   if (( steady >= 2 )) && { (( ! ${#PDF_FLAGS} )) || (( psteady >= 2 )); }; then WHY="dumped"; break; fi
 done
 kill -9 $CPID 2>/dev/null
-pkill -9 -f "user-data-dir=/tmp/tc-$T" 2>/dev/null
+pkill -9 -f "user-data-dir=$PROFILE" 2>/dev/null
 # stderr, so stdout stays exactly parse.js's output.
 if [[ $WHY == cap ]]; then
   print -u2 -r -- "run.sh: $T: no complete dump after ${CAP}s wall-clock -- Chrome killed (virtual budget ${SECS}s)"
