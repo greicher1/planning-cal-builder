@@ -19,14 +19,23 @@ suspected items. Key rulings:
 - the service-worker scope is fixed now, and a custom domain is planned later;
 - the shareable copy is **kept and fixed**.
 
-**Batch 1 status (28 Sep 2026): 6 of 7 items DONE and committed locally (NOT pushed).** Commits
-`9c5a381` (M-2/M-3/M-5/H-1/H-2 + known bug #1), `c1eef5b` (handoff), `a354407` (M-1). Full gate 376/0
-after M-1; waterfall PDF + Excel parts identical to baseline; `fields.byId` unchanged (62 ids); v1.0.0
-restores identically. Each fix has a leg that is red on the pre-fix build (`loadcarry`, `hiatusblank`,
-`hostile`, `sharecopy2`, `loadfail`), and `tests/fixtures/` holds the audit's inert hostile files.
-- ⏭ **Only H-3/H-4 remains in batch 1** (snap-off week placement — step 1.7). It **changes the Excel
-  and waterfall-PDF output for snap-off calendars, so it needs the owner's before/after export
-  approval** per R1. Then cut **v1.3.0**.
+**Batch 1 COMPLETE (28 Sep 2026): all 7 items DONE and committed locally (NOT pushed).** Commits:
+`9c5a381` (M-2/M-3/M-5/H-1/H-2 + known bug #1), `a354407` (M-1), `2c6fa6d` (H-3/H-4, owner-approved
+per R1 after before/after export review). Full gate **376/0** after every step; waterfall PDF + Excel
+parts + month PDF byte-identical to baseline; `fields.byId` unchanged (62 ids); v1.0.0 restores
+identically. Each fix has a leg red on the pre-fix build: `loadcarry`, `hiatusblank`, `hostile`,
+`sharecopy2`, `loadfail`, `snapoff`. `tests/fixtures/` holds the audit's inert hostile files + README.
+- ⏭ **NOT YET DONE: cut v1.3.0.** Four things in one commit (CLAUDE.md §5g): bump the version, add
+  the changelog (done per-fix already — may just need a release header), `git tag -a v1.3.0`,
+  `releases/v1.3.0.html` byte-identical to `dist/index.html`, and a fresh `tests/fixtures/
+  v1.3.0-saved.sptcal`. ⚠️ **The version-bump question is unresolved** (FIX-PLAN §3): CLAUDE.md says
+  bump `APP_VERSION` in `index.html` + `src/legacy/app.js` + `version.json`, but the root `index.html`
+  is the frozen legacy rollback (must stay byte-identical to `releases/v1.2.0.html`) and is the ONLY
+  file besides the build that has `APP_VERSION`. `src/index.html` has none. So the cut can only bump
+  `src/legacy/app.js`'s `APP_VERSION` + `version.json`. Confirm with the owner and correct CLAUDE.md.
+- ⏭ **Then batches 2–5** (FIX-PLAN §4–§7). Batch 2 = M-4 (day overrides by shoot-day, R2), M-6
+  (conflict detection, R4), M-7 (holidays to 2031 — owner ruled 2031 not 2036), M-10 (auto-notes
+  rewritten on shift, R5), M-11, M-12, M-13, M-14, M-15 and their lows.
 - ⚠️ **M-1 note for the next session:** H-1's `sanitizeSnapshot` already stops the specific
   null-value files from throwing (it drops the bad bits), so those load cleanly now. M-1's
   user-visible protection is the version gate + shape gate; the atomic rollback is the net for a
