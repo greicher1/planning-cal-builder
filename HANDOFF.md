@@ -84,12 +84,56 @@
     - The reference calendar also carries `DEFAULT_HIATUSES`' 12/21/26 hiatus, so count its
       "Hiatus" runs relatively.
 
+- ✅ **3.1 (M-8, notes + both hiatus bands).** Inside `buildWaterfallPdf`, a cell whose
+  `cellTextFit` says `wrap` is drawn by `drawWrapped(wrapLines(text, chars, 11*fit.scale), …)`:
+  - `wrapLines` is `wrapLineCount`'s greedy rule, decision for decision, with its measure
+    (`measureTextPx`) and `cellTextFit`'s width. So it returns exactly `fit.lines` lines, which
+    the screen publishes as `data-notelines`.
+  - `drawWrapped` places each line with `ttfTextWidth`, top-aligned (`baselineIn(top, 0, …)`).
+  - Non-wrapping cells still take `drawLines`, byte for byte. Phase labels never wrap.
+  - **Leg `notewrap`** (16 cases; four cells made through the real UI, including two real
+    pointer drags of the row handle). Red before on every L/F/T case; green after. Its top-alignment
+    test derives the font's baseline offset from the SAME row's date, which is always a centred
+    single line, so it needs no font tables.
+  - `base.pdf` identical: its two-line note was already over-budget, so it already started at
+    the cell top.
+  - A/B renders are in the session scratchpad (`m8/before|after`, not durable); re-make them
+    from `tests/fixtures/notewrap.sptcal`.
+  - ⚠️ MANTINE-SEAM §5.13's no-wrap bullet is struck (unified on purpose). §5.8's capacity
+    mismatch is not.
+  - Full gate **560/0** (544 + `notewrap` 16).
+
+- ⏭ **Where 3.2–3.4 stand (read before starting them).** All three are in `exportExcel`, and 3.3 also
+  touches `sheetColumnWidths` and `installGridResizers`. Do 3.2 and 3.3 against the UNTOUCHED Excel
+  baseline, then 3.4, which moves every Excel part.
+  - **3.2 (M-9).** The trimmer works on strings that already carry codes: `withCodes()` prepends
+    `hdrLineCode(id)` (`&<size>&"Calibri,<style>"&K<hex>`) to each line's text, and `hL` is those
+    lines already `\n`-joined. So the backstop's `.slice(0, keep)` can cut through a code. Keep
+    `{code, text}` per line in all three sections (left included) until `assembleHeader()`, shave
+    only `text`, and drop a line whose text reaches zero. Mirror that in
+    `estimateExcelHeaderLength()`, whose sentence today only says "the last lines will be dropped".
+    Fixture `hdr-cut.sptcal`. A leg can read the header with the page's own ExcelJS
+    (`new ExcelJS.Workbook().xlsx.load(buf)` → `ws.headerFooter.oddHeader`). Assert ≤ 255 and
+    that every `&"` closes. The audit measured `unterminated &"font" at 59`. `base.xlsx` is 238/255,
+    so it should not move.
+  - **3.3 (L-2).** Clamp widths ≤ 255 chars and heights ≤ 409 pt in three places: the Single
+    Column Mode post-pass in `sheetColumnWidths` (cap `f`), the drag's `onUp`, and at the write
+    (the widths and `applyRowHeight`). The last one covers old files. Needs synthetic fixtures: a
+    ~5-year Single Column Mode calendar with a 60-character note (the audit had widths 370.4 and
+    378.9, and a 555.75 pt row), and one saved with over-limit `colWidths` / `rowHeightsByWeek`.
+  - **3.4 (L-7).** Date cells become `{formula, result: week.date}`. Check what ExcelJS 4.4.0 writes
+    for a Date `result`: it should be a serial `<v>` under the `mm-dd-yy` numFmt. Assert every cached
+    value equals its formula chain's value. Then the deliberate `base.xlsx` re-cut, with a README
+    table, after the owner sees the parts diff.
+  - Excel.app on the 3.2 and 3.3 before/after workbooks (and 3.4's) is the OWNER's check. Prepare
+    the files; never claim it.
+
 | Step | Finding | State | Leg |
 |---|---|---|---|
 | 0 | `onhalf` month-PDF case | ✅ done: gate 10 is now 7 calendars; new case 15 → 15 sheets, fit table identical to `dayoverrides` | `monthprint` (`dayoverrides-onhalf`) |
 | 3.5 | L-3 Letter pin | ✅ done (frozen print CSS, 1 rule; no baseline moved) | `printpaper` (Node + CDP, not a `t/` leg) |
 | 3.6 | L-16 / L-17 / N-1 | ✅ done (3 frozen edits in `renderMonthView` + a non-frozen `update()` check; no baseline moved) | `monthlanes` (`month-lanecap`), `hiatuslabel` |
-| 3.1 | M-8 (+ hiatus bands) | ⏳ | |
+| 3.1 | M-8 (+ hiatus bands) | ✅ done (frozen edit in `buildWaterfallPdf`; `base.pdf` identical, no re-cut) | `notewrap` |
 | 3.2 | M-9 | ⏳ | |
 | 3.3 | L-2 | ⏳ | |
 | 3.4 | L-7 | ⏳ | |

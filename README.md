@@ -29,6 +29,39 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The waterfall PDF word-wraps notes and hiatus labels, as the screen does (audit M-8)
+
+**What changed** (a frozen edit to `buildWaterfallPdf`, owner-approved under FIX-PLAN R3; owner
+scope 29 Sep 2026: notes **and** both kinds of hiatus band): a long note or hiatus label used to be
+drawn on one centred line in the PDF. It ran off both ends of its cell, and the cell's clip cut its
+first and last words, while the screen and Excel wrapped it onto several lines. The waterfall PDF is
+the document people hand around, so that was the version that lost text.
+
+Now any cell that the screen wraps is drawn on the same lines the screen counts. The PDF uses the
+same greedy word-break rule as `wrapLineCount`, with the same measure and the same width, and
+starts the block at the top of the cell, as the screen does when it wraps. A cell that fits on one
+line is drawn exactly as before. Phase labels still clip, by design: a wrapped label would break
+the colour band.
+
+⚠️ **One difference is left in on purpose** (MANTINE-SEAM §5.8 and §5.13 say to keep it): the
+screen counts a row's lines in screen pixels, but the PDF row is 0.75 pt per pixel. The two agree
+only for the default 20 px row. So in a row dragged taller, the last line the screen fits can be
+cut off in the PDF: an 80 px row fits 5 lines on screen and about 4 in the PDF.
+
+**Verified:**
+- A new leg, `notewrap`, sets up the reference calendar through the real UI: a long note in a
+  default row, another in a row dragged to 81 px, a long all-phase hiatus label in a dragged row,
+  and a long per-phase label. It then reads the exported PDF's content stream.
+  - **Red before the fix:** each text was one run against the screen's 3, 3, 3 and 4 lines; every
+    run overflowed its cell; and the dragged-row cells sat centred.
+  - **Green after:** the same 3, 3, 3 and 4 lines as the screen; every line inside its cell; every
+    word present, in order. The first line sits exactly where the cell top puts it (8.05 pt against
+    8.05 predicted; centred would be 13.89).
+- The gate's waterfall-PDF baseline (`base.pdf`) is **identical**. Its two-line note was already
+  taller than its row, so it already started at the cell top. No baseline was re-cut.
+- `tests/fixtures/notewrap.sptcal` was minted by the leg through the real Save.
+- Full gate **560 pass / 0 fail**: 544, plus `notewrap`'s 16.
+
 ### Unreleased — The month view: notes past lane 60, a shrinking calendar, and a blank hiatus label (audit L-16, L-17, N-1)
 
 Three frozen edits to `renderMonthView`, owner-approved under FIX-PLAN R3 (step 3.6). The month

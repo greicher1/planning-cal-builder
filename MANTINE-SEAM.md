@@ -660,9 +660,16 @@ visual restyle.
 
 - `cellTextFit` and `buildWaterfallPdf` budget at `SHEET_LINE_RATIO = 1.35`;
   `.wf-print .sheet-table td` renders at `line-height:1.3`.
-- `drawLines` in `buildWaterfallPdf` splits **only on `\n`** and never word-wraps, while the screen
+- ~~`drawLines` in `buildWaterfallPdf` splits **only on `\n`** and never word-wraps, while the screen
   uses `white-space:pre-wrap` and Excel sets `wrapText`. A long note with no newline shows two
-  wrapped lines on screen and in the workbook and is drawn as one clipped line in the PDF.
+  wrapped lines on screen and in the workbook and is drawn as one clipped line in the PDF.~~
+  ✅ **UNIFIED on purpose, 29 Sep 2026** (audit M-8, owner-approved frozen edit R3): a cell
+  `cellTextFit` says wraps (notes, and all-phase and per-phase hiatus bands) is now drawn on
+  `wrapLineCount`'s own breaks, top-aligned, by `wrapLines`/`drawWrapped` inside
+  `buildWaterfallPdf`. So this bullet is no longer a disagreement. Cells that do not wrap still go
+  through `drawLines` byte for byte, and phase labels still clip. ⚠️ §5.8's capacity mismatch is
+  NOT unified and is now easier to see: an 80 px row budgets 5 lines on screen but holds about 4
+  in the PDF.
 - `fmtShort` sizes the workbook's Date column (`measureTextPx(fmtShort(week.date), true)`) but is
   not what Excel prints — `exportExcel` writes a real date with `numFmt:'mm-dd-yy'`. Width is
   measured from `1/5/26`; Excel renders `01-05-26`.
@@ -671,7 +678,8 @@ visual restyle.
   app's own workbook. Existing internal inconsistency, worth surfacing to the owner, not worth
   fixing inside a chrome stage.
 
-All four are v1.0.0 behaviour. Changing either side of any of them changes an export.
+All four were v1.0.0 behaviour; the second was changed deliberately (M-8, above). Changing either
+side of any of the others changes an export.
 
 ---
 

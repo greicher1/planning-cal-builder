@@ -75,6 +75,7 @@ they are a working demonstration against the live site. They ship in the same re
 |---|---|
 | `month-dense60.sptcal` | 60 notes in one week of Aug 2026, a shrink-to-fit month |
 | `month-lanecap.sptcal` | more than 60 lanes in one day (L-16) |
+| `notewrap.sptcal` | the reference calendar plus four long texts, each made through the real UI: a note in a default row (10/5/26), a note in a row dragged to 81 px (9/14/26), an all-phase hiatus label in a dragged row (8/24/26), and a per-phase Post hiatus label (12/7/26). It is the waterfall-PDF A/B input for word wrap (M-8), minted by the `notewrap` leg through the real Save, 29 Sep 2026 |
 | `hiatus-blanklabel.sptcal` | the reference calendar (`T.buildFixture()`) plus a 2-week hiatus from 8/24/26 whose two week labels were emptied in the note editor, so `hiatusTexts` holds `""` for both (N-1). Minted by the `hiatuslabel` leg through the real Save, 29 Sep 2026 |
 | `hdr-cut.sptcal` | long, formatted header lines that the Excel trimmer must shave without cutting a `&"font"` code (M-9) |
 

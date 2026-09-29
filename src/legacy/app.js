@@ -15829,6 +15829,45 @@ export function initLegacyApp() {
         page.text(ln, x, baselineIn(cellTop, cellH, lines.length, size, i), tag, size, colour);
       });
     };
+    // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit M-8, 29 Sep 2026; owner scope: notes AND both
+    // hiatus bands). drawLines splits only on "\n", so a long note -- or a long hiatus label -- was
+    // drawn on ONE centred line that ran off both ends of its cell, and the clip cut its first and last
+    // words, while the screen and Excel wrapped it. A cell cellTextFit says WRAPS is now drawn on the
+    // lines this returns: wrapLineCount's greedy rule, decision for decision, with its measure
+    // (measureTextPx at the 11pt basis) and cellTextFit's own width (chars x EXCEL_MDW, widened by
+    // 11/px at a shrunk size). So the PDF breaks exactly where the screen and Excel COUNTED, and draws
+    // exactly fit.lines lines; ttfTextWidth still places each one (drawWrapped). A cell that does not
+    // wrap still goes through drawLines, byte for byte. Phase labels never come here: they clip by
+    // design, since a wrapped label would break the colour band.
+    // ⚠️ The screen budgets lines in screen px and the PDF row holds rowPx x 0.75 pt; the two agree only
+    // at 20 px (MANTINE-SEAM §5.8, a disagreement §5.13 says to preserve). In a dragged-tall row the
+    // last budgeted line can therefore clip here while it shows on screen.
+    const wrapLines = (text, chars, px)=>{
+      const availPx = Math.max(1, chars * EXCEL_MDW) * (11 / px);
+      const spaceW = measureTextPx(' ', false);
+      const out = [];
+      String(text).split('\n').forEach(para=>{
+        const words = para.split(/\s+/).filter(Boolean);
+        if(!words.length){ out.push(''); return; }   // a blank line still occupies one
+        let line = '', lineW = 0;
+        words.forEach(w=>{
+          const ww = measureTextPx(w, false);
+          const cand = lineW ? lineW + spaceW + ww : ww;
+          if(cand <= availPx || lineW === 0){ line = lineW ? line + ' ' + w : w; lineW = cand; }
+          else { out.push(line); line = w; lineW = ww; }
+        });
+        out.push(line);
+      });
+      return out;
+    };
+    // Top-aligned, as the screen is when a cell wraps (vertical-align:top): the block starts at the
+    // cell top -- which is where baselineIn's max(0, ...) already put any block taller than its row.
+    const drawWrapped = (lines, cx, cellTop, size, colour, tag, ttf)=>{
+      lines.forEach((ln, i)=>{
+        const w = ttfTextWidth(ttf, ln, size);
+        page.text(ln, cx - w/2, baselineIn(cellTop, 0, lines.length, size, i), tag, size, colour);
+      });
+    };
 
     // --- header text -----------------------------------------------------------------------
     // Drawn in the TOP MARGIN band, at Excel's header margin, not above the grid in the body.
@@ -15984,7 +16023,9 @@ export function initLegacyApp() {
                                               rowPx: rowHeights[r] || ROW_DEFAULT_PX });
           page.rect(bx + dw, ry, bandW, rh, hCol);
           page.clipPush(bx + dw, ry, bandW, rh);
-          drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
+          if(fit.wrap) drawWrapped(wrapLines(hTxt, av, 11*fit.scale), bx + dw + bandW/2, ry, S(11*fit.scale),
+                                   textColorFor(hCol), 'F1', reg);
+          else drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
                     textColorFor(hCol), 'F1', reg, bandW);
           page.clipPop();
           // One band from the date cell to the block's right edge -- the workbook merges exactly
@@ -16029,7 +16070,9 @@ export function initLegacyApp() {
               fit = cellTextFit(cell.label||'', av, {});
             }
             page.clipPush(cx, ry, cw, rh);
-            drawLines(cell.label||'', cx + cw/2, ry, rh, S(11*fit.scale), ink, 'F1', reg, cw);
+            if(cell.kind === 'phaseHiatus' && fit.wrap)
+              drawWrapped(wrapLines(cell.label||'', av, 11*fit.scale), cx + cw/2, ry, S(11*fit.scale), ink, 'F1', reg);
+            else drawLines(cell.label||'', cx + cw/2, ry, rh, S(11*fit.scale), ink, 'F1', reg, cw);
             page.clipPop();
           }
           cx += cw;
@@ -16046,7 +16089,9 @@ export function initLegacyApp() {
                                   { basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX });
           page.rect(nx, ry, nw, rh, nCol);
           page.clipPush(nx, ry, nw, rh);
-          drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
+          if(fit.wrap) drawWrapped(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale), nx + nw/2, ry,
+                                   S(11*fit.scale), textColorFor(nCol), 'F1', reg);
+          else drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
           page.clipPop();
         }
       });
