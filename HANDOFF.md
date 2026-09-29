@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT, committed locally, NOT pushed
+### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT at `a236ad1` (tag `v1.3.1`), committed locally, NOT pushed
 
 - **Full gate 494 PASS / 0 FAIL** on the batch (numbered gates all green: 0 clipped, waterfall PDF +
   Excel parts identical, v1.0.0 restores identically, `fields.byId` identical at 62 ids, month PDF
