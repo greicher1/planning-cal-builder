@@ -25,14 +25,15 @@ per R1 after before/after export review). Full gate **376/0** after every step; 
 parts + month PDF byte-identical to baseline; `fields.byId` unchanged (62 ids); v1.0.0 restores
 identically. Each fix has a leg red on the pre-fix build: `loadcarry`, `hiatusblank`, `hostile`,
 `sharecopy2`, `loadfail`, `snapoff`. `tests/fixtures/` holds the audit's inert hostile files + README.
-- ⏭ **NOT YET DONE: cut v1.3.0.** Four things in one commit (CLAUDE.md §5g): bump the version, add
-  the changelog (done per-fix already — may just need a release header), `git tag -a v1.3.0`,
-  `releases/v1.3.0.html` byte-identical to `dist/index.html`, and a fresh `tests/fixtures/
-  v1.3.0-saved.sptcal`. ⚠️ **The version-bump question is unresolved** (FIX-PLAN §3): CLAUDE.md says
-  bump `APP_VERSION` in `index.html` + `src/legacy/app.js` + `version.json`, but the root `index.html`
-  is the frozen legacy rollback (must stay byte-identical to `releases/v1.2.0.html`) and is the ONLY
-  file besides the build that has `APP_VERSION`. `src/index.html` has none. So the cut can only bump
-  `src/legacy/app.js`'s `APP_VERSION` + `version.json`. Confirm with the owner and correct CLAUDE.md.
+- ✅ **v1.3.0 CUT (28 Sep 2026) at `00f4fc7`, tag `v1.3.0`, committed locally, NOT pushed.** Build
+  `APP_VERSION` (`src/legacy/app.js`) + `version.json` + `package.json` = 1.3.0; root `index.html`
+  deliberately stays 1.2.0 (frozen rollback). CLAUDE.md's release rule corrected to two files, not
+  three (owner-confirmed). `releases/v1.3.0.html` byte-identical to the build
+  (sha256 `09fc6b38…`). `tests/fixtures/v1.3.0-saved.sptcal` is a real save (62 ids), round-trips
+  with 0 clipped cells. `npm run check` 12/12.
+- ⏭ **NEXT: the owner decides whether to PUSH v1.3.0** (deploys to the live site — separate approval,
+  §5a). After an approved push, verify the live URL is byte-identical to `dist` (~40–60 s) and bind
+  the CI. Then continue to batch 2.
 - ⏭ **Then batches 2–5** (FIX-PLAN §4–§7). Batch 2 = M-4 (day overrides by shoot-day, R2), M-6
   (conflict detection, R4), M-7 (holidays to 2031 — owner ruled 2031 not 2036), M-10 (auto-notes
   rewritten on shift, R5), M-11, M-12, M-13, M-14, M-15 and their lows.
