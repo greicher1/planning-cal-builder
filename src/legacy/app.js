@@ -6261,15 +6261,24 @@ export function initLegacyApp() {
     // 'off' must fall inside the shot span. A stale override left on a date the shoot no longer
     // covers is ignored here exactly as it is ignored by simulateProductionSchedule -- never
     // deleted, never drawn. Same rule refreshOverrideNote() applies, deliberately.
+    //
+    // ⛔ FROZEN EDIT, owner-requested 29 Sep 2026 ("a half day on a weekend or holiday"): 'onhalf'
+    // marks as BOTH existing marks -- the 'on' tint and the ½ -- when the simulation counted the day
+    // half (productionInfo.halfDays, its own verdict, so there is no second copy of the rule here).
+    // An 'onhalf' the simulation shot FULL (inert, on an ordinary shoot day) marks as 'on', which is
+    // exactly how an inert 'on' there already marks. Still a class on an existing cell: no element,
+    // no lane, no text, so the height-neutral argument above holds unchanged, and no CSS was needed.
     const _ovDays = (function(){
       const pi = schedule.productionInfo;
       if(!pi || !pi.shootDays || !pi.shootDays.length) return null;
       const shot = new Set(pi.shootDays);
+      const halves = new Set(pi.halfDays || []);
       const first = pi.shootDays[0], last = pi.shootDays[pi.shootDays.length - 1];
       return function(iso){
         const v = dayOverrides[iso];
         if(!v) return '';
         if(v === 'off') return (iso >= first && iso <= last) ? 'off' : '';
+        if(v === 'onhalf') return shot.has(iso) ? (halves.has(iso) ? 'onhalf' : 'on') : '';
         return shot.has(iso) ? (v === 'half' ? 'half' : (v === 'on' ? 'on' : '')) : '';
       };
     })();
@@ -6305,15 +6314,20 @@ export function initLegacyApp() {
     const halfSlices = (function(){
       const pi = schedule.productionInfo;
       if(!pi || !pi.shootDays || !pi.shootDays.length) return function(){ return ''; };
-      const shot = new Set(pi.shootDays);
       // Only honoured half days, matching _ovDays: a 'half' the simulation ignored (stale, or on a
       // day the shoot no longer covers) must not paint, or the bar disagrees with the wrap date.
+      // ⛔ FROZEN EDIT, 29 Sep 2026: read from the simulation's own verdict (halfDays) rather than
+      // re-deriving it, which is what makes a half-worked weekend or holiday ('onhalf') paint too.
+      // For a 'half' it is the SAME set the old test produced -- 'half' never forces a day, so a
+      // 'half' in shootDays is exactly a 'half' the simulation counted 0.5 -- and the gate's
+      // byte-identical month PDFs on every existing calendar are the proof of that.
+      const halves = new Set(pi.halfDays || []);
       return function(weekStart, startCol, endCol){
         const span = endCol - startCol + 1;
         const layers = [];
         for(let i = startCol; i <= endCol; i++){
           const iso = isoOf(addDays(weekStart, i));
-          if(dayOverrides[iso] !== 'half' || !shot.has(iso)) continue;
+          if(!halves.has(iso)) continue;
           const W = 100 / span;
           const O = ((i - startCol) / span) * 100;
           const P = (span === 1) ? 0 : (O / (100 - W)) * 100;
@@ -6345,9 +6359,11 @@ export function initLegacyApp() {
         const cls = ['mv-daycell'];
         if(!inMonth) cls.push('mv-out');
         if(dow===0 || dow===6) cls.push('mv-weekend');
-        // One extra class, or none. See the _ovDays note above.
+        // One extra class, or none -- or, for a half-worked weekend or holiday, the two existing
+        // marks together (the 'on' tint + the ½), so it needs no CSS of its own. See _ovDays above.
         const ov = _ovDays ? _ovDays(isoOf(d)) : '';
-        if(ov) cls.push('mv-day-' + ov);
+        if(ov === 'onhalf') cls.push('mv-day-on', 'mv-day-half');
+        else if(ov) cls.push('mv-day-' + ov);
         dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
 

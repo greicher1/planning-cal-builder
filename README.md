@@ -70,10 +70,29 @@ hit-tested click on its day number. What it checks:
   it to Sat 7/25 still `onhalf` and still honoured.
 - Clean output: 0 clipped cells, 0 console errors.
 
-23 cases pass here. The 4 month-view mark cases fail by design until the frozen edit that follows.
+All 27 cases pass. Before the month-view edit below, 23 passed and the 4 mark cases failed.
 Full gate 376/0: waterfall PDF, every Excel part and the month PDF on all six calendars are
 byte-identical. `overrides` 20/20, `npm run check` 12/12. New fixture
 `tests/fixtures/dayoverrides-onhalf.sptcal`, cut from the running app by the leg itself.
+
+**The month view marks it: ⛔ a frozen edit to `renderMonthView`, in its own commit, for the
+owner's review.** A half-worked day shows both existing marks at once: the worked-day tint with its
+amber date and the ½ beside the date. Production's pill slice for that day is darkened on its
+bottom half, like any half day.
+- It adds a class to an existing day cell and a background layer to an existing pill, and no CSS.
+- The ½ and the slice now read the simulation's own `halfDays` rather than re-deriving it. For a
+  plain `half` that is provably the same set, because `half` never forces a day.
+- An inert `onhalf` marks as `on`, as an inert `on` does.
+
+**Verified:**
+- On existing calendars: full gate 376/0, and all six month PDFs stay byte-identical to baseline.
+  That is the proof it changes nothing on any calendar without the new word.
+- `monthcmp.py ab` on `dayoverrides-onhalf.sptcal`, before vs after: 8 of 6,167 document lines
+  differ and nothing else moves. Element count, text, row heights and fit modes are all identical,
+  and it still prints 15 months on 15 sheets. The 8 lines are:
+  - four day cells gaining `mv-day-on mv-day-half` (7/3 and 8/1, each on two month pages);
+  - four Production pills gaining one appended half-slice layer, landing on exactly those days.
+- Clicked through by hand in the browser pane.
 
 ### Unreleased — An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
 

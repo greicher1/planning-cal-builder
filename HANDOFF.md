@@ -38,8 +38,21 @@ The branch touches `simulateProductionSchedule`, the day popover, `refreshOverri
 - **Evidence:** the new leg `halfworked` (27 cases, `HARNESS_STATE=dayoverrides`, run standalone
   with `HARNESS_PAGE=/dist/index.html`; it is not in `gate.sh`, like the other batch-2 legs).
   - Commit 1: 23 pass, and the 4 month-mark cases fail by design.
-  - Full gate 376/0; `overrides` 20/20.
+  - Commit 2: 27/27.
+  - Full gate 376/0 after each commit; `overrides` 20/20.
   - New fixture `dayoverrides-onhalf.sptcal`, cut from the running app by the leg.
+- ⛔ **Commit 2 is a FROZEN EDIT to `renderMonthView`**, made for the owner's review: `_ovDays` gives
+  `'onhalf'` both existing classes, and `halfSlices` reads `halfDays`. It adds no CSS.
+  - **Inert when unused:** the gate's six month PDFs are byte-identical.
+  - **A/B** (`monthcmp.py ab`, `dayoverrides-onhalf`, before vs after): 8 of 6,167 lines differ,
+    namely 4 cells gaining `mv-day-on mv-day-half` and 4 pills gaining an appended slice on the
+    right day. Elements, text and the fit table are identical, and it prints 15 sheets on 15 months.
+  - Commit 2 can be dropped on its own: the count still works without it, but the month view would
+    show a half-worked day as unmarked.
+- ⏭ **After the owner signs off:** cut a `dayoverrides-onhalf` month-PDF baseline and add it to
+  `gate.sh`'s monthprint loop, recording why in the baseline dir's README. That is a new case, not a
+  re-cut of an existing one. Then merge the branch; expect conflicts at the top of README/HANDOFF,
+  where batch 2 also writes.
 - ⚠️ **Harness trap found here:** `T.memoryIDB()` stores the crash backup by REFERENCE, and
   `captureSnapshot()` hands out the live stores. A snapshot kept across steps therefore goes on
   changing: `s0.dayOverrides` grew a later mark and a correct count read as a failure. Real
