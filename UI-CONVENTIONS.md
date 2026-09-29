@@ -1079,7 +1079,9 @@ Nothing in this document ships without all of these, every stage:
     in both views and both PDFs). Step 3.1 adds `notewrap`: the waterfall PDF word-wraps notes and
     hiatus bands on exactly the screen's line count (`data-notelines`), inside the cell, top-aligned.
     Step 3.2 adds `hdrcut`: an over-long, formatted Excel header is trimmed without cutting a code,
-    detail lines first, and the budget meter names what was dropped.
+    detail lines first, and the budget meter names what was dropped. Step 3.3 adds `xlsxlimits`: no
+    column past 255 characters and no row past 409 points, whether from a drag, Single Column Mode
+    or an old file.
 
 ---
 

@@ -117,6 +117,21 @@
   - Full gate **579/0** (560 + gate 10's 2 new cases × 6 + `hdrcut` 7). `hdrexcel` is unchanged and green.
   - ⏭ **Owner's Excel.app check owed:** `tests/harness/hdrcut-before.xlsx` / `hdrcut-after.xlsx`
     (gitignored; the leg re-makes them as `xlsxB64`).
+- ✅ **3.3 (L-2).** `EXCEL_MAX_COL_CHARS = 255` and `EXCEL_MAX_ROW_PT = 409` sit beside `COL_MAX_CHARS`.
+  They are applied in three places:
+  - Single Column Mode's post-pass caps `f` at 255 / the widest AUTO column. It is the factor that
+    is capped, not each column, so the proportions hold (the audit's 371 → 255, all columns ×0.6868).
+  - The drag's `onUp` stores at most 255 chars or `floor(409/0.75)` = 545 px.
+  - The workbook write clamps widths (`xlW`) and `applyRowHeight`.
+  ⚠️ An old file's over-limit HAND width is limited in the workbook only, as FIX-PLAN said: the
+  screen and PDF still draw it as stored, and the Excel note fit still measures against the
+  stored width. Moving the clamp into `sheetColumnWidths`' `pick` would unify all three. Ask the
+  owner before doing that.
+  - Leg `xlsxlimits`: red before, green after, on all four cases. Full gate **584/0**
+    (579 + `xlsxlimits` 5). `snapoff-onecol` is unchanged: its `f` never reached the cap.
+  - Fixture `xlsx-overlimit.sptcal` is a REAL Save from the pre-fix build, straight after the
+    leg's drags.
+  - ⏭ **Owner's Excel.app check owed:** `tests/harness/xlsxlimits-{single,oldfile}-{before,after}.xlsx`.
 - ⏭ **Owner, 29 Sep 2026: continue batch 3 in THIS session** (the handoff was offered after 3.1 and
   declined).
 - ⏭ **Where 3.2–3.4 stand (read before starting them).** All three are in `exportExcel`, and 3.3 also
@@ -151,7 +166,7 @@
 | 3.6 | L-16 / L-17 / N-1 | ✅ done (3 frozen edits in `renderMonthView` + a non-frozen `update()` check; no baseline moved) | `monthlanes` (`month-lanecap`), `hiatuslabel` |
 | 3.1 | M-8 (+ hiatus bands) | ✅ done (frozen edit in `buildWaterfallPdf`; `base.pdf` identical, no re-cut) | `notewrap` |
 | 3.2 | M-9 | ✅ done (frozen edit in `exportExcel`'s trimmer + the meter's mirror; `base.xlsx` identical) | `hdrcut` (`hdr-cut`) |
-| 3.3 | L-2 | ⏳ | |
+| 3.3 | L-2 | ✅ done (the post-pass caps `f`, `onUp` clamps, the workbook write clamps) | `xlsxlimits` |
 | 3.4 | L-7 | ⏳ | |
 
 ### ✅ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Merged into local `main` AFTER v1.3.1's push; NOT pushed

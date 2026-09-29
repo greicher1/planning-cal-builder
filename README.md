@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The workbook never carries a column or row Excel does not allow (audit L-2)
+
+**What changed** (frozen edits to the width model and the Excel writer, owner-approved under
+FIX-PLAN R3): Excel allows columns up to 255 characters wide and rows up to 409 points tall. Three
+things could write past those limits, and each is now clamped where it happens:
+- **Single Column Mode on a long calendar.** To fill the page, the mode grows every automatic
+  column by one factor, and that factor grows with the number of weeks. About 4½ years sent the
+  notes column to 371 characters. The factor is now capped, so the columns keep their proportions
+  and the widest stops at 255.
+- **A hand drag.** When a drag is released, the width is stored at no more than 255 characters and
+  the height at no more than 545 px (409 pt).
+- **Files saved before this.** A stored value is not rewritten; it is limited when the workbook is
+  written. ⚠️ Only the workbook is limited: an old file's over-limit dragged width still shows as
+  stored on screen and in the PDF, as FIX-PLAN laid out.
+
+**Verified:**
+- New leg `xlsxlimits` reads each export back through the page's ExcelJS. It covers a 2,600 px
+  column drag, an 800 px row drag, Single Column Mode on a ~4½-year calendar, and
+  `tests/fixtures/xlsx-overlimit.sptcal`, a real Save from the pre-fix build that carries 529.57
+  characters and an 821 px row.
+  - **Red before:** 529.57 wide / 615.75 pt, 371.28 wide, and 529.57 / 615.75 again.
+  - **Green after:** 255 / 408.75, 255, and 255 / 409.
+- `check-xlsx.sh` flags `WIDTH > 255` on both "before" workbooks and passes both "after" ones.
+- In the Single Column workbook only the three `<col>` widths move, all by the same 0.6868, plus the
+  one dragged row. `styles.xml` is identical, and so are the gate's own Excel parts.
+- Full gate **584 pass / 0 fail**: 579, plus `xlsxlimits`' 5. The Single Column Mode fixture
+  (`snapoff-onecol`) is unchanged: its factor never reached the cap.
+- ⚠️ **By hand, for the owner:** open `tests/harness/xlsxlimits-{single,oldfile}-{before,after}.xlsx`
+  in Excel.app and check there is no repair prompt. The files are gitignored and re-made by the leg.
+
 ### Unreleased — A long, formatted header no longer breaks the workbook's header codes (audit M-9)
 
 **What changed** (a frozen edit to `exportExcel`'s header trimmer, owner-approved under FIX-PLAN

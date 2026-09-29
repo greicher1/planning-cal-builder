@@ -109,6 +109,15 @@ export function initLegacyApp() {
   // shrink takes over, and beyond the floor it wraps. Dragging by hand is not capped at all.
   const COL_MAX_CHARS = 40;
   const COL_MAX_CHARS_NOTES = 55;
+  // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-2, 29 Sep 2026): Excel's own ceilings. A
+  // column wider than 255 characters or a row taller than 409 points is outside what Excel allows,
+  // and check-xlsx.sh flags it. Three things could produce one -- Single Column Mode's fill factor on
+  // a long calendar, a hand drag, and any file saved before these clamps -- so each is limited where
+  // it is made (the post-pass in sheetColumnWidths, the drag's onUp) and once more at the workbook
+  // write, which is the only place an old file's stored value is caught. A stored value is never
+  // rewritten; it is limited when it is written out.
+  const EXCEL_MAX_COL_CHARS = 255;
+  const EXCEL_MAX_ROW_PT = 409;
   const COL_MIN_CHARS = 3;      // hand-dragged floor; the auto floor is higher (see clampChars)
   // A note narrower than its column renders at full size. One that would overflow is SHRUNK to
   // fit on one line rather than wrapping, down to this fraction of the base size; only if it
@@ -657,9 +666,12 @@ export function initLegacyApp() {
       if(!moved) return;
       pushUndoSnapshot();
       if(isCol){
-        colWidths[ckey] = screenPxToChars(parseFloat(col.style.width) || 0);
+        // L-2 (29 Sep 2026): at most Excel's 255 characters; the release re-render snaps to it.
+        colWidths[ckey] = Math.min(EXCEL_MAX_COL_CHARS, screenPxToChars(parseFloat(col.style.width) || 0));
       } else {
-        rowHeights[rowIdx] = Math.round(parseFloat(tr.style.height) || ROW_DEFAULT_PX);
+        // L-2 (29 Sep 2026): at most Excel's 409 points -- the tallest whole px that fits in it.
+        rowHeights[rowIdx] = Math.min(Math.floor(EXCEL_MAX_ROW_PT / ROW_PX_TO_PT),
+                                      Math.round(parseFloat(tr.style.height) || ROW_DEFAULT_PX));
         // ...and into the persisted, week-keyed store, or the drag is forgotten on the next
         // schedule change -- syncRowHeights() rebuilds rowHeights from that map, not the reverse.
         const wk = currentSchedule && currentSchedule.weeks && currentSchedule.weeks[rowIdx];
@@ -8530,7 +8542,8 @@ export function initLegacyApp() {
     // height, and a workbook that quietly grew one row around a long note would be the odd one
     // out. Excel's own row autofit is still one click away for anyone who wants it.
     function applyRowHeight(row, r){
-      row.height = Math.round((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT * 100) / 100;
+      // L-2: limited here too -- an old file's stored height is never rewritten, only written out valid.
+      row.height = Math.min(EXCEL_MAX_ROW_PT, Math.round((rowHeights[r] || ROW_DEFAULT_PX) * ROW_PX_TO_PT * 100) / 100);
     }
 
     const HEADER_FILL = 'D9D9D9';
@@ -8662,9 +8675,12 @@ export function initLegacyApp() {
       const notesCol = labelColEnd + 1;
 
       const widths = blockColWidths[b];
-      ws.getColumn(dateCol).width = widths.date;
-      for(let k=0;k<maxConcurrent;k++) ws.getColumn(labelColStart+k).width = widths.labels[k];
-      ws.getColumn(notesCol).width = widths.notes;
+      // L-2: limited at the write, which is what covers a width an old file carries (a hand-dragged
+      // width bypasses clampChars, so nothing upstream bounds it).
+      const xlW = w => Math.min(EXCEL_MAX_COL_CHARS, w);
+      ws.getColumn(dateCol).width = xlW(widths.date);
+      for(let k=0;k<maxConcurrent;k++) ws.getColumn(labelColStart+k).width = xlW(widths.labels[k]);
+      ws.getColumn(notesCol).width = xlW(widths.notes);
 
       // Clamped to the same trimmed height the screen uses, so the workbook does not carry a
       // trailing empty row the preview has dropped.
@@ -9569,7 +9585,14 @@ export function initLegacyApp() {
       // ⚠️ Portrait deliberately: with one block sheetPageOrientation prefers portrait and only
       // flips if landscape prints 15% larger, which a tall narrow grid never does. Sizing against
       // the orientation that will actually be chosen keeps this one pass rather than two.
-      const f = (gridW > 0 && gridH > 0) ? (availW * gridH) / (availH * gridW) : 1;
+      let f = (gridW > 0 && gridH > 0) ? (availW * gridH) / (availH * gridW) : 1;
+      // ⛔ FROZEN EDIT (L-2, 29 Sep 2026): cap f so the widest AUTO column stops at Excel's 255
+      // characters. gridH grows with the row count, so a long calendar sent f -- and every column --
+      // far past the limit (the audit measured 370.4 on ~5 years). Capping the FACTOR, not each column,
+      // keeps the columns' proportions; the grid then simply stops filling the page's width.
+      let widestAuto = 0;
+      out.forEach(bk => bk.cols.forEach(c => { if(colWidths[c.key] === undefined) widestAuto = Math.max(widestAuto, c.chars); }));
+      if(widestAuto > 0) f = Math.min(f, EXCEL_MAX_COL_CHARS / widestAuto);
       // ⚠️ Only GROW, and only when it is worth doing: f <= 1 means the grid is already
       // width-bound, and shrinking it here would fight the fit that is about to happen anyway.
       if(f > 1.02){
