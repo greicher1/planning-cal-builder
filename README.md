@@ -29,6 +29,52 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A weekend or holiday can be worked as a half day (`onhalf`)
+
+**What was asked.** The owner, 29 Sep 2026: flag a day as both *half* and *on*, so a weekend or a
+union holiday can be worked as a half day. Until now a weekend or holiday offered only *Work this
+day* (a full day), and a `half` stored on a weekend did nothing.
+
+**What changed** (not frozen; no save-format **key** changed, one new **value**):
+- A fourth day-override word, **`onhalf`**. It works a day the calendar would skip, as `on` does,
+  and counts **0.5**, as `half` does. The day popover on a weekend or holiday now reads
+  *Weekend — not shot · Work this day · Work half day*. On a holiday both work rows carry
+  *Overrides &lt;holiday&gt;*. A hiatus still wins: a day inside one offers only the greyed
+  *Work this day*, as before. Ordinary weekdays are unchanged (*Full day · Half day · Off*).
+- **A new word rather than letting `half` mean "worked" on a weekend.** A `half` already stored on
+  a weekend is inert in existing files, because typing a new start date leaves marks on their dates.
+  If it started counting, those calendars' wraps would move with no edit. Every calendar saved so
+  far keeps its wrap.
+- An `onhalf` that a move leaves on an ordinary shoot day is **inert**, exactly as an `on` there
+  is: the day is shot full and is never silently halved.
+- `simulateProductionSchedule` now reports which days it counted half (`productionInfo.halfDays`).
+  The sidebar line takes its half count from that, and counts an `onhalf` as both a half and an
+  added day: *2 half · 1 off · 3 added — 81 days on the floor for 80 of 80*.
+- It travels with every mover (owner ruling R2) exactly as a worked day does: by its weekday, in
+  its reference shoot day's week. The move result line now reads *A worked-day mark no longer falls
+  on a weekend or holiday*, because "Work this day" no longer covers every worked mark.
+- A stale mark in the popover is named by its label (*Stored "Work half day" — not in effect on this
+  day*) rather than by the raw word.
+- ⚠️ **Older builds (v1.3.0 and before) keep the word but do not understand it**, so they treat
+  that day as not worked and show the same or a later wrap. The snapshot version was deliberately
+  not bumped, because that would make those builds refuse the whole file.
+
+**Verified:** a new leg, `halfworked`, runs on `dayoverrides.sptcal` and opens every day through a
+hit-tested click on its day number. What it checks:
+- The offers: a weekend and a holiday offer *Work half day*; a hiatus day and an ordinary weekday
+  do not.
+- The count: *Work half day* on Sat 8/1 delivers exactly 80 of 80, while *Work this day* on the same
+  Saturday delivers 80.5 on the same wrap, so the difference is precisely half a day. A worked
+  holiday switched to half drops 80.5 → 80 on an unchanged wrap.
+- Undo, clearing and moves: one choice is one undo step; double-click clears; Shift All +1 wk carries
+  it to Sat 7/25 still `onhalf` and still honoured.
+- Clean output: 0 clipped cells, 0 console errors.
+
+23 cases pass here. The 4 month-view mark cases fail by design until the frozen edit that follows.
+Full gate 376/0: waterfall PDF, every Excel part and the month PDF on all six calendars are
+byte-identical. `overrides` 20/20, `npm run check` 12/12. New fixture
+`tests/fixtures/dayoverrides-onhalf.sptcal`, cut from the running app by the leg itself.
+
 ### Unreleased — An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
 
 **What was wrong.** Adding a line to an auto-note ("Start Principal Photography 6/29/26" + "Table
@@ -70,7 +116,7 @@ and Rebuild backwards searches Production's latest start with the marks where th
 date by hand is not a mover, and leaves the marks on their dates as before.
 - A worked holiday can land on an ordinary shoot day, where "Work this day" does nothing. It is kept
   (inert — it can never mark a wrong day) unless that day carries its own mark, and the tool's result
-  line says so: *A "Work this day" mark no longer falls on a weekend or holiday.*
+  line says so: *A worked-day mark no longer falls on a weekend or holiday.*
 - ⚠️ Half days and days off always come back exactly when a move is reversed. A worked day off need
   not: the moved shoot may have no weekend or holiday where the original did. Undo always restores
   exactly.

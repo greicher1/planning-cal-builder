@@ -4,6 +4,48 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Branch `half-worked-days`, NOT merged, NOT pushed
+
+The owner asked (29 Sep 2026) for a day to be flagged "both half and on", so a weekend or holiday can
+be worked half. It was built in a **separate worktree** (`.claude/worktrees/half-worked-days`, branch
+`half-worked-days`, off `ef178f4`). The batch-2 session was editing `src/legacy/app.js` in the main
+checkout at the same time, and one checkout would have mixed the two changes into each other's
+builds, gate runs and commits. **Merging into `main` is the owner's call** and has not been done.
+The branch touches `simulateProductionSchedule`, the day popover, `refreshOverrideNote`,
+`beginShootDayMove`, `takeShootDayMoveNote`, `renderMonthView` (commit 2), README and this file.
+
+- **The model: a fourth WORD, not a flag pair.** `dayOverrides` still holds one word per day, and
+  `'onhalf'` = `'on'` at half weight. ⛔ **Do not "simplify" it into `'half'` meaning worked on a
+  weekend.** A `'half'` stored on a weekend is inert in existing files (typing a start date leaves
+  marks on their dates), and making it count would move those calendars' wraps with no edit. The
+  restore validator (`^[a-z]{1,16}$`) already accepted the word, so no migration was needed and
+  no key changed.
+- **The simulation is the only place that decides what a word does.** It now returns `halfDays`,
+  its own verdict of which shoot days counted 0.5 (`productionInfo.halfDays`). The sidebar count
+  and, in commit 2, the month view's ½ marks read that verdict rather than re-deriving it.
+  - An `'onhalf'` on an ordinary shoot day (only a move or a holiday change can put one there) is
+    **inert**, exactly like `'on'` there: shot full, never silently halved.
+  - A hiatus still wins over both.
+- **Popover:** weekend/holiday = *Weekend — not shot · Work this day · Work half day*, and both
+  work rows carry the holiday warning. Hiatus days are unchanged: one greyed row, deliberately
+  without a second greyed row repeating the same reason.
+- **Moves (R2):** `'onhalf'` pins as a worked day (`worked` flag), so it keeps its weekday in its
+  reference shoot week. The result line now says "worked-day mark" instead of quoting "Work this day".
+- ⚠️ **Older builds keep the word and ignore it**, so they show that day unworked and a same-or-LATER
+  wrap. `SNAPSHOT_VERSION` was deliberately not bumped, because a bump makes old builds refuse the
+  whole file (M-1's gate). In chat I first said "a slightly earlier wrap"; that was wrong, because
+  an unworked day can only push the wrap later.
+- **Evidence:** the new leg `halfworked` (27 cases, `HARNESS_STATE=dayoverrides`, run standalone
+  with `HARNESS_PAGE=/dist/index.html`; it is not in `gate.sh`, like the other batch-2 legs).
+  - Commit 1: 23 pass, and the 4 month-mark cases fail by design.
+  - Full gate 376/0; `overrides` 20/20.
+  - New fixture `dayoverrides-onhalf.sptcal`, cut from the running app by the leg.
+- ⚠️ **Harness trap found here:** `T.memoryIDB()` stores the crash backup by REFERENCE, and
+  `captureSnapshot()` hands out the live stores. A snapshot kept across steps therefore goes on
+  changing: `s0.dayOverrides` grew a later mark and a correct count read as a failure. Real
+  IndexedDB structured-clones. `halfworked`'s `snap()` copies it; any leg that keeps a snapshot
+  across steps must copy it too.
+
 ### ⏳ 29 Sep 2026: BATCH 2 IN PROGRESS (FIX-PLAN §4 → v1.3.1). Committed locally, NOT pushed
 
 Order agreed with the owner 29 Sep 2026: M-12, M-14, M-15 → M-4, M-10, M-11 (+L-13/L-14/L-15) →
@@ -979,6 +1021,8 @@ and folding a new leg in is its own piece of work.
 simulation's `shoots` test is `forced || (isWeekday && !holiday)` where `forced` is `ov === 'on'`, so
 `'half'` on a weekend is never shot and the popover correctly does not offer it. If a half-day
 weekend is ever wanted, that is a change to the simulation, not to this menu.
+✅ **SUPERSEDED 29 Sep 2026: it was wanted, and it is the new word `'onhalf'`** (Work half day), a
+simulation change as predicted. `'half'` on a weekend stays inert on purpose. See START HERE.
 
 ⚠️ **`CLAUDE.md` is out of date on one point found here:** it says *"There is no `version` field in
 the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`.
@@ -1126,7 +1170,7 @@ never blocked — it simply never got a session. It is the only fully-ruled, zer
 - ⏭ **A half day on a weekend is not expressible**, and nothing says so out loud. The simulation
   shoots a day when `forced || (isWeekday && !holiday)`, and `forced` is only `ov === 'on'` — so
   `'half'` on a Saturday is inert. The popover correctly does not offer it. Changing that is a
-  simulation change, not a menu change.
+  simulation change, not a menu change. ✅ **Done 29 Sep 2026 as `'onhalf'`** (START HERE).
 - ⚠️ **`CLAUDE.md` says "There is no `version` field in the snapshot yet." There is** —
   `SNAPSHOT_VERSION`, and every `.sptcal` fixture carries `version: 1`. Correct the rule when
   something next touches the save format; the advice that follows it (branch on the version rather

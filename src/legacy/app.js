@@ -2693,6 +2693,9 @@ export function initLegacyApp() {
       let firstShootDay = null;
       const holidaysHit = [];
       const shootDays = [];   // the actual working days Production shoots (for the month view)
+      // The shoot days that counted HALF -- this function's own verdict, so nothing downstream keeps
+      // a second copy of the rule (the sidebar's count and the month view's ½ marks both read it).
+      const halfDays = [];
       let safety = 0;
       // ⚠️ `count` is FRACTIONAL now -- a 'half' day adds 0.5. The loop condition is unchanged and
       // that is what implements the owner's over-deliver ruling (MONTH-VIEW-PLAN.md §4.4): it runs
@@ -2712,7 +2715,9 @@ export function initLegacyApp() {
         // deliberately scheduled, not a calendar fact, and letting a per-day flag punch through it
         // would make the hiatus band mean nothing. To work during a hiatus, shorten the hiatus.
         // ⚠️ JUDGMENT CALL, not an owner ruling -- flagged for confirmation.
-        const forced = (ov === 'on') && !inHiatus;
+        // 'onhalf' is 'on' worked as a HALF day (owner request, 29 Sep 2026: "a half day on a weekend
+        // or holiday"). It forces the day exactly as 'on' does, hiatus rule included.
+        const forced = (ov === 'on' || ov === 'onhalf') && !inHiatus;
         // An unrecognised value behaves as no override at all. applyStateSnapshot copies values
         // through verbatim so a round trip is lossless; ignoring what we do not understand is this
         // function's job, not the restore path's.
@@ -2722,9 +2727,19 @@ export function initLegacyApp() {
         if(!skipped && !inHiatus && isWeekday && holiday && !forced){
           holidaysHit.push({date:current, name:holiday.name});
         }
-        const shoots = !skipped && !inHiatus && (forced || (isWeekday && !holiday));
+        const natural = isWeekday && !holiday;     // a day the calendar shoots with no override
+        const shoots = !skipped && !inHiatus && (forced || natural);
         if(shoots){
-          count += (ov === 'half') ? 0.5 : 1;
+          // HALF WEIGHT is 'half' on a day the calendar shoots anyway, or 'onhalf' on one it would
+          // have skipped. ⛔ Its own word rather than 'half' made to mean more: a 'half' already
+          // stored on a weekend is INERT in every existing file (typing a new start date leaves the
+          // marks on their dates), and letting it start counting would move those calendars' wraps
+          // with no edit. ⚠️ An 'onhalf' on an ordinary working day is inert too, exactly as an 'on'
+          // there is -- a move can leave a worked-holiday mark on one (see overridesForMove) -- so
+          // the day is shot full and nothing is silently halved.
+          const half = (ov === 'half') || (ov === 'onhalf' && !natural);
+          count += half ? 0.5 : 1;
+          if(half) halfDays.push(iso);
           if(!firstShootDay) firstShootDay = current;
           lastShootDay = current;
           // ⚠️ A half day is STILL a shoot day and goes in this array, because the month view draws
@@ -2740,7 +2755,7 @@ export function initLegacyApp() {
       // calendar days actually on the floor. They differ the moment any override is in play, and
       // the two views want different ones -- see refreshOverrideNote().
       return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start,
-              holidaysHit, shootDays, delivered: count};
+              holidaysHit, shootDays, halfDays, delivered: count};
     }
 
     const segments = [];
@@ -2791,7 +2806,7 @@ export function initLegacyApp() {
           // showed Production starting 1/4/27, two weeks later. Anything describing PRINCIPAL
           // PHOTOGRAPHY wants firstShootDay; anything laying out weeks wants startDate.
           productionInfo = {startDate:start, firstShootDay:sim.firstShootDay, lastShootDay:sim.lastShootDay,
-                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays,
+                            holidaysHit:sim.holidaysHit, shootDays:sim.shootDays, halfDays:sim.halfDays,
                             delivered:sim.delivered, requested:cfg.rawValue};
           shootDaysForSegment = sim.shootDays;
         } else {
@@ -5374,8 +5389,10 @@ export function initLegacyApp() {
     if(!info || !info.shootDays || !info.shootDays.length){ el.textContent = ''; return; }
     // Only overrides INSIDE the shot range matter. One left behind on a date the shoot no longer
     // covers is stale, not wrong -- ignored here and by the simulation, never deleted.
-    const n = k => info.shootDays.filter(iso => dayOverrides[iso] === k).length;
-    const halves = n('half'), ons = n('on');
+    // The halves are the simulation's own verdict, so a mark it ignored is never counted. An 'onhalf'
+    // (a weekend or holiday worked half) is BOTH a half and an added day, and is counted as both.
+    const halves = (info.halfDays || []).length;
+    const ons = info.shootDays.filter(iso => dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf').length;
     // 'off' days are absent from shootDays by definition, so count them across the span instead.
     const first = info.shootDays[0], last = info.shootDays[info.shootDays.length - 1];
     const offs = Object.keys(dayOverrides).filter(iso =>
@@ -5516,9 +5533,12 @@ export function initLegacyApp() {
         rows.push({v:'on', label:'Work this day', disabled:true,
                    reason:'Inside ' + sit.hiatus + ' — shorten the hiatus to work these days'});
       } else if(sit.weekend || sit.holiday){
+        const warn = sit.holiday ? ('Overrides ' + sit.holiday.name) : '';
         rows.push({v:'', label: sit.holiday ? 'Holiday — not shot' : 'Weekend — not shot'});
-        rows.push({v:'on', label:'Work this day',
-                   warn: sit.holiday ? ('Overrides ' + sit.holiday.name) : ''});
+        rows.push({v:'on', label:'Work this day', warn});
+        // Half a weekend or holiday (owner request, 29 Sep 2026). A separate word, not 'half': see the
+        // HALF WEIGHT note in simulateProductionSchedule. Both rows override the holiday, so both say so.
+        rows.push({v:'onhalf', label:'Work half day', warn});
       } else {
         rows.push({v:'',     label:'Full day'});
         rows.push({v:'half', label:'Half day'});
@@ -5530,7 +5550,10 @@ export function initLegacyApp() {
       // understand is the simulation's job, not the restore path's). Say so, and make sure there is
       // always a way to remove it.
       const matched = rows.some(r => r.v === sit.cur && !r.disabled);
-      const stale = sit.cur && !matched ? sit.cur : '';
+      // Named by the label that set it where this build knows the word -- "onhalf" is not something
+      // a user ever typed -- and verbatim where it does not.
+      const OV_LABELS = {half:'Half day', off:'Off', on:'Work this day', onhalf:'Work half day'};
+      const stale = sit.cur && !matched ? (OV_LABELS[sit.cur] || sit.cur) : '';
       if(sit.cur && !rows.some(r => r.v === '')) rows.push({v:'', label:'Clear override'});
 
       const pop = document.createElement('div');
@@ -8448,17 +8471,19 @@ export function initLegacyApp() {
   // the line it was added on and its own colour. Normalised by dayNoteList() below.
   const dayNotes = {};      // { 'YYYY-MM-DD': [ {text, lane, color} ] }
   let dayNoteColors = {};   // legacy per-day colour store, folded in by dayNoteList()
-  // ⛔ PER-DAY CONTROL OF THE SHOOT. Keyed by ISO date, one of three values:
-  //     'half' -- the day counts 0.5 toward the shoot-day total
-  //     'off'  -- not shot, though it would normally be a working day
-  //     'on'   -- shot, though it would normally be skipped (a weekend, or a holiday being worked)
+  // ⛔ PER-DAY CONTROL OF THE SHOOT. Keyed by ISO date, one of four values:
+  //     'half'   -- the day counts 0.5 toward the shoot-day total
+  //     'off'    -- not shot, though it would normally be a working day
+  //     'on'     -- shot, though it would normally be skipped (a weekend, or a holiday being worked)
+  //     'onhalf' -- 'on' at half weight: a weekend or holiday worked as a half day (29 Sep 2026)
   // This is what gives week-by-week control -- "week starts Tuesday" is Mon:'off', "runs into
   // Saturday" is Sat:'on' -- WITHOUT turning Production into a list of independently-dated blocks.
   // Production stays derivable from start + count + holidays + hiatuses + this map, which is what
   // makes the waterfall and the month view incapable of disagreeing (MONTH-VIEW-PLAN.md §1, §4).
-  // ⚠️ NOTHING READS IT YET. The simulation lands in step 3; this step is the store and the save
-  // format alone, deliberately, so the format is settled before behaviour depends on it.
-  let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' }
+  // Read by simulateProductionSchedule(), which is the only place that decides what a value DOES.
+  // ⚠️ One word per day, always: a value is a plain lowercase word so the restore validator and
+  // every older build keep it verbatim, and a build that does not know a word ignores it.
+  let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' | 'onhalf' }
   // While a tool MOVES the shoot, the marks' shoot-day pins (see beginShootDayMove). Session state,
   // never saved. Declared beside the store it governs, ahead of any update() that reads it.
   let overrideMove = null;
@@ -13022,8 +13047,10 @@ export function initLegacyApp() {
     overrideMove = {
       extra,
       pins: keys.map(iso => ({iso, kind: dayOverrides[iso], pin: pinOverride(iso, base),
-                              // a worked weekend/holiday: it adds a day only while OFF the natural list
-                              worked: dayOverrides[iso] === 'on' && base.indexOf(iso) === -1}))
+                              // a worked weekend/holiday: it adds a day only while OFF the natural list.
+                              // 'onhalf' is one too, at half weight, and travels exactly as 'on' does.
+                              worked: (dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf')
+                                      && base.indexOf(iso) === -1}))
     };
     return true;
   }
@@ -13075,8 +13102,9 @@ export function initLegacyApp() {
     if(m.inert){
       bits.push(short
         ? m.inert + ' worked day no longer on a day off'
-        : (m.inert === 1 ? 'A “Work this day” mark no longer falls on a weekend or holiday.'
-                         : m.inert + ' “Work this day” marks no longer fall on a weekend or holiday.'));
+        // "worked-day", not the option's label: 'Work this day' and 'Work half day' both land here.
+        : (m.inert === 1 ? 'A worked-day mark no longer falls on a weekend or holiday.'
+                         : m.inert + ' worked-day marks no longer fall on a weekend or holiday.'));
     }
     if(m.dropped){
       bits.push(short
@@ -15957,7 +15985,7 @@ export function initLegacyApp() {
       ['sheet', 'month'].forEach(k=>{ if(typeof v[k] === 'boolean') out[k] = v[k]; });
       return out;
     });
-    // A day override is a plain word the simulation understands ('half' | 'off' | 'on'). Unknown
+    // A day override is a plain word the simulation understands ('half' | 'off' | 'on' | 'onhalf'). Unknown
     // WORDS are kept -- a round trip must never lose data, and the simulation ignores them -- but
     // nothing that is not a lowercase word gets through.
     setMap('dayOverrides', v => (typeof v === 'string' && /^[a-z]{1,16}$/.test(v)) ? v : undefined);

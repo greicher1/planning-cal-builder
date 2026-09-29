@@ -493,7 +493,8 @@ mark) and, while the move runs, re-derives the marks from those pins in `update(
 `productionEndFor()`. A half/off lands on the same-numbered natural day; a worked weekend/holiday keeps
 its weekday in its reference shoot day's week, and one that lands on an ordinary shoot day is reported
 in the result line. ⚠️ Half/off round-trip exactly; a worked day off need not (there may be no weekend
-or holiday at the matching place). Typing a start date is not a mover.
+or holiday at the matching place). Typing a start date is not a mover. `'onhalf'` (a weekend or
+holiday worked as a half day, 29 Sep 2026) pins and travels exactly as a worked day does.
 
 **An edited auto-note is rewritten on a shift** (v1.3.1, owner ruling R5, audit M-10): a moving note
 that still opens with the auto text of the week it left has that text swapped for the new week's
