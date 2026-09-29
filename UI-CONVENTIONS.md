@@ -1074,7 +1074,9 @@ Nothing in this document ships without all of these, every stage:
     adds **`printpaper`** (29 Sep 2026, audit L-3), which is a Node script, not a `t/` leg:
     `tests/harness/printpaper.mjs` drives Chrome over CDP, because only `Page.printToPDF` can choose
     a paper size. It asks for A4 the way Save as PDF does and passes only if the result is the SAME
-    Letter pages, stream for stream.
+    Letter pages, stream for stream. Step 3.6 adds `monthlanes` (`month-lanecap`: lanes past 60,
+    the nearest-month clamp, and two Load guards) and `hiatuslabel` (a blank all-phase hiatus label
+    in both views and both PDFs).
 
 ---
 

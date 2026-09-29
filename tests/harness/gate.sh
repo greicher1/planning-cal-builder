@@ -1382,7 +1382,7 @@ chk(not a.get('errors'), f"shootorder: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYS
 
-# ---- the audit-fix legs (FIX-PLAN batches 1 + 2): one generic block --------------------------------
+# ---- the audit-fix legs (FIX-PLAN batches 1, 2 + 3): one generic block -----------------------------
 # ⛔ ADDED 29 Sep 2026. FIX-PLAN §1 says a leg that guards the save format, an export or a date is
 # wired into this gate -- and batch 1's six legs never were: "full gate 376/0" at the v1.3.0 cut did
 # not include one of them. Each of these legs judges itself and reports either {cases:[{id,pass}]}
@@ -1397,7 +1397,7 @@ for AFSPEC in loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 s
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
               monthnotes:monthnotes:150 conflict:-:2400 backupslots:-:120 \
-              halfworked:dayoverrides:150; do
+              halfworked:dayoverrides:150 monthlanes:month-lanecap:150 hiatuslabel:-:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

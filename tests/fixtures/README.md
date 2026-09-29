@@ -75,6 +75,7 @@ they are a working demonstration against the live site. They ship in the same re
 |---|---|
 | `month-dense60.sptcal` | 60 notes in one week of Aug 2026, a shrink-to-fit month |
 | `month-lanecap.sptcal` | more than 60 lanes in one day (L-16) |
+| `hiatus-blanklabel.sptcal` | the reference calendar (`T.buildFixture()`) plus a 2-week hiatus from 8/24/26 whose two week labels were emptied in the note editor, so `hiatusTexts` holds `""` for both (N-1). Minted by the `hiatuslabel` leg through the real Save, 29 Sep 2026 |
 | `hdr-cut.sptcal` | long, formatted header lines that the Excel trimmer must shave without cutting a `&"font"` code (M-9) |
 
 ### Version fixtures (one per cut, CLAUDE.md)

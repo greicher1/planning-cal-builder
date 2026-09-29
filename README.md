@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month view: notes past lane 60, a shrinking calendar, and a blank hiatus label (audit L-16, L-17, N-1)
+
+Three frozen edits to `renderMonthView`, owner-approved under FIX-PLAN R3 (step 3.6). The month
+view is also the month PDF, so each is proved in both.
+
+- **L-16: no more 60-lane cap.** The lane search stopped at lane 60 and then used lane 0. So on a
+  day with more than 60 lanes of notes, every further note was drawn on top of the first ones. The
+  search now runs until a lane is free, which always happens: past the highest used lane, every
+  lane is free.
+- **L-17: the month view clamps to the NEAREST month.** Shortening the calendar while you viewed
+  its last month threw the view back to the first month; it now stays on the new last month.
+  ⭐ **Owner ruling (29 Sep 2026): a different calendar opens where it always did.** After Load,
+  backup recovery or New/Reset, you see the new calendar's first month when the month you were
+  viewing is outside it, and the same month when it is inside. A bare clamp would have opened such
+  a file on its last month, so the check happens in `update()`, outside the frozen code, just
+  before the calendar is drawn.
+- **N-1: a hiatus label you empty stays empty.** The note editor has always allowed a blank band,
+  and the waterfall, Excel and the waterfall PDF show one. The month view and the month PDF alone
+  printed "Hiatus" on it. They now read the same rule the other three do (`hiatusTextFor()`).
+
+**What moved in the month PDF** (`monthcmp.py ab`, before vs after, all 16 → 16 sheets):
+- `month-lanecap.sptcal` changes in August 2026 only. That month was already shrink-to-fit: the
+  8/12 week grows from 1,520 to 1,882 px as all 25 notes get their own lanes, and August's shrink
+  goes from 0.346 to 0.288. It also gains 90 `+` add affordances, which never print.
+- `month-dense60.sptcal` is byte-identical.
+- The new `hiatus-blanklabel.sptcal` loses three "Hiatus" text runs, one per emptied band, and
+  nothing else.
+- The seven gate-10 calendars are unchanged, so no baseline was re-cut.
+
+**Verified:**
+- New leg `monthlanes` (`month-lanecap`): red before the fix (20 overlapping bars in August; 15
+  clashes among 8/12's notes; the shrink showed January 2026). Green after (0; 0, down to lane 76;
+  March 2027). Its two Load guards are green on both builds. With the `update()` check switched
+  off in a throwaway build, the first guard goes red: the file opened on February 2027, its last
+  month.
+- New leg `hiatuslabel`, on the reference calendar: the label is emptied through the real note
+  editor. Before the fix, the month view and month PDF printed "Hiatus"; after, both are blank.
+  The waterfall and its PDF were blank all along. The same leg minted `hiatus-blanklabel.sptcal`
+  through the real Save.
+- In the browser pane, with real clicks and typing: `month-lanecap` stepped to April 2027, then
+  Localization retyped as 1 week, landed on March 2027. `hiatus-blanklabel` shows August's two
+  emptied bands as plain red bars.
+- Full gate **544 pass / 0 fail**: 531, plus `monthlanes`' 6 and `hiatuslabel`'s 7.
+
 ### Unreleased — The month PDF prints on Letter whatever paper the print dialog offers (audit L-3)
 
 **What changed** (a frozen edit to the print CSS, owner-approved under FIX-PLAN R3): the month

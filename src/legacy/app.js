@@ -6549,6 +6549,9 @@ export function initLegacyApp() {
   //  - Every other phase is measured in weeks, so we color its weekdays (Mon-Fri) and leave
   //    weekends blank -- a purely visual rule; the schedule math is untouched.
   let monthCursor = null; // first-of-month currently displayed (UTC)
+  // Armed by the paths that REPLACE the calendar (Load, backup recovery, New/Reset), consumed by
+  // update() -- see the L-17 block there. Session UI, never state.
+  let monthCursorRecheck = false;
   // A day block always shows at least this many lines, so there's somewhere to put a note even
   // on an empty day. Content beyond it grows the row.
   const MV_MIN_LANES = 4;
@@ -6735,8 +6738,16 @@ export function initLegacyApp() {
     if(printingCursor){
       // Printing walks every month deliberately: no clamping.
     } else if(range){
-      if(!monthCursor || monthCursor < range.first || monthCursor > range.last){
+      // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-17, 29 Sep 2026): clamp to the NEAREST
+      // month in range. A cursor past the end used to snap to the FIRST month, so shortening the last
+      // phase while viewing its final month threw the view back to the start of the calendar. A
+      // DIFFERENT calendar arriving (Load, backup recovery, New) still opens on its first month when
+      // the month on screen is outside it (owner ruling, 29 Sep 2026) -- update() forgets the cursor
+      // for those BEFORE this runs (monthCursorRecheck), so the !monthCursor branch takes them.
+      if(!monthCursor || monthCursor < range.first){
         monthCursor = new Date(range.first.getTime());
+      } else if(monthCursor > range.last){
+        monthCursor = new Date(range.last.getTime());
       }
     } else if(!monthCursor){
       const base = schedule.overallStart || new Date();
@@ -6894,9 +6905,13 @@ export function initLegacyApp() {
       // Find the first lane where a `laneSpan`-tall block fits (every column free across ALL of its
       // lanes), packing top-down, and reserve those lanes. laneSpan > 1 is how a multi-line note
       // claims the vertical space it needs so nothing else lands on top of it.
+      // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-16, 29 Sep 2026): the search is unbounded.
+      // It stopped at lane 60 and then returned lane 0, so on a day carrying more than 60 lanes of
+      // notes every further note was drawn ON TOP of the first ones. It always terminates: past the
+      // highest occupied lane every lane is free.
       const takeLane = (startCol, endCol, laneSpan)=>{
         laneSpan = Math.max(1, laneSpan || 1);
-        for(let lane = 0; lane < 60; lane++){
+        for(let lane = 0; ; lane++){
           let free = true;
           for(let L = lane; L < lane + laneSpan && free; L++){
             const used = occupied.get(L);
@@ -6911,7 +6926,6 @@ export function initLegacyApp() {
             return lane;
           }
         }
-        return 0;
       };
       const place = (startCol, endCol, cls, style, title, text, data, laneSpan)=>{
         laneSpan = Math.max(1, laneSpan || 1);
@@ -6958,7 +6972,11 @@ export function initLegacyApp() {
       hiRuns.forEach(r=>{
         const wkIso = isoOf(mondayOf(r.date));
         const hc = hiatusColors[wkIso] || HIATUS_COLOR;
-        const ht = hiatusTexts[wkIso] || HIATUS_DEFAULT_LABEL;
+        // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit N-1, 29 Sep 2026): hiatusTextFor(), the
+        // rule the waterfall, Excel and the waterfall PDF already read. `hiatusTexts[wk] || 'Hiatus'`
+        // turned a label the user had deliberately emptied (the editor stores '' on purpose) back
+        // into "Hiatus" here and in the month PDF alone. The per-phase band below already used `in`.
+        const ht = hiatusTextFor(wkIso);
         place(r.startCol, r.endCol, 'mv-bar mv-hiatus-bar',
           `background:${hc}; color:${textColorFor(hc)};`, '', escHtml(ht), '');
       });
@@ -12022,6 +12040,22 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // ⛔ L-17 (owner ruling, 29 Sep 2026): a DIFFERENT calendar opens where it always did.
+    // renderMonthView (frozen) now clamps an out-of-range month cursor to the NEAREST month, which is
+    // right for a range that shrinks while you edit. But Load, backup recovery and New/Reset REPLACE
+    // the calendar, and those must still open on the new calendar's FIRST month when the month on
+    // screen is outside it, and keep the month on screen when it is inside it -- both exactly as
+    // before. They arm this flag; forgetting the cursor HERE, against the very schedule about to be
+    // rendered, sends renderMonthView down its unchanged !monthCursor branch. It stays armed until a
+    // schedule HAS a month range: New leaves no dates, and today the first month is decided only once
+    // some are typed.
+    if(monthCursorRecheck){
+      const mr = monthRangeForSchedule(currentSchedule);
+      if(mr){
+        monthCursorRecheck = false;
+        if(monthCursor && (monthCursor < mr.first || monthCursor > mr.last)) monthCursor = null;
+      }
+    }
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
     syncRowHeights(currentSchedule);
     render(currentSchedule);
@@ -12734,6 +12768,7 @@ export function initLegacyApp() {
   // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as
   // part of starting a blank file, and does its own prompting -- doesn't ask twice.
   function resetAll(){
+    monthCursorRecheck = true;   // a different (empty) calendar: see update() (L-17)
     hideLegacyNotice();
     phaseColorOverride = {};
     PHASES.forEach(p=>{
@@ -14281,6 +14316,7 @@ export function initLegacyApp() {
     suppressDirty = true;
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
     restoreSavedState();
+    monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
@@ -14542,6 +14578,7 @@ export function initLegacyApp() {
       uiAlert('That file looks like a calendar but couldn\u2019t be opened \u2014 it may be damaged. Your current calendar is unchanged.');
       return false;
     }
+    monthCursorRecheck = true;   // a different calendar: see update() (L-17)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // opening a different file starts a fresh undo history

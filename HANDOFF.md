@@ -51,11 +51,44 @@
   dependency, and it honours `HARNESS_PORT` like `run.sh`. ⏭ **Owner's manual check still owed:**
   in a UK-locale Chrome, Save as PDF should no longer offer a Paper size.
 
+- ✅ **3.6 (L-16, L-17, N-1)**, three frozen edits in `renderMonthView`:
+  - `takeLane` is unbounded.
+  - The cursor clamps to the NEAREST month.
+  - The all-phase band reads `hiatusTextFor()`.
+  ⭐ **The owner's L-17 ruling lives OUTSIDE the frozen code.** The calendar-replacing paths arm
+  `monthCursorRecheck`: `openRecentFile`'s success path (every Load goes through it: the picker,
+  Recents, M-6's "load newer"), `offerBackupRecovery`, and `resetAll` (New/Reset). `update()`
+  forgets the cursor, between compute and render, when it is outside the new schedule's month
+  range, so `renderMonthView` takes its unchanged `!monthCursor` branch. It stays armed until a
+  schedule has a range, because New leaves no dates. ⛔ Undo/redo and the shift tools deliberately
+  do NOT arm it: they are edits, and an edit that shrinks the range clamps to the nearest month.
+  A mutant with the check off turned `monthlanes` L17b red (the file opened on its LAST month),
+  so the guard has teeth.
+  - Month-PDF A/B (`monthcmp.py ab`, 16 → 16 sheets on all three):
+    - `month-lanecap`: August only. The 8/12 week goes 1520 → 1882 px, the shrink 0.346 → 0.288,
+      and 90 never-printed `+` elements are added.
+    - `month-dense60`: byte-identical.
+    - `hiatus-blanklabel`: three "Hiatus" text runs removed, nothing else.
+  - Full gate **544/0** (531 + `monthlanes` 6 + `hiatuslabel` 7). Pane, with real clicks: the
+    shrink lands on March 2027, and the blank bands draw blank.
+  - Gate 10 unchanged, so no re-cut. Captures are in the session scratchpad (`mp36/before|after`),
+    which is not durable; re-take them with `monthcmp.py cut` on each build.
+  - ⏭ **Offered to the owner, not done:** add `month-lanecap` (August is in `scale`) and
+    `hiatus-blanklabel` as gate-10 cases. The first closes the baseline README's standing gap
+    ("no case is in scale mode"). They would be new cases cut from the fixed build, so it waits
+    for the owner to see the A/B.
+  - ⚠️ Leg traps found writing these:
+    - `#R` ships holding the word "pending", so a CDP poll must wait for JSON.
+    - Chrome's `DecompressionStream` REJECTS the EOL before `endstream`, where Python's zlib
+      ignores it. Trim it, or a swallowed rejection reads as "no text".
+    - The reference calendar also carries `DEFAULT_HIATUSES`' 12/21/26 hiatus, so count its
+      "Hiatus" runs relatively.
+
 | Step | Finding | State | Leg |
 |---|---|---|---|
 | 0 | `onhalf` month-PDF case | ✅ done: gate 10 is now 7 calendars; new case 15 → 15 sheets, fit table identical to `dayoverrides` | `monthprint` (`dayoverrides-onhalf`) |
 | 3.5 | L-3 Letter pin | ✅ done (frozen print CSS, 1 rule; no baseline moved) | `printpaper` (Node + CDP, not a `t/` leg) |
-| 3.6 | L-16 / L-17 / N-1 | ⏳ | |
+| 3.6 | L-16 / L-17 / N-1 | ✅ done (3 frozen edits in `renderMonthView` + a non-frozen `update()` check; no baseline moved) | `monthlanes` (`month-lanecap`), `hiatuslabel` |
 | 3.1 | M-8 (+ hiatus bands) | ⏳ | |
 | 3.2 | M-9 | ⏳ | |
 | 3.3 | L-2 | ⏳ | |
