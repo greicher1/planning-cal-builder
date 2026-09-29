@@ -29,7 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Phases with "Snap to Mon" off now land in the right week (audit H-3, H-4)
+## v1.3.0 — deployment-readiness audit fixes (28 Sep 2026)
+
+The first batch of fixes from the deployment-readiness audit ([`AUDIT-REPORT.md`](AUDIT-REPORT.md)):
+four high and three medium findings, plus several lows folded in. None touches the frozen grid, the
+exports, or the save format — the full acceptance gate is 376/0 with the waterfall PDF, Excel parts
+and month PDF all byte-identical to baseline, and `fields.byId` unchanged (62 ids). Every saved
+calendar keeps opening. The individual entries below carry the detail and the proof.
+
+Headline changes: a loaded calendar file can no longer inject markup or corrupt the open calendar;
+Export shareable copy opens correctly again; phases with Snap to Mon off land in the right week
+(this deliberately changes snap-off exports, owner-approved); and loading between calendars no longer
+carries custom phases, snap settings or hiatus state across.
+
+### Phases with "Snap to Mon" off now land in the right week (audit H-3, H-4)
 
 **Owner-approved 28 Sep 2026 after reviewing before/after exports (R1): this deliberately changes
 the Excel and waterfall-PDF output for calendars that have a snap-off phase. Snapped calendars — all

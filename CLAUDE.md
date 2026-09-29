@@ -289,12 +289,16 @@ format change, a decision about how something should work.
   message (see `HANDOFF.md` §5e).
 - **Cut a version** when the app reaches a state worth returning to. That is now **four** things,
   all in the same commit:
-  1. `APP_VERSION` in `index.html`, `APP_VERSION` in `src/legacy/app.js` **and** `version.json` —
-     ⛔ **all three together, always.** `version.json` alone shows every user an update that does not
+  1. `APP_VERSION` in `src/legacy/app.js` (the live build's engine) **and** `version.json` —
+     ⛔ **both together, always.** `version.json` alone shows every user an update that does not
      exist; `APP_VERSION` alone makes a real update invisible. This is the update-delivery contract
-     (README v1.2.0), not bookkeeping. ⚠️ The build carries its **own** copy of `APP_VERSION` since
-     the engine moved to `src/legacy/app.js` — both read `1.2.0` today, and a bump that touches only
-     one ships a build that misreports itself.
+     (README v1.2.0), not bookkeeping. ⚠️ **CORRECTED at the v1.3.0 cut (28 Sep 2026):** this rule
+     used to say "`APP_VERSION` in `index.html`, in `src/legacy/app.js` and in `version.json`, all
+     three together." But the root `index.html` is the frozen legacy rollback and **must stay
+     byte-identical to `releases/v1.2.0.html`** (§"Never touch the grid…" / the deploy note), and
+     `src/index.html` carries no `APP_VERSION` at all — so the root file's copy is deliberately left
+     at `1.2.0` and only the two above are bumped. The rule predated the build cutover; do not bump
+     the root `index.html`.
   2. A changelog entry in `README.md`.
   3. `git tag -a vX.Y.Z` — immutable history.
   4. `releases/vX.Y.Z.html`, byte-identical, verified with `cmp`/`shasum`.
