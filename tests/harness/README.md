@@ -37,7 +37,7 @@ cd tests/harness
 `gate.sh` is the entry point the freeze rule in `CLAUDE.md` demands: it builds the fixture, measures
 the frozen grid, compares the **waterfall PDF** and every **Excel part** against
 `tests/baselines/2026-08-29-stage-7/`, restores the real v1.0.0 saved calendar, asserts
-`fields.byId` is unchanged, and — since 22 Sep 2026 — compares the **month PDF** on seven calendars (four when it was added)
+`fields.byId` is unchanged, and — since 22 Sep 2026 — compares the **month PDF** on nine calendars (four when it was added)
 against `tests/baselines/2026-09-22-monthprint/` (the printed document byte for byte, and one sheet
 per month in the PDF Chrome actually prints). It defaults to **`/dist/index.html`**.
 

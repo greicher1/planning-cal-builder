@@ -73,10 +73,10 @@
     shrink lands on March 2027, and the blank bands draw blank.
   - Gate 10 unchanged, so no re-cut. Captures are in the session scratchpad (`mp36/before|after`),
     which is not durable; re-take them with `monthcmp.py cut` on each build.
-  - ⏭ **Offered to the owner, not done:** add `month-lanecap` (August is in `scale`) and
-    `hiatus-blanklabel` as gate-10 cases. The first closes the baseline README's standing gap
-    ("no case is in scale mode"). They would be new cases cut from the fixed build, so it waits
-    for the owner to see the A/B.
+  - ✅ **Owner said yes (29 Sep 2026): `month-lanecap` and `hiatus-blanklabel` are gate-10 cases 8 and
+    9**, cut from `44fa23f`, identical to 3.6's "after" captures. `month-lanecap`'s August is in
+    `scale`, which closes the baseline README's standing gap: the shrink-to-fit branch is gated for
+    the first time.
   - ⚠️ Leg traps found writing these:
     - `#R` ships holding the word "pending", so a CDP poll must wait for JSON.
     - Chrome's `DecompressionStream` REJECTS the EOL before `endstream`, where Python's zlib
@@ -103,6 +103,8 @@
     mismatch is not.
   - Full gate **560/0** (544 + `notewrap` 16).
 
+- ⏭ **Owner, 29 Sep 2026: continue batch 3 in THIS session** (the handoff was offered after 3.1 and
+  declined).
 - ⏭ **Where 3.2–3.4 stand (read before starting them).** All three are in `exportExcel`, and 3.3 also
   touches `sheetColumnWidths` and `installGridResizers`. Do 3.2 and 3.3 against the UNTOUCHED Excel
   baseline, then 3.4, which moves every Excel part.

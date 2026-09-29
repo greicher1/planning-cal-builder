@@ -138,6 +138,9 @@ Tests only; the app is unchanged. Batch 3 of the audit fixes (FIX-PLAN §5) star
   alone, and `run.sh` kills whatever Chrome holds that profile. Two sessions running the same leg
   therefore killed each other's Chrome, whatever port each used, and two gates at once diffed each
   other's workbooks. The default port keeps the old paths.
+- **Gate 10 now prints nine calendars.** Two more were added after step 3.6, on the owner's
+  go-ahead: `month-lanecap`, whose August is shrink-to-fit, the first case to exercise that branch;
+  and `hiatus-blanklabel`.
 - **Gate 10 prints a seventh calendar, `dayoverrides-onhalf`**, so the half-day marks the `onhalf`
   work added to `renderMonthView` are gated in the month PDF, not only on screen. It is a new case,
   not a re-cut: 15 months print as 15 sheets, with a fit table identical to `dayoverrides`.

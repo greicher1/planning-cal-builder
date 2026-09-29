@@ -98,6 +98,22 @@ session), `dist/index.html` 1,321,600 bytes.
   `Ep. 208, 209`). It also has three fewer elements: two `+` affordances, which never print, and
   one tag.
 
+## ✅ ADDED 29 Sep 2026: `month-lanecap` and `hiatus-blanklabel`, cases eight and nine (NEW cases, not re-cuts)
+
+After batch-3 step 3.6 (`1661fe1`) and on the owner's go-ahead, once the owner had seen its A/B:
+
+| case | how it is loaded | months → sheets | elements | why it is here |
+|---|---|---|---|---|
+| `month-lanecap` | `HARNESS_STATE=month-lanecap` | 16 → 16 | 4,245 | 25 notes on Wed 8/12/26, past the old 60-lane cap (L-16). ⭐ **Its August is in `scale` mode** (`scaleY(0.2882)`), so exportMonthPdf's shrink-to-fit branch is gated for the first time |
+| `hiatus-blanklabel` | `HARNESS_STATE=hiatus-blanklabel` | 16 → 16 | 3,716 | the reference calendar with a 2-week hiatus whose labels were emptied in the editor: the bands print blank (N-1) |
+
+**Cut from** the build of `44fa23f` (after 3.6 and 3.1; M-8 cannot reach the month PDF).
+Both are identical to the "after" captures of 3.6's A/B, taken on the build of `1661fe1`, so the
+cut is deterministic and M-8 moved neither. 3.6's before→after, per the A/B shown to the owner:
+- `month-lanecap` changed in August only: the 8/12 week 1,520 → 1,882 px, `scaleY` 0.346 → 0.288,
+  plus 90 never-printed `+` affordances.
+- `hiatus-blanklabel` lost three "Hiatus" text runs.
+
 ## What the leg asserts
 
 1. The printed document is **byte-identical** to `<case>.html`.
@@ -121,6 +137,8 @@ cut before this one was committed:
 ⭐ **The last row is why the leg prints a real PDF.** A CSS edit to a frozen `.mv-*` rule changes the
 printout without changing one byte of innerHTML, so the document comparison alone is blind to it.
 Chrome's own page breaking is not.
+
+## ✅ ~~Coverage gap~~ — CLOSED 29 Sep 2026 by `month-lanecap` (its August is in `scale`); the original note follows
 
 ## ⚠️ Coverage gap, stated honestly
 

@@ -1058,8 +1058,8 @@ Nothing in this document ships without all of these, every stage:
    Assert the panel's `[id]` set is **empty**, open, the way `hdreditor` and `hdrpreset` both do. The
    alternative — adding the panel's class to the skip list — is fine, but it has to happen **first**.
 10. **NEW — the month PDF is unchanged** (22 Sep 2026), automated by `gate.sh`'s `monthprint` leg
-    against `tests/baselines/2026-09-22-monthprint/` on seven calendars (four when added; `blocks` and
-    `blocksoff` 22 Sep, `dayoverrides-onhalf` 29 Sep 2026): the document `exportMonthPdf`
+    against `tests/baselines/2026-09-22-monthprint/` on nine calendars (four when added; `blocks` and
+    `blocksoff` 22 Sep; `dayoverrides-onhalf`, `month-lanecap` and `hiatus-blanklabel` 29 Sep 2026): the document `exportMonthPdf`
     hands to `window.print()` is **byte-identical** (today stamp normalised), and Chrome's real print
     of it has **one sheet per month**. Both halves are needed — a CSS-only edit to a frozen `.mv-*`
     rule changes the printout without changing the document, and was proven to (16 sheets → 32).

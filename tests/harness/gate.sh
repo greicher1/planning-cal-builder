@@ -13,7 +13,7 @@
 #   4. a real v1.0.0 saved calendar restores identically
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
 #  10. the MONTH PDF: its printed document is byte-identical and it prints one sheet per month,
-#      on seven calendars (monthprint + monthcmp.py; added 22 Sep 2026 on four, now seven). Numbered to match
+#      on nine calendars (monthprint + monthcmp.py; added 22 Sep 2026 on four, now nine). Numbered to match
 #      UI-CONVENTIONS §10, whose items 6-9 are not automated here.
 #
 # ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
@@ -188,12 +188,17 @@ PY
 #   dayoverrides-onhalf  ⭐ ADDED 29 Sep 2026 (batch-3 step 0): 'onhalf' marks -- a weekend or holiday
 #                   worked as a half day -- which bdfec60's frozen renderMonthView edit draws. A NEW
 #                   case, not a re-cut; cut before 3.6 edits the same function
+#   month-lanecap   ⭐ ADDED 29 Sep 2026 (after 3.6, owner's go-ahead): 25 notes on one day, past the old
+#                   60-lane cap (L-16) -- and its August is in SCALE mode, the first case that exercises
+#                   exportMonthPdf's shrink-to-fit branch at all
+#   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
 for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
               mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
-              dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf; do
+              dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
+              month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
