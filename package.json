@@ -1,7 +1,7 @@
 {
   "name": "spt-planning-calendar-builder",
   "private": true,
-  "version": "1.3.1",
+  "version": "1.4.0",
   "type": "module",
   "description": "SPT Calendar Builder \u2014 builds to a single self-contained dist/index.html.",
   "scripts": {

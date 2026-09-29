@@ -29,7 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — The workbook's dates show up in previews: the Date column carries cached values (audit L-7)
+## v1.4.0 — the approved export fixes: the deployment-readiness audit, batch 3 (29 Sep 2026)
+
+The third batch of fixes from [`AUDIT-REPORT.md`](AUDIT-REPORT.md), per [`FIX-PLAN.md`](FIX-PLAN.md)
+§5: the owner-approved frozen edits to the exports (ruling R3). Each fix is an entry below, with its
+proof and a harness leg that fails on v1.3.1. Every step's before/after went to the owner first.
+**One baseline moved:** the gate's `base.xlsx`, for L-7, re-cut on the owner's approval after the
+parts diff. No save-format key changed; every saved calendar keeps opening.
+
+Headline changes:
+- The waterfall PDF word-wraps long notes and hiatus labels as the screen does, instead of cutting
+  off both ends (M-8).
+- A long, formatted Excel header is trimmed without breaking its style codes, detail lines first,
+  so the date, the title and the headline stat always survive. The budget meter says what is dropped
+  (M-9).
+- The workbook never carries a column wider than 255 characters or a row taller than 409 points
+  (L-2), and its dates show in previewers that do not calculate (L-7).
+- The month PDF is pinned to Letter, so an A4 print dialog no longer crops a squeezed month (L-3).
+- The month view no longer draws notes past lane 60 on top of each other. It keeps the nearest
+  month when the calendar shrinks, and a hiatus label you empty stays empty (L-16, L-17, N-1).
+- Also first released here, built alongside batch 3:
+  - a weekend or holiday worked as a half day (`onhalf`);
+  - ExcelJS loads with an integrity check;
+  - four test fixtures are rebuilt as synthetic calendars;
+  - the test harness keeps parallel sessions apart, and the month-PDF gate now prints nine
+    calendars.
+
+⚠️ **Checked by hand, owed by the owner:** Save as PDF in a UK-locale Chrome offers no Paper size
+(L-3), and the 3.2 and 3.3 before/after workbooks open in Excel.app with no repair prompt.
+
+
+### The workbook's dates show up in previews: the Date column carries cached values (audit L-7)
 
 **What changed** (a frozen edit to `exportExcel`, owner-approved under FIX-PLAN R3): the Date
 column is a first date followed by a chain of formulas (the row above + 7). Those formulas were
@@ -55,7 +85,7 @@ what re-dates the column when someone edits the first date in Excel.
 - `tests/harness/l7-dates-before.xlsx` and `l7-dates-after.xlsx` are staged for an optional look in
   Quick Look or Excel.app. They are gitignored.
 
-### Unreleased — The workbook never carries a column or row Excel does not allow (audit L-2)
+### The workbook never carries a column or row Excel does not allow (audit L-2)
 
 **What changed** (frozen edits to the width model and the Excel writer, owner-approved under
 FIX-PLAN R3): Excel allows columns up to 255 characters wide and rows up to 409 points tall. Three
@@ -85,7 +115,7 @@ things could write past those limits, and each is now clamped where it happens:
 - ⚠️ **By hand, for the owner:** open `tests/harness/xlsxlimits-{single,oldfile}-{before,after}.xlsx`
   in Excel.app and check there is no repair prompt. The files are gitignored and re-made by the leg.
 
-### Unreleased — A long, formatted header no longer breaks the workbook's header codes (audit M-9)
+### A long, formatted header no longer breaks the workbook's header codes (audit M-9)
 
 **What changed** (a frozen edit to `exportExcel`'s header trimmer, owner-approved under FIX-PLAN
 R3): Excel caps a page header at 255 characters in total, codes included, so the export trims a
@@ -122,7 +152,7 @@ lines will be dropped".
   Excel.app and check the header, and that there is no repair prompt. They are gitignored, and
   re-made by the leg.
 
-### Unreleased — The waterfall PDF word-wraps notes and hiatus labels, as the screen does (audit M-8)
+### The waterfall PDF word-wraps notes and hiatus labels, as the screen does (audit M-8)
 
 **What changed** (a frozen edit to `buildWaterfallPdf`, owner-approved under FIX-PLAN R3; owner
 scope 29 Sep 2026: notes **and** both kinds of hiatus band): a long note or hiatus label used to be
@@ -155,7 +185,7 @@ cut off in the PDF: an 80 px row fits 5 lines on screen and about 4 in the PDF.
 - `tests/fixtures/notewrap.sptcal` was minted by the leg through the real Save.
 - Full gate **560 pass / 0 fail**: 544, plus `notewrap`'s 16.
 
-### Unreleased — The month view: notes past lane 60, a shrinking calendar, and a blank hiatus label (audit L-16, L-17, N-1)
+### The month view: notes past lane 60, a shrinking calendar, and a blank hiatus label (audit L-16, L-17, N-1)
 
 Three frozen edits to `renderMonthView`, owner-approved under FIX-PLAN R3 (step 3.6). The month
 view is also the month PDF, so each is proved in both.
@@ -199,7 +229,7 @@ view is also the month PDF, so each is proved in both.
   emptied bands as plain red bars.
 - Full gate **544 pass / 0 fail**: 531, plus `monthlanes`' 6 and `hiatuslabel`'s 7.
 
-### Unreleased — The month PDF prints on Letter whatever paper the print dialog offers (audit L-3)
+### The month PDF prints on Letter whatever paper the print dialog offers (audit L-3)
 
 **What changed** (a frozen edit to the print CSS, owner-approved under FIX-PLAN R3): the month
 PDF's `@page{ size:landscape; margin:8mm }` becomes `size:letter landscape`. The month fit has
@@ -222,7 +252,7 @@ month-PDF writer.
 - ⚠️ **By hand, for the owner:** export the month PDF in a UK-locale Chrome and confirm that Save
   as PDF no longer offers a Paper size.
 
-### Unreleased — Test harness: parallel sessions no longer collide, and the month-PDF gate covers half-worked days
+### Test harness: parallel sessions no longer collide, and the month-PDF gate covers half-worked days
 
 Tests only; the app is unchanged. Batch 3 of the audit fixes (FIX-PLAN §5) starts here.
 
@@ -241,7 +271,7 @@ Tests only; the app is unchanged. Batch 3 of the audit fixes (FIX-PLAN §5) star
 **Verified:** full gate 521 pass / 0 fail with the harness change. All seven month-PDF cases pass,
 the new one included, and two fresh captures of it are identical.
 
-### Unreleased — ExcelJS loads with an integrity check, and four test fixtures are rebuilt as synthetic calendars
+### ExcelJS loads with an integrity check, and four test fixtures are rebuilt as synthetic calendars
 
 **ExcelJS now carries a Subresource Integrity hash** (`src/index.html`). It is the one script the app
 loads from another server, and it runs with full access to the open calendar. With the hash, the
@@ -257,7 +287,7 @@ its leg depends on, on new dates, regions and episode structures. `stintchain` n
 2028 block, and `stintreshape` the 2027 one (Writer's Rm is 31 weeks there and widens in 28).
 `tests/fixtures/README.md` gains a standing rule that every fixture is synthetic.
 
-**Verified:** full gate 376 pass / 0 fail over the new build. The waterfall PDF, every Excel part and
+**Verified:** full gate 376 pass / 0 fail on the branch's original base, and 521 / 0 after it was rebased onto `0f8327d` (per its commit, `2b15444`; re-gated in the batch-3 session at 521 / 0 too). The waterfall PDF, every Excel part and
 the month PDF are identical to baseline, with the Excel export going through the integrity-checked
 load. The new `stintswap-chained` still gives the original "same column in the same week" refusal
 on the pre-fix build `5a8df0f`, identical to the old fixture, and passes from the fix `6b10d2c` on.
@@ -266,7 +296,7 @@ loadfail, overrides, rowheight, snaptools, yearblock, sharecopy2 and snapoff. In
 ExcelJS loads with the hash, and the same URL with a wrong hash is blocked ("Failed to find a valid
 digest").
 
-### Unreleased — A weekend or holiday can be worked as a half day (`onhalf`)
+### A weekend or holiday can be worked as a half day (`onhalf`)
 
 **What was asked.** The owner, 29 Sep 2026: flag a day as both *half* and *on*, so a weekend or a
 union holiday can be worked as a half day. Until now a weekend or holiday offered only *Work this
