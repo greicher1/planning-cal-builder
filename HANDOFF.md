@@ -4,7 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT at `a236ad1` (tag `v1.3.1`), committed locally, NOT pushed
+### ✅ 29 Sep 2026: v1.3.1 is LIVE — pushed on the owner's approval, verified
+
+- **Pushed** `8f1d621..f03739f` plus tag `v1.3.1`. CI green (Build and check, Deploy to Pages). The live
+  file is **byte-identical to `releases/v1.3.1.html`** (sha256 `ea18f092…`, 1,320,231 bytes) within ~5 s
+  of the deploy finishing; live `version.json` reads 1.3.1. **Driven on production** in the pane: 8000
+  episodes caps at 200 rows; a shoot from 10/6/31 raises "Holiday dates are only known for 2024–2031…".
+- ⏭ **NEXT: batch 3 (v1.4.0, FIX-PLAN §5) in a FRESH SESSION** (owner's choice, 29 Sep 2026).
+- ⚠️ **A peer session is merging `half-worked-days` into LOCAL main** (owner-approved, NO push): a new
+  `'onhalf'` day override (a weekend/holiday worked as a half day), touching `simulateProductionSchedule`,
+  the day-override popover, `beginShootDayMove`/`takeShootDayMoveNote` and a small frozen edit in
+  `renderMonthView` (`_ovDays` / `halfSlices`). It merged main INTO its branch and re-gated there first.
+  **The next session must read `git log origin/main..main` before starting batch 3** — those commits are
+  not on the live site, and the next push would carry them.
+
+### ✅ 29 Sep 2026: BATCH 2 COMPLETE → v1.3.1 CUT at `a236ad1` (tag `v1.3.1`)
 
 - **Full gate 494 PASS / 0 FAIL** on the batch (numbered gates all green: 0 clipped, waterfall PDF +
   Excel parts identical, v1.0.0 restores identically, `fields.byId` identical at 62 ids, month PDF
