@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Test harness: parallel sessions no longer collide, and the month-PDF gate covers half-worked days
+
+Tests only; the app is unchanged. Batch 3 of the audit fixes (FIX-PLAN §5) starts here.
+
+- **A non-default `HARNESS_PORT` now has its own Chrome profile and Excel scratch dirs**
+  (`/tmp/tc<port>-<test>`, `/tmp/gate<port>-xa|xb`). Before, the profile was keyed by the test name
+  alone, and `run.sh` kills whatever Chrome holds that profile. Two sessions running the same leg
+  therefore killed each other's Chrome, whatever port each used, and two gates at once diffed each
+  other's workbooks. The default port keeps the old paths.
+- **Gate 10 prints a seventh calendar, `dayoverrides-onhalf`**, so the half-day marks the `onhalf`
+  work added to `renderMonthView` are gated in the month PDF, not only on screen. It is a new case,
+  not a re-cut: 15 months print as 15 sheets, with a fit table identical to `dayoverrides`.
+
+**Verified:** full gate 521 pass / 0 fail with the harness change. All seven month-PDF cases pass,
+the new one included, and two fresh captures of it are identical.
+
 ### Unreleased — ExcelJS loads with an integrity check, and four test fixtures are rebuilt as synthetic calendars
 
 **ExcelJS now carries a Subresource Integrity hash** (`src/index.html`). It is the one script the app

@@ -13,7 +13,7 @@
 #   4. a real v1.0.0 saved calendar restores identically
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
 #  10. the MONTH PDF: its printed document is byte-identical and it prints one sheet per month,
-#      on four calendars (monthprint + monthcmp.py; added 22 Sep 2026). Numbered to match
+#      on seven calendars (monthprint + monthcmp.py; added 22 Sep 2026 on four, now seven). Numbered to match
 #      UI-CONVENTIONS §10, whose items 6-9 are not automated here.
 #
 # ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
@@ -185,11 +185,15 @@ PY
 #   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all, held to the
 #                   REFERENCE baseline -- BLOCKS-PLAN §5 condition 3 ("no change at all with Blocks
 #                   off") as byte identity against a baseline cut before Blocks existed
+#   dayoverrides-onhalf  ⭐ ADDED 29 Sep 2026 (batch-3 step 0): 'onhalf' marks -- a weekend or holiday
+#                   worked as a half day -- which bdfec60's frozen renderMonthView edit draws. A NEW
+#                   case, not a re-cut; cut before 3.6 edits the same function
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
 for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
-              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference; do
+              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
+              dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1

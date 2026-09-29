@@ -72,6 +72,32 @@ kept their elements, row heights and sheet counts; only the text runs changed.
 `blocksoff` stays held to `reference`, which now means: a Blocks calendar switched to Episodes
 prints byte-identically to an Episodes calendar that never had blocks.
 
+## ✅ ADDED 29 Sep 2026: `dayoverrides-onhalf`, a seventh case (a NEW case, not a re-cut)
+
+Batch-3 step 0, on the owner's go-ahead (29 Sep 2026). The `onhalf` override (a weekend or holiday
+worked as a half day) shipped with a frozen edit to `renderMonthView` (`bdfec60`: `_ovDays` gives
+`'onhalf'` both mark classes, `halfSlices` reads the simulation's `halfDays`). Only the `halfworked`
+leg covered it, on screen, so the month PDF's pagination for such a calendar was ungated. Batch
+3's step 3.6 edits the same function, so this case was cut first: 3.6's claim that other calendars
+print unchanged now covers the half-day marks too.
+
+| case | how it is loaded | months → sheets | elements | stamp hits | why it is here |
+|---|---|---|---|---|---|
+| `dayoverrides-onhalf` | `HARNESS_STATE=dayoverrides-onhalf` | 15 → 15 | 3,551 | 15 | `dayoverrides` plus `onhalf` marks, as minted by the `halfworked` leg |
+
+**Cut from** the build of `a08bdd7` (app code identical to `0f8327d`, which gated 521/0 in the same
+session), `dist/index.html` 1,321,600 bytes.
+
+- **Deterministic:** two fresh runs, cut into scratch dirs, compare identical under
+  `monthcmp.py ab` (459,767 bytes, 3,551 elements).
+- **Against `dayoverrides`** (the calendar it was derived from): the **fit table is identical**.
+  All 15 months are still `fill`, not one row height moved, and 15 months still print as 15 sheets.
+  What differs is the half-day marks (cells gaining `mv-day-half`, and pills gaining a
+  `halfSlices` gradient on the right days) and the grey episode tags, because the half days
+  re-pack which episodes fall in which week (`Ep. 205` → `Ep. 205, 206`, `Ep. 208` →
+  `Ep. 208, 209`). It also has three fewer elements: two `+` affordances, which never print, and
+  one tag.
+
 ## What the leg asserts
 
 1. The printed document is **byte-identical** to `<case>.html`.

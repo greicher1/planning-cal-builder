@@ -41,7 +41,7 @@
 
 | Step | Finding | State | Leg |
 |---|---|---|---|
-| 0 | `onhalf` month-PDF case | ⏳ | `monthprint` (`dayoverrides-onhalf`) |
+| 0 | `onhalf` month-PDF case | ✅ done: gate 10 is now 7 calendars; new case 15 → 15 sheets, fit table identical to `dayoverrides` | `monthprint` (`dayoverrides-onhalf`) |
 | 3.5 | L-3 Letter pin | ⏳ | |
 | 3.6 | L-16 / L-17 / N-1 | ⏳ | |
 | 3.1 | M-8 (+ hiatus bands) | ⏳ | |
@@ -103,10 +103,12 @@ The branch touches `simulateProductionSchedule`, the day popover, `refreshOverri
   - Commit 2 can be dropped on its own: the count still works without it, but the month view would
     show a half-worked day as unmarked.
 - ✅ **The owner signed off on the frozen edit** (29 Sep 2026: keep it).
-- ⏭ **Still open:** cut a `dayoverrides-onhalf` month-PDF baseline and add it to `gate.sh`'s monthprint
-  loop, recording why in the baseline dir's README. That is a new case, not a re-cut of an existing
-  one. Until then the half-worked marks are gated on screen by `halfworked` (the same
-  `renderMonthView`), but the month PDF's pagination for such a calendar is not.
+- ✅ ~~**Still open:** cut a `dayoverrides-onhalf` month-PDF baseline and add it to `gate.sh`'s monthprint
+  loop, recording why in the baseline dir's README.~~ **Done 29 Sep 2026** (batch-3 step 0; see the
+  monthprint baseline README). It is a new case, not a re-cut of an existing one. Before it, only
+  `halfworked` covered the half-worked marks, on screen, and the month PDF's pagination for such a
+  calendar was ungated. Gate 10 now prints it: 15 months → 15 sheets, fit table identical to
+  `dayoverrides`.
 - ⚠️ **Harness trap found here:** `T.memoryIDB()` stores the crash backup by REFERENCE, and
   `captureSnapshot()` hands out the live stores. A snapshot kept across steps therefore goes on
   changing: `s0.dayOverrides` grew a later mark and a correct count read as a failure. Real
