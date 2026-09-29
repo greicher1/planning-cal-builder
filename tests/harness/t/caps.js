@@ -20,9 +20,7 @@ window.addEventListener('load', function () { (async function () {
   async function backup(){
     var got = null;
     await T.until(function () {
-      var db = window.__MEMIDB && window.__MEMIDB['spt-planning-cal'];
-      var m = db && db.handles;
-      got = m && m.get('unsavedBackup');
+      got = T.latestBackup();    // the page's own slot (per-page since v1.3.1)
       return !!(got && got.state);
     }, 'the crash backup to be written', 120, 100);
     return got.state;

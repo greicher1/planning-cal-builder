@@ -22,6 +22,16 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-11 + L-13/L-14/L-15, and **L-24** (batch 1 missed it) | ✅ done | `snaptools` (`HARNESS_STATE=dayoverrides`, 14 cases) |
 | M-7 holidays 2024–2031 + coverage notice | ✅ done | `holidays2031` (no fixture) |
 | M-13 month-only holidays under edited notes — ⛔ the frozen edit (R3) | ✅ done | `monthnotes` (`HARNESS_STATE=monthnotes`) |
+| M-6 conflict "pause and ask" (R4) + SAVE-7 per-page backups + L-18 + SAVE-14 | ✅ done | `conflict` (budget **2400**: 3 autosave ticks of virtual time), `backupslots` |
+
+- ⚠️ **The crash backup's key moved** (`unsavedBackup` → `unsavedBackup:<page id>`, M-6/SAVE-7). A leg
+  that reads the backup must use `T.latestBackup()`; `caps`, `overrides`, `monthnotes` were switched.
+  `openViaFakePicker`'s file now keeps a stable `lastModified` (it minted `now` on every `getFile()`,
+  which would read as a conflict on every check) and takes `opts.control` → `touch(text)` to play
+  "someone else saved it". `memoryIDB()` gained `getAllKeys`.
+- ⚠️ **Not built, deliberately:** a live tab's slot is still offered to a NEW tab as "Recover unsaved
+  work" (as v1.3.0 offered its single slot). Telling a live page from a dead one needs a heartbeat or a
+  BroadcastChannel ping — not in FIX-PLAN; ask the owner if it matters.
 
 - ⛔ **M-13's frozen edit is in `notesForWaterfallDate`** (the month view's and month PDF's note
   source). Gate 10 stays **byte-identical** — no baseline calendar has an edited note — so there was
@@ -985,7 +995,7 @@ marks rendering, and the hiatus band at `grid-column: 2 / 7` (Mon–Fri, the unc
 
 ⚠️ **Cut from the crash backup, not from Save.** `supportsFsAccess` is evaluated once at module-eval
 time, so deleting `showSaveFilePicker` cannot force the download path afterwards. The backup in
-IndexedDB (`spt-planning-cal` / `handles` / `unsavedBackup`) stores `{state: captureSnapshot(), …}`,
+IndexedDB (`spt-planning-cal` / `handles` / `unsavedBackup` — ⚠️ since v1.3.1 `unsavedBackup:<page id>`, one per page load; read it with `T.latestBackup()`) stores `{state: captureSnapshot(), …}`,
 and `.sptcal` **is** `JSON.stringify(captureSnapshot(), null, 1)` — same object, no debug hook
 needed. Worth remembering: it is the cheapest way to get a snapshot out of a running app.
 
@@ -1066,7 +1076,7 @@ the snapshot yet."* There is — `SNAPSHOT_VERSION`, and every `.sptcal` fixture
   way**, so this is direct evidence that open item 3 works — not a hypothesis any more.
 - ⭐ **The crash backup is the cheapest way to get a snapshot out of a running app.**
   `.sptcal` IS `JSON.stringify(captureSnapshot(), null, 1)`, and IndexedDB
-  (`spt-planning-cal` / `handles` / `unsavedBackup`) holds `{state: captureSnapshot(), …}` 3 s after
+  (`spt-planning-cal` / `handles` / `unsavedBackup:<page id>` since v1.3.1) holds `{state: captureSnapshot(), …}` 3 s after
   any edit. ⚠️ Forcing the download path instead does NOT work: `supportsFsAccess` is evaluated
   once at module-eval time, so deleting `showSaveFilePicker` afterwards changes nothing.
 

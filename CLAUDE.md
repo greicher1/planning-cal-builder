@@ -449,7 +449,7 @@ may need to raise them later. (Fixed round 7; it restores v1.0.0's output rather
 
 `reflectFieldsToAttributes()` exists because `outerHTML` serializes *attributes*, not live DOM property values — form fields must have their values written back to attributes before snapshotting.
 
-File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents list, so a reopened saved file can write back in place after one permission click. `suppressDirty` gates dirty-tracking during load/restore; `markDirty()` schedules the rolling crash backup (debounced 3 s) and the 10-minute autosave. ⚠️ That backup is **IndexedDB**, not `localStorage` — `idbSet(BACKUP_KEY, …)`. **`localStorage` is used nowhere in the app today**, so the Settings menu (HANDOFF §2b) would be introducing it, not joining it.
+File handles are kept in IndexedDB (`spt-planning-cal` / `handles`) as a recents list, so a reopened saved file can write back in place after one permission click. `suppressDirty` gates dirty-tracking during load/restore; `markDirty()` schedules the rolling crash backup (debounced 3 s) and the 10-minute autosave. ⚠️ That backup is **IndexedDB**, not `localStorage` — since v1.3.1 one slot **per page load**, `idbSet(BACKUP_SLOT, …)` = `unsavedBackup:<id>`; the old single `unsavedBackup` key is still read for recovery, never written (audit SAVE-7). And a linked file is **stamped** (`savedFileStamp`) at load and after each write: if it changed on disk, autosave pauses and Save asks — overwrite, load newer, or save a copy (owner ruling R4, audit M-6). **`localStorage` is used nowhere in the app today**, so the Settings menu (HANDOFF §2b) would be introducing it, not joining it.
 
 ## Exports
 

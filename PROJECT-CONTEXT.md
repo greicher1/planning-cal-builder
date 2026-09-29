@@ -629,6 +629,15 @@ autosave.
 > been keeping a rolling IndexedDB copy since three seconds after the first edit. **Do not "fix"
 > this by having autosave pick a location.**
 
+**A file changed on disk is never silently overwritten** (v1.3.1, owner ruling R4, audit M-6). The
+linked file is stamped `{lastModified, size}` when it is read and after each of the app's own writes
+(`savedFileStamp`). Save and autosave compare first: on a mismatch autosave **pauses**
+(`fileConflict`, status *"File changed on disk — autosave paused"*) and Save **asks** — *Overwrite*,
+*Load newer version* (re-opens the file, discarding the edits here), or *Save a copy…* (Save As). An
+autosave tick also skips while a note editor is open (audit L-18). The crash backup is **one slot per
+page load** (`unsavedBackup:<id>`, audit SAVE-7): a save deletes only its own, and recovery offers the
+newest slot any page left behind, then re-backs it up under its own slot and retires the old one.
+
 `markClean()` runs as soon as the bytes are on disk, **before** the `recordRecent()` IndexedDB
 round-trip. Doing it after left the status line saying "unsaved" for as long as IDB took —
 measured at 1.2 s, long enough for an autosave tick to fire a second redundant write.

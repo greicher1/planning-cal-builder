@@ -12978,6 +12978,26 @@ export function initLegacyApp() {
   let savedFileHandle = null;
   let handleNeedsPermission = false; // true when we have a remembered handle but not yet permission
   const supportsFsAccess = (typeof window.showSaveFilePicker === 'function');
+  // ⛔ AUDIT M-6 / owner ruling R4 ("pause and ask"). What the linked file looked like the last time
+  // THIS app read or wrote it -- {lastModified, size}. Save and autosave used to write straight back
+  // through the handle, so two windows on one file, or two people on a shared or synced drive,
+  // silently lost whoever saved first. Now every write compares the file's current stamp with this
+  // one first: a mismatch means someone else has written it, and autosave pauses (fileConflict, shown
+  // in the status line) while Save asks -- overwrite, load the newer version, or save a copy.
+  // Session state, never saved. The stamp is taken from the file as read at load and re-read after
+  // each of our own writes, so our writes never look like somebody else's.
+  let savedFileStamp = null;
+  let fileConflict = false;
+  async function fileStamp(handle){
+    try { const f = await handle.getFile(); return { lastModified: f.lastModified, size: f.size }; }
+    catch(e){ return null; }   // unreadable (moved, deleted): the write itself will say so
+  }
+  // True only when we KNOW the file changed: a file we cannot stat is not called a conflict.
+  async function fileChangedOnDisk(){
+    if(!savedFileHandle || !savedFileStamp) return false;
+    const now = await fileStamp(savedFileHandle);
+    return !!now && (now.lastModified !== savedFileStamp.lastModified || now.size !== savedFileStamp.size);
+  }
 
   // ---------- The two save formats ----------
   // A calendar is DATA, not an application, and until v1.1.0 the two were the same file: Save
@@ -13128,6 +13148,27 @@ export function initLegacyApp() {
       }
       handleNeedsPermission = false;
     }
+    // ⛔ R4 / audit M-6: has someone else written the file since we loaded or last wrote it? Then
+    // ASK before overwriting their work. A file the picker just produced (isNew) was chosen by the
+    // user in the OS dialog a moment ago, so it is never asked about.
+    if(!isNew && await fileChangedOnDisk()){
+      const name = (savedFileHandle && savedFileHandle.name) || 'This calendar';
+      const choice = await uiChoose(
+        '\u201c' + name + '\u201d was saved somewhere else since you loaded it \u2014 another window, a colleague, or a sync app. '
+        + 'Saving now would overwrite those changes.\n\n'
+        + 'Load newer version: open the file as it is now (the changes you have made here are discarded).\n'
+        + 'Save a copy: keep both \u2014 your calendar goes to a new file.',
+        [ { value: 'copy', label: 'Save a copy\u2026' },
+          { value: 'load', label: 'Load newer version' },
+          { value: 'overwrite', label: 'Overwrite', danger: true } ],
+        { title: 'File changed on disk' });
+      if(choice === 'load'){ return (await loadNewerLinkedFile()) ? 'reloaded' : 'cancelled'; }
+      if(choice === 'copy'){ return await saveAsFile(); }
+      if(choice !== 'overwrite'){
+        // Cancelled. Silent, like a cancelled picker: the Save click handler treats AbortError so.
+        const e = new Error('Save cancelled'); e.name = 'AbortError'; throw e;
+      }
+    }
     // Write back in whatever format the file already is. Opening a pre-v1.1.0 .html calendar and
     // hitting Save keeps it an .html -- we never silently convert a file the user didn't ask us
     // to convert, and their existing workflow is untouched.
@@ -13141,8 +13182,18 @@ export function initLegacyApp() {
     // status line still saying "unsaved" for as long as IDB took -- measured at ~1.2s in a test
     // run, long enough for an autosave tick to fire a second, redundant write of the same bytes.
     markClean();
+    fileConflict = false;
+    savedFileStamp = await fileStamp(savedFileHandle);   // our own write, so it is the new baseline
     await recordRecent(savedFileHandle); // add/update in the recent-files list
     return isNew ? 'saveas' : 'saved';
+  }
+  // "Load newer version" (R4): re-open the linked file as it now is. The unsaved edits here are
+  // discarded by the user's own choice; openRecentFile() takes the new stamp from what it reads.
+  async function loadNewerLinkedFile(){
+    if(!savedFileHandle) return false;
+    const entry = recentFiles.find(f => f.id === activeFileId)
+               || { id: activeFileId, handle: savedFileHandle, name: savedFileHandle.name, savedAt: Date.now() };
+    return !!(await openRecentFile(entry));
   }
 
   // ---------- Unsaved-change tracking, autosave, and crash/close recovery ----------
@@ -13154,7 +13205,16 @@ export function initLegacyApp() {
   //  3. CLOSE WARNING: the browser's generic "leave site?" prompt when changes are unsaved.
   //     (Browsers don't allow a custom Save button in that dialog, so it's a speed bump.)
   const AUTOSAVE_MS = 10 * 60 * 1000; // 10 minutes
+  // ⛔ ONE CRASH-BACKUP SLOT PER PAGE (audit SAVE-7; FIX-PLAN §0 default "per tab"). There used to be a
+  // single slot for the whole origin, so tab B's Save deleted tab A's recovery copy and a second tab
+  // overwrote the first one's backup. Each page load now writes its own 'unsavedBackup:<id>' and a
+  // save deletes only that one; recovery offers the NEWEST slot any page left behind. BACKUP_KEY, the
+  // old single slot, is still READ (a v1.3.0 backup must stay recoverable) but never written. The id
+  // is per page load, not per tab, on purpose: sessionStorage is copied into a duplicated tab, which
+  // would put two live tabs on one slot again, while a reload still finds its predecessor's slot
+  // because recovery reads every slot.
   const BACKUP_KEY = 'unsavedBackup';
+  const BACKUP_SLOT = BACKUP_KEY + ':' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   let isDirty = false;         // changes since the last successful save
   let suppressDirty = true;    // ignore programmatic updates during load/restore
   let lastSavedAt = null;
@@ -13204,7 +13264,7 @@ export function initLegacyApp() {
     autosaveNeedsFile = false;   // ...and so does now having somewhere to autosave to
     lastSavedAt = new Date();
     refreshSaveStatus();
-    idbSet(BACKUP_KEY, undefined); // saved to a real file; drop the recovery copy
+    idbSet(BACKUP_SLOT, undefined); // saved to a real file; drop THIS page's recovery copy (only)
   }
 
   function fmtTime(d){
@@ -13220,7 +13280,8 @@ export function initLegacyApp() {
   // something is actually wrong, and it is the one the chrome gives a shape to (a Badge) rather
   // than leaving as quiet text -- UI-CONVENTIONS.md §4.
   function refreshSaveStatus(){
-    if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
+    if(fileConflict){ chrome.saveStatus({ text: 'File changed on disk \u2014 autosave paused', tone: 'failed', title: 'Someone (or another window) saved this file since you loaded it, so autosave has stopped rather than overwrite their changes. Click Save to choose: overwrite it, load the newer version, or save yours as a copy.' }); }
+    else if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
     else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'failed', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
     else if(isDirty){ chrome.saveStatus({ text: 'Unsaved changes', tone: 'dirty', title: '' }); }
     else if(lastSavedAt){ chrome.saveStatus({ text: 'Saved ' + fmtTime(lastSavedAt), tone: 'idle', title: '' }); }
@@ -13235,8 +13296,16 @@ export function initLegacyApp() {
   }
   function writeBackup(){
     try {
-      idbSet(BACKUP_KEY, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
+      idbSet(BACKUP_SLOT, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
+  }
+  // Every key in the handles store (the backup slots are found by prefix). [] when unsupported.
+  function idbKeys(){
+    return idbOpen().then(db=> new Promise((res,rej)=>{
+      const st = db.transaction(HANDLE_STORE,'readonly').objectStore(HANDLE_STORE);
+      if(typeof st.getAllKeys !== 'function'){ res([]); return; }
+      const r = st.getAllKeys(); r.onsuccess = ()=> res(r.result || []); r.onerror = ()=> rej(r.error);
+    })).catch(()=> []);
   }
 
   // ---------- Undo / redo ----------
@@ -14104,12 +14173,24 @@ export function initLegacyApp() {
         return;
       }
       if(handleNeedsPermission) return;
+      // Audit L-18: a tick landing while a note editor is open committed and closed it under the
+      // user's hands. Skip it; the next one comes round in AUTOSAVE_MS, and the crash backup covers
+      // the gap. (The half-typed text is not state until it is committed anyway.)
+      if(activeNoteEditor || activeMvNote) return;
+      // R4 / audit M-6: paused until the user decides, through Save, what to do about the change.
+      if(fileConflict) return;
       try {
+        if(await fileChangedOnDisk()){
+          fileConflict = true;       // never overwrite someone else's save from a timer
+          refreshSaveStatus();
+          return;
+        }
         const body = handleIsLegacyHtml(savedFileHandle) ? buildSavedHtml() : buildSavedData();
         const writable = await savedFileHandle.createWritable();
         await writable.write(body);
         await writable.close();
         markClean();
+        savedFileStamp = await fileStamp(savedFileHandle);   // our own write: the new baseline
       } catch(e){
         // Permission lost or file moved/deleted: stay dirty AND flag it, so the user isn't
         // lulled into thinking autosave still protects their work. The warning persists (through
@@ -14133,7 +14214,15 @@ export function initLegacyApp() {
 
   // Offer to restore a backup if the last session ended with unsaved work.
   async function offerBackupRecovery(){
-    const b = await idbGet(BACKUP_KEY);
+    // The NEWEST backup any page left behind (audit SAVE-7): the old single slot, if a v1.3.0 page
+    // wrote one, plus every per-page slot. This page's own slot cannot exist yet.
+    const keys = Array.from(new Set([BACKUP_KEY].concat(
+      (await idbKeys()).filter(k => typeof k === 'string' && k.indexOf(BACKUP_KEY + ':') === 0 && k !== BACKUP_SLOT))));
+    let b = null, bKey = null;
+    for(const k of keys){
+      const v = await idbGet(k);
+      if(v && v.state && (!b || (v.at || 0) > (b.at || 0))){ b = v; bKey = k; }
+    }
     if(!b || !b.state) return;
     const when = new Date(b.at);
     const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
@@ -14153,6 +14242,11 @@ export function initLegacyApp() {
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
     isDirty = true;          // recovered work still isn't in a file
     refreshSaveStatus();
+    // The recovered work now lives in THIS page: back it up under this page's slot at once (not 3 s
+    // from the next edit -- a crash before then would lose it), then retire the slot it came from so
+    // it is not offered again.
+    writeBackup();
+    if(bKey && bKey !== BACKUP_SLOT) idbSet(bKey, undefined);
   }
   // "Save As…" — always pick a NEW file and write the current calendar to it, then make that
   // new file the active one. This duplicates the current calendar (fork it to try a variation);
@@ -14173,7 +14267,9 @@ export function initLegacyApp() {
     await writable.close();
     savedFileHandle = handle;
     handleNeedsPermission = false;
+    fileConflict = false;        // a different file now; whatever changed on the old one stays there
     markClean();                 // bytes are on disk -- report it before the IDB bookkeeping
+    savedFileStamp = await fileStamp(handle);
     await recordRecent(handle);
     refreshSaveBtn();
     return 'saveas';
@@ -14311,6 +14407,10 @@ export function initLegacyApp() {
   function uiAlert(message, opts){
     return chrome.dialog(Object.assign({ kind: 'alert', message }, opts || {}));
   }
+  // A choice of several: resolves the chosen value, or null for Cancel/Escape (the safe answer).
+  function uiChoose(message, choices, opts){
+    return chrome.dialog(Object.assign({ kind: 'choice', message, choices }, opts || {}));
+  }
 
   // ⛔ A DELIBERATE SHADOW OF window.alert, and the reason it is a shadow rather than 8 edits.
   //
@@ -14361,8 +14461,13 @@ export function initLegacyApp() {
       }
     } catch(e){ /* some browsers: proceed and let read throw */ }
 
-    let text;
-    try { const file = await entry.handle.getFile(); text = await file.text(); }
+    let text, stamp = null;
+    try {
+      const file = await entry.handle.getFile();
+      text = await file.text();
+      // The file as we READ it is the baseline a later Save compares against (audit M-6).
+      stamp = { lastModified: file.lastModified, size: file.size };
+    }
     catch(e){ uiAlert('Could not read that file. It may have been moved or deleted.'); return; }
 
     // Read the calendar out of the file -- either format, one code path (parseCalendarText).
@@ -14399,11 +14504,16 @@ export function initLegacyApp() {
     // Make this the active, writable file so subsequent Save writes back to it.
     savedFileHandle = entry.handle;
     handleNeedsPermission = false;
+    savedFileStamp = stamp;
+    fileConflict = false;
     activeFileId = entry.id;
     entry.savedAt = Date.now();
     recentFiles.sort((a,b)=> b.savedAt - a.savedAt);
-    await persistRecents();
+    // Clean BEFORE the IndexedDB round-trip, not after it (audit SAVE-14 / N-8): what is on screen IS
+    // the file from this moment, and an autosave tick landing inside that await must not see the
+    // loaded calendar as unsaved work -- markClean() in saveToFile() is ordered the same way.
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
+    await persistRecents();
     refreshSaveBtn();
     renderRecents();
     // A pre-v1.1.0 calendar opened fine -- and it will keep opening fine forever, which is the
@@ -14442,6 +14552,7 @@ export function initLegacyApp() {
     hideLegacyNotice();   // a blank calendar is not the old file any more
     savedFileHandle = null;
     handleNeedsPermission = false;
+    savedFileStamp = null; fileConflict = false;
     activeFileId = null;
     persistRecents();
     suppressDirty = true;
@@ -14449,14 +14560,14 @@ export function initLegacyApp() {
     suppressDirty = false;
     resetUndoHistory(); // a blank calendar starts a fresh undo history
     isDirty = false; lastSavedAt = null; refreshSaveStatus();
-    idbSet(BACKUP_KEY, undefined);
+    idbSet(BACKUP_SLOT, undefined);   // this page's slot only (audit SAVE-7)
     refreshSaveBtn();
     renderRecents();
   }
 
   async function removeRecent(id){
     recentFiles = recentFiles.filter(f=>f.id !== id);
-    if(activeFileId === id){ activeFileId = null; savedFileHandle = null; }
+    if(activeFileId === id){ activeFileId = null; savedFileHandle = null; savedFileStamp = null; fileConflict = false; refreshSaveStatus(); }
     await persistRecents();
     renderRecents();
     refreshSaveBtn();
@@ -14507,7 +14618,9 @@ export function initLegacyApp() {
       const result = await saveToFile();
       saveInFlight = false;
       chrome.saveBtn({ busy: false });     // flashSaveBtn re-disables briefly for its confirmation
-      flashSaveBtn(result === 'download' ? 'Downloaded \u2713' : 'Saved \u2713');
+      if(result === 'reloaded') flashSaveBtn('Loaded \u2713');
+      else if(result === 'cancelled') chrome.saveBtn({ disabled: false, label: saveBtnLabel() });
+      else flashSaveBtn(result === 'download' ? 'Downloaded \u2713' : 'Saved \u2713');
     } catch(err){
       saveInFlight = false;
       chrome.saveBtn({ busy: false, disabled: false, label: saveBtnLabel() });

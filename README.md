@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A file changed on disk is never silently overwritten; one crash backup per page (audit M-6, SAVE-7, L-18, SAVE-14; owner ruling R4)
+
+**What was wrong.** Save, and autosave every 10 minutes, wrote straight back through the file handle
+without checking whether the file had changed since it was loaded. With two windows on one file, or
+two people on a shared or synced drive, whoever saved first lost their work with no message on either
+side. Three smaller problems sat alongside it:
+- There was one crash-backup slot for the whole site, so tab B's Save deleted tab A's recovery copy.
+- An autosave tick committed and closed a note editor the user was typing in.
+- Loading a file reported "unsaved" until an IndexedDB round-trip finished.
+
+**The fix** (not frozen; no save-format change):
+- The linked file is **stamped** (`lastModified`, `size`) when it is read and after each of our own
+  writes. Every Save and autosave compares first.
+  - On a mismatch **autosave pauses**; the status line reads *"File changed on disk — autosave
+    paused"*.
+  - **Save asks** (R4, "pause and ask"): *Overwrite*, *Load newer version* (re-opens the file as it
+    now is, discarding the edits here), or *Save a copy…* (a new file; theirs is left untouched).
+    Cancel writes nothing. The app's dialogs gained a `choice` kind for this.
+- **One crash-backup slot per page load** (`unsavedBackup:<id>`). A save deletes only its own slot.
+  Recovery offers the newest backup any page left behind, backs it up again under its own slot, and
+  retires the old one. A v1.3.0 backup (the old single slot) is still recoverable.
+- An autosave tick is skipped while a note editor is open (L-18).
+- Loading marks the calendar clean before the IndexedDB bookkeeping, not after (SAVE-14).
+
+**Verified:** new leg `conflict` (9 cases; the fake file handle now keeps a stable `lastModified` and
+can play "someone else saved it"): Save asks and writes nothing until a choice is made; Cancel,
+Overwrite, Load newer and Save a copy each do exactly that; autosave pauses on a changed file; an
+open note editor survives a tick and autosave resumes once it closes. New leg `backupslots` (5
+cases): recovery offers the newest slot and retires it, leaving an older one alone, and a Save
+deletes only this page's slot. On v1.3.0 8 of the 9 `conflict` cases and 4 of the 5 `backupslots`
+cases fail. Also checked in the browser pane with real clicks on Save and on the dialog: *Load newer
+version* loaded the other copy with no write, and *Overwrite* wrote ours once. (The dialog is wider
+now, because Overwrite had wrapped onto its own line.) Every batch-1 and batch-2 leg still passes.
+
 ### Unreleased — Month-view holidays stay visible under an edited note, and are never baked into one (audit M-13, MONTH-6; owner ruling R3)
 
 **What was wrong.** Holidays are month-view-only by default. Editing a week's note in the waterfall
