@@ -484,6 +484,17 @@ stores (`userNotes`, `noteColors`, `hiatusTexts`, `hiatusColors`) and nudges `mo
 Since v1.3.1 (audit M-12) **`rowHeightsByWeek` travels with its week's note** — same stay-or-go
 predicate as `noteFontSize` — so a row dragged tall for a long note is not left behind on the old week.
 
+**`dayOverrides` travel BY SHOOT-DAY NUMBER, on every mover** (v1.3.1, owner ruling R2, audit M-4):
+Shift All / Shift From / Anchor To (`shiftCalendar`), the month-view pill drag, Rebuild From
+(`workBackwardsFrom` / `workForwardsFrom`), Close all gaps and "Start after previous phase"
+(`autostartPhase`). Each runs inside `asShootDayMove()`, which pins every mark to Production's
+**natural** shoot days (the simulation with no overrides — `naturalShootDays()`, extended one day per
+mark) and, while the move runs, re-derives the marks from those pins in `update()` and in
+`productionEndFor()`. A half/off lands on the same-numbered natural day; a worked weekend/holiday keeps
+its weekday in its reference shoot day's week, and one that lands on an ordinary shoot day is reported
+in the result line. ⚠️ Half/off round-trip exactly; a worked day off need not (there may be no weekend
+or holiday at the matching place). Typing a start date is not a mover.
+
 | Stays put | Why |
 |---|---|
 | Union holidays | Real calendar dates. Because Production is a day-level sim, shifting by exactly 7 days can move its **wrap** by more or less than 7 — the tools report the resulting wrap for this reason. |

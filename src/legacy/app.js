@@ -5274,7 +5274,12 @@ export function initLegacyApp() {
     const endDrag = ()=>{
       if(!drag) return;
       const moved = drag.applied;
+      const bound = drag.boundOverrides;
       drag = null;
+      // Settle the day overrides BEFORE the step is banked: each increment's update() already put
+      // them on their shoot days, so this only ends the binding -- but the snapshot below must hold
+      // the final marks, not the ones from before the drag.
+      if(bound) endShootDayMove();
       document.body.classList.remove('grid-swapping');
       // ⛔ THE TRAILING PUSH IS THE STEP. Each increment cancelled the debounce (see mousemove), so
       // nothing has been banked yet; this is what commits the whole drag as one entry -- the same
@@ -5312,6 +5317,11 @@ export function initLegacyApp() {
       // a drag costs nothing.
       pushUndoSnapshot();
       drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0};
+      // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
+      // NUMBER, live on every increment, because update() re-derives them from these pins. For any
+      // other phase the shoot does not move and the binding is the identity. Pinned here, before the
+      // first increment moves anything; released in endDrag, the gesture's one exit.
+      drag.boundOverrides = beginShootDayMove();
       // grid-swapping, NOT grid-selecting: both suppress text selection, but grid-selecting is
       // cursor:cell (the marquee cursor, for sweeping a selection) and this is a MOVE. It pairs
       // with the pill's own cursor:grab, and a body-level class is what keeps the cursor correct
@@ -8449,6 +8459,10 @@ export function initLegacyApp() {
   // ⚠️ NOTHING READS IT YET. The simulation lands in step 3; this step is the store and the save
   // format alone, deliberately, so the format is settled before behaviour depends on it.
   let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' }
+  // While a tool MOVES the shoot, the marks' shoot-day pins (see beginShootDayMove). Session state,
+  // never saved. Declared beside the store it governs, ahead of any update() that reads it.
+  let overrideMove = null;
+  let lastShootDayMove = null;   // what the last move did to the marks, for the tool's result line
   // Normalise any stored shape (old single-object saves included) into a list.
   function dayNoteList(iso){
     const v = dayNotes[iso];
@@ -11438,6 +11452,9 @@ export function initLegacyApp() {
     const scrollSnap = captureScroll();
     const state = readState();
     syncHiatusNamesFromSidebar();
+    // A tool is moving the shoot: put every day override on its shoot day for the dates as they
+    // stand NOW, before anything is scheduled from them (see beginShootDayMove).
+    if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
     currentSchedule = computeSchedule(state);
     // ⛔ The gate runs HERE, once per update() -- never inside computeSchedule, which
     // productionStartEndingBy calls up to 300 times in a backward search and would pay 300 gates.
@@ -11879,18 +11896,21 @@ export function initLegacyApp() {
     }
     return null;
   }
+  // A mover (owner ruling R2): Production's day overrides travel with it by shoot-day number.
   function autostartPhase(key){
-    const prev = prevChainSegment(key, currentSchedule);
-    if(!prev) return;
-    // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
-    // full week count and pushes its end out). From there, step over any weeks that fall in a
-    // hiatus so the new phase lands on the first working week.
-    let d = new Date(prev.seg.end.getTime());
-    const hi = (currentSchedule && currentSchedule.hiatuses) || [];
-    let safety = 0;
-    while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
-    const inp = document.getElementById('start-' + key);
-    if(inp){ inp.value = isoOf(d); update(); }
+    asShootDayMove(()=>{
+      const prev = prevChainSegment(key, currentSchedule);
+      if(!prev) return;
+      // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
+      // full week count and pushes its end out). From there, step over any weeks that fall in a
+      // hiatus so the new phase lands on the first working week.
+      let d = new Date(prev.seg.end.getTime());
+      const hi = (currentSchedule && currentSchedule.hiatuses) || [];
+      let safety = 0;
+      while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+      const inp = document.getElementById('start-' + key);
+      if(inp){ inp.value = isoOf(d); update(); }
+    });
   }
 
   (function(){
@@ -12874,11 +12894,157 @@ export function initLegacyApp() {
     return date ? {text, date} : {text};
   }
 
+  // ---------- Day overrides travel BY SHOOT-DAY NUMBER (owner ruling R2; audit M-4) ----------
+  // A day override belongs to a DAY OF THE SHOOT, not to a calendar date: 'half' on day 5 says how
+  // day 5 is worked. So when a tool MOVES the shoot, each mark must land on the same day of the new
+  // shoot. Before this, every mover disagreed and the same plan got a different wrap depending on
+  // which one moved it: Shift All moved the marks by calendar days (so +1 wk could drop a half day
+  // into a locked hiatus, where it can never be honoured), Shift From moved them even when Production
+  // stayed put, and the month-view drag, Rebuild From, Close all gaps and "Start after previous
+  // phase" did not move them at all.
+  //
+  // THE INDEX is the shoot's NATURAL days -- what the real simulation shoots with no overrides at
+  // all -- so there is no second copy of the scheduling rule to drift. Before a move each mark is
+  // pinned to that list; after it, the list is recomputed for the new dates and each mark goes back
+  // onto its pin:
+  //   - a mark ON a natural day (every 'half' and 'off') -> the same-numbered natural day;
+  //   - a mark OFF the list (a worked weekend or holiday) keeps its WEEKDAY in the week of its
+  //     reference day -- the last natural day before it in its own Mon-Sun week, else the first one
+  //     after it (FIX-PLAN 2.1: "keeps its position relative to its shoot week").
+  // So a worked HOLIDAY can land on an ordinary shoot day, where 'on' does nothing: it is kept
+  // (inert, never on a wrong day) unless that day already carries its own mark, and either way the
+  // tool's result line says so (owner's scope call, 29 Sep 2026).
+  //
+  // ⛔ A BINDING, NOT A ONE-SHOT RE-KEY. Rebuild From and Close all gaps place Production and then
+  // read its real end to place the phase after it, so the marks must already be on their new days
+  // when that end is read. While overrideMove is set, update() re-derives dayOverrides from the
+  // ORIGINAL pins, and productionEndFor() does the same for every candidate start it tries. Always
+  // from the original pins, never from the previous step, so it is idempotent: a drag through six
+  // days lands exactly where one move of the same distance would.
+  //
+  // Typing a start date by hand is NOT a mover (owner's scope call, 29 Sep 2026): the marks stay on
+  // their dates there, as they always have.
+  //
+  // The natural list is EXTENDED past the requested day count by one day per mark (plus a margin):
+  // an 'off' pushes the real shoot past the natural wrap, and the days it reaches can carry marks
+  // too. If the longer calendar would pass MAX_WEEKS, the unextended list is used instead.
+  function naturalShootDays(extra){
+    const saved = dayOverrides;
+    dayOverrides = {};
+    try {
+      const st = readState();
+      const prod = st.phases && st.phases.production;
+      if(!prod) return null;
+      if(extra) st.phases.production = Object.assign({}, prod, {rawValue: prod.rawValue + extra});
+      const info = computeSchedule(st).productionInfo;
+      return (info && info.shootDays && info.shootDays.length) ? info.shootDays : null;
+    } catch(e){ return null; }
+    finally { dayOverrides = saved; }
+  }
+  function shootDayIndex(extra){ return naturalShootDays(extra) || naturalShootDays(0); }
+  function pinOverride(iso, base){
+    const exact = base.indexOf(iso);
+    if(exact !== -1) return {k: exact, exact: true};
+    const d = parseDateUTC(iso);
+    if(!d) return null;                                   // an unparseable key stays where it is
+    const mon = isoOf(mondayOf(d)), sun = isoOf(addDays(mondayOf(d), 6));
+    let k = -1;
+    for(let j = base.length - 1; j >= 0; j--){ if(base[j] < iso && base[j] >= mon){ k = j; break; } }
+    if(k === -1) for(let j = 0; j < base.length; j++){ if(base[j] > iso && base[j] <= sun){ k = j; break; } }
+    // No natural day in its own week (a mark before the shoot, or past it): the nearest one before
+    // it, else the first -- it still travels with the shoot, by whole weeks and its weekday.
+    if(k === -1) for(let j = base.length - 1; j >= 0; j--){ if(base[j] < iso){ k = j; break; } }
+    if(k === -1) k = 0;
+    // Days from the reference day's MONDAY: 5 is "the Saturday of that week", 12 "the one after".
+    return {k, exact: false, offset: Math.round((d - mondayOf(parseDateUTC(base[k]))) / DAY_MS)};
+  }
+  // Begins a move. Returns false when there is nothing to bind (no marks, no schedulable shoot) or
+  // when an outer move already owns the binding (Close all gaps runs autostartPhase per phase).
+  function beginShootDayMove(){
+    if(overrideMove) return false;
+    lastShootDayMove = null;
+    const keys = Object.keys(dayOverrides);
+    if(!keys.length) return false;
+    const extra = keys.length + 10;
+    const base = shootDayIndex(extra);
+    if(!base) return false;
+    overrideMove = {
+      extra,
+      pins: keys.map(iso => ({iso, kind: dayOverrides[iso], pin: pinOverride(iso, base),
+                              // a worked weekend/holiday: it adds a day only while OFF the natural list
+                              worked: dayOverrides[iso] === 'on' && base.indexOf(iso) === -1}))
+    };
+    return true;
+  }
+  // The overrides the ORIGINAL pins give for the calendar as the DOM describes it now -- or null
+  // when no shoot is schedulable right now, in which case the marks are left exactly as they are.
+  function overridesForMove(move){
+    const base = shootDayIndex(move.extra);
+    if(!base) return null;
+    const map = {}, natural = new Set(base);
+    let inert = 0, dropped = 0;
+    const target = p => {
+      if(!p.pin) return p.iso;
+      if(p.pin.k >= base.length) return null;
+      return p.pin.exact ? base[p.pin.k] : isoOf(addDays(mondayOf(parseDateUTC(base[p.pin.k])), p.pin.offset));
+    };
+    // Natural-day marks first, so a day's own half/off wins over a worked holiday landing on it.
+    const ordered = move.pins.filter(p => !p.pin || p.pin.exact).concat(move.pins.filter(p => p.pin && !p.pin.exact));
+    ordered.forEach(p => {
+      const to = target(p);
+      if(to === null){ dropped++; return; }
+      if(to in map){ if(p.worked) inert++; else dropped++; return; }
+      map[to] = p.kind;
+      if(p.worked && natural.has(to)) inert++;
+    });
+    return {map, inert, dropped};
+  }
+  function endShootDayMove(){
+    const move = overrideMove;
+    overrideMove = null;
+    if(!move) return;
+    const r = overridesForMove(move);
+    if(!r) return;
+    dayOverrides = r.map;
+    lastShootDayMove = (r.inert || r.dropped) ? {inert: r.inert, dropped: r.dropped} : null;
+  }
+  // Run a mover with its marks bound to their shoot days. Nested movers are inert (see above).
+  function asShootDayMove(fn){
+    const bound = beginShootDayMove();
+    try { return fn(); }
+    finally { if(bound) endShootDayMove(); }
+  }
+  // The result-line sentence for what the last move did to the marks, read once. `short` is the
+  // toolbar arrows' flash readout, which has room for a few words only.
+  function takeShootDayMoveNote(short){
+    const m = lastShootDayMove;
+    lastShootDayMove = null;
+    if(!m) return '';
+    const bits = [];
+    if(m.inert){
+      bits.push(short
+        ? m.inert + ' worked day no longer on a day off'
+        : (m.inert === 1 ? 'A “Work this day” mark no longer falls on a weekend or holiday.'
+                         : m.inert + ' “Work this day” marks no longer fall on a weekend or holiday.'));
+    }
+    if(m.dropped){
+      bits.push(short
+        ? m.dropped + ' day mark dropped'
+        : (m.dropped === 1 ? 'One day mark had no shoot day left to land on and was removed.'
+                           : m.dropped + ' day marks had no shoot day left to land on and were removed.'));
+    }
+    return short ? bits.join(' · ') : bits.join(' ');
+  }
+
   // Shift by `weeks` (negative = earlier). With `fromIso` set, only the part of the calendar on or
   // after that week moves -- that's the ripple case ("prep slipped, push the shoot and everything
   // after it"); everything earlier stays exactly where it is. Returns a short summary for the
-  // caller to show, or null if there was nothing to shift.
+  // caller to show, or null if there was nothing to shift. The day overrides travel by shoot-day
+  // number -- see asShootDayMove above.
   function shiftCalendar(weeks, fromIso){
+    return asShootDayMove(()=> shiftCalendarDates(weeks, fromIso));
+  }
+  function shiftCalendarDates(weeks, fromIso){
     const n = Math.round(Number(weeks) || 0);
     if(!n || Math.abs(n) > MAX_SHIFT_WEEKS) return null;
     const days = n * 7;
@@ -12983,17 +13149,14 @@ export function initLegacyApp() {
     // dayNotes / dayNoteColors / mvExtraLanes are day-addressed month-view content and stay put:
     // "wrap party booked" belongs to a DATE, so a shift must leave it on that date.
     //
-    // ⛔ dayOverrides IS THE EXCEPTION, and it is deliberate -- do not "correct" it back.
-    // An override belongs to a SHOOT DAY, not a calendar date: 'half' says how that day of the
-    // shoot is worked. Move the production a week and the overrides must travel with it, or the
-    // tool has silently changed which days are half or off. It is the first day-addressed store
-    // that shifts, which is exactly why the warning above needed this paragraph.
-    // ⚠️ NO keep-predicate, and that is deliberate. hiatusKeyStays was used here first and was
-    // WRONG: it keeps a bare-ISO key when that ISO is in stayingHiatusWeeks -- the week Mondays of
-    // LOCKED hiatuses. dayOverrides keys are DAY ISOs, so an override that happened to land on such
-    // a Monday would have stayed behind while every other override moved, silently changing which
-    // day is half. Every override moves, always: they belong to shoot days, and shoot days all move.
-    dayOverrides = shiftKeyedMap(dayOverrides, days);
+    // ⛔ dayOverrides IS THE EXCEPTION, and it is NOT re-keyed here any more -- do not add a
+    // shiftKeyedMap call back. An override belongs to a SHOOT DAY, not a calendar date, so it moves
+    // by SHOOT-DAY NUMBER (owner ruling R2, audit M-4): shiftCalendar() wraps this whole function in
+    // asShootDayMove(), and the refreshAfterRestore() below re-derives the marks from their pins.
+    // Moving them by calendar days, as this line used to, was wrong three ways at once: holidays and
+    // locked hiatuses stay put while the shoot moves, so a +1 wk shift could drop a half day into a
+    // locked hiatus (never honoured) and a worked holiday off its holiday; and a Shift From that did
+    // not move Production moved every mark anyway.
 
     refreshSnapNotes();      // the "Snapped to Mon ..." hints under every date field are now stale
     // Keep the month view looking at the same content instead of an emptied month. Null until the
@@ -13083,15 +13246,19 @@ export function initLegacyApp() {
   function productionEndFor(startIso){
     const el = document.getElementById('start-production');
     if(!el) return null;
-    const prev = el.value;
+    const prev = el.value, prevOverrides = dayOverrides;
     el.value = startIso;
     let end = null;
     try {
+      // Inside a move the day overrides travel with the shoot (asShootDayMove), so each candidate
+      // is tried with its marks where they would ACTUALLY land. Without this the search fitted a
+      // shoot whose marks were still on the old dates, and the real wrap came out different.
+      if(overrideMove){ const r = overridesForMove(overrideMove); if(r) dayOverrides = r.map; }
       const sch = computeSchedule(readState());
       const seg = (sch.segments || []).find(s=>s.key === 'production');
       if(seg) end = seg.end;
     } catch(e){ /* treat an unschedulable candidate as "doesn't fit" */ }
-    el.value = prev;
+    finally { dayOverrides = prevOverrides; el.value = prev; }
     return end;
   }
   // The latest Monday on which the shoot can start and still be finished by `cursor`.
@@ -13159,8 +13326,13 @@ export function initLegacyApp() {
   }
 
   // Pin `key` to `targetIso` and rebuild every phase BEFORE it so they run consecutively, ending
-  // where the next one begins. Returns a summary, or {error} describing why it stopped.
+  // where the next one begins. Returns a summary, or {error} describing why it stopped. The day
+  // overrides travel by shoot-day number (asShootDayMove) -- including through the Production
+  // search, which is why productionEndFor() reads the binding too.
   function workBackwardsFrom(key, targetIso){
+    return asShootDayMove(()=> rebuildBackwards(key, targetIso));
+  }
+  function rebuildBackwards(key, targetIso){
     const target = parseDateUTC(targetIso);
     if(!target) return {error:'Pick a date first.'};
     const seq = phaseSequence();
@@ -13207,8 +13379,13 @@ export function initLegacyApp() {
   // ends. Unlike the backward pass this leans on the live scheduler rather than its own arithmetic:
   // it writes a start, recomputes, and reads the real segment end before placing the next phase --
   // so Production's day-level shoot simulation is honoured for free, and a forward solve can never
-  // disagree with the dates the calendar is showing.
+  // disagree with the dates the calendar is showing. With the day overrides bound to their shoot
+  // days (asShootDayMove), each update() below puts them on the new days BEFORE the next phase reads
+  // Production's end -- so Post chains off the wrap the marks actually produce.
   function workForwardsFrom(key, targetIso){
+    return asShootDayMove(()=> rebuildForwards(key, targetIso));
+  }
+  function rebuildForwards(key, targetIso){
     const target = parseDateUTC(targetIso);
     if(!target) return {error:'Pick a date first.'};
     const seq = phaseSequence();
@@ -13258,17 +13435,22 @@ export function initLegacyApp() {
   // button applied down the whole chain. Only phases that are ALREADY scheduled are touched --
   // this tidies an existing plan, it doesn't invent start dates for phases left blank. Custom
   // phases stay out of it, matching autostartPhase()'s own rule.
+  // The day overrides are bound for the WHOLE chain (asShootDayMove): each autostartPhase() below
+  // is a mover too, but nested it defers to this one, so the marks are pinned once, before anything
+  // moves, and every later phase chains off the wrap they actually produce.
   function closeAllGaps(){
-    let moved = 0, seenFirst = false;
-    PHASE_CHAIN.forEach(key=>{
-      const before = phaseStartDate(key);
-      if(!before) return;              // not scheduled -> leave it alone
-      if(!seenFirst){ seenFirst = true; return; }  // the chain's first phase is the anchor
-      autostartPhase(key);             // runs its own update(), so currentSchedule stays fresh
-      const after = phaseStartDate(key);
-      if(after && before && after.getTime() !== before.getTime()) moved++;
+    return asShootDayMove(()=>{
+      let moved = 0, seenFirst = false;
+      PHASE_CHAIN.forEach(key=>{
+        const before = phaseStartDate(key);
+        if(!before) return;              // not scheduled -> leave it alone
+        if(!seenFirst){ seenFirst = true; return; }  // the chain's first phase is the anchor
+        autostartPhase(key);             // runs its own update(), so currentSchedule stays fresh
+        const after = phaseStartDate(key);
+        if(after && before && after.getTime() !== before.getTime()) moved++;
+      });
+      return moved;
     });
-    return moved;
   }
 
   // Autosave: only meaningful when a file is already linked (we can't create one silently).
@@ -13723,7 +13905,9 @@ export function initLegacyApp() {
       // plan, so Production's wrap can travel by more or less than the weeks requested.
       const dir = res.weeks < 0 ? 'earlier' : 'later';
       const n = Math.abs(res.weeks);
-      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '');
+      const ov = takeShootDayMoveNote(true);   // what the move did to Production's day marks, if anything
+      readout.textContent = n + (n === 1 ? ' wk ' : ' wks ') + dir + (res.productionWrap ? ' · wrap ' + res.productionWrap : '')
+        + (ov ? ' · ' + ov : '');
       // The readout anchors under the button that acted (owner, round 6): CSS reads this.
       group.dataset.shiftDir = dir;
       group.classList.add('flash');
@@ -13773,12 +13957,17 @@ export function initLegacyApp() {
       refreshMenuFromCalendar(); // the menu quotes live dates; they just changed
       return out;
     }
-    function describeShift(res){
+    // `tail` is the caller's own sentence; the note about Production's day marks (a worked holiday
+    // that no longer falls on one, say -- see asShootDayMove) always comes last.
+    function describeShift(res, tail){
       if(!res) return 'Nothing to shift.';
       const n = Math.abs(res.weeks);
       let out = 'Shifted ' + n + (n === 1 ? ' week ' : ' weeks ') + (res.weeks < 0 ? 'earlier' : 'later') + '.';
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
+      if(tail) out += tail;
+      const ov = takeShootDayMoveNote();
+      if(ov) out += ' ' + ov;
       return out;
     }
     function readWeeks(id){
@@ -13972,9 +14161,9 @@ export function initLegacyApp() {
       // land short of a deadline, and because holidays don't travel with the plan a shifted shoot
       // can even grow over one it now overlaps and finish past the date.
       const landed = landmarkDate(key, edge);
-      let out = describeShift(res) + (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '');
       const overshot = !!(landed && edge === 'end' && landed > target);
-      if(overshot) out += ' Still past your date — the shoot grew over a holiday it now overlaps.';
+      const out = describeShift(res, (landed ? ' ' + label + (edge === 'end' ? ' ends ' : ' starts ') + fmtShort(landed) + '.' : '')
+        + (overshot ? ' Still past your date — the shoot grew over a holiday it now overlaps.' : ''));
       say(out, overshot);
     });
 
@@ -13995,8 +14184,8 @@ export function initLegacyApp() {
       if(!res) return say('Nothing to shift.', true);
       // Name the phase it started from: the section header is deliberately terse, so the result
       // line is where "from where?" gets answered.
-      say(describeShift(res) + ' From ' + label + ' onward — '
-        + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.');
+      say(describeShift(res, ' From ' + label + ' onward — '
+        + res.movedPhases + ' phase' + (res.movedPhases === 1 ? '' : 's') + ' moved.'));
     }
     document.getElementById('tool-ripple-earlier').addEventListener('click', ()=> ripple(-1));
     document.getElementById('tool-ripple-later').addEventListener('click', ()=> ripple(1));
@@ -14034,6 +14223,8 @@ export function initLegacyApp() {
       out += '. ' + res.written.length + ' phase' + (res.written.length === 1 ? '' : 's') + ' placed';
       out += filled ? (', ' + filled + ' newly dated.') : '.';
       if(res.skipped.length) out += ' Skipped ' + res.skipped.join(', ') + ' (no week count).';
+      const ov = takeShootDayMoveNote();
+      if(ov) out += ' ' + ov;
       say(out);
     }
     document.getElementById('tool-solve-back').addEventListener('click', ()=> runSolve(-1));
@@ -14042,9 +14233,10 @@ export function initLegacyApp() {
     // --- Close all gaps
     document.getElementById('tool-close-gaps').addEventListener('click', ()=>{
       const moved = asOneUndoStep(closeAllGaps);
-      say(moved
+      const ov = takeShootDayMoveNote();
+      say((moved
         ? 'Chained ' + moved + ' phase' + (moved === 1 ? '' : 's') + ' back to back.'
-        : 'No gaps to close.');
+        : 'No gaps to close.') + (ov ? ' ' + ov : ''));
     });
   })();
 

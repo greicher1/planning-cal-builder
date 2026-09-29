@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Half days, days off and worked days move with the shoot, by shoot-day number (audit M-4, owner ruling R2)
+
+**What was wrong.** The same plan got a different wrap depending on which tool moved it. Shift All
+moved Production's day overrides by calendar days while holidays and locked hiatuses stayed put — so
++1 wk on `dayoverrides.sptcal` dropped the half day and the day off into the locked Summer Break,
+where they can never be honoured, and both marks silently vanished. Shift From on a phase *after*
+Production moved every mark although Production stayed put. The month-view drag, Rebuild From, Close
+all gaps and "Start after previous phase" did not move them at all.
+
+**The fix** (not frozen; no save-format key changed). Every mover now binds the marks to Production's
+**natural shoot days** — the days the real simulation shoots with no overrides, so there is no second
+copy of the scheduling rule. Before a move each mark is pinned to that list; after it, each goes back
+onto its pin: a half or an off lands on the same-numbered shoot day; a worked weekend or holiday keeps
+its weekday in the week of its reference shoot day (FIX-PLAN 2.1). The binding is live for the whole
+move, so Rebuild From and Close all gaps chain the next phase off the wrap the marks actually produce,
+and Rebuild backwards searches Production's latest start with the marks where they will land. Typing a
+date by hand is not a mover, and leaves the marks on their dates as before.
+- A worked holiday can land on an ordinary shoot day, where "Work this day" does nothing. It is kept
+  (inert — it can never mark a wrong day) unless that day carries its own mark, and the tool's result
+  line says so: *A "Work this day" mark no longer falls on a weekend or holiday.*
+- ⚠️ Half days and days off always come back exactly when a move is reversed. A worked day off need
+  not: the moved shoot may have no weekend or holiday where the original did. Undo always restores
+  exactly.
+
+**Verified:** new leg `overrides` (20 cases) on the real fixture `dayoverrides.sptcal` — Shift From
+Post leaves every mark and the Production row alone; Shift All (form and arrow), the month-view drag,
+Shift From Production and both Rebuild directions put the half on 7/10, the off on 7/20 and the worked
+Saturday on 7/25, all honoured ("1 half · 1 off · 1 added"); Close all gaps and "Start after previous
+phase" re-place them by shoot-day number too; every step is one undo. On v1.3.0 13 of the 20 fail.
+Also dragged with a real pointer in the browser pane: 7/6 → 11/3/26 with the July page marking the
+10th half, the 20th off and the 25th worked.
+
 ### Unreleased — Runaway counts are capped before they can freeze the tab (audit M-15, L-25)
 
 **What was wrong.** Nothing bounded Number of Episodes or Number of Blocks: a typo of 8000 built 8000

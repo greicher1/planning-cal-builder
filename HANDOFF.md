@@ -17,6 +17,21 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-12 row heights follow a shift | ✅ done | `rowheight` (`HARNESS_STATE=shift-stores`) |
 | M-14 no empty year block after a late-December last week | ✅ done | `yearblock` (no fixture) |
 | M-15 caps: 200 episodes/blocks, hiatus weeks ≤ `MAX_WEEKS` before loops | ✅ done | `caps` |
+| M-4 day overrides by shoot-day number on every mover (R2) | ✅ done | `overrides` (`HARNESS_STATE=dayoverrides`, 20 cases) |
+
+- ⭐ **M-4 is a BINDING, not a re-key** (`asShootDayMove()` beside `shiftCalendar`). Pins are taken
+  against the NATURAL shoot days (the real simulation with `dayOverrides = {}`, so no second copy of the
+  scheduling rule) and re-applied on every `update()` and every `productionEndFor()` candidate while a
+  mover runs — Rebuild/Close gaps read Production's real end mid-move, and the backward search tries
+  candidates, so a one-shot re-key at the end was not enough. Always from the ORIGINAL pins (idempotent:
+  a live drag through six days = one move). Nested movers defer to the outer one.
+- ⚠️ **Worked days off do not round-trip, by construction.** Half/off do (a natural day's number is a
+  bijection both ways). A worked Saturday keeps its weekday in its reference shoot day's week, and once
+  the shoot is moved across a hiatus/holiday the reference day's week differs — measured in the leg's O5:
+  7/11 → 7/25 → stays 7/25 on the way back. A worked HOLIDAY that lands on a natural day is inert (kept)
+  unless that day has its own mark (then it is gone); both are reported in the result line. Undo is exact.
+  If the owner wants worked days off to stay on their calendar dates instead, that is a one-branch change
+  in `overridesForMove()` (non-exact pins → keep `p.iso`).
 
 - ⭐ **Writing a value into a Mantine `NumberInput` from the engine (learned on M-15).** Use the
   PROTOTYPE value setter (`capCountField()`), never `el.value =`. The engine's listener is bound on the
