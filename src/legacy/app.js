@@ -2845,8 +2845,15 @@ export function initLegacyApp() {
         allStarts.push(firstMondayOfYear(naturalStartYear).getTime());
       }
       if(naturalEnds.length){
-        const lastActiveDay = addDays(new Date(Math.max.apply(null, naturalEnds)), -1);
-        allEnds.push(firstMondayOfYear(lastActiveDay.getUTCFullYear()+1).getTime());
+        // ⛔ The final week's MONDAY, not its last day (audit M-14). computeYearBlocks() files a
+        // week under the year of its Monday, so the padding must ask the same question. Asking the
+        // week's Sunday instead meant a last week of Mon 12/30/30 - Sun 1/5/31 padded out to the
+        // first Monday of 2032: a whole 2031 block of empty rows, a blank year column in every
+        // export, and a page printed at about half size. naturalEnds are exclusive Mondays (see
+        // above), so minus 7 days is exactly the final week's Monday. Identical for every calendar
+        // whose last week does not straddle New Year.
+        const lastActiveMonday = addDays(new Date(Math.max.apply(null, naturalEnds)), -7);
+        allEnds.push(firstMondayOfYear(lastActiveMonday.getUTCFullYear()+1).getTime());
       }
     }
     // fall back to whichever bound was actually supplied if one list is empty

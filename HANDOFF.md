@@ -15,6 +15,7 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | Fix | State | Leg (red on v1.3.0) |
 |---|---|---|
 | M-12 row heights follow a shift | ✅ done | `rowheight` (`HARNESS_STATE=shift-stores`) |
+| M-14 no empty year block after a late-December last week | ✅ done | `yearblock` (no fixture) |
 
 - ⚠️ **The batch-1 legs are NOT in `gate.sh`** (`loadcarry`, `hiatusblank`, `hostile`, `sharecopy2`,
   `loadfail`, `snapoff`) — the "376/0" never included them, although FIX-PLAN §1 says a leg guarding

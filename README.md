@@ -29,6 +29,22 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — No empty year block when the last week starts in late December (audit M-14)
+
+**What was wrong.** The full-year padding in `computeSchedule` asked which year the schedule's final
+week *ends* in (its Sunday), while `computeYearBlocks` files every week under the year of its
+*Monday*. A last week of Mon 12/30/30 – Sun 1/5/31 therefore padded the grid out to the first Monday
+of 2032: a whole 2031 block of 52 empty rows, a blank year column in Excel and both PDFs, and a
+waterfall PDF printed at about half size.
+
+**The fix** (one line in `computeSchedule`, not frozen): the padding reads the final week's Monday.
+Identical for every calendar whose last week does not straddle New Year; for those that do, the
+exports lose the empty block — the intended change.
+
+**Verified:** new leg `yearblock`: Post ending the week of 12/30/30 and of 12/29/31 each give one
+block (both gave two on v1.3.0); ending 12/23/30 (one block) and 1/6/31 (two blocks) are unchanged
+controls; 0 clipped cells.
+
 ### Unreleased — A dragged row height travels with its note on a shift (audit M-12)
 
 **What was wrong.** `shiftCalendar` re-keyed the week-keyed note stores (`userNotes`, `noteColors`,
