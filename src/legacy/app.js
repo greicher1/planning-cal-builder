@@ -11896,18 +11896,34 @@ export function initLegacyApp() {
     }
     return null;
   }
+  // Is this phase's "Snap to Mon" on? A missing box reads as SNAPPED, readState()'s own default.
+  function phaseSnapped(key){
+    const el = document.getElementById('snap-' + key);
+    return el ? !!el.checked : true;
+  }
+  // Where a phase chained after another begins (audit L-24; FIX-PLAN §0's rule): the day after the
+  // previous phase ends -- segment ends are exclusive, so that IS prevEnd -- or, when the chained phase
+  // is snapped, the next Monday on or after it. ⛔ Never earlier, so it can never overlap. The old
+  // rule wrote prevEnd as-is, and after a snap-off phase that ends on a Wednesday a SNAPPED next phase
+  // then snapped back to that week's Monday: two days of overlap, and an extra grid column. For an
+  // all-snapped calendar prevEnd is already a Monday, so nothing changes there.
+  // Then past any all-phase hiatus it lands in, a whole week at a time: a hiatus is whole Mon-Sun
+  // weeks, so the weekday survives the step.
+  function chainedStart(prevEnd, key, hiatuses){
+    let d = new Date(prevEnd.getTime());
+    if(phaseSnapped(key) && d.getUTCDay() !== 1) d = addDays(mondayOf(d), 7);
+    let safety = 0;
+    while((hiatuses || []).some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+    return d;
+  }
   // A mover (owner ruling R2): Production's day overrides travel with it by shoot-day number.
   function autostartPhase(key){
     asShootDayMove(()=>{
       const prev = prevChainSegment(key, currentSchedule);
       if(!prev) return;
       // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
-      // full week count and pushes its end out). From there, step over any weeks that fall in a
-      // hiatus so the new phase lands on the first working week.
-      let d = new Date(prev.seg.end.getTime());
-      const hi = (currentSchedule && currentSchedule.hiatuses) || [];
-      let safety = 0;
-      while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+      // full week count and pushes its end out). chainedStart() takes it from there.
+      const d = chainedStart(prev.seg.end, key, (currentSchedule && currentSchedule.hiatuses) || []);
       const inp = document.getElementById('start-' + key);
       if(inp){ inp.value = isoOf(d); update(); }
     });
@@ -13222,9 +13238,19 @@ export function initLegacyApp() {
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
+    // Audit L-14: an all-phase hiatus row is ONE band across the whole block, the notes column
+    // included, so a note moved onto such a week is hidden in the waterfall, Excel and the PDF. It is
+    // not lost -- it comes back when the hiatus or the note moves off -- but the user has to be told.
+    const hiatusWeeks = new Set(((currentSchedule && currentSchedule.weeks) || [])
+      .filter(w => w.cells.length && w.cells[0].type === 'hiatus').map(w => isoOf(w.date)));
+    const notesOnHiatus = Object.keys(staleAuto).filter(k=>{
+      const d = parseDateUTC(k);
+      const to = d ? isoOf(addDays(d, days)) : null;
+      return !!to && hiatusWeeks.has(to) && !!noteValueText(userNotes[to]);
+    }).length;
 
     return {
-      weeks: n, movedPhases, movedHiatuses, lockedHiatuses,
+      weeks: n, movedPhases, movedHiatuses, lockedHiatuses, notesOnHiatus,
       productionWrap: productionWrapText()
     };
   }
@@ -13248,14 +13274,28 @@ export function initLegacyApp() {
   function weeksToFinishBy(lastDay, target){
     return Math.floor((target - lastDay) / DAY_MS / 7);
   }
-  // The last day any phase is still running -- segment ends are exclusive (a phase's end IS the
-  // following phase's start), so the final working day is the day before the latest end.
+  // The last WORKDAY of a phase (audit L-13). Segment ends are exclusive (a phase's end IS the
+  // following phase's start), and the day before a Monday end is a SUNDAY -- which "ends by" used to
+  // treat as the phase's last day, so a phase working through Friday "missed" a Friday deadline and
+  // was shifted a whole week early. Production reports its real last shoot day; any other phase its
+  // last Mon-Fri day.
+  function phaseLastWorkday(seg){
+    if(!seg) return null;
+    if(seg.key === 'production'){
+      const info = currentSchedule && currentSchedule.productionInfo;
+      if(info && info.lastShootDay) return info.lastShootDay;
+    }
+    let d = addDays(seg.end, -1), safety = 0;
+    while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && safety++ < 7) d = addDays(d, -1);
+    return d;
+  }
+  // The last workday of the whole schedule: the latest of every phase's last workday.
   function scheduleLastDay(){
     const segs = (currentSchedule && currentSchedule.segments) || [];
     if(!segs.length) return null;
     let last = null;
-    segs.forEach(s=>{ if(!last || s.end > last) last = s.end; });
-    return last ? addDays(last, -1) : null;
+    segs.forEach(s=>{ const d = phaseLastWorkday(s); if(d && (!last || d > last)) last = d; });
+    return last;
   }
   function phaseStartDate(key){
     const el = document.getElementById('start-' + key);
@@ -13400,6 +13440,12 @@ export function initLegacyApp() {
     if(at === 0) return {error:'Nothing runs before that phase.'};
 
     const predecessors = seq.slice(0, at).reverse();  // nearest-first, walking backwards
+    // ⛔ Check there is something to place BEFORE writing anything (audit L-15). The tool used to
+    // pin the phase first and only then discover that nothing had a week count, reporting "Nothing
+    // to place" over a phase it had already moved -- and an undo step it had already banked.
+    if(!predecessors.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+      return {written: [], skipped: predecessors.map(p => p.label || p.key), anchor: null};
+    }
     const ranges = hiatusRangesForSolve();
     const anchorMonday = mondayOf(target);
     const written = [];
@@ -13429,9 +13475,14 @@ export function initLegacyApp() {
       cursor = start;   // the next phase back must end where this one begins
     });
 
+    // ⛔ The pinned phase keeps the TYPED day when its Snap to Mon is off (audit M-11). Writing the
+    // Monday silently moved a Wednesday start two days earlier -- for Production, pulling the first
+    // shoot day and the wrap with it. The phases rebuilt before it still end by that week's Monday:
+    // cursor above is anchorMonday either way, so a snapped predecessor lands on a Monday as before.
+    const anchorDay = phaseSnapped(key) ? anchorMonday : target;
     const anchorEl = document.getElementById('start-' + key);
-    if(anchorEl) anchorEl.value = isoOf(anchorMonday);
-    return {written, skipped, anchor: anchorMonday};
+    if(anchorEl) anchorEl.value = isoOf(anchorDay);
+    return {written, skipped, anchor: anchorDay};
   }
 
   // Pin `key` to `targetIso` and rebuild every phase AFTER it, each starting where the previous one
@@ -13454,7 +13505,14 @@ export function initLegacyApp() {
 
     const anchorEl = document.getElementById('start-' + key);
     if(!anchorEl) return {error:'That phase has no start field.'};
-    anchorEl.value = isoOf(mondayOf(target));
+    // Nothing to place? Say so BEFORE the pin is written (audit L-15; see rebuildBackwards).
+    const after = seq.slice(at + 1);
+    if(!after.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+      return {written: [], skipped: after.map(p => p.label || p.key), anchor: null};
+    }
+    // The pinned phase keeps the typed day when its snap is off (audit M-11; see rebuildBackwards).
+    const anchorDay = phaseSnapped(key) ? mondayOf(target) : target;
+    anchorEl.value = isoOf(anchorDay);
     update();   // so the anchor's own computed end is available to place the next phase
 
     const written = [], skipped = [];
@@ -13474,19 +13532,17 @@ export function initLegacyApp() {
       }
       const prevSeg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === prevKey);
       if(!prevSeg){ skipped.push(p.label || p.key); return; }
-      // A phase can't begin on a week the whole production is paused, so step over any hiatus the
-      // handoff lands in -- the same rule the per-phase "Start after previous phase" button uses.
-      let d = new Date(prevSeg.end.getTime());
-      const hi = (currentSchedule && currentSchedule.hiatuses) || [];
-      let safety = 0;
-      while(hi.some(h => d >= h.start && d < h.end) && safety++ < 600){ d = addDays(d, 7); }
+      // The handoff is the per-phase "Start after previous phase" button's rule, shared: the day after
+      // the previous phase ends, the next Monday if this phase is snapped (never overlapping a
+      // snap-off predecessor that ends mid-week -- audit L-24), and past any all-phase hiatus.
+      const d = chainedStart(prevSeg.end, p.key, (currentSchedule && currentSchedule.hiatuses) || []);
       const prevIso = el.value;   // see the note in workBackwardsFrom: overwrites must be visible
       el.value = isoOf(d);
       written.push({label: p.label || p.key, start: d, wasBlank: !prevIso, prevIso});
       prevKey = p.key;
       update();   // recompute so the NEXT phase reads this one's real end
     });
-    return {written, skipped, anchor: mondayOf(target)};
+    return {written, skipped, anchor: anchorDay};
   }
 
   // ---------- Close all gaps ----------
@@ -14025,6 +14081,11 @@ export function initLegacyApp() {
       if(res.lockedHiatuses) out += ' ' + res.lockedHiatuses + ' locked hiatus' + (res.lockedHiatuses === 1 ? '' : 'es') + ' held.';
       if(res.productionWrap) out += ' Wrap ' + res.productionWrap + '.';
       if(tail) out += tail;
+      if(res.notesOnHiatus){
+        out += res.notesOnHiatus === 1
+          ? ' A note moved onto a hiatus week, where the hiatus band covers it: it won’t show in the waterfall or the exports until one of them moves.'
+          : ' ' + res.notesOnHiatus + ' notes moved onto hiatus weeks, where the hiatus band covers them: they won’t show in the waterfall or the exports until they move.';
+      }
       const ov = takeShootDayMoveNote();
       if(ov) out += ' ' + ov;
       return out;
@@ -14049,7 +14110,8 @@ export function initLegacyApp() {
       const prev = sel.value;
       // Work-from lists phases that have no start date yet (placing them is the point), so the
       // date suffix is omitted rather than assumed -- mondayOf(null) would throw.
-      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')}${x.start ? ' — ' + fmtShort(mondayOf(x.start)) : ' — no date yet'}</option>`);
+      // A snap-off phase is listed on its REAL start (audit M-11), a snapped one on its Monday.
+      const opts = list.map(x=>`<option value="${x.p.key}">${escHtml(x.p.label || 'Phase')}${x.start ? ' — ' + fmtShort(phaseSnapped(x.p.key) ? mondayOf(x.start) : x.start) : ' — no date yet'}</option>`);
       if(withAll && list.length) opts.push(`<option value="${ANCHOR_ALL}">Whole schedule (all phases)</option>`);
       sel.innerHTML = opts.length ? opts.join('') : '<option value="">No phases scheduled yet</option>';
       // Keep whatever was chosen last if it still exists, else fall back to the caller's preference.
@@ -14072,12 +14134,9 @@ export function initLegacyApp() {
         return first;
       }
       if(edge === 'start') return phaseStartDate(key);
-      if(key === 'production'){
-        const info = currentSchedule && currentSchedule.productionInfo;
-        if(info && info.lastShootDay) return info.lastShootDay;
-      }
-      const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === key);
-      return seg ? addDays(seg.end, -1) : null;
+      // A phase's last WORKDAY (Production: its last shoot day), never the Sunday before its
+      // exclusive end -- a Friday deadline cost a whole week that way (audit L-13).
+      return phaseLastWorkday(((currentSchedule && currentSchedule.segments) || []).find(s=>s.key === key));
     }
     function anchorSelection(){
       const pSel = document.getElementById('tool-anchor-phase');
@@ -14091,10 +14150,14 @@ export function initLegacyApp() {
     // Show where the chosen landmark sits now, so the field reads as "where it is" and the user
     // edits from there rather than typing into a blank box.
     function syncAnchorDate(){
-      const {edge, current} = anchorSelection();
-      // A start is Monday-snapped like every other start in this tool; an end is a real last day.
+      const {key, edge, current} = anchorSelection();
+      // A start is Monday-snapped like every other start in this tool -- unless the phase's own Snap to
+      // Mon is off, when the field shows its REAL start (audit M-11). The whole schedule's start is
+      // the earliest segment's, which computeSchedule has already snapped or not. An end is a real
+      // last workday.
+      const startShown = d => (key === ANCHOR_ALL || !phaseSnapped(key)) ? d : mondayOf(d);
       document.getElementById('tool-anchor-date').value =
-        current ? isoOf(edge === 'start' ? mondayOf(current) : current) : '';
+        current ? isoOf(edge === 'start' ? startShown(current) : current) : '';
     }
     // Re-read the calendar into the menu's own controls. Called on open AND after every tool runs:
     // each dropdown entry carries the phase's current start date, so leaving them alone after a
@@ -14109,7 +14172,9 @@ export function initLegacyApp() {
     function syncSolveDate(){
       const key = (document.getElementById('tool-solve-phase')||{}).value;
       const start = key ? phaseStartDate(key) : null;
-      document.getElementById('tool-solve-date').value = start ? isoOf(mondayOf(start)) : '';
+      // The phase's REAL start when its Snap to Mon is off (audit M-11): pinning the prefilled date
+      // must not move the phase.
+      document.getElementById('tool-solve-date').value = start ? isoOf(phaseSnapped(key) ? mondayOf(start) : start) : '';
     }
     function refreshMenuFromCalendar(){
       const list = scheduledPhases();

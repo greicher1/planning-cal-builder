@@ -29,6 +29,40 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The shift and rebuild tools respect Snap to Mon being off, and four edges (audit M-11, L-13, L-14, L-15, L-24)
+
+**What was wrong.**
+- **M-11:** Rebuild From ignored a phase's Snap to Mon setting and moved a Wednesday start back to
+  Monday — for Production that pulled the first shoot day and the wrap earlier, silently. Its prefill,
+  Anchor To's, and every tool's phase list quoted the Monday too.
+- **L-24** (listed for batch 1 but not done then): "Start after previous phase" chained off a snap-off
+  phase that ends mid-week started the next phase on that Wednesday, so a *snapped* next phase snapped
+  back to the Monday and overlapped it by two days, adding a grid column.
+- **L-13:** Anchor To "ends by" treated a phase as ending on Sunday, so a Friday deadline cost a week.
+- **L-15:** Rebuild From said "Nothing to place" after it had already moved the pinned phase and banked
+  an undo step.
+- **L-14:** a shift that lands an undated note on an all-phase hiatus week hid it (the band covers the
+  notes column in the waterfall, Excel and the PDF) with no word.
+
+**The fix** (the tools only — not frozen, no save-format change):
+- A pinned phase whose Snap to Mon is off keeps the typed day in both Rebuild directions; the phases
+  rebuilt around it keep their Monday alignment. Prefills and phase lists quote a snap-off phase's real
+  start.
+- One chaining rule, now shared by "Start after previous phase", Close all gaps and Rebuild forwards
+  (`chainedStart`): the day after the previous phase ends, or the next Monday if the chained phase is
+  snapped — never earlier, so never overlapping — then past any all-phase hiatus. Identical to before
+  on an all-snapped calendar.
+- "Ends by" measures a phase's last workday (Production: its last shoot day).
+- Rebuild checks there is something to place before writing anything.
+- The shift result line names notes that moved under a hiatus band.
+
+**Verified:** new leg `snaptools` (14 cases) on `dayoverrides.sptcal`: the Rebuild prefill reads Wed
+4/8; forward from it keeps 4/8 and chains Prod Prep to Mon 5/25; backwards pinning Wed 4/15 keeps it;
+"Start after previous" gives 5/25 for a snapped phase and Wed 5/20 for a snap-off one; "ends by"
+prefills Fri 6/26 and a Friday deadline costs nothing; Rebuild with nothing to place moves nothing; the
+hiatus-note line appears; each step undoes. On v1.3.0 9 of the 14 fail. Also clicked through in the
+browser pane: Rebuild From ▸ Pre Prep ▸ Work forwards → Pre Prep 4/8 (still snap-off), Prod Prep 5/25.
+
 ### Unreleased — An edited auto-note is rewritten when a shift moves it (audit M-10, owner ruling R5)
 
 **What was wrong.** Adding a line to an auto-note ("Start Principal Photography 6/29/26" + "Table
