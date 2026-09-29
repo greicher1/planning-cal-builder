@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Union-holiday data now covers 2024–2031, and a shoot outside it says so (audit M-7)
+
+**What was wrong.** The holiday table covered 2026–2030 only, in every region. A shoot running into
+2031, or starting in 2025, skipped no holidays at all — the wrap came out early and the Holidays card
+listed nothing — with no notice.
+
+**The fix** (data and one sidebar line; not frozen, no save-format change):
+- `HOLIDAYS` is regenerated from the rules for **2024–2031** (owner, 25 Sep 2026: "only go up to
+  2031"). ⭐ **2026–2030 is identical to what shipped, row for row, in all 15 regions**: the new
+  emitter reproduces the old 2026–2030 block byte for byte, and a set-and-order difference of the
+  new block against it is empty. Only 2024, 2025 and 2031 rows are added.
+- A rule can now record the year it began, and **Juneteenth does**: it joined the IATSE lists on
+  1 Jan 2025, so 2024 carries none (in either US list).
+- A line on the Production row when shoot days fall outside the covered years, e.g. *"Holiday dates
+  are only known for 2024–2031, so the 20 shoot days in 2032 skip no holidays. Add any that apply as
+  custom holidays (Settings)."* The span is read off the region's own data, so a later regeneration
+  moves it with no code change. No region chosen → no line.
+- `tools/gen_holidays.py` writes the engine's exact block (`holidays.app.js`) so a regeneration is a
+  splice, not a transcription; `tools/validate_holidays.py` checks every generated year against the
+  engine and says CLEAN (it had pointed at another machine and misread `\'` names).
+- ⚠️ 2024–2025 and 2031 apply each region's current rules, except where a rule records its start. A
+  past year under an older agreement may differ; check before relying on a 2024–2025 wrap.
+
+**Verified:** new leg `holidays2031`: a shoot from 10/7/30 now skips and lists New Year's Day and MLK
+Day 2031 (wrap 1/29/31 → 1/31/31); a 2024 shoot lists Independence and Labor Day 2024 but not
+Juneteenth; a 2025 shoot lists Juneteenth 2025; a shoot into 2032 raises the notice; no region, no
+notice. H1–H4 fail on v1.3.0. `validate_holidays.py` CLEAN (15/15, 2024–2031);
+`tests/verify_migration.mjs` 105/105. (That test had been unrunnable since v1.3.0, because
+`applyStateSnapshotAtomically` now sits above the migration and emptied its source slice. Fixed to
+brace-match the function.)
+
 ### Unreleased — The shift and rebuild tools respect Snap to Mon being off, and four edges (audit M-11, L-13, L-14, L-15, L-24)
 
 **What was wrong.**

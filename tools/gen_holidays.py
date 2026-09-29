@@ -12,8 +12,15 @@ dates, government-declared days) lives in `extras` or is flagged `provisional`.
 Output:
   holidays.json         full dataset with provenance
   holidays.data.js      drop-in HOLIDAYS / REGIONS / PLACES for src/legacy/app.js
+  holidays.app.js       the HOLIDAYS block EXACTLY as src/legacy/app.js carries it (per-region
+                        source line, ONE-OFF / PROVISIONAL tags, the app's region order), so a
+                        regeneration can be spliced in and diffed line for line
 
-Usage:  python3 gen_holidays.py [--years 2026 2030]
+Usage:  python3 gen_holidays.py [--years 2024 2031]
+
+A rule may carry a third element, {"since": YEAR}: the day is only generated from that year on.
+That is how a holiday an agreement ADDED is kept out of the years before it -- Juneteenth joined
+the IATSE lists effective 1 Jan 2025, so 2024 must not carry it (audit M-7, 29 Sep 2026).
 """
 
 import json, argparse
@@ -22,7 +29,9 @@ from datetime import date, timedelta
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 
 VERIFIED = "2026-09-11"          # date every source below was last read
-DEFAULT_YEARS = (2026, 2030)
+# 2024-2031 (owner, 25 Sep 2026: "only go up to 2031"; audit M-7). The app shows a notice on the
+# Production row when shoot days fall outside the years a region's list covers.
+DEFAULT_YEARS = (2024, 2031)
 
 
 # ---------------------------------------------------------------- date helpers
@@ -133,7 +142,8 @@ US_IATSE_CORE = [
     ("Martin Luther King Jr. Day", ("nth", 1, MON, 3)),
     ("Presidents' Day",           ("nth", 2, MON, 3)),
     ("Memorial Day",              ("nth", 5, MON, -1)),
-    ("Juneteenth",                ("fixed", 6, 19)),
+    # Effective 1 Jan 2025 (2024 IATSE MOA). ⛔ Not a 2024 holiday -- the {"since"} keeps it out.
+    ("Juneteenth",                ("fixed", 6, 19), {"since": 2025}),
     ("Independence Day",          ("fixed", 7, 4)),
     ("Labor Day",                 ("nth", 9, MON, 1)),
     ("Thanksgiving",              ("nth", 11, THU, 4)),
@@ -488,13 +498,22 @@ PLACES = [
 ]
 
 
+# The order src/legacy/app.js lists its regions in (holidays.app.js follows it).
+APP_ORDER = ["US-GEN", "US-NY", "CA-BC", "CA-ON", "CA-QC", "CA-AB", "CA-MB", "CA-NS",
+             "UK-EW", "UK-SCT", "UK-NI", "DE-BE", "DE-BB", "AU-VIC", "LT"]
+
+
 # ------------------------------------------------------------------------- build
 
 def build_region(key, spec, y0, y1):
     items = []
     for year in range(y0, y1 + 1):
         resolved = {}
-        for name, rule in spec["rules"]:
+        for entry in spec["rules"]:
+            name, rule = entry[0], entry[1]
+            since = (entry[2] if len(entry) > 2 else {}).get("since")
+            if since and year < since:
+                continue
             d = resolve(rule, year, resolved)
             resolved[name] = d
             items.append({"date": d, "name": name, "observed": False, "provisional": False})
@@ -555,10 +574,30 @@ def main():
     with open("holidays.data.js", "w") as f:
         f.write("\n".join(lines) + "\n")
 
+    # The block as src/legacy/app.js carries it. Region ORDER is the app's (the three legacy
+    # Canadian provinces sit after Quebec there), not this file's dict order, so a regeneration diffs
+    # cleanly against the block it replaces.
+    app_lines = ["  const HOLIDAYS = {"]
+    for key in APP_ORDER:
+        reg = out["regions"][key]
+        app_lines.append(f"    // {reg['label']} -- {reg['agreement']}")
+        app_lines.append(f"    // source: {reg['source']}  (verified {VERIFIED})")
+        app_lines.append(f"    '{key}': [")
+        for h in reg["holidays"]:
+            nm = h["name"].replace("'", "\\'")
+            tag = ("   // PROVISIONAL -- confirm against the published fixture each year" if h.get("provisional")
+                   else ("   // ONE-OFF -- government-declared, no rule produces this" if h.get("oneoff") else ""))
+            app_lines.append(f"      {{date:'{h['date']}', name:'{nm}'}},{tag}")
+        app_lines.append("    ],")
+    app_lines.append("  };")
+    assert sorted(APP_ORDER) == sorted(out["regions"]), "APP_ORDER must name every region exactly once"
+    with open("holidays.app.js", "w", encoding="utf-8") as f:
+        f.write("\n".join(app_lines) + "\n")
+
     for key, reg in out["regions"].items():
         per_year = len([h for h in reg["holidays"] if h["date"].startswith(str(y0)) and not h.get("observed")])
         print(f"{key:8s} {per_year:3d} days/yr  {len(reg['holidays']):4d} rows  {reg['label']}")
-    print(f"\nwrote holidays.json + holidays.data.js  ({y0}-{y1})")
+    print(f"\nwrote holidays.json + holidays.data.js + holidays.app.js  ({y0}-{y1})")
 
 
 if __name__ == "__main__":

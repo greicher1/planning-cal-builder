@@ -20,6 +20,18 @@ move leaves on an ordinary weekday is kept (it is inert) and mentioned in the re
 | M-4 day overrides by shoot-day number on every mover (R2) | ✅ done | `overrides` (`HARNESS_STATE=dayoverrides`, 20 cases) |
 | M-10 edited auto-notes rewritten on shift (R5) | ✅ done | `autonote` (`HARNESS_STATE=v1.3.0-saved`) |
 | M-11 + L-13/L-14/L-15, and **L-24** (batch 1 missed it) | ✅ done | `snaptools` (`HARNESS_STATE=dayoverrides`, 14 cases) |
+| M-7 holidays 2024–2031 + coverage notice | ✅ done | `holidays2031` (no fixture) |
+
+- ⭐ **M-7's proof is byte-level, not visual.** `tools/gen_holidays.py --years 2026 2030` with the new
+  `holidays.app.js` emitter reproduces the shipped block byte for byte; the 2024–2031 block's
+  2026–2030 rows equal it in set and order in all 15 regions. Only then was it spliced. Regenerate the
+  same way (default range), splice `holidays.app.js` over `const HOLIDAYS = { … };`, then run
+  `tools/validate_holidays.py` in the output directory — it must say CLEAN.
+- ⚠️ **`tests/verify_migration.mjs` was unrunnable from v1.3.0 until 29 Sep 2026** (batch 1's
+  `applyStateSnapshotAtomically` sits above the migration, so the source slice came out empty — a TDZ
+  error that looks like a broken migration). Fixed to brace-match; 105/105.
+- ✅ **L-26 checked by hand** (29 Sep 2026, pane): a 1-day Production, snap off, Fri 7/10/26, shows
+  "Production wk 1" on the 7/6/26 row — H-3's overlap fix covers it, as FIX-PLAN said. No leg.
 
 - ⚠️ **L-24 was mapped to batch-1 step 1.7 but never implemented** — not in the code, not in the
   changelog — though START HERE called batch 1 "complete". Found 29 Sep 2026 while doing M-11 and fixed

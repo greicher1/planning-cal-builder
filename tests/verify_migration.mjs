@@ -23,8 +23,17 @@ const PLACES   = grab('const PLACES = ');
 const LEGACY   = grab('const LEGACY_PROVINCE_PLACE = ');
 
 // The migration, lifted verbatim from the patched source so the test can't drift from it.
-const migSrc = src.slice(src.indexOf('function migrateRegionSnapshot'),
-                         src.indexOf('function applyStateSnapshot'));
+// ⚠️ By BRACE-MATCHING its own body (fixed 29 Sep 2026). This used to slice up to the first
+// 'function applyStateSnapshot' -- and v1.3.0 added applyStateSnapshotAtomically ABOVE the
+// migration, so that search matched first, the slice came out EMPTY, and every run died on a TDZ
+// ReferenceError that read like a broken migration.
+const migSrc = (function () {
+  const i = src.indexOf('function migrateRegionSnapshot');
+  if (i < 0) throw new Error('not found: function migrateRegionSnapshot');
+  let d = 0, j = src.indexOf('{', i);
+  for (;;) { if (src[j] === '{') d++; else if (src[j] === '}') { d--; if (!d) break; } j++; }
+  return src.slice(i, j + 1);
+})();
 const migrateRegionSnapshot = eval(
   '(function(){ const LEGACY_PROVINCE_PLACE = ' + JSON.stringify(LEGACY) +
   '; ' + migSrc + ' return migrateRegionSnapshot; })()');
