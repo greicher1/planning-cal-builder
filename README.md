@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The workbook's dates show up in previews: the Date column carries cached values (audit L-7)
+
+**What changed** (a frozen edit to `exportExcel`, owner-approved under FIX-PLAN R3): the Date
+column is a first date followed by a chain of formulas (the row above + 7). Those formulas were
+written with no cached result. So Quick Look, phone and web previewers, and anything else that
+shows the stored value instead of recalculating, displayed a blank Date column. The audit found
+103 of 103 uncached. Each formula now writes its result too. The formulas stay, because they are
+what re-dates the column when someone edits the first date in Excel.
+
+**The gate's Excel baseline was re-cut for it, on the owner's approval after seeing the diff:**
+103 cells gained a cached value, and nothing else in the workbook changed. The table is in
+`tests/baselines/2026-08-29-stage-7/README.md`.
+
+**Verified:**
+- New leg `xlsxdates` reads the reference export back through ExcelJS.
+  - **Red before:** 103 of 103 formula cells uncached.
+  - **Green after:** 0 uncached; every cached date equals what its formula chain computes, across
+    the year-block seam too (`E2` = `A53+7` = 4 Jan 2027); the formulas keep their shape; and the
+    104 dates are exactly the screen's.
+- The parts diff before the re-cut: `sheet1.xml` only, and there only the 103 added `<v>`s. Every
+  other part is identical.
+- Full gate **589 pass / 0 fail**: 584, plus `xlsxdates`' 5, with gate 3 green against the re-cut
+  baseline.
+- `tests/harness/l7-dates-before.xlsx` and `l7-dates-after.xlsx` are staged for an optional look in
+  Quick Look or Excel.app. They are gitignored.
+
 ### Unreleased — The workbook never carries a column or row Excel does not allow (audit L-2)
 
 **What changed** (frozen edits to the width model and the Excel writer, owner-approved under

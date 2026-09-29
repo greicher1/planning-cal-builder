@@ -8715,14 +8715,21 @@ export function initLegacyApp() {
         // date cell (hardcode very first cell; formula-chain everything else)
         const dCell = ws.getRow(excelRow).getCell(dateCol);
         baseStyle(dCell, {font:{bold:true}, numFmt:'mm-dd-yy'});
+        // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-7, 29 Sep 2026): each formula carries
+        // its CACHED result. Written bare, a formula has no <v>, and every app that shows the stored
+        // value instead of recalculating -- Quick Look, phone and web previewers -- showed a blank Date
+        // column (the audit: 103 of 103 uncached). The formulas stay: they are what re-dates the
+        // column when someone edits the first cell in Excel. The result is week.date, which the chain
+        // computes exactly (weeks are consecutive Mondays, across year blocks too); the xlsxdates leg
+        // evaluates the chain and holds every cached value to it.
         if(b===0 && r===0){
           dCell.value = week.date;
         } else if(r===0){
           const prevBlockStartCol = blockStartCols[b-1];
           const prevBlockRows = yearBlocks[b-1].count;
-          dCell.value = {formula:`${colLetter(prevBlockStartCol)}${prevBlockRows+1}+7`};
+          dCell.value = {formula:`${colLetter(prevBlockStartCol)}${prevBlockRows+1}+7`, result: week.date};
         } else {
-          dCell.value = {formula:`${colLetter(dateCol)}${excelRow-1}+7`};
+          dCell.value = {formula:`${colLetter(dateCol)}${excelRow-1}+7`, result: week.date};
         }
         dCell.border = Object.assign({left:thin}, isLastRow?{bottom:thin}:{});
 

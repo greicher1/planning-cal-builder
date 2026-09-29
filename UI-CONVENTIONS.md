@@ -1081,7 +1081,8 @@ Nothing in this document ships without all of these, every stage:
     Step 3.2 adds `hdrcut`: an over-long, formatted Excel header is trimmed without cutting a code,
     detail lines first, and the budget meter names what was dropped. Step 3.3 adds `xlsxlimits`: no
     column past 255 characters and no row past 409 points, whether from a drag, Single Column Mode
-    or an old file.
+    or an old file. Step 3.4 adds `xlsxdates`: every Date formula carries a cached value equal to
+    its chain, and gate 3's `base.xlsx` was re-cut for it (owner-approved, 29 Sep 2026).
 
 ---
 

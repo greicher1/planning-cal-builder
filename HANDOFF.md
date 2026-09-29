@@ -132,6 +132,14 @@
   - Fixture `xlsx-overlimit.sptcal` is a REAL Save from the pre-fix build, straight after the
     leg's drags.
   - ⏭ **Owner's Excel.app check owed:** `tests/harness/xlsxlimits-{single,oldfile}-{before,after}.xlsx`.
+- ✅ **3.4 (L-7).** The Date formulas carry `result: week.date`. The leg `xlsxdates` evaluates the
+  chain and holds every cached value to it. **`base.xlsx` RE-CUT on the owner's approval** after
+  the parts diff: 103 `<v>` added, nothing else. Full gate **589/0** (584 + `xlsxdates` 5).
+  ⛔ **How to re-cut an Excel baseline:** gate 3 normalises the baseline's header date as the fixed
+  `8.29.26` (`BASEDATE`), so never drop in today's export; it false-fails from the next day on.
+  Rebuild the old zip entry for entry, and replace only the part that moved, with today's stamp
+  mapped back. Keep each entry's `create_system` (0, MS-DOS, as ExcelJS writes it): Python's
+  default marks entries as Unix ones, and the directories unpack as mode 000.
 - ⏭ **Owner, 29 Sep 2026: continue batch 3 in THIS session** (the handoff was offered after 3.1 and
   declined).
 - ⏭ **Where 3.2–3.4 stand (read before starting them).** All three are in `exportExcel`, and 3.3 also
@@ -167,7 +175,7 @@
 | 3.1 | M-8 (+ hiatus bands) | ✅ done (frozen edit in `buildWaterfallPdf`; `base.pdf` identical, no re-cut) | `notewrap` |
 | 3.2 | M-9 | ✅ done (frozen edit in `exportExcel`'s trimmer + the meter's mirror; `base.xlsx` identical) | `hdrcut` (`hdr-cut`) |
 | 3.3 | L-2 | ✅ done (the post-pass caps `f`, `onUp` clamps, the workbook write clamps) | `xlsxlimits` |
-| 3.4 | L-7 | ⏳ | |
+| 3.4 | L-7 | ✅ done (`{formula, result}`; ⛔ `base.xlsx` RE-CUT, owner-approved, table in its README) | `xlsxdates` |
 
 ### ✅ 29 Sep 2026: `onhalf`, a weekend or holiday worked as a HALF day. Merged into local `main` AFTER v1.3.1's push; NOT pushed
 

@@ -35,7 +35,7 @@ Two year blocks, 52 rows.
 | Grid width, unscaled | 797 pt | `base.json` → `gridWidthPt` |
 | Column widths | `2026: 53 / 88 / 88 / 179` · `2027: 53 / 86 / 86 / 164` | `base.json` → `cols` |
 | Rows | 52 | |
-| Excel | 10,169 B · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
+| Excel | 10,169 B → **10,542 B since the 29 Sep 2026 re-cut** (the Date column's cached values, see below) · XML valid · header 238/255 · 75 merges, 0 overlapping · portrait | `base.xlsx` |
 | Waterfall PDF | 76,568 B · 612×792 · 204 text ops · 279 rects · grid drawn 573.84 × 572.4 pt | `base.pdf` |
 | `v1.0.0-saved.html` restore | 52 rows / 154 cells / **55 fields** · 0 clipped · grid 324 pt | `restore.json` |
 
@@ -199,6 +199,35 @@ exactly that and was proven to fail without it (the old calendar then scheduled 
 
 Unchanged by this: **`sig`, `rows` 52, `cells` 154, `gridWidthPt` 324, `bytes` 756473,
 `hClip` 0.** Only `form` was replaced.
+
+## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
+
+A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut
+after seeing the parts diff below. `exportExcel` used to write the Date column as a first date plus
+a chain of bare `<f>` formulas with no cached value, so Quick Look and phone or web previewers,
+which show the stored value instead of recalculating, displayed a blank column. Each formula now
+also writes its result.
+
+| part | before → after | why |
+|---|---|---|
+| `xl/worksheets/sheet1.xml` | **103 cells** each gain a `<v>` holding their date serial, e.g. `<c r="A3" s="4"><f>A2+7</f></c>` → `…<f>A2+7</f><v>46034</v></c>`. The address, style and formula of every cell are unchanged, as is every other cell | L-7: the cached result is `week.date`, which is exactly what the chain computes, across the year-block seam too (`E2` = `A53+7` = 46391 = 4 Jan 2027) |
+| every other part (`styles.xml`, `workbook.xml`, `[Content_Types].xml`, …) | **identical** | — |
+
+**How it was cut**, rather than dropping in today's export: the gate normalises this file's header
+date as the FIXED stamp `8.29.26` (`gate.sh`'s `BASEDATE`), so a fresh export, stamped with today,
+would false-fail from the next day on. The new file is therefore the OLD baseline's zip, entry for
+entry, with only `sheet1.xml` replaced by the fresh export's copy with today's stamp mapped back to
+`8.29.26`. Before writing, two assertions had to hold:
+1. The new `sheet1.xml`, with its `<v>`s stripped, equals the old one byte for byte.
+2. Every other part of the fresh export equals the old baseline's.
+
+⚠️ The rewrite keeps each zip entry's MS-DOS origin and attributes, as ExcelJS writes them. A first
+attempt let Python mark the entries as Unix ones, whose directory entries then unpacked as mode 000.
+`check-xlsx.sh` could not delete its temp directory and said so. It is fixed, and `check-xlsx.sh`
+passes the new file: header 238/255, 75 merges, 0 overlapping, portrait.
+
+Unchanged by this: `base.pdf` (the waterfall writer does not read the Date formulas), `base.json`,
+`restore.json`.
 
 ## Reproducing it
 
