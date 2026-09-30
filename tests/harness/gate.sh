@@ -1412,7 +1412,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               legacyparse:-:900 hdroverrides:-:150 badyear:-:120 spanhint:-:150 \
               wholenum:-:150 regionlock:-:150 nofsa:-:150 exportrefused:-:150 \
               regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
-              numclamp:v1.4.0-saved:150; do
+              numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

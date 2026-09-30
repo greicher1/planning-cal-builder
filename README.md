@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Cmd/Ctrl+P prints the calendar, not the app (audit, batch 5; owner ruling 30 Sep 2026)
+
+**What changed:** Cmd/Ctrl+P used to print the app itself: header, notices, sidebar and toolbar,
+then a grid cut off by its scroll box. That came to 2 pages in the waterfall and 3 in the month
+view (the owner reproduced it). Now the shortcut runs the current view's own PDF export:
+- in the waterfall, **Export PDF**: the same fitted one-page file as the button;
+- in the month view, the month PDF: the print dialog with one sheet per month.
+
+Before the ruling, the owner was shown every option printed through Chrome's real print pipeline on
+a real saved calendar. A print rule that hides the chrome still printed a clipped grid, or a
+screen-styled one split over 2 pages, and the month view only as the one month on screen split in
+two. Routing to the export gives the documents people actually circulate.
+- The shortcut clicks the export button, so it keeps the button's checks: "Nothing to export" on an
+  empty calendar, and the warning about characters the waterfall PDF can't print.
+- While one of the app's dialogs is open, the shortcut does nothing.
+- **Not covered:** a print started from the browser's own menu (File ▸ Print). A page can neither
+  catch nor cancel it, so it still prints the app, as accepted with the ruling.
+
+**Verified:**
+- New leg `cmdprint`, 6 cases, in the gate, on a real saved calendar.
+  - Ctrl+P and Cmd+P in the waterfall each write the one-page waterfall PDF, with the key's default
+    stopped so the browser prints nothing of its own.
+  - Ctrl+P in the month view prepares and prints the month PDF, 16 sheets.
+  - Guards: a plain "p" does nothing, and Ctrl+S is still the Save shortcut.
+  - **Red before** on the three shortcut cases; **green after**, 6/6.
+- In the pane, with a real Cmd+P key press: the waterfall wrote the 76,027-byte export (the same
+  file as Export PDF), and the month view printed its 16-sheet document.
+
 ### Test harness: a refused load is now proven safe through autosave too (audit M-1, batch 5)
 
 **What changed:** Tests only; the app is unchanged. The audit suspected that after a failed load

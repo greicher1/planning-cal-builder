@@ -15386,7 +15386,8 @@ export function initLegacyApp() {
     });
   })();
 
-  // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save).
+  // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save),
+  // Cmd/Ctrl+P (the current view's PDF export).
   // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
   // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
   // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
@@ -15398,6 +15399,25 @@ export function initLegacyApp() {
     if(key === 's'){
       e.preventDefault();
       if(saveBtn) saveBtn.click(); // reuses the click handler's disabled-guard, flash, and error handling
+      return;
+    }
+    // ⛔ Cmd/Ctrl+P RUNS THE CURRENT VIEW'S OWN EXPORT (batch 5; owner ruling 30 Sep 2026, picker:
+    // "A: route to real export"). Left to the browser it printed the APP -- header, notices, sidebar,
+    // toolbar, then a grid clipped by its scroller: 2 pages in the waterfall, 3 in the month view
+    // (reproduced by the owner, and simulated in Chrome's print pipeline against both print-rule
+    // alternatives before the ruling). So the waterfall's Cmd+P is Export PDF (the direct writer's
+    // fitted file) and the month view's is the month PDF (one sheet per month).
+    // Like Cmd+S, it CLICKS the button, so every guard the button has comes with it: "Nothing to
+    // export" on an empty or refused calendar, the waterfall PDF's character warning (L-6), and the
+    // re-click guard. While one of the app's dialogs is open the key does nothing: a second dialog
+    // would answer the open one as Cancel. A print started from the BROWSER'S MENU cannot be caught
+    // or cancelled by a page (beforeprint fires too late), so that one still prints the app -- the
+    // owner accepted that with the ruling.
+    if(key === 'p'){
+      e.preventDefault();
+      if(document.querySelector('.mantine-Modal-content')) return;
+      const btn = document.getElementById(viewMode === 'month' ? 'export-btn' : 'export-wf-pdf-btn');
+      if(btn) btn.click();
       return;
     }
     if(key !== 'z') return;

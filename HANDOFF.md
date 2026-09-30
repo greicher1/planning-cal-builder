@@ -92,8 +92,30 @@
       mode + Pre Prep 4/6 + the edit into `show-a`: the mixed calendar M-1 feared). The no-shape-gate
       mutant fails S and AS (autosave wrote into `foreign.json`). Both were restored and checked with
       `cmp`, and rebuilt to the same hash.
-  - **All four batch-5 checks this session could run are done.** Next: Cmd/Ctrl+P (simulate both
-    options on a real fixture, then the owner's picker).
+  - **All four batch-5 checks this session could run are done.**
+  - **Cmd/Ctrl+P: FIXED, ⭐ owner ruling 30 Sep 2026 (picker): "A: route to real export".**
+    - Simulated first in Chrome's real print pipeline (a scratchpad CDP script, `Page.printToPDF` with
+      `preferCSSPageSize`, no print class) on `v1.4.0-saved`. Today: waterfall 2 pages, month 3,
+      exactly the owner's reproduction.
+    - Options shown with every page rendered: B1, a chrome-hiding print rule, still printed the grid
+      CLIPPED by `.sheet-scroll` (cut at 5/18/26) plus the in-grid buttons. B2 (B1 + un-clip) printed
+      the whole grid screen-styled over 2 pages, but needed rules on three frozen class names. In
+      both, the month view printed only the month on screen, split over 2 pages. A: the real exports
+      (1-page waterfall PDF; month PDF with 16 sheets).
+    - Built: the global keydown handler (beside Cmd+S) takes `key === 'p'` with Cmd/Ctrl,
+      `preventDefault()`s, and CLICKS `#export-wf-pdf-btn` (waterfall) or `#export-btn` (month),
+      so the buttons' guards come along ("Nothing to export", 4.8's character warning, the
+      re-click guard). It does nothing while a Mantine modal is open (a second dialog answers the
+      first as Cancel).
+    - ⚠️ The browser MENU's File ▸ Print cannot be intercepted or cancelled (beforeprint fires too
+      late), so it still prints the app. The owner accepted that with the ruling.
+    - Leg `cmdprint` 6/6 (`HARNESS_STATE=v1.4.0-saved`, in the gate). Red before: P1–P3; the guards
+      (plain "p", Ctrl+S) pass on both builds. The pane, with a REAL Cmd+P key press (download and
+      `window.print` stubbed so nothing reached Downloads or a native dialog): the waterfall wrote the
+      76,027-byte export, and the month view printed `printing-calendar` with 16 pages, cleaned up by
+      `afterprint`.
+    - The owner's remaining by-hand print checks (the Margins re-run on v1.4.0, L-3's UK locale) are
+      unaffected: they use the export buttons.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito
