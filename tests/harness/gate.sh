@@ -1479,6 +1479,27 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPP
 
+# ---- pilldrag (batch 5, MONTH-9): a month pill dragged out and back keeps its Snap to Mon ----------
+# ⭐ ADDED 30 Sep 2026. A Node script, like printpaper: the case needs ONE gesture that goes out a day
+# and comes back, and only CDP's trusted Input.dispatchMouseEvent produces that (the pane's drag goes
+# point to point; dispatchEvent skips hit-testing). Red before the fix on D1 (back at the origin,
+# Snap to Mon stayed off, with no undo step) and D4 (through a Tuesday onto the next Monday). D3
+# guards the 18 Sep ruling: dropped on a Tuesday, snap comes off and one Ctrl+Z restores both.
+node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved)" <<'PYPD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYPD
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

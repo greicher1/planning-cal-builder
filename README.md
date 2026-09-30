@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### A month-view pill dragged away and back keeps its "Snap to Mon" (audit MONTH-9, batch 5)
+
+**What changed:** Dragging a phase in the month view onto a non-Monday turns its "Snap to Mon" off,
+because dropping it on a Tuesday means "start on the Tuesday" (owner ruling, 18 Sep 2026). But the
+toggle never came back on. A pill dragged out a day and back in one movement landed on its old
+Monday with "Snap to Mon" cleared. Because the movement ended where it began, no undo step was
+recorded, so the change couldn't even be undone. The same happened to a snapped phase dragged
+across a Tuesday onto another Monday. This was one of the audit's suspected items, and it
+**reproduced**. Now the toggle follows the movement: back where the movement started, it is exactly
+what it was; a snapped phase landing on a Monday stays snapped; and only a drop on another weekday
+turns it off, as ruled.
+
+**Verified:**
+- New check `pilldrag`, a Node script in the gate. It drives the real pill with trusted mouse input
+  over the DevTools protocol, because only that can make one movement go out and come back. The
+  pane's drag tool goes point to point.
+  - **Red before:** out a day and back, the start returned to 1/5/26 with Snap off; through a
+    Tuesday onto 1/12/26, Snap was off.
+  - **Green after**, 5/5.
+  - Guards: the pill ends exactly where it started, and the 18 Sep ruling still holds (dropped on
+    the Tuesday: starts 1/6/26 with Snap off, and one Ctrl+Z restores both).
+
 ### A Show Info count the field corrects on leaving is the count the calendar uses (audit, batch 5)
 
 **What changed:** The four Show Info counts (Shooting Days per Episode, Number of Episodes, Number

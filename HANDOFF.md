@@ -56,6 +56,24 @@
     red (384 re-renders), restored and checked with `cmp`. The pane after the fix: field 1,
     "8 shoot days", "1 Episodes". ⚠️ Headless `el.focus()`/`el.blur()` DO fire focus changes here
     (Mantine clamped), unlike the pane's synthetic `focus()` trap.
+  - **Batch-5 check 2: MONTH-9, a pill drag back to where it started. Verdict: REPRODUCED, FIXED.**
+    `installMonthPillDrag` cleared `snap-<key>` at the first non-Monday and never set it back. So one
+    gesture out a day and back left the phase on its Monday with Snap off, and `drag.applied === 0`
+    meant `endDrag()` banked NO undo step. Fix: `drag.snapWas` is recorded at mousedown. Back at the
+    origin (`days === 0`) the toggle is exactly `snapWas`; a snapped phase on a Monday is re-checked;
+    only a non-Monday clears it (the 18 Sep ruling, unchanged).
+    - ⭐ **Proven with TRUSTED input: `tests/harness/pilldrag.mjs`**, a Node/CDP script like
+      `printpaper.mjs`, in its own `gate.sh` block. The pane's `left_click_drag` goes point to point,
+      so it cannot make one gesture go out and come back, and a `dispatchEvent` drag skips
+      hit-testing. `Input.dispatchMouseEvent` does neither.
+    - Red on the pre-fix engine (`git show HEAD:`, restored, checked with `cmp`): D1 (back at 1/5/26
+      with Snap off) and D4 (through a Tuesday onto Mon 1/12/26, Snap off). Guards D0/D2/D3 pass on
+      both builds; D3 is the ruling: a Tuesday drop gives Snap off, and one Ctrl+Z restores both.
+      5/5 after.
+    - ⚠️ Probe traps found: the app's `beforeunload` guard makes a second `Page.navigate` WAIT on a
+      "Leave site?" dialog forever (accept `Page.javascriptDialogOpening`). And the previous case's
+      drag leaves a crash backup, so the next fresh page opens "Recover unsaved work" over the pill
+      (declined in setup). The script also has a 150 s deadline, so a hang reports.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito

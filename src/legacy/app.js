@@ -5819,7 +5819,9 @@ export function initLegacyApp() {
       // comment describes. It early-returns when nothing has changed, so a press that never becomes
       // a drag costs nothing.
       pushUndoSnapshot();
-      drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0};
+      // snapWas: MONTH-9 below -- what Snap to Mon was when the gesture began.
+      drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0,
+              snapWas: !!(snapEl && snapEl.checked)};
       // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
       // NUMBER, live on every increment, because update() re-derives them from these pins. For any
       // other phase the shoot does not move and the binding is the identity. Pinned here, before the
@@ -5856,8 +5858,18 @@ export function initLegacyApp() {
       // ⚠️ Set .checked WITHOUT dispatching 'change'. The only listener on it is update(), which the
       // next line calls anyway -- dispatching would run the whole schedule+render twice per drag.
       // If a second listener is ever bound to this checkbox, dispatch here instead.
-      if(drag.snapEl && drag.snapEl.checked && parseDateUTC(iso).getUTCDay() !== 1){
-        drag.snapEl.checked = false;                   // visible in the sidebar; no extra UI needed
+      // ⛔ MONTH-9 (FIX-PLAN §7, reproduced 30 Sep 2026 with trusted CDP input): the toggle used to
+      // come off at the first non-Monday and never go back on. So a pill dragged OUT AND BACK in one
+      // gesture left its phase on its old Monday with Snap to Mon cleared -- and because the gesture
+      // ended where it began, `applied` was 0 and endDrag() banked no undo step, so the change could
+      // not even be undone. Now the toggle follows the gesture: back at the origin it is exactly what
+      // it was at mousedown, a snapped phase landing on a Monday stays snapped, and only a
+      // non-Monday takes it off (the 18 Sep ruling, unchanged).
+      if(drag.snapEl){
+        const monday = parseDateUTC(iso).getUTCDay() === 1;
+        if(days === 0) drag.snapEl.checked = drag.snapWas;
+        else if(!monday) drag.snapEl.checked = false;  // visible in the sidebar; no extra UI needed
+        else if(drag.snapWas) drag.snapEl.checked = true;
       }
       // update() rebuilds the grid, destroying the pill under the cursor -- which is why every
       // reference held above is either a sidebar element or a plain number, never a grid node.
