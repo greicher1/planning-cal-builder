@@ -43,6 +43,23 @@
 | Step | Finding | State | Proof |
 |---|---|---|---|
 | 4.11 | N-5 | ✅ done: `check-build.mjs` 12 → 14 checks (engine `APP_VERSION` = `version.json`; the build carries that literal) | red on 3 mutations. The old checker passes "APP_VERSION forgotten" 12/12 |
+| 4.3 | L-22 | ✅ done: `savedStateBlock()` replaces the regex, same result in one pass (fuzzed: 300k inputs, 0 diffs; every legacy fixture and release identical) | `legacyparse` 7/7, in the gate (`legacyparse:-:900`). Red proved IN THE PANE (T0 430 ms; the 3 MB cases never finish). `restore`, `hostile`, `loadfail`, `loadcarry` green |
+
+- ⛔ **Harness traps found in 4.3** (to go into the harness README with the §8 doc fixes):
+  - **A leg must never contain the closing-script-tag literal, even in a comment.** `srv.js` injects
+    each leg inline inside a script element, so the HTML parser ends the leg at that literal and the
+    leg reads "STILL PENDING". Write it with a backslash before the slash.
+  - **`run.sh` cannot prove a FREEZE red.** Under `--virtual-time-budget` a long blocking task costs
+    many times its length in wall-clock time (11 s of regex took 2.5 min). Every pre-fix run hit
+    the 930 s cap with a 0-byte dump. Prove red in the pane (`cal-harness-8390`, `?test=<leg>`).
+    `performance.now()` DOES count blocking time (probed: a 1.6 s regex read 1611 ms).
+  - **Reading a 3 MB `File` is real async I/O the virtual clock doesn't wait for.** At 30 virtual s
+    of polling, `run.sh` raced past it, so `legacyparse` polls 3000 times.
+  - **A pane tab frozen by a long regex is NOT stopped by closing it** while other tabs share its
+    renderer. It ran at 100% CPU for 54 min, and the build took 7m49s beside it. Only closing the
+    pane's LAST tab killed it. Check `ps -Ao pcpu,etime,comm -r` for a "Claude Helper (Renderer)".
+  - A gate for dangerous cases must sit well clear of the pre-fix figure: at 300 ms, a lucky pre-fix
+    T0 slipped under it and ran the 3 MB cases.
 
 ### ✅ 29 Sep 2026: v1.4.0 is LIVE — pushed on the owner's approval, verified
 

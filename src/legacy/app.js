@@ -13094,10 +13094,44 @@ export function initLegacyApp() {
       catch(e){ return null; }
     }
     // Legacy HTML format: lift the embedded state block out of a full copy of the app.
-    const m = text.match(/<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i);
-    if(!m) return null;
-    try { const o = JSON.parse(m[1].trim()); return looksLikeCalendar(o) ? {format:'html', snapshot:o} : null; }
+    const body = savedStateBlock(String(text || ''));
+    if(body == null) return null;
+    try { const o = JSON.parse(body.trim()); return looksLikeCalendar(o) ? {format:'html', snapshot:o} : null; }
     catch(e){ return null; }
+  }
+
+  // ⛔ AUDIT L-22. The legacy reader was ONE regex,
+  //     /<script[^>]*id=["']saved-state["'][^>]*>([\s\S]*?)<\/script>/i
+  // and on a crafted file it is quadratic or worse: every `<script` with no `>` after it has its
+  // [^>]* scan to the end of the file. Measured in V8, 29 Sep 2026: 150-char-spaced openers take
+  // 1.8 s at 100 KB and about 87 s at 3 MB (the audit's figure); openers carrying the id but no `>`
+  // take 99 s at 50 KB. A tab frozen by a file someone emailed.
+  //
+  // This returns EXACTLY what that regex's group 1 returned, in one pass. Its equivalence was
+  // fuzzed against the regex on 300,000 random inputs (0 differences) and checked on every legacy
+  // .html fixture and every release -- this is THE save-format reader, and a file that opened
+  // before must open identically now. Why one pass reproduces it:
+  //   - An opener's tag runs to the FIRST `>` after it, because [^>]* cannot cross one.
+  //   - Every opener before the same `>` shares that `>`, so the earliest one's tag contains all the
+  //     later ones'. If any of them carries the id, the earliest does too, and the regex's LEFTMOST
+  //     match is the earliest. So each `>` is tested once, from its first opener, and the scan jumps
+  //     past it. The tags tested are disjoint, so the whole file is read about once.
+  //   - The body ends at the first closing script tag after the tag. With no closer there, there is none
+  //     after any later opener either, so there is nothing more to find.
+  function savedStateBlock(text){
+    const open = /<script/gi, close = /<\/script>/gi, idAttr = /id=["']saved-state["']/i;
+    let m;
+    while((m = open.exec(text))){
+      const tagEnd = text.indexOf('>', m.index + 7);
+      if(tagEnd < 0) return null;
+      if(idAttr.test(text.slice(m.index + 7, tagEnd))){
+        close.lastIndex = tagEnd + 1;
+        const c = close.exec(text);
+        return c ? text.slice(tagEnd + 1, c.index) : null;
+      }
+      open.lastIndex = tagEnd + 1;
+    }
+    return null;
   }
 
   // A handle to the file chosen on the first save, so later saves write back in place.

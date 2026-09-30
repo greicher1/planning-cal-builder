@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### A crafted old-style .html calendar can no longer freeze the tab (audit L-22)
+
+**What changed:** Loading an old-style `.html` calendar used to find the saved data with one
+regular expression. On a crafted file, full of `<script` tags that never close, that expression is
+quadratic or worse. The audit measured about 86 s for a 3 MB file. Measured again here, in this
+Chrome, it froze the tab for minutes, and a pinned renderer ran at 100% CPU for as long as it was
+left (54 minutes, once). `parseCalendarText` now calls `savedStateBlock()`, which returns **exactly
+what the regex returned** in a single pass. The reasoning is in its comment: each `>` is tested
+once, from its first opener.
+
+This is the one reader of the save format, so it had to stay identical for every file:
+- fuzzed against the old regex on 300,000 random inputs: 0 differences (34,735 of them matched);
+- identical on every legacy `.html` fixture and on every `releases/*.html`.
+
+**Verified:**
+- New leg `legacyparse`, in the gate. Every file is generated in the page, so none is committed:
+  - P1: `v1.0.0-saved.html` loads through the picker.
+  - P2: spam openers right before the real block still lift it, as the old regex's leftmost match did.
+  - T0: 100 KB of openers is refused.
+  - T1–T3: three 3 MB crafted shapes are refused.
+  - T4: 3 MB of spam followed by a real block still loads.
+  - **Red** on the old reader: T0 blocked the page for 430 ms, and the 3 MB cases froze the tab
+    indefinitely.
+  - **Green** after: 7/7, with at most 3 ms of blocking on any case.
+- `restore` (v1.0.0, gate 4) matches its baseline, including the `fields.byId` key set, with 0
+  horizontally clipped cells. `hostile` passes 13/13 and `loadcarry` 6/6. `loadfail` passed 4/4 on two re-runs; one earlier
+  run failed case S's setup step (`loadedA`, re-loading SHOW A) at a load average of about 30, while
+  its refusal, its kept calendar and its Save target were all correct.
+- ⚠️ This leg is proved red **in the browser pane, not with `run.sh`**. Under
+  `--virtual-time-budget`, a long blocking task costs many times its length in wall-clock time, so
+  every `run.sh` run on the old reader hit the 930 s cap and dumped 0 bytes.
+
 ### The build check now compares the engine's own version with version.json (audit N-5)
 
 **What changed:** `npm run check` (`tools/check-build.mjs`) gained two checks, 12 → 14. It
