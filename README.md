@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Opening SPTCal no longer removes other sites' service workers (audit SUPPLY-3, ruling R7)
+
+**What changed:** At startup the app removes the caching service worker that early versions
+installed. It did that by unregistering **every** service worker on the origin. The live origin,
+`greicher1.github.io`, is shared by every site published from that account, so opening SPTCal
+silently removed other sites' workers and their offline copies. Now it unregisters only the workers
+whose scope is under the app's own folder (`new URL('./', location.href)`). The old worker is still
+removed: GitHub Pages never sends `Service-Worker-Allowed`, so its scope could not reach above the
+app's folder. On `file://` there are no workers, so nothing changes there.
+
+**Verified:** new leg `swscope`, run by the new real-time runner `tests/harness/rtleg.mjs`. Under
+`run.sh`'s virtual clock, `register()` never settles, which is why the audit could only reason about
+this. `srv.js` gains a harness-only no-op worker at `/__sw.js`. The leg registers workers at
+`/dist/`, `/dist/sub/`, `/other-app/` and `/`, reloads, and reads what the startup cleanup left.
+- **Red before:** all four removed.
+- **Green after:** `/dist/` and `/dist/sub/` removed; `/other-app/` and `/` kept.
+- `gate.sh` gains a real-time leg block, which passed standalone.
+
 ### An old calendar's header no longer inherits the previous calendar's dates (audit N-8)
 
 **What changed:** Calendars saved before per-line headers existed store their header edits as

@@ -1426,6 +1426,30 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
+# ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
+# above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under
+# --virtual-time-budget a service worker's register() never settles (swscope, FIX-PLAN 4.2 /
+# SUPPLY-3: the boot clean-up unregisters only workers under the app's own path).
+for RTSPEC in swscope:-:90; do
+  RTLEG="${RTSPEC%%:*}"; RTREST="${RTSPEC#*:}"; RTSTATE="${RTREST%%:*}"; RTSECS="${RTREST#*:}"
+  [[ $RTSTATE == - ]] && RTSTATE=""
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$RTSTATE" node "$HERE/rtleg.mjs" --leg "$RTLEG" --secs "$RTSECS" >/dev/null 2>&1
+  python3 - "$HERE/$RTLEG.json" "$RTLEG (real time)" <<'PYRT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYRT
+done
+
 # ---- printpaper (audit L-3, FIX-PLAN 3.5): the month PDF's PAPER is pinned to Letter -------------
 # ⭐ ADDED 29 Sep 2026 (batch 3). The month fit is computed in JS for Letter, and the print CSS used
 # to say only @page{size:landscape}, leaving the paper to the dialog -- A4 by default outside the US

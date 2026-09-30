@@ -22,6 +22,16 @@ http.createServer((q, r) => {
   // Never let a test path escape the repo.
   const file = path.join(ROOT, p);
   if (!file.startsWith(path.resolve(ROOT))) { r.writeHead(403); r.end('no'); return; }
+  // GET /__sw.js -- a no-op service worker for the `swscope` leg (FIX-PLAN 4.2, audit SUPPLY-3).
+  // A service worker's script must be same-origin, and its scope may not reach above the script's
+  // own directory unless the response says Service-Worker-Allowed. Served from here, with that
+  // header, so the leg can register one at /dist/ (the app's own path) and one at a neighbouring
+  // path WITHOUT a stray file in the repo, and without writing into dist/, which Vite empties.
+  if (p === '/__sw.js') {
+    r.writeHead(200, { 'Content-Type': 'text/javascript', 'Service-Worker-Allowed': '/', 'Cache-Control': 'no-store' });
+    r.end('self.addEventListener("install", function(){ self.skipWaiting(); });');
+    return;
+  }
   const t = u.searchParams.get('test');
   // ?state=<name> substitutes tests/fixtures/<name>.sptcal into the page's own
   // <script id="saved-state"> block, which the app already ships (as `null`) and which

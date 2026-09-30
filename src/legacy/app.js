@@ -17470,8 +17470,16 @@ export function initLegacyApp() {
     // that already installed it would keep serving the old cached app indefinitely.
     if('serviceWorker' in navigator){
       try {
+        // ⛔ ONLY registrations under THIS app's own path (audit SUPPLY-3, owner ruling R7). This used
+        // to unregister every registration on the origin -- and the origin is greicher1.github.io,
+        // shared by every repo published there, so opening SPTCal silently removed other sites'
+        // workers and their offline copies. The app's directory is `./` resolved against this page;
+        // a scope counts as ours when it starts with that, which takes in the old worker's scope
+        // and anything below it, and never the origin root or a sibling path. On file:// there are
+        // no registrations, so nothing changes there.
+        const ownDir = new URL('./', location.href).href;
         navigator.serviceWorker.getRegistrations().then(regs=>{
-          regs.forEach(r=> r.unregister().catch(()=>{}));
+          regs.forEach(r=>{ if(String(r.scope || '').startsWith(ownDir)) r.unregister().catch(()=>{}); });
         }).catch(()=>{});
         if(typeof caches !== 'undefined' && caches.keys){
           caches.keys().then(keys=>{
