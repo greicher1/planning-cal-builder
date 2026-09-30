@@ -42,7 +42,9 @@
       the push every browser tab on the hosted link shows the install page.
   - **Next, all AFTER v1.4.1 (owner's order):**
     1. The header-controls build (relayed rulings 1–7 below), including the Region LOCK becoming a
-       "Continue?" prompt (build nothing more on the lock).
+       "Continue?" prompt (build nothing more on the lock). ⭐ **Owner, 30 Sep 2026: build it in a FRESH
+       session.** Both build-time approvals are IN (the frozen-renderer buttons approach, and
+       `.mv-tools`); see the rulings block. Measure the toolbar width first.
     2. Then the direct month-PDF writer: `MONTH-PDF-WRITER-PLAN.md` first, and the owner's four
        rulings before code.
   - **Open, not yet put to the owner** (found this session, recorded below, NOT changed):
@@ -376,15 +378,20 @@
   7. Deleting a custom holiday (`.hv-del`) and "Reset holidays" get the same recompute prompt:
      owner, yes. Planned with the header-controls build after v1.4.1, unless the owner says
      otherwise. This answers 4.7's open item.
-  - **Still open for the owner at build time:**
-    - `#hdr-mode-btn` / `#notes-reset-btn` / `#mv-hdr-mode-btn` are emitted by frozen
-      `renderSpreadsheetView` / `renderMonthView` (MANTINE-SEAM §4). The plan is new React buttons
-      that drive the existing actions, with the originals hidden by CSS. No frozen function is
-      edited, but it needs the owner's explicit OK, with `gate.sh` as the acceptance gate.
-    - The `.mv-tools` rule sits inside the frozen Month-view CSS block, so matching the strip styling
-      there needs the owner's OK.
-    - Width: two more buttons will probably wrap the toolbar row at laptop widths. Measure before
-      building. The fallback is Reset notes in the app header, where Reset All was.
+  - ⭐ **The build-time questions, ANSWERED by the owner (30 Sep 2026, picker, after v1.4.1 went live;
+    the owner asked "what happened to moving the buttons" and chose to build it in a FRESH session):**
+    - ✅ **Approach approved.** `#hdr-mode-btn` / `#notes-reset-btn` / `#mv-hdr-mode-btn` are emitted by
+      frozen `renderSpreadsheetView` / `renderMonthView` (MANTINE-SEAM §4). Build new React buttons in
+      the toolbar row that drive the existing actions, and HIDE the in-grid originals by CSS. Never
+      delete them from the frozen renderer, and edit no frozen function. `gate.sh` is the acceptance
+      gate.
+    - ✅ **`.mv-tools` approved.** One rule inside the frozen Month-view CSS block may change to match
+      the new strip look. The month-PDF gate (gate 10: every printed month byte-identical, one sheet
+      per month) must stay green. If it moves, the before/after (`monthcmp.py ab`) goes to the owner
+      FIRST.
+    - ⏭ **Still to do at build time, not a question: MEASURE THE WIDTH FIRST.** Two more buttons will
+      probably wrap the toolbar row at laptop widths. The fallback is Reset notes in the app header,
+      where Reset All was.
 - ✅ 30 Sep 2026: PWA-only access BUILT and merged into local main at fbc7b35 (not pushed; ships with the next release). See §2l.
 
 ### ✅ 30 Sep 2026: the "Unscheduled gap found" banner is REMOVED (owner request)
