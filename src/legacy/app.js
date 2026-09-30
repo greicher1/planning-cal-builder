@@ -13201,7 +13201,8 @@ export function initLegacyApp() {
     // banner naming SOMEONE ELSE'S file and urging the recipient to upgrade a file they do not
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
-    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice').forEach(el=>{ el.hidden = true; });
+    // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
+    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -14675,6 +14676,20 @@ export function initLegacyApp() {
     const el = document.getElementById('legacy-notice');
     if(el) el.hidden = true;
   }
+
+  // ---------- The "saves and loads in Chrome or Edge" notice (audit L-20, owner ruling R6) ----------
+  // Without the File System Access API the file menu -- Load... with it -- is hidden (renderRecents)
+  // and Save falls back to downloading the old .html copy, so a calendar can never be loaded back
+  // here. The app is Chrome/Edge only by ruling; this says so, once per page load. Written both ways
+  // so a copy whose markup somehow carried it visible still ends up right for its own browser.
+  (function wireBrowserNotice(){
+    const el = document.getElementById('browser-notice');
+    if(!el) return;
+    if(supportsFsAccess){ el.hidden = true; return; }
+    el.querySelector('.ln-text').innerHTML = 'SPTCal saves and loads in <strong>Chrome or Edge</strong>.';
+    el.hidden = false;
+    el.querySelector('.ln-x').addEventListener('click', ()=>{ el.hidden = true; });
+  })();
   (function wireLegacyNotice(){
     const el = document.getElementById('legacy-notice');
     if(!el) return;
@@ -17604,7 +17619,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint'].forEach(id=>{
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });

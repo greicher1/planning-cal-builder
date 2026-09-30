@@ -81,6 +81,17 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Audit L-20, owner ruling R6 (Chrome/Edge only). Shown only where the File System Access API is
+     missing (Safari, Firefox): there the file menu -- Load... with it -- is hidden and Save only
+     downloads a copy, so a calendar can never be loaded back, and nothing used to say so. Blue like
+     the update strip, because it is about the APP, not this file. Dismissed per page load and never
+     remembered: the risk it names does not go away. Re-hidden in a shareable copy's clone. -->
+<div id="browser-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9432;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <div class="layout">
   <aside class="form-panel">
 

@@ -49,6 +49,7 @@
 | 4.4 | L-10 + N-2 | ✅ done. L-10: `readState()` returns `badYearFields` (the hiatus date fields its own checks counted) and `reflectStartDateValidity(state, extraBad)` rings them. N-2, ⭐ **OWNER RULING 30 Sep 2026 (picker): "name the cause, above the preview"**: `#span-hint` (a chrome line BEFORE `#gap-warning` in `src/index.html`, style `.span-hint` = `.gap-banner`'s look, in the grid-fit observers) names the ONE field behind a `too-large` refusal and it is ringed. `spanCulprit()` re-runs `computeSchedule` with each candidate neutralised (length to 1, or phase left out). Production's days have no ring (the total is the list's sum). The years line uses year-number differences (2062 − 2026 = 36, not 36.8 → 37) | `badyear` 6/6 (red: Y1, Y3). `spanhint` 9/9 (red: N0–N6; N7/N8 are negatives). Both in the gate. The pane, with real typing, from both tabs |
 | 4.6 | L-12 | ✅ done: `isWholeNumberTypo(el)` (a number that `parseInt` reads DIFFERENTLY; "2.0" is fine) over `WHOLE_FIELDS` (phase, hiatus and per-phase weeks, `#simpost-offset`, `.ep-days`, `.blk-days`) inside `reflectStartDateValidity`. The words are a `data-whole-err` attribute on the field's label or row, printed by CSS `::after`. The day boxes ring through `.num-suffix:has(input.is-invalid)` (the input's own ring is out-specified). The Sim Post line gets its message positioned under it, because wrapping broke the sentence (seen in the pane). The schedule is unchanged | `wholenum` 10/10, in the gate. Red before on every decimal case. The pane, three layouts |
 | 4.7 | L-23 | ✅ done: `hasNoteEdits()` counts `dayNotes` days that still hold text. `commitMvNoteEditor()` now calls `reflectCountryLock()` (the waterfall commit always did; without it the lock showed only at the next update). The holiday question is ONE function, `confirmHolidayRecompute()`, used by `.hv-en`, the bulk toggle and the custom-holiday `add()` (now async; Cancel keeps the typed values; the duplicate check is re-run after the dialog). ⏭ **NOT done, for the owner:** REMOVING a custom holiday (`.hv-del`) and "Reset holidays" also recompute Production, but they ask only their own destructive confirm, with no recompute warning. The same gap class, outside the plan | `regionlock` 7/7, in the gate. Red before: L1, L2 (the audit's 10/20 → 10/19), H1, H2. The pane, with real clicks |
+| 4.9 | L-20 (R6) | ✅ done (code + HANDOFF §3 B): `#browser-notice` strip (src/index.html, after `#colswap-notice`; the shared strip CSS in the update strip's blue; `wireBrowserNotice()` sets it both ways from `supportsFsAccess`; session-only dismiss; re-hidden in `buildSavedHtml`'s clone; in the grid-fit list). Text: "SPTCal saves and loads in Chrome or Edge." (the PWA-plan peer reuses it). ⏳ **CLAUDE.md's matching sentence ("opening a calendar works fine") is drafted and shown to the owner; it is committed only on approval** | `nofsa` 6/6, in the gate. It removes the API before boot. Red before: no strip. A mutant without the clone re-hide turns B3 red |
 
 - ⚠️ **Seen in 4.4, NOT fixed (frozen `render()`):** a phase's meta line prints a 2122 end date as
   "8/30/22" (two-digit year): with Post at 5,000 weeks it reads "11/2/26 → 8/30/22 (5000 wk)". It
@@ -3754,8 +3755,17 @@ structured-cloning a `FileSystemFileHandle` into IndexedDB, which is exactly wha
 is. On Safari that means no save-in-place, no recents, no autosave-to-a-linked-file — and **Save
 writes the legacy full-copy `.html`, not `.sptcal`.** That last one is deliberate, and the comment
 in `saveToFile` says why: with no handle there is nothing to write back to, so handing someone a
-data file they then cannot re-link is worse than a copy that just works. **Opening is unaffected**
-— `parseCalendarText()` does not care what browser it is in — so §0 rule 3 holds everywhere.
+data file they then cannot re-link is worse than a copy that just works.
+
+⛔ **CORRECTED 30 Sep 2026 (audit L-20):** this section said "**Opening is unaffected** —
+`parseCalendarText()` does not care what browser it is in — so §0 rule 3 holds everywhere". That was
+wrong. Without the API `renderRecents()` hides the whole file menu, and **Load…** with it, and
+`openFileViaPicker()` returns early. So there is **no Load at all**, and a `.sptcal` cannot be
+opened. The reader doesn't care about the browser; the only way to reach it does. The one exception
+is an `.html` copy, a shareable copy or a pre-v1.1.0 save. It is a complete app of its own, so
+opening that file runs whatever build it carries, not the current app, and that has never been
+measured outside Chrome. §0 rule 3 is a promise about Chrome/Edge (owner ruling R6). Since v1.4.1 a
+strip (`#browser-notice`) tells such a user: "SPTCal saves and loads in Chrome or Edge."
 
 **C — one thing nobody has measured.** The month PDF is `window.print()`, and the print CSS is
 tuned against **Chrome's** print engine specifically: the 2 px page-box inset exists because Chrome
@@ -3767,8 +3777,10 @@ observations of *one* engine. Safari's print output has never been looked at. Tw
 below that the font never loads and the whole width model silently measures a fallback.
 
 **So do not describe Safari as "degrades gracefully."** A and B are structural and known; C is an
-*unknown*, not a tested fallback. The honest statement, and the one to give a user who asks: **every
-calendar opens in any modern browser; saving and printing are only known-good in Chrome/Edge.**
+*unknown*, not a tested fallback. The honest statement, and the one to give a user who asks
+(corrected 30 Sep 2026, audit L-20; it used to say "every calendar opens in any modern browser"):
+**SPTCal saves and loads in Chrome or Edge. Elsewhere a calendar can't be loaded at all, and
+printing has never been measured.**
 
 ---
 

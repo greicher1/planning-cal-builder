@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Outside Chrome and Edge, a strip says where SPTCal saves and loads (audit L-20, ruling R6)
+
+**What changed:** On a browser without the File System Access API (Safari, Firefox), the app hides
+its file menu, and **Load…** with it. Save becomes a plain download of the old `.html` copy. So a
+calendar could never be loaded back there, and nothing said so. By the owner's ruling R6 the app is
+Chrome/Edge only, and there it now shows a one-line strip: **"SPTCal saves and loads in Chrome or
+Edge."** It's blue like the update strip, because it's about the app rather than a file. It can be
+dismissed, but it comes back on the next load, because the risk it names doesn't go away. A
+shareable copy exported from such a browser carries it hidden, like the other strips, so the copy
+doesn't show it in Chrome. HANDOFF §3 B's "opening is unaffected" was wrong and is corrected.
+
+**Verified:**
+- New leg `nofsa`, in the gate. It removes the API before the app boots, as the audit did. The app
+  bundle is a module script, which runs after the leg's inline script. Its first phase, with the API
+  present, is the control.
+  - **Red before:** no strip at all.
+  - **Green after**, 6/6: the strip is hidden with the API present and shown without it, the file
+    menu is hidden, the shareable copy carries it hidden, and × dismisses it.
+  - **Mutation:** dropping only the shareable copy's re-hide turns B3 red.
+- Regression: `sharecopy2`, `loadfail` 4/4, `prefs` 13/13 (its gate judge), and `restore`, which
+  matches its baseline including the `fields.byId` key set.
+
 ### Month-view notes lock the Production Region, and adding a custom holiday asks first (audit L-23)
 
 **What changed:**
