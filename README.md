@@ -29,6 +29,28 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Export on a calendar with nothing to show says why (audit N-3)
+
+**What changed:** While the preview is empty (no dates yet, or a calendar refused as more than 600
+weeks), the export buttons were disabled. A disabled button ignores the click, so Export produced no
+file and said nothing. The buttons now keep their disabled look, grey with a not-allowed cursor,
+but the click goes through and a dialog, **"Nothing to export"**, gives the reason. The reason is
+the preview's own message, read from the page rather than copied, so it can't drift from the frozen
+wording. When the calendar is too long, the line naming the cause (N-2) comes with it. An export
+that's already running still truly disables its button, so a second click can't start a second
+export.
+
+**Verified:**
+- New leg `exportrefused`, in the gate:
+  - the empty calendar;
+  - a refused calendar in Export to Excel, the waterfall-PDF button and the Month view's Export PDF,
+    with no file written and print never called;
+  - a normal calendar, which still exports.
+- **Red before** on all four empty/refused cases. **Green after**, 5/5.
+- In the pane with a real click: the grey button opened the dialog with the refusal and the cause.
+- Regression: the export legs `xlsxdates`, `hdrcut`, `xlsxlimits`, `notewrap`, `sharecopy2`,
+  `stintexport` and `hdrexcel`.
+
 ### The "Unscheduled gap found" banner is gone (owner request, 30 Sep 2026)
 
 **What changed:** The owner asked for the amber banner above the preview to be removed, along with

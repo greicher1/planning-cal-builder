@@ -293,7 +293,15 @@ export function Header() {
         variant={exp.primary ? 'filled' : 'default'}
         leftSection={exp.primary ? <IconDownload className="btn-ic" /> : <IconTable className="btn-ic" />}
         loading={exp.busy}
-        disabled={exp.disabled}
+        /* ⛔ AUDIT N-3: only BUSY truly disables. Frozen render() sends {disabled:true} whenever the
+           preview is empty (no dates yet, or a calendar refused as too long), and a disabled
+           button swallows the click -- so Export did nothing and said nothing. That state now keeps
+           Mantine's disabled LOOK through data-disabled (its documented way to keep a disabled
+           button interactive), and the click reaches the engine, which says why
+           (explainNothingToExport). An export in progress still sends busy+disabled, so a second
+           click cannot start a second one. */
+        disabled={exp.busy}
+        data-disabled={(exp.disabled && !exp.busy) || undefined}
       >
         {exp.label}
       </Button>
@@ -308,7 +316,8 @@ export function Header() {
         id="export-wf-pdf-btn"
         variant="filled"
         leftSection={<IconDownload className="btn-ic" />}
-        disabled={expWf.disabled}
+        /* Audit N-3, as #export-btn above: it has no busy state, so it is never truly disabled. */
+        data-disabled={expWf.disabled || undefined}
         style={{ display: expWf.visible ? undefined : 'none' }}
       >
         Export PDF

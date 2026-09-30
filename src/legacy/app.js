@@ -15435,7 +15435,25 @@ export function initLegacyApp() {
     document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeHelp(); });
   })();
 
+  // ⛔ AUDIT N-3: Export with nothing to show SAYS WHY. While the preview is empty -- no dates yet,
+  // or refused as too long -- frozen render() marks both export buttons disabled, and a disabled
+  // button used to swallow the click: no file, no word. The buttons now keep only the disabled LOOK
+  // (Header.jsx, data-disabled), so the click lands here and is answered. The words are the frozen
+  // empty state's OWN text, read from the page (sanctioned pattern 2: ask the frozen code, never
+  // keep a second copy of its message), plus #span-hint's line naming the cause when there is one.
+  function explainNothingToExport(){
+    if(currentSchedule && currentSchedule.weeks && currentSchedule.weeks.length) return false;
+    const empty = document.querySelector('#table-wrap .empty-state');
+    const hint = document.getElementById('span-hint');
+    const why = (empty && (empty.textContent || '').trim())
+      || 'Enter at least one phase\u2019s start date and week count first.';
+    const cause = (hint && !hint.hidden && (hint.textContent || '').trim()) ? '\n\n' + hint.textContent.trim() : '';
+    uiAlert(why + cause, { title: 'Nothing to export' });
+    return true;
+  }
+
   document.getElementById('export-btn').addEventListener('click', reClickGuard(600, async ()=>{
+    if(explainNothingToExport()) return;
     if(viewMode === 'month'){
       exportMonthPdf();
       return;
@@ -15461,6 +15479,7 @@ export function initLegacyApp() {
   }));
 
   document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, ()=>{
+    if(explainNothingToExport()) return;
     if(WF_PDF_MODE === 'direct') exportWaterfallPdfDirect();
     else exportWaterfallPdf();
   }));
