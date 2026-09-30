@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 30 Sep 2026: the "Unscheduled gap found" banner is REMOVED (owner request)
+
+- **Owner's words:** "Remove the 'Unscheduled gap found' feature/message entirely." **Ruling
+  (picker):** remove everything except frozen `render()`. The alternatives were to edit `render()`
+  too, or to hide the banner with CSS only.
+- **What went:**
+  - The interior-gap scan in `computeSchedule()`, and `gaps` from its return. `gaps` had exactly one
+    reader, the banner branch in `render()`; no writer read it.
+  - The `.gap-banner` CSS.
+  - The grid fit's `#gap-warning` ResizeObserver and MutationObserver.
+- **What stays, deliberately:**
+  - `#gap-warning` itself, empty, where it was (after `#span-hint`). `render()` writes `''` into it
+    on every render with no null check, so deleting it throws and nothing draws.
+  - `render()`'s banner branch. It is now unreachable. ⛔ **Do not add a `gaps` key back to
+    `computeSchedule()`'s return**: the banner would come straight back.
+  - **Close all gaps** (the toolbar tool) is a separate feature and is untouched.
+- **Test change:** `snapoff (snapoff-sheet)` used to assert that the banner read "3/30/26 … 1 wk"
+  (H-3's third symptom). It now asserts no banner on that calendar, which still has the empty week.
+  It also asserts that the empty week is really drawn, so the negative isn't vacuous. Red on the
+  base build, on `866a654`'s, `6a5219a`'s and `715324b`'s; green after.
+- **Gate: 643/0** on the build rebased onto `a3ef9c8` (HARNESS_PORT=8417). An earlier rebase,
+  onto `6a5219a`, gated 637/0. ⚠️ The pre-rebase run lost
+  `colswapmove` to a harness stall: Chrome never dumped, and the leg sat at 0% CPU. Re-run alone on
+  the same build it passed 11/11, and it passed in the full rebased run. If it recurs, suspect
+  Chrome contention from parallel sessions before suspecting the code.
+- **Done on branch `remove-gap-banner`** (worktree `.claude/worktrees/remove-gap-banner`),
+  rebased onto `a3ef9c8`, in parallel with the batch-4 session, and fast-forwarded into local
+  `main` with its agreement and the owner's approval. **Not pushed** (owner: it ships with batch 4). That session asked (cross-session message) to be
+  messaged before anything lands on local `main`, because its 4.7 (L-23) work was uncommitted in
+  `src/legacy/app.js`. The only overlap is the grid-fit block and the `.span-hint` comment. Its N-2
+  (`#span-hint`) code is untouched.
+
 ### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
 
 - **Start state, verified:**

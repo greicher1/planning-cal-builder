@@ -190,8 +190,9 @@ header's.** Above 960 px the app is a fixed window (UI-CONVENTIONS §7, "the app
 waterfall must end exactly at the bottom of `.preview-panel`. So a second block in `app.js` ("THE
 APP SHELL'S GRID FIT") writes `--header-h` onto **`.preview-panel` only**, solved from the frozen
 rule's own computed `max-height`. That is sanctioned pattern 1 below: the declaration changes, the
-rule does not. It is re-measured on resize, on every `#table-wrap` re-render, and when `#gap-warning`,
-a notice strip or the toolbar changes. Keep the two apart:
+rule does not. It is re-measured on resize, on every `#table-wrap` re-render, and when `#span-hint`,
+a notice strip or the toolbar changes. (`#gap-warning` was on that list until the owner removed the
+gap banner on 30 Sep 2026. The div is always empty now, so it is no longer observed.) Keep the two apart:
 - **`:root`** holds the header's measured height. The sidebar's rules read it, although above 960 px
   the shell sizes the sidebar from `.layout`, because a calc off the header cannot see a notice
   strip. The print-fallback

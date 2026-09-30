@@ -3495,31 +3495,11 @@ export function initLegacyApp() {
       maxConcurrent = Math.max(maxConcurrent, cells.length);
       weeks.push({date:weekStart, cells, simPost, simPostNum});
     }
-    // Flag interior gaps: genuinely EMPTY weeks (no phase and no hiatus) bounded by real phase
-    // coverage on both sides. "Coverage" means an actual phase cell (a running phase, or a
-    // phase paused by its OWN hiatus) -- NOT a standalone global-hiatus band. This matters because
-    // the calendar auto-extends to the end of the last year it touches, and the always-present
-    // year-end break (a global hiatus) lands in that trailing padding. Counting that hiatus as
-    // "coverage" used to close the trailing empty run and mis-report months of padding as an
-    // "unscheduled gap." Anchoring to the first/last PHASE week keeps lead-in/lead-out padding --
-    // and any hiatus sitting inside it -- from ever being flagged.
-    const gaps = [];
-    const hasPhase = w => w.cells.some(c => c.type === 'phase' || c.type === 'phaseHiatus');
-    let firstPhaseIdx = -1, lastPhaseIdx = -1;
-    for(let i=0;i<weeks.length;i++){
-      if(hasPhase(weeks[i])){ if(firstPhaseIdx===-1) firstPhaseIdx = i; lastPhaseIdx = i; }
-    }
-    if(firstPhaseIdx !== -1){
-      let gapStart = null;
-      const closeGap = (endIdx)=> gaps.push({startDate: weeks[gapStart].date, endDate: addDays(weeks[endIdx].date,6), weeks: (endIdx+1)-gapStart});
-      for(let i=firstPhaseIdx+1;i<lastPhaseIdx;i++){
-        const empty = weeks[i].cells.length===0;
-        if(empty && gapStart===null) gapStart = i;
-        if(!empty && gapStart!==null){ closeGap(i-1); gapStart = null; }
-      }
-      // A run of empty weeks reaching the last phase is still interior -> flag it (loop stops before lastPhaseIdx).
-      if(gapStart!==null) closeGap(lastPhaseIdx-1);
-    }
+    // ⛔ REMOVED 30 Sep 2026, by the owner: the "Unscheduled gap found" banner is gone, and the
+    // interior-gap scan that fed it went with it. `gaps` had exactly one reader -- the banner
+    // branch in frozen render() -- and no writer read it, so no output can move. That branch stays
+    // (render() is frozen) and is now unreachable: with no schedule.gaps it always takes its else
+    // and writes '' into #gap-warning. Do not re-add a `gaps` key without re-reading that branch.
 
     // map each milestone/holiday note to the week index it falls in, shared by preview + export
     const notesByIdx = {};
@@ -3582,7 +3562,7 @@ export function initLegacyApp() {
     const stintOrder = applyStintSwaps(weeks);
     const appliedColSwaps = applyColSwaps(weeks);
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, gaps, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    return {weeks, maxConcurrent, totalWeeks, overallStart, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
   }
 
   // Resolve gridColSwaps into the disjoint transpositions that actually apply to ONE week.
@@ -12223,7 +12203,7 @@ export function initLegacyApp() {
   // years". Measured on the reference calendar, that was wrong in 4 of 5 cases: Post's weeks, the
   // shooting days per episode, a hiatus's weeks and a smaller weeks overrun were all blamed on a
   // year. That sentence cannot be edited -- render() is frozen and its .empty-state is inside
-  // #table-wrap -- so #span-hint, a chrome line ABOVE the preview (before #gap-warning, visible on
+  // #table-wrap -- so #span-hint, a chrome line ABOVE the preview (at the top of the panel, visible on
   // every sidebar tab), names the one field that explains the refusal, and that field is ringed.
   //
   // Sanctioned pattern 2: the verdict comes from computeSchedule itself, never from a second copy
@@ -17548,7 +17528,7 @@ export function initLegacyApp() {
   //     value as well, and its arithmetic is exactly what it was.
   //
   // MEASURED, never declared, for the same reason the root value is: everything above the grid
-  // changes height (the gap warning comes and goes, the toolbar wraps, a notice strip shows). And
+  // changes height (the span hint comes and goes, the toolbar wraps, a notice strip shows). And
   // it is solved from the rule's OWN computed max-height, so nothing here assumes what 100vh or
   // the 140 resolve to -- raising --header-h by d lowers the max-height by exactly d.
   //
@@ -17596,15 +17576,15 @@ export function initLegacyApp() {
     };
     fit();
     // Every trigger the owner named: window resize, a re-render of #table-wrap (which is also
-    // every view switch), #gap-warning showing or hiding, and a notice strip -- which reaches the
-    // grid only by resizing .layout, and so arrives as the panel's own border box changing. The
-    // toolbar is observed too: it wraps, and a selection adds buttons to it.
-    const gap = document.getElementById('gap-warning');
+    // every view switch), and a notice strip -- which reaches the grid only by resizing .layout,
+    // and so arrives as the panel's own border box changing. The toolbar is observed too: it wraps,
+    // and a selection adds buttons to it. The owner also named #gap-warning showing or hiding; it
+    // is no longer observed, because the owner removed the gap banner (30 Sep 2026) and the div is
+    // only ever written '' now (frozen render() still writes it), so it can never resize.
     if(typeof ResizeObserver !== 'undefined'){
       try {
         const ro = new ResizeObserver(fit);
         ro.observe(panel, { box: 'border-box' });
-        if(gap) ro.observe(gap);
         const bar = panel.querySelector('.view-toggle-row');
         if(bar) ro.observe(bar);
       } catch(e){}
@@ -17623,7 +17603,6 @@ export function initLegacyApp() {
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
-    if(gap) mo.observe(gap, { childList: true, subtree: true, characterData: true });
     window.addEventListener('resize', fit);
     if(shell.addEventListener) shell.addEventListener('change', fit);
   })();

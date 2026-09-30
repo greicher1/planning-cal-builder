@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The "Unscheduled gap found" banner is gone (owner request, 30 Sep 2026)
+
+**What changed:** The owner asked for the amber banner above the preview to be removed, along with
+the check behind it. It read "Unscheduled gap found: 3/30/26–4/5/26 (1 wk). No phase covers this
+week range — check whether a start date needs adjusting." Empty weeks between phases still show in
+the grid as empty rows, as they always have, and the toolbar's **Close all gaps** tool is unchanged.
+Nothing in the Excel file or either PDF changes, because the gap list was only ever read by the
+banner.
+
+**How, and what is left:** `computeSchedule()` no longer scans for interior gaps, and its result no
+longer carries `gaps`. The banner itself is written by frozen `render()`. By the owner's ruling
+(picker), `render()` is **not** edited: with no `gaps` to read, its banner branch can't run, and it
+writes nothing into `#gap-warning`. That div stays in the markup, always empty, because `render()`
+writes to it with no null check, so deleting it would stop the preview drawing. The `.gap-banner`
+CSS is gone, and so are the grid fit's two observers of `#gap-warning`. `.span-hint` keeps the
+banner's old look in its own rule.
+
+**Verified:**
+- The `snapoff` leg's sheet case used to assert that the banner read the true "1 wk" (the third
+  symptom of audit H-3). It now asserts that no banner appears, on the same calendar, which does
+  have an empty week at 3/30/26. **Red** on the pre-change build: the banner was there. **Green**
+  after. H-3's own check, Pre Prep starting in the week of 4/6/26, is unchanged and passes.
+- Full gate **643/0** (`=== GATE PASSED ===`) on the change rebased onto `a3ef9c8`, in its own
+  worktree. That covers all four outputs against the baselines, all three `snapoff` cases,
+  `regionlock` and `nofsa`. An earlier run before the rebase lost one leg, `colswapmove`, to a harness stall:
+  Chrome never wrote its result. Alone, on the same build, that leg passed 11/11, and it passed in
+  the full run above.
+- In the pane, on the same calendar: no banner in either view, and nothing in the page mentions a
+  gap. The 3/30/26 row is still drawn, and the grid still ends exactly at the panel's bottom edge
+  (0 px off), so the grid fit works without the observer.
+
 ### Outside Chrome and Edge, a strip says where SPTCal saves and loads (audit L-20, ruling R6)
 
 **What changed:** On a browser without the File System Access API (Safari, Firefox), the app hides
@@ -77,6 +108,7 @@ doesn't show it in Chrome. HANDOFF §3 B's "opening is unaffected" was wrong and
   with Cmd+Enter locked it at once, and the Add button showed the dialog. Cancel added nothing and
   kept the typed name and date.
 - Regression: `holidays2031`, `monthnotes`, `monthlanes`, `hostile` and `wrapdate` all pass.
+
 
 ### A weeks or days count that isn't a whole number says so (audit L-12)
 

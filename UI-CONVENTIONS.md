@@ -799,8 +799,9 @@ from the rule's own computed `max-height` so that the grid box ends exactly at t
 edge. It is measured, never declared, and re-measured on:
 - window resize and the 960 px media query flipping;
 - every `#table-wrap` re-render, which includes every view switch (a `childList` MutationObserver);
-- `#gap-warning` or a notice strip showing, hiding or changing text (a MutationObserver, **and** a
-  ResizeObserver on the panel's border box);
+- `#span-hint` or a notice strip showing, hiding or changing text (a MutationObserver, **and** a
+  ResizeObserver on the panel's border box). `#gap-warning` was on this list until the owner removed
+  the gap banner (30 Sep 2026); the div is always empty now, so it is no longer observed;
 - the toolbar wrapping (a ResizeObserver).
 
 ⚠️ **The MutationObservers are not redundant.** A ResizeObserver only fires when the page renders.
@@ -983,7 +984,11 @@ Google, or opening an emailed copy from `file://`. **Recommended: do it** — it
 Carlito exists to do — but as a frozen-export change with the gate the project's own rule demands:
 a pre/post month-PDF diff produced with the network **on** and **off**.
 
-**9.2 — `.gap-banner` is written by `render()`, which is frozen.** The container `#gap-warning` is
+**9.2 — ✅ MOOT (30 Sep 2026): the owner removed the gap banner.** `computeSchedule()` no longer
+reports `gaps`, so frozen `render()`'s banner branch can't run, and `#gap-warning` stays in the
+markup, always empty, only because `render()` writes to it with no null check. `render()` was not
+edited (owner's ruling). The original note follows. **`.gap-banner` is written by `render()`, which
+is frozen.** The container `#gap-warning` is
 free; the content is not. Converting it to an `Alert` means either editing `render()` or leaving it
 writing raw HTML into a container React owns. **Safe fallback: retokenise the `.gap-banner` CSS in
 place** — that achieves most of the visual win with no frozen edit.

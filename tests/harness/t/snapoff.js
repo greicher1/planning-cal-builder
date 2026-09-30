@@ -14,7 +14,7 @@ window.addEventListener('load', function () { (async function () {
     // Walk the waterfall: for each row, the date cell(s) and the phase-cell labels in that row.
     // The grid renders year blocks side by side, so a row can carry more than one date; attribute
     // each label to the nearest preceding date IN ITS OWN ROW, and key weeks by real date.
-    var phaseFirst = {}, phaseLast = {}, rowCount = 0, allDates = [];
+    var phaseFirst = {}, phaseLast = {}, rowCount = 0, allDates = [], datesWithPhase = {};
     document.querySelectorAll('#table-wrap table.sheet-table tbody tr').forEach(function (tr) {
       rowCount++;
       var date = null;
@@ -26,6 +26,7 @@ window.addEventListener('load', function () { (async function () {
           var ph = m[1];
           if(!(ph in phaseFirst)) phaseFirst[ph] = date;
           phaseLast[ph] = date;
+          datesWithPhase[date] = true;
         }
       });
     });
@@ -37,8 +38,14 @@ window.addEventListener('load', function () { (async function () {
     // it to another weekday, or the Monday-keyed note/hiatus stores stop matching -- audit H-4).
     function dow(mdY){ var p = mdY.split('/'); var y = 2000 + (+p[2]); return new Date(Date.UTC(y, +p[0]-1, +p[1])).getUTCDay(); }
     out.nonMondayDates = allDates.filter(function (d) { return dow(d) !== 1; });
-    // The meta line for each phase (what the sidebar states), and the gap banner.
+    // The meta line for each phase (what the sidebar states), and the gap banner -- which the owner
+    // removed on 30 Sep 2026. #gap-warning survives only because frozen render() still writes ''
+    // into it, so both of these must now be empty on every calendar.
     out.gapBanner = (document.querySelector('.gap-warning, #gap-warning') || {}).textContent || '';
+    out.gapBannerEls = document.querySelectorAll('.gap-banner').length;
+    // Is the week of 3/30/26 drawn, with no phase in it? That is the empty week the banner used to
+    // name on snapoff-sheet, so "no banner" there is a real negative rather than a vacuous one.
+    out.gapWeekDrawnEmpty = allDates.indexOf('3/30/26') !== -1 && !datesWithPhase['3/30/26'];
     out.prePrepMeta = ((document.getElementById('meta-prePrep') || {}).textContent || '').replace(/\s+/g, ' ').trim();
     out.prodMeta = ((document.getElementById('meta-production') || {}).textContent || '').replace(/\s+/g, ' ').trim();
 
@@ -50,13 +57,17 @@ window.addEventListener('load', function () { (async function () {
     var mondayOk = out.nonMondayDates.length === 0;
     if(st === 'snapoff-sheet'){
       // Pre Prep entered Wed 4/8/26: it must appear in the week of Mon 4/6/26, not a week late on
-      // 4/13, and the gap banner must read the true 1 week, not 2.
-      out.pass = mondayOk && out.phaseFirst['Pre Prep'] === '4/6/26' && /3\/30\/26.*1 wk/.test(out.gapBanner);
+      // 4/13. This case also asserted the gap banner read the true 1 week, not 2 (audit H-3's third
+      // symptom). The banner is gone (owner, 30 Sep 2026), so it now asserts the opposite: this
+      // calendar HAS an interior gap (the week of 3/30/26, which the banner used to name), and no
+      // banner appears. The placement check above is H-3 itself, stated directly.
+      out.pass = mondayOk && out.phaseFirst['Pre Prep'] === '4/6/26' && out.gapWeekDrawnEmpty
+                 && out.gapBanner === '' && out.gapBannerEls === 0;
     } else if(st === 'snapoff-onecol'){
       // The saved "Table read" note and the "Summer Break" hiatus label must be present (they used
-      // to vanish because the rows were Wednesday-keyed), and no false gap.
+      // to vanish because the rows were Wednesday-keyed), and no gap banner.
       var grid = (document.getElementById('table-wrap') || {}).textContent || '';
-      out.pass = mondayOk && out.phaseFirst['Pre Prep'] === '4/6/26' && /Summer Break/.test(grid) && !/Unscheduled gap/.test(out.gapBanner);
+      out.pass = mondayOk && out.phaseFirst['Pre Prep'] === '4/6/26' && /Summer Break/.test(grid) && out.gapBanner === '' && out.gapBannerEls === 0;
     } else if(st === 'snapoff-friday'){
       // Monday-anchored (the earliest phase was snap-off on a Friday). The empty 2025 block is a
       // documented, accepted edge (a Jan-2 start's week is Dec 29 2025); the invariant here is only

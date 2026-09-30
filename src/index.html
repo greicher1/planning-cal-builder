@@ -160,6 +160,9 @@
          frozen message under it always blames a year. Filled and hidden from update() only. It sits
          BEFORE #gap-warning so the sibling contract below is untouched. -->
     <div id="span-hint" class="span-hint" role="status" aria-live="polite" hidden></div>
+    <!-- Always empty since 30 Sep 2026: the owner removed the "Unscheduled gap found" banner.
+         Kept, in place, only because frozen render() still writes '' into it on every render with
+         no null check -- deleting it would throw and stop the preview drawing at all. -->
     <div id="gap-warning" role="status" aria-live="polite"></div>
     <!-- The toolbar ELEMENT stays static and React fills its interior, for the same reason the
          header does: #gap-warning must remain a genuine SIBLING of this row and of #table-wrap,
