@@ -120,6 +120,16 @@
   - **4.1 (L-4) done** (row in the table below). The PWA peer was told before the head and
     check-build were touched; its three CSP points (frame-src, manifest-src, gate screens) are in.
     ✅ **Full gate on the CSP build (`0725c734…`): 734/0, GATE PASSED**, `cspproof` 14/14 inside it.
+  - **FIX-PLAN §8 doc fixes done.**
+    - ⭐ CLAUDE.md: six edits, shown to the owner as an exact diff and APPROVED (picker, 30 Sep 2026):
+      the `fields.byId` example, `SNAPSHOT_VERSION` (enforced), the new CSP rule, the gate timing
+      (~734 checks, ~15 min, serialize), the region lock, and the region model (`#union-place` /
+      `PLACES`).
+    - The harness README gains every trap from the audit batches, plus `rtleg`, `printpaper`,
+      `pilldrag` and `cspproof` in its Files table. PROJECT-CONTEXT §11 gains a trap digest, and §7a
+      gains the `rowHeightsByWeek` and `dayOverrides` rows. UI-CONVENTIONS §10 lists the batch-4/5 legs
+      and adds item 12, the CSP.
+    - HANDOFF §3 B was corrected in 4.9. `tools/check-refs.py`: CLEAN.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito

@@ -1109,6 +1109,35 @@ Nothing in this document ships without all of these, every stage:
     column past 255 characters and no row past 409 points, whether from a drag, Single Column Mode
     or an old file. Step 3.4 adds `xlsxdates`: every Date formula carries a cached value equal to
     its chain, and gate 3's `base.xlsx` was re-cut for it (owner-approved, 29 Sep 2026).
+    Batch 4 (v1.4.1, 30 Sep 2026) adds:
+    - `legacyparse`: the legacy `.html` reader is linear;
+    - `hdroverrides`: an old file's migrated header takes ITS defaults;
+    - `badyear` and `spanhint`: a mistyped year or length points at its field;
+    - `wholenum`: non-whole counts are ringed;
+    - `regionlock`: month notes lock the region, and a custom holiday asks first;
+    - `nofsa`: the strip outside Chrome/Edge;
+    - `exportrefused`: Export on nothing says why;
+    - `regioncaveat` and `simpostlabel`;
+    - `prodspan`: the Production Span counts Production only;
+    - `winansi`: the waterfall PDF names what prints as "?";
+    - `swscope`: in the real-time `RTSPEC` block, via `rtleg.mjs`.
+
+    Batch 5 adds:
+    - `numclamp`: a Show Info count corrected on blur is the count the engine uses;
+    - `cmdprint`: Cmd/Ctrl+P runs the view's export;
+    - `loadfail` AS/AR: the autosave path after a refused load, and a rollback case with teeth;
+    - `pilldrag.mjs`, a Node script with its own block: a month pill dragged out and back keeps
+      Snap to Mon, driven with trusted CDP mouse input.
+
+    The PWA install gate adds `pwagate` and `pwagatelogic`.
+12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
+    policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
+    inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations
+    across Excel, both PDFs, the month view, Save/Load, the update check, a shareable copy (framed and
+    `file://`) and the install gate's screens, with a positive control proving the policy is
+    enforced. ⚠️ A new inline script, `<style>` source, font, image or fetch target has to fit the
+    policy in `src/index.html`, or it is refused in the product while every `?test=` leg (policy
+    stripped) still passes. Run `cspproof.mjs` after anything that loads something.
 
 ---
 

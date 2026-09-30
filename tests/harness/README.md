@@ -137,6 +137,10 @@ timing flake.
 | `t/hdreditor.js` | the header template **editor**, and the third left slot it was built around: `l3` present on the calendar and hidden while empty (the frozen edits are inert), three slots per column, **not one `id` anywhere in the panel** — it is body-level, so `.prefs-card` does not cover it — styling done in the panel landing on the real header as the same `style` string, an edit resolving identically in both places (there is no second renderer), placeholders staying editor-only, `c4` revealed only for a calendar that uses it, and the default template still fitting Excel's 255-character cap |
 | `t/hdrtemplate.js` | the template engine and the three modes end to end: tokens resolve in all three consumers, the store holds RAW templates, `__ctx` never reaches the save format, the bake warns first, Manual never resolves, and the ONE frozen edit (H3b) is inert while the flag is false |
 | `prove-header-template.mjs` | 73 cases against the REAL resolver in Node, its source sliced verbatim out of `src/legacy/app.js`. Every §3.1 rule and §3.2 token. ⭐ Run by `gate.sh` |
+| `rtleg.mjs` | runs any `t/<leg>.js` in REAL time over CDP, writing the same `<leg>.json` `run.sh` does. For what the virtual clock can't run: a service worker's `register()` (`swscope`), a freeze proved red. `gate.sh`'s `RTSPEC` block |
+| `printpaper.mjs` | the month PDF printed at Letter and at A4-with-CSS-size-preferred over CDP (`Page.printToPDF`), because `run.sh` cannot choose a paper (audit L-3). The CDP template the other scripts copy |
+| `pilldrag.mjs` | MONTH-9: a month pill dragged out and back in ONE gesture keeps Snap to Mon. Trusted `Input.dispatchMouseEvent`, which the pane's point-to-point drag and a `dispatchEvent` drag can't give |
+| `cspproof.mjs` | 4.1: the app under its Content-Security-Policy, ZERO violations, with a recorder installed in every frame before any page script. It covers Excel, both PDFs, the month view, Save/Load, the update check, a shareable copy (framed and `file://`) and the install gate, plus a positive control run last |
 | `prove-col-permutation.mjs` | the column-swap invariance theorem, fuzzed against the real `computeBlockLayout`. ⚠️ **Was never run by `gate.sh` until 8 Sep 2026** — it was named in a comment as something to run by hand, so the theorem the swap feature rests on was unguarded in practice. It runs now |
 
 ## Traps this harness has already fallen into
@@ -236,6 +240,64 @@ reason attached; this is the index.
   assertion cascades into a false failure. One session lost eight assertions to this.
 - **`requestAnimationFrame` does not fire while the browser pane is hidden.** If a fix depends on
   rAF, front the pane before measuring.
+
+### Added during the audit batches (25–30 Sep 2026)
+
+- **`--dump-dom` exits with a 0-byte dump when the DOM holds a lone UTF-16 surrogate.** Proven on a
+  bare page, so it is Chrome, not the app. `T.done()` scrubs text nodes and field values first
+  (`T.scrubSurrogates()`); the result JSON is safe on its own.
+- **Never read the app's dialog with `document.querySelector('[role="dialog"]')`.** The four toolbar
+  popovers and `#help-overlay` are also `role="dialog"` and come first, so a first-match selector
+  never sees the modal (it produced one false "no dialog" audit result). Use `T.modalText()` /
+  `T.clickModalButton()`, which read `.mantine-Modal-content`.
+- **`T.modalText()` collapses whitespace.** When a dialog's LINES matter (a list), read the modal's
+  own `innerText`: the dialog renders `white-space: pre-line`. And `pre-line` collapses a run of
+  spaces, so a double space in a dialog string never reaches the screen.
+- **A leg must never contain the closing-script-tag literal, even in a comment.** `srv.js` injects
+  each leg inline, so the HTML parser ends the leg there and it reads "STILL PENDING". Write it with
+  a backslash before the slash. And no `$` anywhere in a leg: exact-string comparisons, never
+  anchored regexes.
+- **The build carries a Content-Security-Policy (4.1), and `srv.js` strips it on `?test=` pages
+  only**: legs are unhashed inline scripts, which the policy refuses. Pages served without `?test=`
+  keep it (the pane's `?state=` pages, the install gate's iframes, a framed shareable copy).
+  `HARNESS_KEEP_CSP=1` keeps it on a test page too and adds the injected scripts' hashes, so a leg
+  runs under the real policy. No `t/` leg can see the policy itself; `cspproof.mjs` drives the
+  policy-bearing page over CDP.
+- **`run.sh` cannot prove a FREEZE red.** Under `--virtual-time-budget` a long blocking task costs
+  many times its length in wall-clock time (11 s of regex took 2.5 min). Use `rtleg.mjs` (the real
+  clock, over CDP) or the pane. `performance.now()` DOES count blocking time.
+- **Under `--virtual-time-budget` a service worker's `register()` never settles.** `rtleg.mjs` runs
+  such a leg in real time; `srv.js` serves a no-op `/__sw.js` with `Service-Worker-Allowed: /`.
+- **Reading a large `File` is real async I/O that the virtual clock doesn't wait for**: poll longer.
+  And poll at 100 ms; 20 ms polling is pathological on this page.
+- **A fixed sleep after a Load races a busy machine.** `loadfail`'s `open()` slept 1.6 s, and with
+  three Chromes running the next step started while the read was in flight. Wait for the load to
+  LAND (the title, or a refusal).
+- **Two full gates at once stall each other's Chrome**: a leg sits at 0% CPU until `run.sh`'s cap
+  and reports "produced no result". Serialize full gates across sessions (message the other one
+  first). Re-run a lone stalled leg alone on the SAME build before believing it.
+- **Legs with their own `gate.sh` block are judged there, not in the AFSPEC list**: `restore`,
+  `blocks`, `shootorder`, `stintexport`, `hdrexcel`, `hdrversion`, `prefs`, `wrapdate`. Copy the
+  exact invocation, `HARNESS_STATE` included; without its fixture a leg times out and reads as a
+  failure.
+- **`T.gridSignature()` returns an ARRAY**: compare two with `JSON.stringify`.
+- **`T.memoryIDB()` stores the crash backup by REFERENCE**, and `captureSnapshot()` hands out live
+  stores: copy a snapshot you keep across steps. The backup is per page (`T.latestBackup()`).
+- **Headless `el.focus()` / `el.blur()` DO deliver focus changes** (Mantine's blur clamp fired,
+  `numclamp`), unlike the browser pane, where synthetic `focus()` fires no events.
+- **The pane's drag tool goes point to point**, so it cannot make one gesture go out and come back,
+  and a `dispatchEvent` drag skips hit-testing. `pilldrag.mjs` uses CDP's trusted
+  `Input.dispatchMouseEvent`.
+- **In a CDP script, the app's `beforeunload` guard makes a second `Page.navigate` wait on a dialog
+  forever** once the calendar is dirty: accept `Page.javascriptDialogOpening`. And the previous
+  case's edit leaves a crash backup, so the next fresh page opens "Recover unsaved work" over
+  whatever you meant to click: decline it in setup.
+- **Mantine's `data-disabled` keeps a button's disabled LOOK while its clicks still fire** (4.10);
+  only `disabled` stops them.
+- **The pane:** a hidden pane lays out at zero width, so take a screenshot before measuring
+  geometry, and re-query the DOM if a screenshot looks stale (a Mantine modal fades in). A pane tab
+  frozen by a long task keeps its renderer at 100% CPU until the pane's LAST tab closes. A fresh load
+  raises "Recover unsaved work": cancel it (the slot is kept).
 
 `PROJECT-CONTEXT.md` §11 carries the rest, including the false-failure table (why waterfall rows
 look out of order, why `Post wk 1` matches inside `Simultaneous Post wk 1`, and so on). Read it

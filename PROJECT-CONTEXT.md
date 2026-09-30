@@ -523,6 +523,8 @@ at all; Rebuild From, Close all gaps and the month drag leave every note on its 
 | All-phase hiatuses with **Lock in place** checked (the default) | A winter break belongs to Christmas, not to the schedule around it. The four built-in defaults are all winter breaks. Uncheck to let one travel. |
 | Notes carrying a **date** | A dated note is *about* that day. Month-view day notes and `mvExtraLanes` stay for the same reason. |
 | Per-phase hiatuses | These **do** travel — they belong to their phase's work, and move with it as a unit. |
+| `rowHeightsByWeek` | These **do** travel (v1.3.1, audit M-12): a dragged row height follows its week's note, with the same stay-or-go test as `noteFontSize`, so a row made tall for a long note is not left behind. |
+| Production's `dayOverrides` | These **do** travel, **by shoot-day number**, on every mover (v1.3.1, owner ruling R2, audit M-4): `asShootDayMove()` pins each mark to a natural shoot day and re-derives it, rather than re-keying it by date. |
 
 > ⚠️ Two notes can land on one week (an undated note shifted onto a dated one's week).
 > `shiftKeyedMap` lets **stayers claim their keys first** and arrivals **merge**; whichever wrote
@@ -1000,6 +1002,20 @@ node /tmp/testsrv.js & sleep 2
   `alert` that routes to the app's Mantine dialog, so the engine never reaches `window.alert`.
   Assert on the dialog instead. Still true of the deployed `/index.html`. Every failure path in the file
   layer is an `alert()`, so without this a rejected file is indistinguishable from a silent no-op.
+- ⚠️ **Traps added by the audit batches (25–30 Sep 2026)**, each written up in full in
+  `tests/harness/README.md`:
+  - Chrome's `--dump-dom` exits with a **0-byte dump on a lone UTF-16 surrogate**; `T.done()` scrubs.
+  - **Never read a dialog with `[role="dialog"]`**: the toolbar popovers and `#help-overlay` match
+    first. Use `.mantine-Modal-content` (`T.modalText()`).
+  - The build's **Content-Security-Policy is stripped by `srv.js` on `?test=` pages only**, because
+    legs are unhashed inline scripts. `cspproof.mjs` proves the policy over CDP;
+    `HARNESS_KEEP_CSP=1` runs a leg under it.
+  - `run.sh` **cannot prove a freeze red, and a service worker's `register()` never settles** under
+    its virtual clock: use `rtleg.mjs`.
+  - **Two full gates at once stall each other's Chrome**, so serialize them across sessions. A fixed
+    sleep after a Load races a busy machine: wait for the load to land.
+  - In a CDP script, the app's **`beforeunload` guard makes a second `Page.navigate` hang** on a
+    dialog: accept `Page.javascriptDialogOpening`.
 
 ### Saved fixtures (`tests/fixtures/`)
 
