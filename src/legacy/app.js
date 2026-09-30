@@ -16654,6 +16654,9 @@ export function initLegacyApp() {
   // complete calendar from a blank page restored every field correctly but left the blank page's
   // stale "missing: Season, ..." notice on screen and the episode list empty. Keep this as the
   // single list so the three paths can't diverge again.
+  // Session state, never saved: set by applyStateSnapshot's legacy headerOverrides branch, consumed
+  // by the refreshAfterRestore() that every restore path ends in.
+  let headerOverridesNeedDefaults = false;
   function refreshAfterRestore(){
     // A different document is replacing what is on screen, so a cell highlight from the PREVIOUS
     // calendar must not survive it. The overlay's prune only drops keys with no matching cell, and
@@ -16666,6 +16669,14 @@ export function initLegacyApp() {
     syncRegionTracking();
     refreshEpisodesUI();
     refreshSimPostUI();
+    // The legacy headerOverrides migration's second half (applyStateSnapshot step 4b, audit N-8):
+    // every store and every sidebar row is now the new file's, so this is exactly the schedule the
+    // update() below is about to compute. The file's own overrides win over the defaults.
+    if(headerOverridesNeedDefaults){
+      headerOverridesNeedDefaults = false;
+      try { headerManual = Object.assign(computeHeaderDefaults(computeSchedule(readState())), headerManual); }
+      catch(e){ console.error(e); }   // never block a load over a header: the lines still fall back live
+    }
     update();
     // After syncRegionTracking(), so effectiveRegionKey() reflects the file that was just applied
     // rather than the one before it. Gated on the migration flag, so it fires only for files that
@@ -16889,6 +16900,10 @@ export function initLegacyApp() {
     // nothing that is not a lowercase word gets through.
     setMap('dayOverrides', v => (typeof v === 'string' && /^[a-z]{1,16}$/.test(v)) ? v : undefined);
     setMap('headerManual', str, SNAP_LINE_ID);
+    // The legacy per-line store that step 4b migrates INTO headerManual (audit N-8, FIX-PLAN 4.14).
+    // It bypassed the rule above: a number reached a header line as "42", and a "__proto__" key
+    // was handed to Object.assign. Same cleaner, same id rule, so it lands as headerManual would.
+    setMap('headerOverrides', str, SNAP_LINE_ID);
     setMap('mvHeaderManual', str, SNAP_LINE_ID);
     ['headerFormat', 'mvHeaderFormat'].forEach(name=>{
       if(!(name in s)) return;
@@ -17234,12 +17249,24 @@ export function initLegacyApp() {
     // key, so it must land on false, which is Manual: literal text, tokens never resolved, and
     // therefore byte-for-byte what that file has always rendered.
     headerTemplates = snap.headerTemplates === true;
+    headerOverridesNeedDefaults = false;   // unconditional: set only by the legacy branch below
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';
       headerManual = Object.assign({}, snap.headerManual || {});
     } else if(snap.headerOverrides && Object.keys(snap.headerOverrides).length){
+      // ⛔ AUDIT N-8 (FIX-PLAN 4.14). This used to be
+      //     headerManual = Object.assign(computeHeaderDefaults(currentSchedule), snap.headerOverrides)
+      // but currentSchedule here is still the PREVIOUS calendar's -- nothing has recomputed it, and
+      // the holidays this file's wrap depends on are restored further down. So every line the file
+      // did not override was baked (permanently: Manual is literal text) from whichever calendar was
+      // open before: measured, a v1.0.0 file loaded after another reads that one's "18-Week
+      // Production Span" and its wrap date. Now only the overrides are kept here, and
+      // refreshAfterRestore() bakes the rest from THIS file's schedule, just before its update().
+      // Until then a missing line falls back to the live defaults (headerLine), so nothing renders
+      // differently in between.
       headerMode = 'manual';
-      headerManual = Object.assign(computeHeaderDefaults(currentSchedule), snap.headerOverrides);
+      headerManual = Object.assign({}, snap.headerOverrides);
+      headerOverridesNeedDefaults = true;
     } else {
       headerMode = 'auto'; headerManual = {};
     }

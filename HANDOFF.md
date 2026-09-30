@@ -44,6 +44,7 @@
 |---|---|---|---|
 | 4.11 | N-5 | ✅ done: `check-build.mjs` 12 → 14 checks (engine `APP_VERSION` = `version.json`; the build carries that literal) | red on 3 mutations. The old checker passes "APP_VERSION forgotten" 12/12 |
 | 4.3 | L-22 | ✅ done: `savedStateBlock()` replaces the regex, same result in one pass (fuzzed: 300k inputs, 0 diffs; every legacy fixture and release identical) | `legacyparse` 7/7, in the gate (`legacyparse:-:900`). Red proved IN THE PANE (T0 430 ms; the 3 MB cases never finish). `restore`, `hostile`, `loadfail`, `loadcarry` green |
+| 4.14 | N-8 (rest) | ✅ done: step 4b keeps only the file's `headerOverrides` and sets `headerOverridesNeedDefaults`; `refreshAfterRestore()` bakes the defaults from `computeSchedule(readState())` just before its `update()` (a schedule computed inside 4b would miss the holidays restored later in the function). `headerOverrides` now goes through `sanitizeSnapshot` like `headerManual` (a number reached a line as "42"; `__proto__` reached `Object.assign`; the screen escaped the text, so no XSS) | `hdroverrides` 4/4, in the gate. Red before on H1/H2 (after `blocks`, v1.0.0 read "18-Week … 6.29.26 / Wrap 10.27.26"). A mutant with the bake off turns only H3 red |
 
 - ⛔ **Harness traps found in 4.3** (to go into the harness README with the §8 doc fixes):
   - **A leg must never contain the closing-script-tag literal, even in a comment.** `srv.js` injects

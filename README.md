@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### An old calendar's header no longer inherits the previous calendar's dates (audit N-8)
+
+**What changed:** Calendars saved before per-line headers existed store their header edits as
+`headerOverrides`. Loading one moves it into Manual mode, and every line the file didn't override is
+filled in with the defaults and kept as fixed text. Those defaults were computed from
+`currentSchedule`, which at that point is still the **previous** calendar's. So a file loaded after
+another one permanently took on that calendar's production span and dates. Measured on the v1.0.0
+calendar after `blocks`, it read *"18-Week Production Span"* and *"Principal Photography 6.29.26 /
+Wrap: 10.27.26"*, where its own values are 17 weeks, 5.4.26 and 8.26.26. Now `applyStateSnapshot`
+keeps only the file's overrides and sets a flag, and `refreshAfterRestore()`, which every restore
+path ends in, bakes the rest from `computeSchedule(readState())` just before its `update()`. That is
+this file's own schedule, holidays included.
+
+In the same change, `headerOverrides` goes through the same sanitizer as `headerManual`. It had
+bypassed H-1's validation: a number reached a header line as "42", and a `__proto__` key was handed
+to `Object.assign`. The screen already escaped the text, so there was no script injection.
+
+**Verified:** new leg `hdroverrides`, in the gate. Its file is v1.0.0-saved.html's own snapshot
+with the header keys swapped for `headerOverrides`, built in the page.
+- C0: the control calendar differs in a schedule-derived line.
+- H1: after the control, every line equals the file's own Auto header, except the override.
+- H2: a number, a bad id and `__proto__` are dropped, and the lines match H1's.
+- H3: the lines are baked, so moving Production afterwards leaves them as the file had them.
+- **Red before** on H1 and H2 (above). **Green after**, 4/4.
+- A mutant with the bake switched off turns H3 red, so H3 is what proves the bake.
+
 ### A crafted old-style .html calendar can no longer freeze the tab (audit L-22)
 
 **What changed:** Loading an old-style `.html` calendar used to find the saved data with one
