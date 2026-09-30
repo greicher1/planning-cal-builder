@@ -20,7 +20,18 @@
     - ✅ **Release gate on the v1.4.2 build (`4b10b339…`): 764 PASS, 0 FAIL, GATE PASSED**: every
       numbered gate green, all nine month PDFs identical to baseline, `fields.byId` 62 ids. The tag
       `v1.4.2` sits on the cut commit, placed AFTER the release gate (as v1.4.0's and v1.4.1's were).
-  - **The push** (approved by that same picker, for this cut) is recorded in the next HANDOFF note.
+  - ✅ **v1.4.2 IS LIVE, pushed on the owner's approval (that same picker) and verified.**
+    - `1d32bd0..e172daf` plus the tag `v1.4.2`. CI run `36793133778` green (Build and check, Deploy
+      to Pages).
+    - The live file is **byte-identical to `releases/v1.4.2.html`** (sha256 `4b10b339…`, 1,359,683
+      bytes) on the first fetch, and the live `version.json` reads 1.4.2, so installed users get the
+      update notice.
+    - On production in the pane, a browser tab shows the install gate (`data-app-gate="other"`: the
+      pane is neither Chrome nor Edge). The app did not boot in the tab, and the CSP meta is live.
+    - ⚠️ CI carried a notice: *the `ubuntu-latest` label moves to Ubuntu 26 from 19 Oct 2026*.
+      Nothing to do now; the workflow's actions are SHA-pinned (4.12). Watch the first run after that
+      date.
+    - This HANDOFF note is a local commit on top, for the next push.
   - **Final full gate (build `11006e6a…`): 764 PASS, 0 FAIL, GATE PASSED.** Gate 10's nine month PDFs byte-identical, one sheet per month; the waterfall PDF and every Excel part identical; gate 5's `fields.byId` key set identical at **62 ids**. (Its first run was 763/1: `onecol`'s leg, fixed; see the ruling-2 row.)
   - ⭐ **The owner's answers (picker, end of the build, 30 Sep 2026):**
     1. the CLAUDE.md region-lock convention line: **approved as drafted**, committed as `914f912`;
