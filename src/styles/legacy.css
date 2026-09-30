@@ -949,6 +949,12 @@
     border-color:var(--mantine-color-danger-6);
     box-shadow:0 0 0 2px var(--mantine-color-danger-2);
   }
+  /* Audit N-2: the line above the preview that names what made the calendar too long. The same
+     advisory look as .gap-banner (the preview's other advisory, under the sheet rules), declared
+     here in the chrome rather than by sharing that class, so nothing that selects .gap-banner
+     starts matching it. No display rule: [hidden] must keep working. */
+  .span-hint{background:#FFF4E5; border:1px solid #F0C36D; color:#7A5300; border-radius:var(--radius);
+    padding:10px 14px; font-size:12.5px; margin-bottom:14px; line-height:1.6;}
   input[type=date]:focus, input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus{
     outline:none; border-color:var(--mantine-primary-color-filled);
   }

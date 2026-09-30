@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### A mistyped year or length now points at the field responsible (audit L-10, N-2)
+
+**What changed, part 1 (L-10):** A typo'd year in a hiatus date (an all-phase hiatus, or a
+per-phase hiatus that's switched on) blanks the whole calendar with "check the fields above", but
+nothing marked which field. Only phase start dates were ringed. Now the hiatus date is ringed too.
+The ring comes from the same checks that refuse the calendar: `readState()` records the fields it
+counted, so a per-phase hiatus that's switched off (not counted) isn't ringed either.
+
+**What changed, part 2 (N-2), the owner's ruling of 30 Sep 2026, "name the cause, above the
+preview":** When the calendar would be longer than 600 weeks, the frozen preview message always
+blames "a typo in one of the years". On the reference calendar that was wrong in 4 of 5 measured
+cases: Post's weeks, the shooting days per episode, a hiatus's weeks, and a smaller weeks overrun.
+The frozen message stays as it is. A new line **above the preview**, visible whichever sidebar tab
+is open, names the one field that explains the refusal, and that field is ringed:
+- "It isn't a year: Post's 5,000 weeks make the calendar too long. Check that number."
+- "It isn't a year: Production's 8,000 shooting days (Show Info) make …". There is no ring here,
+  because Production's total is the sum of the episode list, not a field.
+- "It isn't a year: the 12/21/26 hiatus's 5,000 weeks make …"
+- "It isn't a year: Post's own hiatus, 5,000 weeks, makes …"
+- "Post starts in 2062, 36 years after Writer's Rm — check that year." It IS a year here, so the
+  line says which one.
+- When no single field explains it: "It may not be a year: the weeks and shooting days can make the
+  calendar too long as well. Check them too."
+
+The app finds the cause by asking `computeSchedule` itself: it re-checks with each candidate field
+neutralised (a length set to 1, or a phase left out), and the field that makes the calendar fit is
+the cause. This runs only while the calendar is refused.
+
+**Verified:**
+- New leg `badyear`, 6 cases. **Red before** on both hiatus cases (the audit's `ringedFields: []`).
+  **Green after**, 6/6.
+- New leg `spanhint`, 9 cases. Every refused case also asserts the frozen sentence is unchanged.
+  **Red before** on N0–N6, because the line doesn't exist there; N7 and N8 are negatives. **Green
+  after**, 9/9.
+- Both legs are in the gate.
+- In the pane, with real typing: the line and the ring appear on the Phases tab and stay visible
+  from the Show tab, and typing the number back clears both.
+
 ### Opening SPTCal no longer removes other sites' service workers (audit SUPPLY-3, ruling R7)
 
 **What changed:** At startup the app removes the caching service worker that early versions

@@ -145,6 +145,10 @@
   </aside>
 
   <main class="preview-panel">
+    <!-- Audit N-2 (owner ruling 30 Sep 2026): names the field behind a too-long refusal, because the
+         frozen message under it always blames a year. Filled and hidden from update() only. It sits
+         BEFORE #gap-warning so the sibling contract below is untouched. -->
+    <div id="span-hint" class="span-hint" role="status" aria-live="polite" hidden></div>
     <div id="gap-warning" role="status" aria-live="polite"></div>
     <!-- The toolbar ELEMENT stays static and React fills its interior, for the same reason the
          header does: #gap-warning must remain a genuine SIBLING of this row and of #table-wrap,

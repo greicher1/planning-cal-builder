@@ -3055,6 +3055,10 @@ export function initLegacyApp() {
     const allDefs = getAllPhaseDefs();
     const phases = {};
     let hasInvalidYear = false;
+    // The HIATUS date fields whose year refused the calendar (audit L-10), recorded by the same
+    // tests that set hasInvalidYear so the sidebar ring cannot disagree with the refusal. Phase
+    // starts are not listed: their ring asks frozen readCfgForMeta(), as the meta line does.
+    const badYearFields = [];
     // Once Show Info is complete it is the source of truth for how long Production runs:
     // episodes x days-per-episode replaces whatever shoot-day count was typed into the
     // Production row, everywhere (spreadsheet, export and month view alike).
@@ -3073,11 +3077,15 @@ export function initLegacyApp() {
       phases[p.key] = (startStr && weeks>0) ? {start:startStr, weeks, rawValue, snap} : null;
     });
     const hiatuses = [];
+    // The row each hiatus came from, index for index, so the span hint (audit N-2) can ring the
+    // right row's weeks. A parallel array rather than a key on the hiatus objects, which other
+    // readers copy field by field.
+    const hiatusRows = [];
     document.querySelectorAll('.hiatus-entry').forEach(el=>{
       const start = el.querySelector('.hiatus-start').value;
       const weeks = parseInt(el.querySelector('.hiatus-weeks').value, 10);
-      if(start && parseDateUTC(start)===null) hasInvalidYear = true;
-      if(start && weeks>0) hiatuses.push({start, weeks});
+      if(start && parseDateUTC(start)===null){ hasInvalidYear = true; badYearFields.push(el.querySelector('.hiatus-start')); }
+      if(start && weeks>0){ hiatuses.push({start, weeks}); hiatusRows.push(el); }
     });
     // Per-phase hiatus: a start + week count scoped to a single phase, collected only when that
     // phase's toggle is on. Keyed by phase key so the scheduler can pause just that phase.
@@ -3089,7 +3097,7 @@ export function initLegacyApp() {
       const wEl = document.getElementById('phiatus-weeks-'+p.key);
       const start = sEl ? sEl.value : '';
       const weeks = wEl ? parseInt(wEl.value, 10) : NaN;
-      if(start && parseDateUTC(start)===null) hasInvalidYear = true;
+      if(start && parseDateUTC(start)===null){ hasInvalidYear = true; badYearFields.push(sEl); }
       if(start && weeks>0) phaseHiatuses[p.key] = {start, weeks};
     });
     return {
@@ -3098,6 +3106,8 @@ export function initLegacyApp() {
       hiatuses,
       phaseHiatuses,
       hasInvalidYear,
+      badYearFields,
+      hiatusRows,
       // The HOLIDAYS key for the chosen region: 'US' / 'UK' directly, or the province key
       // ('CA-BC' etc.) when the country is Canada. Named unionCountry for continuity with the
       // rest of computeSchedule, which only ever uses it to look up HOLIDAYS[...].
@@ -12125,7 +12135,7 @@ export function initLegacyApp() {
         .map(h => ({ iso: h.date, name: h.name })),
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
     });
-    reflectStartDateValidity();
+    reflectStartDateValidity(state, refreshSpanHint(state));
     markDirty();
     restoreScroll(scrollSnap);
   }
@@ -12139,7 +12149,22 @@ export function initLegacyApp() {
   // to a SIDEBAR field (chrome), and it CALLS the frozen readCfgForMeta() for the verdict rather
   // than re-deriving it. Reading from the frozen surface is explicitly allowed; this way there is
   // no second copy of the validity rule to drift out of step with the meta line.
-  function reflectStartDateValidity(){
+  //
+  // ⛔ AUDIT L-10: the HIATUS date fields too. readState() also refuses the calendar for a bad year
+  // in an all-phase hiatus or an ENABLED per-phase hiatus, and those were never ringed, so the
+  // calendar blanked with "check the fields above" and no field was marked. They are ringed from
+  // state.badYearFields, which readState() fills with the very tests that set hasInvalidYear --
+  // so a per-phase hiatus whose toggle is off (not counted) is not ringed either. Every hiatus
+  // field is visited, so a ring clears the moment its field stops being counted.
+  //
+  // `extraBad` (audit N-2): the one field refreshSpanHint() found to explain a too-long refusal --
+  // a weeks field, a hiatus's weeks, or a phase's start. The weeks fields are in the sweep below
+  // for that reason, so their ring clears on the next update() like every other.
+  function reflectStartDateValidity(state, extraBad){
+    const bad = new Set([...((state && state.badYearFields) || []), ...(extraBad || [])]);
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"]').forEach(el=>{
+      el.classList.toggle('is-invalid', bad.has(el));
+    });
     getAllPhaseDefs().forEach(p=>{
       const el = document.getElementById('start-'+p.key);
       if(!el) return;
@@ -12147,8 +12172,101 @@ export function initLegacyApp() {
       // Defensive: a row mid-rebuild can be missing its weeks field, and a thrown error here
       // would take the rest of update() with it.
       try { bad = readCfgForMeta(p.key) === 'invalid'; } catch(err){ bad = false; }
-      el.classList.toggle('is-invalid', bad);
+      el.classList.toggle('is-invalid', bad || (extraBad || []).includes(el));
     });
+  }
+
+  // ⛔ AUDIT N-2 -- owner ruling, 30 Sep 2026: "name the cause, above the preview". When the calendar
+  // is refused as too long, frozen render() says "that's almost certainly a typo in one of the
+  // years". Measured on the reference calendar, that was wrong in 4 of 5 cases: Post's weeks, the
+  // shooting days per episode, a hiatus's weeks and a smaller weeks overrun were all blamed on a
+  // year. That sentence cannot be edited -- render() is frozen and its .empty-state is inside
+  // #table-wrap -- so #span-hint, a chrome line ABOVE the preview (before #gap-warning, visible on
+  // every sidebar tab), names the one field that explains the refusal, and that field is ringed.
+  //
+  // Sanctioned pattern 2: the verdict comes from computeSchedule itself, never from a second copy
+  // of its span arithmetic. Each candidate is re-checked with that ONE field neutralised (a length
+  // set to 1, or a phase left out); it is the cause when the calendar then fits. computeSchedule
+  // writes no module state (checked 30 Sep 2026) and the shift solvers already call it up to 300
+  // times a solve. It runs only while the calendar is refused, so a normal update() pays nothing,
+  // and Production's day loop is bounded (5,000 days) inside simulateProductionSchedule.
+  function phaseDisplayName(key){
+    const el = document.getElementById('name-'+key);
+    const typed = el ? (el.value || '').trim() : '';
+    return typed || (PHASES.find(x=>x.key===key)||{}).label || 'A phase';
+  }
+  function spanCulprit(state){
+    const fits = st => { try { const r = computeSchedule(st); return !r.error && r.weeks.length > 0; } catch(e){ return false; } };
+    const num = v => Number(v).toLocaleString('en-US');
+    const withPhase = (key, cfg) => Object.assign({}, state, {phases: Object.assign({}, state.phases, {[key]: cfg})});
+    const found = [];
+    (state.allDefs || []).forEach(p=>{
+      const cfg = state.phases[p.key];
+      if(cfg && cfg.weeks > 1 && fits(withPhase(p.key, Object.assign({}, cfg, {weeks:1, rawValue:1}))))
+        found.push({size:cfg.weeks, kind: p.inputMode === 'days' ? 'days' : 'weeks', key:p.key, value:cfg.rawValue});
+    });
+    (state.hiatuses || []).forEach((h, i)=>{
+      if(!(h.weeks > 1)) return;
+      const hs = state.hiatuses.map((x, j)=> j === i ? Object.assign({}, x, {weeks:1}) : x);
+      if(fits(Object.assign({}, state, {hiatuses: hs}))) found.push({size:h.weeks, kind:'hiatus', index:i, value:h.weeks, start:h.start});
+    });
+    Object.keys(state.phaseHiatuses || {}).forEach(key=>{
+      const ph = state.phaseHiatuses[key];
+      if(!(ph.weeks > 1)) return;
+      const phs = Object.assign({}, state.phaseHiatuses, {[key]: Object.assign({}, ph, {weeks:1})});
+      if(fits(Object.assign({}, state, {phaseHiatuses: phs}))) found.push({size:ph.weeks, kind:'phiatus', key, value:ph.weeks});
+    });
+    const tail = ' make the calendar too long. Check that number.';
+    if(found.length){
+      // More than one can fit on its own only when each is big; the biggest is the likelier typo.
+      const c = found.sort((a, b)=> b.size - a.size)[0];
+      const lead = 'It isn\u2019t a year: ';
+      if(c.kind === 'weeks') return {text: lead + phaseDisplayName(c.key) + '\u2019s ' + num(c.value) + ' weeks' + tail,
+                                     el: document.getElementById('weeks-'+c.key)};
+      // Production's total is never typed (it is the episode or block list's sum), so there is no
+      // field of its own to ring: the hint says where the number comes from instead.
+      if(c.kind === 'days') return {text: lead + phaseDisplayName(c.key) + '\u2019s ' + num(c.value) + ' shooting days ('
+                                     + (isBlocksMode() ? 'the blocks' : 'Show Info') + ')' + tail, el: null};
+      if(c.kind === 'hiatus'){
+        const row = (state.hiatusRows || [])[c.index];
+        const d = parseDateUTC(c.start);
+        return {text: lead + 'the ' + (d ? fmtShort(d) + ' ' : '') + 'hiatus\u2019s ' + num(c.value) + ' weeks' + tail,
+                el: row ? row.querySelector('.hiatus-weeks') : null};
+      }
+      return {text: lead + phaseDisplayName(c.key) + '\u2019s own hiatus, ' + num(c.value) + ' weeks, makes the calendar too long. Check that number.',
+              el: document.getElementById('phiatus-weeks-'+c.key)};
+    }
+    // No single length explains it. Then it IS a year -- which phase's? The one whose leaving-out
+    // makes the calendar fit, compared with the calendar's first other phase.
+    const starters = (state.allDefs || []).filter(p=> state.phases[p.key] && fits(withPhase(p.key, null)));
+    if(starters.length === 1){
+      const key = starters[0].key, cfg = state.phases[key], t = parseDateUTC(cfg.start);
+      const others = state.allDefs.filter(p=> p.key !== key && state.phases[p.key])
+        .map(p=> ({key:p.key, t:parseDateUTC(state.phases[p.key].start)})).filter(o=> o.t).sort((a, b)=> a.t - b.t);
+      if(t && others.length){
+        // The difference in YEAR NUMBERS, not elapsed time: someone who typed 2062 for 2026 thinks
+        // "36 years off", while 2026-01-05 to 2062-11-02 is 36.8 years and would round to 37.
+        const ref = others[0], yrs = Math.abs(t.getUTCFullYear() - ref.t.getUTCFullYear());
+        return {text: phaseDisplayName(key) + ' starts in ' + t.getUTCFullYear() + ', ' + yrs + ' year' + (yrs === 1 ? '' : 's') + ' '
+                      + (t > ref.t ? 'after' : 'before') + ' ' + phaseDisplayName(ref.key) + ' \u2014 check that year.',
+                el: document.getElementById('start-'+key)};
+      }
+    }
+    return {text: 'It may not be a year: the weeks and shooting days can make the calendar too long as well. Check them too.', el: null};
+  }
+  // Returns the fields to ring, for reflectStartDateValidity(). Hidden, and empty, unless refused.
+  function refreshSpanHint(state){
+    const host = document.getElementById('span-hint');
+    let c = null;
+    if(currentSchedule && currentSchedule.error === 'too-large'){
+      try { c = spanCulprit(state); } catch(e){ console.error(e); c = null; }   // never take update() down
+    }
+    const text = c ? c.text : '';
+    if(host){
+      if(host.textContent !== text) host.textContent = text;
+      host.hidden = !text;
+    }
+    return (c && c.el) ? [c.el] : [];
   }
 
   // ---- Production Region (country + optional province) -------------------------------------
@@ -17439,7 +17557,8 @@ export function initLegacyApp() {
     // until something rendered. A mutation record arrives regardless, and the layout reads inside
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice'].forEach(id=>{
+    // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });
