@@ -23,6 +23,23 @@
     Chrome sat at 0% CPU until `run.sh`'s 390 s cap while the PWA peer's gate ran beside it. Alone on
     the identical build: **6/6**. ⭐ Agreed with the PWA peer since: full gates are SERIALIZED (each
     session messages the other before starting one), because two at once keeps producing these stalls.
+  - 🤝 **The PWA install gate MERGED into local `main` as `fbc7b35`** (owner-approved in its session,
+    rebased onto `fb19bd7`, not pushed; §2l). This session paused at `fb19bd7` for it, per the agreed
+    protocol. ⚠️ `dist` in the main checkout went stale at the merge: rebuild before any gate.
+    `npm run check` is **25/25** now (the gate added 11 checks).
+  - **Batch-5 check 1: the crash backup with TWO REAL TABS. Verdict: WORKS, no fix.** In the pane
+    (`cal-harness-8390`, typed edits):
+    - Tab A's edit went to slot `…syd4`, and tab B's edit to its own slot `…xdaz`. A's was untouched,
+      which is the SAVE-7 fix: v1.3.0's single slot let the last tab overwrite the other's work.
+    - A second edit in A updated A's slot in place. Then A was closed unsaved (the "crash"), and a
+      fresh tab C recovered A's newest work ("TAB A second"). C re-backed it up at once under its own
+      slot (`…mj6s`, same second) and retired A's. Live tab B's slot was untouched throughout.
+    - ⚠️ Seen, as documented (not in FIX-PLAN; the owner has not asked): a NEW tab is offered a LIVE
+      tab's slot. Tab B was offered A's while A was open. Recovering there would copy A's work into
+      B and retire A's slot until A's next edit re-writes it, so nothing is lost.
+    - ⚠️ NEW observation: a page closed without saving leaves its slot forever. Only a Save (its own
+      slot), New or a recovery (the source slot) removes one. The pane's origin had accumulated ten
+      stale slots from earlier harness runs. Each is a few KB; the owner has not been asked.
 - ⏭ **RESUME HERE (end of the 30 Sep 2026 session; the owner asked for a hand-off).**
   - **Tip and push state:** local `main` = `0d06eff`, **15 commits ahead** of `origin/main` (`f2d59a0`,
     v1.4.0). **Nothing is pushed.** `dist/` was last built from `0d06eff`.
@@ -201,7 +218,7 @@
       there needs the owner's OK.
     - Width: two more buttons will probably wrap the toolbar row at laptop widths. Measure before
       building. The fallback is Reset notes in the app header, where Reset All was.
-- ⏸ 30 Sep 2026: PWA-only access is PLANNED, the owner is deciding. See §2l and PWA-ONLY-PLAN.md.
+- ✅ 30 Sep 2026: PWA-only access BUILT and merged into local main at fbc7b35 (not pushed; ships with the next release). See §2l.
 
 ### ✅ 30 Sep 2026: the "Unscheduled gap found" banner is REMOVED (owner request)
 
@@ -3789,19 +3806,48 @@ Next step once answered: write `MONTH-VIEW-PLAN.md` (the convention `COLUMN-ORDE
 `HEADER-PRESETS-PLAN.md` follow), so the frozen-edit ruling is made **once against a concrete list**
 rather than per feature.
 
-### 2l. PWA-only access (the hosted link installs the app; a browser tab never runs it): ⏸ PLANNED, owner deciding (30 Sep 2026)
+### 2l. PWA-only access (the hosted link installs the app; a browser tab never runs it): ✅ BUILT, gated, and MERGED into local main as `fbc7b35` (owner's picker, 30 Sep 2026); NOT pushed: the owner chose to ship it with the next release
 
-Owner's ask (30 Sep 2026): users should only use SPTCal as the installed PWA. In Chrome/Edge, a first visit to the hosted link shows only a big, centred install button. Once the app is installed, opening the link in a tab shows a large "use the app" message. Edge is a nice-to-have.
+**The ask (owner, 30 Sep 2026):** users should only use SPTCal as the installed PWA. In Chrome/Edge, a first visit to the hosted link shows only a big, centred install button. Once the app is installed, opening the link in a tab shows a large "use the app" message. Edge is a nice-to-have.
 
-- **The plan:** `PWA-ONLY-PLAN.md` at the repo root. It's untracked; the owner decides when to commit it. It holds the design, the risks, the build order, nine owner decisions (D1–D9) and four voices of wording for every message. The owner was also shown an interactive mock-up in the session.
-- ⛔ **This was tried before and reverted** (`ffadc6d` → `edaf49b`, 23 Jul). That gateway also gated the installed app, because an installed PWA loads the same URL. The new design checks `display-mode` first (standalone, window-controls-overlay, minimal-ui, fullscreen) and fails OPEN. It gates only on https with host `greicher1.github.io`, never on `file://` or localhost, so the harness and shareable copies are unaffected.
-- ✅ **Measured on Chrome 154, and it overturns Chrome's own docs:** `beforeinstallprompt` fires with NO service worker and NO engagement requirement. Fresh profile, no clicks: 22–285 ms locally, 860 ms on the live site. Today's sidebar "Install as app" button does appear. The app's computed id is `https://greicher1.github.io/planning-cal-builder/`.
-- ✅ **A tab can detect an existing install:** `getInstalledRelatedApps()`, once `related_applications: [{platform:"webapp", id:<that URL>}]` is added to the data: manifest. Proven for installs made from the OLD manifest, so no one has to reinstall. It returns `[]` after uninstall. ⚠️ "The prompt didn't fire" is NOT proof of an install: headless Chrome fired it after one.
-- ⚠️ **Probe traps:**
-  - CDP `PWA.install` is refused over `--remote-debugging-port` and works over `--remote-debugging-pipe`.
-  - Headless Chrome can't produce a standalone window, so the gate needs a localhost-only test override.
-  - Never test-install under the name `SPTCal`: a headful install writes an app shim beside the owner's real one.
-- **Overlap with FIX-PLAN 4.9:** it stays as ruled (R6). A `file://` copy in Safari/Firefox is never gated, and 4.9's notice is what that user sees. The gate's "open in Chrome" screen reuses 4.9's wording.
+**Rulings (owner, verbatim):** *"1. wording looks good. 2. Lets use install. 3. next release. 4. Contact Graham Reicher for help. 5. yes 6. yes 7. yes. 8. solid navy. 9. no."* (D1–D9 in `PWA-ONLY-PLAN.md` §9.)
+
+**How it works:** a classic script at the top of `src/index.html`'s `<head>` decides before anything paints.
+- On https + `greicher1.github.io`, in a window that is NOT an app window, `<html data-app-gate="<screen>">` shows `#app-gate`, and `main.jsx` skips `root.render` and `initLegacyApp()`.
+- There are nine screens: checking, install, box, cancelled, done, already, menu, other, phone.
+- The resolver is pure (`window.__appGate.decide`); "installed" beats "installable".
+- `beforeinstallprompt` is captured in the head, and `getInstalledRelatedApps()` recognises installs.
+- A tab that Chrome turns into the app window reloads into the app.
+- ⛔ **The window check (`display-mode`) runs first and fails OPEN.** July's gateway (`ffadc6d` → `edaf49b`) locked installed users out.
+- Never gated: `file://` and localhost.
+- Test hooks (localhost only): `?gate=<screen>`, `?gate=live`, `?brand=`, and `localStorage sptcal.gateTest='live'`.
+
+**Manifest:** `related_applications [{platform:"webapp", id:"https://greicher1.github.io/planning-cal-builder/"}]` and `launch_handler focus-existing`, both appended. ⛔ No `id` key: the COMPUTED id is the installed identity (measured with `Page.getAppId`), and `check-build` guards it.
+
+**Retired:** `#install-app-btn` (D6). Its engine listener, CSS rule and bridge entry are gone.
+
+**Proved:**
+- `check-build` 25/25.
+- `pwagate` 13/13 and `pwagatelogic` 10/10, in `gate.sh` at the START of the AFSPEC list. Three mutations turn them red: engine under the gate 9/13, a smaller button 5/13, installable over installed 2/10.
+- Full gate 666/0 on 9577784, and 686/0 rebased onto 80ebd56. After the final rebase onto fb19bd7 (L-11), `npm run check` 25/25 and both legs were re-run; the next full gate covers the merge.
+- `fence` A/B against the base: 511 entries, 0 differences.
+- **Real headful Chrome 154** with a renamed test app: first visit shows INSTALL with the real prompt captured; a tab after install shows ALREADY INSTALLED; **the installed app window boots the app** (standalone, no gate, 6 phase rows).
+
+**⏭ Owed by hand, after deploy:**
+- The tab turning into the app window after an install from the big button. This was only proven synthetically: CDP `PWA.openCurrentPageInApp` hung.
+- "Open SPTCal" being captured into the app.
+- Edge's menu wording.
+- On the owner's own machine: a tab shows ALREADY INSTALLED, and the installed app still boots.
+
+**⚠️ Traps:**
+- The Edit tool drops a trailing space at the end of `new_string`. It produced `rel="manifest"href=`, and `check-build` caught it.
+- Flex drops the spaces around inline span pairs.
+- A CDP `PWA.install` leaves the app set to open in a browser TAB, so call `PWA.changeAppUserSettings({displayMode:'standalone'})` first.
+- ⛔ A crashed headful probe leaves an app shim in `~/Applications/Chrome Apps`. Remove only a shim whose `CrAppModeShortcutURL` is the probe's `localhost`; the owner's real `SPTCal.app` is beside it.
+
+**Owner's picker (30 Sep 2026):** commit on the branch ✅; merge into local main between batch-4 commits ✅ (`fbc7b35`, on top of `fb19bd7`); the CLAUDE.md rule "The hosted link boots the app only in the installed app window", added as shown ✅; push: **not yet**, it ships with the next release cut.
+
+**Where things are:** branch `pwa-gate` and worktree `.claude/worktrees/pwa-gate` remain. The plan and as-built notes are `PWA-ONLY-PLAN.md` §§9–11.
 
 ### 2e. Known, deliberately left alone
 
