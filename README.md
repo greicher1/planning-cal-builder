@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Docs: a threat model, and the custom-domain plan (audit batch 5)
+
+Paper only; the app is unchanged.
+- **`THREAT-MODEL.md`**, the app's first. It covers what a hostile file or page could reach: the
+  calendars, the live file grants in the Recents list, the crash backups and the preferences. It
+  explains why the audit's worst case is closed. An injected script could once have written silently
+  to any file granted that session (audit H-1). The boundary validator (v1.3.0) and now the
+  Content-Security-Policy (v1.4.1) close it independently. It also lists what remains and where each
+  risk is handled.
+- **`CUSTOM-DOMAIN-PLAN.md`** (owner ruling R7): moving the app to an origin of its own, because
+  every Pages site of the account shares `greicher1.github.io`. It covers the DNS steps, and what
+  cannot follow the move: the Recents list, crash backups, preferences and header presets, and the
+  installed app, once per user. It also has a notice for users a release ahead, the two ways to do
+  it (recommended: this repo's Pages takes the domain), and four owner decisions. Nothing is built.
+
 ### The deploy runs only from main, and its actions are pinned by commit (audit N-7)
 
 **What changed:** CI only; the app is untouched.

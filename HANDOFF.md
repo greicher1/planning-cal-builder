@@ -140,9 +140,14 @@
         upload-artifact v7.0.0 inside), deploy-pages v5.0.1 `368f8252…`.
     - deploy-pages v5 documents only `pages: write` + `id-token: write`. v4.0.0's notes mentioned
       `actions: read`, yet v4 deployed without it.
-    - ⏭ Its PUSH is asked for SEPARATELY (owner). Suggested: push it ALONE on `origin/main` first
-      (cherry-pick), so CI redeploys the current v1.4.0 file through the new pipeline. Check the live
-      hash is unchanged, then rebase `main` BEFORE the v1.4.1 tag.
+    - ⭐ **Owner (picker, 30 Sep 2026): push it ALONE now.** Pushed as `645be63` =
+      `f2d59a0` + the workflow file ONLY (made in a scratch worktree on `origin/main`; the local
+      `22ab42d` also carries its README/HANDOFF records). CI run `36777572042`. Local `main` gets it
+      by a MERGE, not a rebase, so every commit hash these docs cite stays valid.
+  - **Batch-5 paper items done:** `THREAT-MODEL.md` (the app's first: the H-1 live-file-grants case
+    and why it is closed twice over, validator + CSP, and the residuals) and `CUSTOM-DOMAIN-PLAN.md`
+    (R7: DNS, the one-time loss of Recents / backups / prefs / installed app, the notice, A vs B with
+    A recommended, four owner decisions). Nothing built.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito
