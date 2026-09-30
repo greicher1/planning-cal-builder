@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Each holiday agreement's caveat shows under the location picker (audit N-9)
+
+**What changed:** The holiday research carries a caveat for seven agreements: something their
+holiday list can't express. Until now only `tools/gen_holidays.py`'s JSON kept them, and none
+reached the app. The owner's ruling (30 Sep 2026) was **all seven, from the generator**. The
+generator now emits a `REGION_CAVEATS` block beside `HOLIDAYS`, spliced into the engine the same
+way, so the text has one source. The location picker shows the place's own caveat (as Chicago's
+already did), then its agreement's:
+- **New York:** Juneteenth's presence in Local 52 is inferred, not read from the agreement.
+- **Montreal / Quebec:** the employer picks Good Friday OR Easter Monday. The wording, approved by
+  the owner, now says how to switch.
+- **Ontario:** the agreement's "any other day declared a holiday" catch-all.
+- **England, Wales and Northern Ireland:** the producer's bank-holiday option (not on Band 4).
+- **Victoria:** Melbourne Cup's regional exception.
+- **Lithuania:** its working-day moves.
+
+**Verified:**
+- The regenerated `HOLIDAYS` is **byte-identical** to the engine's. The only new bytes are the
+  caveat block, and `tools/validate_holidays.py` says CLEAN, every region 2024–2031.
+- New leg `regioncaveat`, 12 cases, in the gate. Every place under the seven agreements shows its
+  line and only that one. The general US list shows none, and Chicago shows only its own.
+  - **Red before:** all ten agreement cases.
+  - **Green after**, 12/12.
+- In the pane: Quebec's line renders under the picker in the existing caveat box.
+- Regression: `holidays2031` 6/6, `regionlock` 7/7, `hostile` 13/13, and `restore` identical to its
+  baseline.
+
 ### Export on a calendar with nothing to show says why (audit N-3)
 
 **What changed:** While the preview is empty (no dates yet, or a calendar refused as more than 600

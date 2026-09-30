@@ -166,8 +166,9 @@ This was rebuilt from primary union-contract sources. **The data is generated fr
 hand-transcribed — regenerate it rather than editing dates by hand.**
 
 **Years covered: 2024–2031** (v1.3.1; audit M-7). `python3 tools/gen_holidays.py` (default range) writes
-`holidays.app.js` — the engine's `HOLIDAYS` block exactly, per-region source line and all — to splice
-over the block in `src/legacy/app.js`; `python3 tools/validate_holidays.py`, run in the same directory,
+`holidays.app.js` — the engine's `HOLIDAYS` block exactly, per-region source line and all, and since
+v1.4.1 the `REGION_CAVEATS` block right after it (each agreement's caveat, audit N-9) — to splice over
+that span in `src/legacy/app.js`, as ONE span; `python3 tools/validate_holidays.py`, run in the same directory,
 then diffs every generated year against the engine and must say CLEAN. A rule may carry
 `{"since": YEAR}` for a day an agreement added. ⚠️ 2024–2025 and 2031 otherwise apply each region's
 CURRENT rules; a past year under an older agreement may differ (Ontario's eleven days come from the
@@ -273,7 +274,9 @@ twelve, and the only one that carries one-off holidays (Scotland had a World Cup
 auto-upgrade clause if Ontario legislates it.
 
 Other notes: **Quebec requires Good Friday *or* Easter Monday (employer's choice)** — the app
-lists Good Friday; switch manually if a production observes Easter Monday. **Nova Scotia is the
+lists Good Friday; switch manually if a production observes Easter Monday. *(Since v1.4.1 this, Local
+52's Juneteenth inference and the five other agreement caveats show under the location picker:
+`REGION_CAVEATS`, generated beside `HOLIDAYS`; audit N-9.)* **Nova Scotia is the
 outlier** with only 6 (no Victoria Day, Thanksgiving, or Boxing Day) — a Halifax production's
 IATSE 849 agreement may add some back, but there was no primary source for it so nothing was
 invented.

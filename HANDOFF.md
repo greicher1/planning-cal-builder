@@ -51,6 +51,7 @@
 | 4.7 | L-23 | ✅ done: `hasNoteEdits()` counts `dayNotes` days that still hold text. `commitMvNoteEditor()` now calls `reflectCountryLock()` (the waterfall commit always did; without it the lock showed only at the next update). The holiday question is ONE function, `confirmHolidayRecompute()`, used by `.hv-en`, the bulk toggle and the custom-holiday `add()` (now async; Cancel keeps the typed values; the duplicate check is re-run after the dialog). ✅ **Answered 30 Sep (relayed ruling 7 below):** removing a custom holiday (`.hv-del`) and "Reset holidays" also get the recompute prompt, but in the header-controls build AFTER v1.4.1, not in v1.4.1 | `regionlock` 7/7, in the gate. Red before: L1, L2 (the audit's 10/20 → 10/19), H1, H2. The pane, with real clicks |
 | 4.9 | L-20 (R6) | ✅ done (code + HANDOFF §3 B): `#browser-notice` strip (src/index.html, after `#colswap-notice`; the shared strip CSS in the update strip's blue; `wireBrowserNotice()` sets it both ways from `supportsFsAccess`; session-only dismiss; re-hidden in `buildSavedHtml`'s clone; in the grid-fit list). Text: "SPTCal saves and loads in Chrome or Edge." (the PWA-plan peer reuses it). ⏳ **CLAUDE.md's matching sentence ("opening a calendar works fine") is drafted and shown to the owner; it is committed only on approval** | `nofsa` 6/6, in the gate. It removes the API before boot. Red before: no strip. A mutant without the clone re-hide turns B3 red |
 | 4.10 | N-3 | ✅ done: `Header.jsx`'s two export buttons are truly `disabled` only while BUSY. The "nothing to show" state (frozen `render()`'s `{disabled:true}`) is `data-disabled`, Mantine's disabled look that stays clickable, so the engine's click handlers run `explainNothingToExport()`: a "Nothing to export" `uiAlert` quoting `#table-wrap .empty-state`'s own text plus `#span-hint` when shown. Nothing frozen is edited | `exportrefused` 5/5, in the gate. Red before: E0–E3 (dead buttons). The pane: a real click on the grey button |
+| 4.13 | N-9 | ✅ done. ⭐ **Owner ruling 30 Sep 2026 (picker): "all seven, from the generator"**, plus the Quebec wording shown in that picker. `tools/gen_holidays.py` emits `REGION_CAVEATS` right after `HOLIDAYS` in `holidays.app.js`; the two are spliced as ONE span. `reflectRegionUI()` shows the place's own caveat, then `REGION_CAVEATS[place.region]`, one `<div>` per line. The regenerated HOLIDAYS is byte-identical, and `validate_holidays.py` says CLEAN | `regioncaveat` 12/12, in the gate. Red before: A1–A10. The pane: Quebec |
 
 - ⚠️ **Seen in 4.4, NOT fixed (frozen `render()`):** a phase's meta line prints a 2122 end date as
   "8/30/22" (two-digit year): with Post at 5,000 weeks it reads "11/2/26 → 8/30/22 (5000 wk)". It
@@ -64,9 +65,19 @@
     returns `gaps`. Don't re-add it, or frozen `render()`'s banner comes back. `#gap-warning` stays in
     the markup, always empty, because `render()` writes to it with no null check. Its own entry is
     the next block down.
-  - **"PWA-only browser strategy"** is writing a plan only (an untracked `PWA-ONLY-PLAN.md`). 4.9
-    stays with batch 4 as ruled. It will send its HANDOFF §2 text to be inserted here, rather than
-    editing the file itself.
+  - **"PWA-only browser strategy"**: 4.9 stays with batch 4 as ruled. Its HANDOFF §2l landed verbatim
+    in `9577784`. The owner has since ruled on all nine of its decisions (D1–D9), and it is BUILDING the
+    gate in `.claude/worktrees/pwa-gate` (branch `pwa-gate`, cut from `9577784`). `PWA-ONLY-PLAN.md`
+    lives there until that branch merges, so §2l's "repo root" is true only after the merge.
+    - Its files: src/index.html (a classic inline script and a style block after the viewport meta;
+      a `#app-gate` div; `#install-app-btn` removed), main.jsx (an early return), app.js (ONLY the
+      install-affordance block), legacy.css, bridge.js, check-build.mjs (manifest-key checks and a
+      "Get Chrome" link allowlist), and new legs `pwagate` / `pwagatelogic`.
+    - ⛔ **Agreed for 4.1 (CSP):** the CSP meta goes FIRST in `<head>`, right after `<meta charset>`,
+      then the referrer meta. The build step hashes EVERY executable inline script, so the gate's
+      script is covered whichever branch merges first. Whoever merges second rebuilds and re-runs
+      `npm run check`. The gate must use no inline `on*=` handlers and no `javascript:` URLs. Message
+      that session before touching `src/index.html`'s head or check-build.mjs.
 - ⚠️ **`T.gridSignature()` returns an ARRAY.** Two of them are never `===`. Compare with
   `JSON.stringify` (found writing `wholenum`, where it read as "the schedule changed").
 - ⚠️ **The Write tool turns `\u2019` typed in a JS string into the literal character.** Legs

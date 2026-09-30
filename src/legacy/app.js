@@ -2878,6 +2878,19 @@ export function initLegacyApp() {
     ],
   };
 
+  // ⛔ GENERATED with HOLIDAYS by tools/gen_holidays.py: the caveat each agreement carries --
+  // what its holiday list cannot express (audit N-9). reflectRegionUI() shows it under the
+  // location picker, after the place's own caveat. Change the text in the generator, never here.
+  const REGION_CAVEATS = {
+    'US-NY': "Juneteenth's presence in Local 52 is inferred from the industry-wide pattern, not read from the Local 52 agreement. Included because under-counting costs a wrap date; confirm with the local before locking.",
+    'CA-ON': "ON4.02 ends in a catch-all — 'any other Day declared a holiday by the federal, provincial, or municipal (local) government'. That floats and cannot be generated. Use a custom holiday when one is declared.",
+    'CA-QC': "Quebec gives the employer a choice of Good Friday OR Easter Monday — one day, not two. Good Friday is listed; if the production observes Easter Monday, turn Good Friday off and add Easter Monday as a custom holiday.",
+    'UK-EW': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
+    'UK-NI': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
+    'AU-VIC': "Melbourne Cup Day applies statewide only where a non-metro council has not arranged an alternate local holiday — a regional unit may be off on a different day.",
+    'LT': "Lithuania does not transfer a holiday that falls on a weekend. Separately, the Government moves WORKING days around holidays by annual resolution — that is not derivable and must be checked each year.",
+  };
+
   // ⛔ WHICH COLUMN BLOCK DOES THIS WEEK BELONG TO? Until 10 Sep 2026 that was the same question as
   // "what year is this week in", so ten sites across the swap and selection machinery derived it
   // with String(weekIso).slice(0, 4) -- and they were right, because there was exactly one block
@@ -12433,8 +12446,12 @@ export function initLegacyApp() {
     if(res) res.textContent = p ? (p.label + ' \u2192 ' + p.region) : '';
     if(loc) loc.textContent = p ? p.locals : '';
     if(cav){
-      cav.textContent = (p && p.caveat) ? p.caveat : '';
-      cav.style.display = (p && p.caveat) ? 'block' : 'none';
+      // The PLACE's own caveat (a proxy list, a local holiday the agreement lacks), then its
+      // AGREEMENT's (audit N-9: REGION_CAVEATS, generated beside HOLIDAYS by tools/gen_holidays.py).
+      // Either, both or neither, one per line. Text only: every line is the app's own data.
+      const lines = [p && p.caveat, p && REGION_CAVEATS[p.region]].filter(Boolean);
+      cav.replaceChildren(...lines.map(t => { const d = document.createElement('div'); d.textContent = t; return d; }));
+      cav.style.display = lines.length ? 'block' : 'none';
     }
   }
 

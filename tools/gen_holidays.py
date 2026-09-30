@@ -14,7 +14,9 @@ Output:
   holidays.data.js      drop-in HOLIDAYS / REGIONS / PLACES for src/legacy/app.js
   holidays.app.js       the HOLIDAYS block EXACTLY as src/legacy/app.js carries it (per-region
                         source line, ONE-OFF / PROVISIONAL tags, the app's region order), so a
-                        regeneration can be spliced in and diffed line for line
+                        regeneration can be spliced in and diffed line for line -- FOLLOWED BY the
+                        REGION_CAVEATS block (each agreement's caveat, audit N-9, 30 Sep 2026). The
+                        two are spliced as ONE span: from "  const HOLIDAYS = {" to REGION_CAVEATS' "  };"
 
 Usage:  python3 gen_holidays.py [--years 2024 2031]
 
@@ -264,8 +266,10 @@ REGIONS = {
         observance="roll_fwd",
         note="AMPTP is not a party to anything in Quebec — the US-service agreement is AQTIS 514 "
              "with AQPM. Neither 30 September nor Remembrance Day is a Quebec statutory holiday.",
+        # Wording approved by the owner, 30 Sep 2026 (4.13 picker): "switch it manually" said what, not how.
         caveat="Quebec gives the employer a choice of Good Friday OR Easter Monday — one day, not "
-               "two. Good Friday is listed; switch it manually if the production observes Easter Monday.",
+               "two. Good Friday is listed; if the production observes Easter Monday, turn Good Friday "
+               "off and add Easter Monday as a custom holiday.",
         rules=CA_COMMON + [
             ("National Patriots’ Day",              ("mon_on_before", 5, 24)),
             ("Fête nationale (St-Jean-Baptiste)",   ("fixed", 6, 24)),
@@ -589,6 +593,20 @@ def main():
                    else ("   // ONE-OFF -- government-declared, no rule produces this" if h.get("oneoff") else ""))
             app_lines.append(f"      {{date:'{h['date']}', name:'{nm}'}},{tag}")
         app_lines.append("    ],")
+    app_lines.append("  };")
+    # Each agreement's caveat -- what its holiday list cannot express -- right after HOLIDAYS (audit
+    # N-9; owner ruling 30 Sep 2026, "all seven, from the generator"). The text is holidays.json's
+    # "caveat", so it has one source. Regions without one are absent. JSON-quoted, because the texts
+    # carry both kinds of apostrophe.
+    app_lines += ["",
+                  "  // ⛔ GENERATED with HOLIDAYS by tools/gen_holidays.py: the caveat each agreement carries --",
+                  "  // what its holiday list cannot express (audit N-9). reflectRegionUI() shows it under the",
+                  "  // location picker, after the place's own caveat. Change the text in the generator, never here.",
+                  "  const REGION_CAVEATS = {"]
+    for key in APP_ORDER:
+        cav = out["regions"][key]["caveat"]
+        if cav:
+            app_lines.append(f"    '{key}': {json.dumps(cav, ensure_ascii=False)},")
     app_lines.append("  };")
     assert sorted(APP_ORDER) == sorted(out["regions"]), "APP_ORDER must name every region exactly once"
     with open("holidays.app.js", "w", encoding="utf-8") as f:
