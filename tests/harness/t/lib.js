@@ -29,6 +29,13 @@ window.__T = (function(){
     nativeSet(e, v); ['input','change'].forEach(function(t){e.dispatchEvent(new Event(t,{bubbles:true}));});
   }
   function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+  // Alt+Left / Alt+Right on the document: the column swap's keyboard path. The toolbar's
+  // ◀ Swap / Swap ▶ buttons only duplicated it, and they went with owner ruling 2 (30 Sep 2026),
+  // so the swap legs press the keys. The engine's handler needs a live selection in the
+  // Waterfall and ignores the keys while focus is in a text field, exactly as for a user.
+  function altSwap(dir){
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: dir < 0 ? 'ArrowLeft' : 'ArrowRight', altKey: true, bubbles: true, cancelable: true}));
+  }
   // A realistic 10-episode US-General calendar spanning two year blocks, with every phase dated
   // so the notes column carries milestones AND holidays.
   function buildFixture(){
@@ -439,5 +446,5 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup};
+          latestBackup:latestBackup,altSwap:altSwap};
 })();

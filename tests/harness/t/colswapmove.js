@@ -116,9 +116,8 @@ window.addEventListener('load', function () { (async function () {
     //     top UX risk in this feature, and the buttons stay enabled precisely so a press can answer
     //     "why can't I". (After the swap the right direction becomes the un-swap, so this is the one
     //     moment in the fixture where it is genuinely unavailable.)
-    var right = document.getElementById('colswap-right-btn');
-    out.rightExists = !!right;
-    right.click();
+    // Alt+Right, the keyboard path the Swap ▶ button duplicated until owner ruling 2 removed it.
+    T.altSwap(1);
     await T.sleep(300);
     out.rightNoOp = OVERLAP.every(function (w) { return rowOf(w) === out.before[w]; });
     var chip0 = document.querySelector('.grid-swap-layer .grid-swap-chip');
@@ -126,12 +125,9 @@ window.addEventListener('load', function () { (async function () {
     out.chipText = chip0 ? chip0.textContent : '';
     out.chipExplains = /column beside it|different widths|whole run|Nothing would move|Can’t swap/.test(out.chipText);
 
-    // 4. The toolbar is the primary path (discoverable, keyboard, touch). Press it and require the
-    //    ENTIRE run to move in one step -- not one week, and not a per-week undo trail.
-    var btn = document.getElementById('colswap-left-btn');
-    out.btnExists = !!btn;
-    out.btnVisible = !!(btn && btn.offsetParent !== null);
-    btn.click();
+    // 4. Alt+Left (the toolbar's ◀ Swap only duplicated it and went with owner ruling 2). Press it
+    //    and require the ENTIRE run to move in one step -- not one week, and not a per-week undo trail.
+    T.altSwap(-1);
     await T.until(function () { return rowOf('2026-11-16') === 'post@0/cs1 prodPrep@1/cs1'; },
       'the swap to land', 120, 100);
     await T.sleep(200);
@@ -163,7 +159,7 @@ window.addEventListener('load', function () { (async function () {
     //    assertion even though the store is unreachable from a test: gridColSwaps is re-read by the
     //    reconciler on every recompute, so if the entries had survived as no-ops the grid would come
     //    back swapped. A byte-identical return to the pre-swap layout is only possible if they went.
-    document.getElementById('colswap-right-btn').click();
+    T.altSwap(1);
     await T.until(function () { return rowOf('2026-11-16') === out.before['2026-11-16']; },
       'the reverse move to land', 120, 100);
     await T.sleep(250);

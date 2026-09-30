@@ -66,6 +66,9 @@ export const chrome = {
       : opts && opts.kind === 'choice' ? (window.alert(opts.message), null)
       : (window.alert(opts && opts.message), true)
   ),
+  // ⛔ NO CONSUMER since owner ruling 2 (30 Sep 2026) removed the toolbar's Expand / Pull back and
+  // Swap buttons; the engine still pushes it, and this no-op is kept so it always has a function to
+  // call. The history, as written for those buttons:
   // { count, expandable, allFilled, swap:{ visible, leftOk, rightOk, leftLabel, rightLabel } } —
   // the multi-cell grid selection: batch expand (Feature 1) and column order (Feature 2). Bridged
   // for the same reason as undoRedo: the buttons' disabled state has to be a real Mantine state,

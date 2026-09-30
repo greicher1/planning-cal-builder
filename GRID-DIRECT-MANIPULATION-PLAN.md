@@ -7,6 +7,12 @@ Written Sep 2026. Self-contained: it assumes no memory of the analysis that prod
 [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) first, then this. It supersedes nothing;
 it is a plan, not a record of work done.
 
+> ⛔ **30 Sep 2026 (owner ruling 2, built after v1.4.1): the TOOLBAR's Expand / Pull back and
+> ◀ Swap / Swap ▶ buttons are REMOVED.** Where this plan calls them the primary path, read the grid's
+> own gestures instead. Double-click (or Enter) on a selected cell expands or pulls back, Alt+←/→
+> swaps its column, and the knob takes a click or a drag. The selection's count chip names them
+> ("double-click to expand · Alt+←/→ to swap"). HANDOFF.md, the header-controls build, has the record.
+
 > ✅ **D1 GRANTED (owner, 1 Sep 2026) — Feature 2 is authorised.** Grid **column order** may be
 > user-overridable; a phase's column may vary per week. That is the 29 Aug appearance convention's
 > *"unless given specific instructions from the user"* escape, invoked explicitly, and it is

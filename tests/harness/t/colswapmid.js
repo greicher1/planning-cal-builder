@@ -97,7 +97,7 @@ window.addEventListener('load', function () { (async function () {
     out.labelNamesOverlap = /2\/16/.test(out.knobLabel) && /3\/23/.test(out.knobLabel);
 
     // 4. One press moves all six shared weeks.
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);   // Alt+Left: the Swap buttons went with owner ruling 2
     await T.until(function () { return rowOf('2026-02-16') === 'prePrep@0/cs1 writersRoom@1/cs1'; },
       'the mid-overlap swap to land', 120, 100);
     await T.sleep(250);

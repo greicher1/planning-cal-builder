@@ -92,7 +92,7 @@ window.addEventListener('load', function () { (async function () {
     out.amberMatchesCount = out.amberRects === 28;
 
     // 3. It commits, and the confirmation says the same thing in the past tense.
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);   // Alt+Left / Alt+Right: the Swap buttons went with owner ruling 2
     await T.until(function () { return (snap().prePrep || '').indexOf('slot0 ') === 0; }, 'the swap to land', 150, 100);
     await T.sleep(400);
     out.after = snap();
@@ -106,7 +106,7 @@ window.addEventListener('load', function () { (async function () {
 
     // 4. Reversing restores the year exactly, widening included.
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 150, 100);
-    document.getElementById('colswap-right-btn').click();
+    T.altSwap(1);
     await T.until(function () { return (snap().prePrep || '').indexOf('slot1 ') === 0; }, 'the reverse to land', 150, 100);
     await T.sleep(400);
     out.afterReverse = snap();

@@ -12,7 +12,8 @@
 //
 // So this component RENDERS ONCE AND NEVER RE-RENDERS. It contributes structure and Mantine's
 // design language; the engine keeps every behaviour it has today, untouched. The only state React
-// owns is undo/redo's disabled flag, and only because Mantine will not style it otherwise (below).
+// owns is undo/redo's disabled flag and the Header button's label (owner ruling 1), each only because
+// Mantine will not draw it otherwise (below).
 //
 // THREE MANTINE COMPONENTS ARE DELIBERATELY NOT USED HERE:
 //
@@ -55,25 +56,16 @@ export function PreviewToolbar() {
   // instead of `opacity:.4`, which composited to 1.72:1 on the app's ground: the worst contrast in
   // the file, on its two most-used disabled controls (UI-CONVENTIONS.md §3b).
   const [undoRedo, setUndoRedo] = useState({ undo: true, redo: true })
-  // The batch-expand button's state. Same justification as undoRedo above, plus one of its own: the
-  // label flips between "Expand" and "Pull back", and the engine must never write a Mantine
-  // Button's textContent -- that destroys its inner spans. So the label is DERIVED here from
-  // bridged data, never pushed as a string.
-  const [gridSel, setGridSel] = useState({
-    count: 0, expandable: 0, allFilled: false,
-    swap: { visible: false, leftOk: false, rightOk: false, leftLabel: '', rightLabel: '' },
-  })
-  // The Header button (owner ruling 1). Bridged, not imperative, for the same two reasons as the
-  // batch button above: its label changes (Auto / Template / Manual), and the engine must never
-  // write a Mantine Button's textContent. `view` picks which header's mode it shows.
+  // The Header button (owner ruling 1). Bridged, not imperative, for the same reason as undo/redo:
+  // its label changes (Auto / Template / Manual), and the engine must never write a Mantine Button's
+  // textContent -- that destroys its inner spans. So the label is DERIVED here from bridged data.
+  // `view` picks which header's mode it shows. (The batch-expand button, the first control built this
+  // way, went with owner ruling 2.)
   const [hdr, setHdr] = useState({ view: 'sheet', mode: 'auto' })
 
   useLayoutEffect(() => {
     installChrome({
       undoRedo: (patch) => setUndoRedo((s) => ({ ...s, ...patch })),
-      // Defaulted here, not asserted: an older engine (a saved shareable copy opened in a newer
-      // build) pushes no `swap` key at all, and a bare `s.swap.leftOk` would throw during render.
-      gridSelection: (s) => setGridSel({ swap: { visible: false }, ...s }),
       headerModeBtn: (s) => setHdr((p) => ({ ...p, ...s })),
     })
   }, [])
@@ -242,42 +234,13 @@ export function PreviewToolbar() {
           {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual' : 'Header: Auto'}
         </Button>
 
-        {/* Batch expand. ⛔ ALWAYS RENDERED, never conditionally mounted: the engine resolves it by
-            id with a delegated click handler, and the documented law here is that anything the
-            engine addresses by id must exist at first commit. Visibility is carried by `display`,
-            the same shape #file-menu-wrap uses. It is a real <button>, deliberately NOT an id'd
-            input/select/textarea -- collectFieldValues() sweeps those into every saved file and
-            adds phantom undo steps, and this control is transient UI. */}
-        <Tooltip label={gridSel.allFilled ? 'Pull the selected cells back to their own column'
-                                          : 'Expand every selected cell across its empty columns'}
-                 position="bottom" withArrow>
-          <Button id="batch-expand-btn" className="tools-btn" type="button" size="xs" variant="default"
-                  style={{ display: gridSel.count ? undefined : 'none' }}
-                  disabled={!gridSel.expandable}>
-            {gridSel.allFilled ? 'Pull back' : 'Expand'} {gridSel.expandable || gridSel.count}
-          </Button>
-        </Tooltip>
-
-        {/* Column order (Feature 2). Same always-rendered rule as batch expand above -- the engine
-            resolves both by id with delegated click handlers, and anything it addresses by id must
-            exist at first commit. ⛔ These are deliberately NOT disabled when a direction is
-            unavailable: the click handler answers "why can't I" with a chip on the grid, and a
-            disabled button answers nothing. leftOk/rightOk only pick the variant. The word is
-            SWAP, never "move" -- the arrows two controls to the left move the calendar in TIME, and
-            these move a phase between columns. */}
-        <Group className="colswap-group" gap="xxs" wrap="nowrap"
-               style={{ display: gridSel.swap && gridSel.swap.visible ? undefined : 'none' }}>
-          <Tooltip label={(gridSel.swap && gridSel.swap.leftLabel) || 'Swap this phase’s column left'}
-                   position="bottom" withArrow multiline w={280}>
-            <Button id="colswap-left-btn" className="tools-btn" type="button" size="xs"
-                    variant={gridSel.swap && gridSel.swap.leftOk ? 'light' : 'default'}>◀ Swap</Button>
-          </Tooltip>
-          <Tooltip label={(gridSel.swap && gridSel.swap.rightLabel) || 'Swap this phase’s column right'}
-                   position="bottom" withArrow multiline w={280}>
-            <Button id="colswap-right-btn" className="tools-btn" type="button" size="xs"
-                    variant={gridSel.swap && gridSel.swap.rightOk ? 'light' : 'default'}>Swap ▶</Button>
-          </Tooltip>
-        </Group>
+        {/* ⛔ THE BATCH-EXPAND BUTTON ("Expand N" / "Pull back N") AND THE TWO SWAP BUTTONS ("◀ Swap" /
+            "Swap ▶") USED TO SIT HERE, and are gone (owner ruling 2, relayed 30 Sep 2026; built
+            after v1.4.1). They only duplicated gestures on the grid itself: double-click (or Enter)
+            on a selected cell expands or pulls back, Alt+Left / Alt+Right swaps its column, and the
+            swap knob takes a click or a drag. The selection's count chip on the grid names both
+            ("double-click to expand · Alt+←/→ to swap"). Their delegated engine listeners went in
+            the same change; the engine keeps pushing chrome.gridSelection, which nothing renders. */}
 
         <Group className="undo-redo-group" gap="xxs" wrap="nowrap">
           <Tooltip label="Undo (⌘Z)" position="bottom" withArrow>

@@ -87,7 +87,7 @@ window.addEventListener('load', function () { (async function () {
 
     // 3. It lands. Writer's Rm takes Production's column and Production takes Writer's Rm's; the pair
     //    already swapped in this same year does NOT move; every week of all four survives.
-    document.getElementById('colswap-right-btn').click();
+    T.altSwap(1);    // Alt+Right: the Swap buttons went with owner ruling 2
     await T.until(function () { return (yBlock().writersRoom || '').indexOf('1 ') === 0; }, 'the second swap to land', 150, 100);
     await T.sleep(300);
     out.after = yBlock();
@@ -103,7 +103,7 @@ window.addEventListener('load', function () { (async function () {
 
     // 4. Reversing restores the year exactly -- including the OTHER swap, which must be untouched.
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 150, 100);
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);
     await T.until(function () { return (yBlock().writersRoom || '').indexOf('0 ') === 0; }, 'the reverse to land', 150, 100);
     await T.sleep(300);
     out.afterReverse = yBlock();

@@ -116,7 +116,7 @@ timing flake.
 | `monthcmp.py` | ⭐ gate 10: a `monthprint` capture against `tests/baselines/2026-09-22-monthprint/` — the document byte for byte, one printed sheet per month, the stamp count. On a mismatch it says whether only inline styles moved and prints the per-month **fit table** (fill/scale, every week's height). `cut` makes a baseline; `ab` compares two saved captures, which is the A/B for a frozen edit that is *meant* to move the month PDF |
 | `srv.js` | serves the repo root; injects `t/lib.js` + `t/<name>.js` into `index.html?test=<name>` |
 | `parse.js` | lifts the `<pre id="R">` payload out of the dump, un-escapes it, splits off base64 files |
-| `t/lib.js` | shared helpers: fixture builder, clipping/width measurements, export capture, fake file picker |
+| `t/lib.js` | shared helpers: fixture builder, clipping/width measurements, export capture, fake file picker, and `altSwap(dir)` (Alt+←/→, the column swap's keyboard path since the Swap buttons went, owner ruling 2) |
 | `t/base.js` | the acceptance-gate measurement: grid, clipping, Excel, waterfall PDF |
 | `t/restore.js` | the compatibility test: does a real v1.0.0 saved calendar still open |
 | `t/sharecopy.js` | does "Export shareable copy" bake transient notice strips into the file (HANDOFF §2h) |
@@ -126,6 +126,9 @@ timing flake.
 | `gate.sh` | ⭐ **the acceptance gate in one command**, diffed against `tests/baselines/`; defaults to `/dist/index.html` |
 | `pdfcmp.py` | byte-compares two waterfall PDFs with ONLY the header's today-stamp normalised (see below) |
 | `t/fence.js` | every computed style on the frozen surface, so two pages can be compared property by property |
+| `t/noresetall.js` | Reset All is gone from the header and New does its job; A1 is the guard that its unguarded engine listener went with it (owner ruling 3). In the gate |
+| `t/hdrcontrols.js` | `HARNESS_STATE=carry-rich`: the header controls off the calendar (owner rulings 1, 4, 5): the toolbar's Header button follows the view and anchors the mode menu, the Manual-only editor strip, nothing above the header otherwise, the view-split notes reset in the app header, "Reset hiatus bands" in the sidebar, one undo step each. In the gate |
+| `t/noswapbtns.js` | `HARNESS_STATE=colswap-gesture`: the Expand and Swap buttons are gone, the grid chip names "Alt+←/→ to swap", and Alt+arrows and double-click still do both jobs (owner ruling 2). In the gate |
 | `t/fsprobe.js` | diagnostic only: is the file menu hidden because IndexedDB never opened? Run it on BOTH pages |
 | `t/hdrversion.js` | the version number typed into Show Info reaches the header's bottom-left slot — and an EMPTY field changes nothing on screen, in `&L` or in the PDF |
 | `t/hdrverload.js` | the same version RESTORED from a file, nothing typed, plus the header MODE that came with it. Needs `HARNESS_STATE`; run three times — `hdrversion` (carries a version), `colswap-2col` (written before the field existed, so the field must come back empty) and `hdrmanualbraces` (saved in Manual with braces in two header lines, which must render verbatim — decision H4 against a real file) |
@@ -298,6 +301,22 @@ reason attached; this is the index.
   geometry, and re-query the DOM if a screenshot looks stale (a Mantine modal fades in). A pane tab
   frozen by a long task keeps its renderer at 100% CPU until the pane's LAST tab closes. A fresh load
   raises "Recover unsaved work": cancel it (the slot is kept).
+
+### Added during the header-controls build (30 Sep 2026)
+
+- **A scripted `.click()` never moves focus, and the column swap's keys care.** Since owner ruling
+  2 removed the toolbar's Swap buttons, a leg swaps with `T.altSwap(dir)` (Alt+←/→). The engine
+  ignores those keys while a text field holds focus, so typing is never hijacked, and the removed
+  buttons never checked focus. `onecol` left focus in `#shoot-days-per-ep`, then clicked Swap Block
+  with `.click()`: the swap silently did nothing. A real click takes focus with it (verified in the
+  pane), so the leg now calls `sb.focus()` before `sb.click()`. Do the same for any element a leg
+  clicks before `T.altSwap`.
+- **A Mantine Button's `textContent` runs the label and the caret together** ("Header: Manual▾").
+  Read `.mantine-Button-label` for the label, and check `.caret` separately.
+- **The header mode menu binds its outside-press listener one tick AFTER it opens**, so the click
+  that opened it cannot close it. A leg that presses outside must wait a tick first.
+- **The grid's count chip is held back while a swap's confirmation message is up** (about 4 s).
+  After a swap, wait for the chip to appear rather than sleeping a fixed time.
 
 `PROJECT-CONTEXT.md` §11 carries the rest, including the false-failure table (why waterfall rows
 look out of order, why `Post wk 1` matches inside `Simultaneous Post wk 1`, and so on). Read it

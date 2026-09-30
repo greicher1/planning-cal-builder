@@ -7,6 +7,12 @@ Written 1 Sep 2026, at the owner's request, after using the shipped per-week swa
 Read [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`GRID-DIRECT-MANIPULATION-PLAN.md`](GRID-DIRECT-MANIPULATION-PLAN.md) first.
 
+> ⛔ **30 Sep 2026 (owner ruling 2, built after v1.4.1): the TOOLBAR's Expand / Pull back and
+> ◀ Swap / Swap ▶ buttons are REMOVED.** Where this plan calls them the primary path, read the grid's
+> own gestures instead. Double-click (or Enter) on a selected cell expands or pulls back, Alt+←/→
+> swaps its column, and the knob takes a click or a drag. The selection's count chip names them
+> ("double-click to expand · Alt+←/→ to swap"). HANDOFF.md, the header-controls build, has the record.
+
 > ✅ **STATUS, 2 Sep 2026: steps 1–6 are BUILT, GATED and PUSHED (`2a75929`).** The store, the
 > reconciler, the one authorised frozen line (E0), the "Swap Block" button (E2), the mode inference,
 > the one-outline-per-run change (E3), the complete E1 (a swap exchanges with *every* overlapping

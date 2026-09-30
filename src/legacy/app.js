@@ -1001,14 +1001,18 @@ export function initLegacyApp() {
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
       const inert = rows.length - expandable;
-      // The verb must agree with the toolbar button, which derives its label from the same
-      // allFilled value pushed below. Hard-coding "expand" contradicted a button reading
-      // "Pull back" whenever the selection was already at its limit.
-      chip.textContent = expandable
+      // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand"
+      // once contradicted the toolbar button reading "Pull back" at the selection's limit; that
+      // button is gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
+      // ⭐ Ruling 2 also asked the chip to name the SWAP keys, which only the Help mentioned. Shown
+      // whenever swapSeed() finds a phase cell, the exact rule that showed the Swap buttons (a
+      // refused direction is explained when pressed, as it was then).
+      chip.textContent = (expandable
         ? expandable + (expandable === 1 ? ' cell' : ' cells')
           + (inert ? ' (' + inert + (clampedOut ? ' shares a column' : ' has no room') + ')' : '')
           + ' · double-click to ' + (allFilled ? 'pull back' : 'expand')
-        : rows.length + ' selected · no room to expand';
+        : rows.length + ' selected · no room to expand')
+        + (swapSeed() ? ' · Alt+←/→ to swap' : '');
       layer.appendChild(chip);
       // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
       //   * below, it always covered the next week's phase labels -- the chip was reporting on the
@@ -1309,17 +1313,12 @@ export function initLegacyApp() {
     batchFill();
   }, true);
 
-  // The toolbar button is the PRIMARY path -- it is the one that gives this feature
-  // discoverability, keyboard access and touch support, none of which a marquee or a double-click
-  // can provide. DELEGATED from document, never a captured reference: React owns that node and
-  // remounts it, so a listener bound to the element at evaluation time would be orphaned (the
-  // documented Save As / export-button bug).
-  document.addEventListener('click', e=>{
-    const b = e.target.closest && e.target.closest('#batch-expand-btn');
-    if(!b) return;
-    e.preventDefault();
-    batchFill();
-  });
+  // ⛔ THE TOOLBAR'S "Expand N" / "Pull back N" BUTTON IS GONE (owner ruling 2, relayed 30 Sep 2026;
+  // built after v1.4.1), and its delegated listener with it. Double-click on a selected cell (above)
+  // and Enter/Space with nothing focused (below) do the same batchFill(), and the selection's count
+  // chip says which verb applies ("double-click to expand" / "pull back"). The button used to be
+  // the argued-for PRIMARY path, for discoverability, keyboard and touch; the owner ruled the grid's
+  // own gestures enough, with the chip naming them.
 
   // Keyboard, once a selection exists. Same activeElement guard the Cmd+Z/Cmd+S handler uses, so
   // typing a note or a phase name is never hijacked.
@@ -4718,7 +4717,9 @@ export function initLegacyApp() {
   // partner it would trade with.
   function swapModeText(eligible){
     const mode = swapSelectionMode();
-    const arrow = c => c.dir < 0 ? '◀ Swap' : 'Swap ▶';
+    // The KEYS, not the old toolbar buttons' labels ("◀ Swap" / "Swap ▶"), which went with owner
+    // ruling 2: a mode line naming a button that no longer exists would send the user looking for it.
+    const arrow = c => c.dir < 0 ? 'Alt+←' : 'Alt+→';
     const reflow = c => { const n = (c.collateral || []).length;
       return n ? n + (n === 1 ? ' week re-flows' : ' weeks re-flow') : 'nothing re-flows'; };
     if(mode.mode === 'stint'){
@@ -5269,15 +5270,12 @@ export function initLegacyApp() {
     doSwapMove(+k.dataset.dir);
   });
 
-  // Primary path: the toolbar buttons. This is what gives the feature discoverability, keyboard
-  // access and touch support, none of which a knob drag can provide -- and it is where a REFUSAL
-  // gets explained, since a disabled button explains nothing.
-  document.addEventListener('click', e=>{
-    const b = e.target.closest && e.target.closest('#colswap-left-btn, #colswap-right-btn');
-    if(!b) return;
-    e.preventDefault();
-    doSwapMove(b.id === 'colswap-left-btn' ? -1 : 1);
-  });
+  // ⛔ THE TOOLBAR'S "◀ Swap" / "Swap ▶" BUTTONS ARE GONE (owner ruling 2, relayed 30 Sep 2026; built
+  // after v1.4.1), and their delegated listener with them. Alt+Left / Alt+Right below call the same
+  // doSwapMove(), so a REFUSAL is still explained, by flashSwapMsg() on the grid's own chip, and the
+  // knob still takes a click or a drag. The selection's count chip now ends with "Alt+←/→ to swap"
+  // whenever the Swap buttons would have shown (a phase cell is selected), because until now only
+  // the Help mentioned the keys.
 
   // Keyboard. Alt+Arrow rather than a bare arrow: the arrows belong to the page, and Alt is free.
   document.addEventListener('keydown', e=>{

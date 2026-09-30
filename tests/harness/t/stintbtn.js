@@ -98,8 +98,9 @@ window.addEventListener('load', function () { (async function () {
                         /trades the whole block with Post/.test(out.modeText) && /nothing re-flows/.test(out.modeText);
     out.knobSaysBlock = /block of Prod Prep with Post/.test(out.knobLabel);
 
-    // 5. Commit through the toolbar. ALL SIX weeks move and NOT ONE changes width.
-    document.getElementById('colswap-right-btn').click();
+    // 5. Commit with Alt+Right (the toolbar's Swap ▶ went with owner ruling 2). ALL SIX weeks move
+    //    and NOT ONE changes width.
+    T.altSwap(1);
     await T.until(function () { return rowOf('2026-11-16') === 'post@0/cs1 prodPrep@1/cs1'; }, 'the block swap to land', 120, 100);
     await T.sleep(200);
     out.after = snapshot();
@@ -112,7 +113,7 @@ window.addEventListener('load', function () { (async function () {
     out.knobFollowed = true;
 
     // 6. Swap back: the pair is DELETED, and the grid returns exactly to the natural layout.
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);
     await T.until(function () { return rowOf('2026-11-16') === out.before['2026-11-16']; }, 'the reverse to land', 120, 100);
     await T.sleep(200);
     out.afterReverse = snapshot();

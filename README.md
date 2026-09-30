@@ -29,6 +29,55 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The Expand and Swap buttons leave the toolbar; the grid names the keys (owner ruling 2)
+
+**What changed:** the toolbar's **Expand N / Pull back N** and **◀ Swap / Swap ▶** buttons are
+removed. They only repeated gestures on the grid itself, and the grid now says so.
+- **Double-click a highlighted cell** (or press Enter) to expand the selection across its empty
+  columns. Double-click again to pull it back.
+- **Alt+← / Alt+→** swaps the selected phase's column with its neighbour's, as the Swap buttons did.
+  - A refused swap still explains itself in the grid's own chip.
+  - The small circle on the column boundary still swaps on a click or a drag.
+- **The label beside a highlight now ends with "Alt+←/→ to swap"** whenever a phase cell is
+  selected, which is exactly when the Swap buttons used to appear. Until now only the Help mentioned
+  the keys.
+- **The label wraps instead of being cut off.** On a narrow grid (one year of two phase columns) the
+  longer label ran past the grid and lost its end ("…to sw"), which was seen in the pane. It now
+  takes a second line only where one line cannot fit.
+- The swap chip's description of what each direction would do now names the keys ("Alt+→ trades
+  the whole block with …"), not the buttons that are gone.
+- The Help's two paragraphs say the same.
+
+**Verified:**
+- New leg `noswapbtns`, 6/6, on `colswap-gesture`, in the gate.
+  - Red on the previous build: S0 (the buttons are there) and S1 (no key hint).
+  - Guards S2–S4 pass on both builds: Alt+← moves the whole four-week run, Alt+→ moves it back, and
+    double-click expands a lone cell.
+  - The leg changed after its first red run (S4 now waits out the swap's confirmation message, which
+    holds the label back). It was run red again on the same build.
+- Mutations, each restored and checked with `cmp`:
+  - no key hint in the label: S1 red;
+  - the label back to one unbreakable line: S1 and S4 red (it no longer fits the grid).
+- The eight swap legs (`colswapmove`, `colswapstale`, `colswapmid`, `stintchain`, `stintbtn`,
+  `stintmulti`, `stintreshape`, `onecol`) now press Alt+←/→ through a new `T.altSwap()` helper,
+  instead of clicking the removed buttons.
+- **The first full gate caught one failure**, and it was the test.
+  - `onecol`'s swap-in-one-column check moved nothing: 763 PASS, 1 FAIL. The leg had left focus in a
+    text field (Shooting Days per Episode). The Alt keys are deliberately ignored there, so typing is
+    never hijacked; the removed buttons never looked at focus.
+  - A real click takes focus with it. Checked in the pane with real input: focus in that field, a
+    ⌘-click on the grid moved focus to the page, and Alt+← swapped.
+  - The leg now focuses the Swap Block button before clicking it, as a real click does. `onecol`
+    then passed 17/17 through its own gate judge.
+- Full gate, re-run: **764 PASS, 0 FAIL, GATE PASSED** (build `11006e6a…`): all nine month PDFs byte-identical to their baselines, the waterfall PDF and every Excel part identical, `fields.byId` unchanged..
+- The pane, with real input on `colswap-gesture`:
+  - a ⌘-click on Post showed "1 selected · no room to expand · Alt+←/→ to swap";
+  - a real Alt+← swapped the run ("Swapped Post ↔ Prod Prep. 2 other weeks changed width to
+    fit.");
+  - a ⌘-click and a real double-click on the widened Prod Prep pulled it back from two columns to
+    one;
+  - the wrapped label shows whole.
+
 ### The header controls leave the calendar (owner rulings 1, 4 and 5)
 
 **What changed:** the controls that sat inside the calendar, above its header, moved into the app's

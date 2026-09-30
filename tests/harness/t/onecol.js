@@ -146,14 +146,19 @@ window.addEventListener('load', function () { (async function () {
       out.swapBtnUsesBlockYear = out.swapBtnYear === String(new Date(overlap.week + 'T00:00:00Z').getUTCFullYear() - 1) ||
                                  out.swapBtnYear === '2026';
       if (sb) {
+        // focus() first, as a REAL click on this <button> does. It matters since owner ruling 2
+        // removed the toolbar Swap buttons: the Alt+arrow keys that replace them are ignored while
+        // a text field holds focus (typing must never be hijacked), and this leg left focus in
+        // #shoot-days-per-ep, which a synthetic .click() never moves. Checked in the pane with
+        // real input: a real click on the grid takes focus out of the field, and Alt+Left swaps.
+        sb.focus();
         sb.click();
         await T.sleep(500);
         out.swapBefore = rowSig(overlap.week);
-        var rb = document.getElementById('colswap-right-btn');
-        var lb = document.getElementById('colswap-left-btn');
-        var use = (rb && !rb.disabled) ? rb : ((lb && !lb.disabled) ? lb : null);
-        out.swapToolbarEnabled = !!use;
-        if (use) { use.click(); await T.sleep(1500); }
+        // Alt+Right, then Alt+Left if that direction had no partner: the keys the toolbar's Swap
+        // buttons duplicated until owner ruling 2 removed them.
+        T.altSwap(1); await T.sleep(1500);
+        if (rowSig(overlap.week) === out.swapBefore) { T.altSwap(-1); await T.sleep(1500); }
         out.swapAfter = rowSig(overlap.week);
         out.swapLanded = out.swapBefore !== out.swapAfter;
         // ...and survives the next render, or it was only ever a paint.

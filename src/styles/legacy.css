@@ -1944,7 +1944,14 @@
   .grid-sel-cell.is-inert{ border:2px dashed rgba(112,48,160,.35); background:none; }
   .grid-sel-marquee{ position:absolute; border:1px solid rgba(112,48,160,.7);
     background:rgba(112,48,160,.07); }
-  .grid-sel-chip{ position:absolute; z-index:12; white-space:nowrap; pointer-events:none;
+  /* WRAPS inside the layer rather than running past it (owner ruling 2, 30 Sep 2026). The chip gained
+     "· Alt+←/→ to swap", and on a narrow grid (one year block of two phase columns) the line became
+     wider than the layer, whose overflow:hidden (below) cut it off mid-word. That was seen in the pane
+     on colswap-gesture. An absolutely-positioned box shrinks to fit, so with max-width:100% of the
+     layer it stays ONE line wherever it fits and takes a second line only where it cannot.
+     redrawGridOverlay measures the chip after it is drawn, so a two-line chip still sits above the
+     selection. Overlay chrome (owner decision D9), never grid content, never printed. */
+  .grid-sel-chip{ position:absolute; z-index:12; white-space:normal; max-width:100%; pointer-events:none;
     font:11px/1.4 'Inter',system-ui,sans-serif; padding:2px 7px; border-radius:10px;
     background:rgba(112,48,160,.92); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
   /* ⛔ overflow:hidden on the layer above is NOT cosmetic: .sheet-grid-wrap is width:max-content

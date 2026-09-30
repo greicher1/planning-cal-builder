@@ -67,7 +67,7 @@ window.addEventListener('load', function () { (async function () {
     // ⭐ Both partners named, before anything moves.
     out.namesBothA = /Post and Localization/.test(out.knobA) && /All 20 weeks of Writer/.test(out.modeA) &&
                      /trades the whole block with Post and Localization/.test(out.modeA);
-    document.getElementById('colswap-right-btn').click();
+    T.altSwap(1);
     await T.until(function () { return same(layout().slots, SWAPPED); }, 'the group swap to land', 120, 100);
     await T.sleep(200);
     out.afterA = layout();
@@ -78,7 +78,7 @@ window.addEventListener('load', function () { (async function () {
     out.flashNamesAllA = /Swapped the 2026 block of Writer/.test(out.flashA) && /Post and Localization/.test(out.flashA);
     // Swap back from the same selection: natural order returns exactly.
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 120, 100);
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);
     await T.until(function () { return same(layout().slots, NATURAL); }, 'the reverse to land', 120, 100);
     await T.sleep(200);
     out.reversedA = same(layout(), out.before);
@@ -97,13 +97,13 @@ window.addEventListener('load', function () { (async function () {
     out.namesCompanionB = /block of Post with Writer/.test(out.knobB) && /Localization moves with it/.test(out.knobB) &&
                           /All 4 weeks of Post/.test(out.modeB) && /Localization moves with it/.test(out.modeB);
     out.noRightKnobB = !document.querySelector('.grid-swap-knob[data-dir="1"]');
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);
     await T.until(function () { return same(layout().slots, SWAPPED); }, 'the group swap from Post to land', 120, 100);
     await T.sleep(200);
     out.afterB = layout();
     out.groupMovedB = same(out.afterB.slots, SWAPPED) && same(out.afterB.spans, ONE) && same(out.afterB.weeks, COUNTS);
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob on Post', 120, 100);
-    document.getElementById('colswap-right-btn').click();
+    T.altSwap(1);
     await T.until(function () { return same(layout().slots, NATURAL); }, 'the reverse from Post to land', 120, 100);
     await T.sleep(200);
     out.reversedB = same(layout(), out.before);

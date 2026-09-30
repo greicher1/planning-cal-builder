@@ -97,7 +97,7 @@ window.addEventListener('load', function () { (async function () {
     out.selChipHonest = !/pull back/.test(out.selChipText);
 
     // 4. And it actually swaps.
-    document.getElementById('colswap-left-btn').click();
+    T.altSwap(-1);   // Alt+Left: the Swap buttons went with owner ruling 2
     await T.until(function () { return rowOf('2026-11-16') === 'post@0/cs1 prodPrep@1/cs1'; },
       'the swap to land over the stale claims', 120, 100);
     await T.sleep(250);
