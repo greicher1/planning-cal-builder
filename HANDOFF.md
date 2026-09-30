@@ -4,38 +4,6 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 30 Sep 2026: the "Unscheduled gap found" banner is REMOVED (owner request)
-
-- **Owner's words:** "Remove the 'Unscheduled gap found' feature/message entirely." **Ruling
-  (picker):** remove everything except frozen `render()`. The alternatives were to edit `render()`
-  too, or to hide the banner with CSS only.
-- **What went:**
-  - The interior-gap scan in `computeSchedule()`, and `gaps` from its return. `gaps` had exactly one
-    reader, the banner branch in `render()`; no writer read it.
-  - The `.gap-banner` CSS.
-  - The grid fit's `#gap-warning` ResizeObserver and MutationObserver.
-- **What stays, deliberately:**
-  - `#gap-warning` itself, empty, where it was (after `#span-hint`). `render()` writes `''` into it
-    on every render with no null check, so deleting it throws and nothing draws.
-  - `render()`'s banner branch. It is now unreachable. ⛔ **Do not add a `gaps` key back to
-    `computeSchedule()`'s return**: the banner would come straight back.
-  - **Close all gaps** (the toolbar tool) is a separate feature and is untouched.
-- **Test change:** `snapoff (snapoff-sheet)` used to assert that the banner read "3/30/26 … 1 wk"
-  (H-3's third symptom). It now asserts no banner on that calendar, which still has the empty week.
-  It also asserts that the empty week is really drawn, so the negative isn't vacuous. Red on the
-  base build, on `866a654`'s, `6a5219a`'s and `715324b`'s; green after.
-- **Gate: 643/0** on the build rebased onto `a3ef9c8` (HARNESS_PORT=8417). An earlier rebase,
-  onto `6a5219a`, gated 637/0. ⚠️ The pre-rebase run lost
-  `colswapmove` to a harness stall: Chrome never dumped, and the leg sat at 0% CPU. Re-run alone on
-  the same build it passed 11/11, and it passed in the full rebased run. If it recurs, suspect
-  Chrome contention from parallel sessions before suspecting the code.
-- **Done on branch `remove-gap-banner`** (worktree `.claude/worktrees/remove-gap-banner`),
-  rebased onto `a3ef9c8`, in parallel with the batch-4 session, and fast-forwarded into local
-  `main` with its agreement and the owner's approval. **Not pushed** (owner: it ships with batch 4). That session asked (cross-session message) to be
-  messaged before anything lands on local `main`, because its 4.7 (L-23) work was uncommitted in
-  `src/legacy/app.js`. The only overlap is the grid-fit block and the `.span-hint` comment. Its N-2
-  (`#span-hint`) code is untouched.
-
 ### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
 
 - **Start state, verified:**
@@ -80,17 +48,21 @@
 | 4.2 | SUPPLY-3 (R7) | ✅ done: the boot cleanup unregisters only scopes starting with `new URL('./', location.href)` | `swscope` 5/5 via the NEW `tests/harness/rtleg.mjs` (real-time CDP runner; `register()` never settles under `run.sh`'s virtual clock). Red before: all four scopes removed. `srv.js` serves a no-op `/__sw.js` with `Service-Worker-Allowed: /`. gate.sh has a real-time block (`RTSPEC`) |
 | 4.4 | L-10 + N-2 | ✅ done. L-10: `readState()` returns `badYearFields` (the hiatus date fields its own checks counted) and `reflectStartDateValidity(state, extraBad)` rings them. N-2, ⭐ **OWNER RULING 30 Sep 2026 (picker): "name the cause, above the preview"**: `#span-hint` (a chrome line BEFORE `#gap-warning` in `src/index.html`, style `.span-hint` = `.gap-banner`'s look, in the grid-fit observers) names the ONE field behind a `too-large` refusal and it is ringed. `spanCulprit()` re-runs `computeSchedule` with each candidate neutralised (length to 1, or phase left out). Production's days have no ring (the total is the list's sum). The years line uses year-number differences (2062 − 2026 = 36, not 36.8 → 37) | `badyear` 6/6 (red: Y1, Y3). `spanhint` 9/9 (red: N0–N6; N7/N8 are negatives). Both in the gate. The pane, with real typing, from both tabs |
 | 4.6 | L-12 | ✅ done: `isWholeNumberTypo(el)` (a number that `parseInt` reads DIFFERENTLY; "2.0" is fine) over `WHOLE_FIELDS` (phase, hiatus and per-phase weeks, `#simpost-offset`, `.ep-days`, `.blk-days`) inside `reflectStartDateValidity`. The words are a `data-whole-err` attribute on the field's label or row, printed by CSS `::after`. The day boxes ring through `.num-suffix:has(input.is-invalid)` (the input's own ring is out-specified). The Sim Post line gets its message positioned under it, because wrapping broke the sentence (seen in the pane). The schedule is unchanged | `wholenum` 10/10, in the gate. Red before on every decimal case. The pane, three layouts |
-| 4.7 | L-23 | ✅ done: `hasNoteEdits()` counts `dayNotes` days that still hold text. `commitMvNoteEditor()` now calls `reflectCountryLock()` (the waterfall commit always did; without it the lock showed only at the next update). The holiday question is ONE function, `confirmHolidayRecompute()`, used by `.hv-en`, the bulk toggle and the custom-holiday `add()` (now async; Cancel keeps the typed values; the duplicate check is re-run after the dialog). ⏭ **NOT done, for the owner:** REMOVING a custom holiday (`.hv-del`) and "Reset holidays" also recompute Production, but they ask only their own destructive confirm, with no recompute warning. The same gap class, outside the plan | `regionlock` 7/7, in the gate. Red before: L1, L2 (the audit's 10/20 → 10/19), H1, H2. The pane, with real clicks |
+| 4.7 | L-23 | ✅ done: `hasNoteEdits()` counts `dayNotes` days that still hold text. `commitMvNoteEditor()` now calls `reflectCountryLock()` (the waterfall commit always did; without it the lock showed only at the next update). The holiday question is ONE function, `confirmHolidayRecompute()`, used by `.hv-en`, the bulk toggle and the custom-holiday `add()` (now async; Cancel keeps the typed values; the duplicate check is re-run after the dialog). ✅ **Answered 30 Sep (relayed ruling 7 below):** removing a custom holiday (`.hv-del`) and "Reset holidays" also get the recompute prompt, but in the header-controls build AFTER v1.4.1, not in v1.4.1 | `regionlock` 7/7, in the gate. Red before: L1, L2 (the audit's 10/20 → 10/19), H1, H2. The pane, with real clicks |
 | 4.9 | L-20 (R6) | ✅ done (code + HANDOFF §3 B): `#browser-notice` strip (src/index.html, after `#colswap-notice`; the shared strip CSS in the update strip's blue; `wireBrowserNotice()` sets it both ways from `supportsFsAccess`; session-only dismiss; re-hidden in `buildSavedHtml`'s clone; in the grid-fit list). Text: "SPTCal saves and loads in Chrome or Edge." (the PWA-plan peer reuses it). ⏳ **CLAUDE.md's matching sentence ("opening a calendar works fine") is drafted and shown to the owner; it is committed only on approval** | `nofsa` 6/6, in the gate. It removes the API before boot. Red before: no strip. A mutant without the clone re-hide turns B3 red |
 
 - ⚠️ **Seen in 4.4, NOT fixed (frozen `render()`):** a phase's meta line prints a 2122 end date as
   "8/30/22" (two-digit year): with Post at 5,000 weeks it reads "11/2/26 → 8/30/22 (5000 wk)". It
   appears only on a calendar that is already refused, so it's cosmetic. A fix would be a frozen edit.
 - 🤝 **Peers active 30 Sep 2026** (coordinated by SendMessage):
-  - **"Remove 'Unscheduled gap found' feature"** works in `.claude/worktrees/remove-gap-banner`,
-    branched from `866a654`. Owner's ruling there: remove everything except `render()`, which is
-    not edited. It keeps `#span-hint` and its CSS, won't touch local `main`, and will rebase onto this
-    tip and message before merging.
+  - **"Remove 'Unscheduled gap found' feature" has MERGED** into local `main` as `0495ed0`, a
+    fast-forward from `a3ef9c8` after it rebased onto this batch's tip. It is not pushed. The owner
+    ruled it ships with batch 4 / v1.4.1, so the v1.4.1 cut carries it. Its gate on `0495ed0`'s
+    build passed 643/0, including `nofsa`, `regionlock` and all three `snapoff` cases, and this
+    session's rebuilt `dist` has the same sha256 (`0b6555b2…`). ⛔ `computeSchedule()` no longer
+    returns `gaps`. Don't re-add it, or frozen `render()`'s banner comes back. `#gap-warning` stays in
+    the markup, always empty, because `render()` writes to it with no null check. Its own entry is
+    the next block down.
   - **"PWA-only browser strategy"** is writing a plan only (an untracked `PWA-ONLY-PLAN.md`). 4.9
     stays with batch 4 as ruled. It will send its HANDOFF §2 text to be inserted here, rather than
     editing the file itself.
@@ -113,6 +85,82 @@
     pane's LAST tab killed it. Check `ps -Ao pcpu,etime,comm -r` for a "Claude Helper (Renderer)".
   - A gate for dangerous cases must sit well clear of the pre-fix figure: at 300 ms, a lucky pre-fix
     T0 slipped under it and ran the 3 MB cases.
+- ⭐ **Owner rulings RELAYED 30 Sep 2026 by the "Header toolbar visual separation" session.** The
+  owner gave them in that session, through answers and a picker. They are recorded here at the
+  owner's direction because this session owns HANDOFF, and they were not re-asked. They were also
+  put to the owner in this session's chat. **All are scheduled for AFTER the v1.4.1 cut.**
+  1. The header controls leave the page. `#hdr-mode-btn` ("Header ▾") and the notes reset move up
+     to the preview toolbar row (`.preview-tools`). The formatting strip (`.hdr-fmt`) stays above
+     the header, but only in Manual mode, styled as an editor toolbar (grey fill, bottom rule, a
+     "Header" label via CSS). In Auto/Template mode nothing sits above the header.
+  2. The Expand/Pull back and Swap buttons (`#batch-expand-btn`, `#colswap-left/right-btn`) are
+     removed. Double-click on a selected cell and Alt+←/→ still do both, and the grid chip must
+     gain "Alt+←/→ to swap"; today only the Help text mentions it.
+  3. **Reset All (`#reset-btn`) is removed**, and New does the job. Why: Reset All keeps the file
+     link, so the next Save or the 10-minute autosave writes the blank calendar over the saved file,
+     while its confirm claims the file is "left untouched". `resetAll()` stays, because `newFile()`
+     calls it. ⛔ The engine's `getElementById('reset-btn').addEventListener` is unguarded at IIFE
+     time, so the button and its listener must go in the same change.
+  4. The notes reset splits by view and shows in BOTH views. Waterfall "Reset notes" clears
+     `userNotes`, `noteColors` and `noteFontSize`, which also vanish from the Month view because
+     they are the same notes. Month "Reset notes" clears MONTH NOTES ONLY (`dayNotes`,
+     `dayNoteColors`, `mvExtraLanes`); waterfall notes stay, and the label/tooltip must say so.
+  5. The hiatus reset (`hiatusTexts`, `hiatusNameSyncedKeys`, `hiatusColors`, `hiatusFontSize`) moves
+     to the sidebar's Hiatus section, the way "Reset holidays" sits in Holidays. `holidayView` leaves
+     the notes reset, since "Reset holidays" already clears it.
+  6. **The Region LOCK is replaced by a "Continue?" prompt**, the same shape as
+     `confirmHolidayRecompute()`. The locked select, `#union-lock-hint`, the refusal `uiAlert` and
+     the three "Reset Notes & Hiatus first" strings all go. 4.7's L-23 fix is NOT undone:
+     `hasNoteEdits()`, day notes included, decides whether the prompt appears. The `regionlock`
+     leg's L1/L2/L3 get rewritten to check the prompt when this is built. The finding behind it:
+     hiatus edits don't need to gate a region change, because hiatus bands sit on absolute dates
+     and the region never moves them. Only notes and note colours can be misplaced. ⛔ **Build
+     nothing more on the lock meanwhile.**
+  7. Deleting a custom holiday (`.hv-del`) and "Reset holidays" get the same recompute prompt:
+     owner, yes. Planned with the header-controls build after v1.4.1, unless the owner says
+     otherwise. This answers 4.7's open item.
+  - **Still open for the owner at build time:**
+    - `#hdr-mode-btn` / `#notes-reset-btn` / `#mv-hdr-mode-btn` are emitted by frozen
+      `renderSpreadsheetView` / `renderMonthView` (MANTINE-SEAM §4). The plan is new React buttons
+      that drive the existing actions, with the originals hidden by CSS. No frozen function is
+      edited, but it needs the owner's explicit OK, with `gate.sh` as the acceptance gate.
+    - The `.mv-tools` rule sits inside the frozen Month-view CSS block, so matching the strip styling
+      there needs the owner's OK.
+    - Width: two more buttons will probably wrap the toolbar row at laptop widths. Measure before
+      building. The fallback is Reset notes in the app header, where Reset All was.
+- ⏸ 30 Sep 2026: PWA-only access is PLANNED, the owner is deciding. See §2l and PWA-ONLY-PLAN.md.
+
+### ✅ 30 Sep 2026: the "Unscheduled gap found" banner is REMOVED (owner request)
+
+- **Owner's words:** "Remove the 'Unscheduled gap found' feature/message entirely." **Ruling
+  (picker):** remove everything except frozen `render()`. The alternatives were to edit `render()`
+  too, or to hide the banner with CSS only.
+- **What went:**
+  - The interior-gap scan in `computeSchedule()`, and `gaps` from its return. `gaps` had exactly one
+    reader, the banner branch in `render()`; no writer read it.
+  - The `.gap-banner` CSS.
+  - The grid fit's `#gap-warning` ResizeObserver and MutationObserver.
+- **What stays, deliberately:**
+  - `#gap-warning` itself, empty, where it was (after `#span-hint`). `render()` writes `''` into it
+    on every render with no null check, so deleting it throws and nothing draws.
+  - `render()`'s banner branch. It is now unreachable. ⛔ **Do not add a `gaps` key back to
+    `computeSchedule()`'s return**: the banner would come straight back.
+  - **Close all gaps** (the toolbar tool) is a separate feature and is untouched.
+- **Test change:** `snapoff (snapoff-sheet)` used to assert that the banner read "3/30/26 … 1 wk"
+  (H-3's third symptom). It now asserts no banner on that calendar, which still has the empty week.
+  It also asserts that the empty week is really drawn, so the negative isn't vacuous. Red on the
+  base build, on `866a654`'s, `6a5219a`'s and `715324b`'s; green after.
+- **Gate: 643/0** on the build rebased onto `a3ef9c8` (HARNESS_PORT=8417). An earlier rebase,
+  onto `6a5219a`, gated 637/0. ⚠️ The pre-rebase run lost
+  `colswapmove` to a harness stall: Chrome never dumped, and the leg sat at 0% CPU. Re-run alone on
+  the same build it passed 11/11, and it passed in the full rebased run. If it recurs, suspect
+  Chrome contention from parallel sessions before suspecting the code.
+- **Done on branch `remove-gap-banner`** (worktree `.claude/worktrees/remove-gap-banner`),
+  rebased onto `a3ef9c8`, in parallel with the batch-4 session, and fast-forwarded into local
+  `main` with its agreement and the owner's approval. **Not pushed** (owner: it ships with batch 4). That session asked (cross-session message) to be
+  messaged before anything lands on local `main`, because its 4.7 (L-23) work was uncommitted in
+  `src/legacy/app.js`. The only overlap is the grid-fit block and the `.span-hint` comment. Its N-2
+  (`#span-hint`) code is untouched.
 
 ### ✅ 29 Sep 2026: v1.4.0 is LIVE — pushed on the owner's approval, verified
 
@@ -3667,6 +3715,20 @@ intended new elements differing, and `mvNoteLineCount()` row heights unchanged.
 Next step once answered: write `MONTH-VIEW-PLAN.md` (the convention `COLUMN-ORDER-PLAN.md` /
 `HEADER-PRESETS-PLAN.md` follow), so the frozen-edit ruling is made **once against a concrete list**
 rather than per feature.
+
+### 2l. PWA-only access (the hosted link installs the app; a browser tab never runs it): ⏸ PLANNED, owner deciding (30 Sep 2026)
+
+Owner's ask (30 Sep 2026): users should only use SPTCal as the installed PWA. In Chrome/Edge, a first visit to the hosted link shows only a big, centred install button. Once the app is installed, opening the link in a tab shows a large "use the app" message. Edge is a nice-to-have.
+
+- **The plan:** `PWA-ONLY-PLAN.md` at the repo root. It's untracked; the owner decides when to commit it. It holds the design, the risks, the build order, nine owner decisions (D1–D9) and four voices of wording for every message. The owner was also shown an interactive mock-up in the session.
+- ⛔ **This was tried before and reverted** (`ffadc6d` → `edaf49b`, 23 Jul). That gateway also gated the installed app, because an installed PWA loads the same URL. The new design checks `display-mode` first (standalone, window-controls-overlay, minimal-ui, fullscreen) and fails OPEN. It gates only on https with host `greicher1.github.io`, never on `file://` or localhost, so the harness and shareable copies are unaffected.
+- ✅ **Measured on Chrome 154, and it overturns Chrome's own docs:** `beforeinstallprompt` fires with NO service worker and NO engagement requirement. Fresh profile, no clicks: 22–285 ms locally, 860 ms on the live site. Today's sidebar "Install as app" button does appear. The app's computed id is `https://greicher1.github.io/planning-cal-builder/`.
+- ✅ **A tab can detect an existing install:** `getInstalledRelatedApps()`, once `related_applications: [{platform:"webapp", id:<that URL>}]` is added to the data: manifest. Proven for installs made from the OLD manifest, so no one has to reinstall. It returns `[]` after uninstall. ⚠️ "The prompt didn't fire" is NOT proof of an install: headless Chrome fired it after one.
+- ⚠️ **Probe traps:**
+  - CDP `PWA.install` is refused over `--remote-debugging-port` and works over `--remote-debugging-pipe`.
+  - Headless Chrome can't produce a standalone window, so the gate needs a localhost-only test override.
+  - Never test-install under the name `SPTCal`: a headful install writes an app shim beside the owner's real one.
+- **Overlap with FIX-PLAN 4.9:** it stays as ruled (R6). A `file://` copy in Safari/Firefox is never gated, and 4.9's notice is what that user sees. The gate's "open in Chrome" screen reuses 4.9's wording.
 
 ### 2e. Known, deliberately left alone
 
