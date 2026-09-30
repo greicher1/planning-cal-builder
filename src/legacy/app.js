@@ -8146,7 +8146,10 @@ export function initLegacyApp() {
       // ones frozen renderMonthView built, which is the duplication MONTH-HEADER-PLAN §1.3 named.
       // Both are computeMvHeaderDefaults() now, and this opens the same three-choice menu the
       // waterfall uses, because there are three modes and a toggle cannot express three.
-      openHeaderModePop(e.target, true);
+      // ⚠️ This button is HIDDEN since owner ruling 1 (its twin is the toolbar's #tb-hdr-mode-btn),
+      // so only a script can click it -- and a display:none element's rect is 0,0. Anchor to the
+      // visible twin instead, so a scripted click opens the menu where a user's would.
+      openHeaderModePop(document.getElementById('tb-hdr-mode-btn') || e.target, true);
     }
   });
   document.getElementById('table-wrap').addEventListener('focusout', e=>{
@@ -8166,22 +8169,16 @@ export function initLegacyApp() {
     if(e.target && e.target.id === 'hdr-mode-btn'){
       // ⭐ Was a two-state TOGGLE; it now opens a three-choice menu, because there are three modes
       // (H3) and a toggle cannot express three. The transitions live in setHeaderMode().
-      openHeaderModePop(e.target);
+      // Hidden since owner ruling 1: anchored to the toolbar twin, as the month's is above.
+      openHeaderModePop(document.getElementById('tb-hdr-mode-btn') || e.target);
       return;
     }
     if(e.target && e.target.id === 'notes-reset-btn'){
-      // Wipe every manual note override (edits AND cleared-note tombstones, so suppressed
-      // holidays come back), plus all per-cell highlight colors and hiatus text/colors.
-      Object.keys(userNotes).forEach(k=>delete userNotes[k]);
-    Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
-    mvExtraLanes = {};
-    dayNoteColors = {};
-      noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
-      hiatusFontSize = {}; holidayView = {};
-      render(currentSchedule);
-      // resetAll() ends with update(), which calls markDirty(); this branch never did, so
-      // "Reset Notes & Hiatus" left the file showing Saved and could not be undone.
-      markDirty();
+      // ⛔ HIDDEN since owner rulings 1 and 4 (relayed 30 Sep 2026): the reset left the calendar
+      // for the app header (#tb-notes-reset-btn) and SPLIT by view -- it used to wipe notes, day
+      // notes, hiatus bands and holidayView in one go. This button lived in the Waterfall's strip, so
+      // a scripted click keeps the Waterfall reset's meaning rather than the retired one's.
+      resetWaterfallNotes();
       return;
     }
     if(viewMode !== 'sheet') return;
@@ -11912,13 +11909,20 @@ export function initLegacyApp() {
   // every saved calendar and adds an undo step per change; these are buttons, and they carry
   // classes only. Same rule the header format toolbar follows.
   let activeHdrModePop = null;
+  // The element the open menu hangs from. Since the header controls left the calendar (owner ruling
+  // 1) that is the preview toolbar's #tb-hdr-mode-btn, which announces the menu with aria-expanded
+  // and toggles it: a press on the anchor itself is NOT an outside press, so its click can close.
+  let activeHdrModeAnchor = null;
   function closeHeaderModePop(){
     if(activeHdrModePop){ activeHdrModePop.remove(); activeHdrModePop = null; }
+    if(activeHdrModeAnchor && activeHdrModeAnchor.hasAttribute('aria-haspopup')) activeHdrModeAnchor.setAttribute('aria-expanded', 'false');
+    activeHdrModeAnchor = null;
     document.removeEventListener('mousedown', onHdrModePopOutside, true);
     window.removeEventListener('resize', closeHeaderModePop);
     window.removeEventListener('scroll', closeHeaderModePop, true);
   }
   function onHdrModePopOutside(e){
+    if(activeHdrModeAnchor && activeHdrModeAnchor.contains(e.target)) return;   // the anchor's click decides
     if(activeHdrModePop && !activeHdrModePop.contains(e.target)) closeHeaderModePop();
   }
   const HDR_MODE_CHOICES = [
@@ -11933,9 +11937,7 @@ export function initLegacyApp() {
   // same in both views -- the modes mean the same thing -- so this is one menu, not two.
   function openHeaderModePop(anchorEl, mv){
     closeHeaderModePop();
-    const current = mv
-      ? (mvHeaderMode === 'auto' ? 'auto' : (mvHeaderTemplates ? 'template' : 'manual'))
-      : (headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual'));
+    const current = headerModeKey(mv);
     const pop = document.createElement('div');
     pop.className = 'hdr-mode-pop';
     HDR_MODE_CHOICES.forEach(c=>{
@@ -11989,6 +11991,8 @@ export function initLegacyApp() {
       pop.appendChild(row);
     });
     document.body.appendChild(pop);
+    activeHdrModeAnchor = anchorEl;
+    if(anchorEl.hasAttribute('aria-haspopup')) anchorEl.setAttribute('aria-expanded', 'true');
     const r = anchorEl.getBoundingClientRect();
     pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
     pop.style.left = (window.scrollX + r.left) + 'px';
@@ -12003,6 +12007,79 @@ export function initLegacyApp() {
       window.addEventListener('scroll', closeHeaderModePop, true);
     }, 0);
   }
+
+  // ---------- The header controls, off the calendar (owner rulings 1, 4, 5; relayed 30 Sep 2026) --------
+  // The frozen renderers still emit #hdr-mode-btn, #notes-reset-btn and #mv-hdr-mode-btn inside
+  // #table-wrap. They are HIDDEN by CSS, never deleted (the owner's build-time approval: no frozen
+  // function is edited). What the user clicks is chrome now:
+  //   * #tb-hdr-mode-btn in the preview toolbar (PreviewToolbar.jsx): the same mode menu, anchored
+  //     under itself, for whichever view is showing;
+  //   * #tb-notes-reset-btn in the app header, where Reset All was (Header.jsx). That was the owner's
+  //     measured fallback: the two buttons together wrapped the toolbar below 1414 px. It reads "Reset
+  //     notes" in the Waterfall and "Reset month notes" in the Month view;
+  //   * #hiatus-reset-btn at the foot of the sidebar's All-phase hiatus card (ruling 5).
+  // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
+  // evaluation time (HANDOFF §2b-3's law).
+  function headerModeKey(mv){
+    const auto = mv ? mvHeaderMode === 'auto' : headerMode === 'auto';
+    return auto ? 'auto' : ((mv ? mvHeaderTemplates : headerTemplates) ? 'template' : 'manual');
+  }
+  // What the two view-following buttons are told. Pushed from a childList observer on #table-wrap,
+  // not from each call site: EVERY way the view or a header mode changes ends in render() rebuilding
+  // #table-wrap -- a mode choice, a view switch, a Load, an undo -- and an observer cannot miss one
+  // the way a list of pushes can. Observing the frozen surface edits nothing (sanctioned pattern 3).
+  function pushViewControls(){
+    const mv = viewMode === 'month';
+    chrome.headerModeBtn({ view: mv ? 'month' : 'sheet', mode: headerModeKey(mv) });
+    chrome.notesResetBtn({ view: mv ? 'month' : 'sheet' });
+  }
+  new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
+  pushViewControls();
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('#tb-hdr-mode-btn');
+    if(!b) return;
+    if(activeHdrModePop && activeHdrModeAnchor === b){ closeHeaderModePop(); return; }   // a second click closes
+    openHeaderModePop(b, viewMode === 'month');
+  });
+
+  // Ruling 4: the notes reset SPLITS BY VIEW, and both keep the old branch's shape -- render(), since
+  // notes are not schedule inputs, then markDirty(), which makes it one undo step and marks the file
+  // unsaved. Neither touches hiatus bands (ruling 5 gave them their own reset) or holidayView ("Reset
+  // holidays" already clears it). An editor that is open is discarded: a reset is not an edit.
+  //   Waterfall: the waterfall notes -- text overrides and cleared-note tombstones (so suppressed
+  //   milestones come back), their colours and sizes. The Month view shows the same notes, so they
+  //   reset there too.
+  //   Month: the month's OWN notes only -- day notes, their legacy colours, the extra lanes.
+  function resetWaterfallNotes(){
+    if(activeNoteEditor){ closeNoteEditorPop(); activeNoteEditor = null; }
+    Object.keys(userNotes).forEach(k=>delete userNotes[k]);
+    noteColors = {}; noteFontSize = {};
+    render(currentSchedule);
+    markDirty();
+  }
+  function resetMonthNotes(){
+    if(activeMvNote) closeMvNoteEditor();
+    Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
+    dayNoteColors = {}; mvExtraLanes = {};
+    render(currentSchedule);
+    markDirty();
+  }
+  // Ruling 5: the hiatus bands' own reset -- every band's label, colour and size, all-phase and
+  // per-phase. update(), NOT render(), and that is a fix: the old combined reset only rendered, so a
+  // NAMED hiatus row's band read the default "Hiatus" until some later edit happened to run
+  // syncHiatusNamesFromSidebar() and re-claim it (reproduced on v1.4.1: both weeks of a "Winter
+  // Break" row read "Hiatus"). update() runs that sync first. It also ends in markDirty().
+  function resetHiatusBands(){
+    hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
+    update();
+  }
+  document.addEventListener('click', e=>{
+    const t = e.target.closest && e.target.closest('#tb-notes-reset-btn, #hiatus-reset-btn');
+    if(!t) return;
+    if(t.id === 'hiatus-reset-btn') resetHiatusBands();
+    else if(viewMode === 'month') resetMonthNotes();
+    else resetWaterfallNotes();
+  });
 
   // "5 Shooting Blocks" / "1 Shooting Block" -- r1's Blocks-mode half (ruling 6). '' without a count.
   function shootingBlocksPhrase(n){
@@ -13280,7 +13357,9 @@ export function initLegacyApp() {
     // skeleton, exactly the shape srv.js serves every stateful test, so the copy opens as one clean
     // app. It also stops the sender's file-menu and recents markup travelling in the file (audit
     // L-21). The live document is untouched -- this is the clone.
-    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #hiatus-hint-host, #react-root').forEach(el=> el.replaceChildren());
+    // #hiatus-reset-host joined the list with owner ruling 5 (30 Sep 2026): "Reset hiatus bands" is
+    // portalled there, so a copy built without it would boot with a stale button beside React's.
+    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.

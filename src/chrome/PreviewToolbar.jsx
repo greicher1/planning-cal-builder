@@ -63,6 +63,10 @@ export function PreviewToolbar() {
     count: 0, expandable: 0, allFilled: false,
     swap: { visible: false, leftOk: false, rightOk: false, leftLabel: '', rightLabel: '' },
   })
+  // The Header button (owner ruling 1). Bridged, not imperative, for the same two reasons as the
+  // batch button above: its label changes (Auto / Template / Manual), and the engine must never
+  // write a Mantine Button's textContent. `view` picks which header's mode it shows.
+  const [hdr, setHdr] = useState({ view: 'sheet', mode: 'auto' })
 
   useLayoutEffect(() => {
     installChrome({
@@ -70,6 +74,7 @@ export function PreviewToolbar() {
       // Defaulted here, not asserted: an older engine (a saved shareable copy opened in a newer
       // build) pushes no `swap` key at all, and a bare `s.swap.leftOk` would throw during render.
       gridSelection: (s) => setGridSel({ swap: { visible: false }, ...s }),
+      headerModeBtn: (s) => setHdr((p) => ({ ...p, ...s })),
     })
   }, [])
 
@@ -215,6 +220,27 @@ export function PreviewToolbar() {
             <p className="tools-msg" data-tools-msg=""></p>
           </div>
         </div>
+
+        {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
+            used to live INSIDE the calendar -- #hdr-mode-btn / #mv-hdr-mode-btn, emitted by the
+            frozen renderers, which still emit them: they are hidden by CSS, never deleted. This is
+            chrome, so it may look like its neighbours: the mode word the owner's mockups kept, plus
+            a caret. The engine opens the SAME mode menu (openHeaderModePop) under this button, for
+            whichever view is showing; it reaches the button by DELEGATION, because React owns it.
+            ⚠️ Measured before it was built (HANDOFF, 30 Sep 2026): this and a notes reset together
+            wrapped this row below 1414 px, so the notes reset went to the app header instead (the
+            owner's fallback). This button alone wraps the row below about 1301 px.
+            It is a <button>, never an id'd input/select/textarea, so collectFieldValues() cannot
+            sweep it into a saved file. */}
+        <Button id="tb-hdr-mode-btn" className={'tools-btn' + (hdr.mode === 'auto' ? '' : ' is-manual')}
+                type="button" size="xs" variant="default"
+                title={hdr.view === 'month'
+                  ? 'Choose how the Month view’s header is written: Auto, Template or Manual'
+                  : 'Choose how the header is written: Auto, Template or Manual'}
+                aria-haspopup="true" aria-expanded="false"
+                rightSection={<span className="caret" aria-hidden="true">▾</span>}>
+          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual' : 'Header: Auto'}
+        </Button>
 
         {/* Batch expand. ⛔ ALWAYS RENDERED, never conditionally mounted: the engine resolves it by
             id with a delegated click handler, and the documented law here is that anything the

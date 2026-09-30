@@ -752,8 +752,13 @@ does the primary export. Verified at 1440 / 1280 / 1150 / 1024 / 900: zero clipp
 overflow, `--header-h` 63 px throughout.
 
 **The preview toolbar keeps its two highest-frequency controls at every width** — the Waterfall/Month
-toggle and the Shift All arrows, which are deliberately one-click. Below `lg` the three labelled
-popover buttons collapse into one *Adjust ▾* menu.
+toggle and the Shift All arrows, which are deliberately one-click. ~~Below `lg` the three labelled
+popover buttons collapse into one *Adjust ▾* menu.~~ ⛔ **Corrected 30 Sep 2026: no such menu exists in
+the code, and none was ever built.** The row WRAPS instead (`.preview-tools{flex-wrap:wrap;
+max-width:100%}`): measured on v1.4.1 it goes to two lines below about 1144 px. Since the Header
+button joined it (owner ruling 1, after v1.4.1) that is about 1287 px (Auto) / 1301 px (Template).
+The same measurement is why the notes reset went to the app header rather than here (HANDOFF, the
+header-controls build).
 
 ⚠️ **Sidebar internals must be keyed to the sidebar's width, not the viewport's.** Measured, the
 sidebar's width is **non-monotonic in the viewport**: the holiday-row label is 83 px at a 1024 px
@@ -1138,6 +1143,10 @@ Nothing in this document ships without all of these, every stage:
 
     The header-controls build (relayed rulings 1–7, after v1.4.1) adds:
     - `noresetall`: Reset All is gone from the header, and New does its job.
+    - `hdrcontrols` (`carry-rich`): the Header button in the preview toolbar follows the view and
+      anchors the mode menu; the Manual-only editor strip; nothing above the header in Auto or
+      Template; the view-split notes reset in the app header; "Reset hiatus bands" in the sidebar;
+      one undo step each. `sharecopy2` also requires the new React host empty in a shareable copy.
 12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
     policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
     inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations

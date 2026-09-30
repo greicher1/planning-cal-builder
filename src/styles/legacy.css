@@ -1267,6 +1267,14 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
+     as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
+     outranks Mantine's layered Button background without !important. */
+  #tb-hdr-mode-btn.is-manual{
+    background:var(--edit-accent-bg); border-color:var(--edit-accent); color:var(--edit-accent); font-weight:600;
+  }
+  #tb-hdr-mode-btn.is-manual:hover{ background:var(--edit-accent); color:var(--mantine-color-white); }
+  #tb-hdr-mode-btn.is-manual .caret{ color:inherit; }
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */
@@ -1348,7 +1356,14 @@
 
   /* ---------- Month view ---------- */
   .month-view{ background:#fff; border:1px solid var(--border-strong); border-radius:8px; padding:18px; }
-  .mv-tools{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+  /* ⛔ FROZEN RULE, CHANGED WITH THE OWNER'S APPROVAL (30 Sep 2026, the header-controls build): it was
+     `display:flex; justify-content:flex-end; margin-bottom:8px`. The month's mode button left for the
+     preview toolbar (#mv-hdr-mode-btn is hidden, never deleted), so in Auto/Template this row holds
+     only the zero-height spacer and must take no room -- no margin. In Manual the formatting strip
+     (.hdr-fmt) brings its own look and spacing. Gate 10 is the acceptance gate: exportMonthPdf hides
+     .mv-tools inline before it measures and #print-root .mv-tools is display:none, so every printed
+     month must stay byte-identical. */
+  .mv-tools{ display:flex; }
   #mv-hdr-mode-btn{
     font-size:10px; padding:3px 8px;
     /* line-height is pinned, not decorative. Chrome's UA sheet styles <button> with the
@@ -2071,9 +2086,16 @@
      the two engine buttons grouped together hard right, which is where they were before. */
   /* margin-bottom keeps the toolbar from hugging cal-header-bar directly below it -- they used
      to sit flush with a 0 gap between them. */
-  .hdr-tools{display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:4px 8px 0; margin-bottom:6px; background:#fff; flex-wrap:wrap;}
+  /* ⛔ REWRITTEN for owner ruling 1 (relayed 30 Sep 2026; built after v1.4.1): the header controls
+     LEFT this row. The mode button went to the preview toolbar (#tb-hdr-mode-btn) and the notes reset
+     to the app header (#tb-notes-reset-btn). The two originals the frozen renderSpreadsheetView still
+     emits here are hidden below, never deleted. So this row has no padding, margin or fill of its
+     own any more: in Auto and Template it holds only the zero-height spacer and the two hidden
+     buttons and collapses to NOTHING, and in Manual the formatting strip (.hdr-fmt, below) carries the
+     editor-toolbar look. The print paths never see it: exportWaterfallPdf removes .hdr-tools before
+     it measures, and #print-root .hdr-tools is display:none. */
+  .hdr-tools{display:flex; align-items:center;}
   .hdr-fmt-spacer{ flex:1; }
-  .hdr-fmt{ margin-right:auto; }
 
   /* ---------- The two engine-rendered buttons in this strip ---------- */
   /* #notes-reset-btn and #hdr-mode-btn are built by renderSpreadsheetView as bare <button>s, so
@@ -2104,6 +2126,14 @@
   #hdr-mode-btn.is-manual:hover, #mv-hdr-mode-btn.is-manual:hover{
     background:var(--edit-accent); color:var(--mantine-color-white);
   }
+  /* ⛔ HIDDEN, NEVER DELETED (owner rulings 1 and 4, relayed 30 Sep 2026; the build-time approval).
+     The frozen renderers still emit these three buttons inside #table-wrap. The user's controls are
+     chrome now: #tb-hdr-mode-btn in the preview toolbar, #tb-notes-reset-btn in the app header. The
+     engine keeps a handler on each original, so a SCRIPTED click still works: the hdr* legs drive
+     the mode menu through #hdr-mode-btn, and the menu then anchors under the visible toolbar button.
+     Later than the look above on purpose, at the same ID specificity, so display is the one thing
+     this changes: fence.js still measures their unchanged font, line-height and padding. */
+  #hdr-mode-btn, #notes-reset-btn, #mv-hdr-mode-btn{ display:none; }
 
   /* ---------- Alignment dropdown ---------- */
   .hf-align-wrap{ position:relative; display:inline-flex; }
@@ -2136,6 +2166,23 @@
      width, so the row is exactly as wide as its contents and space-between keeps the mode button
      hard right, on the SAME line. */
   .hdr-fmt{ display:flex; align-items:center; gap:3px; flex:0 1 auto; min-width:0; flex-wrap:nowrap; }
+  /* THE EDITOR STRIP (owner ruling 1, relayed 30 Sep 2026): in Manual mode the formatting controls
+     stay above the header, styled as an editor toolbar -- a grey fill, a bottom rule and a "Header"
+     label drawn here by CSS, so no markup changes. It is the strip in BOTH views: the same toolbar
+     (headerFmtToolbarHtml) sits in the waterfall's .hdr-tools and the month's .mv-tools.
+     flex:1 1 auto makes it span the row. That is safe now because every control inside is flex:none
+     with a real width; the old flex:1 + wrap problem came from the size <select>, which has had an
+     explicit width (.hf-size) since. The label mirrors .tools-head, the app's other small-caps
+     section label. */
+  .hdr-fmt{
+    flex:1 1 auto; box-sizing:border-box; margin-bottom:6px; padding:5px 8px;
+    background:var(--mantine-color-gray-0); border-bottom:1px solid var(--mantine-color-gray-3);
+  }
+  .hdr-fmt::before{
+    content:'Header'; flex:none; margin-right:var(--mantine-spacing-xs);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  }
   .hf-ctl{
     flex:none;                 /* nothing in this toolbar may grow -- see .hdr-fmt above */
     font-family:inherit; font-size:11px; line-height:1;

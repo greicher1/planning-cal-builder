@@ -32,6 +32,8 @@ export function Header() {
   const [exp, setExp] = useState({ label: 'Export to Excel', primary: false, disabled: true, busy: false })
   const [expWf, setExpWf] = useState({ visible: true, disabled: true })
   const [menu, setMenu] = useState({ visible: false, label: 'Untitled', items: [], open: false })
+  // The notes reset's view (owner ruling 4): its label and tooltip say which notes it clears.
+  const [notesReset, setNotesReset] = useState({ view: 'sheet' })
   // The recents filter. React-local on purpose: the engine pushes the full list through the
   // bridge and never needs to know a filter exists. The input carries NO id -- collectFieldValues
   // sweeps input[id] document-wide, and this box must never enter a saved file or the undo stack.
@@ -51,6 +53,7 @@ export function Header() {
       exportBtn: merge(setExp),
       exportWfBtn: merge(setExpWf),
       fileMenu: merge(setMenu),
+      notesResetBtn: merge(setNotesReset),
     })
   }, [merge])
 
@@ -328,6 +331,21 @@ export function Header() {
           10-minute autosave wrote the blank calendar over the saved file. New does the job and
           clears the link too. Its engine listener was unguarded at evaluation time, so the button
           and the listener were removed in the same change (tests/harness/t/noresetall.js). */}
+
+      {/* The NOTES reset took Reset All's slot (owner ruling 4, and the owner's pick of the
+          measured fallback, 30 Sep 2026): in the preview toolbar it and the Header button together
+          wrapped the row below 1414 px, while this header keeps at least 82 px free at its
+          tightest rung (1121 px). It follows the view, because the reset splits by view:
+          the Waterfall's clears waterfall notes (which the Month view shows too), the Month view's
+          clears the month's own notes only. The engine handles the click by delegation on this id
+          (React owns the node); it is a <button>, so collectFieldValues() never sweeps it. */}
+      <div className="app-toolbar-div" aria-hidden="true" />
+      <Button {...BTN} id="tb-notes-reset-btn" variant="default" fw={500}
+        title={notesReset.view === 'month'
+          ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
+          : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well.'}>
+        {notesReset.view === 'month' ? 'Reset month notes' : 'Reset notes'}
+      </Button>
     </Group>
   )
 }

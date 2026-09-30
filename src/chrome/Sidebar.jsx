@@ -105,6 +105,24 @@ export function ShowInfoCard() {
   )
 }
 
+// "Reset hiatus bands" (owner ruling 5, relayed 30 Sep 2026): the hiatus reset left the calendar's
+// old combined "Reset Notes & Hiatus" and sits at the foot of the All-phase hiatus card, the way
+// "Reset holidays" sits at the foot of Holidays -- same Group, same subtle gray xs Button. That card
+// is STATIC markup (its rows are engine-generated), so main.jsx portals this into #hiatus-reset-host,
+// which buildSavedHtml() empties in its clone like every other React host. The engine handles the
+// click by delegation on the id; it clears every band's label, colour and size, all-phase and
+// per-phase, and the hiatus periods themselves stay.
+export function HiatusResetButton() {
+  return (
+    <Group justify="flex-end" mt="lg">
+      <Button id="hiatus-reset-btn" type="button" variant="subtle" color="gray" size="xs"
+              title="Return every hiatus band, all-phase and per-phase, to its default label, colour and size. The hiatus periods themselves stay.">
+        Reset hiatus bands
+      </Button>
+    </Group>
+  )
+}
+
 export function RegionCard() {
   return (
     <section className="card" data-tab="settings">

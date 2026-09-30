@@ -31,7 +31,8 @@
 //   D2  asked again and answered Remove: it goes, Production's end comes back, and no second dialog
 //   R1  "Reset holidays" asks ONE dialog carrying the recompute sentence, and without the old "This
 //       only affects the Holidays section." line (untrue once Production's dates move); Cancel
-//   L3  Reset Notes & Hiatus clears the day note, and then a Region change no longer asks
+//   L3  the Month view's "Reset month notes" (the app header, since rulings 1 and 4 split the old
+//       "Reset Notes & Hiatus" by view) clears the day note, and then a Region change no longer asks
 //   H3  with no note edits, adding a custom holiday does NOT ask -- the same rule as hv-en
 //   D3  with nothing to misplace, removing a custom holiday asks only today's plain confirm
 //   R2  with nothing to misplace, "Reset holidays" asks its plain question, still without the
@@ -206,15 +207,19 @@ window.addEventListener('load', function () { (async function () {
       /Reset holidays/.test(r1.text) && WARN_RESET.test(r1.raw) && !/only affects the Holidays section/.test(r1.raw) && !r1.second,
       {text: r1.raw.replace(/\s+/g, ' ').slice(0, 220), second: r1.second.slice(0, 60)}, 'one dialog: the sentence, not the old line');
 
-    // L3: Reset Notes & Hiatus (a waterfall control) clears the day note, and the Region stops asking.
-    document.getElementById('view-sheet-btn').click();
-    await T.until(function () { return !!document.getElementById('notes-reset-btn'); }, 'the waterfall reset button', 100, 100);
-    document.getElementById('notes-reset-btn').click();
+    // L3: the Month view's own reset clears the day note, and the Region stops asking. (It used to be
+    // the waterfall strip's "Reset Notes & Hiatus", which cleared day notes too; rulings 1 and 4 moved
+    // the reset to the app header and split it by view, so a day note is the MONTH reset's job.)
+    document.getElementById('view-month-btn').click();
+    await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month view', 100, 100);
+    var mr = document.getElementById('tb-notes-reset-btn');
+    if(!mr || (mr.textContent || '').trim() !== 'Reset month notes') throw new Error('no "Reset month notes" in the app header (' + (mr ? mr.textContent : 'none') + ')');
+    mr.click();
     await T.sleep(900);
     var ask3 = await pickPlace('uk-london', null);
     var l3 = lock();
     await pickPlace('us-general', null);
-    add('L3', 'Reset Notes & Hiatus clears the day note, and then a Region change no longer asks',
+    add('L3', 'the Month view\'s "Reset month notes" clears the day note, and then a Region change no longer asks',
       !ask3 && l3.place === 'uk-london' && lock().place === 'us-general',
       {asked: ask3.slice(0, 60), placeAfter: l3.place, back: lock().place}, 'no dialog; the change goes through');
 

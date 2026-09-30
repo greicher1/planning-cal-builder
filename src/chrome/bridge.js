@@ -85,6 +85,14 @@ export const chrome = {
   // (src/chrome/DatePop.jsx). Pushed by update() so the little calendars mark holidays and
   // all-phase hiatus weeks without the popover ever reaching into the engine.
   dateContext: noop,
+  // { view: 'sheet'|'month', mode: 'auto'|'template'|'manual' } — the preview toolbar's Header
+  // button (owner ruling 1, relayed 30 Sep 2026). Its label and its menu follow the ACTIVE view, and
+  // the two headers' modes are independent. The label is DERIVED in React from this, never pushed
+  // as a string (a textContent write would destroy a Mantine Button's inner spans).
+  headerModeBtn: noop,
+  // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
+  // fallback that put it where Reset All was): "Reset notes" / "Reset month notes".
+  notesResetBtn: noop,
 }
 
 export function installChrome(impl) {

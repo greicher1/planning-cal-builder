@@ -76,7 +76,7 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, RegionCard, HolidaysCard, AppCard, PreferencesCard, HeadersCard } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, RegionCard, HolidaysCard, AppCard, PreferencesCard, HeadersCard, HiatusResetButton } from './chrome/Sidebar.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
@@ -124,6 +124,9 @@ function Chrome() {
           the whole schedule out. For pausing a single phase, use its own hiatus toggle above.
         </InfoHint>,
         '#hiatus-hint-host')}
+      {/* "Reset hiatus bands" (owner ruling 5) at the foot of the same static card, the way
+          "Reset holidays" ends Holidays. Its host is listed in buildSavedHtml()'s emptied hosts. */}
+      {portal(<HiatusResetButton />, '#hiatus-reset-host')}
       {/* Not a portal: DatePop renders straight into #react-root, which is a direct child of
           <body> BEFORE #print-root — so `body.printing-* > *:not(#print-root)` hides it in both
           print paths with no extra work, and #print-root stays last. */}

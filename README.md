@@ -29,6 +29,58 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The header controls leave the calendar (owner rulings 1, 4 and 5)
+
+**What changed:** the controls that sat inside the calendar, above its header, moved into the app's
+own toolbar, header and sidebar.
+- **The Header button is in the toolbar above the preview.** It reads "Header: Auto ▾", "Header:
+  Template ▾" or "Header: Manual ▾", sits after Rebuild From, and opens the same Auto / Template /
+  Manual menu under itself.
+  - It follows the view: in the Month view it shows and changes the month header's own mode.
+  - Template and Manual keep the accent look.
+- **In Manual mode only, the formatting controls stay above the header, as an editor toolbar:** a
+  grey strip with a bottom rule and a "Header" label. In Auto and Template, nothing sits above the
+  header any more.
+- **The notes reset splits by view and moves to the app header, where Reset All was.**
+  - Measured first: with both new buttons, the toolbar wrapped to two lines below 1414 px (Waterfall)
+    and 1462 px (Month view). The owner picked this fallback.
+  - **Reset notes** (Waterfall) clears waterfall notes, their colours and sizes. The Month view shows
+    the same notes, so they reset there too.
+  - **Reset month notes** (Month view) clears only the notes added in the Month view. Waterfall notes
+    stay.
+  - Neither touches hiatus bands or a holiday's note ticks any more.
+- **Hiatus bands get their own "Reset hiatus bands"**, at the foot of the All-phase hiatus card, as
+  "Reset holidays" ends the Holidays card.
+  - It also fixes a stale display. The old combined reset left a *named* hiatus row's band reading
+    "Hiatus" until the next edit. Now the band shows its row's name at once.
+- **Each reset is still one click and one undo step.**
+- **The calendar's own markup is unchanged.**
+  - The in-calendar buttons are still drawn by the frozen renderers, and are hidden by CSS. No
+    frozen function was edited.
+  - One frozen CSS rule, `.mv-tools`, changed with the owner's approval. The month PDF is unchanged.
+- **Width:** the toolbar row now goes to two lines below about 1287 px (1301 px in Template mode),
+  where before it did so below about 1144 px. The app header keeps at least 82 px spare at every
+  width.
+
+**Verified:**
+- New leg `hdrcontrols`, 12/12, on `carry-rich`, in the gate. Red on the previous build: T0 and T1,
+  then no button to press. The leg changed after its first red run (a timing wait), so it was proved
+  red again on the previous build's sources, restored, and checked with `cmp`.
+- `regionlock` 14/14 (its L3 now uses "Reset month notes"). `noresetall` 5/5.
+- `sharecopy2` now requires the new React host to be empty in a shareable copy, and exactly one of
+  each new button once the copy boots. Red on the previous build.
+- Gate 7 (`fence.js`, by hand): the only differences are the three hidden originals going to 0×0.
+  Every frozen cell, the table, the scroll box and the month elements are identical, and so are the
+  hidden buttons' own font, line-height and padding.
+- Full gate: **758 PASS, 0 FAIL, GATE PASSED** on this build: all nine month PDFs byte-identical to their baselines (gate 10), the waterfall PDF and every Excel part identical, `fields.byId` unchanged..
+- The pane, with real clicks at 1440×900 on `carry-rich`:
+  - the Header button opened the menu under itself, and Auto cleared everything above the header;
+  - the Month view showed "Header: Manual ▾", its own strip, and "Reset month notes";
+  - "Reset hiatus bands" put the band back to "Hiatus";
+  - "Reset notes" cleared the note, and one ⌘Z brought it back;
+  - at 1280 the toolbar wraps, as measured; at 1366 it fits; at 1121 the header holds (63 px, no
+    overflow).
+
 ### Removing a custom holiday and "Reset holidays" warn about moving the shoot (owner ruling 7)
 
 **What changed:** both already asked a question of their own. That question now also says what

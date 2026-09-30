@@ -40,6 +40,9 @@ window.addEventListener('load', function () { (async function () {
     out.sidebarEmpty = /<div id="sidebar-static"><\/div>/.test(html);
     out.toolbarEmpty = /<div class="view-toggle-row"><\/div>/.test(html);
     out.reactRootEmpty = /<div id="react-root"><\/div>/.test(html);
+    // "Reset hiatus bands" is portalled into its own host in the static hiatus card (owner ruling
+    // 5, 30 Sep 2026), so that host must serialise empty too.
+    out.hiatusResetHostEmpty = /<div id="hiatus-reset-host"><\/div>/.test(html);
     // No RENDERED <select> carries a selected <option> in the copy: with the hosts emptied, every
     // value restores from the saved-state JSON instead, so the sender's preference options cannot
     // travel as markup. ⚠️ Require a <select> before the option, or the check matches the app's own
@@ -67,6 +70,9 @@ window.addEventListener('load', function () { (async function () {
       headers: countIn('header.app-header'),
       sidebarStatics: countIn('#sidebar-static'),
       fileMenuBtns: countIn('.file-menu-btn'),
+      hiatusResetBtns: countIn('[id="hiatus-reset-btn"]'),
+      tbHdrModeBtns: countIn('[id="tb-hdr-mode-btn"]'),
+      tbNotesResetBtns: countIn('[id="tb-notes-reset-btn"]'),
       docWidth: idoc ? idoc.documentElement.scrollWidth : -1,
       titleRestored: idoc ? (idoc.getElementById('show-title') || {}).value : null
     };
@@ -74,6 +80,7 @@ window.addEventListener('load', function () { (async function () {
     out.pass = c.showTitleIds === 1 && c.exportBtns === 1 && c.undoBtns === 1 && c.headers === 1 &&
                c.docWidth > 0 && c.docWidth <= 1024 && c.titleRestored === 'Test Show' &&
                out.headerEmpty && out.sidebarEmpty && out.toolbarEmpty && out.reactRootEmpty &&
+               out.hiatusResetHostEmpty && c.hiatusResetBtns === 1 && c.tbHdrModeBtns === 1 && c.tbNotesResetBtns === 1 &&
                out.renderedSelectsWithSelected === 0;
     ifr.remove();
   } catch (e) { out.EX = String(e && e.stack || e); }

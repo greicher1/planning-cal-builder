@@ -246,6 +246,14 @@ Named-frozen inside these renderers even though they read as chrome: `#hdr-mode-
 renderer, all are handled by delegation matching on the id, and all are exactly the things a
 toolbar redesign wants to promote.
 
+✅ **Promoted without touching the renderers (owner rulings 1 and 4, after v1.4.1, with the owner's
+build-time approval).** `#hdr-mode-btn`, `#notes-reset-btn` and `#mv-hdr-mode-btn` are still
+emitted, unchanged, and are **hidden by CSS**. Their chrome twins are React: `#tb-hdr-mode-btn` in
+the preview toolbar and `#tb-notes-reset-btn` in the app header. A childList observer on
+`#table-wrap` feeds them, so no frozen function was edited. The originals keep their delegated
+handlers, so a scripted click still works, and the mode menu anchors under the visible twin. The one
+frozen CSS change was the `.mv-tools` rule, approved for it, and gate 10 stayed byte-identical.
+
 ### 4.3 The print CSS
 
 The whole `@media print` block, the `/* ---------- Calendar PDF export ---------- */` block, the
