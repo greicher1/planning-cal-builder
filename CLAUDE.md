@@ -363,9 +363,12 @@ made the question unanswerable:
   equivalent — its only automation surface is `safaridriver`, a windowed WebDriver browser you must
   enable by hand. Porting the harness is a rewrite, not a change to `CHROME=`.
 - **The app** needs the File System Access API (`showSaveFilePicker`) plus `FileSystemFileHandle`
-  persistence in IndexedDB, both Chromium-only. Elsewhere, **opening a calendar works fine** and
-  saving degrades to a plain download of the legacy `.html` copy — deliberately, since without a
-  handle there is nothing to write back to.
+  persistence in IndexedDB, both Chromium-only. Elsewhere there is **no Load at all**: the file
+  menu, and Load… with it, is hidden, so a `.sptcal` can't be opened. Saving degrades to a plain
+  download of the legacy `.html` copy — deliberately, since without a handle there is nothing to
+  write back to. Since v1.4.1 a strip (`#browser-notice`) says "SPTCal saves and loads in Chrome
+  or Edge" (audit L-20, owner ruling R6). *(Corrected 30 Sep 2026: this said "opening a calendar
+  works fine" there.)*
 - **The print path has never been measured outside Chrome.** The month-PDF print CSS is tuned to
   Chrome's engine specifically. That is an unknown, not a known-good fallback — do not call Safari
   "graceful degradation" without measuring it.
