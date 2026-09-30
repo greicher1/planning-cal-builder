@@ -1118,7 +1118,8 @@ Nothing in this document ships without all of these, every stage:
     - `badyear` and `spanhint`: a mistyped year or length points at its field;
     - `wholenum`: non-whole counts are ringed;
     - `regionlock`: month notes count toward the Region question (it was a lock until ruling 6,
-      after v1.4.1, made it a "Continue?" prompt), and a custom holiday asks first;
+      after v1.4.1, made it a "Continue?" prompt), a custom holiday asks first, and removing one
+      or "Reset holidays" carries the recompute sentence in its own ONE dialog (ruling 7);
     - `nofsa`: the strip outside Chrome/Edge;
     - `exportrefused`: Export on nothing says why;
     - `regioncaveat` and `simpostlabel`;

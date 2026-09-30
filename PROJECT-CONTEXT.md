@@ -331,7 +331,10 @@ a holiday the new region lacks simply lie dormant.
 - **`fullHolidayList(regionKey)`** merges the region's list with the custom ones and tags
   each with `enabled`.
 - Disabling a holiday **changes Production's dates**, so it warns once (only when note edits
-  exist) rather than hard-blocking.
+  exist) rather than hard-blocking. So does anything else that changes which holidays apply:
+  adding a custom holiday (v1.4.1, L-23), and a Region change, which was a hard LOCK until owner
+  ruling 6 made it ask. Removing a custom holiday and "Reset holidays" (ruling 7) keep their own
+  confirm, which carries the same sentence under the same rule: ONE dialog, never two.
 - Custom holidays fill a real gap: hiatus rows are **whole Monday-snapped weeks**, so there was
   previously no way to block a **single day**.
 

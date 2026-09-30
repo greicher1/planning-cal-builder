@@ -9681,6 +9681,17 @@ export function initLegacyApp() {
     if(!countryChangeWouldClobber()) return true;
     return !!(await uiConfirm('Changing which holidays apply recomputes Production\u2019s dates, which can misplace the comment/hiatus edits you\u2019ve made.\n\nContinue?', { title: 'Recompute the schedule?' }));
   }
+  // The same warning for the two holiday actions that already ask a question of their OWN -- owner
+  // ruling 7 (relayed 30 Sep 2026) and the picker that settled its shape the same day: ONE dialog.
+  // Removing a custom holiday and "Reset holidays" change which holidays apply exactly as the Enable
+  // checkbox does, so they warn under the same rule (countryChangeWouldClobber) -- as a sentence
+  // inside their own confirm, never as a second dialog after it. '' when nothing can be misplaced,
+  // which leaves each confirm exactly as it read before.
+  function holidayRecomputeSentence(lead){
+    return countryChangeWouldClobber()
+      ? '\n\n' + lead + ' recomputes Production\u2019s dates, which can misplace the comment/hiatus edits you\u2019ve made.'
+      : '';
+  }
   // The Region's version of the same question -- owner ruling 6 (relayed 30 Sep 2026; built after
   // v1.4.1), which replaced the Region LOCK with it. The lock refused the change until "Reset Notes
   // & Hiatus" had wiped every note, although only notes and note colours can be misplaced: hiatus
@@ -12907,7 +12918,9 @@ export function initLegacyApp() {
       if(del){
         const hid = del.dataset.hid;
         const h = (customHolidays || []).find(c=>c.id === hid);
-        if(h && !(await uiConfirm('Remove the custom holiday “' + h.name + '”?', { title: 'Remove holiday', confirmLabel: 'Remove', danger: true }))) return;
+        // Ruling 7: a custom holiday on a shoot day moves Production when it goes, just as switching
+        // it off would -- so the confirm carries the recompute warning under the same rule.
+        if(h && !(await uiConfirm('Remove the custom holiday “' + h.name + '”?' + holidayRecomputeSentence('Removing it'), { title: 'Remove holiday', confirmLabel: 'Remove', danger: true }))) return;
         customHolidays = (customHolidays || []).filter(c=>c.id !== hid);
         delete holidayOff[hid];
         delete holidayView[hid];
@@ -12973,7 +12986,10 @@ export function initLegacyApp() {
       el.addEventListener('input', clearErr);
     });
     if(resetBtn) resetBtn.addEventListener('click', async ()=>{
-      if(!(await uiConfirm('Re-enable every holiday, clear the note choices, and delete your custom holidays?\n\nThis only affects the Holidays section.', { title: 'Reset holidays', confirmLabel: 'Reset', danger: true }))) return;
+      // Ruling 7: re-enabling holidays and deleting custom ones recomputes Production, so the confirm
+      // carries the recompute warning under the same rule. "This only affects the Holidays section."
+      // left the text: it was untrue once Production's dates move (the owner's picker, 30 Sep 2026).
+      if(!(await uiConfirm('Re-enable every holiday, clear the note choices, and delete your custom holidays?' + holidayRecomputeSentence('This'), { title: 'Reset holidays', confirmLabel: 'Reset', danger: true }))) return;
       holidayOff = {};
       holidayView = {};
       customHolidays = [];

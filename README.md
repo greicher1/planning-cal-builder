@@ -29,6 +29,34 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Removing a custom holiday and "Reset holidays" warn about moving the shoot (owner ruling 7)
+
+**What changed:** both already asked a question of their own. That question now also says what
+switching a holiday off has always said: that Production's dates will be recomputed, which can
+misplace notes. It says so only when that is true: a note, a note colour or a hiatus band has been
+edited, and Production is scheduled.
+- **One dialog, not two** (the owner's pick):
+  - *Remove holiday:* "Remove the custom holiday "…"? Removing it recomputes Production's dates,
+    which can misplace the comment/hiatus edits you've made." [Cancel] [Remove]
+  - *Reset holidays:* "Re-enable every holiday, clear the note choices, and delete your custom
+    holidays? This recomputes Production's dates, which can misplace the comment/hiatus edits
+    you've made." [Cancel] [Reset]
+- With nothing to misplace, each asks exactly its old question. Reset holidays drops its old
+  second line, "This only affects the Holidays section.", which was untrue once Production's dates
+  move.
+
+**Verified:**
+- `regionlock` gains five cases, 14/14, in the gate.
+  - Red on the previous build: D1 (no sentence on remove), R1 (no sentence on reset, and the old
+    line) and R2 (the old line with nothing to misplace).
+  - Guards pass on both builds: D2 (Remove works, the dates come back, no second dialog) and D3
+    (the plain confirm when nothing can be misplaced).
+- Mutation: the two-dialog shape (a second "Recompute the schedule?" after Remove) turns D2 red.
+  Restored and checked with `cmp`.
+- The pane, with real clicks on `carry-rich`, a calendar with a note, a day note and a custom
+  holiday: its × and Reset holidays each showed the approved text in one dialog. Cancel kept
+  everything.
+
 ### Changing the Region asks first instead of being locked (owner ruling 6)
 
 **What changed:** the Production Region no longer **locks** once you've edited notes.
