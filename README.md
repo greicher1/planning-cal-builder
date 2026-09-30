@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Sim Post's offset says it counts calendar weeks (audit SCHED-13)
+
+**What changed:** The offset row said "Starts [n] weeks after Production begins", which reads as
+working weeks. The engine counts **calendar** weeks, so a hiatus inside that stretch still counts.
+Following FIX-PLAN's default ("relabel it 'calendar weeks after Production begins'. No date
+change"), the row, the Help text and PROJECT-CONTEXT §6 now all say "calendar weeks". No date
+changes. The row still fits on its two lines (30 px, measured in the pane), and 4.6's "Whole weeks
+only" message still sits under it.
+
+**Verified:**
+- New leg `simpostlabel`, in the gate: the row and the Help text now say "calendar weeks". It also
+  checks the words are true: with a two-week hiatus inside a three-week offset, Sim Post starts on
+  7/20/26, three calendar weeks after 6/29 (working weeks would give 8/3).
+- **Red before** on the two wording cases. The truth case passed before and passes after, which is
+  the "no date change" guard.
+- **Green after**, 3/3. `wholenum` still 10/10.
+
 ### Each holiday agreement's caveat shows under the location picker (audit N-9)
 
 **What changed:** The holiday research carries a caveat for seven agreements: something their

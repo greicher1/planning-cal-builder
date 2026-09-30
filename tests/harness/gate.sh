@@ -1406,7 +1406,7 @@ for AFSPEC in loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 s
               notewrap:-:150 hdrcut:hdr-cut:150 xlsxlimits:-:150 xlsxdates:-:150 \
               legacyparse:-:900 hdroverrides:-:150 badyear:-:120 spanhint:-:150 \
               wholenum:-:150 regionlock:-:150 nofsa:-:150 exportrefused:-:150 \
-              regioncaveat:-:120; do
+              regioncaveat:-:120 simpostlabel:-:120; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

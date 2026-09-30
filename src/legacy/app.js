@@ -5439,7 +5439,7 @@ export function initLegacyApp() {
           <label class="simpost-offset-row" id="simpost-offset-row">
             Starts
             <input type="number" id="simpost-offset" min="0" step="1" value="0">
-            weeks after Production begins
+            calendar weeks after Production begins
           </label>
           <label class="simpost-count-row" id="simpost-count-row" title="On: the flagged weeks read &quot;Simultaneous Post wk 1, 2...&quot; and the regular Post phase carries on from there (Post wk 3, 4...). Off: every flagged week reads just &quot;Simultaneous Post&quot; and Post starts over at wk 1.">
             <input type="checkbox" id="simpost-count">

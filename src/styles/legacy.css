@@ -969,7 +969,7 @@
   }
   #episode-rows .episode-row[data-whole-err], #episode-rows .block-head[data-whole-err]{ flex-wrap:wrap; }
   #episode-rows .block-head[data-whole-err]::after{ flex-basis:100%; }
-  /* Sim Post's offset line is a sentence ("Starts [n] weeks after Production begins"): wrapping it
+  /* Sim Post's offset line is a sentence ("Starts [n] calendar weeks after Production begins"): wrapping it
      would break the sentence onto a new line (seen in the pane), so its message is placed UNDER the
      row instead, in space the margin reserves, and the row itself keeps its shape. */
   .simpost-offset-row[data-whole-err]{ position:relative; margin-bottom:16px; }

@@ -341,8 +341,10 @@ a holiday the new region lacks simply lie dormant.
 
 ### Simultaneous Post
 
-Marks weeks where post runs concurrently with the shoot. Lives inside the Production row (its
-offset counts weeks from Production's start). A **numbering toggle** (`#simpost-count`, default
+Marks weeks where post runs concurrently with the shoot. Lives inside the Production row. Its
+offset counts **calendar** weeks from Production's start, hiatus weeks included: `isSimPostWeek`
+measures `Math.round((week − Production's start) / 7 days)`. Since v1.4.1 the row says so, "calendar
+weeks after Production begins" (audit SCHED-13; no date changed). A **numbering toggle** (`#simpost-count`, default
 ON) chooses between:
 
 - **On:** weeks read "Simultaneous Post wk 1, 2…" and the regular Post phase **continues** from
