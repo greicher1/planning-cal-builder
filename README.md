@@ -29,6 +29,42 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The waterfall PDF names the characters it will print as "?" before writing (audit L-6)
+
+**What changed:** The waterfall PDF's embedded font covers Western European characters only (what
+the PDF's WinAnsi encoding can address). Anything else, such as a CJK title, an arrow, an emoji, or
+a Polish or Lithuanian letter, printed as "?" in the distributed PDF with no warning. Now **Export
+PDF** in the waterfall first checks every string the PDF will draw: the header, phase labels, hiatus
+labels and notes. If any character would print as "?", a dialog lists each one and where it is:
+
+> • → ✓ in the note for the week of 7/13/26
+> • Ł ź in the phase "Łódź Unit" (from 7/20/26)
+
+**Cancel** goes back so the text can be changed. **Export anyway** writes the PDF exactly as before.
+Excel and the month view keep these characters, so neither asks. FIX-PLAN's default for L-6 applied:
+a warning only, no font rework.
+
+- The check drives the frozen writer from outside. It walks the same strings through the writer's
+  own helpers, and asks the writer's own encoder (`pdfEscape`) about each character, so the
+  warning can't disagree with the bytes. Nothing frozen was edited.
+- Three built-in holiday names are affected: Lithuania's "Joninės", "Žolinė" and "Kūčios". They
+  print with "?" whenever those holidays are shown in the waterfall, and the dialog now says so.
+
+**Verified:**
+- New leg `winansi`, 7 cases, in the gate. It builds a synthetic calendar through the real UI.
+  - Guard: WinAnsi text (é – “ ” … €) exports with no dialog and prints with no "?".
+  - The dialog lists exactly the seven characters in the four places, and writes nothing.
+  - Cancel writes nothing.
+  - Export anyway writes a PDF that prints "?" exactly where the dialog said.
+  - Excel asks nothing and keeps the characters.
+  - **Red before** on the four dialog cases, re-proved after the leg's own fix. **Green after**, 7/7.
+- In the pane, on a real saved fixture with a real click: the dialog listed "→ in the header", and
+  Cancel closed it with no file written.
+- Found while verifying, recorded for the owner and NOT changed: on screen, the waterfall draws some
+  of these characters as blanks. The embedded font keeps Carlito's full character map but blanks
+  every glyph outside WinAnsi, so the browser never falls back. It is part of the frozen font and
+  width model.
+
 ### The hosted link installs SPTCal, and a browser tab never runs it (owner request, 30 Sep 2026)
 
 **What changed:** Opening the GitHub Pages link in an ordinary Chrome or Edge tab no longer shows the

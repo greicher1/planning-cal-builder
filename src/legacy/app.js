@@ -15506,11 +15506,115 @@ export function initLegacyApp() {
     }
   }));
 
-  document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, ()=>{
+  document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
-    if(WF_PDF_MODE === 'direct') exportWaterfallPdfDirect();
+    if(WF_PDF_MODE === 'direct'){
+      // Audit L-6: name what would print as "?" before writing it. Only the direct writer is
+      // bound to WinAnsi; the print fallback renders the DOM with the browser's own font fallback.
+      if(!(await confirmPdfPrintable())) return;
+      exportWaterfallPdfDirect();
+    }
     else exportWaterfallPdf();
   }));
+
+  // ⛔ AUDIT L-6: characters the waterfall PDF cannot draw are NAMED BEFORE it is written. The direct
+  // writer embeds Carlito subsetted to exactly what WinAnsiEncoding can address -- printable ASCII,
+  // Latin-1 and the 0x80-0x9F smart-punctuation band (tools/subset-font.py) -- and frozen pdfEscape()
+  // writes "?" for anything else. So a CJK title, an arrow or an emoji in a note came out of the
+  // distributed PDF as "?", with no word, while Excel and the month view (Inter) kept it (the audit
+  // measured it). FIX-PLAN's default: warn and list the characters; no font rework.
+  // ⚠️ The on-screen waterfall is no reference either (measured 30 Sep 2026): tools/subset-font.py
+  // copies Carlito's cmap VERBATIM and blanks the outlines it drops, so a character Carlito covers
+  // but WinAnsi does not (an arrow, Ł, ź, Greek, Cyrillic) draws as a BLANK in the grid -- the
+  // browser trusts the cmap and never falls back. CJK and emoji are not in Carlito's cmap, so they
+  // fall back and show. That is the frozen font and width model (measureTextPx measures those
+  // blanks), so it is recorded in HANDOFF for the owner, not changed here.
+  //
+  // Both halves are driven from OUTSIDE the frozen writer (sanctioned pattern 2):
+  //   * WHAT it draws: the walk below visits the strings buildWaterfallPdf() hands to its text
+  //     calls, through the SAME helpers it calls -- headerLine() over computeHeaderDefaults(), the
+  //     year blocks and computePhaseRowLayout() for the phase and per-phase hiatus labels,
+  //     hiatusTextFor() for an all-phase band, effectiveNoteText(autoNotesForView(..., 'sheet')) for
+  //     a note. An all-phase hiatus week draws no note (its band runs to the block's edge), so none
+  //     is read there. The column heads and the dates are ASCII by construction and are skipped.
+  //     ⚠️ If the writer ever draws a new kind of text, add it here, or its characters go unnamed.
+  //     The PDF itself is unaffected either way.
+  //   * WHETHER a character prints: frozen pdfEscape() is ASKED, one character at a time. It is the
+  //     writer's own rule, so this warning cannot disagree with the bytes it writes.
+  function pdfUnprintablePlaces(schedule){
+    const places = [], byKey = new Map(), verdict = new Map();
+    const unprintable = ch => {
+      if(!verdict.has(ch)) verdict.set(ch, ch !== '?' && pdfEscape(ch) === '?');
+      return verdict.get(ch);
+    };
+    const scan = (text, key, where) => {
+      for(const ch of String(text || '')){
+        if(!unprintable(ch)) continue;
+        let place = byKey.get(key);
+        if(!place){ place = { where: where(), chars: [] }; byKey.set(key, place); places.push(place); }
+        if(place.chars.indexOf(ch) < 0) place.chars.push(ch);
+      }
+    };
+    const hd = computeHeaderDefaults(schedule);
+    ['left','l2','l3','c1','c2','c3','c4','r1','r2','r3'].forEach(id=>
+      scan(headerLine(id, hd), 'header', ()=> 'in the header'));
+    const names = {};
+    getAllPhaseDefs().forEach(d=>{ names[d.key] = d.label; });
+    const yearBlocks = computeYearBlocks(schedule.weeks);
+    const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
+    const maxRows = sheetRowCount(schedule, yearBlocks);
+    const notesByIdx = schedule.notesByIdx || {};
+    // Block by block, so the list reads in calendar order (the writer draws row-major across the
+    // blocks; the strings are the same either way).
+    yearBlocks.forEach((b, bi)=>{
+      for(let r = 0; r < Math.min(b.count, maxRows); r++){
+        const w = schedule.weeks[b.startIdx + r];
+        if(!w) continue;
+        const wk = w.date.toISOString().slice(0,10), when = fmtShort(w.date);
+        if(w.cells.length && w.cells[0].type === 'hiatus'){
+          const label = hiatusTextFor(wk);
+          scan(label, 'h|' + label, ()=> 'in the hiatus label \u201c' + label + '\u201d (from ' + when + ')');
+          continue;
+        }
+        computePhaseRowLayout(w, blockMaxConcurrent[bi], blockSlotMaps[bi], blockOccupancy[bi], r, blockSimSlot[bi])
+          .forEach(cell=>{
+            if(cell.kind === 'phaseHiatus'){
+              const label = cell.label || '';
+              scan(label, 'ph|' + cell.phaseKey + '|' + label, ()=> 'in the hiatus label \u201c' + label + '\u201d (from ' + when + ')');
+            } else if(cell.kind === 'phase' || cell.kind === 'simpost'){
+              const key = (cell.cell && cell.cell.key) || cell.kind;
+              const name = names[key] || cell.label || '';
+              scan(cell.label, 'p|' + key, ()=> 'in the phase \u201c' + name + '\u201d (from ' + when + ')');
+            }
+          });
+        scan(effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx + r], 'sheet')),
+             'n|' + wk, ()=> 'in the note for the week of ' + when);
+      }
+    });
+    return places;
+  }
+  // Resolves true to go ahead. A warning must never stand between the user and the export, so a
+  // throw here is logged and the export proceeds as it always did.
+  async function confirmPdfPrintable(){
+    if(!currentSchedule || !currentSchedule.weeks || !currentSchedule.weeks.length) return true;  // the writer says why
+    let places;
+    try { places = pdfUnprintablePlaces(currentSchedule); }
+    catch(err){ console.error(err); return true; }
+    if(!places.length) return true;
+    // An invisible or combining character would vanish from the list, so those are shown by code.
+    const shown = ch => /[\s\p{Cc}\p{Cf}]/u.test(ch) ? 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')
+                      : /\p{M}/u.test(ch) ? '\u25CC' + ch : ch;
+    const MAX_PLACES = 8, MAX_CHARS = 12;
+    const lines = places.slice(0, MAX_PLACES).map(p=>
+      '\u2022 ' + p.chars.slice(0, MAX_CHARS).map(shown).join(' ') + (p.chars.length > MAX_CHARS ? ' \u2026' : '')
+      + ' ' + p.where);
+    if(places.length > MAX_PLACES) lines.push('\u2026 and ' + (places.length - MAX_PLACES) + ' more');
+    return !!(await uiConfirm(
+      'The waterfall PDF\u2019s font has Western European characters only, so these will print as \u201c?\u201d:\n\n'
+      + lines.join('\n')
+      + '\n\nExcel and the month view keep them.',
+      { title: 'Some characters won\u2019t print', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
+  }
 
   // ---------- Month view: export every month to PDF ----------
   // Uses the browser's own print pipeline (Print -> "Save as PDF"), which is the only way a
