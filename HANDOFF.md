@@ -4,9 +4,62 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 30 Sep 2026 (evening): THE HEADER-CONTROLS BUILD (relayed rulings 1–7), in progress
+
+- ⏭ **RESUME HERE.** This session builds the relayed rulings 1–7 (the block further down,
+  "Owner rulings RELAYED 30 Sep 2026"), one local commit per fix. Nothing is pushed.
+- **Start state, verified:**
+  - `origin/main` = `1d32bd0` (v1.4.1, live); local `main` = `7b9f46f`, 2 HANDOFF-only commits
+    ahead. The three worktrees (`pwa-gate`, `confidential-cleanup`, `half-worked-days`) are merged
+    ancestors of `main` and clean; left alone.
+  - No gate was running. All 13 peers were idle. The five SPTCal peers were messaged, and all
+    acknowledged: none has work in flight or a gate planned. "Header toolbar visual separation"
+    confirmed the build is this session's.
+  - `npm run build && npm run check`: 34/34; `dist` byte-identical to `releases/v1.4.1.html`.
+  - **Baseline full gate (port 8241): 734 PASS, 0 FAIL, GATE PASSED**, about 9 minutes.
+- ⭐ **THE TOOLBAR MEASUREMENT (done first, as the owner asked).** In the pane, on the build, with
+  `v1.4.1-saved`. The probes were clones of the real Shift From Mantine button, which measures the
+  same 84.1 px as the original.
+  - Widths: "Header: Auto ▾" 99.9 px, "Header: Manual ▾" 113.8, "Header: Template ▾" 123.7, a bare
+    "Header ▾" 69.0; "Reset notes" 83.8, "Reset month notes" 120.1; each plus a 10 px gap.
+  - Spare width in `.view-toggle-row` today: 1280 +100, 1366 +191, 1440 +247, 1512 +302. The row
+    ALREADY wraps below about 1144 px (1121, 1024 and 961 are wrapped on v1.4.1).
+  - **Both buttons in the toolbar** wrap it below 1414 px (Waterfall) and 1462 px (Month), worst-case
+    labels: at 1280, 1366, and 1440 in the Month view.
+  - **The fallback** (only the Header button in the toolbar) wraps it below about 1287 px (Auto) and
+    1301 px (Template), so at 1280. A bare "Header ▾" would wrap below about 1251 px.
+  - **The app header takes the fallback easily.** Reset All is 75.8 px; the header button metrics
+    give "Reset notes" 91.8 and "Reset month notes" 128.1. The tightest rung (1121 px) keeps 118 /
+    82 px free. `--header-h` is 63 px at every width measured, 961–1680. The one cost: the rare
+    failed-save Badge "File changed on disk — autosave paused" (about 231 px) is already 19 px short of
+    room at 1121 and would be 35 / 71 px short.
+  - ⚠️ UI-CONVENTIONS §7 says the three popover buttons collapse into an "Adjust ▾" menu below
+    `lg`. **No such menu exists in the code.** Corrected there with this build's doc pass.
+- ⭐ **OWNER RULINGS, 30 Sep 2026 (picker, this session), after the measurement:**
+  1. **Placement: "Fallback, with mode word".** The Header button joins the preview toolbar with its
+     mode word and a caret ("Header: Auto ▾" / "Header: Template ▾" / "Header: Manual ▾", the
+     label the owner's mockups drew; "Header ▾" in the relayed ruling was the peer's shorthand).
+     **Reset notes goes in the APP HEADER, where Reset All was**, and follows the view.
+  2. **Labels:** Waterfall "Reset notes" (its tooltip: waterfall notes, their colours and sizes,
+     which the Month view shows too); Month "Reset month notes" (its tooltip: waterfall notes stay);
+     sidebar "Reset hiatus bands".
+  3. **Ruling 7's dialogs: ONE dialog.** Removing a custom holiday and "Reset holidays" keep their
+     own confirm, which gains the recompute sentence when notes could be misplaced (the same rule as
+     the Enable checkbox). "This only affects the Holidays section." leaves Reset holidays' text.
+  - Kept as today, not asked: the resets clear at once and are undoable (⌘Z), like "Reset Notes &
+    Hiatus".
+- **Build order**, chosen so every commit is coherent: 3 (Reset All) → 6 (the Region prompt,
+  which drops the three "Reset Notes & Hiatus first" strings before that button goes) → 7 → 1+4+5
+  (the header controls leave the calendar) → 2 (Expand/Swap).
+
+| Ruling | State | Proof |
+|---|---|---|
+| 3: Reset All removed | ✅ done: the button (Header.jsx) and its unguarded IIFE-time listener went in one change; `resetAll()` stays for `newFile()`; the Help points at New | `noresetall` 5/5, in the gate. Red on v1.4.1: A0, A4. Mutation (button gone, listener kept): A1 red with the predicted `TypeError`, A2 red; restored, `cmp`-checked. `loadcarry` 6/6. The pane: real typing, a real New click, Start new → blank |
+
 ### ✅ 30 Sep 2026: BATCHES 4 + 5 COMPLETE → v1.4.1 CUT (FIX-PLAN §6 + §7)
 
-- ⏭ **RESUME HERE (end of the 30 Sep 2026 afternoon session; hand-off after the cut).**
+- ⏮ **Superseded RESUME block (the 30 Sep 2026 afternoon session's hand-off after the cut; kept for
+  its record, and its "owed by the owner" and "open" lists still stand).**
   - **v1.4.1 is CUT**:
     - the version sites (`APP_VERSION`, `version.json`, `package.json`) are all 1.4.1, and the root
       `index.html` is untouched (`cmp`-equal to `releases/v1.2.0.html`);

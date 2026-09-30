@@ -1130,6 +1130,9 @@ Nothing in this document ships without all of these, every stage:
       Snap to Mon, driven with trusted CDP mouse input.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
+
+    The header-controls build (relayed rulings 1–7, after v1.4.1) adds:
+    - `noresetall`: Reset All is gone from the header, and New does its job.
 12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
     policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
     inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations

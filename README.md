@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Reset All is gone; New does the job (owner ruling 3)
+
+**What changed:** the header's **Reset All** button is removed.
+- **Why:** it cleared the calendar but kept the link to the file you had open. So the next Save, or
+  the 10-minute autosave, wrote the blank calendar over your saved file, while its own confirm said
+  the file on disk was "left untouched".
+- **New** does the same clearing and also unlinks the file, so the next Save asks where to put it.
+- The engine bound Reset All with an unguarded listener at start-up, so the button and the listener
+  went in the same change. The reset itself (`resetAll()`) stays, because New calls it.
+- The Help's two mentions now point at New.
+
+**Verified:**
+- New leg `noresetall`, 5/5, in the gate.
+  - Red on v1.4.1: A0 (the button is there) and A4 (the Help names it).
+  - A1–A3 pass on both builds: a clean boot with a rendered calendar; New clearing the title, the
+    dates, a typed note and the Region; and no divider left dangling at the end of the header.
+- Mutation: removing the button but keeping its listener turns A1 red with the predicted
+  `TypeError … reading 'addEventListener'`, and A2 red (New never bound). Restored and checked with
+  `cmp`.
+- `loadcarry` 6/6 (its C6 is New). `npm run check` 34/34.
+- The pane, with real clicks: no Reset All in the header. Typing in Title and clicking New asked
+  "Start a new blank calendar?", and Start new left a blank calendar.
+
 ## v1.4.1 — hardening, the suspected items, and the install gate: the deployment-readiness audit, batches 4 and 5 (30 Sep 2026)
 
 The fourth and fifth batches of fixes from [`AUDIT-REPORT.md`](AUDIT-REPORT.md), per

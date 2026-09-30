@@ -323,13 +323,11 @@ export function Header() {
         Export PDF
       </Button>
 
-      {/* Reset sits past a divider at the very end -- the destructive action gets distance from
-          the export pair it used to sit beside. (The old ml="auto" right-alignment now lives on
-          the export group.) */}
-      <div className="app-toolbar-div" aria-hidden="true" />
-      <Button {...BTN} id="reset-btn" variant="default" c="danger.9" fw={500}>
-        Reset All
-      </Button>
+      {/* ⛔ Reset All USED TO SIT HERE, past a divider, and is gone (owner ruling 3, relayed
+          30 Sep 2026). It cleared the calendar but kept the file link, so the next Save or the
+          10-minute autosave wrote the blank calendar over the saved file. New does the job and
+          clears the link too. Its engine listener was unguarded at evaluation time, so the button
+          and the listener were removed in the same change (tests/harness/t/noresetall.js). */}
     </Group>
   )
 }

@@ -3967,7 +3967,7 @@ export function initLegacyApp() {
 
   // Reject per PAIR, never per block. A pair revert is itself a within-week transposition, so pairs
   // are independent -- reverting a whole BLOCK killed unrelated legal swaps in it, silently and
-  // permanently, re-running on every keystroke and recoverable only by Reset All or hand-editing the
+  // permanently, re-running on every keystroke and recoverable only by a full reset or hand-editing the
   // saved file. Reject the offender, re-diff, repeat; bounded by the number of applied pairs.
   //
   // ⛔ Rejected entries are SUPPRESSED for this pass, not deleted from the store. A duration typo
@@ -13025,8 +13025,8 @@ export function initLegacyApp() {
   });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
   document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
-  // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as
-  // part of starting a blank file, and does its own prompting -- doesn't ask twice.
+  // The actual reset. New is its only caller since Reset All went (owner ruling 3, 30 Sep 2026):
+  // newFile() does its own prompting, clears the file link, and then calls this.
   function resetAll(){
     monthCursorRecheck = true;   // a different (empty) calendar: see update() (L-17)
     hideLegacyNotice();
@@ -13103,18 +13103,14 @@ export function initLegacyApp() {
     update();
   }
 
-  document.getElementById('reset-btn').addEventListener('click', async ()=>{
-    const ok = await uiConfirm(
-      'Reset All will clear this calendar completely:\n\n' +
-      '\u2022 every phase, date and duration\n' +
-      '\u2022 Show Info, season and the episode list\n' +
-      '\u2022 all notes, hiatus bands and colour edits\n' +
-      '\u2022 the Production Region and header text\n\n' +
-      'Any saved file on disk is left untouched \u2014 this only clears what\u2019s on screen. Continue?',
-      { title: 'Reset All', confirmLabel: 'Reset everything', danger: true }
-    );
-    if(ok) resetAll();
-  });
+  // ⛔ RESET ALL IS GONE (owner ruling 3, relayed 30 Sep 2026; built after v1.4.1). It cleared the
+  // calendar but KEPT THE FILE LINK, so the next Save -- or the 10-minute autosave -- wrote the
+  // blank calendar over the saved file, while its own confirm said the file on disk was "left
+  // untouched". New clears the link as well as the calendar, so it does the job without the trap,
+  // and resetAll() above stays for it. The button and its listener went in the SAME change: the
+  // listener was an unguarded getElementById('reset-btn').addEventListener at IIFE-evaluation
+  // time, so removing only the button would have thrown on null and killed the rest of the engine.
+  // tests/harness/t/noresetall.js A1 is the guard for that half.
   // ---------- Save to File: snapshot current data into a self-contained HTML copy ----------
   // Reflect every live input/select/textarea value into its HTML attributes so that,
   // when we serialize the DOM to a string, the user's entries are baked into the markup.
