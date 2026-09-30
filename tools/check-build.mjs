@@ -104,6 +104,23 @@ check(
   marker.version === pkg.version,
   `version.json=${marker.version} package.json=${pkg.version}`
 );
+// Audit N-5: the check above never looked at the ENGINE's copy, which is the one the update
+// check actually compares against -- so a cut that bumped version.json alone passed here and
+// shipped a phantom update. The minifier renames APP_VERSION, so the constant is read from the
+// SOURCE, and the build is then required to carry that exact string literal.
+const engineSrc = fs.readFileSync(path.join(ROOT, 'src', 'legacy', 'app.js'), 'latin1');
+const engineVersion = (engineSrc.match(/\bconst APP_VERSION\s*=\s*'([^']+)'/) || [])[1];
+check(
+  "engine APP_VERSION matches version.json",
+  engineVersion === marker.version,
+  `APP_VERSION=${engineVersion} version.json=${marker.version}`
+);
+const litRe = (v) => new RegExp('[`\'"]' + v.replace(/\./g, '\\.') + '[`\'"]');
+check(
+  'build carries the engine APP_VERSION',
+  !!engineVersion && litRe(engineVersion).test(src),
+  engineVersion ? `literal ${engineVersion} in dist` : 'APP_VERSION not found in src/legacy/app.js'
+);
 
 // --- report -------------------------------------------------------------------------------
 console.log('\n=== check-build: dist/index.html ===');

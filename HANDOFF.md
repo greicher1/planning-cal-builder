@@ -4,6 +4,46 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
+
+- **Start state, verified:**
+  - `origin/main..main` held only `5b86be8` (docs).
+  - Both worktrees (`confidential-cleanup`, `half-worked-days`) are clean and already part of `main`.
+  - No gate was running.
+  - The rebuilt `dist` is byte-identical to `releases/v1.4.0.html`.
+- **Order, confirmed by the owner (picker):** 4.11 → 4.3 → 4.14 → 4.2 → the chrome items (4.4, 4.6,
+  4.7, 4.9, 4.10, 4.13, 4.15) → 4.5 (before/after to the owner) → 4.8 → **the batch-5 checks I can
+  run myself** → 4.1 (the CSP proof, last, so it covers any batch-5 fix) → §8 doc fixes (CLAUDE.md
+  edits shown to the owner first) → 4.12 (its push asked for separately) → cut v1.4.1 → hand off.
+- **Batch 5 split:**
+  - **Mine:** the crash backup with two real tabs, MONTH-9, the NumberInput clamp-on-blur desync,
+    and M-1's autosave coverage in `loadfail`.
+  - **The owner's, by hand:** print Margins, a print dialog left open more than 60 s, Cmd/Ctrl+P, and
+    Recents asking for readwrite. The exact steps went to the owner on 29 Sep.
+  - **Paper:** the threat model (XSS with live file grants), MONTH-1 (closed), SCHED-13 (= 4.15), and
+    the custom-domain plan doc.
+- **The owner's results, 29 Sep 2026.** ⚠️ **They ran in a tab still on v1.3.0**: its update notice
+  said "this copy is 1.3.0", and the print dialog showed Paper size, which v1.4.0's L-3 pin hides.
+  - **Margins: not reproduced (on v1.3.0).** A custom 4.38" right margin took effect, which confirms
+    the audit's "no effect" was a CDP artefact. The month shrank to fit, all five weeks were on the
+    sheet, and nothing spilled. ⏭ **Re-run owed on v1.4.0**; it also covers the L-3 check, apart
+    from the UK locale.
+  - **Dialog open 90 s: not reproduced.** Chrome's `window.print()` blocks until the dialog closes,
+    so the 60 s safety net only starts afterwards.
+  - **Cmd+P: REPRODUCED in both views.** It prints the whole app: header, update notice, sidebar,
+    toolbar, then a clipped grid. That is 2 pages in the waterfall and 3 in the month view. It
+    becomes a v1.4.1 fix. Two options (route Cmd+P to the view's real export, or a print rule that
+    hides the chrome) are to be simulated and put to the owner with the picker. Confirm on the
+    current build over CDP (`printpaper.mjs` style, no print class set).
+  - **Recents readwrite:** owed.
+  - An untracked `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` appeared during the owner's
+    checks. It is theirs, so leave it untracked unless they say otherwise. It is not synthetic by the
+    fixtures README's rule until checked.
+
+| Step | Finding | State | Proof |
+|---|---|---|---|
+| 4.11 | N-5 | ✅ done: `check-build.mjs` 12 → 14 checks (engine `APP_VERSION` = `version.json`; the build carries that literal) | red on 3 mutations. The old checker passes "APP_VERSION forgotten" 12/12 |
+
 ### ✅ 29 Sep 2026: v1.4.0 is LIVE — pushed on the owner's approval, verified
 
 - **Pushed** `f03739f..f2d59a0` plus tag `v1.4.0`. CI run `36642107981` green (Build and check, Deploy to

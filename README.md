@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The build check now compares the engine's own version with version.json (audit N-5)
+
+**What changed:** `npm run check` (`tools/check-build.mjs`) gained two checks, 12 → 14. It
+compared `version.json` with `package.json`, but never with the engine's `APP_VERSION`, which is
+the copy the update check actually compares against. So a release cut that bumped `version.json`
+and `package.json` but forgot `APP_VERSION` passed the check and showed every user an update that
+never arrives. The new checks read `APP_VERSION` from `src/legacy/app.js` (the minifier renames
+the constant, so it can't be read from the build), require it to equal `version.json`, and require
+the built file to carry that exact version string, which catches a `dist/` that wasn't rebuilt.
+
+**Verified:**
+- 14/14 on the v1.4.0 build.
+- **Red** on three mutations, each restored and checked with `cmp`:
+  - `version.json`, `package.json` bumped with `APP_VERSION` forgotten: the new check fails. **The
+    old checker passes this case 12/12**, and that is the gap N-5 described.
+  - `version.json` bumped alone: fails.
+  - Source bumped, `dist/` not rebuilt: "build carries the engine APP_VERSION" fails.
+
 ## v1.4.0 — the approved export fixes: the deployment-readiness audit, batch 3 (29 Sep 2026)
 
 The third batch of fixes from [`AUDIT-REPORT.md`](AUDIT-REPORT.md), per [`FIX-PLAN.md`](FIX-PLAN.md)
