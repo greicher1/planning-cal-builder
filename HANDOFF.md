@@ -4,7 +4,43 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
+### ✅ 30 Sep 2026: BATCHES 4 + 5 COMPLETE → v1.4.1 CUT (FIX-PLAN §6 + §7)
+
+- ⏭ **RESUME HERE (end of the 30 Sep 2026 afternoon session; hand-off after the cut).**
+  - **v1.4.1 is CUT**:
+    - the version sites (`APP_VERSION`, `version.json`, `package.json`) are all 1.4.1, and the root
+      `index.html` is untouched (`cmp`-equal to `releases/v1.2.0.html`);
+    - the README heading `## v1.4.1 — …` sits over its 22 entries;
+    - `releases/v1.4.1.html` is byte-identical to `dist` (sha256 `a8824184…`, 1,358,590 bytes);
+    - `tests/fixtures/v1.4.1-saved.sptcal` is a real Save with 43 keys and 62 ids, the SAME sets as
+      v1.4.0's.
+  - ⚠️ Step 9a's full gate was the 734/0 run on the byte-identical pre-bump build (`0725c734…`).
+    Nothing in `src/` or the harness scripts changed between it and the bump, only docs and the
+    workflow.
+  - ✅ **Release gate on the v1.4.1 build (`a8824184…`): 734 PASS, 0 FAIL, GATE PASSED**: every
+    numbered gate green, all nine month PDFs identical to baseline. The tag `v1.4.1` sits on the cut
+    commit, placed AFTER the release gate (as v1.4.0's was).
+  - **Push state:** `origin/main` = `645be63` (4.12 alone, the owner's picker). CI run `36777572042`
+    was green on the pinned actions, and the live file stayed byte-identical to `releases/v1.4.0.html`
+    (`a6f56fdd…`). Local `main` carries it by a merge (`1992e89`), so every recorded hash stays valid.
+  - **Owed by the OWNER, by hand, never claimed here:**
+    - the print Margins re-run on v1.4.0 or later;
+    - L-3's UK-locale Save as PDF;
+    - Excel.app on `tests/harness/hdrcut-*` and `xlsxlimits-*`;
+    - Recents asking for readwrite;
+    - the install gate's after-deploy checks (§2l). ⚠️ **v1.4.1 SHIPS THE INSTALL GATE**, so after
+      the push every browser tab on the hosted link shows the install page.
+  - **Next, all AFTER v1.4.1 (owner's order):**
+    1. The header-controls build (relayed rulings 1–7 below), including the Region LOCK becoming a
+       "Continue?" prompt (build nothing more on the lock).
+    2. Then the direct month-PDF writer: `MONTH-PDF-WRITER-PLAN.md` first, and the owner's four
+       rulings before code.
+  - **Open, not yet put to the owner** (found this session, recorded below, NOT changed):
+    - the on-screen blank glyphs (the Carlito subset keeps the full cmap; frozen);
+    - crash-backup slots from pages closed unsaved are never cleaned up;
+    - a new tab is offered a LIVE tab's backup slot (known, documented);
+    - L-2's clamp in `sheetColumnWidths`' `pick` (still unruled).
+
 
 - ⏳ **SESSION OF 30 Sep 2026 (afternoon), resumed from the block below.** Start state checked:
   local `main` = `80ebd56`, 16 ahead of `origin/main` (`f2d59a0`); no gate running here; the PWA peer
@@ -159,7 +195,7 @@
     dropping the cmap entries would move column widths and the exports). ⏭ For the owner, if wanted:
     it needs a measured before/after. This is why 4.8's dialog says "Excel and the month view keep
     them", not "the screen".
-- ⏭ **RESUME HERE (end of the 30 Sep 2026 session; the owner asked for a hand-off).**
+- ⏮ **Superseded RESUME block (the 30 Sep MORNING session's hand-off; kept for its record):**
   - **Tip and push state:** local `main` = `0d06eff`, **15 commits ahead** of `origin/main` (`f2d59a0`,
     v1.4.0). **Nothing is pushed.** `dist/` was last built from `0d06eff`.
   - **Done, one local commit each** (rows in the table below):

@@ -88,6 +88,7 @@ they are a working demonstration against the live site. They ship in the same re
 | `v1.3.0-saved.sptcal` | a real Save from the v1.3.0 build: `T.buildFixture()`'s reference calendar, 62 `fields.byId` ids |
 | `v1.3.1-saved.sptcal` | the same calendar saved by the v1.3.1 build (29 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.3.0's — batch 2 changed no save-format key. Minted with `t/mintfixture.js` (a real Save click through a recording handle; not a gate leg), and the `autonote` leg passes 9/9 on it |
 | `v1.4.0-saved.sptcal` | the same calendar saved by the v1.4.0 build (29 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.3.1's — batch 3 changed no save-format key. Minted with `t/mintfixture.js`; 0 clipped cells |
+| `v1.4.1-saved.sptcal` | the same calendar saved by the v1.4.1 build (30 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.4.0's -- batches 4 and 5 changed no save-format key. Minted with `t/mintfixture.js` (a real Save through the stood-in picker); 0 clipped cells, `version: 1`, 5,652 bytes. |
 
 ### Batch 2: dates and data (FIX-PLAN §4, v1.3.1)
 

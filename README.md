@@ -29,6 +29,55 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## v1.4.1 — hardening, the suspected items, and the install gate: the deployment-readiness audit, batches 4 and 5 (30 Sep 2026)
+
+The fourth and fifth batches of fixes from [`AUDIT-REPORT.md`](AUDIT-REPORT.md), per
+[`FIX-PLAN.md`](FIX-PLAN.md) §6 and §7, plus two owner requests: the install gate and the removal of
+the "Unscheduled gap found" banner. Each change is an entry below, with its proof. Every new leg
+fails on v1.4.0.
+- **One export change**, approved after its before/after: the Production Span count (L-11).
+- **No baseline moved.**
+- **No save-format key changed:** `v1.4.1-saved.sptcal` has v1.4.0's exact 43 keys and 62 ids.
+  Every saved calendar keeps opening.
+
+Headline changes:
+- **The hosted link installs SPTCal** (owner request): a Chrome or Edge tab shows an install page,
+  and the app runs only in the installed app window. Local and shareable copies are never gated.
+- **Hardening:**
+  - a Content-Security-Policy, so only the app's own scripts and ExcelJS can run;
+  - no referrer, and ExcelJS deferred, so a slow CDN no longer stops the app starting (L-4);
+  - the service-worker clean-up touches only this app (SUPPLY-3);
+  - the old `.html` reader is linear, so a crafted file can't freeze the tab (L-22);
+  - the deploy runs only from `main`, on pinned actions (N-7);
+  - the build check guards the engine's version (N-5).
+- **Clearer feedback:**
+  - a mistyped year or length names its field (L-10, N-2), and a count that isn't whole says so
+    (L-12);
+  - Export on nothing says why (N-3);
+  - the waterfall PDF names any characters it can't print (L-6);
+  - outside Chrome and Edge a strip says where SPTCal works (L-20);
+  - each agreement's caveat shows under the location picker (N-9);
+  - Sim Post says "calendar weeks" (SCHED-13).
+- **Fixes:**
+  - the Production Span counts only Production's weeks (L-11);
+  - an old file's migrated header takes its own dates (N-8);
+  - month-view notes lock the region, and adding a custom holiday asks first (L-23);
+  - a Show Info count the field corrects on leaving is the count the calendar uses;
+  - a month pill dragged away and back keeps Snap to Mon (MONTH-9);
+  - Cmd/Ctrl+P prints the view's own PDF instead of the app.
+- **Removed:** the "Unscheduled gap found" banner (owner request).
+- **Checked, and needing no change:** the crash backup with two real tabs. Autosave after a refused
+  Load is now proven in the harness too (M-1).
+- **On paper:** a threat model, and the custom-domain plan.
+
+⚠️ **Checked by hand, owed by the owner:**
+- the print Margins re-run on v1.4.0 or later;
+- L-3's UK-locale Save as PDF;
+- Excel.app on the batch-3 workbooks;
+- Recents asking for readwrite;
+- the install gate's after-deploy checks (HANDOFF §2l).
+
+
 ### Docs: a threat model, and the custom-domain plan (audit batch 5)
 
 Paper only; the app is unchanged.
