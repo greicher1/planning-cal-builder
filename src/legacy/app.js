@@ -12160,9 +12160,36 @@ export function initLegacyApp() {
   // `extraBad` (audit N-2): the one field refreshSpanHint() found to explain a too-long refusal --
   // a weeks field, a hiatus's weeks, or a phase's start. The weeks fields are in the sweep below
   // for that reason, so their ring clears on the next update() like every other.
+  //
+  // ⛔ AUDIT L-12, and FIX-PLAN's defaults table: "Keep whole-number semantics. Ring the field and
+  // say 'whole weeks/days only'. The schedule does not change." Every duration is read with
+  // parseInt, so 2.5 weeks is 2, "1e3" is 1 and a 7.5-day episode is 7 -- silently. The rule is
+  // exactly that: a field is flagged when what was typed is a number that parseInt reads
+  // DIFFERENTLY ("2.0" is 2 both ways, so it is fine). Nothing here changes a value or a date.
+  // The Show Info counts are Mantine NumberInputs with allowDecimal={false}; a decimal cannot be
+  // typed there, so they are not in the list. The words go in a data attribute on the field's
+  // own label, or on its row where the field sits in a row (the episode and block day boxes, and
+  // Sim Post's offset line), and legacy.css prints them as the host's ::after.
+  function isWholeNumberTypo(el){
+    const v = String((el && el.value) || '').trim();
+    if(v === '') return false;
+    const n = Number(v);
+    return Number.isFinite(n) && n !== parseInt(v, 10);
+  }
+  const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
+                     + '#episode-rows .ep-days, #episode-rows .blk-days';
   function reflectStartDateValidity(state, extraBad){
     const bad = new Set([...((state && state.badYearFields) || []), ...(extraBad || [])]);
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"]').forEach(el=>{
+    const hosts = new Map();   // message host -> its words
+    document.querySelectorAll(WHOLE_FIELDS).forEach(el=>{
+      if(!isWholeNumberTypo(el)) return;
+      bad.add(el);
+      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('label');
+      if(host) hosts.set(host, (el.classList.contains('ep-days') || el.classList.contains('blk-days')) ? 'Whole days only' : 'Whole weeks only');
+    });
+    document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
+    hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, #episode-rows .ep-days, #episode-rows .blk-days').forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{

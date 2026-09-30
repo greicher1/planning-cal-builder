@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### A weeks or days count that isn't a whole number says so (audit L-12)
+
+**What changed:** Every duration is read as a whole number, so 2.5 weeks became 2, "1e3" became 1,
+and a 7.5-day episode became 7, with no sign of it. FIX-PLAN's default, which the owner accepted, was
+to keep the whole-number meaning, ring the field and say "whole weeks/days only". The schedule does
+not change. Now a field is ringed and says **"Whole weeks only"** or **"Whole days only"** whenever
+what was typed is a number the app reads differently. "2.0" is 2 either way, so it isn't flagged.
+
+That covers six fields: a phase's weeks, a hiatus's weeks, a per-phase hiatus's weeks, Sim Post's
+offset, an episode's days and a block's days. The four Show Info counts need nothing, because they
+already refuse a decimal point. The words appear under the field. In the episode and block lists
+they go on a line under the row. On Sim Post's offset line they sit below the line, so the sentence
+it's part of doesn't break. The day boxes draw their border on the box around the input, so the ring
+goes on that box.
+
+**Verified:**
+- New leg `wholenum`, 10 cases, in the gate:
+  - Post's 2.5 weeks gives exactly the grid of 2 weeks.
+  - An episode's 7.5 days gives exactly the total of 7.
+  - "1e3" is flagged; "2.0" is not.
+- **Red before** on every decimal case, and the same-grid and same-total checks already held there.
+  **Green after**, 10/10.
+- In the pane, with real typing: an episode's day box, a phase's Weeks field and Sim Post's offset.
+  The Sim Post line kept its 30 px height.
+
 ### A mistyped year or length now points at the field responsible (audit L-10, N-2)
 
 **What changed, part 1 (L-10):** A typo'd year in a hiatus date (an all-phase hiatus, or a
