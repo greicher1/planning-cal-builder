@@ -130,6 +130,19 @@
       gains the `rowHeightsByWeek` and `dayOverrides` rows. UI-CONVENTIONS §10 lists the batch-4/5 legs
       and adds item 12, the CSP.
     - HANDOFF §3 B was corrected in 4.9. `tools/check-refs.py`: CLEAN.
+  - **4.12 (N-7) committed**, CI only.
+    - The deploy job's `if:` now also requires `github.ref == 'refs/heads/main'`. Push was already
+      main-only via `on.push.branches`, but `workflow_dispatch` can target any branch.
+    - All six actions are SHA-pinned to their latest node24 releases (looked up with
+      `gh api repos/<a>/commits/<tag>`, and the release notes read):
+      - checkout v7.0.1 `3d3c42e5…`, setup-node v7.0.0 `82076278…`, upload-artifact v7.0.1 `043fb46d…`;
+      - configure-pages v6.0.0 `45bfe019…`, upload-pages-artifact v5.0.0 `fc324d35…` (it pins
+        upload-artifact v7.0.0 inside), deploy-pages v5.0.1 `368f8252…`.
+    - deploy-pages v5 documents only `pages: write` + `id-token: write`. v4.0.0's notes mentioned
+      `actions: read`, yet v4 deployed without it.
+    - ⏭ Its PUSH is asked for SEPARATELY (owner). Suggested: push it ALONE on `origin/main` first
+      (cherry-pick), so CI redeploys the current v1.4.0 file through the new pipeline. Check the live
+      hash is unchanged, then rebase `main` BEFORE the v1.4.1 tag.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito

@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The deploy runs only from main, and its actions are pinned by commit (audit N-7)
+
+**What changed:** CI only; the app is untouched.
+- **Main only.** A push already deployed only from `main`, but a manual "Run workflow" could target
+  any branch, and with "deploy" ticked it published that branch to the live site. The deploy job now
+  also requires `refs/heads/main`.
+- **Pinned.** The six GitHub Actions the workflow uses are pinned to a commit SHA, each with its
+  release in a comment. A tag can be moved to other code; a SHA cannot. They are also updated to
+  releases that run on Node 24, which the last run warned about for checkout, setup-node and
+  upload-artifact:
+  - checkout v7.0.1, setup-node v7.0.0, upload-artifact v7.0.1;
+  - configure-pages v6.0.0, upload-pages-artifact v5.0.0 (which pins upload-artifact v7 inside),
+    deploy-pages v5.0.1.
+
+  Their release notes were read first: nothing this workflow uses changed, and deploy-pages v5
+  still needs only the two permissions granted.
+
+**Verified:** the workflow parses. The real proof is a CI run, so its push is asked for separately.
+
 ### The app runs under a Content-Security-Policy, and a slow CDN no longer stops it booting (audit L-4)
 
 **What changed:** Three things, all in the built app's page (`src/index.html`). The old root app is
