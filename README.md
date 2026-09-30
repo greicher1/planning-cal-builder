@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### A Show Info count the field corrects on leaving is the count the calendar uses (audit, batch 5)
+
+**What changed:** The four Show Info counts (Shooting Days per Episode, Number of Episodes, Number
+of Blocks, Days per Block) can't go below 1. The field corrects an out-of-range number when you
+leave it: typing 0 becomes 1. But it made that correction without telling the calendar. So typing
+0 episodes computed the calendar on 0 episodes, and Production dropped out. After you left the field
+it read 1 while the calendar stayed on 0. A Save then wrote "1" for a calendar computed on 0, and
+the next unrelated edit silently put Production back. This was one of the audit's suspected items.
+It **reproduced** in the pane with real typing and a real Tab. Now, when the field corrects a
+number you typed, the calendar recomputes with the corrected number. Leaving a field you didn't
+type in does nothing, so tabbing through the sidebar still doesn't mark the calendar as changed.
+
+**Verified:**
+- New leg `numclamp`, 6 cases, in the gate, on a real saved calendar (10 episodes × 8 days). Typing
+  0 and leaving each of the four fields gives 1, and the calendar computes on 1: 8 shoot days, then
+  1, and 1 in Blocks mode.
+  - **Red before** on all three correction cases: the field read 1 and the calendar stayed on 0.
+  - **Green after**, 6/6.
+  - A guard case checks that leaving a field without typing re-renders nothing. A variant that
+    re-ran the calendar on every leave fails it, with 384 re-renders.
+- In the pane with real typing and a real Tab: the field read 1 and the calendar showed 8 shoot
+  days and "1 Episodes".
+
 ### The waterfall PDF names the characters it will print as "?" before writing (audit L-6)
 
 **What changed:** The waterfall PDF's embedded font covers Western European characters only (what

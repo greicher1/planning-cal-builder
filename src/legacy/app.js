@@ -12984,6 +12984,33 @@ export function initLegacyApp() {
     const el = document.getElementById(id);
     if(el) el.addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   });
+  // ⛔ BATCH 5 (FIX-PLAN §7, the suspected "NumberInput clamp-on-blur desync" -- REPRODUCED in the
+  // pane, 30 Sep 2026, with real typing and a real Tab). Mantine clamps these four counts to their
+  // min/max ON BLUR and writes the clamped value into the field WITHOUT an input event, the only
+  // event bound above. So typing 0 episodes computed the calendar on 0 (Production dropped out),
+  // then the field read 1 while the calendar stayed on 0: a Save wrote "1" (the DOM value) for a
+  // calendar computed on 0, and the next unrelated edit silently put Production back. So on blur
+  // the engine re-reads a field Mantine changed after the user's last keystroke, through the
+  // field's own input path.
+  // ⚠️ setTimeout, not a microtask: this listener is on the input itself and runs BEFORE React's
+  // root listener, where Mantine's onBlur clamps and React commits at the end of that dispatch. A
+  // microtask runs between the two listeners and would still see the typed value.
+  // ⚠️ Only when the user TYPED during this visit and the value then changed under them. Re-running
+  // update() on every blur would markDirty() a clean calendar just for being tabbed through, and a
+  // Load writes these fields with no input event, so "changed since the last input" would misfire.
+  ['shoot-days-per-ep', 'num-episodes', 'num-blocks', 'days-per-block'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    let typed = null;   // the value after the last keystroke of THIS visit to the field
+    el.addEventListener('focusin', ()=>{ typed = null; });
+    el.addEventListener('input', ()=>{ typed = el.value; });   // after capCountField's rewrite
+    el.addEventListener('focusout', ()=>{
+      const was = typed;
+      typed = null;
+      if(was === null) return;
+      setTimeout(()=>{ if(el.value !== was){ refreshEpisodesUI(); update(); } }, 0);
+    });
+  });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
   document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
   // The actual reset. Kept separate from the button's confirm so that "New" -- which resets as

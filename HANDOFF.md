@@ -40,7 +40,22 @@
     - ⚠️ NEW observation: a page closed without saving leaves its slot forever. Only a Save (its own
       slot), New or a recovery (the source slot) removes one. The pane's origin had accumulated ten
       stale slots from earlier harness runs. Each is a few KB; the owner has not been asked.
-  - **4.8 done** (row in the table below).
+  - **4.8 done** (row in the table below). ✅ **Full gate on `f05471d` (the PWA merge + 4.5 + 4.8,
+    build `ea4c1fff…`): 701 PASS, 0 FAIL, GATE PASSED**, every numbered gate green, all nine month PDFs
+    identical.
+  - **Batch-5 check 3: the NumberInput clamp-on-blur desync. Verdict: REPRODUCED, FIXED.** In the
+    pane, typing "0" into Number of Episodes computed the calendar on 0 (Production dropped out). A
+    real Tab then made Mantine clamp the field to 1 WITHOUT an input event, so the calendar stayed on
+    0: a Save would write "1" for a calendar computed on 0. Fix, in the engine beside the four fields'
+    input listeners: on `focusout`, and only if the user typed during that visit (`typed !== null`),
+    `setTimeout(0)` then re-run the field's own path when the value changed after the last keystroke.
+    A microtask would run BEFORE React's root listener commits the clamp. The typed-in-this-visit
+    rule keeps a tab-through, and a Load (no input events), from re-rendering. Leg `numclamp` 6/6
+    (`HARNESS_STATE=v1.4.0-saved`, in the gate). Red before: N1–N3. The N4 guard (leaving without
+    typing re-renders nothing) passes on both builds. A mutant that re-ran on every blur turned N4
+    red (384 re-renders), restored and checked with `cmp`. The pane after the fix: field 1,
+    "8 shoot days", "1 Episodes". ⚠️ Headless `el.focus()`/`el.blur()` DO fire focus changes here
+    (Mantine clamped), unlike the pane's synthetic `focus()` trap.
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito
