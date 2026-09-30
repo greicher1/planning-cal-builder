@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## v1.4.2 — the header controls leave the calendar: owner rulings 1–7 (30 Sep 2026)
+
+The owner's seven rulings on the controls that sat inside the calendar, built after v1.4.1. Each
+change is an entry below, with its proof. Every new leg fails on v1.4.1.
+- **No export changed.** The waterfall PDF and every Excel part are identical, all nine month PDFs
+  are byte-identical to their baselines, and no baseline moved. The one frozen CSS rule touched
+  (`.mv-tools`) was owner-approved and never reaches a print path.
+- **No save-format key changed:** `v1.4.2-saved.sptcal` has v1.4.1's exact 43 keys and 62 ids.
+  Every saved calendar keeps opening.
+- **No frozen function was edited.** The in-calendar buttons are still drawn by the frozen
+  renderers, and are hidden by CSS.
+
+Headline changes:
+- **The header's mode button is in the toolbar** ("Header: Auto ▾") and follows the view. The
+  formatting strip shows only in Manual mode, as an editor toolbar; otherwise nothing sits above the
+  header.
+- **Resets, by what they clear:**
+  - "Reset notes" / "Reset month notes" in the app header, where Reset All was;
+  - "Reset hiatus bands" in the sidebar;
+  - Reset All itself is gone, and New does the job without writing a blank calendar over your file.
+- **The Region asks "Continue?" instead of locking**, and removing a custom holiday or "Reset
+  holidays" warns about moving the shoot.
+- **The Expand and Swap buttons are gone.** Double-click and Alt+←/→ do both jobs, and the grid's
+  label says so.
+- **Width:** the preview toolbar now goes to two lines below about 1287–1301 px (it was about
+  1144 px).
+
 ### The Expand and Swap buttons leave the toolbar; the grid names the keys (owner ruling 2)
 
 **What changed:** the toolbar's **Expand N / Pull back N** and **◀ Swap / Swap ▶** buttons are

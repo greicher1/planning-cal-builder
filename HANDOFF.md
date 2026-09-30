@@ -4,22 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 30 Sep 2026 (evening): THE HEADER-CONTROLS BUILD (relayed rulings 1–7) IS COMPLETE — five local commits, NOT pushed
+### ✅ 30 Sep 2026 (evening): THE HEADER-CONTROLS BUILD (relayed rulings 1–7) → v1.4.2 CUT
 
 - ⏭ **RESUME HERE (end of the 30 Sep 2026 evening session; the natural hand-off point).**
   - **All seven relayed rulings are built**, one local commit each (rows below): `8ee90ac` (3,
     Reset All), `d01f249` (6, the Region prompt), `a1d8140` (7, the holiday prompts), `b8100e6`
     (1 + 4 + 5, the header controls off the calendar), `c737b1f` (2, Expand/Swap).
-  - **Nothing is pushed.** `git log --oneline origin/main..main` = the two HANDOFF commits that were
-    already waiting (`585b643`, `7b9f46f`), these five, and this hand-off note. Every push is its own
-    picker question (CLAUDE.md).
+  - **v1.4.2 is CUT** (the owner's picker at the end of the build: "Cut v1.4.2, then push"):
+    - `APP_VERSION` (src/legacy/app.js), `version.json` and `package.json` = 1.4.2, together. The
+      root `index.html` is untouched (`cmp`-equal to `releases/v1.2.0.html`);
+    - the README heading `## v1.4.2 — …` sits over its five entries;
+    - `releases/v1.4.2.html` is byte-identical to `dist` (sha256 `4b10b339…`, 1,359,683 bytes);
+    - `tests/fixtures/v1.4.2-saved.sptcal` is a real Save (`t/mintfixture.js`): 43 keys and 62 ids,
+      the SAME sets as v1.4.1's; `version: 1`; 0 clipped cells.
+    - ✅ **Release gate on the v1.4.2 build (`4b10b339…`): 764 PASS, 0 FAIL, GATE PASSED**: every
+      numbered gate green, all nine month PDFs identical to baseline, `fields.byId` 62 ids. The tag
+      `v1.4.2` sits on the cut commit, placed AFTER the release gate (as v1.4.0's and v1.4.1's were).
+  - **The push** (approved by that same picker, for this cut) is recorded in the next HANDOFF note.
   - **Final full gate (build `11006e6a…`): 764 PASS, 0 FAIL, GATE PASSED.** Gate 10's nine month PDFs byte-identical, one sheet per month; the waterfall PDF and every Excel part identical; gate 5's `fields.byId` key set identical at **62 ids**. (Its first run was 763/1: `onecol`'s leg, fixed; see the ruling-2 row.)
-  - **Asked of the owner at the end of the session** (see the chat; record the answers here):
-    1. the CLAUDE.md region-lock convention line, drafted and shown as an exact diff, NOT committed
-       (CLAUDE.md edits need the owner's approval first);
-    2. whether to cut a version for this build (nothing is cut: no `APP_VERSION` bump, no tag, no
-       `releases/` copy, no fixture);
-    3. whether to push.
+  - ⭐ **The owner's answers (picker, end of the build, 30 Sep 2026):**
+    1. the CLAUDE.md region-lock convention line: **approved as drafted**, committed as `914f912`;
+    2. **cut v1.4.2, then push.**
   - **Next, in the owner's order:** the direct month-PDF writer. `MONTH-PDF-WRITER-PLAN.md` first
     (BLOCKS-PLAN's style, AUDIT-REPORT §9 as the "must replicate" list), then the owner's four rulings
     before any code (the font; a fixed note width; replicate or redesign the fill/scale fit; replace
