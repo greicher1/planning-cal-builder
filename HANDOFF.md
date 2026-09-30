@@ -6,6 +6,48 @@
 
 ### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
 
+- ⏭ **RESUME HERE (end of the 30 Sep 2026 session; the owner asked for a hand-off).**
+  - **Tip and push state:** local `main` = `0d06eff`, **15 commits ahead** of `origin/main` (`f2d59a0`,
+    v1.4.0). **Nothing is pushed.** `dist/` was last built from `0d06eff`.
+  - **Done, one local commit each** (rows in the table below):
+    - 4.11 `6532735`
+    - 4.3 `d86f8d8`
+    - 4.14 `2a660f9`
+    - 4.2 `09f861e`
+    - 4.4 `2f74937`
+    - 4.6 `866a654`
+    - 4.7 `6a5219a`
+    - 4.9 `715324b`, plus CLAUDE.md `a3ef9c8` (owner-approved)
+    - 4.10 `61ec478`
+    - 4.13 `6e8044b`
+    - 4.15 `0d06eff`
+    - Also on `main`: `0495ed0`, the gap-banner removal by another session (the owner said it ships
+      with v1.4.1), and the docs commit `9577784`.
+  - ⚠️ **The FULL gate has not run on this tip.** The last full run was the peer's, 643/0 on
+    `0495ed0`, which covers everything through 4.9. 4.10, 4.13 and 4.15 are proven only leg by leg,
+    so run `HARNESS_PORT=8241 ./gate.sh` first. Never `npm run build` while it runs.
+  - **Next, in the owner's confirmed order:**
+    1. 4.5 (L-11). It changes the exports, so the before/after goes to the owner FIRST.
+    2. 4.8 (L-6).
+    3. The batch-5 checks this session can run itself: the crash backup with two real tabs; MONTH-9;
+       the NumberInput clamp-on-blur desync; M-1's autosave coverage in `loadfail`.
+    4. The **Cmd/Ctrl+P fix**. The owner REPRODUCED it: it prints the whole UI (2 pages in the
+       waterfall, 3 in the month view). Simulate both options (route Cmd+P to the view's real
+       export, or a print rule that hides the chrome) and ask with the picker.
+    5. 4.1 (CSP). Message the PWA session first.
+    6. The §8 doc fixes. CLAUDE.md edits are shown to the owner first.
+    7. 4.12 (CI). Its push is asked for separately.
+    8. The v1.4.1 cut, then a hand-off.
+  - **Owed by the OWNER, never claimed here:**
+    - the print-Margins re-run ON v1.4.0 (the first run was in a stale v1.3.0 tab);
+    - L-3's UK-locale Save as PDF;
+    - Excel.app on `tests/harness/hdrcut-*` and `xlsxlimits-*`;
+    - Recents asking for readwrite.
+  - **Batch-5 paper items still to write:**
+    - the threat-model note on XSS with live file grants, moot since H-1;
+    - the custom-domain plan doc (R7): DNS, the one-time loss of recents and backups, and a notice
+      for users. Build nothing.
+
 - **Start state, verified:**
   - `origin/main..main` held only `5b86be8` (docs).
   - Both worktrees (`confidential-cleanup`, `half-worked-days`) are clean and already part of `main`.
