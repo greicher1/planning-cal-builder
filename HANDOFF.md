@@ -74,6 +74,26 @@
       "Leave site?" dialog forever (accept `Page.javascriptDialogOpening`). And the previous case's
       drag leaves a crash backup, so the next fresh page opens "Recover unsaved work" over the pill
       (declined in setup). The script also has a 150 s deadline, so a hang reports.
+  - **Batch-5 check 4: M-1's "autosave writes a mixed calendar". Verdict: NOT covered before; now
+    covered; no app bug.** `loadfail` only ever saved with Cmd+S (`saveNow()`), so the autosave path
+    was the audit's inference. Changes, all in `t/loadfail.js`:
+    - New cases AS (refused `foreign.json`) and AR (a throw partway through applying `blocks.sptcal`).
+      Each edits, then waits out one 10-minute autosave tick (`T.sleep(10.5*60*1000)`, virtual) and
+      checks the tick wrote SHOW A's own calendar, with the edit, into `show-a.sptcal` ONLY. The judge
+      is `isShowA()`: Episodes mode, Pre Prep 4/8, "Summer Break".
+    - ⛔ **The old R never tested the rollback** (checked: the committed leg passes R against a build
+      with `applyStateSnapshotAtomically`'s re-apply deleted). It threw at `#custom-phase-rows`, after
+      only `episodeDefs`, which `show-a` and `blocks` hold IDENTICALLY. R and AR now throw at
+      `start-localization` (`window.__THROW_ON_ID`), after `blocks`' show-mode, Pre Prep and
+      Production weeks have landed.
+    - `open(file, expectTitle)` waits for the load to land (the 11:33 gate flake).
+    - `gate.sh` budget 150 → 1500.
+    - Evidence: 6/6 on the current build. The no-rollback mutant fails R and AR (AR autosaved Blocks
+      mode + Pre Prep 4/6 + the edit into `show-a`: the mixed calendar M-1 feared). The no-shape-gate
+      mutant fails S and AS (autosave wrote into `foreign.json`). Both were restored and checked with
+      `cmp`, and rebuilt to the same hash.
+  - **All four batch-5 checks this session could run are done.** Next: Cmd/Ctrl+P (simulate both
+    options on a real fixture, then the owner's picker).
   - ⛔ **FOUND verifying 4.8, NOT changed (frozen): the on-screen waterfall draws some characters as
     BLANKS.** `tools/subset-font.py` keeps glyph ids stable by copying Carlito's cmap VERBATIM and
     blanking every outline outside WinAnsi. The browser trusts the cmap, so for a character Carlito

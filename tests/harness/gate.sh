@@ -1394,14 +1394,15 @@ PYS
 # (every case must be pass === true) or a top-level {pass}. Their err lists are NOT checked here: the
 # hostile and loadfail legs log expected warnings by design and assert on them themselves.
 # Each spec is <leg>:<fixture, or - for none>:<virtual budget>. conflict needs 2400 virtual seconds:
-# three autosave ticks at 10 minutes each, fast-forwarded while the page is idle.
+# three autosave ticks at 10 minutes each, fast-forwarded while the page is idle. loadfail needs 1500
+# since batch 5 (30 Sep 2026): its AS/AR cases wait out two autosave ticks.
 # halfworked is not an audit fix: it guards the 'onhalf' day override (29 Sep 2026) -- a date (the
 # wrap) and the month view's marks -- which is exactly the kind of leg FIX-PLAN §1 says belongs here.
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
-              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:150 \
+              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \

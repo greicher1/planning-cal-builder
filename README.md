@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Test harness: a refused load is now proven safe through autosave too (audit M-1, batch 5)
+
+**What changed:** Tests only; the app is unchanged. The audit suspected that after a failed load
+the **autosave** might write a mixed calendar into the user's file on its own. The `loadfail` leg
+only ever saved with Cmd+S, so that path was unproven. It gains two cases, AS and AR. Each makes
+the same refusal as S or R, then an edit, and lets the real 10-minute autosave tick write. Both
+pass: the tick writes the open calendar, with the edit, into its own file, and never into the
+refused one.
+
+Extending it exposed a hole. The existing rollback case, R, forced its failure before anything
+visible had been applied, so it passed even with the rollback deleted (checked). R and AR now fail
+partway through applying the second file, after its Blocks mode and dates have landed.
+
+**Verified:** `loadfail` 6/6 on the current build. Two deliberately broken builds are each caught by
+exactly the right cases:
+- **Rollback removed:** R and AR fail. AR's autosave wrote a mixed calendar (the refused file's
+  Blocks mode and Pre Prep date, plus the open file's edit) into the open file.
+- **Shape check removed:** S and AS fail. The autosave wrote the calendar into the refused
+  `foreign.json`.
+
+Also, `open()` now waits for a load to finish instead of a fixed 1.6 s, the race behind a gate
+flake on 30 Sep.
+
 ### A month-view pill dragged away and back keeps its "Snap to Mon" (audit MONTH-9, batch 5)
 
 **What changed:** Dragging a phase in the month view onto a non-Monday turns its "Snap to Mon" off,
