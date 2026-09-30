@@ -886,9 +886,10 @@ for two export-bearing inputs — hide with CSS, **never** unmount, because `shi
 `phiatus-start-<key>` unconditionally of the toggle (`getAllPhaseDefs().forEach` → no
 `phiatus-en-` check) and `collectFieldValues` is a live-DOM sweep. `#holiday-vis` is the delegated
 event host for the only UI writers of `holidayView`, `holidayOff` and `customHolidays` deletion,
-i.e. §5.10's first surprise. `#prod-total-readout` / `#show-info-note` / `#union-lock-hint` /
+i.e. §5.10's first surprise. `#prod-total-readout` / `#show-info-note` / ~~`#union-lock-hint`~~ (gone
+with the Region lock, owner ruling 6, after v1.4.1) /
 `#custom-hol-err` are cosmetic but are painted by functions whose *other half* is export-critical
-(`refreshDerivedInfo`, `reflectCountryLock`, the custom-holiday IIFE).
+(`refreshDerivedInfo`, ~~`reflectCountryLock`~~, the custom-holiday IIFE).
 
 ---
 

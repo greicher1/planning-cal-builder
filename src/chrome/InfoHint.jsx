@@ -7,10 +7,11 @@
 // everyone who already knows what Region does.
 //
 // ⚠️ THIS IS FOR DESCRIPTIONS ONLY -- never for a warning, an error, or an empty state. Hiding
-// "Locked — changing the Region would misplace your comment/hiatus edits" behind a hover would be
-// a real regression: those appear precisely because something needs attention, and attention is
-// the one thing a hover does not get. #union-lock-hint, #custom-hol-err and .snap-note stay
-// visible. UI-CONVENTIONS.md §4 already separated those four jobs; this only takes the fourth.
+// "Give the holiday a name." behind a hover would be a real regression: those appear precisely
+// because something needs attention, and attention is the one thing a hover does not get.
+// #custom-hol-err and .snap-note stay visible (so did #union-lock-hint, until the Region lock it
+// explained was replaced by a question, owner ruling 6). UI-CONVENTIONS.md §4 already separated
+// those jobs; this only takes the descriptive one.
 //
 // No new Mantine CSS import: HoverCard is built ON Popover (it uses PopoverStylesNames and
 // PopoverCssVariables), and Popover.layer.css is already in main.jsx's list. That matters because

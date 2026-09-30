@@ -8179,7 +8179,6 @@ export function initLegacyApp() {
       noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
       hiatusFontSize = {}; holidayView = {};
       render(currentSchedule);
-      reflectCountryLock();
       // resetAll() ends with update(), which calls markDirty(); this branch never did, so
       // "Reset Notes & Hiatus" left the file showing Saved and could not be undone.
       markDirty();
@@ -8465,7 +8464,6 @@ export function initLegacyApp() {
     closeNoteEditorPop();
     activeNoteEditor = null;
     render(currentSchedule);
-    reflectCountryLock();
     markDirty(); // was previously missing here -- waterfall note/hiatus edits were invisible to save-dirty tracking and undo
   }
 
@@ -9645,8 +9643,10 @@ export function initLegacyApp() {
   function hiatusColorFor(weekKey){ const c = hiatusColors[weekKey]; return isHexColor(c) ? c : HIATUS_COLOR; }
 
   // True if the user has made ANY manual edit to comments/holidays/hiatus (edited text,
-  // cleared a note, or changed a highlight color / hiatus label). Used to lock the union
-  // country selector so a country switch can't silently drop the user's customizations.
+  // cleared a note, or changed a highlight color / hiatus label). It decides whether a Region or
+  // holiday change ASKS FIRST (countryChangeWouldClobber). It used to decide the Region LOCK, which
+  // owner ruling 6 (relayed 30 Sep 2026) replaced with that question -- this predicate, day notes
+  // included, is unchanged, so 4.7's L-23 fix stands.
   function hasNoteEdits(){
     return Object.keys(userNotes).length > 0
       || Object.keys(noteColors).length > 0
@@ -9656,8 +9656,7 @@ export function initLegacyApp() {
       // notes sit on weeks, so a Region change that re-skips a different country's holidays moves
       // Production out from under them: measured, a note on the wrap day was left one day off when
       // the Region went to London (wrap 10/20 -> 10/19). A day counts only while it still holds a
-      // note with text -- a key a delete left behind must not lock the Region. "Reset Notes &
-      // Hiatus" already clears dayNotes, so the lock stays escapable.
+      // note with text -- a key a delete left behind must not make a Region change ask.
       || Object.keys(dayNotes).some(iso => dayNoteList(iso).some(nt => nt && String(nt.text || '').trim()));
   }
 
@@ -9665,8 +9664,8 @@ export function initLegacyApp() {
   // holidays are skipped shoot days, so with no shoot there's nothing to shift. When Production
   // isn't scheduled a country switch merely swaps which (unanchored) holiday auto-notes show,
   // and every manual edit is keyed to an absolute week that doesn't move -- so it's safe to allow
-  // the switch freely. We only lock the selector when a switch could genuinely misplace edits:
-  // there are manual edits AND Production is scheduled (so its dates could recompute under them).
+  // the switch freely. We only ask when a switch could genuinely misplace edits: there are manual
+  // edits AND Production is scheduled (so its dates could recompute under them).
   function productionIsScheduled(){
     const startEl = document.getElementById('start-production');
     return !!(startEl && startEl.value) && showInfoStatus().complete;
@@ -9681,6 +9680,15 @@ export function initLegacyApp() {
   async function confirmHolidayRecompute(){
     if(!countryChangeWouldClobber()) return true;
     return !!(await uiConfirm('Changing which holidays apply recomputes Production\u2019s dates, which can misplace the comment/hiatus edits you\u2019ve made.\n\nContinue?', { title: 'Recompute the schedule?' }));
+  }
+  // The Region's version of the same question -- owner ruling 6 (relayed 30 Sep 2026; built after
+  // v1.4.1), which replaced the Region LOCK with it. The lock refused the change until "Reset Notes
+  // & Hiatus" had wiped every note, although only notes and note colours can be misplaced: hiatus
+  // bands sit on absolute dates the Region never moves. Same predicate, same title and buttons as
+  // confirmHolidayRecompute(), so the two questions cannot drift apart. Resolves true to go ahead.
+  async function confirmRegionChange(){
+    if(!countryChangeWouldClobber()) return true;
+    return !!(await uiConfirm('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays), which can misplace the comment/hiatus edits you\u2019ve made.\n\nContinue?', { title: 'Recompute the schedule?' }));
   }
 
   // Per-line header overrides. Keys: left, c1 (title), c2 ("Planning Calendar"),
@@ -12117,8 +12125,8 @@ export function initLegacyApp() {
   }
 
   function update(){
-    // Belt and braces around render()'s own snapshot: reflectCountryLock() and markDirty() below
-    // both touch the DOM after the grid is rebuilt, and update() is what the handlers that add or
+    // Belt and braces around render()'s own snapshot: markDirty() below touches the DOM after the
+    // grid is rebuilt, and update() is what the handlers that add or
     // remove sidebar rows call once they have already changed the page height.
     const scrollSnap = captureScroll();
     const state = readState();
@@ -12156,7 +12164,6 @@ export function initLegacyApp() {
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     refreshHolidayCoverageNote();
-    reflectCountryLock();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -12478,18 +12485,10 @@ export function initLegacyApp() {
     }
   }
 
-  // Visually flag the region selector as locked while note/hiatus edits exist.
-  function reflectCountryLock(){
-    const sel = document.getElementById('union-place');
-    if(!sel) return;
-    const locked = countryChangeWouldClobber();
-    sel.classList.toggle('locked', locked);
-    sel.title = locked
-      ? 'Locked: changing the Region recomputes Production\u2019s dates and would misplace your comment/hiatus edits. Reset Notes & Hiatus first.'
-      : '';
-    const hint = document.getElementById('union-lock-hint');
-    if(hint) hint.style.display = locked ? 'block' : 'none';
-  }
+  // ⛔ reflectCountryLock() is GONE (owner ruling 6). It painted the Region select amber, gave it a
+  // "Locked ... Reset Notes & Hiatus first" title, and showed #union-lock-hint whenever
+  // countryChangeWouldClobber() held. There is no lock to show now: the change handler below asks
+  // confirmRegionChange() instead, so there is nothing to keep in step on every update or commit.
 
   // The toggle REFLECTS `singleColumn`; it never holds the state itself -- same contract the
   // Waterfall/Month buttons have, and the reason a restore only has to set the flag and call this.
@@ -12846,12 +12845,13 @@ export function initLegacyApp() {
       if(f) f.style.display = cb.checked ? 'flex' : 'none';
     });
   }
-  // Union country is locked while any note/hiatus edit exists: switching countries would
-  // recompute holidays and discard the user's edits, so we block it until they reset.
+  // A Region change ASKS FIRST while a note could be misplaced (owner ruling 6, relayed 30 Sep 2026;
+  // built after v1.4.1). It used to be a LOCK that refused the change until "Reset Notes & Hiatus"
+  // had wiped every note.
   let lastPlace = (document.getElementById('union-place') || {}).value || '';
-  // Re-baseline the guard's "last known good" place after anything that sets the select
+  // Re-baseline the question's "last confirmed" place after anything that sets the select
   // programmatically (load, restore, backup recovery) -- otherwise the next user change would be
-  // compared against a stale value and could trip the lock alert spuriously.
+  // compared against a stale value and could ask spuriously.
   function syncRegionTracking(){
     normalizeRegionSelection();
     lastPlace = (document.getElementById('union-place') || {}).value || '';
@@ -12859,12 +12859,17 @@ export function initLegacyApp() {
   (function(){
     const el = document.getElementById('union-place');
     if(!el) return;
-    el.addEventListener('change', ()=>{
-      if(el.value !== lastPlace && countryChangeWouldClobber()){
-        uiAlert('Changing the Production Region recomputes Production\u2019s dates (its shoot skips that region\u2019s holidays) and regenerates holiday notes \u2014 which would misplace the comment/hiatus edits you\u2019ve made. Click \u201cReset Notes & Hiatus\u201d above the calendar first, then change the region.');
+    el.addEventListener('change', async ()=>{
+      const want = el.value;
+      if(want !== lastPlace && countryChangeWouldClobber()){
+        // ⛔ HOLD THE OLD REGION WHILE ASKING. The select already shows the new one, and anything
+        // that reads the page while the dialog is up -- the crash backup, an autosave tick,
+        // collectFieldValues() -- would capture a Region the user has not agreed to. Only
+        // Continue applies it; Cancel leaves exactly what was there.
         el.value = lastPlace;
         reflectRegionUI();
-        return;
+        if(!(await confirmRegionChange())) return;
+        el.value = want;
       }
       normalizeRegionSelection();
       lastPlace = el.value;
@@ -16799,10 +16804,6 @@ export function initLegacyApp() {
     closeMvNoteEditor();
     markDirty();
     render(currentSchedule);
-    // A day note now counts toward the Region lock (audit L-23), so its commit refreshes the lock
-    // exactly as the waterfall editor's commitActiveNoteEditor() does. Without it the lock only
-    // appeared at the next update(), though the guard itself was already refusing the change.
-    reflectCountryLock();
   }
   // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
   // used after committing a note (which re-renders and detaches the original click target) so the

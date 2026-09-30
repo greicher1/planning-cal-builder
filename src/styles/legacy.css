@@ -2216,7 +2216,8 @@
      same shape as the button.primary/.secondary cleanup on 29 Aug 2026. The line-height concern
      that old block's comment raised is still handled -- the surviving block above sets
      line-height:1, which overrides the button font-shorthand reset the same way. */
-  #union-place.locked{ border-color:#f59e0b; background:#fffbeb; cursor:not-allowed; }
+  /* #union-place.locked (the amber "locked" select) is gone with the Region lock: owner ruling 6
+     replaced it with a "Continue?" question on change. */
   /* Spreadsheet preview styled to resemble a modern Excel grid: Calibri, thin light-grey
      gridlines on white, and compact row heights. Mirrors what the Excel export produces. */
   table.sheet-table{
@@ -2743,12 +2744,6 @@
   }
   .phase-ov-note:empty{ display:none; }
 
-  /* The region lock hint. Roman, amber, and it names the three controls it applies to. */
-  .lock-hint{
-    margin:var(--mantine-spacing-sm) 0 0;
-    font-size:var(--mantine-font-size-xs);
-    color:var(--mantine-color-warn-9);
-  }
 
   /* ⚠️ reflectRegionUI() shows these two rows with `style.display = 'flex'`, which the old markup
      paired with `flex-direction:column` on the same <label>. The React version is a plain Box, so

@@ -29,6 +29,36 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Changing the Region asks first instead of being locked (owner ruling 6)
+
+**What changed:** the Production Region no longer **locks** once you've edited notes.
+- **Before:** the select went amber and refused the change, with a hint and an alert saying to
+  click "Reset Notes & Hiatus" first. So the only way to change the Region was to wipe every note.
+- **Now** picking another Region asks the same question as switching a holiday on: "Recompute the
+  schedule? Changing the Production Region recomputes Production's dates (its shoot skips that
+  region's holidays), which can misplace the comment/hiatus edits you've made. Continue?"
+  **Continue** switches; **Cancel** keeps the Region you had.
+- **While it asks, the select holds the old Region**, so nothing that reads the page meanwhile (the
+  crash backup, an autosave tick) can capture a Region you haven't agreed to.
+- **When it asks is unchanged:** the same rule the lock used. That is, any edited note, note colour
+  or hiatus band, month-view day notes included (4.7's fix), while Production is scheduled.
+- **Gone:** the locked select, its hint under the card, the refusal alert, and all three "Reset
+  Notes & Hiatus first" strings. The Help paragraph is rewritten.
+
+**Verified:**
+- `regionlock` rewritten for the prompt: 9/9, in the gate.
+  - Red on the previous build: L0 (the hint element), L1 (the select locks), L2 (an OK-only refusal
+    instead of the question) and L2b (Continue can't happen).
+  - The guards pass on both builds: C0 (no edits: the change goes straight through, both ways), H1
+    to H3 (the custom-holiday question), and L3 (after the reset the Region stops asking).
+- Mutation: dropping the hold-while-asking turns L2 red (the select read `uk-london` while it
+  asked). Restored and checked with `cmp`.
+- `regioncaveat` 12/12. `npm run check` 34/34.
+- The pane, with a note typed by real clicks. Choosing London showed the question over a select
+  still reading the old Region. Cancel kept `us-general` and the 10/20/26 wrap. Choosing it again
+  and pressing Continue gave `uk-london` ("London → UK-EW"), a 10/19/26 wrap, and the note still on
+  its week.
+
 ### Reset All is gone; New does the job (owner ruling 3)
 
 **What changed:** the header's **Reset All** button is removed.

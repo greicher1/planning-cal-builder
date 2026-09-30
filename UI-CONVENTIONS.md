@@ -482,7 +482,10 @@ asked in order:
   errors.
 - **`#union-lock-hint` stops being a strip** and becomes the `InputWrapper` error on the region
   group — it names three specific controls, so it is a field error, not an advisory. The `alert()`
-  that duplicates it is deleted: one sentence, one place.
+  that duplicates it is deleted: one sentence, one place. ⛔ *Superseded 30 Sep 2026 (owner ruling
+  6, built after v1.4.1): the Region lock itself is gone, and with it the hint, the locked select and
+  the refusal alert. A Region change now asks "Continue?" (`confirmRegionChange()`), in the shape
+  of `confirmHolidayRecompute()`.*
 - **"Autosave failed" leaves the status slot** and becomes a `Badge`. The one state that means
   something is wrong should be the one state with a shape.
 
@@ -1114,7 +1117,8 @@ Nothing in this document ships without all of these, every stage:
     - `hdroverrides`: an old file's migrated header takes ITS defaults;
     - `badyear` and `spanhint`: a mistyped year or length points at its field;
     - `wholenum`: non-whole counts are ringed;
-    - `regionlock`: month notes lock the region, and a custom holiday asks first;
+    - `regionlock`: month notes count toward the Region question (it was a lock until ruling 6,
+      after v1.4.1, made it a "Continue?" prompt), and a custom holiday asks first;
     - `nofsa`: the strip outside Chrome/Edge;
     - `exportrefused`: Export on nothing says why;
     - `regioncaveat` and `simpostlabel`;

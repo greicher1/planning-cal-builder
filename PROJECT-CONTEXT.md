@@ -1061,7 +1061,7 @@ result.
 | PDF leaves `body.printing-*` stuck | Cleanup is bound to **`afterprint`** (with a 60 s safety net). A stubbed `window.print()` must `dispatchEvent(new Event('afterprint'))` or it looks stuck forever. |
 | Re-enabling holidays doesn't restore the schedule | The holiday list **re-renders on every change**, so a captured checkbox array is detached. Re-query `#holiday-vis-list input.hv-en` on each iteration. |
 | A holiday doesn't appear in the waterfall | Holidays default to **month-view only**. Each row has three boxes: `hv-en` (counts against the schedule, on by default) plus two `hv-cb` for per-view display — sheet **off**, month **on**. |
-| Region change silently ignored | Once any note/holiday/hiatus edit exists the region **reverts** rather than being `disabled`. Test on a fresh fixture with no edits. |
+| Region change silently ignored | Since the header-controls build (owner ruling 6, after v1.4.1) a Region change with note edits and a scheduled Production **asks "Continue?" first**, and the select HOLDS the old Region while it asks. A leg that sets `#union-place` must answer the dialog (Continue / Cancel), or test on a fresh fixture with no edits. (Before: the Region locked and the change reverted.) |
 
 ### Validating an exported .xlsx
 

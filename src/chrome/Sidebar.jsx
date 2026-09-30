@@ -112,7 +112,8 @@ export function RegionCard() {
         <IconMapPin className="card-ic" /><span>Production Region</span>
         {/* Was a permanent three-line paragraph here (owner, 31 Aug 2026). The copy is unchanged;
             only when you see it is. UI-CONVENTIONS.md §4 separated explanation from warning, and
-            this takes only the explanation — #union-lock-hint below stays visible. */}
+            this takes only the explanation. (The lock hint that stayed visible below is gone with
+            the lock itself, owner ruling 6.) */}
         <InfoHint label="Production Region">
           Sets the union-holiday calendar. Holidays that fall on a Production shoot day are skipped,
           pushing the schedule out. Canada is picked by province and the UK by nation — the statutory lists genuinely differ.
@@ -186,12 +187,9 @@ export function RegionCard() {
           <div id="union-caveat" className="region-caveat" style={{ display: 'none' }}></div>
         </Box>
       </Stack>
-      {/* Names three specific controls, so it is a field error rather than an advisory — but it is
-          still written by the engine, so it stays a plain element it can fill. */}
-      <p id="union-lock-hint" className="lock-hint" style={{ display: 'none' }}>
-        Locked — changing the Region would recompute Production’s dates and misplace your
-        comment/hiatus edits. Use “Reset Notes &amp; Hiatus” above the calendar first.
-      </p>
+      {/* ⛔ #union-lock-hint USED TO SIT HERE ("Locked — … Use Reset Notes & Hiatus first"). Owner
+          ruling 6 (relayed 30 Sep 2026) replaced the Region LOCK with a "Continue?" question that
+          the engine asks on change (confirmRegionChange), so there is no locked state to explain. */}
       </div>
     </section>
   )
