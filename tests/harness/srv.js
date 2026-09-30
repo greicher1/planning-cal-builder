@@ -56,6 +56,18 @@ http.createServer((q, r) => {
       o = o.replace(re, (m, a, _b, c) => a + safe + c);
     }
     if (t) {
+      // ⛔ THE CSP COMES OFF ON ?test= PAGES ONLY (FIX-PLAN 4.1, 30 Sep 2026). The build carries a
+      // Content-Security-Policy whose script-src lists the hashes of its own inline scripts, and every
+      // leg is injected below as unhashed inline scripts -- which that policy refuses, so every leg
+      // would report STILL PENDING. Stripping it here, for the page the leg runs in, keeps each leg
+      // testing what it always tested. Pages served WITHOUT ?test= keep the policy -- the pane's
+      // ?state= pages, the install gate's iframes (pwagate), a shareable copy framed by sharecopy2 --
+      // and cspproof.mjs drives the policy-bearing page over CDP to prove it holds.
+      // HARNESS_KEEP_CSP=1 keeps it instead, and adds the hashes of the scripts injected below to its
+      // script-src -- a leg then runs under the real policy, with only its own code let in. (Added to
+      // reproduce the audit's "shareable copy timed out under the CSP": see HANDOFF, 4.1.)
+      const keepCsp = process.env.HARNESS_KEEP_CSP === '1';
+      if (!keepCsp) o = o.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>\n?/i, () => '');
       // ** Installed in <head>, BEFORE the app's own script parses. ** lib.js is injected at
       // </body>, by which point the app has already run -- so a trap installed there cannot see
       // an exception thrown during init, and the test just reports an empty calendar. That looks
@@ -76,6 +88,13 @@ http.createServer((q, r) => {
       // died silently, and each one reported "STILL PENDING", which reads as a broken app.
       const inject = '<pre id="R">pending</pre>\n<script>\n' + lib + '\n</script>\n<script>\n' + js + '\n</script>\n</body>';
       o = o.replace('</body>', () => inject);
+      if (keepCsp) {
+        const crypto = require('crypto');
+        const h = (t) => "'sha256-" + crypto.createHash('sha256').update(t, 'utf8').digest('base64') + "'";
+        const errTrap = (o.match(/<head>\n<script>([\s\S]*?)<\/script>/) || [])[1];
+        const extra = [errTrap, '\n' + lib + '\n', '\n' + js + '\n'].filter(x => x != null).map(h).join(' ');
+        o = o.replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*script-src )/i, (m) => m + extra + ' ');
+      }
     }
     // no-store, or a second run in the same Chrome profile silently tests the first run's page.
     r.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });

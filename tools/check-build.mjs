@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -178,6 +179,59 @@ check('no form field and no id on any control inside #app-gate',
   gateMarkup.length ? `${gateMarkup.length} chars scanned` : 'gate markup not found');
 check('no inline event-handler attribute inside #app-gate (CSP, FIX-PLAN 4.1)',
   gateMarkup.length > 0 && !/\son[a-z]+\s*=/i.test(gateMarkup));
+
+// --- 7. The Content-Security-Policy (audit L-4, FIX-PLAN 4.1) -----------------------------
+// tools/csp-hashes.mjs writes script-src's hashes from the built text at closeBundle. This section
+// re-derives them with its OWN scan -- one left-to-right regex whose alternation consumes a comment
+// or a <style> body before any `<script` inside it can match, i.e. the HTML tokenizer's order -- so
+// a bug in either copy fails the build instead of shipping a policy that blocks the app (every
+// script refused: a blank page) or allows a script nobody reviewed.
+const cspMeta = (src.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/) || [])[1] || '';
+check('CSP meta is the first thing in <head>, straight after the charset',
+  /<head>\s*<meta charset="UTF-8">\s*<meta http-equiv="Content-Security-Policy" content="[^"]*">/.test(src));
+check('the referrer meta (no-referrer) follows the CSP meta',
+  /<meta http-equiv="Content-Security-Policy" content="[^"]*">\s*<meta name="referrer" content="no-referrer">/.test(src));
+check('no CSP placeholder left in the build', cspMeta.length > 0 && cspMeta.indexOf('__CSP_SCRIPT_HASHES__') < 0);
+const cspDirs = {};
+cspMeta.split(';').map(d => d.trim()).filter(Boolean).forEach(d => { const [k, ...v] = d.split(/\s+/); cspDirs[k] = v; });
+const JS_TYPE = /^(|module|text\/javascript|application\/javascript|application\/ecmascript|text\/ecmascript)$/i;
+const tokenRe = /<!--[\s\S]*?-->|<style\b[\s\S]*?<\/style|<script\b([^>]*)>([\s\S]*?)<\/script/gi;
+const inlineHashes = [], scriptBodies = [];
+let tm, scriptWithComment = 0;
+while ((tm = tokenRe.exec(src))) {
+  if (tm[1] === undefined) continue;                               // a comment or a style body
+  if (/\ssrc\s*=/i.test(' ' + tm[1])) continue;
+  const type = ((tm[1].match(/\stype\s*=\s*["']?([^"'\s>]*)/i) || [])[1] || '').trim();
+  if (!JS_TYPE.test(type)) continue;
+  scriptBodies.push(tm[2]);
+  if (tm[2].indexOf('<!--') >= 0) scriptWithComment++;
+  inlineHashes.push("'sha256-" + crypto.createHash('sha256').update(tm[2], 'utf8').digest('base64') + "'");
+}
+const policyHashes = (cspDirs['script-src'] || []).filter(v => /^'sha256-/.test(v));
+check('script-src hashes EXACTLY the executable inline scripts (none missing, none stale)',
+  inlineHashes.length > 0 && inlineHashes.length === policyHashes.length && inlineHashes.every(h => policyHashes.includes(h)),
+  `${inlineHashes.length} inline scripts, ${policyHashes.length} hashes`);
+check('no executable inline script contains "<!--" (it would move the parser\'s end of the script)',
+  scriptWithComment === 0);
+const scriptSrc = cspDirs['script-src'] || [];
+check("script-src allows no 'unsafe-inline', no 'unsafe-eval', no wildcard, and no host but ExcelJS",
+  scriptSrc.length > 0 && !scriptSrc.some(v => /unsafe|\*|^https?:$|^data:|^blob:/.test(v)) &&
+  scriptSrc.filter(v => /^https:/.test(v)).join(' ') === 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+  scriptSrc.filter(v => !/^'sha256-/.test(v)).join(' '));
+const want = { 'default-src': "'none'", 'object-src': "'none'", 'base-uri': "'none'", 'form-action': "'none'",
+               'manifest-src': 'data:', 'font-src': 'data:', 'connect-src': "'self'" };
+const missing = Object.keys(want).filter(k => !(cspDirs[k] || []).includes(want[k]));
+if (!(cspDirs['img-src'] || []).includes('data:')) missing.push('img-src data:');
+check("the policy's directives: default/object/base-uri/form-action 'none', manifest/font/img data:, connect 'self'",
+  missing.length === 0, missing.length ? 'missing: ' + missing.join(', ') : '');
+check('the ExcelJS tag is deferred, and keeps its integrity hash and crossorigin',
+  /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/exceljs@4\.4\.0\/dist\/exceljs\.min\.js"\s+integrity="sha384-[^"]+"\s+crossorigin="anonymous"\s+defer><\/script>/.test(src));
+// Markup only: script bodies and comments hold "onclick" and "javascript:" as ordinary strings.
+let markup = src;
+scriptBodies.forEach(b => { markup = markup.split(b).join(''); });
+markup = markup.replace(/<!--[\s\S]*?-->/g, '');
+check('no inline on*= handler and no javascript: URL anywhere in the markup (neither can run under the CSP)',
+  !/<[a-z][^>]*\son[a-z]+\s*=/i.test(markup) && !/(?:href|src|action)\s*=\s*["']?\s*javascript:/i.test(markup));
 
 // --- report -------------------------------------------------------------------------------
 console.log('\n=== check-build: dist/index.html ===');

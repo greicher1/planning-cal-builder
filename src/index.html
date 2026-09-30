@@ -2,6 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '__CSP_SCRIPT_HASHES__' https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js; style-src 'unsafe-inline'; font-src data:; img-src data: blob:; connect-src 'self'; manifest-src data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- ⛔ THE CONTENT SECURITY POLICY (audit L-4, FIX-PLAN 4.1). FIRST in <head>, straight after the
+     charset, so it governs every script that follows it -- the install gate's included.
+     - script-src: the hashes of the inline scripts the browser executes (the install gate and the
+       app's module), written by tools/csp-hashes.mjs at build time from the BUILT text, plus the one
+       ExcelJS URL (which also carries an integrity hash). No 'unsafe-inline', no 'unsafe-eval'. A new
+       inline script is hashed automatically; tools/check-build.mjs fails the build if a hash is
+       missing or stale. No inline on*= handler and no javascript: URL can run under it.
+     - style-src 'unsafe-inline': the two <style> blocks and React/Mantine style attributes.
+     - font-src data: Inter's embedded woff2. (Carlito is a FontFace built from bytes, not a fetch.)
+     - img-src data: blob:, manifest-src data: -- LOAD-BEARING for the install gate: the manifest is a
+       data: URL, and without it Chrome offers no install prompt and getInstalledRelatedApps() has
+       nothing to match; the gate also reads its icon out of the manifest as a data: URL.
+     - connect-src 'self': the update check's version.json.
+     - base-uri, form-action, object-src 'none': nothing here needs them.
+     ⚠️ `npm run dev` strips this meta (Vite's dev client cannot be hashed); the harness strips it on
+     ?test= pages only (tests/harness/srv.js injects unhashed legs), so every child document a leg
+     opens without ?test= -- the gate's iframes, a shareable copy -- still runs under it.
+     frame-ancestors cannot be set from a <meta> (audit N-6: documented, no change). -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPTCal</title>
 <!-- ⛔ THE INSTALL GATE (PWA-ONLY-PLAN.md; owner, 30 Sep 2026: the hosted link is for INSTALLING
@@ -1530,9 +1550,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
      ⚠️ Fail-closed on purpose: if jsDelivr ever served different bytes for 4.4.0, the export would
      report ExcelJS as not loaded rather than run them. Changing the version means recomputing
      the hash (openssl dgst -sha384 -binary <file> | openssl base64 -A). -->
+<!-- defer (audit L-4): without it the tag blocked the parser, and a CDN that silently drops packets
+     kept the app from booting at all -- measured 30 Sep 2026 over CDP with every cdn.jsdelivr.net
+     request held: no boot in 20 s (readyState "loading"). With defer the app boots in ~0.1 s and
+     ExcelJS is simply absent until it arrives, which Export already reports. On a normal network it
+     is loaded before the app's module runs, as before. -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
         integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
-        crossorigin="anonymous"></script>
+        crossorigin="anonymous" defer></script>
 <!-- The app. A module script, so it is deferred: it now runs AFTER the document is parsed rather
      than mid-parse as the old inline <script> did. That is strictly safer here -- the seven
      unguarded document.getElementById('table-wrap').addEventListener(...) calls in the IIFE

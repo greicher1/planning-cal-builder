@@ -11,12 +11,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { viteSingleFile } from 'vite-plugin-singlefile'
+// The CSP's script hashes are computed from the built file, never typed (audit L-4): see the module.
+import { cspHashes } from './tools/csp-hashes.mjs'
 
 export default defineConfig({
   root: 'src',
   // Relative asset URLs: the built file is opened from file:// at least as often as it is served.
   base: './',
-  plugins: [react(), viteSingleFile()],
+  plugins: [react(), viteSingleFile(), ...cspHashes()],
   build: {
     outDir: '../dist',
     emptyOutDir: true,

@@ -29,6 +29,46 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The app runs under a Content-Security-Policy, and a slow CDN no longer stops it booting (audit L-4)
+
+**What changed:** Three things, all in the built app's page (`src/index.html`). The old root app is
+untouched.
+- **A Content-Security-Policy**, first in the page head. The browser now runs only the app's own
+  scripts and ExcelJS from its one pinned CDN address, which already carries an integrity hash.
+  Nothing injected into the page can run: no stray inline script, no inline event handler, no
+  `javascript:` link, no `eval`. The policy was measured to cost nothing the app does. The page
+  also sends no referrer.
+- **The allowed scripts are listed by hash, and the hashes are computed from the built file** at
+  build time, never typed by hand. The build check re-derives them independently and fails on any
+  missing or stale hash, so they can't drift.
+- **ExcelJS loads with `defer`.** Before, the tag held up the page, and a network that silently
+  dropped the CDN's packets kept the app from starting at all. Measured with every CDN request held
+  forever: no boot in 20 seconds before; about 0.1 seconds after, with Excel export reporting the
+  library as unavailable until it arrives.
+
+**The shareable-copy question the audit left open** ("only building a shareable copy timed out
+under the CSP"): it does not reproduce. Under the identical policy, a copy builds and opens, framed
+and as its own file, with zero violations. That holds on this build and on the build the audit
+tested (24 Sep, rebuilt for the check). Building a copy involves nothing the policy governs. The
+audit's own test script didn't survive, so its timeout can't be re-examined, but it wasn't the
+policy.
+
+**Verified:**
+- `npm run check` 25 → 34 checks: the policy's position, the referrer meta, hashes matching exactly,
+  no unsafe sources, the required directives, the deferred ExcelJS tag, and no inline handlers.
+  **Red before** on 7, green after.
+- New check `cspproof`, a Node script in the gate. It records every policy violation in every frame,
+  from before any page script runs. Zero violations across boot, Excel, both PDFs, the month view,
+  Save and Load, the update check, a shareable copy (built, framed, and opened as its own file) and
+  the install gate's screens. A positive control, run last, proves the policy is enforced and the
+  recorder hears it: an unapproved inline script is refused and recorded.
+- In the pane with real clicks, under the policy: both waterfall exports wrote their files, with no
+  violation.
+- The test harness strips the policy only from the pages it injects its tests into, so every
+  existing check keeps testing what it always did. Every page it opens without a test keeps it:
+  the install gate's frames, a framed shareable copy, the pane.
+- Full gate on this build: 734 pass, 0 fail.
+
 ### Cmd/Ctrl+P prints the calendar, not the app (audit, batch 5; owner ruling 30 Sep 2026)
 
 **What changed:** Cmd/Ctrl+P used to print the app itself: header, notices, sidebar and toolbar,

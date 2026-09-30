@@ -1501,6 +1501,30 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPD
 
+# ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
+# ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
+# unhashed legs), so no t/ leg can see it. This loads the page WITHOUT ?test=, installs a
+# securitypolicyviolation recorder in every frame through CDP before any page script runs, and
+# drives every path that loads, fetches, writes or prints: Excel, both PDFs, the month view, Save
+# and Load through stood-in pickers, the update check, a shareable copy (built, then booted framed
+# AND as its own file:// document), and the install gate's screens. V0 is the verdict; P0 is a
+# positive control run last -- an unhashed inline script must be refused AND heard -- so a zero
+# means nothing was blocked, not that nothing was listening.
+node "$HERE/cspproof.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/cspproof.json" "cspproof (v1.4.0-saved)" <<'PYCS' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYCS
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the
