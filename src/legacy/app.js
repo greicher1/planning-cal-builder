@@ -9646,7 +9646,14 @@ export function initLegacyApp() {
     return Object.keys(userNotes).length > 0
       || Object.keys(noteColors).length > 0
       || Object.keys(hiatusTexts).length > 0
-      || Object.keys(hiatusColors).length > 0;
+      || Object.keys(hiatusColors).length > 0
+      // ⛔ AUDIT L-23: month-view DAY notes too. They sit on absolute days exactly as waterfall
+      // notes sit on weeks, so a Region change that re-skips a different country's holidays moves
+      // Production out from under them: measured, a note on the wrap day was left one day off when
+      // the Region went to London (wrap 10/20 -> 10/19). A day counts only while it still holds a
+      // note with text -- a key a delete left behind must not lock the Region. "Reset Notes &
+      // Hiatus" already clears dayNotes, so the lock stays escapable.
+      || Object.keys(dayNotes).some(iso => dayNoteList(iso).some(nt => nt && String(nt.text || '').trim()));
   }
 
   // Changing the shooting country only moves DATES when Production is actually scheduled --
@@ -9661,6 +9668,14 @@ export function initLegacyApp() {
   }
   function countryChangeWouldClobber(){
     return hasNoteEdits() && productionIsScheduled();
+  }
+  // Anything that changes WHICH HOLIDAYS APPLY moves Production when a note could be misplaced, and
+  // asks this one question first: resolves true to go ahead. ONE function, so the checkbox, the bulk
+  // toggle and the custom-holiday Add button cannot drift apart -- the Add button never asked at all
+  // (audit L-23), which is how a duplicated copy of this rule goes missing.
+  async function confirmHolidayRecompute(){
+    if(!countryChangeWouldClobber()) return true;
+    return !!(await uiConfirm('Changing which holidays apply recomputes Production\u2019s dates, which can misplace the comment/hiatus edits you\u2019ve made.\n\nContinue?', { title: 'Recompute the schedule?' }));
   }
 
   // Per-line header overrides. Keys: left, c1 (title), c2 ("Planning Calendar"),
@@ -12858,10 +12873,7 @@ export function initLegacyApp() {
       const cb = e.target.closest('.hv-en');
       if(!cb) return;
       const hid = cb.dataset.hid;
-      if(countryChangeWouldClobber()){
-        const ok = await uiConfirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?', { title: 'Recompute the schedule?' });
-        if(!ok){ cb.checked = !cb.checked; return; }   // put the box back
-      }
+      if(!(await confirmHolidayRecompute())){ cb.checked = !cb.checked; return; }   // put the box back
       if(cb.checked) delete holidayOff[hid]; else holidayOff[hid] = true;
       update();   // full recompute: this moves shoot days
     });
@@ -12884,8 +12896,7 @@ export function initLegacyApp() {
       const holidays = (currentSchedule && currentSchedule.phaseHolidays) || [];
       if(!holidays.length) return;
       if(view === 'enabled'){
-        if(countryChangeWouldClobber()
-           && !(await uiConfirm('Changing which holidays apply recomputes Production’s dates, which can misplace the comment/hiatus edits you’ve made.\n\nContinue?', { title: 'Recompute the schedule?' }))) return;
+        if(!(await confirmHolidayRecompute())) return;
         const turnOn = holidays.some(h=> !holidayEnabled(h.hid));
         holidays.forEach(h=>{ if(turnOn) delete holidayOff[h.hid]; else holidayOff[h.hid] = true; });
         update();
@@ -12911,14 +12922,18 @@ export function initLegacyApp() {
     const resetBtn = document.getElementById('holiday-reset-btn');
     function fail(msg){ if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; } }
     function clearErr(){ if(errEl) errEl.style.display = 'none'; }
-    function add(){
+    async function add(){
       clearErr();
       const name = (nameEl.value || '').trim();
       const date = (dateEl.value || '').trim();
       if(!name) return fail('Give the holiday a name.');
       if(!parseDateUTC(date)) return fail('Pick a date for the holiday.');
-      if((customHolidays || []).some(c=>c.date === date && c.name.toLowerCase() === name.toLowerCase()))
-        return fail('You already added that one.');
+      const dup = () => (customHolidays || []).some(c=>c.date === date && c.name.toLowerCase() === name.toLowerCase());
+      if(dup()) return fail('You already added that one.');
+      // ⛔ AUDIT L-23: a custom holiday on a shoot day moves Production exactly as switching one on
+      // does, so it asks the same question. Cancel adds nothing and leaves what was typed in place.
+      if(!(await confirmHolidayRecompute())) return;
+      if(dup()) return fail('You already added that one.');   // asked again while the dialog was up
       // A random id (not name+date) so renaming later keeps the holiday's on/off and note settings.
       const id = 'cst-' + Math.random().toString(36).slice(2, 9);
       customHolidays.push({id, name, date});
@@ -16583,6 +16598,10 @@ export function initLegacyApp() {
     closeMvNoteEditor();
     markDirty();
     render(currentSchedule);
+    // A day note now counts toward the Region lock (audit L-23), so its commit refreshes the lock
+    // exactly as the waterfall editor's commitActiveNoteEditor() does. Without it the lock only
+    // appeared at the next update(), though the guard itself was already refusing the change.
+    reflectCountryLock();
   }
   // Find, in the freshly-rendered grid, the element equivalent to one that was just clicked --
   // used after committing a note (which re-renders and detaches the original click target) so the

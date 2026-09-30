@@ -29,6 +29,33 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Month-view notes lock the Production Region, and adding a custom holiday asks first (audit L-23)
+
+**What changed:**
+- **The Region lock now counts month-view day notes.** Changing the Region makes Production skip a
+  different country's holidays, so its dates move under any note placed on a day. The lock counted
+  waterfall notes, their colours and hiatus labels, but not day notes. Measured on the reference
+  calendar with only a day note: switching to London moved the wrap from 10/20 to 10/19 and left the
+  note behind. A day counts only while it still holds a note with text. "Reset Notes & Hiatus"
+  already clears day notes, so the lock can always be undone. Saving a day note now refreshes the
+  lock at once, as saving a waterfall note always did.
+- **Adding a custom holiday asks "Recompute the schedule?"** It's the same question the holiday
+  checkbox asks, because a holiday on a shoot day moves Production just the same. The Add button was
+  the one holiday change that never asked. The question now lives in one function,
+  `confirmHolidayRecompute()`, used by the checkbox, the bulk toggle and the Add button, so it can't
+  go missing from one of them again. On Cancel nothing is added, and what was typed stays in the
+  fields.
+
+**Verified:**
+- New leg `regionlock`, 7 cases, in the gate. The day note is made through the month view's own "+"
+  and editor.
+- **Red before** on the lock (L1), the refused London switch (L2) and the Add confirm (H1, H2).
+- **Green after**, 7/7.
+- In the pane with real clicks: Reset Notes & Hiatus unlocked the Region, a day note typed and saved
+  with Cmd+Enter locked it at once, and the Add button showed the dialog. Cancel added nothing and
+  kept the typed name and date.
+- Regression: `holidays2031`, `monthnotes`, `monthlanes`, `hostile` and `wrapdate` all pass.
+
 ### A weeks or days count that isn't a whole number says so (audit L-12)
 
 **What changed:** Every duration is read as a whole number, so 2.5 weeks became 2, "1e3" became 1,

@@ -48,10 +48,19 @@
 | 4.2 | SUPPLY-3 (R7) | ✅ done: the boot cleanup unregisters only scopes starting with `new URL('./', location.href)` | `swscope` 5/5 via the NEW `tests/harness/rtleg.mjs` (real-time CDP runner; `register()` never settles under `run.sh`'s virtual clock). Red before: all four scopes removed. `srv.js` serves a no-op `/__sw.js` with `Service-Worker-Allowed: /`. gate.sh has a real-time block (`RTSPEC`) |
 | 4.4 | L-10 + N-2 | ✅ done. L-10: `readState()` returns `badYearFields` (the hiatus date fields its own checks counted) and `reflectStartDateValidity(state, extraBad)` rings them. N-2, ⭐ **OWNER RULING 30 Sep 2026 (picker): "name the cause, above the preview"**: `#span-hint` (a chrome line BEFORE `#gap-warning` in `src/index.html`, style `.span-hint` = `.gap-banner`'s look, in the grid-fit observers) names the ONE field behind a `too-large` refusal and it is ringed. `spanCulprit()` re-runs `computeSchedule` with each candidate neutralised (length to 1, or phase left out). Production's days have no ring (the total is the list's sum). The years line uses year-number differences (2062 − 2026 = 36, not 36.8 → 37) | `badyear` 6/6 (red: Y1, Y3). `spanhint` 9/9 (red: N0–N6; N7/N8 are negatives). Both in the gate. The pane, with real typing, from both tabs |
 | 4.6 | L-12 | ✅ done: `isWholeNumberTypo(el)` (a number that `parseInt` reads DIFFERENTLY; "2.0" is fine) over `WHOLE_FIELDS` (phase, hiatus and per-phase weeks, `#simpost-offset`, `.ep-days`, `.blk-days`) inside `reflectStartDateValidity`. The words are a `data-whole-err` attribute on the field's label or row, printed by CSS `::after`. The day boxes ring through `.num-suffix:has(input.is-invalid)` (the input's own ring is out-specified). The Sim Post line gets its message positioned under it, because wrapping broke the sentence (seen in the pane). The schedule is unchanged | `wholenum` 10/10, in the gate. Red before on every decimal case. The pane, three layouts |
+| 4.7 | L-23 | ✅ done: `hasNoteEdits()` counts `dayNotes` days that still hold text. `commitMvNoteEditor()` now calls `reflectCountryLock()` (the waterfall commit always did; without it the lock showed only at the next update). The holiday question is ONE function, `confirmHolidayRecompute()`, used by `.hv-en`, the bulk toggle and the custom-holiday `add()` (now async; Cancel keeps the typed values; the duplicate check is re-run after the dialog). ⏭ **NOT done, for the owner:** REMOVING a custom holiday (`.hv-del`) and "Reset holidays" also recompute Production, but they ask only their own destructive confirm, with no recompute warning. The same gap class, outside the plan | `regionlock` 7/7, in the gate. Red before: L1, L2 (the audit's 10/20 → 10/19), H1, H2. The pane, with real clicks |
 
 - ⚠️ **Seen in 4.4, NOT fixed (frozen `render()`):** a phase's meta line prints a 2122 end date as
   "8/30/22" (two-digit year): with Post at 5,000 weeks it reads "11/2/26 → 8/30/22 (5000 wk)". It
   appears only on a calendar that is already refused, so it's cosmetic. A fix would be a frozen edit.
+- 🤝 **Peers active 30 Sep 2026** (coordinated by SendMessage):
+  - **"Remove 'Unscheduled gap found' feature"** works in `.claude/worktrees/remove-gap-banner`,
+    branched from `866a654`. Owner's ruling there: remove everything except `render()`, which is
+    not edited. It keeps `#span-hint` and its CSS, won't touch local `main`, and will rebase onto this
+    tip and message before merging.
+  - **"PWA-only browser strategy"** is writing a plan only (an untracked `PWA-ONLY-PLAN.md`). 4.9
+    stays with batch 4 as ruled. It will send its HANDOFF §2 text to be inserted here, rather than
+    editing the file itself.
 - ⚠️ **`T.gridSignature()` returns an ARRAY.** Two of them are never `===`. Compare with
   `JSON.stringify` (found writing `wholenum`, where it read as "the schedule changed").
 - ⚠️ **The Write tool turns `\u2019` typed in a JS string into the literal character.** Legs
