@@ -6,6 +6,23 @@
 
 ### ⏳ 29 Sep 2026: BATCH 4 (v1.4.1, FIX-PLAN §6) IN PROGRESS, with batch 5 folded in
 
+- ⏳ **SESSION OF 30 Sep 2026 (afternoon), resumed from the block below.** Start state checked:
+  local `main` = `80ebd56`, 16 ahead of `origin/main` (`f2d59a0`); no gate running here; the PWA peer
+  was gating its own worktree (port 8618). ⚠️ The `confidential-cleanup` and `half-worked-days`
+  worktrees still exist. Both are merged into `main` and harmless; remove them only if the owner asks.
+  - **Baseline gate on `80ebd56`'s build** (sha256 `f68c88d0…`): **661 PASS, 2 FAIL**, all numbered
+    gates green. Both failures were `loadfail` S and R, and both were a HARNESS RACE: the leg's
+    `open()` waits a fixed 1.6 s rather than for the load to land, and three Chromes were running
+    (the peer's gate, this gate and an ad-hoc leg). In R the slow SHOW A read was still in flight
+    when the leg armed its forced throw, so the throw hit SHOW A's apply; `blocks.sptcal` then loaded
+    cleanly and became the Save target. Re-run alone on the identical build: **4/4**. ⏭ Harden
+    `open()` to wait for the load when `loadfail` is extended for M-1 (batch-5 check 4).
+  - **4.5 done** (row in the table below). Its build (sha256 `30411339…`) gated **665 PASS, 1 FAIL**,
+    every numbered gate green (0 clipped, the waterfall PDF and Excel parts identical to baseline,
+    v1.0.0 restores identically, `fields.byId` 62 ids). The FAIL was `badyear` producing no result: its
+    Chrome sat at 0% CPU until `run.sh`'s 390 s cap while the PWA peer's gate ran beside it. Alone on
+    the identical build: **6/6**. ⭐ Agreed with the PWA peer since: full gates are SERIALIZED (each
+    session messages the other before starting one), because two at once keeps producing these stalls.
 - ⏭ **RESUME HERE (end of the 30 Sep 2026 session; the owner asked for a hand-off).**
   - **Tip and push state:** local `main` = `0d06eff`, **15 commits ahead** of `origin/main` (`f2d59a0`,
     v1.4.0). **Nothing is pushed.** `dist/` was last built from `0d06eff`.
@@ -95,6 +112,7 @@
 | 4.10 | N-3 | ✅ done: `Header.jsx`'s two export buttons are truly `disabled` only while BUSY. The "nothing to show" state (frozen `render()`'s `{disabled:true}`) is `data-disabled`, Mantine's disabled look that stays clickable, so the engine's click handlers run `explainNothingToExport()`: a "Nothing to export" `uiAlert` quoting `#table-wrap .empty-state`'s own text plus `#span-hint` when shown. Nothing frozen is edited | `exportrefused` 5/5, in the gate. Red before: E0–E3 (dead buttons). The pane: a real click on the grey button |
 | 4.13 | N-9 | ✅ done. ⭐ **Owner ruling 30 Sep 2026 (picker): "all seven, from the generator"**, plus the Quebec wording shown in that picker. `tools/gen_holidays.py` emits `REGION_CAVEATS` right after `HOLIDAYS` in `holidays.app.js`; the two are spliced as ONE span. `reflectRegionUI()` shows the place's own caveat, then `REGION_CAVEATS[place.region]`, one `<div>` per line. The regenerated HOLIDAYS is byte-identical, and `validate_holidays.py` says CLEAN | `regioncaveat` 12/12, in the gate. Red before: A1–A10. The pane: Quebec |
 | 4.15 | SCHED-13 | ✅ done: the offset row reads "calendar weeks after Production begins", and so do the Help overlay and PROJECT-CONTEXT §6. It was measured true first (`isSimPostWeek` = `Math.round((week − Production's start)/7 d)`: hiatus weeks count). No date changed. This also closes batch 5's SCHED-13 paper item | `simpostlabel` 3/3, in the gate. Red before: S1, S2. S3, the truth guard, passes on both builds (7/20/26). The pane: still two lines, 30 px |
+| 4.5 | L-11 | ✅ done, ⭐ **the export change approved by the owner (30 Sep 2026, picker) after the before/after.** Both span counters (`computeHeaderDefaults()`'s r1 and `buildHeaderCtx()`'s `{production.summary}`) count `c.key === 'production'` only. The dropped clause, `c.label.startsWith('Production')`, dates from the first upload (`d249f60`) and `73360c4` copied it into the token. Measured first: Production's per-phase hiatus band is pushed with `key: ph.key`, so a paused week still counts, and a renamed Production keeps its key. Built-in phases CAN be renamed (`name-<key>`), so "Production Prep" hit the same bug. No other label-based Production test exists in `src/` (grepped) | `prodspan` 8/8, in the gate. Red before: A1/X1/P1 = 7 (the audit's 4 → 7), R1/T1 = 10. Guards A0 (4) and G1 (a paused week makes 5) pass on both builds. A/B on the leg's calendar: `sheet1.xml`'s oddHeader differs by one character; the PDF differs by one content line, at the same position (the digits share an advance) |
 
 - ⚠️ **Seen in 4.4, NOT fixed (frozen `render()`):** a phase's meta line prints a 2122 end date as
   "8/30/22" (two-digit year): with Post at 5,000 weeks it reads "11/2/26 → 8/30/22 (5000 wk)". It

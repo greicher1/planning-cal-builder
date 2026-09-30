@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The "Production Span" header counts Production's weeks only (audit L-11)
+
+**What changed:** The header's "N-Week Production Span" line counted a week as Production's when
+any cell in it belonged to Production **or carried a label starting with "Production"**. A label is
+whatever the user typed, so a custom phase named "Production 2nd Unit", or a built-in phase renamed
+"Production Prep", added its own weeks to the shoot's span: a 4-week shoot read "7-Week Production
+Span". The count now uses Production's key only, at both places that compute it:
+- the Auto header, which feeds the screen, Excel's page header and the waterfall PDF;
+- the `{production.summary}` template token.
+
+A week of Production's own hiatus still counts, because its band belongs to Production, and a
+renamed Production is still Production. **This changes the exports** for calendars with such a
+phase, and only for them. The owner approved it after seeing the before/after (30 Sep 2026).
+
+**Verified:**
+- New leg `prodspan`, 8 cases, in the gate. It builds a synthetic calendar through the real UI (20
+  shoot days from 7/6/26, region None) and reads the span on screen, in the exported workbook's
+  header, in the waterfall PDF's content stream, and in Template mode.
+  - **Red before:** the custom phase read 7 weeks (screen, Excel, PDF), and the renamed Prod Prep
+    read 10 (Auto and Template).
+  - **Green after**, 8/8. The two truth guards pass on both builds: the base span is 4, and a
+    paused week of Production's own hiatus makes it 5.
+- Before/after exports on that calendar: the workbook differs by one character of `sheet1.xml`'s
+  page header (plus `core.xml`'s timestamp), and the waterfall PDF by one text line, at the same
+  position and size.
+- Full gate on this build: 665 pass, every numbered gate green, so the baseline calendars export
+  byte-identically. The one failure was `badyear` stalling while another session's gate ran beside
+  it; alone on the same build it passed 6/6.
+
 ### Sim Post's offset says it counts calendar weeks (audit SCHED-13)
 
 **What changed:** The offset row said "Starts [n] weeks after Production begins", which reads as

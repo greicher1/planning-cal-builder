@@ -11633,7 +11633,8 @@ export function initLegacyApp() {
     let prodWeeks = 0;
     if(schedule && schedule.weeks){
       for(const w of schedule.weeks){
-        if(w.cells.some(c => c.key === 'production' || (c.label && c.label.startsWith('Production')))) prodWeeks++;
+        // Production's key only (audit L-11) -- see computeHeaderDefaults(), which says why.
+        if(w.cells.some(c => c.key === 'production')) prodWeeks++;
       }
     }
     // ⛔ KEEP IN STEP WITH computeHeaderDefaults()'s r1 -- including the Blocks branch (ruling 6).
@@ -11999,7 +12000,17 @@ export function initLegacyApp() {
       const prodInfo = schedule.productionInfo;
       let prodWeeks = 0;
       for(const w of schedule.weeks){
-        if(w.cells.some(c=>c.key==='production' || (c.label&&c.label.startsWith('Production')))) prodWeeks++;
+        // ⛔ PRODUCTION'S KEY, NEVER A LABEL (audit L-11, v1.4.1). This used to be
+        // `c.key==='production' || c.label.startsWith('Production')`, a clause that goes back to the
+        // first version of the file, and a label is whatever the user typed: a custom phase named
+        // "Production 2nd Unit" (cells "Production 2nd Unit wk N") or a built-in phase RENAMED
+        // "Production Prep" added its own weeks to the shoot's span -- a 4-week shoot read "7-Week
+        // Production Span" in the header, in Excel and in the waterfall PDF. The key is the only thing
+        // that means Production. Nothing this clause was meant to catch is lost: Production's own
+        // per-phase hiatus band is pushed with key 'production' (so a paused week stays in the span,
+        // as before), and a renamed Production keeps its key. ⛔ {production.summary} in
+        // buildHeaderCtx() counts the same way -- change both or neither (the hdrtemplate leg).
+        if(w.cells.some(c=>c.key==='production')) prodWeeks++;
       }
       const fmt = d => `${d.getUTCMonth()+1}.${d.getUTCDate()}.${String(d.getUTCFullYear()).slice(2)}`;
       // ✅ RULING 6 (owner, 22 Sep 2026): in Blocks mode the per-episode half reads
