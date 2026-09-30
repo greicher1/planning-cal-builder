@@ -20,9 +20,19 @@
   - ✅ **Release gate on the v1.4.1 build (`a8824184…`): 734 PASS, 0 FAIL, GATE PASSED**: every
     numbered gate green, all nine month PDFs identical to baseline. The tag `v1.4.1` sits on the cut
     commit, placed AFTER the release gate (as v1.4.0's was).
-  - **Push state:** `origin/main` = `645be63` (4.12 alone, the owner's picker). CI run `36777572042`
-    was green on the pinned actions, and the live file stayed byte-identical to `releases/v1.4.0.html`
-    (`a6f56fdd…`). Local `main` carries it by a merge (`1992e89`), so every recorded hash stays valid.
+  - ✅ **v1.4.1 IS LIVE, pushed on the owner's approval (picker) and verified.**
+    - `645be63..1d32bd0` plus the tag `v1.4.1`. CI run `36779039232` green (Build and check, Deploy to
+      Pages).
+    - The live file is **byte-identical to `releases/v1.4.1.html`** (sha256 `a8824184…`, 1,358,590
+      bytes) on the first fetch, and the live `version.json` reads 1.4.1.
+    - Checked on production in the pane: a browser tab shows the install gate (`data-app-gate="other"`,
+      because the pane's browser is neither Chrome nor Edge: "Open this link in Google Chrome"). The app
+      did not boot in the tab, the CSP and referrer metas are live, ExcelJS is deferred, and the
+      console has no CSP errors.
+    - Earlier the same day, 4.12 went out ALONE as `645be63` (the owner's picker): CI `36777572042`
+      green on the pinned actions, with v1.4.0 redeployed byte-identically. Local `main` took it by a
+      merge (`1992e89`), so every recorded hash stays valid.
+    - This HANDOFF note itself is a local commit on top, for the next push.
   - **Owed by the OWNER, by hand, never claimed here:**
     - the print Margins re-run on v1.4.0 or later;
     - L-3's UK-locale Save as PDF;
