@@ -17798,25 +17798,15 @@ export function initLegacyApp() {
       });
     })();
 
-    // Install affordance: Chrome/Edge fire beforeinstallprompt when the app is installable.
-    // Installed PWAs get persistent file permissions, so the in-place Save stops re-prompting.
-    let deferredPrompt = null;
-    const installBtn = document.getElementById('install-app-btn');
-    window.addEventListener('beforeinstallprompt', (e)=>{
-      e.preventDefault();
-      deferredPrompt = e;
-      if(installBtn) installBtn.style.display = '';
-    });
-    if(installBtn){
-      installBtn.addEventListener('click', async ()=>{
-        if(!deferredPrompt) return;
-        deferredPrompt.prompt();
-        try { await deferredPrompt.userChoice; } catch(_){}
-        deferredPrompt = null;
-        installBtn.style.display = 'none';
-      });
-    }
-    window.addEventListener('appinstalled', ()=>{ if(installBtn) installBtn.style.display = 'none'; });
+    // ⛔ NO INSTALL AFFORDANCE HERE ANY MORE (PWA-ONLY-PLAN.md, owner ruling D6, 30 Sep 2026). The
+    // sidebar's "Install as app" button used to be revealed from here by a beforeinstallprompt
+    // listener -- but that event never fires inside the installed app, so the button could only
+    // ever appear in a browser TAB, and on the hosted link a browser tab is now the install gate
+    // (the classic script at the top of index.html's <head>). The gate captures the event itself,
+    // before this module has even parsed: the event fires once per load, 22-860 ms after it
+    // (measured, Chrome 154), and a listener attached at the END of initLegacyApp() was never
+    // guaranteed to be in time. Do not add a second listener here -- it would call preventDefault()
+    // on an event this page no longer offers anywhere.
   })();
 
   // The preset list is chrome OUTPUT, so it has to be pushed once at boot: React renders an empty

@@ -278,6 +278,26 @@ The **snapshot JSON schema is the compatibility contract**, and `captureSnapshot
 - **There is no `version` field in the snapshot yet.** Add one the next time the format is touched,
   and branch on it rather than on the presence of individual keys.
 
+## ⛔ The hosted link boots the app only in the installed app window
+
+Owner, 30 Sep 2026 (`PWA-ONLY-PLAN.md`): users use SPTCal as the installed PWA, never in a browser
+tab. A classic script at the top of `src/index.html`'s `<head>` turns an ordinary tab on
+`greicher1.github.io` into the install gate (`#app-gate`), and `main.jsx` then does not start the
+app at all.
+
+- ⛔ **The installed-window check (`display-mode`) runs FIRST and fails OPEN.** A July attempt at a
+  gate (`ffadc6d`, reverted as `edaf49b`) locked installed users out, because the installed PWA loads
+  this same URL. Never let the URL be asked before the window is.
+- **Never gate `file://`** (shareable copies must keep opening, §"Every saved calendar…") **or
+  localhost** (dev, and every harness leg).
+- ⛔ **The manifest's COMPUTED id is the installed identity:** `https://greicher1.github.io/planning-cal-builder/`.
+  Never add an `id` key, and never change `name`, `start_url` or `scope`. `related_applications`
+  must carry that id, or no installed user is recognised. A custom domain means a new id, and every
+  user reinstalls.
+- Test only through the localhost hooks: `?gate=<screen>`, `?gate=live`, `?brand=`, or
+  `localStorage sptcal.gateTest`. The legs are `pwagate` and `pwagatelogic`, and headless Chrome
+  cannot produce an app window. `check-build` asserts the manifest and the gate.
+
 ## ⛔ Changelog every substantial change
 
 **`README.md` carries the changelog and it is updated in the same breath as the code**, not

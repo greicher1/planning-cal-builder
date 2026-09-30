@@ -839,6 +839,27 @@ The invariant stated above (*"the grid's top edge is header + ~140 px from the v
 **retired above 960 px**. The fit measures where the grid's top actually is, so nothing needs that
 140 px to be true any more.
 
+### ✅ AS BUILT — the install gate's page (30 Sep 2026, `PWA-ONLY-PLAN.md`)
+
+On the hosted link, an ordinary browser tab shows `#app-gate` instead of the app: one full-screen
+page, one job. Its conventions are its own, and deliberately not the app's:
+
+- **One main action per screen**, centred both ways. The big button is **≥ 360 × 88 px, a 26 px /
+  600 label, solid navy `#2C3E50`**. That departs from §3b's light-tint primary on purpose (owner
+  ruling D8): on a page whose only job is one click, the tint under-sells it. Below 520 px it goes
+  full width at 72 px.
+- **The copy is the owner's approved wording** (D1), in `src/index.html`, and
+  `tests/harness/t/pwagate.js` asserts it word for word. So a wording change is a change to both.
+  Chrome and Edge variants of one phrase are `.ag-c` / `.ag-e` span pairs, and the CSS shows one.
+  ⚠️ Keep text inside a flex box (`.ag-wait`) in ONE inner span: flex drops the spaces around a pair
+  (seen as "the boxChromejust opened").
+- **Help line** at the foot of every screen but CHECKING: *"Contact Graham Reicher for help."* (D4).
+- **Every rule is scoped to `#app-gate` or `html[data-app-gate]`**, so the gate cannot restyle the
+  app, and an ID selector outranks both `legacy.css` and Mantine's layer, which still load on the
+  gate page.
+- **§10 gate 9 applies:** buttons and links only, no form field and no `id` on any control.
+  `check-build` and `pwagate` both assert it.
+
 ---
 
 ## 8. ⛔ Seven verified traps

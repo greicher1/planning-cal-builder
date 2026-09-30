@@ -1397,7 +1397,11 @@ PYS
 # three autosave ticks at 10 minutes each, fast-forwarded while the page is idle.
 # halfworked is not an audit fix: it guards the 'onhalf' day override (29 Sep 2026) -- a date (the
 # wrap) and the month view's marks -- which is exactly the kind of leg FIX-PLAN §1 says belongs here.
-for AFSPEC in loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:150 \
+# pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
+# browser tab shows only the gate and never starts the engine, with the owner's approved wording.
+# First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
+              loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:150 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \

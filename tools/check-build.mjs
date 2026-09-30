@@ -22,6 +22,10 @@ const NUL = String.fromCharCode(0);
 // PWA manifest, the Carlito subset -- is inlined, and must stay inlined: the file is opened from
 // file:// and run offline at least as often as it is served.
 const ALLOWED_EXTERNAL = ['cdn.jsdelivr.net/npm/exceljs'];
+// Outbound LINKS -- an <a href> the user can click, which is a navigation and fetches nothing. They
+// are allowed only inside an <a> tag, so the same URL anywhere else (a src=, a fetch) still fails.
+// The install gate's OTHER BROWSER screen: "Don't have Chrome? Get it free." (PWA-ONLY-PLAN.md).
+const ALLOWED_LINKS = ['www.google.com/chrome/'];
 
 const results = [];
 let failed = 0;
@@ -45,9 +49,11 @@ const gzip = zlib.gzipSync(src).length;
 check('size >= 700 KB (not a truncated bundle)', bytes >= 700 * 1024, `${bytes} bytes`);
 check('size <= 16 MB', bytes <= 16 * 1024 * 1024, `${(bytes / 1048576).toFixed(2)} MB`);
 
+const inAnchor = (i) => /^<a\s/i.test(src.slice(src.lastIndexOf('<', i), i));
 const externals = [...src.matchAll(/(?:src|href)\s*=\s*["'](https?:\/\/|\/\/)([^"']+)["']/gi)]
-  .map((m) => m[2])
-  .filter((u) => !ALLOWED_EXTERNAL.some((a) => u.startsWith(a)));
+  .filter((m) => !ALLOWED_EXTERNAL.some((a) => m[2].startsWith(a)))
+  .filter((m) => !(inAnchor(m.index) && /^href/i.test(m[0]) && ALLOWED_LINKS.some((a) => m[2] === a)))
+  .map((m) => m[2]);
 check(
   'no unexpected external requests',
   externals.length === 0,
@@ -121,6 +127,57 @@ check(
   !!engineVersion && litRe(engineVersion).test(src),
   engineVersion ? `literal ${engineVersion} in dist` : 'APP_VERSION not found in src/legacy/app.js'
 );
+
+// --- 6. The install gate (PWA-ONLY-PLAN.md) -----------------------------------------------
+// The hosted link runs the app only in the installed app window; a browser tab gets the gate.
+// A regression in either direction is serious and silent: a gate that stops matching shows every
+// browser tab the app again, and a manifest whose identity moves makes Chrome treat every existing
+// install as some other app -- and then no installed user is ever recognised.
+const PAGES_URL = 'https://greicher1.github.io/planning-cal-builder/';
+const manHref = (src.match(/<link rel="manifest" href="data:application\/manifest\+json,([^"]+)"/) || [])[1];
+let man = null;
+try { man = JSON.parse(decodeURIComponent(manHref || '')); } catch (e) { /* reported below */ }
+check('manifest decodes', !!man);
+if (man) {
+  // The installed identity is COMPUTED (no id key): start_url "." against the page. Changing any of
+  // these is a different app to Chrome. The README records what a changed name risks.
+  check('manifest identity unchanged (no id; name, start_url, scope, display)',
+    !('id' in man) && man.name === 'SPTCal' && man.short_name === 'SPTCal' && man.start_url === '.' &&
+    man.scope === '.' && man.display === 'standalone',
+    `id=${'id' in man ? man.id : '(none)'} name=${man.name} start_url=${man.start_url} scope=${man.scope}`);
+  const ra = Array.isArray(man.related_applications) ? man.related_applications : [];
+  check('manifest lists the app itself in related_applications (installed-app detection)',
+    ra.length === 1 && ra[0].platform === 'webapp' && ra[0].id === PAGES_URL, JSON.stringify(ra));
+  // true would make Chrome send people to a store instead of offering the install.
+  check('manifest does not prefer related applications', man.prefer_related_applications !== true);
+  check('manifest launch_handler is focus-existing',
+    !!man.launch_handler && man.launch_handler.client_mode === 'focus-existing', JSON.stringify(man.launch_handler));
+}
+// The decision has to run before <body> is parsed, so it must be a CLASSIC script in <head>, ahead
+// of the module (which is deferred, and ~1 MB of it may still be parsing when the install prompt
+// fires). Found by position, not by name: the gate script is the one holding GATE_HOSTS.
+const headEnd = src.indexOf('</head>');
+const gateAt = src.indexOf('var GATE_HOSTS');
+const moduleAt = src.indexOf('<script type="module"');
+check('gate script is in <head>, before the module',
+  gateAt > 0 && gateAt < headEnd && (moduleAt < 0 || gateAt < moduleAt),
+  `gate@${gateAt} module@${moduleAt} </head>@${headEnd}`);
+check("gate's GATE_HOSTS names the Pages host", /var GATE_HOSTS = \['greicher1\.github\.io'\]/.test(src));
+check('gate page markup present and hidden by default', /<div id="app-gate" hidden>/.test(src));
+// main.jsx's early return: the bundle must still ask for the attribute, or a gated tab boots the
+// engine underneath the gate (backup slot, autosave, beforeunload) while showing nothing of it.
+const gateAttrUses = (src.match(/data-app-gate/g) || []).length;
+check('the bundle checks data-app-gate before starting the app',
+  // Any quote: the minifier rewrites the string literal as a template literal (`data-app-gate`).
+  /hasAttribute\([`"']data-app-gate[`"']\)/.test(src), `${gateAttrUses} mentions`);
+// UI-CONVENTIONS §10 gate 9: collectFieldValues() sweeps every id'd field into saved calendars.
+const gateMarkup = (src.match(/<div id="app-gate" hidden>([\s\S]*?)\n<\/div>/) || [])[1] || '';
+check('no form field and no id on any control inside #app-gate',
+  gateMarkup.length > 0 && !/<(input|select|textarea)\b/i.test(gateMarkup) &&
+  !/<(button|a)\b[^>]*\sid=/i.test(gateMarkup),
+  gateMarkup.length ? `${gateMarkup.length} chars scanned` : 'gate markup not found');
+check('no inline event-handler attribute inside #app-gate (CSP, FIX-PLAN 4.1)',
+  gateMarkup.length > 0 && !/\son[a-z]+\s*=/i.test(gateMarkup));
 
 // --- report -------------------------------------------------------------------------------
 console.log('\n=== check-build: dist/index.html ===');

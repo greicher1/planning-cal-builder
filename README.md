@@ -29,6 +29,68 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### The hosted link installs SPTCal, and a browser tab never runs it (owner request, 30 Sep 2026)
+
+**What changed:** Opening the GitHub Pages link in an ordinary Chrome or Edge tab no longer shows the
+app. The tab shows one full-screen page with one job:
+
+- **Not installed:** a big, centred **Install SPTCal** button that opens Chrome's own install box.
+- **Already installed:** "Please use the SPTCal app, not the browser", with an **Open SPTCal**
+  button.
+- **Chrome offered no install:** an Incognito window, a device policy and the like get Chrome's own
+  menu steps (Edge gets Edge's).
+- **Other browsers and phones:** Safari and Firefox are told to open the link in Chrome, and phones
+  are told to use a computer.
+
+Every screen but the first half-second ends with "Contact Graham Reicher for help." The owner
+approved every word (PWA-ONLY-PLAN.md §10) and ruled on all nine decisions (§9).
+
+Nothing changes in these places:
+- the installed app window;
+- shareable copies opened from the computer;
+- localhost.
+
+The sidebar's "Install as app" button is gone, because it could only ever appear in a tab (ruling
+D6). The manifest gained two keys: `related_applications`, which is how a tab recognises an install,
+and `launch_handler: focus-existing`. Its identity is unchanged: no `id`, and the same name,
+start_url and scope.
+
+**How:** a classic script at the top of `<head>` decides before anything paints.
+- ⛔ **It asks the window before the URL:** the installed app window (`display-mode`) always gets the
+  app, and it fails open. A July "download gateway" (`ffadc6d`, reverted) locked installed users out,
+  because the installed PWA loads the same link.
+- **It catches the install prompt itself.** Chrome 154 fires it 22–860 ms after load with no service
+  worker, which overturns Chrome's own docs. That is before the app's module has finished parsing.
+- **It recognises existing installs** with `getInstalledRelatedApps()` (Chrome/Edge 140+). That works
+  even for installs made before the new key existed.
+- **It reloads a tab that Chrome turns into the app window.**
+
+`main.jsx` does not start the engine in a gated tab. So there is no backup slot, no autosave, no
+update poll and no beforeunload guard in a tab that isn't the app.
+
+**Verified:**
+- New legs `pwagate` (13 cases: every screen's wording, its visibility, the big button's size and
+  centring, and the engine never starting) and `pwagatelogic` (10 cases: the resolver and every
+  event). Both are in the gate, and three mutations turn them red:
+  - booting the engine under the gate → 9/13;
+  - a smaller button → 5/13;
+  - installable ranked above installed → 2/10.
+- `check-build`: 14 → 25 checks. They cover the manifest's identity and its new keys, the gate
+  script's position, the early return, no ids and no inline handlers.
+- Full gate **686/0** (`=== GATE PASSED ===`) on the change rebased onto `80ebd56`. It was 666/0
+  before the rebase.
+- Gate 7 by hand: `fence` A/B against the base build, 511 computed-style entries, 0 differences.
+- In the pane: every screen at 1440 × 900, and the phone screen at 375 px. The button measured
+  360 × 88 px, horizontally centred to the pixel and focused on arrival, with 0 console errors.
+- **In a real, headful Chrome 154**, with a throwaway profile and the build renamed `ProbeCal` (never
+  the real name: a test install writes an app shim beside the owner's):
+  - a first visit showed INSTALL, with Chrome's real install prompt captured;
+  - a tab after install showed ALREADY INSTALLED;
+  - **the installed app window booted the app**: standalone, no gate, the phase rows drawn.
+- **Still owed by hand after deploy:** the tab turning into the app after an install from the big
+  button, "Open SPTCal" opening the app, and Edge's menu wording. Chrome's own install box can't be
+  clicked from the harness.
+
 ### The "Production Span" header counts Production's weeks only (audit L-11)
 
 **What changed:** The header's "N-Week Production Span" line counted a week as Production's when

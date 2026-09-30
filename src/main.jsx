@@ -147,25 +147,35 @@ function portal(node, selector) {
   return createPortal(node, host)
 }
 
-const host = document.getElementById('react-root')
-const root = createRoot(host)
+// ---- The install gate owns a browser tab on the hosted link (PWA-ONLY-PLAN.md) -----------------
+// The classic script at the top of index.html's <head> has already decided, before anything
+// painted, whether this page is an ordinary browser tab on the hosted link. If it is, <html>
+// carries data-app-gate, the page IS the full-screen install / "use the app" gate, and the app must
+// not start: no chrome render and no initLegacyApp() -- so no backup slot, no autosave, no update
+// poll, no beforeunload guard and no service-worker clean-up in a tab that is not the app.
+// Reading the attribute is the whole interface; nothing in this file decides anything. The app
+// window, file://, localhost and every other host never carry it and boot exactly as before.
+if (!document.documentElement.hasAttribute('data-app-gate')) {
+  const host = document.getElementById('react-root')
+  const root = createRoot(host)
 
-// flushSync, because React 19 commits asynchronously by default and initLegacyApp() binds to
-// chrome elements BY ID at evaluation time. The chrome DOM has to exist before that call returns,
-// not on the next frame.
-//
-// ⚠️ flushSync is NOT sufficient on its own, and finding that out cost an afternoon. Mantine's
-// Popover mounts its dropdown from an EFFECT, so #file-menu is still absent when this returns --
-// even with keepMounted. Anything the engine resolves by id at evaluation time must therefore
-// either live in the STATIC skeleton or be reached by delegation from document. See the file-menu
-// handler in legacy/app.js.
-flushSync(() => {
-  root.render(
-    // forceColorScheme="light" — dark mode is a stated non-goal, see theme.js.
-    <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
-      <Chrome />
-    </MantineProvider>
-  )
-})
+  // flushSync, because React 19 commits asynchronously by default and initLegacyApp() binds to
+  // chrome elements BY ID at evaluation time. The chrome DOM has to exist before that call
+  // returns, not on the next frame.
+  //
+  // ⚠️ flushSync is NOT sufficient on its own, and finding that out cost an afternoon. Mantine's
+  // Popover mounts its dropdown from an EFFECT, so #file-menu is still absent when this returns --
+  // even with keepMounted. Anything the engine resolves by id at evaluation time must therefore
+  // either live in the STATIC skeleton or be reached by delegation from document. See the
+  // file-menu handler in legacy/app.js.
+  flushSync(() => {
+    root.render(
+      // forceColorScheme="light" — dark mode is a stated non-goal, see theme.js.
+      <MantineProvider theme={theme} forceColorScheme="light" withCssVariables>
+        <Chrome />
+      </MantineProvider>
+    )
+  })
 
-initLegacyApp()
+  initLegacyApp()
+}

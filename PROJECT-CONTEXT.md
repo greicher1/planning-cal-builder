@@ -1081,7 +1081,10 @@ user to hard-refresh (Cmd+Shift+R) or use Incognito.
 - **A "download gateway"** (forcing users to download rather than run the hosted app) was built
   and then **reverted** — it broke for anyone who had installed the PWA, because an installed app
   loads the hosted URL and got gated. It lives in history at `ffadc6d` if ever revisited; the
-  installed-PWA fix was started but never finished.
+  installed-PWA fix was started but never finished. ✅ **Superseded 30 Sep 2026 by the install gate**
+  (`PWA-ONLY-PLAN.md`): the hosted link now INSTALLS the PWA rather than downloading a file, and the
+  installed app window (`display-mode`) is checked before anything else and fails open, so an
+  installed user always gets the app.
 - **Button height inconsistency**: `button.primary` (specificity 0,1,1) overrode `.tb-btn`
   (0,1,0). Fixed with `:not(.tb-btn)`.
 - **The app's `holidayView` checklist used to be display-only.** It now has an Enable column that

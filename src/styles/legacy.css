@@ -323,13 +323,6 @@
     min-width:0;
     padding:var(--mantine-spacing-sm) var(--mantine-spacing-xl) var(--mantine-spacing-xl);
   }
-  /* Above the section switchers. display comes from the inline attribute until the engine clears
-     it (style.display = ''), at which point this block owns the layout. */
-  .form-panel > #install-app-btn{
-    display:block;
-    margin:var(--mantine-spacing-lg) var(--mantine-spacing-xl) 0;
-    width:calc(100% - 2 * var(--mantine-spacing-xl));
-  }
   /* Smaller laptops (above the stack breakpoint): narrow the sidebar so the waterfall gets more
      room before it has to collapse to a single column. Declared before the 960px rule so that
      rule's full-width stacking still wins at the smaller size. */
