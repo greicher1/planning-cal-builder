@@ -9,7 +9,7 @@
 - ⏭ **RESUME HERE (end of the 30 Sep 2026 evening session; the natural hand-off point).**
   - **All seven relayed rulings are built**, one local commit each (rows below): `8ee90ac` (3,
     Reset All), `d01f249` (6, the Region prompt), `a1d8140` (7, the holiday prompts), `b8100e6`
-    (1 + 4 + 5, the header controls off the calendar), FIX5_COMMIT (2, Expand/Swap).
+    (1 + 4 + 5, the header controls off the calendar), `c737b1f` (2, Expand/Swap).
   - **Nothing is pushed.** `git log --oneline origin/main..main` = the two HANDOFF commits that were
     already waiting (`585b643`, `7b9f46f`), these five, and this hand-off note. Every push is its own
     picker question (CLAUDE.md).
