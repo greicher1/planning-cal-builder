@@ -1156,6 +1156,13 @@ Nothing in this document ships without all of these, every stage:
     glyph's advance to be within half a font unit of Chrome's own width at its weight. `npm run
     check` gains five font checks with it, one of them failing a block made from a stale Inter.
 
+    Its step 2 (1 Oct 2026) adds `monthlayout`, run twice: tier 1 from the gate-10 baselines, and
+    `colswap-simpost-refuse`. It slices the layout model out of `src/legacy/app.js` (no app hook, on
+    the owner's ruling) and holds it to the print document. The model must read every month as the
+    leg reads it. Re-packed at the document's own spans, it must reproduce every lane. At the PDF's
+    spans, only a note may move. Every note's line breaks must equal Chrome's own breaker on the
+    same font program. The CSS numbers it copies must equal the live stylesheet's.
+
     The file-keys build (owner, 1 Oct 2026) adds `filekeys` (`v1.4.2-saved`). ⌘N, ⇧⌘S and ⇧⌘E click
     New, Save As and Export, on the platform's command key only (never ⌃ on a Mac). They do nothing on a
     key repeat, or while a dialog or the template header editor is up. Like a mouse press, they move

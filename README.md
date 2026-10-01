@@ -29,6 +29,46 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month PDF's layout model, the direct writer's step 2 (1 Oct 2026)
+
+Step 2 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
+see no change.** The month PDF is still Chrome's print path, and the build's minifier drops the new
+code as unused until step 5 routes the export to it.
+- **What:** `buildMonthLayout()` turns a calendar into plain data, month by month:
+  - the header lines, with their formats;
+  - per week, the day cells: date, spillover, weekend, the on/off override mark, ½;
+  - per week, every bar in placement order: kind, first and last column, lane, lanes spanned,
+    fill, ink, text, grey tag, half-day columns, and each note's lines.
+- **How:** it calls the frozen `renderMonthView` exactly as `exportMonthPdf` does, and reads the
+  HTML with `DOMParser`, attributes as strings. So every rule about what a month shows stays the
+  renderer's, and the PDF cannot drift from the screen. Markup it does not recognise (a new kind of
+  bar, a header format, a half-day slice, a grid date) throws rather than drawing something wrong.
+- **Owner ruling 2, "the PDF's own day-cell width":** every note is re-wrapped in the PDF's own note
+  box. That is 128.22 px of text, the owner's pick on 1 Oct 2026, measured with step 1's Inter 500
+  through the frozen `ttfTextWidth`. Each week's lanes are then re-packed with the renderer's own
+  first-fit rule. Today a note's height in the month PDF depends on the width of the window; from
+  step 5 it will not.
+- **The fonts:** `loadInterPdfFont()` decodes a block the first time an export asks for it, never
+  at boot. MANTINE-SEAM §4.5 now lists the four `font-inter-*` ids as part of the month PDF's
+  contract from step 5.
+- **Verified:**
+  - **A new leg, `monthlayout`** (14 cases), in the gate twice: tier 1, the nine gate-10 calendars,
+    and `colswap-simpost-refuse` for Simultaneous Post. On the owner's ruling it slices the model's
+    code verbatim out of `src/legacy/app.js`, with no test hook in the app. It holds the model to
+    the print document:
+    - the model's reading equals the leg's own;
+    - a re-pack at the document's own spans reproduces all 733 lanes;
+    - every note's line breaks equal Chrome's own line breaker on the same font program, on tier
+      1's 44 distinct notes and 15 edge cases;
+    - the copied CSS numbers match the live stylesheet.
+  - **On tier 1, ruling 2 changes exactly one note per calendar:** "Writer's Room Opens 1/5/26"
+    takes 2 lanes instead of 1, because of the width alone. No other lane moves.
+  - Tier 2's eight calendars pass on fresh captures. Red on 14 mutants.
+  - Full gate: **833 PASS, 0 FAIL, GATE PASSED.** The waterfall PDF, every Excel part and all nine
+    printed month documents are identical to their baselines.
+- **Size:** +857 bytes (1,432,908 to 1,433,765). The minified script gains one discarded constant,
+  and the rest is the font blocks' revised comment.
+
 ### Unreleased — double-click a .sptcal to load it in SPTCal (1 Oct 2026)
 
 The owner asked for item 1 of the "feel like a real app" list, and ruled that a double-click on

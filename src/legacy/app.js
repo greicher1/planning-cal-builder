@@ -16978,6 +16978,412 @@ export function initLegacyApp() {
     setTimeout(cleanup, 60000);
   }
 
+  // ---------- Month PDF writer: the layout model (MONTH-PDF-WRITER-PLAN.md §3.1, step 2) ----------
+  // The direct month-PDF writer (owner rulings, 30 Sep 2026) is three layers: this MODEL -- pure data
+  // saying what goes where on every month's page -- then the emitter that turns it into PDF bytes
+  // (step 3), and the fit that sizes each week's row (step 4). ⛔ NOTHING CALLS ANY OF IT YET. The
+  // export is routed to the writer in step 5; until then the month PDF is exportMonthPdf's print path,
+  // untouched, and the monthlayout harness leg is this section's only reader.
+  // ⚠️ AND THE BUILD DOES NOT CONTAIN IT YET. The minifier drops everything here that nothing
+  // references, which is everything but MVL_GEOMETRY's initialiser (it keeps the call and discards
+  // the result). So the monthlayout leg tests this SOURCE, sliced, and the first time the minified
+  // form runs is step 5. Step 5's end-to-end legs must exercise the build, not only the slice.
+  //
+  // ⭐ THE CONTENT IS INHERITED, NOT COPIED. buildMonthLayout() calls frozen renderMonthView() once
+  // per month, exactly as exportMonthPdf does (printingCursor set, then cleared in `finally`), and
+  // reads the HTML it returns with DOMParser, which is inert: no layout, no scripts, no styles
+  // applied. So every rule about WHAT a month shows -- which pills, which notes on which day, the
+  // hiatus bands, Simultaneous Post, the grey block/episode tag, the half-day slices, the override
+  // marks, the header's text and its sanitised format -- stays renderMonthView's, and the PDF cannot
+  // drift from the screen. Reading the frozen surface is allowed; editing it is not (CLAUDE.md,
+  // "Sanctioned ways"). The coupling to the markup is not new: exportMonthPdf regex-parses it too.
+  //
+  // ⚠️ Attributes are read AS STRINGS and parsed here, never through the parsed document's CSSOM.
+  // `el.style.background` hands back `rgb(112, 48, 160)` for the renderer's `#7030A0`, and it
+  // re-serialises shorthands: a writer must see what the renderer WROTE.
+  //
+  // ⛔ THE ONE VALUE THAT ARRIVES WRONG IS A NOTE'S LANE SPAN (owner ruling 2, 30 Sep 2026: "the PDF's
+  // own day-cell width"). renderMonthView sizes each note with mvNoteLineCount() at mvNoteBoxWidth(),
+  // the LIVE on-screen day-cell width, which is why the print path's pages change with the window
+  // (MANTINE-SEAM §5.3). Here every note is re-wrapped in the PDF's OWN note box, measured with the
+  // PDF's own font program, and each week's lanes are re-packed with the renderer's first-fit rule.
+  // No other item's lane can move: notes are placed LAST, and first-fit never disturbs an earlier
+  // placement.
+  //
+  // Row heights are deliberately NOT here. They are the fit's (ruling 3, step 4).
+
+  // ---- The page, in CSS px (1/96 in), the unit the month view is styled in ----
+  // The PDF draws 1 px as 0.75 pt, as Chrome's print does, so these are also the print path's numbers.
+  // Derived and put to the owner on 1 Oct 2026, who chose the note's DRAWN box (picker: "128.22 px,
+  // the drawn box"):
+  //   Letter landscape 1056 px, less two 8 mm margins           995.528 = the printable width
+  //   less .print-page's 2 px padding, each side                991.528
+  //   less .mv-body's 2 px print borders, each side             987.528 = W, a week's width
+  //   the bar layer's columns: (W - 6) / 7                      140.218 (.mv-bars pads 3 px each side)
+  //   a one-day bar: less its 1 px margins                      138.218 = the note's box
+  //   less 4 px padding + 1 px border, each side                128.218 = what a note's text fills
+  // ⚠️ NOT the day column (W / 7 = 141.075), which is what frozen mvNoteBoxWidth() measures: that box
+  // is 6/7 px wider than the bar actually drawn in it, so wrapping there could set a line wider than
+  // its note. The 2 px page padding is kept because it puts every position exactly where the print
+  // path's page has it.
+  // ⚠️ Each CSS number is a HAND COPY of a frozen rule, the hazard MANTINE-SEAM §5.4 names. The
+  // monthlayout leg measures each one against the live stylesheet, so a restyle that moves one fails
+  // there instead of silently re-wrapping every note in the PDF.
+  const MVL_GEOMETRY = (function(){
+    const pageW = 11 * 96, pageH = 8.5 * 96;        // @page{ size:letter landscape }
+    const margin = 8 * 96 / 25.4;                   // @page{ margin:8mm }
+    const pagePad = 2;                              // #print-root .print-page{ padding:2px }
+    const frame = 2;                                // #print-root .print-page .mv-body{ border-width:0 2px … }
+    const barsPadX = 3;                             // .mv-bars{ padding:24px 3px 14px }
+    const barMarginX = 1;                           // .mv-bar{ margin:0 1px }
+    const noteInsetX = 4 + 1;                       // .mv-note-block{ padding:2px 4px } + .mv-bar's 1px border
+    const contentW = pageW - 2 * margin;
+    const contentH = pageH - 2 * margin;
+    const weekW = contentW - 2 * pagePad - 2 * frame;
+    const trackW = (weekW - 2 * barsPadX) / 7;
+    const noteBoxW = trackW - 2 * barMarginX;
+    return Object.freeze({
+      pageW, pageH, margin, contentW, contentH, pagePad, frame, barsPadX, barMarginX, noteInsetX,
+      weekW, dayW: weekW / 7, trackW, noteBoxW, noteTextW: noteBoxW - 2 * noteInsetX,
+      // .mv-bar{ font-size:10px }, .mv-note-block{ font-weight:500; line-height:1.3 }, and
+      // mvNoteLineCount()'s clamp: a note takes at most three lanes, however many lines it has.
+      noteFontPx: 10, noteWeight: '500', noteLinePx: 13, noteMaxLanes: 3,
+      ptPerPx: 0.75,
+    });
+  })();
+
+  // ---- The PDF's own fonts: step 1's static Inter programs, decoded on FIRST USE ----
+  // ⛔ NEVER AT BOOT (HANDOFF, step 1 ⭐4). They are not the screen's font (the screen draws the
+  // variable WOFF2 in src/styles/inter.css), so decoding them at startup would make every launch pay
+  // for an export most sessions never make. Decoded the way loadCarlito() decodes Carlito -- atob,
+  // then DecompressionStream('deflate'), since each block is one zlib stream -- and both forms are
+  // kept: `font` (frozen ttfRead) for measuring, and `deflated`, which is already a /FlateDecode
+  // stream, for step 3 to embed as /FontFile2 without recompressing.
+  // ⚠️ The font-inter-<weight> ids are RUNTIME-READ from here on, as font-carlito-* are: part of the
+  // month PDF's output contract (MANTINE-SEAM §4.5). Drop or rename a block and this rejects.
+  // A failed decode is not cached, so a later export tries again.
+  const MVL_FONT_WEIGHTS = ['400', '500', '600', '700'];
+  const _mvlFonts = {};
+  function loadInterPdfFont(weight){
+    const w = String(weight);
+    if(MVL_FONT_WEIGHTS.indexOf(w) < 0) return Promise.reject(new Error('There is no Inter PDF font at weight ' + w + '.'));
+    if(!_mvlFonts[w]){
+      _mvlFonts[w] = (async function(){
+        const el = document.getElementById('font-inter-' + w);
+        if(!el) throw new Error('This copy of the app has no font-inter-' + w + ' block.');
+        const bin = atob(el.textContent.replace(/\s+/g, ''));
+        const deflated = new Uint8Array(bin.length);
+        for(let i = 0; i < bin.length; i++) deflated[i] = bin.charCodeAt(i);
+        const bytes = new Uint8Array(await new Response(
+          new Blob([deflated]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+        return { weight: w, deflated, bytes, font: ttfRead(bytes) };
+      })().catch(function(err){ delete _mvlFonts[w]; throw err; });
+    }
+    return _mvlFonts[w];
+  }
+
+  // ---- Measuring text as the PDF will SET it ----
+  // Glyph by glyph from the font's own advances (frozen ttfTextWidth: no kerning and no shaping,
+  // which is what the PDF does; step 1 measured a whole string to equal the sum of its glyphs).
+  // Each character is first replaced by what pdfEscape() will WRITE for it -- WinAnsi text as itself,
+  // anything else as "?" -- so a line is measured as the glyphs it will actually print. The ten
+  // WinAnsi characters the Inter subset lacks (soft hyphen, Š š Ÿ Ž ž, ƒ † ‡ ‰) measure at .notdef's
+  // advance, which is what a viewer draws for them. The step-5 check warns about both kinds.
+  let _mvlWinAnsiHi = null;
+  function mvlPdfChar(ch){
+    const u = ch.codePointAt(0);
+    if(u >= 0x80 && u <= 0x9F){
+      // pdfEscape writes the CODE, which WinAnsi reads as its curly quote, dash or €, or as nothing.
+      const hi = PDF_WINANSI_HI[u];
+      return hi ? String.fromCodePoint(hi) : '\u0000';
+    }
+    if(u <= 0xFF) return ch;
+    if(!_mvlWinAnsiHi){ _mvlWinAnsiHi = new Set(); for(const k in PDF_WINANSI_HI) _mvlWinAnsiHi.add(PDF_WINANSI_HI[k]); }
+    return _mvlWinAnsiHi.has(u) ? ch : '?';
+  }
+  function mvlTextWidth(font, s, sizePx){
+    let drawn = '';
+    for(const ch of String(s)) drawn += mvlPdfChar(ch);
+    return ttfTextWidth(font, drawn, sizePx);
+  }
+
+  // ---- A note's text, as the PDF can set it ----
+  // Line structure only. CR LF and a lone CR become LF: one hard break each, as on screen. A TAB
+  // becomes one space. ⚠️ The screen advances a tab to the next 8-space stop, which a PDF text run
+  // cannot do without being split there, and a tab in a note is too rare to pay for that. Every other
+  // C0/C1 control character is dropped: pdfEscape() would write it as an escape that draws nothing,
+  // or, at 0x80-0x9F, as WinAnsi's curly quotes and dashes. Every other character is kept, and is
+  // measured as it will print (mvlPdfChar).
+  function mvlCleanText(s){
+    return String(s == null ? '' : s).replace(/\r\n?/g, '\n').replace(/\t/g, ' ')
+      .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '');
+  }
+
+  // ---- Wrapping a note: white-space:pre-wrap + word-break:break-word, without hyphenation ----
+  // .mv-note-block's own rules, which Chrome's line breaker applies on screen:
+  //  - a newline is a hard break, and spaces are kept. A FINAL newline ends the last line rather than
+  //    opening another: "a\n" is one line, "a\n\n" is two;
+  //  - a line breaks only AFTER a run of spaces (U+0020), and that run HANGS at the end of the line it
+  //    ends: it never pushes a word over, and it is not drawn (it is trimmed off the line here);
+  //  - a no-break space (U+00A0) is a letter, never a break;
+  //  - a word too long for a line of its own is split after the last character that fits (always at
+  //    least one per line), and the rest carries on to the next line.
+  // ⚠️ TWO DELIBERATE DIFFERENCES FROM THE SCREEN (MONTH-PDF-WRITER-PLAN.md §7), so a note can break
+  // differently on paper: no automatic hyphenation (the screen has hyphens:auto under lang="en"), and
+  // no break after a hyphen, a dash or a slash, where Chrome may also break. Every break made here is
+  // one Chrome makes too; Chrome makes a few more.
+  // `widthOf(s)` measures a string; `maxW` is the width a line may fill. Returns the lines.
+  function mvlWrapText(text, maxW, widthOf){
+    const out = [];
+    const hard = mvlCleanText(text).split('\n');
+    if(hard.length > 1 && hard[hard.length - 1] === '') hard.pop();
+    hard.forEach(function(line){
+      let cur = '';                      // the line being filled; it may end in hanging spaces
+      const tokens = line.match(/ +|[^ ]+/g) || [];
+      tokens.forEach(function(tok){
+        if(tok.charCodeAt(0) === 32){ cur += tok; return; }   // spaces never break a line here
+        if(widthOf(cur + tok) <= maxW){ cur += tok; return; }
+        // It does not fit after what the line holds, so break BEFORE it, at the spaces in front of
+        // it -- even when those are only a hard line's leading spaces, which then make a line of their
+        // own, as on screen. Only a word that starts a line may be split.
+        if(cur !== ''){ out.push(cur.replace(/ +$/, '')); cur = ''; }
+        let rest = Array.from(tok);
+        while(rest.length > 1 && widthOf(rest.join('')) > maxW){
+          let n = 1;
+          while(n < rest.length - 1 && widthOf(rest.slice(0, n + 1).join('')) <= maxW) n++;
+          out.push(rest.slice(0, n).join(''));
+          rest = rest.slice(n);
+        }
+        cur = rest.join('');
+      });
+      out.push(cur.replace(/ +$/, ''));
+    });
+    return out;
+  }
+  // A note's lines at the PDF's width. Blank text is one line, as mvNoteLineCount() counts it.
+  function mvlNoteLines(text, widthOf){
+    if(!String(text == null ? '' : text).trim()) return [''];
+    return mvlWrapText(text, MVL_GEOMETRY.noteTextW, widthOf);
+  }
+
+  // ---- Reading one month back out of renderMonthView()'s HTML ----
+  const MVL_MONTH_NAMES = ['January','February','March','April','May','June','July','August',
+                           'September','October','November','December'];
+  // A style attribute's declarations, as the renderer wrote them. No value the month view writes
+  // contains a semicolon.
+  function mvlDecls(styleAttr){
+    const out = {};
+    String(styleAttr || '').split(';').forEach(function(d){
+      const i = d.indexOf(':');
+      if(i < 0) return;
+      const k = d.slice(0, i).trim().toLowerCase();
+      if(k) out[k] = d.slice(i + 1).trim();
+    });
+    return out;
+  }
+  // A header line's format, read back out of the style headerFormatCss() wrote. So it arrives already
+  // sanitised (audit H-1), which reading mvHeaderFormat directly would bypass. A missing key means
+  // "the stylesheet's own value", as in the store. ⛔ An unknown declaration throws: the writer would
+  // otherwise drop a format the screen shows, and nobody would know.
+  function mvlHeaderFmt(styleAttr){
+    const d = mvlDecls(styleAttr), f = {};
+    Object.keys(d).forEach(function(k){
+      const v = d[k];
+      if(k === 'font-size'){
+        const m = /^(\d+(?:\.\d+)?)px$/.exec(v);
+        if(!m) throw new Error('Month layout: a header size of "' + v + '".');
+        f.size = parseFloat(m[1]);
+      }
+      else if(k === 'font-weight' && (v === '700' || v === '400')) f.bold = (v === '700');
+      else if(k === 'font-style' && (v === 'italic' || v === 'normal')) f.italic = (v === 'italic');
+      else if(k === 'color') f.color = v;
+      else if(k === 'text-align') f.align = v;
+      else if(k === 'background-color') f.highlight = v;
+      // A highlight's own box: fit-content, 4 px each side, auto margins -- all implied by f.highlight.
+      else if(k === 'width' || k === 'padding-left' || k === 'padding-right' ||
+              k === 'margin-left' || k === 'margin-right'){ /* implied */ }
+      else throw new Error('Month layout: an unexpected header format "' + k + ':' + v + '".');
+    });
+    return f;
+  }
+  // The half-day slices on a pill (renderMonthView's halfSlices()), turned back into the COLUMNS they
+  // mark. The renderer writes background-size W% (W = 100 / span) and background-position P%, and a
+  // percentage position is a share of the FREE space: offset O = P% x (100% - W%), with P pinned to 0
+  // on a one-day pill. Inverted here and checked layer by layer, so a change to that markup throws
+  // rather than shading the wrong day: "a silent lie about someone's schedule", as its comment says.
+  const MVL_HALF_IMAGE = 'linear-gradient(to bottom, rgba(0,0,0,0) 0 50%, rgba(0,0,0,.34) 50% 100%)';
+  function mvlHalfColumns(d, from, to){
+    if(!d['background-image']) return [];
+    const span = to - from + 1;
+    const imgs = d['background-image'].split(/,\s*(?=linear-gradient\()/);
+    const sizes = String(d['background-size'] || '').split(',');
+    const poss = String(d['background-position'] || '').split(',');
+    if(imgs.length !== sizes.length || imgs.length !== poss.length){
+      throw new Error('Month layout: half-day slices that do not line up.');
+    }
+    return imgs.map(function(img, k){
+      const sm = /^([\d.]+)% 100%$/.exec(sizes[k].trim()), pm = /^([\d.]+)% 0$/.exec(poss[k].trim());
+      if(img.trim() !== MVL_HALF_IMAGE || !sm || !pm) throw new Error('Month layout: an unexpected half-day slice.');
+      const W = parseFloat(sm[1]), P = parseFloat(pm[1]);
+      if(Math.abs(W - 100 / span) > 1e-3) throw new Error('Month layout: a half-day slice sized for another pill.');
+      const at = (span === 1 ? 0 : P * (100 - W) / 100) * span / 100;   // in days from `from`
+      const c = Math.round(at);
+      if(Math.abs(at - c) > 1e-2 || c < 0 || c >= span) throw new Error('Month layout: a half-day slice between two days.');
+      return from + c;
+    }).sort(function(a, b){ return a - b; });
+  }
+  // One bar: what it is, where the renderer put it, and what it says.
+  function mvlParseItem(el){
+    const cl = el.classList, d = mvlDecls(el.getAttribute('style'));
+    const gc = /^(\d+)\s*\/\s*(\d+)$/.exec(d['grid-column'] || '');
+    const gr = /^(\d+)(?:\s*\/\s*span\s+(\d+))?$/.exec(d['grid-row'] || '');
+    if(!gc || !gr) throw new Error('Month layout: a bar without its grid placement.');
+    const from = parseInt(gc[1], 10) - 1, to = parseInt(gc[2], 10) - 2;
+    let kind;
+    if(cl.contains('mv-note-block')) kind = 'note';
+    else if(cl.contains('mv-hiatus-bar')) kind = 'hiatus';                       // all-phase or one phase's
+    else if(cl.contains('mv-pill')) kind = el.hasAttribute('data-ph') ? 'pill' : 'simpost';
+    else throw new Error('Month layout: an unknown kind of bar, "' + el.className + '".');
+    // A Production pill carries its grey block/episode tag as a span; everything else is the label.
+    const tagEl = el.querySelector('.mv-pill-block');
+    let text = '';
+    el.childNodes.forEach(function(n){ if(n !== tagEl) text += n.textContent; });
+    return {
+      kind, from, to,
+      // The renderer's own placement. A note's span here is the SCREEN's (see the lead comment).
+      htmlLane: parseInt(gr[1], 10) - 1, htmlLanes: gr[2] ? parseInt(gr[2], 10) : 1,
+      fill: d['background'] || '', ink: d['color'] || '',
+      text, tag: tagEl ? tagEl.textContent : '',
+      halves: mvlHalfColumns(d, from, to),
+      ph: kind === 'pill' ? el.getAttribute('data-ph') : null,
+      note: kind !== 'note' ? null : {
+        kind: el.getAttribute('data-note-kind'), day: el.getAttribute('data-note-day'),
+        index: el.hasAttribute('data-note-index') ? parseInt(el.getAttribute('data-note-index'), 10) : null,
+      },
+    };
+  }
+  // One month: its header, its weekday row, and per week its day cells and its bars in PLACEMENT
+  // order (the order renderMonthView placed them, which is the order its HTML lists them).
+  // ⛔ The grid's dates are derived the renderer's way -- weeks run Sunday to Saturday, from the
+  // Sunday on or before the 1st -- and every printed day number, spillover and weekend mark is
+  // checked against them, so a renderer that changed its grid throws here instead of filing a note
+  // under the wrong day.
+  function mvlParseMonth(html){
+    const view = new DOMParser().parseFromString(String(html), 'text/html').querySelector('.month-view');
+    if(!view) throw new Error('Month layout: renderMonthView drew no month.');
+    const label = ((view.querySelector('.mv-monthyear') || {}).textContent || '').trim();
+    const lm = /^(\w+) (\d{4})$/.exec(label);
+    const month = lm ? MVL_MONTH_NAMES.indexOf(lm[1]) : -1;
+    if(month < 0) throw new Error('Month layout: a month bar reading "' + label + '".');
+    const year = parseInt(lm[2], 10);
+    const header = Array.from(view.querySelectorAll('.mv-header .hdr-line[data-mvhid]')).map(function(el){
+      return { id: el.getAttribute('data-mvhid'), text: el.textContent,
+               empty: el.classList.contains('hdr-empty'), slot: el.classList.contains('hdr-slot'),
+               fmt: mvlHeaderFmt(el.getAttribute('style')) };
+    });
+    const dow = Array.from(view.querySelectorAll('.mv-dowrow > .mv-dow')).map(function(el){ return el.textContent; });
+    const first = Date.UTC(year, month, 1);
+    const lead = new Date(first).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const weekEls = Array.from(view.querySelectorAll('.mv-body > .mv-week'));
+    if(weekEls.length !== Math.ceil((lead + daysInMonth) / 7)) throw new Error('Month layout: ' + label + ' has ' + weekEls.length + ' weeks.');
+    const weeks = weekEls.map(function(wkEl, wk){
+      const start = first + (wk * 7 - lead) * DAY_MS;
+      const cells = Array.from(wkEl.querySelectorAll(':scope > .mv-daygrid > .mv-daycell'));
+      if(cells.length !== 7) throw new Error('Month layout: a week of ' + cells.length + ' days in ' + label + '.');
+      const days = cells.map(function(c, i){
+        const d = new Date(start + i * DAY_MS), cl = c.classList;
+        const n = parseInt((c.querySelector('.mv-daynum') || {}).textContent, 10);
+        const out = cl.contains('mv-out'), weekend = cl.contains('mv-weekend');
+        if(n !== d.getUTCDate() || out !== (d.getUTCMonth() !== month) || weekend !== (i === 0 || i === 6)){
+          throw new Error('Month layout: ' + label + ', week ' + (wk + 1) + ', day ' + (i + 1) + ' is not ' + isoOf(d) + '.');
+        }
+        return { iso: isoOf(d), n, out, weekend,
+                 mark: cl.contains('mv-day-off') ? 'off' : (cl.contains('mv-day-on') ? 'on' : ''),
+                 half: cl.contains('mv-day-half') };
+      });
+      const items = Array.from(wkEl.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add)')).map(mvlParseItem);
+      return { start: days[0].iso, days, items };
+    });
+    return { year, month, label, header, dow, weeks };
+  }
+
+  // ---- Re-packing a week's lanes: renderMonthView's takeLane(), the same first-fit rule ----
+  // ⚠️ A COPY, because the original is inline in frozen renderMonthView and cannot be called. Items go
+  // in placement order; each takes the first lane where all `span` lanes are free in every column it
+  // covers. The search is unbounded, as the renderer's is since audit L-16. The monthlayout leg holds
+  // this to the renderer: re-packed at the print document's own spans, it must reproduce every lane.
+  function mvlPackLanes(items, spanOf){
+    const occupied = new Map();
+    return items.map(function(it){
+      const span = Math.max(1, spanOf(it) || 1);
+      for(let lane = 0; ; lane++){
+        let free = true;
+        for(let L = lane; L < lane + span && free; L++){
+          const used = occupied.get(L);
+          if(used){ for(let c = it.from; c <= it.to; c++){ if(used.has(c)){ free = false; break; } } }
+        }
+        if(free){
+          for(let L = lane; L < lane + span; L++){
+            if(!occupied.has(L)) occupied.set(L, new Set());
+            const s = occupied.get(L);
+            for(let c = it.from; c <= it.to; c++) s.add(c);
+          }
+          return { lane, lanes: span };
+        }
+      }
+    });
+  }
+
+  // ---- One month, laid out for the PDF ----
+  // Parsed, every note wrapped in the PDF's note box, and every week re-packed: a note at the lanes
+  // its PDF lines need (at most three, as on screen), everything else at the span the renderer gave
+  // it. The screen's placement is then dropped, so nothing downstream can use it by mistake.
+  function mvlMonthLayout(html, widthOf){
+    const m = mvlParseMonth(html);
+    m.weeks.forEach(function(w){
+      w.items.forEach(function(it){ it.lines = it.kind === 'note' ? mvlNoteLines(it.text, widthOf) : null; });
+      const packed = mvlPackLanes(w.items, function(it){
+        return it.kind === 'note' ? Math.min(MVL_GEOMETRY.noteMaxLanes, it.lines.length) : it.htmlLanes;
+      });
+      w.items = w.items.map(function(it, k){
+        return { kind: it.kind, from: it.from, to: it.to, lane: packed[k].lane, lanes: packed[k].lanes,
+                 fill: it.fill, ink: it.ink, text: it.text, tag: it.tag, halves: it.halves,
+                 ph: it.ph, note: it.note, lines: it.lines };
+      });
+    });
+    return m;
+  }
+
+  // ---- The whole calendar: buildMonthLayout(schedule, inter500) ----
+  // Every month from the schedule's first to its last, walked exactly as exportMonthPdf walks them.
+  // `inter500` is what loadInterPdfFont('500') resolves to, awaited BEFORE this is called.
+  // ⛔ THIS MUST STAY SYNCHRONOUS. printingCursor is module state the LIVE renderer reads, so an
+  // await between setting it and clearing it would let a live render run in between and draw the
+  // wrong month on screen. The `finally` clears it even when a month throws, and puts monthCursor
+  // back as exportMonthPdf does (renderMonthView leaves it alone while printingCursor is set).
+  // Returns plain data: JSON in, JSON out, no DOM and no functions.
+  function buildMonthLayout(schedule, inter500){
+    const range = monthRangeForSchedule(schedule);
+    const htmls = [];
+    if(range){
+      const savedCursor = monthCursor;
+      try {
+        let cur = new Date(range.first.getTime()), guard = 0;
+        while(cur <= range.last && guard++ < 240){
+          printingCursor = new Date(cur.getTime());
+          htmls.push(renderMonthView(schedule));
+          cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 1));
+        }
+      } finally {
+        printingCursor = null;
+        monthCursor = savedCursor;
+      }
+    }
+    const widthOf = function(s){ return mvlTextWidth(inter500.font, s, MVL_GEOMETRY.noteFontPx); };
+    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };
+  }
+
   // ---------- Month view: note editing ----------
   // These notes belong to the month view alone. They're keyed by day and never touch userNotes,
   // so they can't collide with the waterfall's week-level notes -- and by the same token they

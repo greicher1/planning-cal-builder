@@ -1581,9 +1581,14 @@ hxTW8lAGu2z67OPey2Y/pIgtD7np1yMS0E/GD1Z7hKmXHJeuekjmhxL/P0y6Ls0=
      cannot use an embedded program finds nothing installed to substitute for it, and an embedding
      fault shows instead of hiding behind an installed Inter.
 
-     Unlike Carlito, nothing decodes these at startup: they are not the screen's font, and until the
-     writer exists nothing reads them at all. They cover 208 of WinAnsi's 218 characters, because the
-     app's Inter itself lacks soft hyphen, Š š Ÿ Ž ž, ƒ, †, ‡ and ‰.
+     Unlike Carlito, nothing decodes these at startup: they are not the screen's font. ONE function
+     will read them, loadInterPdfFont() in src/legacy/app.js (the writer's layout model, plan step 2),
+     which decodes a weight the first time an export asks for it. Nothing calls it until plan step 5
+     routes the month export to the writer, and until then the build's minifier drops it as unused.
+     ⛔ From step 5 these four ids are RUNTIME-READ, as font-carlito-* are: part of the month PDF's
+     output contract (MANTINE-SEAM.md §4.5), so renaming or dropping a block will break the export.
+     They cover 208 of WinAnsi's 218 characters, because the app's Inter itself lacks soft hyphen,
+     Š š Ÿ Ž ž, ƒ, †, ‡ and ‰.
 
      Inter is licensed under the SIL Open Font License, Version 1.1, which is reproduced in full in
      the Carlito notice above and in LICENSE-Inter.txt. Its copyright notice, which also covers the

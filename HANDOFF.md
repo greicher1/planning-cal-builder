@@ -4,6 +4,117 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 2, THE LAYOUT MODEL — BUILT AND PROVEN (session "SPT Calendar Builder month layout model")
+
+- ⏭ **RESUME HERE.** Step 2 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
+  **Step 3, the emitter and the serializer, waits for the owner's go-ahead**, in a fresh session.
+  Read the plan's step-2 "As built" first: it carries two obligations for step 3 and one question
+  for step 4.
+- **State:** ONE local commit (this one), and `main` fast-forwarded to it. **Not pushed.** The
+  owner's picker, 1 Oct 2026: "Commit, fast-forward main" and "Don't push; hold it".
+  - Built on branch `month-layout` in `.claude/worktrees/month-layout`, cut from `main` at `6a47984`
+    and fast-forwarded to `8347ba5` before any edit. Two peers were merging into `main` that hour
+    (file-keys, file-open), so it stayed out of the main checkout's working tree. The worktree is
+    merged; remove it only if the owner asks.
+  - `origin/main` = `be3078d` (live, double-click-to-open). The writer's commits (`002e203`,
+    `f19201a`, `c788c15` and this one) are local only: the owner holds them (step 1's ruling, and
+    again for step 2).
+  - The owner's `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` is still untracked, left alone.
+- ⭐ **The owner's four rulings (picker, 1 Oct 2026, before any code), all as recommended:**
+  1. **"Slice it, no hook."** The engine gets no test hook. The leg slices the model's code
+     verbatim out of `src/legacy/app.js` and runs it in the page.
+  2. **Inter 500 + the frozen `ttfTextWidth`** measure the notes.
+  3. **128.22 px, the drawn box**, as the note's text width. Derivation in the plan, and in the
+     section's comment: W = 987.528 px, the bar track (W−6)/7 = 140.218, the box 138.218, the text
+     128.218 (96.164 pt). Not frozen `mvNoteBoxWidth()`'s day column, which is 0.857 px wider than
+     the box the note is drawn in.
+  4. **The expected differences "as listed":** only note spans, and the lanes of later same-day
+     notes, may differ from the print document. Line breaks must equal Chrome's own breaker on the
+     same font program.
+- **Built** (one section of `src/legacy/app.js`, before "Month view: note editing", about 400
+  lines):
+  - `MVL_GEOMETRY`: the page in CSS px, every number derived and commented.
+  - `loadInterPdfFont(weight)`: decodes `font-inter-<w>` on first use (atob, then
+    DecompressionStream). Cached; a failed decode is not cached.
+  - `mvlTextWidth`: measures a string as `pdfEscape` will write it, "?" for anything outside WinAnsi.
+  - `mvlCleanText`: CR LF → LF, a tab → one space, other controls dropped.
+  - `mvlWrapText` / `mvlNoteLines`: `white-space:pre-wrap` + `word-break:break-word`, without
+    hyphenation.
+  - `mvlParseMonth`: DOMParser, attributes read as strings. It checks every day number, spillover
+    and weekend mark against the grid's own dates, and throws on any markup it does not recognise:
+    a bar kind, a header format, a half-day slice.
+  - `mvlPackLanes`: a copy of the frozen `takeLane` first-fit rule.
+  - `mvlMonthLayout`, and `buildMonthLayout(schedule, inter500)`.
+  - **The leg `t/monthlayout.js`** (14 cases), in `gate.sh` twice beside `interfonts`: tier 1 from
+    the gate-10 baselines (eight documents cover the nine calendars), and `colswap-simpost-refuse`
+    captured fresh (Simultaneous Post, which tier 1 never prints).
+  - **Docs:** the plan (status, step 2 "As built"), MANTINE-SEAM §4.5 (the `font-inter-*` ids join
+    the output contract at step 5), the `src/index.html` lead comment ("nothing reads these" was
+    no longer true of the source), the harness README, the README changelog.
+- **Proof:**
+  - **`monthlayout` 14/14** on tier 1 (124 months, 636 weeks, 733 bars, 125 notes, 8 half-day
+    slices), and 14/14 on each of tier 2's eight calendars captured fresh: `monthscale`,
+    `month-dense60`, `monthnotes`, `shootorder`, `notewrap`, `stintswap-reshape`, `carry-rich`,
+    `colswap-simpost-refuse`.
+  - **The check is not circular.** The model's reading is compared with the leg's own regex
+    reading. The lanes are checked against a re-pack at the document's OWN spans (the control,
+    exact on all 733 bars). Every note's lines are checked against Chrome's breaker on the same
+    program, line for line: 44 distinct tier-1 notes and 15 edge cases. The geometry is checked
+    against the leg's own arithmetic AND against the live stylesheet, by laying out a real printed
+    month at the page's width.
+  - **Red on 14 mutants** (each applied only inside the section, restored, `cmp`-checked):
+    - M1, the lane search starts at 1: L0 and L1 red.
+    - M2, the day column as the box: G0 and G1 red.
+    - M3, no half slices: P0 and P1 red.
+    - M4 (no-break space breaks), M5 (no trailing-newline rule) and M6 (no word split): W1 red.
+    - M7 (italic dropped) and M8 (tag dropped): P0 red.
+    - M9 (the loader called at boot, inside the section) and M14 (a model name used outside it):
+      F0 red.
+    - M10, no "?" mapping: F2 red.
+    - M12 (no 3-lane clamp) and M13 (non-notes at 2 lanes): L1 red.
+    - **M11, Simultaneous Post read as a phase pill: green on tier 1, red (P0) on
+      `colswap-simpost-refuse`.** That gap is why the gate runs the leg twice.
+  - ✅ **Full gate on build `aec9a6f7…` (worktree, port 8463): 833 PASS, 0 FAIL, GATE PASSED.**
+    That is `main`'s 805 plus `monthlayout`'s 28 (14 × 2). Gate 2: the waterfall PDF is identical
+    bar the date stamp, every Excel part is identical, 0 clipped cells, and `fields.byId` has 62 ids.
+    Gate 10: all nine printed month documents are byte-identical, one sheet per month. The peers
+    held their gates.
+  - **The final build `1947e7ba…` (1,433,765 bytes) differs from the gated one only in the
+    `src/index.html` comment's lines**, checked with `diff`. The later `app.js` edits were comments,
+    which the minifier strips. Against `main`'s build (`be15c7e8…`, 1,432,908 bytes) it is +857
+    bytes. `npm run check` 40/40. `monthlayout` re-run on the final files: 14/14 in both modes.
+- ⭐ **Learned. Read this before step 3:**
+  1. **The minifier drops the whole model from the build**, because nothing calls it. Everything
+     but `MVL_GEOMETRY`'s initialiser goes; that expression runs at boot and its result is
+     discarded. So the build differs from `main`'s only by that expression, the CSP's script hash
+     and the changed comment. The leg tests the unminified SOURCE, so the first time the minified
+     model runs is step 5, and **step 5's legs must exercise the build end to end**, not only the
+     slice.
+  2. **Ruling 2's whole effect on tier 1 is one note**, "Writer's Room Opens 1/5/26", which takes
+     2 lanes in the PDF against 1 on screen in every tier-1 calendar. The frozen screen rule at the
+     PDF's box also says 2, so the width alone moved it. No note changes lane, and no other item's
+     lane moves. Tier 2 shows 0 to 3 such notes per calendar.
+  3. **Chrome's breaker on the PDF program equals the writer's** on everything tier 1 and the edge
+     cases hold. That includes a hard line's leading spaces taking a line of their own before an
+     over-long word (Chrome does that too), and "a\n" being ONE line. Chrome breaks in one place
+     the writer does not: after a hyphen ("second-|unit"). It does NOT break after a slash between
+     letters, and both split "Cast/Crew/Locations/Vendors" identically.
+  4. **Chrome lays the page out on a 1/64 px grid.** The week measures 987.515625 against the
+     model's 987.528, and the note's text 128.21875 against 128.218. Irrelevant to the PDF, which
+     uses the exact values. The leg's tolerance is 0.05 px.
+  5. **For step 3's `/Widths`:** the model measures each character as the glyph a viewer will
+     DRAW. The ten WinAnsi characters the subset lacks measure at `.notdef`'s advance, so
+     `/Widths[c]` must be `ttfAdvance(ttfGlyph(unicode of c))`, `.notdef` included. Otherwise a
+     line the model fitted can overrun its box. Step 3 draws the model's `lines` and must not wrap
+     again.
+  6. **For step 4:** under ruling 3 a shrunk month's text is smaller while its widths are not, so
+     its notes could wrap into fewer lines. `mvlWrapText(text, maxW, widthOf)` takes any width and
+     measure, so step 4 can re-wrap at the shrunk size. Whether it should is step 4's call.
+  7. **Harness traps:** restoring a mutated `app.js` with `cp` makes it newer than `dist/`, so
+     `gate.sh` refuses the build until you rebuild (same hash). `parse.js` leaves `&nbsp;` in the
+     result JSON, so a no-break space prints as six characters in a report; the comparison itself
+     ran on the real character.
+
 ### ✅ 1 Oct 2026: DOUBLE-CLICK A .sptcal TO LOAD IT (branch `file-open-alone`, worktree `.claude/worktrees/file-open`)
 
 Item 1 of the "feel like a real app" list (the owner's ask). The owner's rulings, by picker:
@@ -228,9 +339,9 @@ Session "Mac native file menu integration". Built on branch `file-keys` in the w
 
 ### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 1, THE FONTS — BUILT AND PROVEN (one local commit, NOT pushed)
 
-- ⏭ **RESUME HERE.** Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
-  **Step 2, the layout model, waits for the owner's go-ahead**, in a fresh session (plan §8: steps
-  1–4 each need a clean context).
+- ⏮ **Superseded: step 2 is built too (the block at the top).** This block keeps step 1's record,
+  and its ⭐ list still stands. (It said: step 2, the layout model, waits for the owner's go-ahead,
+  in a fresh session; plan §8: steps 1–4 each need a clean context.)
 - **State:**
   - `main` = the step-1 commit on top of `f19201a`. `origin/main` is still `0f94e0b` (live).
     Nothing pushed.

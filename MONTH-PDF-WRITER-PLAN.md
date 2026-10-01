@@ -1,9 +1,9 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 🔨 **STEP 1 OF 6 BUILT (the fonts, 1 Oct 2026); the writer itself is not.** ✅ **All four
-rulings received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months shrink evenly,
-and replace the print path while keeping a rollback. Next: step 2, the layout model (§8), on the
-owner's go-ahead.
+**Status:** 🔨 **STEPS 1 AND 2 OF 6 BUILT (the fonts, and the layout model, 1 Oct 2026); nothing calls
+the writer yet, and it writes no PDF.** ✅ **All four rulings received, 30 Sep 2026** (§6): Inter, the
+PDF's own cell width, dense months shrink evenly, and replace the print path while keeping a
+rollback. Next: step 3, the emitter and the serializer (§8), on the owner's go-ahead.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -330,7 +330,45 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
      Y + U+0308, which the subset lacks. On paper, Ÿ is missing like the other nine.
    - **Measured for §7's kerning risk:** unkerned text is 0.47% wider on average across 64
      month-view strings, and 3.06% wider at most, on a deliberately kern-heavy "AVA … Way".
-2. **The layout model,** with a leg comparing it to the print document on tier 1. No PDF yet.
+2. ✅ **The layout model (built 1 Oct 2026; detail and proof in HANDOFF's top block),** with a leg
+   comparing it to the print document on tier 1. No PDF yet.
+   - **The owner's four rulings for this step (picker, 1 Oct 2026), all as recommended:**
+     1. **"Slice it, no hook."** The engine gains no test hook. The `monthlayout` leg slices the
+        model's code verbatim out of `src/legacy/app.js` (`interfonts`' technique) and runs it on
+        the print documents. `buildMonthLayout`'s own month walk is first exercised at step 5.
+     2. **Inter 500 + the frozen `ttfTextWidth`** measure the notes, so the wrapper uses exactly the
+        advances the PDF's `/Widths` will carry. `loadInterPdfFont(weight)` decodes a block on
+        first use, never at boot.
+     3. **128.22 px, the drawn box.** W = 987.528 px (Letter landscape less 8 mm margins, the
+        print page's 2 px padding and the frame's 2 px borders). The bar track is (W−6)/7 =
+        140.218, the note box 138.218, and the text width 128.218 = 96.164 pt. That is NOT the day
+        column frozen `mvNoteBoxWidth()` measures, which would be 0.857 px wider than the box the
+        note is drawn in.
+     4. **The expected differences "as listed":** only note spans, and the lanes of later
+        same-day notes, may differ. Line breaks must equal Chrome's own breaker on the same
+        program.
+   - **As built:** one new section of `src/legacy/app.js`, before "Month view: note editing":
+     `MVL_GEOMETRY`, `loadInterPdfFont`, `mvlTextWidth` (measures what `pdfEscape` will write:
+     "?" for anything outside WinAnsi), `mvlCleanText`, `mvlWrapText` / `mvlNoteLines` (pre-wrap
+     + break-word, no hyphenation), `mvlParseMonth` (DOMParser, attributes read as strings, every
+     day number checked against the grid's own dates), `mvlPackLanes` (a copy of the frozen
+     `takeLane`), `mvlMonthLayout`, and `buildMonthLayout(schedule, inter500)`. About 400 lines.
+   - ⚠️ **The break-word wrapper moved here from step 3's list**, because ruling 2 needs it to
+     count lines. Step 3 draws the model's `lines`; it does not wrap again.
+   - ⚠️ **For step 3's `/Widths`:** the model measures each character as the glyph the viewer will
+     DRAW. The ten WinAnsi characters the subset lacks measure at `.notdef`'s advance, so the
+     emitter's `/Widths` must be `ttfAdvance(ttfGlyph(unicode-of-code))` for every code, `.notdef`
+     included, or a line the model fitted can overrun its box.
+   - ⚠️ **For step 4's fit:** `mvlNoteLines` takes the font size from `MVL_GEOMETRY`. Under ruling
+     3 a shrunk month's text is smaller while its widths are not, so its notes could wrap into
+     fewer lines. Step 4 decides whether to re-wrap at the shrunk size (`mvlWrapText` takes any
+     width and measure) or keep full-size spans.
+   - **Measured on tier 1:** one note in each calendar changes span, "Writer's Room Opens 1/5/26",
+     from 1 lane to 2. The frozen screen rule at the PDF's box also says 2, so the width did it,
+     not the metrics. No note moves lane, and no other item's lane changes.
+   - **Chrome breaks in one place the writer does not** (recorded by the leg, not judged): after
+     a hyphen ("second-|unit"). It does NOT break after a slash between letters: both split
+     "Cast/Crew/Locations/Vendors" mid-word, identically.
 3. **The emitter and the serializer,** with the determinism controls.
 4. **The fit** (ruling 3), and the A/B leg against the print path. Contact sheets go to the owner.
 5. **The save path, the printable-characters check and the routing** (ruling 4), with the seven legs

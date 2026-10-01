@@ -338,6 +338,22 @@ Drop the script blocks and `buildWaterfallPdf` throws on its own guard (loud). D
 (quiet, and far worse). `carlitoReady.then(()=>{ _measureCache.clear(); … render(currentSchedule); })`
 exists precisely because a first render against a fallback face bakes wrong widths in.
 
+⛔ **Four more ids join this contract when the direct month-PDF writer ships: `font-inter-400`/`500`/
+`600`/`700`**, the static Inter programs MONTH-PDF-WRITER-PLAN.md step 1 embedded for it. Their reader
+has existed in source since 1 Oct 2026: `loadInterPdfFont(weight)` (step 2, the layout model) reads
+`document.getElementById('font-inter-' + weight)` and decodes it the way `loadCarlito()` decodes
+Carlito, with `atob` and then `DecompressionStream('deflate')`.
+- Unlike Carlito, it decodes **on first use, never at boot**, and registers no `FontFace`: these are
+  PDF font programs, not a screen font. So dropping or renaming a block cannot move anything on
+  screen, which is why it is easy to miss.
+- The writer measures every note's line breaks with the 500 program. A missing block would break the
+  month PDF outright, and a block rebuilt from a different Inter would move its line breaks without an
+  error. They belong to the month PDF's output contract exactly as `font-carlito-*` belong to the
+  workbook's and the waterfall PDF's.
+- ⚠️ **Today nothing reads them at runtime.** Nothing calls the loader until step 5 routes the export to
+  the writer, and until then the build's minifier drops the whole layout model as unused.
+- `npm run check` §8 and the `interfonts` and `monthlayout` harness legs guard them.
+
 ### 4.6 Direct manipulation, and the stores it writes
 
 `installGridResizers`, `beginSpanDrag`, `spanHandleGeometry`, `applyCellFitLive`,

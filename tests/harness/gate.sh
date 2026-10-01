@@ -1404,12 +1404,18 @@ PYS
 # interfonts guards the month PDF's four static Inter programs (MONTH-PDF-WRITER-PLAN.md §8 step 1,
 # 1 Oct 2026): read by the frozen ttf* functions, every glyph's advance within half a font unit of
 # the browser's own unkerned width at its weight. Second line on purpose, for the same reason.
+# monthlayout guards the writer's layout model (§8 step 2, 1 Oct 2026), beside interfonts. With no
+# fixture it reads tier 1, the eight gate-10 print documents that cover the nine calendars, from the
+# monthprint baselines; colswap-simpost-refuse adds the one kind of bar tier 1 never prints,
+# Simultaneous Post (mutant M11 is green on tier 1 and red there). It judges the model against this
+# leg's own reading of the print document, the lanes against a re-pack at the document's own spans,
+# and every note's line breaks against Chrome's own breaker on the same font program.
 # filekeys guards the file actions' keyboard shortcuts (owner, 1 Oct 2026): ⌘N New, ⇧⌘S Save As and
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
-              interfonts:-:60 \
+              interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
