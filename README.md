@@ -29,6 +29,49 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — double-click a .sptcal to load it in SPTCal (1 Oct 2026)
+
+The owner asked for item 1 of the "feel like a real app" list, and ruled that a double-click on
+unsaved work asks first, in the same window.
+- **The installed app now owns `.sptcal`.** The manifest gains one key, `file_handlers`:
+  `.sptcal` only, under its own type `application/x-sptcal`. `application/json` would offer SPTCal
+  for every JSON file, and `.html` would offer it for every web page, so legacy `.html` calendars
+  still load through Load…. Nothing that identifies the app changes; `check-build` asserts that,
+  and the new entry exactly.
+- **What users see:**
+  - The first time, Chrome asks "Open and edit … in this web app?" (with Remember my choice).
+  - On a Mac, SPTCal should be the double-click app. That's not yet seen on a real machine.
+  - Windows only lists SPTCal under Open with, so each user picks it once. Help says so.
+  - If SPTCal is already open, that window comes forward and the file loads into it, with the file
+    menu's own "Load another calendar?" question if there is unsaved work.
+- **How the engine takes it:**
+  - **One shared load path.** `openHandle()` now serves both the Load… picker and
+    `launchQueue`, so the two cannot drift.
+  - **Launches run one at a time.** Each waits for any app dialog already open (a second dialog
+    would answer the first as Cancel), and commits a half-typed note first.
+  - **Several files at once:** only the first loads, and the user is told.
+  - **A launched file is a normal file afterwards.** It joins recents and Save writes back to it.
+    Chrome may hand it over read-only. In that case the first Save asks for permission, and until
+    then the status line says "Autosave needs permission — click Save".
+  - **No recovery question on top of the file.** The crash-recovery offer does not appear over a
+    double-clicked file. The backup is kept and offered on the next ordinary launch.
+  - **Nothing new is saved.** A launch adds nothing to the saved calendar.
+- **Existing installs need no reinstall.** Measured with `tools/probe-file-handling.mjs` (new):
+  - a throwaway headless profile, with the app renamed ProbeCal;
+  - an install made from the old manifest gained the handler silently on its next page load;
+  - the identity was unchanged;
+  - a file launched into the open window reached it with no reload;
+  - two files arrived as one call.
+
+  The relative action needs Chrome/Edge 146+ (March 2026). An older browser simply gets no
+  double-click.
+- **Verified:**
+  - **`launchopen`, 16/16** (new, in the gate). Every guard was checked by deleting it and watching
+    its case fail. The slow-start IndexedDB in the leg is what made the recents race visible.
+  - **The probe, 6/6.**
+  - **`npm run check`, 35/35.**
+  - **The full gate, 797/0**, on exactly what shipped.
+
 ### Unreleased — keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
 
 The owner asked for New, Save, Save As and Export in the installed Mac app's native File menu, with

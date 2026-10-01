@@ -1157,6 +1157,13 @@ Nothing in this document ships without all of these, every stage:
     focus off the field being edited first, so a Manual header line typed but not yet left is included
     (K14). ⌘S and ⌘P are unchanged. End to end, Save As on a linked calendar writes a new file and
     switches to it. `nofsa` gains B5: without the API, ⇧⌘S stays plain Save.
+
+    Double-click to open (1 Oct 2026) adds `launchopen`: a `.sptcal` the OS hands the app through
+    `launchQueue` loads as Load… does. It covers a cold launch (no recovery question on top, the
+    backup kept), the linked file Save writes back to, the unsaved-work question (Cancel and Load),
+    two files, a refused file, a dialog already up (the launch waits), a half-typed note, and a
+    read-only handle ("Autosave needs permission — click Save"). The OS half is not visible to any
+    leg; `node tools/probe-file-handling.mjs` measures it against a throwaway install.
 12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
     policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
     inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations

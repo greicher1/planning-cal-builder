@@ -4,6 +4,74 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: DOUBLE-CLICK A .sptcal TO LOAD IT (branch `file-open-alone`, worktree `.claude/worktrees/file-open`)
+
+Item 1 of the "feel like a real app" list (the owner's ask). The owner's rulings, by picker:
+- a double-click on unsaved work **asks first, same window**;
+- **test, then build**;
+- **push this change ALONE**, on top of the live `f3274a2`.
+
+That last ruling came after a first "push once the tests pass" collided with the fonts session's
+hold on `c788c15` (see that session's block). The owner was asked again, and chose this. So
+`002e203`, `f19201a` and `c788c15` stay local, and local `main` takes this commit by a MERGE.
+- **What it is:**
+  - The manifest's `file_handlers` registers `.sptcal` with its own MIME type,
+    `application/x-sptcal`, and a relative `action: "."`.
+  - The engine's new `launchQueue` consumer feeds `openHandle()`, the post-picker half of
+    `openFileViaPicker()`, now shared by both paths.
+  - The README entry has the user-visible behaviour.
+- ⭐ **Measured, not assumed** (`tools/probe-file-handling.mjs`, Chrome 154, a throwaway headless
+  profile, the app named ProbeCal):
+  - An install made from the OLD manifest gained the handler on its next page load, with no
+    reinstall and no dialog (Chrome 144+ applies non-security manifest changes at once).
+  - The relative action resolved against the page (Chromium 146+ does this for data: manifests).
+  - `Page.getAppId` was unchanged.
+  - An ordinary launch calls the consumer with `files: []`.
+  - `focus-existing` delivers a later launch to the SAME window with no reload.
+  - Two files arrive as ONE call.
+  - **The launched handle reported readwrite `granted`**, although Chromium's `launch_params.h`
+    says launch files are read-only by default. So the engine ASKS (`needsWrite` in
+    `openRecentFile`) and handles both answers.
+- ⚠️ **Probe traps** (each cost a run):
+  - The app window `PWA.launch` opens is NOT attachable over CDP in headless (the target is not
+    even listed). The probe page therefore POSTs its launches to the probe's own server instead.
+  - `chrome://web-app-internals` read via `innerText` showed nothing useful. Use
+    `PWA.getOsAppState`, which returns the registered `fileHandlers`.
+  - `PWA.install` works only over `--remote-debugging-pipe` (as PWA-ONLY-PLAN found).
+- ⛔ **The race the code guards, and why the leg needed a slow start:**
+  - `loadRecents().then(...)` nulls `savedFileHandle`/`activeFileId` and replaces `recentFiles`.
+  - A launch delivered before IndexedDB settles would load the file, and then be unlinked by that
+    `then`.
+  - So `recentsReady` is now a promise, and `openLaunchedFiles()` awaits it.
+  - The harness's in-memory IndexedDB answers on the next microtask, so with the guard DELETED the
+    leg still passed. `launchopen` now holds every `open()` for 1.5 s after boot, and the deleted
+    guard fails L1 + L4.
+- ⚠️ **Leg trap:** `closeModal()` waits for an EMPTY screen. That is wrong where the next dialog
+  follows at once, as in L10 and L15, where it is the behaviour under test. Click the button and
+  wait for the next dialog instead.
+- **Verified:**
+  - `launchopen` 16/16. Three mutation runs each failed their case: the recovery hand-off +
+    `whenNoDialog`, the note commit, `recentsReady`, `needsWrite`, and the launch queue.
+  - The probe 6/6.
+  - `npm run check` 35/35.
+  - Full gate **797/0** on exactly what was pushed (live `f3274a2` + this commit; build sha256
+    `220ed727…`). Before the owner's push-alone ruling, the same commit on local `main` (`bd0c133`,
+    with fonts step 1 under it) gated **805/0**. The difference is `interfonts`' 8 cases.
+- ⏭ **Owed after the push (the harness cannot do these):**
+  - On the owner's real install: double-click a `.sptcal`, see Chrome's prompt, and confirm it loads.
+  - Whether a Mac double-click opens SPTCal without "Open With".
+  - Windows "Open with → SPTCal".
+  - Whether Chrome's real handover is read-only (the status line covers it if so).
+- ⚠️ **No version cut was made.** Installed copies load the live page, so they get the manifest and
+  the code on their next launch anyway. But `version.json` still says 1.4.2, so a window that is
+  already open is not told. Ask the owner whether to cut 1.4.3; the Reset Notes touch-up is waiting
+  on a cut too.
+- ⚠️ **Merge note:** the `file-keys` and fonts sessions also append to `gate.sh`'s AFSPEC tail, the
+  README Unreleased list, this file and UI-CONVENTIONS §10. Keep both sides of each conflict.
+- ⚠️ **Trap, from this session:** a `git rebase` while `gate.sh` runs from the same worktree rewrites
+  the script under the running zsh. Rebase after the gate, never during it. And `pkill -f gate.sh`
+  matches EVERY session's gate; kill by port (`tc8519`, `srv.js 8519 `), never by script name.
+
 ### ✅ 1 Oct 2026: KEYBOARD SHORTCUTS FOR THE FILE ACTIONS, because the native File menu is Chrome's
 
 Session "Mac native file menu integration". Built on branch `file-keys` in the worktree

@@ -153,6 +153,17 @@ if (man) {
   check('manifest does not prefer related applications', man.prefer_related_applications !== true);
   check('manifest launch_handler is focus-existing',
     !!man.launch_handler && man.launch_handler.client_mode === 'focus-existing', JSON.stringify(man.launch_handler));
+  // Double-click a .sptcal (1 Oct 2026). Exactly ONE handler, for .sptcal only, under a MIME type of
+  // its own: application/json here would offer SPTCal for every JSON file (Linux registers by MIME),
+  // and an .html entry would offer it for every web page. The action stays relative, like start_url:
+  // Chrome 146+ resolves a data: manifest against the page, which is what lets a localhost install
+  // be tested before shipping. Changing the extension set resets every user's "remember my choice".
+  const fh = Array.isArray(man.file_handlers) ? man.file_handlers : [];
+  const acc = fh[0] && fh[0].accept;
+  check('manifest registers .sptcal (and only .sptcal) as the app\'s file type',
+    fh.length === 1 && fh[0].action === '.' && fh[0].launch_type === 'single-client' && !!acc &&
+    JSON.stringify(acc) === JSON.stringify({ 'application/x-sptcal': ['.sptcal'] }),
+    JSON.stringify(man.file_handlers));
 }
 // The decision has to run before <body> is parsed, so it must be a CLASSIC script in <head>, ahead
 // of the module (which is deferred, and ~1 MB of it may still be parsing when the install prompt
