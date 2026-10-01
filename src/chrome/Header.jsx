@@ -14,7 +14,7 @@
 import { useState, useLayoutEffect, useCallback } from 'react'
 import { Button, Menu, Group, Text, Badge, CloseButton, Box } from '@mantine/core'
 import { installChrome } from './bridge.js'
-import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload } from './icons.jsx'
+import { IconFolder, IconFilePlus, IconFloppy, IconCopyPlus, IconTable, IconDownload, IconRotateCcw } from './icons.jsx'
 import { APP_ICON } from './appIcon.js'
 
 // The four sizes this toolbar uses, named once. Everything is size="xs" (30px) because the app's
@@ -340,11 +340,15 @@ export function Header() {
           clears the month's own notes only. The engine handles the click by delegation on this id
           (React owns the node); it is a <button>, so collectFieldValues() never sweeps it. */}
       <div className="app-toolbar-div" aria-hidden="true" />
+      {/* Title Case and an icon like its neighbours New / Save / Export (owner, 30 Sep 2026). The
+          engine resolves the click with closest(), so a click on the icon still lands; the SVG has
+          no text, so the hdrcontrols leg's textContent read still gets the bare label. */}
       <Button {...BTN} id="tb-notes-reset-btn" variant="default" fw={500}
+        leftSection={<IconRotateCcw className="btn-ic" />}
         title={notesReset.view === 'month'
           ? 'Clear the notes added in the Month view. Waterfall notes stay — reset those from the Waterfall view.'
           : 'Return every waterfall note to its automatic text, colour and size. The Month view shows these notes too, so they reset there as well.'}>
-        {notesReset.view === 'month' ? 'Reset month notes' : 'Reset notes'}
+        {notesReset.view === 'month' ? 'Reset Month Notes' : 'Reset Notes'}
       </Button>
     </Group>
   )

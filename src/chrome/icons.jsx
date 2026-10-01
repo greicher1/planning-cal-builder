@@ -168,6 +168,17 @@ export function IconRedo(props) {
   )
 }
 
+// Reset Notes. A counter-clockwise circle, deliberately NOT the hook arrow of IconUndo: undo steps
+// back once, this puts every note back to its automatic text, and the two sit one row apart.
+export function IconRotateCcw(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.6 8a5.4 5.4 0 1 0 5.4-5.4 5.85 5.85 0 0 0-4.04 1.64L2.6 5.6" />
+      <path d="M2.6 2.6v3h3" />
+    </svg>
+  )
+}
+
 export function IconDownload(props) {
   return (
     <svg {...base} {...props}>

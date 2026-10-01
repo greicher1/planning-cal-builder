@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Reset Notes is Title Case with an icon; the Header button stands apart from the shift tools (30 Sep 2026)
+
+The owner asked for both, after v1.4.2 went live.
+- **"Reset Notes" / "Reset Month Notes"** (were "Reset notes" / "Reset month notes"). Every other
+  button in the app header is Title Case (New, Save As, Export PDF), and Reset Notes now carries an
+  icon like its neighbours: a counter-clockwise circle (`IconRotateCcw`), deliberately not
+  the Undo arrow. The Help text and the `hdrcontrols` and `regionlock` legs follow the new labels.
+- **16 px more space before "Header: … ▾"**, so the four shift tools read as one group (26 px
+  instead of 10). The margin sits on Rebuild From's wrapper, not on the Header button. On a narrow
+  window the Header button is what moves to the second line (measured at 600 px), and there it
+  stays flush left. The toolbar's wrap point moves up by the same 16 px.
+- **Verified:** `hdrcontrols` 12/12, `noresetall` 5/5, `sharecopy2` pass, `regionlock` 14/14, all on
+  the build. Measured in the pane at 1440, 1310, 1150, 900, 720 and 600 px. Chrome only: no
+  frozen code, export or save key is touched, so the full gate was not run.
+
 ## v1.4.2 — the header controls leave the calendar: owner rulings 1–7 (30 Sep 2026)
 
 The owner's seven rulings on the controls that sat inside the calendar, built after v1.4.1. Each

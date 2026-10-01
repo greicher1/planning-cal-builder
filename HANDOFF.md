@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 30 Sep 2026 (late evening): two owner touch-ups AFTER v1.4.2, unreleased
+
+The owner asked for both in the "Header toolbar visual separation" session. They're on `main` and
+not in any release, and the README has an `Unreleased` entry.
+- **"Reset Notes" / "Reset Month Notes"** (Title Case) with a new `IconRotateCcw` (icons.jsx) as
+  `leftSection`, matching New / Save / Export. The Help text (four `<strong>` labels), and the
+  `hdrcontrols` N0 and `regionlock` L3 label checks follow.
+  ⚠️ Any leg matching this button's label must use the new case: it is read with
+  `textContent.trim()`, and the SVG adds no text.
+- **16 px more before `#tb-hdr-mode-btn`:** `.tools-wrap:has(> #pop-solve-btn){margin-right:16px}`
+  in legacy.css. It goes on Rebuild From's wrapper ON PURPOSE: at a 600 px viewport the Header
+  button is what wraps to line 2, and a margin-left would indent it there. The v1.4.2 entry's wrap
+  figures (about 1287–1301 px) are now about 16 px higher.
+- Proof: `hdrcontrols` 12/12, `noresetall` 5/5, `sharecopy2` pass, `regionlock` 14/14 on the build.
+  Chrome only, so no full gate was run.
+
 ### ✅ 30 Sep 2026 (evening): THE HEADER-CONTROLS BUILD (relayed rulings 1–7) → v1.4.2 CUT
 
 - ⏭ **RESUME HERE (end of the 30 Sep 2026 evening session; the natural hand-off point).**

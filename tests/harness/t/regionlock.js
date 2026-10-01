@@ -31,7 +31,7 @@
 //   D2  asked again and answered Remove: it goes, Production's end comes back, and no second dialog
 //   R1  "Reset holidays" asks ONE dialog carrying the recompute sentence, and without the old "This
 //       only affects the Holidays section." line (untrue once Production's dates move); Cancel
-//   L3  the Month view's "Reset month notes" (the app header, since rulings 1 and 4 split the old
+//   L3  the Month view's "Reset Month Notes" (the app header, since rulings 1 and 4 split the old
 //       "Reset Notes & Hiatus" by view) clears the day note, and then a Region change no longer asks
 //   H3  with no note edits, adding a custom holiday does NOT ask -- the same rule as hv-en
 //   D3  with nothing to misplace, removing a custom holiday asks only today's plain confirm
@@ -213,13 +213,13 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month view', 100, 100);
     var mr = document.getElementById('tb-notes-reset-btn');
-    if(!mr || (mr.textContent || '').trim() !== 'Reset month notes') throw new Error('no "Reset month notes" in the app header (' + (mr ? mr.textContent : 'none') + ')');
+    if(!mr || (mr.textContent || '').trim() !== 'Reset Month Notes') throw new Error('no "Reset Month Notes" in the app header (' + (mr ? mr.textContent : 'none') + ')');
     mr.click();
     await T.sleep(900);
     var ask3 = await pickPlace('uk-london', null);
     var l3 = lock();
     await pickPlace('us-general', null);
-    add('L3', 'the Month view\'s "Reset month notes" clears the day note, and then a Region change no longer asks',
+    add('L3', 'the Month view\'s "Reset Month Notes" clears the day note, and then a Region change no longer asks',
       !ask3 && l3.place === 'uk-london' && lock().place === 'us-general',
       {asked: ask3.slice(0, 60), placeAfter: l3.place, back: lock().place}, 'no dialog; the change goes through');
 

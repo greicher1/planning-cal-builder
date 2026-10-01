@@ -1275,6 +1275,12 @@
   }
   #tb-hdr-mode-btn.is-manual:hover{ background:var(--edit-accent); color:var(--mantine-color-white); }
   #tb-hdr-mode-btn.is-manual .caret{ color:inherit; }
+  /* Extra space between the shifting tools and the Header button, so the four tools read as one
+     group and the Header button as something else (owner, 30 Sep 2026). It is a margin on Rebuild
+     From's wrapper, NOT on the Header button: .preview-tools wraps on a narrow window, and the Header
+     button is what moves to the new line (measured at a 600 px viewport), where a margin-left would
+     indent it. A trailing margin at the end of a line is invisible. */
+  .tools-wrap:has(> #pop-solve-btn){ margin-right:16px; }
   /* One popover per tool, each anchored under its own button. Right-aligned because these buttons
      sit near the right edge of the preview panel. Each holds a single tool, so none is tall enough
      to need the height cap the old combined menu did. */

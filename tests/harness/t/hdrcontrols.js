@@ -11,8 +11,8 @@
 //   toolbar -- grey fill, a bottom rule, a "Header" label drawn by CSS. In Auto and Template nothing
 //   sits above the header.
 // - The notes reset goes to the APP HEADER, where Reset All was (the measured fallback: two more
-//   buttons in the toolbar wrap it below 1414 px). "Reset notes" in the Waterfall clears waterfall
-//   notes, their colours and sizes (the Month view shows them too); "Reset month notes" in the Month
+//   buttons in the toolbar wrap it below 1414 px). "Reset Notes" in the Waterfall clears waterfall
+//   notes, their colours and sizes (the Month view shows them too); "Reset Month Notes" in the Month
 //   view clears the month's own notes only. Neither touches hiatus bands or holidayView any more.
 // - The hiatus reset moves to the sidebar's All-phase hiatus card, as "Reset holidays" sits in its.
 // - The frozen renderers' originals (#hdr-mode-btn, #notes-reset-btn, #mv-hdr-mode-btn) are HIDDEN
@@ -35,10 +35,10 @@
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
 //       the month strip has the same look; Auto from the toolbar clears it and nothing sits above
 //       the month header; back in the Waterfall the label is the waterfall's again
-//   N0  the app header ends with a divider and "Reset notes" (Waterfall) / "Reset month notes"
+//   N0  the app header ends with a divider and "Reset Notes" (Waterfall) / "Reset Month Notes"
 //       (Month), and each tooltip says what it clears
-//   N1  "Reset month notes" clears the day note; the waterfall note stays (in both views)
-//   N2  "Reset notes" clears the waterfall note and its colour; the hiatus band and a holiday's
+//   N1  "Reset Month Notes" clears the day note; the waterfall note stays (in both views)
+//   N2  "Reset Notes" clears the waterfall note and its colour; the hiatus band and a holiday's
 //       Waterfall-note tick (holidayView) are left alone
 //   N3  that reset is ONE undo step: Undo brings the note back
 //   N4  the All-phase hiatus card ends with "Reset hiatus bands"; it clears the renamed band, and a
@@ -202,9 +202,9 @@ window.addEventListener('load', function () { (async function () {
     n0.monthLabel = resetBtn() ? resetBtn().textContent.trim() : null;
     n0.monthTitle = resetBtn() ? resetBtn().getAttribute('title') : null;
     add('N0', 'the app header ends with a divider and the notes reset, labelled for the view, each tooltip saying what it clears',
-      n0.last === 'tb-notes-reset-btn' && n0.divBefore && n0.sheetLabel === 'Reset notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
-        && n0.monthLabel === 'Reset month notes' && /Waterfall notes stay/.test(n0.monthTitle || ''),
-      n0, 'divider + Reset notes / Reset month notes');
+      n0.last === 'tb-notes-reset-btn' && n0.divBefore && n0.sheetLabel === 'Reset Notes' && /Month view shows these notes too/.test(n0.sheetTitle || '')
+        && n0.monthLabel === 'Reset Month Notes' && /Waterfall notes stay/.test(n0.monthTitle || ''),
+      n0, 'divider + Reset Notes / Reset Month Notes');
 
     // ---- N1: the month's own reset, in the Month view --------------------------------------------
     await goTo('January 2028');
@@ -216,7 +216,7 @@ window.addEventListener('load', function () { (async function () {
     n1.wfInMonth = monthHas('CARRY-NOTE');
     await view('sheet');
     n1.wfInSheet = noteCellText('2027-10-11').indexOf('CARRY-NOTE') >= 0;
-    add('N1', '"Reset month notes" clears the day note; the waterfall note stays, in both views',
+    add('N1', '"Reset Month Notes" clears the day note; the waterfall note stays, in both views',
       n1.dayBefore && !n1.dayAfter && n1.wfInMonth && n1.wfInSheet, n1, 'the day note gone; CARRY-NOTE kept');
 
     // ---- N2: the waterfall reset -------------------------------------------------------------------
@@ -230,7 +230,7 @@ window.addEventListener('load', function () { (async function () {
     var hvNow = hvHid ? document.querySelector('#holiday-vis-list .hv-cb[data-view="sheet"][data-hid="' + hvHid + '"]') : null;
     n2.noteAfter = noteCellText('2027-10-11'); n2.bgAfter = noteCellBg('2027-10-11'); n2.bandAfter = bandText('2027-12-20');
     n2.holidayTickKept = !!hvNow && hvNow.checked;
-    add('N2', '"Reset notes" clears the waterfall note and its colour; the hiatus band and the holiday tick stay',
+    add('N2', '"Reset Notes" clears the waterfall note and its colour; the hiatus band and the holiday tick stay',
       /CARRY-NOTE/.test(n2.noteBefore) && !/CARRY-NOTE/.test(n2.noteAfter) && n2.bgAfter !== n2.bgBefore
         && n2.bandBefore === 'CARRY-HIATUS' && n2.bandAfter === 'CARRY-HIATUS' && n2.holidayTickKept,
       n2, 'note + colour gone; CARRY-HIATUS kept; the tick kept');

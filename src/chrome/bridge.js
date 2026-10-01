@@ -94,7 +94,7 @@ export const chrome = {
   // as a string (a textContent write would destroy a Mantine Button's inner spans).
   headerModeBtn: noop,
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
-  // fallback that put it where Reset All was): "Reset notes" / "Reset month notes".
+  // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
   notesResetBtn: noop,
 }
 

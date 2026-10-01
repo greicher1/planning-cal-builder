@@ -12014,7 +12014,7 @@ export function initLegacyApp() {
   //     under itself, for whichever view is showing;
   //   * #tb-notes-reset-btn in the app header, where Reset All was (Header.jsx). That was the owner's
   //     measured fallback: the two buttons together wrapped the toolbar below 1414 px. It reads "Reset
-  //     notes" in the Waterfall and "Reset month notes" in the Month view;
+  //     Notes" in the Waterfall and "Reset Month Notes" in the Month view;
   //   * #hiatus-reset-btn at the foot of the sidebar's All-phase hiatus card (ruling 5).
   // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
   // evaluation time (HANDOFF §2b-3's law).
