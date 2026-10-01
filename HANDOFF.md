@@ -4,6 +4,27 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: v1.4.3 CUT, on top of the LIVE `be3078d` (branch `cut-1.4.3`), NOT on local main
+
+The owner said "cut 1.4.3". **The cut is built on `origin/main`, deliberately.** Local `main` carries
+the fonts session's held `c788c15`, and a version must be what users actually run.
+- **In it:**
+  - double-click a `.sptcal` (`be3078d`);
+  - the file shortcuts (`f3274a2`);
+  - the Reset Notes touch-up (`0f94e0b`).
+- **Not in it:** fonts step 1 and the local docs commits.
+- **The cut steps:**
+  - `APP_VERSION` (src/legacy/app.js), `version.json` and `package.json` = 1.4.3, together. The
+    root `index.html` is untouched (`cmp`-equal to `releases/v1.2.0.html`).
+  - The README heading `## v1.4.3 — …` sits over its three entries.
+  - `releases/v1.4.3.html` is byte-identical to `dist` (sha256 `c42b279f…`, 1,364,107 bytes).
+  - `tests/fixtures/v1.4.3-saved.sptcal` is a real Save (`t/mintfixture.js`): 43 keys and 62 ids,
+    the SAME sets as v1.4.2's; `version: 1`; 0 clipped cells.
+- ✅ **Release gate on the v1.4.3 build (`c42b279f…`): 797 PASS, 0 FAIL, GATE PASSED.**
+  - `fields.byId` is unchanged at 62 ids, and every month PDF is identical to its baseline.
+  - The tag `v1.4.3` sits on the cut commit, placed after this gate (as v1.4.0 to v1.4.2 were).
+- **Push:** not yet. It needs the owner's own yes, per push.
+
 ### ✅ 1 Oct 2026: DOUBLE-CLICK A .sptcal TO LOAD IT (branch `file-open-alone`, worktree `.claude/worktrees/file-open`)
 
 Item 1 of the "feel like a real app" list (the owner's ask). The owner's rulings, by picker:

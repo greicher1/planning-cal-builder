@@ -29,7 +29,20 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — double-click a .sptcal to load it in SPTCal (1 Oct 2026)
+## v1.4.3 — double-click a .sptcal to load it, keyboard shortcuts for the file actions (1 Oct 2026)
+
+Three changes since v1.4.2, all already live before this cut. This version exists so installed
+copies are told about them: `version.json` moves with `APP_VERSION`, so a window that is already
+open shows the update notice.
+- **Double-click a `.sptcal`** to load it in the installed app (`be3078d`).
+- **⌘N New, ⇧⌘S Save As, ⇧⌘E Export** (`f3274a2`).
+- **Reset Notes** is Title Case with an icon, and the Header button stands apart from the shift
+  tools (`0f94e0b`).
+
+Not in this version: the month-PDF writer's step 1 (the four static Inter programs, `c788c15`).
+It is committed locally and held by the owner.
+
+### Double-click a .sptcal to load it in SPTCal (1 Oct 2026)
 
 The owner asked for item 1 of the "feel like a real app" list, and ruled that a double-click on
 unsaved work asks first, in the same window.
@@ -72,7 +85,7 @@ unsaved work asks first, in the same window.
   - **`npm run check`, 35/35.**
   - **The full gate, 797/0**, on exactly what shipped.
 
-### Unreleased — keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
+### Keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
 
 The owner asked for New, Save, Save As and Export in the installed Mac app's native File menu, with
 the in-app buttons left exactly as they are.
@@ -109,7 +122,7 @@ the in-app buttons left exactly as they are.
   `fields.byId` key set is unchanged at 62 ids. ⏳ The proof that ⌘N beats the menu's New Window
   needs the real installed app, since a headless or pane browser can't make an app window.
 
-### Unreleased — Reset Notes is Title Case with an icon; the Header button stands apart from the shift tools (30 Sep 2026)
+### Reset Notes is Title Case with an icon; the Header button stands apart from the shift tools (30 Sep 2026)
 
 The owner asked for both, after v1.4.2 went live.
 - **"Reset Notes" / "Reset Month Notes"** (were "Reset notes" / "Reset month notes"). Every other
