@@ -693,6 +693,17 @@ in-place mutation of e.g. `userNotes` can't retroactively corrupt an already-pus
   no handle, write in place otherwise".
 - Cmd+Z / Cmd+Shift+Z are skipped while focus is in an `input`/`textarea`/contenteditable, so
   the browser's own in-field undo still works there.
+- **The file shortcuts (1 Oct 2026, owner ruling):** ⌘N New, ⇧⌘S Save As and ⇧⌘E Export click
+  their buttons, the same way Cmd+S does. They stand in for the native File-menu items the owner
+  asked for, because Chrome builds an installed web app's menu bar and no web API adds to it.
+  Three rules differ from Cmd+S and Cmd+P:
+  - N and E take only the platform's command key (`isPlatformCommandKey()`; ⌃N and ⌃⇧E are text
+    navigation on a Mac).
+  - None of the three acts on a key repeat or while `appDialogOpen()`.
+  - Each blurs first (`blurLikeAPress()`), so a Manual header line typed but not yet left commits
+    before the click, as it does under a real mouse press.
+
+  HANDOFF, 1 Oct 2026, has the reasoning and the proof (`filekeys`).
 
 ---
 
