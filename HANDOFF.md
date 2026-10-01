@@ -4,10 +4,13 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 30 Sep 2026 (late evening): two owner touch-ups AFTER v1.4.2, unreleased
+### ✅ 30 Sep 2026 (late evening): two owner touch-ups AFTER v1.4.2 — LIVE at `0f94e0b`, no version cut
 
-The owner asked for both in the "Header toolbar visual separation" session. They're on `main` and
-not in any release, and the README has an `Unreleased` entry.
+The owner asked for both in the "Header toolbar visual separation" session, and chose "push without
+a version cut" (picker). `e172daf..0f94e0b` went out, with `fa1f968` (docs) underneath. CI
+`36794339629` is green, and the live page is byte-identical to that build (sha256 `acbdc0a3…`).
+⚠️ **`version.json` still reads 1.4.2**, so installed copies were NOT told about it. The change
+reaches them with the next cut, and the README entry stays `Unreleased` until then.
 - **"Reset Notes" / "Reset Month Notes"** (Title Case) with a new `IconRotateCcw` (icons.jsx) as
   `leftSection`, matching New / Save / Export. The Help text (four `<strong>` labels), and the
   `hdrcontrols` N0 and `regionlock` L3 label checks follow.
