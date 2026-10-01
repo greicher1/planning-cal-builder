@@ -1155,6 +1155,13 @@ Nothing in this document ships without all of these, every stage:
     It reads the four static Inter programs with the frozen `ttf*` functions, and requires every
     glyph's advance to be within half a font unit of Chrome's own width at its weight. `npm run
     check` gains five font checks with it, one of them failing a block made from a stale Inter.
+
+    The file-keys build (owner, 1 Oct 2026) adds `filekeys` (`v1.4.2-saved`). ⌘N, ⇧⌘S and ⇧⌘E click
+    New, Save As and Export, on the platform's command key only (never ⌃ on a Mac). They do nothing on a
+    key repeat, or while a dialog or the template header editor is up. Like a mouse press, they move
+    focus off the field being edited first, so a Manual header line typed but not yet left is included
+    (K14). ⌘S and ⌘P are unchanged. End to end, Save As on a linked calendar writes a new file and
+    switches to it. `nofsa` gains B5: without the API, ⇧⌘S stays plain Save.
 12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
     policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
     inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations

@@ -4,6 +4,104 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: KEYBOARD SHORTCUTS FOR THE FILE ACTIONS, because the native File menu is Chrome's
+
+Session "Mac native file menu integration". Built on branch `file-keys` in the worktree
+`.claude/worktrees/file-keys`, cut from `f19201a`. Two other sessions were working nearby that day:
+"fonts" (MONTH-PDF-WRITER-PLAN step 1, in the MAIN checkout, committed locally as `c788c15`) and
+"file-open" (double-click a `.sptcal`, in its own worktree). Full gates were serialized by message.
+- ⭐ **Owner's picker at the end (1 Oct 2026): "Commit + merge into main" and "Push this change
+  alone".** So the commit sits directly on the live `0f94e0b`, rebased from `f19201a`. The only
+  commits between them are docs, so the build is byte-identical to the gated `9e869a07…`. It was
+  pushed ALONE, the way 4.12 was. The unpushed docs `002e203` and `f19201a`, and the fonts session's
+  `c788c15`, stay local (the owner told that session not to push). Local `main` takes this commit by
+  a MERGE, so every hash these docs cite stays valid. The live check is recorded in the HANDOFF
+  note on top of it.
+- **The ask (owner, 1 Oct 2026):** put New, Save, Save As and Export in the installed Mac app's
+  native File menu, and keep the in-app buttons exactly as they are.
+- ⛔ **A page cannot do that, now or later.** Chrome builds an installed web app's macOS menu bar
+  itself. `chrome/browser/ui/cocoa/main_menu_builder.mm` drops the browser items for PWAs
+  (`remove_if(is_pwa)`), so SPTCal's File menu holds New Window (⌘N), Close Window, Close Tab (⌘W)
+  and Print (⌘P), and no web API adds an item. It is the same wall as 30 Sep's File ▸ Print. The only
+  OS menu a page can extend is the Dock menu, through the manifest's `shortcuts`, and a Dock item can
+  only LAUNCH a URL: it cannot Save or Export the window you are in, because the save picker needs a
+  user gesture in the page. A real File menu needs a native wrapper (Electron). The owner was offered
+  that as a plan and did not pick it.
+- ⭐ **Owner rulings (picker, 1 Oct 2026), both as recommended:**
+  1. **keyboard shortcuts**, not "+ a Dock-menu New Calendar" and not "plan a native app";
+  2. **⌘N = New** (the in-app New, with its question), not Chrome's New Window. File ▸ New Window
+     still works from the mouse, and the menu still prints ⌘N beside it. The Help says so.
+- **Why the keys reach the page first in the installed app:** `BrowserCommandController::
+  IsReservedCommandOrKey` returns false for app windows (`TYPE_APP` / `TYPE_APP_POPUP`). So every
+  shortcut goes to the renderer before the menu, and `preventDefault()` stops the menu's command. In
+  a browser TAB ⌘N, ⌘T and ⌘W are reserved and never reach a page, but the install gate means a tab
+  never runs the app. Read from Chromium's source (`chrome/browser/ui/browser_command_controller.cc`).
+  ⚠️ No headless run can show it, because headless Chrome cannot make an app window.
+- **Built**, all in the engine's global keydown handler (`src/legacy/app.js`, beside Cmd+P):
+  - **⌘N clicks `#new-file-btn`, ⇧⌘E clicks `#export-btn`, ⇧⌘S clicks `#save-as-btn`.** Export is
+    the header's button: Excel in the waterfall, the month PDF in the month view (so the month view's
+    ⇧⌘E and ⌘P are the same export). ⌘S and ⌘P are unchanged. ⇧⌘S used to be plain Save, and still
+    is where `supportsFsAccess` is false (no Save As there; its button is hidden).
+  - Each key CLICKS its button, as ⌘S and ⌘P do, so New's unsaved-changes question, the re-click
+    guards and Export's "Nothing to export" come along.
+  - On a key repeat (`e.repeat`), or while `appDialogOpen()`, the three new keys do nothing. They do
+    still `preventDefault()`, so Chrome's own ⌘N never fires instead. `appDialogOpen()` is a
+    `.mantine-Modal-content` (⌘P's rule: a second dialog would answer the first as Cancel) **or the
+    template header editor `.hde-overlay`**. ⚠️ That editor sits at z-index 400, ABOVE the modal tier,
+    so a New question opened from under it could be neither seen nor answered, and its draft would
+    then land on whichever calendar was left. A mouse can't reach the header buttons past it either.
+  - ⛔ **`blurLikeAPress()` before the click.** A real press moves focus off the field being edited
+    before its click lands, and the Manual header lines (waterfall and month) and the template
+    editor's lines commit on that FOCUSOUT. A key moves nothing, so without the blur a typed header
+    line was missing from a Save As or an Export, and lost by a New that didn't ask (proven: mutant
+    M4 turns K14 red). The note editors need nothing extra. They commit on a document `click`, and
+    `btn.click()` bubbles there exactly as a real click does.
+  - ⛔ **N and E take the PLATFORM'S command key only** (`isPlatformCommandKey()`): ⌘ on a Mac, Ctrl
+    elsewhere, read per press. The older keys accept either key everywhere (`meta = metaKey ||
+    ctrlKey`). On a Mac that would have made ⌃N, macOS "next line" inside a note editor, start a new
+    calendar, and ⌃⇧E, "select to the end of the line", export. ⌥ combinations are not taken.
+  - **Help:** a new "Keyboard shortcuts" section after Reset (`src/index.html`). The buttons are
+    unchanged.
+- **Proof** (build `9e869a07…` = `f19201a` + this change):
+  - `npm run check` 34/34.
+  - New leg **`filekeys`** (`HARNESS_STATE=v1.4.2-saved`), 16/16, added to gate.sh's AFSPEC list.
+    Routing cases record which button a key clicked (a `HTMLButtonElement.prototype.click` recorder,
+    cmdprint P5's shape). The end-to-end cases cover the Excel workbook, the month PDF's print,
+    New's question and "Start new", and Save As on a LINKED calendar (a second picker, a new file,
+    and the next ⌘S follows it).
+  - Red on the engine without the change (`git show HEAD:`, restored, checked with `cmp`): K1–K3 and
+    K7–K12. The guards K4–K6 pass on both.
+  - Six mutants, each red on exactly its case, restored with `cmp` and rebuilt to the same hash:
+    no dialog check (K8, K13); either modifier key (K5, K9); no repeat check (K7); no blur (K14);
+    Save As without `supportsFsAccess` (`nofsa` **B5**, new); `.hde-overlay` not counted (K13).
+  - The pane, with REAL key presses (trusted events). The download, the picker and `print` were stood
+    in for, so nothing reached Downloads or a native dialog.
+    - ⇧⌘E wrote the 9,907-byte workbook. Chrome reports `e.key` "e" even with Shift held, and the
+      handler lowercases either way. In the Month view it printed `printing-calendar` with 16 pages.
+    - ⇧⌘S reached the picker with `navigator.userActivation.isActive` true, so the real dialog would
+      open, wrote the `.sptcal` and switched the file menu to the new file.
+    - ⌘N over a typed Title edit raised New's question, and a second ⌘N while it was up was
+      prevented and opened nothing.
+    - ⌃N inside a note editor was not prevented, opened no dialog and left the calendar alone. The
+      caret did not move, because the pane's CDP key carries no macOS editing command. Only a real
+      keyboard shows that half.
+  - ✅ **Full gate on `9e869a07…`: 781 PASS, 0 FAIL, GATE PASSED** (764 + `filekeys` 16 + `nofsa`
+    B5). The waterfall PDF, every Excel part and all the printed month documents are identical to
+    baseline. `fields.byId` 62 ids, 0 clipped cells.
+- **Owed by the OWNER, by hand, in the real installed app after a deploy.** Only an app window can
+  prove the menu-vs-page order. In SPTCal's own window: ⌘N asks or starts a new calendar and opens
+  NO second window; ⇧⌘S opens the save dialog; ⇧⌘E exports; ⌃N inside a note moves down a line.
+- **Found, NOT changed (for the owner):**
+  - ⌃P on a Mac runs the PDF export from inside a note editor, where ⌃P is macOS "previous line".
+    This is the existing `meta` rule from batch 5, the same class of conflict as the one ⌃N avoids
+    here. Fixing it would change shipped Cmd+P behaviour, so it is the owner's call.
+  - ⌘S and ⌘P do not blur first, so a Manual header line typed but not yet left is missing from
+    what they save or export. Their buttons, pressed with the mouse, include it.
+  - ⌘P's own guard checks only `.mantine-Modal-content`. With the template header editor up, the
+    waterfall PDF's character warning (L-6) would open under it.
+  - The Help's Exporting section still calls the Month view's button "Export Calendar to PDF". Its
+    label is "Export PDF".
+
 ### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 1, THE FONTS — BUILT AND PROVEN (one local commit, NOT pushed)
 
 - ⏭ **RESUME HERE.** Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.

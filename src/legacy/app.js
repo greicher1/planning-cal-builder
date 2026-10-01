@@ -15480,19 +15480,83 @@ export function initLegacyApp() {
     });
   })();
 
+  // ⚠️ The platform's own command key: ⌘ on a Mac, Ctrl elsewhere. The shortcuts below that predate
+  // it take EITHER key everywhere (`meta`), but on a Mac the Control key belongs to text navigation,
+  // which the note editors honour: ⌃N is "next line" and ⌃⇧E "select to the end of the line". Taken
+  // there, ⌃N in a note would have started a new calendar. Read on each press, not once at boot, so
+  // a harness leg can stand in for another platform without a reload.
+  function isPlatformCommandKey(e){
+    const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    return /^mac/i.test(p) ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey);
+  }
+  // ⚠️ A mouse press moves focus OFF the field being edited before its click lands, and a Manual
+  // header line commits on that focusout (headerManual + markDirty). A key moves nothing, so a
+  // shortcut that only clicked would act on a calendar its button never sees: a header line typed
+  // but not yet left would be missing from a Save As or an Export, and lost by a New that did not
+  // ask. So the new shortcuts blur first, as a press would. The note editors need nothing extra:
+  // they commit on a document click, and btn.click() bubbles there exactly as a real click does.
+  // ⌘S and ⌘P predate this and do not blur (see HANDOFF, 1 Oct 2026).
+  function blurLikeAPress(){
+    const a = document.activeElement;
+    if(a && a !== document.body && typeof a.blur === 'function') a.blur();
+  }
+  // Is one of the app's dialogs up? The new shortcuts do nothing while one is. A Mantine modal is
+  // Cmd+P's rule: a second dialog would answer the open one as Cancel. ⚠️ The template header editor
+  // (.hde-overlay) counts too, because it sits ABOVE the modal tier (z-index 400): New's question
+  // opened from under it could be neither seen nor answered, and the editor's draft would then land
+  // on whichever calendar was left behind. A mouse cannot reach the header buttons past either one.
+  function appDialogOpen(){
+    return !!document.querySelector('.mantine-Modal-content, .hde-overlay');
+  }
+
   // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save),
-  // Cmd/Ctrl+P (the current view's PDF export).
+  // Cmd/Ctrl+Shift+S (Save As), Cmd/Ctrl+P (the current view's PDF export), and -- on the
+  // platform's own command key only, see isPlatformCommandKey() -- Cmd+N (New) and Cmd+Shift+E
+  // (Export).
   // While focus is inside an editable field (a text/number input, a textarea -- e.g. the
   // waterfall or month-view note editor -- or a contenteditable header line), Z/Shift+Z is left
   // alone so the browser's own in-field undo runs instead; app-level undo takes back over once
   // focus leaves the field (matches the existing Escape/Tab handling in the note editor).
+  //
+  // ⛔ WHY THE FILE ACTIONS ARE KEYS AND NOT MENU ITEMS (owner, 1 Oct 2026, picker). The owner asked
+  // for New / Save / Save As / Export in the installed app's native File menu. That menu is
+  // CHROME'S: it builds an installed web app's menu bar itself (File keeps New Window, Close Window,
+  // Close Tab and Print) and no web API adds an item to it -- the same wall as File ▸ Print below.
+  // What a page CAN own is the keys. In an installed app window Chrome reserves none
+  // (BrowserCommandController::IsReservedCommandOrKey returns false for app windows), so each one
+  // reaches this listener BEFORE the menu, and preventDefault() keeps the menu's own command from
+  // running. That is why Cmd+N here is New rather than Chrome's New Window: the owner's ruling.
+  // File ▸ New Window still works from the mouse; the ⌘N the menu prints beside it is now stale.
+  // Like Cmd+S, each one CLICKS its button, so the button's guards come along: New's
+  // unsaved-changes question, the re-click guard, Export's "Nothing to export".
   document.addEventListener('keydown', e=>{
     const meta = e.metaKey || e.ctrlKey;
     if(!meta) return;
     const key = e.key.toLowerCase();
     if(key === 's'){
       e.preventDefault();
+      // Shift is Save As. Without the File System Access API there is no Save As (its button is
+      // hidden, and Save already downloads a new copy each time), so there Shift stays plain Save,
+      // which is all Cmd+Shift+S ever did before.
+      if(e.shiftKey && supportsFsAccess){
+        if(e.repeat || appDialogOpen()) return;
+        blurLikeAPress();
+        if(saveAsBtn) saveAsBtn.click();
+        return;
+      }
       if(saveBtn) saveBtn.click(); // reuses the click handler's disabled-guard, flash, and error handling
+      return;
+    }
+    // Cmd+N is New and Cmd+Shift+E is the header's Export: the Excel workbook in the waterfall, the
+    // month PDF in the month view, so the month view's Cmd+Shift+E and Cmd+P are the same export.
+    // A held key repeats, and one press is one action. While one of the app's dialogs is open the
+    // key does nothing (appDialogOpen()).
+    if(((key === 'n' && !e.shiftKey) || (key === 'e' && e.shiftKey)) && !e.altKey && isPlatformCommandKey(e)){
+      e.preventDefault();
+      if(e.repeat || appDialogOpen()) return;
+      blurLikeAPress();
+      const btn = document.getElementById(key === 'n' ? 'new-file-btn' : 'export-btn');
+      if(btn) btn.click();
       return;
     }
     // ⛔ Cmd/Ctrl+P RUNS THE CURRENT VIEW'S OWN EXPORT (batch 5; owner ruling 30 Sep 2026, picker:

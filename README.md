@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
+
+The owner asked for New, Save, Save As and Export in the installed Mac app's native File menu, with
+the in-app buttons left exactly as they are.
+- **That menu isn't the app's to change.** Chrome builds an installed web app's menu bar itself.
+  SPTCal's File menu holds New Window, Close Window, Close Tab and Print, and no web API adds an item
+  to it. It is the same limit the project hit on 30 Sep with File ▸ Print. The owner chose keyboard
+  shortcuts instead (picker, 1 Oct 2026). In an installed app window Chrome reserves no shortcut, so
+  each key reaches SPTCal before the menu does.
+- **⌘N is New, ⇧⌘S is Save As, ⇧⌘E is Export.** ⌘S (Save) and ⌘P (the current view's PDF) are
+  unchanged. Export is the header's Export button: the Excel workbook in the Waterfall view, the month
+  PDF in the Month view. Each key clicks its button, so the button's own checks come along: New asks
+  before replacing unsaved work, Export says "Nothing to export", and a double press is dropped.
+- **⌘N takes over Chrome's ⌘N** (New Window) in the app window, by the owner's ruling. File ▸ New
+  Window still works from the menu, which still prints ⌘N beside it. The Help says so.
+- **⇧⌘S used to be plain Save.** It still is in a browser without the File System Access API, where
+  there is no Save As.
+- **A key acts on what its button would see.** It moves focus off the field being edited first, as a
+  mouse press does, so a Manual header line typed but not yet left is saved, exported, or asked about
+  by New. While an app dialog or the template header editor is open the keys do nothing, and a held
+  key acts once.
+- **On a Mac, New and Export answer ⌘ only, never Control.** Inside the note editors ⌃N is "next
+  line" and ⌃⇧E is "select to the end of the line". Windows uses Ctrl.
+- **Help:** a new "Keyboard shortcuts" section after Reset.
+- **Verified:** new leg `filekeys`, 16/16 on the build and in the gate. On the build without the
+  change, K1–K3 and K7–K12 fail, and the guards K4–K6 pass. Six mutants each turn the case meant to
+  catch them red: no dialog check (K8, K13), either modifier key (K5, K9), no repeat check (K7), no
+  blur (K14), Save As without the API check (`nofsa` B5, new), and the header editor not counted as a
+  dialog (K13). The engine was restored and checked with `cmp`. In the pane, with real key presses:
+  ⇧⌘E wrote the 9,907-byte workbook, and in the Month view it printed the 16-page month PDF. ⇧⌘S
+  reached the save picker with user activation and switched to the new file. ⌘N asked over unsaved
+  work, and a second ⌘N while the question was up did nothing. ⌃N inside a note did nothing to the
+  calendar. Full gate on the build (`9e869a07…`): **781 PASS, 0 FAIL, GATE PASSED**. The waterfall
+  PDF, every Excel part and every printed month document are identical to baseline, and the
+  `fields.byId` key set is unchanged at 62 ids. ⏳ The proof that ⌘N beats the menu's New Window
+  needs the real installed app, since a headless or pane browser can't make an app window.
+
 ### Unreleased — the month PDF's fonts: four static Inter programs, ready for the direct writer (1 Oct 2026)
 
 Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, under the owner's ruling 1(a):

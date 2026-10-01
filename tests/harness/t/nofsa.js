@@ -19,6 +19,8 @@
 //   B3  a shareable copy exported from here carries the notice HIDDEN (the clone re-hides it, as it
 //       does the legacy and update strips) -- otherwise the copy opened in Chrome would show it
 //   B4  the x dismisses it
+//   B5  ⇧⌘S stays plain Save here (filekeys, 1 Oct 2026): there is no Save As without the API (its
+//       button is hidden), so the shortcut clicks #save-file-btn and never the hidden #save-as-btn
 (function () {
   var phase = null; try { phase = sessionStorage.getItem('nofsa-phase'); } catch (e) {}
   if(phase !== '2') return;
@@ -74,6 +76,15 @@ window.addEventListener('load', function () { (async function () {
     if(x) x.click();
     await T.sleep(400);
     add('B4', 'the x dismisses it', !!x && !strip().shown, {dismissBtn: !!x, after: strip()}, 'hidden');
+
+    // B5: which button ⇧⌘S clicks, recorded rather than delivered (filekeys' routing shape).
+    var realClick = HTMLButtonElement.prototype.click, clicked = [];
+    HTMLButtonElement.prototype.click = function () { clicked.push(this.id || this.className); };
+    var ev = new KeyboardEvent('keydown', {key: 'S', code: 'KeyS', metaKey: true, shiftKey: true, bubbles: true, cancelable: true});
+    try { document.dispatchEvent(ev); } finally { HTMLButtonElement.prototype.click = realClick; }
+    add('B5', '⇧⌘S without the API stays plain Save: it clicks #save-file-btn, never the hidden #save-as-btn',
+      ev.defaultPrevented && clicked.length === 1 && clicked[0] === 'save-file-btn',
+      {prevented: ev.defaultPrevented, clicked: clicked}, 'prevented; save-file-btn only');
   } catch (e) { cases.push({id: 'EX', title: 'harness', pass: null, observed: String(e && e.stack || e)}); }
   try { sessionStorage.removeItem('nofsa-phase'); sessionStorage.removeItem('nofsa-c0'); } catch (e) {}
   T.done({test: 'nofsa', cases: cases, err: (window.__ERR || []).slice(0, 10)});
