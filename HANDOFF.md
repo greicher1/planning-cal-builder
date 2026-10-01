@@ -17,6 +17,23 @@ Session "Mac native file menu integration". Built on branch `file-keys` in the w
   `c788c15`, stay local (the owner told that session not to push). Local `main` takes this commit by
   a MERGE, so every hash these docs cite stays valid. The live check is recorded in the HANDOFF
   note on top of it.
+- ✅ **LIVE, verified (1 Oct 2026).**
+  - `0f94e0b..f3274a2` was pushed alone, on the owner's picker. CI run `36901553030` is green
+    (Build and check, Deploy to Pages).
+  - The live page is byte-identical to the gated build (sha256 `9e869a07…`).
+  - `version.json` still reads **1.4.2**, so no update notice appears. An installed copy picks the
+    change up on its next relaunch once the 10-minute Pages cache has expired. A copy left open
+    keeps the old build.
+  - The README entry stays `Unreleased` until the next version cut.
+- **Local `main` = `bd0c133`**, the merge of `f3274a2` beside the unpushed `002e203`, `f19201a` and
+  `c788c15`. Its conflicts were docs and `gate.sh` only, with both sides kept. On the merged build
+  (`b7588da8…`): `npm run check` 39/39 (the fonts step added five), `filekeys` 16/16,
+  `interfonts` 8/8. No full gate ran on the merge itself: each half passed its own full gate, fonts
+  772/0 and this change 781/0.
+- ⏭ **Next for the project:** the month-PDF writer's step 2 (the fonts block below holds its RESUME
+  pointer). A step-2 session ("SPT Calendar Builder month layout model") opened on 1 Oct 2026 and
+  waited for this merge. The worktree `.claude/worktrees/file-keys` (branch `file-keys` = `f3274a2`)
+  is merged. Remove it only if the owner asks.
 - **The ask (owner, 1 Oct 2026):** put New, Save, Save As and Export in the installed Mac app's
   native File menu, and keep the in-app buttons exactly as they are.
 - ⛔ **A page cannot do that, now or later.** Chrome builds an installed web app's macOS menu bar
