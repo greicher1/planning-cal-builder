@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏭ 30 Sep 2026 (night): THE DIRECT MONTH-PDF WRITER IS PLANNED AND RULED, NOT BUILT
+
+- **[`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) is written.** It is the plan, the
+  corrected AUDIT-REPORT §9 spec, the acceptance gate and the build order. Read it before any writer
+  code. It was built from three read-only research passes over the month renderer, the waterfall
+  writer's primitives, and the month-PDF gates.
+- ✅ **The owner's four rulings (picker, 30 Sep 2026), all as recommended:**
+  1. **Inter**, as static 400/500/600/700 instances made from the app's own embedded Inter;
+  2. **the PDF's own day-cell width** for note wrapping, so the output no longer depends on the
+     window;
+  3. **a dense month shrinks evenly** (full page width, lanes and text together), instead of today's
+     vertical squash;
+  4. **replace the print path**, keeping it in the file behind `MV_PDF_MODE` as a one-line rollback.
+- ⏭ **Next: plan step 1, the fonts, in a FRESH session** (owner, 30 Sep 2026, picker). It needs
+  `fonttools` + `brotli` from PyPI, installed into a throwaway virtual environment in that session's
+  scratchpad, never the system Python. ✅ **The owner approved that download on 30 Sep 2026**, in the
+  planning session. Approvals are per session, so confirm it once more before installing. Nothing is
+  installed yet.
+- ⛔ The writer is NEW code. `exportMonthPdf`, `renderMonthView`, `mvNoteLineCount`,
+  `mvNoteBoxWidth`, the month/print CSS and every `pdf*`/`ttf*` primitive stay frozen. Gate 2 (the
+  waterfall PDF) staying byte-identical is the proof that no shared primitive moved.
+
 ### ✅ 30 Sep 2026 (late evening): two owner touch-ups AFTER v1.4.2 — LIVE at `0f94e0b`, no version cut
 
 The owner asked for both in the "Header toolbar visual separation" session, and chose "push without
