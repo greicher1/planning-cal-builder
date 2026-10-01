@@ -1,9 +1,11 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 🔨 **STEPS 1 AND 2 OF 6 BUILT (the fonts, and the layout model, 1 Oct 2026); nothing calls
-the writer yet, and it writes no PDF.** ✅ **All four rulings received, 30 Sep 2026** (§6): Inter, the
-PDF's own cell width, dense months shrink evenly, and replace the print path while keeping a
-rollback. Next: step 3, the emitter and the serializer (§8), on the owner's go-ahead.
+**Status:** 🔨 **STEPS 1 TO 3 OF 6 BUILT (the fonts, the layout model, and the emitter and serializer,
+1 Oct 2026); nothing in the product calls the writer yet.** It writes a valid month PDF from a layout
+that carries its row heights, and the step-3 leg holds every box it draws to Chrome's own print layout.
+✅ **All four rulings received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months
+shrink evenly, and replace the print path while keeping a rollback. Next: step 4, the fit (§8), on
+the owner's go-ahead.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -245,6 +247,13 @@ Nothing ships on "it looks right". In order of strength:
    - **a different window size identical** (the print path fails this today);
    - red on a patched `dist/`: +1 px on a row, a dropped pill, a changed colour, a dropped page.
 5. **`cspproof` covers the writer** (`HARNESS_KEEP_CSP=1`).
+6. **Built at step 3: the `monthemit` leg**, in `gate.sh` four times (tier 1, and
+   `colswap-simpost-refuse`, each also under `TZ=Pacific/Kiritimati`, tier 1 in a 1280 px window too).
+   It holds the emitter's display list to Chrome's own print layout of the same document, box by box
+   (0.03 px) and baseline by baseline, and to Chrome's computed styles. It holds the bytes to their
+   structure, the fixed font programs and the exact `/Widths`, and requires them byte-identical
+   across time zones and windows, read clean by poppler. 24 mutants turn it red. Steps 4 and 5 build
+   on it; it does not replace the A/B leg above.
 
 **Fixtures:**
 - **Tier 1 (must pass):** the nine gate-10 calendars.
@@ -369,7 +378,78 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
    - **Chrome breaks in one place the writer does not** (recorded by the leg, not judged): after
      a hyphen ("second-|unit"). It does NOT break after a slash between letters: both split
      "Cast/Crew/Locations/Vendors" mid-word, identically.
-3. **The emitter and the serializer,** with the determinism controls.
+3. ✅ **The emitter and the serializer,** with the determinism controls (built 1 Oct 2026; detail and
+   proof in HANDOFF's top block).
+   - **The owner's four rulings for this step (picker, 1 Oct 2026, before any code), all as
+     recommended:**
+     1. **Row heights: "Chrome's, measured."** The emitter never computes a week's height. Each
+        month must carry `fit.rows`, its weeks' border-box heights in CSS px, and the emitter
+        stacks them under its own header. Step 3's leg hands it the heights Chrome's print layout
+        gives the same document. Step 4's fit produces them instead, and its even shrink scales
+        `MVL_PAINT`'s vertical sizes and font sizes, which is why every one is read from there.
+     2. **"Slice it, no hook" extends to the emitter.** The `monthemit` leg slices the model and the
+        emitter verbatim, with the frozen primitives they call. ⛔ **Step 5 owes a check that the
+        BUILT app writes the same bytes as the slice for the same calendar**, because the minifier
+        drops the whole writer until step 5 routes to it.
+     3. **`/Widths` exact, to 3 decimals.** Every code's width is the advance of the glyph a viewer
+        draws, unrounded. That is .notdef's for the ten WinAnsi characters the subset lacks, for
+        DEL and for the five codes WinAnsi leaves undefined (no text can reach those six; controls
+        are dropped first). The frozen waterfall serializer rounds to whole units, which Inter's
+        2048 units/em would put up to half a unit off per glyph.
+     4. **The today stamp is pinned, not masked.** The month's stamp is right-aligned and the title
+        is centred in what it leaves, and Inter's digits are proportional, so real stamps run from
+        64.8 px ("1.11.26") to 83.2 px ("10.01.26") and move the title by up to 9 px. `pdfcmp.py`'s
+        literal swap cannot follow that. So step 3's leg writes one fixed, real-looking date
+        ("9.22.26") into every document before anything reads it; gate 10's `DATESTAMP` is 127.8
+        px, wider than any real date. ⛔ **From step 5** there is no document in between, and the
+        leg must pin the page's clock instead: local noon on a fixed date, a stub like the print
+        stub. `pdfcmp.py` stays the waterfall's tool.
+   - **As built:** one section of `src/legacy/app.js`, after `buildMonthLayout`, about 650 lines.
+     - `MVL_PAINT`: every number the print stylesheet paints the month with, each a hand copy of a
+       frozen rule, held by the leg to Chrome's layout and computed styles.
+     - `mvlRgb` / `mvlMix`: `#rgb` and `#rrggbb`, and opacity PRE-MIXED over what lies beneath. The
+       PDF has no transparency at all. Text over the off-day hatch is mixed with the hatch's mean,
+       which is 2 levels from either stripe.
+     - `mvlFlat`, `mvlMeasure`, `mvlLineMetrics`, `mvlWrapWords`, `mvlFitLine` / `mvlLongestStart`:
+       white-space collapsing, widths as `pdfEscape` writes them (plus letter-spacing), Chrome's
+       baseline rule, the header's word wrap, and the ellipsis.
+     - `mvlHeader`: the baseline-aligned title bar and the subtitle, with formats and highlights.
+     - `mvlBarHeight` / `mvlLaneTracks`: CSS Grid track sizing for the bar layer, including
+       "maximize tracks" against the row's definite height.
+     - `mvlPaintBar` / `mvlPaintMonth`: the DISPLAY LIST, in CSS px, in print's paint order, each
+       entry tagged with what it is. `mvlPageOps` turns it into one frozen `pdfPage`'s operators.
+     - `mvlSerialize`: the multi-page file, modelled on the frozen `pdfSerialize`. Catalog, pages,
+       one shared resources dictionary, three objects per used weight, a page and its contents
+       per month, xref, and a trailer of `/Size` and `/Root` only.
+     - `buildMonthPdf(layout)`: decodes the four programs on first use and embeds only the weights
+       some page sets text in.
+     - The model gains one field: a header line's `editable` (a Manual header is contenteditable in
+       print too, and Chrome gives an EMPTY editable line a line box).
+   - ⚠️ **Found by holding the emitter to Chrome's layout, each now matched** (record for step 4):
+     - **A day number sits on the cell's 14 px strut**, since `.mv-daycell` sets no font size and
+       inherits body's 14px. Its baseline is the cell top + 19, not + 15.
+     - **A hiatus band whose label was emptied (audit N-1) prints 4 px tall**, its padding and
+       border alone, at the top of its 17 px lane: print's bars are `align-self:start`, and an
+       empty one has no line box. The writer reproduces it. 🟡 **Raised with the owner** as a
+       print-path quirk to keep or change deliberately.
+     - **An empty line in a Manual header is a full line tall** (contenteditable), not 14 px.
+     - **Print squeezes lanes when a row is shorter than they want.** The print path's fit measures
+       a week at a wider box than it prints, so a note that gains a line on paper overruns its row,
+       and CSS shares out only the room left ("maximize tracks"): lanes of 17 to 18.3 px instead of
+       19, measured on four tier-2 calendars. Step 4's rows always hold their lanes, so there every
+       lane reaches its limit.
+   - ⚠️ **For step 4: Chrome's REAL print is not exactly the geometry the model rules.** It lays the
+     month out in a 996 × 756 px content box at 30 px margins, not 995.528 × 755.528 at 8 mm, and it
+     snaps every border to a whole CSS pixel. The writer draws exact positions on the 8 mm geometry
+     (step 2's ruling 3), so its lines sit up to 0.75 px from today's print, the most at the page
+     foot. Measured on the reference calendar, from both PDFs' own vector coordinates. The pixel A/B
+     should expect it, and "row heights within 1 CSS px" holds it.
+   - ⚠️ **For step 4: the window-size control waits for the fit.** Step 3's rows come from the print
+     document, whose note spans still depend on the window. On tier 1 (fixed documents) the files
+     are byte-identical in a 1280 px window.
+   - **Kerning, measured:** Chrome kerns and the PDF does not, so Chrome's text runs up to 1.8 px
+     narrower on a date stamp, 1.4 px on a highlighted subtitle and 0.7 px on a bar label. The leg
+     corrects each anchor by the difference Chrome reports rather than tolerating it.
 4. **The fit** (ruling 3), and the A/B leg against the print path. Contact sheets go to the owner.
 5. **The save path, the printable-characters check and the routing** (ruling 4), with the seven legs
    retargeted and `cspproof`.

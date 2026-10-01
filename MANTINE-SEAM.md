@@ -544,6 +544,16 @@ print width instead of a live measurement — and that is an export change, not 
 without updating them and every month PDF fits wrongly — sparse months under-fill the sheet, dense
 months clip.
 
+⚠️ **The direct month-PDF writer adds many more such copies, and these ones ARE checked.**
+`MVL_GEOMETRY` (step 2) and `MVL_PAINT` (step 3) in `src/legacy/app.js` copy every number the
+month's print stylesheet lays out and paints with: paddings, lane sizes, borders, radii, font sizes
+and weights, colours, opacities, letter-spacing, the hatch. The `monthlayout` leg holds
+`MVL_GEOMETRY` to the live stylesheet. The `monthemit` leg holds every box, baseline and colour
+drawn with `MVL_PAINT` to Chrome's own print layout and computed styles for the same document. So a
+restyle of a `.mv-*` or `#print-root` rule that the writer copies fails in the gate rather than
+silently moving the PDF. That holds once the writer ships (plan step 5); until then nothing reads
+them.
+
 ### 5.5 `mvNoteLineCount` is a hand-written duplicate of the note bar's CSS
 
 ```

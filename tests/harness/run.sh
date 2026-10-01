@@ -65,15 +65,21 @@ curl -sf -o /dev/null "http://localhost:$PORT$PAGE" || { echo "server did not st
 OUT="$HERE/$T.html"
 PDF_OUT="$HERE/$T.print.pdf"
 rm -f "$OUT" "$HERE/$T.json" "$HERE/$T.xlsx" "$HERE/$T.pdf" "$HERE/$T.sptcal" "$PDF_OUT"
+# ...and a leg's per-document PDFs (parse.js's `pdfs` map: <test>.<name>.pdf), for the same reason. (N) is zsh's
+# null glob: no match is no error.
+rm -f -- "$HERE/$T".*.pdf(N)
 PDF_FLAGS=()
 [[ -n "${HARNESS_PRINT_PDF:-}" ]] && PDF_FLAGS=(--no-pdf-header-footer "--print-to-pdf=$PDF_OUT")
 
 # A unique user-data-dir per test, or two runs share a profile and a stale one poisons the next.
 rm -rf "$PROFILE"
+# HARNESS_WINDOW=<w>,<h> changes the window (default 1600,1200): monthemit's determinism control runs the same
+# leg at another size and requires the same bytes. HARNESS_QUERY=<k=v&...> is appended to the page's query, for a
+# leg that reads its own parameters (monthemit's `src=`, which the step-3 mutant runs use).
 "$CHROME" --headless=new --disable-gpu --no-sandbox \
-  --user-data-dir="$PROFILE" --window-size=1600,1200 \
+  --user-data-dir="$PROFILE" --window-size="${HARNESS_WINDOW:-1600,1200}" \
   --virtual-time-budget=$((SECS * 1000)) "${PDF_FLAGS[@]}" \
-  --dump-dom "http://localhost:$PORT$PAGE?test=$T$STATE_Q" > "$OUT" 2>/dev/null &
+  --dump-dom "http://localhost:$PORT$PAGE?test=$T$STATE_Q${HARNESS_QUERY:+&$HARNESS_QUERY}" > "$OUT" 2>/dev/null &
 CPID=$!
 
 # ⛔ POLL-AND-KILL, NOT A WALL-CLOCK TIMER (22 Sep 2026). This loop used to be

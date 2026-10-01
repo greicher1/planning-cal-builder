@@ -24,6 +24,15 @@ for (const k of Object.keys(o)) {
     fs.writeFileSync(outBase + '.' + k, Buffer.from(o[k], 'base64'));
     o[k] = '<written to ' + path.basename(outBase + '.' + k) + '>';
   }
+  // Several PDFs from one run (monthemit writes one per document): `pdfs: {name: base64}` lands as
+  // <out-base>.<name>.pdf. A name is a plain word, so it cannot climb out of this directory.
+  if (k === 'pdfs' && o[k] && typeof o[k] === 'object') {
+    for (const name of Object.keys(o[k])) {
+      if (!/^[\w-]+$/.test(name) || typeof o[k][name] !== 'string') continue;
+      fs.writeFileSync(outBase + '.' + name + '.pdf', Buffer.from(o[k][name], 'base64'));
+      o[k][name] = '<written to ' + path.basename(outBase + '.' + name + '.pdf') + '>';
+    }
+  }
 }
 fs.writeFileSync(outBase + '.json', JSON.stringify(o, null, 1));
 console.log(JSON.stringify(o, null, 1).slice(0, 4000));

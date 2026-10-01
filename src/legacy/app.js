@@ -17276,9 +17276,13 @@ export function initLegacyApp() {
     const month = lm ? MVL_MONTH_NAMES.indexOf(lm[1]) : -1;
     if(month < 0) throw new Error('Month layout: a month bar reading "' + label + '".');
     const year = parseInt(lm[2], 10);
+    // `editable`: a Manual header's lines are contenteditable in the print document too, and Chrome gives an
+    // EMPTY editable block a line box (for the caret), so it is a line tall where a plain empty line is
+    // its 14 px min-height (measured by the monthemit leg, step 3).
     const header = Array.from(view.querySelectorAll('.mv-header .hdr-line[data-mvhid]')).map(function(el){
       return { id: el.getAttribute('data-mvhid'), text: el.textContent,
                empty: el.classList.contains('hdr-empty'), slot: el.classList.contains('hdr-slot'),
+               editable: el.getAttribute('contenteditable') === 'true',
                fmt: mvlHeaderFmt(el.getAttribute('style')) };
     });
     const dow = Array.from(view.querySelectorAll('.mv-dowrow > .mv-dow')).map(function(el){ return el.textContent; });
@@ -17382,6 +17386,658 @@ export function initLegacyApp() {
     }
     const widthOf = function(s){ return mvlTextWidth(inter500.font, s, MVL_GEOMETRY.noteFontPx); };
     return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };
+  }
+
+  // ---------- Month PDF writer: the emitter and the serializer (MONTH-PDF-WRITER-PLAN.md §3.2, step 3) ----------
+  // buildMonthPdf(layout) turns buildMonthLayout()'s model into the bytes of a PDF: one Letter-
+  // landscape page per month, with every box, line and glyph where the print stylesheet puts it, set
+  // in step 1's four static Inter programs. ⛔ NOTHING CALLS IT YET, so the minifier drops it from the
+  // build as it drops the model, and the build is byte-identical to one without it. Step 5 routes the
+  // export here. Until then the monthemit harness leg is its only reader: it slices this source as
+  // monthlayout slices the model (owner ruling, 1 Oct 2026: "slice it, no hook" extends to the
+  // emitter), and step 5 owes a check that the BUILT app writes the same bytes as the slice does for
+  // the same calendar.
+  //
+  // THREE LAYERS, so each can be held to something on its own:
+  //  - mvlPaintMonth(month, fonts) returns a DISPLAY LIST: plain objects in CSS px, y down, in paint
+  //    order, each tagged with what it is (`role`). The leg holds every box and baseline in it to
+  //    CHROME'S OWN print layout of the same document.
+  //  - mvlPageOps(list) turns one list into one pdfPage of content operators, in points, y up.
+  //  - mvlSerialize(pages, fonts) writes the file.
+  //
+  // ⛔ ROW HEIGHTS ARE AN INPUT (owner ruling, 1 Oct 2026). Every month must carry `fit.rows`: each
+  // week's border-box height in CSS px. The emitter stacks the weeks it is handed under its own
+  // header, and refuses a month that has none. Step 3's leg hands it the heights Chrome's print layout
+  // gives the same document. Step 4's fit (ruling 3) will compute them instead, and its even shrink
+  // will scale MVL_PAINT's vertical sizes and font sizes, which is why every one is read from there.
+  // How lanes stack INSIDE a week (mvlLaneTracks) is here, because placing a bar is drawing.
+  //
+  // ⛔ DETERMINISTIC (plan §3.2). There is no /Info and no /ID, so the file holds no date and no random
+  // number. The font programs are fixed: each is embedded as the deflated block it arrives in, never
+  // subset per document, so the date stamp's digits cannot change a font stream. Every number goes
+  // through pdfNum. The same layout gives the same bytes in any time zone and any window.
+  //
+  // ⛔ NOTES ARE DRAWN AS THE MODEL BROKE THEM, NEVER RE-WRAPPED: mvlNoteLines already broke each one
+  // in the PDF's own box with the PDF's own widths (ruling 2). Pills, bands, the month bar, the
+  // weekday row and the day numbers are one line each; the header's title and subtitle wrap at spaces.
+  //
+  // ⚠️ THE PDF CARRIES NO TRANSPARENCY. Everything translucent that print paints -- the bars' 18%
+  // borders, the half-day shade, the faded day numbers -- is mixed here with the colour beneath it
+  // (mvlMix), so every viewer and printer shows one colour and there is no transparency to flatten.
+
+  // ---- What the print stylesheet paints, in CSS px ----
+  // ⚠️ Each number is a HAND COPY of a frozen rule in legacy.css ("Month view" and "Calendar PDF
+  // export"), the hazard MANTINE-SEAM §5.4 names. The monthemit leg holds every box drawn with them to
+  // Chrome's own print layout of the same document, so a restyle that moves one fails there instead of
+  // silently moving the PDF. A weight names one of the font-inter-<weight> programs.
+  const MVL_PAINT = {
+    ink: '#1E1D1B',                // body{ color:var(--text) }: every month line not given its own
+    lineHeight: 1.5,               // body{ line-height:1.5 }, which every month line but a note inherits
+    line: 2, lineInk: '#000000',   // THE MONTH GRID PRINTS AT 2px, black (the frozen print edits)
+    // The header: .hdr-line{ padding:0 3px; min-height:14px; border-radius:4px }, a highlight's own
+    // 4 px sides (headerFormatCss), .mv-titlebar{ gap:12px }, .mv-header{ margin-bottom:14px }, and each
+    // line's rule (.mv-tleft, .mv-title, .mv-today, .mv-subtitle). `align` is the line's text-align when
+    // its format sets none: the left slot and the date set none, so they inherit `start`.
+    hdrPadX: 3, hdrHiPadX: 4, hdrMinH: 14, hdrRadius: 4, barGap: 12, headerGap: 14,
+    tleft:    { size: 20, weight: '700', ink: '#1E1D1B', align: 'left', minW: 84 },
+    title:    { size: 22, weight: '700', ink: '#1E1D1B', align: 'center' },
+    today:    { size: 20, weight: '700', ink: '#000000', align: 'left' },
+    subtitle: { size: 16, weight: '400', ink: '#1E1D1B', align: 'center', marginTop: 2 },
+    // .mv-monthbar{ background:#EDEDED; padding:7px 10px }, .mv-monthyear{ 17px 700; letter-spacing:.01em }
+    monthBar: { fill: '#EDEDED', padY: 7, padX: 10, size: 17, weight: '700', ink: '#1E1D1B', spacing: 0.17 },
+    // .mv-dowrow{ background:#F7F7F7 }, .mv-dow{ 11px 700 var(--text-muted); padding:6px 0; uppercase; .04em }
+    dowRow: { fill: '#F7F7F7', padY: 6, size: 11, weight: '700', ink: '#726F68', spacing: 0.44 },
+    // .mv-daycell{ padding:3px 5px }, and its backgrounds in the order the rules stack: an override,
+    // then the weekend, then spillover, then the page's white. ⚠️ The cell sets no font size, so it has
+    // body{ font-size:14px }, and that 14 px STRUT, not the 11 px number, puts the number's baseline
+    // (Chrome's layout measured it 4 px lower than the number's own line box would).
+    cellPadTop: 3, cellPadLeft: 5, cellStrut: 14,
+    outFill: '#FAFAF9', weekendFill: '#F4F3F0', onFill: '#FFF4E2',
+    // .mv-day-off{ background:repeating-linear-gradient(135deg, #EFEFEF 0 4px, #F8F8F8 4px 8px) }
+    hatch: { ink: '#EFEFEF', ground: '#F8F8F8', band: 4 },
+    // .mv-daynum{ 11px 600 #333 }, .mv-day-on .mv-daynum{ color:#7A5B14 }, and the two opacities,
+    // .mv-out .mv-daynum{ .35 } and .mv-day-off .mv-daynum{ .5 } (the later rule, so it wins)
+    dayNum: { size: 11, weight: '600', ink: '#333333', onInk: '#7A5B14', outAlpha: 0.35, offAlpha: 0.5 },
+    // .mv-day-half .mv-daynum::after{ content:'½'; margin-left:2px; font-weight:700; opacity:.75 }
+    half: { gap: 2, weight: '700', alpha: 0.75 },
+    // an off day's text-decoration:line-through: Chrome's `auto` thickness, max(1px, a tenth of the
+    // font size), centred two thirds of the way down the font's (rounded) ascent
+    strike: { minPx: 1, perSize: 0.1, at: 2 / 3 },
+    // .mv-bars{ padding:24px 3px 14px; gap:2px 0 }, and print's grid-auto-rows:minmax(17px, auto)
+    barsPadTop: 24, barsPadX: 3, barsPadBottom: 14, laneMin: 17, laneGap: 2,
+    // .mv-bar{ 10px 600; padding:1px 8px; margin:0 1px; border:1px solid rgba(0,0,0,.18) }, and the
+    // radius pills and hiatus bands share (.mv-pill, .mv-hiatus-bar: 9px)
+    bar: { size: 10, weight: '600', padY: 1, padX: 8, marginX: 1, border: 1, borderAlpha: 0.18, radius: 9 },
+    // .mv-note-block{ font-weight:500; padding:2px 4px; border-radius:0 }; its 10 px and 13 px lines
+    // are MVL_GEOMETRY's, the numbers the model wrapped it with
+    note: { weight: '500', padY: 2, padX: 4 },
+    // .mv-pill-block{ 9px 500 #5C6470; margin-left:7px; vertical-align:top }
+    tag: { size: 9, weight: '500', ink: '#5C6470', gap: 7 },
+    halfShade: 0.34,               // halfSlices(): rgba(0,0,0,.34) over the bottom half of a half day
+    italicSkew: 0.25,              // Chrome's synthetic oblique, since the app's Inter has no italic face
+  };
+
+  // ---- Colour: what the renderer writes, as 0-1 RGB, and opacity mixed in ----
+  // pdfRgb() is not used: it reads six-digit hex only, so '#333' came out navy and rgba() wrote NaN
+  // (plan §2.2). The renderer writes #rrggbb (every stored colour is checked by isHexColor) and '#eee'
+  // for a phase with no colour. ⛔ Anything else throws, rather than paint a wrong colour silently.
+  function mvlRgb(css){
+    const s = String(css).trim();
+    let m = /^#([0-9a-f]{6})$/i.exec(s);
+    if(m){ const n = parseInt(m[1], 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+    m = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(s);
+    if(m) return [m[1], m[2], m[3]].map(function(h){ return parseInt(h + h, 16) / 255; });
+    throw new Error('Month PDF: a colour of "' + s + '".');
+  }
+  // `fg` at `alpha` over `bg`: what a translucent paint looks like where it lies.
+  function mvlMix(fg, alpha, bg){ return fg.map(function(v, i){ return v * alpha + bg[i] * (1 - alpha); }); }
+
+  // ---- Text, measured as the PDF sets it ----
+  // One line as `white-space:normal` or `nowrap` lays it out: every run of spaces and line breaks
+  // becomes one space, and the ends are trimmed. Controls go as mvlCleanText drops them.
+  function mvlFlat(s){ return mvlCleanText(s).replace(/[ \n]+/g, ' ').replace(/^ | $/g, ''); }
+  // A string's width at a weight and size, plus CSS letter-spacing after every character (Chrome
+  // spaces the last one too, and counts it in the width). mvlTextWidth measures what pdfEscape writes.
+  function mvlMeasure(fonts, weight, s, sizePx, spacing){
+    return mvlTextWidth(fonts[weight].font, s, sizePx) + (spacing || 0) * Array.from(String(s)).length;
+  }
+  // Where Chrome puts the baseline in a line box `lineH` px tall (LayoutNG): the font's ascent and
+  // descent ROUNDED to whole pixels, and the half-leading, (lineH - (A + D)) / 2, FLOORED onto the
+  // ascent side. Returns the rounded ascent A and the baseline's distance from the line box's top.
+  function mvlLineMetrics(font, sizePx, lineH){
+    const A = Math.round(font.ascent * sizePx / font.unitsPerEm);
+    const D = Math.round(-font.descent * sizePx / font.unitsPerEm);
+    return { A: A, base: A + Math.floor((lineH - (A + D)) / 2) };
+  }
+  // `white-space:normal`: lines break only at spaces, and a word too long for a line overflows it
+  // rather than being split (overflow-wrap:normal). ⚠️ Chrome also breaks after a hyphen and around a
+  // dash; this does not, as mvlWrapText does not for notes (plan §7). It never splits a word.
+  function mvlWrapWords(s, maxW, widthOf){
+    const out = [];
+    let cur = '';
+    mvlFlat(s).split(' ').forEach(function(word){
+      if(word === '') return;
+      if(cur === '') cur = word;
+      else if(widthOf(cur + ' ' + word) <= maxW) cur += ' ' + word;
+      else { out.push(cur); cur = word; }
+    });
+    if(cur !== '') out.push(cur);
+    return out;
+  }
+  // text-overflow:ellipsis on one line. Text that fits is left as it is. Text that does not is cut
+  // between characters, after the longest start that still leaves room for the "…", which the caller
+  // sets right after it in the bar's own font, as Chrome does. `widthOf` grows with the length, so the
+  // longest start is found by halving.
+  function mvlFitLine(s, avail, widthOf, ellW){
+    if(widthOf(s) <= avail) return { head: s, cut: false };
+    return { head: mvlLongestStart(s, avail - ellW, widthOf), cut: true };
+  }
+  function mvlLongestStart(s, room, widthOf){
+    const chars = Array.from(s);
+    let lo = 0, hi = chars.length;
+    while(lo < hi){
+      const mid = (lo + hi + 1) >> 1;
+      if(widthOf(chars.slice(0, mid).join('')) <= room) lo = mid; else hi = mid - 1;
+    }
+    return chars.slice(0, lo).join('');
+  }
+
+  // ---- The header: the title bar (left slot, title, date, on one baseline), then the subtitle ----
+  // .mv-titlebar is a flex row aligned on the BASELINE. The left slot is at least 84 px and grows with
+  // its text, the date is as wide as its text, and the title takes what is left and wraps in it. A line
+  // with no text has no line box: it is its 14 px min-height, with its baseline synthesized at its
+  // bottom edge, as flexbox does -- unless it is EDITABLE (a Manual header's lines are contenteditable
+  // in print too), because Chrome gives an empty editable block a line box for the caret, and then it
+  // is a line tall and sits on the baseline like text (measured on mvheaderlegacy). The subtitle is
+  // its own line below, gone when empty (it is a slot).
+  // A highlight is a 4 px-radius box behind the line's own box: fit-content for the left slot, the
+  // date and the subtitle, but the title's box is its whole flex share (flex:1 sets its basis to 0, so
+  // width:fit-content never applies), and so is its highlight.
+  function mvlLineStyle(line){
+    const P = MVL_PAINT, d = P[line.id], f = line.fmt || {};
+    return {
+      size: f.size || d.size,
+      weight: f.bold === true ? '700' : (f.bold === false ? '400' : d.weight),
+      skew: f.italic === true ? P.italicSkew : 0,
+      ink: mvlRgb(f.color || d.ink),
+      align: f.align || d.align,
+      highlight: f.highlight ? mvlRgb(f.highlight) : null,
+      padX: f.highlight ? P.hdrHiPadX : P.hdrPadX,
+    };
+  }
+  function mvlHeader(month, fonts, x0, y0, W){
+    const P = MVL_PAINT, byId = {};
+    month.header.forEach(function(h){ byId[h.id] = h; });
+    function prep(id){
+      const h = byId[id];
+      if(!h) throw new Error('Month PDF: ' + month.label + ' has no "' + id + '" header line.');
+      const st = mvlLineStyle(h), lineH = st.size * P.lineHeight;
+      return { id: id, h: h, st: st, text: mvlFlat(h.text), lineH: lineH,
+               lm: mvlLineMetrics(fonts[st.weight].font, st.size, lineH),
+               widthOf: function(s){ return mvlMeasure(fonts, st.weight, s, st.size); } };
+    }
+    const L = prep('tleft'), T = prep('title'), R = prep('today');
+    L.boxW = Math.max(P.tleft.minW, (L.text ? L.widthOf(L.text) : 0) + 2 * L.st.padX);
+    R.boxW = (R.text ? R.widthOf(R.text) : 0) + 2 * R.st.padX;
+    T.boxW = W - L.boxW - R.boxW - 2 * P.barGap;
+    L.lines = L.text ? [L.text] : [];
+    R.lines = R.text ? [R.text] : [];
+    T.lines = T.text ? mvlWrapWords(T.text, T.boxW - 2 * T.st.padX, T.widthOf) : [];
+    L.x = x0; T.x = x0 + L.boxW + P.barGap; R.x = T.x + T.boxW + P.barGap;
+    const bar = [L, T, R];
+    // An empty line that is editable keeps one (empty) line box, so it sits on the baseline like text.
+    const lineBox = function(it){ return it.lines.length > 0 || it.h.editable; };
+    bar.forEach(function(it){
+      it.boxH = lineBox(it) ? Math.max(P.hdrMinH, Math.max(1, it.lines.length) * it.lineH) : P.hdrMinH;
+      it.base = lineBox(it) ? it.lm.base : P.hdrMinH;
+    });
+    const above = Math.max.apply(null, bar.map(function(it){ return it.base; }));
+    const below = Math.max.apply(null, bar.map(function(it){ return it.boxH - it.base; }));
+    bar.forEach(function(it){ it.y = y0 + above - it.base; });
+    let bottom = y0 + above + below;
+    const blocks = bar.slice(), S = prep('subtitle');
+    if(!(S.h.empty && S.h.slot)){                 // #print-root .hdr-line.hdr-slot.hdr-empty{ display:none }
+      S.boxW = S.st.highlight ? Math.min(W, (S.text ? S.widthOf(S.text) : 0) + 2 * S.st.padX) : W;
+      S.lines = S.text ? mvlWrapWords(S.text, S.boxW - 2 * S.st.padX, S.widthOf) : [];
+      S.boxH = lineBox(S) ? Math.max(P.hdrMinH, Math.max(1, S.lines.length) * S.lineH) : P.hdrMinH;
+      S.base = S.lm.base;
+      // A highlighted subtitle shrinks to its text and is placed by auto margins (headerFormatCss).
+      S.x = !S.st.highlight ? x0 : (S.st.align === 'center' ? x0 + (W - S.boxW) / 2
+          : (S.st.align === 'right' ? x0 + W - S.boxW : x0));
+      S.y = bottom + P.subtitle.marginTop;
+      bottom = S.y + S.boxH;
+      blocks.push(S);
+    }
+    // `boxes` is each shown line's own box, for the monthemit leg to hold to Chrome's; nothing paints it.
+    const back = [], text = [], boxes = {};
+    blocks.forEach(function(it){
+      boxes[it.id] = { x: it.x, y: it.y, w: it.boxW, h: it.boxH };
+      if(it.st.highlight){
+        back.push({ k: 'fill', x: it.x, y: it.y, w: it.boxW, h: it.boxH, r: P.hdrRadius, c: it.st.highlight,
+                    role: 'hdr-hi', id: it.id });
+      }
+      it.lines.forEach(function(s, li){
+        const w = it.widthOf(s), cx = it.x + it.st.padX, cw = it.boxW - 2 * it.st.padX;
+        // An overflowing line is start-aligned, whatever its text-align (CSS Text §6.1).
+        const x = (w > cw || it.st.align === 'left') ? cx : (it.st.align === 'right' ? cx + cw - w : cx + (cw - w) / 2);
+        text.push({ k: 'text', s: s, x: x, y: it.y + it.base + li * it.lineH, w: w, wt: it.st.weight,
+                    size: it.st.size, c: it.st.ink, ls: 0, skew: it.st.skew, role: 'hdr', id: it.id, li: li });
+      });
+    });
+    return { back: back, text: text, boxes: boxes, bottom: bottom + P.headerGap };
+  }
+
+  // ---- How a week's lanes stack: the print grid's own track sizing ----
+  // In print a week's bars are a CSS grid of rows `minmax(17px, auto)` with a 2 px gap, and every bar
+  // is `align-self:start` at its own height (mvlBarHeight). Each lane starts at 17 px and may grow to
+  // its LIMIT: the tallest one-lane bar in it, or 17 px when it has none, raised where a note
+  // spanning several lanes still lacks room. That is css-grid-1 §11.5.3, "accommodate spanning
+  // items": the missing height goes in equal shares to the spanned lanes no one-lane bar has sized,
+  // or to all of them when every one has been sized; two-lane notes settle before three-lane ones,
+  // and a lane takes the largest share any one note asks of it.
+  // Then §11.6, "maximize tracks": the bar layer is stretched to the week (print's 1x1 week grid), so
+  // its height is DEFINITE, and only the room it has left over is shared out, equally, each lane
+  // stopping at its limit. ⚠️ THIS IS NOT ACADEMIC. When a week's row is shorter than its lanes want,
+  // the lanes are squeezed toward 17 px and every bar below moves up. The print path makes such rows:
+  // its fit measures a week at a wider box than it prints, so a note that gains a line on paper
+  // overruns its row (measured on tier 2: four calendars, lanes of 17 to 18.3 px instead of 19).
+  // Step 4's fit gives every row room for its lanes, and then every lane reaches its limit.
+  // `availH` is the bar layer's content height; Infinity means "as tall as the lanes want".
+  // ⚠️ A bar with no text has NO LINE BOX: a hiatus band whose label was emptied (audit N-1) is its
+  // padding and border alone, 4 px, at the top of its 17 px lane. That is what print draws, measured.
+  function mvlBarHeight(it){
+    const P = MVL_PAINT, B = P.bar, G = MVL_GEOMETRY;
+    if(it.kind === 'note') return it.lines.length * G.noteLinePx + 2 * (P.note.padY + B.border);
+    const blank = mvlFlat(it.text) === '' && mvlFlat(it.tag || '') === '';
+    return (blank ? 0 : B.size * P.lineHeight) + 2 * (B.padY + B.border);
+  }
+  function mvlLaneTracks(items, availH){
+    const P = MVL_PAINT;
+    const n = items.reduce(function(m, it){ return Math.max(m, it.lane + it.lanes); }, 0);
+    const base = [], grow = [];
+    for(let i = 0; i < n; i++){ base.push(P.laneMin); grow.push(Infinity); }
+    items.forEach(function(it){
+      if(it.lanes !== 1) return;
+      const h = mvlBarHeight(it);
+      grow[it.lane] = Math.max(grow[it.lane] === Infinity ? 0 : grow[it.lane], h, base[it.lane]);
+    });
+    const spans = [];
+    items.forEach(function(it){ if(it.lanes > 1 && spans.indexOf(it.lanes) < 0) spans.push(it.lanes); });
+    spans.sort(function(a, b){ return a - b; }).forEach(function(span){
+      const planned = {}, touched = [];
+      items.forEach(function(it){
+        if(it.lanes !== span) return;
+        const lanes = [];
+        for(let L = it.lane; L < it.lane + span; L++){ lanes.push(L); if(touched.indexOf(L) < 0) touched.push(L); }
+        let space = mvlBarHeight(it) - P.laneGap * (span - 1);
+        lanes.forEach(function(L){ space -= (grow[L] === Infinity ? base[L] : grow[L]); });
+        if(space <= 0) return;
+        const open = lanes.filter(function(L){ return grow[L] === Infinity; });
+        const to = open.length ? open : lanes;
+        to.forEach(function(L){ planned[L] = Math.max(planned[L] || 0, space / to.length); });
+      });
+      touched.forEach(function(L){ grow[L] = (grow[L] === Infinity ? base[L] : grow[L]) + (planned[L] || 0); });
+    });
+    const limit = grow.map(function(g, i){ return g === Infinity ? base[i] : g; });
+    if(availH === undefined || availH === Infinity) return limit;
+    // Maximize: share the free room equally, freezing each lane at its limit, until the room is gone.
+    const size = base.slice();
+    let free = availH - size.reduce(function(a, b){ return a + b; }, 0) - P.laneGap * Math.max(0, n - 1);
+    let open = [];
+    for(let i = 0; i < n; i++) if(limit[i] > size[i]) open.push(i);
+    while(free > 1e-9 && open.length){
+      const share = free / open.length, next = [];
+      open.forEach(function(i){
+        const room = limit[i] - size[i];
+        if(room <= share){ size[i] = limit[i]; free -= room; } else next.push(i);
+      });
+      if(next.length === open.length){ next.forEach(function(i){ size[i] += share; }); break; }
+      open = next;
+    }
+    return size;
+  }
+
+  // ---- One bar: its fill, its half-day shade, its border, then its text ----
+  function mvlPaintBar(it, x, y, w, h, fonts, out, at){
+    const P = MVL_PAINT, B = P.bar, G = MVL_GEOMETRY;
+    const r = it.kind === 'note' ? 0 : B.radius, black = [0, 0, 0];
+    const fill = mvlRgb(it.fill), ink = mvlRgb(it.ink);
+    const tag = function(o){ o.wk = at.wk; o.i = at.i; return o; };
+    out.push(tag({ k: 'fill', x: x, y: y, w: w, h: h, r: r, c: fill, role: 'bar', kind: it.kind }));
+    // The shade is a background layer one day wide over the bottom half of the PADDING box, clipped to
+    // the bar's rounded edge (halfSlices: background-size W% 100%, positioned in the padding box).
+    const px = x + B.border, py = y + B.border, pw = w - 2 * B.border, ph = h - 2 * B.border;
+    const span = it.to - it.from + 1, shade = mvlMix(black, P.halfShade, fill);
+    const slices = (it.halves || []).map(function(c){
+      return { x: px + (c - it.from) * pw / span, y: py + ph / 2, w: pw / span, h: ph / 2 };
+    });
+    slices.forEach(function(s){
+      out.push({ k: 'clip', x: x, y: y, w: w, h: h, r: r });
+      out.push(tag({ k: 'fill', x: s.x, y: s.y, w: s.w, h: s.h, r: 0, c: shade, role: 'bar-shade' }));
+      out.push({ k: 'unclip' });
+    });
+    // The 18% border lies over the fill, and in a rounded bottom corner over the shade too, so it is
+    // drawn once over the fill and again, clipped to each slice, over the shade.
+    out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' }));
+    slices.forEach(function(s){
+      out.push({ k: 'clip', x: s.x, y: s.y, w: s.w, h: s.h, r: 0 });
+      out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, shade), role: 'bar-ring' }));
+      out.push({ k: 'unclip' });
+    });
+    // overflow:hidden: nothing is drawn outside the padding box.
+    out.push({ k: 'clip', x: px, y: py, w: pw, h: ph, r: 0 });
+    if(it.kind === 'note'){
+      const N = P.note, lm = mvlLineMetrics(fonts[N.weight].font, G.noteFontPx, G.noteLinePx);
+      it.lines.forEach(function(s, li){
+        if(s === '') return;
+        out.push(tag({ k: 'text', s: s, x: px + N.padX, y: py + N.padY + li * G.noteLinePx + lm.base,
+                       w: mvlMeasure(fonts, N.weight, s, G.noteFontPx), wt: N.weight, size: G.noteFontPx,
+                       c: ink, ls: 0, skew: 0, role: 'bar-text', li: li }));
+      });
+    } else {
+      const lm = mvlLineMetrics(fonts[B.weight].font, B.size, B.size * P.lineHeight);
+      const cx = px + B.padX, cw = pw - 2 * B.padX, base = py + B.padY + lm.base;
+      const wOf = function(s){ return mvlMeasure(fonts, B.weight, s, B.size); };
+      const ellW = wOf('…');
+      const label = mvlFlat(it.text), tagText = mvlFlat(it.tag || '');
+      const put = function(s, xx, yy, wt, size, c, role){
+        if(s !== '') out.push(tag({ k: 'text', s: s, x: xx, y: yy, w: mvlMeasure(fonts, wt, s, size), wt: wt, size: size,
+                                    c: c, ls: 0, skew: 0, role: role }));
+      };
+      const T = P.tag, tOf = function(s){ return mvlMeasure(fonts, T.weight, s, T.size); };
+      const lw = wOf(label);
+      // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line.
+      const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, T.size * P.lineHeight).base;
+      if(!tagText){
+        // One run: a hiatus band centres it, pills and Simultaneous Post start it at the left, and a
+        // cut line starts at the left whatever its alignment (CSS Text §6.1).
+        const f = mvlFitLine(label, cw, wOf, ellW), hw = wOf(f.head);
+        const lx = (it.kind === 'hiatus' && !f.cut) ? cx + (cw - hw) / 2 : cx;
+        put(f.head, lx, base, B.weight, B.size, ink, 'bar-text');
+        if(f.cut) put('…', lx + hw, base, B.weight, B.size, ink, 'bar-ell');
+      } else if(lw + T.gap + tOf(tagText) <= cw){
+        put(label, cx, base, B.weight, B.size, ink, 'bar-text');
+        put(tagText, cx + lw + T.gap, tagBase, T.weight, T.size, mvlRgb(T.ink), 'bar-tag');
+      } else if(lw + ellW <= cw){
+        // The line is too long because of the tag: the tag is cut (wholly, if not even its gap fits),
+        // and the "…" follows whatever is left of it.
+        put(label, cx, base, B.weight, B.size, ink, 'bar-text');
+        const room = cw - ellW - lw - T.gap;
+        const head = room > 0 ? mvlLongestStart(tagText, room, tOf) : '';
+        put(head, cx + lw + T.gap, tagBase, T.weight, T.size, mvlRgb(T.ink), 'bar-tag');
+        put('…', head ? cx + lw + T.gap + tOf(head) : cx + lw, base, B.weight, B.size, ink, 'bar-ell');
+      } else {
+        // Not even the label leaves room for the "…": it is cut, and the tag is gone.
+        const head = mvlLongestStart(label, cw - ellW, wOf);
+        put(head, cx, base, B.weight, B.size, ink, 'bar-text');
+        put('…', cx + wOf(head), base, B.weight, B.size, ink, 'bar-ell');
+      }
+    }
+    out.push({ k: 'unclip' });
+  }
+
+  // ---- One month's page, as a display list ----
+  // In the print path's paint order: the header's highlights and the in-flow boxes' fills and borders
+  // (the month bar, the weekday row, the frame), then their text; then each week (its top line, its
+  // day cells and their lines, the day numbers), because a week is a positioned layer; then every bar,
+  // because .mv-bars is z-index 1 above them all. Nothing in one layer overlaps another, but the
+  // order is print's, so a later change that made them overlap would still paint as print does.
+  function mvlPaintMonth(month, fonts){
+    const G = MVL_GEOMETRY, P = MVL_PAINT, out = [];
+    const rows = month.fit && month.fit.rows;
+    if(!Array.isArray(rows) || rows.length !== month.weeks.length ||
+       !rows.every(function(v){ return typeof v === 'number' && isFinite(v) && v > 0; })){
+      throw new Error('Month PDF: ' + month.label + ' has no row heights for its ' + month.weeks.length + ' weeks.');
+    }
+    const black = mvlRgb(P.lineInk), white = [1, 1, 1], ln = P.line;
+    const x0 = G.margin + G.pagePad, y0 = G.margin + G.pagePad, W = G.contentW - 2 * G.pagePad;
+    const lineRect = function(x, y, w, h, role, more){
+      const o = { k: 'fill', x: x, y: y, w: w, h: h, r: 0, c: black, role: role };
+      if(more) for(const key in more) o[key] = more[key];
+      out.push(o);
+    };
+    const hdr = mvlHeader(month, fonts, x0, y0, W);
+    hdr.back.forEach(function(o){ out.push(o); });
+    const text = hdr.text.slice();
+    // The month bar: top and side borders only; the weekday row's top border is the line under it.
+    const MB = P.monthBar, mbY = hdr.bottom, mbH = ln + 2 * MB.padY + MB.size * P.lineHeight;
+    out.push({ k: 'fill', x: x0, y: mbY, w: W, h: mbH, r: 0, c: mvlRgb(MB.fill), role: 'monthbar' });
+    lineRect(x0, mbY, W, ln, 'frame'); lineRect(x0, mbY, ln, mbH, 'frame'); lineRect(x0 + W - ln, mbY, ln, mbH, 'frame');
+    const mbW = mvlMeasure(fonts, MB.weight, month.label, MB.size, MB.spacing);
+    const mbCx = x0 + ln + MB.padX, mbCw = W - 2 * ln - 2 * MB.padX;
+    text.push({ k: 'text', s: month.label, x: mbCx + (mbCw - mbW) / 2, w: mbW,
+                y: mbY + ln + MB.padY + mvlLineMetrics(fonts[MB.weight].font, MB.size, MB.size * P.lineHeight).base,
+                wt: MB.weight, size: MB.size, c: mvlRgb(MB.ink), ls: MB.spacing, skew: 0, role: 'monthbar-text' });
+    // The weekday row: no line under it, so the first week runs straight on.
+    const DR = P.dowRow, drY = mbY + mbH, drH = ln + 2 * DR.padY + DR.size * P.lineHeight;
+    out.push({ k: 'fill', x: x0, y: drY, w: W, h: drH, r: 0, c: mvlRgb(DR.fill), role: 'dowrow' });
+    lineRect(x0, drY, W, ln, 'frame'); lineRect(x0, drY, ln, drH, 'frame'); lineRect(x0 + W - ln, drY, ln, drH, 'frame');
+    const drBase = drY + ln + DR.padY + mvlLineMetrics(fonts[DR.weight].font, DR.size, DR.size * P.lineHeight).base;
+    month.dow.forEach(function(name, i){
+      const s = String(name).toUpperCase(), w = mvlMeasure(fonts, DR.weight, s, DR.size, DR.spacing);
+      text.push({ k: 'text', s: s, x: x0 + ln + i * G.dayW + (G.dayW - w) / 2, y: drBase, w: w, wt: DR.weight,
+                  size: DR.size, c: mvlRgb(DR.ink), ls: DR.spacing, skew: 0, role: 'dow', i: i });
+    });
+    // The frame: the body's side borders and its bottom one, under the last week.
+    const bodyTop = drY + drH, sum = rows.reduce(function(a, b){ return a + b; }, 0);
+    lineRect(x0, bodyTop, ln, sum + ln, 'frame'); lineRect(x0 + W - ln, bodyTop, ln, sum + ln, 'frame');
+    lineRect(x0, bodyTop + sum, W, ln, 'frame');
+    text.forEach(function(o){ out.push(o); });
+    // The weeks: each one's top line (not the first's), its cells, their left lines, the day numbers.
+    // The number's line box: its own 11 px inline box on the cell's 14 px strut, sharing one baseline, so
+    // the baseline is the lower of the two (mvlLineMetrics' `base` is the distance down from the top).
+    const DN = P.dayNum, dnLm = mvlLineMetrics(fonts[DN.weight].font, DN.size, DN.size * P.lineHeight);
+    const dnBase = Math.max(dnLm.base, mvlLineMetrics(fonts['400'].font, P.cellStrut, P.cellStrut * P.lineHeight).base);
+    const weekTops = [];
+    let wy = bodyTop;
+    month.weeks.forEach(function(wk, wi){
+      weekTops.push(wy);
+      const bt = wi ? ln : 0, cy = wy + bt, ch = rows[wi] - bt;
+      if(bt) lineRect(x0 + ln, wy, G.weekW, bt, 'week-line', { wk: wi });
+      wk.days.forEach(function(d, di){
+        const cx = x0 + ln + di * G.dayW, bl = di ? ln : 0;
+        // The background shows in the padding box; under the left line it would be painted over anyway.
+        let bg = white;
+        const box = { x: cx + bl, y: cy, w: G.dayW - bl, h: ch };
+        if(d.mark === 'off'){
+          out.push({ k: 'hatch', x: box.x, y: box.y, w: box.w, h: box.h, c: [mvlRgb(P.hatch.ink), mvlRgb(P.hatch.ground)],
+                     band: P.hatch.band, role: 'cell', wk: wi, d: di });
+          // Text over the stripes is mixed with their mean, 2 levels from either stripe (#EFEFEF / #F8F8F8).
+          bg = mvlMix(mvlRgb(P.hatch.ink), 0.5, mvlRgb(P.hatch.ground));
+        } else {
+          const fillHex = d.mark === 'on' ? P.onFill : (d.weekend ? P.weekendFill : (d.out ? P.outFill : null));
+          if(fillHex){
+            bg = mvlRgb(fillHex);
+            out.push({ k: 'fill', x: box.x, y: box.y, w: box.w, h: box.h, r: 0, c: bg, role: 'cell', wk: wi, d: di });
+          }
+        }
+        if(bl) lineRect(cx, cy, bl, ch, 'cell-line', { wk: wi, d: di });
+        const alpha = d.mark === 'off' ? DN.offAlpha : (d.out ? DN.outAlpha : 1);
+        const inkC = mvlRgb(d.mark === 'on' ? DN.onInk : DN.ink);
+        const s = String(d.n), nw = mvlMeasure(fonts, DN.weight, s, DN.size);
+        const nx = cx + bl + P.cellPadLeft, nb = cy + P.cellPadTop + dnBase;
+        out.push({ k: 'text', s: s, x: nx, y: nb, w: nw, wt: DN.weight, size: DN.size, c: mvlMix(inkC, alpha, bg),
+                   ls: 0, skew: 0, role: 'daynum', wk: wi, d: di });
+        if(d.half){
+          out.push({ k: 'text', s: '½', x: nx + nw + P.half.gap, y: nb, w: mvlMeasure(fonts, P.half.weight, '½', DN.size),
+                     wt: P.half.weight, size: DN.size, c: mvlMix(inkC, alpha * P.half.alpha, bg), ls: 0, skew: 0,
+                     role: 'half', wk: wi, d: di });
+        }
+        if(d.mark === 'off'){
+          const th = Math.max(P.strike.minPx, DN.size * P.strike.perSize), mid = nb - dnLm.A + dnLm.A * P.strike.at;
+          out.push({ k: 'fill', x: nx, y: mid - th / 2, w: nw, h: th, r: 0, c: mvlMix(inkC, alpha, bg), role: 'strike', wk: wi, d: di });
+        }
+      });
+      wy += rows[wi];
+    });
+    // The bars, week by week, over everything above.
+    month.weeks.forEach(function(wk, wi){
+      const cy = weekTops[wi] + (wi ? ln : 0), gy = cy + P.barsPadTop, gx = x0 + ln + P.barsPadX;
+      // The bar layer is the week's content box (print stretches it), less its own top and bottom padding.
+      const avail = rows[wi] - (wi ? ln : 0) - P.barsPadTop - P.barsPadBottom;
+      const tracks = mvlLaneTracks(wk.items, avail), laneTop = [];
+      let acc = 0;
+      tracks.forEach(function(t, L){ laneTop[L] = acc; acc += t + P.laneGap; });
+      wk.items.forEach(function(it, ii){
+        const x = gx + it.from * G.trackW + P.bar.marginX, w = (it.to - it.from + 1) * G.trackW - 2 * P.bar.marginX;
+        mvlPaintBar(it, x, gy + laneTop[it.lane], w, mvlBarHeight(it), fonts, out, { wk: wi, i: ii });
+      });
+    });
+    return out;
+  }
+
+  // ---- A display list as PDF content operators: px to pt, and y turned up ----
+  // One pdfPage per month (frozen, called unchanged; only its `ops` array is used, because its own
+  // rect() and text() take six-digit hex). The fill colour and the character spacing are graphics
+  // state, so they are written only when they change, and a clip's q/Q restores them.
+  const MVL_KAPPA = 0.5522847498;   // a quarter circle as one Bézier: 4(√2 - 1) / 3
+  function mvlPageOps(list){
+    const G = MVL_GEOMETRY, k = G.ptPerPx;
+    const page = pdfPage(G.pageW * k, G.pageH * k), ops = page.ops, H = page.h;
+    const X = function(v){ return pdfNum(v * k); }, Y = function(v){ return pdfNum(H - v * k); };
+    const rgb = function(c){ return c.map(function(v){ return String(Math.round(v * 10000) / 10000); }).join(' '); };
+    function path(x, y, w, h, r){
+      r = Math.min(r || 0, w / 2, h / 2);
+      if(r <= 0) return X(x) + ' ' + Y(y + h) + ' ' + pdfNum(w * k) + ' ' + pdfNum(h * k) + ' re';
+      const c = r * (1 - MVL_KAPPA), xr = x + w, yb = y + h;
+      return [X(x + r), Y(y), 'm', X(xr - r), Y(y), 'l', X(xr - c), Y(y), X(xr), Y(y + c), X(xr), Y(y + r), 'c',
+              X(xr), Y(yb - r), 'l', X(xr), Y(yb - c), X(xr - c), Y(yb), X(xr - r), Y(yb), 'c',
+              X(x + r), Y(yb), 'l', X(x + c), Y(yb), X(x), Y(yb - c), X(x), Y(yb - r), 'c',
+              X(x), Y(y + r), 'l', X(x), Y(y + c), X(x + c), Y(y), X(x + r), Y(y), 'c', 'h'].join(' ');
+    }
+    let fill = '', tc = '0';
+    const stack = [];
+    const setFill = function(c){ const s = rgb(c); if(s !== fill){ ops.push(s + ' rg'); fill = s; } };
+    list.forEach(function(o){
+      if(o.k === 'fill'){ setFill(o.c); ops.push(path(o.x, o.y, o.w, o.h, o.r) + ' f'); }
+      else if(o.k === 'ring'){
+        // The band between the outer edge and the edge `t` inside it, filled even-odd.
+        setFill(o.c);
+        ops.push(path(o.x, o.y, o.w, o.h, o.r) + ' ' + path(o.x + o.t, o.y + o.t, o.w - 2 * o.t, o.h - 2 * o.t, Math.max(0, o.r - o.t)) + ' f*');
+      }
+      else if(o.k === 'hatch'){
+        // repeating-linear-gradient(135deg): along the gradient a point (u, v) from the box's top-left
+        // sits at (u + v) / √2, so the 4 px stripes are the bands where u + v lies in [8n√2, (8n+4)√2).
+        // Each is a parallelogram from the box's top edge to its bottom, clipped to the box.
+        stack.push({ fill: fill, tc: tc });
+        ops.push('q ' + path(o.x, o.y, o.w, o.h, 0) + ' W n');
+        setFill(o.c[1]); ops.push(path(o.x, o.y, o.w, o.h, 0) + ' f');
+        setFill(o.c[0]);
+        const step = 2 * o.band * Math.SQRT2, band = o.band * Math.SQRT2, parts = [];
+        for(let a = 0; a < o.w + o.h; a += step){
+          parts.push(X(o.x + a) + ' ' + Y(o.y) + ' m ' + X(o.x + a + band) + ' ' + Y(o.y) + ' l ' +
+                     X(o.x + a + band - o.h) + ' ' + Y(o.y + o.h) + ' l ' + X(o.x + a - o.h) + ' ' + Y(o.y + o.h) + ' l h');
+        }
+        if(parts.length) ops.push(parts.join(' ') + ' f');
+        ops.push('Q');
+        const s = stack.pop(); fill = s.fill; tc = s.tc;
+      }
+      else if(o.k === 'clip'){ stack.push({ fill: fill, tc: tc }); ops.push('q ' + path(o.x, o.y, o.w, o.h, o.r) + ' W n'); }
+      else if(o.k === 'unclip'){ const s = stack.pop(); ops.push('Q'); fill = s.fill; tc = s.tc; }
+      else if(o.k === 'text'){
+        if(o.s === '') return;
+        setFill(o.c);
+        // Four decimals, not pdfNum's three: the month label's .01em is 0.1275 pt, and three would
+        // round it to 0.128, which twelve characters turn into a measurable drift.
+        const t = String(Math.round((o.ls || 0) * k * 10000) / 10000);
+        if(t !== tc){ ops.push(t + ' Tc'); tc = t; }
+        ops.push('BT /F' + o.wt + ' ' + pdfNum(o.size * k) + ' Tf 1 0 ' + (o.skew ? pdfNum(o.skew) : '0') + ' 1 ' +
+                 X(o.x) + ' ' + Y(o.y) + ' Tm (' + pdfEscape(o.s) + ') Tj ET');
+      }
+      else throw new Error('Month PDF: a display-list entry "' + o.k + '".');
+    });
+    if(stack.length) throw new Error('Month PDF: a clip was left open.');
+    return page;
+  }
+
+  // ---- The file: every month's page, and the fonts they use ----
+  // Modelled on the frozen pdfSerialize, which writes exactly one page (/Count 1) and so cannot be
+  // used. Object 1 is the catalog, 2 the page tree, 3 the one resources dictionary every page shares;
+  // then three objects per font (in weight order, only the weights some page sets text in); then a
+  // page and its contents per month. ⛔ The trailer is /Size and /Root and nothing else: no /Info (a
+  // creation date) and no /ID (a hash of one), which is what keeps the bytes the same every day.
+  // `fonts` is [{tag, ttf, raw, deflated}], as pdfSerialize takes it.
+  async function mvlSerialize(pages, fonts){
+    const enc = new TextEncoder(), chunks = [], offsets = [];
+    let len = 0;
+    const push = function(u8){ chunks.push(u8); len += u8.length; };
+    const put = function(s){ push(enc.encode(s)); };
+    const fontObj = function(i){ return 4 + 3 * i; }, descObj = function(i){ return 5 + 3 * i; };
+    const fileObj = function(i){ return 6 + 3 * i; };
+    const pageObj = function(p){ return 4 + 3 * fonts.length + 2 * p; }, contObj = function(p){ return pageObj(p) + 1; };
+    const nObjs = 3 + 3 * fonts.length + 2 * pages.length;
+    const startObj = function(n){ offsets[n] = len; put(n + ' 0 obj\n'); };
+    const endObj = function(){ put('endobj\n'); };
+
+    put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    startObj(1); put('<< /Type /Catalog /Pages 2 0 R >>\n'); endObj();
+    startObj(2);
+    put('<< /Type /Pages /Kids [' + pages.map(function(p, i){ return pageObj(i) + ' 0 R'; }).join(' ') + '] /Count ' + pages.length + ' >>\n');
+    endObj();
+    startObj(3);
+    put('<< /Font << ' + fonts.map(function(f, i){ return '/' + f.tag + ' ' + fontObj(i) + ' 0 R'; }).join(' ') + ' >> >>\n');
+    endObj();
+    fonts.forEach(function(f, i){
+      const t = f.ttf, sc = 1000 / t.unitsPerEm, widths = [];
+      // ⛔ /Widths is what a viewer ADVANCES by, so it must be what the model measured (owner ruling,
+      // 1 Oct 2026: exact, to 3 decimals). Every code's width is the advance of the glyph a viewer
+      // draws for it -- .notdef's for the ten WinAnsi characters the subset lacks and for the five
+      // codes WinAnsi leaves undefined -- unrounded: Inter's 2048 units/em put a whole number up to
+      // half a unit off per glyph, enough to push a line fitted to its box a hair past it.
+      for(let c = 32; c <= 255; c++){
+        const u = (c >= 0x80 && c <= 0x9F) ? (PDF_WINANSI_HI[c] || 0) : c;
+        widths.push(pdfNum(ttfAdvance(t, ttfGlyph(t, u)) * sc));
+      }
+      startObj(fontObj(i));
+      put('<< /Type /Font /Subtype /TrueType /BaseFont /' + t.name + ' /FirstChar 32 /LastChar 255 ' +
+          '/Widths [' + widths.join(' ') + '] /Encoding /WinAnsiEncoding /FontDescriptor ' + descObj(i) + ' 0 R >>\n');
+      endObj();
+      startObj(descObj(i));
+      put('<< /Type /FontDescriptor /FontName /' + t.name + ' /Flags 32 ' +
+          '/FontBBox [' + t.bbox.map(function(v){ return Math.round(v * sc); }).join(' ') + '] /ItalicAngle ' + pdfNum(t.italicAngle) + ' ' +
+          '/Ascent ' + Math.round(t.ascent * sc) + ' /Descent ' + Math.round(t.descent * sc) + ' ' +
+          '/CapHeight ' + Math.round(t.capHeight * sc) + ' /StemV 80 /FontFile2 ' + fileObj(i) + ' 0 R >>\n');
+      endObj();
+      // The block as it arrived: already a /FlateDecode stream. /Length1 is the program's own length.
+      startObj(fileObj(i));
+      put('<< /Length ' + f.deflated.length + ' /Length1 ' + f.raw.length + ' /Filter /FlateDecode >>\nstream\n');
+      push(f.deflated); put('\nendstream\n'); endObj();
+    });
+    for(let p = 0; p < pages.length; p++){
+      const pg = pages[p];
+      startObj(pageObj(p));
+      put('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pdfNum(pg.w) + ' ' + pdfNum(pg.h) + '] /Resources 3 0 R ' +
+          '/Contents ' + contObj(p) + ' 0 R >>\n');
+      endObj();
+      const content = await pdfDeflate(enc.encode(pg.ops.join('\n')));
+      startObj(contObj(p)); put('<< /Length ' + content.length + ' /Filter /FlateDecode >>\nstream\n');
+      push(content); put('\nendstream\n'); endObj();
+    }
+    const xref = len;
+    put('xref\n0 ' + (nObjs + 1) + '\n0000000000 65535 f \n');
+    for(let n = 1; n <= nObjs; n++) put(String(offsets[n]).padStart(10, '0') + ' 00000 n \n');
+    put('trailer\n<< /Size ' + (nObjs + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+    const bytes = new Uint8Array(len);
+    let at = 0;
+    chunks.forEach(function(c){ bytes.set(c, at); at += c.length; });
+    return bytes;
+  }
+
+  // ---- The whole PDF: buildMonthPdf(layout) ----
+  // `layout` is buildMonthLayout()'s, with `fit.rows` on every month. The four programs are decoded
+  // here on first use (loadInterPdfFont caches them); only the weights some page sets text in are
+  // embedded. Returns the file's bytes.
+  async function buildMonthPdf(layout){
+    if(!layout || !Array.isArray(layout.months) || !layout.months.length) throw new Error('Month PDF: there is no month to write.');
+    const fonts = {};
+    for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
+    const lists = layout.months.map(function(m){ return mvlPaintMonth(m, fonts); });
+    const used = MVL_FONT_WEIGHTS.filter(function(w){
+      return lists.some(function(l){ return l.some(function(o){ return o.k === 'text' && o.s !== '' && o.wt === w; }); });
+    });
+    return mvlSerialize(lists.map(mvlPageOps), used.map(function(w){
+      return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };
+    }));
   }
 
   // ---------- Month view: note editing ----------

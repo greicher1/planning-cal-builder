@@ -106,22 +106,29 @@ window.addEventListener('load', function () { (async function () {
         {modelChars: mvlSrc.length}, 'the slice evaluates');
 
     // ---- F0: nothing calls the model yet, so nothing decodes the Inter blocks -------------------------------
-    // Every name the section defines, counted in app.js OUTSIDE the section, comment lines skipped: none
+    // Every name the section defines, counted in app.js OUTSIDE THE WRITER, comment lines skipped: none
     // may appear, so the product runs exactly as before. Step 5 routes the export here and updates this.
+    // ⚠️ "The writer" is the model AND step 3's emitter after it, which uses the model's names (owner
+    // ruling, 1 Oct 2026, step 3). So the region runs on to the end of buildMonthPdf; the monthemit leg
+    // holds the emitter's own names to the same rule.
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
-    var at = src.indexOf(mvlSrc), outside = code(src.slice(0, at) + src.slice(at + mvlSrc.length));
+    var writerEnd = "return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };\n    }));\n  }";
+    var at = src.indexOf(mvlSrc), wEnd = src.indexOf(writerEnd, at);
+    var writerLen = wEnd < 0 ? mvlSrc.length : wEnd + writerEnd.length - at;
+    var outside = code(src.slice(0, at) + src.slice(at + writerLen));
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
                  'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout'];
     var used = NAMES.filter(function (n) { return new RegExp('\\b' + n + '\\b').test(outside); });
     var defined = NAMES.filter(function (n) { return new RegExp('\\b(?:function|const|let) ' + n + '\\b').test(mvlSrc); });
-    // And inside the section too, nothing runs at boot: the two entry points appear once each in the
-    // whole file, as their own declarations (mutant M9 calls the loader from inside the section).
+    // And inside the writer too, nothing runs at boot: buildMonthLayout appears once in the whole file, as
+    // its declaration, and the loader twice, as its declaration and as buildMonthPdf's one call (mutant M9
+    // calls the loader from inside the section: a third).
     var once = ['loadInterPdfFont(', 'buildMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'nothing outside the layout model uses a name it defines, and nothing calls its entry points: the product runs as before, and no Inter block is decoded at boot, or at all, before step 5',
-        used.length === 0 && defined.length === NAMES.length && once[0] === 1 && once[1] === 1,
+    add('F0', 'nothing outside the writer uses a name the layout model defines, and nothing calls its entry points: the product runs as before, and no Inter block is decoded at boot, or at all, before step 5',
+        used.length === 0 && defined.length === NAMES.length && once[0] === 2 && once[1] === 1,
         {usedOutside: used, definedInSection: defined.length, entryPointOccurrences: once},
-        {usedOutside: [], definedInSection: NAMES.length, entryPointOccurrences: [1, 1]});
+        {usedOutside: [], definedInSection: NAMES.length, entryPointOccurrences: [2, 1]});
 
     // ---- F1: the real loader ------------------------------------------------------------------------------
     var p1 = F.loadInterPdfFont('500'), p2 = F.loadInterPdfFont(500);

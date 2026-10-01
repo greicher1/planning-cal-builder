@@ -1451,6 +1451,82 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- monthemit (MONTH-PDF-WRITER-PLAN.md §8 step 3): the month-PDF writer's emitter + serializer --------
+# ⭐ ADDED 1 Oct 2026. The leg slices the writer out of src/legacy/app.js (owner ruling: "slice it, no hook"
+# extends to the emitter), lays every print document out in Chrome with the app's print rules, hands the emitter
+# Chrome's own week heights (owner ruling: "Chrome's, measured"), and holds every box, baseline, colour and font
+# it draws to Chrome's, and every byte it writes to what the file must be (16 cases; 24 mutants, each red). Tier 1
+# is the eight gate-10 print documents plus six header/ellipsis variants made from reference's first page.
+#   run a  as everything else runs;
+#   run b  under TZ=Pacific/Kiritimati (UTC+14) in a 1280 x 900 window: ⛔ every file must be BYTE-IDENTICAL to
+#          run a's, and the leg must report that the zone and the window really changed (a control that changed
+#          nothing would pass vacuously);
+# then poppler reads every file of run a: pdfinfo and pdftotext with an empty stderr, the page count, 792 x 612,
+# and pdffonts finding only embedded TrueType. colswap-simpost-refuse adds Simultaneous Post and the one tier-2
+# week whose lanes print squeezed (mutant E9, lanes always at their limit, is green on tier 1 and red there), run
+# in both time zones and required byte-identical too. The today stamp is pinned inside the leg (owner ruling), so
+# no comparison here needs pdfcmp.py's date exemption.
+MEA="/tmp/gate${GTAG}-mea"; MEB="/tmp/gate${GTAG}-meb"
+rm -rf "$MEA" "$MEB"; mkdir -p "$MEA" "$MEB"
+for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse"; do
+  MERUN="${MESPEC%%:*}"; MEREST="${MESPEC#*:}"; METZ="${MEREST%%:*}"; MEREST="${MEREST#*:}"
+  MEWIN="${MEREST%%:*}"; MESTATE=""; [[ "$MEREST" == *:* ]] && MESTATE="${MEREST#*:}"
+  [[ $METZ == - ]] && METZ=""; [[ $MEWIN == - ]] && MEWIN=""
+  rm -f "$HERE/monthemit.json"
+  ( [[ -n $METZ ]] && export TZ="$METZ"; [[ -n $MEWIN ]] && export HARNESS_WINDOW="$MEWIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$MESTATE" "$HERE/run.sh" monthemit 240 >/dev/null 2>&1 )
+  python3 - "$HERE/monthemit.json" "monthemit (${MESTATE:-tier 1}${METZ:+, $METZ}${MEWIN:+, $MEWIN})" "$METZ" "$MEWIN" <<'PYME' || FAIL=1
+import json,sys
+path, label, tz, win = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+bad = not cases or not all(c.get('pass') is True for c in cases)
+if tz:
+    z = (info.get('tz') or {}).get('zone')
+    print(('  PASS  ' if z == tz else '  FAIL  ')+label+': the leg ran in '+str(z)); bad = bad or z != tz
+if win:
+    w = (info.get('window') or [None])[0]
+    print(('  PASS  ' if str(w) == win.split(',')[0] else '  FAIL  ')+label+': the window was '+str(w)+' wide'); bad = bad or str(w) != win.split(',')[0]
+sys.exit(1 if bad else 0)
+PYME
+  case $MERUN in a|sa) cp "$HERE"/monthemit.*.pdf "$MEA"/ 2>/dev/null ;; b|sb) cp "$HERE"/monthemit.*.pdf "$MEB"/ 2>/dev/null ;; esac
+done
+python3 - "$MEA" "$MEB" <<'PYMF' || FAIL=1
+import os, re, subprocess, sys, shutil
+a, b = sys.argv[1], sys.argv[2]
+bad = 0
+def chk(cond, msg):
+    global bad
+    print(('  PASS  ' if cond else '  FAIL  ') + msg); bad += 0 if cond else 1
+tools = [t for t in ('pdfinfo', 'pdftotext', 'pdffonts') if not shutil.which(t)]
+if tools:
+    chk(False, 'monthemit files: poppler is not installed (' + ', '.join(tools) + '): brew install poppler'); sys.exit(1)
+fa, fb = sorted(os.listdir(a)), sorted(os.listdir(b))
+chk(len(fa) == 15 and fa == fb, 'monthemit files: the same %d files from both time zones (tier 1 + variants + colswap-simpost-refuse)' % len(fa))
+for n in fa:
+    pa = os.path.join(a, n)
+    same = os.path.exists(os.path.join(b, n)) and open(pa, 'rb').read() == open(os.path.join(b, n), 'rb').read()
+    info = subprocess.run(['pdfinfo', pa], capture_output=True, text=True)
+    text = subprocess.run(['pdftotext', pa, '-'], capture_output=True, text=True)
+    fonts = subprocess.run(['pdffonts', pa], capture_output=True, text=True)
+    pages = int((re.search(r'^Pages:\s+(\d+)', info.stdout, re.M) or [0, 0])[1])
+    size = (re.search(r'^Page size:\s+(.*)$', info.stdout, re.M) or [0, ''])[1]
+    rows = [l for l in fonts.stdout.splitlines()[2:] if l.strip()]
+    fontsOk = bool(rows) and all(' TrueType ' in l and re.search(r'WinAnsi\s+yes\s+yes', l) for l in rows)
+    chk(same and not info.stderr.strip() and not text.stderr.strip() and not fonts.stderr.strip() and pages > 0
+        and size.startswith('792 x 612') and fontsOk,
+        'monthemit %s: byte-identical in UTC+14%s, %d page%s at %s, poppler reads it clean, %d embedded TrueType fonts'
+        % (n.replace('monthemit.', '').replace('.pdf', ''), '' if same else ' -- NOT', pages, '' if pages == 1 else 's', size.split(' pts')[0], len(rows)))
+sys.exit(1 if bad else 0)
+PYMF
+
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
 # above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under

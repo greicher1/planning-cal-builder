@@ -29,6 +29,53 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month PDF's emitter and serializer, the direct writer's step 3 (1 Oct 2026)
+
+Step 3 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
+see no change:** the month PDF is still Chrome's print path, and the build is byte-identical to one
+without the writer, because the minifier drops it until step 5 routes the export to it.
+- **What:** `buildMonthPdf(layout)` writes the month PDF's bytes from step 2's model. It makes one
+  Letter-landscape page per month, with 8 mm margins and every box, line and glyph where the print
+  stylesheet puts it, in step 1's four static Inter programs.
+  - **New drawing:** rounded bars with their 18% borders, the off-day hatch, the half-day shade, the
+    struck-through off-day number, letter-spacing, the ellipsis, and the header's word wrap with its
+    formats and highlights. The lanes use CSS Grid's own track sizing.
+  - **No transparency:** every translucent paint is mixed with the colour beneath it, so every
+    viewer and printer shows the same colour.
+  - **A multi-page serializer** modelled on the frozen one. There is no `/Info` and no `/ID`, the
+    font programs are fixed, and `/Widths` is exact to 3 decimals.
+- **The owner's four rulings (1 Oct 2026):**
+  - row heights are an input: Chrome's, measured, until step 4's fit computes them;
+  - "slice it, no hook" extends to the emitter;
+  - exact `/Widths`;
+  - the today stamp is pinned in a byte comparison rather than masked, because its width moves the
+    centred title.
+- **Verified:**
+  - **A new leg, `monthemit`** (16 cases). It lays every print document out in Chrome with the app's
+    print rules, hands the emitter Chrome's week heights, and holds what it draws to Chrome:
+    - every box within 0.021 px (Chrome's own 1/64 px layout grid), and every baseline exact;
+    - every text anchor within 0.03 px, with Chrome's kerning measured and corrected for;
+    - every colour, font, weight, letter-spacing, italic and strike against Chrome's computed style.
+
+    Tier 1 (130 months, with six variants for header formats, a wrapping title, the widest and
+    narrowest stamps, and cut labels) and all eight tier-2 calendars pass.
+  - **The file:** its structure through the xref, the fonts byte for byte, `/Widths`, and every run as
+    wide by the file's own widths as the model measured.
+  - **Determinism:** every file is byte-identical on a repeat, under `TZ=Pacific/Kiritimati` (UTC+14)
+    and in a 1280 px window. poppler reads every file clean. The gate runs all of this four times.
+  - Red on 24 mutants, each in the case meant to catch it.
+  - Full gate: **916 PASS, 0 FAIL, GATE PASSED.** The waterfall PDF, every Excel part and all nine
+    printed month documents are identical to their baselines.
+- **Found on the way** (each now matched; see the plan):
+  - a day number sits on its cell's 14 px strut;
+  - an emptied hiatus label prints as a 4 px strip;
+  - an empty Manual header line is a full line tall;
+  - the print path squeezes lanes when its own fit makes a row too short.
+
+  Chrome's real print also uses 30 px margins and snaps every line to a whole pixel, so the writer's
+  exact 8 mm lines sit up to 0.75 px from it.
+- **Size:** none. The build is byte-identical to `main`'s (`f0115600…`, 1,433,765 bytes).
+
 ### Unreleased — the month PDF's layout model, the direct writer's step 2 (1 Oct 2026)
 
 Step 2 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
