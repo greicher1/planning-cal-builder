@@ -69,7 +69,56 @@ code as unused until step 5 routes the export to it.
 - **Size:** +857 bytes (1,432,908 to 1,433,765). The minified script gains one discarded constant,
   and the rest is the font blocks' revised comment.
 
-### Unreleased — double-click a .sptcal to load it in SPTCal (1 Oct 2026)
+### Unreleased — the month PDF's fonts: four static Inter programs, ready for the direct writer (1 Oct 2026)
+
+Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, under the owner's ruling 1(a):
+the month PDF will be set in Inter, the month view's own typeface. **Nothing reads these fonts yet,
+so users see no change.**
+- **What:** four static TrueType programs (weights 400, 500, 600 and 700) beside Carlito in
+  `src/index.html`, as zlib+base64.
+  - A new `tools/subset-inter.py` instances them from the app's OWN Inter (the variable WOFF2 in
+    `src/styles/inter.css`, Inter 4.001), because a PDF cannot use a variable font.
+  - It refuses any other source, including the Inter 3.019 installed on the owner's Mac, which has
+    the same names but different metrics.
+  - Each weight is subset to WinAnsi: 208 of its 218 characters. The app's Inter has no soft
+    hyphen, Š š Ÿ Ž ž, ƒ, †, ‡ or ‰.
+- **Names:** each program carries a distinct, subset-tagged PostScript name, such as
+  `PJIXRL+InterPDF-Medium`. A PDF viewer can then never substitute an installed Inter for it.
+- **Licence:** `LICENSE-Inter.txt` (SIL OFL 1.1) is added. Inter's copyright notice now travels in
+  the file and in each program.
+- **Kept in step:** each block records the SHA-256 of the WOFF2 it was made from, and
+  `npm run check` fails if the stylesheet's Inter changes without the subsetter being re-run.
+- **Size:** the build grows by 68,801 bytes (1,359,968 to 1,428,769, +5.1%; about 51.6 KB
+  gzipped). Cutting the new section back out gives the previous build byte for byte.
+- **Verified:**
+  - A new leg, `interfonts` (8/8, in the gate), checks every glyph's advance. The frozen
+    `ttfRead`/`ttfAdvance` read each one, and every advance is within half a font unit of Chrome's
+    own unkerned width of the app's Inter. The worst gap is 0.4995 units, and weight 400 is exact.
+    Chrome's advances at the other weights are fractional, so a whole-number advance cannot equal
+    them exactly.
+  - Gate 2: the waterfall PDF is unchanged apart from its date stamp. Clipped cells stay at 0, and
+    the Excel parts are identical.
+  - `npm run check`: 39/39, five of them new.
+  - The tool rebuilds all four programs byte for byte on a second run.
+  - Red on mutants: a 505-weight program filed as 500, a stale source hash, and an untagged name.
+  - Full gate on build `fd7991db…`: **772 PASS, 0 FAIL, GATE PASSED** (the previous 764 plus
+    `interfonts`' eight). All nine month PDFs are byte-identical to their baselines, and
+    `fields.byId` still has 62 ids.
+
+## v1.4.3 — double-click a .sptcal to load it, keyboard shortcuts for the file actions (1 Oct 2026)
+
+Three changes since v1.4.2, all already live before this cut. This version exists so installed
+copies are told about them: `version.json` moves with `APP_VERSION`, so a window that is already
+open shows the update notice.
+- **Double-click a `.sptcal`** to load it in the installed app (`be3078d`).
+- **⌘N New, ⇧⌘S Save As, ⇧⌘E Export** (`f3274a2`).
+- **Reset Notes** is Title Case with an icon, and the Header button stands apart from the shift
+  tools (`0f94e0b`).
+
+Not in this version: the month-PDF writer's step 1 (the four static Inter programs, `c788c15`).
+It is committed locally and held by the owner.
+
+### Double-click a .sptcal to load it in SPTCal (1 Oct 2026)
 
 The owner asked for item 1 of the "feel like a real app" list, and ruled that a double-click on
 unsaved work asks first, in the same window.
@@ -112,7 +161,7 @@ unsaved work asks first, in the same window.
   - **`npm run check`, 35/35.**
   - **The full gate, 797/0**, on exactly what shipped.
 
-### Unreleased — keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
+### Keyboard shortcuts for the file actions: ⌘N New, ⇧⌘S Save As, ⇧⌘E Export (1 Oct 2026)
 
 The owner asked for New, Save, Save As and Export in the installed Mac app's native File menu, with
 the in-app buttons left exactly as they are.
@@ -149,43 +198,7 @@ the in-app buttons left exactly as they are.
   `fields.byId` key set is unchanged at 62 ids. ⏳ The proof that ⌘N beats the menu's New Window
   needs the real installed app, since a headless or pane browser can't make an app window.
 
-### Unreleased — the month PDF's fonts: four static Inter programs, ready for the direct writer (1 Oct 2026)
-
-Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, under the owner's ruling 1(a):
-the month PDF will be set in Inter, the month view's own typeface. **Nothing reads these fonts yet,
-so users see no change.**
-- **What:** four static TrueType programs (weights 400, 500, 600 and 700) beside Carlito in
-  `src/index.html`, as zlib+base64.
-  - A new `tools/subset-inter.py` instances them from the app's OWN Inter (the variable WOFF2 in
-    `src/styles/inter.css`, Inter 4.001), because a PDF cannot use a variable font.
-  - It refuses any other source, including the Inter 3.019 installed on the owner's Mac, which has
-    the same names but different metrics.
-  - Each weight is subset to WinAnsi: 208 of its 218 characters. The app's Inter has no soft
-    hyphen, Š š Ÿ Ž ž, ƒ, †, ‡ or ‰.
-- **Names:** each program carries a distinct, subset-tagged PostScript name, such as
-  `PJIXRL+InterPDF-Medium`. A PDF viewer can then never substitute an installed Inter for it.
-- **Licence:** `LICENSE-Inter.txt` (SIL OFL 1.1) is added. Inter's copyright notice now travels in
-  the file and in each program.
-- **Kept in step:** each block records the SHA-256 of the WOFF2 it was made from, and
-  `npm run check` fails if the stylesheet's Inter changes without the subsetter being re-run.
-- **Size:** the build grows by 68,801 bytes (1,359,968 to 1,428,769, +5.1%; about 51.6 KB
-  gzipped). Cutting the new section back out gives the previous build byte for byte.
-- **Verified:**
-  - A new leg, `interfonts` (8/8, in the gate), checks every glyph's advance. The frozen
-    `ttfRead`/`ttfAdvance` read each one, and every advance is within half a font unit of Chrome's
-    own unkerned width of the app's Inter. The worst gap is 0.4995 units, and weight 400 is exact.
-    Chrome's advances at the other weights are fractional, so a whole-number advance cannot equal
-    them exactly.
-  - Gate 2: the waterfall PDF is unchanged apart from its date stamp. Clipped cells stay at 0, and
-    the Excel parts are identical.
-  - `npm run check`: 39/39, five of them new.
-  - The tool rebuilds all four programs byte for byte on a second run.
-  - Red on mutants: a 505-weight program filed as 500, a stale source hash, and an untagged name.
-  - Full gate on build `fd7991db…`: **772 PASS, 0 FAIL, GATE PASSED** (the previous 764 plus
-    `interfonts`' eight). All nine month PDFs are byte-identical to their baselines, and
-    `fields.byId` still has 62 ids.
-
-### Unreleased — Reset Notes is Title Case with an icon; the Header button stands apart from the shift tools (30 Sep 2026)
+### Reset Notes is Title Case with an icon; the Header button stands apart from the shift tools (30 Sep 2026)
 
 The owner asked for both, after v1.4.2 went live.
 - **"Reset Notes" / "Reset Month Notes"** (were "Reset notes" / "Reset month notes"). Every other

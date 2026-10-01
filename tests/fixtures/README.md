@@ -90,6 +90,7 @@ they are a working demonstration against the live site. They ship in the same re
 | `v1.4.0-saved.sptcal` | the same calendar saved by the v1.4.0 build (29 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.3.1's — batch 3 changed no save-format key. Minted with `t/mintfixture.js`; 0 clipped cells |
 | `v1.4.1-saved.sptcal` | the same calendar saved by the v1.4.1 build (30 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.4.0's -- batches 4 and 5 changed no save-format key. Minted with `t/mintfixture.js` (a real Save through the stood-in picker); 0 clipped cells, `version: 1`, 5,652 bytes. |
 | `v1.4.2-saved.sptcal` | the same calendar saved by the v1.4.2 build (30 Sep 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.4.1's -- the header-controls build (owner rulings 1–7) changed no save-format key: every new control is a `<button>`, which `collectFieldValues()` never sweeps. Minted with `t/mintfixture.js` (a real Save through the stood-in picker); 0 clipped cells, `version: 1` |
+| `v1.4.3-saved.sptcal` | the same calendar saved by the v1.4.3 build (1 Oct 2026): 43 snapshot keys and 62 ids, both **identical sets** to v1.4.2's -- double-click-to-open, the file shortcuts and the Reset Notes polish changed no save-format key (a launch is session UI; the new status line is not state). Minted with `t/mintfixture.js`; 0 clipped cells, `version: 1` |
 
 ### Batch 2: dates and data (FIX-PLAN §4, v1.3.1)
 

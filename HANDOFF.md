@@ -4,6 +4,35 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: v1.4.3 CUT, on top of the LIVE `be3078d` (branch `cut-1.4.3`), NOT on local main
+
+The owner said "cut 1.4.3". **The cut is built on `origin/main`, deliberately.** Local `main` carries
+the fonts session's held `c788c15`, and a version must be what users actually run.
+- **In it:**
+  - double-click a `.sptcal` (`be3078d`);
+  - the file shortcuts (`f3274a2`);
+  - the Reset Notes touch-up (`0f94e0b`).
+- **Not in it:** fonts step 1 and the local docs commits.
+- **The cut steps:**
+  - `APP_VERSION` (src/legacy/app.js), `version.json` and `package.json` = 1.4.3, together. The
+    root `index.html` is untouched (`cmp`-equal to `releases/v1.2.0.html`).
+  - The README heading `## v1.4.3 — …` sits over its three entries.
+  - `releases/v1.4.3.html` is byte-identical to `dist` (sha256 `c42b279f…`, 1,364,107 bytes).
+  - `tests/fixtures/v1.4.3-saved.sptcal` is a real Save (`t/mintfixture.js`): 43 keys and 62 ids,
+    the SAME sets as v1.4.2's; `version: 1`; 0 clipped cells.
+- ✅ **Release gate on the v1.4.3 build (`c42b279f…`): 797 PASS, 0 FAIL, GATE PASSED.**
+  - `fields.byId` is unchanged at 62 ids, and every month PDF is identical to its baseline.
+  - The tag `v1.4.3` sits on the cut commit, placed after this gate (as v1.4.0 to v1.4.2 were).
+- ✅ **v1.4.3 IS LIVE, pushed on the owner's picker ("Push v1.4.3") and verified.**
+  - `be3078d..ca4cd2d` plus the tag `v1.4.3`. CI run `36911178886` is green (Build and check,
+    Deploy to Pages).
+  - The live page is byte-identical to `releases/v1.4.3.html` (sha256 `c42b279f…`), and the live
+    `version.json` reads 1.4.3, about 2 minutes after the push. So installed copies that are
+    already open now show the update notice.
+  - **Local `main`** takes the cut by a MERGE, beside the unpushed fonts step 1 and step 2. In the
+    README, those two entries stay `Unreleased` ABOVE the v1.4.3 heading; only the three shipped
+    entries sit under it.
+
 ### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 2, THE LAYOUT MODEL — BUILT AND PROVEN (session "SPT Calendar Builder month layout model")
 
 - ⏭ **RESUME HERE.** Step 2 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
