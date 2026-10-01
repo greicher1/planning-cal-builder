@@ -57,6 +57,17 @@ hold on `c788c15` (see that session's block). The owner was asked again, and cho
   - Full gate **797/0** on exactly what was pushed (live `f3274a2` + this commit; build sha256
     `220ed727…`). Before the owner's push-alone ruling, the same commit on local `main` (`bd0c133`,
     with fonts step 1 under it) gated **805/0**. The difference is `interfonts`' 8 cases.
+- ✅ **LIVE, verified (1 Oct 2026).**
+  - `f3274a2..be3078d` was pushed alone, on the owner's picker. CI run `36904636202` is green
+    (Build and check, Deploy to Pages).
+  - The live page was byte-identical to the gated build (sha256 `220ed727…`) about 45 s after the
+    push. The live manifest carries the handler, and the page carries the consumer and the Help
+    paragraph.
+  - `version.json` still reads **1.4.2**: see the version-cut note below.
+- **Local `main`** takes `be3078d` by a MERGE, beside the unpushed `002e203`, `f19201a` and
+  `c788c15`. The merge had no conflicts. Its code is exactly the 805/0-gated `bd0c133` + this
+  change, and only docs differ. On the merged build: `npm run check` 40/40, `launchopen` 16/16,
+  `filekeys` 16/16, `interfonts` 8/8.
 - ⏭ **Owed after the push (the harness cannot do these):**
   - On the owner's real install: double-click a `.sptcal`, see Chrome's prompt, and confirm it loads.
   - Whether a Mac double-click opens SPTCal without "Open With".
