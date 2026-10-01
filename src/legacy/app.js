@@ -13748,6 +13748,10 @@ export function initLegacyApp() {
     if(fileConflict){ chrome.saveStatus({ text: 'File changed on disk \u2014 autosave paused', tone: 'failed', title: 'Someone (or another window) saved this file since you loaded it, so autosave has stopped rather than overwrite their changes. Click Save to choose: overwrite it, load the newer version, or save yours as a copy.' }); }
     else if(isDirty && autosaveFailed){ chrome.saveStatus({ text: 'Autosave failed — click Save', tone: 'failed', title: 'The linked file couldn’t be written (it may have been moved, deleted, or had its permission revoked). Use Save to choose a location.' }); }
     else if(isDirty && autosaveNeedsFile){ chrome.saveStatus({ text: 'Autosave needs a file — click Save', tone: 'failed', title: 'This calendar isn’t linked to a file yet, so autosave has nowhere to write. Click Save to choose where it lives. Your work is backed up in this browser meanwhile.' }); }
+    // A double-clicked file Chrome opened read-only (openRecentFile's needsWrite). startAutosave()
+    // skips while handleNeedsPermission is set, so say so -- the same reason as the line above: the
+    // user must not be lulled into thinking autosave protects work it cannot write.
+    else if(isDirty && savedFileHandle && handleNeedsPermission){ chrome.saveStatus({ text: 'Autosave needs permission — click Save', tone: 'failed', title: 'SPTCal can read this calendar but hasn’t been allowed to change the file yet. Click Save and allow it when Chrome asks; autosave keeps it up to date from then on. Your work is backed up in this browser meanwhile.' }); }
     else if(isDirty){ chrome.saveStatus({ text: 'Unsaved changes', tone: 'dirty', title: '' }); }
     else if(lastSavedAt){ chrome.saveStatus({ text: 'Saved ' + fmtTime(lastSavedAt), tone: 'idle', title: '' }); }
     else { chrome.saveStatus({ text: '', tone: 'idle', title: '' }); }
@@ -14692,6 +14696,12 @@ export function initLegacyApp() {
       if(v && v.state && (!b || (v.at || 0) > (b.at || 0))){ b = v; bKey = k; }
     }
     if(!b || !b.state) return;
+    // The app was started by a double-clicked .sptcal: the user asked for THAT calendar, so it is not
+    // buried under this question. The backup is kept -- exactly as a Cancel keeps it -- and offered
+    // on the next ordinary launch. Checked HERE, after the IndexedDB reads, because the launch
+    // consumer may fire while they are in flight. (A launch landing once the question is already up
+    // waits for it: openLaunchedFiles() -> whenNoDialog().)
+    if(fileLaunchSeen) return;
     const when = new Date(b.at);
     const which = b.fileName ? ('"' + b.fileName + '"') : 'an unsaved calendar';
     if(!(await uiConfirm('Recover unsaved work from ' + which + ' (' + fmtTime(when) + ')?', { title: 'Recover unsaved work', confirmLabel: 'Recover' }))){
@@ -14933,16 +14943,24 @@ export function initLegacyApp() {
 
   // Load a file's saved data INTO the running app: read its HTML, pull out the embedded
   // <script id="saved-state"> JSON, inject it into the live document, and replay it.
-  async function openRecentFile(entry){
+  // opts.launched: the handle came from the OS (a double-clicked .sptcal, via launchQueue) rather
+  // than from a click in this window. See openLaunchedFiles().
+  async function openRecentFile(entry, opts){
     if(!entry || !entry.handle) return;
+    const launched = !!(opts && opts.launched);
     // Permission to READ the file (one click if not already granted this session).
-    try {
-      const q = await entry.handle.queryPermission({ mode: 'readwrite' });
-      if(q !== 'granted'){
-        const p = await entry.handle.requestPermission({ mode: 'readwrite' });
-        if(p !== 'granted'){ uiAlert('Permission to load that file was declined.'); return; }
-      }
-    } catch(e){ /* some browsers: proceed and let read throw */ }
+    // ⛔ NOT for a launched file. requestPermission() needs a user gesture, and a launch has none --
+    // and Chrome hands the launch its read access already, so asking is both impossible and needless.
+    // Write access is checked once the file has loaded (needsWrite below); the first Save asks.
+    if(!launched){
+      try {
+        const q = await entry.handle.queryPermission({ mode: 'readwrite' });
+        if(q !== 'granted'){
+          const p = await entry.handle.requestPermission({ mode: 'readwrite' });
+          if(p !== 'granted'){ uiAlert('Permission to load that file was declined.'); return; }
+        }
+      } catch(e){ /* some browsers: proceed and let read throw */ }
+    }
 
     let text, stamp = null;
     try {
@@ -14952,6 +14970,15 @@ export function initLegacyApp() {
       stamp = { lastModified: file.lastModified, size: file.size };
     }
     catch(e){ uiAlert('Could not read that file. It may have been moved or deleted.'); return; }
+    // Can Save write back to a launched file yet? Chromium's launch params default to READ-only
+    // (launch_params.h: "files sent through the launch queue will only have read access"), but the
+    // probe (1 Oct 2026, Chrome 154, PWA.launchFilesInApp) saw readwrite already granted -- so ask
+    // rather than assume. Asked HERE, before the restore below, because that block must not await.
+    let needsWrite = false;
+    if(launched){
+      try { needsWrite = (await entry.handle.queryPermission({ mode: 'readwrite' })) !== 'granted'; }
+      catch(e){ needsWrite = true; }
+    }
 
     // Read the calendar out of the file -- either format, one code path (parseCalendarText).
     const parsed = parseCalendarText(text);
@@ -14987,7 +15014,9 @@ export function initLegacyApp() {
     resetUndoHistory(); // opening a different file starts a fresh undo history
     // Make this the active, writable file so subsequent Save writes back to it.
     savedFileHandle = entry.handle;
-    handleNeedsPermission = false;
+    // true only for a launched file Chrome gave no write access to: Save then asks for it (a click
+    // is a gesture), autosave holds off, and refreshSaveStatus() says so.
+    handleNeedsPermission = needsWrite;
     savedFileStamp = stamp;
     fileConflict = false;
     activeFileId = entry.id;
@@ -15019,16 +15048,27 @@ export function initLegacyApp() {
         multiple: false,
       });
     } catch(e){ if(e && e.name === 'AbortError') return; throw e; }
+    return openHandle(handle);
+  }
+
+  // Load + track a handle from the picker or from the OS -- ONE path, so the two can never drift.
+  async function openHandle(handle, opts){
+    const launched = !!(opts && opts.launched);
     const entry = { id: 'f'+Date.now()+Math.random().toString(36).slice(2,6), handle, name: handle.name, savedAt: Date.now() };
     // De-dupe against existing recents.
     let dup = null;
     for(const f of recentFiles){ if(f.handle && handle.isSameEntry){ try{ if(await handle.isSameEntry(f.handle)){ dup=f; break; } }catch(e){} } }
+    // A launched file already in recents reads through the handle the LAUNCH brought, which carries
+    // read access; the stored one may need a permission prompt this window cannot show (no gesture).
+    // Chrome keys file permissions by path, not by handle object, so nothing a grant gave is lost.
+    if(dup && launched) dup.handle = handle;
     const target = dup || entry;
     if(!dup){ recentFiles.unshift(entry); }
-    const ok = await openRecentFile(target);
+    const ok = await openRecentFile(target, opts);
     // A file the app refused (not a calendar, a newer version, or damaged) must not linger in the
     // recents list -- clicking it would just repeat the refusal (audit N-8).
     if(!ok && !dup){ recentFiles = recentFiles.filter(f=> f !== entry); renderRecents(); }
+    return ok;
   }
 
   // "New" — clear the active file link and reset to a blank calendar.
@@ -15083,14 +15123,66 @@ export function initLegacyApp() {
   // file would let someone type a brand-new schedule and overwrite that file without meaning
   // to. Instead we start "Untitled": Save asks where to go, and picking a file from the menu
   // both loads its data and links it, so what's on screen always matches the linked file.
-  if(supportsFsAccess){
-    loadRecents().then(()=>{
-      activeFileId = null;   // nothing is open yet in this session
-      savedFileHandle = null;
-      handleNeedsPermission = false;
-      renderRecents();
-      refreshSaveBtn();
+  // ⚠️ Kept as a promise because a double-clicked file can arrive BEFORE this settles (the launch
+  // consumer runs almost at once; IndexedDB takes longer), and these lines would then unlink the file
+  // it had just loaded and overwrite the recents list it had just joined. openLaunchedFiles() waits.
+  const recentsReady = supportsFsAccess ? loadRecents().then(()=>{
+    activeFileId = null;   // nothing is open yet in this session
+    savedFileHandle = null;
+    handleNeedsPermission = false;
+    renderRecents();
+    refreshSaveBtn();
+  }) : Promise.resolve();
+
+  // ---------- Opening a calendar from the OS: double-click a .sptcal ----------
+  // The manifest's file_handlers registers .sptcal with the installed app (Chrome/Edge 102+ desktop;
+  // the RELATIVE action "." needs 146+, when Chromium began resolving a data: manifest's URLs against
+  // the page). The OS starts SPTCal -- or, with launch_handler focus-existing, brings the open window
+  // forward WITHOUT reloading it -- and Chrome queues the file here. Measured 1 Oct 2026 on Chrome 154
+  // (a throwaway profile, the app renamed ProbeCal): an install made from the old manifest gained the
+  // handler on its next page load with no reinstall; a file launched into the open window reached its
+  // consumer with no navigation; two files arrive as ONE call; an ordinary launch calls with none.
+  // Only .sptcal is registered. Claiming .html would offer SPTCal for every web page on the computer,
+  // so a legacy .html calendar is still loaded with Load... (it opens forever, as it always has).
+  // Not state: nothing here reaches captureSnapshot(); a launch is session UI.
+  let fileLaunchSeen = false;   // read by offerBackupRecovery(): a file launch outranks the offer
+  // Launches run ONE AT A TIME. Two files double-clicked in quick succession are two launches, and
+  // run side by side the second one's question would answer the first's as Cancel.
+  let launchChain = Promise.resolve();
+  if(supportsFsAccess && window.launchQueue && typeof window.launchQueue.setConsumer === 'function'){
+    window.launchQueue.setConsumer(params => {
+      const files = ((params && params.files) || []).filter(f => f && f.kind === 'file');
+      if(!files.length) return;   // an ordinary launch -- the app icon, not a file
+      fileLaunchSeen = true;
+      launchChain = launchChain.then(() => openLaunchedFiles(files))
+        .catch(err => { console.error(err); uiAlert('Could not load that file: ' + err.message); });
     });
+  }
+  // Resolves once none of the app's own dialogs is open. ⛔ A second uiConfirm/uiAlert while one is
+  // up answers the first as CANCELLED (Dialogs.jsx) -- so a file double-clicked while, say, the
+  // crash-recovery question or a Save conflict is on screen must wait its turn, never barge in.
+  function whenNoDialog(){
+    const open = () => !!document.querySelector('.mantine-Modal-content');
+    if(!open()) return Promise.resolve();
+    return new Promise(resolve => {
+      const mo = new MutationObserver(() => { if(!open()){ mo.disconnect(); resolve(); } });
+      mo.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+  async function openLaunchedFiles(files){
+    await recentsReady;
+    await whenNoDialog();
+    // A note being edited is part of what is on screen: commit it, so its text counts as unsaved
+    // work below rather than being swept away by the load. (Clicking the file menu commits it the
+    // same way, through the editor's own click-away.)
+    if(activeNoteEditor) commitActiveNoteEditor();
+    if(activeMvNote) commitMvNoteEditor();
+    // The file menu's guard, word for word (owner, 1 Oct 2026: ask first, same window).
+    if(isDirty && !(await uiConfirm('Load another calendar? Your unsaved changes will be lost.', { title: 'Load another calendar', confirmLabel: 'Load', danger: true }))) return;
+    const ok = await openHandle(files[0], { launched: true });
+    if(ok && files.length > 1){
+      uiAlert('SPTCal loads one calendar at a time, so only “' + files[0].name + '” was loaded.');
+    }
   }
 
   if(saveBtn) saveBtn.addEventListener('click', async ()=>{

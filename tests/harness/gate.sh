@@ -1406,6 +1406,8 @@ PYS
 # the browser's own unkerned width at its weight. Second line on purpose, for the same reason.
 # filekeys guards the file actions' keyboard shortcuts (owner, 1 Oct 2026): ⌘N New, ⇧⌘S Save As and
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
+# launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
+# through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1420,7 +1422,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
-              filekeys:v1.4.2-saved:150; do
+              filekeys:v1.4.2-saved:150 \
+              launchopen:-:240; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
