@@ -1150,6 +1150,11 @@ Nothing in this document ships without all of these, every stage:
     - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's count chip
       ends with "Alt+←/→ to swap" and shows whole on a narrow grid; Alt+arrows and double-click
       still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
+
+    The month-PDF writer's step 1 (1 Oct 2026, `MONTH-PDF-WRITER-PLAN.md` §8) adds `interfonts`.
+    It reads the four static Inter programs with the frozen `ttf*` functions, and requires every
+    glyph's advance to be within half a font unit of Chrome's own width at its weight. `npm run
+    check` gains five font checks with it, one of them failing a block made from a stale Inter.
 12. **NEW — the Content-Security-Policy holds** (30 Sep 2026, audit L-4). `npm run check` asserts the
     policy is first in `<head>` and that its `script-src` hashes are EXACTLY the build's executable
     inline scripts (re-derived by its own scan). `cspproof.mjs`, in `gate.sh`, records ZERO violations

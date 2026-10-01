@@ -1,8 +1,9 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 📝 **PLANNED, NOT BUILT.** ✅ **All four rulings received, 30 Sep 2026** (§6): Inter, the
-PDF's own cell width, dense months shrink evenly, and replace the print path while keeping a rollback.
-Next: step 1, the fonts (§8). It needs the owner's approval for a download first.
+**Status:** 🔨 **STEP 1 OF 6 BUILT (the fonts, 1 Oct 2026); the writer itself is not.** ✅ **All four
+rulings received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months shrink evenly,
+and replace the print path while keeping a rollback. Next: step 2, the layout model (§8), on the
+owner's go-ahead.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -309,12 +310,26 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
    `brotli` from PyPI, into a throwaway virtual environment in the build session's scratchpad. The
    approval was given in the planning session, and approvals are per session, so the build session
    confirms it once before installing.
-1. **Fonts.**
+1. ✅ **Fonts (built 1 Oct 2026; detail and proof in HANDOFF's top block).**
    - A new `tools/subset-inter.py` instances the embedded Inter at the four weights and subsets each
      to WinAnsi with a distinct name. The results are embedded as zlib+base64 beside Carlito, with
      `LICENSE-Inter` added.
    - Proof: every glyph's advance equals the browser's unkerned width; gate 2 is unchanged;
      `npm run check` passes; the size delta is recorded.
+   - **As built:**
+     - `font-inter-400/500/600/700` in `src/index.html`, made with fontTools 4.60.2.
+     - Names `KXTAIS+InterPDF-Regular`, `PJIXRL+InterPDF-Medium`, `MNBNVH+InterPDF-SemiBold` and
+       `XYNXFM+InterPDF-Bold`. Frozen `ttfRead()` reads them as `/BaseFont`.
+     - 229 glyphs and about 18 KB of TrueType each. +68,801 bytes on the build (+5.1%).
+     - The `interfonts` leg and five new `npm run check` checks. Gate 2 is unchanged.
+   - ⚠️ **"Equals", made precise.** Chrome's advances at 500/600/700 are fractional (an HVAR delta at
+     an F2Dot14 location), and a TrueType advance is a whole number. Every glyph is the whole number
+     nearest Chrome's, within 0.4995 units at worst (400 is exact). Summed over a string, that is
+     about 0.02 px at 11 px.
+   - ⚠️ **Found for step 5 (§3.4).** On screen, Chrome draws Ÿ in Inter by decomposing it to
+     Y + U+0308, which the subset lacks. On paper, Ÿ is missing like the other nine.
+   - **Measured for §7's kerning risk:** unkerned text is 0.47% wider on average across 64
+     month-view strings, and 3.06% wider at most, on a deliberately kern-heavy "AVA … Way".
 2. **The layout model,** with a leg comparing it to the print document on tier 1. No PDF yet.
 3. **The emitter and the serializer,** with the determinism controls.
 4. **The fit** (ruling 3), and the A/B leg against the print path. Contact sheets go to the owner.

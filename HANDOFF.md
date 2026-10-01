@@ -4,7 +4,106 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏭ 30 Sep 2026 (night): THE DIRECT MONTH-PDF WRITER IS PLANNED AND RULED, NOT BUILT
+### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 1, THE FONTS — BUILT AND PROVEN (one local commit, NOT pushed)
+
+- ⏭ **RESUME HERE.** Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
+  **Step 2, the layout model, waits for the owner's go-ahead**, in a fresh session (plan §8: steps
+  1–4 each need a clean context).
+- **State:**
+  - `main` = the step-1 commit on top of `f19201a`. `origin/main` is still `0f94e0b` (live).
+    Nothing pushed.
+  - Still untracked and left alone: the owner's `tests/fixtures/Reshape Fixture 2026-09-29.sptcal`.
+  - A peer session ("Mac native file menu integration") works in `.claude/worktrees/file-keys` and
+    will merge into `main` after this commit, with the owner's OK. Its `gate.sh` line goes at the
+    END of the AFSPEC list; `interfonts` is the SECOND line, so the two don't conflict.
+- **Built:**
+  - **`tools/subset-inter.py` (new).**
+    - Reads ONLY the WOFF2 in `src/styles/inter.css` (48,432 bytes, sha256 `c9407645…`).
+    - Refuses anything that is not Inter 4.001, 2048 units/em, with a `wght` axis spanning 400–700.
+      Proved: the installed 3.019 statics are refused, and so is its variable font, which passes
+      the family and axis tests and fails on units/em and version.
+    - Instances 400/500/600/700 (static) and subsets each to WinAnsi: 208 of 218 characters.
+    - Keeps `.notdef`'s outline, drops GSUB/GPOS/GDEF/STAT and the glyph names (post format 3),
+      renames the family "Inter PDF", and adds nameID 13 (the OFL description).
+    - Writes the four blocks. `--check` rebuilds and compares the decompressed programs (it
+      passes); `--out DIR` writes the `.ttf` files.
+  - **The four `<script id="font-inter-NNN" type="text/plain" data-source-sha256="…">` blocks**, with
+    a lead comment, after `font-carlito-700` in `src/index.html`.
+    - Names: `KXTAIS+InterPDF-Regular`, `PJIXRL+InterPDF-Medium`, `MNBNVH+InterPDF-SemiBold`,
+      `XYNXFM+InterPDF-Bold`. The tag is a hash of the tool's format, the source, the weight and
+      the codepoint set.
+    - 229 glyphs each. TrueType 17,968 / 18,004 / 18,104 / 18,088 bytes; zlib about 12.1–12.3 KB
+      each.
+    - Program sha256 `90266e2b…` / `9be4e1d7…` / `e15b85db…` / `33a14552…`.
+  - **`LICENSE-Inter.txt`.** Its OFL body is byte-identical to `LICENSE-Carlito.txt`'s. Inter's
+    licence has NO Reserved Font Name: nameID 0 is the bare copyright line.
+  - **`tools/check-build.mjs` §8**, five checks (39/39):
+    - the four blocks exist;
+    - each was made from THIS build's Inter (the SHA-256);
+    - each is static TrueType at 2048 units/em, with no variation or layout tables and its own
+      weight class;
+    - the names are tagged and distinct;
+    - the copyright and the OFL travel with it.
+  - **`tests/harness/t/interfonts.js`**, eight cases. It is the second line of `gate.sh`'s AFSPEC
+    list.
+  - **`tools/fetch-inter.py`**: its docstring says to re-run the subsetter after it.
+- **Proof:**
+  - **The fonts are the product's ONLY change.** Removing the new section from the build (a
+    2,604-byte comment plus 66,197 bytes of blocks) reproduces the live build byte for byte
+    (sha256 `acbdc0a3…`). New build `fd7991db…`, 1,428,769 bytes: +68,801 (+5.1%), gzip +51.6 KB.
+  - **Gate 2** (the `base` leg, port 8457): the waterfall PDF is identical bar the date stamp
+    (3 streams, Carlito's two `/FontFile2` among them). 0 clipped cells, Excel parts identical.
+  - **`interfonts` 8/8.**
+    - F5: every glyph's advance, read by the FROZEN `ttfRead`/`ttfAdvance` (sliced verbatim from
+      `app.js`), is within half a unit of Chrome's own unkerned width of the app's Inter. Worst
+      0.4995 / 0.4790 / 0.4983 units; 400 is exact.
+    - The app's "Inter" measures identically to the stylesheet's WOFF2 loaded under a private
+      name, so it is the embedded font, not the installed 3.019.
+    - F6: Chrome loads each program as a font, at exactly its own advances.
+    - F7: a whole string equals the sum of its glyphs.
+  - **Mutants** (`dist` patched, then restored and `cmp`-checked):
+    - M1, a 505 instance filed as 500: F5 red (5.04 units at "…"), and `npm run check` green,
+      as designed;
+    - M2, a stale hash: F0 and `npm run check` red;
+    - M3, an untagged "Inter-Bold": F3 and `npm run check` red.
+  - **Full gate (build `fd7991db…`, port 8457): 772 PASS, 0 FAIL, GATE PASSED.** That is the
+    previous 764 plus `interfonts`' eight. Gate 10's nine month PDFs are byte-identical, one sheet
+    per month; the waterfall PDF and every Excel part are identical; `fields.byId` has 62 ids. The
+    two peer sessions held their legs while it ran.
+- ⭐ **Learned. Read this before step 3.**
+  1. **Chrome's variable advances are FRACTIONAL.** Each is an HVAR delta at a location quantized
+     to F2Dot14 before AND after avar. Modelled that way, HVAR matches Chrome 154 to 0.00012 units.
+     Unquantized, `"` at 700 reads 1129.5016 where Chrome has 1129.4929, which makes the
+     instancer's 1129 look wrong when it is right.
+     - So a static's whole-number advance is the nearest whole number to Chrome's: ≤ 0.5 units is
+       the best a TrueType program can do.
+     - A string's error is about ±0.02 px at 11 px. Kerning dwarfs it.
+  2. **Ÿ is drawn on screen but cannot be on paper.** Chrome draws it in Inter by decomposing it to
+     Y + U+0308, which this subset lacks; a PDF cannot compose glyphs. So it is one more character
+     for the plan §3.4 check, which must test the FONT's coverage, not WinAnsi's.
+  3. **Kerning, measured over 64 month-view strings:**
+     - unkerned text is 0.47% wider on average, at most 3.06% (on "AVA Today: “Way to go”"), at
+       least −0.16%;
+     - no shaping substitution occurs: a whole string equals the sum of its glyphs to 0.005 units.
+  4. **Nothing decodes the blocks at boot, deliberately**: the screen does not need them. Step 3
+     should decode them lazily at export, with `DecompressionStream`, as `loadCarlito()` does.
+     - `ttfRead(bytes).name` already yields the tagged `/BaseFont`.
+     - When the writer reads them, the `font-inter-*` ids become runtime-read ids like
+       `font-carlito-*`: add them to MANTINE-SEAM §4.5, and update the lead comment's "nothing reads
+       these".
+  5. **Environment.** This Mac has only Apple's Python 3.9.6, and fontTools 4.61+ needs 3.10. So:
+     fontTools 4.60.2 + brotli 1.2.0, hash-pinned, in a throwaway scratchpad venv (the owner
+     re-approved this session). Regenerating needs the same; the commands are in the tool's
+     docstring.
+- ⭐ **The owner's answers (picker, end of the session, 1 Oct 2026):**
+  1. **commit** step 1 locally: done, as this commit;
+  2. **don't push yet**: hold it for a later writer step or the next version cut;
+  3. **the CLAUDE.md sentence: approved as drafted**, and in this commit. The "⛔ Two fonts are
+     embedded…" paragraph now names the four static Inter programs, the re-run after
+     `fetch-inter.py`, and that touching Inter will change the month PDF once the writer ships;
+  4. **step 2 starts in a FRESH session**, from this block.
+
+### ✅ 30 Sep 2026 (night): THE DIRECT MONTH-PDF WRITER IS PLANNED AND RULED (step 1 since built, above)
 
 - **[`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) is written.** It is the plan, the
   corrected AUDIT-REPORT §9 spec, the acceptance gate and the build order. Read it before any writer
@@ -17,11 +116,10 @@
   3. **a dense month shrinks evenly** (full page width, lanes and text together), instead of today's
      vertical squash;
   4. **replace the print path**, keeping it in the file behind `MV_PDF_MODE` as a one-line rollback.
-- ⏭ **Next: plan step 1, the fonts, in a FRESH session** (owner, 30 Sep 2026, picker). It needs
-  `fonttools` + `brotli` from PyPI, installed into a throwaway virtual environment in that session's
-  scratchpad, never the system Python. ✅ **The owner approved that download on 30 Sep 2026**, in the
-  planning session. Approvals are per session, so confirm it once more before installing. Nothing is
-  installed yet.
+- ✅ **DONE 1 Oct 2026 (the block above): plan step 1, the fonts, in a FRESH session** (owner, 30 Sep
+  2026, picker). It needed `fonttools` + `brotli` from PyPI, installed into a throwaway virtual
+  environment in that session's scratchpad, never the system Python. The owner approved the download
+  on 30 Sep 2026 in the planning session, and confirmed it again in the build session.
 - ⛔ The writer is NEW code. `exportMonthPdf`, `renderMonthView`, `mvNoteLineCount`,
   `mvNoteBoxWidth`, the month/print CSS and every `pdf*`/`ttf*` primitive stay frozen. Gate 2 (the
   waterfall PDF) staying byte-identical is the proof that no shared primitive moved.

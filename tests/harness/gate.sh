@@ -1401,7 +1401,11 @@ PYS
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
+# interfonts guards the month PDF's four static Inter programs (MONTH-PDF-WRITER-PLAN.md §8 step 1,
+# 1 Oct 2026): read by the frozen ttf* functions, every glyph's advance within half a font unit of
+# the browser's own unkerned width at its weight. Second line on purpose, for the same reason.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
+              interfonts:-:60 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \

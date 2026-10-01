@@ -233,6 +233,74 @@ markup = markup.replace(/<!--[\s\S]*?-->/g, '');
 check('no inline on*= handler and no javascript: URL anywhere in the markup (neither can run under the CSP)',
   !/<[a-z][^>]*\son[a-z]+\s*=/i.test(markup) && !/(?:href|src|action)\s*=\s*["']?\s*javascript:/i.test(markup));
 
+// --- 8. The month PDF's Inter (MONTH-PDF-WRITER-PLAN.md §8 step 1) -------------------------
+// Four static TrueType programs, made by tools/subset-inter.py from the SCREEN's Inter (the variable
+// WOFF2 in src/styles/inter.css) and stored as zlib + base64 beside Carlito, for the direct month-PDF
+// writer. What a successful build cannot see, and these checks can:
+//   - a STALE font. Re-fetch the screen's Inter (tools/fetch-inter.py) without re-running the
+//     subsetter, and the PDF would print in a font the screen no longer uses. Each block records the
+//     SHA-256 of the WOFF2 it was made from; it must be the WOFF2 in this build.
+//   - a font that is not what the writer needs: a static TrueType program (PDF has no variable
+//     fonts), 2048 units per em (Inter 3.019 -- the one installed in ~/Library/Fonts under the same
+//     names -- is 2816), and a distinct, subset-tagged PostScript name, which frozen ttfRead() turns
+//     into the PDF's /BaseFont.
+// Glyph coverage and every advance are proved against the browser itself by the `interfonts` leg.
+const INTER_WEIGHTS = { 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold' };
+const woffs = [...src.matchAll(/url\(["']?data:font\/woff2;base64,([A-Za-z0-9+/=]+)["']?\)/g)];
+const woffSha = woffs.length === 1 ? crypto.createHash('sha256').update(Buffer.from(woffs[0][1], 'base64')).digest('hex') : null;
+const interFonts = Object.keys(INTER_WEIGHTS).map((w) => {
+  const m = src.match(new RegExp(`<script id="font-inter-${w}" type="text/plain"([^>]*)>([\\s\\S]*?)</script>`));
+  if (!m) return { w, missing: true };
+  const sha = (m[1].match(/data-source-sha256="([0-9a-f]{64})"/) || [])[1] || null;
+  try {
+    const ttf = zlib.inflateSync(Buffer.from(m[2].replace(/\s+/g, ''), 'base64'));
+    const tables = {};
+    for (let i = 0, n = ttf.readUInt16BE(4); i < n; i++) {
+      const o = 12 + i * 16;
+      tables[ttf.toString('latin1', o, o + 4)] = { off: ttf.readUInt32BE(o + 8), len: ttf.readUInt32BE(o + 12) };
+    }
+    const names = {};
+    if (tables.name) {
+      const o = tables.name.off, strOff = o + ttf.readUInt16BE(o + 4);
+      for (let i = 0, n = ttf.readUInt16BE(o + 2); i < n; i++) {
+        const r = o + 6 + i * 12;
+        if (ttf.readUInt16BE(r) !== 3) continue;               // Windows Unicode records, UTF-16BE
+        const s = Buffer.from(ttf.subarray(strOff + ttf.readUInt16BE(r + 10), strOff + ttf.readUInt16BE(r + 10) + ttf.readUInt16BE(r + 8)));
+        names[ttf.readUInt16BE(r + 6)] = s.swap16().toString('utf16le');
+      }
+    }
+    return {
+      w, sha, sfnt: ttf.readUInt32BE(0), tables: Object.keys(tables),
+      upm: tables.head ? ttf.readUInt16BE(tables.head.off + 18) : null,
+      weightClass: tables['OS/2'] ? ttf.readUInt16BE(tables['OS/2'].off + 4) : null,
+      ps: names[6] || null, copyright: names[0] || '', licence: names[13] || '',
+    };
+  } catch (e) {
+    return { w, sha, error: String(e.message || e) };
+  }
+});
+check('four Inter PDF fonts embedded (font-inter-400/500/600/700, text/plain)',
+  interFonts.every((f) => !f.missing && !f.error),
+  interFonts.filter((f) => f.missing || f.error).map((f) => `${f.w}: ${f.missing ? 'missing' : f.error}`).join('; '));
+check('each Inter PDF font was made from the Inter in THIS build (re-run tools/subset-inter.py after fetch-inter.py)',
+  !!woffSha && interFonts.every((f) => f.sha === woffSha),
+  woffSha ? `stylesheet WOFF2 ${woffSha.slice(0, 16)}...; blocks ${[...new Set(interFonts.map((f) => (f.sha || 'none').slice(0, 16)))].join(', ')}`
+          : `${woffs.length} woff2 data: URIs in the build (expected exactly 1)`);
+const VARIABLE_OR_SHAPING = ['fvar', 'gvar', 'HVAR', 'MVAR', 'avar', 'cvar', 'STAT', 'GSUB', 'GPOS', 'GDEF', 'CFF ', 'CFF2'];
+check('each is a static TrueType program: 2048 units/em, glyf outlines, no variation or layout tables, its own weight class',
+  interFonts.every((f) => f.sfnt === 0x00010000 && f.upm === 2048 && f.tables && f.tables.includes('glyf') &&
+    ['head', 'hhea', 'hmtx', 'maxp', 'loca', 'cmap', 'name', 'OS/2', 'post'].every((t) => f.tables.includes(t)) &&
+    !VARIABLE_OR_SHAPING.some((t) => f.tables.includes(t)) && String(f.weightClass) === f.w),
+  interFonts.map((f) => `${f.w}: upm ${f.upm} wt ${f.weightClass}`).join('; '));
+check('their PostScript names are distinct and subset-tagged (ABCDEF+InterPDF-<style>)',
+  interFonts.every((f) => f.ps === `${(f.ps || '').slice(0, 6)}+InterPDF-${INTER_WEIGHTS[f.w]}` && /^[A-Z]{6}\+/.test(f.ps || '')) &&
+    new Set(interFonts.map((f) => (f.ps || '').slice(0, 6))).size === 4,
+  interFonts.map((f) => f.ps).join(', '));
+check("Inter's copyright notice and the SIL OFL travel with it (in each program, and in the file)",
+  interFonts.every((f) => /The Inter Project Authors/.test(f.copyright) && /SIL Open Font License/.test(f.licence)) &&
+    src.includes('Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)') &&
+    src.includes('SIL OPEN FONT LICENSE Version 1.1'));
+
 // --- report -------------------------------------------------------------------------------
 console.log('\n=== check-build: dist/index.html ===');
 console.log(`    ${bytes.toLocaleString()} bytes raw . ${gzip.toLocaleString()} bytes gzip\n`);

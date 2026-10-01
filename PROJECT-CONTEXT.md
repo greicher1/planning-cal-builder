@@ -52,6 +52,12 @@ is a global — see §11).
 - The **Carlito font is embedded** (base64 of a zlib'd TrueType subset, ~94 KB, 14% of the file)
   rather than fetched, so text measurement cannot drift. `tools/subset-font.py` regenerates it.
   This replaced a Google Fonts dependency — see §9a for why that mattered enough to inline 94 KB.
+- **The build also embeds Inter, twice.** The chrome's Inter is one variable WOFF2 in
+  `src/styles/inter.css` (`tools/fetch-inter.py`). Since 1 Oct 2026, four **static** Inter programs
+  (400/500/600/700, WinAnsi, ~66 KB of base64, `font-inter-*` in `src/index.html`) sit beside
+  Carlito for the direct month-PDF writer. `tools/subset-inter.py` instances them from that same
+  WOFF2, because a PDF cannot use a variable font. Re-run it whenever the stylesheet's Inter changes:
+  each block records its source's SHA-256, and `npm run check` fails until they agree.
 
 > ⚠️ **"Saved calendars are copies of `index.html`" is no longer true, and that change is recent.**
 > As of v1.1.0 **Save writes `.sptcal`** — the state as JSON, ~4.5 KB. The old full-copy format

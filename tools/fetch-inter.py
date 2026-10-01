@@ -12,6 +12,9 @@ Carlito feeds the frozen WIDTH MODEL for the grid and the Excel/PDF writers; Int
 
 Usage:  python3 tools/fetch-inter.py
 Then:   npm run build, and re-run the metric check in HANDOFF (the four canvas widths).
+⛔ And re-run tools/subset-inter.py. The month PDF's four static Inter programs (src/index.html,
+font-inter-*) are instanced FROM the file this writes, and each records its SHA-256, so
+`npm run check` fails until they are rebuilt from the new one (MONTH-PDF-WRITER-PLAN.md §8 step 1).
 """
 import base64, pathlib, re, sys, urllib.request
 
