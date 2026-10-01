@@ -68,6 +68,34 @@ hold on `c788c15` (see that session's block). The owner was asked again, and cho
   `c788c15`. The merge had no conflicts. Its code is exactly the 805/0-gated `bd0c133` + this
   change, and only docs differ. On the merged build: `npm run check` 40/40, `launchopen` 16/16,
   `filekeys` 16/16, `interfonts` 8/8.
+- ✅ **On the owner's Mac (macOS 15.7.9) after the push:**
+  - Chrome rewrote `~/Applications/Chrome Apps.localized/SPTCal.app/Contents/Info.plist` at
+    11:11, a minute after the push. It now carries `CFBundleDocumentTypes` = `.sptcal` /
+    `application/x-sptcal`.
+  - Launch Services reports SPTCal.app as the app that OPENS a `.sptcal`
+    (`NSWorkspace URLForApplicationToOpenURL`). So a double-click should need no "Open With";
+    that is not yet confirmed by a real double-click.
+- ⛔ **The FILE ICON cannot come from the web app** (owner asked, 1 Oct 2026). A `.sptcal` shows a
+  blank page in Finder.
+  - Chromium's `ParseFileHandler` parses `action`, `name`, `accept` and `launch_type`, and **no
+    `icons`**.
+  - The Mac shim's document type gets extensions + MIME types only: no `CFBundleTypeIconFile`, no
+    `CFBundleTypeIconSystemGenerated` (`web_app_shortcut_creator.mm`).
+  - Do not edit that shim. Chrome rewrites it on every manifest or OS-integration change (it did
+    today), and it is a signed bundle.
+  - ✅ **What DOES work, measured on the owner's Mac.** A separate do-nothing helper `.app`,
+    declaring only `UTExportedTypeDeclarations` for `sptcal` with a `UTTypeIconFile`:
+    - Finder drew the SPTCal icon at once;
+    - SPTCal.app stayed the opener;
+    - unregistered (`lsregister -u`) and deleted, everything went back to the dynamic UTI and the
+      blank page, and the `lsregister -dump` count was 0.
+  - Shipping it would mean native code outside the single file, an Apple Developer ID plus
+    notarization, a one-time install for each Mac user, a designed DOCUMENT icon (the test reused
+    the app icon, so a file looked exactly like the app), and a separate answer for Windows.
+  - The `UTTypeIcons` badge-on-page variant rendered identically, probably from the icon cache: it
+    is untested, not disproved.
+  - ⚠️ A real type identifier must be reverse-DNS under a domain the owner controls (e.g. the
+    `github.io` one). Keep company names out of it (the confidentiality rule).
 - ⏭ **Owed after the push (the harness cannot do these):**
   - On the owner's real install: double-click a `.sptcal`, see Chrome's prompt, and confirm it loads.
   - Whether a Mac double-click opens SPTCal without "Open With".
