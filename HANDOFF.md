@@ -4,11 +4,160 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 4, THE FIT AND THE A/B LEG — BUILT AND PROVEN (session "SPT Planning Calendar Builder month-pdf-writer step 4")
+
+- ⏭ **RESUME HERE.** Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
+  **Step 5 waits for the owner's go-ahead**, in a fresh session: the save path, the
+  printable-characters check, the routing (ruling 4), the seven legs retargeted, and `cspproof`.
+  Read the plan's step-4 notes first: "For step 5" holds three obligations.
+- **State:** built on branch `month-fit` in `.claude/worktrees/month-fit`, cut from `main` at `cf3188e`.
+  ONE local commit (this one), and `main` fast-forwarded to it. **Not pushed.** The owner's picker,
+  1 Oct 2026: "Commit, fast-forward main" and "Don't push; hold it". The worktree is merged; remove it only
+  if the owner asks. The writer's earlier commits (`f19201a`, `c788c15`, `39bfb7e`,
+  `cf3188e`) are still local only; the owner holds them. The owner's
+  `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` (untracked, main checkout) is left alone.
+- ⭐ **The owner's four rulings (picker, 1 Oct 2026, before any code), all as recommended:**
+  1. **"Weeks only, lines stay."** In a month too dense for one sheet, every height and text size
+     INSIDE the weeks scales by one factor: lanes, gaps, vertical paddings, the note line height,
+     all the text, the pills' corners. Widths, side paddings, the 2 px grid and the bars' 1 px rims
+     stay. The header, month bar and weekday row print as on every other page.
+  2. **"No floor."** Every month fits one sheet, however dense.
+  3. **"Re-wrap."** Notes re-wrap at the shrunk size and each week is re-packed, so the factor is the
+     largest at which the month fits.
+  4. **"Full height"** (step 3 ⭐1): an emptied hiatus band prints as tall as a labelled one (19 px
+     at full size), not print's 4 px strip.
+- **Settled before any code, from measurement** (a throwaway probe on tier 1 and tier 2: 244 months,
+  1,257 weeks), and put to the owner without a ruling:
+  - **A month that fits uses the print path's rule verbatim.** 1,200 weeks get the fit table's basis
+    and grow exactly, and in the 202 months where every week does, the rows equal Chrome's to 0.016 px.
+    The other 57 hold a note the print path MEASURED at another width than it prints.
+  - **The tolerances:** structure and text exact; lines against the real print within 1 CSS px. ⚠️
+    That 1 px turned out 0.11 px too tight: see ⭐2 below. It is now 1.5 px, and the owner is told.
+- **Built:**
+  - **`src/legacy/app.js`, the writer only:**
+    - the fit (`fitMonthLayout`, `mvlFitMonth`, `mvlWeekNeed`, `mvlShareRows`, `mvlShrinkWeeks`,
+      `mvlFitNumbers`), just before `buildMonthPdf`;
+    - `mvlWeekPaint(k)`, every size the emitter uses inside a week, at k = 1 exactly `MVL_PAINT`;
+    - `mvlFrame`, one header-and-room computation for the fit and the emitter;
+    - ruling 5 in `mvlBarHeight`.
+
+    The minifier still drops the whole writer.
+  - **Harness:**
+    - **`t/monthwriter.js`** (12 cases). Three oracles that are not the writer's code: the print
+      path's fit table; its measurement re-run exactly as `exportMonthPdf` runs it; and Chrome's
+      layout of the writer's own decisions (re-spanned lanes, the writer's lines, the writer's rows,
+      a shrunk month restyled at its factor). It ends with the documents in print state.
+    - **`monthab.py`**, the A/B judge, P0–P5 against Chrome's real print, plus the pixel report and
+      contact sheets for the owner.
+    - **`gate.sh`:** a monthwriter block with eight runs and the time-zone and window controls.
+    - **`t/monthemit.js`:** its oracle gives an emptied bar its line box (a zero-width space, the
+      ruled band), and its F0 counts `fitMonthLayout`.
+  - **Docs:** the plan (the rulings, "As built", the step-5 notes, §5 item 7); MANTINE-SEAM §5.4 (the
+    fit's copies of the print path's numbers, now checked); the harness README; the README changelog.
+- **Proof:**
+  - **`monthwriter` 12/12 on tier 1** (8 documents, 124 months, 636 weeks):
+    - 614 weeks keep the table, and the 16 that do not are all explained (8 by a span, 8 by lines);
+    - 107 months whose weeks all keep the table have Chrome's rows to 0.0149 px;
+    - in every month that fits, the rule over Chrome's own measure gives the writer's rows exactly;
+    - every box is where Chrome lays out the writer's decisions to 0.0202 px, starts to 0.0202 px,
+      baselines to 0.0077 px;
+    - month-lanecap's August shrinks to 30/64, with its 25 re-wrapped notes equal to Chrome's breaker
+      on the PDF's program;
+    - 3 blank bands at full height.
+
+    **12/12 on all eight tier-2 calendars**, captured fresh. Shrunk: monthscale's August (39/64,
+    print 0.588, 42 notes re-wrapped) and month-dense60's (49/64, print 0.783, 60 notes).
+  - **`monthab.py` P0–P5 green on tier 1 and all eight tier-2 calendars.**
+    - P4: text tokens identical on every page of both files, the shrunk months included.
+    - P5: lines within 1.5 px in every month that keeps today's fit; worst 1.108 px on tier 1 and
+      tier 2.
+    - Pixels, reported only: 0.9–1.4% of a kept month's pixels differ (kerning, and edges snapped to
+      whole pixels), up to 4.3% in a month with a re-laid-out week, and 12–20% in a shrunk one.
+  - **Controls:**
+    - every writer file byte-identical under `TZ=Pacific/Kiritimati`, tier 1 and a fresh capture;
+    - from a 1600 and a 1280 px window, the writer's files are byte-identical for notewrap,
+      monthnotes and monthscale, while all three print documents differ.
+  - **Red on 23 mutants**, each in the case meant to catch it. 19 hit the fit and the scaled paint:
+    - the rule: grow by nice for all (A0, A2); the floor 55 (A0, A2); 3 nice lanes (A0, A2); the top
+      line in the basis (A0, A2); the room past the frame's foot (A1, A2, A3); equal shares (A1, A2);
+      the month bar without its line (A1, A2, A3);
+    - the shrink: no re-wrap (A3, A4); not the largest factor (A4); 100ths (A3, A4); no re-pack (A4);
+      the top line lost (A4); no slack sharing (A3, A4);
+    - the paint: rims thinning (A3, A4); the cell padding, the strut or the note line height not
+      scaling (A3); a bar's side padding scaling (A3);
+    - the 4 px band (A3, A5).
+
+    The other 4 hit the judge: a dropped page (P1), a pill's label missing (P4), the week lines 2 px
+    low (P5), the wrong month label (P3, P4). All ran on a COPY via `HARNESS_QUERY=src=…`, and
+    `src/legacy/app.js` was hash-checked untouched (`d3c25390…`).
+  - **The older legs:**
+    - `monthemit` 16/16 on tier 1 and `colswap-simpost-refuse`. Its 14 files are byte-identical to
+      step 3's, bar `hiatus-blanklabel`, which differs only by the ruled band; that was measured by
+      running step 3's own leg on step 3's own source.
+    - `monthlayout` 14/14 in both modes.
+    - Tier 3: all ten `xss-*` calendars fit and print with no throw. Only E0 is red, for the app's own
+      sanitiser warning on load.
+  - **The build is byte-identical to `main`'s** (`f0115600…`, 1,433,765 bytes). `npm run check` 40/40.
+  - ✅ **Full gate on build `f0115600…` (worktree, port 8483): 1,072 PASS, 0 FAIL, GATE
+    PASSED.**
+    - That is step 3's 916 plus `monthwriter`'s 156: eight runs of 12 cases and the judge's six, the
+      zone and window confirmations, and ten cross-run file checks.
+    - Gate 2: the waterfall PDF is identical bar the date stamp, every Excel part is identical,
+      0 clipped cells, and `fields.byId` has 62 ids.
+    - Gate 10: all nine printed month documents are byte-identical, one sheet per month.
+    - `monthemit` is 16/16 in all four runs, and `monthlayout` 14/14 in both.
+    - The peers held their gates.
+    - After the gate came two comment-only edits: `mvlLaneTracks`' lead comment, and a note in the
+      leg. The rebuild is the same `f0115600…`, and `monthemit`, `monthlayout` and the
+      `monthwriter` block re-ran green on the final files.
+- ⭐ **Learned. Read before step 5:**
+  1. **The shrink factor moves in 64ths, decided in the build and told to the owner.** Chrome lays
+     out on a 1/64 px grid, so at k = n/64 every scaled length is exact in Chrome and in a double,
+     and the shrunk month IS Chrome's layout of the month view at that size. At any other factor
+     Chrome truncates each scaled length, and the error adds up down a dense week: 0.86 px by the
+     76th lane of month-lanecap's August. The cost is ≤ 1.6% of the size.
+  2. **Chrome's REAL print snaps its page box to whole pixels**, not just the borders. Its frame's
+     foot lands at 753 px, so the box it lays out is about 755 px tall, not 755.528. The writer's
+     exact lines sit up to 1.108 px from it, on 13 of 200 kept months. Step 3's "≤ 0.75 px" was the
+     reference calendar alone.
+  3. **The print path's own fit disagrees with its own print in 57 of 1,257 weeks**, in both
+     directions. Ruling 2 moved one span. Elsewhere print's measuring box (the document at 996 px in
+     SCREEN media) is narrower than the printed one and wraps a note an extra line, giving rows 13 px
+     taller; and the other way round. The writer measures what it draws, so it is right where print's
+     own rows are not. The leg re-runs that measurement to tell the two apart.
+  4. **Harness traps:**
+     - a row given to Chrome as an exact fractional `height` is truncated to its 1/64 grid, and the
+       error adds up down a month, so the leg rounds the cumulative edges;
+     - a `var` after `T.done()` is hoisted without its value (again: `BASE_STYLE`);
+     - the leg must state a rule's constants itself. Mutant S3, a factor in 100ths, passed while A4
+       read the step from the writer;
+     - the print path's measurement must run BEFORE the transplanted print rules exist;
+     - the leg must remove its own stylesheets before `HARNESS_PRINT_PDF` prints;
+     - pdftotext's tokens matched exactly, so no normalisation was written; real cut labels arrive
+       with step 5's fixtures.
+  5. **For step 5:**
+     - the export loads the four fonts first, since the fit needs them all (the title's wrap sets
+       the header's height);
+     - `fitMonthLayout` throws only for a header taller than the page or an impossibly dense week:
+       route both through `uiAlert`;
+     - the window control now holds on FRESH captures, so the end-to-end leg can require the built
+       app's bytes to equal the slice's from any window, with the page's CLOCK pinned (step 3's
+       ruling 4).
+  6. **The contact sheets** are made by `python3 monthab.py monthwriter.json monthwriter.print.pdf
+     --sheets <dir>` after a `HARNESS_PRINT_PDF=1` run. Each is print | writer | difference.
+     - Red marks a pixel with no match within 1 px. On months that keep today's fit, that is text
+       (Chrome kerns, the PDF does not) and edges Chrome snaps to whole pixels.
+     - The shrunk months differ by design: print squashes them vertically; the writer shrinks them
+       evenly.
+
 ### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 3, THE EMITTER AND THE SERIALIZER — BUILT AND PROVEN (session "SPT Planning Calendar Builder month PDF writer")
 
-- ⏭ **RESUME HERE.** Step 3 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
-  **Step 4, the fit (ruling 3) and the A/B leg, waits for the owner's go-ahead**, in a fresh session.
-  Read the plan's step-3 notes first: two are for step 4, and two obligations are for step 5.
+- ⏭ **Superseded: step 4 is built (the block above).** Step 3 of
+  [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done. Its notes for step 4 are met. The
+  writer measures what it draws, so no row is too short for a note that gains a line on paper. A shrunk
+  week holds its lanes in full. Print's own 2 px top-line squeeze on a crowded week with no slack is
+  kept, by the "exactly as today" ruling. The window control holds. Its two obligations for step 5
+  still stand.
 - **State:** built on branch `month-emitter` in `.claude/worktrees/month-emitter`, cut from `main` at
   `ef06010` (v1.4.3 merged in, live at `ca4cd2d`). ONE local commit (this one), and `main`
   fast-forwarded to it. **Not pushed.** The owner's picker, 1 Oct 2026: "Commit, fast-forward main"

@@ -104,17 +104,18 @@ window.addEventListener('load', function () { (async function () {
     // ---- F0: nothing calls the writer yet ------------------------------------------------------------------
     // Every top-level name the writer declares, counted in app.js OUTSIDE the writer, comment lines skipped:
     // none may appear. And the entry points appear only as declared and as the writer itself calls them --
-    // loadInterPdfFont twice (its declaration, and buildMonthPdf's call), the two builders once each.
+    // loadInterPdfFont twice (its declaration, and buildMonthPdf's call), the two builders once each, and step 4's
+    // fitMonthLayout once: its declaration.
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var at = src.indexOf(writerSrc), outside = code(src.slice(0, at) + src.slice(at + writerSrc.length));
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
     var used = NAMES.filter(function (n) { return new RegExp('\\b' + n + '\\b').test(outside); });
-    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf('].map(function (s) { return code(src).split(s).length - 1; });
+    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
     add('F0', 'nothing outside the writer uses a name it defines, and nothing calls its entry points: the product runs exactly as before',
-        used.length === 0 && NAMES.length > 30 && NAMES.indexOf('buildMonthPdf') >= 0 && same(counts, [2, 1, 1]),
+        used.length === 0 && NAMES.length > 30 && NAMES.indexOf('buildMonthPdf') >= 0 && same(counts, [2, 1, 1, 1]),
         {usedOutside: used, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], entryPointOccurrences: [2, 1, 1]});
+        {usedOutside: [], entryPointOccurrences: [2, 1, 1, 1]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -259,6 +260,11 @@ window.addEventListener('load', function () { (async function () {
         });
       });
     });
+    // ⛔ ONE RULE THAT IS NOT THE APP'S: the owner's ruling of 1 Oct 2026 (step 4, "Full height"). A hiatus band
+    // whose label was emptied prints as tall as a labelled band, so the writer gives an empty bar its line box. Print
+    // gives it none (its bars are align-self:start, and an empty block has no line), and draws a 4 px strip. A
+    // zero-width space is that line box exactly, so Chrome lays out the RULED band and the oracle stays box for box.
+    css.push('#print-root .mv-bar:empty::before{content:"\\200B"}');
     var st = document.createElement('style');
     st.textContent = css.join('\n');
     document.head.appendChild(st);

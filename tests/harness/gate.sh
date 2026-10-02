@@ -1527,6 +1527,83 @@ for n in fa:
 sys.exit(1 if bad else 0)
 PYMF
 
+# ---- monthwriter (MONTH-PDF-WRITER-PLAN.md §8 step 4): the month-PDF writer's FIT, and the A/B against the print path
+# ⭐ ADDED 1 Oct 2026. The leg slices the writer -- model, emitter and fit -- out of src/legacy/app.js, fits every month of
+# each print document from the model alone (no DOM: owner ruling 3; the owner's step-4 rulings for a dense month: weeks
+# only, lines stay, no floor, re-wrap; an emptied band full height), and holds the fit to three oracles: the print path's
+# own fit table, the print path's measurement re-run exactly as exportMonthPdf runs it, and Chrome's layout of the
+# writer's own decisions, box for box, a shrunk month restyled at its factor (12 cases; 19 mutants, each red). It then
+# leaves the documents in print state, so HARNESS_PRINT_PDF=1 has Chrome print them, and monthab.py judges the writer's
+# files against that real print page by page (P0-P5; 4 mutants, each red). Its pixel report and contact sheets are for
+# the owner and gate nothing, so they are skipped here: python3 monthab.py ... --sheets <dir> makes them.
+#   t1    tier 1: the eight gate-10 documents (124 months; month-lanecap's August shrinks to 30/64);
+#   t1z   tier 1 under TZ=Pacific/Kiritimati (UTC+14): ⛔ every writer file byte-identical to t1's;
+#   ms/md monthscale and month-dense60, each with an August that shrinks; nw/sr notewrap and stintswap-reshape, weeks
+#         the print path measured at another width than it prints; sp colswap-simpost-refuse, Simultaneous Post. Fresh;
+#   win   notewrap again, in a 1280 x 800 window: ⛔ its writer file byte-identical to nw's, while the print DOCUMENT
+#         must differ -- the print path's note spans follow the window, the writer's do not, and a control that changed
+#         nothing would pass vacuously.
+MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
+for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
+              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap"; do
+  MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
+  MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
+  [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
+  rm -f "$HERE/monthwriter.json"
+  ( [[ -n $MWTZ ]] && export TZ="$MWTZ"; [[ -n $MWWIN ]] && export HARNESS_WINDOW="$MWWIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$MWSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthwriter 300 >/dev/null 2>&1 )
+  MWLABEL="monthwriter (${MWSTATE:-tier 1}${MWTZ:+, $MWTZ}${MWWIN:+, $MWWIN})"
+  python3 - "$HERE/monthwriter.json" "$MWLABEL" "$MWTZ" "$MWWIN" <<'PYMW' || FAIL=1
+import json,sys
+path, label, tz, win = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+bad = not cases or not all(c.get('pass') is True for c in cases)
+if tz:
+    z = (info.get('tz') or {}).get('zone')
+    print(('  PASS  ' if z == tz else '  FAIL  ')+label+': the leg ran in '+str(z)); bad = bad or z != tz
+if win:
+    w = (info.get('window') or [None])[0]
+    print(('  PASS  ' if str(w) == win.split(',')[0] else '  FAIL  ')+label+': the window was '+str(w)+' wide'); bad = bad or str(w) != win.split(',')[0]
+sys.exit(1 if bad else 0)
+PYMW
+  mkdir -p "$MWA/$MWRUN"; cp "$HERE"/monthwriter.*.pdf "$HERE/monthwriter.json" "$MWA/$MWRUN"/ 2>/dev/null
+  python3 "$HERE/monthab.py" "$HERE/monthwriter.json" "$HERE/monthwriter.print.pdf" --label "$MWLABEL" --no-pixels \
+    > "$MWA/$MWRUN.judge" 2>&1
+  MWRC=$?
+  grep -v '^  INFO' "$MWA/$MWRUN.judge"
+  (( MWRC == 0 )) || FAIL=1
+done
+python3 - "$MWA" <<'PYMWC' || FAIL=1
+import json, os, sys
+root = sys.argv[1]
+bad = 0
+def chk(cond, msg):
+    global bad
+    print(('  PASS  ' if cond else '  FAIL  ') + msg); bad += 0 if cond else 1
+def files(run):
+    d = os.path.join(root, run)
+    return {n: open(os.path.join(d, n), 'rb').read() for n in sorted(os.listdir(d)) if n.endswith('.pdf') and n != 'monthwriter.print.pdf'}
+a, z = files('t1'), files('t1z')
+chk(len(a) == 8 and sorted(a) == sorted(z), 'monthwriter files: the same %d tier-1 files from both time zones' % len(a))
+for n in a:
+    chk(n in z and a[n] == z[n], 'monthwriter %s: byte-identical in UTC+14' % n.replace('monthwriter.', '').replace('.pdf', ''))
+nw, wn = files('nw'), files('win')
+docs = [json.load(open(os.path.join(root, r, 'monthwriter.json'))).get('info', {}).get('docHash') for r in ('nw', 'win')]
+same = 'monthwriter.notewrap.pdf' in nw and nw.get('monthwriter.notewrap.pdf') == wn.get('monthwriter.notewrap.pdf')
+chk(same and docs[0] and docs[1] and docs[0] != docs[1],
+    'monthwriter (notewrap): the writer\'s file byte-identical from a 1600 and a 1280 px window, while the print document differs (%s vs %s)'
+    % (docs[0], docs[1]))
+sys.exit(1 if bad else 0)
+PYMWC
+
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
 # above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under

@@ -1,11 +1,12 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 🔨 **STEPS 1 TO 3 OF 6 BUILT (the fonts, the layout model, and the emitter and serializer,
-1 Oct 2026); nothing in the product calls the writer yet.** It writes a valid month PDF from a layout
-that carries its row heights, and the step-3 leg holds every box it draws to Chrome's own print layout.
-✅ **All four rulings received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months
-shrink evenly, and replace the print path while keeping a rollback. Next: step 4, the fit (§8), on
-the owner's go-ahead.
+**Status:** 🔨 **STEPS 1 TO 4 OF 6 BUILT (the fonts, the layout model, the emitter and serializer, and
+the fit, 1 Oct 2026); nothing in the product calls the writer yet.** It writes a valid month PDF from
+the model alone. A month that fits gets the print path's own rows (Chrome's to 0.02 px wherever print
+measured its notes as the writer lays them out), a dense month shrinks evenly, and the A/B leg holds
+the writer's file to Chrome's real print page by page. ✅ **All four rulings received, 30 Sep 2026**
+(§6): Inter, the PDF's own cell width, dense months shrink evenly, and replace the print path while
+keeping a rollback. Next: step 5, the save path and the routing (§8), on the owner's go-ahead.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -253,7 +254,20 @@ Nothing ships on "it looks right". In order of strength:
    (0.03 px) and baseline by baseline, and to Chrome's computed styles. It holds the bytes to their
    structure, the fixed font programs and the exact `/Widths`, and requires them byte-identical
    across time zones and windows, read clean by poppler. 24 mutants turn it red. Steps 4 and 5 build
-   on it; it does not replace the A/B leg above.
+   on it; it does not replace the A/B leg above. Since step 4 its oracle gives an emptied band its line
+   box (ruling 5), and its F0 counts `fitMonthLayout`.
+7. **Built at step 4: the A/B leg, `monthwriter` plus the judge `monthab.py`**, in `gate.sh` eight
+   times:
+   - tier 1, and tier 1 again in UTC+14, its files byte-identical;
+   - `monthscale`, `month-dense60`, `notewrap`, `stintswap-reshape` and `colswap-simpost-refuse`, each
+     captured fresh;
+   - `notewrap` in a 1280 px window: its file byte-identical, while the print document differs.
+
+   The leg fits every document from the model and holds the fit to three oracles: the print path's
+   own fit table, the print path's measurement re-run, and Chrome's layout of the writer's own
+   decisions (12 cases, 19 mutants). It then leaves the documents in print state. The judge holds the
+   writer's files to Chrome's real print of them (P0–P5, 4 mutants). Item 2 above is that leg; its
+   pixels and contact sheets are a report, made with `--sheets`.
 
 **Fixtures:**
 - **Tier 1 (must pass):** the nine gate-10 calendars.
@@ -450,7 +464,101 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
    - **Kerning, measured:** Chrome kerns and the PDF does not, so Chrome's text runs up to 1.8 px
      narrower on a date stamp, 1.4 px on a highlighted subtitle and 0.7 px on a bar label. The leg
      corrects each anchor by the difference Chrome reports rather than tolerating it.
-4. **The fit** (ruling 3), and the A/B leg against the print path. Contact sheets go to the owner.
+4. ✅ **The fit** (ruling 3), and the A/B leg against the print path (built 1 Oct 2026; detail and proof
+   in HANDOFF's top block). Contact sheets go to the owner.
+   - **The owner's four rulings for this step (picker, 1 Oct 2026, before any code), all as
+     recommended:**
+     1. **What shrinks: "Weeks only, lines stay."** In a month too dense for one sheet, every height
+        and text size INSIDE the weeks scales by one factor: lanes, gaps, the bar layer's top and
+        bottom padding, the bars' vertical padding, the note line height, the day numbers, the ½,
+        pill, band, tag and note text, the pills' corners. Column widths, side paddings and margins
+        stay, so the month keeps the full page width, and so do the 2 px grid lines and the bars'
+        1 px rims. The header, the month bar and the weekday row print as on every other page.
+     2. **"No floor."** Every month fits one sheet, however dense, as today.
+     3. **"Re-wrap."** At a shrunk size the notes are re-wrapped (smaller text in the same box) and
+        the week re-packed, so the factor is the largest one at which the month fits: a search, not
+        a formula. Measured before any code: month-lanecap's August 0.31 → 0.48, monthscale's August
+        0.57 → 0.61, month-dense60's August 0.77 either way (print squashes them to 0.29, 0.59 and
+        0.78 today).
+     4. **The blank band (step 3 ⭐1): "Full height."** A hiatus band whose label was emptied prints as
+        tall as a labelled band (19 px at full size), as the screen shows it, not as print's 4 px
+        strip. A deliberate difference from today's print, listed by the A/B leg.
+   - **Settled before any code, from measurement** (the fit's rule run against Chrome's print layout
+     of tier 1 and tier 2: 244 months, 1,257 weeks):
+     - **A month that fits uses the print path's own rule verbatim**: a week's basis is its bar
+       layer's height (the week's top line inside it), at least 57 px; the 4-lane "nice" height and
+       its grow weights; Chrome's flex share of the slack. 1,200 weeks get exactly the fit table's
+       basis and grow, and in the 202 months where every week does, the writer's rows equal Chrome's
+       to 0.016 px (its 1/64 px grid). The other 57 weeks, in 39 months, hold a note the print path
+       MEASURED at another width than it prints: ruling 2's "Writer's Room Opens 1/5/26" (2 lanes, not
+       1), or print's narrower measuring box wrapping a note one line more (or fewer) than it prints.
+       They move by up to 13 px, and the rest of their month by up to 3.6 px.
+     - Kept from print as it is: a crowded week with no slack loses 2 px across its lanes (its top
+       line sits inside its basis). Tier 1 never hits it; two tier-2 weeks do; it does not show. One
+       deliberate difference: the writer's "it fits" test counts the frame's bottom line, which
+       print's does not, so the frame can never be cut.
+     - **The A/B leg's tolerances**: structure, items and text tokens exact. Against Chrome's real
+       print PDF, read from both files' vector coordinates: every line and box of a month whose weeks
+       all keep today's fit within 1 CSS px (Chrome's 30 px margins, 756 px page box and whole-pixel
+       borders, ≤ 0.75 px at step 3). ⚠️ That proved 0.11 px too tight once measured on every such
+       month, so it is now 1.5 px; see "Found for the A/B" below. Text positions are not gated
+       (kerning, ≤ 1.8 px). Pixels are the
+       owner's review artefact: pdftoppm at 96 dpi, a heat map with a 1 px tolerance, contact sheets.
+       The window control: the same calendar captured fresh at 1600×1200 and 1280×800 must give
+       byte-identical writer PDFs while the two print documents differ.
+   - **As built:** one subsection of `src/legacy/app.js`, just before `buildMonthPdf`, plus the
+     emitter reading every size inside a week from one place.
+     - `fitMonthLayout(layout, fonts)`: a NEW layout with `fit` on every month: `{mode, scale, rows,
+       basis, grow, room}`. A shrunk month's weeks also come back re-wrapped and re-packed. Pure
+       (JSON in, JSON out), sync, and called by nothing until step 5.
+     - `mvlFitMonth`, `mvlWeekNeed` (a bar layer's height, `exportMonthPdf`'s reqH), `mvlShareRows`
+       (Chrome's flex-grow share), `mvlShrinkWeeks` (re-wrap and re-pack at k), and `mvlFitNumbers`.
+       The last is a FUNCTION, not a const: a frozen object built at boot made the minifier keep
+       `MVL_PAINT` (+1,247 bytes), and the build must stay byte-identical until step 5.
+     - `mvlWeekPaint(k)`: every size the emitter uses inside a week, scaled per ruling 1 (at k = 1 it
+       IS `MVL_PAINT`, exactly). `mvlFrame(month, fonts)`: the header, month bar and weekday row, and
+       the room the weeks share, one function for the fit and the emitter. `mvlBarHeight`,
+       `mvlLaneTracks` and `mvlPaintBar` take the week paint.
+     - **Ruling 5 in `mvlBarHeight`:** a bar with no text keeps its line box.
+   - ⭐ **One decision taken in the build, for the owner to know: the factor moves in 64ths**
+     (k = n/64, the largest n that fits). Chrome lays a page out on a 1/64 px grid, so at such a
+     factor every scaled length (k times a whole number of px) is one Chrome holds exactly, and so
+     does a double. The shrunk month is then EXACTLY the layout Chrome gives the month view at that
+     size, which is what the A/B leg holds it to, box for box. At any other factor Chrome truncates
+     each scaled length to its grid, and the error adds up down a dense week: 0.86 px by the 76th
+     lane of month-lanecap's August, measured. The cost is at most 1/64 of the size (1.6%). The
+     search is six halvings, not forty. The factors on the fixtures:
+
+     | Month | Writer | Print path's squash |
+     |---|---|---|
+     | month-lanecap, August | 30/64 = 0.469 | 0.288 |
+     | monthscale, August | 39/64 = 0.609 | 0.588 |
+     | month-dense60, August | 49/64 = 0.766 | 0.783 |
+
+     dense60's factor is a little under print's because the 2 px lines and 1 px rims do not shrink.
+   - ⚠️ **Found for the A/B (P5): Chrome's real print snaps its page box to whole pixels.** Its
+     frame's foot lands at 753 px, so the box it lays out is about 755 px tall, not 8 mm's 755.528.
+     It also snaps every border to a whole pixel. The writer's exact 8 mm lines therefore sit up to
+     1.108 px from the real print's. That was measured on the 200 months of tier 1 and tier 2 that
+     keep today's fit, 13 of them at the maximum. The 1 px tolerance first proposed was too tight;
+     P5 holds the lines to 1.5 px. The exact geometry is held far tighter elsewhere, against Chrome's
+     layout of the same box: A1 holds rows to 0.02 px and A3 holds boxes to 0.03 px.
+   - ⚠️ **The text needed no normalisation.** Every page of tier 1 and tier 2, the shrunk months
+     included, gives the same whitespace-token multiset in both files. So P4 is strict, and the
+     hyphenation and "…" normalisation §5.2 anticipated is not written. The step-5 fixture with
+     labels long enough to ellipsise will be its first real test.
+   - **Tier 3:** all ten `xss-*` calendars fit and print with no throw. Every fit and A/B check is
+     green; only E0 is red, for the app's own sanitiser warning on load, which every leg sees for
+     these files.
+   - **For step 5:**
+     - The fit needs all four programs, because the header's height depends on how its title wraps.
+       So the export loads the four fonts, then runs `buildMonthLayout`, `fitMonthLayout` and
+       `buildMonthPdf`.
+     - `fitMonthLayout` throws only on a header taller than the page, or a week so dense that even
+       1/64 cannot hold it (each bar's 1 px rims do not shrink). Step 5 must route both through
+       `uiAlert`.
+     - The window control now holds on fresh captures, so step 5's end-to-end leg can require the
+       BUILT app's bytes to equal the slice's from any window.
 5. **The save path, the printable-characters check and the routing** (ruling 4), with the seven legs
    retargeted and `cspproof`.
 6. **Baselines,** cut after the owner's sign-off. Then the full gate, the README changelog, HANDOFF,

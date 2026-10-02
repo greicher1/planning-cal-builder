@@ -17477,6 +17477,41 @@ export function initLegacyApp() {
     italicSkew: 0.25,              // Chrome's synthetic oblique, since the app's Inter has no italic face
   };
 
+  // ---- A week's sizes at a shrink factor k (ruling 3(b): MONTH-PDF-WRITER-PLAN.md §8 step 4) ----
+  // Everything the emitter sizes INSIDE a week, read from here and never from MVL_PAINT directly, so a
+  // month too dense for one sheet is drawn with the same code at a smaller size. Owner's rulings, 1 Oct
+  // 2026 ("Weeks only, lines stay"):
+  //  - SCALED by k: every height and every text size inside the weeks: the bar layer's top and bottom
+  //    padding, the lanes and their gaps, the bars' vertical padding, the note line height, the pill,
+  //    band, tag, note and day-number text, the cell's top padding and its 14 px strut, the pills'
+  //    corners (a corner is part of the pill's shape, and the pill gets shorter);
+  //  - KEPT: every width (the columns, the bars' side padding and margins, the cell's left padding, the
+  //    tag's and the ½'s gaps), so the month keeps the full page width and a note wraps in the same box;
+  //    and every LINE WEIGHT, the 2 px grid (MVL_PAINT.line, not here) and the bars' 1 px rims: thinner
+  //    lines are what faded in viewers (the 24 Sep 2026 frozen print edit), which is why today's print
+  //    path counter-scales its squashed lines back to 2 px;
+  //  - and outside the weeks nothing: the header, the month bar and the weekday row print as on every
+  //    other page.
+  // ⛔ At k = 1 every number here IS MVL_PAINT's (x * 1 === x exactly), so a month that fits draws byte
+  // for byte as step 3's emitter drew it. The monthemit leg holds that.
+  function mvlWeekPaint(k){
+    const P = MVL_PAINT, G = MVL_GEOMETRY, B = P.bar;
+    return {
+      k: k, lineHeight: P.lineHeight,
+      barsPadTop: P.barsPadTop * k, barsPadBottom: P.barsPadBottom * k, barsPadX: P.barsPadX,
+      laneMin: P.laneMin * k, laneGap: P.laneGap * k,
+      bar: { size: B.size * k, weight: B.weight, padY: B.padY * k, padX: B.padX, marginX: B.marginX,
+             border: B.border, borderAlpha: B.borderAlpha, radius: B.radius * k },
+      note: { weight: P.note.weight, padY: P.note.padY * k, padX: P.note.padX,
+              size: G.noteFontPx * k, lineH: G.noteLinePx * k },
+      tag: { size: P.tag.size * k, weight: P.tag.weight, ink: P.tag.ink, gap: P.tag.gap },
+      cellPadTop: P.cellPadTop * k, cellPadLeft: P.cellPadLeft, cellStrut: P.cellStrut * k,
+      dayNum: { size: P.dayNum.size * k, weight: P.dayNum.weight, ink: P.dayNum.ink, onInk: P.dayNum.onInk,
+                outAlpha: P.dayNum.outAlpha, offAlpha: P.dayNum.offAlpha },
+      half: P.half, strike: P.strike, halfShade: P.halfShade,
+    };
+  }
+
   // ---- Colour: what the renderer writes, as 0-1 RGB, and opacity mixed in ----
   // pdfRgb() is not used: it reads six-digit hex only, so '#333' came out navy and rgba() wrote NaN
   // (plan §2.2). The renderer writes #rrggbb (every stored colour is checked by isHexColor) and '#eee'
@@ -17641,24 +17676,29 @@ export function initLegacyApp() {
   // the lanes are squeezed toward 17 px and every bar below moves up. The print path makes such rows:
   // its fit measures a week at a wider box than it prints, so a note that gains a line on paper
   // overruns its row (measured on tier 2: four calendars, lanes of 17 to 18.3 px instead of 19).
-  // Step 4's fit gives every row room for its lanes, and then every lane reaches its limit.
-  // `availH` is the bar layer's content height; Infinity means "as tall as the lanes want".
-  // ⚠️ A bar with no text has NO LINE BOX: a hiatus band whose label was emptied (audit N-1) is its
-  // padding and border alone, 4 px, at the top of its 17 px lane. That is what print draws, measured.
-  function mvlBarHeight(it){
-    const P = MVL_PAINT, B = P.bar, G = MVL_GEOMETRY;
-    if(it.kind === 'note') return it.lines.length * G.noteLinePx + 2 * (P.note.padY + B.border);
-    const blank = mvlFlat(it.text) === '' && mvlFlat(it.tag || '') === '';
-    return (blank ? 0 : B.size * P.lineHeight) + 2 * (B.padY + B.border);
+  // Step 4's fit computes every row from these same lanes, so no row is short of a line any more. A
+  // shrunk week holds its lanes in full; a month that fits keeps print's rule, in which a week's top line
+  // sits inside its basis, so a crowded week with no slack still loses 2 px across its lanes, as today.
+  // `availH` is the bar layer's content height; Infinity means "as tall as the lanes want". `S` is the
+  // week's paint (mvlWeekPaint): the sizes at the month's shrink factor.
+  // ⛔ A BAR WITH NO TEXT KEEPS ITS LINE BOX (owner ruling, 1 Oct 2026, "Full height"). A hiatus band
+  // whose label was emptied (audit N-1) prints as tall as a labelled band, as the screen shows it. Today's
+  // print path draws it 4 px tall, its padding and border alone at the top of its 17 px lane, because in
+  // print an empty bar has no line box (bars are align-self:start there). That was a quirk of the print
+  // path, raised at step 3 and ruled on, and the A/B leg lists it as an intended difference.
+  function mvlBarHeight(it, S){
+    const B = S.bar;
+    if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
+    return B.size * S.lineHeight + 2 * (B.padY + B.border);
   }
-  function mvlLaneTracks(items, availH){
-    const P = MVL_PAINT;
+  function mvlLaneTracks(items, availH, S){
+    const P = S;
     const n = items.reduce(function(m, it){ return Math.max(m, it.lane + it.lanes); }, 0);
     const base = [], grow = [];
     for(let i = 0; i < n; i++){ base.push(P.laneMin); grow.push(Infinity); }
     items.forEach(function(it){
       if(it.lanes !== 1) return;
-      const h = mvlBarHeight(it);
+      const h = mvlBarHeight(it, S);
       grow[it.lane] = Math.max(grow[it.lane] === Infinity ? 0 : grow[it.lane], h, base[it.lane]);
     });
     const spans = [];
@@ -17669,7 +17709,7 @@ export function initLegacyApp() {
         if(it.lanes !== span) return;
         const lanes = [];
         for(let L = it.lane; L < it.lane + span; L++){ lanes.push(L); if(touched.indexOf(L) < 0) touched.push(L); }
-        let space = mvlBarHeight(it) - P.laneGap * (span - 1);
+        let space = mvlBarHeight(it, S) - P.laneGap * (span - 1);
         lanes.forEach(function(L){ space -= (grow[L] === Infinity ? base[L] : grow[L]); });
         if(space <= 0) return;
         const open = lanes.filter(function(L){ return grow[L] === Infinity; });
@@ -17698,8 +17738,9 @@ export function initLegacyApp() {
   }
 
   // ---- One bar: its fill, its half-day shade, its border, then its text ----
-  function mvlPaintBar(it, x, y, w, h, fonts, out, at){
-    const P = MVL_PAINT, B = P.bar, G = MVL_GEOMETRY;
+  // `S` is the week's paint (mvlWeekPaint): every size here is read from it, at the month's factor.
+  function mvlPaintBar(it, x, y, w, h, fonts, out, at, S){
+    const P = S, B = P.bar;
     const r = it.kind === 'note' ? 0 : B.radius, black = [0, 0, 0];
     const fill = mvlRgb(it.fill), ink = mvlRgb(it.ink);
     const tag = function(o){ o.wk = at.wk; o.i = at.i; return o; };
@@ -17727,11 +17768,11 @@ export function initLegacyApp() {
     // overflow:hidden: nothing is drawn outside the padding box.
     out.push({ k: 'clip', x: px, y: py, w: pw, h: ph, r: 0 });
     if(it.kind === 'note'){
-      const N = P.note, lm = mvlLineMetrics(fonts[N.weight].font, G.noteFontPx, G.noteLinePx);
+      const N = P.note, lm = mvlLineMetrics(fonts[N.weight].font, N.size, N.lineH);
       it.lines.forEach(function(s, li){
         if(s === '') return;
-        out.push(tag({ k: 'text', s: s, x: px + N.padX, y: py + N.padY + li * G.noteLinePx + lm.base,
-                       w: mvlMeasure(fonts, N.weight, s, G.noteFontPx), wt: N.weight, size: G.noteFontPx,
+        out.push(tag({ k: 'text', s: s, x: px + N.padX, y: py + N.padY + li * N.lineH + lm.base,
+                       w: mvlMeasure(fonts, N.weight, s, N.size), wt: N.weight, size: N.size,
                        c: ink, ls: 0, skew: 0, role: 'bar-text', li: li }));
       });
     } else {
@@ -17776,12 +17817,30 @@ export function initLegacyApp() {
     out.push({ k: 'unclip' });
   }
 
+  // ---- Where a month's weeks go: the header, the month bar and the weekday row, stacked ----
+  // Shared by the emitter, which draws them, and the fit, which divides what they leave between the weeks,
+  // so the two can never disagree about where the first week starts or how much room the weeks have. CSS px
+  // on the paper. `weeksH` is the height the weeks share: from the body's top down to the frame's bottom
+  // line, which ends on the page box's inner edge (.print-page's 2 px padding, inside the 8 mm margin).
+  function mvlFrame(month, fonts){
+    const G = MVL_GEOMETRY, P = MVL_PAINT, ln = P.line;
+    const x0 = G.margin + G.pagePad, y0 = G.margin + G.pagePad, W = G.contentW - 2 * G.pagePad;
+    const hdr = mvlHeader(month, fonts, x0, y0, W);
+    const MB = P.monthBar, mbY = hdr.bottom, mbH = ln + 2 * MB.padY + MB.size * P.lineHeight;
+    const DR = P.dowRow, drY = mbY + mbH, drH = ln + 2 * DR.padY + DR.size * P.lineHeight;
+    const bodyTop = drY + drH;
+    return { x0: x0, y0: y0, W: W, hdr: hdr, mbY: mbY, mbH: mbH, drY: drY, drH: drH, bodyTop: bodyTop,
+             weeksH: G.margin + G.contentH - G.pagePad - ln - bodyTop };
+  }
+
   // ---- One month's page, as a display list ----
   // In the print path's paint order: the header's highlights and the in-flow boxes' fills and borders
   // (the month bar, the weekday row, the frame), then their text; then each week (its top line, its
   // day cells and their lines, the day numbers), because a week is a positioned layer; then every bar,
   // because .mv-bars is z-index 1 above them all. Nothing in one layer overlaps another, but the
   // order is print's, so a later change that made them overlap would still paint as print does.
+  // `month.fit` carries the rows and the shrink factor (`scale`, 1 when absent): the weeks are drawn with
+  // mvlWeekPaint(scale), everything above them at full size.
   function mvlPaintMonth(month, fonts){
     const G = MVL_GEOMETRY, P = MVL_PAINT, out = [];
     const rows = month.fit && month.fit.rows;
@@ -17789,18 +17848,21 @@ export function initLegacyApp() {
        !rows.every(function(v){ return typeof v === 'number' && isFinite(v) && v > 0; })){
       throw new Error('Month PDF: ' + month.label + ' has no row heights for its ' + month.weeks.length + ' weeks.');
     }
+    const k = month.fit.scale === undefined ? 1 : month.fit.scale;
+    if(!(typeof k === 'number' && k > 0 && k <= 1)) throw new Error('Month PDF: ' + month.label + ' has a shrink factor of ' + k + '.');
+    const S = mvlWeekPaint(k);
     const black = mvlRgb(P.lineInk), white = [1, 1, 1], ln = P.line;
-    const x0 = G.margin + G.pagePad, y0 = G.margin + G.pagePad, W = G.contentW - 2 * G.pagePad;
+    const fr = mvlFrame(month, fonts), x0 = fr.x0, W = fr.W;
     const lineRect = function(x, y, w, h, role, more){
       const o = { k: 'fill', x: x, y: y, w: w, h: h, r: 0, c: black, role: role };
       if(more) for(const key in more) o[key] = more[key];
       out.push(o);
     };
-    const hdr = mvlHeader(month, fonts, x0, y0, W);
+    const hdr = fr.hdr;
     hdr.back.forEach(function(o){ out.push(o); });
     const text = hdr.text.slice();
     // The month bar: top and side borders only; the weekday row's top border is the line under it.
-    const MB = P.monthBar, mbY = hdr.bottom, mbH = ln + 2 * MB.padY + MB.size * P.lineHeight;
+    const MB = P.monthBar, mbY = fr.mbY, mbH = fr.mbH;
     out.push({ k: 'fill', x: x0, y: mbY, w: W, h: mbH, r: 0, c: mvlRgb(MB.fill), role: 'monthbar' });
     lineRect(x0, mbY, W, ln, 'frame'); lineRect(x0, mbY, ln, mbH, 'frame'); lineRect(x0 + W - ln, mbY, ln, mbH, 'frame');
     const mbW = mvlMeasure(fonts, MB.weight, month.label, MB.size, MB.spacing);
@@ -17809,7 +17871,7 @@ export function initLegacyApp() {
                 y: mbY + ln + MB.padY + mvlLineMetrics(fonts[MB.weight].font, MB.size, MB.size * P.lineHeight).base,
                 wt: MB.weight, size: MB.size, c: mvlRgb(MB.ink), ls: MB.spacing, skew: 0, role: 'monthbar-text' });
     // The weekday row: no line under it, so the first week runs straight on.
-    const DR = P.dowRow, drY = mbY + mbH, drH = ln + 2 * DR.padY + DR.size * P.lineHeight;
+    const DR = P.dowRow, drY = fr.drY, drH = fr.drH;
     out.push({ k: 'fill', x: x0, y: drY, w: W, h: drH, r: 0, c: mvlRgb(DR.fill), role: 'dowrow' });
     lineRect(x0, drY, W, ln, 'frame'); lineRect(x0, drY, ln, drH, 'frame'); lineRect(x0 + W - ln, drY, ln, drH, 'frame');
     const drBase = drY + ln + DR.padY + mvlLineMetrics(fonts[DR.weight].font, DR.size, DR.size * P.lineHeight).base;
@@ -17819,15 +17881,15 @@ export function initLegacyApp() {
                   size: DR.size, c: mvlRgb(DR.ink), ls: DR.spacing, skew: 0, role: 'dow', i: i });
     });
     // The frame: the body's side borders and its bottom one, under the last week.
-    const bodyTop = drY + drH, sum = rows.reduce(function(a, b){ return a + b; }, 0);
+    const bodyTop = fr.bodyTop, sum = rows.reduce(function(a, b){ return a + b; }, 0);
     lineRect(x0, bodyTop, ln, sum + ln, 'frame'); lineRect(x0 + W - ln, bodyTop, ln, sum + ln, 'frame');
     lineRect(x0, bodyTop + sum, W, ln, 'frame');
     text.forEach(function(o){ out.push(o); });
     // The weeks: each one's top line (not the first's), its cells, their left lines, the day numbers.
     // The number's line box: its own 11 px inline box on the cell's 14 px strut, sharing one baseline, so
     // the baseline is the lower of the two (mvlLineMetrics' `base` is the distance down from the top).
-    const DN = P.dayNum, dnLm = mvlLineMetrics(fonts[DN.weight].font, DN.size, DN.size * P.lineHeight);
-    const dnBase = Math.max(dnLm.base, mvlLineMetrics(fonts['400'].font, P.cellStrut, P.cellStrut * P.lineHeight).base);
+    const DN = S.dayNum, dnLm = mvlLineMetrics(fonts[DN.weight].font, DN.size, DN.size * S.lineHeight);
+    const dnBase = Math.max(dnLm.base, mvlLineMetrics(fonts['400'].font, S.cellStrut, S.cellStrut * S.lineHeight).base);
     const weekTops = [];
     let wy = bodyTop;
     month.weeks.forEach(function(wk, wi){
@@ -17855,16 +17917,16 @@ export function initLegacyApp() {
         const alpha = d.mark === 'off' ? DN.offAlpha : (d.out ? DN.outAlpha : 1);
         const inkC = mvlRgb(d.mark === 'on' ? DN.onInk : DN.ink);
         const s = String(d.n), nw = mvlMeasure(fonts, DN.weight, s, DN.size);
-        const nx = cx + bl + P.cellPadLeft, nb = cy + P.cellPadTop + dnBase;
+        const nx = cx + bl + S.cellPadLeft, nb = cy + S.cellPadTop + dnBase;
         out.push({ k: 'text', s: s, x: nx, y: nb, w: nw, wt: DN.weight, size: DN.size, c: mvlMix(inkC, alpha, bg),
                    ls: 0, skew: 0, role: 'daynum', wk: wi, d: di });
         if(d.half){
-          out.push({ k: 'text', s: '½', x: nx + nw + P.half.gap, y: nb, w: mvlMeasure(fonts, P.half.weight, '½', DN.size),
-                     wt: P.half.weight, size: DN.size, c: mvlMix(inkC, alpha * P.half.alpha, bg), ls: 0, skew: 0,
+          out.push({ k: 'text', s: '½', x: nx + nw + S.half.gap, y: nb, w: mvlMeasure(fonts, S.half.weight, '½', DN.size),
+                     wt: S.half.weight, size: DN.size, c: mvlMix(inkC, alpha * S.half.alpha, bg), ls: 0, skew: 0,
                      role: 'half', wk: wi, d: di });
         }
         if(d.mark === 'off'){
-          const th = Math.max(P.strike.minPx, DN.size * P.strike.perSize), mid = nb - dnLm.A + dnLm.A * P.strike.at;
+          const th = Math.max(S.strike.minPx, DN.size * S.strike.perSize), mid = nb - dnLm.A + dnLm.A * S.strike.at;
           out.push({ k: 'fill', x: nx, y: mid - th / 2, w: nw, h: th, r: 0, c: mvlMix(inkC, alpha, bg), role: 'strike', wk: wi, d: di });
         }
       });
@@ -17872,15 +17934,15 @@ export function initLegacyApp() {
     });
     // The bars, week by week, over everything above.
     month.weeks.forEach(function(wk, wi){
-      const cy = weekTops[wi] + (wi ? ln : 0), gy = cy + P.barsPadTop, gx = x0 + ln + P.barsPadX;
+      const cy = weekTops[wi] + (wi ? ln : 0), gy = cy + S.barsPadTop, gx = x0 + ln + S.barsPadX;
       // The bar layer is the week's content box (print stretches it), less its own top and bottom padding.
-      const avail = rows[wi] - (wi ? ln : 0) - P.barsPadTop - P.barsPadBottom;
-      const tracks = mvlLaneTracks(wk.items, avail), laneTop = [];
+      const avail = rows[wi] - (wi ? ln : 0) - S.barsPadTop - S.barsPadBottom;
+      const tracks = mvlLaneTracks(wk.items, avail, S), laneTop = [];
       let acc = 0;
-      tracks.forEach(function(t, L){ laneTop[L] = acc; acc += t + P.laneGap; });
+      tracks.forEach(function(t, L){ laneTop[L] = acc; acc += t + S.laneGap; });
       wk.items.forEach(function(it, ii){
-        const x = gx + it.from * G.trackW + P.bar.marginX, w = (it.to - it.from + 1) * G.trackW - 2 * P.bar.marginX;
-        mvlPaintBar(it, x, gy + laneTop[it.lane], w, mvlBarHeight(it), fonts, out, { wk: wi, i: ii });
+        const x = gx + it.from * G.trackW + S.bar.marginX, w = (it.to - it.from + 1) * G.trackW - 2 * S.bar.marginX;
+        mvlPaintBar(it, x, gy + laneTop[it.lane], w, mvlBarHeight(it, S), fonts, out, { wk: wi, i: ii }, S);
       });
     });
     return out;
@@ -18021,6 +18083,165 @@ export function initLegacyApp() {
     let at = 0;
     chunks.forEach(function(c){ bytes.set(c, at); at += c.length; });
     return bytes;
+  }
+
+  // ---------- Month PDF writer: the fit (MONTH-PDF-WRITER-PLAN.md §8 step 4, ruling 3) ----------
+  // fitMonthLayout(layout, fonts) gives every month of buildMonthLayout()'s model the row heights the
+  // emitter draws it with, from the MODEL alone: no DOM, no measurement, no window. That is what makes the
+  // month PDF the same from any window (plan §1): the print path measures each week on screen, at a width
+  // it does not print at, and its note spans come from the live window. Here a week's height is computed
+  // from the very lanes and lines the emitter draws, so a row can never be too short for what is in it.
+  //
+  // ⭐ TWO MODES (ruling 3, and the owner's step-4 rulings of 1 Oct 2026):
+  //  - A MONTH THAT FITS fills the sheet EXACTLY AS TODAY'S PRINT PATH DOES. Its rule is exportMonthPdf's,
+  //    reproduced number for number: a week's basis is its bar layer's height (the lanes at their limits,
+  //    the gaps, the 24 + 14 px padding), never under 57 px; the room left over goes only to the weeks below
+  //    their 4-lane "nice" height, in proportion to how far below it they are (Chrome's flex-grow share),
+  //    or, when none is, to every week by its nice height. Measured before this was written, on tier 1 and
+  //    tier 2 (244 months, 1,257 weeks): 1,200 weeks get exactly the print path's basis and grow, and where
+  //    every week of a month does, the rows equal Chrome's print layout to 0.016 px (its 1/64 px grid). The
+  //    rest hold a note the print path MEASURED at another width than it prints (ruling 2's lanes; print's
+  //    measuring box wrapping a note one line more or fewer), and there the writer is right and print's own
+  //    rows are not.
+  //    ⚠️ Kept as print has it: a week's top line sits INSIDE its basis, so a crowded week with no slack
+  //    loses 2 px across its lanes (mvlLaneTracks' "maximize tracks" shares out what is left). It never
+  //    shows. ⚠️ One deliberate difference: print's "it fits" test ignores the frame's bottom line, so a
+  //    month within 2 px of full overran the page and lost that line; the writer's room stops above it.
+  //  - A MONTH TOO DENSE FOR ONE SHEET SHRINKS EVENLY: one factor k for every week of the month, applied by
+  //    mvlWeekPaint (weeks only; widths and line weights stay; the header, month bar and weekday row print
+  //    at full size). There is no floor ("No floor"): every month fits one sheet, as today. The notes are
+  //    RE-WRAPPED at the smaller size in the same box ("Re-wrap") and each week re-packed, so fewer lines can
+  //    mean fewer lanes, and the factor is the LARGEST one at which the month fits: found by halving, since
+  //    the height jumps wherever a note gains a line. A shrunk week holds its lanes in full: its height is
+  //    its top line (a line weight, which does not shrink) plus its bar layer at k. Whatever room is left over
+  //    is shared out by the same rule as a month that fits, so every frame ends at the page foot.
+  //    ⭐ THE FACTOR MOVES IN 64ths (k = n/64). Chrome lays a page out on a 1/64 px grid, so at such a factor
+  //    every scaled length -- k times a whole number of px -- is one Chrome holds exactly, and so does a double:
+  //    the shrunk month is EXACTLY the layout Chrome itself gives the month view at that size, which is what the
+  //    monthwriter leg holds it to, box for box. At any other factor Chrome truncates each scaled length to its
+  //    grid and the error adds up down a dense week (measured: 0.86 px by the 76th lane of month-lanecap's
+  //    August). The cost is at most 1/64 of the size, and the search is six halvings.
+  //
+  // ⛔ PURE AND DETERMINISTIC: plain data in, plain data out, no clock, and a fixed number of search steps,
+  // so the same model gives the same rows, and the same bytes, everywhere.
+
+  // The print path's own numbers, which exportMonthPdf keeps function-local (MANTINE-SEAM §5.4), so they are
+  // copied here. Each is the same CSS number MVL_PAINT copies, so each is derived from it:
+  //   MV_ROW_CHROME = 38   .mv-bars{ padding:24px 3px 14px }, top and bottom
+  //   MV_LANE_PX    = 19   a 17 px lane and its 2 px gap, what the "nice" height counts per lane
+  //   57                   MV_ROW_CHROME + MV_LANE_PX, the floor exportMonthPdf calls "never below ~1 line"
+  // MV_MIN_LANES, the 4 lanes every week is "nice" at, is the engine's own constant, read where it lives.
+  // ⛔ The monthwriter leg holds the rule these feed to gate 10's fit tables: change one and the writer's
+  // rows stop matching today's on every month that fits.
+  // ⚠️ A FUNCTION, NOT A const INITIALISER, so nothing here runs at boot: a frozen object built at startup
+  // is a call the minifier must keep, and it would keep MVL_PAINT with it (measured: +1,247 bytes on a
+  // build that is otherwise byte-identical to one without the writer, until step 5 calls it).
+  function mvlFitNumbers(){
+    const P = MVL_PAINT, chrome = P.barsPadTop + P.barsPadBottom, lane = P.laneMin + P.laneGap;
+    // `steps`: the shrink factor is a whole number of 64ths (the lead comment says why).
+    return { chrome: chrome, lane: lane, floor: chrome + lane, steps: 64 };
+  }
+
+  // What a week's bar layer needs at the week paint S: its height (exportMonthPdf's reqH, which it measured
+  // as the layer's scrollHeight: the padding, the lanes at their limits, the gaps between them) and how many
+  // lanes it reaches. The week's top line is not in it, as it is not in print's.
+  function mvlWeekNeed(items, S){
+    const tracks = mvlLaneTracks(items, Infinity, S);
+    let h = S.barsPadTop + S.barsPadBottom;
+    tracks.forEach(function(t){ h += t; });
+    return { h: h + S.laneGap * Math.max(0, tracks.length - 1), lanes: tracks.length };
+  }
+
+  // exportMonthPdf's fill, as Chrome's flexbox carries it out: every week starts at its basis and cannot
+  // shrink below it (flex-shrink:0, min-height = basis), and the room left over goes to the weeks below
+  // their nice height in proportion to how far below it they are, or, when none is, to all of them by
+  // their nice heights. ⚠️ Two sub-pixel differences from print, both deliberate: print's basis is a whole
+  // number (Chrome rounds scrollHeight), and Chrome would share out only part of the room if the grow
+  // factors summed to less than 1, which whole numbers never let happen. Here the basis is exact and all
+  // of the room is shared.
+  function mvlShareRows(basis, nice, room){
+    let grow = basis.map(function(b, i){ return Math.max(0, nice[i] - b); });
+    if(!grow.some(function(g){ return g > 0; })) grow = nice.slice();
+    const gSum = grow.reduce(function(a, b){ return a + b; }, 0);
+    const free = room - basis.reduce(function(a, b){ return a + b; }, 0);
+    return { rows: basis.map(function(b, i){ return b + free * grow[i] / gSum; }), grow: grow };
+  }
+
+  // A month's weeks at shrink factor k, as they would be drawn: every note re-wrapped at the smaller size
+  // in the same box (its text width is a width, and widths stay), each week re-packed with the renderer's
+  // first-fit rule at the new spans, exactly as mvlMonthLayout packs it at full size (notes are placed
+  // last, so only notes can move). With each week, its height at k and the lanes it reaches.
+  function mvlShrinkWeeks(month, fonts, k, F){
+    const G = MVL_GEOMETRY, S = mvlWeekPaint(k), ln = MVL_PAINT.line;
+    const widthOf = function(s){ return mvlTextWidth(fonts[S.note.weight].font, s, S.note.size); };
+    return month.weeks.map(function(wk, wi){
+      const items = wk.items.map(function(it){
+        const c = {};
+        for(const key in it) c[key] = it[key];
+        if(it.kind === 'note') c.lines = mvlNoteLines(it.text, widthOf);
+        return c;
+      });
+      const packed = mvlPackLanes(items, function(it){
+        return it.kind === 'note' ? Math.min(G.noteMaxLanes, it.lines.length) : it.lanes;
+      });
+      items.forEach(function(it, q){ it.lane = packed[q].lane; it.lanes = packed[q].lanes; });
+      const need = mvlWeekNeed(items, S), top = wi ? ln : 0;
+      const week = {};
+      for(const key in wk) week[key] = wk[key];
+      week.items = items;
+      return { week: week, top: top, lanes: need.lanes, h: top + Math.max(need.h, F.floor * k) };
+    });
+  }
+
+  // One month: its fit, and (shrunk) its weeks as re-wrapped. A new month object; the one passed in is not
+  // changed. `fit` = { mode: 'fill' | 'shrink', scale, rows, basis, grow, room }: `rows` is what the emitter
+  // draws, each week's border-box height in CSS px; `basis` and `grow` are the rule's inputs, the print
+  // path's fit table for the same month (for the leg, and for whoever debugs a page); `room` is the height
+  // the weeks share.
+  function mvlFitMonth(month, fonts){
+    const room = mvlFrame(month, fonts).weeksH;
+    if(!(room > 0)) throw new Error('Month PDF: ' + month.label + "'s header leaves no room for its weeks.");
+    const F = mvlFitNumbers(), S1 = mvlWeekPaint(1), add = function(a, b){ return a + b; };
+    const need = month.weeks.map(function(wk){ return mvlWeekNeed(wk.items, S1); });
+    const basis = need.map(function(n){ return Math.max(n.h, F.floor); });
+    const out = {};
+    for(const key in month) out[key] = month[key];
+    if(basis.reduce(add, 0) <= room){
+      const nice = need.map(function(n){ return F.chrome + Math.max(n.lanes, MV_MIN_LANES) * F.lane; });
+      const sh = mvlShareRows(basis, nice, room);
+      out.fit = { mode: 'fill', scale: 1, rows: sh.rows, basis: basis, grow: sh.grow, room: room };
+      return out;
+    }
+    // The largest factor, in 64ths, at which it fits. `lo` always fits (or is 0, which is never tried) and `hi`
+    // never does: a month that does not fit at full size by print's rule cannot fit at k = 1 here either, since
+    // each shrunk week is at least its print basis. ⚠️ The halving assumes a month only grows with k, which holds
+    // wherever a note's lines do (smaller text never needs more of them); were it ever to dip, the factor found
+    // would still fit, only not be the largest.
+    let lo = 0, hi = F.steps, best = null;
+    while(hi - lo > 1){
+      const mid = (lo + hi) >> 1, weeks = mvlShrinkWeeks(month, fonts, mid / F.steps, F);
+      if(weeks.reduce(function(a, w){ return a + w.h; }, 0) <= room){ lo = mid; best = weeks; } else hi = mid;
+    }
+    if(!best) throw new Error('Month PDF: ' + month.label + ' has more in one week than a sheet can hold.');
+    const k = lo / F.steps, basisK = best.map(function(w){ return w.h; });
+    const niceK = best.map(function(w){ return w.top + (F.chrome + Math.max(w.lanes, MV_MIN_LANES) * F.lane) * k; });
+    const sh = mvlShareRows(basisK, niceK, room);
+    out.weeks = best.map(function(w){ return w.week; });
+    out.fit = { mode: 'shrink', scale: k, rows: sh.rows, basis: basisK, grow: sh.grow, room: room };
+    return out;
+  }
+
+  // ---- The whole calendar: fitMonthLayout(layout, fonts) ----
+  // `layout` is buildMonthLayout()'s; `fonts` holds the four programs as buildMonthPdf decodes them ({'400':
+  // what loadInterPdfFont('400') resolves to, ...}), since the header's height depends on how its title
+  // wraps. Returns a NEW layout with `fit` on every month, ready for buildMonthPdf; the one passed in is not
+  // changed. ⛔ NOTHING CALLS IT YET, like the rest of the writer: step 5 routes the export through it.
+  function fitMonthLayout(layout, fonts){
+    if(!layout || !Array.isArray(layout.months)) throw new Error('Month PDF: there is no layout to fit.');
+    MVL_FONT_WEIGHTS.forEach(function(w){
+      if(!fonts || !fonts[w] || !fonts[w].font) throw new Error('Month PDF: the fit has no Inter ' + w + ' program.');
+    });
+    return { geometry: layout.geometry, months: layout.months.map(function(m){ return mvlFitMonth(m, fonts); }) };
   }
 
   // ---- The whole PDF: buildMonthPdf(layout) ----

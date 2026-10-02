@@ -29,6 +29,52 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the month PDF's fit, the direct writer's step 4 (1 Oct 2026)
+
+Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
+see no change:** the month PDF is still Chrome's print path, and the build is byte-identical to one
+without the writer (`f0115600…`, 1,433,765 bytes), because the minifier drops it until step 5.
+- **What:** `fitMonthLayout(layout, fonts)` gives every month its row heights from the layout model
+  alone: no DOM, no measurement, no window. The PDF of a calendar is therefore the same from any
+  window, which today's print path is not.
+  - **A month that fits** uses the print path's own rule, number for number: each week's basis, its
+    4-lane "nice" height and Chrome's flex share of the slack.
+  - **A dense month shrinks evenly** (ruling 3). The owner's rulings of 1 Oct 2026:
+    - **"weeks only, lines stay":** inside the weeks every height and text size scales by one
+      factor, but widths, the 2 px grid and the bars' 1 px rims stay, and the header is untouched;
+    - **"no floor":** every month still fits one sheet;
+    - **"re-wrap":** notes re-wrap at the smaller size and each week is re-packed, so the factor is
+      the largest at which the month fits;
+    - **"full height":** an emptied hiatus band now prints as tall as a labelled one, where print
+      draws a 4 px strip.
+  - **Decided in the build:** the factor moves in 64ths. That is Chrome's own layout grid, so a
+    shrunk month is exactly the layout Chrome gives the month view at that size. It costs at most
+    1.6% of the size.
+  - **The emitter** now reads every size inside a week from one place (`mvlWeekPaint`).
+- **Verified:**
+  - **A new leg, `monthwriter`** (12 cases), with three oracles that are not the writer's own code:
+    - **the print path's fit table:** 1,200 of 1,257 weeks across tier 1 and tier 2 get exactly its
+      basis and grow. Every other week holds a note the print path measured at another width or
+      span than it prints;
+    - **the print path's measurement, re-run:** it reproduces every basis in the documents;
+    - **Chrome's layout of the writer's decisions:** rows to 0.02 px; every box to 0.03 px and every
+      baseline to 0.008 px, the shrunk months at their factor; every re-wrapped note equal to
+      Chrome's own line breaker.
+  - **The A/B judge, `monthab.py`**, against Chrome's real print of the same documents:
+    - poppler reads both clean, with one page and one sheet per month, every month label, and the
+      same text tokens on every page;
+    - the grid's lines, read from both files' vector coordinates, within 1.5 px. Chrome's real print
+      snaps its page box and its borders to whole pixels: measured worst 1.108 px.
+  - **Controls:** the writer's files are byte-identical under UTC+14, and from a 1600 and a 1280 px
+    window while the print documents differ.
+  - **Mutants:** red on 19 mutants of the fit and the scaled paint, and on 4 of the judge's.
+  - **The older legs:** `monthemit` 16/16, with 13 of its 14 files byte-identical to step 3's; the
+    fourteenth differs only by the ruled band. `monthlayout` 14/14. All ten `xss-*` calendars print
+    with no throw.
+  - Full gate: **1,072 PASS, 0 FAIL, GATE PASSED.** The waterfall PDF, every Excel part and all nine printed month documents
+    are identical to their baselines.
+  - The owner has the print, writer and difference contact sheets.
+
 ### Unreleased — the month PDF's emitter and serializer, the direct writer's step 3 (1 Oct 2026)
 
 Step 3 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users

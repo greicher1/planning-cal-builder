@@ -554,6 +554,16 @@ restyle of a `.mv-*` or `#print-root` rule that the writer copies fails in the g
 silently moving the PDF. That holds once the writer ships (plan step 5); until then nothing reads
 them.
 
+⚠️ **Step 4's fit (1 Oct 2026) copies the four numbers in the table above too, and these copies are
+checked.** `mvlFitNumbers()` derives `MV_ROW_CHROME` (38), `MV_LANE_PX` (19) and the 57 px floor
+from `MVL_PAINT`'s own copies of the same CSS, and reads `MV_MIN_LANES` from the engine. The page
+box is `MVL_GEOMETRY`'s. The `monthwriter` leg holds the rule they feed to gate 10's own fit
+tables: every week whose notes the print path measured as the writer lays them out must get the
+table's basis and grow. It holds the rule to the print path's measurement, re-run exactly as
+`exportMonthPdf` runs it, and to Chrome's layout of the writer's own lanes. So the writer's copies
+fail in the gate when they drift. The print path's own copies above are still checked by nothing
+but gate 10's byte compare.
+
 ### 5.5 `mvNoteLineCount` is a hand-written duplicate of the note bar's CSS
 
 ```
