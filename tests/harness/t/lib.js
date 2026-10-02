@@ -439,6 +439,40 @@ window.__T = (function(){
     });
     return best;
   }
+  // The month PDF's PRINT path, for a leg that needs the print DOCUMENT: gate 10, and every leg that captures
+  // one (MONTH-PDF-WRITER-PLAN.md step 5). Since step 5 the month view's Export PDF runs the direct writer; on
+  // localhost ONLY, localStorage 'sptcal.mvPdfTest' = 'print' sends it down the print path instead (owner
+  // ruling, 2 Oct 2026). The engine reads it at click time, so one page may use both routes: call this
+  // before the click, and monthPrintPath(false) to go back to the writer.
+  function monthPrintPath(on){
+    try { if(on === false) localStorage.removeItem('sptcal.mvPdfTest'); else localStorage.setItem('sptcal.mvPdfTest', 'print'); } catch(e){}
+  }
+  // A stand-in for the OS Save dialog (window.showSaveFilePicker), for the month PDF's Save (step 5) and any leg that
+  // needs one: it records each call's options and each file written, its bytes once closed. Push an error NAME onto
+  // `fail` to have the next call throw it ('AbortError' is a cancel; 'SecurityError' is a click's activation run out).
+  // restore() puts the real one back.
+  function fakeSavePicker(){
+    var rec = {calls: [], files: [], fail: []}, real = window.showSaveFilePicker;
+    window.showSaveFilePicker = async function (o) {
+      rec.calls.push(o || {});
+      var f = rec.fail.shift();
+      if(f) throw new DOMException('test: ' + f, f);
+      var file = {name: o && o.suggestedName, parts: [], closed: false, aborted: false, bytes: null};
+      return {name: file.name, kind: 'file',
+        createWritable: async function () { return {
+          write: async function (d) { file.parts.push(d); },
+          close: async function () { file.closed = true; file.bytes = new Uint8Array(await new Blob(file.parts).arrayBuffer()); rec.files.push(file); },
+          abort: async function () { file.aborted = true; }}; }};
+    };
+    rec.restore = function () { window.showSaveFilePicker = real; };
+    return rec;
+  }
+  // A PDF's page count, read off the writer's own page objects (and Chrome's: both say /Type /Page per page).
+  function pdfPages(u8){
+    var s = '';
+    for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    return (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
@@ -446,5 +480,5 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap};
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages};
 })();

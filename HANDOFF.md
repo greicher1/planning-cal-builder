@@ -4,9 +4,108 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 2 Oct 2026: MONTH-PDF WRITER STEP 5, EXPORT PDF RUNS THE WRITER — BUILT AND PROVEN (session "SPT Planning Calendar Builder month-pdf-writer step 4", continued)
+
+- ⏭ **RESUME HERE.** Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
+  **Step 6 waits for the owner:** the byte baselines, cut only after the owner signs off a real Export.
+  That means Preview or Acrobat, the Save dialog included. Read the plan's step-5 "For step 6" notes.
+- ⛔ **USER-VISIBLE once pushed:** the month view's Export PDF (and ⌘P, ⇧⌘E there) writes the PDF
+  itself, through the Save dialog; the print dialog is gone from that path.
+- **State:** built on branch `month-save` in `.claude/worktrees/month-save`, cut from `main` at
+  `335d6bc`. ONE local commit (this one), and `main` fast-forwarded to it. **Not pushed.** The owner's
+  picker, 2 Oct 2026: "Commit, fast-forward main" and "Don't push; hold it". The worktree is merged;
+  remove it only if the owner asks. The writer's commits since `ca4cd2d` (the live v1.4.3) are
+  all local; the owner holds them. The owner's `tests/fixtures/Reshape Fixture 2026-09-29.sptcal`
+  (untracked, main checkout) is left alone.
+- ⭐ **The owner's four rulings (picker, 2 Oct 2026, before any code), all as recommended:**
+  1. **"Localhost-only switch."** On localhost only, `localStorage 'sptcal.mvPdfTest' = 'print'` routes
+     the month export to the print path (the install gate's `sptcal.gateTest` shape). Gate 10 and every
+     leg that captures a print document use it. `MV_PDF_MODE = 'direct'` is the rollback.
+  2. **"Offer the print dialog"** when the writer throws.
+  3. **"Save dialog"**: Chrome and Edge show it; elsewhere the PDF downloads. The waterfall PDF still
+     downloads (frozen), knowingly.
+  4. **"Warn first, list them"**: non-WinAnsi prints "?", and the nine missing glyphs print `.notdef`,
+     which in Inter is a drawn box.
+- **Settled with them, not put to the owner:**
+  - build first, then the picker;
+  - "Your month PDF is ready: Save…" when a slow build outlasts the click's activation;
+  - a silent cancel, and a busy button;
+  - the name `<title> Month Calendar.pdf`;
+  - the soft hyphen dropped.
+- **Built:**
+  - **`src/legacy/app.js`:**
+    - `MV_PDF_MODE`, and `monthPdfMode()` before the export button's handler;
+    - the month branch routes on it;
+    - after the writer: `exportMonthPdfDirect`, `saveMonthPdf`, `confirmMonthPdfPrintable`,
+      `monthPdfPlaceText`, `monthPdfFileName` and `MONTH_PDF_TYPES`;
+    - inside the writer: `mvlUnprintable`, and the soft hyphen in `mvlCleanText`;
+    - the writer's "nothing calls it yet" comments brought up to date.
+  - **The build grows +30,732 bytes** (1,433,765 to 1,464,497, sha256 `d7bf748a…`); `npm run check`
+    40/40.
+  - **Harness:**
+    - new `t/monthexport.js` and its gate block;
+    - `t/lib.js` gains `T.monthPrintPath()`, `T.fakeSavePicker()` and `T.pdfPages()`;
+    - `rtleg.mjs` gains `--query`;
+    - retargeted: `cmdprint` P3, `filekeys` K10, `exportrefused` E3, and `cspproof` M2 (plus a new M3);
+    - the switch set in `monthprint`, `blocks`, `hiatuslabel`, `monthlayout`, `monthemit` and
+      `monthwriter`;
+    - F0 rewritten in the three slicing legs.
+  - **Docs:** the plan; CLAUDE.md (Exports, and the Inter note); MANTINE-SEAM §4.5 and §5.2; the
+    harness README; the README changelog.
+- **Proof:**
+  - **`monthexport` 9/9** on the reference, `blocks`, `monthscale`, `colswap-simpost-refuse` and
+    `stintswap-reshape`. **10/10 on the real clock**, where T0 times the Save dialog at 46 ms after the
+    click (16 months), 68 ms (dense60) and 108 ms (25 months), against Chrome's 5 s.
+  - **The step-3 obligation, met:** the BUILT app's file equals the sliced source's for the same
+    calendar, byte for byte, on every calendar.
+  - **The whole chain agrees:** the built app's reference export is byte-identical to step 4's slice
+    output from gate 10's own baseline document (80,038 bytes, `bf387fc2…`). It is the same file under
+    UTC+14, in a 1280 px window and on the real clock.
+  - **Retargeted legs green:** `cmdprint` 6/6, `filekeys` 16/16, `exportrefused` 5/5, `hiatuslabel`
+    7/7, `blocks`, and `cspproof` 15/15, where M2 is the writer, M3 the print path and V0 zero
+    violations.
+  - **The writer's legs, with the switch:** `monthemit` 16/16, `monthlayout` 14/14, `monthwriter`
+    12/12, and `monthprint` capturing.
+  - **Red on 13 mutants**, each in the case meant to catch it:
+    - 11 on a patched copy of `dist/` (`/dist/_mut.html`): the name (X2, X7); the types (X2); a cancel
+      read as an error (X3); no activation retry (X4); the warning skipped (X6); "Print instead"
+      printing nothing (X1); the button left busy (X1, first to look); the download's type (X7); the
+      build keeping the soft hyphen (X5); the switch ignored (X2); the routing lost (X2 …);
+    - 2 on the source through `src=`: source and build drifting apart (X2), and the walk letting a box
+      through (X6).
+
+    `src/legacy/app.js` and `dist/index.html` were hash-checked untouched.
+  - ✅ **Full gate on build `d7bf748a…` (worktree, port 8484): 1,151 PASS, 0 FAIL, GATE
+    PASSED.**
+    - That is step 4's 1,072 plus `monthexport`'s 78 (seven runs of 9 cases, the zone and window
+      confirmations, 11 on the real clock, two cross-run checks) and `cspproof`'s new M3.
+    - Gate 2: the waterfall PDF identical bar the date stamp, every Excel part identical, 0 clipped
+      cells, and `fields.byId` 62 ids.
+    - Gate 10: all nine printed month documents byte-identical, through the switch.
+    - ⚠️ The run before it had ONE failure, a harness flake: `snapoff (snapoff-sheet)` wrote no result
+      file. It passed alone, twice, and in the full rerun with nothing changed. Step 4's gate passed
+      it too. Recorded, not explained.
+- ⭐ **Learned. Read before step 6:**
+  1. **The minifier constant-folds `MV_PDF_MODE === 'print'` away**, so the rollback is a rebuild with
+     the constant flipped, not an edit to a built file. The localhost switch is a separate branch and
+     survives.
+  2. **The pinned clock is what makes the files baselinable.** Only the no-argument `new Date()` is
+     pinned, before the app's module runs. `Date.now()` must stay real, because `reClickGuard` reads it,
+     and a pinned one would drop every second click.
+  3. **A fixture's waterfall note need not show in its month view** (`stintswap-reshape`). The leg
+     types its notes through the month view's own "+" on the third week instead, which is always on a
+     page.
+  4. **Harness traps:**
+     - the Write tool turns `\u00AD` and `\u2019` written in a file's content into the real
+       characters, an invisible soft hyphen included, so escapes are put back with a script;
+     - `T.until` throws, so a wait for a dialog a mutant removed crashes the leg rather than failing
+       its case. `monthexport` catches its waits and judges the case;
+     - `lib.js`'s "no dollar sign" warning is stale: `srv.js` has injected legs with a function
+       replacement since 25 Sep.
+
 ### ✅ 1 Oct 2026: MONTH-PDF WRITER STEP 4, THE FIT AND THE A/B LEG — BUILT AND PROVEN (session "SPT Planning Calendar Builder month-pdf-writer step 4")
 
-- ⏭ **RESUME HERE.** Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
+- ⏭ **Superseded: step 5 is built (the block above).** Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
   **Step 5 waits for the owner's go-ahead**, in a fresh session: the save path, the
   printable-characters check, the routing (ruling 4), the seven legs retargeted, and `cspproof`.
   Read the plan's step-4 notes first: "For step 5" holds three obligations.

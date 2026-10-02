@@ -34,8 +34,8 @@
 //
 // CASES (each judged over every document)
 //   S0  the writer, MV_MIN_LANES and the frozen primitives slice verbatim out of src/legacy/app.js and evaluate
-//   F0  nothing outside the writer uses a name it defines, and nothing calls its entry points (fitMonthLayout appears
-//       once: its declaration)
+//   F0  only the month export (exportMonthPdfDirect, since step 5) calls the writer, and only through its public
+//       entry points; nothing else in app.js uses a name the writer defines
 //   C0  CONTROL: the print path's measurement, re-run here, gives every week exactly the basis (or the shrunk height)
 //       the print path wrote into the document, and the scaled oracle's base sizes are the app's computed print styles
 //   A0  every month that fits: each week the print path measured as the writer lays it out gets the table's basis and
@@ -113,17 +113,28 @@ window.addEventListener('load', function () { (async function () {
         typeof F.fitMonthLayout === 'function' && typeof F.buildMonthPdf === 'function' && F.MV_MIN_LANES === 4,
         {writerChars: writerSrc.length, MV_MIN_LANES: F.MV_MIN_LANES}, 'the slice evaluates');
 
-    // ---- F0: nothing calls the writer yet -------------------------------------------------------------------------
+    // ---- F0: only the month export calls the writer, and only through its entry points (step 5) ------------------
+    // Since MONTH-PDF-WRITER-PLAN.md step 5 the month view's Export PDF runs the writer, through ONE function after it in
+    // app.js, exportMonthPdfDirect. So every top-level name the writer declares is counted in app.js outside both the
+    // writer and that function, comment lines skipped: none may appear. Inside the function exactly the writer's
+    // public surface may: the fonts' loader and weights, the model, the fit, the printable-characters walk and the
+    // emitter. And each entry point appears once more than before: loadInterPdfFont three times (its declaration,
+    // buildMonthPdf's call, the export's), the others twice (declared, and called by the export).
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
-    var at = src.indexOf(writerSrc), outside = code(src.slice(0, at) + src.slice(at + writerSrc.length));
+    var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
+    var at = src.indexOf(writerSrc), rest = src.slice(0, at) + src.slice(at + writerSrc.length);
+    var eAt = rest.indexOf(exportSrc), outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
     var NAMES = [], dm, dre = /^  (?:async )?(?:function|const|let) (\w+)/gm;
     while((dm = dre.exec(writerSrc))) NAMES.push(dm[1]);
-    var usedOut = NAMES.filter(function (n) { return new RegExp('\\b' + n + '\\b').test(outside); });
-    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'nothing outside the writer uses a name it defines, and nothing calls its entry points: fitMonthLayout appears once, as declared',
-        usedOut.length === 0 && NAMES.indexOf('fitMonthLayout') >= 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(counts, [2, 1, 1, 1]),
-        {usedOutside: usedOut, namesDeclared: NAMES.length, entryPointOccurrences: counts},
-        {usedOutside: [], entryPointOccurrences: [2, 1, 1, 1]});
+    var has = function (n, s) { return new RegExp('\\b' + n + '\\b').test(s); };
+    var usedOut = NAMES.filter(function (n) { return has(n, outside); });
+    var PUBLIC = ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'buildMonthPdf', 'fitMonthLayout', 'loadInterPdfFont', 'mvlUnprintable'];
+    var usedByExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
+    var counts = ['loadInterPdfFont(', 'buildMonthLayout(', 'buildMonthPdf(', 'fitMonthLayout(', 'mvlUnprintable('].map(function (s) { return code(src).split(s).length - 1; });
+    add('F0', 'only the month export (exportMonthPdfDirect) calls the writer, and only through its public entry points',
+        usedOut.length === 0 && NAMES.indexOf('mvlFitMonth') >= 0 && same(usedByExport, PUBLIC) && same(counts, [3, 2, 2, 2, 2]),
+        {usedOutside: usedOut, usedByExport: usedByExport, namesDeclared: NAMES.length, entryPointOccurrences: counts},
+        {usedOutside: [], usedByExport: PUBLIC, entryPointOccurrences: [3, 2, 2, 2, 2]});
 
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
@@ -728,6 +739,7 @@ window.addEventListener('load', function () { (async function () {
     var printed = null, calls = 0, realPrint = window.print;
     var before = new Date();
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };
+    T.monthPrintPath();   // the PRINT path: this leg reads the print document (MONTH-PDF-WRITER-PLAN.md step 5)
     document.getElementById('export-btn').click();
     await T.until(function () { return calls > 0; }, 'the print call', 200, 100);
     window.dispatchEvent(new Event('afterprint'));

@@ -1604,6 +1604,81 @@ chk(same and docs[0] and docs[1] and docs[0] != docs[1],
 sys.exit(1 if bad else 0)
 PYMWC
 
+# ---- monthexport (MONTH-PDF-WRITER-PLAN.md §8 step 5): the month view's Export PDF, end to end in the BUILT app -----
+# ⭐ ADDED 2 Oct 2026. Since step 5 the month view's Export PDF is the direct writer (ruling 4(a)), and the build carries
+# it, minified. The leg drives the real export with the clock pinned (local noon, 22 Sep 2026) and a stood-in Save
+# dialog: the file through the Save dialog, ⭐ BYTE-IDENTICAL to what the sliced SOURCE writes for the same calendar
+# (the step-3 obligation); a failed build offering the print path; a cancelled dialog; a lapsed activation; the soft
+# hyphen dropped; unprintable characters named first; and, after a reload with the File System Access API deleted
+# before boot, the same bytes as a download (9 cases; 13 mutants, each red: 11 on the build, 2 on the source).
+#   r / b / ms / sp / sr   the reference calendar, then blocks, monthscale (a shrunk August), colswap-simpost-refuse
+#                          and stintswap-reshape (25 months), each fresh;
+#   rz / rw                the reference again under TZ=Pacific/Kiritimati and in a 1280 x 800 window: ⛔ its file
+#                          BYTE-IDENTICAL to r's (the clock is pinned, and the writer reads no window);
+#   rt                     the reference on the REAL clock (rtleg.mjs, ?realtime=1), which adds T0: the Save dialog
+#                          opens within 2 s of the click, well inside the 5 s a click's activation lasts.
+MXA="/tmp/gate${GTAG}-mxa"; rm -rf "$MXA"; mkdir -p "$MXA"
+for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blocks" "ms:-:-:monthscale" \
+              "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape"; do
+  MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
+  MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
+  [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
+  rm -f "$HERE/monthexport.json"
+  ( [[ -n $MXTZ ]] && export TZ="$MXTZ"; [[ -n $MXWIN ]] && export HARNESS_WINDOW="$MXWIN"
+    HARNESS_PAGE="$PAGE" HARNESS_STATE="$MXSTATE" "$HERE/run.sh" monthexport 300 >/dev/null 2>&1 )
+  cp "$HERE/monthexport.built.pdf" "$MXA/$MXRUN.pdf" 2>/dev/null
+  python3 - "$HERE/monthexport.json" "monthexport (${MXSTATE:-reference}${MXTZ:+, $MXTZ}${MXWIN:+, $MXWIN})" "$MXTZ" "$MXWIN" <<'PYMX' || FAIL=1
+import json,sys
+path, label, tz, win = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+bad = len(cases) < 9 or not all(c.get('pass') is True for c in cases)
+if tz:
+    z = (info.get('tz') or {}).get('zone')
+    print(('  PASS  ' if z == tz else '  FAIL  ')+label+': the leg ran in '+str(z)); bad = bad or z != tz
+if win:
+    w = (info.get('window') or [None])[0]
+    print(('  PASS  ' if str(w) == win.split(',')[0] else '  FAIL  ')+label+': the window was '+str(w)+' wide'); bad = bad or str(w) != win.split(',')[0]
+sys.exit(1 if bad else 0)
+PYMX
+done
+rm -f "$HERE/monthexport.json"
+HARNESS_PAGE="$PAGE" node "$HERE/rtleg.mjs" --leg monthexport --secs 120 --query realtime=1 >/dev/null 2>&1
+python3 - "$HERE/monthexport.json" "monthexport (reference, real time)" <<'PYMXT' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+t0 = [c for c in cases if c.get('id') == 'T0']
+print(('  PASS  ' if t0 else '  FAIL  ')+label+': T0 ran (the build timed on the real clock: '+str(((a.get('info') or {}).get('phase1') or {}).get('buildMs'))+' ms)')
+sys.exit(0 if cases and t0 and all(c.get('pass') is True for c in cases) else 1)
+PYMXT
+python3 - "$MXA" <<'PYMXC' || FAIL=1
+import os, sys
+root = sys.argv[1]
+def read(n):
+    p = os.path.join(root, n + '.pdf')
+    return open(p, 'rb').read() if os.path.exists(p) else None
+r = read('r'); bad = 0
+for n, what in (('rz', 'UTC+14'), ('rw', 'a 1280 px window')):
+    x = read(n); ok = r is not None and x == r
+    print(('  PASS  ' if ok else '  FAIL  ') + 'monthexport (reference): the built app\'s file is byte-identical in ' + what); bad += 0 if ok else 1
+sys.exit(1 if bad else 0)
+PYMXC
+
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
 # above -- only the driver differs: rtleg.mjs runs the page on the REAL clock over CDP, because under

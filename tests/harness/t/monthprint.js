@@ -92,6 +92,7 @@ window.addEventListener('load', function () { (async function () {
     // afterprint never fires (no real print), so the app's cleanup would leave
     // body.printing-calendar set -- which hides the app and makes the NEXT print silently do
     // nothing. Fire it by hand, exactly as the 60s safety net in exportMonthPdf would.
+    T.monthPrintPath();   // the PRINT path: this leg reads the print document (MONTH-PDF-WRITER-PLAN.md step 5)
     document.getElementById('export-btn').click();
     await T.until(function () { return printCalls > 0; }, 'the print call', 200, 100);
     window.dispatchEvent(new Event('afterprint'));

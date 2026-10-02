@@ -33,7 +33,7 @@
 //
 // CASES (each judged over every document)
 //   S0  the slice: the model and what it calls, found in src/legacy/app.js and evaluated
-//   F0  nothing calls loadInterPdfFont() yet, so no Inter block is decoded at boot (or at all)
+//   F0  only the month export calls the model (since step 5), so no Inter block is decoded at boot: only an export
 //   F1  the REAL loader decodes font-inter-500 (atob + DecompressionStream) into a program the frozen
 //       ttfRead reads as PJIXRL+InterPDF-Medium, 2048 units/em; it is cached; a bad weight is refused
 //   F2  a line is measured as the PDF will set it: what pdfEscape writes "?" for measures as "?"
@@ -105,30 +105,35 @@ window.addEventListener('load', function () { (async function () {
         typeof F.mvlMonthLayout === 'function' && typeof F.buildMonthLayout === 'function',
         {modelChars: mvlSrc.length}, 'the slice evaluates');
 
-    // ---- F0: nothing calls the model yet, so nothing decodes the Inter blocks -------------------------------
-    // Every name the section defines, counted in app.js OUTSIDE THE WRITER, comment lines skipped: none
-    // may appear, so the product runs exactly as before. Step 5 routes the export here and updates this.
-    // ⚠️ "The writer" is the model AND step 3's emitter after it, which uses the model's names (owner
-    // ruling, 1 Oct 2026, step 3). So the region runs on to the end of buildMonthPdf; the monthemit leg
-    // holds the emitter's own names to the same rule.
+    // ---- F0: only the month export calls the model, so no Inter block is decoded at boot ---------------------
+    // Every name the section defines, counted in app.js OUTSIDE THE WRITER and outside exportMonthPdfDirect (the
+    // month view's Export PDF since MONTH-PDF-WRITER-PLAN.md step 5), comment lines skipped: none may appear. The
+    // export itself may use exactly the model's public part: the loader, its weights and buildMonthLayout.
+    // ⚠️ "The writer" is the model AND step 3's emitter and step 4's fit after it, which use the model's names (owner
+    // ruling, 1 Oct 2026, step 3). So the region runs on to the end of buildMonthPdf; monthemit and monthwriter hold
+    // the rest of the writer's names to the same rule.
     var code = function (s) { return s.split('\n').filter(function (l) { return !/^\s*\/\//.test(l); }).join('\n'); };
     var writerEnd = "return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };\n    }));\n  }";
     var at = src.indexOf(mvlSrc), wEnd = src.indexOf(writerEnd, at);
     var writerLen = wEnd < 0 ? mvlSrc.length : wEnd + writerEnd.length - at;
-    var outside = code(src.slice(0, at) + src.slice(at + writerLen));
+    var exportSrc = slice('  async function exportMonthPdfDirect(){', "      chrome.exportBtn({ busy: false, disabled: false });\n    }\n  }", 'exportMonthPdfDirect');
+    var rest = src.slice(0, at) + src.slice(at + writerLen), eAt = rest.indexOf(exportSrc);
+    var outside = code(rest.slice(0, eAt) + rest.slice(eAt + exportSrc.length));
     var NAMES = ['MVL_GEOMETRY', 'MVL_FONT_WEIGHTS', '_mvlFonts', 'loadInterPdfFont', 'mvlPdfChar', 'mvlTextWidth', 'mvlCleanText',
                  'mvlWrapText', 'mvlNoteLines', 'MVL_MONTH_NAMES', 'mvlDecls', 'mvlHeaderFmt', 'MVL_HALF_IMAGE', 'mvlHalfColumns',
                  'mvlParseItem', 'mvlParseMonth', 'mvlPackLanes', 'mvlMonthLayout', 'buildMonthLayout'];
-    var used = NAMES.filter(function (n) { return new RegExp('\\b' + n + '\\b').test(outside); });
+    var has = function (n, t) { return new RegExp('\\b' + n + '\\b').test(t); };
+    var used = NAMES.filter(function (n) { return has(n, outside); });
+    var byExport = NAMES.filter(function (n) { return has(n, code(exportSrc)); }).sort();
     var defined = NAMES.filter(function (n) { return new RegExp('\\b(?:function|const|let) ' + n + '\\b').test(mvlSrc); });
-    // And inside the writer too, nothing runs at boot: buildMonthLayout appears once in the whole file, as
-    // its declaration, and the loader twice, as its declaration and as buildMonthPdf's one call (mutant M9
-    // calls the loader from inside the section: a third).
+    // And nothing runs at boot: buildMonthLayout appears twice in the whole file (its declaration and the export's
+    // call), and the loader three times (its declaration, buildMonthPdf's call and the export's). Mutant M9, which
+    // calls the loader from inside the section, makes a fourth.
     var once = ['loadInterPdfFont(', 'buildMonthLayout('].map(function (s) { return code(src).split(s).length - 1; });
-    add('F0', 'nothing outside the writer uses a name the layout model defines, and nothing calls its entry points: the product runs as before, and no Inter block is decoded at boot, or at all, before step 5',
-        used.length === 0 && defined.length === NAMES.length && once[0] === 2 && once[1] === 1,
-        {usedOutside: used, definedInSection: defined.length, entryPointOccurrences: once},
-        {usedOutside: [], definedInSection: NAMES.length, entryPointOccurrences: [2, 1]});
+    add('F0', 'only the month export calls the layout model, through its public part, and no Inter block is decoded at boot: only an export decodes one',
+        used.length === 0 && same(byExport, ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont']) && defined.length === NAMES.length && once[0] === 3 && once[1] === 2,
+        {usedOutside: used, usedByExport: byExport, definedInSection: defined.length, entryPointOccurrences: once},
+        {usedOutside: [], usedByExport: ['MVL_FONT_WEIGHTS', 'buildMonthLayout', 'loadInterPdfFont'], definedInSection: NAMES.length, entryPointOccurrences: [3, 2]});
 
     // ---- F1: the real loader ------------------------------------------------------------------------------
     var p1 = F.loadInterPdfFont('500'), p2 = F.loadInterPdfFont(500);
@@ -491,6 +496,7 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'the month grid', 200, 100);
     var printed = null, calls = 0, realPrint = window.print;
     window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };
+    T.monthPrintPath();   // the PRINT path: this leg reads the print document (MONTH-PDF-WRITER-PLAN.md step 5)
     document.getElementById('export-btn').click();
     await T.until(function () { return calls > 0; }, 'the print call', 200, 100);
     window.dispatchEvent(new Event('afterprint'));

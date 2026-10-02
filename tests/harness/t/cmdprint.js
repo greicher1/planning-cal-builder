@@ -13,8 +13,8 @@
 //   P1  waterfall, Ctrl+P: the keydown is defaultPrevented (so the browser prints nothing of its own)
 //       and a PDF file is written -- the waterfall PDF, 1 page
 //   P2  waterfall, Cmd+P (metaKey): the same
-//   P3  month view, Ctrl+P: the month PDF is prepared and window.print() is called on it -- the print
-//       class is set and #print-root holds one page per month
+//   P3  month view, Ctrl+P: the month PDF is WRITTEN, one page per month, through the Save dialog (the direct
+//       writer since MONTH-PDF-WRITER-PLAN.md step 5), and window.print() is never called
 //   P4  guard: a plain "p" (no modifier) exports nothing
 //   P5  guard: Ctrl+S still saves-through-the-button (the handler's other shortcut is untouched):
 //       its keydown is still defaultPrevented
@@ -84,24 +84,25 @@ window.addEventListener('load', function () { (async function () {
                         return e.defaultPrevented && clicked === 'save-file-btn'; })(), {});
     if (out.p5) out.cases[out.cases.length - 1].observed = out.p5;
 
-    // P3 -- the month view: the key prepares the month PDF and calls print on it.
+    // P3 -- the month view: the key writes the month PDF.
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-week'); }, 'the month view', 200, 100);
     await settle('the month view to settle');
-    var printed = null;
+    // ⚠️ Since MONTH-PDF-WRITER-PLAN.md step 5 that export is the DIRECT WRITER (ruling 4(a)): the file is written
+    // through the Save dialog, stood in for here, and window.print() must not be called at all.
+    var sp = T.fakeSavePicker(), printed = false;
     var realPrint = window.print;
-    window.print = function () {
-      printed = { cls: document.body.className, pages: document.querySelectorAll('#print-root .print-page').length };
-    };
+    window.print = function () { printed = true; };
     await T.sleep(800);
     var prevented3 = press('p', { ctrl: true });
-    try { await T.until(function () { return !!printed; }, 'window.print() on the month PDF', 100, 100); } catch (e) {}
+    try { await T.until(function () { return sp.files.length > 0; }, 'the month PDF written', 200, 100); } catch (e) {}
     window.print = realPrint;
-    window.dispatchEvent(new Event('afterprint'));
-    await T.sleep(300);
-    out.month = { prevented: prevented3, printed: printed, after: document.body.className };
-    kase('P3', 'month view, Ctrl+P: default prevented, the month PDF is prepared (print class, one page per month) and printed',
-         prevented3 && !!printed && printed.cls.indexOf('printing-calendar') >= 0 && printed.pages >= 12, out.month);
+    sp.restore();
+    var f3 = sp.files[0];
+    out.month = { prevented: prevented3, names: sp.calls.map(function (c) { return c.suggestedName; }), closed: !!(f3 && f3.closed),
+                  pages: f3 ? T.pdfPages(f3.bytes) : 0, printCalled: printed };
+    kase('P3', 'month view, Ctrl+P: default prevented, and the month PDF is WRITTEN through the Save dialog (one page per month), with no print',
+         prevented3 && !!f3 && f3.closed && /Month Calendar\.pdf$/.test(f3.name || '') && out.month.pages >= 12 && !printed, out.month);
 
     var errs = (T.appHealth().errors || []);
     kase('E0', '0 console errors', errs.length === 0, { errors: errs.slice(0, 5) });

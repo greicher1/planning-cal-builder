@@ -15,7 +15,8 @@
 //   B0  the built page carries the policy, and the app boots under it (the engine built the
 //       sidebar; Carlito is registered; ExcelJS loaded from its allowed URL)
 //   X1  Export to Excel writes a workbook              W1  Export PDF writes the waterfall PDF
-//   M1  the month view renders                         M2  the month PDF is prepared and printed
+//   M1  the month view renders                         M2  the month PDF is written by the direct writer (step 5)
+//   M3  the month PDF's print path (the rollback, via its localhost-only switch) still prepares and prints
 //   S1  Save writes a .sptcal through the picker       L1  Load reads one back through the picker
 //   U1  the update check fetches version.json (connect-src 'self')
 //   C1  Export shareable copy builds the copy; C2 the copy boots framed (srcdoc); C3 the copy boots
@@ -135,12 +136,30 @@ try {
   await ev(`document.getElementById('view-month-btn').click(), 1`);
   const m1 = await until(`!!document.querySelector('#table-wrap .mv-week')`, 'the month view').catch(() => false);
   kase('M1', 'the month view renders', m1 === true);
+  // M2: since MONTH-PDF-WRITER-PLAN.md step 5 the month view's Export PDF is the DIRECT WRITER. The four Inter programs
+  // are decoded (atob + DecompressionStream), the PDF is built and written through the Save dialog, stood in for here:
+  // nothing loads from anywhere, so the policy must see nothing at all. window.print must not be called.
   await sleep(800);
-  await ev(`(() => { window.__printed = null; window.print = () => { window.__printed = { cls: document.body.className, pages: document.querySelectorAll('#print-root .print-page').length }; }; document.getElementById('export-btn').click(); return 1; })()`);
+  await ev(`(() => { window.__mpdf = null; window.__mprints = 0; window.print = () => { window.__mprints++; };
+      const latin1 = b => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return s; };
+      window.showSaveFilePicker = async o => ({ name: o && o.suggestedName, kind: 'file', createWritable: async () => { const parts = [];
+        return { write: async c => { parts.push(c); }, abort: async () => {}, close: async () => {
+          const b = new Uint8Array(await new Blob(parts).arrayBuffer()), t = latin1(b);
+          window.__mpdf = { name: o && o.suggestedName, size: b.length, head: t.slice(0, 8), pages: (t.match(/\\/Type \\/Page \\/Parent/g) || []).length }; } }; } });
+      document.getElementById('export-btn').click(); return 1; })()`);
+  await until(`!!window.__mpdf`, 'the month PDF written', 20000).catch(() => {});
+  const m2 = await ev(`({ pdf: window.__mpdf, prints: window.__mprints })`);
+  kase('M2', 'the month PDF is written by the direct writer, through the Save dialog, with no print',
+       !!m2 && !!m2.pdf && m2.pdf.head === '%PDF-1.4' && m2.pdf.pages > 0 && /Month Calendar\.pdf$/.test(m2.pdf.name || '') && m2.prints === 0, { m2 });
+
+  // M3: the print path, the rollback (MV_PDF_MODE), reached here by its localhost-only switch, must still run under the
+  // policy too: the month document is prepared and printed.
+  await sleep(800);
+  await ev(`(() => { localStorage.setItem('sptcal.mvPdfTest', 'print'); window.__printed = null; window.print = () => { window.__printed = { cls: document.body.className, pages: document.querySelectorAll('#print-root .print-page').length }; }; document.getElementById('export-btn').click(); return 1; })()`);
   await until(`!!window.__printed`, 'the month print', 20000).catch(() => {});
-  const m2 = await ev(`window.__printed`);
-  await ev(`window.dispatchEvent(new Event('afterprint')), 1`);
-  kase('M2', 'the month PDF is prepared and printed', !!m2 && m2.cls.indexOf('printing-calendar') >= 0 && m2.pages > 0, { m2 });
+  const m3 = await ev(`window.__printed`);
+  await ev(`(window.dispatchEvent(new Event('afterprint')), localStorage.removeItem('sptcal.mvPdfTest'), 1)`);
+  kase('M3', 'the print path (the rollback) still prepares and prints the month document', !!m3 && m3.cls.indexOf('printing-calendar') >= 0 && m3.pages > 0, { m3 });
 
   // S1 / L1 -- Save and Load through the (stood-in) pickers.
   const showA = fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'show-a.sptcal'), 'utf8');

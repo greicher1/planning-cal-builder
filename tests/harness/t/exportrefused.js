@@ -18,7 +18,7 @@
 //   E1  the reference calendar with Post at 5,000 weeks (refused): Export to Excel explains, quoting
 //       the refusal and the N-2 cause, and writes no file
 //   E2  the same, the waterfall-PDF button
-//   E3  the same in the Month view: Export PDF explains, and print is never called
+//   E3  the same in the Month view: Export PDF explains, opens no Save dialog, and print is never called
 //   E4  back to a normal calendar: Export to Excel produces a workbook (the guard lets real work by)
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
@@ -64,10 +64,15 @@ window.addEventListener('load', function () { (async function () {
 
     document.getElementById('view-month-btn').click();
     await T.sleep(1200);
+    // Since MONTH-PDF-WRITER-PLAN.md step 5 the month view's Export PDF is the direct writer, so a refused export must
+    // open no Save dialog either (stood in for here), as well as print nothing.
+    var sp3 = T.fakeSavePicker();
     var m3 = await modalAfter(function () { document.getElementById('export-btn').click(); });
     await T.sleep(600);
-    add('E3', 'refused, Month view: Export PDF explains, and print is never called',
-      /spans about 2,087 weeks/.test(m3) && prints === 0, {modal: m3.slice(0, 120), prints: prints}, 'the refusal; 0 prints');
+    sp3.restore();
+    add('E3', 'refused, Month view: Export PDF explains, opens no Save dialog, and print is never called',
+      /spans about 2,087 weeks/.test(m3) && prints === 0 && sp3.calls.length === 0,
+      {modal: m3.slice(0, 120), prints: prints, saveDialogs: sp3.calls.length}, 'the refusal; 0 prints; 0 Save dialogs');
     if(m3) await dismiss();
     document.getElementById('view-sheet-btn').click();
     await T.sleep(800);

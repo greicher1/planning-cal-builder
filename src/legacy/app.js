@@ -1458,6 +1458,13 @@ export function initLegacyApp() {
   // column model; 'print' is the original route through window.print(), kept working so the two
   // can be compared and so there is somewhere to fall back to.
   const WF_PDF_MODE = 'direct';   // 'direct' | 'print'
+  // How the MONTH PDF is produced (MONTH-PDF-WRITER-PLAN.md ruling 4(a), owner, 30 Sep 2026: "replace,
+  // and keep a rollback"). 'direct' is the writer (exportMonthPdfDirect): the file written byte by byte,
+  // one Letter page per month, through the Save dialog. 'print' is the original route through
+  // window.print() (frozen exportMonthPdf), kept working as the one-line rollback, which is what
+  // flipping this constant is. monthPdfMode() reads it at click time, with the localhost-only test
+  // switch the print path's legs use.
+  const MV_PDF_MODE = 'direct';   // 'direct' | 'print'
   // Default label for the production-wide (all-phase) hiatus band. Per-phase hiatuses keep
   // their own "<Phase> Hiatus" labels; this is the generic full-width one.
   const HIATUS_DEFAULT_LABEL = 'Hiatus';
@@ -15789,10 +15796,26 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ⛔ THE MONTH PDF'S ROUTE (MONTH-PDF-WRITER-PLAN.md step 5, ruling 4(a)). The writer, unless
+  // MV_PDF_MODE is flipped back to 'print' (the rollback), or a TEST asks for the print path: on
+  // localhost ONLY, localStorage 'sptcal.mvPdfTest' = 'print' (owner ruling, 2 Oct 2026: the install
+  // gate's 'sptcal.gateTest' shape). Gate 10 and every leg that captures a print document need it:
+  // the print path is still how the frozen renderer's output is proven unchanged, and its document is
+  // what the writer's legs read. No user can reach it, on the hosted link or in a file:// copy. Read
+  // at CLICK time, so a leg can switch one page between the two routes.
+  function monthPdfMode(){
+    if(MV_PDF_MODE === 'print') return 'print';
+    if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+      try { if(window.localStorage.getItem('sptcal.mvPdfTest') === 'print') return 'print'; } catch(e){}
+    }
+    return 'direct';
+  }
+
   document.getElementById('export-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
     if(viewMode === 'month'){
-      exportMonthPdf();
+      if(monthPdfMode() === 'print') exportMonthPdf();
+      else await exportMonthPdfDirect();
       return;
     }
     if(typeof ExcelJS === 'undefined'){
@@ -16981,13 +17004,12 @@ export function initLegacyApp() {
   // ---------- Month PDF writer: the layout model (MONTH-PDF-WRITER-PLAN.md §3.1, step 2) ----------
   // The direct month-PDF writer (owner rulings, 30 Sep 2026) is three layers: this MODEL -- pure data
   // saying what goes where on every month's page -- then the emitter that turns it into PDF bytes
-  // (step 3), and the fit that sizes each week's row (step 4). ⛔ NOTHING CALLS ANY OF IT YET. The
-  // export is routed to the writer in step 5; until then the month PDF is exportMonthPdf's print path,
-  // untouched, and the monthlayout harness leg is this section's only reader.
-  // ⚠️ AND THE BUILD DOES NOT CONTAIN IT YET. The minifier drops everything here that nothing
-  // references, which is everything but MVL_GEOMETRY's initialiser (it keeps the call and discards
-  // the result). So the monthlayout leg tests this SOURCE, sliced, and the first time the minified
-  // form runs is step 5. Step 5's end-to-end legs must exercise the build, not only the slice.
+  // (step 3), and the fit that sizes each week's row (step 4). ⭐ SINCE STEP 5 THE MONTH VIEW'S EXPORT PDF
+  // RUNS IT: exportMonthPdfDirect, after the writer, is its one caller, and frozen exportMonthPdf's print
+  // path is the rollback (MV_PDF_MODE) and the test switch's route (monthPdfMode).
+  // ⚠️ The harness legs test this SOURCE, sliced (monthlayout, monthemit, monthwriter), and the monthexport
+  // leg holds the BUILT app's file to the slice's, byte for byte: until step 5 the minifier dropped all of
+  // this, so the minified writer first ran then.
   //
   // ⭐ THE CONTENT IS INHERITED, NOT COPIED. buildMonthLayout() calls frozen renderMonthView() once
   // per month, exactly as exportMonthPdf does (printingCursor set, then cleared in `finally`), and
@@ -17114,9 +17136,12 @@ export function initLegacyApp() {
   // C0/C1 control character is dropped: pdfEscape() would write it as an escape that draws nothing,
   // or, at 0x80-0x9F, as WinAnsi's curly quotes and dashes. Every other character is kept, and is
   // measured as it will print (mvlPdfChar).
+  // ⛔ AND A SOFT HYPHEN (U+00AD) IS DROPPED (step 5, 2 Oct 2026). It is invisible on screen and common
+  // in text pasted from Word, and the Inter subset has no glyph for it, so it would print as a .notdef
+  // box, and the printable-characters warning would name a character nobody can see in their note.
   function mvlCleanText(s){
     return String(s == null ? '' : s).replace(/\r\n?/g, '\n').replace(/\t/g, ' ')
-      .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '');
+      .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u00AD]/g, '');
   }
 
   // ---- Wrapping a note: white-space:pre-wrap + word-break:break-word, without hyphenation ----
@@ -17391,12 +17416,10 @@ export function initLegacyApp() {
   // ---------- Month PDF writer: the emitter and the serializer (MONTH-PDF-WRITER-PLAN.md §3.2, step 3) ----------
   // buildMonthPdf(layout) turns buildMonthLayout()'s model into the bytes of a PDF: one Letter-
   // landscape page per month, with every box, line and glyph where the print stylesheet puts it, set
-  // in step 1's four static Inter programs. ⛔ NOTHING CALLS IT YET, so the minifier drops it from the
-  // build as it drops the model, and the build is byte-identical to one without it. Step 5 routes the
-  // export here. Until then the monthemit harness leg is its only reader: it slices this source as
-  // monthlayout slices the model (owner ruling, 1 Oct 2026: "slice it, no hook" extends to the
-  // emitter), and step 5 owes a check that the BUILT app writes the same bytes as the slice does for
-  // the same calendar.
+  // in step 1's four static Inter programs. Since step 5 the month view's Export PDF calls it, through
+  // exportMonthPdfDirect. The monthemit harness leg slices this source as monthlayout slices the model
+  // (owner ruling, 1 Oct 2026: "slice it, no hook" extends to the emitter), and the monthexport leg holds
+  // the BUILT app's bytes to the slice's for the same calendar (the step-3 obligation, met at step 5).
   //
   // THREE LAYERS, so each can be held to something on its own:
   //  - mvlPaintMonth(month, fonts) returns a DISPLAY LIST: plain objects in CSS px, y down, in paint
@@ -18134,8 +18157,8 @@ export function initLegacyApp() {
   // ⛔ The monthwriter leg holds the rule these feed to gate 10's fit tables: change one and the writer's
   // rows stop matching today's on every month that fits.
   // ⚠️ A FUNCTION, NOT A const INITIALISER, so nothing here runs at boot: a frozen object built at startup
-  // is a call the minifier must keep, and it would keep MVL_PAINT with it (measured: +1,247 bytes on a
-  // build that is otherwise byte-identical to one without the writer, until step 5 calls it).
+  // is a call the minifier must keep (measured at step 4, when it kept MVL_PAINT with it: +1,247 bytes on
+  // a build that was then byte-identical to one without the writer). The export, not the boot, runs it.
   function mvlFitNumbers(){
     const P = MVL_PAINT, chrome = P.barsPadTop + P.barsPadBottom, lane = P.laneMin + P.laneGap;
     // `steps`: the shrink factor is a whole number of 64ths (the lead comment says why).
@@ -18235,13 +18258,61 @@ export function initLegacyApp() {
   // `layout` is buildMonthLayout()'s; `fonts` holds the four programs as buildMonthPdf decodes them ({'400':
   // what loadInterPdfFont('400') resolves to, ...}), since the header's height depends on how its title
   // wraps. Returns a NEW layout with `fit` on every month, ready for buildMonthPdf; the one passed in is not
-  // changed. ⛔ NOTHING CALLS IT YET, like the rest of the writer: step 5 routes the export through it.
+  // changed. Since step 5 exportMonthPdfDirect calls it, between buildMonthLayout and buildMonthPdf.
   function fitMonthLayout(layout, fonts){
     if(!layout || !Array.isArray(layout.months)) throw new Error('Month PDF: there is no layout to fit.');
     MVL_FONT_WEIGHTS.forEach(function(w){
       if(!fonts || !fonts[w] || !fonts[w].font) throw new Error('Month PDF: the fit has no Inter ' + w + ' program.');
     });
     return { geometry: layout.geometry, months: layout.months.map(function(m){ return mvlFitMonth(m, fonts); }) };
+  }
+
+  // ---------- Month PDF writer: what will not print as typed (MONTH-PDF-WRITER-PLAN.md §3.4, step 5) ----------
+  // mvlUnprintable(layout, fonts) names every character the PDF cannot set as it was typed, and where it
+  // is, before a byte is written (owner ruling, 2 Oct 2026: "Warn first, list them"). It walks the DISPLAY
+  // LIST -- the very strings the emitter sets, so a label cut by its "…" is checked as it is drawn -- and
+  // asks the emitter's own rule about each character, so the warning cannot disagree with the file:
+  //  - mvlPdfChar() is what pdfEscape() will write: anything outside WinAnsi becomes "?";
+  //  - a WinAnsi character the Inter subset has no glyph for (Š š Ž ž Ÿ ƒ † ‡ ‰) draws as .notdef,
+  //    which in Inter is a box. (The tenth, the soft hyphen, never reaches here: mvlCleanText drops it.)
+  // The month label, the weekday row, the day numbers and the ½ are always printable, so they are not
+  // walked. Returns one place per distinct text, in the order the pages draw them:
+  //   { kind: 'header' | 'pill' | 'tag' | 'hiatus' | 'simpost' | 'note', text, iso, chars: [{ ch, as }] }
+  // with `as` '?' or 'box', `iso` the first day the text is drawn on (none for the header).
+  function mvlUnprintable(layout, fonts){
+    const places = [], byKey = new Map(), verdict = new Map();
+    const asDrawn = function(ch, w){
+      const key = w + '|' + ch;
+      if(!verdict.has(key)){
+        const d = mvlPdfChar(ch);
+        verdict.set(key, (d === '?' && ch !== '?') ? '?'
+          : ((d !== '\u0000' && ttfGlyph(fonts[w].font, d.codePointAt(0)) === 0) ? 'box' : null));
+      }
+      return verdict.get(key);
+    };
+    layout.months.forEach(function(m){
+      mvlPaintMonth(m, fonts).forEach(function(o){
+        if(o.k !== 'text' || !o.s) return;
+        let kind, text = '', iso = '';
+        if(o.role === 'hdr') kind = 'header';
+        else if(o.role === 'bar-text' || o.role === 'bar-ell' || o.role === 'bar-tag'){
+          const it = m.weeks[o.wk].items[o.i];
+          kind = o.role === 'bar-tag' ? 'tag' : it.kind;
+          text = o.role === 'bar-tag' ? mvlFlat(it.tag || '') : (it.kind === 'note' ? mvlCleanText(it.text) : mvlFlat(it.text));
+          iso = (it.kind === 'note' && it.note && /^\d{4}-\d{2}-\d{2}$/.test(it.note.day || '')) ? it.note.day : m.weeks[o.wk].days[it.from].iso;
+        }
+        else return;
+        for(const ch of o.s){
+          const as = asDrawn(ch, o.wt);
+          if(!as) continue;
+          const key = kind + '|' + text + '|' + (kind === 'note' ? iso : '');
+          let place = byKey.get(key);
+          if(!place){ place = { kind: kind, text: text, iso: iso, chars: [] }; byKey.set(key, place); places.push(place); }
+          if(!place.chars.some(function(c){ return c.ch === ch; })) place.chars.push({ ch: ch, as: as });
+        }
+      });
+    });
+    return places;
   }
 
   // ---- The whole PDF: buildMonthPdf(layout) ----
@@ -18259,6 +18330,116 @@ export function initLegacyApp() {
     return mvlSerialize(lists.map(mvlPageOps), used.map(function(w){
       return { tag: 'F' + w, ttf: fonts[w].font, raw: fonts[w].bytes, deflated: fonts[w].deflated };
     }));
+  }
+
+  // ---------- Month view: Export PDF through the writer (MONTH-PDF-WRITER-PLAN.md §3.3, step 5) ----------
+  // What the month view's Export PDF runs since step 5 (ruling 4(a): "replace, and keep a rollback";
+  // monthPdfMode() decides). Everything is BUILT first -- the four Inter programs, the layout model, the
+  // fit, the bytes -- and only then is the Save dialog opened, so a build that fails never leaves an empty
+  // file behind: showSaveFilePicker() creates the file it returns.
+  //  - Chrome and Edge get the Save dialog, as Save does (owner ruling, 2 Oct 2026: "Save dialog").
+  //    ⚠️ The picker needs the click's TRANSIENT ACTIVATION, which a slow build could outlast. Then it
+  //    refuses (a SecurityError), and "Your month PDF is ready" asks for one more click, which is a fresh
+  //    activation, rather than failing. A cancelled picker (AbortError) is silent, as Save's is.
+  //  - Without the File System Access API the PDF downloads, as Save and the waterfall PDF do there.
+  //  - Characters the PDF cannot set are named before anything is written (owner ruling: "Warn first,
+  //    list them"), and Export anyway / Cancel decides.
+  //  - A build that throws offers the print path instead (owner ruling: "Offer the print dialog"). That
+  //    is the rollback, still in the file, and frozen exportMonthPdf runs it exactly as it always has.
+  // ⚠️ The waterfall PDF still downloads with no dialog: matching it would be a frozen edit
+  // (exportWaterfallPdfDirect), and the owner chose the dialog here knowing the two will differ.
+  const MONTH_PDF_TYPES = [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }];
+  // `<title> Month Calendar.pdf`, beside the other exports' `<title> Planning Calendar.xlsx` / `.pdf`,
+  // and made the same way.
+  function monthPdfFileName(){
+    const titleRaw = (document.getElementById('show-title').value || '').trim();
+    const safe = titleRaw.replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim();
+    return (safe ? safe + ' ' : '') + 'Month Calendar.pdf';
+  }
+  // Where a place is, in words (mvlUnprintable's places).
+  function monthPdfPlaceText(p){
+    const day = p.iso ? fmtShort(parseDateUTC(p.iso)) : '';
+    const quote = function(t){ t = String(t || ''); return '“' + (t.length > 40 ? t.slice(0, 39) + '…' : t) + '”'; };
+    if(p.kind === 'header') return 'in the header';
+    if(p.kind === 'note') return 'in the note on ' + day;
+    if(p.kind === 'hiatus') return 'in the hiatus band ' + quote(p.text) + ' (from ' + day + ')';
+    if(p.kind === 'tag') return 'in the grey text ' + quote(p.text) + ' (from ' + day + ')';
+    if(p.kind === 'simpost') return 'in the Simultaneous Post bar (from ' + day + ')';
+    return 'in the bar ' + quote(p.text) + ' (from ' + day + ')';
+  }
+  // The waterfall PDF's warning (confirmPdfPrintable), for the month: resolves true to go ahead.
+  async function confirmMonthPdfPrintable(places){
+    // An invisible or combining character would vanish from the list, so those are shown by code.
+    const shown = ch => /[\s\p{Cc}\p{Cf}]/u.test(ch) ? 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')
+                      : /\p{M}/u.test(ch) ? '◌' + ch : ch;
+    const MAX_PLACES = 8, MAX_CHARS = 12;
+    const lines = places.slice(0, MAX_PLACES).map(p=>
+      '• ' + p.chars.slice(0, MAX_CHARS).map(c=> shown(c.ch)).join(' ') + (p.chars.length > MAX_CHARS ? ' …' : '')
+      + ' ' + monthPdfPlaceText(p));
+    if(places.length > MAX_PLACES) lines.push('… and ' + (places.length - MAX_PLACES) + ' more');
+    const boxes = [];
+    places.forEach(p=> p.chars.forEach(c=>{ if(c.as === 'box' && boxes.indexOf(c.ch) < 0) boxes.push(c.ch); }));
+    return !!(await uiConfirm(
+      'The month PDF’s font has Western European characters only, so these will print as “?”'
+      + (boxes.length ? ' (' + boxes.join(' ') + ' as a box)' : '') + ':\n\n'
+      + lines.join('\n')
+      + '\n\nThe month view on screen keeps them.',
+      { title: 'Some characters won’t print', confirmLabel: 'Export anyway', cancelLabel: 'Cancel' }));
+  }
+  // The Save dialog, or a download where there is none. Resolves 'saved', 'download' or 'cancelled'.
+  async function saveMonthPdf(bytes, name){
+    if(!supportsFsAccess){ downloadTextFile(bytes, 'application/pdf', name); return 'download'; }
+    const pick = function(){ return window.showSaveFilePicker({ suggestedName: name, types: MONTH_PDF_TYPES }); };
+    let handle;
+    try { handle = await pick(); }
+    catch(e){
+      if(e && e.name === 'AbortError') return 'cancelled';
+      // The click's activation ran out while the PDF was being built: ask for one more click.
+      if(!(e && (e.name === 'SecurityError' || e.name === 'NotAllowedError'))) throw e;
+      if(!(await uiConfirm('Your month PDF is ready.', { title: 'Month PDF', confirmLabel: 'Save…', cancelLabel: 'Cancel' }))) return 'cancelled';
+      try { handle = await pick(); }
+      catch(e2){ if(e2 && e2.name === 'AbortError') return 'cancelled'; throw e2; }
+    }
+    const writable = await handle.createWritable();
+    try {
+      await writable.write(new Blob([bytes], { type: 'application/pdf' }));
+      await writable.close();
+    } catch(err){
+      try { await writable.abort(); } catch(_){ /* the write's own error is the one to report */ }
+      throw err;
+    }
+    return 'saved';
+  }
+  async function exportMonthPdfDirect(){
+    if(!monthRangeForSchedule(currentSchedule)){
+      await uiAlert('Add at least one phase with a start date before exporting the calendar.');
+      return;
+    }
+    chrome.exportBtn({ busy: true, disabled: true });
+    try {
+      let bytes, places;
+      try {
+        const fonts = {};
+        for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
+        const layout = fitMonthLayout(buildMonthLayout(currentSchedule, fonts['500']), fonts);
+        places = mvlUnprintable(layout, fonts);
+        bytes = await buildMonthPdf(layout);
+      } catch(err){
+        console.error(err);
+        if(await uiConfirm('Something went wrong writing the month PDF: ' + err.message + '\n\nPrint it with the browser instead?',
+                           { title: 'The month PDF could not be written', confirmLabel: 'Print instead', cancelLabel: 'Cancel' })){
+          exportMonthPdf();
+        }
+        return;
+      }
+      if(places.length && !(await confirmMonthPdfPrintable(places))) return;
+      await saveMonthPdf(bytes, monthPdfFileName());
+    } catch(err){
+      console.error(err);
+      await uiAlert('Could not save the month PDF: ' + err.message);
+    } finally {
+      chrome.exportBtn({ busy: false, disabled: false });
+    }
   }
 
   // ---------- Month view: note editing ----------

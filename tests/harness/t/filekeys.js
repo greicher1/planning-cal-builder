@@ -23,7 +23,7 @@
 //   K7  guard: a held key's repeats do nothing (prevented, nothing clicked)
 //   K8  guard: while one of the app's dialogs is open, ⌘N / ⇧⌘S / ⇧⌘E do nothing
 //   K9  another platform (navigator reports Windows): Ctrl+N and Ctrl+Shift+E are taken, ⌘N is not
-//   K10 end to end, ⇧⌘E: the waterfall writes the Excel workbook; the month view prints the month PDF
+//   K10 end to end, ⇧⌘E: the waterfall writes the Excel workbook; the month view writes the month PDF
 //   K11 end to end, ⇧⌘S on a calendar already linked to file A: a second picker, the edited calendar
 //       written as a .sptcal into the NEW file B, A left alone, and the next ⌘S writes B
 //   K12 end to end, ⌘N with unsaved work: New's own question appears, and "Start new" leaves a blank calendar
@@ -132,18 +132,20 @@ window.addEventListener('load', function () { (async function () {
     document.getElementById('view-month-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-week'); }, 'the month view', 200, 100);
     await settle('the month view to settle');
-    var printed = null, realPrint = window.print;
-    window.print = function () { printed = { cls: document.body.className, pages: document.querySelectorAll('#print-root .print-page').length }; };
+    // Since MONTH-PDF-WRITER-PLAN.md step 5 the month view's export is the direct writer: a file through the Save
+    // dialog (stood in for), and no print at all.
+    var sp10 = T.fakeSavePicker(), printed = false, realPrint = window.print;
+    window.print = function () { printed = true; };
     await T.sleep(800);
     var p10m = press('e', { meta: true, shift: true });
-    try { await T.until(function () { return !!printed; }, 'window.print() on the month PDF', 100, 100); } catch (e) {}
+    try { await T.until(function () { return sp10.files.length > 0; }, 'the month PDF written', 200, 100); } catch (e) {}
     window.print = realPrint;
-    window.dispatchEvent(new Event('afterprint'));
-    await T.sleep(300);
-    var month = { prevented: p10m, printed: printed, after: document.body.className };
-    kase('K10', '⇧⌘E end to end: the waterfall writes the .xlsx, the month view prints the month PDF (one page per month)',
-         sheet.prevented && sheet.wrote && sheet.head === 'PK' && month.prevented && !!printed &&
-         printed.cls.indexOf('printing-calendar') >= 0 && printed.pages >= 12, { observed: { sheet: sheet, month: month } });
+    sp10.restore();
+    var f10 = sp10.files[0];
+    var month = { prevented: p10m, name: f10 && f10.name, pages: f10 ? T.pdfPages(f10.bytes) : 0, printCalled: printed };
+    kase('K10', '⇧⌘E end to end: the waterfall writes the .xlsx, the month view writes the month PDF (one page per month)',
+         sheet.prevented && sheet.wrote && sheet.head === 'PK' && month.prevented && !!f10 && f10.closed &&
+         /Month Calendar\.pdf$/.test(f10.name || '') && month.pages >= 12 && !printed, { observed: { sheet: sheet, month: month } });
     document.getElementById('view-sheet-btn').click();
     await T.until(function () { return !!document.querySelector('#table-wrap table.sheet-table'); }, 'the waterfall again', 200, 100);
     await settle('the waterfall to settle again');

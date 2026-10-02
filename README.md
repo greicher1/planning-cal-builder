@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Export PDF in the month view writes the PDF itself: the direct writer's step 5 (2 Oct 2026)
+
+Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, ruling 4(a): "replace, and keep a
+rollback". **Users see a change.** In the month view, Export PDF (and ⌘P and ⇧⌘E there) no longer opens
+the browser's print dialog. The app writes the month PDF itself.
+- **What the user gets:**
+  - **A Save dialog** in Chrome and Edge, proposing `<title> Month Calendar.pdf`, beside the other
+    exports' `<title> Planning Calendar.xlsx` / `.pdf`. Other browsers download the file. Cancel is
+    silent.
+  - **The same PDF from any window.** Notes wrap at the PDF's own width (ruling 2), and every row is
+    computed rather than measured on screen.
+  - **Dense months shrink evenly** instead of being squashed flat (ruling 3), and an emptied hiatus
+    band prints full height (step 4).
+  - **Characters the PDF cannot draw are named first,** with where they are: text outside Western
+    European prints as "?", and Š š Ž ž Ÿ ƒ † ‡ ‰ as a box. Then Export anyway / Cancel, as the
+    waterfall PDF already asks. A soft hyphen pasted from Word is simply dropped.
+  - **If the writer ever fails,** the app says why and offers the browser's print dialog instead.
+- **The owner's four rulings (2 Oct 2026):**
+  - the print path stays reachable only through a localhost-only test switch;
+  - the print dialog is offered when the writer fails;
+  - the Save dialog;
+  - warn first, and list the characters.
+- **The rollback:** `MV_PDF_MODE = 'direct'` sits beside `WF_PDF_MODE`; set it to `'print'` and rebuild.
+  The print path (`exportMonthPdf`, frozen) is unchanged, and gate 10 still runs it, through
+  `localStorage 'sptcal.mvPdfTest' = 'print'`, which works on localhost only.
+- **Verified:**
+  - **A new leg, `monthexport`** (9 cases, plus a real-clock timing case), drives the BUILT app's real
+    export with the clock pinned. Its file is byte-identical to what the sliced source writes for the
+    same calendar, and, for the reference calendar, to step 4's output from gate 10's own baseline
+    document.
+  - It is identical under UTC+14 and in a 1280 px window.
+  - It covers the failure fallback, cancel, a lapsed click, the soft hyphen, the characters warning and
+    the download without the File System Access API.
+  - The Save dialog opens 46–108 ms after the click, against the 5 s a click's permission lasts.
+  - **The seven legs that drove the print path:** gate 10, `blocks`, `hiatuslabel` and `printpaper`
+    use the switch; `cmdprint`, `filekeys` and `exportrefused` now check the writer. `cspproof` proves
+    both routes under the Content-Security-Policy with zero violations.
+  - **Mutants:** red on 13 (11 patched into the build, 2 into the source).
+  - **The older legs:** `monthemit` 16/16, `monthlayout` 14/14 and `monthwriter` 12/12.
+  - Full gate: **1,151 PASS, 0 FAIL, GATE PASSED.** The waterfall PDF, every Excel part and all nine
+    printed month documents (through the switch) are identical to their baselines. The run before it
+    had one harness flake (`snapoff`, no result file; it passed alone, and in the rerun)
+- **Size:** +30,732 bytes (1,433,765 to 1,464,497), now that the build keeps the writer.
+
 ### Unreleased — the month PDF's fit, the direct writer's step 4 (1 Oct 2026)
 
 Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users

@@ -118,6 +118,7 @@ window.addEventListener('load', function () { (async function () {
     // The month PDF is #print-root at the moment exportMonthPdf calls window.print().
     var printed = null, realPrint = window.print;
     window.print = function () { var h = document.getElementById('print-root'); printed = h ? h.innerHTML : ''; };
+    T.monthPrintPath();   // the PRINT path: this leg reads the print document (MONTH-PDF-WRITER-PLAN.md step 5)
     document.getElementById('export-btn').click();
     await T.until(function () { return printed !== null; }, 'the month print call', 200, 100);
     window.dispatchEvent(new Event('afterprint'));

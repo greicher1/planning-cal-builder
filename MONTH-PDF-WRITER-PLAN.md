@@ -1,12 +1,11 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 🔨 **STEPS 1 TO 4 OF 6 BUILT (the fonts, the layout model, the emitter and serializer, and
-the fit, 1 Oct 2026); nothing in the product calls the writer yet.** It writes a valid month PDF from
-the model alone. A month that fits gets the print path's own rows (Chrome's to 0.02 px wherever print
-measured its notes as the writer lays them out), a dense month shrinks evenly, and the A/B leg holds
-the writer's file to Chrome's real print page by page. ✅ **All four rulings received, 30 Sep 2026**
-(§6): Inter, the PDF's own cell width, dense months shrink evenly, and replace the print path while
-keeping a rollback. Next: step 5, the save path and the routing (§8), on the owner's go-ahead.
+**Status:** 🔨 **STEPS 1 TO 5 OF 6 BUILT (2 Oct 2026). Export PDF in the month view now runs the writer**
+(ruling 4(a)): the file is built from the model alone and saved through the Save dialog, with characters it
+cannot set named first. The print path is the rollback (`MV_PDF_MODE`), and on localhost only the test
+switch's route. The built app's file is held byte for byte to the sliced source's. ✅ **All four rulings
+received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months shrink evenly, and replace the
+print path while keeping a rollback. Next: step 6, the byte baselines, after the owner signs off.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -268,6 +267,13 @@ Nothing ships on "it looks right". In order of strength:
    decisions (12 cases, 19 mutants). It then leaves the documents in print state. The judge holds the
    writer's files to Chrome's real print of them (P0–P5, 4 mutants). Item 2 above is that leg; its
    pixels and contact sheets are a report, made with `--sheets`.
+8. **Built at step 5: the end-to-end leg, `monthexport`** (9 cases, plus T0 on the real clock). It drives
+   the BUILT app's real Export PDF with the clock pinned and a stood-in Save dialog. Its file must be
+   byte-identical to the sliced source's for the same calendar; that was the step-3 obligation. It also
+   covers the failure fallback, cancel, a lapsed activation, the soft hyphen, the characters warning and,
+   after a reload without the File System Access API, the download. In `gate.sh` eight times: five
+   calendars, the reference again in UTC+14 and in a 1280 px window (byte-identical), and the reference on
+   the real clock. 13 mutants turn it red: 11 on the build, 2 on the source.
 
 **Fixtures:**
 - **Tier 1 (must pass):** the nine gate-10 calendars.
@@ -315,7 +321,8 @@ put.
   the writer honours them as the screen does. Byte baselines must seed them.
 - **Seven legs stub `window.print` in the month view:** `monthprint`, `blocks`, `hiatuslabel` N1–N4,
   `cmdprint` P3, `exportrefused`, `cspproof` M2 and `printpaper`. Under ruling 4(a) they force print
-  mode or are retargeted. `releases/v1.4.2.html` is a reproducible oracle for the print path.
+  mode or are retargeted. `releases/v1.4.2.html` is a reproducible oracle for the print path. ✅ **Done
+  at step 5:** the renderer's legs set the localhost-only switch; the export's legs moved to the writer.
 - **Inter's licence.** The repo has no `LICENSE-Inter`, although Inter is already embedded in the app
   and would now travel inside every PDF. Add it (SIL OFL) with the font work.
 - **The Save dialog is Chromium-only.** Elsewhere the month PDF downloads, as the waterfall's does.
@@ -559,8 +566,77 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
        `uiAlert`.
      - The window control now holds on fresh captures, so step 5's end-to-end leg can require the
        BUILT app's bytes to equal the slice's from any window.
-5. **The save path, the printable-characters check and the routing** (ruling 4), with the seven legs
-   retargeted and `cspproof`.
+5. ✅ **The save path, the printable-characters check and the routing** (ruling 4), with the seven legs
+   retargeted and `cspproof` (built 2 Oct 2026; detail and proof in HANDOFF's top block).
+   - **The owner's four rulings for this step (picker, 2 Oct 2026, before any code), all as
+     recommended:**
+     1. **The print path's switch: "Localhost-only."** On localhost ONLY, `localStorage
+        'sptcal.mvPdfTest' = 'print'` sends the month export down the print path, as the install gate's
+        `'sptcal.gateTest'` does. Gate 10 and the legs that capture print documents use it. No user can
+        reach it on the hosted link or in a `file://` copy. `MV_PDF_MODE = 'direct'`, beside
+        `WF_PDF_MODE`, is the one-line rollback (ruling 4(a)).
+     2. **On a failure: "Offer the print dialog."** If writing the month PDF throws, the user is told
+        why and asked "Print it with the browser instead?" (Print instead / Cancel). The old path is
+        in the file anyway, so it becomes the safety net.
+     3. **"Save dialog."** Chrome and Edge show the Save dialog, as Save does; elsewhere the PDF
+        downloads. The waterfall PDF keeps downloading straight to Downloads (it is frozen), so the two
+        PDFs behave differently, knowingly.
+     4. **Unprintable characters: "Warn first, list them."** The waterfall PDF's warning, for the
+        month: each character and where it is, then Export anyway / Cancel. Text outside WinAnsi
+        prints as "?"; the nine WinAnsi characters the subset lacks (Š š Ž ž Ÿ ƒ † ‡ ‰) print as
+        `.notdef`, which in Inter is a drawn box (10 contours, measured).
+   - **Settled with those rulings, not put to the owner:**
+     - Build everything first, then open the picker inside the click's activation. A build slow
+       enough to outlast the activation gets a "Your month PDF is ready: Save…" prompt, whose click is
+       a fresh one, instead of a failure.
+     - A cancelled picker is silent, and the button is busy while it builds.
+     - The name is `<title> Month Calendar.pdf`, beside the other exports' `<title> Planning Calendar.*`.
+     - A **soft hyphen is dropped** (`mvlCleanText`). It is invisible on screen and common in text
+       pasted from Word, so printing it as a box, or warning about a character nobody can see,
+       would be wrong.
+   - **As built:**
+     - **`MV_PDF_MODE = 'direct'`** sits beside `WF_PDF_MODE`. `monthPdfMode()` reads it, and the
+       localhost-only switch, at click time.
+     - **The export button's month branch** is `monthPdfMode() === 'print' ? exportMonthPdf() : await
+       exportMonthPdfDirect()`. Cmd/Ctrl+P and ⇧⌘E click that button, so they follow.
+     - **`exportMonthPdfDirect()`**, after the writer: busy, then the four fonts, `buildMonthLayout`,
+       `fitMonthLayout`, `mvlUnprintable`, `buildMonthPdf`. Then `confirmMonthPdfPrintable` when
+       anything will not print, then `saveMonthPdf`.
+       - `saveMonthPdf` opens the picker, or downloads; AbortError is silent; a lapsed activation
+         (SecurityError) gets "Your month PDF is ready: Save…"; a write that fails is aborted.
+       - A build that throws gets "Print it with the browser instead?".
+     - **`mvlUnprintable(layout, fonts)`**, inside the writer: it walks the display list with the
+       emitter's own rule (`mvlPdfChar`, and the program's coverage) and returns each place. The warning
+       formats them (`monthPdfPlaceText`).
+     - **`mvlCleanText`** drops U+00AD.
+     - **The build grows by 30,732 bytes** (1,433,765 to 1,464,497), now that the minifier keeps the
+       writer. ⚠️ It constant-folds `MV_PDF_MODE === 'print'` away, so the rollback is a REBUILD with
+       the constant flipped, not an edit to the built file.
+   - ⭐ **Measured: the build is fast.** On the real clock (`rtleg.mjs`) the Save dialog opens 46 ms
+     after the click for 16 months, 68 ms for month-dense60 (a shrunk August) and 108 ms for
+     stintswap-reshape (25 months). Chrome's activation lasts 5 s, so the "ready" prompt is insurance.
+   - ⭐ **The chain agrees end to end.** The BUILT app's export of the reference calendar, rendered fresh
+     and written by the minified writer with the clock pinned, is byte-identical to step 4's slice
+     output from gate 10's own baseline document (80,038 bytes, sha256 `bf387fc2…`). The same file
+     comes out under UTC+14, in a 1280 px window and on the real clock.
+   - **The seven legs** (§7):
+     - `monthprint` (gate 10), `blocks`, `hiatuslabel` and `printpaper` (through monthprint) set the
+       switch and still read the print document. So do the writer's own legs' fresh captures
+       (`monthlayout`, `monthemit`, `monthwriter`);
+     - `cmdprint` P3, `filekeys` K10 and `exportrefused` E3 are retargeted to the writer: the file
+       written through a stood-in Save dialog, never print;
+     - `cspproof` M2 now proves the writer under the policy, and a new M3 the print path, the rollback.
+   - ⚠️ **F0 changed meaning in the three slicing legs:** "nothing calls the writer" became "only
+     `exportMonthPdfDirect` calls it, through its public part" (the loader and its weights,
+     `buildMonthLayout`, `fitMonthLayout`, `mvlUnprintable`, `buildMonthPdf`).
+   - **For step 6:**
+     - the byte baselines can come straight from `monthexport`'s files: the clock is pinned, and they
+       are identical from any window and time zone;
+     - the fixtures §5 lists are still to mint (header formats, a non-US region, non-WinAnsi text,
+       labels long enough to ellipsise, preferences off). `monthexport` types its unprintable note at
+       run time instead;
+     - the owner should see the month PDF in Preview or Acrobat from a real Export, the Save dialog
+       included, before the baselines are cut.
 6. **Baselines,** cut after the owner's sign-off. Then the full gate, the README changelog, HANDOFF,
    and a version cut when the owner asks.
 

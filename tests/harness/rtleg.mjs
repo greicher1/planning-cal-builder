@@ -1,6 +1,6 @@
 // rtleg.mjs -- run one t/<leg>.js in REAL time, over CDP, where run.sh cannot.
 //
-//   node rtleg.mjs --leg swscope [--state <fixture>] [--page /dist/index.html] [--secs 90]
+//   node rtleg.mjs --leg swscope [--state <fixture>] [--page /dist/index.html] [--secs 90] [--query k=v&...]
 //
 // Writes <leg>.json beside this script, in exactly the shape run.sh + parse.js produce (the leg's
 // own T.done() object), so gate.sh judges it with the same block as every other leg.
@@ -28,6 +28,8 @@ const argv = process.argv.slice(2), arg = (k, d) => { const i = argv.indexOf('--
 const LEG = arg('leg', '');
 const PAGE = arg('page', process.env.HARNESS_PAGE || '/dist/index.html');
 const STATE = arg('state', process.env.HARNESS_STATE || '');
+// --query k=v&... is appended to the page's query, as run.sh's HARNESS_QUERY is (monthexport's realtime=1).
+const QUERY = arg('query', process.env.HARNESS_QUERY || '');
 const SECS = Number(arg('secs', 90));
 const PORT = Number(arg('port', process.env.HARNESS_PORT || 8231));
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -69,7 +71,7 @@ try {
   const send = (method, params = {}) => new Promise((res, rej) => { const id = ++seq; waiting.set(id, { res, rej }); ws.send(JSON.stringify({ id, method, params })); });
   const evaluate = async expr => (await send('Runtime.evaluate', { expression: expr, returnByValue: true })).result.value;
   await send('Page.enable');
-  await send('Page.navigate', { url: `http://localhost:${PORT}${PAGE}?test=${LEG}${STATE ? '&state=' + STATE : ''}` });
+  await send('Page.navigate', { url: `http://localhost:${PORT}${PAGE}?test=${LEG}${STATE ? '&state=' + STATE : ''}${QUERY ? '&' + QUERY : ''}` });
   const t0 = Date.now();
   while (!out && Date.now() - t0 < SECS * 1000) {
     await sleep(250);

@@ -338,8 +338,8 @@ Drop the script blocks and `buildWaterfallPdf` throws on its own guard (loud). D
 (quiet, and far worse). `carlitoReady.then(()=>{ _measureCache.clear(); … render(currentSchedule); })`
 exists precisely because a first render against a fallback face bakes wrong widths in.
 
-⛔ **Four more ids join this contract when the direct month-PDF writer ships: `font-inter-400`/`500`/
-`600`/`700`**, the static Inter programs MONTH-PDF-WRITER-PLAN.md step 1 embedded for it. Their reader
+⛔ **Four more ids joined this contract on 2 Oct 2026, when the direct month-PDF writer shipped (step 5):
+`font-inter-400`/`500`/`600`/`700`**, the static Inter programs MONTH-PDF-WRITER-PLAN.md step 1 embedded for it. Their reader
 has existed in source since 1 Oct 2026: `loadInterPdfFont(weight)` (step 2, the layout model) reads
 `document.getElementById('font-inter-' + weight)` and decodes it the way `loadCarlito()` decodes
 Carlito, with `atob` and then `DecompressionStream('deflate')`.
@@ -350,8 +350,9 @@ Carlito, with `atob` and then `DecompressionStream('deflate')`.
   month PDF outright, and a block rebuilt from a different Inter would move its line breaks without an
   error. They belong to the month PDF's output contract exactly as `font-carlito-*` belong to the
   workbook's and the waterfall PDF's.
-- ⚠️ **Today nothing reads them at runtime.** Nothing calls the loader until step 5 routes the export to
-  the writer, and until then the build's minifier drops the whole layout model as unused.
+- ⚠️ **Since step 5 the month view's Export PDF reads them at runtime**, on its first use in a session. Until
+  then the build's minifier dropped the whole writer as unused, so the `monthexport` leg now holds the BUILT
+  app's file to the sliced source's, byte for byte.
 - `npm run check` §8 and the `interfonts` and `monthlayout` harness legs guard them.
 
 ### 4.6 Direct manipulation, and the stores it writes
@@ -479,6 +480,14 @@ note cell — that rule is the only suppression; unlike `.hdr-tools`, nothing re
 cannot), but because the fallback's scale is measured under the screen cascade.
 
 ### 5.2 The month PDF is the month view
+
+⚠️ **Since 2 Oct 2026 (MONTH-PDF-WRITER-PLAN.md step 5) Export PDF in the month view is the direct writer,
+and the print path below is its rollback** (`MV_PDF_MODE`) and the route of the localhost-only test switch
+(`sptcal.mvPdfTest`). Gate 10 still drives it, because its document is still the proof that frozen
+`renderMonthView` has not moved, and the writer reads the same HTML (`mvlParseMonth`, attributes as
+strings). So the coupling to the renderer's markup described here binds both. The writer measures
+nothing: it computes every row from its own model (`fitMonthLayout`). The rest of this section is the
+print path.
 
 `exportMonthPdf` builds pages by calling `renderMonthView` in a loop, then reaches back into the
 rendered HTML: `page.querySelectorAll('.mv-week')`,

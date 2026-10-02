@@ -189,6 +189,7 @@ window.addEventListener('load', function () { (async function () {
       await T.sleep(700);
       var captured = false, realPrint = window.print;
       window.print = function () { captured = true; };
+      T.monthPrintPath();   // the PRINT path: this leg reads the print document (MONTH-PDF-WRITER-PLAN.md step 5)
       document.getElementById('export-btn').click();
       await T.until(function () { return captured; }, 'the month export', 200, 100);
       var host = document.getElementById('print-root'), prev = host.style.cssText;
