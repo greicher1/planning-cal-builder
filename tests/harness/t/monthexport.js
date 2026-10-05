@@ -20,7 +20,8 @@
 // before boot (the app reads it once, at boot), where the PDF must download instead.
 //
 // CASES
-//   X0  the clock is pinned: `new Date()` is 22 Sep 2026, and the month header shows "9.22.26"
+//   X0  the clock is pinned: `new Date()` is 22 Sep 2026, and the month header shows "9.22.26" (a Manual header's date
+//       slot shows its own text instead: mvheaderlegacy's is "{version}")
 //   X1  a build that FAILS offers the print path (owner ruling 2): Cancel prints nothing and writes nothing; "Print
 //       instead" runs the print path, one page per month; nothing is written either way
 //   X2  ⭐ Export PDF writes the month PDF through the Save dialog: one call, named "<title> Month Calendar.pdf", PDF
@@ -163,6 +164,11 @@ window.addEventListener('load', function () { (async function () {
     var noteW = function (s) { return F.mvlTextWidth(fonts['500'].font, s, F.G.noteFontPx); };
     // The calendar through the PRINT path (its switch), and then through the sliced writer.
     async function sliceFile(){
+      // ⚠️ The button stays DISABLED until the export before this one has saved and closed its file, and a click on it
+      // then does nothing: no print document, an empty slice. X2 always waited for it; X5 and X6 did not, and X5 once
+      // came back with no note and no match (a mutant run, 2 Oct 2026; the same mutant passed on a rerun). So the wait
+      // is here, for every caller, and `printed` says whether the print document arrived.
+      await T.until(function () { return !busy(); }, 'the button to come free', 100, 100).catch(function () {});
       T.monthPrintPath();
       var printed = null, calls = 0, realPrint = window.print;
       window.print = function () { calls++; var h = document.getElementById('print-root'); printed = h ? h.innerHTML : null; };
@@ -172,19 +178,25 @@ window.addEventListener('load', function () { (async function () {
       window.print = realPrint;
       T.monthPrintPath(false);
       // No print document (the switch did not reach the print path) is the case's failure, judged there.
-      if(!got) return {layout: {months: []}, bytes: new Uint8Array(0), months: 0};
+      if(!got) return {layout: {months: []}, bytes: new Uint8Array(0), months: 0, printed: false};
       var dom = new DOMParser().parseFromString('<div id="x">' + printed + '</div>', 'text/html');
       var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW); });
       var layout = F.fitMonthLayout({geometry: F.G, months: months}, fonts);
-      return {layout: layout, bytes: await F.buildMonthPdf(layout), months: months.length};
+      return {layout: layout, bytes: await F.buildMonthPdf(layout), months: months.length, printed: true};
     }
 
     await toMonth();
-    var hdrToday = ((document.querySelector('#table-wrap .mv-header [data-mvhid="today"]') || {}).textContent || '').trim();
+    var todayEl = document.querySelector('#table-wrap .mv-header [data-mvhid="today"]');
+    var hdrToday = ((todayEl || {}).textContent || '').trim();
+    // A MANUAL header's date slot is the user's own text, and then the file reads no clock at all: mvheaderlegacy's
+    // holds the literal "{version}" (gate 10's README: "0 stamp hits is correct"). Such a slot must show what was typed,
+    // and never a dotted date, which only the page's clock could have made. (Step 6 found this, running the leg on the
+    // baselines' calendars: X0 was red on mvheaderlegacy alone, with the clock pinned.)
+    var manualSlot = !!todayEl && todayEl.classList.contains('hdr-editable') && !/^\d{1,2}\.\d{1,2}\.\d{2}$/.test(hdrToday);
     var pinned = new Date();
-    add('X0', 'the clock is pinned: new Date() is 22 Sep 2026, and the month header shows "9.22.26"',
-        pinned.getFullYear() === 2026 && pinned.getMonth() === 8 && pinned.getDate() === 22 && hdrToday === '9.22.26',
-        {date: pinned.toString(), header: hdrToday}, '22 Sep 2026; 9.22.26');
+    add('X0', 'the clock is pinned: new Date() is 22 Sep 2026, and the month header shows "9.22.26" (or a Manual header\'s own text)',
+        pinned.getFullYear() === 2026 && pinned.getMonth() === 8 && pinned.getDate() === 22 && (hdrToday === '9.22.26' || manualSlot),
+        {date: pinned.toString(), header: hdrToday, manualSlot: manualSlot}, '22 Sep 2026; 9.22.26, or a Manual slot\'s text');
 
     // ---- X1: a build that fails offers the print path --------------------------------------------------------------
     // The fonts are decoded on first use and a failed decode is not cached, so hiding one block makes the FIRST exports
@@ -307,7 +319,8 @@ window.addEventListener('load', function () { (async function () {
     }); }); });
     add('X5', 'a soft hyphen is dropped: no warning, a file written, and the note\'s lines carry none',
         !m5 && sp5.files.length === 1 && !!shyNote && shyLeft === 0 && sameBytes(sp5.files[0].bytes, ref5.bytes),
-        {warning: m5, files: sp5.files.length, lines: shyNote, sameAsSlice: !!sp5.files[0] && sameBytes(sp5.files[0].bytes, ref5.bytes)},
+        {warning: m5, files: sp5.files.length, lines: shyNote, sameAsSlice: !!sp5.files[0] && sameBytes(sp5.files[0].bytes, ref5.bytes),
+         slicePrinted: ref5.printed},
         'no warning; one file; no soft hyphen; identical to the slice');
 
     info.noteDays.push(await typeDayNote(3, '\u0141\u00F3d\u017A \u2192 \u0160t\u011Bp\u00E1n \u017Di\u017Ek\u0061 \u2713'));
@@ -331,7 +344,7 @@ window.addEventListener('load', function () { (async function () {
         places.length === 1 && places[0].kind === 'note' && same(places[0].chars.map(function (c) { return c.ch + c.as; }),
           ['\u0141?', '\u017A?', '\u2192?', '\u0160box', '\u011B?', '\u017Dbox', '\u017Ebox', '\u2713?']),
         {dialog: m6.slice(0, 400), afterCancel: after6, files: sp6.files.length,
-         sameAsSlice: !!sp6.files[0] && sameBytes(sp6.files[0].bytes, ref6.bytes), places: places},
+         sameAsSlice: !!sp6.files[0] && sameBytes(sp6.files[0].bytes, ref6.bytes), places: places, slicePrinted: ref6.printed},
         'each character named; Š Ž ž as a box; nothing on Cancel; the slice\'s file on Export anyway');
 
     // ---- T0: the build against a click's activation (real time only) ------------------------------------------------

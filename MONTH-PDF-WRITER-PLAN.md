@@ -1,11 +1,13 @@
 # MONTH-PDF-WRITER-PLAN.md
 
-**Status:** 🔨 **STEPS 1 TO 5 OF 6 BUILT (2 Oct 2026). Export PDF in the month view now runs the writer**
+**Status:** ✅ **ALL SIX STEPS BUILT (5 Oct 2026). Export PDF in the month view runs the writer**
 (ruling 4(a)): the file is built from the model alone and saved through the Save dialog, with characters it
 cannot set named first. The print path is the rollback (`MV_PDF_MODE`), and on localhost only the test
-switch's route. The built app's file is held byte for byte to the sliced source's. ✅ **All four rulings
-received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months shrink evenly, and replace the
-print path while keeping a rollback. Next: step 6, the byte baselines, after the owner signs off.
+switch's route. The built app's file is held byte for byte to the sliced source's, and since step 6 to its
+own byte baselines on seventeen calendars (gate 13), cut after the owner signed off a real Export. ✅ **All
+four rulings received, 30 Sep 2026** (§6): Inter, the PDF's own cell width, dense months shrink evenly, and
+replace the print path while keeping a rollback. Still open: the five new fixtures (§5, ruled "later"), and a
+version cut when the owner asks.
 **Written:** 30 Sep 2026, against `002e203` (v1.4.2 plus the Reset Notes touch-up).
 **Spec input:** [`AUDIT-REPORT.md`](AUDIT-REPORT.md) §9, "What a direct month-PDF writer must
 replicate", corrected in §4 below.
@@ -239,7 +241,9 @@ Nothing ships on "it looks right". In order of strength:
 3. **A byte baseline per fixture**, in a new `tests/baselines/<date>-monthwriter/`, compared with
    `pdfcmp.py`'s date-aware stream compare. It is cut only after the owner signs off the contact
    sheets: the rule UI-CONVENTIONS §10 item 10 sets for the print path, where the change goes in
-   front of the owner and is never re-cut quietly.
+   front of the owner and is never re-cut quietly. ✅ **Built at step 6, differently:** EXACT bytes, no
+   `pdfcmp.py` (owner ruling, 2 Oct 2026), because the clock is pinned and no date needs normalising.
+   `monthbase.py` diagnoses a mismatch, and the sign-off was a real Export in Preview. See step 6.
 4. **Controls, before trusting any of it:**
    - two fresh runs identical;
    - `TZ=Pacific/Kiritimati`;
@@ -282,7 +286,9 @@ Nothing ships on "it looks right". In order of strength:
   calendar prints today: Simultaneous Post, per-phase hiatus bands, colours, edited notes and the
   shooting order.
 - **Tier 3 (robustness: a valid PDF, no throw):** `xss-*`.
-- **New fixtures,** minted through the UI and Save, and synthetic per `tests/fixtures/README.md`:
+- **New fixtures,** minted through the UI and Save, and synthetic per `tests/fixtures/README.md`. ⏳ **Ruled
+  "later" (owner, 2 Oct 2026):** step 6 baselined the existing calendars first. These come as their own step,
+  each with contact sheets (`monthab.py --sheets`) for the owner before it is cut:
   - month-header size, colour, alignment and highlight;
   - a non-US region;
   - non-WinAnsi note text;
@@ -637,8 +643,63 @@ Every step is one local commit with its proof. Nothing is pushed without asking.
        run time instead;
      - the owner should see the month PDF in Preview or Acrobat from a real Export, the Save dialog
        included, before the baselines are cut.
-6. **Baselines,** cut after the owner's sign-off. Then the full gate, the README changelog, HANDOFF,
-   and a version cut when the owner asks.
+6. ✅ **Baselines,** cut after the owner's sign-off (built 5 Oct 2026; detail and proof in HANDOFF's top
+   block). Then the full gate, the README changelog, HANDOFF, and a version cut when the owner asks.
+   - **The owner's four rulings for this step (picker, 2 Oct 2026, before any code), all as
+     recommended:**
+     1. **Calendars: "Existing now, new later."** All seventeen calendars of tier 1 and tier 2, exported by
+        `monthexport`. `blocksoff` is held to `reference`'s file, as gate 10 holds it. The five new
+        fixtures of §5 come later, as their own step.
+     2. **Format: "Exact bytes + diagnosis."** `tests/baselines/2026-10-05-monthwriter/<case>.pdf` (the cut
+        date), compared byte for byte, with no `pdfcmp.py`. On a mismatch the judge says either "only
+        Chrome's compressor changed" or what moved, and fails either way. The page contents go through
+        Chrome's own `CompressionStream` (the frozen `pdfDeflate`), so a Chrome update could re-compress
+        identical content: that is the case the diagnosis exists for.
+     3. **Contact sheets:** none were needed, since no new fixture was minted.
+     4. **Re-cuts: "Your sign-off, one exception."** A deliberate change to the month PDF puts `monthbase.py
+        sheets`' old | new | difference contact sheets, and `check`'s report of what moved, in front of the
+        owner, and is re-cut only on a yes. A compressor-only change is re-cut with that proof recorded in
+        the baselines' README, and the owner is told.
+   - **The sign-off (2 Oct 2026).** The main checkout's `dist/` turned out to be STALE (built 1 Oct, before
+     step 5), so an Export from it would still have printed. The owner exported one of their own calendars
+     from the step-5 build (`d7bf748a…`), served on localhost with its policy, through the real Save dialog, and
+     opened it in Preview. It was checked before the cut:
+     - the writer's own layout, with the `InterPDF` subsets embedded;
+     - no `/Info` and no `/ID`;
+     - poppler reads it clean;
+     - one Letter-landscape page per month (19);
+     - the `<title> Month Calendar.pdf` name.
+
+     Then: "Yes, cut them."
+   - **As built:**
+     - **`tests/harness/monthbase.py`** (new):
+       - `check` passes only on identical bytes. Otherwise it parses both files by the writer's own layout,
+         compares every object with its streams inflated and `/Length` and the xref offset set aside, and
+         names each part that moved by role (page and month, font, page tree), with the first differing
+         line and the text runs removed and added;
+       - `sheets` makes old | new | difference contact sheets with EVERY differing pixel in red;
+       - `table` prints the baselines' table.
+     - **`gate.sh`:** `monthexport` runs on the other twelve calendars too (about 7 s each), and gate 13
+       compares nineteen files: sixteen to their own baselines, three to `reference`'s (UTC+14, a 1280 px
+       window, `blocksoff`). A run that writes no file no longer inherits the previous run's.
+     - **`t/monthexport.js`:**
+       - X0 accepts a MANUAL header's own date-slot text (`mvheaderlegacy` prints `{version}` and reads no
+         clock);
+       - the slice now waits for the Export button to come free before it clicks, as X2 always did;
+       - each slice reports `slicePrinted`.
+     - **The baselines:** 16 files, 1.3 MB, with a README holding the sign-off, the cut, the cases, the rule,
+       how to re-cut, and the controls.
+   - ⭐ **Found by running the leg on the new calendars:**
+     - X0 was red on `mvheaderlegacy`, though the clock was pinned;
+     - the gate loop could have copied the previous run's file into a crashed run's slot;
+     - X5 once came back with no note and no match in a mutant run, and passed on the rerun.
+   - ⚠️ **`monthab.py`'s 1 px pixel allowance is wrong for writer against writer:** it reported 0 pixels
+     for a row moved by exactly one pixel. `sheets` counts every pixel, since both files come from one
+     writer and one renderer.
+   - ⚠️ **The byte gate is stricter than the eye.** A fill changed by 0.0006 renders to the same grey
+     level, so only the bytes catch it.
+   - **Not applicable: §5.4's "a date from the 1st to the 9th".** Nothing normalises a date; the clock is
+     pinned.
 
 ⏳ **Build it in a fresh session**, pointed at this file. It is a multi-session project, and steps 1–4
 each need a clean context.

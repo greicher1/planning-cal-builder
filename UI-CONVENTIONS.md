@@ -1184,6 +1184,21 @@ Nothing in this document ships without all of these, every stage:
     enforced. ⚠️ A new inline script, `<style>` source, font, image or fetch target has to fit the
     policy in `src/index.html`, or it is refused in the product while every `?test=` leg (policy
     stripped) still passes. Run `cspproof.mjs` after anything that loads something.
+13. **NEW — the WRITTEN month PDF is unchanged** (5 Oct 2026, MONTH-PDF-WRITER-PLAN.md step 6).
+    Since step 5, Export PDF in the month view runs the direct writer, so item 10 now holds the
+    rollback. This gate holds what users get. `gate.sh`'s `monthexport` runs export seventeen
+    calendars through the BUILT app with the clock pinned. `monthbase.py` holds each file **byte for
+    byte** to `tests/baselines/2026-10-05-monthwriter/`. They were cut after the owner signed off a
+    real Export in Preview (2 Oct 2026). On a mismatch it says which of two things happened, and fails
+    either way:
+    - **"only Chrome's compressor changed":** the pages go through Chrome's own deflate, and a Chrome
+      update can re-compress identical content;
+    - **"the content moved":** it names each part, by page and month, font or page tree.
+
+    ⛔ **The owner's re-cut rule (2 Oct 2026).** A deliberate change to the month PDF puts
+    `monthbase.py sheets`' old | new | difference contact sheets in front of the owner, and is re-cut
+    only on a yes. The one exception is a compressor-only change: it is re-cut with that proof
+    recorded in the baselines' README, and the owner is told. Never re-cut a red you cannot explain.
 
 ---
 

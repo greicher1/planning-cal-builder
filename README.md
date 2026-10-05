@@ -29,6 +29,50 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The month PDF the writer makes is byte-baselined: the direct writer's step 6 (5 Oct 2026)
+
+Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, the last step. **Users see no change.** This is
+test coverage only: no app code moved, and the build is byte-identical to step 5's (`d7bf748a…`).
+- **The sign-off came first** (plan §5 item 3). The owner exported one of their own calendars from the step-5 build,
+  through the real Save dialog, and opened it in Preview (2 Oct 2026). Every test until then had stood in for the
+  dialog. The file was checked before the cut:
+  - it is the writer's own layout, with the Inter subsets embedded;
+  - it has no `/Info` and no `/ID`;
+  - poppler reads it clean;
+  - it has one Letter-landscape page per month.
+  ⚠️ The main checkout's `dist/` was stale (built before step 5), so an Export from it would still have printed;
+  the sign-off used the step-5 build itself.
+- **The owner's four rulings (2 Oct 2026):**
+  - the existing seventeen calendars now, and the five new fixtures later;
+  - exact bytes, with a diagnosis on a mismatch;
+  - contact sheets for any new fixture;
+  - re-cuts on the owner's sign-off, with one exception for a change made only by Chrome's compressor.
+- **Gate 13** (UI-CONVENTIONS §10 item 13). Every export `monthexport` makes in the gate is compared, BYTE FOR BYTE,
+  with `tests/baselines/2026-10-05-monthwriter/`: 16 files, plus three held to `reference` (UTC+14, a 1280 px window,
+  `blocksoff`). Gate 10 still holds the print path, which is the rollback now.
+- **`tests/harness/monthbase.py`** (new) is the judge. On a mismatch it says "only Chrome's compressor changed" (every
+  object identical once inflated; the pages go through Chrome's own deflate, which a Chrome update can change) or
+  "the content moved", naming each part by page and month, font or page tree. It fails either way. `sheets` makes
+  the old | new | difference contact sheets a future re-cut puts in front of the owner.
+- **Harness fixes, found by running the leg on twelve new calendars:**
+  - `monthexport`'s X0 accepts a Manual header's own date text (`mvheaderlegacy` prints `{version}`);
+  - the gate loop no longer lets a run that wrote nothing inherit the previous run's file;
+  - the leg's slice waits for the Export button before it clicks, after X5 failed once in a mutant run.
+- **Verified:**
+  - **Three fresh runs** of the export section were byte-identical on all nineteen exports, 205 checks each.
+  - **`check` red with the right diagnosis on eight files made to differ:**
+    - a re-compressed copy;
+    - a colour changed by 0.0006, which no screen can show;
+    - a row moved 1 px;
+    - a text run;
+    - a width;
+    - a dropped page;
+    - a truncation;
+    - no file.
+  - **Red end to end on two edits made to the build and the source together:** a weekend fill, and the month bar's
+    padding. `monthexport` stayed green while gate 13 named the change.
+  - **The full gate:** **1,278 PASS, 0 FAIL, GATE PASSED** in 13 min 20 s, on the unchanged build. That is step 5's 1,151, plus `monthexport` on twelve more calendars (108) and gate 13's nineteen lines. Gate 2's waterfall PDF is identical bar the date stamp, with every Excel part identical, 0 clipped cells and `fields.byId` at 62 ids. Gate 10's nine documents are unchanged. `snapoff` passed on all three calendars.
+
 ### Unreleased — Export PDF in the month view writes the PDF itself: the direct writer's step 5 (2 Oct 2026)
 
 Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, ruling 4(a): "replace, and keep a

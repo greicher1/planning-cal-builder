@@ -4,11 +4,115 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 5 Oct 2026: MONTH-PDF WRITER STEP 6, THE BYTE BASELINES — CUT AND GATED (session "SPT Calendar Builder month PDF writer baselines")
+
+- ⏭ **RESUME HERE.** Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done, so all six steps are
+  built. **What is left of the writer:**
+  - **A version cut**, when the owner asks. It is the four things in CLAUDE.md, plus a new saved fixture.
+  - **The push was approved with this commit** ("Push now"; see State). ⛔ It is USER-VISIBLE: since step 5, Export PDF
+    in the month view writes the PDF through a Save dialog. No version is cut, so installed copies show no update notice
+    until the next cut.
+  - **The five new fixtures** of plan §5, which the owner ruled "later". Each comes with `monthab.py --sheets`
+    contact sheets for the owner before it is cut.
+- **State:** branch `month-baselines` in `.claude/worktrees/month-baselines`, cut from `main` at `d4785e0`. ONE local commit (this one), and `main`
+  fast-forwarded to it. The owner's picker, 5 Oct 2026: "Commit, fast-forward main" and **"Push now"**. The push follows this commit and ships the writer's steps 1–6 with NO version cut (`APP_VERSION` and `version.json` stay
+  1.4.3); the owner chose that knowingly. Whether it went live is recorded in the HANDOFF note after this one. The worktree is merged; remove it
+  only if the owner asks.
+  The owner's `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` (untracked, main checkout) was left alone.
+- ⭐ **The owner's four rulings (picker, 2 Oct 2026, before any code), all as recommended:**
+  1. **"Existing now, new later":** the seventeen calendars of tier 1 and tier 2 through `monthexport`, with
+     `blocksoff` held to `reference`. The five new fixtures come later.
+  2. **"Exact bytes + diagnosis":** `tests/baselines/<cut date>-monthwriter/<case>.pdf`, compared byte for byte, with
+     no `pdfcmp.py`. On a mismatch the judge says "only Chrome's compressor changed" or "the content moved", and
+     fails either way.
+  3. **Contact sheets for any new fixture:** none were needed this step.
+  4. **"Your sign-off, one exception":** a deliberate change to the month PDF goes to the owner as `monthbase.py
+     sheets`' old | new | difference contact sheets, plus `check`'s report of what moved, and is re-cut only on a
+     yes. A compressor-only change is re-cut with that proof recorded, and the owner told.
+- **The sign-off (2 Oct 2026):**
+  - ⚠️ **The main checkout's `dist/index.html` was STALE:** built 1 Oct (`b7588da8…`, 1,430,571 bytes), before step
+    5, so its Export still printed. **`dist/` is gitignored and per checkout. Rebuild before handing anyone a build to
+    try.**
+  - The owner exported one of their own calendars (19 months) from the step-5 build (`d7bf748a…`, served from the
+    `month-save` worktree on localhost:8495 with its policy), through the real Save dialog, and opened it in
+    Preview.
+  - Checked before the cut:
+    - the writer's layout, with the `InterPDF` subsets embedded;
+    - no `/Info` and no `/ID`;
+    - poppler reads it clean;
+    - Letter landscape, one page per month;
+    - the `<title> Month Calendar.pdf` name.
+  - Then: "Yes, cut them." Nothing of the owner's calendar is in the repo.
+- **Built:**
+  - **`tests/harness/monthbase.py`** (new):
+    - `check NEW BASE`: exact bytes. On a mismatch it parses both files by the writer's own layout (`mvlSerialize`),
+      compares each object with its streams inflated and `/Length` and the xref offset set aside, and names each part
+      that moved by role (page and month, font, page tree). It reports the first differing line, and the text runs
+      removed and added;
+    - `sheets OLD NEW DIR`: contact sheets with every differing pixel in red;
+    - `table DIR`.
+  - **`gate.sh`:**
+    - `monthexport` runs on the other twelve calendars too: about 7 s each, and the section takes about 2½ min;
+    - gate 13 compares nineteen files;
+    - `monthexport.built.pdf` is removed before each run.
+  - **`t/monthexport.js`:**
+    - X0 accepts a Manual header's own date text;
+    - `sliceFile()` waits for the button and reports `printed`;
+    - X5 and X6 record `slicePrinted`.
+  - **`tests/baselines/2026-10-05-monthwriter/`:** 16 PDFs (1.3 MB) and a README holding the sign-off, the cut, the
+    cases table, the rule, how to re-cut, and the controls.
+  - **Docs:**
+    - UI-CONVENTIONS §10 item 13, because item 12 is the CSP. The gate was drafted as "gate 12" and renamed;
+    - the plan (status, §5 item 3, the fixtures line, step 6);
+    - CLAUDE.md's two gate sentences;
+    - the harness README;
+    - the README changelog.
+- **Proof:**
+  - **Three fresh runs** of the export section: two on 2 Oct, and the cut on 5 Oct. Each had 205 PASS and 0 FAIL, and
+    all nineteen exports were byte-identical across all three. Chrome 154.0.8037.93, arm64.
+  - **`check` on files made to differ from `reference.pdf`:** red with the right diagnosis on each of eight:
+    - a level-1 re-deflate: "ONLY CHROME'S COMPRESSOR CHANGED", 16 streams;
+    - a fill colour changed by 0.0006;
+    - a week line moved 1 px;
+    - `SUN` → `SUM`;
+    - one `/Widths` entry;
+    - the last page dropped: pages 16 → 15, "April 2027 removed";
+    - a truncation: "does not parse";
+    - no file.
+  - **End to end, on copies (`dist/_mut.html` + `?src=/dist/_mut-app.js`):** the weekend fill `#F4F3F0` → `#F4F3F1`,
+    and the month bar's `padY` 7 → 8. `monthexport` stayed 9/9 while gate 13 went red, naming the change on every
+    page. `src/legacy/app.js` and `dist/index.html` were hash-checked untouched.
+  - **`npm run check`** 40/40. **`check-refs.py`** CLEAN.
+  - ✅ **Full gate on build `d7bf748a…` (worktree, port 8496): 1,278 PASS, 0 FAIL, GATE PASSED,** in 13 min 20 s, on the unchanged build. That is step 5's 1,151, plus `monthexport` on twelve more calendars (108) and gate 13's nineteen lines. Gate 2's waterfall PDF is identical bar the date stamp, with every Excel part identical, 0 clipped cells and `fields.byId` at 62 ids. Gate 10's nine documents are unchanged. `snapoff` passed on all three calendars. The step-5 `snapoff` flake did not recur. The peer session held its gates.
+- ⭐ **Learned:**
+  1. **The month PDF's bytes depend on Chrome,** not only on the app. The page contents go through the frozen
+     `pdfDeflate`, which is Chrome's own `CompressionStream`, so a Chrome update could re-compress identical content.
+     The font programs cannot move that way, because they travel pre-compressed in the build. That is why gate 13
+     diagnoses rather than tolerating, and why the baselines' README records the Chrome version.
+  2. **`monthab.py`'s 1 px pixel allowance is wrong for writer against writer.** It reported 0 pixels for a row moved
+     by exactly one pixel. `sheets` counts every pixel. And the byte gate is stricter than the eye: a 0.0006 fill
+     change renders to the same grey level.
+  3. **Running a leg on calendars it was never run on finds things:**
+     - X0 was red on `mvheaderlegacy` (a Manual header prints `{version}` and reads no clock);
+     - the gate loop could have handed a crashed run the previous run's file;
+     - X5 failed ONCE in a mutant run (`lines: null`, `sameAsSlice: false`) and passed on the identical rerun. The
+       probable cause: the slice clicked Export while the button was still disabled from the previous export, as X2
+       never could because it waits. The wait is now in `sliceFile()`, and `slicePrinted` will say if it recurs. That
+       is a probable cause, not a proven one.
+  4. ⚠️ **A run during a battery collapse:** the Mac at 1%, a load average of 611, and a sleep mid-run. The reference
+     under UTC+14 failed X2 to E0 after passing X0 and X1. Its JSON was overwritten before it could be read, so the
+     cause is unknown. It passed in every run on a healthy machine. **If it recurs on a healthy machine, it is a real
+     failure: keep the run's JSON** (`/tmp/gate<port>-mxa/` keeps only the PDFs).
+  5. **Harness traps:**
+     - a `cd tests/harness && …` from inside `tests/harness` fails, and the `&&` silently skips the edit. Use absolute
+       paths;
+     - `grep` in this shell is ugrep 7.8.4, which treats a `$` in mid-pattern as an anchor, so `grep -n '"$MWBASE/…'`
+       matched nothing (measured: 0 against 1 without the `$`). Use `grep -F`, or a pattern without `$`.
+
 ### ✅ 2 Oct 2026: MONTH-PDF WRITER STEP 5, EXPORT PDF RUNS THE WRITER — BUILT AND PROVEN (session "SPT Planning Calendar Builder month-pdf-writer step 4", continued)
 
-- ⏭ **RESUME HERE.** Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done.
-  **Step 6 waits for the owner:** the byte baselines, cut only after the owner signs off a real Export.
-  That means Preview or Acrobat, the Save dialog included. Read the plan's step-5 "For step 6" notes.
+- ⏭ **Superseded: step 6 is done (the block above).** Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md)
+  §8 is done. Step 6's baselines were cut after the owner signed off a real Export in Preview.
 - ⛔ **USER-VISIBLE once pushed:** the month view's Export PDF (and ⌘P, ⇧⌘E there) writes the PDF
   itself, through the Save dialog; the print dialog is gone from that path.
 - **State:** built on branch `month-save` in `.claude/worktrees/month-save`, cut from `main` at

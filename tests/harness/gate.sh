@@ -14,7 +14,11 @@
 #   5. fields.byId's key SET is unchanged       (the save-format contract -- gate 5)
 #  10. the MONTH PDF: its printed document is byte-identical and it prints one sheet per month,
 #      on nine calendars (monthprint + monthcmp.py; added 22 Sep 2026 on four, now nine). Numbered to match
-#      UI-CONVENTIONS §10, whose items 6-9 are not automated here.
+#      UI-CONVENTIONS §10, whose items 6-9 are not automated here. Since step 5 of MONTH-PDF-WRITER-PLAN.md this is
+#      the PRINT path, the rollback, reached by its localhost-only switch.
+#  13. the WRITTEN month PDF (what Export PDF writes since step 5) is byte-identical to its baseline, on seventeen
+#      calendars (monthexport + monthbase.py; added 5 Oct 2026). Items 11 and 12 (the audit-fix legs, the CSP) are
+#      blocks of their own below, not numbered here.
 #
 # ⚠️ Gate 7 (computed styles inside #table-wrap -- fence.js) is NOT run here, and never was: an
 # earlier revision of this comment listed it, which read as coverage that did not exist. There is
@@ -1617,13 +1621,20 @@ PYMWC
 #                          BYTE-IDENTICAL to r's (the clock is pinned, and the writer reads no window);
 #   rt                     the reference on the REAL clock (rtleg.mjs, ?realtime=1), which adds T0: the Save dialog
 #                          opens within 2 s of the click, well inside the 5 s a click's activation lasts.
+#   do / mh / ml / bo / oh / lc / hb / d6 / mn / so / nw / cr
+#                          ⭐ ADDED 5 Oct 2026 (step 6): the rest of tier 1 and tier 2, so that every calendar gate 13
+#                          baselines is exported by the built app and held to the slice (X2) in the same run. About
+#                          7 s each. Their files feed gate 13, below.
 MXA="/tmp/gate${GTAG}-mxa"; rm -rf "$MXA"; mkdir -p "$MXA"
 for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blocks" "ms:-:-:monthscale" \
-              "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape"; do
+              "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
+              "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
+              "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
+              "nw:-:-:notewrap" "cr:-:-:carry-rich"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
-  rm -f "$HERE/monthexport.json"
+  rm -f "$HERE/monthexport.json" "$HERE/monthexport.built.pdf"   # a run that writes nothing must not inherit the last one's file
   ( [[ -n $MXTZ ]] && export TZ="$MXTZ"; [[ -n $MXWIN ]] && export HARNESS_WINDOW="$MXWIN"
     HARNESS_PAGE="$PAGE" HARNESS_STATE="$MXSTATE" "$HERE/run.sh" monthexport 300 >/dev/null 2>&1 )
   cp "$HERE/monthexport.built.pdf" "$MXA/$MXRUN.pdf" 2>/dev/null
@@ -1678,6 +1689,29 @@ for n, what in (('rz', 'UTC+14'), ('rw', 'a 1280 px window')):
     print(('  PASS  ' if ok else '  FAIL  ') + 'monthexport (reference): the built app\'s file is byte-identical in ' + what); bad += 0 if ok else 1
 sys.exit(1 if bad else 0)
 PYMXC
+
+# ---- gate 13 (MONTH-PDF-WRITER-PLAN.md §8 step 6): the WRITTEN month PDF against its BYTE BASELINES --------------------
+# ⭐ ADDED 5 Oct 2026, cut after the owner signed off a real Export in Preview on 2 Oct (UI-CONVENTIONS §10 item 13). Gate 10 holds
+# the PRINT path (the rollback, by its localhost switch); this holds what users get since step 5. Every file monthexport
+# wrote above is compared, BYTE FOR BYTE, with tests/baselines/2026-10-05-monthwriter/<case>.pdf by monthbase.py. On a
+# mismatch it says which of two things happened, and fails either way:
+#   "ONLY CHROME'S COMPRESSOR CHANGED"  every object identical once inflated: a Chrome update re-compressed the pages.
+#                                       Re-cut with that output in the baselines' README, and tell the owner.
+#   "THE CONTENT MOVED"                 each part that differs, named (page and month, font, page tree). Never re-cut
+#                                       without the owner's sign-off on `monthbase.py sheets`' contact sheets.
+# rz and rw (UTC+14, a 1280 px window) and blocksoff (Blocks switched to Episodes) have no baseline of their own: they
+# are held to reference's, as gate 10 holds blocksoff.
+MWBASE="$HERE/../baselines/2026-10-05-monthwriter"
+for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:reference:reference, a 1280 px window" \
+              "b:blocks:blocks" "bo:reference:blocksoff, held to reference" "ms:monthscale:monthscale" \
+              "sp:colswap-simpost-refuse:colswap-simpost-refuse" "sr:stintswap-reshape:stintswap-reshape" \
+              "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
+              "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
+              "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
+              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich"; do
+  MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
+  python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
+done
 
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
