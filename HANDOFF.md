@@ -9,16 +9,30 @@
 - ⏭ **RESUME HERE.** Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8 is done, so all six steps are
   built. **What is left of the writer:**
   - **A version cut**, when the owner asks. It is the four things in CLAUDE.md, plus a new saved fixture.
-  - **The push was approved with this commit** ("Push now"; see State). ⛔ It is USER-VISIBLE: since step 5, Export PDF
-    in the month view writes the PDF through a Save dialog. No version is cut, so installed copies show no update notice
-    until the next cut.
+  - ✅ **Pushed and LIVE** (see below). ⛔ USER-VISIBLE: since step 5, Export PDF in the month view writes the PDF through
+    a Save dialog. No version is cut, so installed copies show no update notice until the next cut.
   - **The five new fixtures** of plan §5, which the owner ruled "later". Each comes with `monthab.py --sheets`
     contact sheets for the owner before it is cut.
-- **State:** branch `month-baselines` in `.claude/worktrees/month-baselines`, cut from `main` at `d4785e0`. ONE local commit (this one), and `main`
-  fast-forwarded to it. The owner's picker, 5 Oct 2026: "Commit, fast-forward main" and **"Push now"**. The push follows this commit and ships the writer's steps 1–6 with NO version cut (`APP_VERSION` and `version.json` stay
-  1.4.3); the owner chose that knowingly. Whether it went live is recorded in the HANDOFF note after this one. The worktree is merged; remove it
-  only if the owner asks.
-  The owner's `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` (untracked, main checkout) was left alone.
+- **State:** branch `month-baselines` in `.claude/worktrees/month-baselines`, cut from `main` at `d4785e0`. ONE commit
+  (`a412d43`), and `main` fast-forwarded to it. The owner's picker, 5 Oct 2026: "Commit, fast-forward main" and
+  **"Push now"**. The push shipped the writer's steps 1–6 with NO version cut (`APP_VERSION` and `version.json` stay
+  1.4.3); the owner chose that knowingly. The worktree is merged; remove it only if the owner asks. The owner's
+  `tests/fixtures/Reshape Fixture 2026-09-29.sptcal` (untracked, main checkout) was left alone.
+- ✅ **LIVE at `a412d43` (5 Oct 2026, 15:57 PDT), verified BYTE-IDENTICAL to the gated build** (`d7bf748a…`, 1,464,497
+  bytes, fetched with a cache-buster). `version.json` reads 1.4.3, as no version was cut.
+  - ⚠️ **The first deploy never ran.** The push landed at 13:01 during a GitHub Actions incident ("delays in assigning
+    GitHub-hosted runners", 12:11 PDT onward). Run 37367191853 waited 15 min for a runner, and GitHub cancelled it: "The
+    job was not acquired by Runner of type hosted even after multiple attempts". The build never started and nothing
+    deployed, so the site stayed byte-identical to `releases/v1.4.3.html` throughout.
+  - **The owner's picker:** "Re-run once GitHub recovers". GitHub's status page was watched. Once Actions was
+    operational, the same run was re-run ONCE (attempt 2, nothing new): "Build and check" (`npm run check`,
+    `check-refs`) and "Deploy to Pages" both passed.
+  - **Lesson:** a push to `main` is not a deploy. When the run is cancelled before it starts, `origin/main` and the live
+    site disagree until a re-run. Check `gh run view` and the live bytes, never the push alone.
+  - ⚠️ **Open, for the owner:** `tests/fixtures/stintswap-reshape.sptcal` in the MAIN checkout was rewritten at 11:51
+    on 5 Oct, in the current save format, while this session's gate ran in the worktree. No harness script writes
+    fixtures, and the worktree's committed copy was the one gated. The probable cause is an app tab autosaving back
+    to a fixture loaded from the main checkout. It is left untouched until the owner says keep or restore.
 - ⭐ **The owner's four rulings (picker, 2 Oct 2026, before any code), all as recommended:**
   1. **"Existing now, new later":** the seventeen calendars of tier 1 and tier 2 through `monthexport`, with
      `blocksoff` held to `reference`. The five new fixtures come later.
