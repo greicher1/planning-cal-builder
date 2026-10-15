@@ -1092,8 +1092,9 @@ Nothing in this document ships without all of these, every stage:
    Assert the panel's `[id]` set is **empty**, open, the way `hdreditor` and `hdrpreset` both do. The
    alternative — adding the panel's class to the skip list — is fine, but it has to happen **first**.
 10. **NEW — the month PDF is unchanged** (22 Sep 2026), automated by `gate.sh`'s `monthprint` leg
-    against `tests/baselines/2026-09-22-monthprint/` on nine calendars (four when added; `blocks` and
-    `blocksoff` 22 Sep; `dayoverrides-onhalf`, `month-lanecap` and `hiatus-blanklabel` 29 Sep 2026): the document `exportMonthPdf`
+    against `tests/baselines/2026-09-22-monthprint/` on ten calendars (four when added; `blocks` and
+    `blocksoff` 22 Sep; `dayoverrides-onhalf`, `month-lanecap` and `hiatus-blanklabel` 29 Sep 2026; `halfdays` 15 Oct
+    2026, with every case re-cut that day for one bar per episode, signed off by the owner): the document `exportMonthPdf`
     hands to `window.print()` is **byte-identical** (today stamp normalised), and Chrome's real print
     of it has **one sheet per month**. Both halves are needed — a CSS-only edit to a frozen `.mv-*`
     rule changes the printout without changing the document, and was proven to (16 sheets → 32).
@@ -1186,8 +1187,9 @@ Nothing in this document ships without all of these, every stage:
     stripped) still passes. Run `cspproof.mjs` after anything that loads something.
 13. **NEW — the WRITTEN month PDF is unchanged** (5 Oct 2026, MONTH-PDF-WRITER-PLAN.md step 6).
     Since step 5, Export PDF in the month view runs the direct writer, so item 10 now holds the
-    rollback. This gate holds what users get. `gate.sh`'s `monthexport` runs export seventeen
-    calendars through the BUILT app with the clock pinned. `monthbase.py` holds each file **byte for
+    rollback. This gate holds what users get. `gate.sh`'s `monthexport` runs export eighteen
+    calendars through the BUILT app with the clock pinned (`halfdays` added, and every case re-cut for one
+    bar per episode with the owner's sign-off, 15 Oct 2026). `monthbase.py` holds each file **byte for
     byte** to `tests/baselines/2026-10-05-monthwriter/`. They were cut after the owner signed off a
     real Export in Preview (2 Oct 2026). On a mismatch it says which of two things happened, and fails
     either way:

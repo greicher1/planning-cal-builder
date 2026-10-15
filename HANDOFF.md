@@ -4,6 +4,89 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 15 Oct 2026: HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5, AND THE SWITCH DAY SHOWS BOTH BARS (branch `half-day-episodes`, worktree `.claude/worktrees/half-day-episodes`)
+
+- ⏭ **State:** built, gated, month baselines re-cut on the owner's sign-off. Commit and push are the owner's call
+  (CLAUDE.md). Not pushed. The main checkout had OTHER sessions' uncommitted edits to this file when this was written,
+  so merging the branch into `main` needs those committed or set aside first.
+
+- **Owner, 15 Oct 2026:** *"Ok I got half days wrong. Half days means instances where we would switch to the next
+  episode or block half way thru a day. So we need to be able to type in half days for number of days per episode or
+  block. Then those episodes/blocks overlap on the month view calendar. We don't need a function to mark random days
+  as half days."*
+- **Two rulings, the same day, picked from mock-ups (AskUserQuestion):**
+  1. **"Stacked bars, always."** Production is drawn as ONE BAR PER EPISODE (one per block in Blocks mode), and a
+     switch day carries both bars, the earlier unit above. ⛔ This **reverses ruling 8's "one bar per week"**
+     (BLOCKS-PLAN §7, 22 Sep 2026), knowingly: the option said every episodic calendar's month PDF changes. Offered and
+     not chosen: grey text only, or stacked bars only under the planned "Label Production by" setting.
+  2. **"Keep them as they are"** for half-day MARKS already saved (`'half'`, `'onhalf'`): they keep counting, still
+     show, still travel with a move, and can be cleared. The day menu no longer offers them; a day that holds one shows
+     its row as the current choice so another row can clear it. Offered and not chosen: convert them to full days on
+     open (wraps would move).
+- **What was built** (all in `src/legacy/app.js` unless named):
+  - `dayCountVal()` reads every episode and block day count in halves: the two Show Info defaults, each row's box,
+    Σ in `showInfoStatus()`, the defaults, `{shootDaysPerEp}` and the "N-Day Shooting Schedule" header. A whole number
+    reads exactly as `parseInt` did. 4.3 rounds down to 4 and is ringed "Whole or half days only".
+  - `Sidebar.jsx`: the two day fields allow one decimal (`decimalScale={1}`, step 0.5, min still 1 so `numclamp`'s
+    0 → 1 holds). The row boxes are step 0.5.
+  - **`productionUnits(schedule)`** replaced `episodeDayMap()` and `productionPillTag`'s block map: ONE rule for both
+    modes. Shoot day k occupies [k, k+1); a unit of d days starting at c occupies [c, c+d); the unit is shot on day k
+    when they overlap. Whole counts give exactly the old slices. ⭐ **Entries, not work** (the 18 Sep ruling) is kept,
+    so a calendar with a legacy half mark keeps its boundaries.
+  - **The split is in `pillRunsForWeek()`** (not frozen) via `productionSplitRuns()`: Production's runs cut where the
+    unit changes, a switch day in two runs. Frozen `renderMonthView`'s `takeLane()` puts the second in the next lane:
+    that IS the stacked look. **No frozen line changed.** `episodeSpans()` stays `[]` (its dormant branch can draw no
+    grey text).
+  - Bar text "Ep. 201" / "Block 1"; grey text "Production Week 3" / "Production Week 3 · Ep. 201, 202" — the rows
+    MONTH-PILL-LABEL-PLAN §3 gives its Episode and Block modes. Ruling 7 (one-day piece, no grey) and ruling 10 hold:
+    "Show Episodes" off on an Episodes calendar (or "Show Blocks" on a Blocks one) draws unsplit "Production Week N".
+  - ⚠️ **The one place the code leans on the frozen loop's call order:** `segPillLabel(s, date)` gets only a run's
+    first day, and two runs can start on one day. `takeProdRun()` takes the Nth run for the Nth call after
+    `pillRunsForWeek()`, checking the column. `productionPillTag` matches by both columns (unique for any run of 2+
+    days). Comment at `_prodRuns`.
+  - **Production's meta line** ("45.5 shoot days → …") is written by frozen `render()` from frozen
+    `readCfgForMeta()`'s `parseInt`, so it read "45". `reflectHalfDayTotal()` corrects the count only, from a
+    MutationObserver on `#phase-rows` (sanctioned pattern 3), because ~20 call sites run `render()`.
+  - `#weeks-production` (hidden, engine-written) is skipped by the whole-number check: it can hold 45.5 now.
+  - The day menu (`openDayOvPop`): `'half'` / `'onhalf'` rows only where the day already holds one.
+- **Save format: unchanged.** `countVal()` already accepted `"4.5"`; `fields.byId` stays 62 ids. `SNAPSHOT_VERSION`
+  stays 1. ⚠️ An OLDER build opening a file with 4.5 reads it as 4 (`parseInt`): a misread, not a refusal. Judged
+  acceptable (forward-only rule; installed copies update), and not bumped because a bump would make older builds
+  refuse EVERY new file. Flag to the owner if that is wrong.
+- **Legs:** new `halfdays` (25 cases, no fixture; it cut `tests/fixtures/halfdays.sptcal`). `halfworked` rewritten
+  for withdrawn marks on `dayoverrides-onhalf` (24 cases; it now proves a mark honoured by changing it: as loaded the
+  shoot over-delivers by a half, 80.5 of 80, so making a half full lands on exactly 80 one shoot day sooner).
+  `wholenum` (7.5 is valid, 7.3 is not), `numclamp` unchanged (min stays 1), `blocks` (one bar per block; the
+  three-block row is now three bars), `shootorder` (one bar per episode) updated.
+- **Month baselines RE-CUT on the owner's sign-off** ("Yes, re-cut them", picker, after `monthbase.py sheets` contact
+  sheets for `reference`, `blocks` and the new `halfdays`): gate 10 (all nine cases + `halfdays` as a tenth) and gate 13
+  (all seventeen + `halfdays`). Every month still prints on one page and **no week row moved height** in any existing
+  calendar: whole-number bars split side by side in Production's own lane. Only `halfdays` grows a lane (57 → 78 px)
+  on weeks with a switch day. Both baseline READMEs carry the table. Chrome 155.0.8059.40 at the cut (154 before).
+- **Proof:**
+  - Full gate on build `7f0141bb…` (1,466,813 bytes) before the re-cut: 1,301 PASS, and the only failures were the month
+    baselines and `halfdays`' missing baseline. After the re-cut: 1,329 PASS; every month baseline, `monthlayout`,
+    `monthemit`, `monthwriter`, `monthexport` and both half-day legs green; `fields.byId` 62 ids.
+  - ⚠️ That last run also failed `hdrfile` (3) and `conflict` (4), which passed in the run before on the same build,
+    and pass standalone now (all 3; 9/9). Another session's shell was active at the time; read as contention, as
+    HANDOFF has seen before. **Not** an unexplained red on the change's own surface, but say so if asked "was the gate
+    green": two full runs between them cover every check, no single run is fully green.
+  - `npm run check` 40/40, `check-refs.py` CLEAN.
+  - In the app pane: 4.5 per episode → 45 days; switch days stacked; 4.3 ringed "Whole or half days only"; Blocks at
+    17.5 stacks Block 1 over Block 2; the day menu shows Half day only where one is saved.
+- ⭐ **Learned:**
+  1. **Never edit `gate.sh` or rebuild `dist/` while a gate is running.** zsh reads the script as it goes, and the legs
+     load `dist/` fresh. Both happened once in this session's first (discovery) run; its results were only used to find
+     what moved.
+  2. **`snap()` in a long leg can return a stale backup:** it takes the first backup newer than the last one read. To
+     capture a final state, wait for a backup that carries a marker (the `halfdays` leg waits for its title).
+  3. **Frozen `render()` writes Production's meta line from `parseInt`.** Any non-integer total needs the observer.
+- ⚠️ **Overlaps two plans written the same day by other sessions, neither edited here:**
+  - [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md): its Week mode assumed one bar per week. With bars now always
+    split, "Label by" can only choose each bar's TEXT. Its Episode and Block rows are what this build draws by default.
+  - [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) §2 noted the example calendar splits the shoot's bar at
+    every episode change. This build does.
+
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
 - Owner request: "Swap Block" → **"Swap Column"**. Button text and tooltip only (`drawStintButton` in

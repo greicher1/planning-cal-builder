@@ -3257,9 +3257,11 @@ export function initLegacyApp() {
           lastShootDay = current;
           // ⚠️ A half day is STILL a shoot day and goes in this array, because the month view draws
           // from it (segCoversDate) -- the day is worked, just not fully. ⛔ KNOWN CONSEQUENCE:
-          // episodeSpans() slices this array by COUNT, so an episode of 8 gets 8 ENTRIES, which is
-          // fewer than 8 days of work once any are half. Episode boundaries therefore drift against
-          // the half days. Not solved here -- step 3 is the simulation -- and flagged to the owner.
+          // productionUnits() (once episodeSpans()) lays episodes on this array by ENTRIES, so an
+          // episode of 8 gets 8 entries, which is fewer than 8 days of work once any are half. The
+          // owner ruled entries (18 Sep), then withdrew the half-day MARK as a choice (15 Oct 2026):
+          // a half day is now an episode's .5, which productionUnits() handles itself. Only files
+          // that already hold a mark still reach this.
           shootDays.push(iso);
         }
         current = addDays(current, 1);
@@ -5916,6 +5918,29 @@ export function initLegacyApp() {
       + ' skip no holidays. Add any that apply as custom holidays (Settings).';
   }
 
+  // ✅ HALF DAYS (owner, 15 Oct 2026): a show of 4.5-day episodes can total 45.5 shoot days, and
+  // Production's meta line must say so. That line is written by FROZEN render(), whose count is
+  // frozen readCfgForMeta()'s parseInt of #weeks-production -- so it would read "45 shoot days"
+  // while the shoot runs 46 days (the 46th ends at lunch). The dates in the line are the schedule's
+  // own and are right; only the COUNT is rounded. So the count is corrected from outside, and only
+  // when it is exactly the whole part of a half total, which nothing else can produce.
+  // ⭐ Sanctioned pattern 3 (CLAUDE.md), observe rather than edit: render() runs from about twenty
+  // places besides update() -- a view switch, a header edit -- and each rewrites the line, so a call
+  // after update()'s render() alone would be undone by the next one. A MutationObserver on
+  // #phase-rows (installed after buildPhaseRows) sees every rewrite. Its own write re-fires it, and
+  // finds nothing left to change.
+  function reflectHalfDayTotal(){
+    const el = document.getElementById('meta-production');
+    if(!el) return;
+    const info = showInfoStatus();
+    const t = info.totalShootDays;
+    if(!info.complete || !(t > 0) || Number.isInteger(t)) return;
+    const txt = el.textContent;
+    const m = /^(\d+) shoot days?(?= )/.exec(txt);
+    if(!m || +m[1] !== Math.floor(t)) return;
+    el.textContent = t + ' shoot days' + txt.slice(m[0].length);
+  }
+
   function refreshOverrideNote(){
     const el = document.getElementById('prod-ov-note');
     if(!el) return;
@@ -6072,10 +6097,15 @@ export function initLegacyApp() {
         rows.push({v:'on', label:'Work this day', warn});
         // Half a weekend or holiday (owner request, 29 Sep 2026). A separate word, not 'half': see the
         // HALF WEIGHT note in simulateProductionSchedule. Both rows override the holiday, so both say so.
-        rows.push({v:'onhalf', label:'Work half day', warn});
+        // ✅ WITHDRAWN AS A CHOICE (owner, 15 Oct 2026, with 'half' below): "We don't need a function
+        // to mark random days as half days" -- a half day is where an episode or block SWITCHES, and
+        // that is typed as a day count ending in .5 (dayCountVal). ✅ "Keep them as they are": a mark
+        // already saved keeps counting, so no wrap moves when an old file opens. Its row is shown
+        // ONLY on a day that holds it, as the current choice, so the other rows can clear it.
+        if(sit.cur === 'onhalf') rows.push({v:'onhalf', label:'Work half day', warn});
       } else {
         rows.push({v:'',     label:'Full day'});
-        rows.push({v:'half', label:'Half day'});
+        if(sit.cur === 'half') rows.push({v:'half', label:'Half day'});   // withdrawn; see 'onhalf' above
         rows.push({v:'off',  label:'Off'});
       }
       // A stored value no row offers is INERT, not wrong: 'half' left on a Saturday never reaches
@@ -6627,7 +6657,20 @@ export function initLegacyApp() {
   }
 
   // The label a phase's pill shows for a given date, e.g. "Writers Room Week 3".
+  // Production's bars are cut per episode or block (owner, 15 Oct 2026; productionSplitRuns), and
+  // such a bar is named by its unit -- "Ep. 201", "Block 1" -- with this week label moving into its
+  // grey text. A Production run with no unit (no Show Info, a "Show" switch off, or days past
+  // Σ units) keeps the week label, exactly as before.
   function segPillLabel(s, date){
+    if(s.key === 'production'){
+      const r = takeProdRun(date);
+      if(r && r.unit) return unitBarLabel(r.kind, r.unit);
+    }
+    return prodWeekLabel(s, date);
+  }
+  // segPillLabel()'s own rule, kept whole so the grey text can name the week a split bar replaced.
+  // (Named for its new caller; it serves every phase.)
+  function prodWeekLabel(s, date){
     const name = (s.name || s.label || '').replace(/\s*wk\s*\d+\s*$/i,'');
     const weekNo = Math.floor((mondayOf(date) - mondayOf(s.start))/DAY_MS/7) + 1;
     return weekNo > 0 ? `${name} Week ${weekNo}` : name;
@@ -6647,6 +6690,14 @@ export function initLegacyApp() {
       } else if(run){ runs.push(run); run = null; }
     }
     if(run) runs.push(run);
+    // Production is cut per episode or block (owner, 15 Oct 2026). The runs above are still the
+    // days it covers; productionSplitRuns() only cuts them, so no day is added or lost. It is
+    // recorded for segPillLabel()/productionPillTag(), which the frozen loop calls run by run.
+    if(seg.key === 'production'){
+      const split = productionSplitRuns(schedule, weekStart, runs);
+      _prodRuns = split ? {week: isoOf(weekStart), runs: split, next: 0, cur: null} : null;
+      if(split) return split;
+    }
     return runs;
   }
 
@@ -7285,12 +7336,29 @@ export function initLegacyApp() {
   // off that single number -- 5-day weeks, holidays and hiatus all handled by the same engine.
   // "Complete" means the three fields that are load-bearing for that math and for episode
   // numbering; the show title is cosmetic (header text only) and deliberately isn't required.
+  //
+  // ✅ HALF DAYS (owner, 15 Oct 2026): "Half days means instances where we would switch to the next
+  // episode or block half way thru a day. So we need to be able to type in half days for number of
+  // days per episode or block." So every EPISODE and BLOCK day count -- the two defaults and each
+  // row's own box -- reads in HALVES: 4.5 is four and a half shoot days, and the episode after it
+  // starts at lunch on the fifth. This one reader is what makes that true everywhere: Σ days, the
+  // defaults, the header's {shootDaysPerEp}, and productionUnits()' episode-to-day map all go
+  // through it. A whole number reads exactly as parseInt read it, so no existing calendar moves.
+  // A value between halves (4.3) rounds DOWN to one (4), as parseInt rounded 4.7 down to 4, and
+  // reflectStartDateValidity() flags the box. ⛔ This replaced the 'half' DAY override (a day
+  // marked "Half day" in the month view), which the owner withdrew the same day: "We don't need a
+  // function to mark random days as half days". Marks already saved keep counting; see openDayOvPop.
+  function dayCountVal(v){
+    const n = parseFloat(v);
+    const h = Number.isFinite(n) ? Math.floor(n * 2) / 2 : NaN;
+    return h > 0 ? h : NaN;
+  }
   function showInfoStatus(){
     const seasonEl = document.getElementById('season-num');
     const perEpEl = document.getElementById('shoot-days-per-ep');
     const numEpEl = document.getElementById('num-episodes');
     const season = seasonEl ? seasonEl.value : '';
-    const perEp = parseInt(perEpEl ? perEpEl.value : '', 10);
+    const perEp = dayCountVal(perEpEl ? perEpEl.value : '');
     const numEp = parseInt(numEpEl ? numEpEl.value : '', 10);
     // ⭐ BLOCK SHOOTING CHOOSES THE DRIVER HERE AND NOWHERE ELSE (BLOCKS-PLAN.md §3). Every consumer
     // of Production's length -- computeSchedule, the readout, the header -- already asks this
@@ -7298,7 +7366,7 @@ export function initLegacyApp() {
     // ⛔ The Episodes branch below is the pre-Blocks function VERBATIM; every calendar saved before
     // Blocks existed has no show-mode and lands in it.
     const blocks = isBlocksMode();
-    const perBlock = parseInt((document.getElementById('days-per-block') || {}).value || '', 10);
+    const perBlock = dayCountVal((document.getElementById('days-per-block') || {}).value || '');
     const numBlocks = parseInt((document.getElementById('num-blocks') || {}).value || '', 10);
     const missing = [];
     if(!season) missing.push('Season');
@@ -7321,8 +7389,8 @@ export function initLegacyApp() {
     if(rows.length){
       hasRows = true;
       rows.forEach(e=>{
-        const n = parseInt(e.days, 10);
-        if(Number.isFinite(n) && n > 0) totalShootDays += n;
+        const n = dayCountVal(e.days);
+        if(Number.isFinite(n)) totalShootDays += n;
       });
     }
     if(blocks){
@@ -7331,8 +7399,8 @@ export function initLegacyApp() {
 
     // Which rows the user has personally overridden, for the Show Info flag.
     const overrides = rows
-      .filter(e => e.daysEdited && parseInt(e.days,10) > 0)
-      .map(e => ({ name: e.name || '', days: parseInt(e.days,10) }));
+      .filter(e => e.daysEdited && dayCountVal(e.days) > 0)
+      .map(e => ({ name: e.name || '', days: dayCountVal(e.days) }));
 
     return { complete, missing, season,
       perEp: Number.isFinite(perEp) ? perEp : 0,
@@ -7361,8 +7429,8 @@ export function initLegacyApp() {
     return 'Episode ' + episodeNumberFor(document.getElementById('season-num').value, index);
   }
   function defaultEpisodeDays(){
-    const v = parseInt(document.getElementById('shoot-days-per-ep').value, 10);
-    return (Number.isFinite(v) && v > 0) ? v : '';
+    const v = dayCountVal(document.getElementById('shoot-days-per-ep').value);
+    return Number.isFinite(v) ? v : '';
   }
 
   // ⛔ THE CEILING ON EPISODES AND ON BLOCKS (audit M-15, FIX-PLAN §0 defaults: 200). Nothing
@@ -7412,8 +7480,8 @@ export function initLegacyApp() {
 
   // ---------- Shooting blocks (BLOCKS-PLAN.md steps 1-3) ----------
   function defaultBlockDays(){
-    const v = parseInt((document.getElementById('days-per-block') || {}).value || '', 10);
-    return (Number.isFinite(v) && v > 0) ? v : '';
+    const v = dayCountVal((document.getElementById('days-per-block') || {}).value || '');
+    return Number.isFinite(v) ? v : '';
   }
 
   // The block list's twin of syncEpisodesFromShowInfo(): grow/shrink to "Number of Blocks", refresh
@@ -7521,7 +7589,7 @@ export function initLegacyApp() {
       <div class="episode-row" data-id="${escHtml(e.id)}">
         <span class="ep-grip" draggable="true" title="Drag to change the shooting order" aria-label="Drag to reorder ${escHtml(e.name)}"></span>
         <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
-        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="1" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
+        <label class="num-suffix" title="Shooting days"><input type="number" class="ep-days" min="1" step="0.5" value="${e.days===''?'':escHtml(e.days)}" placeholder="–" aria-label="${escHtml(e.name)} shooting days"><span>days</span></label>
       </div>`).join('') + '</div>';
   }
 
@@ -7551,7 +7619,7 @@ export function initLegacyApp() {
         <div class="block-head">
           <span class="blk-name">${escHtml(b.name)}</span>
           <span class="blk-count">${eps.length} ep${eps.length === 1 ? '' : 's'}</span>
-          <label class="num-suffix" title="Shooting days in ${escHtml(b.name)}"><input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="1"
+          <label class="num-suffix" title="Shooting days in ${escHtml(b.name)}"><input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="0.5"
                  value="${b.days===''?'':escHtml(b.days)}" placeholder="–" aria-label="${escHtml(b.name)} shooting days"><span>days</span></label>
         </div>
         <div class="blk-body">${ eps.map(e=>`
@@ -7676,92 +7744,204 @@ export function initLegacyApp() {
   // ⛔ THIS DELIBERATELY CHANGES THE MONTH PDF OF EVERY EPISODIC CALENDAR (its pills said
   // "Episode 201"); the monthprint baselines were re-cut for it, with the PDFs shown to the owner.
   // (Ruling 5, the Blocks-mode half of the same decision, came first.)
+  // ✅ HALF DAYS (owner, 15 Oct 2026) REVERSED ITS "ONE PILL PER WEEK" HALF: Production is drawn as
+  // ONE BAR PER EPISODE again (per block in Blocks mode), and a switch day carries both bars, one
+  // above the other ("Stacked bars, always", picked from a mock-up). This stays [] all the same:
+  // the renderer's episode-pill branch draws a name and nothing else, so its bars could carry no
+  // grey text. The split happens in pillRunsForWeek() instead -- see productionSplitRuns() -- so
+  // the bars ARE Production's own pills, cut where the episode changes.
   function episodeSpans(schedule){
     return [];
   }
 
-  // Which episode each Production shoot day belongs to, in SHOOTING order (ruling 9): episodes
-  // consume the shoot days in the order they are shot, each taking its day count of ENTRIES --
-  // the rule episodeSpans() always had, including the owner's 18 Sep ruling that it counts
-  // entries, not work (a half day is one entry). iso -> episode def. Cached per schedule object.
-  const _episodeDayCache = new WeakMap();
-  function episodeDayMap(schedule){
-    let m = _episodeDayCache.get(schedule);
-    if(m) return m;
-    m = new Map();
+  // ⭐ THE UNITS PRODUCTION IS SHOT IN -- episodes in Episodes mode (in SHOOTING order, ruling 9),
+  // blocks in Blocks mode -- laid onto Production's shoot days. ONE rule for both, and it is the
+  // rule episodeSpans() always had, extended to halves (owner, 15 Oct 2026: "Half days means
+  // instances where we would switch to the next episode or block half way thru a day"):
+  //   shoot day k (0-based, in date order) occupies [k, k+1) on a line of shoot days; a unit of d
+  //   days that starts where the previous one ended, at c, occupies [c, c+d); the unit is SHOT ON
+  //   day k when the two overlap.
+  // With whole counts that is exactly the old slice (k in c..c+d-1), so no calendar without a half
+  // moves. A count ending in .5 ends its unit half way through a day, and the next unit starts in
+  // that same day: the SWITCH DAY belongs to both, and the month view draws both bars on it.
+  // ⚠️ ENTRIES, NOT WORK -- the owner's 18 Sep ruling, kept: a legacy 'half' DAY mark (withdrawn as
+  // a feature on 15 Oct 2026, still honoured in files that have one) is one entry like any other
+  // day, so a calendar saved with one keeps its episode boundaries exactly. Days past Σ units (such a
+  // mark pushes the shoot past it) belong to no unit and are drawn untagged, as they always were.
+  // Gating is unchanged from the two maps this replaced: episodes need Show Info complete
+  // (episodeDayMap), blocks only need blocks (productionPillTag's own map).
+  // Returns {kind:'episode'|'block', units:[{i, id, days:Set<iso>}], byDay:Map<iso, unit[]>}, or
+  // null. Units hold an index or an id, never a def's text: names are read at render time, as before.
+  // Cached per schedule object, as both old maps were.
+  const _prodUnitCache = new WeakMap();
+  function productionUnits(schedule){
+    if(_prodUnitCache.has(schedule)) return _prodUnitCache.get(schedule);
+    let out = null;
     const prod = (schedule.segments || []).find(s=> s.key === 'production');
-    if(prod && prod.shootDays && prod.shootDays.length && showInfoStatus().complete){
-      const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-      let cursor = 0;
-      effectiveShootOrder().forEach(id=>{
-        const e = byId.get(id);
-        const n = parseInt(e && e.days, 10);
-        if(!e || !Number.isFinite(n) || n <= 0) return;
-        prod.shootDays.slice(cursor, cursor + n).forEach(iso=> m.set(iso, e));
-        cursor += n;
-      });
+    const shoot = (prod && prod.shootDays) || [];
+    const blocks = isBlocksMode();
+    let list = null;   // [{i, id, d}] in the order they are shot
+    if(shoot.length){
+      if(blocks){
+        if(blockDefs.length) list = blockDefs.map((b, i)=> ({i, id: b.id, d: dayCountVal(b.days)}));
+      } else if(showInfoStatus().complete){
+        const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+        list = effectiveShootOrder().map((id, i)=> ({i, id, d: dayCountVal((byId.get(id) || {}).days)}));
+      }
     }
-    _episodeDayCache.set(schedule, m);
-    return m;
+    if(list){
+      const units = [], byDay = new Map();
+      let c = 0;
+      list.forEach(u=>{
+        if(!Number.isFinite(u.d)) return;     // a blank or bad count takes no days, as before
+        const unit = {i: u.i, id: u.id, days: new Set()};
+        // Days k with k < c+d and k+1 > c: from floor(c) to ceil(c+d)-1.
+        for(let k = Math.floor(c); k < Math.ceil(c + u.d) && k < shoot.length; k++){
+          unit.days.add(shoot[k]);
+          if(!byDay.has(shoot[k])) byDay.set(shoot[k], []);
+          byDay.get(shoot[k]).push(unit);
+        }
+        units.push(unit);
+        c += u.d;
+      });
+      out = {kind: blocks ? 'block' : 'episode', units, byDay};
+    }
+    _prodUnitCache.set(schedule, out);
+    return out;
+  }
+
+  // The bar text and the grey text of one unit's run. Read at render time, so a rename shows at once.
+  //   episode  bar "Ep. 201"   grey "Production Week 3"
+  //   block    bar "Block 1"   grey "Production Week 3 · Ep. 201, 202"   ("Show Episodes" off: no Ep.)
+  // The week is the run's own, from segPillLabel()'s rule (prodWeekLabel), so it is the number the
+  // bar showed before the split. "Ep." once per list, as ruling 8 has it.
+  function unitBarLabel(kind, unit){
+    if(kind === 'block'){
+      const b = blockDefs[unit.i];
+      return (b && b.name) || ('Block ' + (unit.i + 1));
+    }
+    const e = episodeDefs.find(x=> x.id === unit.id);
+    return 'Ep. ' + (e ? shortEpisodeName(e) : '');
+  }
+  function unitGreyLabel(kind, unit, weekLabel){
+    if(kind !== 'block') return weekLabel;
+    const b = blockDefs[unit.i];
+    const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+    const eps = (mvShowEpisodes() && b) ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
+    return [weekLabel, eps ? 'Ep. ' + eps : ''].filter(Boolean).join(' · ');
+  }
+
+  // ⭐ ONE BAR PER EPISODE (per block), STACKED ON A SWITCH DAY (owner, 15 Oct 2026, "Stacked bars,
+  // always"). pillRunsForWeek() calls this for Production with the runs it would have drawn, and
+  // gets back the same days cut where the unit changes: each unit's own runs, in the order the
+  // units are shot, then any covered day no unit holds as a plain run. A switch day sits in two runs,
+  // and frozen renderMonthView's takeLane() puts the second one in the next lane down -- which IS
+  // the stacked look, with no frozen line changed. Weeks with no half switch simply get two bars
+  // side by side where they used to get one.
+  // Off (returns null, so the week draws exactly as before) when there are no units, or when the
+  // unit's own "Show" switch is off (ruling 10's prefs): "Show Episodes" off on an Episodes calendar
+  // means no episodes on the month view, so no episode bars either; "Show Blocks" likewise.
+  function productionSplitRuns(schedule, weekStart, runs){
+    const U = productionUnits(schedule);
+    if(!U || !(U.kind === 'block' ? mvShowBlocks() : mvShowEpisodes())) return null;
+    const covered = [];
+    runs.forEach(r=>{ for(let i=r.startCol;i<=r.endCol;i++) covered[i] = true; });
+    const isoAt = [];
+    for(let i=0;i<7;i++) isoAt[i] = isoOf(addDays(weekStart, i));
+    const touched = [];
+    for(let i=0;i<7;i++){
+      if(covered[i]) (U.byDay.get(isoAt[i]) || []).forEach(u=>{ if(!touched.includes(u)) touched.push(u); });
+    }
+    touched.sort((a, b)=> U.units.indexOf(a) - U.units.indexOf(b));
+    const out = [];
+    const collect = (test, unit)=>{
+      let run = null;
+      for(let i=0;i<7;i++){
+        if(covered[i] && test(i)){
+          if(!run) run = {startCol:i, endCol:i, date:addDays(weekStart, i), unit, kind:U.kind};
+          else run.endCol = i;
+        } else if(run){ out.push(run); run = null; }
+      }
+      if(run) out.push(run);
+    };
+    touched.forEach(u=> collect(i=> u.days.has(isoAt[i]), u));
+    collect(i=> !(U.byDay.get(isoAt[i]) || []).length, null);
+    return out;
+  }
+
+  // The Production runs pillRunsForWeek() last handed the renderer, and which one it is drawing.
+  // ⚠️ THE ONE PLACE THIS FILE LEANS ON THE FROZEN LOOP'S CALL ORDER. segPillLabel(s, date) is given
+  // only the run's first day, and two runs can start on the same day (a half switch where the first
+  // unit's piece is that one day). The frozen loop is, and is frozen as,
+  //   pillRunsForWeek(...).forEach(r=>{ segPillLabel(s, start of r); productionPillTag(..r's cols..); place(...) })
+  // so the Nth Production label asked for after pillRunsForWeek() is its Nth run. takeProdRun()
+  // checks the column all the same, and falls back to the first run starting there; and
+  // productionPillTag() matches its run by BOTH columns, which is unique for any run of two days
+  // or more (the only runs that carry grey text, ruling 7). If the loop is ever re-ordered, the
+  // worst case is one-day pieces swapping names on a switch day -- the shoot itself cannot move.
+  let _prodRuns = null;   // {week: iso of the row's Sunday, runs, next, cur}
+  function takeProdRun(date){
+    const P = _prodRuns;
+    if(!P) return null;
+    const col = date.getUTCDay();                     // month rows run Sun(0) .. Sat(6)
+    if(isoOf(addDays(date, -col)) !== P.week) return null;
+    let k = (P.runs[P.next] && P.runs[P.next].startCol === col) ? P.next : -1;
+    if(k < 0) k = P.runs.findIndex(r=> r.startCol === col);
+    if(k < 0) return null;
+    P.next = k + 1;
+    P.cur = P.runs[k];
+    return P.cur;
   }
 
   // The GREY TEXT inside one run of Production's pill -- columns fromCol..toCol of one Sun-Sat row
   // -- or ''. Frozen renderMonthView appends it to Production's pill, and adds nothing when it is ''.
-  //   Blocks mode    the blocks the run touches (ruling 2: every one), each with its episodes
-  //                  (ruling 5): "Block 1 · Ep. 201, 202"  /  "Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205"
-  //   Episodes mode  the episodes whose shoot days fall in the run, in shooting order (ruling 8):
-  //                  "Ep. 201"  /  "Ep. 201, 202"
+  //   A split bar    (above, the normal case since 15 Oct 2026) its unit's grey text: the Production
+  //                  Week for an episode, the week and the block's episodes for a block.
+  //   Unsplit        (that unit's "Show" switch is off) the old text, from the same unit map:
+  //     Blocks mode    the blocks the run touches (ruling 2: every one), each with its episodes
+  //                    (ruling 5): "Block 1 · Ep. 201, 202"  /  "Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205"
+  //     Episodes mode  the episodes whose shoot days fall in the run, in shooting order (ruling 8):
+  //                    "Ep. 201"  /  "Ep. 201, 202"
   //   "Ep." (owner, 22 Sep 2026: "Can we put 'Ep' before the episode numbers", then "Maybe it should
   //   be 'Ep.'") is written ONCE per list, not per number -- the three-block worst case had 43 px to spare before it, and a prefix
   //   on every number would have spent it.
   //   Preferences    "Show Blocks" / "Show Episodes" drop their half (ruling 10); both off is ''.
-  // Blocks consume the shoot days exactly as episodes do (above): in order, by entries, so halves
-  // that push a calendar past Σ blocks leave the trailing entries untagged rather than inventing a
-  // block for them.
-  const _blockDayCache = new WeakMap();
   function productionPillTag(schedule, weekStart, fromCol, toCol){
     // ✅ RULING 7 (owner, 22 Sep 2026): a ONE-DAY piece of the pill carries no grey text. There is
     // no room -- "Production Week 16" alone nearly fills a single day column, and the tag truncated
     // to "Bl…" -- and the neighbouring week already names it. Offered instead: shrinking the text
     // to fit; the owner chose omission.
     if(toCol <= fromCol) return '';
+    const P = _prodRuns;
+    if(P && P.week === isoOf(weekStart)){
+      const r = (P.cur && P.cur.startCol === fromCol && P.cur.endCol === toCol)
+        ? P.cur : P.runs.find(x=> x.startCol === fromCol && x.endCol === toCol);
+      if(r){
+        if(!r.unit) return '';               // days past Σ units: untagged, as they always were
+        const seg = (schedule.segments || []).find(s=> s.key === 'production');
+        return unitGreyLabel(r.kind, r.unit, seg ? prodWeekLabel(seg, addDays(weekStart, fromCol)) : '');
+      }
+    }
     const showB = mvShowBlocks(), showE = mvShowEpisodes();
-    if(!isBlocksMode()){
-      if(!showE) return '';
-      const m = episodeDayMap(schedule), seen = [];
-      for(let i=fromCol;i<=toCol;i++){
-        const e = m.get(isoOf(addDays(weekStart, i)));
-        if(e && !seen.includes(e)) seen.push(e);
-      }
-      const eps = episodeListLabel(seen);
-      return eps ? 'Ep. ' + eps : '';
-    }
-    if(!blockDefs.length || (!showB && !showE)) return '';
-    let dayBlock = _blockDayCache.get(schedule);
-    if(!dayBlock){
-      dayBlock = new Map();
-      const prod = (schedule.segments || []).find(s=> s.key === 'production');
-      if(prod && prod.shootDays){
-        let cursor = 0;
-        blockDefs.forEach((b, bi)=>{
-          const n = parseInt(b.days, 10);
-          if(!Number.isFinite(n) || n <= 0) return;
-          prod.shootDays.slice(cursor, cursor + n).forEach(iso=> dayBlock.set(iso, bi));
-          cursor += n;
-        });
-      }
-      _blockDayCache.set(schedule, dayBlock);
-    }
+    const U = productionUnits(schedule);
+    if(!U) return '';
     const touched = [];
     for(let i=fromCol;i<=toCol;i++){
-      const bi = dayBlock.get(isoOf(addDays(weekStart, i)));
-      if(bi !== undefined && !touched.includes(bi)) touched.push(bi);
+      (U.byDay.get(isoOf(addDays(weekStart, i))) || []).forEach(u=>{ if(!touched.includes(u)) touched.push(u); });
     }
+    touched.sort((a, b)=> U.units.indexOf(a) - U.units.indexOf(b));
     const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    return touched.map(bi=>{
-      const b = blockDefs[bi];
+    if(U.kind === 'episode'){
+      if(!showE) return '';
+      const eps = episodeListLabel(touched.map(u=> byId.get(u.id)).filter(Boolean));
+      return eps ? 'Ep. ' + eps : '';
+    }
+    if(!showB && !showE) return '';
+    return touched.map(u=>{
+      const b = blockDefs[u.i];
+      if(!b) return '';
       const eps = showE ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
-      return [showB ? (b.name || ('Block ' + (bi + 1))) : '', eps ? 'Ep. ' + eps : ''].filter(Boolean).join(' · ');
+      return [showB ? (b.name || ('Block ' + (u.i + 1))) : '', eps ? 'Ep. ' + eps : ''].filter(Boolean).join(' · ');
     }).filter(Boolean).join(' / ');
   }
 
@@ -11611,7 +11791,7 @@ export function initLegacyApp() {
     t.version = versionLabel();
     const numEpisodes = parseInt(val('num-episodes'), 10);
     t.episodes = (!isNaN(numEpisodes) && numEpisodes > 0) ? String(numEpisodes) : '';
-    const perEp = parseInt(val('shoot-days-per-ep'), 10);
+    const perEp = dayCountVal(val('shoot-days-per-ep'));   // halves allowed: "4.5-Day Shooting Schedule"
     // In Blocks mode the per-episode field is hidden and drives nothing, so its value is not a fact
     // about this calendar any more: the token goes empty rather than printing a number nobody can
     // see (ruling 6). Episodes mode is unchanged.
@@ -12110,7 +12290,9 @@ export function initLegacyApp() {
       if(parsed){ const mon = mondayOf(parsed); wrLine = `Writer's Room Opens: ${mon.getUTCMonth()+1}.${mon.getUTCDate()}.${String(mon.getUTCFullYear()).slice(2)}`; }
     }
     let r1='', r2='', r3='';
-    const shootDaysPerEp = parseInt((document.getElementById('shoot-days-per-ep').value||'').trim(), 10);
+    // dayCountVal, not parseInt: a 4.5-day episode prints "4.5-Day Shooting Schedule" (half days,
+    // owner 15 Oct 2026). A whole number prints exactly as before.
+    const shootDaysPerEp = dayCountVal((document.getElementById('shoot-days-per-ep').value||'').trim());
     if(schedule && schedule.productionInfo){
       const prodInfo = schedule.productionInfo;
       let prodWeeks = 0;
@@ -12299,30 +12481,45 @@ export function initLegacyApp() {
   // parseInt, so 2.5 weeks is 2, "1e3" is 1 and a 7.5-day episode is 7 -- silently. The rule is
   // exactly that: a field is flagged when what was typed is a number that parseInt reads
   // DIFFERENTLY ("2.0" is 2 both ways, so it is fine). Nothing here changes a value or a date.
-  // The Show Info counts are Mantine NumberInputs with allowDecimal={false}; a decimal cannot be
-  // typed there, so they are not in the list. The words go in a data attribute on the field's
+  // The Show Info COUNTS (episodes, blocks) are Mantine NumberInputs with allowDecimal={false}; a
+  // decimal cannot be typed there, so they are not in the list. The two Show Info DAY fields are,
+  // since half days (below). The words go in a data attribute on the field's
   // own label, or on its row where the field sits in a row (the episode and block day boxes, and
   // Sim Post's offset line), and legacy.css prints them as the host's ::after.
+  //
+  // ✅ HALF DAYS (owner, 15 Oct 2026): the EPISODE and BLOCK day counts now read in halves
+  // (dayCountVal), so for those -- the row boxes and the two Show Info defaults, which allow one
+  // decimal now -- the rule is the same rule against a different reader: flagged when dayCountVal
+  // reads the number differently, i.e. anything that is not a whole or half (4.3). The words say
+  // "Whole or half days only". Weeks fields are unchanged.
   function isWholeNumberTypo(el){
     const v = String((el && el.value) || '').trim();
     if(v === '') return false;
+    // Production's day count is a hidden field the ENGINE writes (Σ episodes or blocks), never typed,
+    // and since half days it can hold 45.5. Nothing to flag there.
+    if(el.id === 'weeks-production') return false;
     const n = Number(v);
+    if(el.matches && el.matches(HALF_FIELDS)) return Number.isFinite(n) && n > 0 && n !== dayCountVal(v);
     return Number.isFinite(n) && n !== parseInt(v, 10);
   }
+  const HALF_FIELDS = '#episode-rows .ep-days, #episode-rows .blk-days, #shoot-days-per-ep, #days-per-block';
   const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
-                     + '#episode-rows .ep-days, #episode-rows .blk-days';
+                     + HALF_FIELDS;
   function reflectStartDateValidity(state, extraBad){
     const bad = new Set([...((state && state.badYearFields) || []), ...(extraBad || [])]);
     const hosts = new Map();   // message host -> its words
     document.querySelectorAll(WHOLE_FIELDS).forEach(el=>{
       if(!isWholeNumberTypo(el)) return;
       bad.add(el);
-      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('label');
-      if(host) hosts.set(host, (el.classList.contains('ep-days') || el.classList.contains('blk-days')) ? 'Whole days only' : 'Whole weeks only');
+      // The two Show Info defaults are Mantine NumberInputs, whose input sits in the wrapper rather
+      // than inside its <label>, so the wrapper hosts the words (printed under the field).
+      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('label')
+                || el.closest('.mantine-InputWrapper-root');
+      if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only' : 'Whole weeks only');
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
     hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, #episode-rows .ep-days, #episode-rows .blk-days').forEach(el=>{
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS).forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{
@@ -12877,6 +13074,10 @@ export function initLegacyApp() {
   });
 
   buildPhaseRows();
+  // Production's meta line under a half total (reflectHalfDayTotal): watched, because frozen render()
+  // rewrites it from many places.
+  new MutationObserver(reflectHalfDayTotal).observe(document.getElementById('phase-rows'),
+    {childList: true, characterData: true, subtree: true});
   refreshSimPostUI();
   addDefaultHiatuses();
   PHASES.forEach(p=>{

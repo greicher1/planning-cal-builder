@@ -196,13 +196,16 @@ PY
 #                   60-lane cap (L-16) -- and its August is in SCALE mode, the first case that exercises
 #                   exportMonthPdf's shrink-to-fit branch at all
 #   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
+#   halfdays        ⭐ ADDED 15 Oct 2026: episodes of 4.5 days (one of 5), so Production's bars split per episode
+#                   and STACK on each switch day ("Stacked bars, always") -- the second bar in the next lane
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
 for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
               mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
               dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
-              month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel; do
+              month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel \
+              halfdays:halfdays:halfdays; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
@@ -1329,8 +1332,8 @@ chk(a.get('epMeta')==EP_META and '8-Day Shooting Schedule' in (a.get('epHdr') or
     and a.get('epRowsShown')==10 and a.get('epBlockRows')==0,
     f"blocks: Episodes mode schedules from the episode list, byte-identical header ({a.get('epMeta')})")
 chk(a.get('roundTrip'), f"blocks: ⭐ ROUND TRIP -- back to Blocks restores the dates and the hand arrangement ({a.get('backMeta')})")
-chk(a.get('mvEpisodePills')==0 and (a.get('mvProductionPills') or 0)>0,
-    f"blocks: month view draws Production's pills, no episode pills (ruling 5) -- {a.get('mvProductionPills')} / {a.get('mvEpisodePills')}")
+chk(a.get('mvEpisodePills')==0 and (a.get('mvProductionPills') or 0)>0 and (a.get('mvBlockPills') or 0)>0,
+    f"blocks: month view draws Production's own pills, one bar per block (15 Oct 2026), no episode pills -- {a.get('mvProductionPills')} / {a.get('mvBlockPills')} / {a.get('mvEpisodePills')}")
 chk(a.get('loadGuardAnswered') and a.get('oldMode')=='episodes' and a.get('oldNumBlocks')=='' and a.get('oldDaysPerBlock')==''
     and '10/27/26' in (a.get('oldMeta') or '') and (a.get('oldMeta') or '').startswith('80 shoot days')
     and a.get('oldBlockRows')==0 and a.get('oldEpisodeRows')==10,
@@ -1344,7 +1347,7 @@ tp, t3, ts = a.get('tagPrint') or {}, a.get('tagPrint3') or {}, a.get('tagScreen
 chk((tp.get('n') or 0) > 0 and not tp.get('clipped') and not ts.get('clipped'),
     f"blocks: ⭐ the block tag prints in Production's pill and is never clipped ({tp.get('n')} tags, headroom >= {tp.get('minSlack')}px)")
 chk(len(a.get('threeBlockWeek') or [])>=1 and not t3.get('clipped'),
-    f"blocks: a row touching THREE blocks names all three and still fits ({(a.get('threeBlockWeek') or ['none'])[0]!r}, headroom {t3.get('minSlack')}px)")
+    f"blocks: a row touching THREE blocks draws all three bars and their tags still fit ({(a.get('threeBlockWeek') or ['none'])[0]!r}, headroom {t3.get('minSlack')}px)")
 chk((t3.get('oneDayPieces') or 0) >= 1 and t3.get('oneDayTagged') == 0 and tp.get('oneDayTagged') == 0,
     f"blocks: a ONE-DAY pill piece carries no tag (ruling 7) -- {t3.get('oneDayPieces')} such piece(s), {t3.get('oneDayTagged')} tagged")
 chk(not a.get('errors'), f"blocks: 0 console errors {a.get('errors')}")
@@ -1373,8 +1376,10 @@ chk(a.get('mode')=='episodes' and a.get('restoredOrder')==['205','202','203','20
     and a.get('restoredMeta')==META,
     f"shootorder: restores its hand shooting order, on the SAME dates as natural order ({a.get('restoredMeta')})")
 jp=a.get('julyPills') or []
-chk(a.get('episodePills')==0 and jp[:2]==[['Production Week 1','Ep. 205'],['Production Week 2','Ep. 205, 202']],
-    f"shootorder: ⭐ RULING 8 -- 'Production Week N' with the episodes as grey text, in SHOOTING order {jp[:2]}")
+# ⭐ "Stacked bars, always" (owner, 15 Oct 2026) replaced ruling 8's one bar per week: one bar per episode,
+# in SHOOTING order, its Production Week as the grey text. 7/10 is 202's first day, a one-day piece (ruling 7).
+chk(a.get('episodePills')==0 and jp[:3]==[['Ep. 205','Production Week 1'],['Ep. 205','Production Week 2'],['Ep. 202','']],
+    f"shootorder: ⭐ one bar per episode in SHOOTING order, the week as grey text {jp[:3]}")
 chk(a.get('undoDisabledBefore') is True and a.get('undoDisabledAfterPref') is True and a.get('undoDisabledAfterBoth') is True,
     "shootorder: a Preferences switch pushes NO undo step (Undo stays disabled through off and on)")
 chk(a.get('prefIdsInFields')==[] and all(p[1]=='' for p in (a.get('pillsEpsOff') or [['','x']]))
@@ -1402,6 +1407,9 @@ PYS
 # since batch 5 (30 Sep 2026): its AS/AR cases wait out two autosave ticks.
 # halfworked is not an audit fix: it guards the 'onhalf' day override (29 Sep 2026) -- a date (the
 # wrap) and the month view's marks -- which is exactly the kind of leg FIX-PLAN §1 says belongs here.
+# Since 15 Oct 2026 the 'half'/'onhalf' marks are WITHDRAWN as choices (a half day is an episode's .5,
+# the halfdays leg), so it loads dayoverrides-onhalf and guards the saved marks: honoured, shown,
+# moved with the calendar, clearable, and never offered again.
 # pwagate + pwagatelogic guard the install gate (PWA-ONLY-PLAN.md, 30 Sep 2026): the hosted link's
 # browser tab shows only the gate and never starts the engine, with the owner's approved wording.
 # First in the list on purpose: the batch-4 session appends at the END, so the two never conflict.
@@ -1418,6 +1426,8 @@ PYS
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
+# halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
+# switch day carries both units' bars, stacked, in the month view. It cut tests/fixtures/halfdays.sptcal.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1425,7 +1435,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               rowheight:shift-stores:90 yearblock:-:90 caps:-:120 overrides:dayoverrides:150 \
               autonote:v1.3.0-saved:150 snaptools:dayoverrides:150 holidays2031:-:150 \
               monthnotes:monthnotes:150 conflict:-:2400 backupslots:-:120 \
-              halfworked:dayoverrides:150 monthlanes:month-lanecap:150 hiatuslabel:-:150 \
+              halfworked:dayoverrides-onhalf:150 monthlanes:month-lanecap:150 hiatuslabel:-:150 \
               notewrap:-:150 hdrcut:hdr-cut:150 xlsxlimits:-:150 xlsxdates:-:150 \
               legacyparse:-:900 hdroverrides:-:150 badyear:-:120 spanhint:-:150 \
               wholenum:-:150 regionlock:-:150 nofsa:-:150 exportrefused:-:150 \
@@ -1433,7 +1443,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               filekeys:v1.4.2-saved:150 \
-              launchopen:-:240; do
+              launchopen:-:240 halfdays:-:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1549,7 +1559,7 @@ PYMF
 #         nothing would pass vacuously.
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
-              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap"; do
+              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -1630,7 +1640,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -1708,7 +1718,7 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
-              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich"; do
+              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done

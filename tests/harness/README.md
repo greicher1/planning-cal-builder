@@ -37,7 +37,7 @@ cd tests/harness
 `gate.sh` is the entry point the freeze rule in `CLAUDE.md` demands: it builds the fixture, measures
 the frozen grid, compares the **waterfall PDF** and every **Excel part** against
 `tests/baselines/2026-08-29-stage-7/`, restores the real v1.0.0 saved calendar, asserts
-`fields.byId` is unchanged, and — since 22 Sep 2026 — compares the **month PDF** on nine calendars (four when it was added)
+`fields.byId` is unchanged, and — since 22 Sep 2026 — compares the **month PDF** on ten calendars (four when it was added; `halfdays` 15 Oct 2026)
 against `tests/baselines/2026-09-22-monthprint/` (the printed document byte for byte, and one sheet
 per month in the PDF Chrome actually prints). It defaults to **`/dist/index.html`**.
 
@@ -116,7 +116,8 @@ timing flake.
 | `run.sh` | one test, end to end: start server → Chrome → **poll until the dump is complete** → kill → parse → stop server |
 | `t/monthprint.js` | ⚠️ since step 5 it sets the PRINT path's localhost-only switch first (`T.monthPrintPath()`, `localStorage 'sptcal.mvPdfTest' = 'print'`), as `blocks`, `hiatuslabel` and the writer's legs' fresh captures do: Export PDF itself now runs the writer. The month PDF's document, captured at the `window.print()` call with the today stamp normalised, then put back into print state so `HARNESS_PRINT_PDF=1` prints exactly it. `gate.sh` runs it four times: the reference calendar, `dayoverrides`, `mvheader`, `mvheaderlegacy` |
 | `t/blocks.js` | block shooting on the minted `blocks.sptcal`: the restore, labels-not-dates on a hand move, one-step undo, the Blocks↔Episodes round trip, the restore default through the REAL picker, and the in-pill tag's fit (screen, print width, a three-block week, a one-day piece carrying none) |
-| `t/shootorder.js` | Episodes mode's shooting order on the minted `shootorder.sptcal`: the grey "Ep." text in shooting order, both drop sides, labels-not-dates, one-step undo, and the two month-view Preferences (no undo step, not in `fields.byId`, rows scoped to their view) |
+| `t/shootorder.js` | Episodes mode's shooting order on the minted `shootorder.sptcal`: one month-view bar per episode in shooting order ("Ep. 205", the week in grey; the grey "Ep." text before 15 Oct 2026), both drop sides, labels-not-dates, one-step undo, and the two month-view Preferences (no undo step, not in `fields.byId`, rows scoped to their view) |
+| `t/halfdays.js` | half days (owner, 15 Oct 2026): episode and block day counts in halves, Σ and the meta line at 45.5, one month-view bar per episode or block, two bars STACKED on each half-day switch day (dates worked out by hand), whole boundaries side by side, "Whole or half days only", a restore through undo, Blocks mode. 25 cases; cut `tests/fixtures/halfdays.sptcal`. In the gate's generic block |
 | `monthcmp.py` | ⭐ gate 10: a `monthprint` capture against `tests/baselines/2026-09-22-monthprint/` — the document byte for byte, one printed sheet per month, the stamp count. On a mismatch it says whether only inline styles moved and prints the per-month **fit table** (fill/scale, every week's height). `cut` makes a baseline; `ab` compares two saved captures, which is the A/B for a frozen edit that is *meant* to move the month PDF |
 | `srv.js` | serves the repo root; injects `t/lib.js` + `t/<name>.js` into `index.html?test=<name>` |
 | `parse.js` | lifts the `<pre id="R">` payload out of the dump, un-escapes it, splits off base64 files: a `xlsx` / `pdf` / `sptcal` field as `<name>.<ext>`, and a `pdfs: {doc: base64}` map as `<name>.<doc>.pdf` (one per document, since 1 Oct 2026; `run.sh` clears a leg's old ones first) |

@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Half days are typed into an episode's or block's day count; the switch day shows both (15 Oct 2026)
+
+The owner corrected what a half day is: *"instances where we would switch to the next episode or block half way thru
+a day"*. So a day count can now end in **.5**, and marking a single day "Half day" is gone.
+- **Shooting Days per Episode / per Block, and each episode's or block's own box, take halves** (4.5 = four and a half
+  days; the next episode starts at lunch on the fifth). Production's total is the sum, so it can be 45.5, which shoots
+  46 days. The header reads "4.5-Day Shooting Schedule". A value between halves (4.3) is ringed "Whole or half days
+  only" and counts as 4. Whole numbers read exactly as before.
+- **The month view draws one bar per episode** (per block in Blocks mode), named "Ep. 201" / "Block 1", with the
+  Production Week (and a block's episodes) in grey. On a switch day both bars show, the earlier one above. Owner's
+  ruling ("Stacked bars, always"): this replaces the one "Production Week N" bar per week, so **the month view and
+  month PDF of every calendar with episodes or blocks change**, with or without halves. "Show Episodes" / "Show
+  Blocks" off still draws the plain Production Week bars. No frozen code was edited.
+- **"Half day" and "Work half day" are no longer offered** in the month view's day menu. Owner's ruling ("Keep them as
+  they are"): marks already saved keep counting and showing, move with the calendar, and can be cleared.
+- The save format is unchanged: day counts were already stored as strings like "8", now "4.5". ⚠️ An older build
+  opening a file with 4.5 reads it as 4.
+- **Production's sidebar line** ("45.5 shoot days → …") is written by frozen code that rounded the count; it is
+  corrected from outside by a MutationObserver (CLAUDE.md's sanctioned pattern 3).
+- **Verified:** new leg `halfdays` (25 cases: the stacked dates worked out by hand from the union calendar, Blocks mode,
+  restore through undo, validation); `halfworked` rewritten for the withdrawn marks (24); `wholenum`, `blocks`,
+  `shootorder` updated. The month PDF baselines (gate 10, gate 13) were re-cut after the owner signed off contact
+  sheets, with a new `halfdays` case in both. Every month still prints on one page and no week row moved height in
+  any existing calendar. Full gate: 1,329 PASS after the re-cut; `hdrfile` and `conflict` failed in that run only and
+  pass standalone (see HANDOFF). `npm run check` 40/40.
+
 ### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
 
 The teal hover button over a phase's block in the waterfall said **Swap Block**. It now says **Swap Column**, at the

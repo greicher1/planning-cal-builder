@@ -60,10 +60,16 @@ export function ShowInfoCard() {
         <NativeSelect id="show-mode" label="Schedule by"
                       data={[{ value: 'episodes', label: 'Episodes' }, { value: 'blocks', label: 'Blocks' }]} />
         {/* hideControls: the spinners cost width the sidebar does not have, and every one of these
-            is typed rather than stepped. */}
+            is typed rather than stepped.
+            ✅ HALF DAYS (owner, 15 Oct 2026): the two DAY counts take halves -- 4.5 days per episode
+            means the next episode starts half way through the fifth day. decimalScale={1} stops a
+            second decimal being typed; the engine reads the value in halves (dayCountVal) and flags
+            anything else ("Whole or half days only"). The value is still a plain numeric string, so
+            fields.byId is unchanged in shape and every saved whole number reads as before. min stays 1:
+            a typed 0 still clamps to 1 on blur (the numclamp leg), and no episode is shot in half a day. */}
         <Box className="show-mode-episodes">
           <NumberInput id="shoot-days-per-ep" label="Shooting Days per Episode" placeholder="e.g. 8"
-                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
         </Box>
         {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
             what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
@@ -79,7 +85,7 @@ export function ShowInfoCard() {
         </Box>
         <Box className="show-mode-blocks">
           <NumberInput id="days-per-block" label="Shooting Days per Block" placeholder="e.g. 20"
-                       min={1} step={1} allowDecimal={false} allowNegative={false} hideControls />
+                       min={1} step={0.5} decimalScale={1} allowNegative={false} hideControls />
         </Box>
         {/* ⛔ TextInput, never NumberInput (owner decision H1, 1 Sep 2026): owners write 3, 3.1
             and 3a, so the field is a LABEL and not arithmetic. The engine's versionLabel() strips a
