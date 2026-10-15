@@ -1810,7 +1810,9 @@ PYCS
 # is one undo step, end-before-start, whole days, a weekend start). RESTORE loads
 # tests/fixtures/customunits.sptcal, minted from that LIVE run's real Save, and asserts it comes
 # back day for day: units, boxes, hint lines, waterfall rows, month pills, and the {key.close}
-# header tokens (the bug §9 fixed: a mid-week end used to name the Sunday before).
+# header tokens (the bug §9 fixed: a mid-week end used to name the Sunday before). RESTORE then runs
+# every MOVER on it (plan §8): Shift All, Anchor To, Rebuild From both ways and the month drag must
+# move a Dates phase's start AND end, and one undo must put every date back.
 # ⚠️ The JSON is removed first: run.sh does not, and a leg that fails to load would otherwise be
 # judged on the previous run's result.
 for CUSTATE in "" customunits; do

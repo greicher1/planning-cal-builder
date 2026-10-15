@@ -31,9 +31,7 @@ way a user would notice or a future session would need to return to. See
 
 ### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
 
-Steps 1–3 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
-**Not yet complete:** the shift tools, Rebuild From and the month-view drag still move only a phase's START date (step 4,
-held for the owner's review), so a Shift on a **Dates** phase stretches it rather than moving it.
+Steps 1–4 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
 - **Every custom phase row has a Length select:** Weeks (as before, and what every existing calendar opens as), Days
   or Dates.
   - **Days** counts working days: Monday to Friday, skipping enabled union holidays and hiatus days. A holiday inside
@@ -45,6 +43,12 @@ held for the owner's review), so a Shift on a **Dates** phase stretches it rathe
   Only the month view shows the exact days.
 - **Switching unit never moves the phase.** The new unit's box is prefilled from the phase as scheduled, and one undo
   reverts the switch. Back to Weeks from a mid-week start turns Snap to Mon off, as the month-view drag does.
+- **Every tool that moves a phase moves a Dates phase whole:** Shift All, Shift From, Anchor To, Rebuild From (both
+  directions) and the month-view drag write its start through one function, `setPhaseStart()`, which moves its end
+  date by the same number of days. Before step 4 they moved only the start and would have stretched the range.
+  - Rebuild places Days and Dates phases to the day. Backwards, a Dates phase ends the day before the next phase starts
+    and keeps its length, and a Days phase counts its working days back. Forwards, neither starts on a weekend.
+  - Snap to Mon, hidden for Days and Dates, is ignored by the tools as it is by the scheduler.
 - **Fixed in passing:** the `{<phase>.close}` header token named the wrong day for any phase that ends mid-week. It
   computed `end − 3 days`, which is the Friday only when a phase ends on a Monday, so a Snap-off phase starting on a
   Wednesday "closed" on the Sunday before. It now names the last weekday. Every calendar whose phases end on Mondays
@@ -57,14 +61,13 @@ held for the owner's review), so a Shift on a **Dates** phase stretches it rathe
   counted, which `segCoversDate()` reads. Its hint line is a sibling element the frozen `render()` never writes,
   because about 30 paths call `render()` directly, and an overwrite of `meta-<key>` did not survive a Load (measured).
 - **Verified:** a new `customunits` leg (two runs, in `gate.sh`) and a synthetic fixture, `customunits.sptcal`, minted
-  through the real Save. Its 39 checks pass across both runs, with 0 console errors. **Full gate on build `e88d3ea4…`: 1,318 PASS, 0 FAIL,
-  GATE PASSED** (11 min 48 s). Every existing output is unchanged:
-  - the waterfall PDF and every Excel part match the baseline;
-  - gate 5's `fields.byId` key set is identical at 62 ids (its calendar has no custom phases);
-  - gate 10's printed month documents and gate 13's written month PDFs are byte-identical;
-  - 0 clipped cells.
-
-  `npm run check` passes 40/40.
+  through the real Save. Its 51 checks pass across both runs, with 0 console errors. They include each mover on a Days
+  and a Dates phase, with one undo restoring every date. **Full gate on the step-4 build `fa825e58…`: 1,331 PASS, 0 FAIL, GATE PASSED** (11 min 43 s). Every existing output is unchanged, and gate 5 holds at 62 ids.
+  - Steps 1–3 alone (`fa212d7`, build `e88d3ea4…`): **1,318 PASS, 0 FAIL, GATE PASSED.** Every existing output is
+    unchanged: the waterfall PDF and every Excel part match the baseline; gate 5's `fields.byId` key set is identical
+    at 62 ids (its calendar has no custom phases); gate 10's printed month documents and gate 13's written month PDFs
+    are byte-identical; and 0 cells are clipped.
+  - `npm run check` passes 40/40.
 
 ### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
 

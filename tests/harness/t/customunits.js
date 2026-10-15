@@ -205,6 +205,83 @@ window.addEventListener('load', function () { (async function () {
       // Fri 1/29 -- the Monday-end control, which `end - 3` always got right.
       check(out.closeTokens === '1.26.27 1.22.27 2.23.27 2.24.27 1.29.27', '{key.close} names each last working day');
       delete out.month.hdrText;
+
+      // ---------------- STEP 4: THE MOVERS (plan §8) ----------------
+      // Every tool that moves a phase writes its start through setPhaseStart(), so a Dates phase's
+      // END moves with it instead of the range stretching. Each tool runs on the fixture as loaded,
+      // then ONE undo must put every date back. Expected dates worked by hand from the calendar above
+      // (the 2/15/27 hiatus is LOCKED, as a new hiatus row is, so a shift leaves it where it is).
+      var dates = function () {
+        return {pre: $('start-prePrep').value, s1: $('start-custom1').value, s2: $('start-custom2').value,
+                s3: $('start-custom3').value, e3: $('end-custom3').value, s4: $('start-custom4').value,
+                d2: $('days-custom2').value, d4: $('days-custom4').value, snap3: $('snap-custom3').checked};
+      };
+      var base = dates(), same = function () { return JSON.stringify(dates()) === JSON.stringify(base); };
+      var undo = async function () { $('undo-btn').click(); await settle(); };
+      out.movers = {base: base};
+
+      // Shift All +1 week.
+      $('pop-shift-btn').click(); await T.sleep(150);
+      T.set('tool-shift-weeks', '1'); $('tool-shift-later').click(); await settle();
+      out.movers.shift = dates(); out.movers.shiftHint4 = meta('custom4');
+      check(out.movers.shift.s3 === '2027-02-17' && out.movers.shift.e3 === '2027-03-02', 'Shift All +1 wk moves BOTH ends of a Dates phase');
+      // Rigging's new start 2/18 sits in the locked hiatus, so its 5 days run Mon 2/22 - Fri 2/26.
+      check(out.movers.shift.s4 === '2027-02-18' && out.movers.shiftHint4.indexOf('Mon 2/22/27 \u2192 Fri 2/26/27') !== -1,
+            'Shift All moves a Days phase, which walks past the locked hiatus');
+      await undo(); check(same(), 'one undo restores every date after Shift All');
+
+      // Anchor To: Stage Build's START to 2/24/27, a whole-calendar shift of 2 weeks.
+      $('pop-anchor-btn').click(); await T.sleep(150);
+      T.set('tool-anchor-phase', 'custom3'); T.set('tool-anchor-edge', 'start'); T.set('tool-anchor-date', '2027-02-24');
+      $('tool-anchor-go').click(); await settle();
+      out.movers.anchor = dates();
+      check(out.movers.anchor.s3 === '2027-02-24' && out.movers.anchor.e3 === '2027-03-09', 'Anchor To moves BOTH ends of a Dates phase');
+      await undo(); check(same(), 'one undo restores every date after Anchor To');
+
+      // Rebuild From FORWARDS from Scout, pinned where it is (Wed 1/13, ends Tue 1/26):
+      //   Read-through (Days 6) from Wed 1/27 -> Wed 2/3;  Stage Build (Dates, 13 days) Thu 2/4 -> Wed 2/17;
+      //   Rigging hands off on 2/18, inside the hiatus, so chainedStart() steps a week to Thu 2/25.
+      $('pop-solve-btn').click(); await T.sleep(150);
+      T.set('tool-solve-phase', 'custom1'); T.set('tool-solve-date', '2027-01-13');
+      $('tool-solve-fwd').click(); await settle();
+      out.movers.fwd = dates(); out.movers.fwdHint2 = meta('custom2');
+      check(out.movers.fwd.s2 === '2027-01-27' && out.movers.fwd.s3 === '2027-02-04' && out.movers.fwd.e3 === '2027-02-17'
+            && out.movers.fwd.s4 === '2027-02-25', 'Rebuild forwards chains Days and Dates phases, a Dates phase keeping its length');
+      await undo(); check(same(), 'one undo restores every date after Rebuild forwards');
+
+      // Rebuild From BACKWARDS from Rigging, pinned to Mon 3/1/27:
+      //   Stage Build ends the day before (Sun 2/28), keeping 13 days: Mon 2/15;
+      //   Read-through counts 6 working days back from Sun 2/14: Fri 2/5 .. Fri 2/12;
+      //   Scout (Weeks, Snap off) 2 weeks back from Fri 2/5: Fri 1/22;
+      //   Pre Prep (snapped) 4 working weeks back from 1/18, the 12/21/26 winter hiatus skipped: 12/7/26.
+      $('pop-solve-btn').click(); await T.sleep(150);
+      T.set('tool-solve-phase', 'custom4'); T.set('tool-solve-date', '2027-03-01');
+      $('tool-solve-back').click(); await settle();
+      out.movers.back = dates(); out.movers.backHint2 = meta('custom2');
+      check(out.movers.back.s3 === '2027-02-15' && out.movers.back.e3 === '2027-02-28', 'Rebuild backwards: a Dates phase ends the day before the next, keeping its length');
+      check(out.movers.back.s2 === '2027-02-05' && out.movers.backHint2.indexOf('Fri 2/5/27 \u2192 Fri 2/12/27') !== -1,
+            'Rebuild backwards: a Days phase ends by the next phase start (checked against the scheduler)');
+      check(out.movers.back.s1 === '2027-01-22' && out.movers.back.pre === '2026-12-07' && out.movers.back.s4 === '2027-03-01',
+            'Rebuild backwards: the Weeks phases before them, and the pin');
+      await undo(); check(same(), 'one undo restores every date after Rebuild backwards');
+
+      // The month-view drag: Stage Build's first pill, two day-columns right. Synthetic events, so
+      // this proves the handler (the pill's hit-testing is proven by monthdragundo's reachability).
+      await view('month'); await gotoMonth('February 2027');
+      var pill = document.querySelector('#table-wrap .mv-pill[data-ph="custom3"]');
+      var cell = document.querySelector('#table-wrap .mv-daycell');
+      if(pill && cell){
+        var pr = pill.getBoundingClientRect(), dayW = cell.getBoundingClientRect().width;
+        var x = pr.left + 10, y = pr.top + pr.height / 2;
+        pill.dispatchEvent(new MouseEvent('mousedown', {clientX: x, clientY: y, button: 0, buttons: 1, bubbles: true, cancelable: true}));
+        window.dispatchEvent(new MouseEvent('mousemove', {clientX: x + dayW * 2, clientY: y, button: 0, buttons: 1, bubbles: true, cancelable: true}));
+        window.dispatchEvent(new MouseEvent('mouseup', {clientX: x + dayW * 2, clientY: y, button: 0, buttons: 0, bubbles: true}));
+        await settle();
+      }
+      out.movers.drag = dates();
+      check(out.movers.drag.s3 === '2027-02-12' && out.movers.drag.e3 === '2027-02-25', 'the month drag moves BOTH ends of a Dates phase');
+      check(out.movers.drag.snap3 === base.snap3, 'the drag leaves a Dates phase\'s hidden Snap to Mon alone');
+      await undo(); await view('sheet'); check(same(), 'one undo restores the dragged dates');
     }
 
     if(!st){

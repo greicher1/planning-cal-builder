@@ -1,8 +1,7 @@
 # CUSTOM-PHASE-UNITS-PLAN.md
 
-**Status: steps 1–3 BUILT 15 Oct 2026** (branch `custom-units`), not committed. ⏸ **Step 4 (the movers) is
-held for the owner's review**, at their instruction. Until it lands, a Shift on a Dates phase stretches it. ✅ All
-seven rulings received 15 Oct 2026 (§10).
+**Status: steps 1–4 BUILT 15 Oct 2026** on branch `custom-units` (steps 1–3 committed as `fa212d7`; step 4 after the
+owner reviewed them: *"Reviewed. Build step 4"*). Step 5 is the gate. ✅ All seven rulings received 15 Oct 2026 (§10).
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -205,6 +204,34 @@ instead of moving it. These are all the writers, found by reading on 15 Oct 2026
 - **The drag stays one undo step.** `end-<key>` is an id'd input, so it is swept into the same
   snapshot as `start-<key>`. That is the same reason `snap-<key>` costs nothing (MONTH-VIEW-PLAN §6.3).
 
+### 8.1 ✅ As built (15 Oct 2026)
+
+- **`setPhaseStart(key, iso)` is the one writer.** It is used by `shiftCalendarDates` (Shift All, Shift From and
+  Anchor To), both Rebuild directions (their pins too), and the drag's `mousemove`. ⛔ A new mover must use it.
+- **`phaseSnapped()` returns false for a Days or Dates phase.** Their Snap to Mon box is hidden and ignored by the
+  scheduler, so the tools must ignore it as well. Otherwise `chainedStart()` pushed them to a Monday, and Rebuild
+  pinned them to one. The drag likewise leaves their hidden box alone.
+- **Rebuild backwards, Dates:** keeps its calendar length and ends the day before the cursor, back to back. Ending on
+  the last WEEKDAY was tried first: a Wed–Tue range then began on a Saturday, an empty waterfall week row.
+- **Rebuild backwards, Days:** counts N working days back from the day before the cursor, with `isUnitWorkDay()`.
+  ⚠️ **This deviates from the plan above,** which said to search the scheduler. That search is needed for
+  Production, whose length depends on its overrides. Here the predicate is the whole rule, so the forward walk from
+  the start found this way counts exactly those days. The leg checks the result against the scheduler's own hint
+  line.
+- **A snapped Weeks predecessor ends by the cursor's MONDAY.** Cursors were always Mondays until Days and Dates
+  phases could be placed to the day. Every existing rebuild is unchanged.
+- **Rebuild forwards:** a Days or Dates phase never starts on a weekend. A Friday finish hands off on the next
+  Monday, not the Saturday.
+- **The old-build fallback is re-synced** inside each tool's undo bracket (`syncAllCustomUnitFallbacks()`), and at
+  the drag's end.
+- **Verified** by the `customunits` RESTORE run, each with one undo putting every date back:
+  - Shift All +1 wk: Stage Build 2/17–3/2;
+  - Anchor To: 2/24–3/9;
+  - Rebuild forwards from Scout: Read-through 1/27, Stage Build 2/4–2/17, Rigging 2/25 past the hiatus;
+  - Rebuild backwards to Rigging on 3/1: Stage Build 2/15–2/28, Read-through 2/5–2/12, Scout 1/22, Pre Prep
+    12/7/26;
+  - the drag +2 days: 2/12–2/25.
+
 ---
 
 ## 9. Found in passing: `{key.close}` names the wrong day for a phase that ends mid-week
@@ -249,7 +276,7 @@ Nothing here touches frozen code.
    `segCoversDate` reads them.
 3. ✅ **BUILT. The hint line and the `{key.close}` fix** (§6, §9). The bug is reproduced on the pre-change
    build: the fixture's Snap-off Weeks phase closed on Sun 1/24/27; it now closes on Tue 1/26/27.
-4. ⏸ **The movers** (§8). **Held for the owner's review.**
+4. ✅ **BUILT 15 Oct 2026. The movers** (§8, §8.1).
 5. **The leg, then the full gate** (§12).
 
 ⚠️ **Overlap with MONTH-PILL-LABEL-PLAN.** Both reach the month view's pill text path, and both are

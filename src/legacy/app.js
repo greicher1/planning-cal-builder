@@ -5880,6 +5880,77 @@ export function initLegacyApp() {
     if(!seg || !el || !(seg.weeks > 0)) return;
     if(el.value !== String(seg.weeks)) el.value = String(seg.weeks);
   }
+  // Every custom phase's fallback at once, for the tools that move many phases. Called INSIDE their
+  // asOneUndoStep / drag bracket, after their final update(), so it lands in the same undo step.
+  function syncAllCustomUnitFallbacks(){
+    customPhaseDefs.forEach(cp=> syncCustomUnitFallback(cp.key));
+  }
+
+  // ⛔ THE ONE WRITER of a phase's start date for every tool that MOVES a phase (CUSTOM-PHASE-UNITS-
+  // PLAN §8): Shift All / Shift From / Anchor To (shiftCalendarDates), Rebuild From (both directions)
+  // and the month-view drag. A Dates phase is TWO dates, so a tool that moved start-<key> alone would
+  // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
+  // Days phases need nothing more -- their length is a count. A new mover must write through this,
+  // or Dates phases stretch under it. Returns false when there is no start field to write.
+  function setPhaseStart(key, iso){
+    const el = document.getElementById('start-' + key);
+    if(!el) return false;
+    const was = parseDateUTC(el.value), to = parseDateUTC(iso);
+    if(was && to && customPhaseUnit(key) === 'dates'){
+      const endEl = document.getElementById('end-' + key);
+      const end = endEl ? parseDateUTC(endEl.value) : null;
+      if(end) endEl.value = isoOf(addDays(end, Math.round((to - was) / DAY_MS)));
+    }
+    el.value = iso;
+    return true;
+  }
+
+  // Does this phase have a length for Rebuild From to place it with? Production's comes from Show
+  // Info; a Weeks phase's is its week count; a Days phase's its day count; a Dates phase's its range.
+  function phaseHasSpan(p){
+    if(p.key === 'production') return showInfoStatus().complete;
+    const unit = customPhaseUnit(p.key);
+    if(unit === 'days') return parseInt((document.getElementById('days-' + p.key) || {}).value, 10) > 0;
+    if(unit === 'dates'){
+      const s = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
+      const e = parseDateUTC((document.getElementById('end-' + p.key) || {}).value || '');
+      return !!(s && e && e >= s);
+    }
+    return !!phaseWeeksFor(p);
+  }
+
+  // Rebuild From, backwards, for a Days or Dates phase: the latest start that still ENDS by `cursor`
+  // (exclusive), or null.
+  //   Dates  keeps its calendar length and ends the day before the cursor, back to back, exactly as
+  //          Rebuild forwards starts one the day the previous phase ends; setPhaseStart() then moves
+  //          its end by the same delta. (Ending it on the last WEEKDAY instead was tried: a Wed-Tue
+  //          range then began on a Saturday, an empty week row in the waterfall.)
+  //   Days   counts its N working days BACK from the day before the cursor, with isUnitWorkDay() --
+  //          the scheduler's own predicate, so the forward walk from the start found here counts
+  //          exactly those N days and ends by the cursor. (The plan proposed searching the
+  //          scheduler as productionEndFor() does; that is needed for Production, whose length
+  //          depends on its day overrides, and not here, where the predicate is the whole rule.
+  //          The customunits leg checks the result against the scheduler.)
+  function customStartEndingBy(key, cursor, ranges){
+    const unit = customPhaseUnit(key);
+    let last = addDays(cursor, -1), guard = 0;
+    if(unit === 'dates'){
+      const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
+      const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
+      if(!s || !e || e < s) return null;
+      return addDays(last, -Math.round((e - s) / DAY_MS));
+    }
+    const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
+    if(!(n > 0)) return null;
+    const ctx = {holidayIsos: new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date)),
+                 hiatuses: ranges.global, ownHi: ranges.own[key] || null};
+    let counted = 0;
+    while(guard++ < MAX_WEEKS * 7 + 7){
+      if(isUnitWorkDay(last, ctx) && ++counted === n) return last;
+      last = addDays(last, -1);
+    }
+    return null;
+  }
 
   // The hint line under a Days or Dates custom phase, in its OWN element (unitmeta-<key>), never in
   // meta-<key>. ⛔ meta-<key> belongs to frozen render(), which knows only weeks (it reads weeks-<key>,
@@ -6025,12 +6096,15 @@ export function initLegacyApp() {
       if(!drag) return;
       const moved = drag.applied;
       const bound = drag.boundOverrides;
+      const draggedKey = drag.key;
       drag = null;
       // Settle the day overrides BEFORE the step is banked: each increment's update() already put
       // them on their shoot days, so this only ends the binding -- but the snapshot below must hold
       // the final marks, not the ones from before the drag.
       if(bound) endShootDayMove();
       document.body.classList.remove('grid-swapping');
+      // A Days or Dates phase's old-build fallback, before the step is banked so it is part of it.
+      if(moved) syncCustomUnitFallback(draggedKey);
       // ⛔ THE TRAILING PUSH IS THE STEP. Each increment cancelled the debounce (see mousemove), so
       // nothing has been banked yet; this is what commits the whole drag as one entry -- the same
       // shape batch expand and every toolbar tool use. markDirty() then re-arms the debounce for
@@ -6060,7 +6134,9 @@ export function initLegacyApp() {
       // mondayOf() on its start and a one-day drag was therefore undone the instant it landed --
       // the bar sat still through six days of pointer travel and then jumped. The fix is not to
       // quantise the gesture but to let it say what it means; see the snap handling in mousemove.
-      const snapEl = document.getElementById('snap-' + key);
+      // A Days or Dates phase is never snapped (its Snap to Mon box is hidden and ignored), so the
+      // toggle logic below must not touch it: null here skips it (CUSTOM-PHASE-UNITS-PLAN §8).
+      const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
       // Flush whatever came before into its own step, so a date typed moments ago does not fold
       // into this drag -- one Cmd+Z would otherwise revert both, which is the trap the batch-expand
       // comment describes. It early-returns when nothing has changed, so a press that never becomes
@@ -6094,7 +6170,9 @@ export function initLegacyApp() {
       if(days === drag.applied) return;                // only re-render when the day actually changes
       drag.applied = days;
       const iso = isoOf(addDays(drag.base, days));
-      drag.startEl.value = iso;
+      // Through the one writer, so a Dates phase's end moves with its start (plan §8). The delta is
+      // taken from the field as it stands, so a pill dragged out and back returns the end exactly.
+      setPhaseStart(drag.key, iso);
       // ⛔ A SNAPPED PHASE IS MONDAY-ONLY, so a day-level drag on one would be silently undone by
       // computeSchedule's mondayOf() and the bar would not move. Dragging a phase onto a Tuesday IS
       // the instruction "this phase starts on a Tuesday", so the toggle comes off rather than the
@@ -13074,6 +13152,10 @@ export function initLegacyApp() {
   }
   // Is this phase's "Snap to Mon" on? A missing box reads as SNAPPED, readState()'s own default.
   function phaseSnapped(key){
+    // A Days or Dates custom phase uses its typed start as typed (CUSTOM-PHASE-UNITS-PLAN.md): its
+    // Snap to Mon box is hidden and readState() ignores it, so the tools must not honour it either --
+    // chainedStart() would otherwise push it to the next Monday, Rebuild would pin it to one.
+    if(customPhaseUnit(key) !== 'weeks') return false;
     const el = document.getElementById('snap-' + key);
     return el ? !!el.checked : true;
   }
@@ -14458,7 +14540,9 @@ export function initLegacyApp() {
       // A phase moves as a unit: its own hiatus is part of its work, so it travels with the phase
       // rather than being judged against the cutoff separately.
       if(!startEl || !startEl.value || !inRange(startEl.value)){ stayingPhases.add(p.key); return; }
-      if(shiftDateFieldValue(startEl, days)) movedPhases++;
+      // Through setPhaseStart(), so a Dates phase's end moves with it (CUSTOM-PHASE-UNITS-PLAN §8).
+      const from = parseDateUTC(startEl.value);
+      if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
     });
 
@@ -14559,6 +14643,7 @@ export function initLegacyApp() {
     // month view has been opened once, in which case it picks its own start and needs no nudge.
     if(monthCursor) monthCursor = addDays(monthCursor, days);
     refreshAfterRestore();
+    syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
@@ -14767,7 +14852,7 @@ export function initLegacyApp() {
     // ⛔ Check there is something to place BEFORE writing anything (audit L-15). The tool used to
     // pin the phase first and only then discover that nothing had a week count, reporting "Nothing
     // to place" over a phase it had already moved -- and an undo step it had already banked.
-    if(!predecessors.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+    if(!predecessors.some(phaseHasSpan)){
       return {written: [], skipped: predecessors.map(p => p.label || p.key), anchor: null};
     }
     const ranges = hiatusRangesForSolve();
@@ -14785,16 +14870,26 @@ export function initLegacyApp() {
         if(!showInfoStatus().complete){ skipped.push(p.label || p.key); return; }
         start = productionStartEndingBy(cursor);
         if(!start){ skipped.push(p.label || p.key); return; }
+      } else if(customPhaseUnit(p.key) !== 'weeks'){
+        // A Days or Dates custom phase (CUSTOM-PHASE-UNITS-PLAN §8): placed by its own length, to
+        // the day. It can leave the cursor mid-week for the phase before it -- see just below.
+        start = customStartEndingBy(p.key, cursor, ranges);
+        if(!start){ skipped.push(p.label || p.key); return; }
       } else {
         const weeks = phaseWeeksFor(p);
         if(!weeks){ skipped.push(p.label || p.key); return; }
-        start = startForWeeksEndingAt(cursor, weeks, p.key, ranges);
+        // A SNAPPED Weeks phase ends by the cursor's own Monday. Every cursor was a Monday until Days
+        // and Dates phases could be placed to the day; from a mid-week cursor the written start would
+        // be mid-week too, and the scheduler would snap it back to its Monday regardless -- this
+        // writes that Monday instead of a date the field would then show as "Snapped to Mon".
+        // Identical for every Monday cursor, so every existing rebuild is unchanged.
+        start = startForWeeksEndingAt(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
       }
       // Keep the previous date: on a calendar that is already fully dated this tool OVERWRITES
       // rather than fills, and absorbing several weeks of deliberate slack would otherwise be an
       // invisible side effect of pinning one date.
       const prevIso = el.value;
-      el.value = isoOf(start);
+      setPhaseStart(p.key, isoOf(start));   // the one writer: a Dates phase's end moves with it
       written.push({label: p.label || p.key, start, wasBlank: !prevIso, prevIso});
       cursor = start;   // the next phase back must end where this one begins
     });
@@ -14804,8 +14899,7 @@ export function initLegacyApp() {
     // shoot day and the wrap with it. The phases rebuilt before it still end by that week's Monday:
     // cursor above is anchorMonday either way, so a snapped predecessor lands on a Monday as before.
     const anchorDay = phaseSnapped(key) ? anchorMonday : target;
-    const anchorEl = document.getElementById('start-' + key);
-    if(anchorEl) anchorEl.value = isoOf(anchorDay);
+    setPhaseStart(key, isoOf(anchorDay));
     return {written, skipped, anchor: anchorDay};
   }
 
@@ -14831,12 +14925,12 @@ export function initLegacyApp() {
     if(!anchorEl) return {error:'That phase has no start field.'};
     // Nothing to place? Say so BEFORE the pin is written (audit L-15; see rebuildBackwards).
     const after = seq.slice(at + 1);
-    if(!after.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+    if(!after.some(phaseHasSpan)){
       return {written: [], skipped: after.map(p => p.label || p.key), anchor: null};
     }
     // The pinned phase keeps the typed day when its snap is off (audit M-11; see rebuildBackwards).
     const anchorDay = phaseSnapped(key) ? mondayOf(target) : target;
-    anchorEl.value = isoOf(anchorDay);
+    setPhaseStart(key, isoOf(anchorDay));
     update();   // so the anchor's own computed end is available to place the next phase
 
     const written = [], skipped = [];
@@ -14850,7 +14944,7 @@ export function initLegacyApp() {
       if(!el) return;
       // A phase with no span isn't in use -- skip it and keep chaining from the last placed one.
       // Production is the exception: its span comes from Show Info, not a week count.
-      if(p.key === 'production' ? !showInfoStatus().complete : !phaseWeeksFor(p)){
+      if(!phaseHasSpan(p)){
         skipped.push(p.label || p.key);
         return;
       }
@@ -14859,9 +14953,13 @@ export function initLegacyApp() {
       // The handoff is the per-phase "Start after previous phase" button's rule, shared: the day after
       // the previous phase ends, the next Monday if this phase is snapped (never overlapping a
       // snap-off predecessor that ends mid-week -- audit L-24), and past any all-phase hiatus.
-      const d = chainedStart(prevSeg.end, p.key, (currentSchedule && currentSchedule.hiatuses) || []);
+      let d = chainedStart(prevSeg.end, p.key, (currentSchedule && currentSchedule.hiatuses) || []);
+      // A Days or Dates phase is never snapped, so the handoff day can be a Saturday (the day after a
+      // Friday finish). Start it on the next weekday: a Dates phase typed from a Saturday would give
+      // the waterfall a week row holding only its blank weekend.
+      if(customPhaseUnit(p.key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       const prevIso = el.value;   // see the note in workBackwardsFrom: overwrites must be visible
-      el.value = isoOf(d);
+      setPhaseStart(p.key, isoOf(d));   // the one writer: a Dates phase's end moves with it
       written.push({label: p.label || p.key, start: d, wasBlank: !prevIso, prevIso});
       prevKey = p.key;
       update();   // recompute so the NEXT phase reads this one's real end
@@ -15638,7 +15736,7 @@ export function initLegacyApp() {
     // point of it -- so its dropdown lists every phase with a usable span, not just scheduled ones.
     function solvablePhases(){
       return phaseSequence()
-        .filter(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))
+        .filter(phaseHasSpan)
         .map(p => ({p, start: phaseStartDate(p.key)}));
     }
     function syncSolveDate(){
@@ -15795,7 +15893,7 @@ export function initLegacyApp() {
       const dateIso = (document.getElementById('tool-solve-date')||{}).value;
       const res = asOneUndoStep(()=>{
         const out = direction < 0 ? workBackwardsFrom(key, dateIso) : workForwardsFrom(key, dateIso);
-        if(!out.error) refreshAfterRestore();   // the date fields were written directly
+        if(!out.error){ refreshAfterRestore(); syncAllCustomUnitFallbacks(); }   // the date fields were written directly
         return out;
       });
       if(res.error) return say(res.error, true);
