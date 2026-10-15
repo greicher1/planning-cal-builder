@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏸ 15 Oct 2026: MONTH-VIEW STEP 7 (start/end edge handles) IS HELD ON THREE RULINGS. No code written
+### ⏸ 15 Oct 2026: MONTH-VIEW STEP 7 (start/end edge handles) IS HELD: rulings in, Production's reading awaits confirmation. No code written
 
 - The brief said to map a day-granular edge onto the stored fields before coding, and to stop rather
   than quantise where there is no mapping. **There is no mapping for any phase type built today.**
@@ -19,8 +19,28 @@
   changes the phase's LENGTH. Body-drag never does, which is why it needed only `start-<key>`.
 - ⚠️ **An edge drag must NOT run inside `asShootDayMove()`.** The days that stay shot keep their dates,
   and the binding would shift every override by one shoot day.
-- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): one local
-  docs commit. Not pushed.
+- ✅ **The owner ruled the same day** (relayed by the parent session's picker). Only one ruling went
+  as recommended:
+  - **Ruling 7:** the five built-in Weeks phases get a **Dates mode**. That widens
+    CUSTOM-PHASE-UNITS's scope; its ruling 1 (one schedule) still holds. See that plan's new §7a: the
+    M-5 restore trap applies to built-in rows, and gate 5 will move.
+  - **Ruling 8:** custom-phase handles come after CUSTOM-PHASE-UNITS steps 1–4. A Weeks edge drag
+    switches the phase to Dates.
+  - **Ruling 9 (Production), the owner's own words:** *"drag either side of each episode/production
+    week/block individually"*.
+- ⏸ **Ruling 9's reading is written in MONTH-VIEW-PLAN §6.7 and is AWAITING CONFIRMATION. Do not code
+  Production's handles before it comes back.** Four points are open:
+  - which handles exist (episode or block boundaries, and possibly each week pill's edges as
+    `off`/`on`);
+  - push vs trade at a boundary, and which episode a shared boundary belongs to;
+  - screen-only handles (recommended, zero frozen edits) vs a divider printed in the PDF;
+  - the built-ins' id count: ten (`unit-` + `end-`) or five (`end-` alone). ⚠️ §6.7's option text
+    told the owner "five ids" and "against ruling 1". Both were wrong, and both are corrected in
+    place.
+- ⚠️ **A boundary drag must set `daysEdited: true`.** The reconcile resets every unflagged episode or
+  block to the default, which would silently undo the drag.
+- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): local docs
+  commits only. Not pushed.
 
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 

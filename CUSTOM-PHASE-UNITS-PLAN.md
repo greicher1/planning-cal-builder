@@ -2,6 +2,8 @@
 
 **Status: PLAN, 15 Oct 2026. Nothing built.** ✅ **All seven rulings received 15 Oct 2026**
 (§10), every one as recommended except ruling 7: no countdown feature. Ready to build (§11).
+⛔ **Scope widened the same day:** the five built-in Weeks phases get Dates mode too
+(MONTH-VIEW-PLAN ruling 7; §1, §7a). ⏸ Their id count is still open (§7a).
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -20,6 +22,18 @@ plans reach the month view's pill text (§2, §11).
 schedule."** So "only the month view" means *only the month view can SEE the difference*. There is
 still one schedule, as MONTH-VIEW-PLAN §1 requires. Built-in phases are untouched, and Production
 keeps its own shoot-day mode.
+
+⛔ **AMENDED 15 Oct 2026, the same day: the five built-in Weeks phases get Dates mode too.** Owner
+ruling 7 of MONTH-VIEW-PLAN §6.7, given while planning that plan's drag handles: the owner chose
+"Add a Dates mode" so that Writer's Rm, Pre Prep, Prod Prep, Post and Localization have real
+day-level edges to drag. The picker said this reversed this plan's scope and added permanent ids to
+the save format, so it was chosen with both in view.
+- **What it reverses:** the sentence *"Built-in phases are untouched"* above.
+- **What it does NOT reverse:** ruling 1 itself. One schedule, with the waterfall at week
+  resolution, governs a built-in in Dates mode exactly as it governs a custom phase. (MONTH-VIEW-PLAN
+  §6.7 first called this "reversing ruling 1"; that wording was wrong, and is corrected there.)
+- **Production is still untouched here.** Its handles are MONTH-VIEW-PLAN ruling 9.
+- **Days mode stays custom-only.** The ruling named Dates. See §7a for what the built-ins need.
 
 The owner then supplied an example production calendar as *"an example of the functionality the
 calendar needs to have"*. ⛔ It is a real show's calendar and is **not in the repo**: do not add it,
@@ -168,6 +182,36 @@ Checked free on 15 Oct 2026. `days-per-block` and `days-per-episode` exist, but 
 - ⚠️ **Shift re-keying is not needed.** The new fields are dates inside the row, not a week-keyed
   store. But they DO have to move with the phase: see §8.
 
+### 7a. ⛔ Dates mode on the built-ins (MONTH-VIEW-PLAN ruling 7, 15 Oct 2026). Ids not yet chosen
+
+The built-in rows are STATIC markup, not built by `addCustomPhaseRow()`. Three things in §4 and §7
+are true of custom rows only, and each one fails for a built-in:
+
+- ⛔ **The restore trap DOES apply.** §4's "a previous calendar's values cannot leak in" holds
+  because custom rows are rebuilt on every restore. Built-in rows are not. A file saved before this
+  ships has no `unit-prePrep`, and the `fields.byId` replay leaves a field it does not mention ALONE.
+  So the previous calendar's Dates mode would survive into it, and the phase would move with no
+  edit. That is audit M-5 exactly, which `snap-<key>` hit on 25 Sep. ⛔ Each new built-in id gets an
+  explicit **absent → Weeks** default in `applyStateSnapshot()`, beside the `.phase-snap-cb` line
+  ("Explicit constants, never defaultChecked/defaultValue"). It also goes into New's reset.
+- ⚠️ **Built-in rows bind inputs by id** (MONTH-VIEW-PLAN §8 step 1), so a new control there is inert
+  until bound explicitly. `addCustomPhaseRow()`'s blanket `input` binding does not reach them.
+- ⚠️ **Re-keying by regex does not apply.** The ids are fixed: `unit-prePrep`, `end-prePrep`, …
+- **How many ids, an open point for the owner.** MONTH-VIEW-PLAN §6.7's option text said "five new
+  permanent ids". It is five PHASES:
+  - **Parity with custom phases** is `unit-<key>` + `end-<key>` per phase, ten ids. This shares one
+    code path, and keeps "hidden boxes keep their values" (§6).
+  - **Five ids** is possible only with `end-<key>` alone, blank meaning Weeks. Switching back to
+    Weeks then loses the end date.
+  - Recommended: ten, for one code path. ⏸ **Ask before cutting either into the format.**
+- ⚠️ **An older build** ignores both ids and shows the phase in whole weeks, from `weeks-<key>`. The
+  §7 rule therefore applies unchanged: keep `weeks-<key>` filled with the rounded-up equivalent,
+  written in the row's input handler.
+- ⚠️ **Gate 5 WILL move** for this half, unlike the custom-only plan (§12). `v1.0.0-saved.html` has
+  no custom phases, but it has all six built-in rows, so the `fields.byId` key set grows by the new
+  built-in ids. That is an expected, deliberate re-cut, like 53 → 59 for `snap-<key>`
+  (MONTH-VIEW-PLAN §8 step 1). It goes to the owner as such, never quietly.
+
 ---
 
 ## 8. The movers: every path that writes a phase's start date
@@ -220,6 +264,7 @@ All seven were received from the owner on 15 Oct 2026, by picker.
 | 5 | Holidays in Days mode: skip union holidays like Production, or count them like Weeks mode? | **Skip them.** Weeks mode is unchanged. ⚠️ This reverses the first recommendation given in the conversation, before the example was seen | A day-counted prep run steps over a Monday holiday. A whole-week wrap runs through one |
 | 6 | Per-episode prep: by hand, as Dates-mode custom phases, or a derived "Episode prep" setting (N working days before each episode's first shoot day, generated from `episodeDayMap()`)? | **Derived, in its own plan, written after this one.** One setting, it follows the shoot, and it is one phase in the waterfall | The example's main content after the shoot itself |
 | 7 | Weekly countdown markers (*N Weeks Out*): by hand, or automatic? | ⛔ **No feature.** Owner: *"dont produce this feature, if they want it they can add it as custom phases or notes"* | One marker per Monday before the shoot |
+| — | *(15 Oct 2026, from MONTH-VIEW-PLAN §6.7)* Built-in Weeks phases: drag handles? | **Ruling 7 there: "Add a Dates mode" to the five built-ins.** Reverses §1's scope line, not ruling 1 above. Needs §7a. Ruling 8 there: the month drag on a Weeks custom phase's edge switches it to Dates | — |
 
 ---
 
@@ -238,6 +283,10 @@ Nothing here touches frozen code.
 3. **The hint line and the `{key.close}` fix** (§6, §9).
 4. **The movers** (§8).
 5. **The leg, then the full gate** (§12).
+6. *(Added 15 Oct 2026.)* **Dates mode on the five built-ins** (§7a), after the owner picks the id
+   count. Then **MONTH-VIEW-PLAN step 7's phase edge handles** (rulings 7 and 8 there). Dates and
+   Days phases get both handles, and a Weeks phase's edge drag switches it to Dates. Both edge
+   handles write `end-<key>` / `days-<key>`, so they are this plan's movers as much as body-drag is.
 
 ⚠️ **Overlap with MONTH-PILL-LABEL-PLAN.** Both reach the month view's pill text path, and both are
 held to gate 13. This plan does not change `segPillLabel()`. Whichever lands second re-runs gate 13
