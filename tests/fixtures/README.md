@@ -104,3 +104,9 @@ they are a working demonstration against the live site. They ship in the same re
 `parse-bom.sptcal` (UTF-8 BOM before `{`), `parse-crlf.sptcal`, `parse-trunc.sptcal` (cut mid-JSON:
 refused), `parse-empty.sptcal` (`{}`: refused once the shape gate lands), `parse-utf16.sptcal`
 (refused), `parse-twoblocks.html` (two `saved-state` blocks: the first one wins).
+
+### Custom phase units (CUSTOM-PHASE-UNITS-PLAN.md, 15 Oct 2026)
+
+| File | Use |
+|---|---|
+| `customunits.sptcal` | A synthetic calendar on made-up 2027 dates, Atlanta (US-GEN) region, with one all-phase hiatus (week of 2/15/27). Four custom phases, one per case: **Scout**, Weeks with Snap off from Wed 1/13/27, the `{key.close}` bug case; **Read-through**, Days 6 across MLK Day; **Stage Build**, Dates 2/10–2/23/27 across the hiatus; and **Rigging**, Days 5 across the hiatus. Pre Prep (Weeks) is the Monday-end control. Minted by the `customunits` leg's LIVE run through the real Save (15 Oct 2026). Then **its month header was set by script** to a template naming every phase's `{close}` (`mvHeaderMode: manual`, `mvHeaderTemplates: true`, `mvHeaderManual`, the only keys touched), so the RESTORE run can read the tokens on screen. On the pre-change build `{custom1.close}` printed `1.24.27`, a Sunday; it must print `1.26.27` |

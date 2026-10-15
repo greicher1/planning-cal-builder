@@ -29,6 +29,43 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
+
+Steps 1–3 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
+**Not yet complete:** the shift tools, Rebuild From and the month-view drag still move only a phase's START date (step 4,
+held for the owner's review), so a Shift on a **Dates** phase stretches it rather than moving it.
+- **Every custom phase row has a Length select:** Weeks (as before, and what every existing calendar opens as), Days
+  or Dates.
+  - **Days** counts working days: Monday to Friday, skipping enabled union holidays and hiatus days. A holiday inside
+    the run is drawn blank in the month view, and a hiatus pauses the phase.
+  - **Dates** is a start and an inclusive end date. It stays on those dates, and hiatus days inside it are drawn
+    blank. Weekends are blank in every unit.
+  - These were the owner's rulings 2–5, checked against an example calendar of theirs.
+- **One schedule (ruling 1):** the waterfall, Excel and both PDFs show these phases too, in every week row they touch.
+  Only the month view shows the exact days.
+- **Switching unit never moves the phase.** The new unit's box is prefilled from the phase as scheduled, and one undo
+  reverts the switch. Back to Weeks from a mid-week start turns Snap to Mon off, as the month-view drag does.
+- **Fixed in passing:** the `{<phase>.close}` header token named the wrong day for any phase that ends mid-week. It
+  computed `end − 3 days`, which is the Friday only when a phase ends on a Monday, so a Snap-off phase starting on a
+  Wednesday "closed" on the Sunday before. It now names the last weekday. Every calendar whose phases end on Mondays
+  prints exactly what it did. The token's description in the header editor now reads "Closes (last weekday)".
+- ⛔ **Save format:** three new ids per custom phase, `unit-<key>`, `days-<key>` and `end-<key>`, permanent from now
+  on. An absent unit means Weeks. `weeks-<key>` is kept filled with the week rows a Days or Dates phase spans, so an
+  older build shows it in whole weeks instead of dropping it. Measured on the pre-change build, which opened the new
+  fixture that way. `SNAPSHOT_VERSION` stays 1.
+- **No frozen code changed.** The month view already draws `[start, end)` day by day. A Days phase carries the days it
+  counted, which `segCoversDate()` reads. Its hint line is a sibling element the frozen `render()` never writes,
+  because about 30 paths call `render()` directly, and an overwrite of `meta-<key>` did not survive a Load (measured).
+- **Verified:** a new `customunits` leg (two runs, in `gate.sh`) and a synthetic fixture, `customunits.sptcal`, minted
+  through the real Save. Its 39 checks pass across both runs, with 0 console errors. **Full gate on build `e88d3ea4…`: 1,318 PASS, 0 FAIL,
+  GATE PASSED** (11 min 48 s). Every existing output is unchanged:
+  - the waterfall PDF and every Excel part match the baseline;
+  - gate 5's `fields.byId` key set is identical at 62 ids (its calendar has no custom phases);
+  - gate 10's printed month documents and gate 13's written month PDFs are byte-identical;
+  - 0 clipped cells.
+
+  `npm run check` passes 40/40.
+
 ### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
 
 The teal hover button over a phase's block in the waterfall said **Swap Block**. It now says **Swap Column**, at the

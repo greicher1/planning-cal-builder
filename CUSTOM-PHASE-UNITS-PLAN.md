@@ -1,7 +1,8 @@
 # CUSTOM-PHASE-UNITS-PLAN.md
 
-**Status: PLAN, 15 Oct 2026. Nothing built.** ✅ **All seven rulings received 15 Oct 2026**
-(§10), every one as recommended except ruling 7: no countdown feature. Ready to build (§11).
+**Status: steps 1–3 BUILT 15 Oct 2026** (branch `custom-units`), not committed. ⏸ **Step 4 (the movers) is
+held for the owner's review**, at their instruction. Until it lands, a Shift on a Dates phase stretches it. ✅ All
+seven rulings received 15 Oct 2026 (§10).
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -114,6 +115,12 @@ Weekends are blank in every mode (ruling 3), which is what custom phases already
 - **Switching mode never moves the phase.** The new boxes are prefilled from the current segment:
   Weeks → Days counts the working days it covers, Weeks → Dates takes its last workday, and Days or
   Dates → Weeks rounds up to whole weeks. A mode switch is one undo step.
+  - ✅ **As built:** a box is prefilled only when it is EMPTY, so a value from an earlier visit to that unit
+    comes back. The start is rewritten to the start AS SCHEDULED (a snapped Monday, or a Days phase's first
+    counted day), since Days and Dates use the typed start as typed. Back to Weeks on a non-Monday start
+    turns Snap to Mon off, the month-view drag's rule (MONTH-VIEW-PLAN §6.3).
+- ✅ **As built, a Days segment STARTS on its first counted day,** not the typed one, so a start typed on a
+  weekend or holiday gives the waterfall no empty week row. The hint says *First working day …*.
 - **Validation:** an end date before the start date, or a day count below 1, puts a red hint on the
   row and leaves the phase unscheduled. That matches what a week count of 0 does today.
 
@@ -133,9 +140,12 @@ Start date [ 10/07/2026 ]   End date [ 10/09/2026 ]
   with no extra code.
 - Weeks mode shows Weeks and Snap to Mon, as today. Days mode shows a Days box. Dates mode shows an
   End date box. **Hidden boxes keep their values**, so switching back restores them.
-- ⚠️ **The hint line (`meta-<key>`) is written by frozen `render()`.** For Days and Dates phases,
-  `update()` overwrites it after `render()` returns. That is the route the half-day count line took
-  (MONTH-VIEW-PLAN §8 step 4), and it needs no frozen edit.
+- ⚠️ **The hint line (`meta-<key>`) is written by frozen `render()`.** ⛔ **CORRECTED when built:** the plan
+  said `update()` would overwrite it after `render()`. That does not hold, because about 30 paths call
+  `render(currentSchedule)` directly, and a Load left the weeks-style text showing (measured). As built, a
+  Days or Dates phase's line is a SIBLING element, `unitmeta-<key>`, which frozen code never writes, and CSS
+  shows whichever line matches the unit. That is the real shape of the half-day note's route, a separate
+  element. Its text depends only on the schedule, which only `update()` changes.
 - ⚠️ **`addCustomPhaseRow()` binds every `input` in the row to `update`, but not `select`s.** The
   new select needs a `change` listener of its own, or it will look broken.
 - ⭐ Before calling the select usable, assert `document.elementsFromPoint()` at its centre contains
@@ -158,8 +168,9 @@ Checked free on 15 Oct 2026. `days-per-block` and `days-per-episode` exist, but 
 
 - **`captureSnapshot()` does not change.** There is no new store, because the three are DOM fields
   swept into `fields.byId`.
-- ⚠️ **Setting `.value` fires no event.** After the `fields.byId` replay, each row's visible boxes
-  must be re-shown for its mode. That goes in `refreshAfterRestore()`, the single list.
+- ⚠️ **Setting `.value` fires no event,** so a restore never runs a mode-change handler. ✅ **As built, nothing
+  needs re-showing:** which boxes show is pure CSS off the select's checked option (the `#show-mode`
+  pattern), so no restore, undo or load path can leave them disagreeing with the unit.
 - **`SNAPSHOT_VERSION` stays 1.** v1.4.3 ignores ids it does not know and would drop a Days or Dates
   phase entirely. So the row also keeps `weeks-<key>` filled with the rounded-up whole-week
   equivalent, and an older copy shows the phase in whole weeks instead of losing it. ⛔ That is
@@ -201,7 +212,8 @@ instead of moving it. These are all the writers, found by reading on 15 Oct 2026
 In `buildHeaderCtx()` (not frozen), `{<key>.close}` is `seg.end − 3 days`. That gives the Friday of
 the final week **only when `seg.end` is a Monday**. A snap-off Weeks phase starting on a Wednesday
 ends on a Wednesday, so the token names the Sunday before, two days before the phase's last
-working day. **Found by reading the code; not yet reproduced.** The three new modes make mid-week
+working day. ✅ **Reproduced 15 Oct 2026** on the pre-change build with `customunits.sptcal`: a Snap-off phase
+from Wed 1/13/27 for 2 weeks closed on `1.24.27`, a Sunday, where its last day is Tue 1/26. The three new modes make mid-week
 ends normal, so this plan fixes it with `phaseLastWorkday()` (audit L-13), which already exists for
 exactly this. Calendars whose phases all end on a Monday print the same text as before.
 
@@ -227,16 +239,17 @@ All seven were received from the owner on 15 Oct 2026, by picker.
 
 Nothing here touches frozen code.
 
-1. **Fields and UI, no schedule change yet.** Add `unit-` / `days-` / `end-` to
+1. ✅ **BUILT 15 Oct 2026. Fields and UI, no schedule change yet.** Add `unit-` / `days-` / `end-` to
    `addCustomPhaseRow()`, with show/hide, the select's `change` listener, prefill-on-switch, the
    `weeks-<key>` fallback and the `refreshAfterRestore()` reflect. **Cut the fixture here**
    (MONTH-VIEW-PLAN's rule: cut one whenever the save format moves).
-2. **The math.** `readState()` reads the mode. `computeSchedule()` computes the end for Days
+2. ✅ **BUILT. The math.** `readState()` reads the mode. `computeSchedule()` computes the end for Days
    (working days, pausing through hiatuses, skipping enabled union holidays) and Dates (fixed dates,
    hiatus days blank). A Days segment carries its counted days, and
    `segCoversDate` reads them.
-3. **The hint line and the `{key.close}` fix** (§6, §9).
-4. **The movers** (§8).
+3. ✅ **BUILT. The hint line and the `{key.close}` fix** (§6, §9). The bug is reproduced on the pre-change
+   build: the fixture's Snap-off Weeks phase closed on Sun 1/24/27; it now closes on Tue 1/26/27.
+4. ⏸ **The movers** (§8). **Held for the owner's review.**
 5. **The leg, then the full gate** (§12).
 
 ⚠️ **Overlap with MONTH-PILL-LABEL-PLAN.** Both reach the month view's pill text path, and both are

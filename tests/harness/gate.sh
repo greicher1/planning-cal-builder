@@ -1804,6 +1804,34 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYCS
 
+# ---- customunits: a custom phase's length in Weeks, Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md) -----
+# Two runs. LIVE builds the synthetic calendar through the UI and asserts what a user sees while
+# editing (which boxes each unit shows, the select hit-testable, a unit switch that moves nothing and
+# is one undo step, end-before-start, whole days, a weekend start). RESTORE loads
+# tests/fixtures/customunits.sptcal, minted from that LIVE run's real Save, and asserts it comes
+# back day for day: units, boxes, hint lines, waterfall rows, month pills, and the {key.close}
+# header tokens (the bug §9 fixed: a mid-week end used to name the Sunday before).
+# ⚠️ The JSON is removed first: run.sh does not, and a leg that fails to load would otherwise be
+# judged on the previous run's result.
+for CUSTATE in "" customunits; do
+  rm -f "$HERE/customunits.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CUSTATE" "$HERE/run.sh" customunits 120 >/dev/null 2>&1
+  python3 - "$HERE/customunits.json" "customunits (${CUSTATE:-live})" <<'PYCU' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYCU
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the
