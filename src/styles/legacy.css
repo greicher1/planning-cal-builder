@@ -2825,3 +2825,30 @@
   margin:10px 0 0; padding:9px 11px; border-radius:7px; font-size:11px; line-height:1.5;
   background:#FEF6E7; border:1px solid #F0D9A8; color:#7A5B14;   /* warn 0 / 2 / 9 */
 }
+
+/* ---- Production's handles (MONTH-VIEW-PLAN.md §6.7, rulings 3a and 9a-9c, 15 Oct 2026) ---------
+   BODY-LEVEL chrome laid over the month grid by installProductionEdgeHandles(), never markup inside
+   #table-wrap, and no `.mv-*` rule: the frozen month view is untouched. The print path hides every
+   direct child of <body> except #print-root, so neither month PDF can carry one. A handle sits
+   INSIDE the pill (at an edge, or centred on an episode's last-day line) and takes the pill's text
+   colour, which reads on the pill's own fill. z-index 50: above the grid, below the body-level
+   popovers (60) that may open over a pill. */
+.phase-edge-handle{
+  position:fixed; z-index:50; width:10px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:ew-resize; user-select:none;
+}
+.phase-edge-handle[hidden]{ display:none; }
+.phase-edge-handle::before{
+  content:''; width:3px; height:62%; min-height:8px; border-radius:2px;
+  background:currentColor; opacity:.5;
+}
+.phase-edge-handle:hover::before{ opacity:.9; }
+/* A WEEK's edge (it writes day marks) reads lighter and shorter than an episode's or the shoot's
+   (which change a day count), so the two kinds are told apart before the title tooltip appears. */
+.phase-edge-handle.is-week::before{ width:2px; height:44%; opacity:.35; }
+.phase-edge-handle.is-week:hover::before{ opacity:.75; }
+/* Owns the pointer for the length of one edge drag: one cursor everywhere, and no hover effects or
+   text selection underneath. Removed on release; a release outside the window is caught on the next
+   move (the mousemove's buttons test). */
+.phase-edge-shield{ position:fixed; inset:0; z-index:300; cursor:ew-resize; }   /* the popover tier; last in the DOM, so on top */

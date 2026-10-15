@@ -29,6 +29,45 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Drag Production's edges in the month view: the shoot, each episode, each week (15 Oct 2026)
+
+In the month view, rest the pointer on a Production pill and thin grips appear on it. Drag one to move that edge by
+the day. MONTH-VIEW-PLAN.md step 7, owner rulings 3a and 9a–9c (§6.7): *"you should be able to drag either side of
+each episode/production week/block individually"*.
+- **Three kinds of grip.** The first two kinds change a day count; the third writes day marks.
+  - **The first shoot day and the wrap.** The first or last episode gains or loses the days. The other end stays
+    put. Moving the first shoot day off a Monday turns Snap to Mon off, as dragging the whole phase does.
+  - **The end of every other episode** (every block, in Blocks mode), mid-pill or at a pill's edge. Only that
+    episode changes length. The episodes after it keep theirs and slide, and the wrap moves. Episodes are taken in
+    SHOOTING order, and blocks in list order.
+  - **Each week's own edges** (lighter grips). A shoot day dragged out of the week is marked **off**, and a day
+    dragged in (a Saturday, say) is marked **worked**. The episodes keep their lengths, so the wrap moves. A
+    week's edge stays in its own week, and never runs into a hiatus.
+  - Where a week's edge is also an episode's end, the episode grip wins. A changed episode is listed under
+    "Manually changed" in Show Info, and keeps its count when Shooting Days per Episode changes, as a typed count
+    does.
+- **Episode grips move by shoot days.** A weekend, a holiday, a day marked off or a hiatus day is stepped over, and
+  these grips never mark a day. The edge lands on the shoot day nearest the pointer. Each episode or block keeps at
+  least one day.
+- **Day marks stay on their dates.** Episode grips do not move half, off or worked marks.
+- **One drag is one undo step.** Dragging out and back changes nothing and banks nothing. Escape puts the edge back.
+- **Other phases still move whole.** Edge grips for custom phases follow CUSTOM-PHASE-UNITS-PLAN.md. Grips for the
+  five built-in week phases wait on the owner, who answered that question two ways (MONTH-VIEW-PLAN §6.7).
+- **No frozen code changed.** The grips are screen-only chrome laid over the grid, not part of it, so neither month
+  PDF can carry one: the print path hides them, and the written PDF is built from the renderer's HTML.
+  `cellDate()`, the cross-checked day lookup that the day-mark popover uses, moved to module scope so both features
+  share it.
+- **Verified** with trusted mouse input in `pilldrag.mjs`:
+  - E0–E13 (with D0–D4), each grip pressed where hit-testing finds it on top;
+  - every kind of grip, including Blocks mode for both kinds of episode grip;
+  - a holiday and a weekend stepped over;
+  - out and back in one gesture;
+  - one undo per drag;
+  - print media hides the grips.
+
+  19/19 pass, in 79 s standalone and again inside the gate. `npm run check` 40/40.
+- ✅ **Full gate on the build (`cdf602c1…`): 1,292 PASS, 0 FAIL, GATE PASSED** (13 min 46 s). Every frozen output is unchanged, which is what "no frozen code changed" has to mean: 0 clipped cells, the waterfall PDF and every Excel part identical, `v1.0.0-saved.html` restores identically, `fields.byId` at 62 ids, all nine month print documents identical with one sheet per month (gate 10), and all nineteen written month PDFs byte-identical (gate 13).
+
 ### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
 
 The teal hover button over a phase's block in the waterfall said **Swap Block**. It now says **Swap Column**, at the

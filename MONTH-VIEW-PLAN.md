@@ -1,8 +1,9 @@
 # MONTH-VIEW-PLAN.md
 
 **Status:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
-on; step 7 remains. ⏸ It was held on three new rulings (§6.7, 15 Oct 2026); all three were received
-the same day, and ruling 9 (Production) awaits confirmation of its reading. **All four blocking
+on; step 7 is ◐ PART-BUILT: every Production handle was built locally on 15 Oct 2026 (§6.7). The custom
+phases' and built-ins' handles follow CUSTOM-PHASE-UNITS. Ruling 7 (the built-ins) awaits
+reconciliation. **All four blocking
 rulings received 16 Sep 2026** (§7). ⚠️ This header used to read *"plan only. No code written."*
 **Written:** 16 Sep 2026, against `4b0c3c5`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) §2i/§2j →
@@ -263,9 +264,9 @@ something arbitrary.
 
 ⛔ **OVERRIDDEN FOR PRODUCTION by the owner, 15 Oct 2026 (§6.7, ruling 9):** *"you should be able to
 drag either side of each episode/production week/block individually"*. Production gets a handle at
-each episode or block boundary, and possibly at each week pill's edges, not only its two outer edges.
-What exactly that means is §6.7's reading, ⏸ **awaiting the owner's confirmation.** The rule above
-still holds for every other phase: there, a middle pill's edge is a week boundary and moves the phase.
+each episode or block boundary and at each week pill's own edges, not only its two outer edges.
+✅ Confirmed as §6.7's rulings 9a–9c, and BUILT the same day (§6.7). The rule above still holds for
+every other phase: there, a middle pill's edge is a week boundary and moves the phase.
 
 ### 6.3 ⛔ SUPERSEDED 18 Sep 2026 — the drag is DAY-GRANULAR, and it turns the toggle off
 
@@ -439,7 +440,21 @@ choice is a save-format decision and goes back to the owner with ruling 9's read
 what a drag writes). Ruling 9 does not: Production's handles can be built as soon as the reading
 below is confirmed.
 
-#### ⏸ Ruling 9, Production: the reading to confirm. Not settled here, and no code until it is
+#### ✅ Ruling 9, Production: the reading below CONFIRMED (owner, 15 Oct 2026, one picker, relayed)
+
+All four recommendations were accepted, worded as put:
+- **9a:** episode boundaries (block boundaries in Blocks mode) AND each Production Week pill's own
+  edges. A week edge sets a day override; the episode total is unchanged, so the wrap moves. Where
+  the two coincide, the episode handle wins.
+- **9b, push:** only the earlier episode changes length, later episodes slide, and the wrap moves.
+  The first shoot day is the only left-side handle, and it changes episode 1 with the wrap held.
+- **9c, screen only:** hover handles over Production. Both month PDFs are unchanged, with zero frozen
+  edits.
+- **9d (ruling 7's ids):** ten, `unit-<key>` + `end-<key>` per built-in phase, the same as custom
+  phases. Switching back to Weeks keeps the end date. Recorded in CUSTOM-PHASE-UNITS §7a.
+
+The reading as it was put to the owner, kept for the record:
+
 
 **What the screen shows today**, which decides what a handle can attach to. Since ruling 8
 (22 Sep 2026) there are **no episode pills**. Production draws one pill per week row, labelled
@@ -507,6 +522,107 @@ grabbed.
   per Episode would silently undo the drag. With it, the change also shows in the Show Info note's
   "Manually changed" list, which is how the user sees what the drag did.
 
+#### ⚠️ Two sets of answers, both from the owner on 15 Oct 2026. They now disagree on question 1 only
+
+After the relayed rulings 7–9, the owner also wrote to the step-7 session directly, four times
+over: *"Accept the recommended rulings 1a, 2a and 3a in MONTH-VIEW-PLAN.md §6.7. Build Production's
+edge handles now; the custom-phase handles follow CUSTOM-PHASE-UNITS."* That is the text of a button
+in the FIRST question box, which was still on screen, so it is probably a stale click. Then ruling
+9's reading was confirmed by picker (above).
+
+| § 6.7 question | Relayed by picker | Typed to the step-7 session |
+|---|---|---|
+| 1, built-in Weeks phases | **(c) Dates mode**, then 9d (ten ids) | (a) no edge handles |
+| 2, custom phases | (a) | (a): agreed |
+| 3, Production | ruling 9, confirmed as 9a–9c | (a) the two outer edges. These are a SUBSET of 9a–9c, so there is no conflict about what to build |
+
+**Production is built to 9a–9c.** Question 1 does not touch Production. It decides whether
+CUSTOM-PHASE-UNITS gives the built-ins a Dates mode (§7a there), and ⏸ **it goes back to the
+owner** before that work starts.
+
+#### ✅ BUILT 15 Oct 2026: every Production handle of rulings 3a and 9a–9c. Zero frozen edits
+
+`installProductionEdgeHandles()` in `src/legacy/app.js`, right after `installMonthPillDrag`. It was
+built in two passes the same day: the two outer edges first, after the owner's direct "3a", then the
+rest of ruling 9 once 9a–9c were confirmed.
+
+**What a Production pill carries** (`specsFor()`), shown while the pointer rests on it:
+
+| Handle | Where | A drag does |
+|---|---|---|
+| `start` | left edge of the pill holding the first shoot day | episode 1 (block 1) gains or loses days; the wrap is held; `start-production` moves, and Snap to Mon comes off on a non-Monday |
+| `end` | right edge of the pill holding the wrap | the last episode (block) gains or loses days; the first shoot day is held |
+| `bound` | the line after any other episode's (block's) last day: mid-pill, or the pill's right edge | that row gains or loses days; later rows keep theirs and slide; the wrap moves (9b, push) |
+| `wkL` / `wkR` | a pill's own left / right edge, where none of the above is | day marks: a shoot day dragged out is marked `off`, a day dragged in is marked `on` or loses its `off`; the rows keep their lengths, so the wrap moves (9a) |
+
+- **"The episode handle wins" (9a), made exact.** A pill edge carries no week handle if it is the
+  first shoot day, the wrap, an episode's last day (a `bound` sits there), or an episode's FIRST day.
+  At an episode's first day, the boundary is the previous episode's right side (9b), so that edge
+  has no handle at all.
+- **Row handles step by shoot day** and never write a mark. The edge lands on the shoot day nearest
+  the pointer, ties going to the smaller change, and each row floors at 1 day.
+- **Week edges stay in their own row**, never before the first shoot day or past the wrap, and stop
+  short of a hiatus day (`on` cannot override one). The marks are recomputed from the marks at
+  mousedown on every step, so a drag that comes back restores them exactly, including a `half` it
+  passed over.
+  - A weekend or holiday that was shot only because of its own `on` goes back to unworked when
+    dragged out. Any other day dragged out is marked `off`.
+  - A holiday dragged in is marked `on`, which is working a union holiday. It is visible as the `on`
+    tint (§4.2), and it is what 9a rules for a week edge.
+
+**How:**
+
+- **The handles are body-level chrome, not part of the grid.** `.phase-edge-handle` elements are
+  pooled and laid inside the pill, 10 px wide, in the pill's own text colour. A week edge's handle
+  is lighter and shorter (`.is-week`). Each one carries its own `cursor:ew-resize`, so **the
+  `.mv-pill` cursor rule proposed below was not needed. No frozen rule, markup or function
+  changed.** Tier 50 of UI-CONVENTIONS §6.
+- **Positions:**
+  - A mid-pill line is taken from the BAR layer's grid: `(width − padding) / 7`, which is not the
+    day cells' `width / 7` (`.mv-bars` pads 3 px a side).
+  - The handle is clipped to the scrolling panel, so a pill half scrolled out never paints one over
+    the toolbar.
+- **Dates come from `cellDate()`**, which moved to module scope from `installDayOverrideUI`, so both
+  features read one cross-checked mapping. This matters because a month page often opens mid-shoot,
+  and then the first Production pill on the page is not the shoot's first day.
+- **Row handles ask the real scheduler.** On press, `probeShootDays()` runs
+  `computeSchedule(readState())` once over a window wider than the page, the way
+  `productionEndFor()` does, then puts everything back with nothing rendered:
+  - the dragged row is padded by 80 days;
+  - `start` walks from 70 days earlier with snap off.
+
+  `solveCount()` then reads the new edge off that list:
+  - `end`: the first index whose running total reaches the request (the §4.4 over-deliver rule).
+  - `start`: the latest shoot day from which the walk reaches the request ON the held wrap. A count
+    that a half day makes unreachable is skipped, never approximated.
+  - `bound`: entry `s + c − 1` of the list, by ENTRIES as `episodeDayMap()` slices them, whatever the
+    halves do.
+- **A guard against a wrong date.** After every row step, the held end and the landed edge are
+  re-read from the real schedule. If either is wrong, the step is put back and the gesture goes
+  inert. It has never fired; it exists because a silent wrong date in someone's plan is the failure
+  to refuse.
+- **One undo per drag:**
+  - a leading `pushUndoSnapshot()`;
+  - `cancelPendingUndoPush()` after every `update()`;
+  - a trailing push only if something changed.
+
+  A row back at its starting count gets back its EXACT `days`, `daysEdited`, start and Snap to Mon
+  (MONTH-9's rule). `daysEdited` is set on any other count, or the reconcile would reset the row.
+- **The shield.** A full-window `.phase-edge-shield` owns the pointer during a drag. Escape puts the
+  edge back. The shareable copy strips both classes (`buildSavedHtml`).
+- **Proof:** `pilldrag.mjs` E0–E13, trusted CDP input, with every press where `elementsFromPoint`
+  has the handle topmost. It holds every kind of handle, a holiday and a weekend stepped over,
+  out-and-back gestures, one undo per drag, Blocks mode at both kinds of row handle, and print media.
+  19/19 with D0–D4.
+- **§6.5's gate, met with no frozen edit to justify:**
+  - **The build:** `cdf602c1…`, 15 Oct 2026. Full gate 1,292 PASS, 0 FAIL.
+  - **Condition 1, the month PDF:** gate 10's nine print documents are identical, and gate 13's
+    nineteen written PDFs are byte-identical.
+  - **Condition 2, `mvNoteLineCount()` heights:** unchanged, which the identical print documents
+    carry.
+  - **Condition 3, no affordance in `#print-root`:** E7, plus the body-level placement.
+  - **Condition 4, gates 1–5:** unchanged (0 clipped cells, 62 field ids).
+
 **Implementation shape, whichever is ruled.** It needs zero frozen MARKUP:
 
 - **The edge zone is computed from pill geometry** inside the existing `mousedown` handler: a band a
@@ -515,9 +631,9 @@ grabbed.
   `.mv-daycell` geometry, with the date taken from the cell the way `cellDate()` does, cross-checked
   against the rendered day number. This matters because a month page can open mid-phase, so the
   first pill ON THE PAGE is often not the phase's first pill.
-- **The one frozen-category line** is the hover cursor:
-  `body.mv-edge-hot #table-wrap .mv-pill{cursor:ew-resize}`. It is scoped exactly like the 18 Sep
-  rule, so it cannot reach `#print-root`, and it goes to the owner before landing.
+- ~~**The one frozen-category line** is the hover cursor:
+  `body.mv-edge-hot #table-wrap .mv-pill{cursor:ew-resize}`.~~ ✅ **Not needed, and not added:** the
+  handles became body-level elements with their own cursor (see "BUILT" above).
 - **Reachability:** `pilldrag.mjs` must assert that `elementsFromPoint` at the zone has the pill
   topmost, and drive the drag with trusted CDP input (§8 step 5's rule).
 
@@ -534,7 +650,7 @@ grabbed.
 | 6 | Per-week Production control | **`dayOverrides`**, not per-week start dates — Production stays derivable (§4) |
 | 7 | *(15 Oct 2026)* Edges on built-in Weeks phases | **Add a Dates mode** to the five built-ins, reversing CUSTOM-PHASE-UNITS's "built-ins untouched" scope (its §1). Its ruling 1, one schedule, still holds (§6.7) |
 | 8 | *(15 Oct 2026)* Edges on custom phases | **After CUSTOM-PHASE-UNITS steps 1–4**: Days and Dates get both handles, and a Weeks edge drag switches the phase to Dates (§6.7) |
-| 9 | *(15 Oct 2026)* Edges on Production | *"drag either side of each episode/production week/block individually"*. ⏸ **§6.7's reading awaits confirmation** |
+| 9 | *(15 Oct 2026)* Edges on Production | *"drag either side of each episode/production week/block individually"*. ✅ **§6.7's reading confirmed** (9a–9c): episode/block boundaries push, week edges set day marks, screen-only handles. 9d: the built-ins' Dates mode takes ten ids |
 
 ⏸ **Still unanswered:** whether any remaining *"adjustments"* the owner has in mind also move dates.
 Ask before scoping beyond §4–§6.
@@ -588,7 +704,10 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    rulings.** For every phase type built today, a day-granular edge has no stored representation:
    Weeks phases are whole weeks, and Production's length is the episode or block list. No code was
    written. ✅ **Rulings 7–9 received the same day.** 7 and 8 wait on CUSTOM-PHASE-UNITS.
-   ⏸ Production (9) is buildable first, once the owner confirms §6.7's reading of it.
+   ✅ **Production's handles BUILT 15 Oct 2026** (§6.7 "BUILT"): the outer edges (3a), every
+   episode or block end, and every week's edges (9a–9c). Zero frozen edits. ⏸ **Still to come:** the
+   custom phases' handles (ruling 8, after CUSTOM-PHASE-UNITS) and the built-ins' (ruling 7). Ruling 7
+   is in doubt, because the owner also typed "1a" (§6.7, "Two sets of answers").
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1, 2 and 6.** The save format moves in each, and
 `tests/fixtures/` is how the restore path is proven. `HANDOFF.md` §2j has the

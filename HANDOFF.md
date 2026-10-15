@@ -4,7 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ⏸ 15 Oct 2026: MONTH-VIEW STEP 7 (start/end edge handles) IS HELD: rulings in, Production's reading awaits confirmation. No code written
+### ◐ 15 Oct 2026: MONTH-VIEW STEP 7 — EVERY PRODUCTION HANDLE IS BUILT (rulings 3a, 9a–9c). Custom and built-in phases follow
+
+- ⏭ **RESUME HERE.** Built, gated, and committed locally; NOT pushed:
+  - **What it does:** in the month view, the grips on a Production pill drag:
+    - the first shoot day and the wrap (the first or last episode's count);
+    - the end of every other episode or block (push: later ones slide);
+    - each week's own edges (`off` / `on` day marks; the counts hold, so the wrap moves).
+  - **Where:** `installProductionEdgeHandles()` in `src/legacy/app.js`. Full record in
+    MONTH-VIEW-PLAN §6.7 "BUILT".
+  - **Zero frozen edits.** The grips are body-level chrome, each with its own cursor, so the
+    `.mv-pill` cursor rule §6.7 had proposed was never added.
+- **Not built, and why:**
+  - **Custom phases' edges (ruling 8)** come after CUSTOM-PHASE-UNITS steps 1–4. Its §11 step 6 says
+    so.
+  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** are in doubt. The owner also
+    typed **"Accept 1a, 2a and 3a"** to the step-7 session four times. That is the text of a button
+    from the FIRST question box, probably a stale click, and 1a means NO edges on the built-ins.
+    ⏸ **Ask the owner before building CUSTOM-PHASE-UNITS §7a.** Production is unaffected: 3a's two
+    outer edges are a subset of 9a–9c.
+- ⚠️ **Easy to break:**
+  - **`cellDate()` moved to module scope** from `installDayOverrideUI`, unchanged.
+  - **Row grips ask the real scheduler.** `probeShootDays()` runs `computeSchedule(readState())`
+    once per press and puts everything back. Never re-implement the walk.
+  - **No grip runs inside `asShootDayMove()`.** The days that stay shot keep their dates.
+  - **A row grip sets `daysEdited`,** or the reconcile resets the row.
+  - **A mid-pill line comes from `.mv-bars`' grid** (3 px padding a side), not from the day cells.
+- **Gates:**
+  - ⚠️ **Serialize them.** Two other sessions (`half-day-episodes`, `custom-units`) ran or queued full
+    gates the same hour.
+  - ⚠️ **`pgrep -f "gate\.sh"` matches its own waiter's command line**, so a waiter written that way
+    never starts. Wait on `ps -Ao command | grep -v grep | grep -q "/bin/zsh ./gate.sh"`, the
+    custom-units session's form.
+- **Proof:** `pilldrag.mjs` E0–E13, trusted CDP input, each press where `elementsFromPoint` has the
+  grip topmost: 19/19, in 79 s standalone and inside the gate. Full gate on build `cdf602c1…`: **1,292 PASS, 0 FAIL, GATE PASSED** (13 min 46 s). Gates 1–5 unchanged (62 field ids); gate 10's
+  nine month print documents identical; gate 13's nineteen written month PDFs byte-identical.
+
+#### How step 7 got here (held, then ruled, the same day)
+
 
 - The brief said to map a day-granular edge onto the stored fields before coding, and to stop rather
   than quantise where there is no mapping. **There is no mapping for any phase type built today.**
@@ -28,8 +65,8 @@
     switches the phase to Dates.
   - **Ruling 9 (Production), the owner's own words:** *"drag either side of each episode/production
     week/block individually"*.
-- ⏸ **Ruling 9's reading is written in MONTH-VIEW-PLAN §6.7 and is AWAITING CONFIRMATION. Do not code
-  Production's handles before it comes back.** Four points are open:
+- ✅ **Ruling 9's reading was CONFIRMED by picker the same day (9a–9c, plus 9d: ten ids), and is
+  built (above).** The four points it settled:
   - which handles exist (episode or block boundaries, and possibly each week pill's edges as
     `off`/`on`);
   - push vs trade at a boundary, and which episode a shared boundary belongs to;
@@ -39,8 +76,8 @@
     place.
 - ⚠️ **A boundary drag must set `daysEdited: true`.** The reconcile resets every unflagged episode or
   block to the default, which would silently undo the drag.
-- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): local docs
-  commits only. Not pushed.
+- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): two docs
+  commits, then the build commit. Not pushed.
 
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
