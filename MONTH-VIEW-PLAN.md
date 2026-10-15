@@ -1,8 +1,8 @@
 # MONTH-VIEW-PLAN.md
 
 **Status:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
-on; step 7 remains. **All four blocking rulings received 16 Sep 2026** (§7). ⚠️ This header used to
-read *"plan only. No code written."*
+on; step 7 remains, ⏸ **held on three new rulings (§6.7, 15 Oct 2026)**. **All four blocking
+rulings received 16 Sep 2026** (§7). ⚠️ This header used to read *"plan only. No code written."*
 **Written:** 16 Sep 2026, against `4b0c3c5`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) §2i/§2j →
 [`MANTINE-SEAM.md`](MANTINE-SEAM.md) §5.2.
@@ -231,8 +231,8 @@ grid cell is a week. The save format does not move. ✅ Confirmed by reading the
 | Gesture | Means | Model support |
 |---|---|---|
 | Drag **body** | move the whole phase; duration unchanged | ✅ `start-<key> += n` — one stored field, **no new markup** |
-| Drag **start** edge | change start; end fixed | ✅ `start-<key>`, needs a handle element |
-| Drag **end** edge | change duration; start fixed | ✅ `weeks-<key>`, needs a handle element |
+| Drag **start** edge | change start; end fixed | ⛔ **wrong at day resolution, see §6.7.** Moving the start with the end held changes the LENGTH, so this is not `start-<key>` alone |
+| Drag **end** edge | change duration; start fixed | ⛔ **wrong at day resolution, see §6.7.** `weeks-<key>` holds whole weeks, and Production's is written by Show Info, never typed |
 | Drag a **middle** portion | insert/remove a mid-phase gap | ⛔ **Not in scope** — see §6.4 |
 
 ⭐ **Body-drag needs no new frozen markup** — the pill itself is the target — so it is strictly less
@@ -340,6 +340,84 @@ and 6 is finally followed.
 the marks would still pass a green gate. Wiring one in is the remaining half, and it pairs with the
 `monthprint` baseline item.
 
+### 6.7 ⛔ Where a day-granular EDGE is stored: for most phases, nowhere (15 Oct 2026, before any code)
+
+Worked out before step 7 was coded, as its brief required. Read from `readState`, `computeSchedule`,
+`refreshDerivedInfo` and `episodeDayMap` at `400ea6c`. **No code was written. Step 7 is held on the
+three rulings below.**
+
+§6.1's table priced the end edge as "✅ `weeks-<key>`" and the start edge as "✅ `start-<key>`".
+Both are wrong at day resolution, for a reason the table did not show. **An edge drag holds the other
+end still, so it changes the phase's LENGTH, by days.** Body-drag never touches the length, which is
+why it needed only `start-<key>` (and `snap-<key>`, §6.3).
+
+| Phase type | What is stored | How its end is computed | Start edge (end held) | End edge (start held) |
+|---|---|---|---|---|
+| **Weeks**: Writer's Rm, Pre Prep, Prod Prep, Post, Localization, and **every custom phase** (none has an `inputMode`) | `start-<key>`, `snap-<key>`, `weeks-<key>` (`parseInt`, so whole weeks) | `extendEndForHiatus()`: the start plus a whole number of weeks, plus any paused weeks | ⛔ **No representation.** One day later with the end held is a length of 7n−1 days | ⛔ **No representation.** The end is always the start plus whole weeks |
+| **Production** | `start-production`, `snap-production`, `dayOverrides`. ⛔ **There is no typed count.** `refreshDerivedInfo()` WRITES `weeks-production` from Show Info: Σ episode days, or Σ block days in Blocks mode. The row is greyed until Show Info is complete. 50 of the 52 fixtures with a Production start have it complete, and the other two leave Production unscheduled | `simulateProductionSchedule()`: the day after the last shoot day | ◐ **Only by changing an episode's or block's day count** | ◐ Same |
+| **Days** (custom; CUSTOM-PHASE-UNITS, not built) | `start-`, `days-<key>`: working days | its own day walk | ✅ `start-<key>`, with `days-<key>` re-counted so the last day stays | ✅ `days-<key>` |
+| **Dates** (custom; CUSTOM-PHASE-UNITS, not built) | `start-`, `end-<key>`: inclusive | `end-<key>` plus one day | ✅ `start-<key>` | ✅ `end-<key>` |
+
+⛔ **§6.3's way out does not apply here.** There, the drag collided with a TOGGLE (`snap-<key>`), so
+the gesture could switch it off. A Weeks phase's length has no toggle to switch off: its unit is the
+week. "Change the constraint" here means a new stored field per phase, which is a save-format
+change. Step 7 was approved as a frozen DRAWING edit (ruling 1), not as a format change. That is why
+this stops rather than quantising (§6.3: the owner rejected week-stepping outright).
+
+**Facts any answer has to respect:**
+
+- **Production moves in SHOOT days.** A step onto a weekend, a holiday, an `off` day or a hiatus day
+  moves nothing, because no shoot day is gained or lost. ⛔ **The edge never marks a day `on`.** §4.4
+  rejected the tool inventing an override the user never set.
+- **Which episode is "at the edge" is decided by SHOOTING order** (`effectiveShootOrder()`), because
+  `episodeDayMap()` deals the shoot days out in that order. The end edge belongs to the last
+  episode shot, and the start edge to the first. Blocks use list order (`blockDefs`).
+- **A changed episode count is already visible.** The Show Info note lists it under "Manually
+  changed: Episode 210 → 9 days (default is 8)". Nothing extra is needed for it to be seen.
+- **Half days:** the count is whole, but a shoot can deliver x.5. A wrap ON a half day whose
+  predecessor already reaches a whole count cannot be reached by any whole count. The drag would
+  land on the nearest shoot day it can reach.
+- **An edge drag is NOT a mover in R2's sense.** The shoot days that stay shot keep their dates, so
+  `dayOverrides` must stay on their dates. Wrapping it in `asShootDayMove()`, as body-drag is, would
+  shift every mark by one shoot day when the start edge moves.
+
+**The rulings needed.** Each recommendation comes first:
+
+1. **Built-in Weeks phases** (Writer's Rm, Pre Prep, Prod Prep, Post, Localization):
+   - **(a) Recommended: no edge handles. Body-drag only.** Their unit is a week. The owner's
+     15 Oct request scoped day-level lengths to custom phases (*"I think just for custom phases"*),
+     and CUSTOM-PHASE-UNITS ruling 1 leaves built-ins untouched.
+   - (b) Week-stepping edges. This is the quantising §6.3 rejected for body-drag, listed only
+     because these phases' length really is weeks.
+   - (c) Give the built-ins Dates mode too: five new permanent ids on static rows, against
+     CUSTOM-PHASE-UNITS ruling 1.
+2. **Custom phases:**
+   - **(a) Recommended: build after CUSTOM-PHASE-UNITS steps 1–4.** Dates and Days phases get both
+     handles. Dragging a Weeks custom phase's edge switches it to Dates mode, visible in its
+     Length select. That is §6.3's "change the constraint", and the Length select is a constraint
+     the gesture can switch, as Snap to Mon is. One undo restores both, since `unit-`/`end-` are
+     swept into the same `fields.byId` snapshot.
+   - (b) After CUSTOM-PHASE-UNITS: handles on Days and Dates phases only, none on Weeks.
+3. **Production:**
+   - **(a) Recommended: an edge changes the day count of the episode (or block) at that edge,** by
+     shoot days. It never invents an override, and it floors at 1 day. It stops there rather than
+     spilling into the next episode.
+   - (b) No edge handles on Production. Its length is set by the episode or block list.
+
+**Implementation shape, whichever is ruled.** It needs zero frozen MARKUP:
+
+- **The edge zone is computed from pill geometry** inside the existing `mousedown` handler: a band a
+  few px wide at the pill's left or right edge, capped at a quarter of a one-day pill.
+- **That pill edge must be the phase's real edge**, checked by date. The pill's day columns come from
+  `.mv-daycell` geometry, with the date taken from the cell the way `cellDate()` does, cross-checked
+  against the rendered day number. This matters because a month page can open mid-phase, so the
+  first pill ON THE PAGE is often not the phase's first pill.
+- **The one frozen-category line** is the hover cursor:
+  `body.mv-edge-hot #table-wrap .mv-pill{cursor:ew-resize}`. It is scoped exactly like the 18 Sep
+  rule, so it cannot reach `#print-root`, and it goes to the owner before landing.
+- **Reachability:** `pilldrag.mjs` must assert that `elementsFromPoint` at the zone has the pill
+  topmost, and drive the drag with trusted CDP input (§8 step 5's rule).
+
 
 ## 7. ✅ Rulings received (16 Sep 2026)
 
@@ -400,7 +478,10 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    so a delegated click on `#table-wrap` reaches the day. Full record in `HANDOFF.md`'s START HERE
    block. ⚠️ The reachable area is the **day-number band**, not the cell: the `+` note affordances
    fill every free lane and sit on top at the centre of **35 of 35** cells.
-7. ⛔ Start/end handles (§6.2), against the same gate.
+7. ⛔ Start/end handles (§6.2), against the same gate. ⏸ **HELD 15 Oct 2026 on §6.7's three
+   rulings.** For every phase type built today, a day-granular edge has no stored representation:
+   Weeks phases are whole weeks, and Production's length is the episode or block list. No code was
+   written.
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1, 2 and 6.** The save format moves in each, and
 `tests/fixtures/` is how the restore path is proven. `HANDOFF.md` §2j has the

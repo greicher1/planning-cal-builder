@@ -4,6 +4,24 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏸ 15 Oct 2026: MONTH-VIEW STEP 7 (start/end edge handles) IS HELD ON THREE RULINGS. No code written
+
+- The brief said to map a day-granular edge onto the stored fields before coding, and to stop rather
+  than quantise where there is no mapping. **There is no mapping for any phase type built today.**
+  The full table, the three rulings and the zero-markup implementation shape are in
+  [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §6.7.
+  - **Weeks phases** (five built-ins, and every custom phase) store whole weeks. Neither edge can
+    move by a day.
+  - **Production has no typed count.** `refreshDerivedInfo()` writes `weeks-production` from Show
+    Info. So an edge can only move by changing an episode's or block's day count.
+  - **Days and Dates modes** map cleanly, but they are CUSTOM-PHASE-UNITS, which is not built.
+- ⚠️ **§6.1's table was wrong**, and it is corrected in place. An edge drag holds the other end, so it
+  changes the phase's LENGTH. Body-drag never does, which is why it needed only `start-<key>`.
+- ⚠️ **An edge drag must NOT run inside `asShootDayMove()`.** The days that stay shot keep their dates,
+  and the binding would shift every override by one shoot day.
+- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): one local
+  docs commit. Not pushed.
+
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
 - Owner request: "Swap Block" → **"Swap Column"**. Button text and tooltip only (`drawStintButton` in
