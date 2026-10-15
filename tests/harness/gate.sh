@@ -1775,8 +1775,11 @@ PYPP
 # point to point; dispatchEvent skips hit-testing). Red before the fix on D1 (back at the origin,
 # Snap to Mon stayed off, with no undo step) and D4 (through a Tuesday onto the next Monday). D3
 # guards the 18 Sep ruling: dropped on a Tuesday, snap comes off and one Ctrl+Z restores both.
+# ⭐ 15 Oct 2026: E0-E13 hold Production's handles (MONTH-VIEW-PLAN.md §6.7): the shoot's two ends,
+# every episode/block end and every week's edges, each pressed where elementsFromPoint has the handle
+# topmost. E5 and E13 load blocks.sptcal, and E14 halfdays.sptcal (a half switch day's two bars, 15 Oct 2026), so the label names all three.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved)" <<'PYPD' || FAIL=1
+python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays)" <<'PYPD' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))

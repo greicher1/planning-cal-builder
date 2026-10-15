@@ -44,6 +44,10 @@ a day"*. So a day count can now end in **.5**, and marking a single day "Half da
   Blocks" off still draws the plain Production Week bars. No frozen code was edited.
 - **"Half day" and "Work half day" are no longer offered** in the month view's day menu. Owner's ruling ("Keep them as
   they are"): marks already saved keep counting and showing, move with the calendar, and can be cleared.
+- **The month view's edge grips** (MONTH-VIEW-PLAN step 7, merged the same day) follow the split: an episode's end
+  grip sits on its bar's right edge, a half switch day's two bars each carry their own, and dragging an episode's end
+  keeps its half (4.5 → 5.5). `pilldrag` E14 drives it with real pointer input. Full gate on the merged build:
+  1,352 PASS, 0 FAIL.
 - The save format is unchanged: day counts were already stored as strings like "8", now "4.5". ⚠️ An older build
   opening a file with 4.5 reads it as 4.
 - **Production's sidebar line** ("45.5 shoot days → …") is written by frozen code that rounded the count; it is
@@ -54,6 +58,45 @@ a day"*. So a day count can now end in **.5**, and marking a single day "Half da
   sheets, with a new `halfdays` case in both. Every month still prints on one page and no week row moved height in
   any existing calendar. Full gate: 1,329 PASS after the re-cut; `hdrfile` and `conflict` failed in that run only and
   pass standalone (see HANDOFF). `npm run check` 40/40.
+
+### Unreleased — Drag Production's edges in the month view: the shoot, each episode, each week (15 Oct 2026)
+
+In the month view, rest the pointer on a Production pill and thin grips appear on it. Drag one to move that edge by
+the day. MONTH-VIEW-PLAN.md step 7, owner rulings 3a and 9a–9c (§6.7): *"you should be able to drag either side of
+each episode/production week/block individually"*.
+- **Three kinds of grip.** The first two kinds change a day count; the third writes day marks.
+  - **The first shoot day and the wrap.** The first or last episode gains or loses the days. The other end stays
+    put. Moving the first shoot day off a Monday turns Snap to Mon off, as dragging the whole phase does.
+  - **The end of every other episode** (every block, in Blocks mode), mid-pill or at a pill's edge. Only that
+    episode changes length. The episodes after it keep theirs and slide, and the wrap moves. Episodes are taken in
+    SHOOTING order, and blocks in list order.
+  - **Each week's own edges** (lighter grips). A shoot day dragged out of the week is marked **off**, and a day
+    dragged in (a Saturday, say) is marked **worked**. The episodes keep their lengths, so the wrap moves. A
+    week's edge stays in its own week, and never runs into a hiatus.
+  - Where a week's edge is also an episode's end, the episode grip wins. A changed episode is listed under
+    "Manually changed" in Show Info, and keeps its count when Shooting Days per Episode changes, as a typed count
+    does.
+- **Episode grips move by shoot days.** A weekend, a holiday, a day marked off or a hiatus day is stepped over, and
+  these grips never mark a day. The edge lands on the shoot day nearest the pointer. Each episode or block keeps at
+  least one day.
+- **Day marks stay on their dates.** Episode grips do not move half, off or worked marks.
+- **One drag is one undo step.** Dragging out and back changes nothing and banks nothing. Escape puts the edge back.
+- **Other phases still move whole.** Edge grips for custom phases, and for the five built-in week phases once they
+  get a Dates mode (owner ruling 7, re-confirmed the same day), follow CUSTOM-PHASE-UNITS-PLAN.md.
+- **No frozen code changed.** The grips are screen-only chrome laid over the grid, not part of it, so neither month
+  PDF can carry one: the print path hides them, and the written PDF is built from the renderer's HTML.
+  `cellDate()`, the cross-checked day lookup that the day-mark popover uses, moved to module scope so both features
+  share it.
+- **Verified** with trusted mouse input in `pilldrag.mjs`:
+  - E0–E13 (with D0–D4), each grip pressed where hit-testing finds it on top;
+  - every kind of grip, including Blocks mode for both kinds of episode grip;
+  - a holiday and a weekend stepped over;
+  - out and back in one gesture;
+  - one undo per drag;
+  - print media hides the grips.
+
+  19/19 pass, in 79 s standalone and again inside the gate. `npm run check` 40/40.
+- ✅ **Full gate on the build (`cdf602c1…`): 1,292 PASS, 0 FAIL, GATE PASSED** (13 min 46 s). Every frozen output is unchanged, which is what "no frozen code changed" has to mean: 0 clipped cells, the waterfall PDF and every Excel part identical, `v1.0.0-saved.html` restores identically, `fields.byId` at 62 ids, all nine month print documents identical with one sheet per month (gate 10), and all nineteen written month PDFs byte-identical (gate 13).
 
 ### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
 

@@ -6,9 +6,28 @@
 
 ### ✅ 15 Oct 2026: HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5, AND THE SWITCH DAY SHOWS BOTH BARS (branch `half-day-episodes`, worktree `.claude/worktrees/half-day-episodes`)
 
-- ⏭ **State:** built, gated, month baselines re-cut on the owner's sign-off. Commit and push are the owner's call
-  (CLAUDE.md). Not pushed. The main checkout had OTHER sessions' uncommitted edits to this file when this was written,
-  so merging the branch into `main` needs those committed or set aside first.
+- ⏭ **State:** built, gated, month baselines re-cut on the owner's sign-off. **Merged with `main` at `607588c`** on
+  the owner's word ("fine do it", 15 Oct 2026), in this worktree, then gated (below). Not pushed.
+- ⭐ **THE MERGE HAD TO RECONCILE MONTH-VIEW STEP 7** (`1cb010f`, Production's edge grips, the entry below), which was
+  built the same day on one bar per WEEK and whole-day counts. `app.js` merged with no text conflict, but by
+  meaning it needed four changes in `installProductionEdgeHandles()`:
+  - `prodRows()`: each row's span is `productionUnits()`' interval rule, `first = days[floor(s)]`,
+    `last = days[ceil(s+n)-1]`, counts read with `dayCountVal()`. Whole counts give the old spans exactly.
+  - `specsFor()`: a SPLIT bar takes its grips from its own row (`splitSpanOf()`): its right edge is the row's end
+    (`bound`) or a week edge; its left edge is a week edge unless the row starts there (that line is the earlier
+    row's grip). No `bound` is ever mid-bar now. A one-day bar on a half switch day fits two rows; the higher lane
+    is the earlier row (`productionSplitRuns()` hands it over first, and `takeLane()` fills top down). Unsplit bars
+    ("Show Episodes/Blocks" off) keep step 7's own logic.
+  - Row grips step by WHOLE shoot days and keep the .5 (`cMin = c0 - floor(c0 - 1)`, `L[ceil(s + c) - 1]`); the probe
+    pads with `dayCountVal() + PAD`.
+  - `follow()` puts a right-side grip on the bar that ENDS on its day, since a half switch day has two bars.
+  - `pilldrag.mjs`: E6, E8 and E12 now read July week 2 as two bars (201 Mon–Thu with week-left and its end; 202's
+    one-day Friday bar with week-right) and week 3 as the fourth bar. New **E14** on `halfdays`: the switch day's two
+    bars carry the right grips, and 202's end dragged a day makes it 5.5, moves the switch to Tue 7/14 and the wrap
+    to 9/2, with one Ctrl+Z back. 20/20.
+  - ✅ **Full gate on the MERGED build `f80ec9fa…` (1,478,681 bytes): 1,352 PASS, 0 FAIL, GATE PASSED** — every check in one run,
+    including the re-cut month baselines, `pilldrag` 20/20, both half-day legs, and step 7's legs. `npm run check`
+    40/40, `check-refs.py` CLEAN.
 
 - **Owner, 15 Oct 2026:** *"Ok I got half days wrong. Half days means instances where we would switch to the next
   episode or block half way thru a day. So we need to be able to type in half days for number of days per episode or
@@ -94,6 +113,157 @@
     - ⚠️ This branch is cut from `f1a497d`, behind `main`, so landing it is a real merge, not a fast-forward.
   - [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) §2 noted the example calendar splits the shoot's bar at
     every episode change. This build does.
+### ◐ 15 Oct 2026: MONTH-VIEW STEP 7 — EVERY PRODUCTION HANDLE IS BUILT (rulings 3a, 9a–9c). Custom and built-in phases follow
+
+- ⚠️ **Since the half-days merge (entry above), Production's bars are split per episode or block.** The grips below are
+  unchanged in meaning, but an episode's end is now always on a bar's right edge, never mid-pill, and a half switch
+  day's two bars each carry their own. See that entry for the four changes and `pilldrag` E14.
+
+- ⏭ **RESUME HERE.** Built, gated, and committed locally; NOT pushed:
+  - **What it does:** in the month view, the grips on a Production pill drag:
+    - the first shoot day and the wrap (the first or last episode's count);
+    - the end of every other episode or block (push: later ones slide);
+    - each week's own edges (`off` / `on` day marks; the counts hold, so the wrap moves).
+  - **Where:** `installProductionEdgeHandles()` in `src/legacy/app.js`. Full record in
+    MONTH-VIEW-PLAN §6.7 "BUILT".
+  - **Zero frozen edits.** The grips are body-level chrome, each with its own cursor, so the
+    `.mv-pill` cursor rule §6.7 had proposed was never added.
+- **Not built, and why:**
+  - **Custom phases' edges (ruling 8)** come after CUSTOM-PHASE-UNITS steps 1–4. Its §11 step 6 says
+    so.
+  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** also follow CUSTOM-PHASE-UNITS
+    (its §7a). The owner had also typed "Accept 1a, 2a and 3a" (a stale button: 1a means NO edges on
+    the built-ins). ✅ Asked directly by picker, the owner chose **"Dates mode (1c)"**. It stands.
+- ⛔ **For whoever merges `custom-units` second:** that branch makes `setPhaseStart()` "the ONE writer of
+  a phase's start for every mover". The Production start grip here writes `start-production`
+  directly. That is equivalent today, because Production has no Dates mode. **Route it through
+  `setPhaseStart('production', …)` in the merge** so the rule holds (`applyCount()` in
+  `installProductionEdgeHandles`). The month pill drag is the other writer both branches touch.
+- ⚠️ **MONTH-PILL-LABEL-PLAN may split Production's pills at each episode change.** The grips read
+  pill ranges, not weeks, so a split pill gets its boundary on the pill's right edge (already a
+  case). Re-run `pilldrag.mjs` E8–E13 on top of it.
+- ⚠️ **Easy to break:**
+  - **`cellDate()` moved to module scope** from `installDayOverrideUI`, unchanged.
+  - **Row grips ask the real scheduler.** `probeShootDays()` runs `computeSchedule(readState())`
+    once per press and puts everything back. Never re-implement the walk.
+  - **No grip runs inside `asShootDayMove()`.** The days that stay shot keep their dates.
+  - **A row grip sets `daysEdited`,** or the reconcile resets the row.
+  - **A mid-pill line comes from `.mv-bars`' grid** (3 px padding a side), not from the day cells.
+- **Gates:**
+  - ⚠️ **Serialize them.** Two other sessions (`half-day-episodes`, `custom-units`) ran or queued full
+    gates the same hour.
+  - ⚠️ **`pgrep -f "gate\.sh"` matches its own waiter's command line**, so a waiter written that way
+    never starts. Wait on `ps -Ao command | grep -v grep | grep -q "/bin/zsh ./gate.sh"`, the
+    custom-units session's form.
+- **Proof:** `pilldrag.mjs` E0–E13, trusted CDP input, each press where `elementsFromPoint` has the
+  grip topmost: 19/19, in 79 s standalone and inside the gate. Full gate on build `cdf602c1…`: **1,292 PASS, 0 FAIL, GATE PASSED** (13 min 46 s). Gates 1–5 unchanged (62 field ids); gate 10's
+  nine month print documents identical; gate 13's nineteen written month PDFs byte-identical.
+
+#### How step 7 got here (held, then ruled, the same day)
+
+
+- The brief said to map a day-granular edge onto the stored fields before coding, and to stop rather
+  than quantise where there is no mapping. **There is no mapping for any phase type built today.**
+  The full table, the three rulings and the zero-markup implementation shape are in
+  [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §6.7.
+  - **Weeks phases** (five built-ins, and every custom phase) store whole weeks. Neither edge can
+    move by a day.
+  - **Production has no typed count.** `refreshDerivedInfo()` writes `weeks-production` from Show
+    Info. So an edge can only move by changing an episode's or block's day count.
+  - **Days and Dates modes** map cleanly, but they are CUSTOM-PHASE-UNITS, which is not built.
+- ⚠️ **§6.1's table was wrong**, and it is corrected in place. An edge drag holds the other end, so it
+  changes the phase's LENGTH. Body-drag never does, which is why it needed only `start-<key>`.
+- ⚠️ **An edge drag must NOT run inside `asShootDayMove()`.** The days that stay shot keep their dates,
+  and the binding would shift every override by one shoot day.
+- ✅ **The owner ruled the same day** (relayed by the parent session's picker). Only one ruling went
+  as recommended:
+  - **Ruling 7:** the five built-in Weeks phases get a **Dates mode**. That widens
+    CUSTOM-PHASE-UNITS's scope; its ruling 1 (one schedule) still holds. See that plan's new §7a: the
+    M-5 restore trap applies to built-in rows, and gate 5 will move.
+  - **Ruling 8:** custom-phase handles come after CUSTOM-PHASE-UNITS steps 1–4. A Weeks edge drag
+    switches the phase to Dates.
+  - **Ruling 9 (Production), the owner's own words:** *"drag either side of each episode/production
+    week/block individually"*.
+- ✅ **Ruling 9's reading was CONFIRMED by picker the same day (9a–9c, plus 9d: ten ids), and is
+  built (above).** The four points it settled:
+  - which handles exist (episode or block boundaries, and possibly each week pill's edges as
+    `off`/`on`);
+  - push vs trade at a boundary, and which episode a shared boundary belongs to;
+  - screen-only handles (recommended, zero frozen edits) vs a divider printed in the PDF;
+  - the built-ins' id count: ten (`unit-` + `end-`) or five (`end-` alone). ⚠️ §6.7's option text
+    told the owner "five ids" and "against ruling 1". Both were wrong, and both are corrected in
+    place.
+- ⚠️ **A boundary drag must set `daysEdited: true`.** The reconcile resets every unflagged episode or
+  block to the default, which would silently undo the drag.
+- Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): two docs
+  commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
+  owner's picker ("Merge to local main, no push"). NOT pushed.**
+
+### ⏸ 15 Oct 2026: LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK — PAUSED UNTIL HALF-DAYS MERGES
+
+- ⏭ **RESUME HERE, once `half-day-episodes` is merged into `main`. Do not start before.** Read the plan's top
+  status block first ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
+  - **What changed:** the half-days build (`05f7f89`, owner ruling "Stacked bars, always") makes Production
+    ALWAYS one bar per episode (per block). It rewrites `pillRunsForWeek()`, `segPillLabel()` and
+    `productionPillTag()`, the functions step 2 had just rewired.
+  - **The owner then ruled (picker, 15 Oct 2026, plan Q6–Q8):**
+    - the setting changes the bar's **text only**;
+    - the **default follows Schedule by** (Episode text on an Episodes calendar, Block text on a Blocks calendar),
+      which is what half-days draws;
+    - **half-days lands first, then step 2 is rebuilt on top of it.**
+  - **The first step-2 build is on branch `pill-label` (`4e1782f`, worktree `.claude/worktrees/pill-label`),
+    REFERENCE ONLY, never to be merged.** It holds the save-format plumbing (`mvProdLabel`, sanitize,
+    unconditional restore, reset, `setMvProdLabel`), `mvShowWeek()` and the `pilllabel` leg, which carry over.
+    Its split code is superseded by half-days' `productionUnits()`. Its full gate was never run.
+  - **On half-days, the two strings of a split bar are composed only in `unitBarLabel()`/`unitGreyLabel()`** (that
+    session's note). So the rebuild is mostly those two helpers plus the carried-over plumbing.
+  - ⚠️ **Two things to settle with the owner at the rebuild** (plan status block):
+    - half-days uses "Show Episodes"/"Show Blocks" OFF to un-split the bars, while plan §5.2 hides that very switch;
+    - how "not chosen" is stored without adding a fourth permanent value.
+  - Re-run `pilldrag` E8–E13 (the month-view edge grips, merged in `49c2eae`) after half-days and again after the
+    rebuild.
+- Owner request: a month-view setting that switches Production's pill text between Production Week (today),
+  Episode and Block. Whatever is not the pill text moves into the grey text. The plan is
+  [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md). **Ruled by the owner the same day (plan §6):** the
+  setting lives in Settings ▸ Preferences (month view only). It is **saved in the calendar**, as a new permanent
+  snapshot key `mvProdLabel` modelled on `singleColumn`, with absent meaning Production Week. The Show switches
+  "contextually change" with the mode: a third, "Show Production Week", joins them, and only the switches for items
+  the grey text can carry are shown.
+- ✅ **Step 1, the width measurement, is DONE (plan §7).** A throwaway prototype was a scratch copy of `app.js` with
+  the helpers rewired, the mode taken from `?pilllabel=`, and the build served as `dist/_pill.html` (since
+  removed). 288 runs covered 18 calendars, every mode, the screen at 1600/1280/961/960 px, the print width, and both
+  PDFs read back with `pdftotext`. An over-long label was caught by every check, as a control.
+  - **No clipping in either PDF in any mode.** On screen, the new modes cut no pill that today's labels leave whole,
+    and they cut only grey text where today's cut the block and episodes.
+  - ✅ **Ruled after seeing the numbers and pictures (picker, 15 Oct 2026, plan §6 Q4/Q5):**
+    - Episode and Block modes **split Production's pill at each episode or block change**, through
+      `pillRunsForWeek()`, which is not frozen. That matches the owner's example calendar. Week mode never splits;
+    - **no width remedy**.
+  - *(Superseded by the half-days ruling above: Episode and Block no longer need their own split.)* ⚠️
+    EPISODE-PREP-PLAN also rewires `pillRunsForWeek()`/`segPillLabel()`. Build one at a time.
+- ⭐ **Learned:**
+  - **The month view's narrowest day column is at a 961 px window (83.6 px), not at 960** (the layout stacks there:
+    123.4 px) and not at 1280 (121.6 px). Measure there.
+  - **Today's labels already clip on screen below about 1245 px:** a one-day *Production Week 16* piece needs a
+    117 px column. This is pre-existing and not new.
+  - **On a Blocks calendar a one-day piece names every episode of its block** (block membership, not the day). The
+    plan's §3 had claimed one episode.
+  - **The split variant needs no frozen edit either.** `pillRunsForWeek()` is not frozen, and its only caller is
+    `renderMonthView`.
+  - The prototype method (scratch build + `?pilllabel=` + measuring every Production pill) is quick and covers all
+    three outputs. The `pilllabel` leg should reuse it. The scratch files were session-only and are gone.
+  - **Other sessions committed to `main` in this checkout during this one** (`f1a497d`, `400ea6c`, `34761f9`). Check
+    `git log` before assuming the tree is as you left it.
+- ⭐ **No frozen edit is expected.** `segPillLabel()` and `productionPillTag()` are the non-frozen helpers
+  `renderMonthView` calls for the pill text and the grey text, the same route ruling 8 took. The one premise
+  (Production's shoot days never fall on a hiatus day, so the run can be worked out from `shootDays`) holds by
+  reading, and the plan's leg asserts it on every fixture. If it ever fails, stop and ask: the fallback is a
+  frozen edit.
+- The default must leave gates 10 and 13 byte-identical. Since half-days, that means half-days' re-cut baselines. The
+  owner sees Week, Episode and Block PDFs before any commit.
+- ⭐ **Learned:** three sessions changed the same month-pill functions on one day, from three plans. A peer message
+  from the half-days session is what caught it, after step 2 was built. Before building on `pillRunsForWeek()`,
+  `segPillLabel()` or `productionPillTag()`, check `git worktree list` and the other branches' HANDOFF top entries.
 
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
