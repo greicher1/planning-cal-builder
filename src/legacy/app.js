@@ -6076,6 +6076,39 @@ export function initLegacyApp() {
   // Both views share ONE wrap date; only these displayed counts differ. ⛔ Never recompute the
   // schedule with halves as 1.0 to get the waterfall's figure -- that produces a genuinely
   // different wrap and puts the Excel export and the month PDF in disagreement.
+
+  // ---------- Which day a month-view cell is ----------
+  // ⛔ A .mv-daycell CARRIES NO DATE, and giving it one would be a frozen edit to renderMonthView.
+  // So the date is derived from WHERE THE CELL SITS: the month view draws one month, its weeks run
+  // Sun..Sat from the Sunday on/before the 1st, so (week index * 7 + column index) off that grid
+  // start is the day -- exactly the arithmetic renderMonthView itself does, read back out.
+  //
+  // ⚠️ IT IS CROSS-CHECKED AGAINST THE RENDERED DAY NUMBER rather than trusted. Positional
+  // derivation is a second copy of the renderer's layout rule, and a second copy can drift (this
+  // project's recurring failure: three independent column-width systems). The check costs one
+  // parseInt and turns any future drift into "the popover does not open" instead of "the wrong
+  // day was marked half", which is a silent corruption of someone's production plan.
+  function cellDate(cell){
+    const grid = cell.parentNode;
+    if(!grid || !grid.classList || !grid.classList.contains('mv-daygrid')) return null;
+    const week = grid.parentNode;
+    const body = week && week.parentNode;
+    if(!body || !body.classList || !body.classList.contains('mv-body')) return null;
+    const col = Array.prototype.indexOf.call(grid.children, cell);
+    const row = Array.prototype.indexOf.call(body.children, week);
+    if(col < 0 || row < 0 || !monthCursor) return null;
+    const first = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth(), 1));
+    const gridStart = addDays(first, -first.getUTCDay());
+    const d = addDays(gridStart, row*7 + col);
+    const num = cell.querySelector('.mv-daynum');
+    const shown = num ? parseInt(num.textContent, 10) : NaN;
+    if(shown !== d.getUTCDate()) return null;      // drift -- refuse rather than guess
+    return {date:d, row, col};
+  }
+  // ⚠️ MODULE SCOPE since 15 Oct 2026. It lived inside installDayOverrideUI; Production's edge handles
+  // (installProductionEdgeHandles) read a pill's dates through it as well, and a second copy of this
+  // arithmetic is exactly the drift the cross-check above exists to catch.
+
   // ---------- Body-drag: move a whole phase by dragging its pill in the month view ----------
   // ⭐ The CHEAPEST of the three drag gestures (MONTH-VIEW-PLAN.md §6.1): moving a phase is
   // `start-<key> += n days` -- one stored field, duration untouched. The only frozen change it
@@ -6207,6 +6240,541 @@ export function initLegacyApp() {
     window.addEventListener('mouseup', endDrag);
   })();
 
+  // ---------- Production's handles: its first shoot day, its wrap, every episode's end, every week's edges ----------
+  // MONTH-VIEW-PLAN.md §6.7, owner rulings 3a and 9a-9c (15 Oct 2026): "you should be able to drag
+  // either side of each episode/production week/block individually". Production has NO typed length.
+  // Its total is the episode list (the block list in Blocks mode), which refreshDerivedInfo() WRITES
+  // into weeks-production, and episodes take the shoot days in SHOOTING order (episodeDayMap();
+  // blocks in list order). So every handle is one of two things:
+  //
+  //   A ROW'S DAY COUNT (start, end, bound). Only that episode or block changes length (ruling 9b,
+  //   "push"). A boundary belongs to the EARLIER episode: dragging the line between 203 and 204
+  //   changes 203, 204 onward keep their lengths and slide, and the wrap moves.
+  //     start  the first shoot day: the ONLY left-side handle. Episode 1 changes with the wrap held,
+  //            so start-production moves (Snap to Mon comes off on a non-Monday, as body-drag's, §6.3).
+  //     end    the wrap: the last episode changes, the first shoot day held.
+  //     bound  the end of any other episode, mid-pill or on a pill's right edge.
+  //   A WEEK'S EDGE (wkL, wkR): a Production Week pill's own left or right edge, wherever it is not
+  //     already one of the above ("where the two coincide, the episode handle wins", 9a). It writes
+  //     day marks, as the day popover does. A shoot day dragged out is marked 'off', a day dragged in
+  //     is marked 'on' (or loses its 'off'). The episodes keep their lengths, so the wrap moves.
+  //     It stays inside its own week row, never before the first shoot day or past the wrap, and
+  //     never into a hiatus ('on' does not override one; see simulateProductionSchedule).
+  //
+  // ⛔ ROW HANDLES STEP BY SHOOT DAY. The edge lands on the shoot day nearest the pointer. A weekend, a
+  // holiday, an 'off' day or a hiatus day is never one, and a row handle never marks a day: §4.4
+  // rejected the tool inventing an override the user did not set. A row floors at 1 day. A week edge
+  // dragged onto a Saturday IS the user marking it, which is what 9a rules.
+  //
+  // ⛔ NOT A MOVER (owner ruling R2 does not apply). The shoot days that stay shot keep their dates, so
+  // the day marks stay on their dates. Running a row handle inside asShootDayMove() would re-pin every
+  // mark by shoot-day NUMBER and shift each one whenever the start moved.
+  //
+  // ⭐ ZERO FROZEN EDITS (9c). The handles are body-level chrome laid over the pills: anchored to the
+  // grid, never injected into it. So they cannot reach either month PDF. The print path hides every
+  // direct child of <body> except #print-root, and the direct writer parses renderMonthView()'s HTML
+  // string, not the DOM. Each handle carries its own cursor, so no `.mv-*` rule is touched.
+  // buildSavedHtml() strips them from a shareable copy.
+  //
+  // ⚠️ Every date is read through cellDate(), the cross-checked mapping the day popover uses. A pill
+  // carries no date, and a month page often opens mid-shoot, so the first Production pill ON THE PAGE
+  // is usually not the shoot's first day.
+  (function installProductionEdgeHandles(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const PAD = 80;                 // shoot days the probe walks past the edge (see probeShootDays)
+    const HANDLE_W = 10;            // px
+    const pool = [];                // handle elements, reused; each carries ._spec and ._pill
+    let shownFor = null;            // the pill the handles were last laid over
+    let shield = null;
+    let drag = null;
+
+    const dayDiff = (a, b)=> Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
+    const isWeekKind = k=> k === 'wkL' || k === 'wkR';
+
+    // Production's rows in the order they take shoot days, each with its entry span in shootDays --
+    // the slicing episodeDayMap() and the block tags do -- or null when the length is not row-driven.
+    function prodRows(){
+      const info = showInfoStatus();
+      const pi = currentSchedule && currentSchedule.productionInfo;
+      if(!info.complete || !pi || !pi.shootDays || !pi.shootDays.length) return null;
+      let rows;
+      if(info.blocks){ rows = blockDefs.slice(); }
+      else {
+        const byId = new Map(episodeDefs.map(e=> [e.id, e]));
+        rows = effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean);
+      }
+      // The same filter showInfoStatus() sums by, so every row here is one that counts.
+      rows = rows.filter(r=> parseInt(r.days, 10) > 0);
+      if(!rows.length) return null;
+      const days = pi.shootDays;
+      let s = 0;
+      const spans = rows.map(r=>{
+        const n = parseInt(r.days, 10);
+        const sp = {row: r, s, n, first: days[s], last: days[s + n - 1]};
+        s += n;
+        return sp;
+      });
+      return {spans, blocks: !!info.blocks, total: info.totalShootDays, days,
+              first: days[0], last: days[days.length - 1]};
+    }
+
+    // A Production pill's first and last day, read off its grid-column and cellDate(). null on any
+    // doubt: no handle is better than a handle on the wrong day.
+    function pillRange(pill){
+      const week = pill.parentNode && pill.parentNode.parentNode;     // .mv-bars -> .mv-week
+      if(!week || !week.classList || !week.classList.contains('mv-week')) return null;
+      const a = parseInt(pill.style.gridColumnStart, 10), b = parseInt(pill.style.gridColumnEnd, 10);
+      if(!(a >= 1 && b > a && b <= 8)) return null;
+      const cells = week.querySelectorAll(':scope > .mv-daygrid > .mv-daycell');
+      const loc = cells[a - 1] && cellDate(cells[a - 1]);
+      const sun = cells[0] && cellDate(cells[0]);
+      if(!loc || !sun) return null;
+      return {from: isoOf(loc.date), to: isoOf(addDays(loc.date, b - 1 - a)), a, b, cells,
+              rowSun: isoOf(sun.date)};
+    }
+    function prodPills(){ return Array.prototype.slice.call(wrap.querySelectorAll('.mv-pill[data-ph="production"]')); }
+
+    // The x of the line after column `col` of a pill's week, from the bar layer's own grid: its
+    // tracks are (width - padding) / 7, not the day cells' width / 7 (.mv-bars pads 3px a side).
+    function colEdgeX(pill, col){
+      const bars = pill.parentNode;
+      const r = bars.getBoundingClientRect(), cs = getComputedStyle(bars);
+      const l = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+      const rt = (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
+      return r.left + l + (col + 1) * (r.width - l - rt) / 7;
+    }
+
+    // The pill's box clipped by every scrolling ancestor, so a pill half scrolled out of the preview
+    // panel never gets a handle painted over the toolbar.
+    function visibleRect(el){
+      const full = el.getBoundingClientRect();
+      let l = full.left, t = full.top, r = full.right, b = full.bottom;
+      for(let a = el.parentElement; a && a !== document.body; a = a.parentElement){
+        const cs = getComputedStyle(a);
+        if(cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+        const q = a.getBoundingClientRect();
+        l = Math.max(l, q.left); t = Math.max(t, q.top); r = Math.min(r, q.right); b = Math.min(b, q.bottom);
+      }
+      return (r - l > 0 && b - t > 0) ? {left: l, top: t, right: r, bottom: b, full} : null;
+    }
+
+    // Which handles a pill carries. `side` is where on the pill: its left edge, its right edge, or
+    // the line after `day` inside it.
+    function specsFor(pill){
+      const P = prodRows(), g = P && pillRange(pill);
+      if(!g) return [];
+      const out = [];
+      const inner = P.spans.slice(0, -1);                      // every row but the last has a boundary
+      const rowFirsts = new Set(P.spans.slice(1).map(sp=> sp.first));
+      const rowLasts = new Set(inner.map(sp=> sp.last));
+      if(g.from === P.first) out.push({kind: 'start', side: 'left', day: g.from});
+      else if(!rowFirsts.has(g.from)) out.push({kind: 'wkL', side: 'left', day: g.from});
+      inner.forEach((sp, i)=>{
+        if(!sp.last || sp.last < g.from || sp.last > g.to) return;
+        out.push({kind: 'bound', i, side: sp.last === g.to ? 'right' : 'mid', day: sp.last});
+      });
+      if(g.to === P.last) out.push({kind: 'end', side: 'right', day: g.to});
+      else if(!rowLasts.has(g.to)) out.push({kind: 'wkR', side: 'right', day: g.to});
+      return out;
+    }
+
+    function titleFor(spec, P){
+      const unit = P.blocks ? 'block' : 'episode';
+      const nameOf = sp=> (sp && sp.row && sp.row.name) || (P.blocks ? 'This block' : 'This episode');
+      switch(spec.kind){
+        case 'start': return 'Drag to move the first shoot day. The first ' + unit + ' gains or loses the days; the wrap stays put.';
+        case 'end':   return 'Drag to move the wrap. The last ' + unit + ' gains or loses the days; the first shoot day stays put.';
+        case 'bound': {
+          const n = nameOf(P.spans[spec.i]);
+          return 'Drag to change where ' + n + ' ends. Only ' + n + ' changes length; the ' + unit
+            + 's after it slide, and the wrap moves.';
+        }
+        default: return 'Drag to ' + (spec.kind === 'wkL' ? 'start' : 'end') + ' this week on another day. '
+          + 'A shoot day dragged out is marked off, a day dragged in is marked worked. The ' + unit
+          + 's keep their lengths, so the wrap moves.';
+      }
+    }
+
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){
+      shownFor = null;
+      pool.forEach(h=>{ if(h !== except) h.hidden = true; });
+    }
+    function place(h, pill, spec){
+      const v = visibleRect(pill), g = pillRange(pill);
+      if(!v || !g){ h.hidden = true; return; }
+      const x = spec.side === 'left' ? v.full.left
+              : spec.side === 'right' ? v.full.right - HANDLE_W
+              : colEdgeX(pill, g.a - 1 + dayDiff(g.from, spec.day)) - HANDLE_W / 2;
+      // The edge itself must be on screen, not just some of the pill.
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = pill;
+      h.setAttribute('data-edge', spec.kind);
+      h.className = 'phase-edge-handle' + (isWeekKind(spec.kind) ? ' is-week' : '');
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(pill).color;      // the pill's own text colour reads on its fill
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const P = prodRows();
+      const specs = P ? specsFor(pill) : [];
+      if(!specs.length) return;
+      shownFor = pill;
+      specs.forEach((spec, k)=>{
+        const h = handleAt(k);
+        place(h, pill, spec);
+        h.title = titleFor(spec, P);
+      });
+    }
+
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle')) return;   // resting on one
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest('.mv-pill[data-ph="production"]');
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    // Every render replaces every pill, so a handle laid over the old one is stale. Observing the
+    // frozen surface mutates nothing (CLAUDE.md, sanctioned pattern 3).
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Every shoot day in a window wider than the page, with its weight, from the REAL scheduler. The
+    // walk is never re-implemented here (productionEndFor()'s rule). Whether a date is shot is a
+    // property of the DATE (weekday, holiday, hiatus, override), not of where the shoot starts, so
+    // one wide walk answers every position a row handle can reach:
+    //   start         from 70 days before the first shoot day, snap off
+    //   end / bound   from the real start
+    // with the dragged row padded PAD days, so the walk runs well past the edge. Everything it
+    // changes is put back before it returns, and nothing renders meanwhile.
+    function probeShootDays(fromEarlier, row, ends){
+      const startEl = document.getElementById('start-production');
+      const snapEl = document.getElementById('snap-production');
+      const prev = {start: startEl.value, snap: snapEl ? snapEl.checked : null, days: row.days};
+      try {
+        if(fromEarlier){
+          startEl.value = isoOf(addDays(parseDateUTC(ends.first), -70));
+          if(snapEl) snapEl.checked = false;
+        }
+        row.days = String(parseInt(prev.days, 10) + PAD);
+        const sch = computeSchedule(readState());
+        const info = sch && sch.productionInfo;
+        if(!info || !info.shootDays || !info.shootDays.length) return null;
+        const half = new Set(info.halfDays || []);
+        const list = info.shootDays.map(iso=> ({iso, w: half.has(iso) ? 0.5 : 1}));
+        // Both ends of today's shoot must be in the window, or the arithmetic below means nothing.
+        const has = iso=> list.some(x=> x.iso === iso);
+        return has(ends.first) && has(ends.last) ? list : null;
+      } catch(err){ return null; }
+      finally {
+        startEl.value = prev.start;
+        if(snapEl) snapEl.checked = prev.snap;
+        row.days = prev.days;
+      }
+    }
+
+    // The row count whose edge lands on the shoot day nearest `target`; ties go to the smaller
+    // change. {c, iso}: the new count and where the dragged edge then sits.
+    function solveCount(d, target){
+      const T = parseDateUTC(target).getTime();
+      let best = null;
+      const consider = (c, iso)=>{
+        const dist = Math.abs(parseDateUTC(iso).getTime() - T);
+        if(!best || dist < best.dist || (dist === best.dist && Math.abs(c - d.c0) < Math.abs(best.c - d.c0))){
+          best = {c, iso, dist};
+        }
+      };
+      const L = d.list;
+      if(d.kind === 'end'){
+        // The walk stops on the first shoot day whose running total reaches the request (over-deliver,
+        // §4.4), so the wrap for a total R is the first index with cum >= R.
+        const cum = []; let s = 0;
+        L.forEach((x, k)=>{ s += x.w; cum[k] = s; });
+        let i = 0;
+        for(let c = 1; c <= d.c0 + PAD; c++){
+          const R = d.total - d.c0 + c;
+          while(i < L.length && cum[i] < R) i++;
+          if(i >= L.length) break;
+          consider(c, c === d.c0 ? d.edge0 : L[i].iso);
+        }
+      } else if(d.kind === 'start'){
+        // The wrap is held, so for a total R the shoot must START at the latest shoot day from which
+        // the wrap is reached exactly: the walk from L[j] must reach R ON the wrap and not before it.
+        const iL = L.findIndex(x=> x.iso === d.ends.last);
+        if(iL < 0) return null;
+        const suf = []; let s = 0;
+        for(let k = iL; k >= 0; k--){ s += L[k].w; suf[k] = s; }
+        let j = iL;
+        for(let c = 1; c <= d.c0 + PAD; c++){
+          const R = d.total - d.c0 + c;
+          while(j >= 0 && suf[j] < R) j--;
+          if(j < 0) break;
+          // ⚠️ A half day on the wrap can make a total unreachable: the walk would stop a shoot day
+          // short of it. That count is skipped, never approximated.
+          if(c !== d.c0 && suf[j] - L[iL].w >= R) continue;
+          consider(c, c === d.c0 ? d.edge0 : L[j].iso);
+        }
+      } else {
+        // bound: the row takes ENTRIES s .. s+c-1 of the shoot-day list, whatever the halves do --
+        // the slicing episodeDayMap() does -- and everything before it is unchanged.
+        for(let c = 1; c <= d.c0 + PAD; c++){
+          const x = L[d.s + c - 1];
+          if(!x) break;
+          consider(c, c === d.c0 ? d.edge0 : x.iso);
+        }
+      }
+      return best;
+    }
+
+    // The week row whose first cell is `rowSun`, as the grid stands now (it is rebuilt every step).
+    function weekRow(rowSun){
+      const weeks = wrap.querySelectorAll('.mv-body > .mv-week');
+      for(let i = 0; i < weeks.length; i++){
+        const c0 = weeks[i].querySelector(':scope > .mv-daygrid > .mv-daycell');
+        const loc = c0 && cellDate(c0);
+        if(loc && isoOf(loc.date) === rowSun) return weeks[i];
+      }
+      return null;
+    }
+    // The day under x in a row's cells.
+    function dayInCells(cells, x){
+      if(cells.length !== 7) return null;
+      let cell = cells[6];
+      for(let i = 0; i < 7; i++){ if(x < cells[i].getBoundingClientRect().right){ cell = cells[i]; break; } }
+      const loc = cellDate(cell);
+      return loc ? isoOf(loc.date) : null;
+    }
+    // The day under a point, clamped to the page: the week whose band holds y, the column holding x.
+    function dayAtPoint(x, y){
+      const body = wrap.querySelector('.mv-body');
+      if(!body || !body.children.length) return null;
+      const weeks = body.children;
+      let wk = weeks[weeks.length - 1];
+      for(let i = 0; i < weeks.length; i++){ if(y < weeks[i].getBoundingClientRect().bottom){ wk = weeks[i]; break; } }
+      return dayInCells(wk.querySelectorAll(':scope > .mv-daygrid > .mv-daycell'), x);
+    }
+
+    // A week edge's day marks for target T, computed from the marks at mousedown every time, so a
+    // drag that comes back restores them exactly (a 'half' it passed over included).
+    function weekMarks(d, T){
+      const m = Object.assign({}, d.ov0);
+      const natural = iso=>{ const w = parseDateUTC(iso).getUTCDay(); return w >= 1 && w <= 5 && !d.hol.has(iso); };
+      const bringIn = iso=>{
+        if(d.shot.has(iso)) return;
+        if(natural(iso)){ if(m[iso] === 'off') delete m[iso]; }
+        else m[iso] = 'on';
+      };
+      const takeOut = iso=>{
+        if(!d.shot.has(iso)) return;
+        // A weekend or holiday shot only because of its own mark goes back to being unworked;
+        // anything else is marked off.
+        if(!natural(iso) && (m[iso] === 'on' || m[iso] === 'onhalf')) delete m[iso];
+        else m[iso] = 'off';
+      };
+      const span = (a, b, fn)=>{ for(let x = a; x <= b; x = isoOf(addDays(parseDateUTC(x), 1))) fn(x); };
+      const prev = iso=> isoOf(addDays(parseDateUTC(iso), -1)), next = iso=> isoOf(addDays(parseDateUTC(iso), 1));
+      if(d.kind === 'wkL'){
+        if(T < d.edge0) span(T, prev(d.edge0), bringIn);
+        else if(T > d.edge0) span(d.edge0, prev(T), takeOut);
+      } else {
+        if(T > d.edge0) span(next(d.edge0), T, bringIn);
+        else if(T < d.edge0) span(next(T), d.edge0, takeOut);
+      }
+      return m;
+    }
+    // Clamp a week edge's target: its own row; never before the first shoot day or past the wrap;
+    // at least the edge's own day left in the pill; and never into a hiatus day.
+    function clampWeek(d, T){
+      const lo = d.kind === 'wkL' ? (d.rowSun > d.P.first ? d.rowSun : d.P.first) : d.from;
+      const hi = d.kind === 'wkL' ? d.to : (d.rowSat < d.P.last ? d.rowSat : d.P.last);
+      if(T < lo) T = lo;
+      if(T > hi) T = hi;
+      const step = d.kind === 'wkL' ? -1 : 1;
+      if((d.kind === 'wkL' && T < d.edge0) || (d.kind === 'wkR' && T > d.edge0)){
+        for(let x = isoOf(addDays(parseDateUTC(d.edge0), step)); ; x = isoOf(addDays(parseDateUTC(x), step))){
+          if(d.inHiatus(x)) return isoOf(addDays(parseDateUTC(x), -step));
+          if(x === T) break;
+        }
+      }
+      return T;
+    }
+
+    // Keep the dragged handle on its edge as the grid re-renders under it.
+    function follow(){
+      const d = drag, h = d.handle, day = d.cur.iso;
+      const pills = prodPills();
+      for(let k = 0; k < pills.length; k++){
+        const g = pillRange(pills[k]);
+        if(!g || day < g.from || day > g.to) continue;
+        const left = d.kind === 'start' || d.kind === 'wkL';
+        if(left && day !== g.from) continue;
+        place(h, pills[k], {kind: d.kind, i: d.i, day, side: left ? 'left' : (day === g.to ? 'right' : 'mid')});
+        return;
+      }
+      h.hidden = true;
+    }
+
+    function applyCount(step){
+      const d = drag, r = d.row;
+      if(step.c === d.c0){
+        // Back where it began: EXACTLY what was there, flags and Snap to Mon included (MONTH-9's rule).
+        r.days = d.daysWas; r.daysEdited = d.editedWas;
+        d.startEl.value = d.startWas;
+        if(d.snapEl) d.snapEl.checked = d.snapWas;
+      } else {
+        r.days = String(step.c);
+        // ⛔ daysEdited, or the next reconcile (syncEpisodesFromShowInfo / syncBlocksFromShowInfo)
+        // resets this row to the default and silently undoes the drag. It is also what lists the row
+        // under "Manually changed" in the Show Info note -- how the user sees what the drag did.
+        r.daysEdited = true;
+        if(d.kind === 'start'){
+          d.startEl.value = step.iso;
+          if(d.snapEl){
+            // Body-drag's rule (§6.3, MONTH-9): a non-Monday takes Snap to Mon off; a Monday keeps
+            // what it was. .checked without a 'change' event, as body-drag does: update() is next.
+            d.snapEl.checked = parseDateUTC(step.iso).getUTCDay() === 1 ? d.snapWas : false;
+          }
+        }
+      }
+      d.cur = {c: step.c, iso: step.iso};
+      // The same refresh a typed day count gets, plus the row rebuild that typing skips (it keeps
+      // the caret); nobody is typing here, and the sidebar must show the new count.
+      refreshDerivedInfo();
+      if(d.blocks) renderBlockRows(); else renderEpisodeRows();
+      update();
+      // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
+      cancelPendingUndoPush();
+      // ⛔ What the gesture holds must not have moved, and the edge must be where it was computed to
+      // land. If either fails, this arithmetic disagrees with the real scheduler, and a silent wrong
+      // date in someone's plan is the outcome to refuse: put it back and let the gesture go inert.
+      if(step.c !== d.c0){
+        const pi = currentSchedule && currentSchedule.productionInfo;
+        const days = (pi && pi.shootDays) || [];
+        const ok = d.kind === 'start' ? days[days.length - 1] === d.ends.last && days[0] === step.iso
+                 : d.kind === 'end'   ? days[0] === d.ends.first && days[days.length - 1] === step.iso
+                 :                      days[0] === d.ends.first && days[d.s + step.c - 1] === step.iso;
+        if(!ok){ d.broken = true; applyCount({c: d.c0, iso: d.edge0}); return; }
+      }
+      follow();
+    }
+    function applyWeek(T){
+      const d = drag;
+      dayOverrides = weekMarks(d, T);
+      d.cur = {iso: T};
+      update();
+      cancelPendingUndoPush();
+      follow();
+    }
+    const changed = d=> isWeekKind(d.kind)
+      ? JSON.stringify(dayOverrides) !== JSON.stringify(d.ov0)
+      : d.cur.c !== d.c0;
+
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      // ⛔ THE TRAILING PUSH IS THE STEP, as body-drag's. A drag that ends where it began banks none.
+      if(d && changed(d)){ pushUndoSnapshot(); markDirty(); }
+    }
+
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, pill = h._pill;
+      const P = prodRows(), g = pill && pillRange(pill);
+      const startEl = document.getElementById('start-production');
+      const snapEl = document.getElementById('snap-production');
+      if(!spec || !P || !g || !startEl || !startEl.value) return;
+      const d = {kind: spec.kind, i: spec.i, handle: h, P, edge0: spec.day,
+                 startEl, startWas: startEl.value, snapEl, snapWas: !!(snapEl && snapEl.checked)};
+      if(isWeekKind(spec.kind)){
+        const seg = (currentSchedule.segments || []).find(s=> s.key === 'production');
+        const ownHi = seg && seg.phaseHiatus;
+        Object.assign(d, {from: g.from, to: g.to, rowSun: g.rowSun, rowSat: isoOf(addDays(parseDateUTC(g.rowSun), 6)),
+          ov0: Object.assign({}, dayOverrides), shot: new Set(P.days),
+          // The holidays the simulation skips: only ENABLED ones, for the region it reads.
+          hol: new Set(fullHolidayList(effectiveRegionKey()).filter(x=> x.enabled).map(x=> x.date)),
+          inHiatus: iso=>{ const dt = parseDateUTC(iso);
+            return (currentSchedule.hiatuses || []).some(x=> dt >= x.start && dt < x.end)
+                || !!(ownHi && dt >= ownHi.start && dt < ownHi.end); },
+          cur: {iso: spec.day}});
+      } else {
+        const sp = spec.kind === 'start' ? P.spans[0]
+                 : spec.kind === 'end' ? P.spans[P.spans.length - 1] : P.spans[spec.i];
+        if(!sp) return;
+        Object.assign(d, {row: sp.row, s: sp.s, c0: parseInt(sp.row.days, 10), daysWas: sp.row.days,
+          editedWas: sp.row.daysEdited, blocks: P.blocks, total: P.total, ends: {first: P.first, last: P.last},
+          cur: {c: parseInt(sp.row.days, 10), iso: spec.day}});
+        d.list = probeShootDays(spec.kind === 'start', sp.row, d.ends);
+        if(!d.list) return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      // Read the pointer as if it had pressed on the CENTRE of the edge's own day, so the edge moves
+      // when the pointer crosses half a day -- body-drag's rounding -- and not the instant it slips
+      // into the neighbouring cell.
+      const cr = g.cells[g.a - 1 + dayDiff(g.from, spec.day)].getBoundingClientRect();
+      d.dx = e.clientX - (cr.left + cr.width / 2);
+      // Flush whatever came before into its own step (body-drag's leading push).
+      pushUndoSnapshot();
+      drag = d;
+      hideHandles(h);
+      // A full-window shield owns the pointer for the gesture: one cursor everywhere, no hover effects
+      // or text selection underneath, and no CSS reaching into the grid to get either.
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      if(isWeekKind(drag.kind)){
+        // A week edge stays in its own row, whatever the pointer's height.
+        const row = weekRow(drag.rowSun);
+        let T = row && dayInCells(row.querySelectorAll(':scope > .mv-daygrid > .mv-daycell'), e.clientX - drag.dx);
+        if(!T) return;
+        T = clampWeek(drag, T);
+        if(T !== drag.cur.iso) applyWeek(T);
+        return;
+      }
+      const iso = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      if(!iso) return;
+      const step = solveCount(drag, iso);
+      if(step && step.c !== drag.cur.c) applyCount(step);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    // Escape puts the edge back where the gesture began, and banks nothing.
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(isWeekKind(drag.kind)){ if(drag.cur.iso !== drag.edge0) applyWeek(drag.edge0); }
+      else if(drag.cur.c !== drag.c0) applyCount({c: drag.c0, iso: drag.edge0});
+      endDrag();
+    }, true);
+  })();
+
   // ⛔ Audit M-7: HOLIDAYS covers a fixed span of years (2024-2031 since v1.3.1), and a shoot day
   // outside it skips NO holidays -- the wrap comes out early and the Holidays card lists nothing --
   // which v1.3.0 did in silence. The span is read off the region's own data, never a constant, so a
@@ -6298,33 +6866,9 @@ export function initLegacyApp() {
       activeOv = null;
     }
 
-    // ⛔ A .mv-daycell CARRIES NO DATE, and giving it one would be a frozen edit to renderMonthView.
-    // So the date is derived from WHERE THE CELL SITS: the month view draws one month, its weeks run
-    // Sun..Sat from the Sunday on/before the 1st, so (week index * 7 + column index) off that grid
-    // start is the day -- exactly the arithmetic renderMonthView itself does, read back out.
-    //
-    // ⚠️ IT IS CROSS-CHECKED AGAINST THE RENDERED DAY NUMBER rather than trusted. Positional
-    // derivation is a second copy of the renderer's layout rule, and a second copy can drift (this
-    // project's recurring failure: three independent column-width systems). The check costs one
-    // parseInt and turns any future drift into "the popover does not open" instead of "the wrong
-    // day was marked half", which is a silent corruption of someone's production plan.
-    function cellDate(cell){
-      const grid = cell.parentNode;
-      if(!grid || !grid.classList || !grid.classList.contains('mv-daygrid')) return null;
-      const week = grid.parentNode;
-      const body = week && week.parentNode;
-      if(!body || !body.classList || !body.classList.contains('mv-body')) return null;
-      const col = Array.prototype.indexOf.call(grid.children, cell);
-      const row = Array.prototype.indexOf.call(body.children, week);
-      if(col < 0 || row < 0 || !monthCursor) return null;
-      const first = new Date(Date.UTC(monthCursor.getUTCFullYear(), monthCursor.getUTCMonth(), 1));
-      const gridStart = addDays(first, -first.getUTCDay());
-      const d = addDays(gridStart, row*7 + col);
-      const num = cell.querySelector('.mv-daynum');
-      const shown = num ? parseInt(num.textContent, 10) : NaN;
-      if(shown !== d.getUTCDate()) return null;      // drift -- refuse rather than guess
-      return {date:d, row, col};
-    }
+    // cellDate(): module scope since 15 Oct 2026, because Production's edge handles read pill dates
+    // through it too. See its definition above installMonthPillDrag.
+
 
     // What is true of this day, as far as the SIMULATION is concerned -- so the popover offers what
     // will actually take effect and nothing else.
@@ -13677,7 +14221,10 @@ export function initLegacyApp() {
     // .day-ov-pop added 18 Sep 2026 with the day-override UI -- same reason again. It is anchored
     // to a .mv-daycell but lives in <body> (the standing convention: never markup injected into the
     // grid), so the #table-wrap emptying above does NOT remove it.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay').forEach(el=>el.remove());
+    // .phase-edge-handle / .phase-edge-shield added 15 Oct 2026 with Production's edge handles: body-level
+    // chrome over the month grid, present while the pointer rests on a pill (or a drag is live) --
+    // which is exactly when a Shift+Cmd+E export can fire.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =

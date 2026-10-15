@@ -565,9 +565,10 @@ over a modal.
 
 | Tier | Members |
 |---:|---|
+| **50** | Production's edge handles (`.phase-edge-handle`, 15 Oct 2026): body-level, over the month grid, below every popover so one opened over a pill covers them |
 | **100** | app header, sidebar tab strip, help FAB |
 | **200** | help modal **and its backdrop** |
-| **300** | every popover and menu, and the shift readout |
+| **300** | every popover and menu, and the shift readout. Also `.phase-edge-shield`, for the length of one edge drag only: it is appended last, so DOM order puts it on top |
 
 ⚠️ **Mantine's `overlay: 400` tier is dead in 9.5.2** — `Overlay`'s default zIndex is
 `getDefaultZIndex('modal')` = 200, and `getDefaultZIndex("overlay")` is read by no component in the
@@ -1137,7 +1138,12 @@ Nothing in this document ships without all of these, every stage:
     - `cmdprint`: Cmd/Ctrl+P runs the view's export;
     - `loadfail` AS/AR: the autosave path after a refused load, and a rollback case with teeth;
     - `pilldrag.mjs`, a Node script with its own block: a month pill dragged out and back keeps
-      Snap to Mon, driven with trusted CDP mouse input.
+      Snap to Mon, driven with trusted CDP mouse input. Since 15 Oct 2026 it also holds Production's
+      handles (E0–E13, MONTH-VIEW-PLAN §6.7), each pressed where it is topmost:
+      - the first shoot day and the wrap, which move by shoot day and hold the other end;
+      - every episode or block end, where later rows slide;
+      - each week's edges, which write off and worked marks;
+      - one drag is one undo step, Blocks mode is covered, and print media hides the handles.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
 
