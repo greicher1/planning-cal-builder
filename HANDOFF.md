@@ -6,8 +6,15 @@
 
 ### ✅ 15 Oct 2026: HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5, AND THE SWITCH DAY SHOWS BOTH BARS (branch `half-day-episodes`, worktree `.claude/worktrees/half-day-episodes`)
 
-- ⏭ **State:** built, gated, month baselines re-cut on the owner's sign-off. **Merged with `main` at `607588c`** on
-  the owner's word ("fine do it", 15 Oct 2026), in this worktree, then gated (below). Not pushed.
+- ✅ **PUSHED AND LIVE at `6bd5fae` (15 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`f80ec9fa…`,
+  1,478,681 bytes, fetched with a cache-buster; deploy run 38815236996, "Build and check" and "Deploy to Pages" both
+  green). `version.json` still reads 1.4.3: **no version was cut**, so installed copies show no update notice until
+  the next cut. The owner's picker, asked with the riders named: **"Yes, push all of main"**. The push shipped 13
+  commits: this work, month-view step 7's edge grips (`1cb010f`), "Swap Column" (`f1a497d`) and the day's plans.
+- **State before the push:** built, gated, month baselines re-cut on the owner's sign-off. **Merged with `main` at
+  `607588c`** on the owner's word ("fine do it", 15 Oct 2026), in this worktree, then gated (below). `main`
+  fast-forwarded to it, with the custom-units / episode-prep sessions' uncommitted 108-line HANDOFF block set aside
+  and restored byte-identical (no stash used).
 - ⭐ **THE MERGE HAD TO RECONCILE MONTH-VIEW STEP 7** (`1cb010f`, Production's edge grips, the entry below), which was
   built the same day on one bar per WEEK and whole-day counts. `app.js` merged with no text conflict, but by
   meaning it needed four changes in `installProductionEdgeHandles()`:
@@ -119,7 +126,8 @@
   unchanged in meaning, but an episode's end is now always on a bar's right edge, never mid-pill, and a half switch
   day's two bars each carry their own. See that entry for the four changes and `pilldrag` E14.
 
-- ⏭ **RESUME HERE.** Built, gated, and committed locally; NOT pushed:
+- ⏭ **RESUME HERE.** Built, gated, and committed. ✅ **Pushed and live since 15 Oct 2026, with half-days at `6bd5fae`**
+  (it was "NOT pushed" until then):
   - **What it does:** in the month view, the grips on a Production pill drag:
     - the first shoot day and the wrap (the first or last episode's count);
     - the end of every other episode or block (push: later ones slide);
@@ -197,7 +205,7 @@
   block to the default, which would silently undo the drag.
 - Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): two docs
   commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
-  owner's picker ("Merge to local main, no push"). NOT pushed.**
+  owner's picker ("Merge to local main, no push"). Pushed later, with half-days at `6bd5fae` (15 Oct 2026).**
 
 ### ⏸ 15 Oct 2026: LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK — PAUSED UNTIL HALF-DAYS MERGES
 
@@ -265,7 +273,7 @@
   from the half-days session is what caught it, after step 2 was built. Before building on `pillRunsForWeek()`,
   `segPillLabel()` or `productionPillTag()`, check `git worktree list` and the other branches' HANDOFF top entries.
 
-### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
+### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (committed as `f1a497d`; pushed and live with half-days at `6bd5fae`)
 
 - Owner request: "Swap Block" → **"Swap Column"**. Button text and tooltip only (`drawStintButton` in
   `src/legacy/app.js`); the swap chip, confirmation and undo label still say "block", and were left alone because
