@@ -82,8 +82,16 @@
      capture a final state, wait for a backup that carries a marker (the `halfdays` leg waits for its title).
   3. **Frozen `render()` writes Production's meta line from `parseInt`.** Any non-integer total needs the observer.
 - ⚠️ **Overlaps two plans written the same day by other sessions, neither edited here:**
-  - [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md): its Week mode assumed one bar per week. With bars now always
-    split, "Label by" can only choose each bar's TEXT. Its Episode and Block rows are what this build draws by default.
+  - [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md): its Week mode assumed one bar per week. ✅ **Ruled by the
+    owner the same day (that plan's Q6–Q8, on `main` as `607588c`):** Q6, the setting changes each bar's TEXT only, and
+    bars stay split in every mode; Q7, a calendar with no choice follows Schedule by, which is exactly what this build
+    draws, so this branch's re-cut baselines are what that rebuild must hold byte-identical; Q8, **this branch lands
+    first**, then the toggle's step 2 is rebuilt on top of `unitBarLabel()` / `unitGreyLabel()` (its first build stays
+    on branch `pill-label` as a reference).
+    - ⛔ **Promised to that session:** tell it before changing `productionUnits()`, `takeProdRun()` or the `_prodRuns`
+      call-order contract, or what "Show Episodes" / "Show Blocks" OFF means. Here, OFF un-splits the bars; that
+      session will put this to the owner against its plan's contextual Show switches.
+    - ⚠️ This branch is cut from `f1a497d`, behind `main`, so landing it is a real merge, not a fast-forward.
   - [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) §2 noted the example calendar splits the shoot's bar at
     every episode change. This build does.
 
