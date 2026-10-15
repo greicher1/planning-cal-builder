@@ -78,7 +78,7 @@ window.addEventListener('load', function () { (async function () {
     // 2. Select Pre Prep's block. The swap is offered -- and the warning is specific, amber, and
     //    painted over the weeks it is about, all BEFORE the commit.
     await hover(cellOf('prePrep'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'prePrep'; }, 'Swap Block on Pre Prep', 60, 100);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'prePrep'; }, 'Swap Column on Pre Prep', 60, 100);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob', 150, 100);
     await T.sleep(300);

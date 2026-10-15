@@ -811,7 +811,7 @@ export function initLegacyApp() {
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
       // A swap knob owns its own 21px, the same way a .grid-resize handle owns its band: without
-      // this, a double-click on the knob would batch-expand the cell underneath it. The Swap Block
+      // this, a double-click on the knob would batch-expand the cell underneath it. The Swap Column
       // button owns its box for the same reason -- and for the hover, so that resting on the button
       // reads as the button and not as the cell it covers.
       if(el.classList && (el.classList.contains('grid-swap-knob') || el.classList.contains('grid-stint-btn'))) return null;
@@ -2905,7 +2905,7 @@ export function initLegacyApp() {
   // One-column mode breaks that equivalence: there is a SINGLE block, labelled with the FIRST
   // year, so a week in a later year still belongs to block <first year>. ⚠️ Getting it wrong fails
   // SILENTLY and completely: the swap machinery looks up `y<year>:s1`, finds no such column,
-  // returns early, and the Swap Block button simply never appears. No error, no clue.
+  // returns early, and the Swap Column button simply never appears. No error, no clue.
   //
   // ⭐ Returns exactly `+weekIso.slice(0,4)` whenever singleColumn is off, so every existing
   // calendar behaves identically -- the inertness is by construction, not by testing.
@@ -4413,7 +4413,7 @@ export function initLegacyApp() {
   // rendered grid, like everything else in this layer.
   // ⛔ Never snap a near-complete selection up to the whole stint (owner, 1 Sep 2026): "you selected
   // 19 of 20 so I assumed 20" is precisely the assumptive behaviour the block swap exists to remove.
-  // The Swap Block button makes the exact selection one click, so nobody needs the snap.
+  // The Swap Column button makes the exact selection one click, so nobody needs the snap.
   function swapSelectionMode(){
     if(viewMode !== 'sheet' || !gridSel.size) return { mode:'week' };
     const groups = new Map();
@@ -5295,13 +5295,15 @@ export function initLegacyApp() {
     doSwapMove(e.key === 'ArrowLeft' ? -1 : 1);
   });
 
-  // ---------- The "Swap Block" hover button (COLUMN-ORDER-PLAN.md §2.2; owner decision E2) --------
+  // ---------- The "Swap Column" hover button (COLUMN-ORDER-PLAN.md §2.2; owner decision E2) -------
   // One click selects every cell of the stint under the pointer, so the exact-match rule that resolves
   // the block mode is satisfied without dragging twenty rows through a scrolling pane -- and cannot be
   // missed by a pixel. Everything downstream is the shared machinery: outline, chip, knob, verdict.
   // ⛔ It lives on the OVERLAY, never inside the <td>: a control injected into a grid cell would be
-  // new frozen content. ⛔ The label is "Swap Block", never "Move": the three controls a few pixels
-  // away (← 1 wk, Shift All, 1 wk →) move the calendar in TIME (owner rulings D10 and E2).
+  // new frozen content. ⛔ The label is "Swap Column", never "Move": the three controls a few pixels
+  // away (← 1 wk, Shift All, 1 wk →) move the calendar in TIME (owner rulings D10 and E2). It said
+  // "Swap Block" until the owner renamed it on 15 Oct 2026 (no reason given; note that "block" also
+  // names Show Info's shooting blocks, BLOCKS-PLAN.md, which this button has nothing to do with).
   let stintHover = null;           // { year, phaseKey } while the pointer is over a stint or its button
   const sameStint = (a, b) => (!a && !b) || (!!a && !!b && a.year === b.year && a.phaseKey === b.phaseKey);
   // ⚠️ Visible while the pointer is over ANY cell of the stint or the button itself -- never scoped to
@@ -5358,9 +5360,9 @@ export function initLegacyApp() {
     btn.className = 'grid-stint-btn';
     btn.dataset.year = String(stintHover.year);
     btn.dataset.pkey = stintHover.phaseKey;
-    btn.textContent = 'Swap Block';
+    btn.textContent = 'Swap Column';
     btn.title = 'Select all ' + tds.length + ' weeks of ' + phaseLabelFor(stintHover.phaseKey) + ' in '
-      + stintHover.year + ' — then swap the whole block with the column beside it';
+      + stintHover.year + ' — then swap them with the column beside it';
     layer.appendChild(btn);
     // Top-right corner of the cell, inset from the column seam so it never sits under a swap knob
     // (21px, centred on that seam).

@@ -115,7 +115,7 @@ window.addEventListener('load', function () { (async function () {
     // BLOCK by the hovered week's own calendar year (`String(weekIso).slice(0,4)`) across ten
     // sites -- correct while there was exactly one block per year. In one-column mode there is a
     // single block labelled with the FIRST year, so a cell in Feb 2027 reported year 2027, the
-    // code looked up `y2027:s1`, found no such column and returned: the Swap Block button simply
+    // code looked up `y2027:s1`, found no such column and returned: the Swap Column button simply
     // never appeared. No error, nothing in the console. blockYearOf() is the fix.
     function ptr(t, el, x, y, b) {
       el.dispatchEvent(new PointerEvent(t, { bubbles:true, cancelable:true, composed:true,

@@ -2036,7 +2036,7 @@
      letting go. Once the knob is grabbed, the batch-expand count is noise: hide it for the gesture.
      Done in CSS rather than JS so there is only one place either chip's visibility is decided. */
   body.grid-swapping .grid-sel-chip{ display:none; }
-  /* The "Swap Block" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;
+  /* The "Swap Column" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;
      teal like the knob, because it belongs to the swap vocabulary and not to the purple resize one.
      Sized to sit inside a 20px row (ROW_DEFAULT_PX) without touching the cell's borders. */
   .grid-stint-btn{

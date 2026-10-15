@@ -294,6 +294,9 @@ column change, because the three controls a few pixels away — *← 1 wk*, *Shi
 the calendar in **time**. *Swap Block* names the outcome, matches the toolbar's existing
 *◀ Swap / Swap ▶*, and cannot be read as a shift in time. ⛔ Do not "improve" it back to *Move*.
 
+✅ **Renamed "Swap Column"** (owner, 15 Oct 2026). The verb is still *swap*, so D10 holds. Only the
+button's own text and tooltip changed; the chip, confirmation and undo label still say "block".
+
 ### 2.3 One outline cannot honestly wrap a ragged selection
 
 The owner asked for *"a box drawn around the edges of just the cells that you select"* — clearer than

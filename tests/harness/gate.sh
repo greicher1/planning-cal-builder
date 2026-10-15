@@ -528,7 +528,7 @@ chk(not a.get('errors'), f"oneside: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PY
 
-# ---- stintbtn: the "Swap Block" hover button and the mode inference, through the real user path --------
+# ---- stintbtn: the "Swap Column" hover button and the mode inference, through the real user path --------
 # COLUMN-ORDER-PLAN.md sections 2.2 and 6 item 5, on the owner's screenshot shape with NO order stored.
 # Hover a middle week -> the button appears on the block's FIRST week, survives travel across the
 # block, re-anchors on another phase, disappears off the phases. Click -> every cell selected as ONE
@@ -550,7 +550,7 @@ except Exception as e:
 if 'EX' in a:
     print('  FAIL  stintbtn threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('naturalNarrow'), "btn: pre-state is the natural order, Prod Prep held to one column")
-chk(a.get('btnText')=='Swap Block' and a.get('btnPhase')=='prodPrep/2026', f"btn: the button says Swap Block for the hovered block ({a.get('btnText')}, {a.get('btnPhase')})")
+chk(a.get('btnText')=='Swap Column' and a.get('btnPhase')=='prodPrep/2026', f"btn: the button says Swap Column for the hovered block ({a.get('btnText')}, {a.get('btnPhase')})")
 chk(a.get('btnOnFirstWeek') and a.get('btnInsideCell'), "btn: anchored to the block's FIRST week, inside the cell")
 chk(a.get('btnSurvivedTravel'), "btn: survives the pointer travelling across the block toward it")
 chk(a.get('btnFollowsPhase') and a.get('btnGoneOffPhase'), "btn: re-anchors on another phase, gone off the phases")

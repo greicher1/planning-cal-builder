@@ -74,7 +74,7 @@ window.addEventListener('load', function () { (async function () {
 
     // 2. ⭐ The swap that used to be refused is OFFERED, and the chip says it re-flows nothing.
     await hover(cellOf('writersRoom'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Block on Writer\'s Rm', 60, 100);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Column on Writer\'s Rm', 60, 100);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 150, 100);
     out.knob = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label') || '';

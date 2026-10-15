@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
+
+The teal hover button over a phase's block in the waterfall said **Swap Block**. It now says **Swap Column**, at the
+owner's request. Its tooltip now ends "then swap them with the column beside it", so "block" is not in it either.
+Nothing else changed: the button does the same thing, and the swap chip, the confirmation and the undo label still
+call the selected run a "block".
+- ⚠️ **The button is wider.** It is 72 px, up from 62.6 px. On a 77 px column (`colswap-gesture`), it now ends 3 px
+  before the seam instead of 12 px. So while the pointer is over a block, it covers the first week's right-hand
+  span handle as well as the left one it already covered. Move off the block to reach them, as before (HANDOFF row
+  "THE SWAP COLUMN BUTTON OWNS ITS BOX").
+- The `stintbtn` gate check now asserts the new text. Verified against `dist/index.html` with the five legs that
+  drive the button (`stintbtn`, `stintmulti`, `stintchain`, `stintreshape`, `onecol`): all 60 of the gate's checks
+  for them pass, with 0 console errors. `npm run check` passes 40/40. The full gate was not run: the change is one
+  string on the overlay, outside the grid and the writers.
+
 ### Unreleased — The month PDF the writer makes is byte-baselined: the direct writer's step 6 (5 Oct 2026)
 
 Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, the last step. **Users see no change.** This is

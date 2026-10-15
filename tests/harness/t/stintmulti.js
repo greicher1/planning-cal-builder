@@ -58,7 +58,7 @@ window.addEventListener('load', function () { (async function () {
 
     // A. From the LONG side. Hover Writer's Rm week 11, take the button, read the knob and the chip.
     await hover(cell('2026-03-16', 'writersRoom'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Block on Writer\'s Rm', 40, 50);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'writersRoom'; }, 'Swap Column on Writer\'s Rm', 40, 50);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 120, 100);
     out.knobA = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label') || '';
@@ -86,7 +86,7 @@ window.addEventListener('load', function () { (async function () {
     // B. From the SHORT side. Hover Post: its block is the 4 weeks; the swap is with Writer's Rm, and
     //    Localization -- which shares Post's column inside Writer's Rm's run -- must move with it.
     await hover(cell('2026-02-16', 'post'));
-    await T.until(function () { return btn() && btn().dataset.pkey === 'post'; }, 'Swap Block on Post', 40, 50);
+    await T.until(function () { return btn() && btn().dataset.pkey === 'post'; }, 'Swap Column on Post', 40, 50);
     btn().click();
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="-1"]'); }, 'the leftward knob on Post', 120, 100);
     out.knobB = document.querySelector('.grid-swap-knob[data-dir="-1"]').getAttribute('aria-label') || '';

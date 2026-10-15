@@ -1,4 +1,4 @@
-// stintbtn -- the "Swap Block" hover button and the mode inference, end to end through the real user
+// stintbtn -- the "Swap Column" hover button and the mode inference, end to end through the real user
 // path (COLUMN-ORDER-PLAN.md section 2.2 and section 6 item 5).
 //
 // Fixture: ?state=colswap-gesture -- the owner's screenshot shape, with NO order stored:
@@ -62,7 +62,7 @@ window.addEventListener('load', function () { (async function () {
     mid.scrollIntoView({ block: 'center' });
     await T.sleep(120);
     await hover(mid);
-    await T.until(btn, 'the Swap Block button', 40, 50);
+    await T.until(btn, 'the Swap Column button', 40, 50);
     var b = btn();
     out.btnText = b.textContent;
     out.btnPhase = b.dataset.pkey + '/' + b.dataset.year;
@@ -162,7 +162,7 @@ window.addEventListener('load', function () { (async function () {
 
     out.errors = (window.__ERR || []).slice(0, 6);
     out.clipped = T.clippedCells ? T.clippedCells() : 'n/a';
-    out.PASS = out.naturalNarrow && out.btnText === 'Swap Block' && out.btnPhase === 'prodPrep/2026' &&
+    out.PASS = out.naturalNarrow && out.btnText === 'Swap Column' && out.btnPhase === 'prodPrep/2026' &&
                out.btnOnFirstWeek && out.btnInsideCell && out.btnSurvivedTravel && out.btnFollowsPhase && out.btnGoneOffPhase &&
                out.outlines === 1 && out.noLeftKnob && out.modeSaysBlock && out.knobSaysBlock &&
                out.wholeBlockMoved && out.noCellWidened && out.knobFollowed && out.reverseRestoredExactly &&
