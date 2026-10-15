@@ -86,6 +86,47 @@
   commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
   owner's picker ("Merge to local main, no push"). NOT pushed.**
 
+### 📝 15 Oct 2026: PLANNED — LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK (plan committed, not built; all five rulings in)
+
+- Owner request: a month-view setting that switches Production's pill text between Production Week (today),
+  Episode and Block. Whatever is not the pill text moves into the grey text. The plan is
+  [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md). **Ruled by the owner the same day (plan §6):** the
+  setting lives in Settings ▸ Preferences (month view only). It is **saved in the calendar**, as a new permanent
+  snapshot key `mvProdLabel` modelled on `singleColumn`, with absent meaning Production Week. The Show switches
+  "contextually change" with the mode: a third, "Show Production Week", joins them, and only the switches for items
+  the grey text can carry are shown.
+- ✅ **Step 1, the width measurement, is DONE (plan §7).** A throwaway prototype was a scratch copy of `app.js` with
+  the helpers rewired, the mode taken from `?pilllabel=`, and the build served as `dist/_pill.html` (since
+  removed). 288 runs covered 18 calendars, every mode, the screen at 1600/1280/961/960 px, the print width, and both
+  PDFs read back with `pdftotext`. An over-long label was caught by every check, as a control.
+  - **No clipping in either PDF in any mode.** On screen, the new modes cut no pill that today's labels leave whole,
+    and they cut only grey text where today's cut the block and episodes.
+  - ✅ **Ruled after seeing the numbers and pictures (picker, 15 Oct 2026, plan §6 Q4/Q5):**
+    - Episode and Block modes **split Production's pill at each episode or block change**, through
+      `pillRunsForWeek()`, which is not frozen. That matches the owner's example calendar. Week mode never splits;
+    - **no width remedy**.
+  - Next is step 2, the engine. ⚠️ EPISODE-PREP-PLAN also rewires `pillRunsForWeek()`/`segPillLabel()`. Build one
+    at a time.
+- ⭐ **Learned:**
+  - **The month view's narrowest day column is at a 961 px window (83.6 px), not at 960** (the layout stacks there:
+    123.4 px) and not at 1280 (121.6 px). Measure there.
+  - **Today's labels already clip on screen below about 1245 px:** a one-day *Production Week 16* piece needs a
+    117 px column. This is pre-existing and not new.
+  - **On a Blocks calendar a one-day piece names every episode of its block** (block membership, not the day). The
+    plan's §3 had claimed one episode.
+  - **The split variant needs no frozen edit either.** `pillRunsForWeek()` is not frozen, and its only caller is
+    `renderMonthView`.
+  - The prototype method (scratch build + `?pilllabel=` + measuring every Production pill) is quick and covers all
+    three outputs. The `pilllabel` leg should reuse it. The scratch files were session-only and are gone.
+  - **Other sessions committed to `main` in this checkout during this one** (`f1a497d`, `400ea6c`, `34761f9`). Check
+    `git log` before assuming the tree is as you left it.
+- ⭐ **No frozen edit is expected.** `segPillLabel()` and `productionPillTag()` are the non-frozen helpers
+  `renderMonthView` calls for the pill text and the grey text, the same route ruling 8 took. The one premise
+  (Production's shoot days never fall on a hiatus day, so the run can be worked out from `shootDays`) holds by
+  reading, and the plan's leg asserts it on every fixture. If it ever fails, stop and ask: the fallback is a
+  frozen edit.
+- The default must leave gates 10 and 13 byte-identical. The owner sees Episode and Block PDFs before any commit.
+
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
 - Owner request: "Swap Block" → **"Swap Column"**. Button text and tooltip only (`drawStintButton` in
