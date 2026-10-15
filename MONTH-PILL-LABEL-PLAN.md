@@ -4,7 +4,47 @@
 same day (§6). **Step 1, the measurement, is done (§7):** nothing in any mode clips in either PDF.
 On screen the new modes lose only grey text, where today's labels lose the block and the episodes.
 On those numbers the owner ruled that Episode and Block modes **split the pill at each episode or
-block change** (Q4), and that **no width remedy** is wanted (Q5). **Step 2, the engine, is next.**
+block change** (Q4), and that **no width remedy** is wanted (Q5).
+
+> ⛔ **REVISED LATER ON 15 OCT 2026. Read this before §3–§5 and §11.** The half-days build (branch
+> `half-day-episodes`, commit `05f7f89`, not yet merged) made Production **ALWAYS one bar per
+> episode (per block in Blocks mode)**, under the owner ruling "Stacked bars, always". That reverses
+> ruling 8, and its month baselines (gates 10 and 13) were re-cut on the owner's sign-off. The owner
+> then ruled three more questions here (§6, Q6–Q8):
+> - **Q6, the toggle changes the bar's TEXT only.** Bars stay split in every mode, so §3's "Week
+>   mode never splits" and §4's split are superseded: half-days already splits. In Week mode a bar
+>   reads *Production Week 3* with grey *Ep. 201* (or *Block 1 · Ep. 201, 202*). Episode and Block
+>   read as in §3.
+> - **Q7, the default follows Schedule by:** Episode text on an Episodes calendar, Block text on a
+>   Blocks calendar. That is exactly what half-days draws, so its re-cut baselines are the
+>   byte-identical target (§8.1).
+> - **Q8, half-days lands first, then step 2 is REBUILT on top of it.** The first step-2 build
+>   (§11) is kept on branch `pill-label` as a reference only, and is not to be merged.
+>
+> **Rebuilding on half-days.** Per its session, `unitBarLabel()` and `unitGreyLabel()` are the only
+> places a split bar's two strings are composed. `productionPillTag()` matches its run by both
+> columns, and `segPillLabel()` takes its run from `takeProdRun()` by the frozen loop's call order.
+> So a text-only toggle should touch those two helpers, plus the parts of §11 that carry over:
+> - `mvProdLabel` in the snapshot, the sanitizer, the unconditional restore and the reset;
+> - `setMvProdLabel()`;
+> - `mvShowWeek()`;
+> - the `pilllabel` leg's way of opening each fixture with the key set.
+>
+> Dropped: §11's split (`productionPieceEnd()`, `productionUnitOf()`, the per-segment day maps),
+> which half-days' `productionUnits()` replaces.
+>
+> ⚠️ **Two things to settle at the rebuild:**
+> - **The Show switches.** Under half-days, "Show Episodes" OFF on an Episodes calendar (or "Show
+>   Blocks" OFF on a Blocks one) draws unsplit *Production Week N* bars. §5.2 hides that very
+>   switch while Episode is the pill text. The two cannot both stand, so ask the owner.
+> - **Storing the default (Q7).** With "absent = follow Schedule by", the variable needs a "not
+>   chosen" state that `captureSnapshot()` does not write (e.g. `null`, omitted), or else a fourth
+>   permanent value. Prefer omitting it: no new value enters the format.
+>
+> ⚠️ **Since `49c2eae`, `main` also has the month view's edge grips** (MONTH-VIEW-PLAN §6.7, step 7).
+> They read Production's pills, and their HANDOFF note asks for `pilldrag` E8–E13 to be re-run once
+> the pills split. Half-days' merge splits them, and so does this rebuild, so re-run `pilldrag`
+> after each.
 
 ---
 
@@ -230,6 +270,9 @@ Read that as: **the switches offered are exactly the items the grey text can car
 | Q3 | What happens to "Show Blocks / Show Episodes"? | *"The toggles should contextually change based on what mode we are on"* (§5.2) |
 | Q4 | One pill per week, or split where the episode or block changes? *(asked after step 1)* | **Split at each change** (§3, §7.4). Week mode never splits |
 | Q5 | A width remedy? *(asked after step 1)* | **None** (§7.5) |
+| Q6 | *(after half-days' "Stacked bars, always")* What does the setting do now that bars always split? | **Changes the bar's text only.** Bars stay split in every mode |
+| Q7 | What does a calendar show before anyone picks? | **Follow Schedule by:** Episode text on an Episodes calendar, Block text on a Blocks calendar (what half-days draws) |
+| Q8 | How does step 2 proceed? | **Half-days lands first, then step 2 is rebuilt on top.** The first build stays on `pill-label` as a reference |
 | — | Commit the plan now? | **Hold** until it settles |
 
 ---
@@ -414,9 +457,10 @@ lose the block and the episodes. The levers that were offered, kept for the reco
 
 1. ✅ **Measure (§7).** Done 15 Oct 2026. The `pilllabel` leg should reuse its method: every
    Production pill, at **961 px** and at the printed width, plus `…` counted in both PDFs.
-2. **Engine:** `productionRunParts`; the three helpers rewired (`segPillLabel`,
-   `productionPillTag`, and `pillRunsForWeek` for the split); `mvProdLabel` in the snapshot, the
-   restore and the resets; and `setMvProdLabel`. Drive it from a loaded snapshot, with no UI yet.
+2. ⏸ **Engine: to be REBUILT on half-days once it is merged (Q8).** The status block at the top
+   says what carries over. It was first built as written here (§11, superseded): `productionRunParts`;
+   the three helpers rewired (`segPillLabel`, `productionPillTag`, and `pillRunsForWeek` for the
+   split); `mvProdLabel` in the snapshot, the restore and the resets; and `setMvProdLabel`.
 3. **The controls:** the toggle (§5.1), the Show Production Week switch, and the contextual
    visibility (§5.2).
 4. **Mint the two fixtures in the app.** Write the `pilllabel` leg and wire it into `gate.sh`.
@@ -450,3 +494,49 @@ lose the block and the episodes. The levers that were offered, kept for the reco
   it reverses ruling 10. Ask; do not assume.
 - ⛔ **Not cheap to change once shipped:** the key name `mvProdLabel` and its three values. Settle
   them before the first build that saves.
+
+---
+
+## 11. ⛔ SUPERSEDED, kept for reference: the first step-2 build (15 Oct 2026, branch `pill-label`)
+
+*Built before the half-days ruling, against `main` at `8cec261`. Do not merge it. The status block at
+the top lists what carries over to the rebuild. The full gate was never run on it: two other
+sessions' gates held the machine, and the half-days news arrived first.*
+
+**No frozen line changed.** Everything is in `src/legacy/app.js`, in non-frozen functions:
+
+| | |
+|---|---|
+| State | `mvProdLabel` (`'week'` default) and `MV_PROD_LABELS`, declared beside `singleColumn` |
+| Reading it | `mvProdLabelMode()` gives the EFFECTIVE label: Block on a calendar with no blocks reads as Week, while the variable keeps the user's choice |
+| The split | `pillRunsForWeek()` returns its old runs untouched in Week mode (the old body is now `coveredRunsForWeek()`). Otherwise it cuts each run with `productionPieceEnd()` |
+| A piece's end | `productionPieceEnd(prod, weekStart, fromCol, limitCol, mode)`: on while the next day is a shoot day of the same unit (`productionUnitOf()`). An untagged day never breaks a piece |
+| The text | `productionPillText()` gives `{primary, grey}`. `grey: null` means "today's grey text", so `productionPillTag()` runs its original code for Week mode and for every fallback piece |
+| Pill text | `segPillLabel()` keeps its old body as `segWeekLabel()`. For Production in a labelled mode, it works out the piece's end with the same `productionPieceEnd()` and returns `.primary` |
+| Day maps | `episodeDayMapFor(prod)` and `blockDayMapFor(prod)`, cached per Production segment. `episodeDayMap(schedule)` still exists and delegates, and `productionPillTag`'s inline block cache is now `blockDayMapFor()` |
+| Grey text switch | `mvShowWeek()` reads `prefs.mvWeek` (absent = on), beside ruling 10's two. Its control is step 3 |
+| Save format | `captureSnapshot()` writes `mvProdLabel`. `sanitizeSnapshot()` drops a value not in `MV_PROD_LABELS`, counted like any bad value. `applyStateSnapshot()` restores it unconditionally (a valid value, or `'week'`), right after `singleColumn`. Reset All sets `'week'` |
+| A change | `setMvProdLabel(next)`, shaped like `setSingleColumn()`: `update()` then `markDirty()`. Nothing calls it until step 3's control |
+
+**Proved by the new `pilllabel` leg** (`tests/harness/t/pilllabel.js`, not yet in `gate.sh`; step 4
+wires it). With no control yet, it opens each fixture's own JSON through the real Load path with
+`mvProdLabel` set, and checks every month. On `blocks`, `blocksoff`, `dayoverrides`,
+`dayoverrides-onhalf`, `shootorder`, `month-dense60` and `carry-rich`:
+
+- **Byte-identical month view, every month:**
+  - `'week'` against no key (the default);
+  - `'block'` on an Episodes calendar against no key (the fallback);
+  - no key opened right after a `'block'` file (restore unconditionally);
+  - `'bogus'` against no key (it opens as Week, with the sanitizer's warning).
+- **In Episode and Block modes:**
+  - no piece names two units, which is also `segPillLabel`'s worked-out end agreeing with the
+    split;
+  - per week row, the covered columns are exactly Week mode's;
+  - no ` / `;
+  - no grey text on a one-day piece;
+  - every grey text is the plan's shape, and its *Production Week N* is the N that Week mode gives
+    that day.
+- **Save writes the label back** (`K0`).
+- **Fallbacks:** a single one, on `dayoverrides-onhalf`. It is a 2-day piece of untagged entries
+  past Σ episodes that starts a new row (Monday–Tuesday of Production Week 18), and it reads
+  *Production Week 18*, exactly as §3's rule says.

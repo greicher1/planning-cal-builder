@@ -86,8 +86,29 @@
   commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
   owner's picker ("Merge to local main, no push"). NOT pushed.**
 
-### 📝 15 Oct 2026: PLANNED — LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK (plan committed, not built; all five rulings in)
+### ⏸ 15 Oct 2026: LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK — PAUSED UNTIL HALF-DAYS MERGES
 
+- ⏭ **RESUME HERE, once `half-day-episodes` is merged into `main`. Do not start before.** Read the plan's top
+  status block first ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
+  - **What changed:** the half-days build (`05f7f89`, owner ruling "Stacked bars, always") makes Production
+    ALWAYS one bar per episode (per block). It rewrites `pillRunsForWeek()`, `segPillLabel()` and
+    `productionPillTag()`, the functions step 2 had just rewired.
+  - **The owner then ruled (picker, 15 Oct 2026, plan Q6–Q8):**
+    - the setting changes the bar's **text only**;
+    - the **default follows Schedule by** (Episode text on an Episodes calendar, Block text on a Blocks calendar),
+      which is what half-days draws;
+    - **half-days lands first, then step 2 is rebuilt on top of it.**
+  - **The first step-2 build is on branch `pill-label` (`4e1782f`, worktree `.claude/worktrees/pill-label`),
+    REFERENCE ONLY, never to be merged.** It holds the save-format plumbing (`mvProdLabel`, sanitize,
+    unconditional restore, reset, `setMvProdLabel`), `mvShowWeek()` and the `pilllabel` leg, which carry over.
+    Its split code is superseded by half-days' `productionUnits()`. Its full gate was never run.
+  - **On half-days, the two strings of a split bar are composed only in `unitBarLabel()`/`unitGreyLabel()`** (that
+    session's note). So the rebuild is mostly those two helpers plus the carried-over plumbing.
+  - ⚠️ **Two things to settle with the owner at the rebuild** (plan status block):
+    - half-days uses "Show Episodes"/"Show Blocks" OFF to un-split the bars, while plan §5.2 hides that very switch;
+    - how "not chosen" is stored without adding a fourth permanent value.
+  - Re-run `pilldrag` E8–E13 (the month-view edge grips, merged in `49c2eae`) after half-days and again after the
+    rebuild.
 - Owner request: a month-view setting that switches Production's pill text between Production Week (today),
   Episode and Block. Whatever is not the pill text moves into the grey text. The plan is
   [`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md). **Ruled by the owner the same day (plan §6):** the
@@ -105,8 +126,8 @@
     - Episode and Block modes **split Production's pill at each episode or block change**, through
       `pillRunsForWeek()`, which is not frozen. That matches the owner's example calendar. Week mode never splits;
     - **no width remedy**.
-  - Next is step 2, the engine. ⚠️ EPISODE-PREP-PLAN also rewires `pillRunsForWeek()`/`segPillLabel()`. Build one
-    at a time.
+  - *(Superseded by the half-days ruling above: Episode and Block no longer need their own split.)* ⚠️
+    EPISODE-PREP-PLAN also rewires `pillRunsForWeek()`/`segPillLabel()`. Build one at a time.
 - ⭐ **Learned:**
   - **The month view's narrowest day column is at a 961 px window (83.6 px), not at 960** (the layout stacks there:
     123.4 px) and not at 1280 (121.6 px). Measure there.
@@ -125,7 +146,11 @@
   (Production's shoot days never fall on a hiatus day, so the run can be worked out from `shootDays`) holds by
   reading, and the plan's leg asserts it on every fixture. If it ever fails, stop and ask: the fallback is a
   frozen edit.
-- The default must leave gates 10 and 13 byte-identical. The owner sees Episode and Block PDFs before any commit.
+- The default must leave gates 10 and 13 byte-identical. Since half-days, that means half-days' re-cut baselines. The
+  owner sees Week, Episode and Block PDFs before any commit.
+- ⭐ **Learned:** three sessions changed the same month-pill functions on one day, from three plans. A peer message
+  from the half-days session is what caught it, after step 2 was built. Before building on `pillRunsForWeek()`,
+  `segPillLabel()` or `productionPillTag()`, check `git worktree list` and the other branches' HANDOFF top entries.
 
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 
