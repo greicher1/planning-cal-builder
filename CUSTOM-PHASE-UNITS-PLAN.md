@@ -3,8 +3,8 @@
 **Status: PLAN, 15 Oct 2026. Nothing built.** ✅ **All seven rulings received 15 Oct 2026**
 (§10), every one as recommended except ruling 7: no countdown feature. Ready to build (§11).
 ⛔ **Scope widened the same day:** the five built-in Weeks phases get Dates mode too
-(MONTH-VIEW-PLAN ruling 7; §1, §7a), ten ids (ruling 9d). ⏸ Confirm ruling 7 first: the owner also
-typed "1a" (§7a).
+(MONTH-VIEW-PLAN ruling 7; §1, §7a), ten ids (ruling 9d). Ruling 7 was re-confirmed as 1c the same
+day.
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -206,10 +206,9 @@ are true of custom rows only, and each one fails for a built-in:
     Weeks then loses the end date.
   - Recommended: ten, for one code path. ✅ **RULED 15 Oct 2026 (MONTH-VIEW-PLAN ruling 9d): ten.**
     `unit-<key>` + `end-<key>` per built-in phase, and switching back to Weeks keeps the end date.
-  - ⚠️ **But question 1 itself is in doubt.** The owner also typed "1a" (no edge handles on the
-    built-ins) to the step-7 session, probably by clicking a stale button (MONTH-VIEW-PLAN §6.7,
-    "Two sets of answers"). ⏸ **Confirm with the owner that the built-ins get Dates mode at all,
-    before building this section.**
+  - ✅ **Question 1 was RE-CONFIRMED the same day.** The owner had also typed "1a" (no edge handles
+    on the built-ins) to the step-7 session, probably by clicking a stale button. Asked directly, the
+    owner picked **"Dates mode (1c)"**. This section stands (MONTH-VIEW-PLAN §6.7).
 - ⚠️ **An older build** ignores both ids and shows the phase in whole weeks, from `weeks-<key>`. The
   §7 rule therefore applies unchanged: keep `weeks-<key>` filled with the rounded-up equivalent,
   written in the row's input handler.

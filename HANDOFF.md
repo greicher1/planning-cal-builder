@@ -18,11 +18,17 @@
 - **Not built, and why:**
   - **Custom phases' edges (ruling 8)** come after CUSTOM-PHASE-UNITS steps 1–4. Its §11 step 6 says
     so.
-  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** are in doubt. The owner also
-    typed **"Accept 1a, 2a and 3a"** to the step-7 session four times. That is the text of a button
-    from the FIRST question box, probably a stale click, and 1a means NO edges on the built-ins.
-    ⏸ **Ask the owner before building CUSTOM-PHASE-UNITS §7a.** Production is unaffected: 3a's two
-    outer edges are a subset of 9a–9c.
+  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** also follow CUSTOM-PHASE-UNITS
+    (its §7a). The owner had also typed "Accept 1a, 2a and 3a" (a stale button: 1a means NO edges on
+    the built-ins). ✅ Asked directly by picker, the owner chose **"Dates mode (1c)"**. It stands.
+- ⛔ **For whoever merges `custom-units` second:** that branch makes `setPhaseStart()` "the ONE writer of
+  a phase's start for every mover". The Production start grip here writes `start-production`
+  directly. That is equivalent today, because Production has no Dates mode. **Route it through
+  `setPhaseStart('production', …)` in the merge** so the rule holds (`applyCount()` in
+  `installProductionEdgeHandles`). The month pill drag is the other writer both branches touch.
+- ⚠️ **MONTH-PILL-LABEL-PLAN may split Production's pills at each episode change.** The grips read
+  pill ranges, not weeks, so a split pill gets its boundary on the pill's right edge (already a
+  case). Re-run `pilldrag.mjs` E8–E13 on top of it.
 - ⚠️ **Easy to break:**
   - **`cellDate()` moved to module scope** from `installDayOverrideUI`, unchanged.
   - **Row grips ask the real scheduler.** `probeShootDays()` runs `computeSchedule(readState())`
@@ -77,7 +83,8 @@
 - ⚠️ **A boundary drag must set `daysEdited: true`.** The reconcile resets every unflagged episode or
   block to the default, which would silently undo the drag.
 - Branch `claude/nice-ishizaka-2afb79` (worktree `.claude/worktrees/nice-ishizaka-2afb79`): two docs
-  commits, then the build commit. Not pushed.
+  commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
+  owner's picker ("Merge to local main, no push"). NOT pushed.**
 
 ### ✅ 15 Oct 2026: THE HOVER BUTTON SAYS "SWAP COLUMN" (not committed)
 

@@ -51,8 +51,8 @@ each episode/production week/block individually"*.
   least one day.
 - **Day marks stay on their dates.** Episode grips do not move half, off or worked marks.
 - **One drag is one undo step.** Dragging out and back changes nothing and banks nothing. Escape puts the edge back.
-- **Other phases still move whole.** Edge grips for custom phases follow CUSTOM-PHASE-UNITS-PLAN.md. Grips for the
-  five built-in week phases wait on the owner, who answered that question two ways (MONTH-VIEW-PLAN §6.7).
+- **Other phases still move whole.** Edge grips for custom phases, and for the five built-in week phases once they
+  get a Dates mode (owner ruling 7, re-confirmed the same day), follow CUSTOM-PHASE-UNITS-PLAN.md.
 - **No frozen code changed.** The grips are screen-only chrome laid over the grid, not part of it, so neither month
   PDF can carry one: the print path hides them, and the written PDF is built from the renderer's HTML.
   `cellDate()`, the cross-checked day lookup that the day-mark popover uses, moved to module scope so both features

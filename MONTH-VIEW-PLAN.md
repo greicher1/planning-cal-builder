@@ -2,8 +2,7 @@
 
 **Status:** steps 1–6 SHIPPED (16–18 Sep 2026), plus the `dayOverrides` UI that turns step 6's marks
 on; step 7 is ◐ PART-BUILT: every Production handle was built locally on 15 Oct 2026 (§6.7). The custom
-phases' and built-ins' handles follow CUSTOM-PHASE-UNITS. Ruling 7 (the built-ins) awaits
-reconciliation. **All four blocking
+phases' and built-ins' handles follow CUSTOM-PHASE-UNITS (rulings 8 and 7; 7 re-confirmed as 1c). **All four blocking
 rulings received 16 Sep 2026** (§7). ⚠️ This header used to read *"plan only. No code written."*
 **Written:** 16 Sep 2026, against `4b0c3c5`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) §2i/§2j →
@@ -537,8 +536,10 @@ in the FIRST question box, which was still on screen, so it is probably a stale 
 | 3, Production | ruling 9, confirmed as 9a–9c | (a) the two outer edges. These are a SUBSET of 9a–9c, so there is no conflict about what to build |
 
 **Production is built to 9a–9c.** Question 1 does not touch Production. It decides whether
-CUSTOM-PHASE-UNITS gives the built-ins a Dates mode (§7a there), and ⏸ **it goes back to the
-owner** before that work starts.
+CUSTOM-PHASE-UNITS gives the built-ins a Dates mode (§7a there).
+
+✅ **RESOLVED 15 Oct 2026, owner's picker in the step-7 session: "Dates mode (1c)" stands.** The five
+built-ins get Dates mode, with ten ids (9d), and with it day-level edge handles (ruling 7).
 
 #### ✅ BUILT 15 Oct 2026: every Production handle of rulings 3a and 9a–9c. Zero frozen edits
 
@@ -706,8 +707,8 @@ Steps 1–4 touch no frozen code and can ship before anything is drawn.
    written. ✅ **Rulings 7–9 received the same day.** 7 and 8 wait on CUSTOM-PHASE-UNITS.
    ✅ **Production's handles BUILT 15 Oct 2026** (§6.7 "BUILT"): the outer edges (3a), every
    episode or block end, and every week's edges (9a–9c). Zero frozen edits. ⏸ **Still to come:** the
-   custom phases' handles (ruling 8, after CUSTOM-PHASE-UNITS) and the built-ins' (ruling 7). Ruling 7
-   is in doubt, because the owner also typed "1a" (§6.7, "Two sets of answers").
+   custom phases' handles (ruling 8, after CUSTOM-PHASE-UNITS) and the built-ins' (ruling 7, which the
+   owner re-confirmed as 1c the same day).
 
 ⚠️ **Cut a `.sptcal` fixture at steps 1, 2 and 6.** The save format moves in each, and
 `tests/fixtures/` is how the restore path is proven. `HANDOFF.md` §2j has the
