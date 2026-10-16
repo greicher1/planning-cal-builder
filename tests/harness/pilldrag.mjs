@@ -49,10 +49,12 @@
 //   E12 week 2's RIGHT edge onto Sat 7/11 and back, one gesture: Sat worked and wrap 10/19 mid-gesture,
 //       then nothing marked and 10/20
 //   E13 Blocks mode: Block 1's end (Thu 7/23) right a day: Block 1 19, Block 2 still 18, total 86
-//   E14 ⭐ half days (halfdays.sptcal: 4.5-day episodes, 201 at 5): Mon 7/13 is a switch day with TWO bars.
-//       202's one-day bar (top) has week-left and 202's end; 203's bar below has only 203's end (its left
-//       edge is 202's). 202's end right a day: 202 5.5, the switch moves to Tue 7/14 (202 above 203 there),
-//       total 46.5, wrap 9/1 -> 9/2; ONE Ctrl+Z puts back 4.5 and 9/1
+//   E14 ⭐ half days (halfdays.sptcal: 4.5-day episodes, 201 at 5): Mon 7/13 is a switch day with TWO bars,
+//       which since 16 Oct 2026 (HALF-SQUARE-BARS-PLAN.md) share ONE lane and meet half way through the square.
+//       202's one-day half bar (left) has week-left and 202's end, on its own right edge in the MIDDLE of the
+//       day; 203's bar (right) has only 203's end (its left edge is 202's). 202's end right a day: 202 5.5, the
+//       switch moves to Tue 7/14 (202 | 203 there, one lane), total 46.5, wrap 9/1 -> 9/2; ONE Ctrl+Z puts back
+//       4.5 and 9/1
 // Same plumbing as rtleg.mjs / printpaper.mjs: Node 24's built-in WebSocket, no dependencies, and a
 // non-default HARNESS_PORT namespaces the Chrome profile.
 import fs from 'node:fs';
@@ -499,14 +501,16 @@ try {
        !!b13 && b13.topmost === true && before13[0] === '18' && after13[0] === '19' && after13[1] === '18' && e13.total === '86', out.E13);
 
   // E14 -- half days (owner, 15 Oct 2026): a half switch day carries two bars, each with its own grips.
-  // July 2026's row 2 is Sun 7/12 - Sat 7/18; Monday is grid column 2.
+  // July 2026's row 2 is Sun 7/12 - Sat 7/18; Monday is grid column 2. ⚠️ REVISED 16 Oct 2026
+  // (HALF-SQUARE-BARS-PLAN.md): the two bars share one lane now, the earlier on the left half of the square,
+  // so they are read left to right, not top to bottom, and 202's end grip sits in the middle of Monday.
   await load('halfdays');
   await gotoMonth('July 2026');
   const barsOn = (row, col) => ev(`(async () => {
     const wk = document.querySelectorAll('#table-wrap .mv-body > .mv-week')[${row}];
     const ps = Array.from(wk ? wk.querySelectorAll('.mv-pill[data-ph="production"]') : [])
       .filter(p => +p.style.gridColumnStart <= ${col} && +p.style.gridColumnEnd > ${col})
-      .sort((a, b) => (+a.style.gridRowStart) - (+b.style.gridRowStart));
+      .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
     if (ps[0]) { ps[0].scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 300)); }
     return ps.map(p => { const r = p.getBoundingClientRect();
       const label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim();
@@ -514,6 +518,7 @@ try {
                gc: p.style.gridColumnStart + '/' + p.style.gridColumnEnd, lane: +p.style.gridRowStart, label }; }); })()`);
   const mon14 = await barsOn(2, 2);
   const top14 = mon14[0], low14 = mon14[1];
+  const monCell = await cell(2, 1, 13);
   const hLow = low14 ? await restOn(low14) : [];
   const hTop = top14 ? await restOn(top14) : [];
   const b14 = by(hTop, 'bound');
@@ -523,12 +528,13 @@ try {
   const tue14 = (await barsOn(2, 3)).map(x => x.label), mon14b = (await barsOn(2, 2)).map(x => x.label);
   await ctrlZ();
   const eps14c = await epDays(), q14c = await prod();
-  out.E14 = { mon: mon14, top: hTop, low: hLow, before: { eps: eps14a, prod: q14a }, after: { eps: eps14b, prod: q14b, tue: tue14, mon: mon14b },
+  out.E14 = { mon: mon14, monCell, top: hTop, low: hLow, before: { eps: eps14a, prod: q14a }, after: { eps: eps14b, prod: q14b, tue: tue14, mon: mon14b },
               undone: { eps: eps14c, prod: q14c } };
-  kase('E14', 'half days: Mon 7/13 has two bars, 202 (week-left + its end) above 203 (its end only); 202\'s end right a day '
-       + '-> 5.5, the switch moves to Tue 7/14, wrap 9/2; ONE Ctrl+Z -> 4.5, 9/1',
+  kase('E14', 'half days: Mon 7/13 has two bars in ONE lane meeting mid-square, 202 (week-left + its end, mid-Monday) and 203 '
+       + '(its end only); 202\'s end right a day -> 5.5, the switch moves to Tue 7/14, wrap 9/2; ONE Ctrl+Z -> 4.5, 9/1',
        mon14.length === 2 && top14.label === 'Ep. 202' && low14.label === 'Ep. 203' && top14.gc === '2/3' && low14.gc === '2/7'
-       && kinds(hTop) === 'bound,wkL' && kinds(hLow) === 'bound' && !!b14 && b14.topmost === true
+       && top14.lane === low14.lane && Math.abs((low14.l - top14.r) - 2) < 0.6 && !!monCell && Math.abs((top14.r + low14.l) / 2 - monCell.x) < 4
+       && kinds(hTop) === 'bound,wkL' && kinds(hLow) === 'bound' && !!b14 && b14.topmost === true && Math.abs(b14.r - top14.r) < 1
        && eps14a[1] === '4.5' && q14a.total === '45.5' && q14a.wrap === '9/1/26'
        && eps14b[1] === '5.5' && q14b.total === '46.5' && q14b.wrap === '9/2/26' && q14b.start === q14a.start
        && JSON.stringify(tue14) === '["Ep. 202","Ep. 203"]' && JSON.stringify(mon14b) === '["Ep. 202"]'

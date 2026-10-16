@@ -4,6 +4,58 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
+
+- ⏭ **RESUME HERE.**
+  - **State:** HALF-SQUARE-BARS-PLAN.md is built and gated (full gate: 1,493 PASS, 0 FAIL) on branch
+    `claude/sweet-mestorf-8d18b8`. Not merged into `main`, not pushed.
+  - ⛔ **Landing it lands MONTH-PILL-LABEL-PLAN step 2 as well.** The branch is cut from `78dedb1` (main) with
+    `claude/jovial-villani-c9cc8e` (`62c62b7`, step 2) merged in as `7b94c3f`, because the task's gate includes step
+    2's `pilllabel` leg, and the plan lives on that branch.
+  - So merge step 2's branch first (or with it), and re-run gates 10 and 13 on whichever lands first (plan §6).
+  - The full record is in the plan's §7 and §8.
+- **The owner's rulings (pickers, 16 Oct 2026), all as recommended:**
+  - **"Yes, build it":** the frozen edit, against §4's gate. The approved gate named the `halfSlices` line.
+  - **"Cut it with …":** a half-day bar too narrow for its name is cut, like every bar. Measured first: on screen a
+    one-day half bar has 21 px at a 961 px window and "Ep. 202" needs 37, so it reads "E…" below ~1,230 px. Both PDFs
+    have 50 px and print it whole. This replaced §4's "no clipping at 961", which could not hold.
+  - **"All three together":** the screen, the print path and the writer change at once.
+  - **"Yes, re-cut halfdays":** after `monthbase.py sheets` contact sheets of the written PDF, plus a poppler render
+    of the print path.
+- **What changed:**
+  - **`productionSplitRuns()`** flags a run `halfStart` / `halfEnd`, read off `byDay`: a day with two units is a
+    switch day, the first unit ends there and the second starts there.
+  - **Three frozen lines in `renderMonthView`:**
+    - `halfInset()` appends `margin-left/right:calc(P% + 1px)`, P = 100/(2·span), to a flagged Production run's style;
+    - `takeLane()`/`place()` count half-day occupancy (`halfHeld`), so the two bars share a lane;
+    - `halfSlices()` re-fits a saved ½ shade to the shorter box.
+
+    Unflagged runs get no new text.
+  - **The writer** (not frozen) mirrors all three: `mvlHalfInset`, `mvlInsetCols`, `mvlPackLanes`, the painter and
+    `mvlHalfColumns`.
+  - **`splitSpanOf()`** tells the two bars apart by x, not lane.
+  - ⭐ **The wrap day of a total ending in .5 is NOT inset.** My call, recorded in plan §7.2: no unit follows it, and
+    insetting it would change calendars that have no switch day. Cheap to change if the owner wants it.
+- **Legs:**
+  - `halfdays` 26/26 (D2 rewritten with px geometry, D2i new, D7m and D10m revised);
+  - `pilldrag` E14 rewritten (20/20);
+  - `monthlayout` reads the inset and runs on `halfdays` and `halfmarks` too;
+  - **new `halfmarks` leg** (5 cases) and **fixture `halfmarks.sptcal`**: `dayoverrides-onhalf` with Episode 201 at
+    4.5, so switch days land ON saved ½ marks. A mutant with the `halfSlices` re-fit off is red;
+  - `monthwriter` runs `hm` (halfmarks) too.
+- **Proof:** see plan §8. In short: full gate on build `be311b275aa4d884…` (1,482,152 bytes): **1,493 PASS, 0 FAIL, GATE PASSED** (14 min, 16 Oct 2026, no other gate alongside). Gate 13: all twenty written month PDFs byte-identical to their baselines, nineteen of them untouched and `halfdays` at its new cut. Gate 10: all ten print documents identical. `pilllabel` 90/90, `pilldrag` 20/20, `halfdays` 26/26, `halfmarks` 5/5, `monthlayout` on `halfdays` and `halfmarks`, `monthwriter` hd and hm, `fields.byId` 62 ids. `npm run check` 40/40, `check-refs.py` CLEAN.
+- ⭐ **Learned:**
+  1. **`monthbase.py sheets` parses only the writer's own PDF layout.** It throws on Chrome's print PDF ("object 1 has
+     no endobj"). For the print path, render with `pdftoppm` and diff with PIL, as this session did.
+  2. **A grid item's percentage margin resolves against its grid AREA** (CSS Grid), so `calc(100%/(2·span) + 1px)` is
+     exactly half a day of the bar's own span. The writer reproduces it from the same 4-place percentage
+     (`mvlInsetCols`), and `monthwriter` A3 holds every box to Chrome's layout.
+  3. **To say whether an INFO line is new, run the leg on the pre-change commit** in a throwaway
+     `git worktree add --detach` (symlink `node_modules`, and unlink the symlink before `git worktree remove --force`).
+     `halfdays`' three "laid out anew" months were already there.
+  4. **Chrome moved to 155.0.8059.82** since the 15 Oct cut (.40). Its compressor did not move anything: all nineteen untouched gate-13 files stayed byte-identical under .82.
+  5. **The owner's Mac ran this session on battery (17-18%).** Ask for power before a full gate, not during one.
+
 ### ✅ 15 Oct 2026: HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5, AND THE SWITCH DAY SHOWS BOTH BARS (branch `half-day-episodes`, worktree `.claude/worktrees/half-day-episodes`)
 
 - ✅ **PUSHED AND LIVE at `6bd5fae` (15 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`f80ec9fa…`,
@@ -231,8 +283,8 @@
     `productionPillTag()`'s one-bar-per-week text is back, byte for byte the pre-step code.
   - **Q12: the switch day's two bars should meet half way through the square** (the owner's own idea) rather than
     stack. ⛔ A frozen edit (`renderMonthView`'s `place()` and `takeLane()`), so it is written up on its own in
-    [`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md), gate proposed, **sign-off still needed**, to be built in its
-    own session.
+    [`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md), gate proposed, to be built in its own session.
+    ✅ **Signed off and BUILT 16 Oct 2026**: see the entry above this one.
 - **What was built** (`src/legacy/app.js`, no frozen line):
   - the text: `unitLabelParts()` with `unitBarLabel()` / `unitGreyLabel()`, which are still the ONLY place a split
     bar's two strings are composed. The table is in their comment;

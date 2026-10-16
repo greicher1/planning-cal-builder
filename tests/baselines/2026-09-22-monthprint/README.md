@@ -140,6 +140,25 @@ occupancy is identical and every note lands where it did. Only a half-day switch
 
 `halfdays` is `tests/fixtures/halfdays.sptcal`: 4.5-day episodes with Episode 201 at 5, 45.5 shoot days from 6/29/26.
 
+## ✅ RE-CUT 16 Oct 2026 — `halfdays` ONLY: a switch day's two bars meet half way through the square
+
+The owner's idea, 15 Oct 2026 (HALF-SQUARE-BARS-PLAN.md). It is a frozen edit to `renderMonthView`, approved by
+picker on 16 Oct 2026 against that plan's §4 gate. On a day where an episode changes half way through:
+- the earlier episode's bar now stops half way through the square, by a `margin-right:calc(P% + 1px)`;
+- the next one starts there, by a `margin-left`;
+- both sit in ONE lane, because `takeLane()` counts the two halves of that column separately.
+
+A bar with no switch day gets no new text, so every other case here is unchanged, byte for byte, with no re-cut.
+Signed off on the written PDF's contact sheets (gate 13's README) and a render of this print path's July and August:
+**"Yes, re-cut halfdays"** (picker).
+
+| case | elements | Production bars | insets | sheets | row heights |
+|---|---|---|---|---|---|
+| `halfdays` | 3827 → 3831 | 22 → 22 | 0 → 8 | 16 → 16 | July weeks 3 and 4 and August weeks 2 and 4: 78 → 57 px. Every other row is unchanged |
+
+The 4 extra elements are never-printed `+` affordances, on lanes the stacked bars used to fill.
+Cut from build `be311b275aa4d884…` with Google Chrome 155.0.8059.82; `monthcmp.py gate` passed against the new cut.
+
 ## What the leg asserts
 
 1. The printed document is **byte-identical** to `<case>.html`.

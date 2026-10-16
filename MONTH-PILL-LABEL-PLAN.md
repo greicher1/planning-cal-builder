@@ -57,6 +57,9 @@ block change** (Q4), and that **no width remedy** is wanted (Q5).
 > - **Q12, the switch day's two bars should meet half way through the square** (the owner's own suggestion) instead
 >   of stacking. That is a frozen edit to `renderMonthView`, so it is planned on its own in
 >   [`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md), to be built in its own session after the owner signs off its gate.
+>   ✅ **Gate signed off and BUILT 16 Oct 2026**, on top of this plan's step 2 (branch `claude/sweet-mestorf-8d18b8`).
+>   It adds `halfStart`/`halfEnd` to the runs `productionSplitRuns()` returns, and `splitSpanOf()` now reads x, not lanes.
+>   Step 3 changes neither, but keep the flags on any run it builds.
 >
 > ⚠️ **Since `49c2eae`, `main` also has the month view's edge grips** (MONTH-VIEW-PLAN §6.7, step 7).
 > They read Production's pills, and their HANDOFF note asks for `pilldrag` E8–E13 to be re-run once

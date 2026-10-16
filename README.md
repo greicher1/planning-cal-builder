@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A switch day's two month bars meet half way through the square (16 Oct 2026)
+
+The owner's own idea, on seeing the stacked bars: *"maybe rather than having both pills overlap, the bar ends half way
+thru the calendar square and the next pill starts in the second half of the square"*. Planned in
+`HALF-SQUARE-BARS-PLAN.md`.
+- **On a day where an episode or block changes half way through** (a count ending in .5), the earlier one's month bar
+  now stops half way through that day's square, and the next one's starts there. They share one line instead of
+  stacking, so those weeks lose the extra line they grew. Whole boundaries, the last day of a shoot ending in .5, and
+  every other calendar look exactly as before.
+- **Screen and both month PDFs change together** (owner's picker). The print path follows the screen by construction,
+  and the PDF writer was taught the same inset, lane packing and shade.
+- **A half-day bar too narrow for its name is cut with "…"**, like every bar (owner's picker). That happens on screen
+  only, below a window about 1,230 px wide: "Ep. 202" needs 37 px, and a half day has 21 px at 961 px. The full name
+  shows on hover, and both PDFs print it whole (a half day has 50 px there).
+- **A saved ½ mark inside such a bar** shades its own day's share of the shorter bar.
+- **The month view's edge grips** tell a switch day's two bars apart by position, not by line. The earlier one's end
+  grip now sits in the middle of the day.
+- ⛔ **A frozen edit, approved by the owner's picker** against the plan's gate. It touches three things in
+  `renderMonthView`:
+  - the Production `place()` call (a `margin-left` / `margin-right` inset, only on a flagged run);
+  - `takeLane()` (half-day occupancy);
+  - `halfSlices()` (the shade re-fitted to an inset bar).
+
+  A bar with no switch day gets no new text.
+- **Verified:** full gate on build `be311b275aa4d884…` (1,482,152 bytes): **1,493 PASS, 0 FAIL, GATE PASSED** (14 min, 16 Oct 2026, no other gate alongside). Gate 13: all twenty written month PDFs byte-identical to their baselines, nineteen of them untouched and `halfdays` at its new cut. Gate 10: all ten print documents identical. `pilllabel` 90/90, `pilldrag` 20/20, `halfdays` 26/26, `halfmarks` 5/5, `monthlayout` on `halfdays` and `halfmarks`, `monthwriter` hd and hm, `fields.byId` 62 ids. `halfdays` was re-cut in gates 10 and 13 only after the owner saw contact sheets ("Yes, re-cut halfdays"). `npm run check` 40/40.
+
 ### Unreleased — Production's month bars can be labelled by Week, Episode or Block: the engine (15 Oct 2026)
 
 Step 2 of MONTH-PILL-LABEL-PLAN.md, rebuilt on top of half days. There is no control yet (step 3), so nothing a user

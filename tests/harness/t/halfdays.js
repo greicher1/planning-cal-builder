@@ -8,6 +8,9 @@
 // days as half days." Rulings, same day (picked from mock-ups): "Stacked bars, always" -- Production is
 // drawn as one bar per episode (per block in Blocks mode), and a switch day carries both bars, one above
 // the other -- and "Keep them as they are" for half-day MARKS already saved (the halfworked leg).
+// ⭐ REVISED 16 Oct 2026 (HALF-SQUARE-BARS-PLAN.md, the owner's own idea, a frozen edit approved by picker):
+// the switch day's two bars no longer stack. They share ONE lane and meet half way through the day's square,
+// the earlier ending there and the later starting there. D2, D2i, D7m and D10m hold that.
 //
 // Starts from the reference calendar T.buildFixture() types in (10 x 8 days from Mon 6/29/26, US
 // General, so Fri 7/3 is a union holiday). With 4.5 days per episode the shoot days of July are
@@ -66,8 +69,11 @@ window.addEventListener('load', function () { (async function () {
     }
     throw new Error('never reached ' + label);
   }
-  // Production's bars in the month on screen, as {iso: [[label, grey, lane], ...] top to bottom}.
-  // A bar's days come from its own grid-column, and its week row's Sunday from the row's day cells.
+  // Production's bars in the month on screen, as {iso: [[label, grey, lane, inset], ...] top to bottom, then in
+  // placement order}. A bar's days come from its own grid-column, and its week row's Sunday from the row's day cells.
+  // `inset` is the half-day inset renderMonthView writes on a switch day (HALF-SQUARE-BARS-PLAN.md, 16 Oct 2026):
+  // 'R' for a bar that stops half way through its last day (margin-right), 'L' for one that starts half way
+  // through its first (margin-left), '' for neither.
   function prodByDay(){
     var my = txt(document.querySelector('#table-wrap .mv-monthyear'));
     var m0 = new Date(Date.parse('1 ' + my + ' UTC'));
@@ -85,7 +91,8 @@ window.addEventListener('load', function () { (async function () {
         var label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim();
         for(var c = +gc[1] - 1; c < +gc[2] - 1; c++){
           var iso = new Date(sunday + c * 86400000).toISOString().slice(0, 10);
-          (out[iso] = out[iso] || []).push([label, sp ? sp.textContent : '', +(gr ? gr[1] : 0)]);
+          var inset = (/margin-left:\s*calc\(/.test(st) ? 'L' : '') + (/margin-right:\s*calc\(/.test(st) ? 'R' : '');
+          (out[iso] = out[iso] || []).push([label, sp ? sp.textContent : '', +(gr ? gr[1] : 0), inset]);
         }
       });
     });
@@ -93,6 +100,40 @@ window.addEventListener('load', function () { (async function () {
     return out;
   }
   function labelsOn(map, iso){ return (map[iso] || []).map(function (x) { return x[0]; }); }
+  // A switch day's two bars, measured: the same lane, the earlier inset on the right and the later on the left,
+  // and the gap between them straddling the middle of the day's TRACK in .mv-bars' own grid (its 3 px padding a
+  // side makes a track narrower than a day cell). {ok, why, ...}.
+  function switchGeom(iso){
+    var my = txt(document.querySelector('#table-wrap .mv-monthyear'));
+    var m0 = new Date(Date.parse('1 ' + my + ' UTC'));
+    var found = null;
+    [].forEach.call(document.querySelectorAll('#table-wrap .mv-week'), function (wk) {
+      var cells = wk.querySelectorAll('.mv-daycell');
+      var inIdx = [].findIndex.call(cells, function (c) { return !c.classList.contains('mv-out'); });
+      if(inIdx < 0) return;
+      var d = +txt(cells[inIdx].querySelector('.mv-daynum'));
+      var sunday = Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth(), d) - inIdx * 86400000;
+      var col = Math.round((Date.parse(iso + 'T00:00:00Z') - sunday) / 86400000);
+      if(col < 0 || col > 6) return;
+      var bars = wk.querySelector('.mv-bars'), br = bars.getBoundingClientRect(), cs = getComputedStyle(bars);
+      var pl = parseFloat(cs.paddingLeft), tw = (br.width - pl - parseFloat(cs.paddingRight)) / 7;
+      var mid = br.left + pl + (col + 0.5) * tw;
+      var ps = [].filter.call(wk.querySelectorAll('.mv-pill[data-ph="production"]'), function (p) {
+        return +p.style.gridColumnStart - 1 <= col && +p.style.gridColumnEnd - 2 >= col;
+      });
+      found = {ps: ps, mid: mid};
+    });
+    if(!found) return {ok: false, why: 'no week row holds ' + iso};
+    if(found.ps.length !== 2) return {ok: false, why: found.ps.length + ' bars on ' + iso};
+    var a = found.ps[0], b = found.ps[1], ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    var r = {lanes: [a.style.gridRowStart, b.style.gridRowStart], aRight: +ra.right.toFixed(2), bLeft: +rb.left.toFixed(2),
+             mid: +found.mid.toFixed(2), aStyle: /margin-right:[^;]*/.exec(a.getAttribute('style') || '') + '',
+             bStyle: /margin-left:[^;]*/.exec(b.getAttribute('style') || '') + ''};
+    r.ok = r.lanes[0] === r.lanes[1] && /calc\(/.test(r.aStyle) && /calc\(/.test(r.bStyle)
+      && !/margin-left/.test(a.getAttribute('style')) && !/margin-right/.test(b.getAttribute('style'))
+      && Math.abs((rb.left - ra.right) - 2) < 0.6 && Math.abs((ra.right + rb.left) / 2 - found.mid) < 0.6;
+    return r;
+  }
   function eq(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
 
   try {
@@ -116,15 +157,27 @@ window.addEventListener('load', function () { (async function () {
         && (s1.episodeDefs || []).length === 10 && s1.episodeDefs.every(function (e) { return parseFloat(e.days) === 4.5; }),
       {perEp: s1.fields && s1.fields.byId && (s1.fields.byId['shoot-days-per-ep'] || {}).value, days: (s1.episodeDefs || []).map(function (e) { return e.days; })}, '4.5');
 
-    // ---- D2: the month view -- one bar per episode, both on a switch day, stacked ----
+    // ---- D2: the month view -- one bar per episode; a switch day's two MEET HALF WAY THROUGH ITS SQUARE ----
+    // ⚠️ REVISED 16 Oct 2026 (HALF-SQUARE-BARS-PLAN.md; the owner's idea, a frozen edit approved by picker). Until
+    // then the two bars stacked, one lane each ("Stacked bars, always"). Now they share ONE lane: the earlier
+    // episode's bar stops half way through the day (margin-right), the later one's starts there (margin-left).
     await toMonth('July 2026');
     var jul = prodByDay();
     out.july = jul;
-    add('D2', '⭐ Mon 7/6, Fri 7/17 and Thu 7/30 each carry TWO bars, the earlier episode above the later: 201/202, 203/204, 205/206',
+    var geo = {'07-06': switchGeom('2026-07-06'), '07-17': switchGeom('2026-07-17'), '07-30': switchGeom('2026-07-30')};
+    out.switchGeom = geo;
+    add('D2', '⭐ Mon 7/6, Fri 7/17 and Thu 7/30 each carry TWO bars in ONE lane, the earlier ending and the later starting half way through the square: 201|202, 203|204, 205|206',
       eq(labelsOn(jul, '2026-07-06'), ['Ep. 201', 'Ep. 202']) && eq(labelsOn(jul, '2026-07-17'), ['Ep. 203', 'Ep. 204'])
         && eq(labelsOn(jul, '2026-07-30'), ['Ep. 205', 'Ep. 206'])
-        && jul['2026-07-06'][0][2] < jul['2026-07-06'][1][2] && jul['2026-07-17'][0][2] < jul['2026-07-17'][1][2],
-      {'07-06': jul['2026-07-06'], '07-17': jul['2026-07-17'], '07-30': jul['2026-07-30']}, 'two bars, stacked');
+        && ['2026-07-06', '2026-07-17', '2026-07-30'].every(function (k) {
+             return jul[k][0][2] === jul[k][1][2] && jul[k][0][3] === 'R' && jul[k][1][3] === 'L';
+           })
+        && geo['07-06'].ok && geo['07-17'].ok && geo['07-30'].ok,
+      {'07-06': jul['2026-07-06'], '07-17': jul['2026-07-17'], '07-30': jul['2026-07-30'], geometry: geo},
+      'one lane; the earlier inset right, the later left, 2 px apart either side of the day\'s middle');
+    var insets = [].filter.call(document.querySelectorAll('#table-wrap .mv-bar'), function (b) { return /margin-(left|right):/.test(b.getAttribute('style') || ''); }).length;
+    add('D2i', 'only those six bars carry an inset: no whole boundary, week edge, other phase or note has one',
+      insets === 6, insets, 6);
     var singles = {'2026-06-29': 'Ep. 201', '2026-07-02': 'Ep. 201', '2026-07-07': 'Ep. 202', '2026-07-10': 'Ep. 202',
                    '2026-07-13': 'Ep. 203', '2026-07-16': 'Ep. 203', '2026-07-20': 'Ep. 204', '2026-07-23': 'Ep. 204',
                    '2026-07-24': 'Ep. 205', '2026-07-29': 'Ep. 205', '2026-07-31': 'Ep. 206'};
@@ -163,7 +216,7 @@ window.addEventListener('load', function () { (async function () {
     var undoBefore = document.getElementById('undo-btn').disabled;
     document.getElementById('pref-mv-episodes').click(); await settle();
     var off = prodByDay();
-    add('D6', '"Show Episodes" off: the bars stay split and read exactly as D2 -- 7/6 still carries 201 over 202',
+    add('D6', '"Show Episodes" off: the bars stay split and read exactly as D2 -- 7/6 still carries 201 and 202',
       eq(off, jul) && eq(labelsOn(off, '2026-07-06'), ['Ep. 201', 'Ep. 202']),
       {'07-06': off['2026-07-06'], '07-13': off['2026-07-13']}, 'identical to D2');
     document.getElementById('pref-mv-episodes').click(); await settle();
@@ -183,10 +236,12 @@ window.addEventListener('load', function () { (async function () {
     // 201 is 5 whole days now, so 202 sits on [5, 9.5): index 9, Mon 7/13, is the new switch day.
     await toMonth('July 2026');
     var jul2 = prodByDay();
-    add('D7m', 'and the switch days follow: 7/6 is 201 alone, 7/10 is 202 alone, Mon 7/13 carries 202 above 203',
+    var geo13 = switchGeom('2026-07-13');
+    add('D7m', 'and the switch days follow: 7/6 is 201 alone, 7/10 is 202 alone, Mon 7/13 carries 202 and 203 meeting half way, in one lane',
       eq(labelsOn(jul2, '2026-07-06'), ['Ep. 201']) && eq(labelsOn(jul2, '2026-07-10'), ['Ep. 202'])
-        && eq(labelsOn(jul2, '2026-07-13'), ['Ep. 202', 'Ep. 203']),
-      {'07-06': jul2['2026-07-06'], '07-10': jul2['2026-07-10'], '07-13': jul2['2026-07-13']}, '201 | 202 | 202 over 203');
+        && eq(labelsOn(jul2, '2026-07-13'), ['Ep. 202', 'Ep. 203']) && geo13.ok
+        && jul2['2026-07-06'][0][3] === '' && jul2['2026-07-10'][0][3] === '',
+      {'07-06': jul2['2026-07-06'], '07-10': jul2['2026-07-10'], '07-13': jul2['2026-07-13'], geometry: geo13}, '201 | 202 | 202 meeting 203');
 
     // ---- D8: a value between halves is flagged and reads down to the half below ----
     document.getElementById('view-sheet-btn').click(); await settle();
@@ -228,10 +283,12 @@ window.addEventListener('load', function () { (async function () {
     await toMonth('July 2026');
     var blk = prodByDay();
     // Blocks of 8.5: [0,8.5) [8.5,17) [17,25.5) -> switch days index 8 (Fri 7/10) and 25 (in August).
-    add('D10m', '⭐ Fri 7/10 carries Block 1 above Block 2; 7/9 is Block 1 alone, 7/13 Block 2 alone',
-      eq(labelsOn(blk, '2026-07-10'), ['Block 1', 'Block 2']) && blk['2026-07-10'][0][2] < blk['2026-07-10'][1][2]
+    var geo10 = switchGeom('2026-07-10');
+    add('D10m', '⭐ Fri 7/10 carries Block 1 and Block 2 meeting half way through the square, in one lane; 7/9 is Block 1 alone, 7/13 Block 2 alone',
+      eq(labelsOn(blk, '2026-07-10'), ['Block 1', 'Block 2']) && geo10.ok
+        && blk['2026-07-10'][0][3] === 'R' && blk['2026-07-10'][1][3] === 'L'
         && eq(labelsOn(blk, '2026-07-09'), ['Block 1']) && eq(labelsOn(blk, '2026-07-13'), ['Block 2']),
-      {'07-09': blk['2026-07-09'], '07-10': blk['2026-07-10'], '07-13': blk['2026-07-13']}, 'Block 1 over Block 2');
+      {'07-09': blk['2026-07-09'], '07-10': blk['2026-07-10'], '07-13': blk['2026-07-13'], geometry: geo10}, 'Block 1 | Block 2');
     var g7 = (blk['2026-07-07'] || [[]])[0][1];
     add('D10g', 'a block bar\'s grey text is its week and its episodes ("Production Week 2 · Ep. 201, 202")',
       g7 === 'Production Week 2 · Ep. 201, 202', g7, 'Production Week 2 · Ep. 201, 202');

@@ -17,9 +17,16 @@ described where their legs are, in `tests/harness/README.md` and `PROJECT-CONTEX
 
 `halfdays.sptcal` is the reference calendar (`T.buildFixture()`) at **4.5 shooting days per episode, with Episode 201
 at 5**: 45.5 shoot days from Mon 6/29/26, wrapping Tue 9/1/26. Its episode boundaries fall half way through a day
-(Mon 7/13, Fri 7/24, Thu 8/6, …), so Production's month-view bars stack on those days. Cut from the running app by the
+(Mon 7/13, Fri 7/24, Thu 8/6, …), so Production's month-view bars stacked on those days, and since 16 Oct 2026
+(HALF-SQUARE-BARS-PLAN.md) meet half way through the square in one lane. Cut from the running app by the
 `halfdays` leg (its `fixture` output), not written by hand. It also carries a dormant 5 x 8.5-day block list from the
 leg's Blocks-mode step, in Episodes mode. Used by gate 10 (`monthprint`), `monthwriter`, `monthexport` and gate 13.
+
+`halfmarks.sptcal` (16 Oct 2026) is `dayoverrides-onhalf.sptcal` with **Episode 201 typed as 4.5**, so every later
+episode boundary falls half way through a day. Two of those switch days carry a saved ½ mark: Fri 7/3 ('onhalf',
+201|202) and Sat 8/1 ('onhalf', 203|204). So a ½ shade sits inside a bar that is inset half a day, which no other
+fixture has. Cut from the running app by the `halfmarks` leg (its `fixture` output). Used by `monthlayout` and
+`monthwriter` in the gate.
 
 ## From the deployment-readiness audit (24 Sep 2026)
 

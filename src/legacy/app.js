@@ -6027,20 +6027,22 @@ export function initLegacyApp() {
     // The row a SPLIT bar is cut from, or null when the bars are not split (no Show Info, or labelled
     // by Production Week -- productionSplits(), productionSplitRuns()' own test) and specsFor() reads
     // the bar as a week's pill. A bar's days are consecutive shoot days, so its row is the one spanning both its
-    // ends. Only a one-day bar on a half switch day fits two rows; there the bar in the HIGHER lane is
-    // the earlier row's, because productionSplitRuns() hands the renderer the earlier row first and
-    // takeLane() fills top down.
+    // ends. Only a one-day bar on a half switch day fits two rows; there the bar further LEFT is the earlier
+    // row's. ✅ HALF A SQUARE EACH (HALF-SQUARE-BARS-PLAN.md, 16 Oct 2026): the switch day's two bars now share
+    // ONE lane, the earlier one stopping half way through the square and the later one starting there
+    // (renderMonthView's halfInset), so the lane can no longer tell them apart and x does. It was "the higher
+    // lane is the earlier row" while they stacked, which first-fit never actually promised.
     function splitSpanOf(pill, g, P){
       const U = currentSchedule && productionUnits(currentSchedule);
       if(!productionSplits(U)) return null;
       const fits = P.spans.filter(sp=> sp.first && sp.last && sp.first <= g.from && sp.last >= g.to);
       if(fits.length < 2) return fits[0] || null;
-      const lane = p=> parseInt(p.style.gridRowStart, 10) || 0;
+      const left = p=> p.getBoundingClientRect().left;
       const rivals = prodPills().filter(p=>{
         if(p.parentNode !== pill.parentNode) return false;
         const r = pillRange(p);
         return r && r.from <= g.from && r.to >= g.to;
-      }).sort((a, b)=> lane(a) - lane(b));
+      }).sort((a, b)=> left(a) - left(b));
       const k = rivals.indexOf(pill);
       return k >= 0 ? (fits[k] || null) : null;
     }
@@ -6079,7 +6081,9 @@ export function initLegacyApp() {
       // A split bar is one row's run, so its grips come from THAT row: its right edge is the row's end
       // (`bound`) or, where the run stops for a weekend, holiday or 'off' day, a week edge; its left edge
       // is a week edge unless the row starts there -- that line belongs to the EARLIER row, whose bar
-      // carries the grip. No boundary is ever mid-bar. A half switch day has two bars, each with its own.
+      // carries the grip. No boundary is ever mid-bar. A half switch day has two bars, each with its own:
+      // since 16 Oct 2026 they share one lane and meet half way through the square (HALF-SQUARE-BARS-PLAN),
+      // so the earlier row's `bound` sits at the middle of that day, on its bar's own right edge.
       const sp = splitSpanOf(pill, g, P);
       if(sp){
         if(g.from === P.first) out.push({kind: 'start', side: 'left', day: g.from});
@@ -7531,12 +7535,27 @@ export function initLegacyApp() {
       // 'half' in shootDays is exactly a 'half' the simulation counted 0.5 -- and the gate's
       // byte-identical month PDFs on every existing calendar are the proof of that.
       const halves = new Set(pi.halfDays || []);
-      return function(weekStart, startCol, endCol){
+      return function(weekStart, startCol, endCol, half){
         const span = endCol - startCol + 1;
+        // ⛔ FROZEN EDIT (owner-approved 16 Oct 2026 by picker, HALF-SQUARE-BARS-PLAN.md §4): a Production
+        // bar that starts or ends half way through a switch day (halfInset below) is half a day shorter
+        // than its columns, and a background percentage is a share of the BAR's box, not of the columns.
+        // So inside such a bar each slice is that day's share of the box: the box runs from a to b in day
+        // units, and the day covers [max(i, a), min(i + 1, b)) of it. Without this a ½ mark beside a
+        // switch day would shade a quarter of the wrong day. A bar with no flag takes the old lines below,
+        // untouched, so its style is byte-identical.
+        const a = startCol + (half && half.halfStart ? 0.5 : 0), b = endCol + 1 - (half && half.halfEnd ? 0.5 : 0);
+        const inset = (a !== startCol || b !== endCol + 1);
         const layers = [];
         for(let i = startCol; i <= endCol; i++){
           const iso = isoOf(addDays(weekStart, i));
           if(!halves.has(iso)) continue;
+          if(inset){
+            const lo = Math.max(i, a), hi = Math.min(i + 1, b);
+            const Wi = (hi - lo) / (b - a) * 100, Oi = (lo - a) / (b - a) * 100;
+            layers.push({W: Wi, P: Wi >= 100 ? 0 : (Oi / (100 - Wi)) * 100});
+            continue;
+          }
           const W = 100 / span;
           const O = ((i - startCol) / span) * 100;
           const P = (span === 1) ? 0 : (O / (100 - W)) * 100;
@@ -7552,6 +7571,24 @@ export function initLegacyApp() {
              + '; background-position:' + pos + '; background-repeat:no-repeat;';
       };
     })();
+
+    // ⛔ FROZEN EDIT (owner-approved 16 Oct 2026 by picker, HALF-SQUARE-BARS-PLAN.md §4; the owner's own
+    // idea, 15 Oct: "the bar ends half way thru the calendar square and the next pill starts in the
+    // second half of the square"). A Production run flagged by productionSplitRuns() is inset by half a
+    // day at that end. A grid item's percentage margin resolves against its grid AREA, so 100 / (2 x
+    // span) % is half of one of the run's own days; the + 1px keeps .mv-bar's own `margin:0 1px` on that
+    // side, so the two bars of a switch day stand 2 px apart, as any two neighbouring bars do. takeLane()
+    // then lets them share a lane. The text, the grey text and the ellipsis are the bar's as ever: it just
+    // has half a day less room (owner, picker: "Cut it with …" when a name does not fit).
+    // ⚠️ A run with no flag gets '' -- no new text -- which is what keeps every calendar without a .5
+    // switch day byte-identical (gates 10 and 13). The month-PDF writer reads these two declarations
+    // back exactly (mvlHalfInset); a change of form here must change there.
+    const halfInset = function(r){
+      if(!r || !(r.halfStart || r.halfEnd)) return '';
+      const pct = (100 / (2 * (r.endCol - r.startCol + 1))).toFixed(4) + '%';
+      return (r.halfStart ? ' margin-left:calc(' + pct + ' + 1px);' : '')
+           + (r.halfEnd ? ' margin-right:calc(' + pct + ' + 1px);' : '');
+    };
 
     const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
@@ -7589,27 +7626,55 @@ export function initLegacyApp() {
       // It stopped at lane 60 and then returned lane 0, so on a day carrying more than 60 lanes of
       // notes every further note was drawn ON TOP of the first ones. It always terminates: past the
       // highest occupied lane every lane is free.
-      const takeLane = (startCol, endCol, laneSpan)=>{
+      // ⛔ FROZEN EDIT (owner-approved 16 Oct 2026 by picker, HALF-SQUARE-BARS-PLAN.md §4): HALF-DAY
+      // OCCUPANCY. A Production run that starts or ends half way through a switch day (`half`, from
+      // productionSplitRuns(); halfInset() draws it) needs only ONE half of that column: the second half
+      // of its first day (halfStart), the first half of its last day (halfEnd). `halfHeld` records, per
+      // lane, a column so far taken by one half only ('L' or 'R'), and a run needing the OTHER half finds
+      // it free -- so a switch day's two bars share one lane instead of stacking. The column still goes
+      // into `occupied` as soon as either half is taken, so the "+" loop below reads it as used.
+      // ⚠️ A call with no `half` is exactly the old search: every column needs both halves, and a used
+      // column is never free. So every lane on a calendar without a .5 switch day is what it was.
+      const halfHeld = new Map();     // lane -> Map(column -> 'L' | 'R')
+      const takeLane = (startCol, endCol, laneSpan, half)=>{
         laneSpan = Math.max(1, laneSpan || 1);
+        // The half of column c this bar needs, or '' for the whole column.
+        const need = c=>{
+          if(!half) return '';
+          const L = !(half.halfStart && c === startCol), R = !(half.halfEnd && c === endCol);
+          return (L && !R) ? 'L' : (R && !L) ? 'R' : '';
+        };
         for(let lane = 0; ; lane++){
           let free = true;
           for(let L = lane; L < lane + laneSpan && free; L++){
             const used = occupied.get(L);
-            if(used){ for(let c=startCol;c<=endCol;c++){ if(used.has(c)){ free=false; break; } } }
+            if(used){ for(let c=startCol;c<=endCol;c++){ if(used.has(c)){
+              const h = halfHeld.get(L) && halfHeld.get(L).get(c), n = need(c);
+              if(!(h && n && n !== h)){ free=false; break; }
+            } } }
           }
           if(free){
             for(let L = lane; L < lane + laneSpan; L++){
               if(!occupied.has(L)) occupied.set(L, new Set());
               const s = occupied.get(L);
-              for(let c=startCol;c<=endCol;c++) s.add(c);
+              for(let c=startCol;c<=endCol;c++){
+                const n = need(c);
+                if(n){
+                  if(!halfHeld.has(L)) halfHeld.set(L, new Map());
+                  if(s.has(c)) halfHeld.get(L).delete(c);      // the other half was taken: now whole
+                  else halfHeld.get(L).set(c, n);
+                }
+                s.add(c);
+              }
             }
             return lane;
           }
         }
       };
-      const place = (startCol, endCol, cls, style, title, text, data, laneSpan)=>{
+      const place = (startCol, endCol, cls, style, title, text, data, laneSpan, half)=>{
         laneSpan = Math.max(1, laneSpan || 1);
-        const lane = takeLane(startCol, endCol, laneSpan);
+        half = (half && (half.halfStart || half.halfEnd)) ? half : null;
+        const lane = takeLane(startCol, endCol, laneSpan, half);
         placed.push({lane, laneSpan, startCol, endCol, cls, style, title, text, data});
         return lane;
       };
@@ -7689,11 +7754,15 @@ export function initLegacyApp() {
             // 7), and with both "Show" preferences off (ruling 10) -- and then the title and text are
             // byte-identical to the pre-Blocks pill.
             const blkTag = (s.key === 'production') ? productionPillTag(schedule, weekStart, r.startCol, r.endCol) : '';
+            // ⛔ FROZEN EDIT (owner-approved 16 Oct 2026 by picker, HALF-SQUARE-BARS-PLAN.md §4): the run
+            // itself goes to halfSlices(), halfInset() and place(), which read only its halfStart/halfEnd
+            // flags. Only productionSplitRuns() sets them, so every other run -- every other phase, and
+            // every Production run not on a .5 switch day -- writes exactly the style and lane it did.
             place(r.startCol, r.endCol, 'mv-bar mv-pill',
-              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol),
+              `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r),
               escHtml(lbl) + (blkTag ? ' · ' + escHtml(blkTag) : ''),
               escHtml(lbl) + (blkTag ? '<span class="mv-pill-block">' + escHtml(blkTag) + '</span>' : ''),
-              `data-ph="${s.key}"`);
+              `data-ph="${s.key}"`, 1, r);
           });
         }
         // Episode pills occupy Production's lane.
@@ -8340,8 +8409,8 @@ export function initLegacyApp() {
   // "Episode 201"); the monthprint baselines were re-cut for it, with the PDFs shown to the owner.
   // (Ruling 5, the Blocks-mode half of the same decision, came first.)
   // ✅ HALF DAYS (owner, 15 Oct 2026) REVERSED ITS "ONE PILL PER WEEK" HALF: Production is drawn as
-  // ONE BAR PER EPISODE again (per block in Blocks mode), and a switch day carries both bars, one
-  // above the other ("Stacked bars, always", picked from a mock-up). This stays [] all the same:
+  // ONE BAR PER EPISODE again (per block in Blocks mode), and a switch day carries both bars (stacked
+  // at first; since 16 Oct 2026 meeting half way through the square, HALF-SQUARE-BARS-PLAN.md). This stays [] all the same:
   // the renderer's episode-pill branch draws a name and nothing else, so its bars could carry no
   // grey text. The split happens in pillRunsForWeek() instead -- see productionSplitRuns() -- so
   // the bars ARE Production's own pills, cut where the episode changes.
@@ -8463,13 +8532,14 @@ export function initLegacyApp() {
     return !!U && mvProdLabel !== 'week';
   }
 
-  // ⭐ ONE BAR PER EPISODE (per block), STACKED ON A SWITCH DAY (owner, 15 Oct 2026, "Stacked bars,
-  // always"). pillRunsForWeek() calls this for Production with the runs it would have drawn, and
-  // gets back the same days cut where the unit changes: each unit's own runs, in the order the
-  // units are shot, then any covered day no unit holds as a plain run. A switch day sits in two runs,
-  // and frozen renderMonthView's takeLane() puts the second one in the next lane down -- which IS
-  // the stacked look, with no frozen line changed. Weeks with no half switch simply get two bars
-  // side by side where they used to get one.
+  // ⭐ ONE BAR PER EPISODE (per block) (owner, 15 Oct 2026). pillRunsForWeek() calls this for
+  // Production with the runs it would have drawn, and gets back the same days cut where the unit
+  // changes: each unit's own runs, in the order the units are shot, then any covered day no unit
+  // holds as a plain run. A switch day sits in two runs. Until 16 Oct 2026 frozen takeLane() put the
+  // second one in the next lane down ("Stacked bars, always"); since then the two runs carry
+  // halfEnd/halfStart (below) and meet half way through the day's square in ONE lane (the owner's
+  // revision, HALF-SQUARE-BARS-PLAN.md, a frozen edit approved by picker). Weeks with no half switch
+  // simply get two bars side by side where they used to get one.
   // Off (returns null, so the week draws as ONE BAR PER WEEK) when productionSplits() says so.
   function productionSplitRuns(schedule, weekStart, runs){
     const U = productionUnits(schedule);
@@ -8496,6 +8566,21 @@ export function initLegacyApp() {
     };
     touched.forEach(u=> collect(i=> u.days.has(isoAt[i]), u));
     collect(i=> !(U.byDay.get(isoAt[i]) || []).length, null);
+    // ⭐ HALF A SQUARE EACH (owner, 15 Oct 2026, HALF-SQUARE-BARS-PLAN.md; built 16 Oct): on a switch day
+    // the earlier unit's bar stops half way through the day's square and the later one starts in its
+    // second half, in ONE lane. Two flags say so, and frozen renderMonthView reads them: `halfEnd` on a
+    // run whose last day the unit leaves half way, `halfStart` on a run whose first day the unit enters
+    // half way. Read off byDay, which lists a day's units in shooting order: a day with two units is a
+    // switch day (only a .5 boundary shares a day), the first of them ends there and the second starts
+    // there. So a whole boundary, a run cut by a weekend or a week row, and the wrap day of a total
+    // ending in .5 (no unit follows it) carry no flag, and their bars are exactly what they were.
+    // ⛔ A run with no flag gets no key at all: the renderer adds text only when a flag is true.
+    out.forEach(r=>{
+      if(!r.unit) return;
+      const a = U.byDay.get(isoAt[r.startCol]) || [], b = U.byDay.get(isoAt[r.endCol]) || [];
+      if(a.length > 1 && a[0] !== r.unit) r.halfStart = true;
+      if(b.length > 1 && b[b.length - 1] !== r.unit) r.halfEnd = true;
+    });
     return out;
   }
 
@@ -18119,9 +18204,50 @@ export function initLegacyApp() {
   // on a one-day pill. Inverted here and checked layer by layer, so a change to that markup throws
   // rather than shading the wrong day: "a silent lie about someone's schedule", as its comment says.
   const MVL_HALF_IMAGE = 'linear-gradient(to bottom, rgba(0,0,0,0) 0 50%, rgba(0,0,0,.34) 50% 100%)';
-  function mvlHalfColumns(d, from, to){
+  // ⭐ HALF A SQUARE EACH (HALF-SQUARE-BARS-PLAN.md, 16 Oct 2026). A Production bar that starts or ends half
+  // way through a switch day carries renderMonthView's halfInset(): `margin-left` and/or `margin-right` of
+  // calc(P% + 1px), P = 100 / (2 x span) to four places, which CSS resolves against the bar's grid area. Read
+  // back here as two flags, and checked to the character: any other margin on a bar throws, because a bar
+  // drawn a half day too long or too short would misstate the switch.
+  function mvlHalfInset(d, from, to){
+    const out = {};
+    const want = 'calc(' + (100 / (2 * (to - from + 1))).toFixed(4) + '% + 1px)';
+    [['margin-left', 'halfStart'], ['margin-right', 'halfEnd']].forEach(function(p){
+      if(!(p[0] in d)) return;
+      if(d[p[0]] !== want) throw new Error('Month layout: a bar with ' + p[0] + ':' + d[p[0]] + '.');
+      out[p[1]] = true;
+    });
+    return out;
+  }
+  // The share of a bar's columns its inset takes off one end: exactly the percentage halfInset() wrote, of
+  // the grid area (span columns), as CSS resolves it. 0 at an end with no flag.
+  function mvlInsetCols(span, on){ return on ? parseFloat((100 / (2 * span)).toFixed(4)) / 100 * span : 0; }
+  function mvlHalfColumns(d, from, to, ends){
     if(!d['background-image']) return [];
     const span = to - from + 1;
+    // Inside an inset bar each slice is that day's share of the shorter box (halfSlices' own rule since 16 Oct
+    // 2026): the box runs from a to b in days, and day c covers [max(c, a), min(c + 1, b)) of it. So each
+    // layer is matched to the one day whose share it is, or this throws.
+    if(ends && (ends.halfStart || ends.halfEnd)){
+      const a = from + (ends.halfStart ? 0.5 : 0), b = to + 1 - (ends.halfEnd ? 0.5 : 0);
+      const imgs = d['background-image'].split(/,\s*(?=linear-gradient\()/);
+      const sizes = String(d['background-size'] || '').split(',');
+      const poss = String(d['background-position'] || '').split(',');
+      if(imgs.length !== sizes.length || imgs.length !== poss.length){
+        throw new Error('Month layout: half-day slices that do not line up.');
+      }
+      return imgs.map(function(img, k){
+        const sm = /^([\d.]+)% 100%$/.exec(sizes[k].trim()), pm = /^([\d.]+)% 0$/.exec(poss[k].trim());
+        if(img.trim() !== MVL_HALF_IMAGE || !sm || !pm) throw new Error('Month layout: an unexpected half-day slice.');
+        for(let c = from; c <= to; c++){
+          const lo = Math.max(c, a), hi = Math.min(c + 1, b);
+          const W = (hi - lo) / (b - a) * 100, O = (lo - a) / (b - a) * 100;
+          const P = W >= 100 ? 0 : (O / (100 - W)) * 100;
+          if(W.toFixed(4) === sm[1] && P.toFixed(4) === pm[1]) return c;
+        }
+        throw new Error('Month layout: a half-day slice between two days.');
+      }).sort(function(x, y){ return x - y; });
+    }
     const imgs = d['background-image'].split(/,\s*(?=linear-gradient\()/);
     const sizes = String(d['background-size'] || '').split(',');
     const poss = String(d['background-position'] || '').split(',');
@@ -18155,19 +18281,27 @@ export function initLegacyApp() {
     const tagEl = el.querySelector('.mv-pill-block');
     let text = '';
     el.childNodes.forEach(function(n){ if(n !== tagEl) text += n.textContent; });
-    return {
+    const ends = mvlHalfInset(d, from, to);
+    if((ends.halfStart || ends.halfEnd) && !(kind === 'pill' && el.getAttribute('data-ph') === 'production')){
+      throw new Error('Month layout: a half-day inset on a bar that is not Production\'s.');
+    }
+    const item = {
       kind, from, to,
       // The renderer's own placement. A note's span here is the SCREEN's (see the lead comment).
       htmlLane: parseInt(gr[1], 10) - 1, htmlLanes: gr[2] ? parseInt(gr[2], 10) : 1,
       fill: d['background'] || '', ink: d['color'] || '',
       text, tag: tagEl ? tagEl.textContent : '',
-      halves: mvlHalfColumns(d, from, to),
+      halves: mvlHalfColumns(d, from, to, ends),
       ph: kind === 'pill' ? el.getAttribute('data-ph') : null,
       note: kind !== 'note' ? null : {
         kind: el.getAttribute('data-note-kind'), day: el.getAttribute('data-note-day'),
         index: el.hasAttribute('data-note-index') ? parseInt(el.getAttribute('data-note-index'), 10) : null,
       },
     };
+    // Only when true, so a calendar with no switch day models exactly as it did.
+    if(ends.halfStart) item.halfStart = true;
+    if(ends.halfEnd) item.halfEnd = true;
+    return item;
   }
   // One month: its header, its weekday row, and per week its day cells and its bars in PLACEMENT
   // order (the order renderMonthView placed them, which is the order its HTML lists them).
@@ -18224,21 +18358,39 @@ export function initLegacyApp() {
   // in placement order; each takes the first lane where all `span` lanes are free in every column it
   // covers. The search is unbounded, as the renderer's is since audit L-16. The monthlayout leg holds
   // this to the renderer: re-packed at the print document's own spans, it must reproduce every lane.
+  // ⭐ HALF-DAY OCCUPANCY, copied too (HALF-SQUARE-BARS-PLAN.md, 16 Oct 2026): an item flagged halfStart needs
+  // only the second half of its first column, one flagged halfEnd only the first half of its last, and a column
+  // held by one half is free to an item needing the other. An item with neither flag is the old search exactly.
   function mvlPackLanes(items, spanOf){
-    const occupied = new Map();
+    const occupied = new Map(), halfHeld = new Map();
     return items.map(function(it){
       const span = Math.max(1, spanOf(it) || 1);
+      const need = function(c){
+        if(!it.halfStart && !it.halfEnd) return '';
+        const l = !(it.halfStart && c === it.from), r = !(it.halfEnd && c === it.to);
+        return (l && !r) ? 'L' : (r && !l) ? 'R' : '';
+      };
       for(let lane = 0; ; lane++){
         let free = true;
         for(let L = lane; L < lane + span && free; L++){
           const used = occupied.get(L);
-          if(used){ for(let c = it.from; c <= it.to; c++){ if(used.has(c)){ free = false; break; } } }
+          if(used){ for(let c = it.from; c <= it.to; c++){ if(used.has(c)){
+            const h = halfHeld.get(L) && halfHeld.get(L).get(c), n = need(c);
+            if(!(h && n && n !== h)){ free = false; break; }
+          } } }
         }
         if(free){
           for(let L = lane; L < lane + span; L++){
             if(!occupied.has(L)) occupied.set(L, new Set());
             const s = occupied.get(L);
-            for(let c = it.from; c <= it.to; c++) s.add(c);
+            for(let c = it.from; c <= it.to; c++){
+              const n = need(c);
+              if(n){
+                if(!halfHeld.has(L)) halfHeld.set(L, new Map());
+                if(s.has(c)) halfHeld.get(L).delete(c); else halfHeld.get(L).set(c, n);
+              }
+              s.add(c);
+            }
           }
           return { lane, lanes: span };
         }
@@ -18258,9 +18410,12 @@ export function initLegacyApp() {
         return it.kind === 'note' ? Math.min(MVL_GEOMETRY.noteMaxLanes, it.lines.length) : it.htmlLanes;
       });
       w.items = w.items.map(function(it, k){
-        return { kind: it.kind, from: it.from, to: it.to, lane: packed[k].lane, lanes: packed[k].lanes,
-                 fill: it.fill, ink: it.ink, text: it.text, tag: it.tag, halves: it.halves,
-                 ph: it.ph, note: it.note, lines: it.lines };
+        const o = { kind: it.kind, from: it.from, to: it.to, lane: packed[k].lane, lanes: packed[k].lanes,
+                    fill: it.fill, ink: it.ink, text: it.text, tag: it.tag, halves: it.halves,
+                    ph: it.ph, note: it.note, lines: it.lines };
+        if(it.halfStart) o.halfStart = true;
+        if(it.halfEnd) o.halfEnd = true;
+        return o;
       });
     });
     return m;
@@ -18654,7 +18809,14 @@ export function initLegacyApp() {
     // the bar's rounded edge (halfSlices: background-size W% 100%, positioned in the padding box).
     const px = x + B.border, py = y + B.border, pw = w - 2 * B.border, ph = h - 2 * B.border;
     const span = it.to - it.from + 1, shade = mvlMix(black, P.halfShade, fill);
+    // In a bar inset half a day at an end (a switch day), a day's slice is its share of the shorter box, as
+    // halfSlices() writes it: the box runs from a to b in days and day c covers [max(c, a), min(c + 1, b)).
+    const ia = it.from + (it.halfStart ? 0.5 : 0), ib = it.to + 1 - (it.halfEnd ? 0.5 : 0);
     const slices = (it.halves || []).map(function(c){
+      if(it.halfStart || it.halfEnd){
+        const lo = Math.max(c, ia), hi = Math.min(c + 1, ib);
+        return { x: px + (lo - ia) / (ib - ia) * pw, y: py + ph / 2, w: (hi - lo) / (ib - ia) * pw, h: ph / 2 };
+      }
       return { x: px + (c - it.from) * pw / span, y: py + ph / 2, w: pw / span, h: ph / 2 };
     });
     slices.forEach(function(s){
@@ -18846,7 +19008,13 @@ export function initLegacyApp() {
       let acc = 0;
       tracks.forEach(function(t, L){ laneTop[L] = acc; acc += t + S.laneGap; });
       wk.items.forEach(function(it, ii){
-        const x = gx + it.from * G.trackW + S.bar.marginX, w = (it.to - it.from + 1) * G.trackW - 2 * S.bar.marginX;
+        let x = gx + it.from * G.trackW + S.bar.marginX, w = (it.to - it.from + 1) * G.trackW - 2 * S.bar.marginX;
+        // A switch day's half (mvlHalfInset): the margin CSS adds at that end, on top of .mv-bar's own 1 px.
+        if(it.halfStart || it.halfEnd){
+          const span = it.to - it.from + 1;
+          const l = mvlInsetCols(span, it.halfStart) * G.trackW, r = mvlInsetCols(span, it.halfEnd) * G.trackW;
+          x += l; w -= l + r;
+        }
         mvlPaintBar(it, x, gy + laneTop[it.lane], w, mvlBarHeight(it, S), fonts, out, { wk: wi, i: ii }, S);
       });
     });

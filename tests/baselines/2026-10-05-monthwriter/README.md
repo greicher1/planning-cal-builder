@@ -2,7 +2,8 @@
 
 **What this is.** The month PDF that **Export PDF** writes since step 5 of
 [`MONTH-PDF-WRITER-PLAN.md`](../../../MONTH-PDF-WRITER-PLAN.md): the direct writer, through the Save dialog. It is
-held **byte for byte** on eighteen calendars (seventeen until the 15 Oct 2026 re-cut added `halfdays`). It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
+held **byte for byte** on eighteen calendars (seventeen until the 15 Oct 2026 re-cut added `halfdays`; `halfdays` alone
+re-cut again on 16 Oct 2026, below). It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
 item 13).
 
 Gate 10 (`../2026-09-22-monthprint/`) still holds the PRINT path. That is the rollback now, reached on localhost by
@@ -47,6 +48,28 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 16 Oct 2026 — `halfdays` ONLY: a switch day's two bars meet half way through the square
+
+**A deliberate change to one case**, the only baselined calendar with a .5 switch day.
+- **The ruling.** The owner's own idea, 15 Oct 2026 (HALF-SQUARE-BARS-PLAN.md): *"the bar ends half way thru the
+  calendar square and the next pill starts in the second half of the square"*. On a switch day the earlier episode's
+  bar stops half way through the day's square and the next one starts there, in ONE lane, instead of stacking.
+- **The frozen edit.** It changes frozen `renderMonthView` (the Production `place()` call, `takeLane()`, `halfSlices()`).
+  The owner approved it by picker on 16 Oct 2026, against the plan's §4 gate. The writer (`mvlParseItem`,
+  `mvlPackLanes`, the painter) was taught the same inset. It is not frozen.
+- **The sign-off came first.** The owner saw `monthbase.py sheets` contact sheets of `halfdays` (old | new |
+  difference), with a poppler render of the print path's July and August beside them. The answer was **"Yes, re-cut
+  halfdays"** (picker).
+- **What moved, by `check`:** pages 7 and 8 (July and August 2026), their content only. No text runs were added or
+  removed, no page has a `…`, and the other 14 pages are pixel-identical. The file went from 80,141 to 80,147 bytes.
+  The four switch weeks lose the stacked lane, so their rows fall back to the standard height, and every row of those
+  two months is re-divided.
+- **Every other case was held byte-identical, with no re-cut.** Each has whole day counts, or (Week label) no split,
+  so no run carries a half flag, and the renderer writes exactly what it did.
+- **Cut from** build `be311b275aa4d884…` (1,482,152 bytes), worktree `sweet-mestorf-8d18b8`, by the `monthexport`
+  leg. The file is byte-identical to the one the owner was shown. Google Chrome **155.0.8059.82** (155.0.8059.40 at
+  the 15 Oct cut).
+
 ## ✅ RE-CUT 15 Oct 2026 — one bar per episode or block ("Stacked bars, always"), and a new case
 
 **A deliberate change to the month PDF of every calendar with episodes or blocks**, on the owner's ruling (15 Oct
@@ -74,7 +97,7 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | `colswap-simpost-refuse` | 3 | 52,125 | `819cac62161734bd…` |
 | `dayoverrides-onhalf` | 15 | 79,120 | `4540080dd3bb4a28…` |
 | `dayoverrides` | 15 | 78,436 | `932764d21796d4fe…` |
-| `halfdays` | 16 | 80,141 | `e6f613cb56972460…` |
+| `halfdays` | 16 | 80,147 | `3eb50d8c8c3c9790…` |
 | `hiatus-blanklabel` | 16 | 81,701 | `7272ce5eff1147fa…` |
 | `month-dense60` | 16 | 82,776 | `81f48a4322b7da29…` |
 | `month-lanecap` | 16 | 82,027 | `eb44cecbd3bcb496…` |
@@ -107,7 +130,7 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
 | `shootorder` | the episodes' shooting order in the grey "Ep." text |
 | `notewrap` | four long texts, made through the real UI |
 | `carry-rich` | every store populated |
-| `halfdays` | ⭐ ADDED 15 Oct 2026: 4.5-day episodes (one of 5), so Production's bars stack on each half-day switch day |
+| `halfdays` | ⭐ ADDED 15 Oct 2026: 4.5-day episodes (one of 5), so Production splits per episode. Its switch days' two bars stacked; since the 16 Oct re-cut they meet half way through the square in one lane |
 
 **Held to another case's file**, with none of their own:
 - the reference under UTC+14, and in a 1280 px window, are held to `reference`;

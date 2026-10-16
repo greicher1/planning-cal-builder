@@ -197,7 +197,8 @@ PY
 #                   exportMonthPdf's shrink-to-fit branch at all
 #   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
 #   halfdays        ⭐ ADDED 15 Oct 2026: episodes of 4.5 days (one of 5), so Production's bars split per episode
-#                   and STACK on each switch day ("Stacked bars, always") -- the second bar in the next lane
+#                   and STACKED on each switch day ("Stacked bars, always"). ⭐ Since 16 Oct 2026
+#                   (HALF-SQUARE-BARS-PLAN.md) the two meet half way through the square in ONE lane
 # The per-case PDF is kept as monthprint-<case>.pdf (gitignored) so a human can open what was gated.
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
@@ -1484,7 +1485,14 @@ done
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 # halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
-# switch day carries both units' bars, stacked, in the month view. It cut tests/fixtures/halfdays.sptcal.
+# switch day carries both units' bars in the month view. It cut tests/fixtures/halfdays.sptcal. Since 16 Oct 2026
+# (HALF-SQUARE-BARS-PLAN.md, a frozen edit the owner approved by picker) the two bars share ONE lane and meet half way
+# through the day's square; they used to stack.
+# halfmarks (16 Oct 2026, same plan) puts a saved ½ mark inside such a bar: dayoverrides-onhalf with Episode 201 at 4.5,
+# so the switch days land ON marked days. It measures where every shade lands (the frozen halfSlices re-fit) and cut
+# tests/fixtures/halfmarks.sptcal, on which monthlayout (P1: the writer reads each slice back to its marked day; L0:
+# the writer's half-aware lane packing) and monthwriter (hm, below) then run. monthlayout on halfdays holds the writer's
+# packing to the print document's one-lane switch days.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1500,7 +1508,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               filekeys:v1.4.2-saved:150 \
-              launchopen:-:240 halfdays:-:150; do
+              launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
+              monthlayout:halfdays:150 monthlayout:halfmarks:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1614,9 +1623,12 @@ PYMF
 #   win   notewrap again, in a 1280 x 800 window: ⛔ its writer file byte-identical to nw's, while the print DOCUMENT
 #         must differ -- the print path's note spans follow the window, the writer's do not, and a control that changed
 #         nothing would pass vacuously.
+#   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
+#         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
-              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays"; do
+              "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
+              "hm:-:-:halfmarks"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
