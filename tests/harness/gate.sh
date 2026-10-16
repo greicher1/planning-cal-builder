@@ -1382,9 +1382,12 @@ chk(a.get('episodePills')==0 and jp[:3]==[['Ep. 205','Production Week 1'],['Ep. 
     f"shootorder: ⭐ one bar per episode in SHOOTING order, the week as grey text {jp[:3]}")
 chk(a.get('undoDisabledBefore') is True and a.get('undoDisabledAfterPref') is True and a.get('undoDisabledAfterBoth') is True,
     "shootorder: a Preferences switch pushes NO undo step (Undo stays disabled through off and on)")
-chk(a.get('prefIdsInFields')==[] and all(p[1]=='' for p in (a.get('pillsEpsOff') or [['','x']]))
-    and a.get('pillsEpsBackOn')==jp,
-    "shootorder: 'Show Episodes' off drops the grey text, on restores it, and no pref- id is in fields.byId")
+# ⚠️ REVISED 15 Oct 2026 (owner's picker, MONTH-PILL-LABEL-PLAN): a "Show" switch edits the grey text ONLY. With no
+# label chosen an Episodes calendar's bar NAMES the episode and its grey text is the week, so Show Episodes off has
+# nothing to take away. It used to drop the grey text of ruling 8's week pills. The pilllabel leg holds what the
+# switch does where the episodes ARE grey text (Week mode).
+chk(a.get('prefIdsInFields')==[] and jp and a.get('pillsEpsOff')==jp and a.get('pillsEpsBackOn')==jp,
+    "shootorder: 'Show Episodes' off changes nothing while the bar names the episode, and no pref- id is in fields.byId")
 chk(a.get('rowsInMonth')=={'onecol':False,'blocks':True,'eps':True} and a.get('rowsInSheet')=={'onecol':True,'blocks':False,'eps':False},
     f"shootorder: Preferences rows follow the view -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
 chk((a.get('afterBefore') or [''])[0]=='210' and a.get('afterAfter')==['210','205','202','204','201','203','206','207','208','209'],
@@ -1395,6 +1398,60 @@ chk(a.get('oneUndoExact'), "shootorder: each move is ONE undo step")
 chk(not a.get('errors'), f"shootorder: 0 console errors {a.get('errors')}")
 sys.exit(bad)
 PYS
+
+# ---- pilllabel: Production's month bars labelled by Week, Episode or Block (MONTH-PILL-LABEL-PLAN.md step 2) -------
+# ⭐ ADDED 15 Oct 2026, rebuilt on half-days. No control exists yet (step 3), so each label is opened the way a saved
+# calendar delivers it: the fixture's own JSON with `mvProdLabel` set or removed, through the real Load path. Every
+# label is held to the same file with no key (not chosen, which follows Schedule by and is what gates 10 and 13 hold):
+# labelled by Week, ONE BAR PER WEEK (owner's picker) exactly over base's days with ruling 8's grey text; labelled by
+# Episode on a Blocks calendar, base's own bars (Q6, text only) with the plan's text. Also: the default label, 'block'
+# on an Episodes calendar (Q11), a no-key file after a labelled one and a bad value are byte-identical to no key; the
+# Show switches edit grey text only (Q9); Save writes the key back, and never writes one nobody chose (Q10). The
+# sanitizer's warning for the bad value is the one console line allowed.
+for PLSTATE in blocks blocksoff dayoverrides dayoverrides-onhalf shootorder month-dense60 carry-rich halfdays; do
+  rm -f "$HERE/pilllabel.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PLSTATE" "$HERE/run.sh" pilllabel 900 >/dev/null 2>&1
+  python3 - "$HERE/pilllabel.json" "$PLSTATE" <<'PYPL' || FAIL=1
+import json,sys
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+m)
+    if not c: bad=1
+st=sys.argv[2]; L='pilllabel ('+st+')'
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  '+L+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+L+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+blk = a.get('scheduleBy') == 'blocks'
+chk(a.get('bars',0) > 0 and a.get('fixtureHasKey') is False, f"{L}: {a.get('bars')} Production bars in {a.get('months')} months, Schedule by {a.get('scheduleBy')}, the fixture carries no key")
+chk(a.get('W0') is True, f"{L}: W0 the label Schedule by gives ('{'block' if blk else 'episode'}') is byte-identical to no key {a.get('W0')}")
+if not blk: chk(a.get('W1') is True, f"{L}: W1 'block' on an Episodes calendar follows Schedule by -- byte-identical to no key {a.get('W1')}")
+chk(a.get('W2') is True, f"{L}: W2 a no-key file opened after a 'week' file is byte-identical to no key (restored unconditionally) {a.get('W2')}")
+chk(a.get('W3') is True, f"{L}: W3 an unknown value opens as no key {a.get('W3')}")
+wk = a.get('week') or {}
+chk(wk.get('bars',0) > 0 and wk.get('notRuns') == [] and wk.get('wrong') == [] and wk.get('oneDayTagged') == [],
+    f"{L}: WK labelled by Week, ONE BAR PER WEEK: each row's bars are exactly base's runs of days (no stacking), 'Production Week K', ruling 8's grey text, none on a one-day bar ({wk.get('bars')} bars) {wk.get('notRuns') or ''} {wk.get('wrong') or ''}")
+if wk.get('unknownWeek'): print(f"  INFO  {L}: Week: {wk['unknownWeek']} bar(s) in a row with no week to compare against (text checked by pattern)")
+if blk:
+    ep = a.get('episode') or {}
+    chk(a.get('G') is True, f"{L}: G labelled by Episode draws the SAME bars as no key -- month, row, columns, lane {a.get('G')}")
+    chk(ep.get('bars') == a.get('bars') and ep.get('wrong') == [] and ep.get('slash') == [] and ep.get('oneDayTagged') == [],
+        f"{L}: T labelled by Episode: every bar's text and grey text is the plan's table, no ' / ', no grey on a one-day bar {ep.get('wrong') or ''}")
+    if ep.get('fallback'): print(f"  INFO  {L}: Episode: read as Week (a block with no episodes): {ep['fallback'][:3]}")
+chk(a.get('X1') is True and a.get('X1back') is True,
+    f"{L}: X1 the unit's own Show switch ({'Blocks' if blk else 'Episodes'}) off changes NOTHING while the bar names it -- ruling Q9 {a.get('X1')}")
+X2 = a.get('X2') or {}
+chk(X2 and all(v.get('bars') is True and v.get('text') is True for v in X2.values()),
+    f"{L}: X2 in Week mode each Show switch drops only its item from each list in the grey text, and no bar moves {X2}")
+chk(a.get('K0') == {'has': True, 'value': 'week'}, f"{L}: K0 Save writes mvProdLabel back {a.get('K0')}")
+chk(a.get('K1') == {'has': False}, f"{L}: K1 Save of a file nobody labelled writes NO key {a.get('K1')}")
+errs = [e for e in (a.get('errors') or []) if 'were not in a form the app writes' not in e]
+chk(not errs, f"{L}: 0 console errors beyond the bad value's warning {errs}")
+sys.exit(bad)
+PYPL
+done
 
 # ---- the audit-fix legs (FIX-PLAN batches 1, 2 + 3): one generic block -----------------------------
 # ⛔ ADDED 29 Sep 2026. FIX-PLAN §1 says a leg that guards the save format, an export or a date is

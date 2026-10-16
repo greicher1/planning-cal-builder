@@ -66,6 +66,8 @@
   - Bar text "Ep. 201" / "Block 1"; grey text "Production Week 3" / "Production Week 3 · Ep. 201, 202" — the rows
     MONTH-PILL-LABEL-PLAN §3 gives its Episode and Block modes. Ruling 7 (one-day piece, no grey) and ruling 10 hold:
     "Show Episodes" off on an Episodes calendar (or "Show Blocks" on a Blocks one) draws unsplit "Production Week N".
+    ⛔ **Reversed the same day by the owner (MONTH-PILL-LABEL-PLAN Q9, entry below):** the switches edit the grey
+    text only, and the bars always split.
   - ⚠️ **The one place the code leans on the frozen loop's call order:** `segPillLabel(s, date)` gets only a run's
     first day, and two runs can start on one day. `takeProdRun()` takes the Nth run for the Nth call after
     `pillRunsForWeek()`, checking the column. `productionPillTag` matches by both columns (unique for any run of 2+
@@ -207,9 +209,70 @@
   commits, the build commit (`1cb010f`), and the ruling-7 note. **Merged into local `main` on the
   owner's picker ("Merge to local main, no push"). Pushed later, with half-days at `6bd5fae` (15 Oct 2026).**
 
-### ⏸ 15 Oct 2026: LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK — PAUSED UNTIL HALF-DAYS MERGES
+### ◐ 15 Oct 2026: LABEL PRODUCTION'S MONTH PILLS BY WEEK, EPISODE OR BLOCK — STEP 2 REBUILT ON HALF-DAYS (worktree `jovial-villani-c9cc8e`)
 
-- ⏭ **RESUME HERE, once `half-day-episodes` is merged into `main`. Do not start before.** Read the plan's top
+- ⏭ **RESUME HERE: step 2 (the engine) is rebuilt on half-days and COMMITTED LOCALLY** (owner's picker, 16 Oct 2026)
+  on branch `claude/jovial-villani-c9cc8e`, which was fast-forwarded to local `main` `6bd5fae` (half-days merged).
+  **Not merged into `main`, not pushed.** Next is the plan's step 3, the controls. Read the plan's §12 first
+  ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
+- **Three owner rulings at the rebuild (picker, 15 Oct 2026, plan Q9–Q11), all as recommended:**
+  - **Q9: "Show Episodes" / "Show Blocks" edit the GREY TEXT ONLY.** ⛔ This **reverses half-days' "OFF draws unsplit
+    Production Week bars"**: `productionSplitRuns()` and the edge grips' `splitSpanOf()` no longer read the switches.
+    `halfdays` D6 and `shootorder`'s gate check now assert that the switch changes nothing while the bar names its
+    item.
+  - **Q10: not chosen = `mvProdLabel` null in memory, the key LEFT OUT of the file.** `setMvProdLabel()` stores null
+    when the pick equals Schedule by's own label.
+  - **Q11: 'block' on an Episodes calendar follows Schedule by** (Episode text).
+- ⭐ **Two more, after the owner saw the Week-mode PDF** (*"this doesnt look right at all. why is there a double up for
+  prod week 3, 4, and 6"*): split per episode, every bar was headed by its week, so a week shot across two episodes
+  showed two "Production Week 3" bars, and a one-day piece had no grey text (ruling 7) to tell them apart.
+  - **Q13: labelled by Week, Production is ONE BAR PER WEEK** with ruling 8's grey text (*Ep. 202, 203*). Partly
+    reverses Q6. `productionSplits(U)` is the one test, asked by `productionSplitRuns()` and `splitSpanOf()`.
+    `productionPillTag()`'s one-bar-per-week text is back, byte for byte the pre-step code.
+  - **Q12: the switch day's two bars should meet half way through the square** (the owner's own idea) rather than
+    stack. ⛔ A frozen edit (`renderMonthView`'s `place()` and `takeLane()`), so it is written up on its own in
+    [`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md), gate proposed, **sign-off still needed**, to be built in its
+    own session.
+- **What was built** (`src/legacy/app.js`, no frozen line):
+  - the text: `unitLabelParts()` with `unitBarLabel()` / `unitGreyLabel()`, which are still the ONLY place a split
+    bar's two strings are composed. The table is in their comment;
+  - carried over from `pill-label` `4e1782f`: `MV_PROD_LABELS`, `mvProdLabel`, `mvShowWeek()`, `setMvProdLabel()`, the
+    snapshot key (conditional spread), the sanitizer line, the unconditional restore and Reset All;
+  - dropped from `4e1782f`: its split code and its per-segment day maps (half-days' `productionUnits()` replaces them).
+  - `productionUnits()`, `takeProdRun()` and the `_prodRuns` call-order contract are untouched.
+- **Leg `pilllabel`** (`tests/harness/t/pilllabel.js`), rewritten for split bars and, labelled by Week, one bar per
+  week; wired into `gate.sh` on eight calendars (its own block, after `shootorder`). Plan §12 lists what it holds.
+- **Proof** (build `fe426d5e…`; full detail in plan §12):
+  - gates 10 and 13 byte-identical with no key, no re-cut;
+  - ⭐ labelled by Week, all sixteen baselined calendars write a month PDF **byte-identical to their baselines from
+    before half-days** (`c7017a9`): Q13 is ruling 8's look exactly;
+  - `pilllabel` 90/90; `halfdays` 25/25; `shootorder` 9/9; `pilldrag` 20/20 (E8–E14 re-run as asked);
+  - `npm run check` 40/40, `check-refs.py` CLEAN;
+  - full gate: **1,441 PASS, 0 FAIL, GATE PASSED** (13 min), with no other gate alongside (watched).
+- **The owner's PDFs** (plan §8.5): `blocks` labelled Week and Episode and `halfdays` labelled Week, through the real
+  Export, with contact sheets against the not-chosen baselines. They are in the session-notes folder
+  `side-session-notes/local_8010ded8…/pill-label-step2/`, not the repo. None contains a `…`. ✅ **Signed off by the
+  owner (picker, 16 Oct 2026)** after Q13, in the round with one bar per week.
+- ⭐ **Learned:**
+  1. **Save is dead for 1.2 s after a save.** `flashSaveBtn()` disables the button to show "Saved ✓", and `.click()`
+     on a disabled button fires nothing. A leg that saves twice must wait for the button (`pilllabel` K1 timed out on
+     three calendars until it did).
+  2. **The app's `sync_with_base_branch` merges from `origin`**, so it cannot bring in work merged only into LOCAL
+     `main`. This worktree was fast-forwarded with `git merge --ff-only main` instead.
+  3. **Check for another session's gate immediately before EACH Chrome run, not once.** The custom-units session
+     started a second full gate between two of this session's runs.
+  4. **A gate across a closed lid is void.** `request_keep_awake` stops idle sleep only; a run overnight went through
+     clamshell sleep (`pmset -g log` shows it) and took 789 min with 15 timeouts. Keep the lid open for a gate.
+  5. **Byte-compare a restored look against the OLD baseline** (`git show <commit>:tests/baselines/...`). It turned
+     "one bar per week looks like ruling 8" into "is ruling 8, byte for byte, on sixteen calendars".
+- ⏭ **Next (plan step 3):** the "Label Production by" control in Preferences, the "Show Production Week" switch
+  (`#pref-mv-week` → `prefs.mvWeek`; `mvShowWeek()` already reads it), and §5.2's contextual rows. `setMvProdLabel()`
+  is waiting for the control. Then step 4 mints `pilllabel-block` / `pilllabel-episode` fixtures and cuts them into
+  gates 10 and 13 as new cases.
+
+#### Before the rebuild (kept for the record)
+
+- ⏸ **Was: RESUME HERE, once `half-day-episodes` is merged into `main`. Do not start before.** Read the plan's top
   status block first ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
   - **What changed:** the half-days build (`05f7f89`, owner ruling "Stacked bars, always") makes Production
     ALWAYS one bar per episode (per block). It rewrites `pillRunsForWeek()`, `segPillLabel()` and

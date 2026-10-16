@@ -1,6 +1,7 @@
 # MONTH-PILL-LABEL-PLAN.md
 
-**Status: PLAN, 15 Oct 2026. Nothing built and nothing committed.** The owner gave five rulings the
+**Status: STEP 2 (THE ENGINE) REBUILT ON HALF-DAYS, 15–16 Oct 2026, committed locally on the owner's sign-off
+(§12). Steps 3–6 to come.** *(Was: "PLAN, 15 Oct 2026. Nothing built and nothing committed.")* The owner gave five rulings the
 same day (§6). **Step 1, the measurement, is done (§7):** nothing in any mode clips in either PDF.
 On screen the new modes lose only grey text, where today's labels lose the block and the episodes.
 On those numbers the owner ruled that Episode and Block modes **split the pill at each episode or
@@ -33,13 +34,29 @@ block change** (Q4), and that **no width remedy** is wanted (Q5).
 > Dropped: §11's split (`productionPieceEnd()`, `productionUnitOf()`, the per-segment day maps),
 > which half-days' `productionUnits()` replaces.
 >
-> ⚠️ **Two things to settle at the rebuild:**
-> - **The Show switches.** Under half-days, "Show Episodes" OFF on an Episodes calendar (or "Show
->   Blocks" OFF on a Blocks one) draws unsplit *Production Week N* bars. §5.2 hides that very
->   switch while Episode is the pill text. The two cannot both stand, so ask the owner.
-> - **Storing the default (Q7).** With "absent = follow Schedule by", the variable needs a "not
->   chosen" state that `captureSnapshot()` does not write (e.g. `null`, omitted), or else a fourth
->   permanent value. Prefer omitting it: no new value enters the format.
+> ✅ **STEP 2 IS REBUILT on half-days (15–16 Oct 2026, after `6bd5fae` merged it into local `main`).
+> Committed locally on the owner's sign-off; not merged, not pushed. See §12.** The two open items, and a third the plan's own text no longer settled,
+> were put to the owner by picker first and ruled as recommended (§6, Q9–Q11):
+> - **Q9, the Show switches edit the GREY TEXT ONLY.** Bars stay split whatever the switches say,
+>   and §5.2 stands as written: a switch is hidden while its item is the bar's text. ⚠️ This
+>   **reverses half-days' "Show Episodes / Show Blocks OFF draws unsplit Production Week bars"**.
+>   Its `halfdays` D6 and `shootorder`'s gate check were updated to match.
+> - **Q10, not chosen is an ABSENT KEY.** `mvProdLabel` is `null` in memory, and `captureSnapshot()`
+>   leaves the key out. Picking the label Schedule by already gives clears it again, so the key only
+>   ever records a departure from the default.
+> - **Q11, 'block' on an Episodes calendar follows Schedule by** (Episode text), not Production Week
+>   as §3's Fallback said when Week was still the default. The file keeps the `'block'`.
+>
+> ⭐ **Then, on seeing the Week-mode PDF (owner, 15 Oct 2026):** *"this doesnt look right at all. why is there a double
+> up for prod week 3, 4, and 6"*. Split per episode, every bar was headed by its week, so a week shot across two
+> episodes showed two "Production Week 3" bars, and a one-day piece had no grey text (ruling 7) to tell them apart.
+> Two more rulings by picker (§6):
+> - **Q13, labelled by Week, Production is ONE BAR PER WEEK**, with that week's episodes in grey (ruling 8's text:
+>   *Ep. 202, 203*; *Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205*). This partly reverses Q6 and restores §3's
+>   original Week mode. Episode and Block keep one bar per episode or block.
+> - **Q12, the switch day's two bars should meet half way through the square** (the owner's own suggestion) instead
+>   of stacking. That is a frozen edit to `renderMonthView`, so it is planned on its own in
+>   [`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md), to be built in its own session after the owner signs off its gate.
 >
 > ⚠️ **Since `49c2eae`, `main` also has the month view's edge grips** (MONTH-VIEW-PLAN §6.7, step 7).
 > They read Production's pills, and their HANDOFF note asks for `pilldrag` E8–E13 to be re-run once
@@ -196,6 +213,10 @@ The model is **`singleColumn`**. That switch also sits in the Preferences card w
 calendar data, and it travels through `captureSnapshot()`'s own key rather than through
 `fields.byId`.
 
+> ⚠️ **Superseded in part by Q7 and Q10 (§6).** Wherever this section says an absent key, a bad
+> value or a reset means `'week'`, read **not chosen** instead: `mvProdLabel = null`, the key left
+> out of the file, and the bars following Schedule by. The rest stands. §12 has the code as built.
+
 - **State:** an engine variable, `mvProdLabel`, holding `'week'`, `'episode'` or `'block'`. The
   control **reflects** it and never holds it, the contract `reflectSingleColumn()` has.
 - **A change** goes through `setMvProdLabel(next)`, shaped like `setSingleColumn()`. It does
@@ -241,7 +262,7 @@ Read that as: **the switches offered are exactly the items the grey text can car
 |---|---|---|
 | Production Week | Show Episodes | Show Blocks, Show Episodes |
 | Episode | Show Production Week | Show Production Week, Show Blocks |
-| Block | *(draws as Week)* Show Episodes | Show Production Week, Show Episodes |
+| Block | *(draws as Episode, Q11)* Show Production Week | Show Production Week, Show Episodes |
 
 - **One new switch, "Show Production Week in Month View",** with `#pref-mv-week` and
   `prefs.mvWeek` (absent = on). It follows ruling 10's pattern exactly: inside `.prefs-card`, never
@@ -273,6 +294,11 @@ Read that as: **the switches offered are exactly the items the grey text can car
 | Q6 | *(after half-days' "Stacked bars, always")* What does the setting do now that bars always split? | **Changes the bar's text only.** Bars stay split in every mode |
 | Q7 | What does a calendar show before anyone picks? | **Follow Schedule by:** Episode text on an Episodes calendar, Block text on a Blocks calendar (what half-days draws) |
 | Q8 | How does step 2 proceed? | **Half-days lands first, then step 2 is rebuilt on top.** The first build stays on `pill-label` as a reference |
+| Q9 | *(at the rebuild)* Half-days drew unsplit Production Week bars with "Show Episodes"/"Show Blocks" OFF; §5.2 hides that switch while its item is the bar text. Which stands? | **The switches edit the grey text only.** Bars stay split whatever the switches say; §5.2 as written. Offered and not chosen: keep OFF un-splitting, with the unit's own switch offered in every mode |
+| Q10 | *(at the rebuild)* How is "not chosen" (Q7) saved? | **Leave the key out.** Picking the label Schedule by already gives clears it again; any other pick is saved. Offered and not chosen: keep any pick once made; a fourth value `'auto'` |
+| Q11 | *(at the rebuild)* A Block label on a calendar switched to Schedule by Episodes? | **Follows Schedule by** (Episode text); the file keeps `'block'`. Offered and not chosen: Production Week, as §3 said before Q7 |
+| Q12 | *(on seeing the PDFs)* The switch day's stacked bars? | The owner's suggestion: *"the bar ends half way thru the calendar square and the next pill starts in the second half of the square"*. A frozen edit, so **planned on its own and built in its own session** ([`HALF-SQUARE-BARS-PLAN.md`](HALF-SQUARE-BARS-PLAN.md)). Offered and not chosen: build it here; keep stacked bars |
+| Q13 | *(on seeing the PDFs)* Labelled by Week, one bar per episode each headed "Production Week N", or one bar per week? | **One bar per week**, the week's episodes in grey (ruling 8's text). Partly reverses Q6. Offered and not chosen: keep per-episode bars; drop the Week label |
 | — | Commit the plan now? | **Hold** until it settles |
 
 ---
@@ -457,10 +483,11 @@ lose the block and the episodes. The levers that were offered, kept for the reco
 
 1. ✅ **Measure (§7).** Done 15 Oct 2026. The `pilllabel` leg should reuse its method: every
    Production pill, at **961 px** and at the printed width, plus `…` counted in both PDFs.
-2. ⏸ **Engine: to be REBUILT on half-days once it is merged (Q8).** The status block at the top
-   says what carries over. It was first built as written here (§11, superseded): `productionRunParts`;
-   the three helpers rewired (`segPillLabel`, `productionPillTag`, and `pillRunsForWeek` for the
-   split); `mvProdLabel` in the snapshot, the restore and the resets; and `setMvProdLabel`.
+2. ✅ **Engine: REBUILT on half-days, 15–16 Oct 2026 (§12).** Committed locally on the owner's sign-off. It was first built as
+   written here (§11, superseded): `productionRunParts`; the three helpers rewired (`segPillLabel`,
+   `productionPillTag`, and `pillRunsForWeek` for the split); `mvProdLabel` in the snapshot, the
+   restore and the resets; and `setMvProdLabel`. The rebuild keeps the save-format half and
+   replaces the rest with the text composition in `unitBarLabel()`/`unitGreyLabel()`.
 3. **The controls:** the toggle (§5.1), the Show Production Week switch, and the contextual
    visibility (§5.2).
 4. **Mint the two fixtures in the app.** Write the `pilllabel` leg and wire it into `gate.sh`.
@@ -540,3 +567,74 @@ wires it). With no control yet, it opens each fixture's own JSON through the rea
 - **Fallbacks:** a single one, on `dayoverrides-onhalf`. It is a 2-day piece of untagged entries
   past Σ episodes that starts a new row (Monday–Tuesday of Production Week 18), and it reads
   *Production Week 18*, exactly as §3's rule says.
+
+---
+
+## 12. ✅ Step 2 as REBUILT on half-days (15–16 Oct 2026, worktree `jovial-villani-c9cc8e`, committed locally)
+
+*Built on local `main` `6bd5fae` (half-days merged), after the owner's Q9–Q11, then revised for Q13 (one bar per week
+when labelled by Week) the same day (§6). Supersedes §11.*
+
+**No frozen line changed.** Everything is in `src/legacy/app.js`, in non-frozen functions:
+
+| | |
+|---|---|
+| State | `mvProdLabel`: `'week'` \| `'episode'` \| `'block'`, or **`null` = not chosen** (Q7, Q10). `MV_PROD_LABELS` beside it. Both declared beside `singleColumn` |
+| Week mode (Q13) | `productionSplits(U)`: Production splits whenever there are units **unless `mvProdLabel === 'week'`**. `productionSplitRuns()` and the edge grips' `splitSpanOf()` both ask it, so the grips read the bars as drawn. Labelled by Week the bar is `prodWeekLabel()`'s *Production Week N*, and `productionPillTag()` writes ruling 8's grey text from `productionUnits()`: *Ep. 202, 203*, or *Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205*, with the Show switches dropping their half. That code is exactly what it was before this step |
+| The text | `unitLabelParts(kind, unit, weekLabel)` lays out a split run's three items (week, block, episodes) and picks the bar's: `'episode'` as stored, otherwise the unit's own `kind`. Since `kind` is `'block'` exactly on a Blocks calendar, not chosen follows Schedule by and `'block'` on an Episodes calendar lands on Episode (Q11) with no special case. An empty pick (a block with no episodes) reads as Week |
+| Bar text | `unitBarLabel(kind, unit, weekLabel)`. `segPillLabel()` now passes the run's `prodWeekLabel()` |
+| Grey text | `unitGreyLabel(kind, unit, weekLabel)`: the items that are not the bar's, in the order Week, Block, Episodes, each only while its "Show" switch is on (`mvShowWeek()`, `mvShowBlocks()`, `mvShowEpisodes()`). Ruling 7 stays in `productionPillTag()`, which asks it |
+| The switches (Q9) | No longer read by the split: half-days' "OFF joins the bars" is gone. They edit the grey text only |
+| Untouched | `productionUnits()`, `takeProdRun()`, the `_prodRuns` call-order contract, `pillRunsForWeek()`, how a split cuts |
+| Save format | `captureSnapshot()` writes `mvProdLabel` only when chosen (`...(mvProdLabel ? {mvProdLabel} : {})`), so a file that never chose is byte-for-byte what it was. `sanitizeSnapshot()` drops a value not in `MV_PROD_LABELS` (counted like any bad value). `applyStateSnapshot()` restores it unconditionally, right after `singleColumn`: a valid value, else `null`. Reset All sets `null` |
+| A change | `setMvProdLabel(next)`, shaped like `setSingleColumn()`: `update()` then `markDirty()`. A pick equal to Schedule by's own label stores `null` (Q10). Nothing calls it until step 3's control |
+| `mvShowWeek()` | reads `prefs.mvWeek` (absent = on). Its switch is step 3 |
+
+**The table the composition gives** (also in `unitBarLabel`'s comment), *bar text | grey text*:
+
+| Label | Episodes calendar | Blocks calendar |
+|---|---|---|
+| not chosen | Ep. 201 \| Production Week 3 | Block 1 \| Production Week 3 · Ep. 201, 202 |
+| Week *(one bar per week, Q13)* | Production Week 3 \| Ep. 201, 202 | Production Week 3 \| Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205 |
+| Episode | Ep. 201 \| Production Week 3 | Ep. 201, 202 \| Production Week 3 · Block 1 |
+| Block | *(as not chosen, Q11)* | Block 1 \| Production Week 3 · Ep. 201, 202 |
+
+The not-chosen row is exactly what half-days drew, character for character, which is why gates 10 and 13 hold.
+
+**Proof** (build `fe426d5e…`, 1,479,168 bytes, after Q13; Chrome on port 8297, the full gate run with no other session's
+gate alongside, checked by a watcher):
+
+- **The default is byte-identical (§8.1).** With no key, gate 10's ten print documents and gate 13's twenty written
+  PDFs are byte-identical to half-days' re-cut baselines, with no re-cut.
+- ⭐ **Labelled by Week, every one of the sixteen baselined calendars writes a month PDF BYTE-IDENTICAL to its own
+  baseline from before half-days** (`c7017a9`, `tests/baselines/2026-10-05-monthwriter/`; `blocksoff` against
+  `reference`'s). So Q13's one bar per week is ruling 8's look exactly, not an approximation of it. Exported through
+  the real Export, from each fixture with `mvProdLabel: 'week'` added (temporary files, removed after).
+- **Leg `pilllabel`, 90/90 on eight calendars**: `blocks`, `blocksoff`, `dayoverrides`, `dayoverrides-onhalf`,
+  `shootorder`, `month-dense60`, `carry-rich` and `halfdays` (the stacked switch days). Wired into `gate.sh` in its
+  own block. It holds:
+  - W0–W3: the label Schedule by gives, `'block'` on an Episodes calendar (Q11), a no-key file opened after a
+    `'week'` one, and `'bogus'` all draw the month view byte-identical to no key, every month;
+  - WK (Q13): labelled by Week, each week row's bars are exactly the runs of days no key covers (nothing stacked, no
+    day added or lost), each *Production Week K*, with ruling 8's grey text worked out from no key's own bars;
+  - G and T (Q6), on the two Blocks calendars: labelled by Episode, no key's own bars (month, row, columns, lane,
+    order), each with the table's text; no `" / "`; no grey text on a one-day bar (ruling 7);
+  - X1 and X2 (Q9): the unit's own Show switch off changes nothing while the bar names it, and in Week mode each
+    switch drops only its own item from each list in the grey text and moves no bar;
+  - K0 and K1 (Q10): Save writes `'week'` back, and a file nobody labelled saves with no key.
+  - ⚠️ K1 first timed out on three calendars. The previous Save's "Saved ✓" flash disables the button for 1.2 s
+    (`flashSaveBtn`), and a fast load landed inside it. That is the leg's timing, not the app, so the leg now waits
+    for the button.
+- **Re-run with the change:** `halfdays` 25/25 (D6 revised for Q9), `shootorder` 9/9 (its Show Episodes check revised
+  for Q9), `pilldrag` 20/20 (E0–E14, so E8–E13 and half-days' E14). The edge grips read pill ranges, not text, and
+  `splitSpanOf()` asks the same `productionSplits()` the drawing does.
+- **The owner's PDFs (§8.5)**, the written month PDF through the real Export: `blocks` labelled Week and Episode, and
+  `halfdays` labelled Week, each with a `monthbase.py sheets` contact sheet against its not-chosen baseline. Only the
+  months with Production differ, and none of the three contains a `…`. Session files, not in the repo. The first
+  round (per-episode Week bars) is what drew Q12 and Q13. ✅ **The owner signed off the second round (one bar per week) by
+  picker, 16 Oct 2026, and the step was committed locally** (not merged, not pushed).
+- `npm run check` 40/40; `check-refs.py` CLEAN.
+- **Full gate** on build `fe426d5e…`: **1,441 PASS, 0 FAIL, GATE PASSED** (13 min), `pilllabel`'s 90 included.
+- ⚠️ **Two earlier runs are void, and say why:** one overlapped another session's gate for an hour (X6, a timed
+  dialog case, failed 3×; gate 13's bytes held); the other ran overnight through clamshell sleep and another gate
+  (789 min, 15 timeouts). The gate on build `3dfe4b4b…` (before Q13) had passed 1,447/0.

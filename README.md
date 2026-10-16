@@ -29,6 +29,39 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Production's month bars can be labelled by Week, Episode or Block: the engine (15 Oct 2026)
+
+Step 2 of MONTH-PILL-LABEL-PLAN.md, rebuilt on top of half days. There is no control yet (step 3), so nothing a user
+sees changes unless a file carries the new key.
+- **A calendar can say what Production's bars are labelled by:** Production Week, Episode or Block. The other items
+  move into the grey text, always in the order Week, Block, Episodes.
+  - **Labelled by Week, Production is one bar per week** (owner's picker, after seeing the PDFs), reading *Production
+    Week 3* with that week's episodes in grey (*Ep. 202, 203*; on a Blocks calendar *Block 1 · Ep. 201, 202 / Block 2 ·
+    Ep. 203–205*). Split per episode, every bar had been headed by its week, so a week shot across two episodes showed
+    "Production Week 3" twice.
+  - **Labelled by Episode or Block, Production stays one bar per episode or block** and only the text changes (ruling
+    Q6). Labelled by Episode, a Blocks calendar's bar reads *Ep. 201, 202* with grey *Production Week 3 · Block 1*.
+- **A calendar where nobody has picked follows Schedule by** (ruling Q7): Episode text on an Episodes calendar, Block
+  text on a Blocks one, which is exactly what half days drew. Every existing calendar opens unchanged.
+- **Saved in the calendar, as a new permanent snapshot key `mvProdLabel`** (`'week'`, `'episode'` or `'block'`). Not
+  chosen is the key **left out** (owner's picker, Q10), so no fourth value enters the format; picking the label
+  Schedule by already gives clears it again. An unknown value opens as not chosen. A Block label on a calendar
+  switched to Episodes follows Schedule by, and keeps its `'block'` (Q11). `SNAPSHOT_VERSION` stays 1: an older build
+  ignores the key.
+- ⚠️ **"Show Episodes" / "Show Blocks" now edit the grey text only** (owner's picker, Q9). Half days had them draw
+  plain Production Week bars when the bar's own unit was switched off; the bars now stay split whatever the switches
+  say. With no label chosen, an Episodes calendar's Show Episodes (a Blocks calendar's Show Blocks) has nothing to
+  remove, because the bar names that item.
+- **Planned, not built:** the owner asked for a switch day's two bars to meet half way through the square instead of
+  stacking. That is a frozen edit to the month renderer, so it has its own plan, `HALF-SQUARE-BARS-PLAN.md`.
+- No frozen code was edited: the text is composed in `unitBarLabel()` / `unitGreyLabel()`, which frozen
+  `renderMonthView` asks.
+- **Verified:** gates 10 and 13 byte-identical with no key, no re-cut. Labelled by Week, all sixteen baselined
+  calendars write a month PDF byte-identical to their baselines from before half days. New leg `pilllabel`, 90/90 on
+  eight calendars (one bar per week; Episode text on the same bars; the save key round-trip; the Show switches);
+  `halfdays` 25/25 and `shootorder` 9/9 with their Show-switch checks revised; `pilldrag` 20/20 (E8–E14). Full gate:
+  1,441 PASS, 0 FAIL. The owner signed off the Week and Episode month PDFs before the commit.
+
 ### Unreleased — Half days are typed into an episode's or block's day count; the switch day shows both (15 Oct 2026)
 
 The owner corrected what a half day is: *"instances where we would switch to the next episode or block half way thru
@@ -41,7 +74,8 @@ a day"*. So a day count can now end in **.5**, and marking a single day "Half da
   Production Week (and a block's episodes) in grey. On a switch day both bars show, the earlier one above. Owner's
   ruling ("Stacked bars, always"): this replaces the one "Production Week N" bar per week, so **the month view and
   month PDF of every calendar with episodes or blocks change**, with or without halves. "Show Episodes" / "Show
-  Blocks" off still draws the plain Production Week bars. No frozen code was edited.
+  Blocks" off still draws the plain Production Week bars *(reversed the same day: they now edit the grey text only,
+  see the entry above)*. No frozen code was edited.
 - **"Half day" and "Work half day" are no longer offered** in the month view's day menu. Owner's ruling ("Keep them as
   they are"): marks already saved keep counting and showing, move with the calendar, and can be cleared.
 - **The month view's edge grips** (MONTH-VIEW-PLAN step 7, merged the same day) follow the split: an episode's end
