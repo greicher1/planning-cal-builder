@@ -8,11 +8,15 @@
 
 - ⏭ **RESUME HERE.**
   - **State:** HALF-SQUARE-BARS-PLAN.md is built and gated (full gate: 1,493 PASS, 0 FAIL) on branch
-    `claude/sweet-mestorf-8d18b8`. Not merged into `main`, not pushed.
+    `claude/sweet-mestorf-8d18b8`. ✅ **Merged into LOCAL `main` by fast-forward to `54ffe15`** (owner, 16 Oct 2026:
+    "merge"), so `main` is exactly the gated tip. ✅ **PUSHED AND LIVE at `54ffe15` (16 Oct 2026, owner's picker
+    "Push now")**, verified BYTE-IDENTICAL to the gated build (`be311b27…`, 1,482,152 bytes, fetched with a
+    cache-buster; deploy run 38971370710, "Build and check" and "Deploy to Pages" both green). No version cut:
+    `version.json` reads 1.4.3, so installed copies show no update notice.
   - ⛔ **Landing it lands MONTH-PILL-LABEL-PLAN step 2 as well.** The branch is cut from `78dedb1` (main) with
     `claude/jovial-villani-c9cc8e` (`62c62b7`, step 2) merged in as `7b94c3f`, because the task's gate includes step
     2's `pilllabel` leg, and the plan lives on that branch.
-  - So merge step 2's branch first (or with it), and re-run gates 10 and 13 on whichever lands first (plan §6).
+  - ✅ Both landed together in that fast-forward, so the gate above covers them as merged.
   - The full record is in the plan's §7 and §8.
 - **The owner's rulings (pickers, 16 Oct 2026), all as recommended:**
   - **"Yes, build it":** the frozen edit, against §4's gate. The approved gate named the `halfSlices` line.
@@ -265,7 +269,8 @@
 
 - ⏭ **RESUME HERE: step 2 (the engine) is rebuilt on half-days and COMMITTED LOCALLY** (owner's picker, 16 Oct 2026)
   on branch `claude/jovial-villani-c9cc8e`, which was fast-forwarded to local `main` `6bd5fae` (half-days merged).
-  **Not merged into `main`, not pushed.** Next is the plan's step 3, the controls. Read the plan's §12 first
+  ✅ **Merged into `main` at `54ffe15` (with the half-square bars), PUSHED AND LIVE 16 Oct 2026** (see the entry
+  above). Next is the plan's step 3, the controls. Read the plan's §12 first
   ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
 - **Three owner rulings at the rebuild (picker, 15 Oct 2026, plan Q9–Q11), all as recommended:**
   - **Q9: "Show Episodes" / "Show Blocks" edit the GREY TEXT ONLY.** ⛔ This **reverses half-days' "OFF draws unsplit
