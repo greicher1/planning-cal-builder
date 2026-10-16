@@ -257,7 +257,10 @@ instead of moving it. These are all the writers, found by reading on 15 Oct 2026
 ### 8.1 ✅ As built (15 Oct 2026)
 
 - **`setPhaseStart(key, iso)` is the one writer.** It is used by `shiftCalendarDates` (Shift All, Shift From and
-  Anchor To), both Rebuild directions (their pins too), and the drag's `mousemove`. ⛔ A new mover must use it.
+  Anchor To), both Rebuild directions (their pins too), the drag's `mousemove`, and, since `main` was merged in
+  (`9a04a6d`), Production's first-shoot-day grip from MONTH-VIEW-PLAN step 7 (`applyCount()`, its move and its
+  return to where it began). ⛔ A new mover must use it. `probeShootDays()` writes `start-production` too, but as a
+  scratch value it restores before returning: a probe, not a move, so it is left alone.
 - **`phaseSnapped()` returns false for a Days or Dates phase.** Their Snap to Mon box is hidden and ignored by the
   scheduler, so the tools must ignore it as well. Otherwise `chainedStart()` pushed them to a Monday, and Rebuild
   pinned them to one. The drag likewise leaves their hidden box alone.

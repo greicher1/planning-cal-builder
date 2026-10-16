@@ -5887,8 +5887,9 @@ export function initLegacyApp() {
   }
 
   // ⛔ THE ONE WRITER of a phase's start date for every tool that MOVES a phase (CUSTOM-PHASE-UNITS-
-  // PLAN §8): Shift All / Shift From / Anchor To (shiftCalendarDates), Rebuild From (both directions)
-  // and the month-view drag. A Dates phase is TWO dates, so a tool that moved start-<key> alone would
+  // PLAN §8): Shift All / Shift From / Anchor To (shiftCalendarDates), Rebuild From (both directions),
+  // the month-view body drag, and Production's first-shoot-day grip (MONTH-VIEW-PLAN step 7,
+  // applyCount). A Dates phase is TWO dates, so a tool that moved start-<key> alone would
   // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
   // Days phases need nothing more -- their length is a count. A new mover must write through this,
   // or Dates phases stretch under it. Returns false when there is no start field to write.
@@ -6638,7 +6639,7 @@ export function initLegacyApp() {
       if(step.c === d.c0){
         // Back where it began: EXACTLY what was there, flags and Snap to Mon included (MONTH-9's rule).
         r.days = d.daysWas; r.daysEdited = d.editedWas;
-        d.startEl.value = d.startWas;
+        setPhaseStart('production', d.startWas);   // the one writer for every mover (CUSTOM-PHASE-UNITS-PLAN §8.1)
         if(d.snapEl) d.snapEl.checked = d.snapWas;
       } else {
         r.days = String(step.c);
@@ -6647,7 +6648,12 @@ export function initLegacyApp() {
         // under "Manually changed" in the Show Info note -- how the user sees what the drag did.
         r.daysEdited = true;
         if(d.kind === 'start'){
-          d.startEl.value = step.iso;
+          // ⛔ Through setPhaseStart(), THE ONE WRITER of a phase's start for every mover
+          // (CUSTOM-PHASE-UNITS-PLAN §8.1). For Production today it is a plain write -- Production has no
+          // Dates mode -- but a mover that bypasses it is how a Dates range ends up stretched rather
+          // than moved, so every mover goes through it. (probeShootDays() above writes the field too,
+          // but as a scratch value it puts back before returning: a probe, not a move.)
+          setPhaseStart('production', step.iso);
           if(d.snapEl){
             // Body-drag's rule (§6.3, MONTH-9): a non-Monday takes Snap to Mon off; a Monday keeps
             // what it was. .checked without a 'change' event, as body-drag does: update() is next.

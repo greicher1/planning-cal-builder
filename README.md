@@ -49,6 +49,9 @@ Steps 1–4 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for d
   - Rebuild places Days and Dates phases to the day. Backwards, a Dates phase ends the day before the next phase starts
     and keeps its length, and a Days phase counts its working days back. Forwards, neither starts on a weekend.
   - Snap to Mon, hidden for Days and Dates, is ignored by the tools as it is by the scheduler.
+  - Since `main` (with MONTH-VIEW-PLAN step 7) was merged into this branch, Production's first-shoot-day grip writes
+    through the same function. Production has no Dates mode, so the date written is the same; the rule is just that
+    every mover writes through `setPhaseStart()`.
 - **Fixed in passing:** the `{<phase>.close}` header token named the wrong day for any phase that ends mid-week. It
   computed `end − 3 days`, which is the Friday only when a phase ends on a Monday, so a Snap-off phase starting on a
   Wednesday "closed" on the Sunday before. It now names the last weekday. Every calendar whose phases end on Mondays
@@ -63,6 +66,12 @@ Steps 1–4 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for d
 - **Verified:** a new `customunits` leg (two runs, in `gate.sh`) and a synthetic fixture, `customunits.sptcal`, minted
   through the real Save. Its 51 checks pass across both runs, with 0 console errors. They include each mover on a Days
   and a Dates phase, with one undo restoring every date. **Full gate on the step-4 build `fa825e58…`: 1,331 PASS, 0 FAIL, GATE PASSED** (11 min 43 s). Every existing output is unchanged, and gate 5 holds at 62 ids.
+  - After the merge with `main` (build `88f1ef4c…`), the first full gate had **1 FAIL**: one `snapoff` run
+    (`snapoff-onecol`) wrote no result file at all, while its two sibling runs passed. That gate took 16 minutes
+    instead of about 12, which fits two gates stalling each other's Chrome, but the cause is not proven. The leg then
+    passed 3 of 3 standalone. **The rerun of the full gate on the same build: 1,345 PASS, 0 FAIL, GATE PASSED**, with
+    `snapoff-onecol` passing, `customunits` 51/51, step 7's `pilldrag` 19/19, every frozen output identical, and gate 5
+    at 62 ids.
   - Steps 1–3 alone (`fa212d7`, build `e88d3ea4…`): **1,318 PASS, 0 FAIL, GATE PASSED.** Every existing output is
     unchanged: the waterfall PDF and every Excel part match the baseline; gate 5's `fields.byId` key set is identical
     at 62 ids (its calendar has no custom phases); gate 10's printed month documents and gate 13's written month PDFs
