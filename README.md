@@ -72,6 +72,10 @@ Steps 1–4 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for d
     passed 3 of 3 standalone. **The rerun of the full gate on the same build: 1,345 PASS, 0 FAIL, GATE PASSED**, with
     `snapoff-onecol` passing, `customunits` 51/51, step 7's `pilldrag` 19/19, every frozen output identical, and gate 5
     at 62 ids.
+  - After the second merge, with half-day episodes (build `e7181214…`), the first full gate had **4 FAIL**, all in
+    `conflict` (C3, C4b, C5 and C6, the file-changed-on-disk flow, which this branch does not touch). These are the
+    same four the half-days session saw once on `main`'s build. The leg passed 9/9 standalone, twice. **The rerun on the
+    same build: 1,404 PASS, 0 FAIL, GATE PASSED**, with every frozen output identical and gate 5 at 62 ids.
   - Steps 1–3 alone (`fa212d7`, build `e88d3ea4…`): **1,318 PASS, 0 FAIL, GATE PASSED.** Every existing output is
     unchanged: the waterfall PDF and every Excel part match the baseline; gate 5's `fields.byId` key set is identical
     at 62 ids (its calendar has no custom phases); gate 10's printed month documents and gate 13's written month PDFs
