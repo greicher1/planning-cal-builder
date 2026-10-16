@@ -1389,8 +1389,11 @@ chk(a.get('undoDisabledBefore') is True and a.get('undoDisabledAfterPref') is Tr
 # switch does where the episodes ARE grey text (Week mode).
 chk(a.get('prefIdsInFields')==[] and jp and a.get('pillsEpsOff')==jp and a.get('pillsEpsBackOn')==jp,
     "shootorder: 'Show Episodes' off changes nothing while the bar names the episode, and no pref- id is in fields.byId")
-chk(a.get('rowsInMonth')=={'onecol':False,'blocks':True,'eps':True} and a.get('rowsInSheet')=={'onecol':True,'blocks':False,'eps':False},
-    f"shootorder: Preferences rows follow the view -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
+# ⚠️ REVISED 16 Oct 2026 (MONTH-PILL-LABEL-PLAN step 3): the month box now opens on the "Label Production by" control,
+# and its Show rows are contextual (plan 5.2). On this Episodes calendar, with no label chosen, the bar names the
+# episode: only Show Production Week is offered. pilllabel C3 holds the full table on eight calendars.
+chk(a.get('rowsInMonth')=={'onecol':False,'label':True,'week':True,'blocks':False,'eps':False} and a.get('rowsInSheet')=={'onecol':True,'label':False,'week':False,'blocks':False,'eps':False},
+    f"shootorder: Preferences rows follow the view and the label -- month {a.get('rowsInMonth')}, waterfall {a.get('rowsInSheet')}")
 chk((a.get('afterBefore') or [''])[0]=='210' and a.get('afterAfter')==['210','205','202','204','201','203','206','207','208','209'],
     "shootorder: dragging a grip drops BEFORE (upper half) and AFTER (lower half) a row")
 chk(a.get('dragMetaSame') and a.get('dragGridSame'),
@@ -1409,9 +1412,14 @@ PYS
 # on an Episodes calendar (Q11), a no-key file after a labelled one and a bad value are byte-identical to no key; the
 # Show switches edit grey text only (Q9); Save writes the key back, and never writes one nobody chose (Q10). The
 # sanitizer's warning for the bad value is the one console line allowed.
+# ⭐ STEP 3 (16 Oct 2026): the same leg then drives the REAL control, Preferences > "Label Production by", by
+# clicking its segments: C (what it shows on open; plan 5.2's Show rows), B (Block disabled on an Episodes
+# calendar, its tooltip, Q11's guard), S (the Show switches: no undo step, never in the file) and M (each label
+# picked: the file-with-that-key's month view byte for byte, dirty, ONE undo step, Redo, Save, the Load round trip,
+# and Schedule by's own label clearing the key). Virtual budget 1500 (was 900), for the extra loads.
 for PLSTATE in blocks blocksoff dayoverrides dayoverrides-onhalf shootorder month-dense60 carry-rich halfdays; do
   rm -f "$HERE/pilllabel.json"
-  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PLSTATE" "$HERE/run.sh" pilllabel 900 >/dev/null 2>&1
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PLSTATE" "$HERE/run.sh" pilllabel 1500 >/dev/null 2>&1
   python3 - "$HERE/pilllabel.json" "$PLSTATE" <<'PYPL' || FAIL=1
 import json,sys
 bad=0
@@ -1448,6 +1456,57 @@ chk(X2 and all(v.get('bars') is True and v.get('text') is True for v in X2.value
     f"{L}: X2 in Week mode each Show switch drops only its item from each list in the grey text, and no bar moves {X2}")
 chk(a.get('K0') == {'has': True, 'value': 'week'}, f"{L}: K0 Save writes mvProdLabel back {a.get('K0')}")
 chk(a.get('K1') == {'has': False}, f"{L}: K1 Save of a file nobody labelled writes NO key {a.get('K1')}")
+# ---- step 3: the real control, Preferences > "Label Production by" (16 Oct 2026) ----
+dflt = 'block' if blk else 'episode'
+C = a.get('C') or {}
+CK = ['none', 'week', 'episode', 'block']
+chk(all(C.get(k, {}).get('ids') == 'mv-prod-label-week,mv-prod-label-episode,mv-prod-label-block' for k in CK),
+    f"{L}: C0 the control's three radios carry STABLE ids on every open (its explicit name), so nothing re-rolls per load")
+shown = {k: C.get(k, {}).get('got') for k in CK}
+chk(shown == {'none': dflt, 'week': 'week', 'episode': 'episode', 'block': dflt},
+    f"{L}: C1 on open the control shows the label the bars are drawn in -- no key = Schedule by ({dflt}), 'block' on an Episodes calendar = Episode (Q7, Q10, Q11) {shown}")
+chk(all(C.get(k, {}).get('blockDisabled') is (not blk) for k in CK),
+    f"{L}: C2 Block is {'enabled on a Blocks' if blk else 'DISABLED on an Episodes'} calendar")
+chk(all(C.get(k, {}).get('rowsOk') is True for k in CK),
+    f"{L}: C3 the Show rows are plan 5.2's table for each label -- {[(k, C.get(k, {}).get('rows')) for k in CK]}")
+B = a.get('B') or {}
+if blk:
+    chk(B.get('tooltipRef') is False, f"{L}: B an enabled Block carries no tooltip")
+else:
+    chk(B.get('afterBlockClick') == 'episode' and B.get('undoOffAfterBlockClick') is True,
+        f"{L}: B1 a click on the disabled Block changes nothing -- no pick, no undo step {B}")
+    chk(B.get('describedBefore') is None and bool(B.get('describedAfter')),
+        f"{L}: B2 hovering the disabled Block opens its reason tooltip (aria-describedby {B.get('describedBefore')} -> {B.get('describedAfter')})")
+    chk(B.get('undoOffAfterEpisodeClick') is True and B.get('savedKey') == 'block',
+        f"{L}: B3 Q11's guard: Episode clicked where a stored 'block' already shows as Episode is not a pick -- no undo step, Save keeps 'block' {B.get('savedKey')}")
+S = a.get('S') or {}
+chk(S.get('undoBefore') is True and S.get('undoAfterOff') is True and S.get('undoAfterOn') is True and S.get('statusAfterOff') == S.get('statusBefore'),
+    f"{L}: S1 the three Show switches, each off then on, push NO undo step and leave the calendar clean {S.get('statusBefore')!r} -> {S.get('statusAfterOff')!r}")
+chk(S.get('allOff') == [False, False, False] and S.get('stored') == [False, False, False] and S.get('storedAfterOn') == [],
+    f"{L}: S2 they are per user: stored in localStorage while off (absent = on), gone again when on {S.get('stored')} {S.get('storedAfterOn')}")
+SF = S.get('file') or {}
+chk(SF.get('n', 0) > 0 and SF.get('bad') == [] and SF.get('top') == [],
+    f"{L}: S3 saved with all three off, the file carries none of them -- no mvWeek/mvBlocks/mvEpisodes key, no pref-/mv-prod-label id in fields.byId ({SF.get('n')} ids) {SF}")
+M = a.get('M') or {}
+chk(sorted(M.keys()) == (['episode', 'week'] if blk else ['week']),
+    f"{L}: M the control can pick {sorted(M.keys())} away from the default ({dflt})")
+for m, R in sorted(M.items()):
+    chk(R.get('view') is True and R.get('rows') is True,
+        f"{L}: M {m}: picked by the control, the month view is byte-identical to the file opened with mvProdLabel '{m}', and the rows follow {R.get('view')}")
+    sa, sb = R.get('statusAfter') or '', R.get('statusBefore') or ''
+    chk(sa != sb and ('Unsaved' in sa or 'Autosave' in sa),
+        f"{L}: M {m}: the pick dirties the calendar {sb!r} -> {sa!r}")
+    chk(R.get('undoBefore') is True and R.get('undoAfter') is False and R.get('undoView') is True and R.get('undoEmpty') is True,
+        f"{L}: M {m}: ONE undo step -- one Undo restores no key's month view and empties the stack")
+    chk(R.get('redoReady') is True and R.get('redoView') is True,
+        f"{L}: M {m}: Redo re-applies it, byte-identical")
+    RF = R.get('savedFields') or {}
+    chk(R.get('savedKey') == m and RF.get('bad') == [] and RF.get('top') == [] and RF.get('n') == SF.get('n'),
+        f"{L}: M {m}: Save writes mvProdLabel '{R.get('savedKey')}', and fields.byId is unchanged ({RF.get('n')} ids, none of the control's)")
+    chk(R.get('reopened') == m and R.get('reopenView') is True,
+        f"{L}: M {m}: Save -> Load round trip: the control shows '{R.get('reopened')}' and the month view is the same")
+    chk(R.get('defaultView') is True and R.get('defaultSavedHasKey') is False,
+        f"{L}: M {m}: picking Schedule by's own label ({dflt}) draws no key's view and Save writes NO key (Q10)")
 errs = [e for e in (a.get('errors') or []) if 'were not in a form the app writes' not in e]
 chk(not errs, f"{L}: 0 console errors beyond the bad value's warning {errs}")
 sys.exit(bad)

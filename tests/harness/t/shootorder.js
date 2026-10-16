@@ -82,7 +82,10 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------
     tab('settings'); await T.sleep(200);
-    out.rowsInMonth = { onecol: shown('one-col-btn'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    // ⚠️ Since MONTH-PILL-LABEL-PLAN step 3 (16 Oct 2026) the Show rows are CONTEXTUAL (plan §5.2): on this Episodes
+    // calendar with no label chosen the bar names the episode, so only Show Production Week is offered. The
+    // label control itself is month-only like them. pilllabel holds the whole table.
+    out.rowsInMonth = { onecol: shown('one-col-btn'), label: shown('mv-prod-label-week'), week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
     document.getElementById('pref-mv-episodes').click();
     await settle();
     out.pillsEpsOff = pills();
@@ -93,7 +96,7 @@ window.addEventListener('load', function () { (async function () {
     out.pillsEpsBackOn = pills();
     document.getElementById('view-sheet-btn').click();
     await settle();
-    out.rowsInSheet = { onecol: shown('one-col-btn'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    out.rowsInSheet = { onecol: shown('one-col-btn'), label: shown('mv-prod-label-week'), week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
 
     // ---- 4. ruling 9: a drag re-sequences the shoot; no date moves; one undo step ---------------
     // ⚠️ The Phases tab must be VISIBLE: a hidden panel measures 0x0, so every drop would read as

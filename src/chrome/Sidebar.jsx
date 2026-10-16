@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
-import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider } from '@mantine/core'
+import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
@@ -237,10 +237,13 @@ export function PreferencesCard() {
             true of gridlines and is FALSE of One column -- that one is calendar data, in
             captureSnapshot(), so it travels inside a file you send. Leaving the old wording would
             have been a confident lie about where someone's settings go. */}
+        {/* ⚠️ Re-worded for MONTH-PILL-LABEL-PLAN step 3: "Label Production by" is the second
+            setting here that belongs to the calendar (owner ruling Q2), and the Show switches are
+            three now, so "the two Month View settings" was no longer true either way. */}
         <InfoHint label="Preferences" width={330}>
-          Grid lines and the two Month View settings stay on this computer — send someone a
-          calendar and they keep their own. One column belongs to the calendar itself, so it travels
-          with a file you send.
+          Grid lines and the Month View “Show” switches stay on this computer — send someone a
+          calendar and they keep their own. Single Column Mode and Label Production by belong to the
+          calendar itself, so they travel with a file you send.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -327,36 +330,119 @@ export function PreferencesCard() {
         </Box>
 
         <Box className="pref-view-month">
-          {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production pills carry as grey
-              text -- the block, and the episodes being shot. PER-USER, like the two settings above:
-              the owner chose this knowing two people printing one calendar can get different month
-              PDFs. ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a
-              saved calendar; the engine owns the state (prefs.mvBlocks / prefs.mvEpisodes, ABSENT =
-              ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like #one-col-btn. */}
-          <Group justify="space-between" wrap="nowrap" gap="sm">
-            <Text component="label" htmlFor="pref-mv-blocks" size="sm" style={{ cursor: 'pointer' }}>
-              Show Blocks in Month View
-            </Text>
-            <Switch id="pref-mv-blocks" size="md" defaultChecked
-                    aria-label="Show Blocks in Month View"
-                    title="In Blocks mode, name each week's shooting block in grey inside the Production pill — on screen and in the month PDF" />
-          </Group>
+          {/* ✅ MONTH-PILL-LABEL-PLAN step 3 (owner rulings Q1–Q3, 15 Oct 2026): what Production's
+              month bars are labelled by. CALENDAR DATA, unlike the switches below it -- see
+              ProdLabelControl. First in the box, and never hidden while the box shows, so every
+              switch row below can open on its own divider. */}
+          <ProdLabelControl />
 
-          {/* Same separation as every other row in this card (owner, 22 Sep 2026: the two toggles
-              "look pretty tight" without it -- the 10 Sep rule, applied to a related pair too). */}
-          <Divider my="sm" />
+          {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
+              text -- the Production Week, the block, and the episodes being shot. PER-USER, like
+              the two settings above: the owner chose this knowing two people printing one calendar
+              can get different month PDFs. ⛔ Inside .prefs-card, so collectFieldValues() skips them
+              and they never enter a saved calendar; the engine owns the state (prefs.mvWeek /
+              prefs.mvBlocks / prefs.mvEpisodes, ABSENT = ON) and writes .checked in
+              reflectMonthTagPrefs() -- uncontrolled, like #one-col-btn.
+              ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
+              on what mode we are on"): only the items the grey text can carry right now are offered.
+              A switch hides while its item is the bar's text, and Show Blocks hides on a calendar
+              with no blocks. Pure CSS off the control's checked radio and #show-mode (legacy.css),
+              so no path can leave them out of step. ⛔ HIDDEN, NEVER UNMOUNTED: the engine writes
+              .checked by id. Each row carries its OWN divider on top (the 22 Sep "pretty tight"
+              ruling), so hiding any of them can never leave two dividers stacked or one dangling.
+              The order is the grey text's own: Week, Block, Episodes. */}
+          <Box className="pref-mv-row pref-mv-row-week">
+            <Divider my="sm" />
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <Text component="label" htmlFor="pref-mv-week" size="sm" style={{ cursor: 'pointer' }}>
+                Show Production Week in Month View
+              </Text>
+              <Switch id="pref-mv-week" size="md" defaultChecked
+                      aria-label="Show Production Week in Month View"
+                      title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
+            </Group>
+          </Box>
 
-          <Group justify="space-between" wrap="nowrap" gap="sm">
-            <Text component="label" htmlFor="pref-mv-episodes" size="sm" style={{ cursor: 'pointer' }}>
-              Show Episodes in Month View
-            </Text>
-            <Switch id="pref-mv-episodes" size="md" defaultChecked
-                    aria-label="Show Episodes in Month View"
-                    title="Name the episodes being shot, in grey inside the Production pill — on screen and in the month PDF" />
-          </Group>
+          <Box className="pref-mv-row pref-mv-row-blocks">
+            <Divider my="sm" />
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <Text component="label" htmlFor="pref-mv-blocks" size="sm" style={{ cursor: 'pointer' }}>
+                Show Blocks in Month View
+              </Text>
+              <Switch id="pref-mv-blocks" size="md" defaultChecked
+                      aria-label="Show Blocks in Month View"
+                      title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
+            </Group>
+          </Box>
+
+          <Box className="pref-mv-row pref-mv-row-episodes">
+            <Divider my="sm" />
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <Text component="label" htmlFor="pref-mv-episodes" size="sm" style={{ cursor: 'pointer' }}>
+                Show Episodes in Month View
+              </Text>
+              <Switch id="pref-mv-episodes" size="md" defaultChecked
+                      aria-label="Show Episodes in Month View"
+                      title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
+            </Group>
+          </Box>
         </Box>
       </div>
     </section>
+  )
+}
+
+// "Label Production by: Week · Episode · Block" (MONTH-PILL-LABEL-PLAN.md §5.1, step 3). Picks which
+// item names Production's month bars; the others become their grey text.
+//
+// ⛔ CALENDAR DATA, NOT A PREFERENCE (owner ruling Q2: "Saved in the calendar"), although it sits in
+// this card. The engine's `mvProdLabel` is the ONE store, and it travels as captureSnapshot()'s own
+// key -- the `singleColumn` arrangement. A pick goes through setMvProdLabel(): one undo step, and the
+// file is dirtied. This component REFLECTS that value and never holds it.
+//
+// ⛔ WHY THE NAME AND THE BRIDGE (UI-CONVENTIONS §8.3). A SegmentedControl renders a real radio per
+// segment and Mantine gives each an id; without `name` those ids are re-rolled every page load. With
+// it they are `mv-prod-label-week` and so on. They are swept by nothing: collectFieldValues() skips
+// .prefs-card, so fields.byId stays at 62 ids. The indicator follows React state, so the engine
+// cannot write a radio's .checked: `value` comes in through bridge.js (chrome.mvProdLabel), and a
+// pick goes out as the radios' native `click`, which the engine catches on document by the name.
+// ⛔ Click, not change: React puts a controlled radio back inside the click, so Chrome fires no
+// `change` at all (measured 16 Oct 2026). No onChange of ours: an ignored pick must leave the old
+// segment selected, and React's controlled radio does exactly that.
+//
+// `value` is the label the bars are DRAWN in: with nothing chosen, what Schedule by gives (Q7, Q10),
+// and a stored 'block' on an Episodes calendar shows as Episode (Q11). Block is disabled there.
+function ProdLabelControl() {
+  const [state, setState] = useState({ value: null, blockAvailable: true })
+
+  useLayoutEffect(() => {
+    installChrome({
+      mvProdLabel: (next) => setState((s) =>
+        (s.value === next.value && s.blockAvailable === next.blockAvailable) ? s
+          : { value: next.value, blockAvailable: !!next.blockAvailable }),
+    })
+  }, [])
+
+  const { value, blockAvailable } = state
+  // The reason, not just a dead segment. Mantine marks a disabled segment's LABEL data-disabled and
+  // leaves its pointer events alone, so the tooltip still opens on hover.
+  const blockLabel = blockAvailable ? 'Block' : (
+    <Tooltip label="Schedule by Blocks to label by block" withArrow position="bottom">
+      <span>Block</span>
+    </Tooltip>
+  )
+  return (
+    <Box className="pref-mv-label">
+      <Text size="sm" mb={6}>Label Production by</Text>
+      <SegmentedControl name="mv-prod-label" size="xs" fullWidth
+                        aria-label="Label Production by"
+                        value={value}
+                        data={[
+                          { value: 'week', label: 'Week' },
+                          { value: 'episode', label: 'Episode' },
+                          { value: 'block', label: blockLabel, disabled: !blockAvailable },
+                        ]} />
+    </Box>
   )
 }
 

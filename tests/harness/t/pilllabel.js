@@ -30,6 +30,12 @@
 //   X2  in Week mode each switch drops only its item from each list in the grey text, and moves no bar
 //   K0  the key travels: Save writes the opened file back with mvProdLabel unchanged
 //   K1  not chosen stays absent: Save of a file with no key writes no key
+//
+// STEP 3 (16 Oct 2026) adds the real control, Preferences ▸ "Label Production by", driven by clicking its
+// segments: C (what it shows on open, and §5.2's Show rows), B (Block disabled on an Episodes calendar, and
+// Q11's guard), S (the Show switches: no undo step, never in the file) and M (each label picked: the same
+// month view as the file with that key, dirty, ONE undo step, Redo, Save, Load round trip, and back to the
+// default clearing the key). Their own comment block, below K1, has the detail.
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   var st = (/[?&]state=([\w.-]+)/.exec(location.search) || [])[1];
@@ -289,6 +295,177 @@ window.addEventListener('load', function () { (async function () {
     }
     out.K0 = await saveOf('week');
     out.K1 = await saveOf(undefined);
+
+    // ==== STEP 3: THE REAL CONTROL (MONTH-PILL-LABEL-PLAN §5, 16 Oct 2026) ===============================
+    // Preferences ▸ "Label Production by", a SegmentedControl named mv-prod-label, driven the way a user does:
+    // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' and sidebarTab
+    // 'settings' set in its JSON, so the month box is on screen (rows are judged by layout) and no view or
+    // tab click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
+    //
+    //   C   on open, the selected segment is the label the bars are drawn in: no key = Schedule by (Q7, Q10),
+    //       'block' on an Episodes calendar = Episode (Q11); Block disabled exactly on an Episodes calendar.
+    //       The Show rows visible are plan §5.2's table for that label and calendar
+    //   B   Episodes calendar: a click on the disabled Block changes nothing, and hovering it mounts the
+    //       reason tooltip. Q11's guard: clicking Episode where a stored 'block' already SHOWS as Episode
+    //       is not a pick -- no undo step, and Save keeps the 'block'
+    //   S   the three Show switches, each off then on: no undo step, the calendar not dirtied; while off they
+    //       are in localStorage and NOT in the saved file (no mvWeek/mvBlocks/mvEpisodes, no pref- id in
+    //       fields.byId)
+    //   M   per label the control can pick away from the default: the month view is BYTE-IDENTICAL to the
+    //       file opened with that key (the step-2 leg above holds those to the plan's table); the calendar
+    //       is dirtied; it is ONE undo step (one Undo empties the stack and restores no-key's month view,
+    //       Redo re-applies it); Save writes the key; Load of that saved text shows it again (round trip);
+    //       and picking Schedule by's own label from there clears the key (Q10) and draws no key's view
+    function shown(id) { var el = document.getElementById(id); return !!el && el.getClientRects().length > 0; }
+    function ctl() {
+      var r = [].slice.call(document.querySelectorAll('input[name="mv-prod-label"]'));
+      var on = r.filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+      var blk = document.getElementById('mv-prod-label-block');
+      return { checked: on.length === 1 ? on[0] : (on.join('+') || null), n: r.length,
+               ids: r.map(function (x) { return x.id; }).join(','), blockDisabled: blk ? blk.disabled : null };
+    }
+    function rows() { return { week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), episodes: shown('pref-mv-episodes') }; }
+    // Plan §5.2's table: a switch is hidden while its item is the bar's text; Show Blocks only on a Blocks calendar.
+    function wantRows(label) { return { week: label !== 'week', blocks: blocksCal && label !== 'block', episodes: label !== 'episode' }; }
+    function statusText() { return ((document.getElementById('save-status') || {}).textContent || '').trim(); }
+    function undoOff() { return !!document.getElementById('undo-btn').disabled; }
+    function redoOff() { return !!document.getElementById('redo-btn').disabled; }
+    var def = blocksCal ? 'block' : 'episode';
+    function withCtl(v) {
+      var o = JSON.parse(withKey(v));
+      o.viewMode = 'month'; o.sidebarTab = 'settings';
+      return JSON.stringify(o);
+    }
+    async function shows(v, label) {
+      await T.until(function () { return ctl().checked === v; }, label || ('control shows ' + v), 60, 100);
+      await settle('control ' + v);
+    }
+    async function pick(v) {
+      var lab = document.querySelector('label[for="mv-prod-label-' + v + '"]');
+      if (!lab) throw new Error('no segment label for ' + v);
+      lab.click();
+      await shows(v, 'picked ' + v);
+    }
+    // Save the calendar on screen; the written file's JSON.
+    async function saveNow(writes) {
+      var save = document.getElementById('save-file-btn'), n = writes.length;
+      await T.until(function () { return !save.disabled && !save.hasAttribute('data-disabled'); }, 'save enabled', 100, 100);
+      save.click();
+      await T.until(function () { return writes.length > n; }, 'save write', 100, 100);
+      return JSON.parse(writes[writes.length - 1].text);
+    }
+    function prefKeys(o) {
+      var ks = Object.keys((o.fields && o.fields.byId) || {});
+      return { n: ks.length, bad: ks.filter(function (k) { return /^(pref-|mv-prod-label)/.test(k); }),
+               top: ['mvWeek', 'mvBlocks', 'mvEpisodes', 'prefs'].filter(function (k) { return k in o; }) };
+    }
+
+    // ---- C: what the control shows on open, and the rows it leaves ----
+    out.C = {};
+    var keys = [undefined, 'week', 'episode', 'block'];
+    for (var ci = 0; ci < keys.length; ci++) {
+      var kv = keys[ci], want = kv === undefined ? def : (kv === 'block' && !blocksCal ? 'episode' : kv);
+      await openText(withCtl(kv));
+      var got = null;
+      try { await shows(want); } catch (e) { got = e.message; }
+      var c = ctl(), rw = rows(), wr = wantRows(want);
+      out.C[kv === undefined ? 'none' : kv] = { want: want, got: c.checked, n: c.n, ids: c.ids, blockDisabled: c.blockDisabled,
+        rows: rw, rowsOk: JSON.stringify(rw) === JSON.stringify(wr), err: got };
+    }
+
+    // ---- B: Block disabled on an Episodes calendar, the reason on hover, and Q11's guard ----
+    if (!blocksCal) {
+      var bw = [];
+      await openText(withCtl('block'), bw);
+      await shows('episode');
+      var tipsOf = function () { return [].map.call(document.querySelectorAll('[role="tooltip"]'), function (t) { return t.textContent; }); };
+      out.B = { tipBefore: tipsOf() };
+      document.querySelector('label[for="mv-prod-label-block"]').click();
+      await T.sleep(700);
+      out.B.afterBlockClick = ctl().checked;
+      out.B.undoOffAfterBlockClick = undoOff();
+      // ⚠️ A MOVE, not a mouseenter. A synthetic mouseenter does not open a Mantine Tooltip on a page no real
+      // mouse has touched (measured in the pane, 16 Oct 2026); floating-ui's useHover also opens on the
+      // reference's first mousemove, and that one does.
+      // ⚠️ And the OPEN STATE is read, not the tooltip's text: Mantine mounts the tooltip's box from
+      // requestAnimationFrame (its Transition), which this headless run never fires, so [role=tooltip] stays
+      // absent here. floating-ui's useRole sets aria-describedby on the reference the moment it opens. The
+      // text itself was checked by a real hover in the pane ("Schedule by Blocks to label by block").
+      var ref = document.querySelector('label[for="mv-prod-label-block"] span span');
+      out.B.describedBefore = ref ? ref.getAttribute('aria-describedby') : 'no reference';
+      if (ref) {
+        var rb = ref.getBoundingClientRect();
+        ref.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: rb.x + 3, clientY: rb.y + 3 }));
+        await T.sleep(400);
+      }
+      out.B.describedAfter = ref ? ref.getAttribute('aria-describedby') : null;
+      out.B.tipAfter = tipsOf();
+      if (ref) ref.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+      document.querySelector('label[for="mv-prod-label-episode"]').click();
+      await T.sleep(700);
+      out.B.undoOffAfterEpisodeClick = undoOff();
+      var bs = await saveNow(bw);
+      out.B.savedKey = bs.mvProdLabel === undefined ? null : bs.mvProdLabel;
+    } else {
+      out.B = { tooltipRef: !!document.querySelector('label[for="mv-prod-label-block"] span span') };
+    }
+
+    // ---- S: the Show switches push no undo step, never dirty the calendar, never reach the file ----
+    var sw = [];
+    await openText(withCtl(undefined), sw);
+    await shows(def);
+    var S = { undoBefore: undoOff(), statusBefore: statusText() };
+    var SW = ['pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
+    for (var si = 0; si < SW.length; si++) { document.getElementById(SW[si]).click(); await settle('off ' + SW[si]); }
+    await T.sleep(700);
+    S.undoAfterOff = undoOff(); S.statusAfterOff = statusText();
+    S.allOff = SW.map(function (id) { return document.getElementById(id).checked; });
+    try { var pr = JSON.parse(localStorage.getItem('sptcal.prefs') || '{}'); S.stored = [pr.mvWeek, pr.mvBlocks, pr.mvEpisodes]; } catch (e) { S.stored = 'unreadable'; }
+    S.file = prefKeys(await saveNow(sw));
+    for (si = 0; si < SW.length; si++) { document.getElementById(SW[si]).click(); await settle('on ' + SW[si]); }
+    await T.sleep(700);
+    S.undoAfterOn = undoOff();
+    try { S.storedAfterOn = Object.keys(JSON.parse(localStorage.getItem('sptcal.prefs') || '{}')).filter(function (k) { return /^mv/.test(k); }); } catch (e) { S.storedAfterOn = 'unreadable'; }
+    out.S = S;
+
+    // ---- M: each label the control can pick, against the file opened with that key ----
+    var byKey = { week: wk };
+    if (ep) byKey.episode = ep;
+    out.M = {};
+    var modes = ['week', 'episode', 'block'].filter(function (m) { return m !== def && !(m === 'block' && !blocksCal); });
+    for (var mi = 0; mi < modes.length; mi++) {
+      var m = modes[mi], R = {}, mw = [];
+      await openText(withCtl(undefined), mw);
+      await shows(def);
+      R.undoBefore = undoOff(); R.statusBefore = statusText();
+      await pick(m);
+      R.view = byKey[m] ? sameHtml(await months(), byKey[m]) : 'no reference for ' + m;
+      R.rows = JSON.stringify(rows()) === JSON.stringify(wantRows(m));
+      await T.sleep(700);
+      R.statusAfter = statusText(); R.undoAfter = undoOff();
+      document.getElementById('undo-btn').click();
+      await shows(def, 'undo to ' + def);
+      R.undoView = sameHtml(await months(), base);
+      R.undoEmpty = undoOff(); R.redoReady = !redoOff();
+      document.getElementById('redo-btn').click();
+      await shows(m, 'redo to ' + m);
+      R.redoView = byKey[m] ? sameHtml(await months(), byKey[m]) : 'no reference';
+      var saved = await saveNow(mw);
+      R.savedKey = saved.mvProdLabel === undefined ? null : saved.mvProdLabel;
+      R.savedFields = prefKeys(saved);
+      // The round trip: Load the text Save just wrote.
+      var dw = [];
+      await openText(mw[mw.length - 1].text, dw);
+      try { await shows(m, 'reopened ' + m); } catch (e) { /* recorded below */ }
+      R.reopened = ctl().checked;
+      R.reopenView = byKey[m] ? sameHtml(await months(), byKey[m]) : 'no reference';
+      // Q10 through the control: Schedule by's own label clears the key and draws no key's view.
+      await pick(def);
+      R.defaultView = sameHtml(await months(), base);
+      var ds = await saveNow(dw);
+      R.defaultSavedHasKey = 'mvProdLabel' in ds;
+      out.M[m] = R;
+    }
 
     clearInterval(guard);
     out.errors = (T.appHealth().errors || []).slice(0, 10);

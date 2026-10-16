@@ -4,9 +4,69 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED INTO LOCAL `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge claude/determined-taussig-70f6a8 into local main, resolve the README
+  and HANDOFF conflicts, and run the full gate. Don't push."*
+  - **The merge:** `git merge --no-ff claude/determined-taussig-70f6a8` (`6176a59`, step 3, cut from `401df7d`) onto
+    `main` at `fce72f0`, which carries custom-units (`36db1c1`, live at `695cadc`). Only `README.md` and `HANDOFF.md`
+    conflicted, and both sides' entries are kept, step 3's on top. `app.js`, `legacy.css` and `gate.sh` merged as text.
+    Checked by reading: `reflectMvProdLabel()` sits in `update()` beside custom-units' `refreshCustomUnitMeta()`, and
+    `gate.sh`'s `pilllabel` and `shootorder` blocks are step 3's, untouched by custom-units.
+  - **Gate:** pending, on the merged build in a clean detached worktree, as last time (the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` is still modified and still not this work's).
+  - **Not pushed** ("Don't push"). Plan step 4 (the `pilllabel-block` / `pilllabel-episode` fixtures cut into gates 10
+    and 13) is still to do, and the step-3 branch's HANDOFF put it before the push pickers.
+
+### ◐ 16 Oct 2026: "LABEL PRODUCTION BY" IS IN PREFERENCES — MONTH-PILL-LABEL-PLAN STEP 3 (worktree `determined-taussig-70f6a8`)
+
+- **Was RESUME HERE until its merge above.** Built and gated on branch `claude/determined-taussig-70f6a8`, cut
+  from `main` at `401df7d`.
+  **Committed locally on the owner's picker ("Commit locally", 16 Oct 2026); not merged into `main`, not pushed ("Don't push").** Full record: plan §13
+  ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
+- **What a user sees (month view, Settings ▸ Preferences):**
+  - **"Label Production by: Week · Episode · Block"** at the top of the month box. It shows the label the bars are
+    drawn in, so with nothing chosen it shows Schedule by. A stored Block on an Episodes calendar shows as Episode
+    (Q7, Q10, Q11). A pick goes through `setMvProdLabel()`: one undo step, the file dirtied, saved as `mvProdLabel`.
+    Block is disabled on an Episodes calendar, with the tooltip "Schedule by Blocks to label by block".
+  - **A third switch, "Show Production Week in Month View"** (`#pref-mv-week` → `prefs.mvWeek`), per user like the
+    other two.
+  - **The Show rows follow the label** (plan §5.2), in pure CSS off the control's checked radio and `#show-mode`. Rows
+    are hidden, never unmounted, and each carries its own divider.
+- **Code:**
+  - `src/chrome/Sidebar.jsx` (`ProdLabelControl`, the three rows, the ⓘ text);
+  - `src/chrome/bridge.js` (`chrome.mvProdLabel`);
+  - `src/legacy/app.js`: `mvProdLabelShown()`, `reflectMvProdLabel()` called from `update()`, the radios' click
+    listener, and `MV_TAG_PREFS`;
+  - `legacy.css` (the row rules);
+  - `main.jsx` (`SegmentedControl.layer.css`, between Tooltip and Stack).
+- ⭐ **Learned:**
+  1. **A React-controlled radio fires NO `change` event in Chrome.** React handles a radio's onChange from its
+     *click* and puts a controlled radio back inside that click. Chrome then sees no change in checkedness and fires
+     neither `input` nor `change`. The plan's "native change, caught on document" could never have worked. The engine
+     listens for `click` on `input[name="mv-prod-label"]`, which keyboard selection also produces. ⚠️ Any future
+     engine-owned Mantine radio or SegmentedControl needs the same.
+  2. **A click on the segment already showing is not a pick.** Without that test, Episode clicked where a stored
+     `'block'` already shows as Episode would call `setMvProdLabel('episode')` → `null`, silently clearing the
+     `'block'` Q11 keeps (`pilllabel` B3 holds it).
+  3. **Mantine Tooltip in a headless leg:**
+     - a synthetic `mouseenter` does not open it, but a `mousemove` does;
+     - the box mounts from `requestAnimationFrame`, which `--virtual-time-budget` never fires, so read the open
+       state from the reference's `aria-describedby`.
+  4. **`label.click()` from a script leaves a `:focus-visible` ring** a mouse click would not. Screenshots for the
+     owner were taken with trusted CDP clicks (`Input.dispatchMouseEvent`).
+- **Legs:** `pilllabel` extended (C0–C3, B1–B3, S1–S3, M per label: the done-list of the brief), virtual budget
+  900 → 1500. `shootorder`'s month-rows check revised (an Episodes calendar with no label offers only Show Production
+  Week).
+- **Proof:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
+- **Owner's screenshots** (session-notes folder `pill-label-step3/`, not the repo): a contact sheet of every mode
+  beside its month, and the disabled Block's tooltip.
+- ⏭ **Next (plan step 4):** mint `pilllabel-block` / `pilllabel-episode` fixtures in the app (the control exists
+  now), cut them into gates 10 and 13 as new cases after the owner sees their PDFs. Then the commit/push pickers.
+
 ### ✅ 16 Oct 2026: `custom-units` IS MERGED INTO `main` AS `36db1c1`, GATED, AND LIVE AT `695cadc`
 
-- ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge custom-units into local main, resolve the README conflict, and run
+- **Was RESUME HERE until step 3's merge above.** Owner, 16 Oct 2026: *"Merge custom-units into local main, resolve the README conflict, and run
   the full gate. Don't push."* Then, after the gate and the docs commit: *"push it"*.
   - ✅ **PUSHED AND LIVE at `695cadc` (16 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`d0ed6c03…`,
     1,495,897 bytes, fetched with a cache-buster; deploy run 38981982787, "Build and check" and "Deploy to Pages" both
@@ -41,15 +101,8 @@
   - ⏭ **Next, when the owner chooses:** cut a version (CLAUDE.md's four things; overdue, since four features are live
     under 1.4.3), MONTH-PILL-LABEL step 3 (the controls), or EPISODE-PREP-PLAN (rewires the same month-pill functions,
     so build it on top of this merge).
-  - ⚠️ **Correction (16 Oct 2026): MONTH-PILL-LABEL step 3 is ALREADY BUILT, just not on `main`.** It sits on branch
-    `claude/determined-taussig-70f6a8` as `6176a59` ("Label Production by" in Preferences, plus the "Show Production
-    Week" switch). It was gated there (1,647 PASS, 0 FAIL) and committed locally on the owner's picker, with "Don't push".
-    It is **not merged and not live**: the live file `d0ed6c03` has no "Label Production by". That branch was cut from
-    `401df7d`, before the custom-units merge. `git merge-tree` shows only `HANDOFF.md` and `README.md` conflicting
-    against `main`, and `app.js`, `legacy.css` and `gate.sh` merge as text. Its own HANDOFF top entry is the record.
-    Landing it means merging into local `main`, resolving those two docs, and running a full gate on the merged build
-    before the push picker. Plan step 4 (the `pilllabel-block` / `pilllabel-episode` fixtures in gates 10 and 13) was
-    meant to come before the push.
+  - ✅ **MONTH-PILL-LABEL step 3 was already built on a branch when this was written.** It is merged since: see the
+    top entry.
 
 ### ✅ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
 
@@ -568,10 +621,8 @@
      clamshell sleep (`pmset -g log` shows it) and took 789 min with 15 timeouts. Keep the lid open for a gate.
   5. **Byte-compare a restored look against the OLD baseline** (`git show <commit>:tests/baselines/...`). It turned
      "one bar per week looks like ruling 8" into "is ruling 8, byte for byte, on sixteen calendars".
-- ⏭ **Next (plan step 3):** the "Label Production by" control in Preferences, the "Show Production Week" switch
-  (`#pref-mv-week` → `prefs.mvWeek`; `mvShowWeek()` already reads it), and §5.2's contextual rows. `setMvProdLabel()`
-  is waiting for the control. Then step 4 mints `pilllabel-block` / `pilllabel-episode` fixtures and cuts them into
-  gates 10 and 13 as new cases.
+- ✅ **Plan step 3 (the controls) is BUILT** (16 Oct 2026, entry at the top). Step 4 next: the
+  `pilllabel-block` / `pilllabel-episode` fixtures, cut into gates 10 and 13 as new cases.
 
 #### Before the rebuild (kept for the record)
 

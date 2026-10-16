@@ -62,6 +62,10 @@ import '@mantine/core/styles/Menu.layer.css'
 import '@mantine/core/styles/Modal.layer.css'
 import '@mantine/core/styles/NumberInput.layer.css'
 import '@mantine/core/styles/Tooltip.layer.css'
+// Preferences ▸ "Label Production by" (MONTH-PILL-LABEL-PLAN step 3, 16 Oct 2026). Placed by the same
+// byte-offset reading as the rest: its first class sits after Tooltip's and before Stack's in
+// styles.layer.css. It shares FloatingIndicator (imported above) for the sliding segment.
+import '@mantine/core/styles/SegmentedControl.layer.css'
 import '@mantine/core/styles/Stack.layer.css'
 // ⛔ AFTER Stack, and that position is DERIVED, NOT ALPHABETICAL. These share one @layer, so
 // order decides the cascade -- sorting this list once put UnstyledButton after Button and
