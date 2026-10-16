@@ -6024,15 +6024,15 @@ export function initLegacyApp() {
     }
     function prodPills(){ return Array.prototype.slice.call(wrap.querySelectorAll('.mv-pill[data-ph="production"]')); }
 
-    // The row a SPLIT bar is cut from, or null when the bars are not split (no Show Info, or the
-    // unit's "Show" switch off -- productionSplitRuns()' own test) and specsFor() reads the bar as a
-    // week's pill. A bar's days are consecutive shoot days, so its row is the one spanning both its
+    // The row a SPLIT bar is cut from, or null when the bars are not split (no Show Info, or labelled
+    // by Production Week -- productionSplits(), productionSplitRuns()' own test) and specsFor() reads
+    // the bar as a week's pill. A bar's days are consecutive shoot days, so its row is the one spanning both its
     // ends. Only a one-day bar on a half switch day fits two rows; there the bar in the HIGHER lane is
     // the earlier row's, because productionSplitRuns() hands the renderer the earlier row first and
     // takeLane() fills top down.
     function splitSpanOf(pill, g, P){
       const U = currentSchedule && productionUnits(currentSchedule);
-      if(!U || !(U.kind === 'block' ? mvShowBlocks() : mvShowEpisodes())) return null;
+      if(!productionSplits(U)) return null;
       const fits = P.spans.filter(sp=> sp.first && sp.last && sp.first <= g.from && sp.last >= g.to);
       if(fits.length < 2) return fits[0] || null;
       const lane = p=> parseInt(p.style.gridRowStart, 10) || 0;
@@ -7253,13 +7253,13 @@ export function initLegacyApp() {
 
   // The label a phase's pill shows for a given date, e.g. "Writers Room Week 3".
   // Production's bars are cut per episode or block (owner, 15 Oct 2026; productionSplitRuns), and
-  // such a bar is named by its unit -- "Ep. 201", "Block 1" -- with this week label moving into its
-  // grey text. A Production run with no unit (no Show Info, a "Show" switch off, or days past
-  // Σ units) keeps the week label, exactly as before.
+  // such a bar is named by what mvProdLabel picks -- "Ep. 201", "Block 1", or this week label --
+  // with the rest in its grey text (unitBarLabel). A Production run with no unit (no Show Info, or
+  // days past Σ units) keeps the week label, exactly as before.
   function segPillLabel(s, date){
     if(s.key === 'production'){
       const r = takeProdRun(date);
-      if(r && r.unit) return unitBarLabel(r.kind, r.unit);
+      if(r && r.unit) return unitBarLabel(r.kind, r.unit, prodWeekLabel(s, date));
     }
     return prodWeekLabel(s, date);
   }
@@ -8405,25 +8405,62 @@ export function initLegacyApp() {
     return out;
   }
 
-  // The bar text and the grey text of one unit's run. Read at render time, so a rename shows at once.
-  //   episode  bar "Ep. 201"   grey "Production Week 3"
-  //   block    bar "Block 1"   grey "Production Week 3 · Ep. 201, 202"   ("Show Episodes" off: no Ep.)
-  // The week is the run's own, from segPillLabel()'s rule (prodWeekLabel), so it is the number the
-  // bar showed before the split. "Ep." once per list, as ruling 8 has it.
-  function unitBarLabel(kind, unit){
+  // The bar text and the grey text of one unit's run -- the ONLY place a split bar's two strings are
+  // composed. Read at render time, so a rename shows at once. A run carries up to three items: its
+  // Production Week, its block (Blocks calendars only) and its episodes. mvProdLabel picks which one
+  // is the BAR TEXT (MONTH-PILL-LABEL-PLAN.md; not chosen = the unit's own kind, ruling Q7), and the
+  // grey text is the others, always in the order Week, Block, Episodes, minus any whose "Show"
+  // switch is off:
+  //                      Episodes calendar                    Blocks calendar
+  //   (not chosen)       Ep. 201 | Production Week 3          Block 1 | Production Week 3 · Ep. 201, 202
+  //   episode            Ep. 201 | Production Week 3          Ep. 201, 202 | Production Week 3 · Block 1
+  //   block              (no blocks: as not chosen)           Block 1 | Production Week 3 · Ep. 201, 202
+  // Labelled by WEEK there is no split bar to name (productionSplits: one bar per week), so 'week' never
+  // reaches here; productionPillTag() writes that bar's grey text.
+  // The not-chosen rows are exactly what half-days drew, so a calendar with no key is byte-identical
+  // to it (gates 10 and 13). A bar whose chosen item is empty (a block with no episodes) reads as
+  // Week, the plan's fallback. The week is the run's own, from segPillLabel()'s rule (prodWeekLabel),
+  // so it is the number the bar showed before the split. "Ep." once per list, as ruling 8 has it.
+  // Ruling 7 (a one-day piece has no grey text) is productionPillTag()'s, before this is asked.
+  function unitLabelParts(kind, unit, weekLabel){
+    const parts = {week: weekLabel || '', block: '', episode: ''};
     if(kind === 'block'){
       const b = blockDefs[unit.i];
-      return (b && b.name) || ('Block ' + (unit.i + 1));
+      parts.block = (b && b.name) || ('Block ' + (unit.i + 1));
+      const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+      const eps = b ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
+      parts.episode = eps ? 'Ep. ' + eps : '';
+    } else {
+      const e = episodeDefs.find(x=> x.id === unit.id);
+      parts.episode = 'Ep. ' + (e ? shortEpisodeName(e) : '');
     }
-    const e = episodeDefs.find(x=> x.id === unit.id);
-    return 'Ep. ' + (e ? shortEpisodeName(e) : '');
+    // `kind` IS Schedule by here: productionUnits() is 'block' exactly on a Blocks calendar. So a
+    // 'block' on an Episodes calendar lands on 'episode' with no special case.
+    let bar = (mvProdLabel === 'episode') ? 'episode' : kind;
+    if(!parts[bar]) bar = 'week';
+    return {parts, bar};
+  }
+  function unitBarLabel(kind, unit, weekLabel){
+    const L = unitLabelParts(kind, unit, weekLabel);
+    return L.parts[L.bar];
   }
   function unitGreyLabel(kind, unit, weekLabel){
-    if(kind !== 'block') return weekLabel;
-    const b = blockDefs[unit.i];
-    const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    const eps = (mvShowEpisodes() && b) ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
-    return [weekLabel, eps ? 'Ep. ' + eps : ''].filter(Boolean).join(' · ');
+    const L = unitLabelParts(kind, unit, weekLabel);
+    const show = {week: mvShowWeek(), block: mvShowBlocks(), episode: mvShowEpisodes()};
+    return ['week', 'block', 'episode'].filter(k=> k !== L.bar && show[k] && L.parts[k])
+      .map(k=> L.parts[k]).join(' · ');
+  }
+
+  // Is Production drawn one bar per episode or block? Whenever there are units (productionUnits), except on
+  // a calendar labelled by Production Week (MONTH-PILL-LABEL-PLAN). Two owner rulings by picker, 15 Oct 2026:
+  //  - "Show Episodes" / "Show Blocks" edit the grey text ONLY, so neither joins the bars. Half-days had
+  //    the unit's own switch off draw one bar per week; that is gone.
+  //  - "One bar per week" when labelled by Week. Split, every episode's bar was headed by its week, so a
+  //    week shot across two episodes showed two "Production Week 3" bars, and a one-day piece had no grey
+  //    text (ruling 7) to tell them apart. That week's episodes are its grey text instead (productionPillTag).
+  // splitSpanOf() in installProductionEdgeHandles() asks this too: the grips must read the bars as drawn.
+  function productionSplits(U){
+    return !!U && mvProdLabel !== 'week';
   }
 
   // ⭐ ONE BAR PER EPISODE (per block), STACKED ON A SWITCH DAY (owner, 15 Oct 2026, "Stacked bars,
@@ -8433,12 +8470,10 @@ export function initLegacyApp() {
   // and frozen renderMonthView's takeLane() puts the second one in the next lane down -- which IS
   // the stacked look, with no frozen line changed. Weeks with no half switch simply get two bars
   // side by side where they used to get one.
-  // Off (returns null, so the week draws exactly as before) when there are no units, or when the
-  // unit's own "Show" switch is off (ruling 10's prefs): "Show Episodes" off on an Episodes calendar
-  // means no episodes on the month view, so no episode bars either; "Show Blocks" likewise.
+  // Off (returns null, so the week draws as ONE BAR PER WEEK) when productionSplits() says so.
   function productionSplitRuns(schedule, weekStart, runs){
     const U = productionUnits(schedule);
-    if(!U || !(U.kind === 'block' ? mvShowBlocks() : mvShowEpisodes())) return null;
+    if(!productionSplits(U)) return null;
     const covered = [];
     runs.forEach(r=>{ for(let i=r.startCol;i<=r.endCol;i++) covered[i] = true; });
     const isoAt = [];
@@ -8490,17 +8525,18 @@ export function initLegacyApp() {
 
   // The GREY TEXT inside one run of Production's pill -- columns fromCol..toCol of one Sun-Sat row
   // -- or ''. Frozen renderMonthView appends it to Production's pill, and adds nothing when it is ''.
-  //   A split bar    (above, the normal case since 15 Oct 2026) its unit's grey text: the Production
-  //                  Week for an episode, the week and the block's episodes for a block.
-  //   Unsplit        (that unit's "Show" switch is off) the old text, from the same unit map:
-  //     Blocks mode    the blocks the run touches (ruling 2: every one), each with its episodes
-  //                    (ruling 5): "Block 1 · Ep. 201, 202"  /  "Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205"
-  //     Episodes mode  the episodes whose shoot days fall in the run, in shooting order (ruling 8):
-  //                    "Ep. 201"  /  "Ep. 201, 202"
+  // Every run with a unit is a split bar (productionSplitRuns), and its grey text is
+  // unitGreyLabel()'s. A run with no unit -- no Show Info, or days past Σ units -- has none.
+  // ONE BAR PER WEEK (labelled by Production Week, productionSplits) keeps ruling 8's text, from the same
+  // unit map:
+  //   Blocks mode    the blocks the run touches (ruling 2: every one), each with its episodes
+  //                  (ruling 5): "Block 1 · Ep. 201, 202"  /  "Block 1 · Ep. 201, 202 / Block 2 · Ep. 203–205"
+  //   Episodes mode  the episodes whose shoot days fall in the run, in shooting order (ruling 8):
+  //                  "Ep. 201"  /  "Ep. 201, 202"
+  //   Preferences    "Show Blocks" / "Show Episodes" drop their half (ruling 10); both off is ''.
   //   "Ep." (owner, 22 Sep 2026: "Can we put 'Ep' before the episode numbers", then "Maybe it should
   //   be 'Ep.'") is written ONCE per list, not per number -- the three-block worst case had 43 px to spare before it, and a prefix
   //   on every number would have spent it.
-  //   Preferences    "Show Blocks" / "Show Episodes" drop their half (ruling 10); both off is ''.
   function productionPillTag(schedule, weekStart, fromCol, toCol){
     // ✅ RULING 7 (owner, 22 Sep 2026): a ONE-DAY piece of the pill carries no grey text. There is
     // no room -- "Production Week 16" alone nearly fills a single day column, and the tag truncated
@@ -9723,6 +9759,22 @@ export function initLegacyApp() {
   // ⛔ CALENDAR DATA, NOT A PREFERENCE (owner's call): it is in captureSnapshot() beside viewMode,
   // so a calendar you send someone opens laid out the way you built it.
   let singleColumn = false;
+  // What Production's month bars are labelled by: 'week' | 'episode' | 'block', or null = NOT CHOSEN
+  // (MONTH-PILL-LABEL-PLAN.md). ⛔ CALENDAR DATA, NOT A PREFERENCE (owner ruling Q2, 15 Oct 2026:
+  // "Saved in the calendar"), so it is captureSnapshot()'s `mvProdLabel`, the singleColumn
+  // arrangement: everyone who opens the file sees and prints the same labels.
+  //  - NOT CHOSEN FOLLOWS SCHEDULE BY (ruling Q7): Episode text on an Episodes calendar, Block text
+  //    on a Blocks one -- what half-days drew before the setting existed. It is stored by LEAVING THE
+  //    KEY OUT (owner's picker, 15 Oct 2026), so no fourth value enters the format, every calendar
+  //    saved before the setting opens exactly as it did, and picking the label Schedule by already
+  //    gives clears the key again (setMvProdLabel).
+  //  - It changes the bar's TEXT only (ruling Q6): Production's bars split per episode or block
+  //    whatever this says.
+  //  - 'block' on a calendar with no blocks follows Schedule by too (owner's picker, 15 Oct 2026),
+  //    and the file keeps the 'block', so switching Schedule by back to Blocks brings it back.
+  // ⛔ The key and its three VALUES are permanent from the first file saved with them.
+  const MV_PROD_LABELS = ['week', 'episode', 'block'];
+  let mvProdLabel = null;
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
   // ---------- Gridlines preference ----------
@@ -9762,8 +9814,16 @@ export function initLegacyApp() {
   // ⛔ NOT calendar data -- per-user, like gridlines -- so NEVER in captureSnapshot(), and the change
   // re-renders WITHOUT update(): update() ends in markDirty(), and flipping a preference must not
   // mark someone's calendar unsaved or push an undo step.
+  // ⚠️ They edit the GREY TEXT ONLY (owner's picker, 15 Oct 2026). Half-days had "Show Episodes"
+  // off on an Episodes calendar (or "Show Blocks" on a Blocks one) join the bars back into plain
+  // Production Week bars; the owner ruled that bars stay split whatever the switches say ("Stacked
+  // bars, always"), and a switch whose item is the bar's text has nothing to take away.
   function mvShowBlocks(){ return prefs.mvBlocks !== false; }
   function mvShowEpisodes(){ return prefs.mvEpisodes !== false; }
+  // The third, since Production's bars can be labelled by Episode or Block and Production Week then
+  // sits in the grey text (MONTH-PILL-LABEL-PLAN.md §5.2, owner ruling Q3). Same contract as the two
+  // above: per user, absent = on, never in a file. Its control is the plan's step 3.
+  function mvShowWeek(){ return prefs.mvWeek !== false; }
   function reflectMonthTagPrefs(){
     const b = document.getElementById('pref-mv-blocks'); if(b) b.checked = mvShowBlocks();
     const e = document.getElementById('pref-mv-episodes'); if(e) e.checked = mvShowEpisodes();
@@ -13409,6 +13469,21 @@ export function initLegacyApp() {
     update();
     markDirty();
   }
+  // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
+  // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
+  // through update() + markDirty() -- it dirties the file and is one undo step, where the per-user
+  // "Show ..." switches re-render without either. An unknown value is ignored rather than stored.
+  // ⭐ Picking the label Schedule by already gives stores NOT CHOSEN (owner's picker, 15 Oct 2026),
+  // so the key only ever records a departure from the default, and that calendar goes on following
+  // Schedule by. Nothing calls this until the plan's step 3 adds the control.
+  function setMvProdLabel(next){
+    if(!MV_PROD_LABELS.includes(next)) return;
+    const v = (next === (isBlocksMode() ? 'block' : 'episode')) ? null : next;
+    if(v === mvProdLabel) return;
+    mvProdLabel = v;
+    update();
+    markDirty();
+  }
 
   function setViewMode(mode){
     viewMode = mode;
@@ -13952,6 +14027,7 @@ export function initLegacyApp() {
     document.getElementById('custom-phase-rows').innerHTML = '';
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
+    mvProdLabel = null;
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -14514,6 +14590,11 @@ export function initLegacyApp() {
       mvHeaderMode, mvHeaderManual, mvHeaderTemplates, headerFormat, mvHeaderFormat, noteColors, noteFontSize, hiatusTexts, hiatusColors,
       hiatusFontSize, hiatusNameSyncedKeys, holidayView,
       holidayOff, customHolidays, viewMode, singleColumn, sidebarTab,
+      // 15 Oct 2026 (MONTH-PILL-LABEL-PLAN.md): what Production's month bars are labelled by.
+      // ⛔ PERMANENT key and values ('week' | 'episode' | 'block'). NOT CHOSEN IS AN ABSENT KEY, never
+      // null or a fourth value (owner's picker): it follows Schedule by, and a file that never chose
+      // is byte-for-byte the snapshot it was before the key existed.
+      ...(mvProdLabel ? {mvProdLabel} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -19895,6 +19976,7 @@ export function initLegacyApp() {
     } else if('fields' in s && s.fields !== undefined){ bad.n++; delete s.fields; }
     // Small enums and counters.
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
+    if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -20180,6 +20262,9 @@ export function initLegacyApp() {
     // 10 Sep 2026 has no key, and false is the shape it was written in.
     singleColumn = snap.singleColumn === true;
     reflectSingleColumn();
+    // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
+    // never whatever the previously open file chose.
+    mvProdLabel = MV_PROD_LABELS.includes(snap.mvProdLabel) ? snap.mvProdLabel : null;
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

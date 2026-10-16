@@ -155,16 +155,19 @@ window.addEventListener('load', function () { (async function () {
       eq(opts, ['', 'off']), opts, ['', 'off']);
     document.body.click(); await T.sleep(200);
 
-    // ---- D6: Show Episodes off -> no episodes on the month view, so no episode bars ----
+    // ---- D6: Show Episodes off changes NOTHING here ----
+    // ⚠️ REVISED 15 Oct 2026 (owner's picker, MONTH-PILL-LABEL-PLAN): a "Show" switch edits the grey
+    // text only, and the bars stay split. This build first had Show Episodes off join the bars back into
+    // one "Production Week N" bar per run. With no label chosen an Episodes calendar's bar NAMES the
+    // episode, so the switch has nothing to take away; the pilllabel leg holds what it does in Week mode.
     var undoBefore = document.getElementById('undo-btn').disabled;
     document.getElementById('pref-mv-episodes').click(); await settle();
     var off = prodByDay();
-    add('D6', '"Show Episodes" off: one Production Week bar per run, no grey text, and 7/6 carries ONE bar',
-      eq(labelsOn(off, '2026-07-06'), ['Production Week 2']) && off['2026-07-06'][0][1] === ''
-        && eq(labelsOn(off, '2026-07-13'), ['Production Week 3']),
-      {'07-06': off['2026-07-06'], '07-13': off['2026-07-13']}, 'Production Week 2, no grey');
+    add('D6', '"Show Episodes" off: the bars stay split and read exactly as D2 -- 7/6 still carries 201 over 202',
+      eq(off, jul) && eq(labelsOn(off, '2026-07-06'), ['Ep. 201', 'Ep. 202']),
+      {'07-06': off['2026-07-06'], '07-13': off['2026-07-13']}, 'identical to D2');
     document.getElementById('pref-mv-episodes').click(); await settle();
-    add('D6b', 'back on, the split bars return exactly', eq(prodByDay(), jul), null, 'identical to D2');
+    add('D6b', 'back on, still exactly D2', eq(prodByDay(), jul), null, 'identical to D2');
 
     // ---- D7: an odd total -- one episode at 5 makes 45.5, and the shoot runs 46 days ----
     document.getElementById('view-sheet-btn').click(); await settle();
