@@ -2610,6 +2610,17 @@
      place the current view already lives -- so nothing can show a row for the view you are not in. */
   body:has(#view-month-btn.active) .pref-view-sheet,
   body:not(:has(#view-month-btn.active)) .pref-view-month{ display:none; }
+  /* The month box's "Show" switches follow "Label Production by" (MONTH-PILL-LABEL-PLAN §5.2, owner
+     ruling Q3): only the items the grey text can carry right now are offered. A switch hides while
+     its item is the bar's text (the control's CHECKED radio, which is the label the bars are drawn
+     in), and Show Blocks hides on a calendar with no blocks (#show-mode's checked option, the
+     Schedule-by rule above). Off the controls themselves, like the rules above, so no restore, undo
+     or Load path can leave the rows out of step. Each row carries its own divider, so hiding one
+     never strands another. ⛔ display:none, never unmounted: the engine writes .checked by id. */
+  .prefs-card:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
+  .prefs-card:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
+  .prefs-card:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,
+  body:not(:has(#show-mode option[value="blocks"]:checked)) .pref-mv-row-blocks{ display:none; }
   /* ---- Production's total + the episode/block lists: Mantine's look (owner, 22 Sep 2026) ----
      "Can we restyle this to be nicer looking and extend across. Style using mantine. Also restyle
      the block/episode selector to look nicer and follow mantine styling as well."

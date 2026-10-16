@@ -1,7 +1,8 @@
 # MONTH-PILL-LABEL-PLAN.md
 
-**Status: STEP 2 (THE ENGINE) REBUILT ON HALF-DAYS, 15–16 Oct 2026, committed locally on the owner's sign-off
-(§12). Steps 3–6 to come.** *(Was: "PLAN, 15 Oct 2026. Nothing built and nothing committed.")* The owner gave five rulings the
+**Status: STEP 3 (THE CONTROLS) BUILT 16 Oct 2026 in worktree `determined-taussig-70f6a8` (§13), on top of step 2
+as live at `54ffe15`; committed locally, not pushed. Step 2 (the engine) was rebuilt on half-days 15–16 Oct 2026 and is live (§12). Steps 4–6 to
+come.** *(Was: "PLAN, 15 Oct 2026. Nothing built and nothing committed.")* The owner gave five rulings the
 same day (§6). **Step 1, the measurement, is done (§7):** nothing in any mode clips in either PDF.
 On screen the new modes lose only grey text, where today's labels lose the block and the episodes.
 On those numbers the owner ruled that Episode and Block modes **split the pill at each episode or
@@ -251,6 +252,8 @@ calendar data, and it travels through `captureSnapshot()`'s own key rather than 
     - **value:** reaches React through `bridge.js` (`chrome.mvProdLabel({ value, blockAvailable })`),
       as undo and redo do;
     - **input:** the radios' native `change` events, caught by a `document` listener.
+      ⛔ **Wrong, found at the build (§13): a React-controlled radio never fires `change` in Chrome.** The
+      listener catches the radios' `click` instead.
   - **Fallback if the bridge proves awkward:** a `NativeSelect` `#mv-prod-label`, which the engine
     can write directly, as it does `#pref-gridlines`. It keeps the same values, so no migration.
 - **Block is disabled on an Episodes calendar,** with a tooltip: "Schedule by Blocks to label by
@@ -491,8 +494,8 @@ lose the block and the episodes. The levers that were offered, kept for the reco
    `productionPillTag`, and `pillRunsForWeek` for the split); `mvProdLabel` in the snapshot, the
    restore and the resets; and `setMvProdLabel`. The rebuild keeps the save-format half and
    replaces the rest with the text composition in `unitBarLabel()`/`unitGreyLabel()`.
-3. **The controls:** the toggle (§5.1), the Show Production Week switch, and the contextual
-   visibility (§5.2).
+3. ✅ **The controls: BUILT 16 Oct 2026 (§13).** The toggle (§5.1), the Show Production Week switch,
+   and the contextual visibility (§5.2), with the `pilllabel` leg driving the real control.
 4. **Mint the two fixtures in the app.** Write the `pilllabel` leg and wire it into `gate.sh`.
 5. **PDFs to the owner (§8.5).** On a yes, cut the new baselines, then write the README changelog
    entry and update HANDOFF.
@@ -641,3 +644,78 @@ gate alongside, checked by a watcher):
 - ⚠️ **Two earlier runs are void, and say why:** one overlapped another session's gate for an hour (X6, a timed
   dialog case, failed 3×; gate 13's bytes held); the other ran overnight through clamshell sleep and another gate
   (789 min, 15 timeouts). The gate on build `3dfe4b4b…` (before Q13) had passed 1,447/0.
+
+---
+
+## 13. ✅ Step 3 as BUILT: the controls (16 Oct 2026, worktree `determined-taussig-70f6a8`)
+
+*Built on `main` at `401df7d` (step 2 and the half-square bars, live at `54ffe15`). Committed locally on the owner's
+picker (16 Oct 2026); not merged, not pushed ("Don't push"). No frozen line changed.*
+
+| | |
+|---|---|
+| The control | `ProdLabelControl` in `src/chrome/Sidebar.jsx`: a Mantine `SegmentedControl`, `name="mv-prod-label"`, size xs, full width, under the text "Label Production by". It is first in `.pref-view-month`, so it shows in the month view only. Its radios' ids are `mv-prod-label-week` / `-episode` / `-block`, fixed by the name. They sit inside `.prefs-card`, so `collectFieldValues()` skips them and `fields.byId` stays at 62 |
+| Value in | `chrome.mvProdLabel({ value, blockAvailable })` (`bridge.js`), pushed by the engine's `reflectMvProdLabel()` from `update()`. Every path that can change the answer ends there: a pick, Schedule by, undo/redo, Load, backup recovery, Reset All. React holds only a copy; `mvProdLabel` stays the one store |
+| What it shows | `mvProdLabelShown()`: `'week'` and `'episode'` as stored, anything else Schedule by (`isBlocksMode()`, the same test `productionUnits()` uses). So not chosen shows Schedule by (Q7, Q10), and a stored `'block'` on an Episodes calendar shows Episode (Q11) |
+| Value out | A `document` **click** listener on `input[name="mv-prod-label"]` calls `setMvProdLabel(value)`, unless the radio is disabled or the value is already showing |
+| Block disabled | on an Episodes calendar (`blockAvailable: false`), with a Mantine `Tooltip`: "Schedule by Blocks to label by block". The stored `'block'` is kept |
+| Show Production Week | `#pref-mv-week` → `prefs.mvWeek`, in `MV_TAG_PREFS` beside the other two (`reflectMonthTagPrefs()` and the one change listener). Per user, absent = on, re-renders without `update()` |
+| §5.2's rows | `legacy.css`, after the `.pref-view-*` rules: `.prefs-card:has(input[name="mv-prod-label"][value=X]:checked)` hides X's row, and `body:not(:has(#show-mode option[value="blocks"]:checked))` hides Show Blocks. Each row (`.pref-mv-row-week` / `-blocks` / `-episodes`) carries its own `Divider` on top, and the control is always first, so no divider is ever stranded |
+| CSS import | `SegmentedControl.layer.css` in `main.jsx`, between Tooltip and Stack, by the byte-offset rule (`FloatingIndicator` was already imported) |
+| ⓘ text | Grid lines and the Show switches stay on this computer; Single Column Mode and Label Production by travel with the file |
+
+**⭐ Two things the plan got wrong, found by driving it:**
+
+1. **§5.1's input half could not work as written: a React-controlled radio fires NO `change` in Chrome.** React
+   handles a radio's `onChange` from its `click`, and puts a controlled radio back during that same click. When the
+   click finishes, Chrome compares checkedness with the value before the click, finds it unchanged, and fires
+   neither `input` nor `change`. That is why React itself listens for click on radios. So the engine listens for
+   `click` on the radios. That also covers the keyboard, because an arrow key or Space in a radio group is a simulated
+   click. A disabled radio gets no click at all.
+2. **A click on the segment already showing must not be a pick.** With a stored `'block'` on an Episodes calendar,
+   Episode already shows. Clicking it would call `setMvProdLabel('episode')`, which stores `null`, and so would
+   silently clear the `'block'` Q11 keeps. `change` semantics would have hidden this; the click listener tests
+   `value === mvProdLabelShown()` first (`pilllabel` B3).
+
+Also measured: a synthetic `mouseenter` does not open a Mantine Tooltip on a page no real mouse has touched; a
+`mousemove` does (floating-ui's `useHover` opens on the first move). The tooltip's box mounts from
+`requestAnimationFrame`, which the headless leg never fires, so the leg reads the open state from `aria-describedby`.
+A real hover in the pane and over CDP shows the text.
+
+**The leg (`pilllabel`, extended).** All of it runs on the same eight calendars, gated in the same block (virtual
+budget 900 → 1500). Every calendar is opened with `viewMode: 'month'` and `sidebarTab: 'settings'` in its JSON, so no
+view or tab click adds an undo step.
+
+- **C0–C3:**
+  - the radios' ids are stable on every open;
+  - on open the control shows the drawn label (no key, `'week'`, `'episode'`, `'block'`);
+  - Block is disabled exactly on Episodes calendars;
+  - the visible Show rows are §5.2's table for each label.
+- **B1–B3 (Episodes calendars):**
+  - a click on the disabled Block does nothing;
+  - hovering it opens the tooltip;
+  - Q11's guard (no undo step, and Save keeps `'block'`).
+- **S1–S3:** the three Show switches, each off then on:
+  - push no undo step and leave the calendar clean;
+  - sit in `localStorage` while off and leave it when back on;
+  - saved while off, are absent from the file (no `mvWeek`/`mvBlocks`/`mvEpisodes`, no `pref-`/`mv-prod-label`
+    id in `fields.byId`).
+- **M, for each label the control can pick away from the default** (Week on every calendar, and Episode on a Blocks
+  one), clicked on its segment label:
+  - the month view is byte-identical, every month, to the same file opened with that key (which the step-2 checks
+    hold to the plan's table);
+  - the rows follow;
+  - the calendar is dirtied;
+  - one Undo restores no key's view and empties the stack (exactly one step);
+  - Redo re-applies it;
+  - Save writes the key with `fields.byId` unchanged;
+  - Loading that saved text shows the label and the same view;
+  - picking Schedule by's own label then draws no key's view and saves no key (Q10).
+- `shootorder`'s month-rows check was revised for the contextual rows. On its Episodes calendar, with no label chosen,
+  only Show Production Week is offered.
+
+**Proof:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
+
+**Owner's screenshots:** `side-session-notes/local_8010ded8…/pill-label-step3/` (not in the repo). A contact sheet of
+the card beside July 2026 for Blocks (not chosen, Week, Episode) and Episodes (not chosen, Week), and the disabled
+Block's tooltip.

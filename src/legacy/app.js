@@ -9907,16 +9907,21 @@ export function initLegacyApp() {
   function mvShowEpisodes(){ return prefs.mvEpisodes !== false; }
   // The third, since Production's bars can be labelled by Episode or Block and Production Week then
   // sits in the grey text (MONTH-PILL-LABEL-PLAN.md §5.2, owner ruling Q3). Same contract as the two
-  // above: per user, absent = on, never in a file. Its control is the plan's step 3.
+  // above: per user, absent = on, never in a file. Its switch is #pref-mv-week (plan step 3).
   function mvShowWeek(){ return prefs.mvWeek !== false; }
+  // Which of the three switches SHOWS is pure CSS (legacy.css, plan §5.2): a switch is hidden while
+  // its item is the bar's text, and Show Blocks on a calendar with no blocks. Hidden, never unmounted,
+  // so these writes always find their element.
+  const MV_TAG_PREFS = {'pref-mv-week': 'mvWeek', 'pref-mv-blocks': 'mvBlocks', 'pref-mv-episodes': 'mvEpisodes'};
   function reflectMonthTagPrefs(){
+    const w = document.getElementById('pref-mv-week'); if(w) w.checked = mvShowWeek();
     const b = document.getElementById('pref-mv-blocks'); if(b) b.checked = mvShowBlocks();
     const e = document.getElementById('pref-mv-episodes'); if(e) e.checked = mvShowEpisodes();
   }
   document.addEventListener('change', e=>{
     const id = e.target && e.target.id;
-    if(id !== 'pref-mv-blocks' && id !== 'pref-mv-episodes') return;
-    const key = id === 'pref-mv-blocks' ? 'mvBlocks' : 'mvEpisodes';
+    if(!Object.prototype.hasOwnProperty.call(MV_TAG_PREFS, id)) return;
+    const key = MV_TAG_PREFS[id];
     if(e.target.checked) delete prefs[key]; else prefs[key] = false;
     savePrefs();
     try { render(currentSchedule); } catch(err){ console.error(err); }
@@ -13181,6 +13186,9 @@ export function initLegacyApp() {
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     refreshHolidayCoverageNote();
+    // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
+    // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
+    reflectMvProdLabel();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -13560,7 +13568,7 @@ export function initLegacyApp() {
   // "Show ..." switches re-render without either. An unknown value is ignored rather than stored.
   // ⭐ Picking the label Schedule by already gives stores NOT CHOSEN (owner's picker, 15 Oct 2026),
   // so the key only ever records a departure from the default, and that calendar goes on following
-  // Schedule by. Nothing calls this until the plan's step 3 adds the control.
+  // Schedule by. Its caller is the "Label Production by" control (plan step 3, listener below).
   function setMvProdLabel(next){
     if(!MV_PROD_LABELS.includes(next)) return;
     const v = (next === (isBlocksMode() ? 'block' : 'episode')) ? null : next;
@@ -13569,6 +13577,42 @@ export function initLegacyApp() {
     update();
     markDirty();
   }
+  // The label the bars are DRAWN in, which is what the control shows (owner rulings Q7, Q10, Q11):
+  // not chosen follows Schedule by, and a 'block' on a calendar with no blocks draws as Episode.
+  // It is unitLabelParts()'s own rule (`kind` there is isBlocksMode()), so the selected segment and
+  // the bars cannot disagree. The variable keeps the user's 'block', which comes back with Blocks.
+  function mvProdLabelShown(){
+    if(mvProdLabel === 'week' || mvProdLabel === 'episode') return mvProdLabel;
+    return isBlocksMode() ? 'block' : 'episode';
+  }
+  // ⛔ PUSHED, NOT WRITTEN (MONTH-PILL-LABEL-PLAN §5.1). The control is a Mantine SegmentedControl, which
+  // places its sliding indicator from React state, so the engine cannot set a radio's .checked the way
+  // it does a Switch's: React would put it back on the next commit. The value reaches React through
+  // bridge.js, as undo/redo's disabled state does. Called from update(), which every path that can
+  // change the answer ends in: a pick, Schedule by, undo/redo, Load, backup recovery, Reset All.
+  // `blockAvailable` disables Block on an Episodes calendar.
+  function reflectMvProdLabel(){
+    chrome.mvProdLabel({ value: mvProdLabelShown(), blockAvailable: isBlocksMode() });
+  }
+  // The INPUT half: the control's radios, caught here on document by their `name`. It is set
+  // explicitly in Sidebar.jsx, so it is stable (Mantine would otherwise generate one per page load),
+  // and the radios sit inside .prefs-card, so collectFieldValues() skips them and fields.byId does not
+  // move. The snapshot's own mvProdLabel key is the one store.
+  // ⛔ 'click', NOT 'change' -- the plan said change, and a controlled radio NEVER FIRES ONE (measured
+  // 16 Oct 2026, Chrome). React handles a radio's onChange from its CLICK and puts a controlled radio
+  // back during that same click; Chrome then finds the checkedness unchanged when the click finishes
+  // and fires neither `input` nor `change`. That is why React itself listens for click on radios.
+  // Click covers the keyboard too: an arrow key or Space in a radio group is a simulated click. A
+  // disabled radio (Block on an Episodes calendar) gets no click at all.
+  // The value is read, never .checked, which React has already restored by now. A click on the
+  // segment already showing is not a pick: without that test, Episode clicked on an Episodes
+  // calendar that stores 'block' (shown as Episode, Q11) would silently clear the 'block'.
+  document.addEventListener('click', e=>{
+    const t = e.target;
+    if(!t || t.name !== 'mv-prod-label' || t.disabled) return;
+    if(t.value === mvProdLabelShown()) return;
+    setMvProdLabel(t.value);
+  });
 
   function setViewMode(mode){
     viewMode = mode;

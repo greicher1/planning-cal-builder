@@ -4,9 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 16 Oct 2026: "LABEL PRODUCTION BY" IS IN PREFERENCES — MONTH-PILL-LABEL-PLAN STEP 3 (worktree `determined-taussig-70f6a8`)
+
+- ⏭ **RESUME HERE.** Built and gated on branch `claude/determined-taussig-70f6a8`, cut from `main` at `401df7d`.
+  **Committed locally on the owner's picker ("Commit locally", 16 Oct 2026); not merged into `main`, not pushed ("Don't push").** Full record: plan §13
+  ([`MONTH-PILL-LABEL-PLAN.md`](MONTH-PILL-LABEL-PLAN.md)).
+- **What a user sees (month view, Settings ▸ Preferences):**
+  - **"Label Production by: Week · Episode · Block"** at the top of the month box. It shows the label the bars are
+    drawn in, so with nothing chosen it shows Schedule by. A stored Block on an Episodes calendar shows as Episode
+    (Q7, Q10, Q11). A pick goes through `setMvProdLabel()`: one undo step, the file dirtied, saved as `mvProdLabel`.
+    Block is disabled on an Episodes calendar, with the tooltip "Schedule by Blocks to label by block".
+  - **A third switch, "Show Production Week in Month View"** (`#pref-mv-week` → `prefs.mvWeek`), per user like the
+    other two.
+  - **The Show rows follow the label** (plan §5.2), in pure CSS off the control's checked radio and `#show-mode`. Rows
+    are hidden, never unmounted, and each carries its own divider.
+- **Code:**
+  - `src/chrome/Sidebar.jsx` (`ProdLabelControl`, the three rows, the ⓘ text);
+  - `src/chrome/bridge.js` (`chrome.mvProdLabel`);
+  - `src/legacy/app.js`: `mvProdLabelShown()`, `reflectMvProdLabel()` called from `update()`, the radios' click
+    listener, and `MV_TAG_PREFS`;
+  - `legacy.css` (the row rules);
+  - `main.jsx` (`SegmentedControl.layer.css`, between Tooltip and Stack).
+- ⭐ **Learned:**
+  1. **A React-controlled radio fires NO `change` event in Chrome.** React handles a radio's onChange from its
+     *click* and puts a controlled radio back inside that click. Chrome then sees no change in checkedness and fires
+     neither `input` nor `change`. The plan's "native change, caught on document" could never have worked. The engine
+     listens for `click` on `input[name="mv-prod-label"]`, which keyboard selection also produces. ⚠️ Any future
+     engine-owned Mantine radio or SegmentedControl needs the same.
+  2. **A click on the segment already showing is not a pick.** Without that test, Episode clicked where a stored
+     `'block'` already shows as Episode would call `setMvProdLabel('episode')` → `null`, silently clearing the
+     `'block'` Q11 keeps (`pilllabel` B3 holds it).
+  3. **Mantine Tooltip in a headless leg:**
+     - a synthetic `mouseenter` does not open it, but a `mousemove` does;
+     - the box mounts from `requestAnimationFrame`, which `--virtual-time-budget` never fires, so read the open
+       state from the reference's `aria-describedby`.
+  4. **`label.click()` from a script leaves a `:focus-visible` ring** a mouse click would not. Screenshots for the
+     owner were taken with trusted CDP clicks (`Input.dispatchMouseEvent`).
+- **Legs:** `pilllabel` extended (C0–C3, B1–B3, S1–S3, M per label: the done-list of the brief), virtual budget
+  900 → 1500. `shootorder`'s month-rows check revised (an Episodes calendar with no label offers only Show Production
+  Week).
+- **Proof:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
+- **Owner's screenshots** (session-notes folder `pill-label-step3/`, not the repo): a contact sheet of every mode
+  beside its month, and the disabled Block's tooltip.
+- ⏭ **Next (plan step 4):** mint `pilllabel-block` / `pilllabel-episode` fixtures in the app (the control exists
+  now), cut them into gates 10 and 13 as new cases after the owner sees their PDFs. Then the commit/push pickers.
+
 ### ◐ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
 
-- ⏭ **RESUME HERE.**
+- **Was RESUME HERE until step 3 above.**
   - **State:** HALF-SQUARE-BARS-PLAN.md is built and gated (full gate: 1,493 PASS, 0 FAIL) on branch
     `claude/sweet-mestorf-8d18b8`. ✅ **Merged into LOCAL `main` by fast-forward to `54ffe15`** (owner, 16 Oct 2026:
     "merge"), so `main` is exactly the gated tip. ✅ **PUSHED AND LIVE at `54ffe15` (16 Oct 2026, owner's picker
@@ -322,10 +367,8 @@
      clamshell sleep (`pmset -g log` shows it) and took 789 min with 15 timeouts. Keep the lid open for a gate.
   5. **Byte-compare a restored look against the OLD baseline** (`git show <commit>:tests/baselines/...`). It turned
      "one bar per week looks like ruling 8" into "is ruling 8, byte for byte, on sixteen calendars".
-- ⏭ **Next (plan step 3):** the "Label Production by" control in Preferences, the "Show Production Week" switch
-  (`#pref-mv-week` → `prefs.mvWeek`; `mvShowWeek()` already reads it), and §5.2's contextual rows. `setMvProdLabel()`
-  is waiting for the control. Then step 4 mints `pilllabel-block` / `pilllabel-episode` fixtures and cuts them into
-  gates 10 and 13 as new cases.
+- ✅ **Plan step 3 (the controls) is BUILT** (16 Oct 2026, entry at the top). Step 4 next: the
+  `pilllabel-block` / `pilllabel-episode` fixtures, cut into gates 10 and 13 as new cases.
 
 #### Before the rebuild (kept for the record)
 

@@ -96,6 +96,14 @@ export const chrome = {
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
   // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
   notesResetBtn: noop,
+  // { value: 'week'|'episode'|'block', blockAvailable } — Preferences ▸ "Label Production by"
+  // (MONTH-PILL-LABEL-PLAN.md §5.1). `value` is the label the month bars are DRAWN in, so with nothing
+  // chosen it is what Schedule by gives; the engine's mvProdLabel is the only store. Bridged because a
+  // SegmentedControl's indicator follows React state: an engine write to a radio's .checked would be
+  // undone by the next commit. The input half needs no bridge: the radios' native `click` reaches the
+  // engine's document listener by their name, `mv-prod-label`. ⛔ Click, not change: a controlled
+  // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
+  mvProdLabel: noop,
 }
 
 export function installChrome(impl) {

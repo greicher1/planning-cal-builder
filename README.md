@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
+
+Step 3 of MONTH-PILL-LABEL-PLAN.md. The engine (step 2) shipped at `54ffe15` with nothing to drive it; this adds the
+controls, so a user can now pick the label.
+- **Settings ▸ Preferences, month view only: "Label Production by: Week · Episode · Block"** (owner ruling Q1), at
+  the top of the month box. It shows the label the bars are drawn in, so a calendar where nobody has picked shows
+  what Schedule by gives (Q7, Q10), and a saved Block on a calendar now scheduled by Episodes shows as Episode (Q11).
+  - **It belongs to the calendar** (Q2): a pick dirties the file, is one undo step, and travels in the saved file as
+    `mvProdLabel`. Picking Schedule by's own label clears the key again.
+  - **Block is disabled on a calendar scheduled by Episodes**, with a tooltip: "Schedule by Blocks to label by block".
+- **A third switch, "Show Production Week in Month View"** (`prefs.mvWeek`), beside Show Blocks and Show Episodes.
+  Like them it is per user, stays on this computer, and never enters a file or the undo history.
+- **The Show switches now follow the label** (Q3, plan §5.2): only the items the grey text can carry are offered. A
+  switch hides while its item is the bar's text, and Show Blocks hides on an Episodes calendar. Hidden rows keep
+  their setting.
+- The Preferences ⓘ now says which settings travel with a file (Single Column Mode, Label Production by) and which
+  stay on this computer (Grid lines and the Show switches).
+- ⭐ **Learned: a React-controlled radio fires no `change` event in Chrome.** React puts the radio back during the
+  click, so Chrome sees no change when the click ends. The plan said the engine would catch `change`; it catches
+  the radios' `click` instead (keyboard selection is a simulated click too), and ignores a click on the segment
+  already showing.
+- No frozen code was edited, and `fields.byId` stays at 62 ids: the control's radios carry a fixed `name`
+  (`mv-prod-label`) and sit inside `.prefs-card`, which the field sweep skips. Its value reaches React through
+  `bridge.js` (`chrome.mvProdLabel`).
+- **Verified:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
+
 ### Unreleased — A switch day's two month bars meet half way through the square (16 Oct 2026)
 
 The owner's own idea, on seeing the stacked bars: *"maybe rather than having both pills overlap, the bar ends half way
