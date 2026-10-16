@@ -189,7 +189,7 @@ touch them at all. Unlike `dayOverrides` (`MONTH-VIEW-PLAN.md` §4.3), there is 
 | 5 | *(22 Sep)* What Production's lane shows in Blocks mode | **Production's own pills, no episode pills — and the week tag names the block AND its episodes**, e.g. `Block 1 · 201, 202` |
 | 6 | *(22 Sep)* The waterfall header's "8-Day Shooting Schedule" in Blocks mode | **`… / 5 Shooting Blocks`** — the block count, which stays true when blocks differ in length |
 | 7 | *(22 Sep)* A pill piece too short for the tag (a one-day piece) | **Omit the tag on one-day pieces** (offered: shrink to fit; ellipsis) |
-| 8 | *(22 Sep)* Episodes mode, too | **"Production Week N" is always the pill's primary text; the episodes being shot are the grey text** — episode pills are retired in both modes |
+| 8 | *(22 Sep)* Episodes mode, too | **"Production Week N" is always the pill's primary text; the episodes being shot are the grey text** — episode pills are retired in both modes. ⚠️ **Superseded 15 Oct 2026 ("Stacked bars, always", HANDOFF):** Production is one bar per episode (per block), "Ep. 201" / "Block 1", with the week in grey; a half-day switch day carries both bars |
 | 9 | *(22 Sep)* Shooting order | **Drag episodes to reorder in Episodes mode.** Numbers never change; only which days each episode occupies. The order also drives Blocks' automatic split |
 | 10 | *(22 Sep)* Turning the grey text off | **Per-user Preferences, "Show Blocks in Month View" / "Show Episodes in Month View", default on** — accepting that two people printing one calendar can differ |
 

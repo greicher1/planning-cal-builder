@@ -2,7 +2,7 @@
 
 **What this is.** The month PDF that **Export PDF** writes since step 5 of
 [`MONTH-PDF-WRITER-PLAN.md`](../../../MONTH-PDF-WRITER-PLAN.md): the direct writer, through the Save dialog. It is
-held **byte for byte** on seventeen calendars. It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
+held **byte for byte** on eighteen calendars (seventeen until the 15 Oct 2026 re-cut added `halfdays`). It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
 item 13).
 
 Gate 10 (`../2026-09-22-monthprint/`) still holds the PRINT path. That is the rollback now, reached on localhost by
@@ -47,26 +47,45 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 15 Oct 2026 — one bar per episode or block ("Stacked bars, always"), and a new case
+
+**A deliberate change to the month PDF of every calendar with episodes or blocks**, on the owner's ruling (15 Oct
+2026): Production is drawn as one bar per episode (per block in Blocks mode), "Ep. 201" / "Block 1", with its
+Production Week in the grey text, and a day where an episode or block changes half way through carries both bars,
+stacked (HANDOFF, "HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5"). It replaces ruling 8's one "Production Week N" bar per
+week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWeek()`.
+- **The sign-off came first.** `monthbase.py sheets` contact sheets (old | new | difference) for `reference` and
+  `blocks`, and the new `halfdays` pages, went to the owner, with `check`'s report that all seventeen cases moved and
+  nothing else did. The owner's answer: **"Yes, re-cut them"** (picker).
+- **What moved, by `check`:** every case, and only Production's bar text and bar boundaries. In every case every month
+  is still one page. `colswap-simpost-refuse` moved by 2 bytes: its bars read "Ep. 101" where they read
+  "Production Week 1".
+- **New case `halfdays`** (`tests/fixtures/halfdays.sptcal`, cut by the `halfdays` leg). Its switch days are the first
+  files gated with two Production bars on one day.
+- **Cut from** the build `7f0141bb409293f5…` (1,466,813 bytes) on worktree `half-day-episodes`, Google Chrome 155.0.8059.40 , in a full gate run in which every other
+  check passed (1,301). `reference`, its UTC+14 and 1280 px runs, and `blocksoff` were byte-identical to each other.
+
 ## The cases
 
 | case | pages | bytes | sha256 |
 |---|---|---|---|
-| `blocks` | 16 | 80,274 | `f9c9764981add6be…` |
-| `carry-rich` | 12 | 80,264 | `f557f5ce19f42f32…` |
-| `colswap-simpost-refuse` | 3 | 52,123 | `34c08745f1dcdee3…` |
-| `dayoverrides-onhalf` | 15 | 77,282 | `90ea89c47a12df7f…` |
-| `dayoverrides` | 15 | 76,906 | `6de59086a2c9db40…` |
-| `hiatus-blanklabel` | 16 | 80,318 | `55bcf5e7fa729282…` |
-| `month-dense60` | 16 | 82,115 | `7c9355a41dc7d096…` |
-| `month-lanecap` | 16 | 81,358 | `4ab8c11a4b3dc301…` |
-| `monthnotes` | 16 | 80,178 | `a5bf1fe55ac2e433…` |
-| `monthscale` | 16 | 81,958 | `896fa69b1308f1da…` |
-| `mvheader` | 15 | 92,222 | `08310f84bbdb8e60…` |
-| `mvheaderlegacy` | 15 | 77,088 | `bc533003b85e090d…` |
-| `notewrap` | 16 | 80,935 | `12b88222b75c131f…` |
-| `reference` | 16 | 80,038 | `bf387fc23cbcfc65…` |
-| `shootorder` | 16 | 80,037 | `9788ec07b8d6b4ae…` |
-| `stintswap-reshape` | 25 | 102,037 | `0764e9038c75aaf5…` |
+| `blocks` | 16 | 80,933 | `4af98b2ea9c92207…` |
+| `carry-rich` | 12 | 81,457 | `bd034ff31034fef4…` |
+| `colswap-simpost-refuse` | 3 | 52,125 | `819cac62161734bd…` |
+| `dayoverrides-onhalf` | 15 | 79,120 | `4540080dd3bb4a28…` |
+| `dayoverrides` | 15 | 78,436 | `932764d21796d4fe…` |
+| `halfdays` | 16 | 80,141 | `e6f613cb56972460…` |
+| `hiatus-blanklabel` | 16 | 81,701 | `7272ce5eff1147fa…` |
+| `month-dense60` | 16 | 82,776 | `81f48a4322b7da29…` |
+| `month-lanecap` | 16 | 82,027 | `eb44cecbd3bcb496…` |
+| `monthnotes` | 16 | 81,886 | `139b546ed23c993a…` |
+| `monthscale` | 16 | 82,611 | `a46662f974525fa8…` |
+| `mvheader` | 15 | 93,755 | `a9b4370482ea56b7…` |
+| `mvheaderlegacy` | 15 | 78,622 | `cdb75731c3828678…` |
+| `notewrap` | 16 | 82,314 | `446c172dabe3a7b5…` |
+| `reference` | 16 | 81,742 | `510963a0940e8fbd…` |
+| `shootorder` | 16 | 81,739 | `d51fe5193a677566…` |
+| `stintswap-reshape` | 25 | 102,989 | `2e5c97adbd73cef6…` |
 
 Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture()` typed into a fresh page.
 
@@ -88,6 +107,7 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
 | `shootorder` | the episodes' shooting order in the grey "Ep." text |
 | `notewrap` | four long texts, made through the real UI |
 | `carry-rich` | every store populated |
+| `halfdays` | ⭐ ADDED 15 Oct 2026: 4.5-day episodes (one of 5), so Production's bars stack on each half-day switch day |
 
 **Held to another case's file**, with none of their own:
 - the reference under UTC+14, and in a 1280 px window, are held to `reference`;

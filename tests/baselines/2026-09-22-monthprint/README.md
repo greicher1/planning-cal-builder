@@ -114,6 +114,32 @@ cut is deterministic and M-8 moved neither. 3.6's before→after, per the A/B sh
   plus 90 never-printed `+` affordances.
 - `hiatus-blanklabel` lost three "Hiatus" text runs.
 
+## ✅ RE-CUT 15 Oct 2026 — one bar per episode or block ("Stacked bars, always"), and a tenth case, `halfdays`
+
+A deliberate change to the month PDF of every calendar with episodes or blocks, on the owner's ruling (15 Oct 2026):
+Production is one bar per episode (per block in Blocks mode), "Ep. 201" / "Block 1", with its Production Week in grey,
+and a day where an episode or block changes half way through carries both bars, stacked. It replaces ruling 8's one
+"Production Week N" bar per week (above). Signed off by the owner on the writer's contact sheets (gate 13's README)
+before this cut: **"Yes, re-cut them"**. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWeek()`.
+
+| case | elements | Production bars | sheets | row heights |
+|---|---|---|---|---|
+| `reference` | 3793 → 3806 | 21 → 31 | 16 → 16 | **none moved** |
+| `dayoverrides` | 3554 → 3566 | 22 → 31 | 15 → 15 | none moved |
+| `mvheader` | 3554 → 3566 | 22 → 31 | 15 → 15 | none moved |
+| `mvheaderlegacy` | 4244 → 4256 | 22 → 31 | 15 → 15 | none moved |
+| `blocks` | 3790 → 3795 | 22 → 26 | 16 → 16 | none moved |
+| `dayoverrides-onhalf` | 3551 → 3566 | 22 → 33 | 15 → 15 | none moved |
+| `month-lanecap` | 4245 → 4250 | 22 → 26 | 16 → 16 | none moved |
+| `hiatus-blanklabel` | 3716 → 3728 | 20 → 28 | 16 → 16 | none moved |
+| `halfdays` *(new)* | 3827 | 22 | 16 | July and August grow one lane (57 → 78 px) on each week with a switch day |
+
+⭐ **Why no row moved:** with whole day counts the bars split SIDE BY SIDE in the lane Production already used, so lane
+occupancy is identical and every note lands where it did. Only a half-day switch day stacks a second bar, and only
+`halfdays` has one. `blocksoff` stays held to `reference` and is still byte-identical to it.
+
+`halfdays` is `tests/fixtures/halfdays.sptcal`: 4.5-day episodes with Episode 201 at 5, 45.5 shoot days from 6/29/26.
+
 ## What the leg asserts
 
 1. The printed document is **byte-identical** to `<case>.html`.

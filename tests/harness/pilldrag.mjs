@@ -36,16 +36,23 @@
 //   E4  October: the END handle, across a weekend in ONE gesture: Sat -> Fri 10/23, Sun -> Mon 10/26
 //       (Episode 210 to 11, then 12), the start held -- and ONE Ctrl+Z restores 8 days and 10/20
 //   E5  Blocks mode (blocks.sptcal): the end handle changes the LAST BLOCK (18 -> 17), and marks it edited
-//   E6  a middle pill with no episode end in it (July week 3) carries its two week edges and nothing else
+//   E6  a middle pill with no episode end in it (July week 3, Episode 202's) carries its two week edges and nothing else
+//       ⚠️ Since 15 Oct 2026 ("Stacked bars, always", half days) Production is ONE BAR PER EPISODE, so July week 2
+//       is two bars -- 201 Mon-Thu, 202 Fri -- and week 3's bar is the fourth Production bar on the page.
 //   E7  print: the handle is display:none under body.printing-calendar in print media, and never in
 //       #print-root or #table-wrap
-//   E8  July week 2 (Mon-Fri, Episode 201 ends Thu): week-left, a boundary on the Thu|Fri line, week-right
+//   E8  July week 2: Episode 201's bar (Mon-Thu) has week-left and its end on its right edge, the Thu|Fri line;
+//       Episode 202's one-day Friday bar has the week-right edge (its left edge is 201's end, so no grip)
 //   E9  that boundary right a day: Episode 201 9 days, 202 still 8 (it slides), wrap 10/21; ONE Ctrl+Z back
 //   E10 ...left two days in one gesture: Episode 201 6 days (ends Tue 7/7), 202 still 8, wrap 10/16
 //   E11 week 2's LEFT edge right a day: Mon 7/6 marked off, every episode still 8, wrap 10/21; ONE Ctrl+Z
 //   E12 week 2's RIGHT edge onto Sat 7/11 and back, one gesture: Sat worked and wrap 10/19 mid-gesture,
 //       then nothing marked and 10/20
 //   E13 Blocks mode: Block 1's end (Thu 7/23) right a day: Block 1 19, Block 2 still 18, total 86
+//   E14 ⭐ half days (halfdays.sptcal: 4.5-day episodes, 201 at 5): Mon 7/13 is a switch day with TWO bars.
+//       202's one-day bar (top) has week-left and 202's end; 203's bar below has only 203's end (its left
+//       edge is 202's). 202's end right a day: 202 5.5, the switch moves to Tue 7/14 (202 above 203 there),
+//       total 46.5, wrap 9/1 -> 9/2; ONE Ctrl+Z puts back 4.5 and 9/1
 // Same plumbing as rtleg.mjs / printpaper.mjs: Node 24's built-in WebSocket, no dependencies, and a
 // non-default HARNESS_PORT namespaces the Chrome profile.
 import fs from 'node:fs';
@@ -382,7 +389,7 @@ try {
   // E6 -- a middle pill with no episode end inside it: its week's two edges, nothing else.
   await load();
   await gotoMonth('July 2026');
-  const mp = await prodPill(2);
+  const mp = await prodPill(3);                 // 201 wk1, 201 wk2, 202 Fri, then 202's week-3 bar
   const h6 = await restOn(mp);
   out.E6 = { pill: mp, handles: h6 };
   kase('E6', 'July week 3 (no episode ends in it): its two week edges and nothing else, both topmost',
@@ -409,16 +416,20 @@ try {
   const epDays = () => ev(`Array.from(document.querySelectorAll('#episode-rows .episode-row .ep-days')).map(i => i.value)`);
   const blkDays = () => ev(`Array.from(document.querySelectorAll('.block-row .blk-days')).map(i => i.value)`);
   const wk2 = async () => { await load(); await gotoMonth('July 2026'); const p = await prodPill(1); return { p, hs: await restOn(p) }; };
+  // Week 2's RIGHT edge is on Episode 202's one-day Friday bar since bars split per episode (15 Oct 2026).
+  const wk2fri = async () => { await load(); await gotoMonth('July 2026'); const p = await prodPill(2); return { p, hs: await restOn(p) }; };
   const by = (hs, k) => visible(hs).find(h => h.edge === k);
 
-  // E8 -- July week 2: the three handles, the boundary on the Thu|Fri line.
+  // E8 -- July week 2: two bars. 201's carries week-left and its end on its own right edge (the Thu|Fri
+  // line); 202's one-day Friday bar carries the week's right edge and nothing on its left (201's end).
   const w8 = await wk2();
   const b8 = by(w8.hs, 'bound');
-  const thuFri = w8.p ? w8.p.l + (w8.p.r - w8.p.l) * 4 / 5 : NaN;     // Mon-Fri is 5 columns; the line after Thu
-  out.E8 = { pill: w8.p, handles: w8.hs, expectedLine: thuFri };
-  kase('E8', "July week 2: week-left, Episode 201's end on the Thu|Fri line, week-right; all topmost",
-       !!w8.p && w8.p.gc === '2/7' && kinds(w8.hs) === 'bound,wkL,wkR' && visible(w8.hs).every(h => h.topmost)
-       && !!b8 && Math.abs(b8.x - thuFri) < 2, out.E8);
+  const w8f = await wk2fri();
+  out.E8 = { pill: w8.p, handles: w8.hs, friPill: w8f.p, friHandles: w8f.hs };
+  kase('E8', "July week 2: 201's bar has week-left and its end on its right edge (Thu|Fri); 202's Friday bar has week-right; all topmost",
+       !!w8.p && w8.p.gc === '2/6' && kinds(w8.hs) === 'bound,wkL' && visible(w8.hs).every(h => h.topmost)
+       && !!b8 && Math.abs(b8.r - w8.p.r) < 1
+       && !!w8f.p && w8f.p.gc === '6/7' && kinds(w8f.hs) === 'wkR' && visible(w8f.hs).every(h => h.topmost), out.E8);
 
   // E9 -- that boundary right a day (push), then ONE Ctrl+Z.
   const dW = await ev(`document.querySelector('#table-wrap .mv-daycell').getBoundingClientRect().width`);
@@ -453,7 +464,7 @@ try {
        && !/mv-day-off/.test(e11umon || '') && e11u.wrap === '10/20/26', out.E11);
 
   // E12 -- the week's RIGHT edge onto Saturday and back, one gesture.
-  const w12 = await wk2();
+  const w12 = await wk2fri();
   const r12 = by(w12.hs, 'wkR');
   let e12mid = null, e12midSat = null;
   if (r12) {
@@ -486,6 +497,42 @@ try {
   out.E13 = { pill: p13, handles: h13, before: before13, after: after13, prod: e13 };
   kase('E13', "Blocks mode: Block 1's end (Thu 7/23) right a day: Block 1 19, Block 2 still 18, total 86",
        !!b13 && b13.topmost === true && before13[0] === '18' && after13[0] === '19' && after13[1] === '18' && e13.total === '86', out.E13);
+
+  // E14 -- half days (owner, 15 Oct 2026): a half switch day carries two bars, each with its own grips.
+  // July 2026's row 2 is Sun 7/12 - Sat 7/18; Monday is grid column 2.
+  await load('halfdays');
+  await gotoMonth('July 2026');
+  const barsOn = (row, col) => ev(`(async () => {
+    const wk = document.querySelectorAll('#table-wrap .mv-body > .mv-week')[${row}];
+    const ps = Array.from(wk ? wk.querySelectorAll('.mv-pill[data-ph="production"]') : [])
+      .filter(p => +p.style.gridColumnStart <= ${col} && +p.style.gridColumnEnd > ${col})
+      .sort((a, b) => (+a.style.gridRowStart) - (+b.style.gridRowStart));
+    if (ps[0]) { ps[0].scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 300)); }
+    return ps.map(p => { const r = p.getBoundingClientRect();
+      const label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim();
+      return { x: r.left + Math.min(r.width / 2, 60), y: r.top + r.height / 2, l: r.left, r: r.right, t: r.top, b: r.bottom,
+               gc: p.style.gridColumnStart + '/' + p.style.gridColumnEnd, lane: +p.style.gridRowStart, label }; }); })()`);
+  const mon14 = await barsOn(2, 2);
+  const top14 = mon14[0], low14 = mon14[1];
+  const hLow = low14 ? await restOn(low14) : [];
+  const hTop = top14 ? await restOn(top14) : [];
+  const b14 = by(hTop, 'bound');
+  const eps14a = await epDays(), q14a = await prod();
+  if (b14) await dragPath(b14, [[b14.x + dW * 0.55, b14.y], [b14.x + dW, b14.y]]);
+  const eps14b = await epDays(), q14b = await prod();
+  const tue14 = (await barsOn(2, 3)).map(x => x.label), mon14b = (await barsOn(2, 2)).map(x => x.label);
+  await ctrlZ();
+  const eps14c = await epDays(), q14c = await prod();
+  out.E14 = { mon: mon14, top: hTop, low: hLow, before: { eps: eps14a, prod: q14a }, after: { eps: eps14b, prod: q14b, tue: tue14, mon: mon14b },
+              undone: { eps: eps14c, prod: q14c } };
+  kase('E14', 'half days: Mon 7/13 has two bars, 202 (week-left + its end) above 203 (its end only); 202\'s end right a day '
+       + '-> 5.5, the switch moves to Tue 7/14, wrap 9/2; ONE Ctrl+Z -> 4.5, 9/1',
+       mon14.length === 2 && top14.label === 'Ep. 202' && low14.label === 'Ep. 203' && top14.gc === '2/3' && low14.gc === '2/7'
+       && kinds(hTop) === 'bound,wkL' && kinds(hLow) === 'bound' && !!b14 && b14.topmost === true
+       && eps14a[1] === '4.5' && q14a.total === '45.5' && q14a.wrap === '9/1/26'
+       && eps14b[1] === '5.5' && q14b.total === '46.5' && q14b.wrap === '9/2/26' && q14b.start === q14a.start
+       && JSON.stringify(tue14) === '["Ep. 202","Ep. 203"]' && JSON.stringify(mon14b) === '["Ep. 202"]'
+       && eps14c[1] === '4.5' && q14c.wrap === '9/1/26' && q14c.total === '45.5', out.E14);
   ws.close();
 } catch (e) {
   out.EX = String(e && e.message || e);

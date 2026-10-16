@@ -13,6 +13,14 @@ pre-fix build. `stintswap-chained` and `stintswap-reshape` (29 Sep 2026) are the
 The older fixtures (`blocks`, `colswap-*`, `stintswap-*`, `dayoverrides`, `v1.0.0-saved.html`, …) are
 described where their legs are, in `tests/harness/README.md` and `PROJECT-CONTEXT.md` §11.
 
+## Half days (15 Oct 2026)
+
+`halfdays.sptcal` is the reference calendar (`T.buildFixture()`) at **4.5 shooting days per episode, with Episode 201
+at 5**: 45.5 shoot days from Mon 6/29/26, wrapping Tue 9/1/26. Its episode boundaries fall half way through a day
+(Mon 7/13, Fri 7/24, Thu 8/6, …), so Production's month-view bars stack on those days. Cut from the running app by the
+`halfdays` leg (its `fixture` output), not written by hand. It also carries a dormant 5 x 8.5-day block list from the
+leg's Blocks-mode step, in Episodes mode. Used by gate 10 (`monthprint`), `monthwriter`, `monthexport` and gate 13.
+
 ## From the deployment-readiness audit (24 Sep 2026)
 
 These came out of `AUDIT-REPORT.md`. They were promoted here by `FIX-PLAN.md` step 0.1, so the batch
