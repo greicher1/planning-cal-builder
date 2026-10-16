@@ -41,6 +41,15 @@
   - ⏭ **Next, when the owner chooses:** cut a version (CLAUDE.md's four things; overdue, since four features are live
     under 1.4.3), MONTH-PILL-LABEL step 3 (the controls), or EPISODE-PREP-PLAN (rewires the same month-pill functions,
     so build it on top of this merge).
+  - ⚠️ **Correction (16 Oct 2026): MONTH-PILL-LABEL step 3 is ALREADY BUILT, just not on `main`.** It sits on branch
+    `claude/determined-taussig-70f6a8` as `6176a59` ("Label Production by" in Preferences, plus the "Show Production
+    Week" switch). It was gated there (1,647 PASS, 0 FAIL) and committed locally on the owner's picker, with "Don't push".
+    It is **not merged and not live**: the live file `d0ed6c03` has no "Label Production by". That branch was cut from
+    `401df7d`, before the custom-units merge. `git merge-tree` shows only `HANDOFF.md` and `README.md` conflicting
+    against `main`, and `app.js`, `legacy.css` and `gate.sh` merge as text. Its own HANDOFF top entry is the record.
+    Landing it means merging into local `main`, resolving those two docs, and running a full gate on the merged build
+    before the push picker. Plan step 4 (the `pilllabel-block` / `pilllabel-episode` fixtures in gates 10 and 13) was
+    meant to come before the push.
 
 ### ✅ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
 
