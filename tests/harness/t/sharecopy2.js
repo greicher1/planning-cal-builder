@@ -49,9 +49,26 @@ window.addEventListener('load', function () { (async function () {
     // JS bundle (which every self-contained copy carries) rather than rendered markup.
     // A RENDERED select is `<select ... id="…">` with its options right after it. Anchoring on the
     // id keeps the match inside real markup: the JS bundle never emits that exact opening tag.
-    var selRe = /<select[^>]*\bid="[^"]*"[^>]*>[\s\S]{0,600}?<option[^>]*\bselected\b/g, sm, n = 0;
-    while((sm = selRe.exec(html))) n++;
-    out.renderedSelectsWithSelected = n;
+    // ⛔ NARROWED 15 Oct 2026 (CUSTOM-PHASE-UNITS-PLAN step 6). This counted EVERY rendered select with a
+    // selected option, which held only while no engine-built <select> lived outside the React hosts.
+    // The five built-in Length selects (unit-<key>) do, and reflectFieldsToAttributes() bakes every
+    // CALENDAR field into the copy's markup BY DESIGN (it skips only .prefs-card). Their values are in
+    // the copy's own saved state and restore to the same thing. The guarantee this check exists for is
+    // unchanged: a select that is NOT calendar data -- a preference -- must never carry `selected` in
+    // the copy. So a select counts only when its id is NOT in the copy's own fields.byId, which no
+    // preference ever is (collectFieldValues() skips .prefs-card). A copy whose saved state cannot be
+    // read counts every select, so the check fails closed.
+    var byId = null, ssRe = /<script id="saved-state" type="application\/json">([\s\S]*?)<\/script>/g, ss;
+    while(!byId && (ss = ssRe.exec(html))){
+      try { var st = JSON.parse(ss[1]); if(st && st.fields && st.fields.byId) byId = st.fields.byId; } catch (e) {}
+    }
+    var selRe = /<select[^>]*\bid="([^"]*)"[^>]*>[\s\S]{0,600}?<option[^>]*\bselected\b/g, sm, n = 0, calSel = [];
+    while((sm = selRe.exec(html))){
+      if(byId && Object.prototype.hasOwnProperty.call(byId, sm[1])) calSel.push(sm[1]); else n++;
+    }
+    out.renderedSelectsWithSelected = n;           // non-calendar selects: must be 0
+    out.calendarSelectsWithSelected = calSel;      // calendar fields, baked by design (information)
+    out.savedStateRead = !!byId;
 
     // Open it the way a recipient does: its own document in an iframe, its own React boot.
     var ifr = document.createElement('iframe');

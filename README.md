@@ -31,7 +31,27 @@ way a user would notice or a future session would need to return to. See
 
 ### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
 
-Steps 1–4 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
+Steps 1–4 and 6 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
+- **The five built-in Weeks phases get a Length too (step 6, owner rulings 7 and 9d):** Writer's Rm, Pre Prep, Prod
+  Prep, Post and Localization offer **Weeks or Dates**. Days stays custom-only, and Production is unchanged. Each mover
+  ("Start after previous phase" and Close all gaps included) moves a Dates built-in's start and end together.
+  - ⛔ **Ten new permanent ids,** `unit-<key>` and `end-<key>` per built-in. These rows are static, so an absent id
+    is defaulted to Weeks on every Load and on New. Without that, an older calendar opened after one in Dates mode
+    kept the previous calendar's Dates mode. That was proven by building it without the defaults: Pre Prep ran
+    *4/6/26 → 2/23/27*. **Gate 5 was re-cut 62 → 72 ids on the owner's sign-off.** The ten are all Weeks/'' in the
+    v1.0.0 file, none was lost, and no value changed.
+  - Verified by a new leg, `builtindates` (32 checks over two runs, in `gate.sh`), on a new synthetic fixture,
+    `builtindates.sptcal`. A pre-step-6 build opens that fixture with its Dates phases in whole weeks.
+  - ⚠️ **A gate check was narrowed, not weakened.** `sharecopy2` failed on step 6 (its first full gate: 1,437 PASS,
+    1 FAIL). It required ZERO rendered `<select>`s carrying `selected` in a shareable copy, as a stand-in for "no
+    preference travels as markup". The five Length selects are the first engine-built selects outside the React
+    hosts, and `reflectFieldsToAttributes()` bakes every calendar field into the copy by design. A calendar with a
+    custom phase would already have tripped the old check. It now fails on any select whose id is NOT in the copy's
+    own `fields.byId`, which no preference ever is, and it fails closed if the saved state can't be read. Proven to
+    still catch a `pref-gridlines` select carrying `selected`.
+  - **Full gate on the step-6 build `eee27023…`: 1,438 PASS, 0 FAIL, GATE PASSED.** Every frozen output is identical,
+    and gate 5 holds at the re-cut 72 ids. The run before it is not counted: the Mac went into deep sleep mid-run
+    (2 h 6 min, load ~40), and its 7 failures were all timeouts on legs the same build had passed in the first run.
 - **Every custom phase row has a Length select:** Weeks (as before, and what every existing calendar opens as), Days
   or Dates.
   - **Days** counts working days: Monday to Friday, skipping enabled union holidays and hiatus days. A holiday inside

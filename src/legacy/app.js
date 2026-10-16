@@ -5478,13 +5478,23 @@ export function initLegacyApp() {
       // this existed has no `snap-<key>` in fields.byId, applyStateSnapshot never touches the box,
       // and it stays checked -- so every existing file keeps its Monday-snapped dates. Absent means
       // snapped. Do not move this default into JS.
-      const snapHtml = `<label class="phase-snap" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      const snapCls = (p.key === 'production') ? 'phase-snap' : 'phase-snap pu-weeks';
+      const snapHtml = `<label class="${snapCls}" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      // ⭐ CUSTOM-PHASE-UNITS-PLAN §7a, owner rulings 7 and 9d (15 Oct 2026): the five built-in Weeks
+      // phases get a Length of Weeks or Dates -- no Days, which stays custom-only -- with the custom
+      // rows' markup, classes and CSS, so one code path serves both. Production has none.
+      // ⛔ `unit-<key>` and `end-<key>` here are TEN NEW PERMANENT ids in fields.byId, and these rows
+      // are STATIC (never rebuilt on restore), so an absent id must be defaulted explicitly in
+      // applyStateSnapshot() and in New's reset -- the M-5 trap snap-<key> fell into. The markup's
+      // first option (Weeks) and empty end are the defaults a fresh page starts from.
       const fieldsHtml = (p.key === 'production')
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
            ${snapHtml}
            <input type="hidden" id="weeks-${p.key}">`
-        : `<label>Start date <input type="date" id="start-${p.key}"></label>
-           <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+        : `<label class="phase-unit-lbl">Length <select id="unit-${p.key}" class="phase-unit" title="How this phase's length is given: whole weeks, or a start and end date"><option value="weeks">Weeks</option><option value="dates">Dates</option></select></label>
+           <label>Start date <input type="date" id="start-${p.key}"></label>
+           <label class="pu-weeks">${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+           <label class="pu-dates">End date <input type="date" id="end-${p.key}" class="phase-end"></label>
            ${snapHtml}`;
       // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
       // line. Also lets move this total shooting days (for both episodic and block) to just above the
@@ -5503,6 +5513,7 @@ export function initLegacyApp() {
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
         <div class="phase-meta" id="meta-${p.key}"></div>
+        ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}
         ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
         <div class="prod-total-block">
@@ -5882,16 +5893,24 @@ export function initLegacyApp() {
     if(!seg || !el || !(seg.weeks > 0)) return;
     if(el.value !== String(seg.weeks)) el.value = String(seg.weeks);
   }
-  // Every custom phase's fallback at once, for the tools that move many phases. Called INSIDE their
+  // Every Length-select phase's fallback at once, for the tools that move many phases. Called INSIDE their
   // asOneUndoStep / drag bracket, after their final update(), so it lands in the same undo step.
   function syncAllCustomUnitFallbacks(){
-    customPhaseDefs.forEach(cp=> syncCustomUnitFallback(cp.key));
+    unitPhaseKeys().forEach(syncCustomUnitFallback);
+  }
+  // Every phase that HAS a Length select: each custom phase, and since step 6 (CUSTOM-PHASE-UNITS-PLAN
+  // §7a) the five built-in Weeks phases. Production has none. ⚠️ The "Custom" in the names of
+  // customPhaseUnit(), onCustomUnitChange(), syncCustomUnitFallback() and refreshCustomUnitMeta()
+  // predates step 6: they all serve the built-ins too, and are named for where they began.
+  function unitPhaseKeys(){
+    return getAllPhaseDefs().map(p=> p.key).filter(k=> document.getElementById('unit-' + k));
   }
 
   // ⛔ THE ONE WRITER of a phase's start date for every tool that MOVES a phase (CUSTOM-PHASE-UNITS-
   // PLAN §8): Shift All / Shift From / Anchor To (shiftCalendarDates), Rebuild From (both directions),
-  // the month-view body drag, and Production's first-shoot-day grip (MONTH-VIEW-PLAN step 7,
-  // applyCount). A Dates phase is TWO dates, so a tool that moved start-<key> alone would
+  // the month-view body drag, Production's first-shoot-day grip (MONTH-VIEW-PLAN step 7,
+  // applyCount), and "Start after previous phase" / Close all gaps (autostartPhase), which reach the
+  // five built-ins -- the phases that gained Dates mode in step 6. A Dates phase is TWO dates, so a tool that moved start-<key> alone would
   // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
   // Days phases need nothing more -- their length is a count. A new mover must write through this,
   // or Dates phases stretch under it. Returns false when there is no start field to write.
@@ -5966,8 +5985,8 @@ export function initLegacyApp() {
   function refreshCustomUnitMeta(schedule){
     const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const day = d => DOW[d.getUTCDay()] + ' ' + fmtShort(d);
-    customPhaseDefs.forEach(cp=>{
-      const key = cp.key, unit = customPhaseUnit(key);
+    unitPhaseKeys().forEach(key=>{
+      const unit = customPhaseUnit(key);
       const metaEl = document.getElementById('unitmeta-' + key);
       if(!metaEl) return;
       if(unit === 'weeks'){ metaEl.textContent = ''; metaEl.style.color = ''; return; }
@@ -13984,9 +14003,12 @@ export function initLegacyApp() {
       if(!prev) return;
       // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
       // full week count and pushes its end out). chainedStart() takes it from there.
-      const d = chainedStart(prev.seg.end, key, (currentSchedule && currentSchedule.hiatuses) || []);
-      const inp = document.getElementById('start-' + key);
-      if(inp){ inp.value = isoOf(d); update(); }
+      let d = chainedStart(prev.seg.end, key, (currentSchedule && currentSchedule.hiatuses) || []);
+      // A built-in in Dates mode (CUSTOM-PHASE-UNITS-PLAN §7a) is never snapped, so the handoff can be
+      // a Saturday; start it on the next weekday, as Rebuild forwards does.
+      if(customPhaseUnit(key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
+      // Through the one writer, so a Dates phase's end moves with its start (plan §8.1).
+      if(setPhaseStart(key, isoOf(d))){ update(); syncCustomUnitFallback(key); }
     });
   }
 
@@ -14031,6 +14053,15 @@ export function initLegacyApp() {
     // inert on the six built-ins and works on custom phases -- which looks like a per-phase bug.
     const snapEl = document.getElementById('snap-'+p.key);
     if(snapEl) snapEl.addEventListener('change', update);
+    // Built-in Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a), bound by id for the reason above. The
+    // fallback sync is registered AFTER the update() listeners, so it reads the schedule they made.
+    const unitEl = document.getElementById('unit-'+p.key);
+    const endEl = document.getElementById('end-'+p.key);
+    if(unitEl) unitEl.addEventListener('change', ()=> onCustomUnitChange(p.key));
+    if(endEl) endEl.addEventListener('input', update);
+    if(unitEl) [document.getElementById('start-'+p.key), endEl].forEach(el=>{
+      if(el) el.addEventListener('input', ()=> syncCustomUnitFallback(p.key));
+    });
   });
   // Simultaneous Post lives inside the Production row, which buildPhaseRows() creates. Bind by
   // delegation rather than to the elements directly: a direct listener would be silently lost
@@ -14295,6 +14326,9 @@ export function initLegacyApp() {
     // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
+    // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
+    document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
+    document.querySelectorAll('.phase-end, .phase-days').forEach(el=>{ el.value = ''; });
     refreshPhaseHiatusUI();
     customPhaseDefs = [];
     document.getElementById('custom-phase-rows').innerHTML = '';
@@ -20364,6 +20398,13 @@ export function initLegacyApp() {
     // document's attributes on every shareable-copy export, so the markup defaults can be stale.
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ if(cb.id && !hasField(cb.id)) cb.checked = true; });
     document.querySelectorAll('.phiatus-name').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = ''; });
+    // ⛔ AND FOR THE LENGTH CONTROLS (CUSTOM-PHASE-UNITS-PLAN §7a, 15 Oct 2026). The five built-in rows
+    // carry unit-<key> / end-<key> on STATIC markup, so every calendar saved before these existed --
+    // all of them, until now -- would otherwise keep the PREVIOUS calendar's Dates mode and end date,
+    // and its phase would move with no edit. Absent means Weeks and no end. (Custom rows are rebuilt
+    // fresh on every restore and need none of this; the selectors match them harmlessly.)
+    document.querySelectorAll('.phase-unit').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = 'weeks'; });
+    document.querySelectorAll('.phase-end, .phase-days').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = ''; });
     // Block store: UNCONDITIONAL, defaulting to empty -- the rule above, applied to the arrays.
     // `if(snap.blockDefs) blockDefs = ...` would leave the previous file's blocks behind, and its
     // hand arrangement would then be reconciled onto this file's episodes.

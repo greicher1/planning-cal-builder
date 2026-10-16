@@ -1847,6 +1847,31 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCU
 done
 
+# ---- builtindates: Dates mode on the five built-in phases (CUSTOM-PHASE-UNITS-PLAN.md §7a, step 6) -----
+# LIVE builds the synthetic calendar through the UI and asserts the rows (Weeks/Dates only, Production
+# without), "Start after previous phase" moving both ends, and the trap these STATIC rows carry: an
+# OLDER calendar loaded after one in Dates mode, and New, must both put every built-in back in Weeks
+# (audit M-5's shape). RESTORE loads tests/fixtures/builtindates.sptcal, minted from LIVE's real Save,
+# and runs every mover on the built-in Dates phases with one undo after each.
+for BDSTATE in "" builtindates; do
+  rm -f "$HERE/builtindates.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BDSTATE" "$HERE/run.sh" builtindates 150 >/dev/null 2>&1
+  python3 - "$HERE/builtindates.json" "builtindates (${BDSTATE:-live})" <<'PYBD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYBD
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

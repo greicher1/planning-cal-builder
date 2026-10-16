@@ -5,7 +5,7 @@ owner reviewed them (*"Reviewed. Build step 4"*), as `8e78e2c`). Step 5, the ful
 rulings received 15 Oct 2026 (§10).
 ⛔ **Scope widened the same day:** the five built-in Weeks phases get Dates mode too
 (MONTH-VIEW-PLAN ruling 7; §1, §7a), ten ids (ruling 9d). Ruling 7 was re-confirmed as 1c the same
-day. That is **step 6, NOT BUILT** (§11).
+day. That is **step 6, BUILT 15 Oct 2026 on `custom-units`** (§7a "As built", §11), not yet committed.
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -223,7 +223,24 @@ are true of custom rows only, and each one fails for a built-in:
 - ⚠️ **An older build** ignores both ids and shows the phase in whole weeks, from `weeks-<key>`. The
   §7 rule therefore applies unchanged: keep `weeks-<key>` filled with the rounded-up equivalent,
   written in the row's input handler.
-- ⚠️ **Gate 5 WILL move** for this half, unlike the custom-only plan (§12). `v1.0.0-saved.html` has
+- ✅ **AS BUILT (15 Oct 2026):**
+  - `buildPhaseRows()` gives the five rows a Weeks/Dates select, an End date, and the sibling `unitmeta-<key>`
+    hint, with the custom rows' classes, so the same CSS swaps apply. Production gets none.
+  - The new controls are bound by id in the `PHASES.forEach` block, beside `snap-<key>`.
+  - `unitPhaseKeys()` (every phase with a unit select) replaces `customPhaseDefs` in `refreshCustomUnitMeta()` and
+    `syncAllCustomUnitFallbacks()`. The "Custom" in those names predates step 6.
+  - `applyStateSnapshot()` defaults an absent `unit-`/`end-` to Weeks/'', beside the `.phase-snap-cb` line, and New's
+    reset does the same.
+    ⭐ **Proven by mutant:** without the two default lines, a v1.4.3 calendar loaded after `builtindates` kept the
+    previous file's Dates mode, and its Pre Prep ran *Mon 4/6/26 → Tue 2/23/27 (47 wk)*.
+  - ⛔ **One more mover, which §8 missed:** "Start after previous phase" and Close all gaps (`autostartPhase`)
+    reach the built-ins, so they now write through `setPhaseStart()`. A Dates built-in starts on the next weekday,
+    as Rebuild forwards does.
+  - Verified by leg `builtindates`: LIVE 17 checks, RESTORE 15, each mover with one undo, and the M-5 load and New.
+  - The pre-step-6 build opens `builtindates.sptcal` with the Dates phases in whole weeks, so neither vanishes.
+- ⚠️ **Gate 5 WILL move** for this half, unlike the custom-only plan (§12). ✅ **Re-cut 62 → 72 on the owner's
+  sign-off** (picker, 15 Oct 2026). The ten added ids are all Weeks/'', none was lost, and no value changed;
+  baselines README. `v1.0.0-saved.html` has
   no custom phases, but it has all six built-in rows, so the `fields.byId` key set grows by the new
   built-in ids. That is an expected, deliberate re-cut, like 53 → 59 for `snap-<key>`
   (MONTH-VIEW-PLAN §8 step 1). It goes to the owner as such, never quietly.
@@ -333,7 +350,7 @@ Nothing here touches frozen code.
 4. ✅ **BUILT 15 Oct 2026. The movers** (§8, §8.1).
 5. ✅ **DONE. The leg, then the full gate** (§12): `customunits`, 51 checks; 1,318 PASS on steps 1–3, 1,331 PASS on
    step 4, both 0 FAIL.
-6. *(Added 15 Oct 2026.)* ⏳ **NOT BUILT. Dates mode on the five built-ins** (§7a). The id count is ruled: ten (9d). Then **MONTH-VIEW-PLAN step 7's phase edge handles** (rulings 7 and 8 there). Dates and
+6. *(Added 15 Oct 2026.)* ✅ **BUILT 15 Oct 2026. Dates mode on the five built-ins** (§7a, as built there). Then **MONTH-VIEW-PLAN step 7's phase edge handles** (rulings 7 and 8 there). Dates and
    Days phases get both handles, and a Weeks phase's edge drag switches it to Dates. Both edge
    handles write `end-<key>` / `days-<key>`, so they are this plan's movers as much as body-drag is.
 
