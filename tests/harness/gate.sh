@@ -1793,6 +1793,30 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPD
 
+# ---- phaseedge: the start and end handles on every phase with a Length select ----------------------
+# ⭐ ADDED 16 Oct 2026 (MONTH-VIEW-PLAN.md §6.7, owner rulings 7 and 8; CUSTOM-PHASE-UNITS-PLAN.md step
+# 6). pilldrag's sibling, for the same reason a Node script: trusted CDP input, each press where
+# elementsFromPoint has the handle topmost. Every edge x unit on customunits.sptcal (custom Weeks,
+# Days, Dates; built-in Weeks) and builtindates.sptcal (built-in Dates): the held end never moves, a
+# Dates start is written directly (F5 -- setPhaseStart would carry the end), a Weeks edge switches the
+# phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
+# land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
+# print media hides the handles (F12). Run red on three mutants before it was wired in.
+node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates)" <<'PYPE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYPE
+
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
 # unhashed legs), so no t/ leg can see it. This loads the page WITHOUT ?test=, installs a

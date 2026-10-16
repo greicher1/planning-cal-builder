@@ -29,6 +29,48 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Drag any phase's start or end in the month view, by the day (16 Oct 2026)
+
+Rest the pointer on a phase's first or last pill in the month view, and a grip appears on its start or end. Drag it to
+change that edge by the day. This covers every custom phase (Weeks, Days or Dates) and the five built-in phases (Weeks
+or Dates). It is MONTH-VIEW-PLAN.md owner rulings 7 and 8 (§6.7), the second half of CUSTOM-PHASE-UNITS-PLAN.md step 6.
+Production keeps its own grips from step 7, unchanged.
+- **Two grips per phase:** the start, on its first pill, and the end, on its last. Every other pill edge is a week
+  boundary, and dragging there still moves the whole phase.
+- **An edge drag changes the length, and the other end stays put.** It is not a move:
+  - **Dates:** the start or end date changes. The start is written on its own, so the end date does not follow it,
+    which is what every mover does.
+  - **Days:** the end changes the day count. The start moves the start and recounts the days, so the last day stays.
+  - **Weeks:** the phase switches to **Dates**, which shows in its Length select. It keeps exactly where it is
+    scheduled, then the edge moves. One undo puts back the unit and both dates.
+- **By the day, onto a day the phase is drawn on.** The edge lands on the nearest weekday outside any hiatus (for Days,
+  the nearest working day, so union holidays are stepped over too). A weekend or hiatus day under the pointer is never
+  stored. Ties go to the smaller change. A phase keeps at least one day (Days: one working day).
+- **One drag is one undo step,** and it includes the older-build fallback (`weeks-<key>`). Dragging out and back changes
+  nothing and banks nothing, even after a Weeks phase switched to Dates on the way. Escape puts the edge back.
+- **No frozen code changed.** The grips are the same screen-only chrome as Production's: body-level, laid over the grid,
+  hidden by the print path, and stripped from a shareable copy. Production's four pill-geometry helpers moved to module
+  scope so both grip systems share one copy. `onCustomUnitChange()`'s last-weekday rule became `segLastWeekday()`, which
+  the switch to Dates also uses.
+- **Verified** by a new Node leg, `phaseedge.mjs` (in `gate.sh`), with trusted mouse input and each grip pressed where
+  hit-testing finds it on top. It runs 13 cases on `customunits.sptcal` and `builtindates.sptcal`:
+  - every edge for every unit, custom and built-in;
+  - a weekend, a union holiday and a hiatus week stepped over;
+  - the Dates start written without moving the end;
+  - both floors;
+  - the Weeks → Dates switch and its one undo, with Redo proving the fallback is in the step;
+  - out and back, and Escape, banking nothing (the next Ctrl+Z undoes the switch to the month view instead);
+  - print media.
+
+  It failed on three mutants before it was wired in: an out-and-back that forgot the unit, a Dates start written through
+  `setPhaseStart()`, and the fallback written after the step was banked. 13/13 on the real build; `pilldrag` 20/20 on
+  the same build, after its E7 was made to read the shown handle only. `npm run check` 40/40.
+- ✅ **Full gate on the build (`a198d0a6…`): 1,451 PASS, 0 FAIL, GATE PASSED** (14 min 41 s, the first run). Every
+  frozen output is unchanged: 0 clipped cells, the waterfall PDF and every Excel part identical, `v1.0.0-saved.html`
+  restores identically, `fields.byId` at 72 ids, all ten printed month documents identical with one sheet per month
+  (gate 10), and all twenty written month PDFs byte-identical (gate 13). `phaseedge` 13/13 and `pilldrag` 20/20 inside
+  the gate.
+
 ### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
 
 Steps 1–4 and 6 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.

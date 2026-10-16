@@ -5,7 +5,9 @@ owner reviewed them (*"Reviewed. Build step 4"*), as `8e78e2c`). Step 5, the ful
 rulings received 15 Oct 2026 (§10).
 ⛔ **Scope widened the same day:** the five built-in Weeks phases get Dates mode too
 (MONTH-VIEW-PLAN ruling 7; §1, §7a), ten ids (ruling 9d). Ruling 7 was re-confirmed as 1c the same
-day. That is **step 6, BUILT 15 Oct 2026 on `custom-units`** (§7a "As built", §11), not yet committed.
+day. That is **step 6, BUILT 15 Oct 2026 on `custom-units`** (§7a "As built", §11), committed as `5111021`. Its
+second half, the month-view **edge handles** (MONTH-VIEW-PLAN rulings 7 and 8), was **BUILT 16 Oct 2026** on top of
+it (§11 step 6).
 **Written against:** `f1a497d`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md) §1, §2, §5 → this file. ⚠️ Read
@@ -351,8 +353,21 @@ Nothing here touches frozen code.
 5. ✅ **DONE. The leg, then the full gate** (§12): `customunits`, 51 checks; 1,318 PASS on steps 1–3, 1,331 PASS on
    step 4, both 0 FAIL.
 6. *(Added 15 Oct 2026.)* ✅ **BUILT 15 Oct 2026. Dates mode on the five built-ins** (§7a, as built there). Then **MONTH-VIEW-PLAN step 7's phase edge handles** (rulings 7 and 8 there). Dates and
-   Days phases get both handles, and a Weeks phase's edge drag switches it to Dates. Both edge
-   handles write `end-<key>` / `days-<key>`, so they are this plan's movers as much as body-drag is.
+   Days phases get both handles, and a Weeks phase's edge drag switches it to Dates.
+   ✅ **The handles were BUILT 16 Oct 2026:** `installPhaseEdgeHandles()`, recorded in full in MONTH-VIEW-PLAN §6.7
+   ("the phase handles").
+   - ⛔ **CORRECTED: an edge handle is NOT a mover.** This step used to say the handles "are this plan's movers as
+     much as body-drag is", because they write `end-<key>` / `days-<key>`. They write those fields, but they hold the
+     other end, so they change a LENGTH. That is why they must NOT go through `setPhaseStart()`, which carries a Dates
+     phase's end along with its start. A Dates start-edge drag writes `start-<key>` directly, and `phaseedge` F5
+     proves the end stays (it went red on a mutant that used `setPhaseStart()`).
+   - **§8's rule still holds for every MOVER.** The list of movers is unchanged.
+   - `onCustomUnitChange()`'s last-weekday prefill is now `segLastWeekday()`, shared with the drag's Weeks → Dates
+     switch. The one deliberate difference: the drag always writes the end, even over an older value, because the
+     held edge must not move.
+   - **Verified:** `tests/harness/phaseedge.mjs` (13 cases, every edge × unit, custom and built-in), in `gate.sh`;
+     `pilldrag` 20/20 on the same build. **Full gate on build `a198d0a6…`: 1,451 PASS, 0 FAIL**, with every existing
+     output unchanged (§12): gates 1–5 at 72 ids, gate 10 identical, and gate 13 byte-identical.
 
 ⚠️ **Overlap with MONTH-PILL-LABEL-PLAN.** Both reach the month view's pill text path, and both are
 held to gate 13. This plan does not change `segPillLabel()`. Whichever lands second re-runs gate 13
