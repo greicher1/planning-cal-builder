@@ -70,6 +70,12 @@ Production keeps its own grips from step 7, unchanged.
   restores identically, `fields.byId` at 72 ids, all ten printed month documents identical with one sheet per month
   (gate 10), and all twenty written month PDFs byte-identical (gate 13). `phaseedge` 13/13 and `pilldrag` 20/20 inside
   the gate.
+- ✅ **Merged into local `main` as `36db1c1` (16 Oct 2026), on top of the half-square bars and month-pill label step 2
+  (`54ffe15`). Not pushed.** Only this file conflicted, and both sides' entries are kept. Full gate on the merged
+  build (`d0ed6c03…`, 1,495,897 bytes, run in a clean worktree at `36db1c1`): **1,593 PASS, 0 FAIL, GATE PASSED**
+  (16 min, the first run). Every frozen output is unchanged, `fields.byId` holds at 72 ids, and gate 13's twenty
+  written month PDFs are byte-identical, `halfdays` among them. `phaseedge` 13/13, `pilldrag` 20/20, `pilllabel`
+  90/90, `customunits` and `builtindates` all pass. `npm run check` 40/40, `check-refs.py` CLEAN.
 
 ### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
 

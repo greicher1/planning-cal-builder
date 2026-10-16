@@ -4,9 +4,44 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
+### ✅ 16 Oct 2026: `custom-units` IS MERGED INTO LOCAL `main` AS `36db1c1`, GATED. NOT PUSHED
 
-- ⏭ **RESUME HERE.**
+- ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge custom-units into local main, resolve the README conflict, and run
+  the full gate. Don't push."*
+  - **What landed on `main`:** custom phases by Weeks, Days or Dates (CUSTOM-PHASE-UNITS steps 1–4), Dates mode on the
+    five built-in Weeks phases (step 6, gate 5 at 72 ids), and start/end grips on every phase with a Length select
+    (MONTH-VIEW-PLAN rulings 7 and 8). The record is the CUSTOM PHASES entry below.
+  - **The merge:** `git merge --no-ff custom-units` onto `401df7d` (which carries `54ffe15`, the half-square bars and
+    month-pill label step 2). Only `README.md` conflicted; both sides' Unreleased entries are kept, with custom-units'
+    two on top. `app.js`, `gate.sh`, `pilldrag.mjs` and `tests/fixtures/README.md` merged as text.
+    - Checked by reading: main's `splitSpanOf()` is byte-identical in the merge, beside the four geometry helpers
+      custom-units moved to module scope. The duplicate inner names (`beginDrag`, `follow`, `specsFor`, …) are the two
+      edge-handle IIFEs and were already on `custom-units`.
+  - **Proof:** full gate on the merged build `d0ed6c03…` (1,495,897 bytes): **1,593 PASS, 0 FAIL, GATE PASSED**
+    (16 min, first run, no other gate alongside, on AC power).
+    - Waterfall PDF and every Excel part identical; `v1.0.0-saved.html` restores identically; 0 clipped cells.
+    - `fields.byId` at 72 ids; gate 10's ten print documents identical; gate 13's twenty written month PDFs
+      byte-identical, `halfdays` included.
+    - `phaseedge` 13/13, `pilldrag` 20/20, `pilllabel` 90/90, `customunits`, `builtindates` and `halfmarks` green.
+      `conflict` and `snapoff`, the two legs that flaked in earlier runs, passed first time.
+    - `npm run check` 40/40, `check-refs.py` CLEAN.
+  - ⚠️ **The gate ran in a clean detached worktree at `36db1c1`, NOT the main checkout, on purpose.** The main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` was modified at 15:24 that day (a `custom3` phase added, Episode 101 at
+    14.5 days). That is not this session's change and not committed. It looks like the app saving into a file in the
+    owner's recents. Two gate legs read that fixture (`stintreshape` and gate 13's `sr`), so a gate run from the main
+    checkout would have tested the edited file. It was left alone. ⛔ **Before a gate in the main checkout, run
+    `git status tests/fixtures`.**
+  - **State:** `main` is this entry's HANDOFF commit on top of the merge `36db1c1`, 11 commits ahead of
+    `origin/main`: `401df7d` (HANDOFF), the merge with its eight branch commits, and this entry's commit. The
+    branch `custom-units` and worktree `claude/reverent-rosalind-d5dcd9` are now fully merged. Nothing is pushed. No
+    version is cut: `version.json` still reads 1.4.3.
+  - ⏭ **Next, when the owner chooses:** push (a production release; ask first), cut a version (CLAUDE.md's four
+    things), MONTH-PILL-LABEL step 3 (the controls), or EPISODE-PREP-PLAN (rewires the same month-pill functions, so
+    build it on top of this merge).
+
+### ✅ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
+
+- ✅ **Done and live at `54ffe15`.**
   - **State:** HALF-SQUARE-BARS-PLAN.md is built and gated (full gate: 1,493 PASS, 0 FAIL) on branch
     `claude/sweet-mestorf-8d18b8`. ✅ **Merged into LOCAL `main` by fast-forward to `54ffe15`** (owner, 16 Oct 2026:
     "merge"), so `main` is exactly the gated tip. ✅ **PUSHED AND LIVE at `54ffe15` (16 Oct 2026, owner's picker
@@ -59,6 +94,202 @@
      `halfdays`' three "laid out anew" months were already there.
   4. **Chrome moved to 155.0.8059.82** since the 15 Oct cut (.40). Its compressor did not move anything: all nineteen untouched gate-13 files stayed byte-identical under .82.
   5. **The owner's Mac ran this session on battery (17-18%).** Ask for power before a full gate, not during one.
+
+### 📝 15 Oct 2026: PLANNED — PER-EPISODE PREP, DERIVED FROM THE SHOOT, MONTH VIEW ONLY (not built)
+
+- From the custom-phases plan's ruling 6 (entry below): each episode gets a prep run of N working days ending the day
+  before its first shoot day, computed from the shoot, so it follows every move. The plan is
+  [`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md), and **all five rulings are in (plan §9)**:
+  - P1: a Prep row in the Phases card, and prep exists in the **month view and month PDF only**;
+  - P2: a default length plus a **per-episode override** in that row;
+  - P3: the **first episode gets a prep** too;
+  - P4: **per block** in Blocks mode, with per-block overrides;
+  - P5: overlapping preps **stack, with no frozen edit**.
+- ⭐ **Why month-only is safe, verified by reading each function:** the waterfall renderer, `exportExcel`,
+  `computeBlockLayout`, `sheetColumnWidths` and the waterfall PDF writers never read `schedule.segments`; they read
+  `schedule.weeks`. So the prep segment is appended AFTER the weeks are built, and moves no date anywhere. The gate
+  proves it: Excel and the waterfall PDF must stay byte-identical with prep on and off.
+- ⭐ **One N reproduced every prep run in the owner's example by hand trace,** counting back over weekends, union
+  holidays and the hiatus. (The example is a real show's calendar and is NOT in the repo.)
+- ⛔ **Traps found, all in the plan §4/§7:**
+  - prep must stay out of `getAllPhaseDefs()`, or frozen `render()` throws on its missing `start-` field;
+  - the `episodeDefs` / `blockDefs` restore maps copy fields one by one and would silently drop `prepDays`;
+  - the static Prep row needs the M-5 absent-means-default treatment;
+  - gate 5 re-cuts by two ids (`prep-days`, `prep-name`).
+- **For MONTH-PILL-LABEL-PLAN (noted, not edited):** the example draws the shoot one bar per episode, which ruling 8
+  replaced. The frozen renderer's per-episode branch survives, because `episodeSpans()` is stubbed to `[]`.
+
+### ✅ 15 Oct 2026: CUSTOM PHASES BY WEEKS, DAYS OR A DATE RANGE — STEPS 1–4 AND 6 BUILT (branch `custom-units`)
+
+- ✅ **MERGED INTO LOCAL `main` as `36db1c1` (16 Oct 2026) and gated, 1,593 PASS. NOT pushed.** See the top entry.
+  The history below is as it was written on the branch.
+- Branch `custom-units` in `.claude/worktrees/custom-units`, cut from `main` at
+  `34761f9`. Steps 1–3 were **committed on the branch as `fa212d7`** (owner's picker).
+  - The owner reviewed steps 1–3 and said *"Reviewed. Build step 4 … then run the full gate."*
+  - **Step 4 (the movers) is BUILT and committed as `8e78e2c`** (owner's picker). Full gate on build `fa825e58…`:
+    **1,331 PASS, 0 FAIL**, every existing output byte-identical, gate 5 at 62 ids.
+  - ⚠️ **`main` moved meanwhile** (`1cb010f` MONTH-VIEW-PLAN step 7, Production edge grips; `be6ad1c` widened this
+    plan with §7a and step 6: Dates mode on the five built-ins, ten ids, ruling 9d).
+    - `git merge-tree` dry run of `custom-units` with `main`: TEXT conflicts only in `CUSTOM-PHASE-UNITS-PLAN.md` and
+      `README.md` (two changelog entries at the top). `app.js`, `legacy.css` and `gate.sh` merge cleanly as text.
+    - ⛔ **That is not proof they work together.** After merging, the Production start grip from step 7 should write
+      through `setPhaseStart()` (as `be6ad1c`'s note asks), and the full gate must run again.
+    - ✅ **MERGED `main` INTO `custom-units`** at the owner's instruction (*"Don't merge into main"*). The merge is
+      `9a04a6d`: README keeps both Unreleased entries, and the plan's status says steps 1–4 are built and step 6
+      (built-ins) is not.
+    - Then step 7's Production start grip (`applyCount()`, its move and its return to where it began) writes
+      through `setPhaseStart()`. `probeShootDays()`'s scratch write is left alone, since it is a probe, not a move.
+    - On the merged build (`88f1ef4c…`): `customunits` 51/51, `pilldrag` 19/19 (trusted input on step 7's grips),
+      and `npm run check` 40/40. `main` itself is untouched.
+    - **Full gate, run 1: 1 FAIL.** `snapoff (snapoff-onecol)` produced no result file, while its two sibling runs
+      passed. The run took 16 min, not ~12, which fits gates stalling each other, but that is unproven. The leg then
+      passed 3 of 3 standalone.
+    - **Run 2, same build: 1,345 PASS, 0 FAIL, GATE PASSED.** Every frozen output is identical and gate 5 holds at 62
+      ids. ⚠️ If `snapoff-onecol` writes no result again on a quiet machine, treat it as real and keep the run's
+      output.
+    - Committed: the grip routing, plan note and changelog as **`82bb3fa`** (owner's picker). Branch tip `82bb3fa`, not
+      pushed.
+    - ⚠️ **`main` moved AGAIN meanwhile:** half-day episodes (`05f7f89`) merged and deployed LIVE at `6bd5fae`
+      (`78dedb1`). A `git merge-tree` dry run of `custom-units` with it now has a CODE conflict in `src/legacy/app.js`
+      as well as README.
+      - The conflict is in the whole-number validation (`WHOLE_FIELDS` / `reflectStartDateValidity`). Half-days
+        added `HALF_FIELDS` ("Whole or half days only", plus the Mantine wrapper as the message host); this branch
+        added `.phase-days` ("Whole days only") and `.phase-end` to the ring sweep.
+      - The resolution is to keep both: `HALF_FIELDS` plus `.phase-days`, each with its own words.
+      - ✅ **MERGED as `a1308cd`** at the owner's instruction (*"keeping both rules … Don't merge into main"*). Both
+        rules are kept: "Whole or half days only" for episode and block counts, and "Whole days only" for a custom
+        Days box.
+      - Checked on build `e7181214…`: `customunits` live and restore pass, `pilldrag` 20/20, halfdays / halfworked /
+        wholenum ran clean, and `npm run check` 40/40.
+      - **Full gate, run 1: 1,400 PASS, 4 FAIL**, all in `conflict` (C3, C4b, C5, C6). These are the same four the
+        half-days session saw once on `main`'s build (their entry above). The leg passed 9/9 standalone, twice.
+      - **Run 2, same build: 1,404 PASS, 0 FAIL, GATE PASSED.**
+      - ⚠️ **`conflict` has now failed C3–C6 in two separate sessions' gate runs.** Its 2,400 virtual-second budget (three
+        autosave ticks) looks sensitive to machine load. That is a probable cause, not a proven one. If it fails on a
+        quiet machine, keep the run's `conflict.json`, because it is not just noise then.
+      - **Branch tip `f83f046`** (the merge `a1308cd`, then a README note of both gate runs), not pushed, not merged
+        into `main`. `main` was at `78dedb1` at the time.
+  - 🔨 **STEP 6 BUILT in the same worktree (15 Oct 2026; owner: "Do this task here").** Dates mode on the five
+    built-in Weeks phases; the plan's §7a "As built" has the detail.
+    - Weeks/Dates selects plus End date on the static rows, bound by id. Production has none.
+    - An explicit absent → Weeks/'' default in `applyStateSnapshot()` and in New. ⭐ Proven by mutant: without it, a
+      v1.4.3 calendar loaded after a Dates one kept that Dates mode, and Pre Prep ran 4/6/26 → 2/23/27.
+    - `autostartPhase()` ("Start after previous phase", Close all gaps) now writes through `setPhaseStart()`. §8
+      had missed it, because it reaches only built-ins.
+    - **Gate 5 RE-CUT 62 → 72 ids on the owner's picker sign-off.** The ten added are all Weeks/'', none was lost, no
+      value changed, and the restored v1.0.0 grid is identical; the baselines README has the section.
+    - New leg `builtindates` (LIVE 17 + RESTORE 15) on synthetic fixture `builtindates.sptcal`, in `gate.sh`.
+    - **First full gate: 1,437 PASS, 1 FAIL, `sharecopy2`.** Caused by step 6, not a flake: the leg required ZERO
+      rendered `<select>`s with `selected` in a shareable copy (a stand-in for "no preference travels"). The five
+      Length selects are the first engine-built selects outside the React hosts, and `reflectFieldsToAttributes()`
+      bakes calendar fields in by design. ⛔ **The check was NARROWED, not loosened:** a select with `selected` now
+      fails only if its id is not in the copy's own `fields.byId` (no preference ever is), and the check fails closed
+      if the saved state can't be read. Proven to still catch a `pref-gridlines` select with `selected`.
+    - Run 2 is not counted: the Mac went into deep sleep mid-run (2 h 6 min, load ~40), and its 7 failures were all
+      timeouts on legs the identical build had passed. **Run 3 on build `eee27023…`: 1,438 PASS, 0 FAIL, GATE
+      PASSED.**
+    - ✅ **COMMITTED as `5111021`** (owner's picker). Branch `custom-units` tip `5111021`; NOT pushed, NOT merged into
+      `main`.
+    - Lesson: a long gate can outlive the Mac's idle timer. Before a gate that runs past your turn, ask for keep-awake
+      until session idle (`request_keep_awake`); on battery it may still sleep.
+  - 🔨 **16 Oct 2026: THE PHASE EDGE HANDLES ARE BUILT (MONTH-VIEW-PLAN rulings 7 and 8; this plan's step 6, second
+    half).** Built in worktree `.claude/worktrees/reverent-rosalind-d5dcd9`, branch `claude/reverent-rosalind-d5dcd9`,
+    which was fast-forwarded to `custom-units` (`5111021`) first. Full record in MONTH-VIEW-PLAN §6.7, "the phase
+    handles".
+    - **What it does:** in the month view, every phase with a Length select (each custom phase, and the five
+      built-ins) shows a START grip on its first pill and an END grip on its last. Production keeps step 7's grips,
+      unchanged. Code: `installPhaseEdgeHandles()`, right after `installProductionEdgeHandles`.
+    - ⛔ **An edge drag is NOT a mover,** and this entry used to say the opposite ("they are movers too"). It holds
+      the other end, so it changes a LENGTH and never goes through `setPhaseStart()`:
+      - Dates writes `start-`/`end-` directly;
+      - Days writes `days-` (and, from the start, the start, recounting so the last day stays);
+      - Weeks first switches to Dates as scheduled (the Length select shows it), then applies.
+      - `phaseedge` F5 went red on a mutant that used `setPhaseStart()`: the end followed the start.
+    - **Edges land by the day on a DRAWN day** (a weekday outside any hiatus; for Days, a working day), never a weekend
+      or hiatus day. Ties go to the smaller change, with a floor of one day. One undo per drag includes the old-build
+      fallback; out-and-back and Escape bank nothing, even across a Weeks → Dates switch.
+    - **Zero frozen edits.** It uses the same body-level `.phase-edge-handle` / `.phase-edge-shield` as Production.
+      ⚠️ **Easy to break:**
+      - Production's `pillRange`, `visibleRect`, `dayInCells` and `dayAtPoint` MOVED to module scope (unchanged), and
+        both systems use them.
+      - `onCustomUnitChange()`'s last-weekday prefill is now `segLastWeekday()`.
+      - The drag writes the end even when the box holds an older value; the select does not. That is deliberate:
+        the held edge must not move.
+    - **Proof:**
+      - new Node leg `tests/harness/phaseedge.mjs` (F0–F12, trusted CDP input, each press where the grip is topmost),
+        wired into `gate.sh` after `pilldrag`. It went red on three mutants first.
+      - "Banked nothing" is OBSERVED: switching to the month view is itself an undo step (`viewMode` is in the
+        snapshot), so the Ctrl+Z after an out-and-back must land back in the waterfall.
+      - `pilldrag` 20/20. Its E7 now reads the SHOWN start handle, since both pools share `data-edge`.
+      - `npm run check` 40/40.
+      - **Full gate on build `a198d0a6…`: 1,451 PASS, 0 FAIL, GATE PASSED** (14 min 41 s, first run). Gates 1–5 hold
+        (72 ids), gate 10's ten print documents are identical, and gate 13's twenty written PDFs are byte-identical.
+    - **State:** see the README entry "Drag any phase's start or end". Committed as `34200cd` on the owner's picker.
+      ✅ **`custom-units` was FAST-FORWARDED to `34200cd`** (owner, 16 Oct 2026: "Don't touch main and don't push"), so
+      it now carries the edge handles. Its rebuilt `dist/` is byte-identical to the gated build (SHA-256
+      `a198d0a6…`), and `npm run check` is 40/40. NOT pushed. Merged into local `main` later the same day as
+      `36db1c1` (top entry).
+  - **Step 4, as built** (plan §8.1):
+    - `setPhaseStart()` is the ONE writer of a phase's start for every mover, and moves a Dates phase's end with it.
+      ⛔ A new mover must use it.
+    - `phaseSnapped()` is false for Days/Dates.
+    - Rebuild places Days and Dates to the day. Backwards: Dates ends the day before the next phase, and Days counts
+      back with `isUnitWorkDay()`, which deviates from the plan's "search the scheduler", with the reason given there.
+    - A snapped Weeks predecessor ends by the cursor's Monday.
+  - Proven by the `customunits` RESTORE run (now 28 checks, 51 across both runs), each mover followed by one undo.
+- **What was built** (the plan's §5–§9, as-built notes inline there):
+  - a Length select (`unit-<key>`) plus `days-<key>` and `end-<key>` in every custom row;
+  - visibility by CSS `:has()` off the checked option, so no restore path can desync it;
+  - Days walks working days (`isUnitWorkDay()`, the one copy of rulings 2/4/5), and its segment carries `days`
+    (a Set), which `segCoversDate` reads;
+  - Dates is fixed, with hiatus days blank;
+  - the `weeks-<key>` old-build fallback, written from the row's handlers, never from `update()`;
+  - prefill-on-switch, with one undo per switch;
+  - "Whole days only" and an end-before-start ring;
+  - the `{key.close}` fix in `buildHeaderCtx()`.
+- ⛔ **A plan premise was WRONG, and corrected in the plan.** Overwriting frozen `render()`'s `meta-<key>` from
+  `update()` does not hold: about 30 paths call `render(currentSchedule)` directly, and after a Load the weeks text was
+  back. The Days/Dates hint is now a sibling element, `unitmeta-<key>`, with CSS choosing which shows. Any future
+  "overwrite what frozen render() wrote" idea hits the same wall.
+- **Verified:**
+  - new leg `customunits` (LIVE + RESTORE, wired into `gate.sh`) on new fixture `customunits.sptcal` (synthetic,
+    minted by a real Save, then its month header set by script to a `{close}` template);
+  - the bug is reproduced on the pre-change build: Sun `1.24.27` became Tue `1.26.27`;
+  - the old-build fallback is measured: the pre-change build shows Days/Dates phases in whole weeks;
+  - ✅ **full gate on build `e88d3ea4…`: 1,318 PASS, 0 FAIL, GATE PASSED** (11 min 48 s, port 8611, run after the
+    half-day-episodes session's gate finished). Every existing output is byte-identical, and gate 5 holds at 62 ids.
+- Trap: **Vite empties `dist/` on every build,** so a copy of an older build parked there (`dist/_before.html`)
+  vanishes, and `run.sh` does not delete a leg's old JSON, so the next run reported the PREVIOUS result as if it were
+  the old build's. Park old builds outside `dist/`, and `rm -f <leg>.json` first.
+
+### 📝 (the plan, as written before building)
+
+- Owner request: a custom phase's length can be given in weeks, days or as a from–to date range, for finer control
+  in the month view. The plan is [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md).
+- ✅ **Ruling 1 (owner, 15 Oct 2026): one schedule; the waterfall shows these phases at week resolution.** "Only the
+  month view" means only the month view can SEE the day-level difference. Month-only phases were considered and
+  rejected (the month PDF and Excel would list different phases).
+- ✅ **Rulings 2–7 received the same day, by picker (plan §10). The plan is ready to build.**
+  - Days counts **working days** (2).
+  - Weekends stay **blank** in every mode (3).
+  - A Days phase **pauses** through a hiatus, while a Dates phase **stays on its dates** (4).
+  - Days mode **skips union holidays** like Production (5).
+  - Per-episode prep becomes a **derived "Episode prep" setting in its own plan, written next** (6).
+  - **No** countdown-marker feature (7): the owner said *"if they want it they can add it as custom phases or
+    notes"*.
+  - 6 and 7 came from an example calendar the owner supplied.
+- ⛔ **The example is a real show's calendar and is NOT in the repo.** Plan §2 describes it in general terms only.
+  Keep it that way, and keep any fixture built from its patterns synthetic.
+- ⭐ **No frozen edit is expected.** The month view already draws `[start, end)` per day, the waterfall already handles
+  mid-week starts and ends (audit H-4), and custom rows are re-keyed on restore by regex, so new ids in them come free.
+- ⚠️ **The real risk is the movers.** Shift All / Shift From / Anchor To, Rebuild From and the month-view drag write
+  `start-<key>` only, so a Dates-mode phase would STRETCH instead of moving unless `end-<key>` moves with it (plan §8).
+- **Found in passing, by reading, not yet reproduced:** `{<key>.close}` in `buildHeaderCtx()` is `seg.end − 3`, which
+  names a Sunday for any phase ending mid-week. That already happens today for a snap-off Weeks phase. The plan
+  fixes it with `phaseLastWorkday()`.
+- ⚠️ **Overlaps MONTH-PILL-LABEL-PLAN (below):** both reach the month pill text path and gate 13. The example splits
+  the shoot's bar at every episode change, which that plan as written does not. Noted here and in this plan's §2 only.
+  `MONTH-PILL-LABEL-PLAN.md` belongs to another session and was not edited.
 
 ### ✅ 15 Oct 2026: HALF DAYS ARE AN EPISODE'S OR BLOCK'S .5, AND THE SWITCH DAY SHOWS BOTH BARS (branch `half-day-episodes`, worktree `.claude/worktrees/half-day-episodes`)
 
@@ -194,12 +425,14 @@
     MONTH-VIEW-PLAN §6.7 "BUILT".
   - **Zero frozen edits.** The grips are body-level chrome, each with its own cursor, so the
     `.mv-pill` cursor rule §6.7 had proposed was never added.
-- **Not built, and why:**
-  - **Custom phases' edges (ruling 8)** come after CUSTOM-PHASE-UNITS steps 1–4. Its §11 step 6 says
-    so.
-  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** also follow CUSTOM-PHASE-UNITS
-    (its §7a). The owner had also typed "Accept 1a, 2a and 3a" (a stale button: 1a means NO edges on
-    the built-ins). ✅ Asked directly by picker, the owner chose **"Dates mode (1c)"**. It stands.
+- **Built later, on `custom-units` (16 Oct 2026; see the CUSTOM PHASES entry above):**
+  - **Custom phases' edges (ruling 8)** came after CUSTOM-PHASE-UNITS steps 1–4, as its §11 step 6
+    said.
+  - **The five built-ins' edges (ruling 7: Dates mode, ten ids by 9d)** followed that plan's §7a. The
+    owner had also typed "Accept 1a, 2a and 3a" (a stale button: 1a means NO edges on the built-ins).
+    ✅ Asked directly by picker, the owner chose **"Dates mode (1c)"**. It stands.
+  - Both are `installPhaseEdgeHandles()`, beside this code. It shares four of this block's geometry
+    helpers, now at module scope.
 - ⛔ **For whoever merges `custom-units` second:** that branch makes `setPhaseStart()` "the ONE writer of
   a phase's start for every mover". The Production start grip here writes `start-production`
   directly. That is equivalent today, because Production has no Dates mode. **Route it through
