@@ -402,7 +402,9 @@ try {
   const h7 = visible(await restOn(await prodPill(0)));
   await send('Emulation.setEmulatedMedia', { media: 'print' });
   const e7 = await ev(`(() => { document.body.classList.add('printing-calendar');
-    const h = document.querySelector('.phase-edge-handle[data-edge="start"]');
+    // :not([hidden]) since 16 Oct 2026: the phase handles (installPhaseEdgeHandles) share the class and
+    // the data-edge values, so a hidden one earlier in <body> could otherwise be the one read here.
+    const h = document.querySelector('.phase-edge-handle[data-edge="start"]:not([hidden])');
     const r = { shown: !!h && !h.hidden, display: h ? getComputedStyle(h).display : null,
       inPrintRoot: document.querySelectorAll('#print-root .phase-edge-handle, #print-root .phase-edge-shield').length,
       inTableWrap: document.querySelectorAll('#table-wrap .phase-edge-handle, #table-wrap .phase-edge-shield').length };

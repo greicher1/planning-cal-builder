@@ -565,7 +565,7 @@ over a modal.
 
 | Tier | Members |
 |---:|---|
-| **50** | Production's edge handles (`.phase-edge-handle`, 15 Oct 2026): body-level, over the month grid, below every popover so one opened over a pill covers them |
+| **50** | The month view's edge handles (`.phase-edge-handle`): Production's (15 Oct 2026) and, since 16 Oct 2026, every other phase's start and end (`installPhaseEdgeHandles`, a second pool with the same class). Body-level, over the month grid, below every popover so one opened over a pill covers them |
 | **100** | app header, sidebar tab strip, help FAB |
 | **200** | help modal **and its backdrop** |
 | **300** | every popover and menu, and the shift readout. Also `.phase-edge-shield`, for the length of one edge drag only: it is appended last, so DOM order puts it on top |
@@ -1145,6 +1145,11 @@ Nothing in this document ships without all of these, every stage:
       - every episode or block end, where later rows slide;
       - each week's edges, which write off and worked marks;
       - one drag is one undo step, Blocks mode is covered, and print media hides the handles.
+    - `phaseedge.mjs` (16 Oct 2026), pilldrag's sibling with the same trusted input: the start and end
+      handles on every phase with a Length select (MONTH-VIEW-PLAN §6.7, rulings 7 and 8). F0–F12 cover
+      every edge × unit, custom and built-in; the held end never moving; the Weeks → Dates switch with
+      one undo; floors; weekend, holiday and hiatus step-overs; out-and-back and Escape banking nothing;
+      and print media.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
 

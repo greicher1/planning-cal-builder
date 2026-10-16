@@ -29,6 +29,121 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Drag any phase's start or end in the month view, by the day (16 Oct 2026)
+
+Rest the pointer on a phase's first or last pill in the month view, and a grip appears on its start or end. Drag it to
+change that edge by the day. This covers every custom phase (Weeks, Days or Dates) and the five built-in phases (Weeks
+or Dates). It is MONTH-VIEW-PLAN.md owner rulings 7 and 8 (§6.7), the second half of CUSTOM-PHASE-UNITS-PLAN.md step 6.
+Production keeps its own grips from step 7, unchanged.
+- **Two grips per phase:** the start, on its first pill, and the end, on its last. Every other pill edge is a week
+  boundary, and dragging there still moves the whole phase.
+- **An edge drag changes the length, and the other end stays put.** It is not a move:
+  - **Dates:** the start or end date changes. The start is written on its own, so the end date does not follow it,
+    which is what every mover does.
+  - **Days:** the end changes the day count. The start moves the start and recounts the days, so the last day stays.
+  - **Weeks:** the phase switches to **Dates**, which shows in its Length select. It keeps exactly where it is
+    scheduled, then the edge moves. One undo puts back the unit and both dates.
+- **By the day, onto a day the phase is drawn on.** The edge lands on the nearest weekday outside any hiatus (for Days,
+  the nearest working day, so union holidays are stepped over too). A weekend or hiatus day under the pointer is never
+  stored. Ties go to the smaller change. A phase keeps at least one day (Days: one working day).
+- **One drag is one undo step,** and it includes the older-build fallback (`weeks-<key>`). Dragging out and back changes
+  nothing and banks nothing, even after a Weeks phase switched to Dates on the way. Escape puts the edge back.
+- **No frozen code changed.** The grips are the same screen-only chrome as Production's: body-level, laid over the grid,
+  hidden by the print path, and stripped from a shareable copy. Production's four pill-geometry helpers moved to module
+  scope so both grip systems share one copy. `onCustomUnitChange()`'s last-weekday rule became `segLastWeekday()`, which
+  the switch to Dates also uses.
+- **Verified** by a new Node leg, `phaseedge.mjs` (in `gate.sh`), with trusted mouse input and each grip pressed where
+  hit-testing finds it on top. It runs 13 cases on `customunits.sptcal` and `builtindates.sptcal`:
+  - every edge for every unit, custom and built-in;
+  - a weekend, a union holiday and a hiatus week stepped over;
+  - the Dates start written without moving the end;
+  - both floors;
+  - the Weeks → Dates switch and its one undo, with Redo proving the fallback is in the step;
+  - out and back, and Escape, banking nothing (the next Ctrl+Z undoes the switch to the month view instead);
+  - print media.
+
+  It failed on three mutants before it was wired in: an out-and-back that forgot the unit, a Dates start written through
+  `setPhaseStart()`, and the fallback written after the step was banked. 13/13 on the real build; `pilldrag` 20/20 on
+  the same build, after its E7 was made to read the shown handle only. `npm run check` 40/40.
+- ✅ **Full gate on the build (`a198d0a6…`): 1,451 PASS, 0 FAIL, GATE PASSED** (14 min 41 s, the first run). Every
+  frozen output is unchanged: 0 clipped cells, the waterfall PDF and every Excel part identical, `v1.0.0-saved.html`
+  restores identically, `fields.byId` at 72 ids, all ten printed month documents identical with one sheet per month
+  (gate 10), and all twenty written month PDFs byte-identical (gate 13). `phaseedge` 13/13 and `pilldrag` 20/20 inside
+  the gate.
+
+### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
+
+Steps 1–4 and 6 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
+- **The five built-in Weeks phases get a Length too (step 6, owner rulings 7 and 9d):** Writer's Rm, Pre Prep, Prod
+  Prep, Post and Localization offer **Weeks or Dates**. Days stays custom-only, and Production is unchanged. Each mover
+  ("Start after previous phase" and Close all gaps included) moves a Dates built-in's start and end together.
+  - ⛔ **Ten new permanent ids,** `unit-<key>` and `end-<key>` per built-in. These rows are static, so an absent id
+    is defaulted to Weeks on every Load and on New. Without that, an older calendar opened after one in Dates mode
+    kept the previous calendar's Dates mode. That was proven by building it without the defaults: Pre Prep ran
+    *4/6/26 → 2/23/27*. **Gate 5 was re-cut 62 → 72 ids on the owner's sign-off.** The ten are all Weeks/'' in the
+    v1.0.0 file, none was lost, and no value changed.
+  - Verified by a new leg, `builtindates` (32 checks over two runs, in `gate.sh`), on a new synthetic fixture,
+    `builtindates.sptcal`. A pre-step-6 build opens that fixture with its Dates phases in whole weeks.
+  - ⚠️ **A gate check was narrowed, not weakened.** `sharecopy2` failed on step 6 (its first full gate: 1,437 PASS,
+    1 FAIL). It required ZERO rendered `<select>`s carrying `selected` in a shareable copy, as a stand-in for "no
+    preference travels as markup". The five Length selects are the first engine-built selects outside the React
+    hosts, and `reflectFieldsToAttributes()` bakes every calendar field into the copy by design. A calendar with a
+    custom phase would already have tripped the old check. It now fails on any select whose id is NOT in the copy's
+    own `fields.byId`, which no preference ever is, and it fails closed if the saved state can't be read. Proven to
+    still catch a `pref-gridlines` select carrying `selected`.
+  - **Full gate on the step-6 build `eee27023…`: 1,438 PASS, 0 FAIL, GATE PASSED.** Every frozen output is identical,
+    and gate 5 holds at the re-cut 72 ids. The run before it is not counted: the Mac went into deep sleep mid-run
+    (2 h 6 min, load ~40), and its 7 failures were all timeouts on legs the same build had passed in the first run.
+- **Every custom phase row has a Length select:** Weeks (as before, and what every existing calendar opens as), Days
+  or Dates.
+  - **Days** counts working days: Monday to Friday, skipping enabled union holidays and hiatus days. A holiday inside
+    the run is drawn blank in the month view, and a hiatus pauses the phase.
+  - **Dates** is a start and an inclusive end date. It stays on those dates, and hiatus days inside it are drawn
+    blank. Weekends are blank in every unit.
+  - These were the owner's rulings 2–5, checked against an example calendar of theirs.
+- **One schedule (ruling 1):** the waterfall, Excel and both PDFs show these phases too, in every week row they touch.
+  Only the month view shows the exact days.
+- **Switching unit never moves the phase.** The new unit's box is prefilled from the phase as scheduled, and one undo
+  reverts the switch. Back to Weeks from a mid-week start turns Snap to Mon off, as the month-view drag does.
+- **Every tool that moves a phase moves a Dates phase whole:** Shift All, Shift From, Anchor To, Rebuild From (both
+  directions) and the month-view drag write its start through one function, `setPhaseStart()`, which moves its end
+  date by the same number of days. Before step 4 they moved only the start and would have stretched the range.
+  - Rebuild places Days and Dates phases to the day. Backwards, a Dates phase ends the day before the next phase starts
+    and keeps its length, and a Days phase counts its working days back. Forwards, neither starts on a weekend.
+  - Snap to Mon, hidden for Days and Dates, is ignored by the tools as it is by the scheduler.
+  - Since `main` (with MONTH-VIEW-PLAN step 7) was merged into this branch, Production's first-shoot-day grip writes
+    through the same function. Production has no Dates mode, so the date written is the same; the rule is just that
+    every mover writes through `setPhaseStart()`.
+- **Fixed in passing:** the `{<phase>.close}` header token named the wrong day for any phase that ends mid-week. It
+  computed `end − 3 days`, which is the Friday only when a phase ends on a Monday, so a Snap-off phase starting on a
+  Wednesday "closed" on the Sunday before. It now names the last weekday. Every calendar whose phases end on Mondays
+  prints exactly what it did. The token's description in the header editor now reads "Closes (last weekday)".
+- ⛔ **Save format:** three new ids per custom phase, `unit-<key>`, `days-<key>` and `end-<key>`, permanent from now
+  on. An absent unit means Weeks. `weeks-<key>` is kept filled with the week rows a Days or Dates phase spans, so an
+  older build shows it in whole weeks instead of dropping it. Measured on the pre-change build, which opened the new
+  fixture that way. `SNAPSHOT_VERSION` stays 1.
+- **No frozen code changed.** The month view already draws `[start, end)` day by day. A Days phase carries the days it
+  counted, which `segCoversDate()` reads. Its hint line is a sibling element the frozen `render()` never writes,
+  because about 30 paths call `render()` directly, and an overwrite of `meta-<key>` did not survive a Load (measured).
+- **Verified:** a new `customunits` leg (two runs, in `gate.sh`) and a synthetic fixture, `customunits.sptcal`, minted
+  through the real Save. Its 51 checks pass across both runs, with 0 console errors. They include each mover on a Days
+  and a Dates phase, with one undo restoring every date. **Full gate on the step-4 build `fa825e58…`: 1,331 PASS, 0 FAIL, GATE PASSED** (11 min 43 s). Every existing output is unchanged, and gate 5 holds at 62 ids.
+  - After the merge with `main` (build `88f1ef4c…`), the first full gate had **1 FAIL**: one `snapoff` run
+    (`snapoff-onecol`) wrote no result file at all, while its two sibling runs passed. That gate took 16 minutes
+    instead of about 12, which fits two gates stalling each other's Chrome, but the cause is not proven. The leg then
+    passed 3 of 3 standalone. **The rerun of the full gate on the same build: 1,345 PASS, 0 FAIL, GATE PASSED**, with
+    `snapoff-onecol` passing, `customunits` 51/51, step 7's `pilldrag` 19/19, every frozen output identical, and gate 5
+    at 62 ids.
+  - After the second merge, with half-day episodes (build `e7181214…`), the first full gate had **4 FAIL**, all in
+    `conflict` (C3, C4b, C5 and C6, the file-changed-on-disk flow, which this branch does not touch). These are the
+    same four the half-days session saw once on `main`'s build. The leg passed 9/9 standalone, twice. **The rerun on the
+    same build: 1,404 PASS, 0 FAIL, GATE PASSED**, with every frozen output identical and gate 5 at 62 ids.
+  - Steps 1–3 alone (`fa212d7`, build `e88d3ea4…`): **1,318 PASS, 0 FAIL, GATE PASSED.** Every existing output is
+    unchanged: the waterfall PDF and every Excel part match the baseline; gate 5's `fields.byId` key set is identical
+    at 62 ids (its calendar has no custom phases); gate 10's printed month documents and gate 13's written month PDFs
+    are byte-identical; and 0 cells are clipped.
+  - `npm run check` passes 40/40.
+
 ### Unreleased — A switch day's two month bars meet half way through the square (16 Oct 2026)
 
 The owner's own idea, on seeing the stacked bars: *"maybe rather than having both pills overlap, the bar ends half way

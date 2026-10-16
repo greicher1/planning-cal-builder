@@ -1862,6 +1862,30 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPD
 
+# ---- phaseedge: the start and end handles on every phase with a Length select ----------------------
+# ⭐ ADDED 16 Oct 2026 (MONTH-VIEW-PLAN.md §6.7, owner rulings 7 and 8; CUSTOM-PHASE-UNITS-PLAN.md step
+# 6). pilldrag's sibling, for the same reason a Node script: trusted CDP input, each press where
+# elementsFromPoint has the handle topmost. Every edge x unit on customunits.sptcal (custom Weeks,
+# Days, Dates; built-in Weeks) and builtindates.sptcal (built-in Dates): the held end never moves, a
+# Dates start is written directly (F5 -- setPhaseStart would carry the end), a Weeks edge switches the
+# phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
+# land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
+# print media hides the handles (F12). Run red on three mutants before it was wired in.
+node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates)" <<'PYPE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYPE
+
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
 # unhashed legs), so no t/ leg can see it. This loads the page WITHOUT ?test=, installs a
@@ -1885,6 +1909,61 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYCS
+
+# ---- customunits: a custom phase's length in Weeks, Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md) -----
+# Two runs. LIVE builds the synthetic calendar through the UI and asserts what a user sees while
+# editing (which boxes each unit shows, the select hit-testable, a unit switch that moves nothing and
+# is one undo step, end-before-start, whole days, a weekend start). RESTORE loads
+# tests/fixtures/customunits.sptcal, minted from that LIVE run's real Save, and asserts it comes
+# back day for day: units, boxes, hint lines, waterfall rows, month pills, and the {key.close}
+# header tokens (the bug §9 fixed: a mid-week end used to name the Sunday before). RESTORE then runs
+# every MOVER on it (plan §8): Shift All, Anchor To, Rebuild From both ways and the month drag must
+# move a Dates phase's start AND end, and one undo must put every date back.
+# ⚠️ The JSON is removed first: run.sh does not, and a leg that fails to load would otherwise be
+# judged on the previous run's result.
+for CUSTATE in "" customunits; do
+  rm -f "$HERE/customunits.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CUSTATE" "$HERE/run.sh" customunits 120 >/dev/null 2>&1
+  python3 - "$HERE/customunits.json" "customunits (${CUSTATE:-live})" <<'PYCU' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYCU
+done
+
+# ---- builtindates: Dates mode on the five built-in phases (CUSTOM-PHASE-UNITS-PLAN.md §7a, step 6) -----
+# LIVE builds the synthetic calendar through the UI and asserts the rows (Weeks/Dates only, Production
+# without), "Start after previous phase" moving both ends, and the trap these STATIC rows carry: an
+# OLDER calendar loaded after one in Dates mode, and New, must both put every built-in back in Weeks
+# (audit M-5's shape). RESTORE loads tests/fixtures/builtindates.sptcal, minted from LIVE's real Save,
+# and runs every mover on the built-in Dates phases with one undo after each.
+for BDSTATE in "" builtindates; do
+  rm -f "$HERE/builtindates.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BDSTATE" "$HERE/run.sh" builtindates 150 >/dev/null 2>&1
+  python3 - "$HERE/builtindates.json" "builtindates (${BDSTATE:-live})" <<'PYBD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYBD
+done
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

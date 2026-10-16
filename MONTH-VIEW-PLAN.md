@@ -638,6 +638,71 @@ rest of ruling 9 once 9a–9c were confirmed.
 - **Reachability:** `pilldrag.mjs` must assert that `elementsFromPoint` at the zone has the pill
   topmost, and drive the drag with trusted CDP input (§8 step 5's rule).
 
+#### ✅ BUILT 16 Oct 2026: the phase handles of rulings 7 and 8. Zero frozen edits
+
+`installPhaseEdgeHandles()` in `src/legacy/app.js`, right after `installProductionEdgeHandles`. It was
+built on branch `custom-units` once CUSTOM-PHASE-UNITS step 6 had given the five built-ins Dates mode
+(`5111021`). It is that plan's step 6, second half.
+
+**Which phases:** every phase with a Length select (`unit-<key>`): each custom phase, and Writer's Rm,
+Pre Prep, Prod Prep, Post and Localization. Production has none, so it is never matched, and keeps
+step 7's handles above.
+
+**Where:** two handles per phase, ever (§6.2). The `start` handle sits on the left edge of the pill
+holding the phase's first DRAWN day, and the `end` handle on the right edge of the pill holding its
+last. A drawn day uses `pillRunsForWeek()`'s own test (`segCoversDate`, not a hiatus day, not in the
+phase's own hiatus), so a handle sits exactly where a pill edge does. Every other pill edge is a
+week boundary and belongs to body-drag.
+
+**What a drag writes.** This is §6.7's stored-edge table, as built. An edge drag holds the other end,
+so it is NOT a mover, and nothing here goes through `setPhaseStart()`:
+
+| Unit | Start edge (end held) | End edge (start held) |
+|---|---|---|
+| Dates | `start-<key>`, written directly | `end-<key>` |
+| Days | `start-<key>`, and `days-<key>` recounted with `isUnitWorkDay()` so the last day stays | `days-<key>` |
+| Weeks | switches to Dates first: `unit-<key>` = dates, `start-<key>` = the segment's start, `end-<key>` = `segLastWeekday()` (`onCustomUnitChange()`'s prefill, now one shared function). Then the Dates row applies | the same switch, then the Dates row |
+
+- ⚠️ **One deliberate difference from a switch made in the select.** The select prefills the end only
+  when its box is EMPTY, so an earlier visit's value comes back. The drag always writes it, because
+  that older value is not where the phase is, and the held edge must not move.
+- **By the day, onto a drawn day.** The pointer's day comes from `dayAtPoint()`. The edge lands on the
+  nearest day the phase would draw: a weekday outside every hiatus (Dates, and Weeks becoming Dates),
+  or a working day by `isUnitWorkDay()` (Days, which skips enabled union holidays too). Ties go to the
+  smaller change.
+  - A weekend or hiatus day is never stored. A start on a Saturday would give the waterfall an empty
+    week row (CUSTOM-PHASE-UNITS §8.1), and a handle on a day no pill covers has nothing to sit on.
+  - The floor is one drawn day: an end never before the first drawn day, and a start never after the
+    last.
+- **A guard,** Production's: after every step the held edge and the landed edge are re-read from the
+  real schedule. If either is wrong, the fields are put back and the gesture goes inert. It has not fired.
+- **One undo per drag.** It uses a leading `pushUndoSnapshot()`, `cancelPendingUndoPush()` after every
+  `update()`, and a trailing push only if a field changed. `syncCustomUnitFallback()` runs before that
+  push, so the old-build fallback is inside the step. The `unit-`, `start-`, `end-` and `days-` values
+  are recorded at the press. At the origin they are put back EXACTLY (MONTH-9's rule), so out and back
+  banks nothing, even across a Weeks → Dates switch. Escape does the same.
+- **Shared with Production, not copied:** `pillRange`, `visibleRect`, `dayInCells` and `dayAtPoint`
+  moved out of `installProductionEdgeHandles` to module scope, unchanged. Each system keeps its own pool,
+  hover listener, shield and drag state, with the same CSS classes, so `buildSavedHtml()`'s strip and
+  the print rule already cover them.
+- **Proof:** `tests/harness/phaseedge.mjs`, wired into `gate.sh` after `pilldrag`. It uses trusted CDP
+  input, with every press where `elementsFromPoint` has the handle topmost. Its 13 cases (F0–F12) run on
+  `customunits.sptcal` and `builtindates.sptcal`, and cover every edge × unit, both custom and built-in,
+  with the Weeks → Dates switch, one undo, Escape, out-and-back, floors, step-overs and print media.
+  - "Banked nothing" is observed, not assumed. Switching to the month view is itself an undo step
+    (`viewMode` is in the snapshot), so the one Ctrl+Z after an out-and-back must take the calendar
+    back to the waterfall.
+  - It ran red on three mutants before it was wired in.
+  - `pilldrag` stays 20/20. Its E7 now reads the SHOWN start handle, because the two pools share
+    `data-edge` values.
+- **§6.5's gate, met with no frozen edit to justify.** The build is `a198d0a6…` (16 Oct 2026), and the
+  full gate gave **1,451 PASS, 0 FAIL** on its first run:
+  - **Condition 1, the month PDF:** gate 10's ten print documents are identical with one sheet per
+    month, and gate 13's twenty written PDFs are byte-identical.
+  - **Condition 2, row heights:** unchanged, which the identical print documents carry.
+  - **Condition 3, no affordance in `#print-root`:** F12, plus the body-level placement.
+  - **Condition 4, gates 1–5:** unchanged (0 clipped cells, 72 field ids).
+
 
 ## 7. ✅ Rulings received (16 Sep 2026)
 
@@ -649,8 +714,8 @@ rest of ruling 9 once 9a–9c were confirmed.
 | 4 | Waterfall vs month view | **Same wrap date**; waterfall rounds its displayed COUNT up (§4.5) |
 | 5 | Do phases move independently when dragged? | **Yes** — no dependency graph; the Adjustments menu owns relationship-preserving moves (§6.1) |
 | 6 | Per-week Production control | **`dayOverrides`**, not per-week start dates — Production stays derivable (§4) |
-| 7 | *(15 Oct 2026)* Edges on built-in Weeks phases | **Add a Dates mode** to the five built-ins, reversing CUSTOM-PHASE-UNITS's "built-ins untouched" scope (its §1). Its ruling 1, one schedule, still holds (§6.7) |
-| 8 | *(15 Oct 2026)* Edges on custom phases | **After CUSTOM-PHASE-UNITS steps 1–4**: Days and Dates get both handles, and a Weeks edge drag switches the phase to Dates (§6.7) |
+| 7 | *(15 Oct 2026)* Edges on built-in Weeks phases | **Add a Dates mode** to the five built-ins, reversing CUSTOM-PHASE-UNITS's "built-ins untouched" scope (its §1). Its ruling 1, one schedule, still holds (§6.7). ✅ **Built 16 Oct 2026** (§6.7, "the phase handles") |
+| 8 | *(15 Oct 2026)* Edges on custom phases | **After CUSTOM-PHASE-UNITS steps 1–4**: Days and Dates get both handles, and a Weeks edge drag switches the phase to Dates (§6.7). ✅ **Built 16 Oct 2026** (§6.7, "the phase handles") |
 | 9 | *(15 Oct 2026)* Edges on Production | *"drag either side of each episode/production week/block individually"*. ✅ **§6.7's reading confirmed** (9a–9c): episode/block boundaries push, week edges set day marks, screen-only handles. 9d: the built-ins' Dates mode takes ten ids |
 
 ⏸ **Still unanswered:** whether any remaining *"adjustments"* the owner has in mind also move dates.

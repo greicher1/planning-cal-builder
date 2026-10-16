@@ -200,6 +200,29 @@ exactly that and was proven to fail without it (the old calendar then scheduled 
 Unchanged by this: **`sig`, `rows` 52, `cells` 154, `gridWidthPt` 324, `bytes` 756473,
 `hClip` 0.** Only `form` was replaced.
 
+## ✅ `restore.json`'s `form` RE-CUT — 62 keys to 72 (15 Oct 2026, Dates mode on the built-ins)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 15 Oct 2026: "Re-cut it").
+CUSTOM-PHASE-UNITS-PLAN.md §7a (step 6) gives the five built-in Weeks phases a Length of Weeks or Dates.
+MONTH-VIEW-PLAN ruling 9d fixed the ids at two per phase, and every id'd control is swept into
+`fields.byId`, so gate 5 is *supposed* to fail until this is re-cut.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (10)** | `unit-writersRoom`, `unit-prePrep`, `unit-prodPrep`, `unit-post`, `unit-localization` | **`"weeks"`** |
+| | `end-writersRoom`, `end-prePrep`, `end-prodPrep`, `end-post`, `end-localization` | `""` |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `"weeks"`.** `v1.0.0-saved.html` predates units, has none of these keys, and
+restores every built-in as Weeks with no end date, so its schedule cannot move. On these STATIC rows that is
+`applyStateSnapshot()`'s explicit absent-means-default, not the markup's. The `builtindates` leg proves it the
+way `blocks` did: loading an older calendar after one in Dates mode must give Weeks. **It was proven to fail
+without the default.** With the two default lines removed, that older calendar's Pre Prep kept the previous
+file's Dates mode and end date, and ran *Mon 4/6/26 → Tue 2/23/27 (47 wk)*.
+
+Unchanged by this: **`sig`, `rows`, `cells`, `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended.
+
 ## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
 
 A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut

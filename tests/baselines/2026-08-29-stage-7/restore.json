@@ -66,7 +66,17 @@
   "phiatus-en-localization": "0",
   "phiatus-name-localization": "",
   "phiatus-start-localization": "",
-  "phiatus-weeks-localization": "2"
+  "phiatus-weeks-localization": "2",
+  "unit-writersRoom": "weeks",
+  "end-writersRoom": "",
+  "unit-prePrep": "weeks",
+  "end-prePrep": "",
+  "unit-prodPrep": "weeks",
+  "end-prodPrep": "",
+  "unit-post": "weeks",
+  "end-post": "",
+  "unit-localization": "weeks",
+  "end-localization": ""
  },
  "sig": [
   "1/5/26#1|Writer's Rm wk 1#1|Writer's Room Opens 1/5/26#1",

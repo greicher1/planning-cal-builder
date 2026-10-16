@@ -3078,6 +3078,10 @@ export function initLegacyApp() {
     // tests that set hasInvalidYear so the sidebar ring cannot disagree with the refusal. Phase
     // starts are not listed: their ring asks frozen readCfgForMeta(), as the meta line does.
     const badYearFields = [];
+    // Fields that leave ONE phase unscheduled without refusing the calendar (a Dates phase whose end
+    // is before its start). Ringed by reflectStartDateValidity() like badYearFields, but they never
+    // set hasInvalidYear.
+    const unitBadFields = [];
     // Once Show Info is complete it is the source of truth for how long Production runs:
     // episodes x days-per-episode replaces whatever shoot-day count was typed into the
     // Production row, everywhere (spreadsheet, export and month view alike).
@@ -3087,6 +3091,31 @@ export function initLegacyApp() {
       let rawValue = parseInt(document.getElementById('weeks-'+p.key).value, 10);
       if(p.key === 'production' && info.complete) rawValue = info.totalShootDays;
       if(startStr && parseDateUTC(startStr)===null) hasInvalidYear = true;
+      // A custom phase given in Days or Dates (CUSTOM-PHASE-UNITS-PLAN.md). It carries no `weeks` and
+      // no `rawValue` -- weeks-<key> holds only the old-build fallback, never read here -- so
+      // computeSchedule() takes its own branch, and spanCulprit(), which neutralises `weeks`, leaves
+      // it alone. Snap to Mon does not apply: the typed start is used as typed.
+      const unit = customPhaseUnit(p.key);
+      if(unit !== 'weeks'){
+        const days = parseInt((document.getElementById('days-'+p.key) || {}).value, 10);
+        const endEl = document.getElementById('end-'+p.key);
+        const endStr = endEl ? endEl.value : '';
+        let ok = false;
+        if(unit === 'days'){
+          ok = days > 0;
+        } else if(endStr){
+          if(parseDateUTC(endStr) === null){ hasInvalidYear = true; badYearFields.push(endEl); }
+          else if(startStr && parseDateUTC(startStr)){
+            // An end before the start leaves the phase unscheduled and rings the end date, the way
+            // a week count of 0 leaves a Weeks phase out. The hint line says why.
+            ok = parseDateUTC(endStr) >= parseDateUTC(startStr);
+            if(!ok) unitBadFields.push(endEl);
+          }
+        }
+        phases[p.key] = (startStr && ok) ? {start:startStr, unit, days: unit === 'days' ? days : null,
+                                            end: unit === 'dates' ? endStr : null, snap:false} : null;
+        return;
+      }
       const weeks = rawValue>0 ? rawInputToWeeks(p, rawValue) : NaN;
       // Missing checkbox (an older row, or a phase built before this shipped) reads as SNAPPED,
       // which is the pre-existing behaviour. `!== false` rather than a truthiness test so the
@@ -3126,6 +3155,7 @@ export function initLegacyApp() {
       phaseHiatuses,
       hasInvalidYear,
       badYearFields,
+      unitBadFields,
       hiatusRows,
       // The HOLIDAYS key for the chosen region: 'US' / 'UK' directly, or the province key
       // ('CA-BC' etc.) when the country is Canada. Named unionCountry for continuity with the
@@ -3273,10 +3303,55 @@ export function initLegacyApp() {
               holidaysHit, shootDays, halfDays, delivered: count};
     }
 
+    // A custom phase given in DAYS or DATES (CUSTOM-PHASE-UNITS-PLAN.md §5). Returns the segment's
+    // bounds, or null when it cannot be scheduled.
+    //   Days   walk forward from the typed start, counting only Mon-Fri days that are not an
+    //          ENABLED union holiday and not in an all-phase hiatus or the phase's own (rulings 2, 4,
+    //          5 -- isUnitWorkDay(), the one copy of the rule). The segment starts on the FIRST
+    //          counted day, so a start typed on a weekend or holiday does not give the waterfall an
+    //          empty week row, and `days` lists the counted days so the month view draws exactly
+    //          those (a holiday inside the run is blank, as in the owner's example).
+    //   Dates  start and end exactly as typed, end inclusive (ruling 4: a hiatus does not move it;
+    //          its days are drawn blank by pillRunsForWeek, which already skips hiatus days).
+    // `weeks` is the number of Monday-keyed week rows the phase touches -- what the waterfall draws,
+    // what the hint line reports, and what the old-build fallback writes into weeks-<key>.
+    function customUnitSpan(cfg, parsed, key){
+      let start, end, days = null;
+      if(cfg.unit === 'days'){
+        const ctx = {holidayIsos: new Set(fullHolidayList(state.unionCountry).filter(h=>h.enabled).map(h=>h.date)),
+                     hiatuses, ownHi: phaseHiatusRanges[key] || null};
+        days = new Set();
+        let d = parsed, first = null, last = null, safety = 0;
+        // Capped one week past MAX_WEEKS: a typo'd count that has not finished by then makes a span
+        // the too-large check below refuses anyway, so the walk can stop there.
+        while(days.size < cfg.days && safety++ < MAX_WEEKS*7 + 7){
+          if(isUnitWorkDay(d, ctx)){ days.add(isoOf(d)); if(!first) first = d; last = d; }
+          d = addDays(d, 1);
+        }
+        if(!first) return null;
+        start = first; end = addDays(last, 1);
+      } else {
+        const e = parseDateUTC(cfg.end);
+        if(!e || e < parsed) return null;
+        start = parsed; end = addDays(e, 1);
+      }
+      const weeks = Math.round((mondayOf(addDays(end, -1)) - mondayOf(start))/DAY_MS/7) + 1;
+      return {start, end, days, weeks};
+    }
+
     const segments = [];
     let productionInfo = null;
     state.allDefs.forEach(p=>{
       const cfg = state.phases[p.key];
+      if(cfg && cfg.start && (cfg.unit === 'days' || cfg.unit === 'dates')){
+        const parsed = parseDateUTC(cfg.start);
+        if(!parsed) return;
+        const span = customUnitSpan(cfg, parsed, p.key);
+        if(!span) return;
+        segments.push(Object.assign({}, p, {start:span.start, end:span.end, weeks:span.weeks, enteredDate:parsed,
+          shootDays:null, days:span.days, unit:cfg.unit, phaseHiatus: phaseHiatusRanges[p.key] || null}));
+        return;
+      }
       if(cfg && cfg.start && cfg.weeks>0){
         const parsed = parseDateUTC(cfg.start);
         if(!parsed) return;
@@ -5403,13 +5478,23 @@ export function initLegacyApp() {
       // this existed has no `snap-<key>` in fields.byId, applyStateSnapshot never touches the box,
       // and it stays checked -- so every existing file keeps its Monday-snapped dates. Absent means
       // snapped. Do not move this default into JS.
-      const snapHtml = `<label class="phase-snap" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      const snapCls = (p.key === 'production') ? 'phase-snap' : 'phase-snap pu-weeks';
+      const snapHtml = `<label class="${snapCls}" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${p.key}" class="phase-snap-cb" checked> Snap to Mon</label>`;
+      // ⭐ CUSTOM-PHASE-UNITS-PLAN §7a, owner rulings 7 and 9d (15 Oct 2026): the five built-in Weeks
+      // phases get a Length of Weeks or Dates -- no Days, which stays custom-only -- with the custom
+      // rows' markup, classes and CSS, so one code path serves both. Production has none.
+      // ⛔ `unit-<key>` and `end-<key>` here are TEN NEW PERMANENT ids in fields.byId, and these rows
+      // are STATIC (never rebuilt on restore), so an absent id must be defaulted explicitly in
+      // applyStateSnapshot() and in New's reset -- the M-5 trap snap-<key> fell into. The markup's
+      // first option (Weeks) and empty end are the defaults a fresh page starts from.
       const fieldsHtml = (p.key === 'production')
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
            ${snapHtml}
            <input type="hidden" id="weeks-${p.key}">`
-        : `<label>Start date <input type="date" id="start-${p.key}"></label>
-           <label>${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+        : `<label class="phase-unit-lbl">Length <select id="unit-${p.key}" class="phase-unit" title="How this phase's length is given: whole weeks, or a start and end date"><option value="weeks">Weeks</option><option value="dates">Dates</option></select></label>
+           <label>Start date <input type="date" id="start-${p.key}"></label>
+           <label class="pu-weeks">${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
+           <label class="pu-dates">End date <input type="date" id="end-${p.key}" class="phase-end"></label>
            ${snapHtml}`;
       // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
       // line. Also lets move this total shooting days (for both episodic and block) to just above the
@@ -5428,6 +5513,7 @@ export function initLegacyApp() {
         </div>
         ${p.key !== 'writersRoom' ? `<button class="autostart-btn" id="autostart-${p.key}" data-phase="${p.key}" type="button">↳ Start after previous phase</button>` : ''}
         <div class="phase-meta" id="meta-${p.key}"></div>
+        ${p.key !== 'production' ? `<div class="phase-meta unit-meta" id="unitmeta-${p.key}"></div>` : ''}
         ${p.key !== 'production' ? phaseHiatusBlockHtml(p.key, p.label) : ''}
         ${p.key === 'production' ? `
         <div class="prod-total-block">
@@ -5646,13 +5732,25 @@ export function initLegacyApp() {
         <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
       </div>
       <div class="phase-fields">
+        <label class="phase-unit-lbl">Length <select id="unit-${key}" class="phase-unit" title="How this phase's length is given: whole weeks, a number of working days, or a start and end date"><option value="weeks">Weeks</option><option value="days">Days</option><option value="dates">Dates</option></select></label>
         <label>Start date <input type="date" id="start-${key}"></label>
-        <label>Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
-        <label class="phase-snap" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
+        <label class="pu-weeks">Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
+        <label class="pu-days">Days <input type="number" id="days-${key}" class="phase-days" min="1" step="1" placeholder="e.g. 10" title="Working days: Monday to Friday, skipping union holidays and hiatus days"></label>
+        <label class="pu-dates">End date <input type="date" id="end-${key}" class="phase-end"></label>
+        <label class="phase-snap pu-weeks" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
       </div>
       <div class="phase-meta" id="meta-${key}"></div>
+      <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>
       ${phaseHiatusBlockHtml(key, 'Phase')}
     `;
+    // ⭐ CUSTOM-PHASE-UNITS-PLAN.md: a custom phase's length is Weeks (as always), Days or Dates.
+    // ⛔ `unit-<key>`, `days-<key>` and `end-<key>` are SAVE FORMAT from the first calendar saved with
+    // them -- collectFieldValues() sweeps every id'd control into fields.byId. An ABSENT unit means
+    // Weeks, which is what this markup's first option gives a freshly built row, and every restore
+    // builds custom rows fresh (applyStateSnapshot), so an older file can never inherit a previous
+    // calendar's unit. Which boxes show is pure CSS off the select's CHECKED OPTION (legacy.css,
+    // `.phase-unit`), the #show-mode pattern: no restore, undo or load path can leave the visible
+    // boxes disagreeing with the unit that is actually scheduling. Hidden boxes keep their values.
     // ⛔ Every handler below reads the row's key AT EVENT TIME (`row.dataset.key`), never the `key`
     // this function minted. applyStateSnapshot() re-keys a restored row to its SAVED key (custom2,
     // say, when custom1 was deleted before it was saved) by renaming ids and dataset.key -- it cannot
@@ -5666,7 +5764,10 @@ export function initLegacyApp() {
       const nameEl = row.querySelector('.phase-name-input');
       const startEl = document.getElementById('start-'+k);
       const weeksEl = document.getElementById('weeks-'+k);
-      const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim());
+      const daysEl = document.getElementById('days-'+k);
+      const endEl = document.getElementById('end-'+k);
+      const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim())
+                      || (daysEl && daysEl.value) || (endEl && endEl.value);
       if(hasData && !(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }))) return;
       customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
       row.remove();
@@ -5689,7 +5790,241 @@ export function initLegacyApp() {
       if(nameField) nameField.placeholder = defLabel;
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
+    // Registered AFTER the blanket update() above, so it reads the schedule that update() just
+    // computed. See syncCustomUnitFallback().
+    row.querySelectorAll('[id^="start-"], .phase-days, .phase-end').forEach(inp=>
+      inp.addEventListener('input', ()=> syncCustomUnitFallback(row.dataset.key)));
+    // ⚠️ The blanket binding above is `input` elements only, so the select needs its own listener --
+    // without it the unit would change on screen and schedule nothing until some other edit.
+    row.querySelector('.phase-unit').addEventListener('change', ()=> onCustomUnitChange(row.dataset.key));
     wrap.appendChild(row);
+  }
+
+  // The unit a custom phase's length is given in: 'weeks' (the default, and what an absent or
+  // unrecognised value means), 'days' or 'dates'. Built-in phases have no unit select and are always
+  // Weeks (Production keeps its own shoot-day mode).
+  function customPhaseUnit(key){
+    const el = document.getElementById('unit-' + key);
+    const v = el ? el.value : '';
+    return (v === 'days' || v === 'dates') ? v : 'weeks';
+  }
+
+  // A DAYS-mode day: Monday to Friday, not an ENABLED union holiday, not in an all-phase hiatus or
+  // the phase's own (CUSTOM-PHASE-UNITS-PLAN rulings 2, 4, 5). The ONE copy of the rule: the
+  // scheduler walks with it, and switching a phase into Days mode counts with it, so the switch
+  // lands on the same last day. `ctx` = {holidayIsos:Set, hiatuses:[{start,end}], ownHi}.
+  function isUnitWorkDay(d, ctx){
+    const dow = d.getUTCDay();
+    if(dow === 0 || dow === 6) return false;
+    if(ctx.holidayIsos.has(isoOf(d))) return false;
+    if((ctx.hiatuses || []).some(h=> d >= h.start && d < h.end)) return false;
+    if(ctx.ownHi && d >= ctx.ownHi.start && d < ctx.ownHi.end) return false;
+    return true;
+  }
+  function unitWorkDayCtx(schedule, key){
+    const seg = ((schedule && schedule.segments) || []).find(s=> s.key === key);
+    return {
+      holidayIsos: new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date)),
+      hiatuses: (schedule && schedule.hiatuses) || [],
+      ownHi: seg ? seg.phaseHiatus : null,
+    };
+  }
+
+  // Switching a custom phase's unit never MOVES the phase (plan §5): the box the new unit shows is
+  // prefilled from the phase as it is scheduled right now, when that box is empty. A box that
+  // already holds a value (from an earlier visit to that unit) keeps it -- hidden boxes are never
+  // cleared, so switching back and forth restores what was typed.
+  function onCustomUnitChange(key){
+    const unit = customPhaseUnit(key);
+    // currentSchedule was computed from the state BEFORE this change, so the segment still
+    // describes the phase in its previous unit.
+    const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key);
+    const startEl = document.getElementById('start-' + key);
+    if(seg && unit !== 'weeks'){
+      // Days and Dates use the typed start as typed, so write the start AS SCHEDULED: leaving Weeks
+      // with Snap to Mon on, that is the week's Monday, not the typed day; leaving Days, it is the
+      // first counted day, not a typed weekend or holiday. Otherwise the phase would move.
+      if(startEl && startEl.value !== isoOf(seg.start)) startEl.value = isoOf(seg.start);
+      if(unit === 'days'){
+        const el = document.getElementById('days-' + key);
+        if(el && !el.value){
+          const ctx = unitWorkDayCtx(currentSchedule, key);
+          let n = 0;
+          for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(isUnitWorkDay(d, ctx)) n++;
+          if(n > 0) el.value = String(n);
+        }
+      } else {
+        const el = document.getElementById('end-' + key);
+        if(el && !el.value) el.value = isoOf(segLastWeekday(seg));
+      }
+    }
+    // Back to Weeks from Days or Dates, on a start that is not a Monday: Snap to Mon (still on, just
+    // hidden) would pull the phase back to that week's Monday. Turn it off instead, so the phase
+    // keeps its start -- the month-view drag's rule (MONTH-VIEW-PLAN §6.3), and one undo restores
+    // both, since snap-<key> and unit-<key> land in the same fields.byId snapshot. The length rounds
+    // UP to the whole weeks weeks-<key> holds (the fallback), which is the plan's §5 rule.
+    if(seg && unit === 'weeks' && (seg.unit === 'days' || seg.unit === 'dates') && seg.start.getUTCDay() !== 1){
+      const snapEl = document.getElementById('snap-' + key);
+      if(snapEl) snapEl.checked = false;
+      if(startEl && startEl.value !== isoOf(seg.start)) startEl.value = isoOf(seg.start);
+    }
+    update();
+    syncCustomUnitFallback(key);
+  }
+  // The last weekday a segment covers (its end is exclusive): the end a switch into Dates prefills,
+  // and the end a Weeks phase's start-edge drag holds while it switches (installPhaseEdgeHandles).
+  // One copy, so the two cannot disagree about where a phase "is".
+  function segLastWeekday(seg){
+    let d = addDays(seg.end, -1), safety = 0;
+    while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && safety++ < 7) d = addDays(d, -1);
+    return d;
+  }
+
+  // ⛔ THE OLD-BUILD FALLBACK (plan §7). A build older than this ignores unit-/days-/end- and reads
+  // only weeks-<key>, so a Days or Dates phase would vanish there. Keeping weeks-<key> filled with
+  // the number of week rows the phase spans makes an older copy show it in whole weeks instead.
+  // ⛔ Written from the row's own input handlers, right after their update() -- NEVER from update()
+  // itself: a field written during every render would bank a phantom undo step on every keystroke
+  // anywhere. Written here, it lands in the SAME undo step as the edit that caused it (the debounced
+  // snapshot is taken later). No event is dispatched: update() has already run.
+  // ⚠️ An approximation by design, and only refreshed when this phase's own boxes change; a holiday
+  // or hiatus edit that moves a Days phase leaves it a week out until the next edit to the row.
+  // This build never reads it in Days or Dates mode.
+  function syncCustomUnitFallback(key){
+    if(customPhaseUnit(key) === 'weeks') return;
+    const seg = ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key);
+    const el = document.getElementById('weeks-' + key);
+    if(!seg || !el || !(seg.weeks > 0)) return;
+    if(el.value !== String(seg.weeks)) el.value = String(seg.weeks);
+  }
+  // Every Length-select phase's fallback at once, for the tools that move many phases. Called INSIDE their
+  // asOneUndoStep / drag bracket, after their final update(), so it lands in the same undo step.
+  function syncAllCustomUnitFallbacks(){
+    unitPhaseKeys().forEach(syncCustomUnitFallback);
+  }
+  // Every phase that HAS a Length select: each custom phase, and since step 6 (CUSTOM-PHASE-UNITS-PLAN
+  // §7a) the five built-in Weeks phases. Production has none. ⚠️ The "Custom" in the names of
+  // customPhaseUnit(), onCustomUnitChange(), syncCustomUnitFallback() and refreshCustomUnitMeta()
+  // predates step 6: they all serve the built-ins too, and are named for where they began.
+  function unitPhaseKeys(){
+    return getAllPhaseDefs().map(p=> p.key).filter(k=> document.getElementById('unit-' + k));
+  }
+
+  // ⛔ THE ONE WRITER of a phase's start date for every tool that MOVES a phase (CUSTOM-PHASE-UNITS-
+  // PLAN §8): Shift All / Shift From / Anchor To (shiftCalendarDates), Rebuild From (both directions),
+  // the month-view body drag, Production's first-shoot-day grip (MONTH-VIEW-PLAN step 7,
+  // applyCount), and "Start after previous phase" / Close all gaps (autostartPhase), which reach the
+  // five built-ins -- the phases that gained Dates mode in step 6. A Dates phase is TWO dates, so a tool that moved start-<key> alone would
+  // STRETCH it instead of moving it; here its end-<key> moves by the same number of days. Weeks and
+  // Days phases need nothing more -- their length is a count. A new mover must write through this,
+  // or Dates phases stretch under it. Returns false when there is no start field to write.
+  function setPhaseStart(key, iso){
+    const el = document.getElementById('start-' + key);
+    if(!el) return false;
+    const was = parseDateUTC(el.value), to = parseDateUTC(iso);
+    if(was && to && customPhaseUnit(key) === 'dates'){
+      const endEl = document.getElementById('end-' + key);
+      const end = endEl ? parseDateUTC(endEl.value) : null;
+      if(end) endEl.value = isoOf(addDays(end, Math.round((to - was) / DAY_MS)));
+    }
+    el.value = iso;
+    return true;
+  }
+
+  // Does this phase have a length for Rebuild From to place it with? Production's comes from Show
+  // Info; a Weeks phase's is its week count; a Days phase's its day count; a Dates phase's its range.
+  function phaseHasSpan(p){
+    if(p.key === 'production') return showInfoStatus().complete;
+    const unit = customPhaseUnit(p.key);
+    if(unit === 'days') return parseInt((document.getElementById('days-' + p.key) || {}).value, 10) > 0;
+    if(unit === 'dates'){
+      const s = parseDateUTC((document.getElementById('start-' + p.key) || {}).value || '');
+      const e = parseDateUTC((document.getElementById('end-' + p.key) || {}).value || '');
+      return !!(s && e && e >= s);
+    }
+    return !!phaseWeeksFor(p);
+  }
+
+  // Rebuild From, backwards, for a Days or Dates phase: the latest start that still ENDS by `cursor`
+  // (exclusive), or null.
+  //   Dates  keeps its calendar length and ends the day before the cursor, back to back, exactly as
+  //          Rebuild forwards starts one the day the previous phase ends; setPhaseStart() then moves
+  //          its end by the same delta. (Ending it on the last WEEKDAY instead was tried: a Wed-Tue
+  //          range then began on a Saturday, an empty week row in the waterfall.)
+  //   Days   counts its N working days BACK from the day before the cursor, with isUnitWorkDay() --
+  //          the scheduler's own predicate, so the forward walk from the start found here counts
+  //          exactly those N days and ends by the cursor. (The plan proposed searching the
+  //          scheduler as productionEndFor() does; that is needed for Production, whose length
+  //          depends on its day overrides, and not here, where the predicate is the whole rule.
+  //          The customunits leg checks the result against the scheduler.)
+  function customStartEndingBy(key, cursor, ranges){
+    const unit = customPhaseUnit(key);
+    let last = addDays(cursor, -1), guard = 0;
+    if(unit === 'dates'){
+      const s = parseDateUTC((document.getElementById('start-' + key) || {}).value || '');
+      const e = parseDateUTC((document.getElementById('end-' + key) || {}).value || '');
+      if(!s || !e || e < s) return null;
+      return addDays(last, -Math.round((e - s) / DAY_MS));
+    }
+    const n = parseInt((document.getElementById('days-' + key) || {}).value, 10);
+    if(!(n > 0)) return null;
+    const ctx = {holidayIsos: new Set(fullHolidayList(effectiveRegionKey()).filter(h=> h.enabled).map(h=> h.date)),
+                 hiatuses: ranges.global, ownHi: ranges.own[key] || null};
+    let counted = 0;
+    while(guard++ < MAX_WEEKS * 7 + 7){
+      if(isUnitWorkDay(last, ctx) && ++counted === n) return last;
+      last = addDays(last, -1);
+    }
+    return null;
+  }
+
+  // The hint line under a Days or Dates custom phase, in its OWN element (unitmeta-<key>), never in
+  // meta-<key>. ⛔ meta-<key> belongs to frozen render(), which knows only weeks (it reads weeks-<key>,
+  // here the old-build fallback, and would report "(2 wk)" or ask for a week count) -- and about 30
+  // code paths call render(currentSchedule) directly, without update(), so an overwrite of meta-<key>
+  // from update() was undone by the next one (measured: a Load left the weeks text showing). So the
+  // frozen line stays where it is and CSS shows whichever one matches the unit (legacy.css,
+  // `.unit-meta`): refreshOverrideNote()'s shape, a sibling element the frozen code never touches.
+  // Its text depends only on the schedule, which only update() changes, so it cannot go stale.
+  function refreshCustomUnitMeta(schedule){
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const day = d => DOW[d.getUTCDay()] + ' ' + fmtShort(d);
+    unitPhaseKeys().forEach(key=>{
+      const unit = customPhaseUnit(key);
+      const metaEl = document.getElementById('unitmeta-' + key);
+      if(!metaEl) return;
+      if(unit === 'weeks'){ metaEl.textContent = ''; metaEl.style.color = ''; return; }
+      const startStr = (document.getElementById('start-' + key) || {}).value || '';
+      const daysStr = (document.getElementById('days-' + key) || {}).value || '';
+      const endStr = (document.getElementById('end-' + key) || {}).value || '';
+      const seg = ((schedule && schedule.segments) || []).find(s=> s.key === key);
+      let text = '', bad = true;
+      if((startStr && parseDateUTC(startStr) === null) || (unit === 'dates' && endStr && parseDateUTC(endStr) === null)){
+        text = 'Check that year — doesn’t look right';
+      } else if(seg){
+        bad = false;
+        const last = addDays(seg.end, -1);
+        const wk = ` (${seg.weeks} wk)`;
+        if(unit === 'days'){
+          const n = seg.days ? seg.days.size : 0;
+          text = `${n} working day${n === 1 ? '' : 's'} · ${day(seg.start)} → ${day(last)}${wk}`;
+          // The start typed on a weekend, a holiday or a hiatus day: say where the work begins.
+          if(startStr !== isoOf(seg.start)) text += `\nFirst working day ${day(seg.start)}`;
+        } else {
+          text = `${day(seg.start)} → ${day(last)}${wk}`;
+        }
+      } else if(!startStr && (unit === 'days' ? daysStr : endStr)){
+        text = 'Enter a start date to include this phase';
+      } else if(startStr && unit === 'days'){
+        text = daysStr ? 'Enter a day count of 1 or more to schedule this phase' : 'Enter a day count to include this phase';
+      } else if(startStr && unit === 'dates'){
+        text = endStr ? 'The end date is before the start date' : 'Enter an end date to include this phase';
+      } else {
+        bad = false;
+      }
+      metaEl.textContent = text;
+      metaEl.style.color = bad ? 'var(--danger)' : '';
+    });
   }
 
   // `prefillLocked` defaults to TRUE: an all-phase hiatus is normally anchored to the real
@@ -5820,12 +6155,15 @@ export function initLegacyApp() {
       if(!drag) return;
       const moved = drag.applied;
       const bound = drag.boundOverrides;
+      const draggedKey = drag.key;
       drag = null;
       // Settle the day overrides BEFORE the step is banked: each increment's update() already put
       // them on their shoot days, so this only ends the binding -- but the snapshot below must hold
       // the final marks, not the ones from before the drag.
       if(bound) endShootDayMove();
       document.body.classList.remove('grid-swapping');
+      // A Days or Dates phase's old-build fallback, before the step is banked so it is part of it.
+      if(moved) syncCustomUnitFallback(draggedKey);
       // ⛔ THE TRAILING PUSH IS THE STEP. Each increment cancelled the debounce (see mousemove), so
       // nothing has been banked yet; this is what commits the whole drag as one entry -- the same
       // shape batch expand and every toolbar tool use. markDirty() then re-arms the debounce for
@@ -5855,7 +6193,9 @@ export function initLegacyApp() {
       // mondayOf() on its start and a one-day drag was therefore undone the instant it landed --
       // the bar sat still through six days of pointer travel and then jumped. The fix is not to
       // quantise the gesture but to let it say what it means; see the snap handling in mousemove.
-      const snapEl = document.getElementById('snap-' + key);
+      // A Days or Dates phase is never snapped (its Snap to Mon box is hidden and ignored), so the
+      // toggle logic below must not touch it: null here skips it (CUSTOM-PHASE-UNITS-PLAN §8).
+      const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
       // Flush whatever came before into its own step, so a date typed moments ago does not fold
       // into this drag -- one Cmd+Z would otherwise revert both, which is the trap the batch-expand
       // comment describes. It early-returns when nothing has changed, so a press that never becomes
@@ -5889,7 +6229,9 @@ export function initLegacyApp() {
       if(days === drag.applied) return;                // only re-render when the day actually changes
       drag.applied = days;
       const iso = isoOf(addDays(drag.base, days));
-      drag.startEl.value = iso;
+      // Through the one writer, so a Dates phase's end moves with its start (plan §8). The delta is
+      // taken from the field as it stands, so a pill dragged out and back returns the end exactly.
+      setPhaseStart(drag.key, iso);
       // ⛔ A SNAPPED PHASE IS MONDAY-ONLY, so a day-level drag on one would be silently undone by
       // computeSchedule's mondayOf() and the bar would not move. Dragging a phase onto a Tuesday IS
       // the instruction "this phase starts on a Tuesday", so the toggle comes off rather than the
@@ -5923,6 +6265,57 @@ export function initLegacyApp() {
     });
     window.addEventListener('mouseup', endDrag);
   })();
+
+  // ---------- Month pill geometry, shared by both edge-handle systems below ----------
+  // ⚠️ MODULE SCOPE since 16 Oct 2026. These four lived inside installProductionEdgeHandles; the phase
+  // handles (installPhaseEdgeHandles) read pills through them too, and two copies of "which day is
+  // this pill" is the drift cellDate()'s cross-check exists to catch. Unchanged when moved.
+
+  // A pill's first and last day, read off its grid-column and cellDate(). null on any doubt: no
+  // handle is better than a handle on the wrong day.
+  function pillRange(pill){
+    const week = pill.parentNode && pill.parentNode.parentNode;     // .mv-bars -> .mv-week
+    if(!week || !week.classList || !week.classList.contains('mv-week')) return null;
+    const a = parseInt(pill.style.gridColumnStart, 10), b = parseInt(pill.style.gridColumnEnd, 10);
+    if(!(a >= 1 && b > a && b <= 8)) return null;
+    const cells = week.querySelectorAll(':scope > .mv-daygrid > .mv-daycell');
+    const loc = cells[a - 1] && cellDate(cells[a - 1]);
+    const sun = cells[0] && cellDate(cells[0]);
+    if(!loc || !sun) return null;
+    return {from: isoOf(loc.date), to: isoOf(addDays(loc.date, b - 1 - a)), a, b, cells,
+            rowSun: isoOf(sun.date)};
+  }
+  // The pill's box clipped by every scrolling ancestor, so a pill half scrolled out of the preview
+  // panel never gets a handle painted over the toolbar.
+  function visibleRect(el){
+    const full = el.getBoundingClientRect();
+    let l = full.left, t = full.top, r = full.right, b = full.bottom;
+    for(let a = el.parentElement; a && a !== document.body; a = a.parentElement){
+      const cs = getComputedStyle(a);
+      if(cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      const q = a.getBoundingClientRect();
+      l = Math.max(l, q.left); t = Math.max(t, q.top); r = Math.min(r, q.right); b = Math.min(b, q.bottom);
+    }
+    return (r - l > 0 && b - t > 0) ? {left: l, top: t, right: r, bottom: b, full} : null;
+  }
+  // The day under x in a row's cells.
+  function dayInCells(cells, x){
+    if(cells.length !== 7) return null;
+    let cell = cells[6];
+    for(let i = 0; i < 7; i++){ if(x < cells[i].getBoundingClientRect().right){ cell = cells[i]; break; } }
+    const loc = cellDate(cell);
+    return loc ? isoOf(loc.date) : null;
+  }
+  // The day under a point, clamped to the page: the week whose band holds y, the column holding x.
+  function dayAtPoint(x, y){
+    const wrap = document.getElementById('table-wrap');
+    const body = wrap && wrap.querySelector('.mv-body');
+    if(!body || !body.children.length) return null;
+    const weeks = body.children;
+    let wk = weeks[weeks.length - 1];
+    for(let i = 0; i < weeks.length; i++){ if(y < weeks[i].getBoundingClientRect().bottom){ wk = weeks[i]; break; } }
+    return dayInCells(wk.querySelectorAll(':scope > .mv-daygrid > .mv-daycell'), x);
+  }
 
   // ---------- Production's handles: its first shoot day, its wrap, every episode's end, every week's edges ----------
   // MONTH-VIEW-PLAN.md §6.7, owner rulings 3a and 9a-9c (15 Oct 2026): "you should be able to drag
@@ -6008,20 +6401,6 @@ export function initLegacyApp() {
               first: days[0], last: days[days.length - 1]};
     }
 
-    // A Production pill's first and last day, read off its grid-column and cellDate(). null on any
-    // doubt: no handle is better than a handle on the wrong day.
-    function pillRange(pill){
-      const week = pill.parentNode && pill.parentNode.parentNode;     // .mv-bars -> .mv-week
-      if(!week || !week.classList || !week.classList.contains('mv-week')) return null;
-      const a = parseInt(pill.style.gridColumnStart, 10), b = parseInt(pill.style.gridColumnEnd, 10);
-      if(!(a >= 1 && b > a && b <= 8)) return null;
-      const cells = week.querySelectorAll(':scope > .mv-daygrid > .mv-daycell');
-      const loc = cells[a - 1] && cellDate(cells[a - 1]);
-      const sun = cells[0] && cellDate(cells[0]);
-      if(!loc || !sun) return null;
-      return {from: isoOf(loc.date), to: isoOf(addDays(loc.date, b - 1 - a)), a, b, cells,
-              rowSun: isoOf(sun.date)};
-    }
     function prodPills(){ return Array.prototype.slice.call(wrap.querySelectorAll('.mv-pill[data-ph="production"]')); }
 
     // The row a SPLIT bar is cut from, or null when the bars are not split (no Show Info, or labelled
@@ -6055,20 +6434,6 @@ export function initLegacyApp() {
       const l = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
       const rt = (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
       return r.left + l + (col + 1) * (r.width - l - rt) / 7;
-    }
-
-    // The pill's box clipped by every scrolling ancestor, so a pill half scrolled out of the preview
-    // panel never gets a handle painted over the toolbar.
-    function visibleRect(el){
-      const full = el.getBoundingClientRect();
-      let l = full.left, t = full.top, r = full.right, b = full.bottom;
-      for(let a = el.parentElement; a && a !== document.body; a = a.parentElement){
-        const cs = getComputedStyle(a);
-        if(cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
-        const q = a.getBoundingClientRect();
-        l = Math.max(l, q.left); t = Math.max(t, q.top); r = Math.min(r, q.right); b = Math.min(b, q.bottom);
-      }
-      return (r - l > 0 && b - t > 0) ? {left: l, top: t, right: r, bottom: b, full} : null;
     }
 
     // Which handles a pill carries. `side` is where on the pill: its left edge, its right edge, or
@@ -6284,24 +6649,6 @@ export function initLegacyApp() {
       }
       return null;
     }
-    // The day under x in a row's cells.
-    function dayInCells(cells, x){
-      if(cells.length !== 7) return null;
-      let cell = cells[6];
-      for(let i = 0; i < 7; i++){ if(x < cells[i].getBoundingClientRect().right){ cell = cells[i]; break; } }
-      const loc = cellDate(cell);
-      return loc ? isoOf(loc.date) : null;
-    }
-    // The day under a point, clamped to the page: the week whose band holds y, the column holding x.
-    function dayAtPoint(x, y){
-      const body = wrap.querySelector('.mv-body');
-      if(!body || !body.children.length) return null;
-      const weeks = body.children;
-      let wk = weeks[weeks.length - 1];
-      for(let i = 0; i < weeks.length; i++){ if(y < weeks[i].getBoundingClientRect().bottom){ wk = weeks[i]; break; } }
-      return dayInCells(wk.querySelectorAll(':scope > .mv-daygrid > .mv-daycell'), x);
-    }
-
     // A week edge's day marks for target T, computed from the marks at mousedown every time, so a
     // drag that comes back restores them exactly (a 'half' it passed over included).
     function weekMarks(d, T){
@@ -6373,7 +6720,7 @@ export function initLegacyApp() {
       if(step.c === d.c0){
         // Back where it began: EXACTLY what was there, flags and Snap to Mon included (MONTH-9's rule).
         r.days = d.daysWas; r.daysEdited = d.editedWas;
-        d.startEl.value = d.startWas;
+        setPhaseStart('production', d.startWas);   // the one writer for every mover (CUSTOM-PHASE-UNITS-PLAN §8.1)
         if(d.snapEl) d.snapEl.checked = d.snapWas;
       } else {
         r.days = String(step.c);
@@ -6382,7 +6729,12 @@ export function initLegacyApp() {
         // under "Manually changed" in the Show Info note -- how the user sees what the drag did.
         r.daysEdited = true;
         if(d.kind === 'start'){
-          d.startEl.value = step.iso;
+          // ⛔ Through setPhaseStart(), THE ONE WRITER of a phase's start for every mover
+          // (CUSTOM-PHASE-UNITS-PLAN §8.1). For Production today it is a plain write -- Production has no
+          // Dates mode -- but a mover that bypasses it is how a Dates range ends up stretched rather
+          // than moved, so every mover goes through it. (probeShootDays() above writes the field too,
+          // but as a scratch value it puts back before returning: a probe, not a move.)
+          setPhaseStart('production', step.iso);
           if(d.snapEl){
             // Body-drag's rule (§6.3, MONTH-9): a non-Monday takes Snap to Mon off; a Monday keeps
             // what it was. .checked without a 'change' event, as body-drag does: update() is next.
@@ -6510,6 +6862,293 @@ export function initLegacyApp() {
       e.preventDefault();
       if(isWeekKind(drag.kind)){ if(drag.cur.iso !== drag.edge0) applyWeek(drag.edge0); }
       else if(drag.cur.c !== drag.c0) applyCount({c: drag.c0, iso: drag.edge0});
+      endDrag();
+    }, true);
+  })();
+
+  // ---------- Every other phase's handles: its start and its end, by the day ----------
+  // MONTH-VIEW-PLAN.md §6.7, owner rulings 7 and 8 (15 Oct 2026), the second half of
+  // CUSTOM-PHASE-UNITS-PLAN.md step 6. Every phase with a Length select -- each custom phase, and the
+  // five built-ins since step 6 -- gets TWO handles, ever (§6.2): the start, on the left edge of the
+  // pill holding its first drawn day, and the end, on the right edge of the pill holding its last.
+  // Every other pill edge is a week boundary and belongs to body-drag. Production keeps its own
+  // (installProductionEdgeHandles, above), and has no Length select, so it is never matched here.
+  //
+  // ⛔ AN EDGE DRAG CHANGES THE LENGTH; IT IS NOT A MOVER. The other end is held still, so nothing here
+  // goes through setPhaseStart(), which would carry a Dates phase's end along with its start.
+  //             START edge, the end held               END edge, the start held
+  //   Dates     start-<key>, written directly          end-<key>
+  //   Days      start-<key>, with days-<key>           days-<key>
+  //             recounted so the last day stays
+  //   Weeks     first switches to Dates (ruling 8), visibly in its Length select: start-<key> and
+  //             end-<key> become the phase AS SCHEDULED (the segment's start, and segLastWeekday(),
+  //             onCustomUnitChange()'s prefill), then the Dates row above applies. Unlike a switch
+  //             made in the select, the end is written even when the box holds an older value: that
+  //             value is not where the phase is, and the edge being held must not move.
+  // One undo restores all of it: unit-, start-, end- and days- are id'd fields, swept into the same
+  // fields.byId snapshot (§6.3's "change the constraint"). The old-build fallback (weeks-<key>,
+  // syncCustomUnitFallback) is written inside the same step, before the trailing push.
+  //
+  // ⛔ BY THE DAY, onto a day the phase is DRAWN on. The edge lands on the day nearest the pointer that
+  // the phase would draw: a weekday outside every hiatus (Dates, and Weeks becoming Dates), or a
+  // working day by isUnitWorkDay() (Days, which skips union holidays too). A weekend or hiatus day under
+  // the pointer is stepped over, never stored: a start stored on a Saturday gives the waterfall a week
+  // row with nothing in it (CUSTOM-PHASE-UNITS-PLAN §8.1), and a handle on a day no pill covers would
+  // have nothing to sit on. Ties go to the smaller change. Each floors at one drawn day: Dates at one
+  // day, Days at one working day.
+  //
+  // ⭐ ZERO FROZEN EDITS, the Production handles' shape exactly: body-level chrome laid over the pills,
+  // the same pooled .phase-edge-handle and .phase-edge-shield, so neither month PDF can see them and
+  // buildSavedHtml() already strips both. Out and back in one gesture puts back EXACTLY what was there
+  // (MONTH-9's rule), the unit included, and banks nothing; Escape does the same.
+  (function installPhaseEdgeHandles(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;            // px, as Production's
+    const SEARCH = 400;             // days either side of the pointer to look for a drawable day
+    const pool = [];                // handle elements, reused; each carries ._spec and ._pill
+    let shownFor = null;
+    let shield = null;
+    let drag = null;
+
+    const segOf = key=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+    const dayDiff = (a, b)=> Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
+    // pillRunsForWeek()'s own test of a covered day, so a handle sits exactly where a pill edge does.
+    const drawn = (seg, d)=> segCoversDate(seg, d) && !isHiatusDate(currentSchedule, d) && !isPhaseHiatusDate(seg, d);
+    // The phase's first and last DRAWN day: where its two handles live. null if it draws nothing.
+    function drawnEnds(seg){
+      let first = null, last = null;
+      for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(drawn(seg, d)){ first = d; break; }
+      for(let d = addDays(seg.end, -1); d >= seg.start; d = addDays(d, -1)) if(drawn(seg, d)){ last = d; break; }
+      return (first && last) ? {first: isoOf(first), last: isoOf(last)} : null;
+    }
+    // Only a phase with a Length select: every custom phase and the five built-ins, never Production.
+    const hasUnit = key=> !!key && key !== 'production' && !!document.getElementById('unit-' + key);
+
+    function specsFor(pill){
+      const key = pill.getAttribute('data-ph');
+      if(!hasUnit(key)) return [];
+      const seg = segOf(key), g = pillRange(pill), ends = seg && drawnEnds(seg);
+      if(!g || !ends) return [];
+      const out = [];
+      if(g.from === ends.first) out.push({kind: 'start', side: 'left', day: g.from, key});
+      if(g.to === ends.last) out.push({kind: 'end', side: 'right', day: g.to, key});
+      return out;
+    }
+    function titleFor(spec){
+      const seg = segOf(spec.key), unit = customPhaseUnit(spec.key);
+      const n = (seg && (seg.name || seg.label)) || 'this phase';
+      const head = 'Drag to change where ' + n + (spec.kind === 'start' ? ' starts' : ' ends') + '. ';
+      const held = spec.kind === 'start' ? 'Its last day stays put' : 'Its first day stays put';
+      if(unit === 'days') return head + held + ', and its day count changes.';
+      if(unit === 'weeks') return head + held + ', and its Length switches to Dates.';
+      return head + held + '.';
+    }
+
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){
+      shownFor = null;
+      pool.forEach(h=>{ if(h !== except) h.hidden = true; });
+    }
+    function place(h, pill, spec){
+      const v = visibleRect(pill);
+      if(!v){ h.hidden = true; return; }
+      const x = spec.side === 'left' ? v.full.left : v.full.right - HANDLE_W;
+      // The edge itself must be on screen, not just some of the pill.
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = pill;
+      h.setAttribute('data-edge', spec.kind);
+      h.setAttribute('data-ph', spec.key);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(pill).color;      // the pill's own text colour reads on its fill
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const specs = specsFor(pill);
+      if(!specs.length) return;
+      shownFor = pill;
+      specs.forEach((spec, k)=>{
+        const h = handleAt(k);
+        place(h, pill, spec);
+        h.title = titleFor(spec);
+      });
+    }
+
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle')) return;   // resting on one
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      if(!pill || !wrap.contains(pill) || !hasUnit(pill.getAttribute('data-ph'))){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    // Every render replaces every pill (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // The drawable day nearest `T`, inside the floor; ties go toward where the edge began.
+    function solve(d, T){
+      if(d.kind === 'end' && T < d.ends.first) T = d.ends.first;
+      if(d.kind === 'start' && T > d.ends.last) T = d.ends.last;
+      const t = parseDateUTC(T);
+      const back = d.edge0 < T ? -1 : 1;                 // the step that shrinks the change
+      for(let k = 0; k <= SEARCH; k++){
+        for(const s of (k ? [back, -back] : [0])){
+          const x = addDays(t, s * k), iso = isoOf(x);
+          if(d.kind === 'end' && iso < d.ends.first) continue;
+          if(d.kind === 'start' && iso > d.ends.last) continue;
+          if(iso === d.edge0 || d.lands(x)) return iso;
+        }
+      }
+      return null;
+    }
+    // Working days from a to b inclusive, by the scheduler's own predicate.
+    function countWork(d, a, b){
+      let n = 0;
+      for(let x = parseDateUTC(a), e = parseDateUTC(b); x <= e; x = addDays(x, 1)) if(isUnitWorkDay(x, d.ctx)) n++;
+      return n;
+    }
+
+    // Keep the dragged handle on its edge as the grid re-renders under it.
+    function follow(){
+      const d = drag, pills = wrap.querySelectorAll('.mv-pill[data-ph="' + d.key + '"]');
+      for(let k = 0; k < pills.length; k++){
+        const g = pillRange(pills[k]);
+        if(g && (d.kind === 'start' ? g.from === d.cur : g.to === d.cur)){
+          place(d.handle, pills[k], {kind: d.kind, side: d.kind === 'start' ? 'left' : 'right', day: d.cur, key: d.key});
+          return;
+        }
+      }
+      d.handle.hidden = true;            // the edge is on a day this page does not show
+    }
+
+    function apply(D){
+      const d = drag, el = id=> document.getElementById(id + '-' + d.key);
+      if(D === d.edge0){
+        // Back where it began: EXACTLY what was there, the unit included (MONTH-9's rule).
+        d.fields.forEach((f, i)=>{ f.value = d.was[i]; });
+      } else {
+        if(d.unit === 'weeks'){
+          // Ruling 8: the gesture switches the constraint, as body-drag switches Snap to Mon (§6.3). The
+          // phase is first re-stated as Dates exactly where it is scheduled; then the edge applies.
+          // .value without a 'change' event, as body-drag sets .checked: onCustomUnitChange() would
+          // run update() and prefill again, and update() is next anyway. The boxes show by CSS off
+          // the checked option, so the row follows with no event.
+          el('unit').value = 'dates';
+          d.startEl.value = d.segStart;
+          el('end').value = d.lastWeekday;
+        }
+        if(d.unit === 'days'){
+          if(d.kind === 'start'){ d.startEl.value = D; el('days').value = String(countWork(d, D, d.ends.last)); }
+          else el('days').value = String(countWork(d, d.ends.first, D));
+        } else if(d.kind === 'start'){
+          d.startEl.value = D;           // ⛔ directly, never setPhaseStart(): the end is held
+        } else {
+          el('end').value = D;
+        }
+      }
+      d.cur = D;
+      update();
+      // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
+      cancelPendingUndoPush();
+      // ⛔ The held edge must not have moved, and the dragged one must be where it was computed to land,
+      // by the real scheduler. If not, this arithmetic disagrees with it, and a silent wrong date in
+      // someone's plan is the outcome to refuse: put it back and let the gesture go inert (Production's
+      // guard, the same reasoning).
+      if(D !== d.edge0){
+        const seg = segOf(d.key), e2 = seg && drawnEnds(seg);
+        const ok = !!e2 && (d.kind === 'start' ? e2.first === D && e2.last === d.ends.last
+                                               : e2.first === d.ends.first && e2.last === D);
+        if(!ok){ d.broken = true; apply(d.edge0); return; }
+      }
+      follow();
+    }
+
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      // ⛔ THE TRAILING PUSH IS THE STEP, as body-drag's. A drag that ends where it began banks none.
+      if(d && d.fields.some((f, i)=> f.value !== d.was[i])){
+        // The old-build fallback, BEFORE the push, so it is part of this step (CUSTOM-PHASE-UNITS-PLAN §7).
+        syncCustomUnitFallback(d.key);
+        pushUndoSnapshot();
+        markDirty();
+      }
+    }
+
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, pill = h._pill;
+      const key = spec && spec.key;
+      const seg = key && segOf(key), g = pill && pillRange(pill), ends = seg && drawnEnds(seg);
+      const startEl = key && document.getElementById('start-' + key);
+      if(!spec || !seg || !g || !ends || !startEl || !startEl.value || !hasUnit(key)) return;
+      if(spec.day !== (spec.kind === 'start' ? ends.first : ends.last)) return;   // stale: the grid moved
+      const unit = customPhaseUnit(key);
+      // Everything a drag may write, so it can be put back exactly and so "did anything change" is
+      // one comparison. Snap to Mon is not among them: it is hidden and ignored once the phase is Dates.
+      const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
+      const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
+      const d = {key, kind: spec.kind, handle: h, unit, ends, edge0: spec.day, cur: spec.day, startEl, ctx,
+                 fields, was: fields.map(f=> f.value),
+                 segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
+                 // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
+                 // Weeks, which becomes Dates). Read off the schedule at the press: hiatuses and holidays
+                 // do not change while the edge moves.
+                 lands: unit === 'days' ? (x=> isUnitWorkDay(x, ctx))
+                      : (x=>{ const w = x.getUTCDay(); return w !== 0 && w !== 6 && !isHiatusDate(sched, x) && !isPhaseHiatusDate(seg, x); })};
+      if(unit === 'days' && !document.getElementById('days-' + key)) return;
+      if(unit !== 'days' && !document.getElementById('end-' + key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // Read the pointer as if it had pressed on the CENTRE of the edge's own day, so the edge moves
+      // when the pointer crosses half a day (body-drag's rounding, and Production's).
+      const cr = g.cells[g.a - 1 + dayDiff(g.from, spec.day)].getBoundingClientRect();
+      d.dx = e.clientX - (cr.left + cr.width / 2);
+      // Flush whatever came before into its own step (body-drag's leading push).
+      pushUndoSnapshot();
+      drag = d;
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const T = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      if(!T) return;
+      const D = solve(drag, T);
+      if(D && D !== drag.cur) apply(D);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    // Escape puts the edge back where the gesture began, and banks nothing.
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur !== drag.edge0) apply(drag.edge0);
       endDrag();
     }, true);
   })();
@@ -7240,6 +7879,10 @@ export function initLegacyApp() {
     if(s.key === 'production'){
       return !!(s.shootDays && s.shootDays.indexOf(isoOf(date)) !== -1);
     }
+    // A Days-mode custom phase (CUSTOM-PHASE-UNITS-PLAN.md) knows exactly which days it counted, so
+    // a union holiday inside its run is drawn blank. Every other phase has no `days` and is
+    // unaffected. Read here, and only here, so the waterfall (week rows) never sees it.
+    if(s.days) return s.days.has(isoOf(date));
     if(dow===0 || dow===6) return false;         // weekends stay blank for week-based phases
     return date >= s.start && date < s.end;
   }
@@ -12280,7 +12923,7 @@ export function initLegacyApp() {
     defs.forEach(p=>{
       groups.push({ name: p.label || p.key, items: [
         ['{' + p.key + '.open}',  'Opens'],
-        ['{' + p.key + '.close}', p.key === 'production' ? 'Wrap (last shoot day)' : 'Closes (Friday of the final week)'],
+        ['{' + p.key + '.close}', p.key === 'production' ? 'Wrap (last shoot day)' : 'Closes (last weekday)'],
         ['{' + p.key + '.weeks}', 'Weeks'],
         ['{' + p.key + '.name}',  'Phase name'],
       ]});
@@ -12561,7 +13204,15 @@ export function initLegacyApp() {
       // week (extendEndForHiatus counts delivered weeks and returns the Monday following them), so
       // seg.end is itself a day the phase is already over. "Writer's Room closes 3.6.26" has to name
       // a day the room is still open.
-      t[p.key + '.close'] = seg.end ? hdrDate(addDays(seg.end, -3), false) : '';
+      // ⛔ FIXED 15 Oct 2026 (CUSTOM-PHASE-UNITS-PLAN.md §9): this was `seg.end - 3 days`, which is the
+      // Friday only when seg.end is a Monday. A phase that ends mid-week -- any snap-off Weeks phase
+      // starting off a Monday, and every Days or Dates phase -- named a day two or three days before
+      // its real last day (a Wednesday start's close came out as the Sunday before). Now: the last
+      // Mon-Fri day before the exclusive end. For a Monday end that is still end - 3, byte for byte,
+      // so every calendar whose phases end on Mondays prints exactly what it printed before.
+      let closeDay = seg.end ? addDays(seg.end, -1) : null, guard = 0;
+      while(closeDay && (closeDay.getUTCDay() === 0 || closeDay.getUTCDay() === 6) && guard++ < 7) closeDay = addDays(closeDay, -1);
+      t[p.key + '.close'] = closeDay ? hdrDate(closeDay, false) : '';
       t[p.key + '.weeks'] = seg.weeks ? String(seg.weeks) : '';
     });
 
@@ -13180,6 +13831,7 @@ export function initLegacyApp() {
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
+    refreshCustomUnitMeta(currentSchedule);
     refreshHolidayCoverageNote();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
@@ -13244,9 +13896,11 @@ export function initLegacyApp() {
   }
   const HALF_FIELDS = '#episode-rows .ep-days, #episode-rows .blk-days, #shoot-days-per-ep, #days-per-block';
   const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
-                     + HALF_FIELDS;
+                     + HALF_FIELDS + ', .form-panel .phase-days';
   function reflectStartDateValidity(state, extraBad){
-    const bad = new Set([...((state && state.badYearFields) || []), ...(extraBad || [])]);
+    // unitBadFields: a Dates phase's end before its start (CUSTOM-PHASE-UNITS-PLAN.md) -- one phase
+    // left out, never the whole calendar refused, so it is not a badYearField.
+    const bad = new Set([...((state && state.badYearFields) || []), ...((state && state.unitBadFields) || []), ...(extraBad || [])]);
     const hosts = new Map();   // message host -> its words
     document.querySelectorAll(WHOLE_FIELDS).forEach(el=>{
       if(!isWholeNumberTypo(el)) return;
@@ -13255,11 +13909,16 @@ export function initLegacyApp() {
       // than inside its <label>, so the wrapper hosts the words (printed under the field).
       const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('label')
                 || el.closest('.mantine-InputWrapper-root');
-      if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only' : 'Whole weeks only');
+      // Both rules, kept side by side (merged 15 Oct 2026): an episode's or block's count may end in .5
+      // (HALF_FIELDS, the half-days ruling), while a custom phase's Days box counts WORKING days,
+      // which are whole (CUSTOM-PHASE-UNITS-PLAN.md) -- isWholeNumberTypo() applies the whole rule to
+      // it because it is not in HALF_FIELDS.
+      if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only'
+                             : el.classList.contains('phase-days') ? 'Whole days only' : 'Whole weeks only');
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
     hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS).forEach(el=>{
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end').forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{
@@ -13771,6 +14430,10 @@ export function initLegacyApp() {
   }
   // Is this phase's "Snap to Mon" on? A missing box reads as SNAPPED, readState()'s own default.
   function phaseSnapped(key){
+    // A Days or Dates custom phase uses its typed start as typed (CUSTOM-PHASE-UNITS-PLAN.md): its
+    // Snap to Mon box is hidden and readState() ignores it, so the tools must not honour it either --
+    // chainedStart() would otherwise push it to the next Monday, Rebuild would pin it to one.
+    if(customPhaseUnit(key) !== 'weeks') return false;
     const el = document.getElementById('snap-' + key);
     return el ? !!el.checked : true;
   }
@@ -13796,9 +14459,12 @@ export function initLegacyApp() {
       if(!prev) return;
       // The segment's end already accounts for hiatuses INSIDE the previous phase (it delivers its
       // full week count and pushes its end out). chainedStart() takes it from there.
-      const d = chainedStart(prev.seg.end, key, (currentSchedule && currentSchedule.hiatuses) || []);
-      const inp = document.getElementById('start-' + key);
-      if(inp){ inp.value = isoOf(d); update(); }
+      let d = chainedStart(prev.seg.end, key, (currentSchedule && currentSchedule.hiatuses) || []);
+      // A built-in in Dates mode (CUSTOM-PHASE-UNITS-PLAN §7a) is never snapped, so the handoff can be
+      // a Saturday; start it on the next weekday, as Rebuild forwards does.
+      if(customPhaseUnit(key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
+      // Through the one writer, so a Dates phase's end moves with its start (plan §8.1).
+      if(setPhaseStart(key, isoOf(d))){ update(); syncCustomUnitFallback(key); }
     });
   }
 
@@ -13843,6 +14509,15 @@ export function initLegacyApp() {
     // inert on the six built-ins and works on custom phases -- which looks like a per-phase bug.
     const snapEl = document.getElementById('snap-'+p.key);
     if(snapEl) snapEl.addEventListener('change', update);
+    // Built-in Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a), bound by id for the reason above. The
+    // fallback sync is registered AFTER the update() listeners, so it reads the schedule they made.
+    const unitEl = document.getElementById('unit-'+p.key);
+    const endEl = document.getElementById('end-'+p.key);
+    if(unitEl) unitEl.addEventListener('change', ()=> onCustomUnitChange(p.key));
+    if(endEl) endEl.addEventListener('input', update);
+    if(unitEl) [document.getElementById('start-'+p.key), endEl].forEach(el=>{
+      if(el) el.addEventListener('input', ()=> syncCustomUnitFallback(p.key));
+    });
   });
   // Simultaneous Post lives inside the Production row, which buildPhaseRows() creates. Bind by
   // delegation rather than to the elements directly: a direct listener would be silently lost
@@ -14107,6 +14782,9 @@ export function initLegacyApp() {
     // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
+    // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
+    document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
+    document.querySelectorAll('.phase-end, .phase-days').forEach(el=>{ el.value = ''; });
     refreshPhaseHiatusUI();
     customPhaseDefs = [];
     document.getElementById('custom-phase-rows').innerHTML = '';
@@ -15168,7 +15846,9 @@ export function initLegacyApp() {
       // A phase moves as a unit: its own hiatus is part of its work, so it travels with the phase
       // rather than being judged against the cutoff separately.
       if(!startEl || !startEl.value || !inRange(startEl.value)){ stayingPhases.add(p.key); return; }
-      if(shiftDateFieldValue(startEl, days)) movedPhases++;
+      // Through setPhaseStart(), so a Dates phase's end moves with it (CUSTOM-PHASE-UNITS-PLAN §8).
+      const from = parseDateUTC(startEl.value);
+      if(from && setPhaseStart(p.key, isoOf(addDays(from, days)))) movedPhases++;
       shiftDateFieldValue(document.getElementById('phiatus-start-' + p.key), days);
     });
 
@@ -15269,6 +15949,7 @@ export function initLegacyApp() {
     // month view has been opened once, in which case it picks its own start and needs no nudge.
     if(monthCursor) monthCursor = addDays(monthCursor, days);
     refreshAfterRestore();
+    syncAllCustomUnitFallbacks();   // inside the caller's undo bracket, after the final update()
     // Only now is there a post-shift schedule to read the new auto texts from. The note texts do not
     // feed the schedule, so a repaint is all it takes.
     if(rewriteMovedAutoNotes(staleAuto, days)) render(currentSchedule);
@@ -15477,7 +16158,7 @@ export function initLegacyApp() {
     // ⛔ Check there is something to place BEFORE writing anything (audit L-15). The tool used to
     // pin the phase first and only then discover that nothing had a week count, reporting "Nothing
     // to place" over a phase it had already moved -- and an undo step it had already banked.
-    if(!predecessors.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+    if(!predecessors.some(phaseHasSpan)){
       return {written: [], skipped: predecessors.map(p => p.label || p.key), anchor: null};
     }
     const ranges = hiatusRangesForSolve();
@@ -15495,16 +16176,26 @@ export function initLegacyApp() {
         if(!showInfoStatus().complete){ skipped.push(p.label || p.key); return; }
         start = productionStartEndingBy(cursor);
         if(!start){ skipped.push(p.label || p.key); return; }
+      } else if(customPhaseUnit(p.key) !== 'weeks'){
+        // A Days or Dates custom phase (CUSTOM-PHASE-UNITS-PLAN §8): placed by its own length, to
+        // the day. It can leave the cursor mid-week for the phase before it -- see just below.
+        start = customStartEndingBy(p.key, cursor, ranges);
+        if(!start){ skipped.push(p.label || p.key); return; }
       } else {
         const weeks = phaseWeeksFor(p);
         if(!weeks){ skipped.push(p.label || p.key); return; }
-        start = startForWeeksEndingAt(cursor, weeks, p.key, ranges);
+        // A SNAPPED Weeks phase ends by the cursor's own Monday. Every cursor was a Monday until Days
+        // and Dates phases could be placed to the day; from a mid-week cursor the written start would
+        // be mid-week too, and the scheduler would snap it back to its Monday regardless -- this
+        // writes that Monday instead of a date the field would then show as "Snapped to Mon".
+        // Identical for every Monday cursor, so every existing rebuild is unchanged.
+        start = startForWeeksEndingAt(phaseSnapped(p.key) ? mondayOf(cursor) : cursor, weeks, p.key, ranges);
       }
       // Keep the previous date: on a calendar that is already fully dated this tool OVERWRITES
       // rather than fills, and absorbing several weeks of deliberate slack would otherwise be an
       // invisible side effect of pinning one date.
       const prevIso = el.value;
-      el.value = isoOf(start);
+      setPhaseStart(p.key, isoOf(start));   // the one writer: a Dates phase's end moves with it
       written.push({label: p.label || p.key, start, wasBlank: !prevIso, prevIso});
       cursor = start;   // the next phase back must end where this one begins
     });
@@ -15514,8 +16205,7 @@ export function initLegacyApp() {
     // shoot day and the wrap with it. The phases rebuilt before it still end by that week's Monday:
     // cursor above is anchorMonday either way, so a snapped predecessor lands on a Monday as before.
     const anchorDay = phaseSnapped(key) ? anchorMonday : target;
-    const anchorEl = document.getElementById('start-' + key);
-    if(anchorEl) anchorEl.value = isoOf(anchorDay);
+    setPhaseStart(key, isoOf(anchorDay));
     return {written, skipped, anchor: anchorDay};
   }
 
@@ -15541,12 +16231,12 @@ export function initLegacyApp() {
     if(!anchorEl) return {error:'That phase has no start field.'};
     // Nothing to place? Say so BEFORE the pin is written (audit L-15; see rebuildBackwards).
     const after = seq.slice(at + 1);
-    if(!after.some(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))){
+    if(!after.some(phaseHasSpan)){
       return {written: [], skipped: after.map(p => p.label || p.key), anchor: null};
     }
     // The pinned phase keeps the typed day when its snap is off (audit M-11; see rebuildBackwards).
     const anchorDay = phaseSnapped(key) ? mondayOf(target) : target;
-    anchorEl.value = isoOf(anchorDay);
+    setPhaseStart(key, isoOf(anchorDay));
     update();   // so the anchor's own computed end is available to place the next phase
 
     const written = [], skipped = [];
@@ -15560,7 +16250,7 @@ export function initLegacyApp() {
       if(!el) return;
       // A phase with no span isn't in use -- skip it and keep chaining from the last placed one.
       // Production is the exception: its span comes from Show Info, not a week count.
-      if(p.key === 'production' ? !showInfoStatus().complete : !phaseWeeksFor(p)){
+      if(!phaseHasSpan(p)){
         skipped.push(p.label || p.key);
         return;
       }
@@ -15569,9 +16259,13 @@ export function initLegacyApp() {
       // The handoff is the per-phase "Start after previous phase" button's rule, shared: the day after
       // the previous phase ends, the next Monday if this phase is snapped (never overlapping a
       // snap-off predecessor that ends mid-week -- audit L-24), and past any all-phase hiatus.
-      const d = chainedStart(prevSeg.end, p.key, (currentSchedule && currentSchedule.hiatuses) || []);
+      let d = chainedStart(prevSeg.end, p.key, (currentSchedule && currentSchedule.hiatuses) || []);
+      // A Days or Dates phase is never snapped, so the handoff day can be a Saturday (the day after a
+      // Friday finish). Start it on the next weekday: a Dates phase typed from a Saturday would give
+      // the waterfall a week row holding only its blank weekend.
+      if(customPhaseUnit(p.key) !== 'weeks'){ let g = 0; while((d.getUTCDay() === 0 || d.getUTCDay() === 6) && g++ < 7) d = addDays(d, 1); }
       const prevIso = el.value;   // see the note in workBackwardsFrom: overwrites must be visible
-      el.value = isoOf(d);
+      setPhaseStart(p.key, isoOf(d));   // the one writer: a Dates phase's end moves with it
       written.push({label: p.label || p.key, start: d, wasBlank: !prevIso, prevIso});
       prevKey = p.key;
       update();   // recompute so the NEXT phase reads this one's real end
@@ -16348,7 +17042,7 @@ export function initLegacyApp() {
     // point of it -- so its dropdown lists every phase with a usable span, not just scheduled ones.
     function solvablePhases(){
       return phaseSequence()
-        .filter(p => p.key === 'production' ? showInfoStatus().complete : !!phaseWeeksFor(p))
+        .filter(phaseHasSpan)
         .map(p => ({p, start: phaseStartDate(p.key)}));
     }
     function syncSolveDate(){
@@ -16505,7 +17199,7 @@ export function initLegacyApp() {
       const dateIso = (document.getElementById('tool-solve-date')||{}).value;
       const res = asOneUndoStep(()=>{
         const out = direction < 0 ? workBackwardsFrom(key, dateIso) : workForwardsFrom(key, dateIso);
-        if(!out.error) refreshAfterRestore();   // the date fields were written directly
+        if(!out.error){ refreshAfterRestore(); syncAllCustomUnitFallbacks(); }   // the date fields were written directly
         return out;
       });
       if(res.error) return say(res.error, true);
@@ -20250,6 +20944,13 @@ export function initLegacyApp() {
     // document's attributes on every shareable-copy export, so the markup defaults can be stale.
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ if(cb.id && !hasField(cb.id)) cb.checked = true; });
     document.querySelectorAll('.phiatus-name').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = ''; });
+    // ⛔ AND FOR THE LENGTH CONTROLS (CUSTOM-PHASE-UNITS-PLAN §7a, 15 Oct 2026). The five built-in rows
+    // carry unit-<key> / end-<key> on STATIC markup, so every calendar saved before these existed --
+    // all of them, until now -- would otherwise keep the PREVIOUS calendar's Dates mode and end date,
+    // and its phase would move with no edit. Absent means Weeks and no end. (Custom rows are rebuilt
+    // fresh on every restore and need none of this; the selectors match them harmlessly.)
+    document.querySelectorAll('.phase-unit').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = 'weeks'; });
+    document.querySelectorAll('.phase-end, .phase-days').forEach(el=>{ if(el.id && !hasField(el.id)) el.value = ''; });
     // Block store: UNCONDITIONAL, defaulting to empty -- the rule above, applied to the arrays.
     // `if(snap.blockDefs) blockDefs = ...` would leave the previous file's blocks behind, and its
     // hand arrangement would then be reconciled onto this file's episodes.
