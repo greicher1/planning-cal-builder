@@ -4,10 +4,15 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 16 Oct 2026: `custom-units` IS MERGED INTO LOCAL `main` AS `36db1c1`, GATED. NOT PUSHED
+### ✅ 16 Oct 2026: `custom-units` IS MERGED INTO `main` AS `36db1c1`, GATED, AND LIVE AT `695cadc`
 
 - ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge custom-units into local main, resolve the README conflict, and run
-  the full gate. Don't push."*
+  the full gate. Don't push."* Then, after the gate and the docs commit: *"push it"*.
+  - ✅ **PUSHED AND LIVE at `695cadc` (16 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`d0ed6c03…`,
+    1,495,897 bytes, fetched with a cache-buster; deploy run 38981982787, "Build and check" and "Deploy to Pages" both
+    green). The push was `54ffe15..695cadc`, 11 commits; `695cadc` differs from the gated `36db1c1` in docs only.
+    `version.json` reads 1.4.3: **no version cut**, so installed copies show no update notice for this, half-days,
+    step 7, the half-square bars or pill-label step 2 until the next cut.
   - **What landed on `main`:** custom phases by Weeks, Days or Dates (CUSTOM-PHASE-UNITS steps 1–4), Dates mode on the
     five built-in Weeks phases (step 6, gate 5 at 72 ids), and start/end grips on every phase with a Length select
     (MONTH-VIEW-PLAN rulings 7 and 8). The record is the CUSTOM PHASES entry below.
@@ -31,13 +36,11 @@
     owner's recents. Two gate legs read that fixture (`stintreshape` and gate 13's `sr`), so a gate run from the main
     checkout would have tested the edited file. It was left alone. ⛔ **Before a gate in the main checkout, run
     `git status tests/fixtures`.**
-  - **State:** `main` is this entry's HANDOFF commit on top of the merge `36db1c1`, 11 commits ahead of
-    `origin/main`: `401df7d` (HANDOFF), the merge with its eight branch commits, and this entry's commit. The
-    branch `custom-units` and worktree `claude/reverent-rosalind-d5dcd9` are now fully merged. Nothing is pushed. No
-    version is cut: `version.json` still reads 1.4.3.
-  - ⏭ **Next, when the owner chooses:** push (a production release; ask first), cut a version (CLAUDE.md's four
-    things), MONTH-PILL-LABEL step 3 (the controls), or EPISODE-PREP-PLAN (rewires the same month-pill functions, so
-    build it on top of this merge).
+  - **State:** `origin/main` = `695cadc`, live. The branch `custom-units` and worktree
+    `claude/reverent-rosalind-d5dcd9` are fully merged and could be cleaned up.
+  - ⏭ **Next, when the owner chooses:** cut a version (CLAUDE.md's four things; overdue, since four features are live
+    under 1.4.3), MONTH-PILL-LABEL step 3 (the controls), or EPISODE-PREP-PLAN (rewires the same month-pill functions,
+    so build it on top of this merge).
 
 ### ✅ 16 Oct 2026: A SWITCH DAY'S TWO MONTH BARS MEET HALF WAY THROUGH THE SQUARE (worktree `sweet-mestorf-8d18b8`)
 
@@ -121,7 +124,8 @@
 
 ### ✅ 15 Oct 2026: CUSTOM PHASES BY WEEKS, DAYS OR A DATE RANGE — STEPS 1–4 AND 6 BUILT (branch `custom-units`)
 
-- ✅ **MERGED INTO LOCAL `main` as `36db1c1` (16 Oct 2026) and gated, 1,593 PASS. NOT pushed.** See the top entry.
+- ✅ **MERGED INTO `main` as `36db1c1` (16 Oct 2026), gated (1,593 PASS), PUSHED AND LIVE at `695cadc`.** See the top
+  entry.
   The history below is as it was written on the branch.
 - Branch `custom-units` in `.claude/worktrees/custom-units`, cut from `main` at
   `34761f9`. Steps 1–3 were **committed on the branch as `fa212d7`** (owner's picker).
