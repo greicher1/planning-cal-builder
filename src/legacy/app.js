@@ -5487,14 +5487,14 @@ export function initLegacyApp() {
       // are STATIC (never rebuilt on restore), so an absent id must be defaulted explicitly in
       // applyStateSnapshot() and in New's reset -- the M-5 trap snap-<key> fell into. The markup's
       // first option (Weeks) and empty end are the defaults a fresh page starts from.
+      // The select sits IN the second field's caption, "By [Weeks ▾]" (owner, 16 Oct 2026), shared
+      // with the custom rows: see byUnitHtml().
       const fieldsHtml = (p.key === 'production')
         ? `<label>Start date <input type="date" id="start-${p.key}"></label>
            ${snapHtml}
            <input type="hidden" id="weeks-${p.key}">`
-        : `<label class="phase-unit-lbl">Length <select id="unit-${p.key}" class="phase-unit" title="How this phase's length is given: whole weeks, or a start and end date"><option value="weeks">Weeks</option><option value="dates">Dates</option></select></label>
-           <label>Start date <input type="date" id="start-${p.key}"></label>
-           <label class="pu-weeks">${fieldLabel} <input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}"></label>
-           <label class="pu-dates">End date <input type="date" id="end-${p.key}" class="phase-end"></label>
+        : `<label>Start date <input type="date" id="start-${p.key}"></label>
+           ${byUnitHtml(p.key, false, `<input type="number" id="weeks-${p.key}" min="1" step="1" placeholder="${placeholder}" aria-label="${fieldLabel}">`)}
            ${snapHtml}`;
       // Owner, 22 Sep 2026: "move production hiatus to right above sim post and below the divider
       // line. Also lets move this total shooting days (for both episodic and block) to just above the
@@ -5716,6 +5716,27 @@ export function initLegacyApp() {
     return fixed.concat(custom);
   }
 
+  // The length column of a phase row with a Length select: the caption reads "By [Weeks ▾]", the
+  // select itself in the caption, and under it whichever box the unit uses (owner, 16 Oct 2026:
+  // "a "By" where "Weeks" is currently written ... and then the "Weeks" is its own small drop down
+  // menu"). It replaced a "Length" line of its own above Start date. Built-in rows offer Weeks and
+  // Dates, custom rows Days too (CUSTOM-PHASE-UNITS-PLAN §7a).
+  // ⛔ Every id here is SAVE FORMAT (unit-, weeks-, days-, end-) and must not change. Only their
+  // place moved. Each box keeps its OWN <label> (now captionless, named by aria-label), because the
+  // .pu-* visibility CSS hides that label, reflectStartDateValidity() hangs "Whole days only" on
+  // el.closest('label'), and the legs read el.closest('label') to tell which box shows.
+  function byUnitHtml(key, withDays, weeksInput){
+    const title = withDays
+      ? "How this phase's length is given: whole weeks, a number of working days, or a start and end date"
+      : "How this phase's length is given: whole weeks, or a start and end date";
+    return `<div class="pu-by">
+        <div class="pu-by-cap">By <select id="unit-${key}" class="phase-unit" title="${title}" aria-label="Length given by"><option value="weeks">Weeks</option>${withDays ? '<option value="days">Days</option>' : ''}<option value="dates">Dates</option></select></div>
+        <label class="pu-weeks">${weeksInput}</label>
+        ${withDays ? `<label class="pu-days"><input type="number" id="days-${key}" class="phase-days" min="1" step="1" placeholder="e.g. 10" aria-label="Working days" title="Working days: Monday to Friday, skipping union holidays and hiatus days"></label>` : ''}
+        <label class="pu-dates"><input type="date" id="end-${key}" class="phase-end" aria-label="End date"></label>
+      </div>`;
+  }
+
   function addCustomPhaseRow(){
     const key = 'custom' + (++customPhaseCounter);
     const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
@@ -5732,11 +5753,8 @@ export function initLegacyApp() {
         <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
       </div>
       <div class="phase-fields">
-        <label class="phase-unit-lbl">Length <select id="unit-${key}" class="phase-unit" title="How this phase's length is given: whole weeks, a number of working days, or a start and end date"><option value="weeks">Weeks</option><option value="days">Days</option><option value="dates">Dates</option></select></label>
         <label>Start date <input type="date" id="start-${key}"></label>
-        <label class="pu-weeks">Weeks <input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12"></label>
-        <label class="pu-days">Days <input type="number" id="days-${key}" class="phase-days" min="1" step="1" placeholder="e.g. 10" title="Working days: Monday to Friday, skipping union holidays and hiatus days"></label>
-        <label class="pu-dates">End date <input type="date" id="end-${key}" class="phase-end"></label>
+        ${byUnitHtml(key, true, `<input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12" aria-label="Weeks">`)}
         <label class="phase-snap pu-weeks" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
       </div>
       <div class="phase-meta" id="meta-${key}"></div>

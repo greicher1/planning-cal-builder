@@ -28,6 +28,24 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
+
+Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small
+drop down menu"*. The Length picker had a line of its own above Start date (`Length [Weeks ▾]`). Now it sits in the
+second field's caption, so a phase row reads **Start date | By [Weeks ▾]**, with the box underneath:
+- **Weeks** shows the weeks count, **Days** the working-day count, **Dates** the end date. The hint line under the row
+  ("Thu 2/11/27 → Wed 2/24/27 (3 wk)") still spells the range out. Built-in phases offer Weeks and Dates, custom phases
+  Days too, as before.
+- **A small select at caption scale** (22 px, the app's chevron), with a **6 px gap** above the box. The first build
+  squeezed it into the caption's line, and the owner saw it "sits right on top". Start date's caption gets the same
+  22 px line and gap, so the two boxes stay level (measured: same top, same 30 px height, on Weeks, Days and Dates rows).
+- **Save format unchanged.** Every id (`unit-`, `weeks-`, `days-`, `end-`) is the same, and only its place in the row
+  moved. Each box keeps its own `<label>`, now captionless and named by `aria-label`, so the show/hide CSS, the "Whole
+  days only" message and the legs' `closest('label')` checks work as before. One helper, `byUnitHtml()`, builds the
+  column for built-in and custom rows alike.
+- **Verified** in the app: a unit switch shows the right box (Dates fills in the end date), 4.5 in a Days box still
+  rings "Whole days only", and at a 1280 px window the 333 px sidebar fits both columns side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilllabel` 244/244 and `pilldrag` 20/20 green. `npm run check` 40/40.
+
 
 ### Unreleased — "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
 

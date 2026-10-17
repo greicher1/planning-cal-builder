@@ -4,6 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 16 Oct 2026: A PHASE'S UNIT PICKER READS "BY [WEEKS ▾]" ABOVE ITS BOX (branch `by-unit`, worktree `.claude/worktrees/by-unit`)
+
+- Owner, 16 Oct 2026, with a screenshot of Writer's Rm: *"instead of this view, can there be a "By" where "Weeks" is
+  currently written (above the 39) and then the "Weeks" is its own small drop down menu"*. Then, seeing the first
+  build in the preview: *"There needs to be a gap between the drop down and the text box below it. Right now it sits
+  right on top and looks awkward"*.
+- **What changed (chrome only, no frozen code):** the `Length [Weeks ▾]` line above Start date is gone. The select is
+  now in the second column's caption, `By [Weeks ▾]`, over whichever box the unit uses (weeks, working days, or the
+  end date). One helper, `byUnitHtml()` (beside `addCustomPhaseRow`), builds that column for the five built-ins
+  (Weeks/Dates) and for custom rows (Weeks/Days/Dates). CSS is the `.pu-by` block in `legacy.css`.
+  - ⛔ **Save format untouched:** the ids `unit-`, `weeks-`, `days-`, `end-` are the same; only their DOM position
+    moved, so a newly saved file lists `unit-<key>` after `start-<key>` in `fields.byId`. Gate 5 compares the key
+    SET, so key order does not matter.
+  - ⚠️ **Each box keeps its own `<label>`, captionless, named by `aria-label`.** Three things read
+    `el.closest('label')`: the `.pu-*` show/hide CSS hides that label, `reflectStartDateValidity()` hangs "Whole days
+    only" on it, and the `customunits` / `builtindates` / `phaseedge` legs use it to tell which box shows. Wrapping
+    the three boxes in one label instead would break all three.
+  - ⚠️ **The 6 px gap is the owner's fix, measured.** The first build fitted a 22 px select into the 16.5 px caption
+    line with -2 px margins and the xxs gap, which left about 1 px between the select and the box. Now the caption line
+    is 22 px with a 6 px gap, and `.phase-fields:has(> .pu-by) > label:not(.phase-snap)` gives Start date the same
+    line and gap. Measured: both boxes have the same top, 30 px tall, on Weeks, Days and Dates rows. Production has
+    no `.pu-by`, so its row is unchanged.
+- **Verified in the app pane** (`?state=customunits`): a unit switch shows the right box and Dates fills in the end
+  date; 4.5 in a Days box rings "Whole days only"; at a 1280 px window the sidebar is 333 px and the two columns are
+  129 px each, side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilllabel` 244/244 and `pilldrag` 20/20 green. `npm run check` 40/40.
+- **Rebased onto `d8a488d`** (another session's month-pill label step 3, merged into local `main` while this was
+  built). It touches neither the phase rows nor their CSS.
+- ⚠️ `check-refs.py` flags `HANDOFF.md` "`pilllabel` 244" in the step-3 entry below as a prose line number. It is a
+  check count, not a line. That entry is the other session's, so it was left alone.
+
 ### ◐ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED INTO LOCAL `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge claude/determined-taussig-70f6a8 into local main, resolve the README
