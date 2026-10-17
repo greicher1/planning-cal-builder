@@ -28,13 +28,11 @@
     no `.pu-by`, so its row is unchanged.
 - **Verified in the app pane** (`?state=customunits`): a unit switch shows the right box and Dates fills in the end
   date; 4.5 in a Days box rings "Whole days only"; at a 1280 px window the sidebar is 333 px and the two columns are
-  129 px each, side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilllabel` 244/244 and `pilldrag` 20/20 green. `npm run check` 40/40.
+  129 px each, side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilldrag` 20/20 and all 244 `pilllabel` checks green. `npm run check` 40/40.
 - **Rebased onto `d8a488d`** (another session's month-pill label step 3, merged into local `main` while this was
-  built). It touches neither the phase rows nor their CSS.
-- ⚠️ `check-refs.py` flags `HANDOFF.md` "`pilllabel` 244" in the step-3 entry below as a prose line number. It is a
-  check count, not a line. That entry is the other session's, so it was left alone.
+  built). It touches neither the phase rows nor their CSS. Then `main`'s docs commit `6089b80` was merged in.
 
-### ◐ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED INTO LOCAL `main`, NOT PUSHED
+### ✅ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED INTO LOCAL `main` AS `d8a488d`, GATED, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge claude/determined-taussig-70f6a8 into local main, resolve the README
   and HANDOFF conflicts, and run the full gate. Don't push."*
@@ -43,10 +41,28 @@
     conflicted, and both sides' entries are kept, step 3's on top. `app.js`, `legacy.css` and `gate.sh` merged as text.
     Checked by reading: `reflectMvProdLabel()` sits in `update()` beside custom-units' `refreshCustomUnitMeta()`, and
     `gate.sh`'s `pilllabel` and `shootorder` blocks are step 3's, untouched by custom-units.
-  - **Gate:** pending, on the merged build in a clean detached worktree, as last time (the main checkout's
-    `tests/fixtures/stintswap-reshape.sptcal` is still modified and still not this work's).
-  - **Not pushed** ("Don't push"). Plan step 4 (the `pilllabel-block` / `pilllabel-episode` fixtures cut into gates 10
-    and 13) is still to do, and the step-3 branch's HANDOFF put it before the push pickers.
+  - **Proof:** full gate on the merged build `53e304f6…` (1,510,183 bytes): **1,747 PASS, 0 FAIL, GATE PASSED**
+    (about 16 min, first run, no other gate alongside, on AC power).
+    - It ran in a clean detached worktree at `d8a488d`, as last time. The main checkout's
+      `tests/fixtures/stintswap-reshape.sptcal` is still modified, and the change is still not this work's.
+    - Waterfall PDF and every Excel part identical; `v1.0.0-saved.html` restores identically; 0 clipped cells.
+    - `fields.byId` holds at **72 ids**, so the control adds none on top of custom-units. Step 3's own gate said 62
+      because its base predates custom-units' step 6.
+    - Gate 10: all ten print documents identical. Gate 13: all twenty written month PDFs byte-identical, no re-cut.
+    - `pilllabel` passed all 244 checks, `shootorder` 9, `phaseedge` 13, `pilldrag` 20; `customunits`,
+      `builtindates`, `halfdays`, `halfmarks`, `conflict` and `snapoff` all green.
+    - `npm run check` 40/40.
+    - `check-refs.py` is CLEAN after one docs fix. The merged HANDOFF's step-3 proof line put the 244/244 count straight
+      after the backticked leg name, which the checker's backticked-symbol-then-number rule reads as a line number. It
+      now says "passed 244/244".
+  - **State:** local `main` is ahead of `origin/main` (`695cadc`, live) by two docs commits (`efe29e9`, `fce72f0`), the
+    merge (which brings `6176a59`) and the docs commit recording this gate. **Not pushed** ("Don't push"). The live site still has no "Label Production by".
+  - ⏭ **Next, when the owner chooses:**
+    - push it (the push picker; verify the live file byte-identical to `53e304f6…`);
+    - or do plan step 4 first: the `pilllabel-block` / `pilllabel-episode` fixtures, cut into gates 10 and 13 once
+      the owner has seen their PDFs. The step-3 branch's HANDOFF put step 4 before the push pickers.
+    - A version cut is still overdue: five features are live or landing under 1.4.3.
+    - The branch `claude/determined-taussig-70f6a8` and its worktree are fully merged and could be cleaned up.
 
 ### ◐ 16 Oct 2026: "LABEL PRODUCTION BY" IS IN PREFERENCES — MONTH-PILL-LABEL-PLAN STEP 3 (worktree `determined-taussig-70f6a8`)
 
@@ -88,7 +104,7 @@
 - **Legs:** `pilllabel` extended (C0–C3, B1–B3, S1–S3, M per label: the done-list of the brief), virtual budget
   900 → 1500. `shootorder`'s month-rows check revised (an Episodes calendar with no label offers only Show Production
   Week).
-- **Proof:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
+- **Proof:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` passed 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
 - **Owner's screenshots** (session-notes folder `pill-label-step3/`, not the repo): a contact sheet of every mode
   beside its month, and the disabled Block's tooltip.
 - ⏭ **Next (plan step 4):** mint `pilllabel-block` / `pilllabel-episode` fixtures in the app (the control exists
