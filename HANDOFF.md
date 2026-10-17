@@ -32,10 +32,16 @@
 - **Rebased onto `d8a488d`** (another session's month-pill label step 3, merged into local `main` while this was
   built). It touches neither the phase rows nor their CSS. Then `main`'s docs commit `6089b80` was merged in.
 
-### ✅ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED INTO LOCAL `main` AS `d8a488d`, GATED, NOT PUSHED
+### ✅ 16 Oct 2026: MONTH-PILL-LABEL STEP 3 ("LABEL PRODUCTION BY") MERGED AS `d8a488d`, GATED, AND LIVE AT `6089b80`
 
 - ⏭ **RESUME HERE.** Owner, 16 Oct 2026: *"Merge claude/determined-taussig-70f6a8 into local main, resolve the README
-  and HANDOFF conflicts, and run the full gate. Don't push."*
+  and HANDOFF conflicts, and run the full gate. Don't push."* Then, after the gate and the docs commit: *"Push local
+  main to origin and verify the live file matches the gated build."*
+  - ✅ **PUSHED AND LIVE at `6089b80` (16 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`53e304f6…`,
+    1,510,183 bytes, fetched with a cache-buster; it carries "Label Production by"). Deploy run 38986323373: "Build and
+    check" and "Deploy to Pages" both green. The push was `695cadc..6089b80`, 5 commits; `6089b80` differs from the
+    gated `d8a488d` in docs only. `version.json` reads 1.4.3: **no version cut**, so installed copies show no update
+    notice for this either.
   - **The merge:** `git merge --no-ff claude/determined-taussig-70f6a8` (`6176a59`, step 3, cut from `401df7d`) onto
     `main` at `fce72f0`, which carries custom-units (`36db1c1`, live at `695cadc`). Only `README.md` and `HANDOFF.md`
     conflicted, and both sides' entries are kept, step 3's on top. `app.js`, `legacy.css` and `gate.sh` merged as text.
@@ -55,12 +61,10 @@
     - `check-refs.py` is CLEAN after one docs fix. The merged HANDOFF's step-3 proof line put the 244/244 count straight
       after the backticked leg name, which the checker's backticked-symbol-then-number rule reads as a line number. It
       now says "passed 244/244".
-  - **State:** local `main` is ahead of `origin/main` (`695cadc`, live) by two docs commits (`efe29e9`, `fce72f0`), the
-    merge (which brings `6176a59`) and the docs commit recording this gate. **Not pushed** ("Don't push"). The live site still has no "Label Production by".
+  - **State:** `origin/main` = `6089b80`, live. This docs commit is local only.
   - ⏭ **Next, when the owner chooses:**
-    - push it (the push picker; verify the live file byte-identical to `53e304f6…`);
-    - or do plan step 4 first: the `pilllabel-block` / `pilllabel-episode` fixtures, cut into gates 10 and 13 once
-      the owner has seen their PDFs. The step-3 branch's HANDOFF put step 4 before the push pickers.
+    - plan step 4: the `pilllabel-block` / `pilllabel-episode` fixtures, cut into gates 10 and 13 once the owner has
+      seen their PDFs. The owner chose to push before it.
     - A version cut is still overdue: five features are live or landing under 1.4.3.
     - The branch `claude/determined-taussig-70f6a8` and its worktree are fully merged and could be cleaned up.
 

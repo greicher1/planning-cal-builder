@@ -72,7 +72,8 @@ controls, so a user can now pick the label.
   (`mv-prod-label`) and sit inside `.prefs-card`, which the field sweep skips. Its value reaches React through
   `bridge.js` (`chrome.mvProdLabel`).
 - **Verified:** full gate on build `529e12d97fa9d22b…` (1,496,471 bytes): **1,647 PASS, 0 FAIL, GATE PASSED** (14½ min, 16 Oct 2026, no other gate alongside, Mac on AC). `pilllabel` 244/244 on eight calendars (90 before), `shootorder` 9/9, `halfdays` and `pilldrag` green, `fields.byId` 62 ids. Gate 10: all ten print documents identical; gate 13: all twenty written month PDFs byte-identical, no re-cut (the default label draws exactly as before). `npm run check` 40/40, `check-refs.py` CLEAN. Keyboard checked over CDP: the arrow keys move the label, and skip a disabled Block.
-- ✅ **Merged into local `main` as `d8a488d` (16 Oct 2026), on top of custom-units (live at `695cadc`). Not pushed.**
+- ✅ **Merged into local `main` as `d8a488d` (16 Oct 2026), on top of custom-units (live at `695cadc`). Pushed and live
+  at `6089b80` the same day, verified byte-identical to the gated build; no version cut.**
   Only this file and `HANDOFF.md` conflicted, and both sides' entries are kept. Full gate on the merged build
   (`53e304f6…`, 1,510,183 bytes, run in a clean worktree at `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (about
   16 min, the first run). Every frozen output is unchanged. `fields.byId` holds at 72 ids, so the control adds none
