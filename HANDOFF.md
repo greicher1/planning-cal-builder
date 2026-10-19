@@ -4,6 +4,24 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
+
+- Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
+  feature or a setting on phases.
+- **Ruled (19 Oct 2026):** R1, **keep them as phases**: a one-day item takes a waterfall column like any phase.
+  R2, **the setting is for custom phases only**, never the six built-ins.
+- ⭐ **Why it is small:** Days and Dates custom phases (CUSTOM-PHASE-UNITS) already ARE the one-day item, and the day
+  menu's "one day" item already makes one. Only the label is wrong: *Name wk 1* from `getAllPhaseDefs()`'s template
+  (waterfall, Excel, waterfall PDF), *Name Week 1* from `prodWeekLabel()` (month view, both month PDFs, the day menu).
+  Neither is frozen.
+- **The design:** a "Number weeks" checkbox per custom row, new permanent id `wknum-<key>` (not `num-`, which means a
+  count). Absent means numbered, so every saved calendar is unchanged. No restore default is needed, because custom rows
+  are rebuilt fresh. The By select going to Days/Dates unticks it, and so must `addPhaseHere(ctx,'day')`, which sets the
+  unit with no event. The edge drag's Weeks → Dates switch leaves it alone.
+- ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
+  it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
+- ⏭ **Next:** build it in its own worktree off `main` (plan §9), when the owner asks.
+
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
 - ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
