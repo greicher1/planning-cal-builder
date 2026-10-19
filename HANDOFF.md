@@ -4,6 +4,43 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: DAY MENU STEP 1 IS MERGED INTO LOCAL `main` (`9cb903e` + `8e99717`), GATED, NOT PUSHED
+
+- **State:** ✅ **merged into local `main` at `9cb903e`** (19 Oct 2026), plus one fix the merge exposed, `8e99717`.
+  Owner: *"Merge claude/gifted-ramanujan-f162cf into main, resolve the doc conflicts, and run the full gate. Don't
+  push."* **Not pushed.** The feature's own entry is below ("THE MONTH VIEW'S DAY MENU — STEP 1 BUILT").
+- **The merge:** a normal `--no-ff` merge, because `main` had gained the episode grips (`04a1f18`) and per-episode prep
+  (`e50583b`) since the branch was cut at `8515cd8`. `app.js`, `legacy.css` and `gate.sh` auto-merged. `HANDOFF.md`,
+  `README.md` and `tests/harness/README.md` conflicted, each because both sides had added an entry at the same spot;
+  both are kept in each. The Mac Ctrl+click guard is in all three drag starts after the merge, and the new
+  episode-start grip goes through `installProductionEdgeHandles`' one `beginDrag`, so it is covered too.
+- ⭐ **The fix (`8e99717`): the menu's header named prep wrongly.** Step 1 predates prep. Its `dayFacts()` names each bar
+  through `prodWeekLabel()`, and the prep segment's `start` is Production's start (a lane anchor, EPISODE-PREP-PLAN
+  §13.1). So a prep day read "Prep Week 1", or just "Prep" before the shoot, and two overlapping preps showed as one.
+  Each prep covering the day is now named by `prepPillLabel()`, as its pill is. Checked by hand in the browser pane on
+  `episodeprep.sptcal`: Thu 25 Feb 2027 reads "Shoot day 4 · Ep. 302 · Production Week 1 · Prep 301 · Prep 304", and
+  Fri 12 Feb reads "Prod Prep Week 4 · Prep 302". ⚠️ **No leg covers it:** `mvmenu` runs on `halfdays.sptcal`, which
+  has no prep. Adding a prep case to `mvmenu` is the cheap insurance, and step 3 (the phase section) will need it anyway.
+- **Proof:**
+  - **Full gate on build `89413c30…` (1,532,060 bytes, port 8731, 12:41–13:24): 1,838 PASS, 1 FAIL.** It ran in a
+    clean detached worktree at `8e99717` (`.claude/worktrees/menu-merge-gate`), because the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's), and only after the `autonote-merge`
+    session's gate had exited.
+  - Gates 1–4 are green: 0 clipped, the waterfall PDF and every Excel part identical, and v1.0.0 restores identically.
+    Gate 5 holds at 74 ids. Gate 13's twenty written month PDFs are byte-identical. `mvmenu` passes 36/36, and
+    `episodeprep`, `pilldrag` (24), `phaseedge`, `halfdays`, `halfworked`, `overrides` and `sharecopy2` are all green.
+  - **The one failure was `monthprint blocks` (gate 10): "produced no usable result"**, meaning no `monthprint.json`
+    was written. That is a run that never finished, not a difference. Re-run alone on the same build and port, exactly
+    as `gate.sh` runs it, it passed **6/6**: the document is identical to the baseline (16 months, 492,868 bytes), with
+    one sheet per month. The other nine gate-10 cases were identical in the full run.
+  - `monthdragundo` (not in the gate) passed on its own on the merged build: one undo returns the drag.
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+- ⚠️ **Still not verified:** a real Mac Ctrl+click on a bar and on an edge handle (plan §5). The owner should try it
+  once.
+- ⏭ **Next:** push only on the owner's word. `origin/main` is at `04a1f18`, so a push of `main` ships **everything**
+  in `git log origin/main..main`: per-episode prep (`e50583b`, gated at 1,808 PASS), this menu, and the docs between.
+  A version cut is overdue (`version.json` still 1.4.3). Then plan step 2 (Add hiatus ▸).
+
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 
 - **The trap:** `autonote-grips` (unmerged) fixed the month drags. Every other schedule change still leaves an edited
@@ -147,8 +184,9 @@
 
 ### ◐ 19 Oct 2026: THE MONTH VIEW'S DAY MENU — STEP 1 BUILT (branch `claude/gifted-ramanujan-f162cf`, worktree `.claude/worktrees/gifted-ramanujan-f162cf`; steps 2–5 to come)
 
-- ⏭ **RESUME HERE for this feature.** Plan step 1 (§10) is built and gated on this branch, cut from `main` at
-  `8515cd8`. Not merged into `main`, not pushed. The commit waits on the owner's picker.
+- ⏭ **RESUME HERE for this feature.** Plan step 1 (§10) was built and gated on this branch, cut from `main` at
+  `8515cd8`. ✅ **Merged into local `main` at `9cb903e` on 19 Oct 2026, with a prep fix (`8e99717`), and gated
+  again there** (top entry). Not pushed. Build step 2 from `main`, not from this branch.
 - **What a user gets:** a right-click anywhere on a day in the month view opens the menu, at the pointer.
   - **The header** names the day and what is on it, all from the schedule: "Wed 8 Jul 2026 / Shoot day 7 · Ep. 202 ·
     Production Week 2". It lists the shoot day, each drawn bar's own label, an all-phase hiatus, and the enabled

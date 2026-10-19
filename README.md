@@ -68,6 +68,15 @@ Week 2"), and the day is ringed while it is open. Four items:
     `sharecopy2` all pass. `monthdragundo`, run on its own, passes too.
   - ⚠️ **Not verified:** a real Ctrl+click with a Mac mouse or trackpad. Synthetic presses prove the guard, not the
     OS turning Ctrl+click into a right-click.
+- **Merged with per-episode prep** (`9cb903e`, 19 Oct 2026). The header names each prep on the day as its pill does,
+  "Prep 302", and two overlapping preps once each (`8e99717`). Before that fix it read "Prep Week 1", because the prep
+  row's start is Production's. Checked by hand on `episodeprep.sptcal`. No leg covers it yet.
+  - Full gate on the merge (build `89413c30…`, 1,532,060 bytes): **1,838 PASS, 1 FAIL.** The failure was gate 10's
+    `blocks` case, which wrote no result. Re-run alone it passed 6/6, with its print document identical to the
+    baseline.
+  - Every other frozen output is identical: the waterfall PDF, every Excel part and the other nine print documents.
+    Gate 13's twenty written month PDFs are byte-identical, and `fields.byId` holds at 74 ids. `mvmenu` passes 36/36,
+    and `monthdragundo` passes on its own.
 
 ### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
 
