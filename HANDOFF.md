@@ -90,7 +90,8 @@
 
 - ⏭ **RESUME HERE for the day menu.** Owner: *"Keep the plan order: build step 2 (Add hiatus) next"*, then *"start step
   3"*. Both are built on `day-menu-step3`, which contains `day-menu-step2`. Not merged into `main`, not pushed. Step 4
-  (the left-click takes over, Full day/Off fold in) is what the owner is waiting for (entry below).
+  (the left-click takes over, Full day/Off fold in) is what the owner is waiting for: ✅ built on `day-menu-step4`,
+  cut from this branch (entry above).
 - **Gate:** step 2's own gate never ran: it queued behind another session's gate, which ran for over an hour. Since step
   3's branch contains step 2, ONE gate on step 3 covers everything that would merge. If it fails, gate
   `day-menu-step2` alone to tell which step is at fault.
