@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
+
+- **The trap:** `autonote-grips` (unmerged) fixed the month drags. Every other schedule change still leaves an edited
+  "Start Principal Photography 6/29/26" / "… Wraps 10/20/26" on its old date, on screen, in Excel and in both PDFs.
+  That covers a typed or picked start, episode or block days, Show Info, a custom holiday, the Region, Rebuild From,
+  Close all gaps and autostart. Reproduced with trusted input on `autonote-grips.sptcal` against the drag-fix build
+  `20f129fb…` (plan §1).
+- ⭐ **Learned, measured:** `update()` runs on every keystroke's intermediate value. Typing 07/06/2026 fires on
+  2026-07-29 and the years 0002/0020/0202. Retyping 06/30 over 06/29 fires on 2026-06-03. "12" over 10 episodes
+  fires on "1". So a rewrite chained from the previous schedule would cut the Start line at 6/3 and never get it back.
+- **Owner's picker, all recommended:** (1) one hook in `update()`, with a per-note memory recomputed from the
+  original every time; (2) the user's own lines stay on their week; (3) build in its own worktree off `main` AFTER
+  `autonote-grips` is merged. The exclusions are `suppressDirty` / `applyingUndoRedo`, plus the memory cleared in
+  `applyStateSnapshot` and `resetAll` and held during `shiftCalendar`. Plan §3.3 has the reasons; `monthCursorRecheck`
+  is not the signal. The drags' `autoNoteBaseline()` goes inert by declaration (§3.4). No frozen code, no save-format
+  change. The gate is plan §5 (N1–N12; gates 10 and 13 byte-identical).
+
 ### ◐ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO LOCAL `main` (EPISODE-PREP-PLAN steps 1–6), NOT PUSHED
 
 - **State:** ✅ **merged into local `main`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into local main,
