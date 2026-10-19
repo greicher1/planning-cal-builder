@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0` on branch `autonote-merge`, gated on build `05169b7f…`; on local `main` only by the owner's picker; NOT pushed, NOT live)
+### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
 - ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
   comment for start of photography isnt moving when you drag the first day of production"*. The fix (below) had been
@@ -62,10 +62,11 @@
     it: in Waterfall, Reset Notes (it is that file's only waterfall note), or edit the note to read 10/21/27,
     which matches the auto text and so goes back to auto. Auto-healing such notes would be a new rule, and the
     owner has not been asked.
-  - ⏭ **To land it:** `main` fast-forwards to `autonote-merge` (its last merge has `b27caf0` as a parent) on the
-    owner's commit picker. If `main` has moved again by then, merge it once more and re-gate unless the new
-    commits are docs only. Then push only on the owner's separate per-push picker, and verify the live file
-    byte-identical to `05169b7f…`. The main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still the
+  - ✅ **LANDED AND LIVE.** On the owner's two pickers ("Yes, fast-forward main", then "Yes, push and verify"):
+    local `main` fast-forwarded `b27caf0` → `6027247`, and one `git push origin main` (`dac24c9..6027247`, 14:05)
+    also sent the two HANDOFF commits already on `main` (`e1a27d4`, `b27caf0`). Deploy run 39324731628 succeeded in
+    44 s. The live `index.html`, fetched with a cache-buster, is **byte-identical to the gated build**: sha256
+    `05169b7f6a6509c8…`, 1,532,490 bytes. The main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still the
     owner's app save, not anyone's change: leave it modified.
 
 - Owner, 19 Oct 2026: *"when i use the grab handle to change the start of the very first day of production, it doesnt
