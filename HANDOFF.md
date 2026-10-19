@@ -75,7 +75,8 @@
   - the right-click menu plan and mockup (`f9dfc73`, `8515cd8`, docs only).
 
   `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is overdue.
-- ⏭ **Open:** the standalone `pilllabel (dayoverrides)` re-run (port 8744), still running at push time. See Proof.
+- ✅ **Closed after the push:** standalone `pilllabel (dayoverrides)` on the live build `f1ac3ff2…` (port 8744, once
+  another session's gate had finished) passed **29/29**, K1 and C3 included. The gate's two failures were load flakes.
 - **Two owner requests, 19 Oct 2026**, both in `installProductionEdgeHandles()` (`src/legacy/app.js`, not frozen):
   1. *"when you drag the edge handles of a production week or episode that is directly touching another week or
      episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
@@ -125,7 +126,8 @@
     - Waterfall PDF and every Excel part identical; `v1.0.0-saved.html` restores identically; 0 clipped cells;
       `fields.byId` 72 ids; gate 10's print documents identical; gate 13's written month PDFs byte-identical.
     - The two failures were `pilllabel (dayoverrides)` K1 ("timed out waiting for: save enabled") and C3. That leg
-      reads no grip. A standalone re-run on port 8744 was still running at commit time; ⏭ **confirm it.**
+      reads no grip. ✅ Re-run standalone on the same build, it passed 29/29 (K1 and C3 included). A first
+      standalone attempt, made while another session's gate ran, wrote no result at all.
   - Both gates ran in a clean detached worktree at `6ad9e42` with the change copied in, because the main checkout's
     `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's).
   - Checked in the app pane (v1.4.0-saved, July 2026): 201's end left a day leaves Thu 7/9 hatched off with 202 still
