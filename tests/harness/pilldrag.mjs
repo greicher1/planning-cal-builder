@@ -72,6 +72,24 @@
 //       marked, total 80, wrap 10/20
 //   E18 labelled by Week (one bar per week): the Thu|Fri line inside week 2's bar carries 201's end just left
 //       of it and 202's start just right of it, both topmost; 202's start left a day -> 201 7, 202 9, wrap held
+//
+// ⭐ R5 FOR THE MONTH DRAGS (owner, 19 Oct 2026: "when i use the grab handle to change the start of the very
+// first day of production, it doesnt move the comment with it"). An EDITED auto-note is stored as literal
+// text, so the drags left "Start Principal Photography 6/29/26" on 6/29 once the shoot started 6/30.
+// autoNoteBaseline() / reapplyAutoNoteBaseline() rewrite it, as the shift tools' rewriteMovedAutoNotes does.
+// On autonote-grips.sptcal; E19-E21 and D5 were red on the build before the fix.
+//   E19 the start grip right a day: "Start Principal Photography 6/30/26" on 6/30, the user's "Table Read"
+//       still on 6/29, no 6/29/26 anywhere; ONE Ctrl+Z restores the note and the date
+//   E20 out a day and back in ONE gesture: 6/30/26 mid-gesture, then the notes exactly as they were
+//   E21 the wrap grip right a day: a note that IS the auto text ("Principal Photography Wraps 10/20/26", the
+//       owner's own file's shape) reads 10/21/26 on 10/21; ONE Ctrl+Z restores it
+//   D5  body-drag Production down a week (6/29 -> 7/6): "Start Principal Photography 7/6/26" on 7/6, the
+//       user's "Table Read" stays on 6/29 (a body-drag moves no note between weeks), and the wrap note
+//       moves with the wrap
+//   E22 the start grip onto Wed 7/1: the rewritten "Start Principal Photography 7/1/26" sits ON 7/1, not on Monday
+//       6/29 (notesForWaterfallDate's trailing-date pattern takes a one-digit day: frozen edit, owner-approved)
+//   E23 no drag: in the 8/3 week's edited note, "Cast read 8/4/26" is drawn on 8/4, and "Delivery 8/12/26" (dated
+//       in another week) on Monday 8/3 instead of on no day at all (the second owner-approved frozen line)
 // Same plumbing as rtleg.mjs / printpaper.mjs: Node 24's built-in WebSocket, no dependencies, and a
 // non-default HARNESS_PORT namespaces the Chrome profile.
 import fs from 'node:fs';
@@ -664,6 +682,143 @@ try {
        !!p18 && p18.gc === '2/7' && kinds(h18) === 'bound,head,wkL,wkR' && visible(h18).every(h => h.topmost)
        && !!b18 && !!hd18 && line18 !== null && Math.abs(b18.r - line18) < 4 && Math.abs(hd18.l - line18) < 4 && b18.r <= hd18.l + 0.5
        && e18eps[0] === '7' && e18eps[1] === '9' && e18.total === '80' && e18.wrap === '10/20/26', out.E18);
+
+  // ---- R5 for the month drags (owner, 19 Oct 2026): an EDITED auto-note follows its date ----------
+  // autonote-grips.sptcal: monthnotes.sptcal (an undated "Start Principal Photography 6/29/26" + "Table
+  // Read") plus "Principal Photography Wraps 10/20/26" stored as literal text, the owner's own shape, and
+  // "Writer's Room Opens 1/5/26" + "Pitch day". Read off the month view's note blocks, 'day|text'.
+  const notesShown = () => ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block'))
+    .map(b => b.dataset.noteDay + '|' + b.innerText.replace(/\\s+/g, ' ').trim())`);
+  const has = (ns, s) => ns.indexOf(s) >= 0;
+  const says = (ns, re) => ns.some(s => re.test(s));
+
+  // E19 -- the start grip right a day: the Start line moves to 6/30 and says so; Table Read stays on the
+  // week's Monday; ONE Ctrl+Z puts the note back with the date.
+  await load('autonote-grips');
+  await gotoMonth('June 2026');
+  const n19a = await notesShown();
+  const h19 = visible(await restOn(await prodPill(0))).find(h => h.edge === 'start');
+  const mon19 = await cell(4, 1, 29), tue19 = await cell(4, 2, 30);
+  if (h19 && mon19 && tue19) await dragPath(h19, [[h19.x + (tue19.x - mon19.x) * 0.55, h19.y], [h19.x + (tue19.x - mon19.x), h19.y]]);
+  const p19 = await prod(), n19b = await notesShown();
+  await ctrlZ();
+  const p19u = await prod(), n19c = await notesShown();
+  out.E19 = { before: n19a, handle: h19, prod: p19, after: n19b, undoneProd: p19u, undone: n19c };
+  kase('E19', 'an EDITED Start note follows the start grip: "Start Principal Photography 6/30/26" on 6/30, Table Read kept on 6/29, '
+       + 'no 6/29/26 left; ONE Ctrl+Z restores the note and 6/29',
+       !!h19 && has(n19a, '2026-06-29|Start Principal Photography 6/29/26') && has(n19a, '2026-06-29|Table Read')
+       && p19.start === '2026-06-30' && has(n19b, '2026-06-30|Start Principal Photography 6/30/26') && has(n19b, '2026-06-29|Table Read')
+       && !says(n19b, /6\/29\/26/)
+       && p19u.start === '2026-06-29' && JSON.stringify(n19c) === JSON.stringify(n19a), out.E19);
+
+  // E20 -- out a day and back in ONE gesture: the note is exactly as it was (recomputed from the press,
+  // never chained step to step).
+  await load('autonote-grips');
+  await gotoMonth('June 2026');
+  const n20a = await notesShown();
+  const h20 = visible(await restOn(await prodPill(0))).find(h => h.edge === 'start');
+  const mon20 = await cell(4, 1, 29), tue20 = await cell(4, 2, 30);
+  let n20mid = [];
+  if (h20 && mon20 && tue20) {
+    await mouse('mouseMoved', h20.x, h20.y, 0);
+    await mouse('mousePressed', h20.x, h20.y, 1);
+    await sleep(150);
+    await mouse('mouseMoved', h20.x + (tue20.x - mon20.x), h20.y, 1);
+    await sleep(400);
+    n20mid = await notesShown();
+    await mouse('mouseMoved', h20.x, h20.y, 1);
+    await sleep(400);
+    await mouse('mouseReleased', h20.x, h20.y, 0);
+    await sleep(700);
+  }
+  const p20 = await prod(), n20b = await notesShown();
+  out.E20 = { before: n20a, mid: n20mid, after: n20b, prod: p20 };
+  kase('E20', 'out a day and back in ONE gesture: 6/30/26 mid-gesture, then the notes exactly as they were and the start 6/29',
+       !!h20 && has(n20mid, '2026-06-30|Start Principal Photography 6/30/26')
+       && p20.start === '2026-06-29' && JSON.stringify(n20b) === JSON.stringify(n20a), out.E20);
+
+  // E21 -- the wrap grip right a day (Tue 10/20 -> Wed 10/21): a note stored as exactly the auto text goes
+  // with it; ONE Ctrl+Z puts it back.
+  await load('autonote-grips');
+  await gotoMonth('October 2026');
+  const n21a = await notesShown();
+  const h21 = visible(await restOn(await prodPill(-1))).find(h => h.edge === 'end');
+  const tue21 = await cell(3, 2, 20), wed21 = await cell(3, 3, 21);
+  if (h21 && tue21 && wed21) await dragPath(h21, [[h21.x + (wed21.x - tue21.x) * 0.55, h21.y], [h21.x + (wed21.x - tue21.x), h21.y]]);
+  const p21 = await prod(), n21b = await notesShown();
+  await ctrlZ();
+  const p21u = await prod(), n21c = await notesShown();
+  out.E21 = { before: n21a, handle: h21, prod: p21, after: n21b, undoneProd: p21u, undone: n21c };
+  kase('E21', 'the owner\'s shape (a note that IS the auto text) follows the wrap grip: "Principal Photography Wraps 10/21/26" on 10/21, '
+       + 'no 10/20/26 left; ONE Ctrl+Z restores it',
+       !!h21 && has(n21a, '2026-10-20|Principal Photography Wraps 10/20/26')
+       && p21.wrap === '10/21/26' && has(n21b, '2026-10-21|Principal Photography Wraps 10/21/26') && !says(n21b, /10\/20\/26/)
+       && p21u.wrap === '10/20/26' && JSON.stringify(n21c) === JSON.stringify(n21a), out.E21);
+
+  // D5 -- body-drag Production DOWN A WEEK (Mon 6/29 -> Mon 7/6). It carries no note between weeks, so the
+  // edited Start note's own line stays on 6/29 while its auto line leaves the week: the 7/6 week shows the
+  // plain auto-note, and the wrap note (exactly the auto text) leaves 10/20 and goes back to plain auto.
+  // Cross-week on purpose: it was written while a line rewritten to a day 1-9 inside an override still sat on its
+  // week's Monday (notesForWaterfallDate's two-digit-day pattern, since fixed: E22, E23), and it keeps covering
+  // the path where the auto line leaves its week.
+  await load('autonote-grips');
+  await gotoMonth('June 2026');
+  const n5a = await notesShown();
+  const g5 = await prodPill(0);
+  const wk5 = await ev(`document.querySelector('#table-wrap .mv-week').getBoundingClientRect().height`);
+  if (g5) {
+    await mouse('mouseMoved', g5.x, g5.y, 0);
+    await mouse('mousePressed', g5.x, g5.y, 1);
+    await sleep(150);
+    await mouse('mouseMoved', g5.x, g5.y + wk5 * 0.55, 1);
+    await sleep(150);
+    await mouse('mouseMoved', g5.x, g5.y + wk5, 1);
+    await sleep(400);
+    await mouse('mouseReleased', g5.x, g5.y + wk5, 0);
+    await sleep(700);
+  }
+  // July's grid starts Sun 6/28, so it shows both 6/29 and 7/6 (June's ends on Sat 7/4).
+  const p5 = await prod();
+  await gotoMonth('July 2026');
+  const n5b = await notesShown();
+  await gotoMonth('October 2026');
+  const n5c = await notesShown();
+  // The new wrap is read off the meta line, not assumed: the move also takes the 7/3 holiday out of the shoot.
+  const isoOfShort = w => { const [m, d, y] = String(w).split('/'); return '20' + y + '-' + m.padStart(2, '0') + '-' + d.padStart(2, '0'); };
+  out.D5 = { before: n5a, pill: g5, landed: p5, after: n5b, october: n5c };
+  kase('D5', 'body-drag Production down a week: starts 7/6, "Start Principal Photography 7/6/26" on 7/6, Table Read kept on 6/29, '
+       + 'no 6/29/26; the wrap note moves with the wrap, no 10/20/26',
+       !!g5 && has(n5a, '2026-06-29|Start Principal Photography 6/29/26') && p5.start === '2026-07-06' && !!p5.wrap && p5.wrap !== '10/20/26'
+       && has(n5b, '2026-07-06|Start Principal Photography 7/6/26') && has(n5b, '2026-06-29|Table Read') && !says(n5b, /6\/29\/26/)
+       && has(n5c, isoOfShort(p5.wrap) + '|Principal Photography Wraps ' + p5.wrap) && !says(n5c, /10\/20\/26/), out.D5);
+
+  // E22 -- the start grip onto a day 1-9 (Mon 6/29 -> Wed 7/1), the edited note still holding "Table Read". The
+  // rewritten line "Start Principal Photography 7/1/26" sits on 7/1 itself, not on its week's Monday. Red until
+  // notesForWaterfallDate's trailing-date pattern took a one-digit day (frozen edit, owner-approved 19 Oct 2026),
+  // since fmtShort writes "7/1/26".
+  await load('autonote-grips');
+  await gotoMonth('June 2026');
+  const h22 = visible(await restOn(await prodPill(0))).find(h => h.edge === 'start');
+  const mon22 = await cell(4, 1, 29), wed22 = await cell(4, 3, 1);
+  if (h22 && mon22 && wed22) await dragPath(h22, [[h22.x + (wed22.x - mon22.x) * 0.5, h22.y], [h22.x + (wed22.x - mon22.x), h22.y]]);
+  const p22 = await prod(), n22 = await notesShown();
+  out.E22 = { handle: h22, prod: p22, after: n22 };
+  kase('E22', 'start grip onto Wed 7/1: "Start Principal Photography 7/1/26" sits ON 7/1 (not Monday 6/29), Table Read on 6/29',
+       !!h22 && p22.start === '2026-07-01'
+       && has(n22, '2026-07-01|Start Principal Photography 7/1/26') && has(n22, '2026-06-29|Table Read')
+       && !has(n22, '2026-06-29|Start Principal Photography 7/1/26'), out.E22);
+
+  // E23 -- where a dated line inside an edited week note is drawn, no drag (both rules frozen edits in
+  // notesForWaterfallDate, owner-approved 19 Oct 2026). The 8/3 week's note holds "Cast read 8/4/26" (its own week,
+  // day 1-9: on 8/4, it was on Monday 8/3) and "Delivery 8/12/26" (dated in ANOTHER week: placed like an undated
+  // line, on Monday 8/3; it used to be drawn on no day at all). August's grid starts Sun 7/26.
+  await load('autonote-grips');
+  await gotoMonth('August 2026');
+  const n23 = await notesShown();
+  out.E23 = { august: n23 };
+  kase('E23', 'an edited week note: "Cast read 8/4/26" on 8/4 (not Monday), "Delivery 8/12/26" (another week) on Monday 8/3, not lost',
+       has(n23, '2026-08-04|Cast read 8/4/26') && has(n23, '2026-08-03|Delivery 8/12/26')
+       && !has(n23, '2026-08-03|Cast read 8/4/26') && !has(n23, '2026-08-12|Delivery 8/12/26'), out.E23);
   ws.close();
 } catch (e) {
   out.EX = String(e && e.message || e);

@@ -808,6 +808,42 @@ window.addEventListener('load', function () { (async function () {
     // Jul (7/13-7/17, 7/20, 7/21), so the mark lands there and Wed 22 Jul becomes shoot day 7. A mark left on its
     // DATE would leave 21 Jul as shoot day 7.
     await toMonth('July 2026');
+
+    // P7: R5, as on the body drag (merged from main, 19 Oct 2026). An EDITED auto-note follows its date: the
+    // waterfall note "Start Principal Photography 6/29/26" with a line of the user's added. Start Production here
+    // on Mon 13 Jul swaps the stale auto text for the week's own NOW, so nothing says 6/29/26 any more, the user's
+    // line stays, and 13 Jul carries "Start Principal Photography 7/13/26". A menu that skipped it leaves the old
+    // date on the calendar (and in Excel and both PDFs).
+    // ⚠️ The month view draws each LINE of a note as its own block, so the two lines are checked across blocks.
+    function noteTexts(){ return [].map.call(document.querySelectorAll('#table-wrap .mv-note-block'), function (b) { return txt(b); }); }
+    function has(list, re){ return list.some(function (t) { return re.test(t); }); }
+    var sp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography 6\/29\/26/.test(txt(b)); });
+    if(sp){ await bringIntoView(sp); sp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography 6\/29\/26/.test(txt(b)); }); sp.click(); }
+    var ta7 = document.querySelector('#mv-note-pop textarea');
+    if(ta7){ ta7.value = ta7.value + '\nCall sheet out'; ta7.dispatchEvent(new Event('input', {bubbles: true}));
+             ta7.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true})); }
+    await settle();
+    await T.sleep(700);
+    var n7a = noteTexts();
+    a = await primeThenOpen('2026-07-13', 'bar:production');
+    choose('phase-start');
+    await settle();
+    var n7b = noteTexts();
+    add('P7', 'R5: with "Start Principal Photography 6/29/26" edited (a line added), Start Production here on Mon 13 Jul leaves no note saying 6/29/26, keeps the added line, and shows "Start Principal Photography 7/13/26"',
+      !!ta7 && has(n7a, /Start Principal Photography 6\/29\/26/) && has(n7a, /Call sheet out/)
+        && !n7b.some(function (t) { return /6\/29\/26/.test(t); }) && n7b.some(function (t) { return /Call sheet out/.test(t); })
+        && n7b.some(function (t) { return /Start Principal Photography 7\/13\/26/.test(t); }),
+      {editor: !!ta7, before: n7a.filter(function (t) { return /Principal|Call sheet/.test(t); }), after: n7b.filter(function (t) { return /Principal|Call sheet|6\/29/.test(t); })},
+      'no 6/29/26; the line kept; 7/13/26 shown');
+    await T.sleep(700);
+    await undo();
+    var n7u = noteTexts();
+    await undo();                                       // the title typed before,
+    await undo();                                       // and the note edit, so P3 starts clean
+    add('P7u', 'One undo puts the shoot back on 29 Jun with the edited note saying 6/29/26 again',
+      fv('start-production') === '2026-06-29' && has(n7u, /Start Principal Photography 6\/29\/26/) && has(n7u, /Call sheet out/) && !has(n7u, /7\/13\/26/),
+      {start: fv('start-production'), notes: n7u.filter(function (t) { return /Principal|Call sheet/.test(t); })}, 'back to 6/29/26 with the line');
+
     var p8 = await pointOn('2026-07-08', 'num');
     document.elementFromPoint(p8.x, p8.y).dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: p8.x, clientY: p8.y, button: 0}));
     var offOpt = document.querySelector('.day-ov-pop .day-ov-opt[data-ov="off"]');

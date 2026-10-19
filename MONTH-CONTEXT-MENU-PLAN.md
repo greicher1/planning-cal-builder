@@ -434,7 +434,9 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
      predates prep. Start and End are greyed out where they would change nothing ("It already starts / ends on this
      day"). The section's label is the phase's name alone, not the mockup's "Production · Ep. 202"; the header
      already names the episode.
-   - `mvmenu` grows to 59 cases (P1–P6 with their undo cases).
+   - Start here and End here carry an edited auto-note with them (R5), as the drags do since the auto-note grip
+     fix merged into `main` the same day. Case P7.
+   - `mvmenu` grows to 61 cases (P1–P7 with their undo cases).
 4. **The shoot-day section, and the menu takes over the left-click** (ruling L1).
    - Lift `dayOverrideRows(sit)` out of `openDayOvPop`.
    - Point the existing day click at the menu, anchored under the day number, and retire the popover.

@@ -1915,8 +1915,14 @@ PYPP
 # all five ran red on the old build before this landed. The same day each episode's START got its own grip
 # (`head`, the mirror; owner: "Were also missing the drag handle at the beginning of episodes/blocks/
 # weeks"): E8 and E14 count it, E16-E18 drive it. All nine changed cases are red on the old build.
+# ⭐ 19 Oct 2026: E19-E21 and D5 load autonote-grips.sptcal. An EDITED auto-note ("Start Principal Photography
+# 6/29/26" + a line of the user's) follows the start grip, the wrap grip and a body-drag, as the shift tools'
+# R5 rewrite does (owner: "it doesnt move the comment with it"). All four were red on the build before the fix.
+# E22 and E23 hold two owner-approved frozen lines in notesForWaterfallDate (same day): a line dated the 1st-9th is
+# drawn on its own day, not its week's Monday, and a line dated outside its note's week is drawn on the Monday (or
+# its pinned day) instead of on no day at all. Both were red on the build before those lines.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays)" <<'PYPD' || FAIL=1
+python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays, autonote-grips)" <<'PYPD' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
@@ -1938,9 +1944,10 @@ PYPD
 # Dates start is written directly (F5 -- setPhaseStart would carry the end), a Weeks edge switches the
 # phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
 # land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
-# print media hides the handles (F12). Run red on three mutants before it was wired in.
+# print media hides the handles (F12). Run red on three mutants before it was wired in. F13 (19 Oct 2026,
+# autonote-grips.sptcal): an edited "Writer's Room Opens" follows the start grip; red before the fix.
 node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates)" <<'PYPE' || FAIL=1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, autonote-grips)" <<'PYPE' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
