@@ -4,7 +4,36 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (branch `autonote-grips`, worktree `.claude/worktrees/autonote-grips`)
+### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged onto `main` as branch `autonote-merge`, `c869a13`; worktree `.claude/worktrees/autonote-merge`; NOT on `main`, NOT live)
+
+- ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
+  comment for start of photography isnt moving when you drag the first day of production"*. The fix (below) had been
+  built and gated that morning on `autonote-grips`, then held on the owner's "Not now" picker until the episode-grip
+  work landed. That is live at `04a1f18`, so the hold was over. Nothing was wrong with the fix; it had simply never
+  shipped.
+  - **The merge, `c869a13`:** branch `autonote-merge`, cut from `main` at `1c3ce15`, plus `git merge --no-ff
+    autonote-grips`. It was done in its own worktree because the main checkout was mid-merge (another session's
+    `claude/episode-prep-merge`, its HANDOFF and README still conflicted). One code conflict: the `d` literal in
+    `installProductionEdgeHandles`' `beginDrag`. Kept `main`'s `isWeekKind || isRowEdge` condition and added
+    `notesBase`. `applyBound` gets no reapply, because its guard pins the first shoot day and the wrap, so no
+    week's milestones can move under it.
+  - ⚠️ **Case ids renumbered.** Both branches had named new `pilldrag` cases E15–E18. `main`'s keep their names.
+    `autonote-grips`' E15–E19 are now **E19–E23** (D5 unchanged), in the code, `gate.sh` and this entry. So
+    "E15–E17" in any older note about this fix means today's E19–E21.
+  - **Proof on the merged build `bb678d3e…` (1,514,654 bytes):** `pilldrag` 30/30 and `phaseedge` 14/14 on private
+    port 8791; `npm run check` 40/40. In the app pane, the owner's calendar with its start reset to 10/18 was
+    dragged to Thu 10/21 with the pointer, and the note moved to 10/21 reading "10/21/27". Full gate: ⏭ queued
+    behind two other sessions' gates on port 8796 (log in this session's scratchpad); record the result here.
+  - ⚠️ **The owner's 11:59 save will NOT heal itself.** The copy the app wrote into the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` at 11:59 has start 10/21 but `{"2027-10-18": "Start Principal
+    Photography 10/18/27"}`. The old build left that note behind, and it now opens with neither week's auto text,
+    so R5 rightly treats it as the user's own words. On the fixed build it still sits on 10/18. One reset fixes
+    it: in Waterfall, Reset Notes (it is that file's only waterfall note), or edit the note to read 10/21/27,
+    which matches the auto text and so goes back to auto. Auto-healing such notes would be a new rule, and the
+    owner has not been asked.
+  - ⏭ **To land it:** `main` must take both this branch and the episode-prep merge that is staged in the main
+    checkout. Both touch `src/legacy/app.js`. Whichever lands second merges the other and re-runs the full gate.
+    Then push only on the owner's per-push picker, and verify the live file.
 
 - Owner, 19 Oct 2026: *"when i use the grab handle to change the start of the very first day of production, it doesnt
   move the comment with it in the month view"*.
@@ -42,10 +71,10 @@
   week); `phaseedge` F13 (Writer's Rm start grip a week right). D5 and F13 are cross-week on purpose: they were
   written before the regex above was fixed. **All five red on the pre-fix build `87028001…`** (the by-unit gated build, rebuilt from
   `6ad9e42`), green after: `pilldrag` 24/24, `phaseedge` 14/14. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
-- **STATE:** branch `autonote-grips` is two local commits on `6ad9e42`: the grip fix (`5e487d1`) and then the two
+- **STATE (superseded by RESUME HERE above):** branch `autonote-grips` is two local commits on `6ad9e42`: the grip fix (`5e487d1`) and then the two
   frozen lines, each committed on the owner's picker. **Not merged into `main`, not pushed.** Owner's picker, "Not
   now": merge after the drag-handle session's work lands (next bullet). Then re-run the full gate on the merge.
-- ⚠️ **MERGE NOTE.** Session "Production week/episode drag handle behavior" has UNCOMMITTED edits in the main
+- ⚠️ **MERGE NOTE (done, `c869a13`).** Session "Production week/episode drag handle behavior" has UNCOMMITTED edits in the main
   checkout's `installProductionEdgeHandles` (owner, 19 Oct 2026: an episode-end grip removes days, never pushes). It
   says `bound` now has its own `applyBound()` that never moves the first shoot day or the wrap, so it needs no note fix.
   Expect conflicts in `beginDrag` (its week-kind block is split, with a new `bound` branch) and in `applyCount`'s guard.

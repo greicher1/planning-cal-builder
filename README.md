@@ -72,6 +72,14 @@ first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on s
 - **Verified:** new fixture `autonote-grips.sptcal`; `pilldrag` E19–E21 and D5 and `phaseedge` F13 are red on the
   build before the fix (`87028001…`) and green after (`pilldrag` 24/24, `phaseedge` 14/14). The owner's calendar
   shape was reproduced red then green with trusted mouse input. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **Merged onto `main` (`c869a13`, branch `autonote-merge`) the same afternoon**, after the owner hit the bug again
+  on the live app. The episode-grip work it had been held for is live at `04a1f18`. The episode end and start
+  grips need no note fix: they never move the first shoot day or the wrap. The note cases are renumbered E19–E23,
+  because both branches had used E15–E18. Merged build `bb678d3e…`: `pilldrag` 30/30, `phaseedge` 14/14, `npm run
+  check` 40/40. In the app pane, the owner's calendar dragged from 10/18 to 10/21 moves its note to 10/21.
+- ⚠️ **A note that an older build already left behind stays where it is.** Once the old build moved the start without
+  the note, the note no longer opens with either week's auto text, so the rule reads it as the user's own words.
+  Fix it once: Reset Notes, or edit the note's date to match.
 
 ### Unreleased — Episode grips remove days and never push, and every episode's start has a grip (19 Oct 2026)
 
