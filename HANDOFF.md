@@ -130,8 +130,19 @@
 
 ### ◐ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO LOCAL `main` (EPISODE-PREP-PLAN steps 1–6), NOT PUSHED
 
-- **State:** ✅ **merged into local `main`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into local main,
-  resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
+- **State:** ✅ **merged into local `main` at `e50583b`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into
+  local main, resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
+  - ✅ **Full gate on the merge: 1,808 PASS, 0 FAIL** (build `082563a2…`, 1,522,314 bytes, port 8761, 12:05–12:22,
+    19 Oct 2026). It ran in a clean detached worktree at `e50583b`, because the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's), and only after the prep session's
+    own gate on the branch had exited. Gates 1–4 green (0 clipped, waterfall PDF and every Excel part identical,
+    v1.0.0 restores identically), gate 5 at 74 ids, gate 10's ten print documents identical, gate 13's twenty
+    written month PDFs byte-identical. `pilldrag` 24/24 and `episodeprep` all green in the same run. `npm run check`
+    40/40; `check-refs.py` CLEAN.
+  - **The grips and prep cannot reach each other's elements** (read from the merged code): the episode grips select
+    `.mv-pill[data-ph="production"]` only, and the phase-edge grips need a `unit-<key>` element, which the Prep row
+    has none of. So prep pills carry no handles and simply re-derive after a drag. ⚠️ No leg drags a grip on a
+    calendar WITH prep set (`pilldrag`'s calendars have none), so that is reasoned, not measured.
   - Built on `main` at `6ad9e42` on branch `claude/beautiful-bardeen-00c9f0`, then merged with `main` at `8515cd8` as
     **`claude/episode-prep-merge`** (gated there, below), because the main checkout then held the grips session's
     uncommitted work. By the time it landed, `main` had moved on by the episode-grips commits (`04a1f18`, LIVE, and
@@ -169,8 +180,9 @@
     16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
 - **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
   sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
-- ⏭ **Next:** push only on the owner's word. Possibly cut the two prep fixtures into gates 10 and 13 as new cases
-  (not done; that is a baseline change the owner has not asked for).
+- ⏭ **Next:** push only on the owner's word. `origin/main` is at `04a1f18`, so a push of `main` also ships every
+  later local commit (other sessions' docs included): check `git log origin/main..main` first. Possibly cut the two prep fixtures into gates 10 and 13 as new cases (not done; that is a
+  baseline change the owner has not asked for). A version cut is overdue (`version.json` still 1.4.3).
 
 ### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
 
@@ -240,7 +252,74 @@
   - Checked in the app pane (v1.4.0-saved, July 2026): 201's end left a day leaves Thu 7/9 hatched off with 202 still
     on Fri 7/10; 202's start right onto Mon 7/13 marks Fri off; left onto Thu takes it from 201. Wrap 10/20 throughout.
 
-### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK (AND DAY-NUMBER) MENU IN THE MONTH VIEW (not built; all rulings in, ready to build)
+### ◐ 19 Oct 2026: THE MONTH VIEW'S DAY MENU — STEP 1 BUILT (branch `claude/gifted-ramanujan-f162cf`, worktree `.claude/worktrees/gifted-ramanujan-f162cf`; steps 2–5 to come)
+
+- ⏭ **RESUME HERE for this feature.** Plan step 1 (§10) is built and gated on this branch, cut from `main` at
+  `8515cd8`. Not merged into `main`, not pushed. The commit waits on the owner's picker.
+- **What a user gets:** a right-click anywhere on a day in the month view opens the menu, at the pointer.
+  - **The header** names the day and what is on it, all from the schedule: "Wed 8 Jul 2026 / Shoot day 7 · Ep. 202 ·
+    Production Week 2". It lists the shoot day, each drawn bar's own label, an all-phase hiatus, and the enabled
+    holidays. On an empty weekend it reads "Weekend".
+  - **The day is ringed** while the menu is open. The ring is a body-level `.day-menu-ring` laid over the cell, never a
+    class in the grid. It comes from the mockup, not from the plan text.
+  - **The items:** Add note · Add 1-day phase here · Add 1-week phase here · Show this week in the waterfall. Each one is
+    exactly one undo step. A greyed-out item says why, as its second line.
+- **Code** (no frozen symbol touched):
+  - `src/legacy/app.js`:
+    - `installMonthDayMenu` (right after `installDayOverrideUI`).
+    - `isMacCtrlClick()`, a one-line early return in `installMonthPillDrag`'s mousedown and in both edge-handle
+      `beginDrag`s.
+    - `dayOverrideUI` (declared just above `installDayOverrideUI`). It lends the menu `closeDayOvPop`; plan step 4 adds
+      the shoot-day rows to it.
+    - `.day-menu` added to `OVER_PANEL`; `.day-menu` and `.day-menu-ring` added to `buildSavedHtml`'s strip list.
+  - `legacy.css`: the `.day-menu*` block after `.day-ov-*`. It uses Mantine tokens (gray-2 border, lg radius, md shadow,
+    sm type, gray-1 active item) and the 300 tier.
+  - Tests: `tests/harness/t/mvmenu.js`, plus a line in `gate.sh` (the generic `AFSPEC` loop, `mvmenu:halfdays:150`,
+    appended last).
+- ⚠️ **Coordinate with the episode-drag session.** It has uncommitted work in the main checkout around
+  `installProductionEdgeHandles` and the month drags. This branch adds ONE line to each of the three drag starts
+  (`if(isMacCtrlClick(e)) return;`), right after each one's `e.button !== 0` test. That line is the whole merge, and it
+  must survive into each drag start, or a Mac Ctrl+click arms a drag under the menu.
+- ⭐ **Learned:**
+  1. **Opening the menu must call `observer.takeRecords()` after committing an open note editor.** The commit
+     re-renders `#table-wrap`, and without the call the menu's own MutationObserver closes the menu it is opening.
+     Mutant-proven: `mvmenu` C3 goes red without it.
+  2. **A test leg's source is in the page, so it is in every shareable copy.** `srv.js` injects `t/<leg>.js` into the
+     page, so a literal `<div class="day-menu" …` pattern in the leg found itself in the copy. Build such a pattern from
+     pieces. This is the same trap `sharecopy2` records for the app's own bundle.
+  3. **The menu's leading `pushUndoSnapshot()` is load-bearing**, as `setOverride`'s is. Without it a title typed just
+     before the item folds into the item's step, and `I1u`/`I3u`/`I4u` go red (mutant-proven).
+  4. **The full-day "+" (`.mv-note-add-full`) does open a new note.** It has no `grid-row`, so the note's lane is
+     null and it takes any line. That was read from `openMvNoteEditor`, not exercised. Add note therefore needs no
+     "lanes are full" grey-out; plan §3.1's open question is settled.
+  5. **The browser pane's screenshot can lag the DOM by a frame.** Twice it showed no menu while the DOM had one.
+     Read the DOM before believing a screenshot.
+- **Proof:**
+  - `mvmenu` 36/36 on `halfdays.sptcal`, every right-click hit-tested.
+  - Four mutants of the build each turn their own cases red: the strip list (S2), `takeRecords` (C3), the Ctrl guard
+    (G4–G6), and the leading push (I1u, I3u, I4u).
+  - Checked by hand in the browser pane on the build: real right-clicks on Ep. 202's bar, on Sat 11 Jul, on 25 Dec, and
+    on a Production week-edge handle; each item; one Undo per item; ↑ ↓ and Esc.
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+  - Full gate on build `80c96f41…` (1,519,998 bytes, on `8515cd8`), run on port 8714 once the `autonote-grips`
+    session's gate had finished: **1,783 PASS, 0 FAIL, GATE PASSED** (11:31–11:48).
+    - Waterfall PDF and every Excel part identical; `fields.byId` at 72 ids.
+    - Gate 10: all ten print documents identical. Gate 13: all twenty written month PDFs byte-identical, no re-cut.
+    - `pilldrag` 20, `phaseedge` 13, `customunits` 53, `halfdays` 26, `halfworked` 24, `overrides` 20, `monthnotes`,
+      `halfmarks` and `sharecopy2` all green.
+    - `monthdragundo` is not in the gate. Run on its own against the build, it passed: one undo returns the drag.
+  - ⚠️ **Not verified:** a real Mac Ctrl+click (plan §5). The owner should try Ctrl+click on a bar and on an edge
+    handle once.
+- ⏭ **Next, when the owner chooses:** plan step 2 (Add hiatus ▸), then 3 (the phase section, which lifts
+  `setPhaseEdge` and `setPhaseColor`), 4 (the shoot-day section and the left-click takeover, rewriting `halfdays` and
+  `halfworked`), and 5 (hiatus and holiday sections). Each step adds its cases to `mvmenu` and flips that leg's
+  "sections are exactly day, out" check (H1s).
+- Small calls made in step 1, each cheap to change:
+  - the header date reads "Wed 8 Jul 2026", following the plan and the mockup, where the sidebar uses m/d/yy;
+  - the waterfall item's second line names the week ("Week of Mon 6 Jul");
+  - the first enabled item is focused on open, as in the mockup.
+
+#### The plan (written 19 Oct 2026, all rulings in)
 
 - Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
   over."* The plan is [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The mockup is

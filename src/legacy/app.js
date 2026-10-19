@@ -806,7 +806,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -6370,6 +6370,7 @@ export function initLegacyApp() {
     wrap.addEventListener('mousedown', e=>{
       if(viewMode !== 'month') return;                 // guarded, unlike the seven older listeners
       if(e.button !== 0) return;
+      if(isMacCtrlClick(e)) return;                    // a right-click on a Mac: the day menu's
       const pill = e.target.closest && e.target.closest('.mv-pill[data-ph]');
       if(!pill || !wrap.contains(pill)) return;
       const key = pill.getAttribute('data-ph');
@@ -7189,6 +7190,7 @@ export function initLegacyApp() {
 
     function beginDrag(e, h){
       if(e.button !== 0 || drag || viewMode !== 'month') return;
+      if(isMacCtrlClick(e)) return;                    // a right-click on a Mac: the day menu's
       const spec = h._spec, pill = h._pill;
       const P = prodRows(), g = pill && pillRange(pill);
       const startEl = document.getElementById('start-production');
@@ -7530,6 +7532,7 @@ export function initLegacyApp() {
 
     function beginDrag(e, h){
       if(e.button !== 0 || drag || viewMode !== 'month') return;
+      if(isMacCtrlClick(e)) return;                    // a right-click on a Mac: the day menu's
       const spec = h._spec, pill = h._pill;
       const key = spec && spec.key;
       const seg = key && segOf(key), g = pill && pillRange(pill), ends = seg && drawnEnds(seg);
@@ -7687,6 +7690,11 @@ export function initLegacyApp() {
   // put to the owner on 18 Sep 2026. So the gesture works and is undiscoverable. Asking for one
   // scoped `#table-wrap .mv-daycell{cursor:pointer}` is the obvious follow-up; it is deliberately
   // not taken unilaterally.
+  // What the block below lends the month day menu (installMonthDayMenu, after it), whose helpers are
+  // otherwise private to it. Declared HERE, above the block, because the block fills it in while the
+  // engine evaluates. MONTH-CONTEXT-MENU-PLAN.md §4 (close it before the menu opens), and §3.9: plan
+  // step 4 adds the shoot-day rows here when the menu takes over the left-click.
+  const dayOverrideUI = {close(){}};
   (function installDayOverrideUI(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
@@ -7699,6 +7707,7 @@ export function initLegacyApp() {
       if(activeOv.pop && activeOv.pop.parentNode) activeOv.pop.parentNode.removeChild(activeOv.pop);
       activeOv = null;
     }
+    dayOverrideUI.close = closeDayOvPop;
 
     // cellDate(): module scope since 15 Oct 2026, because Production's edge handles read pill dates
     // through it too. See its definition above installMonthPillDrag.
@@ -7904,6 +7913,406 @@ export function initLegacyApp() {
       if(loc && isoOf(loc.date) === activeOv.iso){ activeOv.cell = cell; activeOv.place(); }
       else closeDayOvPop();
     }).observe(wrap, { childList: true, subtree: true });
+  })();
+
+  // ⚠️ On a Mac, Ctrl+click IS a right-click: Chrome sends a `mousedown` with button 0 and ctrlKey,
+  // then `contextmenu`. Every month drag starts on a button-0 mousedown, so without this a Ctrl+click
+  // on a bar would first arm a body drag (an undo flush, beginShootDayMove(), body.grid-swapping) and
+  // on an edge handle append the drag shield, under the day menu that then opens
+  // (MONTH-CONTEXT-MENU-PLAN.md §5). The three drag starts each return early on it, in one line.
+  // Elsewhere Ctrl+click is an ordinary click and drags as before. ⛔ Synthetic events prove the
+  // guard, not the OS turning Ctrl+click into a right-click: that needs a real mouse or trackpad.
+  function isMacCtrlClick(e){
+    if(!e.ctrlKey) return false;
+    const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    return /^mac/i.test(p);
+  }
+
+  // ---------- The month view's day menu (MONTH-CONTEXT-MENU-PLAN.md) ----------
+  // Owner, 19 Oct 2026: "One i know i want is to right click to add a custom phase starting on the
+  // day youre hovering over." A right-click anywhere on a day in the month view opens one menu for
+  // that day. Built here: plan STEP 1 -- the listener, the panel and its close rules, and four items
+  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall). Add
+  // hiatus ▸, the phase, shoot-day, hiatus and holiday sections, and the left-click on a day's number
+  // (ruling L1, which retires the Full day/Off popover) are steps 2 to 5. Until step 4 a left-click
+  // still opens that popover.
+  //
+  // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
+  // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
+  // opens on, and the day cell's box for the ring. Every fact the menu states comes from the schedule
+  // the renderer drew from: a hiatus band is never a pointer target (.mv-bars is pointer-events:none)
+  // and a holiday has no DOM marker at all.
+  //
+  // ⛔ BODY-LEVEL CHROME, with classes of its own and never a `.mv-*` one (every `.mv-*` rule is
+  // frozen), and NO `id` ON ANY CONTROL: collectFieldValues() sweeps id'd controls into every saved
+  // file and the undo stack. Opening and closing it leaves fields.byId exactly as it was (the mvmenu
+  // leg holds that). buildSavedHtml() strips it from a shareable copy; hitCell's OVER_PANEL stops at
+  // it. Hand-rolled like .day-ov-pop, not Mantine's Menu: the engine owns every fact it shows, and
+  // Mantine mounts its dropdown from an effect (UI-CONVENTIONS §6).
+  //
+  // ⛔ ONE ITEM IS ONE UNDO STEP (plan §7), banked deterministically -- pushUndoSnapshot() before and
+  // after, setOverride's idiom -- rather than left to markDirty()'s 500 ms debounce, which can fold
+  // the step into whatever is typed next. The leading push files what came before as its own step.
+  (function installMonthDayMenu(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    // {el, ring, iso, items:[{id, disabled, run}], btns:[], active, back}
+    let menu = null;
+
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dayMonth = d=> DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
+    // Stroke-only line icons, so they take the item's own colour (and its greyed-out one).
+    const ICON = {
+      note:  'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
+      plus:  'M12 5v14M5 12h14',
+      table: 'M4 5h16v14H4zM4 10h16M10 5v14',
+    };
+    const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+      + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="' + ICON[k] + '"/></svg>';
+
+    // The day and the bar under a contextmenu event, or null for "leave the browser its own menu".
+    // ⛔ Only a point inside #table-wrap's .mv-body, or on an edge handle (body-level, laid over a
+    // bar, so its right-click never reaches #table-wrap). Not the title, the month bar or the header
+    // lines -- contenteditable in Manual mode, where the browser's menu carries spellcheck -- and not a
+    // body-level panel such as the note editor that happens to sit over the grid. The target is
+    // tested, not just the point, for that last reason. The point is tested too, because dayAtPoint()
+    // CLAMPS: a point below the grid comes back as the last week.
+    function dayContextAt(e){
+      if(viewMode !== 'month' || e.shiftKey) return null;
+      const t = e.target;
+      if(!t || !t.closest) return null;
+      const body = wrap.querySelector('.mv-body');
+      const handle = t.closest('.phase-edge-handle');
+      if(!body || !(handle || body.contains(t))) return null;
+      const r = body.getBoundingClientRect();
+      if(!(e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom)) return null;
+      const iso = dayAtPoint(e.clientX, e.clientY);
+      const date = iso && parseDateUTC(iso);
+      if(!date) return null;
+      // The bar: a pill's own data-ph. A phase handle carries data-ph; Production's do not, so their
+      // pill comes from the ._pill expando. The sim-post pill has no data-ph, so it names no phase.
+      let pill = handle ? handle._pill : t.closest('.mv-pill[data-ph]');
+      if(pill && !wrap.contains(pill)) pill = null;
+      const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
+      return {iso, date, key, target: t};
+    }
+
+    // What the header says is on the day, all from the schedule: the shoot day, each bar drawn on it
+    // (Production's episode or block, then its week label), an all-phase hiatus, and the ENABLED
+    // holidays -- the ones the shoot skips.
+    // Per-episode prep (merged after step 1) is one segment holding every prep, and its `start` is
+    // Production's start, a lane anchor, so prodWeekLabel() would call it "Prep Week 3". Each prep on
+    // the day is named as its pill names it instead, "Prep 302", overlapping preps once each.
+    function dayFacts(d){
+      const s = currentSchedule || {}, iso = isoOf(d), facts = [];
+      const info = s.productionInfo;
+      const n = (info && info.shootDays) ? info.shootDays.indexOf(iso) : -1;
+      if(n >= 0) facts.push('Shoot day ' + (n + 1));
+      const inHiatus = isHiatusDate(s, d);
+      if(!inHiatus) (s.segments || []).forEach(seg=>{
+        if(!segCoversDate(seg, d) || isPhaseHiatusDate(seg, d)) return;
+        if(seg.key === PREP_KEY){
+          (seg.preps || []).forEach(p=>{ if(p.days.has(iso)) facts.push(prepPillLabel(seg, p)); });
+          return;
+        }
+        if(seg.key === 'production'){
+          const U = productionUnits(s);
+          ((U && U.byDay.get(iso)) || []).forEach(u=>{
+            const p = unitLabelParts(U.kind, u, '').parts, label = U.kind === 'block' ? p.block : p.episode;
+            if(label) facts.push(label);
+          });
+        }
+        facts.push(prodWeekLabel(seg, d));
+      });
+      if(inHiatus) facts.push(hiatusTextFor(isoOf(mondayOf(d))) || 'Hiatus');
+      fullHolidayList(effectiveRegionKey()).forEach(h=>{ if(h.date === iso && h.enabled !== false) facts.push(h.name); });
+      if(!facts.length) facts.push((d.getUTCDay() === 0 || d.getUTCDay() === 6) ? 'Weekend' : 'Nothing scheduled');
+      return facts;
+    }
+
+    // The day's own "+", which is what the note editor opens on: it takes the new note's line from
+    // the anchor's grid-row. The "+" right-clicked if that is what was under the pointer, else the
+    // day's first free line, else the full day's "+" (.mv-note-add-full, whose note takes any line).
+    // A hiatus day has none: the renderer draws no "+" there.
+    function noteAnchor(ctx){
+      const own = ctx.target && ctx.target.closest && ctx.target.closest('.mv-note-add');
+      if(own && wrap.contains(own) && own.dataset.noteDay === ctx.iso) return own;
+      const adds = Array.prototype.slice.call(wrap.querySelectorAll('.mv-note-add[data-note-day="' + ctx.iso + '"]'));
+      return adds.find(a=> !a.classList.contains('mv-note-add-full')) || adds[0] || null;
+    }
+
+    // The menu, as sections in their fixed order (plan §2). "This day" always comes first, so the
+    // two Add … phase items are always the second and third lines. A choice the app refuses is
+    // greyed out WITH ITS REASON, never hidden (the standing rule; owner ruling 1, 18 Sep 2026).
+    function menuSections(ctx){
+      const d = ctx.date, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
+      const hiatus = isHiatusDate(currentSchedule || {}, d);
+      const anchor = noteAnchor(ctx);
+      const week = mondayOf(d);
+      return [
+        {id: 'day', items: [
+          {id: 'note', icon: 'note', text: 'Add note',
+           disabled: !anchor, why: hiatus ? 'A hiatus day has no note lanes' : 'This day has no note line to open',
+           run: ()=> addNote(ctx, anchor)},
+          // ⛔ Greyed out where it could not be drawn: segCoversDate never draws a non-Production phase
+          // on a Saturday or Sunday, and pillRunsForWeek draws nothing inside a hiatus, so the phase
+          // would exist in the sidebar and show nothing on the day clicked. A weekday holiday is
+          // offered: a Dates phase is drawn there.
+          {id: 'phase-day', icon: 'plus', text: 'Add 1-day phase here', note: 'Custom phase · ' + dayMonth(d) + ' only',
+           disabled: weekend || hiatus,
+           why: weekend ? 'A phase can’t be drawn on a weekend' : 'A phase can’t be drawn inside a hiatus',
+           run: ()=> addPhaseHere(ctx, 'day')},
+          {id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · from ' + dayMonth(d),
+           run: ()=> addPhaseHere(ctx, 'week')},
+        ]},
+        // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
+        // first in its row; the second line says which week that is.
+        {id: 'out', items: [
+          {id: 'waterfall', icon: 'table', text: 'Show this week in the waterfall', note: 'Week of ' + dayMonth(week),
+           run: ()=> showWeekInWaterfall(week)},
+        ]},
+      ];
+    }
+
+    // ---- The four items ----
+
+    // ⭐ Exactly what a click on the day's "+" does. Nothing is written until the editor commits, by
+    // its own path, so the bracket only files what came before.
+    function addNote(ctx, anchor){
+      if(!anchor || !document.body.contains(anchor)) anchor = noteAnchor(ctx);
+      if(!anchor) return;
+      pushUndoSnapshot();
+      openMvNoteEditor(anchor, anchor.dataset.noteWeek, ctx.iso, 'day');
+      pushUndoSnapshot();
+    }
+
+    // The owner's item (plan §3.2, ruling Q1: both a one-day and a one-week phase, flat items).
+    // ⛔ The row is exactly what + Add phase builds, so fields.byId gains only what that button adds.
+    //   'day'  A DATES phase, start = end = the day. Its end is inclusive (customUnitSpan), so it
+    //          covers exactly that day, and a Dates phase is never snapped. Not Days: a Days phase
+    //          counts working days from its start, so one started on a holiday would land on the
+    //          next working day, not "here".
+    //   'week' Weeks, 1. The length is part of the item, not optional: a start with no length is
+    //          not scheduled at all. ⛔ Snap to Mon comes off on any day but a Monday, as body-drag's
+    //          does, or computeSchedule would move the start back to its Monday and the phase would
+    //          not start "here".
+    // The tab switch is INSIDE the bracket: sidebarTab is saved state, so switching outside it would
+    // bank a step of its own.
+    function addPhaseHere(ctx, len){
+      pushUndoSnapshot();
+      addCustomPhaseRow();
+      const key = customPhaseDefs[customPhaseDefs.length - 1].key;
+      const field = id=> document.getElementById(id + '-' + key);
+      if(len === 'day'){
+        field('unit').value = 'dates';
+        field('start').value = ctx.iso;
+        field('end').value = ctx.iso;
+      } else {
+        field('start').value = ctx.iso;
+        field('weeks').value = '1';
+        if(ctx.date.getUTCDay() !== 1) field('snap').checked = false;
+      }
+      update();
+      // The old-build fallback (weeks-<key>) of a Dates phase, inside the step. A no-op on Weeks.
+      syncCustomUnitFallback(key);
+      setSidebarTab('phases');
+      pushUndoSnapshot();
+      const name = field('name');
+      const row = name && name.closest('.phase-row');
+      if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
+      if(name) name.focus({preventScroll: true});    // the next thing anyone does is name it
+    }
+
+    // setViewMode() is synchronous all the way through render(), so the week's row is there to find.
+    // ⛔ Reading the frozen grid's DOM is allowed and nothing is written into it: only the scroll
+    // container's own scroll position moves. A hiatus week has no note cell; its band carries the week.
+    function showWeekInWaterfall(week){
+      const wk = isoOf(week);
+      pushUndoSnapshot();
+      setViewMode('sheet');                           // viewMode is saved state
+      pushUndoSnapshot();
+      const box = document.getElementById('sheet-scroll-container');
+      const cell = box && (box.querySelector('td.sheet-note-cell[data-week="' + wk + '"]')
+                        || box.querySelector('td[data-week="' + wk + '"]'));
+      if(!cell) return;
+      // The box's own scrollport, inside its border and scrollbars. Centred vertically, which also keeps
+      // the row clear of the frozen sticky header row.
+      const b = box.getBoundingClientRect();
+      const L = b.left + box.clientLeft, T = b.top + box.clientTop;
+      const R = L + box.clientWidth, B = T + box.clientHeight;
+      const c = cell.getBoundingClientRect();
+      box.scrollTop += (c.top + c.height / 2) - (T + B) / 2;
+      // The year blocks sit side by side, so the week's row runs from its block's date column to the
+      // note cell. The least scroll that shows all of it; a block wider than the box shows from its date.
+      let date = cell;
+      while(date && !(date.classList && date.classList.contains('sheet-date'))) date = date.previousElementSibling;
+      const from = (date || cell).getBoundingClientRect().left;
+      if(c.right - from > R - L || from < L) box.scrollLeft += from - L;
+      else if(c.right > R) box.scrollLeft += c.right - R;
+    }
+
+    // ---- The panel ----
+
+    function closeMenu(restoreFocus){
+      if(!menu) return;
+      const m = menu;
+      menu = null;
+      m.el.remove();
+      if(m.ring) m.ring.remove();
+      const back = m.back;
+      if(restoreFocus && back && back !== document.body && document.body.contains(back) && typeof back.focus === 'function'){
+        try { back.focus({preventScroll: true}); } catch(err){}
+      }
+    }
+
+    function setActive(i){
+      if(!menu) return;
+      menu.active = i;
+      menu.btns.forEach((b, j)=> b.classList.toggle('is-active', j === i));
+      (i >= 0 ? menu.btns[i] : menu.el).focus({preventScroll: true});
+    }
+    // The next item that is not greyed out, wrapping; -1 when there is none.
+    function nextEnabled(from, dir){
+      const n = menu.items.length;
+      for(let k = 1; k <= n; k++){
+        const i = ((from + dir * k) % n + n) % n;
+        if(!menu.items[i].disabled) return i;
+      }
+      return -1;
+    }
+    function choose(i){
+      const it = menu && menu.items[i];
+      if(!it || it.disabled) return;
+      // Closed FIRST, focus handed back, then the item runs, so an item that moves focus (the note
+      // editor, a new phase's name box) keeps it.
+      closeMenu(true);
+      it.run();
+    }
+
+    function openMenu(ctx, x, y){
+      closeMenu(false);
+      // A right-click fires no `click`, so neither panel would close on its own. The note editor's
+      // rule is that an outside click COMMITS, so it commits -- and that renders, which the observer
+      // below must not take for a render under the open menu: takeRecords() drops those records.
+      dayOverrideUI.close();
+      if(activeMvNote) commitMvNoteEditor();
+      observer.takeRecords();
+
+      const sections = menuSections(ctx), items = [];
+      let html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
+               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>';
+      sections.forEach(sec=>{
+        html += '<div class="day-menu-sep" role="separator"></div><div class="day-menu-group" role="group" data-section="' + sec.id + '">';
+        sec.items.forEach(it=>{
+          const i = items.length;
+          items.push(it);
+          const second = it.disabled ? it.why : (it.note || '');
+          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + '" role="menuitem" tabindex="-1"'
+                + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '') + '>'
+                + icon(it.icon) + '<span class="day-menu-text">' + escHtml(it.text)
+                + (second ? '<small>' + escHtml(second) + '</small>' : '') + '</span></button>';
+        });
+        html += '</div>';
+      });
+      html += '<div class="day-menu-foot">Shift + right-click opens the browser’s own menu</div>';
+
+      const el = document.createElement('div');
+      el.className = 'day-menu';
+      el.setAttribute('role', 'menu');
+      el.setAttribute('aria-label', 'Menu for ' + dayMonth(ctx.date));
+      el.tabIndex = -1;
+      // Which day and which bar, for the steps that add sections, and for the mvmenu leg.
+      el.setAttribute('data-day', ctx.iso);
+      if(ctx.key) el.setAttribute('data-ph', ctx.key);
+      el.innerHTML = html;
+      document.body.appendChild(el);
+
+      // The day the menu is for stays marked while it is open: a ring LAID OVER its cell, body-level
+      // like the edge handles, never a class written into the grid. Clipped to what is on screen.
+      let ring = null;
+      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; });
+      const v = cell && visibleRect(cell);
+      if(v){
+        ring = document.createElement('div');
+        ring.className = 'day-menu-ring';
+        ring.setAttribute('aria-hidden', 'true');
+        ring.style.left = v.left + 'px';
+        ring.style.top = v.top + 'px';
+        ring.style.width = (v.right - v.left) + 'px';
+        ring.style.height = (v.bottom - v.top) + 'px';
+        document.body.appendChild(ring);
+      }
+
+      // At the pointer, inside the window: it flips left or up rather than run off an edge.
+      const M = 8, w = el.offsetWidth, h = el.offsetHeight;
+      let left = x, top = y;
+      if(left + w > window.innerWidth - M) left = x - w;
+      if(top + h > window.innerHeight - M) top = y - h;
+      el.style.left = Math.max(M, Math.min(left, window.innerWidth - M - w)) + 'px';
+      el.style.top = Math.max(M, Math.min(top, window.innerHeight - M - h)) + 'px';
+
+      menu = {el, ring, iso: ctx.iso, items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')),
+              active: -1, back: document.activeElement};
+      el.addEventListener('mousemove', e=>{
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(b && menu && +b.dataset.i !== menu.active) setActive(+b.dataset.i);
+      });
+      el.addEventListener('mouseleave', ()=>{ if(menu) setActive(-1); });
+      el.addEventListener('click', e=>{
+        // ⛔ Stopped HERE, on the panel, in the bubble phase -- never from a capture listener
+        // (UI-CONVENTIONS §6a). The click that opens the note editor must not go on to reach the
+        // editor's own document click-away, which would commit and close it at once.
+        e.stopPropagation();
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(b) choose(+b.dataset.i);
+      });
+      el.addEventListener('contextmenu', e=> e.preventDefault());
+      // Focus moves into the menu, on its first item (§6), and goes back when Escape closes it.
+      setActive(nextEnabled(-1, 1));
+    }
+
+    // ⛔ Bubble phase, and preventDefault on THIS event only (plan §5). Never stopPropagation.
+    document.addEventListener('contextmenu', e=>{
+      const ctx = dayContextAt(e);
+      if(!ctx) return;              // the browser's own menu
+      e.preventDefault();
+      openMenu(ctx, e.clientX, e.clientY);
+    });
+    // The close rules (plan §4). The press is caught in the CAPTURE phase only to close: an edge
+    // handle stops its own mousedown, so a bubble listener would never hear a press on one.
+    document.addEventListener('mousedown', e=>{
+      if(menu && !menu.el.contains(e.target)) closeMenu(false);
+    }, true);
+    document.addEventListener('keydown', e=>{
+      if(!menu) return;
+      const k = e.key;
+      if(k === 'Escape'){ e.preventDefault(); closeMenu(true); }
+      else if(k === 'Tab') closeMenu(true);
+      else if(k === 'ArrowDown' || k === 'ArrowUp'){
+        e.preventDefault();
+        const dir = k === 'ArrowDown' ? 1 : -1;
+        const i = nextEnabled(menu.active >= 0 ? menu.active : (dir > 0 ? -1 : menu.items.length), dir);
+        if(i >= 0) setActive(i);
+      }
+      else if(k === 'Home' || k === 'End'){
+        e.preventDefault();
+        const i = k === 'Home' ? nextEnabled(-1, 1) : nextEnabled(menu.items.length, -1);
+        if(i >= 0) setActive(i);
+      }
+      else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(menu.active >= 0) choose(menu.active); }
+    }, true);
+    window.addEventListener('scroll', e=>{
+      if(menu && !(e.target instanceof Node && menu.el.contains(e.target))) closeMenu(false);
+    }, true);
+    window.addEventListener('resize', ()=> closeMenu(false));
+    window.addEventListener('blur', ()=> closeMenu(false));
+    // Any re-render of #table-wrap closes it: the day under it may have changed, so it never
+    // re-anchors. Observing mutates nothing (CLAUDE.md, sanctioned pattern 3).
+    const observer = new MutationObserver(()=>{ if(menu) closeMenu(false); });
+    observer.observe(wrap, {childList: true, subtree: true});
   })();
 
   function refreshSnapNotes(){
@@ -15616,7 +16025,9 @@ export function initLegacyApp() {
     // .phase-edge-handle / .phase-edge-shield added 15 Oct 2026 with Production's edge handles: body-level
     // chrome over the month grid, present while the pointer rests on a pill (or a drag is live) --
     // which is exactly when a Shift+Cmd+E export can fire.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield').forEach(el=>el.remove());
+    // .day-menu / .day-menu-ring added 19 Oct 2026 with the month view's day menu
+    // (MONTH-CONTEXT-MENU-PLAN.md): body-level, and a Shift+Cmd+E pressed with it open exports it.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =

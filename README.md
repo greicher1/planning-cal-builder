@@ -85,6 +85,47 @@ first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on s
   output identical (waterfall PDF, Excel, gate 10's print documents, gate 13's twenty written month PDFs byte for
   byte), `fields.byId` at 74 ids, `pilldrag` 30/30, `phaseedge` 14/14, `episodeprep` green.
 
+### Unreleased — Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
+
+Owner: *"One i know i want is to right click to add a custom phase starting on the day youre hovering over."* Step 1
+of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click anywhere on a day in the month view opens a
+menu for that day. Its header names the day and what is on it ("Wed 8 Jul 2026 / Shoot day 7 · Ep. 202 · Production
+Week 2"), and the day is ringed while it is open. Four items:
+- **Add note** opens the month note editor on that day, as the day's "+" does. Greyed out on a hiatus day ("A hiatus
+  day has no note lanes"), where the month view draws no note lines.
+- **Add 1-day phase here** adds a custom phase in Dates, start and end both that day. It is greyed out, with the reason,
+  on a weekend or inside a hiatus, where a phase is never drawn. It is offered on a weekday holiday.
+- **Add 1-week phase here** adds a one-week custom phase starting on exactly that day: Snap to Mon comes off on any day
+  but a Monday.
+- Both phase items switch the sidebar to Phases with the cursor in the new row's name box.
+- **Show this week in the waterfall** switches views and scrolls to that week's row. A Sunday belongs to the week of
+  the Monday before it, and the item's second line names that week.
+- **Each item is one undo step.** It is banked at once, so it never folds into what you type next.
+- **Shift + right-click** keeps the browser's own menu. So does the rest of the page: the title, the month bar, the
+  header lines, the waterfall.
+- **Keyboard:** ↑ ↓ Home End move, Enter chooses, Esc closes. It also closes on a click elsewhere, a scroll, a resize,
+  and any redraw of the month.
+- **On a Mac, Ctrl+click on a bar or an edge handle no longer starts a drag.** Ctrl+click is a right-click there, so
+  it opens the menu instead.
+- **Not yet:** Add hiatus ▸, and the sections for the bar, the shoot day, a hiatus and a holiday (plan steps 2, 3 and
+  5). A left-click on a day still opens the Full day/Off popover until step 4.
+- **No frozen code changed and nothing new is saved.** The menu is body-level chrome with no ids, so opening it leaves
+  `fields.byId` untouched, and a shareable copy strips it. The day comes from `dayAtPoint()` and everything else from
+  the schedule.
+- **Verified:**
+  - New leg `mvmenu` (`halfdays.sptcal`), 36/36. Every right-click is hit-tested. It runs four mutants of the build
+    (strip list, `takeRecords`, the Ctrl guard, the leading undo push), and each turns its own cases red.
+  - Checked by hand in the build: real right-clicks on a bar, a weekend, Christmas in the hiatus and an edge handle;
+    each item; one Undo; the keys.
+  - `npm run check` 40/40.
+  - Full gate on build `80c96f41…` (1,519,998 bytes, on `8515cd8`): **1,783 PASS, 0 FAIL, GATE PASSED** (17 min).
+    Every frozen output is identical: the waterfall PDF, every Excel part, and gate 10's ten print documents. Gate
+    13's twenty written month PDFs are byte-identical, with no re-cut. `fields.byId` holds at 72 ids, and
+    `pilldrag`, `phaseedge`, `customunits`, `halfdays`, `halfworked`, `halfmarks`, `overrides`, `monthnotes` and
+    `sharecopy2` all pass. `monthdragundo`, run on its own, passes too.
+  - ⚠️ **Not verified:** a real Ctrl+click with a Mac mouse or trackpad. Synthetic presses prove the guard, not the
+    OS turning Ctrl+click into a right-click.
+
 ### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
 
 EPISODE-PREP-PLAN.md, all five owner rulings (P1–P5, 15 Oct 2026). Each episode gets a prep run of N working days
