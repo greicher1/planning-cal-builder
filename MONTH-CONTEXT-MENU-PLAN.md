@@ -1,7 +1,7 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: STEP 1 BUILT, 19 Oct 2026** (§10; branch `claude/gifted-ramanujan-f162cf`, gated, not merged). Steps 2–5 are
-not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: STEPS 1 AND 2 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Step 2 (Add
+hiatus ▸) is on branch `day-menu-step2`, not merged. Steps 3–5 are not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -407,7 +407,17 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
    - The panel, its close rules and its place in the strip list.
    - The macOS Ctrl+click guard on the three month drags.
    - Four items: Add note, **Add 1-day phase here**, **Add 1-week phase here**, Show this week in the waterfall.
-2. **Add hiatus ▸**, both kinds.
+2. ✅ **Add hiatus ▸**, both kinds. **BUILT 19 Oct 2026** (branch `day-menu-step2`; HANDOFF has the record).
+   - The root item opens a submenu beside it, flipped left near the window's edge. A hover opens it with focus left on
+     the item; a click, Enter, Space or → opens it on its first item; ← and Escape close it.
+   - ⭐ **A 250 ms grace period** before a hover elsewhere on the root closes it. This was not in the plan. Without it,
+     the diagonal into a lower line of a left-flipped submenu crossed "Show this week in the waterfall" and closed the
+     submenu on the way in.
+   - Three small calls, each cheap to change: the field gets the week's **Monday**, not the day clicked (the same
+     schedule, and no "Snapped to Mon" note in the sidebar); a move inside the week its hiatus already starts is
+     **greyed out** ("Its hiatus already starts this week") rather than an empty undo step; and the sidebar does
+     **not** switch tabs, because the band shows on the calendar at once.
+   - `mvmenu` grows to 47 cases (A1–A7, A1p, A4u, A5u, S3).
 3. **The phase section.**
    - Start here (a mover).
    - Lift `setPhaseEdge` out of `installPhaseEdgeHandles` for End here.
