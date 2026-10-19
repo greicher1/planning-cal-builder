@@ -1552,6 +1552,9 @@ done
 # tests/fixtures/halfmarks.sptcal, on which monthlayout (P1: the writer reads each slice back to its marked day; L0:
 # the writer's half-aware lane packing) and monthwriter (hm, below) then run. monthlayout on halfdays holds the writer's
 # packing to the print document's one-lane switch days.
+# mvmenu guards the month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, 19 Oct 2026): a right-click on a day, its
+# guards and close rules, and its items, each one undo step, on halfdays.sptcal. Every right-click is hit-tested
+# (dispatched on elementFromPoint). It grows with each plan step.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1568,7 +1571,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               filekeys:v1.4.2-saved:150 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
-              monthlayout:halfdays:150 monthlayout:halfmarks:150; do
+              monthlayout:halfdays:150 monthlayout:halfmarks:150 \
+              mvmenu:halfdays:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

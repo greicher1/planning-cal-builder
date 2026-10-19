@@ -2440,6 +2440,54 @@
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
 
+  /* ---- The month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, installMonthDayMenu) ----
+     ⭐ NOT FROZEN, for .day-ov-pop's reason: a BODY-LEVEL panel opened over a day, never markup in
+     the grid, so no selector here is a `.mv-*` rule and none can reach #print-root.
+     Matched to the app's Mantine menus, measured from the File menu (plan §4): 4 px padding, the lg
+     radius, the md shadow, a gray-2 (#E3E1DA) border, 12 px items, gray-1 under the active item. The
+     300 tier of the z-index ladder, "every popover and menu" (UI-CONVENTIONS §6).
+     ⛔ Nothing inside carries an id: collectFieldValues() sweeps id'd controls into every calendar. */
+  .day-menu{
+    position:fixed; z-index:300; min-width:244px; max-width:300px;
+    padding:var(--mantine-spacing-xs); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-2); border-radius:var(--mantine-radius-lg);
+    box-shadow:var(--mantine-shadow-md);
+    font-size:var(--mantine-font-size-sm); line-height:18px; color:var(--mantine-color-black);
+    user-select:none; outline:none;
+  }
+  .day-menu-head{ padding:7px 10px 6px; }
+  .day-menu-date{ font-weight:600; }
+  .day-menu-ctx{ margin-top:1px; font-size:var(--mantine-font-size-xs); line-height:15px; color:var(--text-muted); }
+  .day-menu-sep{ border-top:1px solid var(--mantine-color-gray-2); margin:var(--mantine-spacing-xs) 0; }
+  .day-menu-item{
+    display:flex; align-items:center; gap:9px; width:100%; min-height:30px;
+    padding:6px 10px; border:0; border-radius:var(--mantine-radius-md);
+    background:none; font:inherit; color:inherit; text-align:left; cursor:default;
+  }
+  .day-menu-item:focus{ outline:none; }
+  .day-menu-item.is-active:not(.is-disabled){ background:var(--mantine-color-gray-1); }
+  .day-menu-ico{ width:16px; height:16px; flex:none; color:var(--text-muted); }
+  .day-menu-text{ flex:1; min-width:0; }
+  .day-menu-text small{
+    display:block; font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-muted);
+  }
+  /* Greyed out WITH ITS REASON (owner ruling 1, 18 Sep 2026): the label and icon dim, and the reason
+     under it stays at the readable faint ink, since it is the one line that explains the refusal. */
+  .day-menu-item.is-disabled, .day-menu-item.is-disabled .day-menu-ico{ color:var(--mantine-color-gray-5); }
+  .day-menu-item.is-disabled small{ color:var(--text-faint); }
+  .day-menu-foot{
+    margin-top:var(--mantine-spacing-xs); padding:5px 10px 4px;
+    border-top:1px solid var(--mantine-color-gray-2);
+    font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
+  }
+  /* The day the open menu is for, LAID OVER its cell (body-level, like the edge handles), never a
+     class written into the grid. Under the menu (299), and it takes no pointer. */
+  .day-menu-ring{
+    position:fixed; z-index:299; pointer-events:none; border-radius:2px;
+    box-shadow:inset 0 0 0 2px var(--edit-accent);
+    background:color-mix(in srgb, var(--edit-accent) 6%, transparent);
+  }
+
   .note-day-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
   .note-day-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);
     font-size:var(--mantine-font-size-xxs); color:var(--text-muted); }
