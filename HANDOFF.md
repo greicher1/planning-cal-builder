@@ -26,7 +26,17 @@
   3. A holiday inside a prep but outside every phase gets no month-view note (adding one would reach the waterfall).
   4. The episodes' and blocks' restore maps copy field by field: a new per-unit key must be named there too.
 - **Proof:** leg `episodeprep` (LIVE 23, RESTORE 24, BLOCKS 5), in `gate.sh`; Excel (16 parts) and the waterfall PDF
-  byte-identical on/off; `npm run check` 40/40; `check-refs.py` CLEAN. Full gate: *(see the next bullet)*.
+  byte-identical on/off; `npm run check` 40/40; `check-refs.py` CLEAN.
+  - **Full gate on build `9b3f13ad1af1e310…` (1,518,415 bytes): 1,799 PASS, 5 FAIL** (17 min, 19 Oct 2026). Gates 1–4 green (0
+    clipped, waterfall PDF and every Excel part identical, v1.0.0 restores identically); gate 10's ten print documents
+    identical; gate 13's twenty written month PDFs byte-identical, no re-cut.
+  - **Gate 5 FAILED, as predicted:** gained exactly `prep-days` and `prep-name`, nothing lost, nothing changed (72 → 74
+    ids). Its re-cut waits for the owner.
+  - ⚠️ **The other four failures were contention, and passed alone.** Two other sessions' gates (worktree
+    `autonote-grips`, and a scratchpad `wt-old` twice) ran on this machine at the same time as this one: `pilllabel`
+    `carry-rich` W0 and `halfdays` W3 (a month walk cut to one month) and `monthexport` X6 on `stintswap-reshape` and X4 on
+    `dayoverrides` (timed dialog cases that passed on every other calendar). Re-run alone afterwards: `pilllabel` 12 and
+    16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
 - **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
   sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
 - ⏭ **Next, the owner's calls:** sign off gate 5's re-cut (+2 ids); merge to `main`; push. Possibly cut the two prep

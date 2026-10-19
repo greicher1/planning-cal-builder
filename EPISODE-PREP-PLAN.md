@@ -337,4 +337,6 @@ with prep on and off. It is one line in `appendEpisodePrep()` if the owner wants
 - The written month PDF of both fixtures, on and off (`monthexport`, its X2 holding the built writer to the sliced
   source with prep in it): only February to April differ, one page per month either way. Contact sheets for the owner
   are in the session notes folder, not the repo.
-- The full gate: see HANDOFF.
+- **Full gate: 1,799 PASS, 5 FAIL.** Every existing output unchanged on all four outputs (gates 1–4, 10, 13). Gate 5
+  moved by exactly the two ids of §7 (72 → 74), and waits for the owner's sign-off. The four other failures came from
+  two other sessions' gates running alongside, and passed when re-run alone (HANDOFF has the detail).

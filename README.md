@@ -53,7 +53,8 @@ a new start date, a shift tool, a holiday, a hiatus or a new shooting order. Onl
   `episodeprep.sptcal` and its Blocks twin, against a hand trace with Presidents' Day and Good Friday inside preps, a
   locked hiatus between two episodes, a shuffled shooting order and two overlaps. ⭐ **"Month view only" is proven:**
   the workbook (all 16 parts bar the timestamp) and the waterfall PDF are byte-identical with prep on and off, and so
-  is every other bar of the month view. The full gate: see HANDOFF.
+  is every other bar of the month view. Full gate: every existing output unchanged (gates 1–4, 10, 13); gate 5
+  moves by the two new ids, and that re-cut waits for the owner's sign-off.
 
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
