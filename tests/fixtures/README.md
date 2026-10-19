@@ -28,6 +28,20 @@ episode boundary falls half way through a day. Two of those switch days carry a 
 fixture has. Cut from the running app by the `halfmarks` leg (its `fixture` output). Used by `monthlayout` and
 `monthwriter` in the gate.
 
+## Edited auto-notes under the month view's drags (19 Oct 2026)
+
+`autonote-grips.sptcal` is `monthnotes.sptcal` (an undated edit of the 6/29 week's auto-note, "Start Principal
+Photography 6/29/26" + "Table Read") with **two more week notes added by script**, the only change:
+- `2026-10-19`: `Principal Photography Wraps 10/20/26`, stored as exactly the auto text. That is the shape the owner's own
+  calendar held for its start note (synthetic dates here).
+- `2026-01-05`: `Writer's Room Opens 1/5/26` + `Pitch day`.
+- `2026-08-03`: `Cast read 8/4/26` (dated inside its week, on a day 1–9) + `Delivery 8/12/26` (dated in another week).
+
+It holds the R5 rewrite in the month view's drags (owner, 19 Oct 2026: the grip "doesnt move the comment with it"):
+`pilldrag` E15–E17 and D5, `phaseedge` F13. All five were red on the build before the fix (`87028001…`). The 8/3 note
+and `pilldrag` E18/E19 hold the two frozen lines in `notesForWaterfallDate` approved the same day (a one-digit day,
+and a line dated outside its note's week). Both cases were red on the grip-fix build `65389d35…`.
+
 ## From the deployment-readiness audit (24 Sep 2026)
 
 These came out of `AUDIT-REPORT.md`. They were promoted here by `FIX-PLAN.md` step 0.1, so the batch

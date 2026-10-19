@@ -6219,9 +6219,11 @@ export function initLegacyApp() {
       // comment describes. It early-returns when nothing has changed, so a press that never becomes
       // a drag costs nothing.
       pushUndoSnapshot();
-      // snapWas: MONTH-9 below -- what Snap to Mon was when the gesture began.
+      // snapWas: MONTH-9 below -- what Snap to Mon was when the gesture began. notesBase: the week notes
+      // at the press, so an edited auto-note's date follows the pill (autoNoteBaseline). The notes
+      // themselves stay in their weeks: a body-drag has never carried notes, unlike Shift All.
       drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0,
-              snapWas: !!(snapEl && snapEl.checked)};
+              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline()};
       // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
       // NUMBER, live on every increment, because update() re-derives them from these pins. For any
       // other phase the shoot does not move and the binding is the identity. Pinned here, before the
@@ -6276,6 +6278,7 @@ export function initLegacyApp() {
       // update() rebuilds the grid, destroying the pill under the cursor -- which is why every
       // reference held above is either a sidebar element or a plain number, never a grid node.
       update();
+      reapplyAutoNoteBaseline(drag.notesBase);
       // ⛔ update() just called markDirty(), which RE-ARMED the 500ms undo debounce. Kill it: this
       // gesture banks its own snapshot in endDrag(), and a timer allowed to fire first would split
       // one drag into two steps at whatever date the pointer happened to be resting on.
@@ -6924,6 +6927,9 @@ export function initLegacyApp() {
       refreshDerivedInfo();
       if(d.blocks) renderBlockRows(); else renderEpisodeRows();
       update();
+      // An edited "Start Principal Photography" / "... Wraps" note follows its date (R5; see
+      // autoNoteBaseline). From the press every time, so the back-where-it-began branch restores it.
+      reapplyAutoNoteBaseline(d.notesBase);
       // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
       cancelPendingUndoPush();
       // ⛔ What the gesture holds must not have moved, and the edge must be where it was computed to
@@ -6944,6 +6950,7 @@ export function initLegacyApp() {
       dayOverrides = weekMarks(d, T);
       d.cur = {iso: T};
       update();
+      reapplyAutoNoteBaseline(d.notesBase);     // the wrap moves, and an edited wrap note with it
       cancelPendingUndoPush();
       follow();
     }
@@ -7009,8 +7016,13 @@ export function initLegacyApp() {
       const startEl = document.getElementById('start-production');
       const snapEl = document.getElementById('snap-production');
       if(!spec || !P || !g || !startEl || !startEl.value) return;
+      // notesBase: the week notes and their weeks' auto text at the press, read before the probe below
+      // touches any field (autoNoteBaseline).
       const d = {kind: spec.kind, i: spec.i, handle: h, P, edge0: spec.day,
-                 startEl, startWas: startEl.value, snapEl, snapWas: !!(snapEl && snapEl.checked)};
+                 startEl, startWas: startEl.value, snapEl, snapWas: !!(snapEl && snapEl.checked),
+                 notesBase: autoNoteBaseline()};
+      // (applyBound never reads notesBase: its guard pins the first shoot day and the wrap, so no
+      // week's milestones can change under an episode's end or start grip.)
       if(isWeekKind(spec.kind) || isRowEdge(spec.kind)){
         // What the day marks are computed from, at the press: the marks, the shoot days, and which
         // days the calendar would shoot with no mark at all.
@@ -7306,6 +7318,9 @@ export function initLegacyApp() {
       }
       d.cur = D;
       update();
+      // An edited "Writer's Room Opens" follows its date, and a holiday note the phase's new span adds
+      // or drops is corrected in an edited note too (R5; see autoNoteBaseline).
+      reapplyAutoNoteBaseline(d.notesBase);
       // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
       cancelPendingUndoPush();
       // ⛔ The held edge must not have moved, and the dragged one must be where it was computed to land,
@@ -7349,7 +7364,7 @@ export function initLegacyApp() {
       const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
       const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
       const d = {key, kind: spec.kind, handle: h, unit, ends, edge0: spec.day, cur: spec.day, startEl, ctx,
-                 fields, was: fields.map(f=> f.value),
+                 fields, was: fields.map(f=> f.value), notesBase: autoNoteBaseline(),
                  segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
                  // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
                  // Weeks, which becomes Dates). Read off the schedule at the press: hiatuses and holidays
@@ -8222,13 +8237,26 @@ export function initLegacyApp() {
         // A note's text may carry its own trailing date (the day picker stamps one in, and the
         // auto-notes are written that way too). That date is the truth about where the line
         // belongs -- so a multi-line override splits across days rather than stacking on one.
+        // ⛔ FROZEN EDIT, owner-approved (picker, 19 Oct 2026, "Yes, build it with the gate"): the DAY
+        // is \d{1,2}, not \d{2}. fmtShort() writes "7/1/26" (no zero padding), so a line dated the 1st-9th
+        // never matched and was drawn on its week's Monday, which the month grips (R5, autoNoteBaseline)
+        // made easy to hit: the first shoot day dragged to 7/1 left "Start Principal Photography 7/1/26"
+        // on 6/29. Old zero-padded text ("07/01/26") still matches, so the change is a superset.
+        // ⛔ FROZEN EDIT, owner-approved (picker, 19 Oct 2026, "Add the fallback"): a line's date only
+        // places it when that date is INSIDE this note's week. This function is asked about each day with
+        // that day's own week, so a line dated in another week ("Wrap party 7/10/26" typed into the 6/29
+        // week) was drawn on no day at all, in the month view or either month PDF. Now such a line is
+        // placed like an undated one, below. The \d{1,2} fix above would otherwise have made every such
+        // line dated the 1st-9th vanish too (measured: "Delivery 7/7/26" sat on Mon 6/29 before it).
         String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
-          const m = line.match(/(\d{1,2})\/(\d{2})\/(\d{2})\s*$/);
+          const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
           if(m){
             const yr = 2000 + parseInt(m[3],10);
-            const lineIso = isoOf(new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10))));
-            if(lineIso === iso) out.push(line);
-            return;
+            const lineDate = new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10)));
+            if(isoOf(mondayOf(lineDate)) === weekIso){
+              if(isoOf(lineDate) === iso) out.push(line);
+              return;
+            }
           }
           // No date in the text: fall back to the note's pinned day, else the week's Monday.
           const belongsHere = n.date ? (n.date === iso) : (date.getUTCDay() === 1);
@@ -15952,6 +15980,40 @@ export function initLegacyApp() {
       changed++;
     });
     return changed;
+  }
+
+  // ⛔ R5 FOR THE MONTH-VIEW DRAGS (owner, 19 Oct 2026: "when i use the grab handle to change the start
+  // of the very first day of production, it doesnt move the comment with it in the month view"). The
+  // edge grips and body-drag came after R5 and moved the schedule without it. So an edited
+  // "Start Principal Photography 6/29/26" (one line added, or a note saved while its week's text was
+  // different) stayed on 6/29 and still said 6/29/26 once the shoot started 6/30: on screen, in Excel
+  // and in both PDFs. An untouched auto-note was always fine, because it is recomputed.
+  // A drag moves no note between weeks, so this is rewriteMovedAutoNotes() with days 0. A week note
+  // that still opens with the auto text its week had at the PRESS gets that text swapped for the auto
+  // text the week has NOW. The user's own lines stay as typed, and on the day they were pinned to.
+  // A note left with nothing but auto text goes back to plain auto, so it keeps updating.
+  // ⭐ RECOMPUTED FROM THE PRESS ON EVERY STEP, never chained one step to the next: userNotes is put
+  // back to its mousedown copy, then rewritten once against the schedule as it stands. So a drag out
+  // and back, Escape, and a guard's put-back all restore the notes EXACTLY (weekMarks()' rule for the
+  // day marks). One Ctrl+Z restores them with the dates: userNotes is in captureSnapshot(), and each
+  // gesture's trailing push banks it.
+  // ⚠️ Month-view DAY notes (dayNotes) are not touched. They belong to a date, as on every shift.
+  function autoNoteBaseline(){
+    const stale = {};
+    Object.keys(userNotes).forEach(k=>{ stale[k] = weekAutoTexts(currentSchedule, k); });
+    return {notes: JSON.stringify(userNotes), stale};
+  }
+  // Call right after the gesture's update(). Re-renders only when the notes differ from what update()
+  // just drew, so a drag over a calendar with no edited auto-note costs nothing. Returns whether it did.
+  function reapplyAutoNoteBaseline(base){
+    if(!base) return false;
+    const drawn = JSON.stringify(userNotes);
+    Object.keys(userNotes).forEach(k=> delete userNotes[k]);   // const, mutated in place (as shiftCalendar does)
+    Object.assign(userNotes, JSON.parse(base.notes));
+    rewriteMovedAutoNotes(base.stale, 0);
+    if(JSON.stringify(userNotes) === drawn) return false;
+    render(currentSchedule);
+    return true;
   }
 
   // ---------- Day overrides travel BY SHOOT-DAY NUMBER (owner ruling R2; audit M-4) ----------

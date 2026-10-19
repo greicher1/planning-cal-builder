@@ -4,6 +4,66 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (branch `autonote-grips`, worktree `.claude/worktrees/autonote-grips`)
+
+- Owner, 19 Oct 2026: *"when i use the grab handle to change the start of the very first day of production, it doesnt
+  move the comment with it in the month view"*.
+- **What it was:** audit M-10's trap, in the movers built after its fix. An untouched "Start Principal Photography"
+  is recomputed and always followed. An EDITED one is literal text in `userNotes[week]`, and R5's rewrite
+  (`rewriteMovedAutoNotes`) ran only in `shiftCalendar`. ⭐ The owner's own calendar (the copy the app saved into
+  `tests/fixtures/stintswap-reshape.sptcal` at 09:37 that day) holds `{"2027-10-18": {"text": "Start Principal
+  Photography 10/18/27"}}`, exactly the auto text and unpinned. Reproduced on it with trusted mouse input: on `main` the
+  note stays on 10/18 saying 10/18/27; on the fix it moves to 10/19 and goes back to plain auto.
+- **The fix (no frozen code, no save-format change):** `autoNoteBaseline()` / `reapplyAutoNoteBaseline()`, beside
+  `rewriteMovedAutoNotes`, which they call with days 0. The baseline is taken at the press; after each step's `update()`
+  `userNotes` is put back to it and rewritten once against the schedule as it stands, then re-rendered only if the notes
+  differ from what `update()` drew. Out and back, Escape and the guards' put-backs therefore restore the notes exactly;
+  the trailing push banks them with the fields.
+  - Wired into all three month drags: Production's grips (`applyCount`, `applyWeek`, `notesBase` in `beginDrag`), the
+    other phases' grips (`apply`, `beginDrag` in `installPhaseEdgeHandles`) and body-drag (`installMonthPillDrag`).
+  - Not changed, on purpose: body-drag still moves no note between weeks (the user's own lines stay in their week), and
+    month-only `dayNotes` stay on their dates, as on every shift.
+- ⛔ **TWO FROZEN LINES IN `notesForWaterfallDate`, OWNER-APPROVED BY PICKER THE SAME DAY** ("Yes, build it with the
+  gate", then "Add the fallback").
+  1. **The trailing-date pattern's DAY is `\d{1,2}`** (was `\d{2}`). `fmtShort` writes "7/1/26", so a line inside an
+     edited week note dated the 1st–9th never matched and was drawn on its week's MONDAY. The grips made it easy to
+     hit: the first shoot day dragged to 7/1 left "Start Principal Photography 7/1/26" on 6/29.
+  2. **A line dated OUTSIDE its note's week is placed like an undated one** (its pinned day, else the Monday).
+     ⭐ Found by measuring the first line before asking: each day reads only its own week's note, so such a line was
+     drawn on NO day at all. Before line 1 that was true only of two-digit days ("Wrap party 7/10/26" in the 6/29
+     week). Line 1 alone would have made "Delivery 7/7/26" vanish too, where it used to sit on Monday 6/29. So the
+     owner was asked again rather than shipping the approved one-character change alone.
+  - Waterfall, Excel and the waterfall PDF show a week's note as one block and are untouched. The direct month-PDF
+    writer parses `renderMonthView`'s HTML, so it inherits both lines.
+  - Proof: `pilldrag` E22 (start grip onto Wed 7/1) and E23 (the fixture's new 8/3 note, no drag) are red on the
+    grip-fix build `65389d35…` and green on `20f129fb…` (26/26). Full gate on build `20f129fb…`: **1,754 PASS, 0 FAIL, GATE PASSED** (17 min). Gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical (no baseline holds an edited note), waterfall PDF and Excel identical, `monthnotes` (M-13) green.
+- **Tests:** new fixture `autonote-grips.sptcal` (`monthnotes` + two scripted week notes; tests/fixtures/README).
+  `pilldrag` E19 (start grip), E20 (out and back), E21 (wrap grip, the owner's shape), D5 (Production body-drag down a
+  week); `phaseedge` F13 (Writer's Rm start grip a week right). D5 and F13 are cross-week on purpose: they were
+  written before the regex above was fixed. **All five red on the pre-fix build `87028001…`** (the by-unit gated build, rebuilt from
+  `6ad9e42`), green after: `pilldrag` 24/24, `phaseedge` 14/14. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** branch `autonote-grips` is two local commits on `6ad9e42`: the grip fix (`5e487d1`) and then the two
+  frozen lines, each committed on the owner's picker. **Not merged into `main`, not pushed.** Owner's picker, "Not
+  now": merge after the drag-handle session's work lands (next bullet). Then re-run the full gate on the merge.
+- ⚠️ **MERGE NOTE.** Session "Production week/episode drag handle behavior" has UNCOMMITTED edits in the main
+  checkout's `installProductionEdgeHandles` (owner, 19 Oct 2026: an episode-end grip removes days, never pushes). It
+  says `bound` now has its own `applyBound()` that never moves the first shoot day or the wrap, so it needs no note fix.
+  Expect conflicts in `beginDrag` (its week-kind block is split, with a new `bound` branch) and in `applyCount`'s guard.
+  Keep both sides: `notesBase: autoNoteBaseline()` goes in the shared `d` literal, and the reapply calls stay right
+  after `update()` in `applyCount` and `applyWeek`.
+- ⭐ **Learned:**
+  1. **Several sessions edit the main checkout at once now.** `src/legacy/app.js` showed modified mid-task without this
+     session touching it. Check `git status` before editing; when another session holds the file, work in a worktree.
+  2. **A full gate was already running** (another session's). This session's waited on
+     `ps -Ao command | grep -v grep | grep -q "/bin/zsh ./gate.sh"` before starting.
+     ⚠️ **That wait does not cover a leg run standalone.** `pilldrag.mjs` and its siblings start with
+     `pkill -f "srv.js <port> "`. So another session running one on the DEFAULT port (8231) during this gate could kill
+     the gate's server, or have its pages served from the wrong checkout. Reported by that session; this gate passed
+     regardless. Run standalone legs on a private `HARNESS_PORT` (this session used 8781/8782, the other 8741).
+  3. **To prove red, build the pre-fix tree in place:** save `git diff src/legacy/app.js` to a patch, check the file
+     out, build, copy `dist/index.html` to an untracked `dist-prefix/`, re-apply, rebuild. Then run the legs with
+     `--page /dist-prefix/index.html` on a private `HARNESS_PORT`, so no other session's server is pkilled.
+
 ### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
 
 - ✅ **PUSHED AND LIVE at `04a1f18` (19 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`f1ac3ff2…`,
