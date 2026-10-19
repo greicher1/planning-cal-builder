@@ -223,6 +223,29 @@ file's Dates mode and end date, and ran *Mon 4/6/26 → Tue 2/23/27 (47 wk)*.
 
 Unchanged by this: **`sig`, `rows`, `cells`, `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended.
 
+## ✅ `restore.json`'s `form` RE-CUT — 72 keys to 74 (19 Oct 2026, per-episode prep)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 19 Oct 2026: "Re-cut it"). EPISODE-PREP-PLAN.md
+§7 adds the Prep row's two id'd fields, and every id'd control is swept into `fields.byId`, so gate 5 is *supposed* to
+fail until this is re-cut. The full gate on build `9b3f13ad1af1e310…` reported exactly this and nothing else in gate 5.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (2)** | `prep-name` | **`"Prep"`** |
+| | `prep-days` | **`""`** |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `""`.** `v1.0.0-saved.html` predates prep and has neither key, and it restores with no
+default prep length, so it draws no prep at all. The Prep row is STATIC markup, so that is `applyStateSnapshot()`'s
+explicit absent-means-default (beside `show-mode`), not the markup's. The `episodeprep` leg's R11 proves it the way
+`blocks` and `builtindates` did: the same calendar with every prep key removed, loaded after one with a default of 5 and a
+picked colour, opens with no prep, the name "Prep" and the default colour.
+
+Inserted after `simpost-count`, where the two fields sit in the DOM (the Prep row follows Production's), so the diff is
+those two lines. Gate 5 compares the key set and values, not the order. Unchanged by this: **`sig`, `rows`, `cells`,
+`gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended, by a script that aborted on any other difference.
+
 ## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
 
 A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut

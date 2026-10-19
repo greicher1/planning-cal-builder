@@ -2029,6 +2029,55 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYBD
 done
 
+# ---- episodeprep: per-episode prep, derived from the shoot, month view only (EPISODE-PREP-PLAN.md §11) -----
+# Three runs. LIVE builds the synthetic calendar through the UI (a blank default draws nothing; the two
+# ids in fields.byId and none in the list; the row hidden in the waterfall; the drop warning; the list in
+# shooting order; hit-testable controls; one undo per edit; "Whole days only"; overrides and 0; no Show
+# Info; the colour picker) and mints tests/fixtures/episodeprep.sptcal and its Blocks twin from its real
+# Saves. RESTORE holds every prep run to a hand trace of plan §5 (a union holiday inside two preps, a
+# locked hiatus between two episodes, a shuffled shooting order, two overlaps, one of them two preps from
+# the same Monday in separate lanes with their own names), then Shift All, a first prep's own month, a
+# shooting-order drag, undo, rename, Save/Load, the colour, and ⛔ the M-5 trap (the same calendar with
+# no prep keys, loaded after it, opens with NO prep). BLOCKS does prep per block (P4).
+# ⭐ "MONTH VIEW ONLY" IS PROVEN HERE, not asserted: RESTORE exports the workbook and the waterfall PDF
+# with prep ON and again with it OFF, and every Excel part (bar core.xml's timestamp) and the PDF must be
+# byte-identical, while every non-prep bar of the month view is identical too.
+for EPSTATE in "" episodeprep episodeprep-blocks; do
+  rm -f "$HERE/episodeprep.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$EPSTATE" "$HERE/run.sh" episodeprep 400 >/dev/null 2>&1
+  python3 - "$HERE/episodeprep.json" "episodeprep (${EPSTATE:-live})" <<'PYEP' || FAIL=1
+import json,sys,base64,io,zipfile
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    def parts(b):
+        z = zipfile.ZipFile(io.BytesIO(base64.b64decode(b)))
+        return {n: z.read(n) for n in z.namelist()}
+    try:
+        xa, xb = parts(a['xlsxOn']), parts(a['xlsxOff'])
+        diff = [n for n in sorted(set(xa) | set(xb)) if n != 'docProps/core.xml' and xa.get(n) != xb.get(n)]
+        ok = not diff and len(xa) > 5 and b'Production' in xa.get('xl/sharedStrings.xml', b'')
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the workbook is byte-identical with prep on and off ({len(xa)} parts, core.xml excluded){" -- differ: "+str(diff[:4]) if diff else ""}')
+        bad = bad or not ok
+        pa, pb = base64.b64decode(a['pdfOn']), base64.b64decode(a['pdfOff'])
+        ok = pa == pb and len(pa) > 10000
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': ⭐ the waterfall PDF is byte-identical with prep on and off ({len(pa)} vs {len(pb)} bytes)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYEP
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

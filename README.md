@@ -28,6 +28,34 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
+
+EPISODE-PREP-PLAN.md, all five owner rulings (P1–P5, 15 Oct 2026). Each episode gets a prep run of N working days
+ending the day before its first shoot day. It is worked out from the shoot, so it moves whenever the shoot moves:
+a new start date, a shift tool, a holiday, a hiatus or a new shooting order. Only the lengths are saved.
+- **A Prep row in the Phases card, under Production, shown only in the month view** (P1). It has a name ("Prep"), a
+  colour swatch, a **Default prep days** box, a line saying what was made ("6 preps · Fri 2/12/27 → Mon 4/5/27") or
+  why nothing was, and **one box per episode in shooting order**: blank uses the default, a number is that episode's
+  own length, and 0 gives it no prep (P2). The first episode gets one too (P3). In Blocks mode the list holds the
+  blocks, and each prep is per block, labelled "Prep Block 2" (P4).
+- **Drawn in the month view and the month PDF only**, never in the waterfall, Excel or the waterfall PDF. Pills read
+  "Prep 302", in their own lane under the shoot: Production keeps exactly the lane it has today. A working day is
+  Monday to Friday, not an enabled union holiday and not in an all-phase hiatus, as for a Days-mode phase. Preps that
+  overlap stack in separate lanes, each with its own name (P5). No frozen code changed.
+- **Save format:** two new permanent ids, `prep-days` and `prep-name`, and a `prepDays` key on an episode or block that
+  has its own length. An older calendar opened after one with prep set opens with no prep (the M-5 trap: the row is
+  static markup, so both ids default explicitly on every load and on New). A calendar nobody gave a prep length saves
+  exactly what it saved before. `SNAPSHOT_VERSION` is unchanged; an older build ignores the new keys and shows no prep.
+  The colour, when picked, is `phaseColorOverride.episodePrep`.
+- Lowering the episode count past an episode with its own prep length names it in the "Removed …" warning. A fraction
+  is ringed "Whole days only".
+- **Verified:** new leg `episodeprep` (LIVE 23 checks, RESTORE 24, BLOCKS 5) on two new synthetic fixtures,
+  `episodeprep.sptcal` and its Blocks twin, against a hand trace with Presidents' Day and Good Friday inside preps, a
+  locked hiatus between two episodes, a shuffled shooting order and two overlaps. ⭐ **"Month view only" is proven:**
+  the workbook (all 16 parts bar the timestamp) and the waterfall PDF are byte-identical with prep on and off, and so
+  is every other bar of the month view. Full gate: every existing output unchanged (gates 1–4, 10, 13); gate 5
+  re-cut 72 → 74 for the two new ids, on the owner's sign-off.
+
 ### Unreleased — Episode grips remove days and never push, and every episode's start has a grip (19 Oct 2026)
 
 Owner: *"when you drag the edge handles of a production week or episode that is directly touching another week or

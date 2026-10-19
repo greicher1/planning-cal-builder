@@ -51,6 +51,8 @@
   "simpost-enabled": "0",
   "simpost-offset": "0",
   "simpost-count": "0",
+  "prep-name": "Prep",
+  "prep-days": "",
   "name-post": "Post",
   "start-post": "2026-09-07",
   "weeks-post": "12",
