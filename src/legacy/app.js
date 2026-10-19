@@ -7987,6 +7987,9 @@ export function initLegacyApp() {
     // What the header says is on the day, all from the schedule: the shoot day, each bar drawn on it
     // (Production's episode or block, then its week label), an all-phase hiatus, and the ENABLED
     // holidays -- the ones the shoot skips.
+    // Per-episode prep (merged after step 1) is one segment holding every prep, and its `start` is
+    // Production's start, a lane anchor, so prodWeekLabel() would call it "Prep Week 3". Each prep on
+    // the day is named as its pill names it instead, "Prep 302", overlapping preps once each.
     function dayFacts(d){
       const s = currentSchedule || {}, iso = isoOf(d), facts = [];
       const info = s.productionInfo;
@@ -7995,6 +7998,10 @@ export function initLegacyApp() {
       const inHiatus = isHiatusDate(s, d);
       if(!inHiatus) (s.segments || []).forEach(seg=>{
         if(!segCoversDate(seg, d) || isPhaseHiatusDate(seg, d)) return;
+        if(seg.key === PREP_KEY){
+          (seg.preps || []).forEach(p=>{ if(p.days.has(iso)) facts.push(prepPillLabel(seg, p)); });
+          return;
+        }
         if(seg.key === 'production'){
           const U = productionUnits(s);
           ((U && U.byDay.get(iso)) || []).forEach(u=>{
