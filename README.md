@@ -28,6 +28,46 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Episode grips remove days and never push, and every episode's start has a grip (19 Oct 2026)
+
+Owner: *"when you drag the edge handles of a production week or episode that is directly touching another week or
+episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
+drag handles it removes days one by one. Removing days one by one is how it should work in all cases"*. This replaces
+ruling 9b ("push") from 15 Oct 2026 for the grip at the end of an episode or block in the month view (`bound` in
+`installProductionEdgeHandles()`). The first-shoot-day, wrap and week-edge grips are unchanged.
+- **New: a grip on every episode's (block's) START** where another ends right before it. The owner: *"Were also
+  missing the drag handle at the beginning of episodes/blocks/weeks that have a previous episode/block/week right
+  before"*. Until now that line belonged to the earlier episode's end alone, so the later episode had no grip there.
+  It works the same way, mirrored. Dragged later, the episode loses its first days, each marked off. Dragged
+  earlier, it takes back days off, nearest first, then the previous episode's last days. The two grips on one line
+  never overlap: on bars split by episode each sits inside its own bar, and on a bar labelled by Week the end sits
+  just left of the line and the start just right of it.
+- **Dragged earlier:** the episode loses its last days one at a time, and each one becomes a day off (the hatched
+  `off` mark, the same as dragging a week's edge in). The next episode, every later one and the wrap keep their
+  dates, so the shoot's total drops by the days removed.
+- **Dragged later:** the episode first takes back the days off between it and the next episode, one at a time. Then,
+  if it reaches the next episode, it takes that episode's first days one at a time, down to one day. That episode
+  keeps its end, and nothing after it moves. Weekends, holidays and hiatus days are stepped over, never marked worked.
+  Taking the neighbour's days rather than stopping at it is the owner's ruling (picker, 19 Oct 2026).
+- ⚠️ **At a half switch day** (an episode ending in .5, where two bars share one square) a whole day off can't be
+  left, so the two episodes trade instead: the switch day moves, and nothing past the next episode does. That's a
+  judgement call, put to the owner.
+- **A guard, stronger than before:** after every step, the real schedule's shoot days must be exactly the ones at
+  the press, minus those marked off and plus those taken back. That pins the first shoot day, the wrap and every
+  other episode. If they disagree, the step is put back and the drag stops. One undo per drag, and Escape or out-and-back
+  restores the exact counts, flags and marks.
+- **Verified:** `pilldrag` 24/24 with trusted input:
+  - E9, E10, E13 and E14 rewritten from the push;
+  - E15 new (days taken back one at a time, then one taken from the next episode);
+  - E8 and E14 count the start grips, and E16–E18 drive them (later, earlier, on a Week-labelled bar).
+
+  The same test against the old build fails exactly those nine. `npm run check` 40/40.
+- **Full gate** on build `f1ac3ff2…` (1,514,231 bytes): **1,749 PASS, 2 FAIL**. Every frozen output is identical:
+  the waterfall PDF, every Excel part, the legacy restore, gate 10's print documents and gate 13's written month PDFs.
+  The two failures are `pilllabel (dayoverrides)` K1 and C3. K1 timed out waiting for Save, and that leg reads no
+  grip. Several sessions were running harnesses at once. A first gate, run on the shared default port, had collided
+  with another session's server (HANDOFF).
+
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
 Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small

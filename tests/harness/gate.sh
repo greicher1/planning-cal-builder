@@ -1906,6 +1906,11 @@ PYPP
 # ⭐ 15 Oct 2026: E0-E13 hold Production's handles (MONTH-VIEW-PLAN.md §6.7): the shoot's two ends,
 # every episode/block end and every week's edges, each pressed where elementsFromPoint has the handle
 # topmost. E5 and E13 load blocks.sptcal, and E14 halfdays.sptcal (a half switch day's two bars, 15 Oct 2026), so the label names all three.
+# ⛔ 19 Oct 2026: an episode's end grip REMOVES days and never pushes (owner, replacing ruling 9b). E9, E10,
+# E13 and E14 were rewritten from the push and E15 is new (days taken back, then one from the next episode);
+# all five ran red on the old build before this landed. The same day each episode's START got its own grip
+# (`head`, the mirror; owner: "Were also missing the drag handle at the beginning of episodes/blocks/
+# weeks"): E8 and E14 count it, E16-E18 drive it. All nine changed cases are red on the old build.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays)" <<'PYPD' || FAIL=1
 import json,sys

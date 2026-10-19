@@ -6342,13 +6342,22 @@ export function initLegacyApp() {
   // into weeks-production, and episodes take the shoot days in SHOOTING order (productionUnits();
   // blocks in list order). So every handle is one of two things:
   //
-  //   A ROW'S DAY COUNT (start, end, bound). Only that episode or block changes length (ruling 9b,
-  //   "push"). A boundary belongs to the EARLIER episode: dragging the line between 203 and 204
-  //   changes 203, 204 onward keep their lengths and slide, and the wrap moves.
+  //   A ROW'S DAY COUNT (start, end, bound). A boundary belongs to the EARLIER episode: the line
+  //   between 203 and 204 is 203's end.
   //     start  the first shoot day: the ONLY left-side handle. Episode 1 changes with the wrap held,
   //            so start-production moves (Snap to Mon comes off on a non-Monday, as body-drag's, §6.3).
   //     end    the wrap: the last episode changes, the first shoot day held.
-  //     bound  the end of any other episode, mid-pill or on a pill's right edge.
+  //     bound  the end of any other episode, mid-pill or on a pill's right edge. ⛔ REMOVES DAYS, NEVER
+  //            PUSHES (owner, 19 Oct 2026, replacing ruling 9b's push): "Removing days one by one is
+  //            how it should work in all cases". Dragged earlier, 203 loses its last days and each one
+  //            is marked 'off', so 204 onward keep their DATES and the wrap holds. Dragged later, 203
+  //            first takes back the 'off' days between it and 204, then takes 204's first days one at
+  //            a time (204 floors at 1 day). Nothing past 204 ever moves. See boundSteps().
+  //     head   the START of any episode but the first (owner, 19 Oct 2026: "Were also missing the drag
+  //            handle at the beginning of episodes/blocks/weeks that have a previous episode/block/week
+  //            right before"). bound's mirror: dragged later, 204 loses its first days, each marked
+  //            'off'; dragged earlier, it takes back the 'off' days, then 203's last days. Its grip
+  //            sits inside 204's bar, so it never covers 203's end. See headSteps().
   //   A WEEK'S EDGE (wkL, wkR): a Production Week pill's own left or right edge, wherever it is not
   //     already one of the above ("where the two coincide, the episode handle wins", 9a). It writes
   //     day marks, as the day popover does. A shoot day dragged out is marked 'off', a day dragged in
@@ -6357,9 +6366,11 @@ export function initLegacyApp() {
   //     never into a hiatus ('on' does not override one; see simulateProductionSchedule).
   //
   // ⛔ ROW HANDLES STEP BY SHOOT DAY. The edge lands on the shoot day nearest the pointer. A weekend, a
-  // holiday, an 'off' day or a hiatus day is never one, and a row handle never marks a day: §4.4
-  // rejected the tool inventing an override the user did not set. A row floors at 1 day. A week edge
-  // dragged onto a Saturday IS the user marking it, which is what 9a rules.
+  // holiday or a hiatus day is never one, and a row handle never marks a day 'on': §4.4 rejected the
+  // tool inventing an override the user did not set. A row floors at 1 day. A week edge dragged onto a
+  // Saturday IS the user marking it, which is what 9a rules. The one exception is `bound` (above): the
+  // days it drags out become 'off', the days it removes, and an 'off' weekday between two episodes is
+  // somewhere it can land, to take the day back.
   //
   // ⛔ NOT A MOVER (owner ruling R2 does not apply). The shoot days that stay shot keep their dates, so
   // the day marks stay on their dates. Running a row handle inside asShootDayMove() would re-pin every
@@ -6386,6 +6397,7 @@ export function initLegacyApp() {
 
     const dayDiff = (a, b)=> Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
     const isWeekKind = k=> k === 'wkL' || k === 'wkR';
+    const isRowEdge = k=> k === 'bound' || k === 'head';     // an episode's end or start: removes days
 
     // Production's rows in the order they take shoot days, each with its entry span in shootDays --
     // the slicing productionUnits() does -- or null when the length is not row-driven.
@@ -6454,8 +6466,11 @@ export function initLegacyApp() {
       return r.left + l + (col + 1) * (r.width - l - rt) / 7;
     }
 
-    // Which handles a pill carries. `side` is where on the pill: its left edge, its right edge, or
-    // the line after `day` inside it.
+    // Which handles a pill carries. `side` is where on the pill: its left edge, its right edge, the
+    // line after `day` inside it ('mid', just left of the line), or the line before `day` ('midH', just
+    // right of it). A mid-pill episode boundary carries both, side by side: the earlier row's end on
+    // its own side of the line and the later row's start on its side (MONTH-VIEW-PLAN §6.7, item 3's
+    // "let the pointer pick a side").
     function specsFor(pill){
       const P = prodRows(), g = P && pillRange(pill);
       if(!g) return [];
@@ -6463,15 +6478,20 @@ export function initLegacyApp() {
       // ✅ ONE BAR PER EPISODE OR BLOCK (owner, 15 Oct 2026, "Stacked bars, always"; productionSplitRuns).
       // A split bar is one row's run, so its grips come from THAT row: its right edge is the row's end
       // (`bound`) or, where the run stops for a weekend, holiday or 'off' day, a week edge; its left edge
-      // is a week edge unless the row starts there -- that line belongs to the EARLIER row, whose bar
-      // carries the grip. No boundary is ever mid-bar. A half switch day has two bars, each with its own:
-      // since 16 Oct 2026 they share one lane and meet half way through the square (HALF-SQUARE-BARS-PLAN),
-      // so the earlier row's `bound` sits at the middle of that day, on its bar's own right edge.
+      // is a week edge, or where the row starts, the row's start (`head`). No boundary is ever mid-bar.
+      // ✅ `head` SINCE 19 OCT 2026 (owner: "Were also missing the drag handle at the beginning of
+      // episodes/blocks/weeks that have a previous episode/block/week right before"). That line used to
+      // belong to the EARLIER row alone, so a row's first day had no grip. Each grip sits inside its own
+      // bar, 10 px from the line, so the two never overlap. A half switch day has two bars, each with its
+      // own: since 16 Oct 2026 they share one lane and meet half way through the square
+      // (HALF-SQUARE-BARS-PLAN), so the earlier row's `bound` and the later row's `head` sit either side
+      // of the middle of that day.
       const sp = splitSpanOf(pill, g, P);
       if(sp){
+        const i = P.spans.indexOf(sp);
         if(g.from === P.first) out.push({kind: 'start', side: 'left', day: g.from});
         else if(g.from !== sp.first) out.push({kind: 'wkL', side: 'left', day: g.from});
-        const i = P.spans.indexOf(sp);
+        else if(i > 0) out.push({kind: 'head', i, side: 'left', day: g.from});
         if(g.to === P.last && i === P.spans.length - 1) out.push({kind: 'end', side: 'right', day: g.to});
         else if(g.to === sp.last && i < P.spans.length - 1) out.push({kind: 'bound', i, side: 'right', day: g.to});
         else out.push({kind: 'wkR', side: 'right', day: g.to});
@@ -6480,11 +6500,19 @@ export function initLegacyApp() {
       const inner = P.spans.slice(0, -1);                      // every row but the last has a boundary
       const rowFirsts = new Set(P.spans.slice(1).map(sp=> sp.first));
       const rowLasts = new Set(inner.map(sp=> sp.last));
+      // The later row whose first day is `iso` (a row of half a day can share it with the next: the
+      // later one wins, as its bar is the one drawn starting there).
+      const headAt = iso=>{ for(let i = P.spans.length - 1; i > 0; i--) if(P.spans[i].first === iso) return i; return -1; };
       if(g.from === P.first) out.push({kind: 'start', side: 'left', day: g.from});
       else if(!rowFirsts.has(g.from)) out.push({kind: 'wkL', side: 'left', day: g.from});
+      else { const i = headAt(g.from); if(i > 0) out.push({kind: 'head', i, side: 'left', day: g.from}); }
       inner.forEach((sp, i)=>{
         if(!sp.last || sp.last < g.from || sp.last > g.to) return;
         out.push({kind: 'bound', i, side: sp.last === g.to ? 'right' : 'mid', day: sp.last});
+      });
+      P.spans.forEach((sp, i)=>{
+        if(i === 0 || !sp.first || sp.first <= g.from || sp.first > g.to) return;
+        out.push({kind: 'head', i, side: 'midH', day: sp.first});
       });
       if(g.to === P.last) out.push({kind: 'end', side: 'right', day: g.to});
       else if(!rowLasts.has(g.to)) out.push({kind: 'wkR', side: 'right', day: g.to});
@@ -6499,8 +6527,13 @@ export function initLegacyApp() {
         case 'end':   return 'Drag to move the wrap. The last ' + unit + ' gains or loses the days; the first shoot day stays put.';
         case 'bound': {
           const n = nameOf(P.spans[spec.i]);
-          return 'Drag to change where ' + n + ' ends. Only ' + n + ' changes length; the ' + unit
-            + 's after it slide, and the wrap moves.';
+          return 'Drag to change where ' + n + ' ends. A day dragged out is marked off; dragged into the next '
+            + unit + ', it takes that ' + unit + '’s days. Nothing else moves, and the wrap stays put.';
+        }
+        case 'head': {
+          const n = nameOf(P.spans[spec.i]);
+          return 'Drag to change where ' + n + ' starts. A day dragged out is marked off; dragged into the '
+            + unit + ' before it, it takes that ' + unit + '’s days. Nothing else moves, and the wrap stays put.';
         }
         default: return 'Drag to ' + (spec.kind === 'wkL' ? 'start' : 'end') + ' this week on another day. '
           + 'A shoot day dragged out is marked off, a day dragged in is marked worked. The ' + unit
@@ -6526,9 +6559,12 @@ export function initLegacyApp() {
     function place(h, pill, spec){
       const v = visibleRect(pill), g = pillRange(pill);
       if(!v || !g){ h.hidden = true; return; }
+      // A mid-pill line can carry two grips (an end and the next start), so each sits on its own row's
+      // side of it rather than centred on it.
       const x = spec.side === 'left' ? v.full.left
               : spec.side === 'right' ? v.full.right - HANDLE_W
-              : colEdgeX(pill, g.a - 1 + dayDiff(g.from, spec.day)) - HANDLE_W / 2;
+              : spec.side === 'midH' ? colEdgeX(pill, g.a - 2 + dayDiff(g.from, spec.day))
+              : colEdgeX(pill, g.a - 1 + dayDiff(g.from, spec.day)) - HANDLE_W;
       // The edge itself must be on screen, not just some of the pill.
       if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
       h._spec = spec;
@@ -6575,8 +6611,10 @@ export function initLegacyApp() {
     // property of the DATE (weekday, holiday, hiatus, override), not of where the shoot starts, so
     // one wide walk answers every position a row handle can reach:
     //   start         from 70 days before the first shoot day, snap off
-    //   end / bound   from the real start
-    // with the dragged row padded PAD days, so the walk runs well past the edge. Everything it
+    //   end           from the real start
+    // with the dragged row padded PAD days, so the walk runs well past the edge. (`bound` needs no
+    // probe since 19 Oct 2026: it never moves a shoot day it does not remove, so today's list already
+    // holds every place it can land. See boundSteps().) Everything it
     // changes is put back before it returns, and nothing renders meanwhile.
     function probeShootDays(fromEarlier, row, ends){
       const startEl = document.getElementById('start-production');
@@ -6645,15 +6683,123 @@ export function initLegacyApp() {
           if(c !== d.c0 && suf[j] - L[iL].w >= R) continue;
           consider(c, c === d.c0 ? d.edge0 : L[j].iso);
         }
-      } else {
-        // bound: the row takes ENTRIES floor(s) .. ceil(s+c)-1 of the shoot-day list, whatever any
-        // legacy half MARK does -- productionUnits()' rule -- and everything before it is unchanged.
-        for(let c = d.cMin; c <= d.c0 + PAD; c++){
-          const x = L[Math.ceil(d.s + c) - 1];
-          if(!x) break;
-          consider(c, c === d.c0 ? d.edge0 : x.iso);
+      }
+      return best;
+    }
+
+    // ⛔ `bound`: EVERY PLACE AN EPISODE'S END CAN LAND, each with exactly what it writes (owner,
+    // 19 Oct 2026: "Removing days one by one is how it should work in all cases"). It replaced the push
+    // (ruling 9b), where 204 onward slid with the edge, and the wrap with them.
+    //   {c, n, iso, out, back}: the dragged row's count `c`, the next row's count `n`, where the edge
+    //   then sits, the shoot days marked 'off' (`out`), and the 'off' days given back (`back`).
+    // A row takes ENTRIES floor(s) .. ceil(s+c)-1 of the shoot-day list (productionUnits()' rule). So:
+    //   EARLIER  the row loses its last entries, and each one leaves the line through an 'off' mark.
+    //            The entries after it, the next row's included, keep their dates, and the wrap holds.
+    //   LATER    first the 'off' weekdays between the two rows come back, one a step (they are the
+    //            only days there a row could take: anything else there is a weekend, a holiday or a
+    //            hiatus day, never marked 'on' by a row handle). Then the next row's first entries
+    //            pass to this row one at a time (it keeps one day). The line itself is unchanged.
+    // ⚠️ A HALF SWITCH DAY cannot leave a day off. When the next row starts half way through the edge's
+    // day (s+c ends in .5), the line between them is inside one date, and holding the next row still
+    // would mean marking half of two dates off. There the edge trades both ways with the next row, so
+    // the switch day moves and nothing past the next row does. Judgement call, flagged to the owner.
+    // ⚠️ An entry worked at half weight ('onhalf', a legacy 'half') is never taken out: the row would
+    // lose an entry but the total only half a day, and the wrap would move. Earlier stops short of it.
+    function boundSteps(d){
+      const L = d.P.days, s = d.s, c0 = d.c0, n0 = d.n0;
+      const pi = currentSchedule && currentSchedule.productionInfo;
+      const halfW = new Set((pi && pi.halfDays) || []);
+      if(L[Math.ceil(s + c0) - 1] !== d.edge0) return null;
+      const switchDay = (s + c0) % 1 !== 0;
+      const nMin = n0 - Math.floor(n0 - 1);
+      const steps = [{c: c0, n: n0, iso: d.edge0, out: [], back: []}];
+      // Earlier, down to the row's floor.
+      const out = [];
+      for(let c = c0 - 1; c >= d.cMin; c--){
+        const e = Math.ceil(s + c) - 1;
+        if(!L[e]) break;
+        if(switchDay){ steps.push({c, n: n0 + (c0 - c), iso: L[e], out: [], back: []}); continue; }
+        const x = L[e + 1];                    // the entry this step takes out
+        if(halfW.has(x)) break;
+        out.push(x);
+        steps.push({c, n: n0, iso: L[e], out: out.slice(), back: []});
+      }
+      // Later.
+      let c = c0;
+      const back = [];
+      if(!switchDay){
+        const nextFirst = L[Math.ceil(s + c0)];
+        for(let x = isoOf(addDays(parseDateUTC(d.edge0), 1)); nextFirst && x < nextFirst; x = isoOf(addDays(parseDateUTC(x), 1))){
+          if(d.ov0[x] !== 'off' || !d.natural(x) || d.inHiatus(x)) continue;
+          back.push(x);
+          c += 1;
+          steps.push({c, n: n0, iso: x, out: [], back: back.slice()});
         }
       }
+      for(let k = 1; n0 - k >= nMin; k++){
+        const x = L[Math.ceil(s + c0 + k) - 1];
+        if(!x) break;
+        steps.push({c: c + k, n: n0 - k, iso: x, out: [], back: back.slice()});
+      }
+      return steps;
+    }
+    // ⛔ `head`: a row's START, boundSteps() seen from the other side (owner, 19 Oct 2026: "Were also
+    // missing the drag handle at the beginning of episodes/blocks/weeks that have a previous
+    // episode/block/week right before"). The dragged row is `d.row`, starting at entry `d.s`; the row
+    // before it is `d.other`, with `d.n0` days, so d.s = its start + d.n0. Same promise, mirrored:
+    //   LATER    the row loses its FIRST entries, each one marked 'off'. The row before keeps its dates,
+    //            and so does this row's end and everything after it, so the wrap holds.
+    //   EARLIER  first the 'off' weekdays between the rows come back, nearest first, then the previous
+    //            row's last entries pass to this row one at a time (that row keeps one day).
+    // A half switch day trades both ways, as boundSteps(); a half-weight entry is never taken out.
+    function headSteps(d){
+      const L = d.P.days, s = d.s, c0 = d.c0, n0 = d.n0;
+      const pi = currentSchedule && currentSchedule.productionInfo;
+      const halfW = new Set((pi && pi.halfDays) || []);
+      if(L[Math.floor(s)] !== d.edge0) return null;
+      const switchDay = s % 1 !== 0;
+      const nMin = n0 - Math.floor(n0 - 1);
+      const steps = [{c: c0, n: n0, iso: d.edge0, out: [], back: []}];
+      // Later, down to the row's floor.
+      const out = [];
+      for(let k = 1; c0 - k >= d.cMin; k++){
+        const iso = L[Math.floor(s + k)];
+        if(!iso) break;
+        if(switchDay){ steps.push({c: c0 - k, n: n0 + k, iso, out: [], back: []}); continue; }
+        const x = L[s + k - 1];                // the entry this step takes out
+        if(halfW.has(x)) break;
+        out.push(x);
+        steps.push({c: c0 - k, n: n0, iso, out: out.slice(), back: []});
+      }
+      // Earlier.
+      let c = c0;
+      const back = [];
+      if(!switchDay){
+        const prevLast = L[s - 1];
+        for(let x = isoOf(addDays(parseDateUTC(d.edge0), -1)); prevLast && x > prevLast; x = isoOf(addDays(parseDateUTC(x), -1))){
+          if(d.ov0[x] !== 'off' || !d.natural(x) || d.inHiatus(x)) continue;
+          back.push(x);
+          c += 1;
+          steps.push({c, n: n0, iso: x, out: [], back: back.slice()});
+        }
+      }
+      for(let k = 1; n0 - k >= nMin; k++){
+        const iso = L[Math.floor(s - k)];
+        if(!iso) break;
+        steps.push({c: c + k, n: n0 - k, iso, out: [], back: back.slice()});
+      }
+      return steps;
+    }
+    // The step whose edge lands nearest `target`; ties go to the smaller change.
+    function nearestStep(d, target){
+      const T = parseDateUTC(target).getTime();
+      let best = null, bestDist = 0;
+      d.steps.forEach(st=>{
+        const dist = Math.abs(parseDateUTC(st.iso).getTime() - T);
+        if(!best || dist < bestDist || (dist === bestDist && Math.abs(st.c - d.c0) < Math.abs(best.c - d.c0))){
+          best = st; bestDist = dist;
+        }
+      });
       return best;
     }
 
@@ -6669,21 +6815,21 @@ export function initLegacyApp() {
     }
     // A week edge's day marks for target T, computed from the marks at mousedown every time, so a
     // drag that comes back restores them exactly (a 'half' it passed over included).
+    // A shoot day taken out of the shoot, in marks `m`: a weekend or holiday shot only because of its
+    // own mark goes back to being unworked; anything else is marked off. Shared by the week edges and
+    // `bound`, so a day dragged out reads the same whichever grip did it.
+    function markOut(d, m, iso){
+      if(!d.natural(iso) && (m[iso] === 'on' || m[iso] === 'onhalf')) delete m[iso];
+      else m[iso] = 'off';
+    }
     function weekMarks(d, T){
       const m = Object.assign({}, d.ov0);
-      const natural = iso=>{ const w = parseDateUTC(iso).getUTCDay(); return w >= 1 && w <= 5 && !d.hol.has(iso); };
       const bringIn = iso=>{
         if(d.shot.has(iso)) return;
-        if(natural(iso)){ if(m[iso] === 'off') delete m[iso]; }
+        if(d.natural(iso)){ if(m[iso] === 'off') delete m[iso]; }
         else m[iso] = 'on';
       };
-      const takeOut = iso=>{
-        if(!d.shot.has(iso)) return;
-        // A weekend or holiday shot only because of its own mark goes back to being unworked;
-        // anything else is marked off.
-        if(!natural(iso) && (m[iso] === 'on' || m[iso] === 'onhalf')) delete m[iso];
-        else m[iso] = 'off';
-      };
+      const takeOut = iso=>{ if(d.shot.has(iso)) markOut(d, m, iso); };
       const span = (a, b, fn)=>{ for(let x = a; x <= b; x = isoOf(addDays(parseDateUTC(x), 1))) fn(x); };
       const prev = iso=> isoOf(addDays(parseDateUTC(iso), -1)), next = iso=> isoOf(addDays(parseDateUTC(iso), 1));
       if(d.kind === 'wkL'){
@@ -6716,6 +6862,18 @@ export function initLegacyApp() {
     function follow(){
       const d = drag, h = d.handle, day = d.cur.iso;
       const pills = prodPills();
+      // A row's start sits on the bar that STARTS on its day. On a half switch day the earlier row's
+      // one-day bar can start there too, and the later row's is the one further right. Failing that
+      // (bars labelled by week, unsplit), it is mid-pill, on the line before its day.
+      if(d.kind === 'head'){
+        const starting = pills.filter(p=>{ const g = pillRange(p); return g && g.from === day; })
+          .sort((a, b)=> b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+        if(starting[0]){ place(h, starting[0], {kind: d.kind, i: d.i, day, side: 'left'}); return; }
+        const covering = pills.find(p=>{ const g = pillRange(p); return g && g.from < day && day <= g.to; });
+        if(covering){ place(h, covering, {kind: d.kind, i: d.i, day, side: 'midH'}); return; }
+        h.hidden = true;
+        return;
+      }
       // A right-side edge sits on the bar that ENDS on its day. On a half switch day two bars cover
       // it (the next row's starts there), so look for an ending bar first, then any bar.
       if(d.kind !== 'start' && d.kind !== 'wkL'){
@@ -6774,9 +6932,9 @@ export function initLegacyApp() {
       if(step.c !== d.c0){
         const pi = currentSchedule && currentSchedule.productionInfo;
         const days = (pi && pi.shootDays) || [];
+        // (start and end only: `bound` has applyBound(), with a stronger check.)
         const ok = d.kind === 'start' ? days[days.length - 1] === d.ends.last && days[0] === step.iso
-                 : d.kind === 'end'   ? days[0] === d.ends.first && days[days.length - 1] === step.iso
-                 :                      days[0] === d.ends.first && days[Math.ceil(d.s + step.c) - 1] === step.iso;
+                 :                      days[0] === d.ends.first && days[days.length - 1] === step.iso;
         if(!ok){ d.broken = true; applyCount({c: d.c0, iso: d.edge0}); return; }
       }
       follow();
@@ -6789,9 +6947,51 @@ export function initLegacyApp() {
       cancelPendingUndoPush();
       follow();
     }
+    // One boundSteps() / headSteps() step: both rows' counts and the marks, always computed from the
+    // press, so a drag that comes back restores them exactly. `d.other` is the row on the far side of
+    // the line: the next one for `bound`, the previous one for `head`.
+    function applyBound(step){
+      const d = drag, r = d.row, nx = d.other;
+      if(step.c === d.c0){
+        // Back where it began: EXACTLY what was there, flags included (MONTH-9's rule).
+        r.days = d.daysWas; r.daysEdited = d.editedWas;
+        nx.days = d.otherDaysWas; nx.daysEdited = d.otherEditedWas;
+        dayOverrides = Object.assign({}, d.ov0);
+      } else {
+        // ⛔ daysEdited on every row whose count changes, or the reconcile resets it (see applyCount).
+        r.days = String(step.c); r.daysEdited = true;
+        if(step.n !== d.n0){ nx.days = String(step.n); nx.daysEdited = true; }
+        else { nx.days = d.otherDaysWas; nx.daysEdited = d.otherEditedWas; }
+        const m = Object.assign({}, d.ov0);
+        step.out.forEach(x=> markOut(d, m, x));
+        step.back.forEach(x=> delete m[x]);
+        dayOverrides = m;
+      }
+      d.cur = {c: step.c, iso: step.iso};
+      refreshDerivedInfo();
+      if(d.blocks) renderBlockRows(); else renderEpisodeRows();
+      update();
+      cancelPendingUndoPush();
+      // ⛔ The promise is that NOTHING ELSE MOVES. So the shoot days must be exactly the ones at the
+      // press, less those marked off and plus those given back -- which pins the first shoot day, the
+      // wrap and every other row's dates -- and the edge must be where it was computed to land.
+      // Anything else and this arithmetic disagrees with the real scheduler: put it back, go inert.
+      if(step.c !== d.c0){
+        const pi = currentSchedule && currentSchedule.productionInfo;
+        const days = (pi && pi.shootDays) || [];
+        const gone = new Set(step.out);
+        const want = d.P.days.filter(x=> !gone.has(x)).concat(step.back).sort();
+        // The landed edge: a row's last entry is ceil(s+c)-1; the dragged row's FIRST entry, for
+        // `head`, is floor(where the row before starts + its new count).
+        const at = d.kind === 'head' ? Math.floor(d.sOther + step.n) : Math.ceil(d.s + step.c) - 1;
+        const ok = days.length === want.length && days.every((x, k)=> x === want[k]) && days[at] === step.iso;
+        if(!ok){ d.broken = true; applyBound(d.steps[0]); return; }
+      }
+      follow();
+    }
     const changed = d=> isWeekKind(d.kind)
       ? JSON.stringify(dayOverrides) !== JSON.stringify(d.ov0)
-      : d.cur.c !== d.c0;
+      : d.cur.c !== d.c0;     // every bound/head step but the press's own has a different count
 
     function endDrag(){
       const d = drag;
@@ -6811,20 +7011,36 @@ export function initLegacyApp() {
       if(!spec || !P || !g || !startEl || !startEl.value) return;
       const d = {kind: spec.kind, i: spec.i, handle: h, P, edge0: spec.day,
                  startEl, startWas: startEl.value, snapEl, snapWas: !!(snapEl && snapEl.checked)};
-      if(isWeekKind(spec.kind)){
+      if(isWeekKind(spec.kind) || isRowEdge(spec.kind)){
+        // What the day marks are computed from, at the press: the marks, the shoot days, and which
+        // days the calendar would shoot with no mark at all.
         const seg = (currentSchedule.segments || []).find(s=> s.key === 'production');
         const ownHi = seg && seg.phaseHiatus;
-        Object.assign(d, {from: g.from, to: g.to, rowSun: g.rowSun, rowSat: isoOf(addDays(parseDateUTC(g.rowSun), 6)),
-          ov0: Object.assign({}, dayOverrides), shot: new Set(P.days),
-          // The holidays the simulation skips: only ENABLED ones, for the region it reads.
-          hol: new Set(fullHolidayList(effectiveRegionKey()).filter(x=> x.enabled).map(x=> x.date)),
+        // The holidays the simulation skips: only ENABLED ones, for the region it reads.
+        const hol = new Set(fullHolidayList(effectiveRegionKey()).filter(x=> x.enabled).map(x=> x.date));
+        Object.assign(d, {ov0: Object.assign({}, dayOverrides), shot: new Set(P.days), hol,
+          natural: iso=>{ const w = parseDateUTC(iso).getUTCDay(); return w >= 1 && w <= 5 && !hol.has(iso); },
           inHiatus: iso=>{ const dt = parseDateUTC(iso);
             return (currentSchedule.hiatuses || []).some(x=> dt >= x.start && dt < x.end)
-                || !!(ownHi && dt >= ownHi.start && dt < ownHi.end); },
+                || !!(ownHi && dt >= ownHi.start && dt < ownHi.end); }});
+      }
+      if(isWeekKind(spec.kind)){
+        Object.assign(d, {from: g.from, to: g.to, rowSun: g.rowSun, rowSat: isoOf(addDays(parseDateUTC(g.rowSun), 6)),
           cur: {iso: spec.day}});
+      } else if(isRowEdge(spec.kind)){
+        // The dragged row, and the row on the far side of the line: the next for an end, the previous
+        // for a start.
+        const head = spec.kind === 'head';
+        const sp = P.spans[spec.i], ot = P.spans[head ? spec.i - 1 : spec.i + 1];
+        if(!sp || !ot) return;
+        const c0 = dayCountVal(sp.row.days);
+        Object.assign(d, {row: sp.row, s: sp.s, c0, cMin: c0 - Math.floor(c0 - 1), daysWas: sp.row.days,
+          editedWas: sp.row.daysEdited, other: ot.row, sOther: ot.s, n0: dayCountVal(ot.row.days),
+          otherDaysWas: ot.row.days, otherEditedWas: ot.row.daysEdited, blocks: P.blocks, cur: {c: c0, iso: spec.day}});
+        d.steps = head ? headSteps(d) : boundSteps(d);
+        if(!d.steps) return;
       } else {
-        const sp = spec.kind === 'start' ? P.spans[0]
-                 : spec.kind === 'end' ? P.spans[P.spans.length - 1] : P.spans[spec.i];
+        const sp = spec.kind === 'start' ? P.spans[0] : P.spans[P.spans.length - 1];
         if(!sp) return;
         // ✅ HALF DAYS: the count is read in halves and the grip steps by WHOLE shoot days, so a 4.5
         // stays a something-and-a-half (3.5, 5.5): the drag moves the switch day, never the fact that
@@ -6870,6 +7086,11 @@ export function initLegacyApp() {
       }
       const iso = dayAtPoint(e.clientX - drag.dx, e.clientY);
       if(!iso) return;
+      if(isRowEdge(drag.kind)){
+        const st = nearestStep(drag, iso);
+        if(st && st.c !== drag.cur.c) applyBound(st);
+        return;
+      }
       const step = solveCount(drag, iso);
       if(step && step.c !== drag.cur.c) applyCount(step);
     });
@@ -6879,6 +7100,7 @@ export function initLegacyApp() {
       if(!drag || e.key !== 'Escape') return;
       e.preventDefault();
       if(isWeekKind(drag.kind)){ if(drag.cur.iso !== drag.edge0) applyWeek(drag.edge0); }
+      else if(isRowEdge(drag.kind)){ if(drag.cur.c !== drag.c0) applyBound(drag.steps[0]); }
       else if(drag.cur.c !== drag.c0) applyCount({c: drag.c0, iso: drag.edge0});
       endDrag();
     }, true);

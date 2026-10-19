@@ -553,13 +553,17 @@ rest of ruling 9 once 9a–9c were confirmed.
 |---|---|---|
 | `start` | left edge of the pill holding the first shoot day | episode 1 (block 1) gains or loses days; the wrap is held; `start-production` moves, and Snap to Mon comes off on a non-Monday |
 | `end` | right edge of the pill holding the wrap | the last episode (block) gains or loses days; the first shoot day is held |
-| `bound` | the line after any other episode's (block's) last day: mid-pill, or the pill's right edge | that row gains or loses days; later rows keep theirs and slide; the wrap moves (9b, push) |
+| `bound` | the line after any other episode's (block's) last day: mid-pill, or the pill's right edge | ~~that row gains or loses days; later rows keep theirs and slide; the wrap moves (9b, push)~~ ⛔ **Since 19 Oct 2026 (owner, replacing 9b): removes days, never pushes.** Earlier, the row loses days and each one is marked `off`. Later, it takes back the `off` days between it and the next row, then the next row's first days (that row floors at 1). Nothing else moves; the wrap holds. At a half switch day the two rows trade. See "9b REPLACED" below |
+| `head` ⭐ *19 Oct 2026* | the line before any later episode's (block's) first day: a split bar's left edge, a week pill's left edge, or mid-pill just right of the line (the `bound` sits just left of it) | `bound`'s mirror. Later, the row loses its FIRST days, each marked `off`; earlier, it takes back the `off` days before it, then the previous row's last days (that row floors at 1). Nothing else moves; the wrap holds. See "9b REPLACED" below |
 | `wkL` / `wkR` | a pill's own left / right edge, where none of the above is | day marks: a shoot day dragged out is marked `off`, a day dragged in is marked `on` or loses its `off`; the rows keep their lengths, so the wrap moves (9a) |
 
 - **"The episode handle wins" (9a), made exact.** A pill edge carries no week handle if it is the
   first shoot day, the wrap, an episode's last day (a `bound` sits there), or an episode's FIRST day.
-  At an episode's first day, the boundary is the previous episode's right side (9b), so that edge
-  has no handle at all.
+  ~~At an episode's first day, the boundary is the previous episode's right side (9b), so that edge
+  has no handle at all.~~ ⭐ **Since 19 Oct 2026 an episode's first day carries its own `head`** (owner:
+  *"Were also missing the drag handle at the beginning of episodes/blocks/weeks that have a previous
+  episode/block/week right before"*). This is item 3's alternative, "let the pointer pick a side": each grip sits
+  inside its own row's bar, or on its own row's side of a mid-pill line, so the two never overlap.
 - **Row handles step by shoot day** and never write a mark. The edge lands on the shoot day nearest
   the pointer, ties going to the smaller change, and each row floors at 1 day.
 - **Week edges stay in their own row**, never before the first shoot day or past the wrap, and stop
@@ -637,6 +641,44 @@ rest of ruling 9 once 9a–9c were confirmed.
   handles became body-level elements with their own cursor (see "BUILT" above).
 - **Reachability:** `pilldrag.mjs` must assert that `elementsFromPoint` at the zone has the pill
   topmost, and drive the drag with trusted CDP input (§8 step 5's rule).
+
+#### ⛔ 9b REPLACED 19 Oct 2026: an episode's end REMOVES days, it never pushes
+
+The owner, after using the push: *"when you drag the edge handles of a production week or episode that is directly
+touching another week or episode, it moves the other episode/week with it. When its not directly touching another
+one, and you adjust the drag handles it removes days one by one. Removing days one by one is how it should work in
+all cases"*.
+
+- **What "touching" was.** Since the half-days merge, Production draws one bar per episode, each still labelled
+  *Production Week N*. Two bars in one week meet at an episode's end, which is a `bound` grip, and the push slid the
+  next bar (and every later one) with the edge. The "not touching" grips are `wkL`/`wkR`, `start` and `end`, where a
+  dragged-in day just goes blank. Those are unchanged.
+- **The new `bound`** (`boundSteps()`, `applyBound()`):
+  - *Earlier:* the row loses its last entries, each marked `off` through the same rule as a week edge
+    (`markOut()`: a weekend or holiday worked by its own `on` goes back to unworked). Every later row keeps its DATES;
+    the total drops; the wrap holds.
+  - *Later:* the `off` weekdays between this row and the next come back one a step, then the next row's first
+    entries pass to this row one at a time (the next row floors at 1). Weekends, holidays and hiatus days are stepped
+    over: a row handle still never marks a day `on` (§4.4). ✅ **Taking the next row's days, rather than stopping at
+    it, is the owner's ruling** (picker, 19 Oct 2026: "Take its days").
+  - ⚠️ *A half switch day* (the next row starts half way through the edge's day) cannot leave a whole day off. Holding
+    the next row still would need half of two dates off. There the two rows trade both ways. **Judgement call, put to
+    the owner** with the build.
+  - ⚠️ *A half-weight entry* (`onhalf`, a legacy `half`) is never taken out: one entry but half a day would move the
+    wrap. Earlier stops short of it.
+- **The guard is stronger than the push's:** the new shoot-day list must equal the press's list less the days
+  marked off plus the days taken back, which pins the first day, the wrap and every other row. It has not fired.
+- **No probe.** Nothing a `bound` drag does moves a shoot day it does not remove, so the list at the press already
+  holds every landing place; `probeShootDays()` now serves `start` and `end` only.
+- ⭐ **`head`, the same day** (owner: *"Were also missing the drag handle at the beginning of episodes/blocks/weeks
+  that have a previous episode/block/week right before"*). Every later row's first day now carries its own grip,
+  `headSteps()` mirroring `boundSteps()`: later, the row loses its first entries (each `off`); earlier, it takes back
+  the `off` days nearest it first, then the previous row's last entries. The two grips on one line never overlap:
+  on split bars each sits inside its own bar, and on a week pill (labelled by Week) the end sits just left of the
+  line and the start just right of it (`'mid'` / `'midH'` in `place()`; a lone mid end used to be centred).
+- **Proof:** `pilldrag.mjs` 24/24 on the new build. E9, E10, E13 and E14 were rewritten from the push. E15 is new (days
+  taken back, then one taken from the next episode). E8 and E14 count the start grips, and E16–E18 drive them
+  (later, earlier, and on a Week-labelled bar). The same script fails exactly those nine on the old build.
 
 #### ✅ BUILT 16 Oct 2026: the phase handles of rulings 7 and 8. Zero frozen edits
 
@@ -716,7 +758,7 @@ so it is NOT a mover, and nothing here goes through `setPhaseStart()`:
 | 6 | Per-week Production control | **`dayOverrides`**, not per-week start dates — Production stays derivable (§4) |
 | 7 | *(15 Oct 2026)* Edges on built-in Weeks phases | **Add a Dates mode** to the five built-ins, reversing CUSTOM-PHASE-UNITS's "built-ins untouched" scope (its §1). Its ruling 1, one schedule, still holds (§6.7). ✅ **Built 16 Oct 2026** (§6.7, "the phase handles") |
 | 8 | *(15 Oct 2026)* Edges on custom phases | **After CUSTOM-PHASE-UNITS steps 1–4**: Days and Dates get both handles, and a Weeks edge drag switches the phase to Dates (§6.7). ✅ **Built 16 Oct 2026** (§6.7, "the phase handles") |
-| 9 | *(15 Oct 2026)* Edges on Production | *"drag either side of each episode/production week/block individually"*. ✅ **§6.7's reading confirmed** (9a–9c): episode/block boundaries push, week edges set day marks, screen-only handles. 9d: the built-ins' Dates mode takes ten ids |
+| 9 | *(15 Oct 2026)* Edges on Production | *"drag either side of each episode/production week/block individually"*. ✅ **§6.7's reading confirmed** (9a–9c): episode/block boundaries push, week edges set day marks, screen-only handles. 9d: the built-ins' Dates mode takes ten ids. ⛔ **9b REPLACED 19 Oct 2026:** *"Removing days one by one is how it should work in all cases"*. An episode's end now removes days (marked off) and never pushes (§6.7, "9b REPLACED") |
 
 ⏸ **Still unanswered:** whether any remaining *"adjustments"* the owner has in mind also move dates.
 Ask before scoping beyond §4–§6.

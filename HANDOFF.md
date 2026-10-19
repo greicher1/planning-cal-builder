@@ -4,6 +4,64 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (main checkout, uncommitted until the owner's picker)
+
+- ⏭ **RESUME HERE.** Two owner requests, 19 Oct 2026, both in `installProductionEdgeHandles()` (`src/legacy/app.js`, not
+  frozen):
+  1. *"when you drag the edge handles of a production week or episode that is directly touching another week or
+     episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
+     drag handles it removes days one by one. Removing days one by one is how it should work in all cases"*. That
+     **replaces ruling 9b (push)**.
+  2. *"Were also missing the drag handle at the beginning of episodes/blocks/weeks that have a previous
+     episode/block/week right before"*. That is the new `head` grip.
+
+  Both are recorded in MONTH-VIEW-PLAN §6.7 ("9b REPLACED", the handle table, "the episode handle wins") and §7.
+- **What "touching" meant, read from the code:** Production draws one bar per episode (each still labelled
+  *Production Week N*), so two episodes in one week meet at a `bound` grip, and the push slid the next bar and every
+  later one. "Not touching" was `wkL`/`wkR`, `start` and `end`, where a dragged-in day goes blank. **Those four are
+  unchanged.**
+- **What changed:**
+  - `bound` (an episode's end) no longer uses `probeShootDays()`/`solveCount()`. `boundSteps()` lists every landing
+    place with exactly what it writes; `applyBound()` applies one. Earlier = the row loses days, each marked `off`
+    (`markOut()`, now shared with the week edges). Later = it takes back the `off` weekdays between the rows, then the
+    next row's first days (floor 1). Nothing else moves, so the wrap holds.
+  - `head` (an episode's start, every row but the first) is the mirror, `headSteps()`, through the same
+    `applyBound()` (`d.other` is the row across the line). On split bars it sits on the bar's left edge. On a bar
+    labelled by Week, a mid-pill line carries both grips: the end just LEFT of the line (`'mid'`, which used to be
+    centred) and the start just RIGHT (`'midH'`). Measured: both topmost, no overlap.
+  - ✅ **Dragging into the neighbouring episode takes its days, one at a time, rather than stopping at it.** The
+    owner's picker, 19 Oct 2026: "Take its days". Stopping would make a touching boundary impossible to move that way.
+  - ⚠️ **Still a judgement call, not ruled:** at a **half switch day** the two rows trade, because a whole day off
+    cannot be left inside one shared date.
+  - **Week edges still keep the episode's length, so the wrap still moves** (ruling 9a). An episode end or start now
+    changes the length and holds the wrap. Locally both look the same (the day goes blank).
+  - The guard compares the whole shoot-day list against the press's (less `off`, plus taken back). It has not fired.
+- ⛔ **LEARNED: the default harness port 8231 is SHARED across sessions.** While this ran, the `autonote-grips`
+  session had its own `srv.js` on 8231. One of my `pilldrag` runs silently tested THAT worktree's build: all the new
+  cases went red, for the wrong reason. `pilldrag.mjs` also starts with `pkill -f "srv.js 8231 "`, which can kill
+  another session's server. **Always set `HARNESS_PORT` to a free port of your own** (`lsof -nP -iTCP:<port>`
+  first); `gate.sh`, `run.sh` and `pilldrag.mjs` all honour it. The first full gate below ran on 8231 and may have
+  collided too.
+- **Proof:**
+  - `pilldrag` 24/24 on build `f1ac3ff2…` (1,514,231 bytes), port 8741. E9, E10, E13, E14 rewritten from the push;
+    E15 new (days taken back); E8 and E14 count the start grips; E16–E18 drive them (later, earlier, Week-labelled
+    bar). On the old build (port 8742) exactly those nine fail.
+  - `npm run check` 40/40.
+  - First full gate (end grip only, build `2a91865a…`, port 8231): **1,728 PASS, 6 FAIL.** `pilldrag` 21/21 inside
+    it, every frozen output green. The six were five `pilllabel (halfdays)` checks ("months 1 vs 16", a flake: the
+    leg passes every check standalone) and `launchopen EX` (timed out loading; the OLD build failed it the same way
+    standalone, also on 8231).
+  - Second full gate (final build `f1ac3ff2…`, port 8743, 19 Oct 2026): **1,749 PASS, 2 FAIL.**
+    - `pilldrag` 24/24, `launchopen` green (so its first-gate failure was the 8231 collision), `phaseedge` green.
+    - Waterfall PDF and every Excel part identical; `v1.0.0-saved.html` restores identically; 0 clipped cells;
+      `fields.byId` 72 ids; gate 10's print documents identical; gate 13's written month PDFs byte-identical.
+    - The two failures were `pilllabel (dayoverrides)` K1 ("timed out waiting for: save enabled") and C3. That leg
+      reads no grip. A standalone re-run on port 8744 was still running at commit time; ⏭ **confirm it.**
+  - Both gates ran in a clean detached worktree at `6ad9e42` with the change copied in, because the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's).
+  - Checked in the app pane (v1.4.0-saved, July 2026): 201's end left a day leaves Thu 7/9 hatched off with 202 still
+    on Fri 7/10; 202's start right onto Mon 7/13 marks Fri off; left onto Thu takes it from 201. Wrap 10/20 throughout.
+
 ### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK (AND DAY-NUMBER) MENU IN THE MONTH VIEW (not built; all rulings in, ready to build)
 
 - Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
@@ -572,7 +630,8 @@
   (it was "NOT pushed" until then):
   - **What it does:** in the month view, the grips on a Production pill drag:
     - the first shoot day and the wrap (the first or last episode's count);
-    - the end of every other episode or block (push: later ones slide);
+    - the end of every other episode or block (~~push: later ones slide~~ ⛔ since 19 Oct 2026 it removes days and
+      never pushes: see the top entry);
     - each week's own edges (`off` / `on` day marks; the counts hold, so the wrap moves).
   - **Where:** `installProductionEdgeHandles()` in `src/legacy/app.js`. Full record in
     MONTH-VIEW-PLAN §6.7 "BUILT".
