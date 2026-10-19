@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK MENU IN THE MONTH VIEW (not built)
+
+- Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
+  over."* The plan is [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The mockup is
+  [`mockups/month-context-menu.html`](mockups/month-context-menu.html): the real month view, captured from the build
+  on `halfdays.sptcal`, with a working menu on it.
+- **The menu, in short:** one menu for the day under the pointer. "This day" always comes first: Add note, **Add phase
+  starting here**, Add hiatus ▸. Then a section for each thing on the day: the bar clicked, the shoot day (exactly the
+  popover's choices), a hiatus, a holiday. The last item is Show this week in the waterfall.
+- ✅ **Ruling M1 (owner, 19 Oct 2026): no Shift From, Anchor To or Rebuild From in the menu.** Six questions are
+  still open (plan §9).
+- ⭐ **No frozen edit and no new saved state** (plan §4, §7). Only the day and the bar come from the DOM. Hiatus bands
+  can never be a pointer target, and holidays have no DOM marker, so both come from the schedule.
+- ⚠️ **Three facts the build depends on:**
+  - the shoot-day helpers are private to `installDayOverrideUI` (plan §3.9);
+  - the end handle's rule is private to `installPhaseEdgeHandles` (§3.5);
+  - a **macOS Ctrl+click** would arm a month drag before the menu opens (§5). It needs a real-mouse check.
+- ⚠️ **It overlaps the entry above.** That uncommitted work changes Production's end grip. The plan's *End Production
+  here* (§3.5, ruling Q3) was researched against a working tree that already held part of that work, so re-read it
+  once that work lands.
+- ⚠️ **Found while planning** (§8): a hiatus whose label was emptied on purpose makes the shoot-day popover offer
+  Full day / Off on a hiatus day. Also, CLAUDE.md's "five classes" strip list holds eleven now.
+- ⛔ **Half-day marks stay withdrawn** (owner, 15 Oct 2026). This session's first list of options wrongly offered
+  "Half day" in the menu.
+
 ### ◐ 16 Oct 2026: A PHASE'S UNIT PICKER READS "BY [WEEKS ▾]" ABOVE ITS BOX (branch `by-unit`, worktree `.claude/worktrees/by-unit`)
 
 - Owner, 16 Oct 2026, with a screenshot of Writer's Rm: *"instead of this view, can there be a "By" where "Weeks" is
