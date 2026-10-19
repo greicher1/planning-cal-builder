@@ -2388,57 +2388,11 @@
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
 
-  /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4). ----
-     ⭐ NOT FROZEN, and the distinction is exact: this is a BODY-LEVEL panel anchored to a day cell,
-     never markup inside the grid, so none of these selectors is a `.mv-*` rule and none of them can
-     reach #print-root. The month-view MARKS the overrides produce (.mv-day-half/off/on) are the
-     frozen half, and they are already shipped -- this only styles the menu that sets them.
-     Sized and shaped to match .mv-note-pop deliberately: the two open from the same grid, on the
-     same gesture, and a user should not have to learn two panels. */
-  .day-ov-pop{
-    position:absolute; z-index:60; width:228px; padding:var(--mantine-spacing-lg);
-    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
-    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-md);
-  }
-  .day-ov-pop-day{
-    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.04em;
-    text-transform:uppercase; color:var(--mantine-color-gray-6);
-    margin-bottom:var(--mantine-spacing-sm);
-  }
-  .day-ov-opts{ display:flex; flex-direction:column; gap:4px; }
-  .day-ov-opt{
-    display:block; width:100%; text-align:left; font-family:inherit;
-    font-size:var(--mantine-font-size-sm); color:var(--mantine-color-black);
-    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-4);
-    border-radius:var(--mantine-radius-md);
-    padding:var(--mantine-spacing-xs) var(--mantine-spacing-md);
-    cursor:pointer; line-height:1.3;
-  }
-  .day-ov-opt:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
-  /* The state the day is in now. A tick rather than a fill, so the row still reads as a button --
-     picking it again is a no-op, not a second state. */
-  .day-ov-opt.is-current{ border-color:var(--edit-accent); font-weight:600; }
-  .day-ov-opt.is-current::after{ content:"\2713"; float:right; color:var(--edit-accent); }
-  /* ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT WITH ITS REASON,
-     rather than hiding the option. Greyed, not absent -- a refusal must name itself. */
-  .day-ov-opt.is-disabled, .day-ov-opt:disabled{
-    cursor:default; color:var(--text-faint); background:var(--mantine-color-gray-0);
-    border-color:var(--mantine-color-gray-3);
-  }
-  .day-ov-reason{
-    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
-    color:var(--text-faint); line-height:var(--mantine-line-height-xs); font-weight:400;
-  }
-  /* ⚠️ Working a union holiday overrides the thing the whole holiday dataset exists to protect.
-     It is allowed, and it is never silent. */
-  .day-ov-warn{
-    display:block; margin-top:2px; font-size:var(--mantine-font-size-xxs);
-    color:#7A5B14; line-height:var(--mantine-line-height-xs); font-weight:400;
-  }
-  .day-ov-stale, .day-ov-hint{
-    font-size:var(--mantine-font-size-xxs); color:var(--text-faint);
-    line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
-  }
+  /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4): RETIRED 19 Oct 2026. ----
+     Day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, owner ruling L1): a left-click on a day opens the day
+     menu below, and the popover's choices are its shoot-day section. Its .day-ov-* rules went with it.
+     Two of its looks carry over, restyled as menu items: the tick on the current choice (the checked
+     radio's icon) and the warning ink of "Overrides <holiday>" (.day-menu-warn). */
 
   /* ---- The month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, installMonthDayMenu) ----
      ⭐ NOT FROZEN, for .day-ov-pop's reason: a BODY-LEVEL panel opened over a day, never markup in
@@ -2491,6 +2445,18 @@
     margin-top:var(--mantine-spacing-xs); padding:5px 10px 4px;
     border-top:1px solid var(--mantine-color-gray-2);
     font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
+  }
+  /* Step 4: the shoot day's rows (the retired popover's choices) are radio items. The checked one
+     carries a tick in the accent ink, where an icon would be; the others leave the icon's space empty,
+     so the labels line up. ⚠️ Working a union holiday overrides the thing the whole holiday dataset
+     exists to protect: allowed, and never silent, so its second line keeps the popover's warning ink.
+     A stored value no row offers gets a notice line under the section, indented to the labels. */
+  .day-menu-item[aria-checked="true"] .day-menu-ico{ color:var(--edit-accent); }
+  .day-menu-item[aria-checked="true"] .day-menu-text{ font-weight:600; }
+  .day-menu-text small.day-menu-warn{ color:#7A5B14; font-weight:400; }
+  .day-menu-text small{ font-weight:400; }
+  .day-menu-notice{
+    padding:2px 10px 4px 35px; font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
   }
   /* The day the open menu is for, LAID OVER its cell (body-level, like the edge handles), never a
      class written into the grid. Under the menu (299), and it takes no pointer. */

@@ -4,6 +4,88 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: DAY MENU STEP 4 BUILT — LEFT-CLICK OPENS THE MENU, THE FULL DAY/OFF POPOVER IS RETIRED (branch `day-menu-step4`, worktree `.claude/worktrees/day-menu-step4`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** This is ruling L1, the step the owner was waiting for (*"I thought you were going
+  to combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*). Cut
+  from `day-menu-step3` at `02f28a1`, so it holds steps 2 and 3 and the `main` merge at `cfeae91`. It is not merged
+  into `main` and not pushed. If `day-menu-step3` gains a commit (its gate result), merge it in here.
+- **What a user gets:**
+  - A left-click on a day's number (or anywhere on a hiatus day) opens the day menu under the number. It flips above
+    the number near the window's bottom, and goes beside the day when neither side fits.
+  - Full day / Off (and the weekend, holiday and hiatus rows) are the menu's shoot-day section, below Add hiatus. Its
+    label is "Shoot day N", or "Not a shoot day" when the day has no number. The current row is ticked.
+  - Days outside the shoot open the menu too, with no shoot section.
+  - Clicking the open day again closes it, so double-click-to-clear works. On a shoot day the footer says "Double-click
+    a marked day to clear it".
+  - Right-click still works. "+" slots, notes and bars keep their own left-clicks.
+- **Code** (no frozen symbol touched, nothing new saved):
+  - `installDayOverrideUI` keeps `daySituation`, `setOverride` and the dblclick. It lifts the popover's row list into
+    `dayOverrideRows(sit)` → `{rows, stale}`, and builds the menu's section in `shootSection(d)`, lent as
+    `dayOverrideUI.section`. `openDayOvPop`, `closeDayOvPop`, `activeOv`, its document click/Escape closers and its
+    re-pointing observer are gone. So is `dayOverrideUI.close`.
+  - `installMonthDayMenu`:
+    - the left-click listener on `#table-wrap` (moved here from `installDayOverrideUI`, beside the right-click);
+    - `pressClosed` in the capture mousedown;
+    - `openMenu(ctx, at)`, where `at` is `{x, y}` or `{anchor, cell}`;
+    - `panelHtml` gained radio items (`radio`, `checked`, `ov` → `data-ov`), a warning second line
+      (`small.day-menu-warn`) and a section `notice`;
+    - `ICON.check`.
+  - `legacy.css`: the `.day-ov-*` block is replaced by a retirement note. Four small `.day-menu-*` rules added (the
+    checked tick, the warning ink, the notice line).
+  - `.day-ov-pop` stays in `OVER_PANEL` and in `buildSavedHtml`'s strip list. Nothing creates one now, so the entries
+    are inert; they were left rather than edited.
+- ⭐ **Learned: the menu closes on the PRESS, so a click-toggle needs to remember the press.** The popover closed on a
+  document `click`, so its "click the open day again" check saw the menu still open. The menu's capture `mousedown`
+  closes it first, and the click would reopen it. A left press on the open menu's own day sets `pressClosed`, and the
+  click it becomes opens nothing. A script's `el.click()` (no press) still toggles through `menu.iso === iso`. Mutants:
+  without the swallow `mvmenu` L5 and L7 go red; without the script toggle, L5 alone.
+- ⭐ **Learned: the popover's `place()` rule has a third case for a menu this tall.** On a 768 px window a mid-screen day
+  fits the ~400 px menu neither under nor above its number. Clamped into the window it covered the number, so a
+  double-click's second click would choose a row. It opens beside the day there. Hand-checked in the browser pane
+  (1024×768, 15 Jul: the menu at x 702, the cell ends at 698). No leg covers it, because the harness window is 1600×1200.
+- ⭐ **Learned: a Mac Ctrl+click may be followed by a `click` carrying ctrlKey,** which the toggle would read as a
+  second click on the open day. The left-click returns on `isMacCtrlClick(e)`. Case G7, red on a mutant without it.
+  ⚠️ As in step 1, a real Mac Ctrl+click is still unverified.
+- ✅ **§8.1 fixed, owner's picker "Yes, fix it"** (asked this session). `dayOverrideRows` tests `sit.hiatus != null`.
+  `daySituation` gives every hiatus day a string, so a non-string stored label cannot read as "no hiatus" either. The
+  reason reads "Inside the hiatus — …" when the label is empty. Case N1.
+- ⚠️ **The plan's §11 was wrong about 12 Jul.** It is a weekend INSIDE the shoot, so the popover did open there. L3 uses
+  Sun 28 Jun (before the shoot) for "opens where nothing opened before"; the plan now says so.
+- **Tests:**
+  - `mvmenu` 73 cases: L1–L9 (left-click), G7, N1. C2 is flipped. H1s gains the shoot section. P3 sets its Off mark
+    through the menu. Every left-click is press + release + click on `elementFromPoint` (`lclickAt`).
+  - `halfdays` D5 and `halfworked` read `[data-section="shoot"] [data-ov]`, with every asserted value unchanged.
+    `halfworked`'s `closePops()` presses outside before its click.
+  - The gate.sh comment and tests/harness/README updated (`halfworked` has a row there now).
+- **Proof:**
+  - Build `65f57260…` (1,537,363 bytes). `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private ports 8873/8874, all on `/dist/index.html`: `mvmenu` 73/73, `halfdays` 26/26, `halfworked` 24/24,
+    `overrides` 20/20, `pilldrag` 30/30, `phaseedge` 14/14.
+  - Eleven mutants (scratch copy of `app.js`, mutate, build into an untracked `dist-mut/<name>/`, restore, `cmp`; the
+    rebuilt `dist` hashed back to `65f57260…`). On `mvmenu`, each turns its own cases red:
+
+    | Mutant | Red on `mvmenu` |
+    |---|---|
+    | no left-click | C2, L1–L5, and the leg ends |
+    | `if(!sit) return` back | L3 |
+    | no press swallow | L5, L7 |
+    | no script toggle | L5 |
+    | anchor 40 px low | L1 |
+    | no flip | L8 |
+    | no footer hint | L1s, L2, L7 |
+    | §8.1 reverted | N1 |
+    | no Mac Ctrl guard | G7 |
+    | no leading push in `setOverride` | L6, and L9 after it |
+    | the pointer's day instead of the cell's | L4, and L5 after it |
+
+    The no-left-click build is also red on `halfdays` D5 and `halfworked` (EX).
+  - By hand in the browser pane, with real clicks: 7 Jul's menu (flipped above), Off, a real double-click to clear it
+    (no menu or ring left), the holiday and pre-shoot days, and the beside placement.
+  - ⏳ **The full gate is pending.**
+- ⏭ **Next:** the full gate; then the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
+  sections) after. The two open items from steps 1–3 still stand: an `mvmenu` prep case, and a real Mac Ctrl+click.
+
 ### ◐ 19 Oct 2026: DAY MENU STEPS 2 AND 3 BUILT (branch `day-menu-step3`, worktree `.claude/worktrees/day-menu-step3`), NOT MERGED
 
 - ⏭ **RESUME HERE for the day menu.** Owner: *"Keep the plan order: build step 2 (Add hiatus) next"*, then *"start step

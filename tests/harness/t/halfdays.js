@@ -202,11 +202,14 @@ window.addEventListener('load', function () { (async function () {
     var top6 = document.elementFromPoint(Math.round(r6.left + 12), Math.round(r6.top + 9));
     if(!top6 || top6.closest('.mv-daycell') !== cell6) throw new Error('7/6 is not reachable at its number band');
     top6.click(); await T.sleep(250);
-    var pop = document.querySelector('.day-ov-pop');
-    var opts = pop ? [].map.call(pop.querySelectorAll('.day-ov-opt'), function (b) { return b.getAttribute('data-ov'); }) : null;
+    // ⚠️ Since day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, ruling L1) the click opens the DAY MENU, and the
+    // retired Full day/Off popover's rows are its shoot-day section, each keeping its data-ov.
+    var menu = document.querySelector('.day-menu');
+    var opts = (menu && menu.getAttribute('data-day') === '2026-07-06')
+      ? [].map.call(menu.querySelectorAll('[data-section="shoot"] .day-menu-item[data-ov]'), function (b) { return b.getAttribute('data-ov'); }) : null;
     add('D5', 'the switch day\'s menu offers Full day · Off -- no Half day (withdrawn; a half day is the episode\'s .5)',
       eq(opts, ['', 'off']), opts, ['', 'off']);
-    document.body.click(); await T.sleep(200);
+    document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true})); await T.sleep(200);
 
     // ---- D6: Show Episodes off changes NOTHING here ----
     // ⚠️ REVISED 15 Oct 2026 (owner's picker, MONTH-PILL-LABEL-PLAN): a "Show" switch edits the grey

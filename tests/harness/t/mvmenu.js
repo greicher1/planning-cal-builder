@@ -3,7 +3,10 @@
 // phase here, Add 1-week phase here, Show this week in the waterfall. Plan step 2 (the A-cases): Add
 // hiatus ▸, its submenu (pointer, grace period, keys) and its three kinds of item. Plan step 3 (the
 // P-cases): the bar's own section -- Start here (a mover), End here (the edge handle's rule), Colour…,
-// Show in Phases card. Later steps add their sections here, and flip the "absent" checks below as they do.
+// Show in Phases card. Plan step 4 (the L-cases, G7, N1, and C2 flipped): ruling L1, a LEFT-click on a
+// day opens the same menu under its number, the Full day/Off popover is retired, and its choices are the
+// menu's shoot-day section (data-ov rows). Later steps add their sections here, and flip the "absent"
+// checks below as they do.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
@@ -193,12 +196,13 @@ window.addEventListener('load', function () { (async function () {
         && mr.left >= 0 && mr.top >= 0 && mr.right <= innerWidth && mr.bottom <= innerHeight,
       {hit: h1.el.className, prevented: h1.prevented, info: i1, ring: rr && [rr.left, rr.width], cell: [cr.left, cr.width]},
       'the menu for 2026-07-08 on production');
-    // On a bar, step 3's section for it sits between This day and the way out (the P-cases test it).
-    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'phase-show'], ITEMS.slice(4));
-    add('H1s', 'The sections are This day, Production\'s own (step 3) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus and step 3\'s four, only End Production here greyed out on a shoot day; focus is on the first',
-      i1 && eq(i1.sections, ['day', 'phase', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
+    // On a bar, step 3's section for it sits between This day and the way out (the P-cases test it), and on a
+    // shoot day step 4's shoot-day section (the retired popover's Full day / Off) follows it.
+    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'phase-show'], ['ov-auto', 'ov-off'], ITEMS.slice(4));
+    add('H1s', 'The sections are This day, Production\'s own (step 3), the shoot day\'s (step 4) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus, step 3\'s four and Full day / Off, only End Production here greyed out on a shoot day; focus is on the first',
+      i1 && eq(i1.sections, ['day', 'phase', 'shoot', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
         && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'note',
-      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, phase, out; ' + ITEMS_BAR.join(', '));
+      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, phase, shoot, out; ' + ITEMS_BAR.join(', '));
     key('Escape');
     add('S1', 'Opening and closing the menu leaves fields.byId exactly as it was, and Escape leaves no panel or ring behind',
       eq(sig(), s0) && !menuEl() && !document.querySelector('.day-menu-ring'), sigDiff(s0, sig()), 'no change');
@@ -260,15 +264,18 @@ window.addEventListener('load', function () { (async function () {
     add('C1', 'The menu closes on an outside press (not one inside it), a scroll, a resize, a window blur, and a re-render of #table-wrap',
       c.inside && c.insideKept && c.outside && c.scroll && c.resize && c.blur && c.render, c, 'all true');
 
-    // Opening closes an open shoot-day popover (a right-click fires no click, so it would not close itself).
+    // ⭐ FLIPPED at plan step 4. Until then a left-click on 8 Jul's number opened the Full day/Off popover,
+    // and this case held that a right-click closed it. The popover is retired: the same click opens the
+    // MENU, and a right-click on another day moves it there, leaving one menu.
     var p8 = await pointOn('2026-07-08', 'num');
     var top8 = document.elementFromPoint(p8.x, p8.y);
     top8.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: p8.x, clientY: p8.y, button: 0}));
-    var popWas = !!document.querySelector('.day-ov-pop');
+    var c2 = {pop: !!document.querySelector('.day-ov-pop'), day: menuInfo() && menuInfo().day};
     await rclick('2026-07-09', 'num');
-    add('C2', 'Opening the menu closes an open Full day/Off popover (a left-click on 8 Jul\'s number still opens that popover until plan step 4)',
-      popWas && !document.querySelector('.day-ov-pop') && !!menuEl() && menuInfo().day === '2026-07-09',
-      {popWas: popWas, popNow: !!document.querySelector('.day-ov-pop'), menu: menuInfo() && menuInfo().day}, 'popover closed, menu on 9 Jul');
+    add('C2', 'A left-click on 8 Jul\'s number opens the day menu for 8 Jul and no Full day/Off popover (retired, plan step 4); a right-click on 9 Jul then moves the one menu there',
+      !c2.pop && c2.day === '2026-07-08' && !document.querySelector('.day-ov-pop') && !!menuEl() && menuInfo().day === '2026-07-09'
+        && document.querySelectorAll('.day-menu').length === 1,
+      {leftClick: c2, popNow: !!document.querySelector('.day-ov-pop'), menu: menuInfo() && menuInfo().day}, 'menu on 8 Jul, then on 9 Jul; never a popover');
     key('Escape');
 
     // Opening commits an open month note editor -- whose commit RE-RENDERS the grid, which the menu's own
@@ -287,6 +294,194 @@ window.addEventListener('load', function () { (async function () {
     key('Escape');
     await T.sleep(700);
     await undo();                              // put the note back out, so the later cases start clean
+
+    // ---- L: the LEFT-click (plan step 4, ruling L1, plan §11) ----
+    // A click as Chrome sends one: the press (which runs the menu's outside-press rule), the release and the
+    // click, all on whatever is ON TOP at the point, as rclickAt does for a right-click. `detail` is the click
+    // count, 2 on a double-click's second click.
+    function lclickAt(x, y, opts){
+      opts = opts || {};
+      var el = document.elementFromPoint(x, y);
+      var base = {bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, ctrlKey: !!opts.ctrl, detail: opts.detail || 1};
+      el.dispatchEvent(new MouseEvent('mousedown', base));
+      el.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, base, {buttons: 0})));
+      el.dispatchEvent(new MouseEvent('click', Object.assign({}, base, {buttons: 0})));
+      return el;
+    }
+    async function lclick(iso, where){
+      var p = await pointOn(iso, where || 'num');
+      var el = lclickAt(p.x, p.y);
+      return {el: el, point: p, inCell: !!(el && el.closest && el.closest('#table-wrap .mv-daycell'))};
+    }
+    // The shoot-day section's rows: the retired popover's choices, each keeping its data-ov.
+    function shootRows(){
+      var m = menuEl();
+      return m ? [].map.call(m.querySelectorAll('[data-section="shoot"] .day-menu-item'), function (b) {
+        return {ov: b.getAttribute('data-ov'), role: b.getAttribute('role'), checked: b.getAttribute('aria-checked'),
+                disabled: b.getAttribute('aria-disabled') === 'true', text: txt(b.querySelector('.day-menu-text')).replace(txt(b.querySelector('small')), '').trim(),
+                second: txt(b.querySelector('small')), warn: !!b.querySelector('small.day-menu-warn')};
+      }) : null;
+    }
+    function shootLabel(){ var l = menuEl() && menuEl().querySelector('[data-section="shoot"] .day-menu-label'); return l ? txt(l) : null; }
+    function footLines(){ return [].map.call((menuEl() && menuEl().querySelectorAll('.day-menu-foot > div')) || [], function (d) { return txt(d); }); }
+    function numRect(iso){ return monthCells()[iso].cell.querySelector('.mv-daynum').getBoundingClientRect(); }
+    function markOf(iso){ var m = monthCells()[iso]; return m ? [].filter.call(m.cell.classList, function (k) { return /^mv-day-/.test(k); }).join(' ') : null; }
+    function ovNote(){ return txt(document.getElementById('prod-ov-note')); }
+    // Where the menu is against the number it opened under: the retired popover's place() rule. Under it by
+    // 4 px with its left edge on the number's (pulled in from the right edge), or, when that would run off
+    // the bottom, flipped above it by 4 px.
+    function placement(iso){
+      var nr = numRect(iso), m = menuEl() && menuEl().getBoundingClientRect();
+      if(!m) return null;
+      var fitsUnder = nr.bottom + 4 + m.height <= innerHeight - 8;
+      return {fitsUnder: fitsUnder, under: Math.abs(m.top - (nr.bottom + 4)) < 1.5, above: Math.abs(m.bottom - (nr.top - 4)) < 1.5,
+              left: Math.abs(m.left - Math.min(nr.left, innerWidth - m.width - 8)) < 1.5, inside: m.left >= 0 && m.top >= 0 && m.right <= innerWidth && m.bottom <= innerHeight,
+              num: [Math.round(nr.left), Math.round(nr.top), Math.round(nr.bottom)], menu: [Math.round(m.left), Math.round(m.top), Math.round(m.bottom)]};
+    }
+    var FOOT_SHOOT = ['Double-click a marked day to clear it', 'Shift + right-click opens the browser’s own menu'];
+    // The retired popover must never come back: watched from here to the end of the L-cases.
+    var popSeen = false;
+    var popObs = new MutationObserver(function () { if(document.querySelector('.day-ov-pop')) popSeen = true; });
+    popObs.observe(document.body, {childList: true, subtree: true});
+    var sL = sig();
+
+    var l1 = await lclick('2026-07-08', 'num');
+    var li1 = menuInfo(), pl1 = placement('2026-07-08');
+    var ringL = document.querySelector('.day-menu-ring'), crL = l1.point.cell.getBoundingClientRect(), rrL = ringL && ringL.getBoundingClientRect();
+    add('L1', '⭐ A LEFT-click on Wed 8 Jul\'s number (hit-tested: the day cell is on top there) opens the day menu for 8 Jul UNDER the number (4 px below it, its left edge on the number\'s), ringed, inside the window, with no bar named and no id inside; no Full day/Off popover',
+      l1.inCell && !!li1 && li1.day === '2026-07-08' && li1.ph === null && li1.ids === 0 && !!pl1 && pl1.fitsUnder && pl1.under && pl1.left && pl1.inside
+        && !!rrL && Math.abs(rrL.left - crL.left) < 1.5 && Math.abs(rrL.width - crL.width) < 1.5 && !document.querySelector('.day-ov-pop'),
+      {hit: l1.el && l1.el.className, info: li1 && {day: li1.day, ph: li1.ph, ids: li1.ids}, placement: pl1, ring: rrL && [rrL.left, rrL.width], cell: [crL.left, crL.width]},
+      'the menu for 2026-07-08 under its number');
+    var LITEMS = ITEMS.slice(0, 4).concat(['ov-auto', 'ov-off'], ITEMS.slice(4));
+    var sr1 = shootRows();
+    add('L1s', 'Its sections are This day, "Shoot day 7" and the way out; Full day (checked) and Off are menuitemradio rows carrying data-ov "" and "off", after Add hiatus; the footer carries "Double-click a marked day to clear it"; focus is on Add note',
+      !!li1 && eq(li1.sections, ['day', 'shoot', 'out']) && eq(li1.items.map(function (x) { return x.id; }), LITEMS) && shootLabel() === 'Shoot day 7'
+        && eq(sr1.map(function (r) { return [r.ov, r.role, r.checked, r.text, r.disabled]; }), [['', 'menuitemradio', 'true', 'Full day', false], ['off', 'menuitemradio', 'false', 'Off', false]])
+        && eq(footLines(), FOOT_SHOOT) && li1.focus === 'note',
+      {sections: li1 && li1.sections, items: li1 && li1.items.map(function (x) { return x.id; }), label: shootLabel(), rows: sr1, foot: footLines(), focus: li1 && li1.focus},
+      'day, shoot (Full day ✓, Off), out');
+    key('Escape');
+
+    // L2: a weekend and a weekday holiday inside the shoot get the popover's rows too, by the same code.
+    await lclick('2026-07-12', 'num');
+    var l2w = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows()};
+    key('Escape');
+    await lclick('2026-07-03', 'num');
+    var l2h = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows(), foot: footLines()};
+    key('Escape');
+    add('L2', 'Sun 12 Jul (a weekend in the shoot): "Not a shoot day", Weekend — not shot (checked) · Work this day. Fri 3 Jul (a holiday in the shoot): Holiday — not shot (checked) · Work this day, whose second line warns "Overrides Independence Day (Observed)" in the warning ink',
+      l2w.day === '2026-07-12' && l2w.label === 'Not a shoot day'
+        && eq(l2w.rows.map(function (r) { return [r.ov, r.text, r.checked, r.second]; }), [['', 'Weekend — not shot', 'true', ''], ['on', 'Work this day', 'false', '']])
+        && l2h.day === '2026-07-03' && l2h.label === 'Not a shoot day'
+        && eq(l2h.rows.map(function (r) { return [r.ov, r.text, r.checked, r.second, r.warn]; }),
+              [['', 'Holiday — not shot', 'true', '', false], ['on', 'Work this day', 'false', 'Overrides Independence Day (Observed)', true]])
+        && eq(l2h.foot, FOOT_SHOOT),
+      {weekend: l2w, holiday: l2h}, 'the popover\'s weekend and holiday rows');
+
+    // L3: a day OUTSIDE the shoot, where a left-click opened nothing before (the popover's `if(!sit) return`).
+    // Sun 28 Jun is the day before the first shoot day, drawn greyed out at the start of July's grid.
+    var l3 = await lclick('2026-06-28', 'num');
+    var li3 = menuInfo();
+    add('L3', 'Sun 28 Jun, the day before the shoot (an out-of-month day in July\'s grid): a left-click opens the menu too, with no shoot-day section and only the Shift + right-click line in its footer',
+      l3.inCell && !!li3 && li3.day === '2026-06-28' && eq(li3.sections, ['day', 'out']) && shootRows().length === 0 && eq(footLines(), FOOT_SHOOT.slice(1)),
+      {hit: l3.el && l3.el.className, info: li3 && {day: li3.day, sections: li3.sections}, foot: footLines()}, 'day, out');
+    key('Escape');
+
+    // L4: "+" slots, notes and bars keep their own left-clicks (they sit in .mv-bars, above the cell).
+    var l4 = {};
+    var plus9 = monthCells()['2026-07-09'].week.querySelector('.mv-note-add[data-note-day="2026-07-09"]:not(.mv-note-add-full)');
+    await bringIntoView(plus9);
+    plus9 = monthCells()['2026-07-09'].week.querySelector('.mv-note-add[data-note-day="2026-07-09"]:not(.mv-note-add-full)');
+    var q9 = plus9.getBoundingClientRect();
+    var hitPlus = lclickAt(Math.round(q9.left + q9.width / 2), Math.round(q9.top + q9.height / 2));
+    l4.plus = {onTop: hitPlus === plus9 || plus9.contains(hitPlus), editor: !!document.getElementById('mv-note-pop'), menu: !!menuEl()};
+    var ta4 = document.querySelector('#mv-note-pop textarea');
+    if(ta4) ta4.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await settle();
+    var spp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography/.test(txt(b)); });
+    await bringIntoView(spp);
+    spp = [].find.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-kind="wf"]'), function (b) { return /Start Principal Photography/.test(txt(b)); });
+    var qn = spp.getBoundingClientRect();
+    var hitNote = lclickAt(Math.round(qn.left + qn.width / 2), Math.round(qn.top + qn.height / 2));
+    var taN = document.querySelector('#mv-note-pop textarea');
+    l4.note = {onTop: hitNote === spp || spp.contains(hitNote), editor: !!taN, text: taN ? taN.value.split('\n')[0] : null, menu: !!menuEl()};
+    if(taN) taN.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await settle();
+    var pb4 = await pointOn('2026-07-08', 'bar:production');
+    var hitBar = lclickAt(pb4.x, pb4.y);
+    await settle();
+    l4.bar = {onTop: !!(hitBar && hitBar.closest && hitBar.closest('.mv-pill[data-ph="production"]')), menu: !!menuEl(), swapping: document.body.classList.contains('grid-swapping')};
+    add('L4', 'A left-click on 9 Jul\'s "+" still opens the note editor, one on the "Start Principal Photography" note still edits it, and one on Ep. 202\'s bar opens nothing: no menu in any of the three (each hit-tested on top)',
+      l4.plus.onTop && l4.plus.editor && !l4.plus.menu && l4.note.onTop && l4.note.editor && /^Start Principal Photography/.test(l4.note.text) && !l4.note.menu
+        && l4.bar.onTop && !l4.bar.menu && !l4.bar.swapping && !document.getElementById('mv-note-pop'),
+      l4, 'editor, editor, nothing; never the menu');
+
+    // L5: the toggle. Clicking the open day again closes the menu: the PRESS closes it, by the outside-press
+    // rule, and the click it becomes must not open it again. A script's click, with no press, toggles too.
+    await lclick('2026-07-08', 'num');
+    var l5 = {opened: !!menuEl() && menuInfo().day === '2026-07-08'};
+    await lclick('2026-07-08', 'num');
+    l5.closed = !menuEl() && !document.querySelector('.day-menu-ring');
+    var pt5 = await pointOn('2026-07-08', 'num'), el5 = document.elementFromPoint(pt5.x, pt5.y);
+    el5.click(); l5.scriptOpen = !!menuEl();
+    el5.click(); l5.scriptClosed = !menuEl();
+    add('L5', 'Clicking 8 Jul\'s number twice opens the menu and then closes it (press, release, click each time), and a script\'s two clicks with no press do the same; nothing changes',
+      l5.opened && l5.closed && l5.scriptOpen && l5.scriptClosed && eq(sig(), sL), {toggle: l5, diff: sigDiff(sL, sig())}, 'open, closed, open, closed');
+
+    // L6: a shoot row is ONE undo step (setOverride's own brackets), with a title typed just before it.
+    T.set('show-title', 'Menu step L');
+    await lclick('2026-07-09', 'num');
+    choose('ov-off');
+    await settle();
+    var l6 = {mark: markOf('2026-07-09'), note: ovNote(), menu: !!menuEl()};
+    await T.sleep(700);
+    await undo();
+    l6.undone = {mark: markOf('2026-07-09'), note: ovNote(), title: (document.getElementById('show-title') || {}).value};
+    await redo();
+    l6.redone = markOf('2026-07-09');
+    add('L6', 'Off on Thu 9 Jul, chosen in the left-click menu: the day is marked off ("1 off"), the menu is gone; one undo clears just the mark (the title typed before stays) and redo puts it back',
+      l6.mark === 'mv-day-off' && /^1 off/.test(l6.note) && !l6.menu && l6.undone.mark === '' && l6.undone.note === '' && l6.undone.title === 'Menu step L'
+        && l6.redone === 'mv-day-off', l6, 'marked, one step back, redone');
+    // Its menu now: Off checked, and still the hint.
+    await lclick('2026-07-09', 'num');
+    var l6m = {label: shootLabel(), rows: shootRows(), foot: footLines()};
+    key('Escape');
+    // L7: double-click to clear, through the toggle, the way Chrome sends one: press, release, click, press,
+    // release, click (detail 2), dblclick.
+    var pt7 = await pointOn('2026-07-09', 'num');
+    var el7 = lclickAt(pt7.x, pt7.y);
+    var mid7 = {menu: !!menuEl() && menuInfo().day === '2026-07-09'};
+    lclickAt(pt7.x, pt7.y, {detail: 2});
+    mid7.afterSecond = !!menuEl();
+    el7.dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, clientX: pt7.x, clientY: pt7.y, button: 0, detail: 2}));
+    await settle();
+    var l7 = {mid: mid7, mark: markOf('2026-07-09'), note: ovNote(), menu: !!menuEl(), ring: !!document.querySelector('.day-menu-ring')};
+    await T.sleep(700);
+    await undo();
+    l7.undone = markOf('2026-07-09');
+    await undo();
+    l7.clean = markOf('2026-07-09');
+    add('L7', '⭐ Double-click to clear still works: on the marked 9 Jul (menu: "Not a shoot day", Off checked, the hint in the footer) the first click opens the menu, the second closes it, and the dblclick clears the mark, leaving no menu or ring; one undo puts the mark back',
+      l6m.label === 'Not a shoot day' && eq(l6m.rows.map(function (r) { return [r.ov, r.checked]; }), [['', 'false'], ['off', 'true']]) && eq(l6m.foot, FOOT_SHOOT)
+        && mid7.menu && !mid7.afterSecond && l7.mark === '' && l7.note === '' && !l7.menu && !l7.ring && l7.undone === 'mv-day-off' && l7.clean === '',
+      {menu: l6m, dbl: l7}, 'opened, closed, cleared; undo restores');
+
+    // L8: the flip. A day in the calendar's last row opens the menu ABOVE its number, where under it would run
+    // off the bottom of the window.
+    var lastRow = monthCells()['2026-07-30'];
+    var pp8 = document.querySelector('.preview-panel');
+    if(pp8){ pp8.scrollTop += lastRow.cell.getBoundingClientRect().bottom - (pp8.getBoundingClientRect().bottom - 12); await T.sleep(250); }
+    var r8 = monthCells()['2026-07-30'].cell.getBoundingClientRect();
+    lclickAt(Math.round(r8.left + r8.width / 2), Math.round(r8.top + 8));
+    var pl8 = placement('2026-07-30');
+    add('L8', 'Thu 30 Jul, in the last row near the window\'s bottom: the menu opens ABOVE the number (4 px), its left edge still on the number\'s, inside the window',
+      !!pl8 && menuInfo().day === '2026-07-30' && !pl8.fitsUnder && pl8.above && pl8.left && pl8.inside, pl8, 'flipped above');
+    key('Escape');
+    popObs.disconnect();
+    add('L9', 'No Full day/Off popover appeared at any point in the L-cases, and they leave fields.byId as they found it but for the title typed in L6',
+      !popSeen && !document.querySelector('.day-ov-pop') && eq(sigDiff(sL, sig()).changed, ['show-title']) && sigDiff(sL, sig()).added.length === 0,
+      {popSeen: popSeen, diff: sigDiff(sL, sig())}, 'never; only the title changed');
 
     // ---- I: the four items, each one undo step ----
     // ⛔ "Exactly one step", tested from both sides: a title typed JUST BEFORE the item must survive one
@@ -651,6 +846,24 @@ window.addEventListener('load', function () { (async function () {
     add('G4', 'A Ctrl+press on a bar arms no body drag on a Mac (no body.grid-swapping); a plain press, and a Ctrl+press on Windows, still do',
       g4.macCtrl === false && g4.winCtrl === true && g4.plain === true && !document.body.classList.contains('grid-swapping'), g4, 'mac ctrl false, win ctrl true, plain true');
 
+    // G7 (step 4): a Mac Ctrl+click on a day's NUMBER is a right-click, and the left-click's toggle must not
+    // read it as a second click on the open day. Chrome's order: press (button 0, ctrlKey), contextmenu,
+    // release, and a click carrying ctrlKey. The menu the contextmenu opened stays open.
+    var pn7 = await pointOn('2026-07-08', 'num'), en7 = document.elementFromPoint(pn7.x, pn7.y);
+    var g7 = asPlatform(MAC, function () {
+      var base = {bubbles: true, cancelable: true, clientX: pn7.x, clientY: pn7.y, button: 0, buttons: 1, ctrlKey: true};
+      en7.dispatchEvent(new MouseEvent('mousedown', base));
+      var ev = new MouseEvent('contextmenu', base);
+      en7.dispatchEvent(ev);
+      var opened = !!menuEl() && menuInfo().day === '2026-07-08';
+      en7.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, base, {buttons: 0})));
+      en7.dispatchEvent(new MouseEvent('click', Object.assign({}, base, {buttons: 0})));
+      return {prevented: ev.defaultPrevented, opened: opened, stillOpen: !!menuEl() && menuInfo().day === '2026-07-08'};
+    });
+    add('G7', 'A Mac Ctrl+click on 8 Jul\'s number opens the menu (its contextmenu) and the click that follows it, carrying ctrlKey, does not close it again',
+      g7.prevented && g7.opened && g7.stillOpen, g7, 'opened and still open');
+    key('Escape');
+
     // Production's handles: shown by a pointer move over its bar.
     async function handleFor(sel, iso, k){
       var p = await pointOn(iso, 'bar:' + k);
@@ -803,7 +1016,8 @@ window.addEventListener('load', function () { (async function () {
       {tab: activeTab(), diff: sigDiff(a.before, sig())}, 'show, title kept');
 
     // P3: Production. End is greyed out (ruling Q3), and Start is a MOVER: a day mark travels with the shoot BY
-    // SHOOT-DAY NUMBER (owner ruling R2). Marked off through the real Full day/Off popover on Wed 8 Jul, natural
+    // SHOOT-DAY NUMBER (owner ruling R2). Marked off on Wed 8 Jul through the menu's shoot-day Off, opened by a
+    // left-click on the number (it was the Full day/Off popover until plan step 4, which retired it), natural
     // shoot day 7 (6/29, 6/30, 7/1, 7/2, 7/6, 7/7, 7/8; 7/3 is a holiday). Moved to Mon 13 Jul, day 7 is Tue 21
     // Jul (7/13-7/17, 7/20, 7/21), so the mark lands there and Wed 22 Jul becomes shoot day 7. A mark left on its
     // DATE would leave 21 Jul as shoot day 7.
@@ -846,7 +1060,7 @@ window.addEventListener('load', function () { (async function () {
 
     var p8 = await pointOn('2026-07-08', 'num');
     document.elementFromPoint(p8.x, p8.y).dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: p8.x, clientY: p8.y, button: 0}));
-    var offOpt = document.querySelector('.day-ov-pop .day-ov-opt[data-ov="off"]');
+    var offOpt = menuEl() && menuInfo().day === '2026-07-08' && menuEl().querySelector('[data-section="shoot"] .day-menu-item[data-ov="off"]');
     if(offOpt) offOpt.click();
     await settle();
     await T.sleep(700);
@@ -893,6 +1107,43 @@ window.addEventListener('load', function () { (async function () {
       {liveHas: liveHas, stillOpen: stillOpen, bytes: html.length, menuInCopy: MENU_RE.test(html), ringInCopy: RING_RE.test(html), subInCopy: SUB_RE.test(html)}, 'none in the copy');
     key('Escape');
     key('Escape');
+
+    // ---- N1: plan §8.1, fixed with step 4 (owner, 19 Oct 2026, by picker: "Yes, fix it") ----
+    // A hiatus whose band label was emptied on purpose made the shoot-day choices offer Full day / Off on its
+    // days, both inert there: daySituation() names the hiatus by its label, and '' read as "no hiatus". Run
+    // LAST, on a two-week all-phase hiatus added inside the shoot from Mon 20 Jul, so nothing after it needs
+    // the calendar back. Its first week's label is emptied through the waterfall's own band editor, as the
+    // hiatuslabel leg does it.
+    T.addHiatus('2026-07-20', 2);
+    await settle();
+    await toMonth('July 2026');
+    var n1 = {};
+    await lclick('2026-07-22', 'mid');
+    n1.named = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows()};
+    key('Escape');
+    document.getElementById('view-sheet-btn').click();
+    await settle();
+    var band = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="2026-07-20"]');
+    if(band){
+      band.click();
+      await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the hiatus band editor', 50, 100);
+      var bta = document.querySelector('.note-editor textarea');
+      bta.value = '';
+      bta.dispatchEvent(new Event('input', {bubbles: true}));
+      bta.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true}));
+      await T.until(function () { return !document.querySelector('.note-editor textarea'); }, 'the band editor to close', 50, 100);
+      await settle();
+    }
+    await toMonth('July 2026');
+    await lclick('2026-07-22', 'mid');
+    n1.blank = {day: menuInfo() && menuInfo().day, ctx: menuInfo() && menuInfo().ctx, label: shootLabel(), rows: shootRows()};
+    key('Escape');
+    var GREY = function (name) { return [['on', 'Work this day', true, 'Inside ' + name + ' — shorten the hiatus to work these days']]; };
+    var rowsOf = function (x) { return (x.rows || []).map(function (r) { return [r.ov, r.text, r.disabled, r.second]; }); };
+    add('N1', '⭐ Plan §8.1: Wed 22 Jul inside a hiatus offers only the greyed-out Work this day, both while its band reads "Hiatus" and after its label is emptied on purpose ("Inside the hiatus — …"), never Full day / Off',
+      !!band && n1.named.day === '2026-07-22' && n1.named.label === 'Not a shoot day' && eq(rowsOf(n1.named), GREY('Hiatus'))
+        && n1.blank.day === '2026-07-22' && n1.blank.label === 'Not a shoot day' && eq(rowsOf(n1.blank), GREY('the hiatus')),
+      {band: !!band, named: n1.named, blank: n1.blank}, 'the greyed Work this day, both times');
 
     out.health = T.appHealth();
     add('E1', 'No uncaught page errors', !(out.health.errors || []).length, out.health.errors, '[]');

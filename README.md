@@ -28,6 +28,36 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Left-click a day in the month view: the day menu, with Full day / Off in it (19 Oct 2026)
+
+Step 4 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), owner ruling L1: *"I thought you were going to
+combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*.
+- **A left-click on a day's number opens the day menu**, under the number. It is the same menu a right-click opens,
+  and right-click still works anywhere on a day. On a hiatus day, which has no "+" lines, a click anywhere on it opens
+  the menu. Near the bottom of the window the menu opens above the number. On a window too short for either, it opens
+  beside the day, so it never covers the number.
+- **The Full day / Off popover is retired.** Its choices are now the menu's shoot-day section, headed "Shoot day 7"
+  (or "Not a shoot day" on a weekend, a holiday, a hiatus day or a day marked Off), below Add hiatus. The rows are
+  the same as before, built by the same code: Full day / Off on a weekday; Weekend or Holiday — not shot and Work
+  this day, with "Overrides <holiday>"; the greyed-out Work this day inside a hiatus. A withdrawn half-day row still
+  shows only on a day that holds one, and a stored mark that no row offers gets its line. The current choice is
+  ticked. Each choice is one undo step.
+- **Every day opens the menu now**, including days outside the shoot, where a click used to do nothing. Those have no
+  shoot-day section.
+- **Double-click a marked day still clears it.** Clicking the day whose menu is open closes the menu. The menu's
+  footer says "Double-click a marked day to clear it" on a shoot day.
+- **Unchanged:** a click on a "+" opens the note editor, a click on a note edits it, and a press on a bar drags it.
+- **Fixed with it (plan §8.1, the owner's yes by picker):** a hiatus whose band label was emptied on purpose made its
+  days offer Full day / Off, which do nothing inside a hiatus. They now offer only the greyed-out "Work this day",
+  "Inside the hiatus — shorten the hiatus to work these days".
+- No frozen code changed and nothing new is saved. The `.day-ov-*` styles went with the popover.
+- **Verified:** `mvmenu` 73/73, with C2 flipped and new cases for the left-click: where it opens, the toggle,
+  double-click-to-clear, the flip, "+" slots, notes and bars, a Mac Ctrl+click, §8.1. Eleven mutants each turn their own
+  cases red. `halfdays` (D5) and `halfworked` now read the menu's `data-ov` rows, with every value they assert
+  unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20,
+  `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by hand in the browser pane: a real click on
+  7 Jul, Off, a real double-click to clear, and the beside placement on a 768 px window. The full gate is pending.
+
 ### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
 
 Step 3 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click on a phase's bar adds a section for

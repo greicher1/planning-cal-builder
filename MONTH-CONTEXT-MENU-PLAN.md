@@ -1,7 +1,8 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: STEPS 1–3 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Steps 2 (Add
-hiatus ▸) and 3 (the bar's own section) are on branch `day-menu-step3`, not merged. Steps 4 and 5 are not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: STEPS 1–4 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Steps 2 (Add
+hiatus ▸) and 3 (the bar's own section) are on branch `day-menu-step3`, and step 4 (the left-click; the popover
+retired) is on `day-menu-step4`, cut from it. None of 2–4 is merged. Step 5 is not built. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -218,6 +219,14 @@ it is cheap to change.)*
 - ⛔ **Each shoot row keeps `data-ov="<value>"`**, the attribute the `halfdays` and `halfworked` legs read today. Their
   rewrite is then a selector change, and they keep asserting the same values.
 - `setOverride` already banks exactly one undo step.
+- ✅ **Built at step 4 (19 Oct 2026)** as `dayOverrideRows(sit)` and `shootSection(d)` in `installDayOverrideUI`, lent to
+  the menu as `dayOverrideUI.section`. Small calls, each cheap to change:
+  - The rows are `menuitemradio` items with `aria-checked`. The checked one carries a tick where an icon would be, as the
+    popover's current row did.
+  - The section's label is "Shoot day N" on a day with a shoot-day number. Any other day the shoot covers (a weekend,
+    a holiday, a hiatus day, a day marked Off) reads "Not a shoot day".
+  - The footer keeps "Shift + right-click opens the browser's own menu" under the double-click hint. The popover's
+    "Esc to close" is not carried over; the menu has always closed on Esc.
 
 ### 3.10 The hiatus section
 
@@ -278,6 +287,18 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
   It drops its `if(!sit) return`, so days outside the shoot open the menu too. "+" slots, notes and bars sit above the
   cell, so they never reach it. Placement is the popover's own `place()`: under the anchor, pulled in from the right
   edge, and flipped above when it would run off the bottom.
+  - ✅ **As built (step 4), three differences from this paragraph:**
+    1. **The listener moved into `installMonthDayMenu`**, beside the right-click, because the toggle is the menu's
+       state. The section is still built in `installDayOverrideUI`.
+    2. **The menu closes on the PRESS** (its outside-press rule), so the toggle has to remember that a left press on
+       the open menu's own day closed it (`pressClosed`). Otherwise the click that follows would open the menu again,
+       and double-click-to-clear would leave a menu open. A script's click, with no press, toggles directly.
+    3. **The placement rule needed a third case.** The menu is far taller than the popover was, so on a short window it
+       fits on neither side of the number. Held inside the window there, it would cover the number, and the second
+       click of a double-click would land on an item. It opens beside the day instead.
+  - No `stopPropagation()` (the popover had one): the menu has no click-away of its own, and the document's
+    click-away listeners should see the click. A Mac Ctrl+click's trailing click is ignored (`isMacCtrlClick`), or it
+    would close the menu its own contextmenu just opened.
 - **The day:** `dayAtPoint(x, y)`, which is at module scope. Check first that the point is inside `.mv-body`, because
   `dayAtPoint` clamps: a point below the grid returns the last week. Scope every selector to `#table-wrap`, because
   `#print-root` holds `.mv-daycell`s too.
@@ -371,6 +392,9 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
 1. **A hiatus whose label was emptied on purpose makes the shoot-day popover offer Full day / Off on a hiatus day.**
    `daySituation()` returns `hiatus: ''`, which is falsy, so `openDayOvPop` treats the day as an ordinary weekday. The
    menu shares that code (§3.9), so it would share the bug. The fix is one test (`!= null`), and it fixes both.
+   ✅ **FIXED at step 4, owner-approved 19 Oct 2026 by picker ("Yes, fix it").** `dayOverrideRows` tests `!= null`,
+   `daySituation` always gives a hiatus day a string, and a nameless hiatus is "the hiatus" in the reason. Case
+   `mvmenu` N1 (red on a mutant that reverts the test).
 2. **CLAUDE.md says the shareable-copy clone strips "five classes".** `buildSavedHtml`'s list holds eleven today.
 
 ---
@@ -437,12 +461,17 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
    - Start here and End here carry an edited auto-note with them (R5), as the drags do since the auto-note grip
      fix merged into `main` the same day. Case P7.
    - `mvmenu` grows to 61 cases (P1–P7 with their undo cases).
-4. **The shoot-day section, and the menu takes over the left-click** (ruling L1).
-   - Lift `dayOverrideRows(sit)` out of `openDayOvPop`.
-   - Point the existing day click at the menu, anchored under the day number, and retire the popover.
-   - Rewrite the `halfdays` and `halfworked` legs' popover selectors.
-
-   Until this step lands, left-click keeps opening the popover. Fix §8.1 at the same time, if the owner agrees.
+4. ✅ **The shoot-day section, and the menu takes over the left-click** (ruling L1). **BUILT 19 Oct 2026** (branch
+   `day-menu-step4`, cut from `day-menu-step3`; HANDOFF has the record).
+   - Lift `dayOverrideRows(sit)` out of `openDayOvPop`. Done; the section is `shootSection(d)`, lent as
+     `dayOverrideUI.section`.
+   - Point the existing day click at the menu, anchored under the day number, and retire the popover. Done, with the
+     three differences recorded in §4. `openDayOvPop`, its closers, its observer and the `.day-ov-*` CSS are gone.
+   - Rewrite the `halfdays` and `halfworked` legs' popover selectors. Done: they read `[data-section="shoot"]
+     [data-ov]`, and every value they assert is unchanged.
+   - Right-click stays as a second way in (the owner has not asked to drop it).
+   - §8.1 fixed, on the owner's yes.
+   - `mvmenu` grows to 73 cases (L1–L9, G7, N1; C2 flipped; H1s and P3 updated).
 5. **The hiatus and holiday sections.**
 
 ---
@@ -472,6 +501,9 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
   `.day-ov-pop` never appears. A click on 12 Jul's number opens it too, although no popover opened there before. A
   click on a "+" slot still opens the note editor. Clicking 8 Jul twice closes it, and a double-click on a marked day
   still clears the mark.
+  - ⚠️ **Corrected at the build:** 12 Jul is a weekend INSIDE the shoot, so the popover did open there (Weekend — not
+    shot / Work this day). The day where a click opened nothing before is one outside the shoot. `mvmenu` L3 uses
+    Sun 28 Jun, the day before the first shoot day, and L2 checks 12 Jul's rows.
 - **Existing legs that must stay green:**
   - the CDP legs `pilldrag` and `phaseedge` (`tests/harness/*.mjs`);
   - `customunits`, `halfmarks`, `overrides`, `monthnotes`, `monthdragundo` and `sharecopy2`;
