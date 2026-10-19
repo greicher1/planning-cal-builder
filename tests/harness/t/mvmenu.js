@@ -1,7 +1,8 @@
 // mvmenu -- the month view's day menu (MONTH-CONTEXT-MENU-PLAN.md). Plan step 1: the right-click
 // listener and its guards, the panel and its close rules, and four items -- Add note, Add 1-day
-// phase here, Add 1-week phase here, Show this week in the waterfall. Later steps add their sections
-// here, and flip the "absent" checks below as they do.
+// phase here, Add 1-week phase here, Show this week in the waterfall. Plan step 2 (the A-cases): Add
+// hiatus ▸, its submenu (pointer, grace period, keys) and its three kinds of item. Later steps add
+// their sections here, and flip the "absent" checks below as they do.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
@@ -167,7 +168,7 @@ window.addEventListener('load', function () { (async function () {
   }
   var CANT_WEEKEND = 'A phase can’t be drawn on a weekend', CANT_HIATUS = 'A phase can’t be drawn inside a hiatus';
   var NO_LANES = 'A hiatus day has no note lanes';
-  var ITEMS = ['note', 'phase-day', 'phase-week', 'waterfall'];
+  var ITEMS = ['note', 'phase-day', 'phase-week', 'hiatus', 'waterfall'];
 
   try {
     await T.appReady();
@@ -191,7 +192,7 @@ window.addEventListener('load', function () { (async function () {
         && mr.left >= 0 && mr.top >= 0 && mr.right <= innerWidth && mr.bottom <= innerHeight,
       {hit: h1.el.className, prevented: h1.prevented, info: i1, ring: rr && [rr.left, rr.width], cell: [cr.left, cr.width]},
       'the menu for 2026-07-08 on production');
-    add('H1s', 'Step 1\'s sections are This day and the way out, in that order, and its items are exactly the four, none greyed out on a shoot day; focus is on the first',
+    add('H1s', 'The sections are This day and the way out, in that order, and the items are exactly step 1\'s four plus step 2\'s Add hiatus, none greyed out on a shoot day; focus is on the first',
       i1 && eq(i1.sections, ['day', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS)
         && i1.items.every(function (x) { return !x.disabled; }) && i1.focus === 'note',
       i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, out; ' + ITEMS.join(', '));
@@ -332,9 +333,10 @@ window.addEventListener('load', function () { (async function () {
     await toMonth('December 2026');
     var h4 = await rclick('2026-12-22', 'mid');
     var i4 = menuInfo();
-    add('H4', 'Tue 22 Dec, inside the hiatus: Add note greyed out ("' + NO_LANES + '") and Add 1-day phase here greyed out ("' + CANT_HIATUS + '"); Add 1-week phase here offered',
+    add('H4', 'Tue 22 Dec, inside the hiatus: Add note greyed out ("' + NO_LANES + '") and Add 1-day phase here greyed out ("' + CANT_HIATUS + '"); Add 1-week phase here and Add hiatus offered',
       h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && item(i4, 'note').disabled && item(i4, 'note').second === NO_LANES
-        && item(i4, 'phase-day').disabled && item(i4, 'phase-day').second === CANT_HIATUS && !item(i4, 'phase-week').disabled && /Hiatus/.test(i4.ctx),
+        && item(i4, 'phase-day').disabled && item(i4, 'phase-day').second === CANT_HIATUS && !item(i4, 'phase-week').disabled
+        && !item(i4, 'hiatus').disabled && /Hiatus/.test(i4.ctx),
       i4, 'note and 1-day greyed');
     rows0 = customRows();
     choose('phase-day');
@@ -349,7 +351,7 @@ window.addEventListener('load', function () { (async function () {
     key('Home'); kf.push(menuInfo().focus);
     key('End'); kf.push(menuInfo().focus);
     add('K1', 'Arrow keys, Home and End move focus through the items that are not greyed out, wrapping',
-      eq(kf, ['phase-week', 'waterfall', 'phase-week', 'waterfall', 'phase-week', 'waterfall']), kf, 'phase-week, waterfall, phase-week, waterfall, phase-week, waterfall');
+      eq(kf, ['phase-week', 'hiatus', 'waterfall', 'hiatus', 'phase-week', 'waterfall']), kf, 'phase-week, hiatus, waterfall, hiatus, phase-week, waterfall');
     var s4 = sig();
     key('Escape');
     var h5 = await rclick('2026-12-25', 'mid');
@@ -432,6 +434,175 @@ window.addEventListener('load', function () { (async function () {
     var note6u = [].some.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-07-08"]'), function (b) { return /Day menu note/.test(b.textContent); });
     add('I6u', 'The note is written on 8 Jul when the editor commits, and one undo removes just the note (the title typed before stays)',
       note6 && !note6u && (document.getElementById('show-title') || {}).value === 'Menu step 4', {written: note6, afterUndo: note6u, title: (document.getElementById('show-title') || {}).value}, 'written, then undone');
+
+    // ---- A: Add hiatus ▸ (plan step 2, §3.3) ----
+    // On halfdays only Production runs on 8 Jul (Writer's Rm and the preps end before the shoot, Post starts
+    // 11/2), so the submenu is All phases, then Production only. Every hiatus starts on its week's Monday.
+    function subEl(){ return document.querySelector('.day-menu-sub'); }
+    function subInfo(){
+      var s = subEl();
+      if(!s) return null;
+      return {
+        parent: s.getAttribute('data-parent'), label: txt(s.querySelector('.day-menu-label')),
+        items: [].map.call(s.querySelectorAll('.day-menu-item'), function (b) {
+          return {id: b.getAttribute('data-item'), text: txt(b.querySelector('.day-menu-text')).replace(txt(b.querySelector('small')), '').trim(),
+                  disabled: b.getAttribute('aria-disabled') === 'true', second: txt(b.querySelector('small'))};
+        }),
+        ids: s.querySelectorAll('[id]').length + (s.id ? 1 : 0),
+      };
+    }
+    function hoverItem(b){
+      var q = b.getBoundingClientRect();
+      b.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: q.left + q.width / 2, clientY: q.top + q.height / 2}));
+    }
+    function rootBtn(id){ return menuEl().querySelector('[data-item="' + id + '"]'); }
+    function subChoose(id){
+      rootBtn('hiatus').click();                       // a click opens the submenu, focus on its first item
+      var b = subEl() && subEl().querySelector('[data-item="' + id + '"]');
+      if(!b) throw new Error('no submenu item ' + id);
+      b.click();
+    }
+    function hiatusRows(){
+      return [].map.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), function (r) {
+        return r.querySelector('.hiatus-start').value + '/' + r.querySelector('.hiatus-weeks').value + (r.querySelector('.hiatus-locked').checked ? '/locked' : '');
+      });
+    }
+    function phi(){
+      return {en: document.getElementById('phiatus-en-production').checked, start: document.getElementById('phiatus-start-production').value,
+              weeks: document.getElementById('phiatus-weeks-production').value, shown: document.getElementById('phiatus-fields-production').style.display};
+    }
+    // Which of a range of days Production's bars cover, in the month on screen.
+    function prodOn(days){ var p = pillDays('production'); return days.filter(function (d) { return p.indexOf(d) >= 0; }); }
+    var WK6 = ['2026-07-06', '2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16', '2026-07-17'];
+    var WK20 = ['2026-07-20', '2026-07-21', '2026-07-22', '2026-07-23', '2026-07-24', '2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31'];
+
+    var sA = sig();
+    await rclick('2026-07-08', 'bar:production');
+    var hb = rootBtn('hiatus');
+    var a0 = {haspopup: hb.getAttribute('aria-haspopup'), expanded: hb.getAttribute('aria-expanded'), chev: !!hb.querySelector('.day-menu-chev'), sub: !!subEl()};
+    hoverItem(hb);
+    var a1 = subInfo(), sr = subEl() && subEl().getBoundingClientRect(), ir = hb.getBoundingClientRect();
+    var a1f = menuInfo().focus, a1x = hb.getAttribute('aria-expanded');
+    add('A1', 'Add hiatus ▸ on 8 Jul: a chevron and aria-haspopup, closed until hovered; a hover opens the submenu BESIDE the item (inside the window) with focus left on the item: All phases, then "One phase only" and Production only, each "Week of Mon 6 Jul · 2 weeks"; no id inside',
+      a0.haspopup === 'menu' && a0.expanded === 'false' && a0.chev && !a0.sub && !!a1 && a1.parent === 'hiatus' && a1.label === 'One phase only'
+        && eq(a1.items.map(function (x) { return [x.id, x.text, x.second, x.disabled]; }),
+              [['hiatus-all', 'All phases', 'Week of Mon 6 Jul · 2 weeks', false], ['hiatus-production', 'Production only', 'Week of Mon 6 Jul · 2 weeks', false]])
+        && a1.ids === 0 && a1f === 'hiatus' && a1x === 'true'
+        && Math.abs(sr.top - (ir.top - 5)) < 1.5 && (sr.left >= ir.right - 3 || sr.right <= ir.left + 3)
+        && sr.left >= 0 && sr.top >= 0 && sr.right <= innerWidth && sr.bottom <= innerHeight,
+      {before: a0, sub: a1, focus: a1f, expanded: a1x, sub_rect: sr && [sr.left, sr.top, sr.right, sr.bottom], item: [ir.left, ir.top, ir.right]},
+      'submenu beside the item, focus on it');
+    // A2: the grace period. Crossing the next item on the way in keeps the submenu; resting on it closes it.
+    hoverItem(rootBtn('waterfall'));
+    await T.sleep(80);
+    var a2 = {crossing: !!subEl()};
+    // Null-safe from here: a build that closes the submenu at once must turn THIS case red, not end the leg.
+    function lit(el){ var b = el && el.querySelector('.is-active'); return b ? b.getAttribute('data-item') : null; }
+    if(subEl()){
+      subEl().dispatchEvent(new MouseEvent('mouseenter'));
+      hoverItem(subEl().querySelector('[data-item="hiatus-production"]'));
+    }
+    await T.sleep(400);
+    a2.reached = lit(subEl()) === 'hiatus-production';
+    a2.rootLit = lit(menuEl());
+    hoverItem(rootBtn('waterfall'));
+    await T.sleep(400);
+    a2.rested = !subEl();
+    a2.rootNow = lit(menuEl());
+    a2.expanded = rootBtn('hiatus').getAttribute('aria-expanded');
+    add('A2', 'Moving into the submenu across "Show this week in the waterfall" (80 ms) keeps it open and lands on Production only; resting on that item (400 ms) closes it',
+      a2.crossing && a2.reached && a2.rootLit === 'hiatus' && a2.rested && a2.rootNow === 'waterfall' && a2.expanded === 'false', a2, 'kept, then closed');
+    // A3: the keyboard.
+    var kk = [];
+    function kstate(){ return (menuInfo() ? menuInfo().focus : 'closed') + (subEl() ? '+sub' : ''); }
+    key('Home'); kk.push(kstate());
+    key('End'); key('ArrowUp'); kk.push(kstate());
+    key('ArrowRight'); kk.push(kstate());
+    key('ArrowDown'); kk.push(kstate());
+    key('ArrowLeft'); kk.push(kstate());
+    key('Enter'); kk.push(kstate());
+    key('Escape'); kk.push(kstate());
+    key('Escape'); kk.push(menuEl() ? 'open' : 'closed');
+    add('A3', 'Keys: → opens the submenu on its first item, ↓ moves in it, ← closes it back onto Add hiatus, Enter opens it, Escape closes the submenu first and then the menu',
+      eq(kk, ['note', 'hiatus', 'hiatus-all+sub', 'hiatus-production+sub', 'hiatus', 'hiatus-all+sub', 'hiatus', 'closed']), kk,
+      'note, hiatus, hiatus-all+sub, hiatus-production+sub, hiatus, hiatus-all+sub, hiatus, closed');
+    await rclick('2026-07-08', 'bar:production');
+    hoverItem(rootBtn('hiatus'));
+    var ap = {opened: !!subEl()};
+    if(subEl()) subEl().dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
+    ap.menu = !!menuEl(); ap.sub = !!subEl();
+    add('A1p', 'A press inside the submenu closes nothing (the outside-press rule counts the submenu as inside)',
+      ap.opened && ap.menu && ap.sub, ap, 'menu and submenu open');
+    key('Escape'); key('Escape');
+    add('S3', 'Opening the submenu, by hover and by key, leaves fields.byId exactly as it was', eq(sig(), sA), sigDiff(sA, sig()), 'no change');
+
+    // A4: All phases from SUNDAY 12 Jul: the week of Mon 6 Jul, two weeks, locked, a row like the sidebar's.
+    var rowsA = hiatusRows();
+    a = await primeThenOpen('2026-07-12', 'mid');
+    subChoose('hiatus-all');
+    await settle();
+    var rows4 = hiatusRows(), after4a = rows4.slice(), p4 = prodOn(WK6);
+    var bands4 = [].filter.call(document.querySelectorAll('#table-wrap .mv-hiatus-bar'), function (b) { return /Hiatus/.test(b.textContent); }).length;
+    add('A4', 'All phases on Sun 12 Jul adds ONE all-phase hiatus row "2026-07-06/2/locked" (its Monday, 2 weeks, locked); the shoot pauses over 6-17 Jul, which show hiatus bands; fields.byId unchanged; menu gone',
+      rows4.length === rowsA.length + 1 && rows4[rows4.length - 1] === '2026-07-06/2/locked' && p4.length === 0 && bands4 >= 2 && eq(sig(), a.before) && !menuEl() && !subEl(),
+      {rows: rows4, prodOn: p4, bands: bands4, diff: sigDiff(a.before, sig())}, 'one row 2026-07-06/2/locked, no shoot 6-17 Jul');
+    await T.sleep(700);
+    await undo();
+    var u4 = {rows: hiatusRows(), title: (document.getElementById('show-title') || {}).value, prod: prodOn(WK6)};
+    await redo();
+    var r4 = hiatusRows();
+    await undo();
+    add('A4u', 'Exactly one undo step: undo removes just the row (the title typed before stays, the shoot is back on 6-17 Jul), redo puts it back',
+      eq(u4.rows, rowsA) && u4.title === 'Menu step ' + n && u4.prod.length === WK6.length && eq(r4, after4a) && eq(hiatusRows(), rowsA),
+      {undo: u4, redo: r4}, 'undo = before, redo = after');
+
+    // A5: Production only on Wed 8 Jul: its own hiatus switched on, from Mon 6 Jul, 2 weeks.
+    a = await primeThenOpen('2026-07-08', 'bar:production');
+    var phi0 = phi();
+    subChoose('hiatus-production');
+    await settle();
+    var phi5 = phi(), d5 = sigDiff(a.before, sig()), p5 = prodOn(WK6), p5b = prodOn(WK20), after5 = sig();
+    add('A5', 'Production only on Wed 8 Jul turns on Production\'s own hiatus from Mon 6 Jul for 2 weeks, shows its fields, and pauses only the shoot over 6-17 Jul (it resumes on 20 Jul); fields.byId changes only its toggle and start',
+      phi0.en === false && phi5.en === true && phi5.start === '2026-07-06' && phi5.weeks === '2' && phi5.shown === 'flex'
+        && p5.length === 0 && p5b.length === WK20.length && d5.added.length === 0 && d5.removed.length === 0
+        && eq(d5.changed.slice().sort(), ['phiatus-en-production', 'phiatus-start-production']) && eq(hiatusRows(), rowsA),
+      {before: phi0, after: phi5, diff: d5, prod6: p5, prod20: p5b}, 'en, 2026-07-06, 2 weeks; no shoot 6-17 Jul');
+    await T.sleep(700);
+    // A6: ruling Q2. With a hiatus of its own (stretched to 3 weeks first), the item MOVES it and keeps 3 weeks.
+    T.set('phiatus-weeks-production', '3');
+    await settle();
+    await T.sleep(700);
+    var s6m = sig();
+    await rclick('2026-07-22', 'num');
+    rootBtn('hiatus').click();
+    var a6 = subInfo();
+    var mv = a6 && a6.items.find(function (x) { return x.id === 'hiatus-production'; });
+    subEl().querySelector('[data-item="hiatus-production"]').click();
+    await settle();
+    var phi6 = phi(), d6 = sigDiff(s6m, sig());
+    add('A6', 'On Wed 22 Jul, with a 3-week hiatus of its own, the item reads "Move Production’s hiatus here" / "Week of Mon 20 Jul · 3 weeks"; it moves the start to Mon 20 Jul and KEEPS 3 weeks; only the start changes',
+      !!mv && mv.text === 'Move Production’s hiatus here' && mv.second === 'Week of Mon 20 Jul · 3 weeks' && !mv.disabled
+        && phi6.en === true && phi6.start === '2026-07-20' && phi6.weeks === '3' && eq(d6.changed, ['phiatus-start-production']) && d6.added.length === 0,
+      {item: mv, after: phi6, diff: d6}, 'start 2026-07-20, 3 weeks kept');
+    await T.sleep(700);
+    // Inside the week it now starts, the move would change nothing: greyed out with its reason, and inert.
+    await rclick('2026-07-21', 'num');
+    rootBtn('hiatus').click();
+    var a7 = subInfo(), mv7 = a7 && a7.items.find(function (x) { return x.id === 'hiatus-production'; });
+    var s7m = sig();
+    subEl().querySelector('[data-item="hiatus-production"]').click();
+    add('A7', 'On Tue 21 Jul, the week its hiatus already starts, "Move Production’s hiatus here" is greyed out ("Its hiatus already starts this week") and clicking it changes nothing and leaves the menu open',
+      !!mv7 && mv7.disabled && mv7.second === 'Its hiatus already starts this week' && eq(sig(), s7m) && !!subEl() && !!menuEl(),
+      {item: mv7, diff: sigDiff(s7m, sig()), open: [!!menuEl(), !!subEl()]}, 'greyed, inert');
+    key('Escape'); key('Escape');
+    await undo();
+    var u6 = phi();
+    await undo();
+    var u6b = phi();
+    await undo();
+    add('A5u', 'One undo per step: the move (start back to 6 Jul, 3 weeks), then the length (2 weeks), then the item itself (hiatus off, the title typed before kept)',
+      u6.start === '2026-07-06' && u6.weeks === '3' && u6.en && u6b.weeks === '2' && u6b.en && eq(sig(), a.before) && phi().en === false,
+      {move: u6, length: u6b, item: phi(), diff: sigDiff(a.before, sig())}, 'three steps back to before');
 
     // I7: Show this week in the waterfall from SUNDAY 12 Jul -- the week of the Monday BEFORE it.
     var s7 = sig();
@@ -519,19 +690,22 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return !!document.getElementById('share-copy-btn'); }, 'the Export-App button', 80, 100);
     await T.sleep(900);
     await rclick('2026-11-04', 'num');
+    hoverItem(rootBtn('hiatus'));                      // and its submenu, which is a .day-menu too
     // ⚠️ Built from pieces. The harness injects THIS script into the page, so the copy serialises its
     // source too, and a literal pattern here would find itself there (the trap sharecopy2 records for the
     // app's own bundle). The rendered markup is the only place the joined string can occur.
     var MENU_RE = new RegExp('<div class="day-' + 'menu" role="menu"'), RING_RE = new RegExp('<div class="day-' + 'menu-ring"');
-    var liveHas = MENU_RE.test(document.body.outerHTML) && RING_RE.test(document.body.outerHTML);
+    var SUB_RE = new RegExp('<div class="day-' + 'menu day-' + 'menu-sub" role="menu"');
+    var liveHas = MENU_RE.test(document.body.outerHTML) && RING_RE.test(document.body.outerHTML) && SUB_RE.test(document.body.outerHTML);
     var cap = T.captureDownload();
     document.getElementById('share-copy-btn').click();
     await T.until(cap.peek, 'the shareable-copy blob', 200, 100);
     var html = await cap.stop().text();
     var stillOpen = !!menuEl();
-    add('S2', 'A shareable copy exported with the menu open contains neither the menu nor its ring (and the live page did hold both, so the check is not vacuous)',
-      liveHas && stillOpen && html.length > 100000 && !MENU_RE.test(html) && !RING_RE.test(html),
-      {liveHas: liveHas, stillOpen: stillOpen, bytes: html.length, menuInCopy: MENU_RE.test(html), ringInCopy: RING_RE.test(html)}, 'none in the copy');
+    add('S2', 'A shareable copy exported with the menu and its Add hiatus submenu open contains none of the menu, the submenu or the ring (and the live page did hold all three, so the check is not vacuous)',
+      liveHas && stillOpen && html.length > 100000 && !MENU_RE.test(html) && !RING_RE.test(html) && !SUB_RE.test(html),
+      {liveHas: liveHas, stillOpen: stillOpen, bytes: html.length, menuInCopy: MENU_RE.test(html), ringInCopy: RING_RE.test(html), subInCopy: SUB_RE.test(html)}, 'none in the copy');
+    key('Escape');
     key('Escape');
 
     out.health = T.appHealth();

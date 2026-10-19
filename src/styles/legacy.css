@@ -2475,6 +2475,15 @@
      under it stays at the readable faint ink, since it is the one line that explains the refusal. */
   .day-menu-item.is-disabled, .day-menu-item.is-disabled .day-menu-ico{ color:var(--mantine-color-gray-5); }
   .day-menu-item.is-disabled small{ color:var(--text-faint); }
+  /* Step 2's submenu (Add hiatus ▸): the item it hangs from stays lit while it is open, and carries a
+     chevron. The submenu is the same panel, beside the item; a section in it may carry a small label. */
+  .day-menu-item[aria-expanded="true"]{ background:var(--mantine-color-gray-1); }
+  .day-menu-chev{ width:14px; height:14px; flex:none; color:var(--text-faint); }
+  .day-menu-sub{ min-width:220px; }
+  .day-menu-label{
+    padding:7px 10px 3px; font-size:var(--mantine-font-size-xxs); line-height:14px; font-weight:600;
+    letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted);
+  }
   .day-menu-foot{
     margin-top:var(--mantine-spacing-xs); padding:5px 10px 4px;
     border-top:1px solid var(--mantine-color-gray-2);

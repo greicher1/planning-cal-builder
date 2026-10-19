@@ -7917,10 +7917,10 @@ export function initLegacyApp() {
   // Owner, 19 Oct 2026: "One i know i want is to right click to add a custom phase starting on the
   // day youre hovering over." A right-click anywhere on a day in the month view opens one menu for
   // that day. Built here: plan STEP 1 -- the listener, the panel and its close rules, and four items
-  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall). Add
-  // hiatus ▸, the phase, shoot-day, hiatus and holiday sections, and the left-click on a day's number
-  // (ruling L1, which retires the Full day/Off popover) are steps 2 to 5. Until step 4 a left-click
-  // still opens that popover.
+  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall) -- and
+  // STEP 2, Add hiatus ▸ and the submenu it opens. The phase, shoot-day, hiatus and holiday sections,
+  // and the left-click on a day's number (ruling L1, which retires the Full day/Off popover) are
+  // steps 3 to 5. Until step 4 a left-click still opens that popover.
   //
   // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
   // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
@@ -7941,7 +7941,8 @@ export function initLegacyApp() {
   (function installMonthDayMenu(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
-    // {el, ring, iso, items:[{id, disabled, run}], btns:[], active, back}
+    // {el, ring, iso, back, root: panel, sub: panel | null}. A panel is {el, items:[{id, disabled,
+    // run | sub}], btns:[], active, owner}; a submenu's owner is the index of the root item it hangs from.
     let menu = null;
 
     const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -7952,6 +7953,8 @@ export function initLegacyApp() {
       note:  'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
       plus:  'M12 5v14M5 12h14',
       table: 'M4 5h16v14H4zM4 10h16M10 5v14',
+      pause: 'M6 5h4v14H6zM14 5h4v14h-4z',
+      chev:  'M9 6l6 6-6 6',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -8051,6 +8054,8 @@ export function initLegacyApp() {
            run: ()=> addPhaseHere(ctx, 'day')},
           {id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · from ' + dayMonth(d),
            run: ()=> addPhaseHere(ctx, 'week')},
+          // Built when it opens, not with the menu: nothing in it is needed until then.
+          {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)},
         ]},
         // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
         // first in its row; the second line says which week that is.
@@ -8059,6 +8064,72 @@ export function initLegacyApp() {
            run: ()=> showWeekInWaterfall(week)},
         ]},
       ];
+    }
+
+    // Add hiatus ▸ (plan §3.3): one for everything, then one for each phase running on the day.
+    // ⭐ A hiatus is a start and a number of weeks, and computeSchedule snaps the start to its Monday,
+    // so it always covers whole Monday-to-Sunday weeks. The second line says "Week of Mon 6 Jul", and
+    // the field is given THAT MONDAY rather than the day clicked: the result is the same, and the
+    // sidebar then shows no "Snapped to Mon" note for a date nobody typed. A Sunday belongs to the
+    // week of the Monday before it, as everywhere else.
+    // "Running" is the span rule, d >= start && d < end, not the drawn bars, so a weekend inside a
+    // week-based phase counts. A phase is offered only if it has its own hiatus controls, which every
+    // phase row has and the prep row does not.
+    // ✅ Ruling Q2: on a phase that already has its own hiatus the item MOVES it here, keeping its
+    // length. A phase has exactly one. Already starting this week, the move would change nothing, so
+    // it is greyed out with that reason rather than banking an empty undo step.
+    function hiatusSections(ctx){
+      const d = ctx.date, wk = mondayOf(d), from = 'Week of ' + dayMonth(wk);
+      const weeksText = n=> n + (n === 1 ? ' week' : ' weeks');
+      const phases = [], seen = new Set();
+      ((currentSchedule || {}).segments || []).forEach(seg=>{
+        if(seen.has(seg.key) || !(d >= seg.start && d < seg.end)) return;
+        if(!document.getElementById('phiatus-en-' + seg.key)) return;
+        seen.add(seg.key);
+        // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
+        const name = (seg.name || seg.label || phaseLabelFor(seg.key)).replace(/\s*wk\s*\d+\s*$/i, '');
+        const own = seg.phaseHiatus;
+        if(own){
+          const n = parseInt((document.getElementById('phiatus-weeks-' + seg.key) || {}).value, 10);
+          phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: 'Move ' + name + '’s hiatus here',
+            note: from + (n > 0 ? ' · ' + weeksText(n) : ''),
+            disabled: isoOf(mondayOf(own.start)) === isoOf(wk), why: 'Its hiatus already starts this week',
+            run: ()=> setPhaseHiatusHere(ctx, seg.key, true)});
+        } else {
+          phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: name + ' only', note: from + ' · ' + weeksText(2),
+            run: ()=> setPhaseHiatusHere(ctx, seg.key, false)});
+        }
+      });
+      const sections = [{id: 'hiatus-all', items: [
+        {id: 'hiatus-all', icon: 'pause', text: 'All phases', note: from + ' · ' + weeksText(2), run: ()=> addHiatusHere(ctx)},
+      ]}];
+      if(phases.length) sections.push({id: 'hiatus-phase', label: 'One phase only', items: phases});
+      return sections;
+    }
+
+    // Exactly what the sidebar's "+ Add hiatus" does, with the start filled in: a row two weeks long,
+    // locked in place (addHiatusRow's default), then update(). One undo step, bracketed.
+    function addHiatusHere(ctx){
+      pushUndoSnapshot();
+      addHiatusRow(isoOf(mondayOf(ctx.date)), 2);
+      update();
+      pushUndoSnapshot();
+    }
+
+    // The phase row's own hiatus: its toggle, start and weeks, then the same refresh a restore runs
+    // and update(). A new one is two weeks; a moved one keeps its length and its name (ruling Q2).
+    function setPhaseHiatusHere(ctx, key, move){
+      const en = document.getElementById('phiatus-en-' + key);
+      const start = document.getElementById('phiatus-start-' + key);
+      const weeks = document.getElementById('phiatus-weeks-' + key);
+      if(!en || !start || !weeks) return;
+      pushUndoSnapshot();
+      en.checked = true;
+      start.value = isoOf(mondayOf(ctx.date));
+      if(!move) weeks.value = '2';
+      refreshPhaseHiatusUI();
+      update();
+      pushUndoSnapshot();
     }
 
     // ---- The four items ----
@@ -8144,6 +8215,8 @@ export function initLegacyApp() {
       if(!menu) return;
       const m = menu;
       menu = null;
+      cancelSubTimer();
+      if(m.sub) m.sub.el.remove();
       m.el.remove();
       if(m.ring) m.ring.remove();
       const back = m.back;
@@ -8151,29 +8224,161 @@ export function initLegacyApp() {
         try { back.focus({preventScroll: true}); } catch(err){}
       }
     }
+    // Inside the menu or its open submenu: the close rules leave a press or a scroll there alone.
+    function inMenu(t){
+      return !!menu && t instanceof Node && (menu.el.contains(t) || (!!menu.sub && menu.sub.el.contains(t)));
+    }
 
-    function setActive(i){
+    function setActive(p, i){
       if(!menu) return;
-      menu.active = i;
-      menu.btns.forEach((b, j)=> b.classList.toggle('is-active', j === i));
-      (i >= 0 ? menu.btns[i] : menu.el).focus({preventScroll: true});
+      p.active = i;
+      p.btns.forEach((b, j)=> b.classList.toggle('is-active', j === i));
+      (i >= 0 ? p.btns[i] : p.el).focus({preventScroll: true});
     }
     // The next item that is not greyed out, wrapping; -1 when there is none.
-    function nextEnabled(from, dir){
-      const n = menu.items.length;
+    function nextEnabled(p, from, dir){
+      const n = p.items.length;
       for(let k = 1; k <= n; k++){
         const i = ((from + dir * k) % n + n) % n;
-        if(!menu.items[i].disabled) return i;
+        if(!p.items[i].disabled) return i;
       }
       return -1;
     }
-    function choose(i){
-      const it = menu && menu.items[i];
+    // Moving within a panel. On the root, leaving the item a submenu hangs from closes the submenu; the
+    // keyboard opens one only on → , Enter or Space, as a menu bar does.
+    function moveTo(p, i){
+      cancelSubTimer();
+      setActive(p, i);
+      if(menu && p === menu.root && menu.sub && menu.sub.owner !== i) closeSub(false);
+    }
+    function choose(p, i){
+      const it = p && p.items[i];
       if(!it || it.disabled) return;
+      if(it.sub){ openSub(i, true); return; }
       // Closed FIRST, focus handed back, then the item runs, so an item that moves focus (the note
       // editor, a new phase's name box) keeps it.
       closeMenu(true);
       it.run();
+    }
+
+    // A panel's markup: its sections, each after a separator (the first too, under a header), each
+    // with an optional small label. An item with a submenu carries a chevron and aria-haspopup.
+    function panelHtml(sections, head){
+      const items = [];
+      let html = '';
+      sections.forEach((sec, si)=>{
+        if(head || si > 0) html += '<div class="day-menu-sep" role="separator"></div>';
+        html += '<div class="day-menu-group" role="group" data-section="' + sec.id + '">';
+        if(sec.label) html += '<div class="day-menu-label">' + escHtml(sec.label) + '</div>';
+        sec.items.forEach(it=>{
+          const i = items.length;
+          items.push(it);
+          const second = it.disabled ? it.why : (it.note || '');
+          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + '" role="menuitem" tabindex="-1"'
+                + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '')
+                + (it.sub ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
+                + icon(it.icon) + '<span class="day-menu-text">' + escHtml(it.text)
+                + (second ? '<small>' + escHtml(second) + '</small>' : '') + '</span>'
+                + (it.sub ? icon('chev').replace('day-menu-ico', 'day-menu-chev') : '') + '</button>';
+        });
+        html += '</div>';
+      });
+      return {html, items};
+    }
+
+    // ⭐ A GRACE PERIOD before a hover leaves an open submenu. The way into a submenu is often a
+    // diagonal, and it crosses the root's next item: "Add hiatus" to a lower line of a submenu flipped
+    // to the left runs over "Show this week in the waterfall". Switching at once closed the submenu
+    // under the pointer on its way in. So a hover onto another root item waits SUB_GRACE_MS, and
+    // reaching the submenu first cancels it. The keyboard switches at once.
+    const SUB_GRACE_MS = 250;
+    let subTimer = 0, subTimerFor = -1;
+    function cancelSubTimer(){ clearTimeout(subTimer); subTimer = 0; subTimerFor = -1; }
+    function hoverRoot(i){
+      const root = menu.root, it = root.items[i];
+      setActive(root, i);
+      // Hovering an item with a submenu opens it beside the item, leaving focus where it is.
+      if(it.sub && !it.disabled) openSub(i, false);
+      else closeSub(false);
+    }
+
+    // The pointer and the click, the same on the root and on a submenu.
+    function wirePanel(p){
+      const el = p.el;
+      el.addEventListener('mousemove', e=>{
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(!b || !menu) return;
+        const i = +b.dataset.i;
+        if(p !== menu.root){ cancelSubTimer(); if(i !== p.active) setActive(p, i); return; }
+        if(menu.sub && menu.sub.owner !== i){
+          if(subTimerFor === i) return;
+          cancelSubTimer();
+          subTimerFor = i;
+          subTimer = setTimeout(()=>{ subTimer = 0; subTimerFor = -1; if(menu && menu.root === p) hoverRoot(i); }, SUB_GRACE_MS);
+          return;
+        }
+        cancelSubTimer();
+        if(i !== p.active) hoverRoot(i);
+      });
+      if(p.owner >= 0) el.addEventListener('mouseenter', cancelSubTimer);
+      // The root keeps its item lit while the pointer crosses into the submenu that hangs from it, and
+      // a pointer that leaves the root drops any switch still waiting out its grace period.
+      el.addEventListener('mouseleave', ()=>{
+        if(!menu) return;
+        if(p === menu.root) cancelSubTimer();
+        if(!(p === menu.root && menu.sub)) setActive(p, -1);
+      });
+      el.addEventListener('click', e=>{
+        // ⛔ Stopped HERE, on the panel, in the bubble phase -- never from a capture listener
+        // (UI-CONVENTIONS §6a). The click that opens the note editor must not go on to reach the
+        // editor's own document click-away, which would commit and close it at once.
+        e.stopPropagation();
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(b && menu) choose(p, +b.dataset.i);
+      });
+      el.addEventListener('contextmenu', e=> e.preventDefault());
+    }
+
+    // The submenu of root item i, beside it: to its right, or flipped to its left when it would run off
+    // the window, and pulled up to stay inside it. One at a time. focusFirst moves focus into it (the
+    // keyboard, or a click); a hover leaves focus on the item.
+    function openSub(i, focusFirst){
+      if(!menu) return;
+      const root = menu.root, it = root.items[i];
+      if(!(menu.sub && menu.sub.owner === i)){
+        closeSub(false);
+        const built = panelHtml(it.sub(), false);
+        const el = document.createElement('div');
+        el.className = 'day-menu day-menu-sub';
+        el.setAttribute('role', 'menu');
+        el.setAttribute('aria-label', it.text);
+        el.setAttribute('data-parent', it.id);
+        el.tabIndex = -1;
+        el.innerHTML = built.html;
+        document.body.appendChild(el);
+        const p = {el, items: built.items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')), active: -1, owner: i};
+        wirePanel(p);
+        menu.sub = p;
+        root.btns[i].setAttribute('aria-expanded', 'true');
+        const M = 8, w = el.offsetWidth, h = el.offsetHeight, r = root.btns[i].getBoundingClientRect();
+        let left = r.right - 2, top = r.top - 5;
+        if(left + w > window.innerWidth - M) left = r.left - w + 2;
+        if(top + h > window.innerHeight - M) top = window.innerHeight - M - h;
+        el.style.left = Math.max(M, left) + 'px';
+        el.style.top = Math.max(M, top) + 'px';
+      }
+      if(root.active !== i) setActive(root, i);
+      if(focusFirst) setActive(menu.sub, nextEnabled(menu.sub, -1, 1));
+    }
+    // refocus hands focus back to the item the submenu hangs from (← and Escape).
+    function closeSub(refocus){
+      if(!menu || !menu.sub) return;
+      const s = menu.sub;
+      menu.sub = null;
+      s.el.remove();
+      const b = menu.root.btns[s.owner];
+      if(b) b.setAttribute('aria-expanded', 'false');
+      if(refocus) setActive(menu.root, s.owner);
     }
 
     function openMenu(ctx, x, y){
@@ -8185,23 +8390,11 @@ export function initLegacyApp() {
       if(activeMvNote) commitMvNoteEditor();
       observer.takeRecords();
 
-      const sections = menuSections(ctx), items = [];
-      let html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
-               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>';
-      sections.forEach(sec=>{
-        html += '<div class="day-menu-sep" role="separator"></div><div class="day-menu-group" role="group" data-section="' + sec.id + '">';
-        sec.items.forEach(it=>{
-          const i = items.length;
-          items.push(it);
-          const second = it.disabled ? it.why : (it.note || '');
-          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + '" role="menuitem" tabindex="-1"'
-                + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '') + '>'
-                + icon(it.icon) + '<span class="day-menu-text">' + escHtml(it.text)
-                + (second ? '<small>' + escHtml(second) + '</small>' : '') + '</span></button>';
-        });
-        html += '</div>';
-      });
-      html += '<div class="day-menu-foot">Shift + right-click opens the browser’s own menu</div>';
+      const built = panelHtml(menuSections(ctx), true);
+      const html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
+               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>'
+               + built.html
+               + '<div class="day-menu-foot">Shift + right-click opens the browser’s own menu</div>';
 
       const el = document.createElement('div');
       el.className = 'day-menu';
@@ -8239,24 +8432,11 @@ export function initLegacyApp() {
       el.style.left = Math.max(M, Math.min(left, window.innerWidth - M - w)) + 'px';
       el.style.top = Math.max(M, Math.min(top, window.innerHeight - M - h)) + 'px';
 
-      menu = {el, ring, iso: ctx.iso, items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')),
-              active: -1, back: document.activeElement};
-      el.addEventListener('mousemove', e=>{
-        const b = e.target.closest && e.target.closest('.day-menu-item');
-        if(b && menu && +b.dataset.i !== menu.active) setActive(+b.dataset.i);
-      });
-      el.addEventListener('mouseleave', ()=>{ if(menu) setActive(-1); });
-      el.addEventListener('click', e=>{
-        // ⛔ Stopped HERE, on the panel, in the bubble phase -- never from a capture listener
-        // (UI-CONVENTIONS §6a). The click that opens the note editor must not go on to reach the
-        // editor's own document click-away, which would commit and close it at once.
-        e.stopPropagation();
-        const b = e.target.closest && e.target.closest('.day-menu-item');
-        if(b) choose(+b.dataset.i);
-      });
-      el.addEventListener('contextmenu', e=> e.preventDefault());
+      const root = {el, items: built.items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')), active: -1, owner: -1};
+      menu = {el, ring, iso: ctx.iso, back: document.activeElement, root, sub: null};
+      wirePanel(root);
       // Focus moves into the menu, on its first item (§6), and goes back when Escape closes it.
-      setActive(nextEnabled(-1, 1));
+      setActive(root, nextEnabled(root, -1, 1));
     }
 
     // ⛔ Bubble phase, and preventDefault on THIS event only (plan §5). Never stopPropagation.
@@ -8269,28 +8449,37 @@ export function initLegacyApp() {
     // The close rules (plan §4). The press is caught in the CAPTURE phase only to close: an edge
     // handle stops its own mousedown, so a bubble listener would never hear a press on one.
     document.addEventListener('mousedown', e=>{
-      if(menu && !menu.el.contains(e.target)) closeMenu(false);
+      if(menu && !inMenu(e.target)) closeMenu(false);
     }, true);
+    // The keys act on the panel that holds focus: the submenu once focus is in it, else the root (a
+    // hovered-open submenu leaves focus on its item, so ↑ ↓ still move through the root).
     document.addEventListener('keydown', e=>{
       if(!menu) return;
       const k = e.key;
-      if(k === 'Escape'){ e.preventDefault(); closeMenu(true); }
+      const p = (menu.sub && menu.sub.el.contains(document.activeElement)) ? menu.sub : menu.root;
+      // Escape and ← close the submenu first, with focus back on its item; Escape on the root closes all.
+      if(k === 'Escape'){ e.preventDefault(); if(menu.sub) closeSub(true); else closeMenu(true); }
       else if(k === 'Tab') closeMenu(true);
+      else if(k === 'ArrowLeft'){ if(menu.sub){ e.preventDefault(); closeSub(true); } }
+      else if(k === 'ArrowRight'){
+        const it = p === menu.root && p.items[p.active];
+        if(it && it.sub && !it.disabled){ e.preventDefault(); openSub(p.active, true); }
+      }
       else if(k === 'ArrowDown' || k === 'ArrowUp'){
         e.preventDefault();
         const dir = k === 'ArrowDown' ? 1 : -1;
-        const i = nextEnabled(menu.active >= 0 ? menu.active : (dir > 0 ? -1 : menu.items.length), dir);
-        if(i >= 0) setActive(i);
+        const i = nextEnabled(p, p.active >= 0 ? p.active : (dir > 0 ? -1 : p.items.length), dir);
+        if(i >= 0) moveTo(p, i);
       }
       else if(k === 'Home' || k === 'End'){
         e.preventDefault();
-        const i = k === 'Home' ? nextEnabled(-1, 1) : nextEnabled(menu.items.length, -1);
-        if(i >= 0) setActive(i);
+        const i = k === 'Home' ? nextEnabled(p, -1, 1) : nextEnabled(p, p.items.length, -1);
+        if(i >= 0) moveTo(p, i);
       }
-      else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(menu.active >= 0) choose(menu.active); }
+      else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(p.active >= 0) choose(p, p.active); }
     }, true);
     window.addEventListener('scroll', e=>{
-      if(menu && !(e.target instanceof Node && menu.el.contains(e.target))) closeMenu(false);
+      if(menu && !inMenu(e.target)) closeMenu(false);
     }, true);
     window.addEventListener('resize', ()=> closeMenu(false));
     window.addEventListener('blur', ()=> closeMenu(false));
