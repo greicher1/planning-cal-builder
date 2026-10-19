@@ -43,8 +43,16 @@
   - `npm run check` 40/40; `check-refs.py` CLEAN.
 - ⚠️ **Still not verified:** a real Mac Ctrl+click on a bar and on an edge handle (plan §5). The owner should try it
   once.
-- ⏭ **Next:** the owner tries a real Mac Ctrl+click. A version cut is overdue (`version.json` still 1.4.3). Add a prep
-  case to `mvmenu`. Then plan step 2 (Add hiatus ▸), built from `main`.
+- ⚠️ **The owner expected step 4 to be in this push** (19 Oct 2026, after it went live): *"I thought you were going to
+  combine the full day/off day menu with the right-click menu. I also thought it wasnt gonna be a right click when
+  clicking on the day itself and would instead pop up from a left click"*. That is ruling L1, and it is plan step 4,
+  not built. So the live app has two menus for now: a left-click on a day's number still opens the old Full day/Off
+  popover, and a right-click opens the new menu without Full day/Off in it. Step 4 is the one the owner is waiting
+  for. Whether it goes ahead of steps 2–3, and whether right-click stays as a second way in, is the owner's call.
+  ⭐ **Learned:** say plainly what a partial step leaves out before asking to push it. The README entry said
+  "left-click still opens the Full day/Off popover until step 4", but the push question did not.
+- ⏭ **Next:** step 4 (the owner's call on order, above). The owner tries a real Mac Ctrl+click. A version cut is
+  overdue (`version.json` still 1.4.3). Add a prep case to `mvmenu`. Build every step from `main`.
 
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 
