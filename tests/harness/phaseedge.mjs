@@ -50,6 +50,10 @@
 //   F11 BUILT-IN DATES start left a day (post): start Wed 3/31, end still 5/12; ONE Ctrl+Z
 //   F12 print: the handle is display:none under body.printing-calendar in print media, and never in
 //       #print-root or #table-wrap
+//   F13 R5 for the grips (owner, 19 Oct 2026), on autonote-grips.sptcal: Writer's Rm's start a week right
+//       (Mon 1/5 -> Mon 1/12) with its week's note EDITED ("Writer's Room Opens 1/5/26" + "Pitch day"): the
+//       1/12 week reads "Writer's Room Opens 1/12/26", Pitch day stays on 1/5, no 1/5/26 left; ONE Ctrl+Z
+//       restores it. Red before the fix.
 //
 // ⭐ THE PREP START GRIP (PREP-GRIP-PLAN.md, owner, 19 Oct 2026), on episodeprep.sptcal and its Blocks twin:
 //   G0  the row of Sun 2/28/27: Prep 303's pill from Mon 3/1 (its first day) has a start grip, Prep 304's from the SAME
@@ -441,6 +445,31 @@ try {
   kase('F12', 'print media + body.printing-calendar: the shown handle is display:none; none in #print-root or #table-wrap',
        h12.length === 1 && e12.shown === true && e12.display === 'none' && e12.inPrintRoot === 0 && e12.inTableWrap === 0, out.F12);
 
+  // ---- F13: R5 for the edge grips (owner, 19 Oct 2026) ------------------------------------------
+  // autonote-grips.sptcal (see pilldrag.mjs E15): Writer's Rm, Weeks from Mon 1/5/26, with its week's note
+  // edited to "Writer's Room Opens 1/5/26" + "Pitch day". Its start grip goes a WEEK right, onto Mon 1/12
+  // (January 2026's row 1 is Sun 1/4 - Sat 1/10, row 2 Sun 1/11 - Sat 1/17). The auto line leaves the 1/5
+  // week's note, the user's line stays there, and the 1/12 week shows the plain auto-note.
+  // Cross-week on purpose: it covers the auto line leaving its week (see pilldrag.mjs D5, and E18/E19 for the
+  // one-digit-day placement fixed the same day).
+  const notesShown = () => ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block'))
+    .map(b => b.dataset.noteDay + '|' + b.innerText.replace(/\\s+/g, ' ').trim())`);
+  await load('autonote-grips', 'January 2026');
+  const n13a = await notesShown();
+  const h13 = by(await restOn(await pillOf('writersRoom', 0)), 'start');
+  const mon13 = await cell(1, 1, 5), mid13 = await cell(1, 4, 8), mon13b = await cell(2, 1, 12);
+  if (h13 && mon13 && mid13 && mon13b) await dragPath(h13, [toward(h13, mon13, mid13), toward(h13, mon13, mon13b)], 'writersRoom');
+  const f13 = await fields('writersRoom'), n13b = await notesShown();
+  await ctrlZ();
+  const f13u = await fields('writersRoom'), n13c = await notesShown();
+  out.F13 = { before: n13a, handle: h13, landed: f13, after: n13b, undoneFields: f13u, undone: n13c };
+  kase('F13', 'an EDITED "Writer\'s Room Opens" follows the start grip a week right: 1/12/26 on 1/12, Pitch day kept on 1/5, '
+       + 'no 1/5/26 left; ONE Ctrl+Z restores it',
+       !!h13 && h13.topmost === true && n13a.indexOf("2026-01-05|Writer's Room Opens 1/5/26") >= 0
+       && f13.unit === 'dates' && f13.start === '2026-01-12'
+       && n13b.indexOf("2026-01-12|Writer's Room Opens 1/12/26") >= 0 && n13b.indexOf('2026-01-05|Pitch day') >= 0
+       && !n13b.some(s => /Opens 1\/5\/26/.test(s))
+       && f13u.unit === 'weeks' && f13u.start === '2026-01-05' && JSON.stringify(n13c) === JSON.stringify(n13a), out.F13);
   // ---- G: the prep START grip (PREP-GRIP-PLAN.md, owner, 19 Oct 2026) ----------------------------
   // Its own block, so its names cannot collide with the F cases'.
   {

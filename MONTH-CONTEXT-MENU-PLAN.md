@@ -1,7 +1,7 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: PLAN, 19 Oct 2026. Nothing built.** ✅ **All rulings received 19 Oct 2026, by picker** (§9). Ready to
-build (§10). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: STEP 1 BUILT, 19 Oct 2026** (§10; branch `claude/gifted-ramanujan-f162cf`, gated, not merged). Steps 2–5 are
+not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -84,6 +84,8 @@ menu can call it, so that the rule exists only once (§10).
   get round it.
 - On a day whose lanes are full there is only the full-day "+" (`.mv-note-add-full`). Check at the build whether it
   opens a new note. If it does not, grey the item out as "This day's note lanes are full".
+  ✅ **Checked at step 1 (from the code):** it does. The full-day "+" has no `grid-row`, so `openMvNoteEditor` gives the
+  note a null lane and it takes any line. No grey-out is needed.
 
 ### 3.2 Add 1-day phase here · Add 1-week phase here (the owner's item)
 
@@ -398,7 +400,8 @@ Two smaller calls inside Q1 were this session's, and each is cheap to change:
 
 Each step can be committed on its own, and one new leg, `mvmenu`, grows with each.
 
-1. **The skeleton.**
+1. ✅ **The skeleton. BUILT 19 Oct 2026** (`installMonthDayMenu`; HANDOFF has the record). It adds a ring laid over
+   the day, taken from the mockup, and the leg `mvmenu` (36 cases).
    - The listener and its guards.
    - Finding the day and the bar.
    - The panel, its close rules and its place in the strip list.

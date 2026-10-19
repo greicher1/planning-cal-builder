@@ -52,6 +52,116 @@ PREP-GRIP-PLAN.md, with both rulings as recommended.
 - **Verified:** `phaseedge` G0–G8 (trusted mouse input on `episodeprep` and its Blocks twin), 22/22. Four mutants
   were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
   the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
+
+Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both
+were found while fixing the grips (entry below). Owner's pickers: *"Yes, build it with the gate"* and *"Add the
+fallback"*.
+- **A line dated the 1st–9th is drawn on its own day.** An edited week note places each line by its trailing date,
+  but the pattern wanted a two-digit day, while `fmtShort` writes "7/1/26". So "Start Principal Photography 7/1/26"
+  inside an edited note sat on Monday 6/29, and dragging the first shoot day onto any 1st–9th of a month hit this.
+  The day is now `\d{1,2}`. Old zero-padded text ("07/01/26") still matches.
+- **A line dated outside its note's week is no longer lost.** Each day reads only its own week's note, so "Wrap party
+  7/10/26" typed into the 6/29 week was drawn on no day at all. On its own, the first fix would have done the same to
+  every such line dated the 1st–9th. Measured: "Delivery 7/7/26" sat on Monday 6/29 before it, and on no day after
+  it. Such a line is now placed like an undated one: on its pinned day, else the week's Monday.
+- **Unchanged:** the waterfall, Excel and the waterfall PDF, which show a week's note as one block. So is any note
+  without an edit. Only lines inside an edited (override) note move.
+- **Verified:** `pilldrag` E22 (the start grip onto Wed 7/1) and E23 (`autonote-grips`' new 8/3 note, no drag) are red on
+  the grip-fix build `65389d35…` and green after (26/26); `phaseedge` 14/14; `npm run check` 40/40. Full gate on
+  build `20f129fb…`: **1,754 PASS, 0 FAIL, GATE PASSED** (17 min). Gate 10's print documents identical, gate 13's twenty
+  written month PDFs byte-identical (no baseline holds an edited note), waterfall PDF and Excel identical, `monthnotes`
+  (M-13) green.
+
+### Unreleased — An edited "Start Principal Photography" note follows the month view's grips (19 Oct 2026)
+
+Owner: *"when i use the grab handle to change the start of the very first day of production, it doesnt move the
+comment with it in the month view"*. An untouched auto-note always followed, because it is recomputed. But once a
+week's note has been edited (a line added, or saved while the week's text was different), it is stored as literal
+text. The owner's own calendar held `Start Principal Photography 10/18/27` that way. So when the grip moved the
+first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on screen, in Excel and in both PDFs.
+- **The cause is audit M-10's trap, in movers built after its fix.** The Shift tools rewrite an edited auto-note when
+  they move it (owner ruling R5, `rewriteMovedAutoNotes`). The month view's grips (15–16 Oct) and pill body-drag never
+  did.
+- **Now every month-view drag does:** Production's grips (first shoot day, wrap, episode ends, week edges), every other
+  phase's start and end grips (an edited "Writer's Room Opens"), and body-drag. The rule is R5's: a week note that
+  still opens with its week's auto text has that text swapped for what the week says now. The user's own lines stay
+  as typed, on the day they were pinned to. A note left holding nothing but auto text goes back to plain auto, so it
+  keeps updating (the owner's file does exactly this).
+- **Recomputed from the press on every step**, so a drag out and back, or Escape, puts the notes back exactly, and
+  one Ctrl+Z undoes the dates and the note together. No frozen code, no save-format change. Notes still do not move
+  between weeks on a body-drag, and month-only day notes stay on their dates, as on every shift.
+- ⚠️ **Found here, fixed in the entry above** (frozen, owner-approved): a line inside an edited note dated the 1st–9th
+  ("7/6/26") was drawn on its week's MONDAY in the month view and month PDFs.
+- **Verified:** new fixture `autonote-grips.sptcal`; `pilldrag` E19–E21 and D5 and `phaseedge` F13 are red on the
+  build before the fix (`87028001…`) and green after (`pilldrag` 24/24, `phaseedge` 14/14). The owner's calendar
+  shape was reproduced red then green with trusted mouse input. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **Merged onto `main` (`c869a13`, branch `autonote-merge`) the same afternoon**, after the owner hit the bug again
+  on the live app. The episode-grip work it had been held for is live at `04a1f18`. The episode end and start
+  grips need no note fix: they never move the first shoot day or the wrap. The note cases are renumbered E19–E23,
+  because both branches had used E15–E18. Merged build `bb678d3e…`: `pilldrag` 30/30, `phaseedge` 14/14, `npm run
+  check` 40/40. In the app pane, the owner's calendar dragged from 10/18 to 10/21 moves its note to 10/21.
+- ⚠️ **A note that an older build already left behind stays where it is.** Once the old build moved the start without
+  the note, the note no longer opens with either week's auto text, so the rule reads it as the user's own words.
+  Fix it once: Reset Notes, or edit the note's date to match.
+- **Then merged with `main` at `5676649`** (which brings per-episode prep). The code auto-merged; the two touch
+  different functions. ✅ **Full gate on the merged build `1e9e4fe0…`: 1,815 PASS, 0 FAIL, GATE PASSED.** Every frozen
+  output identical (waterfall PDF, Excel, gate 10's print documents, gate 13's twenty written month PDFs byte for
+  byte), `fields.byId` at 74 ids, `pilldrag` 30/30, `phaseedge` 14/14, `episodeprep` green.
+- **And merged again with `main` at `b27caf0`**, which brings the month day menu (step 1). The code auto-merged.
+  **Full gate on the build that lands, `05169b7f…`: 1,850 PASS, 1 FAIL.** The one was `pilllabel (blocks)` W3, a
+  month walk cut short while two other gates ran. Re-run standalone, it passed twice (35/35). Every frozen output identical,
+  as above; `mvmenu` 36/36.
+
+### Unreleased — Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
+
+Owner: *"One i know i want is to right click to add a custom phase starting on the day youre hovering over."* Step 1
+of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click anywhere on a day in the month view opens a
+menu for that day. Its header names the day and what is on it ("Wed 8 Jul 2026 / Shoot day 7 · Ep. 202 · Production
+Week 2"), and the day is ringed while it is open. Four items:
+- **Add note** opens the month note editor on that day, as the day's "+" does. Greyed out on a hiatus day ("A hiatus
+  day has no note lanes"), where the month view draws no note lines.
+- **Add 1-day phase here** adds a custom phase in Dates, start and end both that day. It is greyed out, with the reason,
+  on a weekend or inside a hiatus, where a phase is never drawn. It is offered on a weekday holiday.
+- **Add 1-week phase here** adds a one-week custom phase starting on exactly that day: Snap to Mon comes off on any day
+  but a Monday.
+- Both phase items switch the sidebar to Phases with the cursor in the new row's name box.
+- **Show this week in the waterfall** switches views and scrolls to that week's row. A Sunday belongs to the week of
+  the Monday before it, and the item's second line names that week.
+- **Each item is one undo step.** It is banked at once, so it never folds into what you type next.
+- **Shift + right-click** keeps the browser's own menu. So does the rest of the page: the title, the month bar, the
+  header lines, the waterfall.
+- **Keyboard:** ↑ ↓ Home End move, Enter chooses, Esc closes. It also closes on a click elsewhere, a scroll, a resize,
+  and any redraw of the month.
+- **On a Mac, Ctrl+click on a bar or an edge handle no longer starts a drag.** Ctrl+click is a right-click there, so
+  it opens the menu instead.
+- **Not yet:** Add hiatus ▸, and the sections for the bar, the shoot day, a hiatus and a holiday (plan steps 2, 3 and
+  5). A left-click on a day still opens the Full day/Off popover until step 4.
+- **No frozen code changed and nothing new is saved.** The menu is body-level chrome with no ids, so opening it leaves
+  `fields.byId` untouched, and a shareable copy strips it. The day comes from `dayAtPoint()` and everything else from
+  the schedule.
+- **Verified:**
+  - New leg `mvmenu` (`halfdays.sptcal`), 36/36. Every right-click is hit-tested. It runs four mutants of the build
+    (strip list, `takeRecords`, the Ctrl guard, the leading undo push), and each turns its own cases red.
+  - Checked by hand in the build: real right-clicks on a bar, a weekend, Christmas in the hiatus and an edge handle;
+    each item; one Undo; the keys.
+  - `npm run check` 40/40.
+  - Full gate on build `80c96f41…` (1,519,998 bytes, on `8515cd8`): **1,783 PASS, 0 FAIL, GATE PASSED** (17 min).
+    Every frozen output is identical: the waterfall PDF, every Excel part, and gate 10's ten print documents. Gate
+    13's twenty written month PDFs are byte-identical, with no re-cut. `fields.byId` holds at 72 ids, and
+    `pilldrag`, `phaseedge`, `customunits`, `halfdays`, `halfworked`, `halfmarks`, `overrides`, `monthnotes` and
+    `sharecopy2` all pass. `monthdragundo`, run on its own, passes too.
+  - ⚠️ **Not verified:** a real Ctrl+click with a Mac mouse or trackpad. Synthetic presses prove the guard, not the
+    OS turning Ctrl+click into a right-click.
+- **Merged with per-episode prep** (`9cb903e`, 19 Oct 2026). The header names each prep on the day as its pill does,
+  "Prep 302", and two overlapping preps once each (`8e99717`). Before that fix it read "Prep Week 1", because the prep
+  row's start is Production's. Checked by hand on `episodeprep.sptcal`. No leg covers it yet.
+  - Full gate on the merge (build `89413c30…`, 1,532,060 bytes): **1,838 PASS, 1 FAIL.** The failure was gate 10's
+    `blocks` case, which wrote no result. Re-run alone it passed 6/6, with its print document identical to the
+    baseline.
+  - Every other frozen output is identical: the waterfall PDF, every Excel part and the other nine print documents.
+    Gate 13's twenty written month PDFs are byte-identical, and `fields.byId` holds at 74 ids. `mvmenu` passes 36/36,
+    and `monthdragundo` passes on its own.
 
 ### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
 
