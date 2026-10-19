@@ -28,6 +28,31 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — An edited "Start Principal Photography" note follows the month view's grips (19 Oct 2026)
+
+Owner: *"when i use the grab handle to change the start of the very first day of production, it doesnt move the
+comment with it in the month view"*. An untouched auto-note always followed, because it is recomputed. But once a
+week's note has been edited (a line added, or saved while the week's text was different), it is stored as literal
+text. The owner's own calendar held `Start Principal Photography 10/18/27` that way. So when the grip moved the
+first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on screen, in Excel and in both PDFs.
+- **The cause is audit M-10's trap, in movers built after its fix.** The Shift tools rewrite an edited auto-note when
+  they move it (owner ruling R5, `rewriteMovedAutoNotes`). The month view's grips (15–16 Oct) and pill body-drag never
+  did.
+- **Now every month-view drag does:** Production's grips (first shoot day, wrap, episode ends, week edges), every other
+  phase's start and end grips (an edited "Writer's Room Opens"), and body-drag. The rule is R5's: a week note that
+  still opens with its week's auto text has that text swapped for what the week says now. The user's own lines stay
+  as typed, on the day they were pinned to. A note left holding nothing but auto text goes back to plain auto, so it
+  keeps updating (the owner's file does exactly this).
+- **Recomputed from the press on every step**, so a drag out and back, or Escape, puts the notes back exactly, and
+  one Ctrl+Z undoes the dates and the note together. No frozen code, no save-format change. Notes still do not move
+  between weeks on a body-drag, and month-only day notes stay on their dates, as on every shift.
+- ⚠️ **Not fixed (frozen, needs a ruling):** a line inside an edited note dated the 1st–9th of a month ("7/6/26") is
+  drawn on its week's MONDAY in the month view and month PDFs. `notesForWaterfallDate`'s trailing-date pattern wants a
+  two-digit day, while `fmtShort` writes "7/6/26". This is older than this fix.
+- **Verified:** new fixture `autonote-grips.sptcal`; `pilldrag` E15–E17 and D5 and `phaseedge` F13 are red on the
+  build before the fix (`87028001…`) and green after (`pilldrag` 24/24, `phaseedge` 14/14). The owner's calendar
+  shape was reproduced red then green with trusted mouse input. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
+
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
 Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small

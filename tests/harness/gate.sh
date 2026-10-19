@@ -1906,8 +1906,11 @@ PYPP
 # ⭐ 15 Oct 2026: E0-E13 hold Production's handles (MONTH-VIEW-PLAN.md §6.7): the shoot's two ends,
 # every episode/block end and every week's edges, each pressed where elementsFromPoint has the handle
 # topmost. E5 and E13 load blocks.sptcal, and E14 halfdays.sptcal (a half switch day's two bars, 15 Oct 2026), so the label names all three.
+# ⭐ 19 Oct 2026: E15-E17 and D5 load autonote-grips.sptcal. An EDITED auto-note ("Start Principal Photography
+# 6/29/26" + a line of the user's) follows the start grip, the wrap grip and a body-drag, as the shift tools'
+# R5 rewrite does (owner: "it doesnt move the comment with it"). All four were red on the build before the fix.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays)" <<'PYPD' || FAIL=1
+python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays, autonote-grips)" <<'PYPD' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
@@ -1929,9 +1932,10 @@ PYPD
 # Dates start is written directly (F5 -- setPhaseStart would carry the end), a Weeks edge switches the
 # phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
 # land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
-# print media hides the handles (F12). Run red on three mutants before it was wired in.
+# print media hides the handles (F12). Run red on three mutants before it was wired in. F13 (19 Oct 2026,
+# autonote-grips.sptcal): an edited "Writer's Room Opens" follows the start grip; red before the fix.
 node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates)" <<'PYPE' || FAIL=1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, autonote-grips)" <<'PYPE' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
