@@ -1,7 +1,7 @@
 # HIATUS-DRAG-PLAN.md — drag a hiatus in the month view
 
-**Status (19 Oct 2026): BUILT on branch `hiatus-drag` (worktree `.claude/worktrees/hiatus-drag`), not yet
-committed. The owner ruled on all four decisions (§8). §10 is the as-built record. Where it differs from the
+**Status (19 Oct 2026): BUILT, gated, and committed as `fffb589` on branch `hiatus-drag` (worktree
+`.claude/worktrees/hiatus-drag`). Not merged into `main`, not pushed. The owner ruled on all four decisions (§8). §10 is the as-built record. Where it differs from the
 plan above, §10 is right.**
 
 Owner, 19 Oct 2026: *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as

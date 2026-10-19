@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: DRAG A HIATUS IN THE MONTH VIEW. BUILT AND GATED, NOT COMMITTED ([`HIATUS-DRAG-PLAN.md`](HIATUS-DRAG-PLAN.md); branch `hiatus-drag`, worktree `.claude/worktrees/hiatus-drag`)
+### ◐ 19 Oct 2026: DRAG A HIATUS IN THE MONTH VIEW. COMMITTED AS `fffb589` ON `hiatus-drag`; NOT MERGED, NOT PUSHED ([`HIATUS-DRAG-PLAN.md`](HIATUS-DRAG-PLAN.md); branch `hiatus-drag`, worktree `.claude/worktrees/hiatus-drag`)
 
 - Owner, 19 Oct 2026, after asking whether hiatus periods can be dragged (they couldn't: their dates were typed in the
   sidebar only): *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase grips).
@@ -53,6 +53,9 @@
   - The backup half of the hold was checked in the app pane, because IndexedDB never settles headless.
   - `npm run check` 40/40.
   - The full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
+- **State:** committed as `fffb589` on branch `hiatus-drag` (owner's picker, 19 Oct 2026). Asked about main, the
+  owner chose **"Leave it on its branch"**: not merged into `main`, not pushed. Merge once the main checkout has no
+  other session's uncommitted edits to `src/legacy/app.js`.
 - ⚠️ **Why a worktree:** at the time, three other sessions were running in the main checkout and one was editing
   `src/legacy/app.js` (Production's episode boundary handles). The new IIFE sits in a different region, but
   `pillRange` / `visibleRect` / `dayAtPoint` / `cellDate` are shared module-scope helpers. Re-run `pilldrag`,
