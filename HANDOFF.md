@@ -16,9 +16,10 @@
 - **Save format (permanent from the first file):** ids `prep-days`, `prep-name`; key `prepDays` on an episode or
   block, written only when typed; `phaseColorOverride.episodePrep`. `SNAPSHOT_VERSION` unchanged.
 - ⛔ **Gate 5 moves by exactly two ids** (`prep-days` = `''`, `prep-name` = `'Prep'` on `v1.0.0-saved.html`), as plan
-  §7 said. **The re-cut needs the owner's sign-off and has NOT been made.**
+  §7 said. ✅ **Re-cut 72 → 74 on the owner's sign-off** (picker, 19 Oct 2026), recorded in the baseline's README.
 - ⭐ **Learned / decided:**
-  1. **Prep's segment `start` is Production's start, a lane anchor, not its first day** (plan §13.1, my decision):
+  1. **Prep's segment `start` is Production's start, a lane anchor, not its first day** (plan §13.1; ✅ the owner
+     kept it, picker 19 Oct 2026: "Under the shoot"):
      frozen `renderMonthView` stacks lanes by `start`, and the true first day would put prep above the shoot and
      make Production hop lanes. Real bounds are `firstDay`/`lastDay`; `monthRangeForSchedule()` reads them.
   2. **Prep must be appended LAST in `computeSchedule()`** (after weeks, notes, holidays). That is what makes Excel
@@ -31,7 +32,7 @@
     clipped, waterfall PDF and every Excel part identical, v1.0.0 restores identically); gate 10's ten print documents
     identical; gate 13's twenty written month PDFs byte-identical, no re-cut.
   - **Gate 5 FAILED, as predicted:** gained exactly `prep-days` and `prep-name`, nothing lost, nothing changed (72 → 74
-    ids). Its re-cut waits for the owner.
+    ids). ✅ **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
   - ⚠️ **The other four failures were contention, and passed alone.** Two other sessions' gates (worktree
     `autonote-grips`, and a scratchpad `wt-old` twice) ran on this machine at the same time as this one: `pilllabel`
     `carry-rich` W0 and `halfdays` W3 (a month walk cut to one month) and `monthexport` X6 on `stintswap-reshape` and X4 on

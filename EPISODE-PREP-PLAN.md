@@ -2,7 +2,7 @@
 
 **Status: BUILT 19 Oct 2026 on branch `claude/beautiful-bardeen-00c9f0` (§13), committed locally, not merged, not
 pushed.** *(Was: "PLAN, 15 Oct 2026. Nothing built.")* ✅ **All rulings received 15 Oct 2026** (§9). No frozen line
-changed. Gate 5 moves by the two ids §7 predicted, and its re-cut waits for the owner's sign-off.
+changed. Gate 5 moved by the two ids §7 predicted and was re-cut on the owner's sign-off (19 Oct 2026).
 **Written against:** `400ea6c`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) (its ruling 6 is where this plan comes
@@ -304,7 +304,7 @@ sidebar CSS in `src/styles/legacy.css`, and the harness.
 | 5 | `pillRunsForWeek()` returns `prepRunsForWeek()`'s runs for prep and records them in `_prepRuns`; `segPillLabel()` names each run through `takePrepRun()` (the `_prodRuns` call-order contract, §8) with `prepPillLabel()`: "Prep 302", "Prep Block 2" |
 | 6 | Leg `tests/harness/t/episodeprep.js`, fixtures `episodeprep.sptcal` and `episodeprep-blocks.sptcal`, a block in `gate.sh` |
 
-### 13.1 ⭐ One decision of mine the plan did not make: prep's `start` is a LANE ANCHOR
+### 13.1 ⭐ One decision of mine the plan did not make: prep's `start` is a LANE ANCHOR (✅ owner: "Under the shoot", 19 Oct 2026)
 
 §5 said the segment's `start`/`end` would be its outer bounds. Frozen `renderMonthView` orders each week's lanes by
 `start` (earliest on top, a stable sort). With its true first day, prep sorts ABOVE Production (a first-episode prep
@@ -338,5 +338,5 @@ with prep on and off. It is one line in `appendEpisodePrep()` if the owner wants
   source with prep in it): only February to April differ, one page per month either way. Contact sheets for the owner
   are in the session notes folder, not the repo.
 - **Full gate: 1,799 PASS, 5 FAIL.** Every existing output unchanged on all four outputs (gates 1–4, 10, 13). Gate 5
-  moved by exactly the two ids of §7 (72 → 74), and waits for the owner's sign-off. The four other failures came from
+  moved by exactly the two ids of §7 (72 → 74), re-cut on the owner's sign-off (picker, 19 Oct 2026). The four other failures came from
   two other sessions' gates running alongside, and passed when re-run alone (HANDOFF has the detail).
