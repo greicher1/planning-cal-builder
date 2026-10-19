@@ -4,26 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK MENU IN THE MONTH VIEW (not built)
+### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK (AND DAY-NUMBER) MENU IN THE MONTH VIEW (not built; all rulings in, ready to build)
 
 - Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
   over."* The plan is [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The mockup is
   [`mockups/month-context-menu.html`](mockups/month-context-menu.html): the real month view, captured from the build
   on `halfdays.sptcal`, with a working menu on it.
-- **The menu, in short:** one menu for the day under the pointer. "This day" always comes first: Add note, **Add phase
-  starting here**, Add hiatus ▸. Then a section for each thing on the day: the bar clicked, the shoot day (exactly the
-  popover's choices), a hiatus, a holiday. The last item is Show this week in the waterfall.
-- ✅ **Ruling M1 (owner, 19 Oct 2026): no Shift From, Anchor To or Rebuild From in the menu.** Six questions are
-  still open (plan §9).
+- **The menu, in short:** one menu for the day under the pointer. "This day" always comes first: Add note, **Add 1-day
+  phase here**, **Add 1-week phase here**, Add hiatus ▸. Then a section for each thing on the day: the bar clicked,
+  the shoot day (exactly the popover's choices), a hiatus, a holiday. The last item is Show this week in the waterfall.
+- ✅ **Rulings, owner, 19 Oct 2026 (plan §9):**
+  - **M1:** no Shift From, Anchor To or Rebuild From in the menu.
+  - **Q1:** offer both a 1-day and a 1-week phase. The 1-day phase is a Dates phase, start = end, greyed out on a
+    weekend or hiatus day, where it could not be drawn.
+  - **Q2:** "<phase> only" moves a phase's existing hiatus here.
+  - **Q3:** End Production here stays greyed out.
+  - **Q4:** Remove hiatus asks first.
+  - **Q5:** Edit note… only.
+  - **Q6:** the holiday section stays.
+  - ⭐ **L1 (the owner's own question):** **left-clicking a day's number opens the same menu**, under the number, and
+    **replaces the Full day/Off popover**. Right-click works anywhere on the day. "+" slots, notes and bars keep their
+    left-click. Double-click-to-clear keeps working through the toggle. The `halfdays` and `halfworked` legs read
+    the popover today and get rewritten in plan step 4. The menu's shoot rows keep `data-ov`, so the rewrite is a
+    selector change.
 - ⭐ **No frozen edit and no new saved state** (plan §4, §7). Only the day and the bar come from the DOM. Hiatus bands
   can never be a pointer target, and holidays have no DOM marker, so both come from the schedule.
 - ⚠️ **Three facts the build depends on:**
   - the shoot-day helpers are private to `installDayOverrideUI` (plan §3.9);
   - the end handle's rule is private to `installPhaseEdgeHandles` (§3.5);
   - a **macOS Ctrl+click** would arm a month drag before the menu opens (§5). It needs a real-mouse check.
-- ⚠️ **It overlaps the entry above.** That uncommitted work changes Production's end grip. The plan's *End Production
-  here* (§3.5, ruling Q3) was researched against a working tree that already held part of that work, so re-read it
-  once that work lands.
+- ✅ **No overlap with the episode-grip entry above** (confirmed with that session, 19 Oct 2026). Production's wrap
+  grip, which *End Production here* (§3.5, ruling Q3) would have to repeat, is unchanged. Only the `bound` and `head`
+  grips changed, and the menu uses neither.
 - ⚠️ **Found while planning** (§8): a hiatus whose label was emptied on purpose makes the shoot-day popover offer
   Full day / Off on a hiatus day. Also, CLAUDE.md's "five classes" strip list holds eleven now.
 - ⛔ **Half-day marks stay withdrawn** (owner, 15 Oct 2026). This session's first list of options wrongly offered

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Month Right-Click Menu</title>
+<title>Month Day Menu</title>
 <!-- MOCKUP, not the app. MONTH-CONTEXT-MENU-PLAN.md describes what is real. The calendar below is
      the month view captured from the real build (tests/fixtures/halfdays.sptcal, a synthetic
      calendar), markup and CSS verbatim, so the menu is judged against what users actually see. -->
@@ -138,15 +138,15 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
 <body>
 <header class="mk-top">
   <span class="mk-tag">Mockup</span>
-  <h1>Month view right-click menu</h1>
-  <p>Not the app. Right-click any day, bar or note on the calendar.</p>
+  <h1>Month view day menu</h1>
+  <p>Not the app. Right-click any day, bar or note, or click a day’s number.</p>
 </header>
 
 <div class="mk-layout">
   <main class="preview-panel"><div id="table-wrap"></div></main>
   <aside class="mk-side">
     <h2>Try it</h2>
-    <p>Right-click anywhere on the calendar (two-finger click on a trackpad). Or open the menu on one of these:</p>
+    <p>Right-click anywhere on the calendar (two-finger click on a trackpad), or click a day’s number. Or open the menu on one of these:</p>
     <div class="mk-try" id="mk-try"></div>
 
     <h3>What the item would do</h3>
@@ -154,12 +154,12 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
 
     <h3>How it behaves</h3>
     <ul>
-      <li>The menu is for <b>the day under the pointer</b>. “This day” is always first, so <b>Add phase starting here</b> never moves. Below it is one section for each thing on the day: the bar you clicked, the shoot day, a hiatus, a holiday.</li>
+      <li>The menu is for <b>the day under the pointer</b>. “This day” is always first, so <b>Add 1-day phase here</b> and <b>Add 1-week phase here</b> never move. Below it is one section for each thing on the day: the bar you clicked, the shoot day, a hiatus, a holiday.</li>
       <li>A choice the app refuses is <b>greyed out with its reason</b>, never hidden.</li>
       <li><span class="mk-kbd">Shift</span> + right-click still opens the browser’s own menu.</li>
       <li>In the open menu: <span class="mk-kbd">↑</span> <span class="mk-kbd">↓</span> move, <span class="mk-kbd">→</span> opens a submenu, <span class="mk-kbd">Enter</span> chooses, <span class="mk-kbd">Esc</span> closes.</li>
       <li>Each item is one undo step.</li>
-      <li>Left-click is unchanged: it still adds a note, or opens the shoot-day choices.</li>
+      <li><b>Left-click on a day’s number</b> opens the same menu, under the number. It replaces the Full day/Off popover. Click the number again to close it. A click on a “+” slot or a note still opens the note editor, and a bar still drags.</li>
     </ul>
 
     <h3>Left out on purpose</h3>
@@ -371,7 +371,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
   const SHOOT_LAST = '2026-08-31';     // the mockup's shoot window (the app reads productionInfo.shootDays)
   const phaseName = k => PHASE_NAMES[k] || k;
 
-  // The order is fixed: THIS DAY first, so "Add phase starting here" is always in the same place,
+  // The order is fixed: THIS DAY first, so the two "Add … phase here" items are always in the same place,
   // then one section for each thing that is on the day, then the way out to the waterfall.
   function buildMenu(ctx){
     const d = ctx.day, ph = ctx.phase, k = iso(d.date);
@@ -411,10 +411,17 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
                       : 'Opens the month-view note editor on this day, exactly as clicking the day’s “+” does. A note added here shows in the month view only.',
        calls:'<code>openMvNoteEditor()</code> on the day’s own “+” (<code>.mv-note-add</code>)',
        toast:'opens the note editor on ' + fmtLong(d.date)},
-      {icon:'plus', text:'Add phase starting here', note:'Custom phase · 1 week',
-       desc:'Adds a custom phase that starts on ' + fmtLong(d.date) + ', exactly the day you clicked, and is 1 week long. Then it switches the sidebar to Phases and puts the cursor in the new row’s name box, so the next thing you do is type its name. Its length, unit and colour are the new row’s defaults, which you change in the row.',
-       calls:'<code>addCustomPhaseRow()</code>, then the new row’s <code>start-</code>, <code>weeks-</code> and <code>snap-</code> boxes, <code>update()</code> and <code>setSidebarTab(\'phases\')</code>, as one undo step',
-       toast:'adds a custom phase starting ' + fmtLong(d.date) + ' and opens its row in the Phases card'},
+      {icon:'plus', text:'Add 1-day phase here', disabled: weekend || d.hiatus,
+       note: weekend ? 'A phase can’t be drawn on a weekend' : d.hiatus ? 'A phase can’t be drawn inside a hiatus' : 'Custom phase · ' + fmtDM(d.date) + ' only',
+       desc: (weekend || d.hiatus)
+         ? 'Greyed out, with its reason. The month view never draws a phase on a ' + (weekend ? 'Saturday or Sunday' : 'day inside an all-phase hiatus') + ', so a one-day phase here would exist in the sidebar and show nothing on the day you clicked. “Add 1-week phase here” is still offered.'
+         : 'Adds a custom phase covering exactly ' + fmtLong(d.date) + '. It is a Dates phase whose start and end are both this day. Then the sidebar switches to Phases with the cursor in the new row’s name box, so the next thing you do is type its name.',
+       calls:'<code>addCustomPhaseRow()</code>, then the new row’s <code>unit-</code> (Dates), <code>start-</code> and <code>end-</code> boxes, <code>update()</code> and <code>setSidebarTab(\'phases\')</code>, as one undo step',
+       toast:'adds a one-day custom phase on ' + fmtLong(d.date) + ' and opens its row in the Phases card'},
+      {icon:'plus', text:'Add 1-week phase here', note:'Custom phase · from ' + fmtDM(d.date),
+       desc:'Adds a custom phase, 1 week long, that starts on ' + fmtLong(d.date) + ': exactly the day you clicked, not that week’s Monday. Then the sidebar switches to Phases with the cursor in the new row’s name box. Change its length or unit in the row.' + (weekend ? ' It starts on this weekend day, so the first day it is drawn is the Monday.' : ''),
+       calls:'<code>addCustomPhaseRow()</code>, then the new row’s <code>start-</code>, <code>weeks-</code> (1) and <code>snap-</code> boxes, <code>update()</code> and <code>setSidebarTab(\'phases\')</code>, as one undo step',
+       toast:'adds a one-week custom phase starting ' + fmtLong(d.date) + ' and opens its row in the Phases card'},
       {icon:'pause', text:'Add hiatus', sub: hiatusSub,
        desc:'A hiatus for everything, or for one of the phases running on this day.'},
     ]});
@@ -504,7 +511,8 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
     ]});
 
     return {head:{title: fmtLong(d.date), ctx: facts.join(' · ')}, sections,
-            foot:'Shift + right-click opens the browser’s own menu'};
+            foot: inShoot ? 'Double-click a marked day to clear it · Shift + right-click: browser menu'
+                          : 'Shift + right-click opens the browser’s own menu'};
   }
 
   // ---------- the menu itself ----------
@@ -514,19 +522,21 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
   let toastT = 0;
 
   function closeAll(){
-    stack.forEach(m=>m.el.remove()); stack = []; menu = null;
+    stack.forEach(m=>m.el.remove()); stack = []; menu = null; menuIso = null;
     wrap.querySelectorAll('.mk-target').forEach(el=>el.classList.remove('mk-target'));
     wrap.querySelectorAll('.mk-target-pill').forEach(el=>el.classList.remove('mk-target-pill'));
   }
   function closeFrom(level){ while(stack.length > level){ stack.pop().el.remove(); } }
 
-  function openMenu(ctx, x, y){
+  let menuIso = null;
+  function openMenu(ctx, x, y, dayRect){
     closeAll();
+    menuIso = iso(ctx.day.date);
     ctx.day.cell.classList.add('mk-target');
     if(ctx.phase) ctx.phase.pill.classList.add('mk-target-pill');
     const spec = buildMenu(ctx);
     menu = renderPanel(spec, 0);
-    place(menu.el, x, y, null);
+    place(menu.el, x, y, null, dayRect || null);
     menu.el.focus();
     setActive(menu, firstEnabled(menu, 0, 1));
   }
@@ -598,18 +608,45 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
     if(!it || it.disabled) return;
     if(it.sub){ closeFrom(panel.level+1); const s = openSub(panel, i); setActive(s, firstEnabled(s, 0, 1)); return; }
     closeAll();
+    say('Mockup: ' + (it.toast || it.text));
+  }
+  function say(text){
     clearTimeout(toastT);
-    toast.textContent = 'Mockup: ' + (it.toast || it.text);
+    toast.textContent = text;
     toast.classList.add('on');
     toastT = setTimeout(()=> toast.classList.remove('on'), 3200);
   }
 
+  // ---------- left-click on the day itself (ruling L1) ----------
+  // The day number strip, or anywhere on a hiatus day: the only places the day cell, not a "+" slot,
+  // a note or a bar, is what the pointer is on. It replaces the Full day/Off popover. A click on
+  // the day whose menu is open closes it, which is what keeps double-click = clear working.
+  wrap.addEventListener('click', e=>{
+    if(e.target.closest('.mv-arrow')) return;
+    const note = e.target.closest('.mv-note-click');
+    if(note){ closeAll(); say(note.classList.contains('mv-note-add') ? 'Unchanged: a click on a “+” still opens the note editor' : 'Unchanged: a click on a note still opens it in the note editor'); return; }
+    if(e.target.closest('.mv-pill')) return;
+    const cell = e.target.closest('.mv-daycell');
+    const day = cell && model.days[cell.dataset.mkIso];
+    if(!day) return;
+    if(menuIso === cell.dataset.mkIso){ closeAll(); return; }
+    const num = cell.querySelector('.mv-daynum').getBoundingClientRect();
+    openMenu({day, phase:null, note:null}, Math.round(num.left - 4), Math.round(num.bottom + 4), num);
+  });
+
   // Next to the pointer, kept inside the window: flip left or up rather than run off the edge.
-  function place(el, x, y, anchorRect){
+  // Opened from a day number (dayRect), it sits under the number and flips ABOVE it when it would run
+  // off the bottom -- the shoot-day popover's place() rule -- so it never covers the day it is for.
+  function place(el, x, y, anchorRect, dayRect){
     const w = el.offsetWidth, h = el.offsetHeight, vw = innerWidth, vh = innerHeight, m = 8;
     let left = x, top = y;
     if(left + w > vw - m) left = anchorRect ? anchorRect.left - w + 2 : x - w;
-    if(top + h > vh - m) top = Math.max(m, vh - m - h);
+    if(top + h > vh - m && dayRect && dayRect.top - h - 4 >= m) top = dayRect.top - h - 4;
+    else if(top + h > vh - m){
+      top = Math.max(m, vh - m - h);
+      // Fits neither below nor above (a short window): stand beside the number instead of on it.
+      if(dayRect){ left = dayRect.right + 6; if(left + w > vw - m) left = dayRect.left - w - 6; }
+    }
     el.style.left = Math.max(m, left) + 'px';
     el.style.top = Math.max(m, top) + 'px';
   }
@@ -624,7 +661,13 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,-apple-system,"
     else if(e.key === 'ArrowLeft'){ if(stack.length > 1){ e.preventDefault(); closeFrom(stack.length-1); const p = stack[stack.length-1]; setActive(p, p.active); } }
     else if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choose(panel, panel.active); }
   });
-  document.addEventListener('mousedown', e=>{ if(stack.length && !e.target.closest('.cm')) closeAll(); });
+  document.addEventListener('mousedown', e=>{
+    if(!stack.length || e.target.closest('.cm')) return;
+    // A press on the open day itself is left to the click, which closes (toggles) the menu.
+    const cell = e.target.closest('.mv-daycell');
+    if(cell && cell.dataset.mkIso === menuIso && e.button === 0) return;
+    closeAll();
+  });
   addEventListener('resize', closeAll);
   addEventListener('scroll', closeAll, true);
   addEventListener('blur', closeAll);

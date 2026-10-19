@@ -1,6 +1,8 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: PLAN, 19 Oct 2026. Nothing built.** Six rulings are needed before step 1 (§9). One is already in.
+**Status: PLAN, 19 Oct 2026. Nothing built.** ✅ **All rulings received 19 Oct 2026, by picker** (§9). Ready to
+build (§10). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
 **Written against:** `6ad9e42`.
@@ -32,13 +34,22 @@ Only Anchor To and Rebuild From take a date. This matters only if M1 is ever rev
 
 ## 2. What the menu is
 
+**How it opens** (✅ ruling L1, owner, 19 Oct 2026):
+- **Right-click anywhere on a day** opens it at the pointer.
+- **Left-click on the day itself** opens it under the day number. That means the day-number strip at the top, which
+  the frozen CSS already lights up in purple on hover, or anywhere on a hiatus day, which has no "+" slots. **This
+  replaces the Full day/Off popover** (`openDayOvPop`). Days outside the shoot, where a click does nothing today, now
+  get the menu too.
+- **Unchanged:** a left-click on a "+" note slot opens the note editor, a left-click on a note edits it, and pressing
+  on a bar drags it.
+
 **One menu, for the day under the pointer.** A header names the day and what is on it, for example
 "Wed 8 Jul 2026 / Shoot day 7 · Ep. 202 · Production Week 2". Below the header the sections run in this fixed
 order, and each one shows only when it applies:
 
 | Section | Shows when | Items |
 |---|---|---|
-| *(This day)* | always | Add note · **Add phase starting here** · Add hiatus ▸ (All phases / one phase only) |
+| *(This day)* | always | Add note · **Add 1-day phase here** · **Add 1-week phase here** · Add hiatus ▸ (All phases / one phase only) |
 | *<phase>* | the pointer is on that phase's bar | Start <phase> here · End <phase> here · Colour… · Show in Phases card |
 | Note | the pointer is on a note | Edit note… |
 | Shoot day N | the day is inside the shoot | the shoot-day popover's own choices, and only those |
@@ -46,12 +57,14 @@ order, and each one shows only when it applies:
 | Holiday · <name> | a holiday falls on the day | Enabled ☑ · Show in month view ☑ · Show in waterfall ☐ |
 | *(last)* | always | Show this week in the waterfall |
 
-- **"This day" always comes first**, so *Add phase starting here* (the owner's item) is always the second line,
-  whatever is under the pointer. A section for the thing that was clicked would ordinarily go first. That was
+- **"This day" always comes first**, so the two *Add … phase here* items (the owner's request) are always the second
+  and third lines, whatever is under the pointer. A section for the thing that was clicked would ordinarily go first. That was
   rejected because it would make the most-used item move.
 - **A choice the app refuses is greyed out with its reason, never hidden.** This is the project's standing rule; owner
   ruling 1 of 18 Sep 2026 is written up in `openDayOvPop`.
-- **Left-click and double-click are unchanged.** Left-click still adds a note or opens the shoot-day choices.
+- **Double-click a marked day to clear it still works** (`#table-wrap` dblclick, unchanged). It works because a click on
+  the day whose menu is open closes the menu, exactly as the popover's toggle does today. The popover's hint line,
+  "Double-click a marked day to clear it", moves into the menu's footer on a shoot day.
 - **Shift + right-click opens the browser's own menu.** The menu's footer says so.
 
 ---
@@ -72,19 +85,35 @@ menu can call it, so that the rule exists only once (§10).
 - On a day whose lanes are full there is only the full-day "+" (`.mv-note-add-full`). Check at the build whether it
   opens a new note. If it does not, grey the item out as "This day's note lanes are full".
 
-### 3.2 Add phase starting here (the owner's item)
+### 3.2 Add 1-day phase here · Add 1-week phase here (the owner's item)
 
-- **Calls** `addCustomPhaseRow()`. It takes no arguments; the new key is `customPhaseDefs[customPhaseDefs.length-1].key`.
-  Then, in the new row:
-  - set `start-<key>` to the day;
-  - set `weeks-<key>` to 1 (ruling Q1);
-  - untick `snap-<key>` when the day is not a Monday;
-  - call `update()`, then `setSidebarTab('phases')`, scroll the row into view, and focus `name-<key>`.
+✅ **Ruling Q1 (owner, 19 Oct 2026): offer both a one-day and a one-week phase.** They are two flat items, not a
+submenu, so the most-used thing in the menu takes one click. *(Flat rather than a submenu was this session's call;
+it is cheap to change.)*
+
+- **Both call** `addCustomPhaseRow()`. It takes no arguments; the new key is
+  `customPhaseDefs[customPhaseDefs.length-1].key`. Then, in the new row:
+  - **1 day:** set `unit-<key>` to `dates`, and set both `start-<key>` and `end-<key>` to the day. The end is
+    inclusive (`customUnitSpan`), so this is exactly that one calendar day. A Dates phase is never snapped.
+  - **1 week:** leave the unit on Weeks, set `start-<key>` to the day and `weeks-<key>` to 1, and untick `snap-<key>`
+    when the day is not a Monday.
+  - Then both call `update()`, `setSidebarTab('phases')`, scroll the row into view, and focus `name-<key>`.
+- ⚠️ **Why Dates and not Days for one day.** A Days phase counts working days from its start
+  (`customUnitSpan`, `isUnitWorkDay`). A 1-day Days phase started on a holiday would therefore land on the next working
+  day, not "here". A Dates phase covers the day it names.
+- ⚠️ **1 day is greyed out on a weekend and inside an all-phase hiatus**, with the reason ("A phase can't be drawn on
+  a weekend" / "… inside a hiatus"). `segCoversDate` never draws a non-Production phase on a Saturday or Sunday, and
+  `pillRunsForWeek` draws nothing inside a hiatus, so the phase would exist in the sidebar and show nothing on the
+  day you clicked. On a weekday holiday it is offered: a Dates phase is drawn there.
+- **1 week on a weekend is offered.** It starts that day and its first drawn day is the Monday, which is how every
+  Weeks phase that starts on a weekend already looks.
 - ⚠️ **The length is part of the item, not optional.** A start with no length is not scheduled
   (`phases[key] = null`): the phase would exist in the sidebar and draw nothing.
-- ⚠️ **Snap to Mon must come off on any day but a Monday.** It is ticked on a new row, and `computeSchedule` moves a
-  ticked phase's start back to its Monday, so the phase would not start "here". The body drag clears it the same way
-  (owner, 18 Sep 2026: *"i want to drag day by day"*).
+- ⚠️ **Snap to Mon must come off on any day but a Monday** (1 week only). It is ticked on a new row, and
+  `computeSchedule` moves a ticked phase's start back to its Monday, so the phase would not start "here". The body drag
+  clears it the same way (owner, 18 Sep 2026: *"i want to drag day by day"*). *(Starting on the exact day rather than
+  that week's Monday is this session's reading of "starting on the day youre hovering over". The owner's Q1 answer did
+  not choose between the two.)*
 - **The colour** is the new row's default, `customPhaseDefs.length % PHASE_COLOR_OPTIONS.length`, unchanged.
 - **No new ids.** The row's ids are exactly the ones `+ Add phase` creates today, so `fields.byId` gains only what that
   button already adds.
@@ -104,7 +133,9 @@ menu can call it, so that the rule exists only once (§10).
   - Ticks `phiatus-en-<key>`, sets `phiatus-start-<key>` and `phiatus-weeks-<key>` (2), then calls
     `refreshPhaseHiatusUI()` and `update()`. This start also snaps to its Monday (`phaseHiatusRanges` in
     `computeSchedule`).
-  - ⚠️ **A phase has exactly one hiatus of its own.** What happens on a phase that already has one is ruling Q2.
+  - ✅ **Ruling Q2 (owner, 19 Oct 2026): on a phase that already has its own hiatus, the item moves it here.** A phase
+    has exactly one, so the item reads "Move Post's hiatus here". It sets `phiatus-start-<key>` to the day, keeps
+    `phiatus-weeks-<key>` as it is, and leaves the name alone.
 
 ### 3.4 Start <phase> here
 
@@ -129,10 +160,12 @@ menu can call it, so that the rule exists only once (§10).
   gate.
 - **Production: greyed out**, "Its end comes from the shoot days". Production's end handle changes the last episode's
   day count, and that runs through a search (`applyCount` → `probeShootDays` → `solveCount`) with no entry point.
-  Whether to build it is ruling Q3.
-- ⚠️ **Production's end grip is being changed in uncommitted work** in this checkout (HANDOFF, 19 Oct 2026, "An
-  episode's end grip removes days, never pushes"). This section was researched against a working tree that already
-  held part of that change. Re-read it once that work lands.
+  ✅ **Ruling Q3 (owner, 19 Oct 2026): it stays greyed out.** You drag the end handle instead.
+- ✅ **Unchanged by the episode-grip work** of 19 Oct 2026 (HANDOFF, "Episode grips remove days, never push", which
+  that session confirmed to this one). The wrap grip still runs `applyCount` → `probeShootDays` → `solveCount`. What
+  changed is the `bound` grip, at the end of every episode or block except the last, which no longer pushes. That work
+  also adds a `head` grip at every later episode's start. Both go through `boundSteps()` / `headSteps()` →
+  `applyBound()`, never move the wrap or the first shoot day, and need no probe. Neither is in this menu.
 
 ### 3.6 Colour…
 
@@ -156,7 +189,7 @@ menu can call it, so that the rule exists only once (§10).
 - `openMvNoteEditor()` on the note element itself, which already carries `data-note-week/day/kind/index`. This is
   exactly what a left-click does.
 - A waterfall note (`kind="wf"`) changes the waterfall too, and the item's second line says so.
-- Delete note is ruling Q5.
+- ✅ **Ruling Q5 (owner, 19 Oct 2026): Edit note… only.** There is no Delete note in the menu.
 
 ### 3.9 The shoot day
 
@@ -170,9 +203,18 @@ menu can call it, so that the rule exists only once (§10).
 - ⛔ **Half-day marking was withdrawn by the owner on 15 Oct 2026** (*"We don't need a function to mark random days as
   half days"*). The menu must not bring it back. *(This session's first list of options offered "Half day" here; that
   was wrong.)*
-- ⚠️ **`daySituation`, `setOverride` and the row list are private** to the `installDayOverrideUI` block. Step 4 lifts
-  the list out as `dayOverrideRows(sit)` and builds the menu's section inside that block, or lifts all three to module
-  scope, as `cellDate` was on 15 Oct. Two copies of the row rules would drift apart.
+- ⭐ **Since ruling L1 this section IS the popover's replacement, not a second copy of it.** `daySituation`,
+  `setOverride` and the row list are private to the `installDayOverrideUI` block, and that block already owns the
+  `#table-wrap` click that opens the popover. So the menu's shoot section is built there, from `openDayOvPop`'s row
+  list. That list is lifted out as `dayOverrideRows(sit)`, and `openDayOvPop` itself retires. There is then exactly one
+  set of row rules, and nothing to drift.
+- **What moves over from the popover with it:**
+  - each row's reason and warning lines, which become the item's second line;
+  - the "Stored “…” — not in effect on this day" notice, which becomes a line under the section;
+  - the "Double-click a marked day to clear it" hint, which moves to the footer;
+  - the toggle: a click on the day whose menu is open closes it.
+- ⛔ **Each shoot row keeps `data-ov="<value>"`**, the attribute the `halfdays` and `halfworked` legs read today. Their
+  rewrite is then a selector change, and they keep asserting the same values.
 - `setOverride` already banks exactly one undo step.
 
 ### 3.10 The hiatus section
@@ -181,7 +223,8 @@ menu can call it, so that the rule exists only once (§10).
   against the day. The rows line up index for index with `schedule.hiatuses` (`readState().hiatusRows`).
 - **Lock in place:** the row's own `.hiatus-locked` box, plus an `input` event, which runs `update()`.
 - **Remove hiatus:** clicks the row's own `.remove-hiatus`, so the question asked is the same "Remove this hiatus?".
-  The undo bracket goes after the answer: the bracket is synchronous, so `await` first.
+  The undo bracket goes after the answer: the bracket is synchronous, so `await` first. ✅ **Ruling Q4 (owner, 19 Oct
+  2026): it asks first**, as the sidebar's × does.
 - **Two hiatuses on one day** get one section each, named by their dates. The month view's bands cannot tell them
   apart.
 - **A phase's own hiatus** on that day gets a section "<phase>'s hiatus" whose only item is Remove (untick
@@ -202,7 +245,7 @@ menu can call it, so that the rule exists only once (§10).
   - **Show in month view / Show in waterfall** are the `.hv-cb` boxes: `holidayView[hid]`, then
     `render(currentSchedule)`. They change only what is drawn, so the call is `render`, not `update`. Both are
     disabled while the holiday is off, as they are in the list.
-- Whether the holiday section belongs in the menu at all is ruling Q6.
+- ✅ **Ruling Q6 (owner, 19 Oct 2026): the holiday section stays in the menu.**
 
 ### 3.12 Show this week in the waterfall
 
@@ -228,6 +271,11 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
 
   Anywhere else gets the browser's own menu. That covers the title, the month bar, and the header lines, which are
   contenteditable in Manual mode and want spellcheck.
+- **The left-click** (ruling L1) is the existing `#table-wrap` click in `installDayOverrideUI`. It already matches
+  `.mv-daycell` and checks `viewMode`, so it opens the menu instead of the popover, anchored under the `.mv-daynum`.
+  It drops its `if(!sit) return`, so days outside the shoot open the menu too. "+" slots, notes and bars sit above the
+  cell, so they never reach it. Placement is the popover's own `place()`: under the anchor, pulled in from the right
+  edge, and flipped above when it would run off the bottom.
 - **The day:** `dayAtPoint(x, y)`, which is at module scope. Check first that the point is inside `.mv-body`, because
   `dayAtPoint` clamps: a point below the grid returns the last week. Scope every selector to `#table-wrap`, because
   `#print-root` holds `.mv-daycell`s too.
@@ -292,8 +340,9 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
   it was when the menu closes.
 - **Opening the menu from the keyboard is not offered.** No day in the month view can take focus: there is no
   `tabindex` in `renderMonthView`'s output, adding one is a frozen edit, and an observer may never write inside
-  `#table-wrap`. Every item is also reachable in the sidebar, a left-click popover or the view toggle, so keyboard
-  users lose nothing they have today.
+  `#table-wrap`. Every item is also reachable from the sidebar, the note slots or the view toggle, except the shoot-day
+  choices. Those were mouse-only before as well, because the popover the menu replaces (ruling L1) opened only on a
+  click. Keyboard users therefore lose nothing they have today.
 
 ---
 
@@ -324,17 +373,24 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
 
 ---
 
-## 9. Rulings
+## 9. Rulings: all received 19 Oct 2026
 
-| # | Question | Recommended |
+M1 came in chat while the plan was being written. Q1–Q6 were asked one at a time by picker.
+
+| # | Question | Ruling |
 |---|---|---|
-| ✅ M1 | Shift From / Anchor To / Rebuild From in the menu? | **No** (owner, 19 Oct 2026) |
-| Q1 | *Add phase starting here*: how long, in what unit? | **1 week**, Weeks unit, starting on the exact day, with the cursor in the name box. Alternative: a small form asking for the name and length first. |
-| Q2 | *Add hiatus ▸ <phase> only* on a phase that already has its own hiatus | **Move it here**, and say so in the item ("Move Post's hiatus here"). Alternative: greyed out with "Post already has its own hiatus". |
-| Q3 | *End Production here* | **Leave it greyed out.** Building it means repeating the end handle's shoot-day search. |
-| Q4 | *Remove hiatus*: keep the "Remove this hiatus?" question? | **Keep it.** The sidebar's × asks the same question. |
-| Q5 | Notes: only *Edit note…*, or also *Delete note* for month-only notes? | **Edit only** for now. |
-| Q6 | The holiday section: in the menu, or left to the holiday list? | **In the menu.** It is the only place a holiday's day and its switches meet. |
+| ✅ M1 | Shift From / Anchor To / Rebuild From in the menu? | **No.** They stay in the toolbar. |
+| ✅ Q1 | *Add phase starting here*: how long, in what unit? | **Both a one-day and a one-week option** (the owner's own answer, in place of the three offered). Built as two flat items (§3.2). |
+| ✅ Q2 | *Add hiatus ▸ <phase> only* on a phase that already has its own hiatus | **Move it here**, and say so in the item ("Move Post's hiatus here"). |
+| ✅ Q3 | *End Production here* | **Greyed out**, "Its end comes from the shoot days". |
+| ✅ Q4 | *Remove hiatus*: keep the "Remove this hiatus?" question? | **Ask first**, as the sidebar's × does. |
+| ✅ Q5 | Notes: only *Edit note…*, or also *Delete note*? | **Edit note… only.** |
+| ✅ Q6 | The holiday section: in the menu, or left to the holiday list? | **In the menu.** |
+| ✅ L1 | Should left-clicking a day's number open this menu, in place of the Full day/Off popover? (The owner's question.) | **Yes, replace it.** The order stays fixed, so Full day/Off move from rows 1–2 to rows 5–6. Asked with the alternative "shoot choices first on a shoot day", which was not chosen. |
+
+Two smaller calls inside Q1 were this session's, and each is cheap to change:
+- **Flat items rather than a submenu.**
+- **The 1-week phase starts on the exact day**, not that week's Monday.
 
 ---
 
@@ -347,15 +403,19 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
    - Finding the day and the bar.
    - The panel, its close rules and its place in the strip list.
    - The macOS Ctrl+click guard on the three month drags.
-   - Three items: Add note, **Add phase starting here**, Show this week in the waterfall.
+   - Four items: Add note, **Add 1-day phase here**, **Add 1-week phase here**, Show this week in the waterfall.
 2. **Add hiatus ▸**, both kinds.
 3. **The phase section.**
    - Start here (a mover).
    - Lift `setPhaseEdge` out of `installPhaseEdgeHandles` for End here.
    - Lift `setPhaseColor` for Colour….
    - Show in Phases card.
-4. **The shoot-day section:** `dayOverrideRows(sit)`, shared with the popover. Fix §8.1 at the same time, if the owner
-   agrees.
+4. **The shoot-day section, and the menu takes over the left-click** (ruling L1).
+   - Lift `dayOverrideRows(sit)` out of `openDayOvPop`.
+   - Point the existing day click at the menu, anchored under the day number, and retire the popover.
+   - Rewrite the `halfdays` and `halfworked` legs' popover selectors.
+
+   Until this step lands, left-click keeps opening the popover. Fix §8.1 at the same time, if the owner agrees.
 5. **The hiatus and holiday sections.**
 
 ---
@@ -373,13 +433,23 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
   - 25 Dec 2026: a hiatus day and a holiday.
 
   For each day it asserts which sections are present and absent. For each item it asserts the effect, and that the
-  item banked exactly one undo step. It also asserts that Shift + right-click is not prevented, and that a render
+  item banked exactly one undo step. It also checks the two new phases:
+  - *1 day* on 8 Jul is drawn on 8 Jul only;
+  - *1 day* is greyed out on 12 Jul and on 22 Dec, and offered on 3 Jul;
+  - *1 week* on a Wednesday starts on that Wednesday, not the Monday. It also asserts that Shift + right-click is not prevented, and that a render
   closes the menu.
 - **Save hygiene:**
   - opening and closing the menu leaves `fields.byId` unchanged;
   - a shareable copy exported with the menu open contains no menu.
-- **Existing legs that must stay green:** the CDP legs `pilldrag` and `phaseedge` (`tests/harness/*.mjs`), plus
-  `customunits`, `halfdays`, `halfmarks`, `overrides`, `monthnotes`, `monthdragundo` and `sharecopy2`.
+- **Left-click** (from step 4): a click on 8 Jul's number opens the menu under the number with Full day/Off in it, and
+  `.day-ov-pop` never appears. A click on 12 Jul's number opens it too, although no popover opened there before. A
+  click on a "+" slot still opens the note editor. Clicking 8 Jul twice closes it, and a double-click on a marked day
+  still clears the mark.
+- **Existing legs that must stay green:**
+  - the CDP legs `pilldrag` and `phaseedge` (`tests/harness/*.mjs`);
+  - `customunits`, `halfmarks`, `overrides`, `monthnotes`, `monthdragundo` and `sharecopy2`;
+  - `halfdays` and `halfworked` (both read the popover today), rewritten in step 4 to read the menu's `data-ov` rows,
+    with every value they assert unchanged.
 - **One check by hand:** on a Mac, Ctrl+click on a bar and on an edge handle starts no drag (§5).
 - **`npm run check`.** The menu loads nothing, so the CSP is untouched.
 - ⚠️ Run any leg on its own with `HARNESS_PAGE=/dist/index.html`. `run.sh` defaults to the root `index.html`, which is
