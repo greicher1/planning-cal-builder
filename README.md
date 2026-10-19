@@ -79,7 +79,10 @@ that phase, headed by its name and colour, between "This day" and "Show this wee
   function, unchanged, so the menu and the sidebar cannot drift apart. No frozen code changed; nothing new is saved.
 - **Verified:** `mvmenu` 61/61, and six mutants each turn exactly their own case red. `phaseedge` 14/14 and
   `pilldrag` 30/30 after the lift and the merge with the auto-note fix, with real pointer input. Checked by hand on
-  Post (End, Colour…) and on a Prep pill. The full gate is pending.
+  Post (End, Colour…) and on a Prep pill.
+  - Full gate on the merged build `dfa8c9a7…`: 1,860 PASS, 3 FAIL, none of them a difference. Every frozen output is
+    identical, and `mvmenu` passes 61/61. The three (`phaseedge` timing out, and `cspproof` B0/X1 waiting on ExcelJS
+    from its CDN) passed when re-run alone on the same build: 14/14 and 15/15, with zero CSP violations.
 
 ### Unreleased — Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
 
