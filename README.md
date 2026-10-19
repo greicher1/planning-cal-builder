@@ -84,6 +84,10 @@ first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on s
   different functions. ✅ **Full gate on the merged build `1e9e4fe0…`: 1,815 PASS, 0 FAIL, GATE PASSED.** Every frozen
   output identical (waterfall PDF, Excel, gate 10's print documents, gate 13's twenty written month PDFs byte for
   byte), `fields.byId` at 74 ids, `pilldrag` 30/30, `phaseedge` 14/14, `episodeprep` green.
+- **And merged again with `main` at `b27caf0`**, which brings the month day menu (step 1). The code auto-merged.
+  **Full gate on the build that lands, `05169b7f…`: 1,850 PASS, 1 FAIL.** The one was `pilllabel (blocks)` W3, a
+  month walk cut short while two other gates ran. Re-run standalone, it passed twice (35/35). Every frozen output identical,
+  as above; `mvmenu` 36/36.
 
 ### Unreleased — Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
 
@@ -125,6 +129,15 @@ Week 2"), and the day is ringed while it is open. Four items:
     `sharecopy2` all pass. `monthdragundo`, run on its own, passes too.
   - ⚠️ **Not verified:** a real Ctrl+click with a Mac mouse or trackpad. Synthetic presses prove the guard, not the
     OS turning Ctrl+click into a right-click.
+- **Merged with per-episode prep** (`9cb903e`, 19 Oct 2026). The header names each prep on the day as its pill does,
+  "Prep 302", and two overlapping preps once each (`8e99717`). Before that fix it read "Prep Week 1", because the prep
+  row's start is Production's. Checked by hand on `episodeprep.sptcal`. No leg covers it yet.
+  - Full gate on the merge (build `89413c30…`, 1,532,060 bytes): **1,838 PASS, 1 FAIL.** The failure was gate 10's
+    `blocks` case, which wrote no result. Re-run alone it passed 6/6, with its print document identical to the
+    baseline.
+  - Every other frozen output is identical: the waterfall PDF, every Excel part and the other nine print documents.
+    Gate 13's twenty written month PDFs are byte-identical, and `fields.byId` holds at 74 ids. `mvmenu` passes 36/36,
+    and `monthdragundo` passes on its own.
 
 ### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
 
