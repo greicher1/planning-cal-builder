@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — PLANNED, RULED, BEING BUILT (branch `prep-grip-plan`, worktree `.claude/worktrees/prep-grip-plan`)
+
+- Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
+  prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
+  [`PREP-GRIP-PLAN.md`](PREP-GRIP-PLAN.md). ✅ Both rulings went as recommended (pickers, same day): a drag onto the
+  default length stores it as the episode's own (Q1), and the floor is 1 working day (Q2). Then "Build it".
+- ⭐ **The one real problem, and its answer:** a prep pill carries only `data-ph="episodePrep"`, and in
+  `episodeprep.sptcal` Prep 303 and Prep 304 both have a pill starting Mon 3/1/27, only 303's being its first day. So a
+  grip must find its prep by the ORDER of the row's prep pills, which is `prepRunsForWeek()`'s order (frozen
+  `renderMonthView` emits `placed` in push order; `takePrepRun()` already leans on the same call order). It must also
+  cross-check every pill's grid columns against its run and show no grip on a mismatch. Never by date or label alone.
+- **Shape:** no frozen code and no save-format change. It writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as
+  the Prep row's box does. One probe of `computeSchedule()` at the press gives the working days, so the walk is never
+  re-implemented. Tests: `phaseedge.mjs` G0–G9 with trusted input, on `episodeprep` and its Blocks twin, plus four
+  mutants.
+
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 
 - **The trap:** `autonote-grips` (unmerged) fixed the month drags. Every other schedule change still leaves an edited
