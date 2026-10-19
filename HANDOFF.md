@@ -4,10 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (main checkout, uncommitted until the owner's picker)
+### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
 
-- ⏭ **RESUME HERE.** Two owner requests, 19 Oct 2026, both in `installProductionEdgeHandles()` (`src/legacy/app.js`, not
-  frozen):
+- ✅ **PUSHED AND LIVE at `04a1f18` (19 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`f1ac3ff2…`,
+  1,514,231 bytes, fetched with a cache-buster). Deploy run 39305483691: "Build and check" and "Deploy to Pages" both
+  green. The owner's pickers: "Commit now", then "Push all of main". So the push `6089b80..04a1f18` also shipped:
+  - the "By [Weeks ▾]" unit picker (`17c376f` + `761283f`), which is in the gated build;
+  - docs `6ad9e42`;
+  - the right-click menu plan and mockup (`f9dfc73`, `8515cd8`, docs only).
+
+  `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is overdue.
+- ⏭ **Open:** the standalone `pilllabel (dayoverrides)` re-run (port 8744), still running at push time. See Proof.
+- **Two owner requests, 19 Oct 2026**, both in `installProductionEdgeHandles()` (`src/legacy/app.js`, not frozen):
   1. *"when you drag the edge handles of a production week or episode that is directly touching another week or
      episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
      drag handles it removes days one by one. Removing days one by one is how it should work in all cases"*. That
