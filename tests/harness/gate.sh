@@ -1935,8 +1935,13 @@ PYPD
 # phase to Dates with ONE undo (F7, F8), the old-build fallback is inside that step (F7's Redo), days
 # land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
 # print media hides the handles (F12). Run red on three mutants before it was wired in.
+# ⭐ 19 Oct 2026, G0-G8 (PREP-GRIP-PLAN.md): the prep START grip on episodeprep.sptcal and its Blocks twin. The grip finds
+# its prep by the ORDER of the row's prep pills (two can start on the same day: Prep 303/304 from Mon 3/1/27), writes
+# that unit's own prep length, floors at one working day, and out-and-back or Escape banks nothing. Four mutants were
+# each red before it was wired in: choosing the pill by date (G0, G1), writing the default (G1-G7), writing the number
+# back at the start (G3, G6), and no floor (G5).
 node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates)" <<'PYPE' || FAIL=1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, episodeprep)" <<'PYPE' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))

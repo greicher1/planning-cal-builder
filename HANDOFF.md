@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — PLANNED, RULED, BEING BUILT (branch `prep-grip-plan`, worktree `.claude/worktrees/prep-grip-plan`)
+### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — BUILT AND GATED ON A BRANCH (branch `prep-grip-plan`, worktree `.claude/worktrees/prep-grip-plan`)
 
 - Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
   prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
@@ -15,10 +15,25 @@
   grip must find its prep by the ORDER of the row's prep pills, which is `prepRunsForWeek()`'s order (frozen
   `renderMonthView` emits `placed` in push order; `takePrepRun()` already leans on the same call order). It must also
   cross-check every pill's grid columns against its run and show no grip on a mismatch. Never by date or label alone.
-- **Shape:** no frozen code and no save-format change. It writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as
-  the Prep row's box does. One probe of `computeSchedule()` at the press gives the working days, so the walk is never
-  re-implemented. Tests: `phaseedge.mjs` G0–G9 with trusted input, on `episodeprep` and its Blocks twin, plus four
-  mutants.
+- **Built:** `installPrepEdgeHandles()`, right after `installPhaseEdgeHandles()` in `src/legacy/app.js`. No frozen
+  code, no save-format change: it writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as the Prep row's box does.
+  - `prepOfPill()`: the order lookup plus the column cross-check.
+  - `probeDays()`: one `computeSchedule()` at the press, with the unit's length + 80, gives the working days, so the
+    walk is never re-implemented. The probe also refuses unless today's prep is exactly the probe's tail.
+  - `solve()`: the nearest working day; ties go to the smaller change, and n ≥ 1 by construction (Q2).
+  - The guard after each `update()`: the start where computed, the end unmoved, else put back and go inert.
+- **Tests:** `phaseedge.mjs` G0–G8, in their own `{}` block (the F cases already use `h1`…`h12`). The planned G9 is
+  folded into G1. 22/22. Mutants, each red first: by date → G0, G1; the default → G1–G7; the number written back at
+  the start → G3, G6; no floor → G5.
+- ⚠️ **"Nothing banked" is the Undo button here, not F9's Ctrl+Z probe.** `episodeprep.sptcal` is SAVED in the month
+  view, so `load()`'s click on the month button is no step and the stack starts empty. The first run read G3 and G6
+  as red for that reason alone. G2 shows Undo off before a real drag and on after it.
+- ⚠️ **Contention, measured:** with another session's full gate running, `phaseedge` reached F4 in 480 s and hit its
+  deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
+- **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** commits on branch `prep-grip-plan` (cut from `main` at `c4bf9d5`); not merged, not pushed. It touches
+  `src/legacy/app.js` beside `installPhaseEdgeHandles()` and `tests/harness/phaseedge.mjs`, as does `autonote-grips`
+  (F13), so whichever lands second merges two additive blocks. Keep both.
 
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 

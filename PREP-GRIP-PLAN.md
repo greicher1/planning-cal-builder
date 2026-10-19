@@ -1,6 +1,6 @@
 # PREP-GRIP-PLAN.md: a start grip on each prep pill
 
-**Status: PLANNED AND RULED (19 Oct 2026); being built.** Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
+**Status: BUILT AND GATED ON BRANCH `prep-grip-plan` (19 Oct 2026); not merged, not pushed.** Record in §8. Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
 hand: *"will you be able to change when exactly each episode prep starts or is it always n number of days until the
 day before first shoot day"*. Then, on the proposal: *"plan a start grip on each prep pill in the month view that
 writes that episode's (or block's) prep length, with the end staying tied to the shoot. Plan it and ask me before
@@ -100,7 +100,7 @@ The project's rule for Production's grips is *"Row grips ask the real scheduler 
 - **Notes (R5):** a prep drag rewrites no note. Prep makes no auto-note, and `computeSchedule` builds the holiday
   notes before prep is appended, so prep's span adds none.
 
-## 5. Tests: `phaseedge.mjs` G0–G9, trusted CDP input
+## 5. Tests: `phaseedge.mjs` G0–G8, trusted CDP input
 
 `phaseedge.mjs` is the leg for the grips on everything but Production (trusted input, each press where
 `elementsFromPoint` has the grip topmost). The cases use `episodeprep.sptcal` and its Blocks twin, unmodified.
@@ -110,15 +110,14 @@ Prep 304 2/24–3/5, Prep 303 3/1–3/12 (the hiatus week 3/15 lies between it a
 | Case | What it holds |
 |---|---|
 | G0 | February/March: Prep 303's pill from Mon 3/1 carries a start grip (topmost, a child of `<body>`); Prep 304's pill from the SAME Monday carries none (a continuation); no end grip anywhere |
-| G1 | Prep 303's start left one working day (Mon 3/1 → Fri 2/26): its box 10 → 11, its end still 3/12, every other prep and the shoot unchanged; ONE Ctrl+Z → 10 |
-| G2 | Prep 302 (blank, the default 5) right onto Mon 2/15 (Presidents' Day): lands Tue 2/16, box 4, end 2/19 held |
-| G3 | Prep 302 out a day and back in ONE gesture: the box is BLANK again (not "5"), nothing banked (the next Ctrl+Z undoes the view switch, F9's probe) |
+| G1 | Prep 303's start left one working day (Mon 3/1 → Fri 2/26): its box 10 → 11, its end still 3/12; every other prep's days, every phase's dates and the Production meta line unchanged (the planned G9, folded in); ONE Ctrl+Z → 10 |
+| G2 | Prep 302 (blank, the default 5) right onto Mon 2/15 (Presidents' Day): lands Tue 2/16, box 4, end 2/19 held; the Undo button off before and on after (so G3/G6's probe can see a banked step) |
+| G3 | Prep 302 out a day and back in ONE gesture: the box is BLANK again (not "5"), nothing banked (the Undo button stays off: `episodeprep` is saved in the month view, so F9's view-switch probe has no step to find) |
 | G4 | Prep 302 right onto Sat 2/13 or Sun 2/14: no change (Fri 2/12 is nearer, or ties with Tue 2/16 and the smaller change wins); left onto Thu 2/11: box 6 |
 | G5 | floor: Prep 302's start dragged past its end: 1 day, Fri 2/19, box 1 |
-| G6 | Escape mid-drag: put back, the shield gone, nothing banked |
-| G7 | Blocks (`episodeprep-blocks`): Prep Block 3's start left a working day: Block 3's box 12 → 13; the dormant episode lengths untouched |
+| G6 | Escape mid-drag: put back (blank), the shield gone, nothing banked (Undo still off) |
+| G7 | Blocks (`episodeprep-blocks`): Prep Block 3 (from Thu 3/4) left a working day: Block 3's box 12 → 13, from Wed 3/3; the other blocks' boxes unchanged |
 | G8 | print media + `body.printing-calendar`: the grip is `display:none`; none in `#print-root` or `#table-wrap` |
-| G9 | the Production meta line, every phase's dates, and the waterfall view are unchanged by G1's drag |
 
 **Mutants, each must turn a case red before the leg is wired in:**
 - choose the pill by date alone (§2): G0;
@@ -149,5 +148,15 @@ and `episodeprep` stays green.
   `tests/harness/phaseedge.mjs` (that branch adds F13). Both are additive and in different places, so a merge is
   mechanical. Land `autonote-grips` first if it is ready.
 - Steps: (1) `prepOfPill()` and the hover with the cross-check, then G0 and G8; (2) the probe, the drag, the write and
-  the guard, then G1–G7 and G9; (3) mutants; (4) the full gate; (5) README, HANDOFF and this plan's record; then the
+  the guard, then G1–G7; (3) mutants; (4) the full gate; (5) README, HANDOFF and this plan's record; then the
   commit and push pickers.
+
+## 8. Built (19 Oct 2026)
+
+- **Code:** `installPrepEdgeHandles()` in `src/legacy/app.js`, right after `installPhaseEdgeHandles()`. It has `prepOfPill()`
+  (§2), `probeDays()` and `solve()` (§3), the write with Q1(a) and the press-length restore, the guard, `follow()`,
+  Escape, and the leading and trailing undo pushes. Nothing else changed.
+- **Tests as built:** G0–G8 (§5). G9 became part of G1. "Nothing banked" in G3 and G6 is the Undo button staying off,
+  because `episodeprep` is saved in the month view. `phaseedge` 22/22, in 1 min 55 s alone. All four mutants were red
+  first.
+- **Gate:** Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
