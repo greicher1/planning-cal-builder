@@ -174,8 +174,10 @@
   for. Whether it goes ahead of steps 2–3, and whether right-click stays as a second way in, is the owner's call.
   ⭐ **Learned:** say plainly what a partial step leaves out before asking to push it. The README entry said
   "left-click still opens the Full day/Off popover until step 4", but the push question did not.
-- ⏭ **Next:** step 4 (the owner's call on order, above). The owner tries a real Mac Ctrl+click. A version cut is
-  overdue (`version.json` still 1.4.3). Add a prep case to `mvmenu`. Build every step from `main`.
+- ⏭ **Next:** ⭐ **Steps 2 and 3 are BUILT on branch `day-menu-step3`** (worktree `.claude/worktrees/day-menu-step3`,
+  merged with `main` at `cfeae91`; its own HANDOFF entry has the record). Not merged here yet. The owner chose the plan
+  order (19 Oct 2026), so step 4 comes after them, built from that branch or from `main` once it is merged. The owner
+  tries a real Mac Ctrl+click. A version cut is overdue (`version.json` still 1.4.3). Add a prep case to `mvmenu`.
 
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 
