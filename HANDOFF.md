@@ -45,7 +45,19 @@
 - **Proof so far:** `mvmenu` 61/61 on the merged build; eleven mutants across the two steps each turn exactly their own
   case red; `phaseedge` 14/14 and `pilldrag` 30/30 (both CDP, real pointer input); `npm run check` 40/40; hand
   checks in the browser pane (Add hiatus on 8 Jul, End Post and Colour… on Post, the Prep section).
-  ⏳ **The full gate is pending.**
+- ✅ **Full gate on the merged build `dfa8c9a7…` (1,539,263 bytes, port 8742, 15:38–16:41): 1,860 PASS, 3 FAIL**, none
+  of them a difference.
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+  - Gate 5 at 74 ids. Gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical.
+    `mvmenu` 61/61.
+  - The three failures:
+    - `phaseedge` hit its 480 s deadline;
+    - `cspproof` B0 and X1, both of which need ExcelJS from its CDN URL. V0 (zero CSP violations) passed in the same run.
+  - Re-run standalone on the same build: `cspproof` 15/15 with 0 violations, `phaseedge` 14/14.
+  - The gate ran 63 minutes, about three times its usual length, with other sessions' gates queued behind and running
+    beside it.
+- ⏭ **Next:** step 4 is being built in its own session on branch `day-menu-step4` (cut from this one). Merging into
+  `main` and pushing are the owner's calls, asked separately.
 - ⚠️ **Not covered by any leg:** the Prep section (hand-checked only; the proposed "mvmenu prep case" session would
   cover it), and a real Mac Ctrl+click (from step 1).
 
