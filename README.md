@@ -28,6 +28,27 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
+
+Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both
+were found while fixing the grips (entry below). Owner's pickers: *"Yes, build it with the gate"* and *"Add the
+fallback"*.
+- **A line dated the 1st–9th is drawn on its own day.** An edited week note places each line by its trailing date,
+  but the pattern wanted a two-digit day, while `fmtShort` writes "7/1/26". So "Start Principal Photography 7/1/26"
+  inside an edited note sat on Monday 6/29, and dragging the first shoot day onto any 1st–9th of a month hit this.
+  The day is now `\d{1,2}`. Old zero-padded text ("07/01/26") still matches.
+- **A line dated outside its note's week is no longer lost.** Each day reads only its own week's note, so "Wrap party
+  7/10/26" typed into the 6/29 week was drawn on no day at all. On its own, the first fix would have done the same to
+  every such line dated the 1st–9th. Measured: "Delivery 7/7/26" sat on Monday 6/29 before it, and on no day after
+  it. Such a line is now placed like an undated one: on its pinned day, else the week's Monday.
+- **Unchanged:** the waterfall, Excel and the waterfall PDF, which show a week's note as one block. So is any note
+  without an edit. Only lines inside an edited (override) note move.
+- **Verified:** `pilldrag` E18 (the start grip onto Wed 7/1) and E19 (`autonote-grips`' new 8/3 note, no drag) are red on
+  the grip-fix build `65389d35…` and green after (26/26); `phaseedge` 14/14; `npm run check` 40/40. Full gate on
+  build `20f129fb…`: **1,754 PASS, 0 FAIL, GATE PASSED** (17 min). Gate 10's print documents identical, gate 13's twenty
+  written month PDFs byte-identical (no baseline holds an edited note), waterfall PDF and Excel identical, `monthnotes`
+  (M-13) green.
+
 ### Unreleased — An edited "Start Principal Photography" note follows the month view's grips (19 Oct 2026)
 
 Owner: *"when i use the grab handle to change the start of the very first day of production, it doesnt move the
@@ -46,9 +67,8 @@ first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on s
 - **Recomputed from the press on every step**, so a drag out and back, or Escape, puts the notes back exactly, and
   one Ctrl+Z undoes the dates and the note together. No frozen code, no save-format change. Notes still do not move
   between weeks on a body-drag, and month-only day notes stay on their dates, as on every shift.
-- ⚠️ **Not fixed (frozen, needs a ruling):** a line inside an edited note dated the 1st–9th of a month ("7/6/26") is
-  drawn on its week's MONDAY in the month view and month PDFs. `notesForWaterfallDate`'s trailing-date pattern wants a
-  two-digit day, while `fmtShort` writes "7/6/26". This is older than this fix.
+- ⚠️ **Found here, fixed in the entry above** (frozen, owner-approved): a line inside an edited note dated the 1st–9th
+  ("7/6/26") was drawn on its week's MONDAY in the month view and month PDFs.
 - **Verified:** new fixture `autonote-grips.sptcal`; `pilldrag` E15–E17 and D5 and `phaseedge` F13 are red on the
   build before the fix (`87028001…`) and green after (`pilldrag` 24/24, `phaseedge` 14/14). The owner's calendar
   shape was reproduced red then green with trusted mouse input. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.

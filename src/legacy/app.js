@@ -8013,13 +8013,26 @@ export function initLegacyApp() {
         // A note's text may carry its own trailing date (the day picker stamps one in, and the
         // auto-notes are written that way too). That date is the truth about where the line
         // belongs -- so a multi-line override splits across days rather than stacking on one.
+        // ⛔ FROZEN EDIT, owner-approved (picker, 19 Oct 2026, "Yes, build it with the gate"): the DAY
+        // is \d{1,2}, not \d{2}. fmtShort() writes "7/1/26" (no zero padding), so a line dated the 1st-9th
+        // never matched and was drawn on its week's Monday, which the month grips (R5, autoNoteBaseline)
+        // made easy to hit: the first shoot day dragged to 7/1 left "Start Principal Photography 7/1/26"
+        // on 6/29. Old zero-padded text ("07/01/26") still matches, so the change is a superset.
+        // ⛔ FROZEN EDIT, owner-approved (picker, 19 Oct 2026, "Add the fallback"): a line's date only
+        // places it when that date is INSIDE this note's week. This function is asked about each day with
+        // that day's own week, so a line dated in another week ("Wrap party 7/10/26" typed into the 6/29
+        // week) was drawn on no day at all, in the month view or either month PDF. Now such a line is
+        // placed like an undated one, below. The \d{1,2} fix above would otherwise have made every such
+        // line dated the 1st-9th vanish too (measured: "Delivery 7/7/26" sat on Mon 6/29 before it).
         String(n.text || '').split('\n').filter(Boolean).forEach(line=>{
-          const m = line.match(/(\d{1,2})\/(\d{2})\/(\d{2})\s*$/);
+          const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
           if(m){
             const yr = 2000 + parseInt(m[3],10);
-            const lineIso = isoOf(new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10))));
-            if(lineIso === iso) out.push(line);
-            return;
+            const lineDate = new Date(Date.UTC(yr, parseInt(m[1],10)-1, parseInt(m[2],10)));
+            if(isoOf(mondayOf(lineDate)) === weekIso){
+              if(isoOf(lineDate) === iso) out.push(line);
+              return;
+            }
           }
           // No date in the text: fall back to the note's pinned day, else the week's Monday.
           const belongsHere = n.date ? (n.date === iso) : (date.getUTCDay() === 1);

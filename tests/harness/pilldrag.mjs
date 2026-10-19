@@ -69,6 +69,10 @@
 //   D5  body-drag Production down a week (6/29 -> 7/6): "Start Principal Photography 7/6/26" on 7/6, the
 //       user's "Table Read" stays on 6/29 (a body-drag moves no note between weeks), and the wrap note
 //       moves with the wrap
+//   E18 the start grip onto Wed 7/1: the rewritten "Start Principal Photography 7/1/26" sits ON 7/1, not on Monday
+//       6/29 (notesForWaterfallDate's trailing-date pattern takes a one-digit day: frozen edit, owner-approved)
+//   E19 no drag: in the 8/3 week's edited note, "Cast read 8/4/26" is drawn on 8/4, and "Delivery 8/12/26" (dated
+//       in another week) on Monday 8/3 instead of on no day at all (the second owner-approved frozen line)
 // Same plumbing as rtleg.mjs / printpaper.mjs: Node 24's built-in WebSocket, no dependencies, and a
 // non-default HARNESS_PORT namespaces the Chrome profile.
 import fs from 'node:fs';
@@ -631,9 +635,9 @@ try {
   // D5 -- body-drag Production DOWN A WEEK (Mon 6/29 -> Mon 7/6). It carries no note between weeks, so the
   // edited Start note's own line stays on 6/29 while its auto line leaves the week: the 7/6 week shows the
   // plain auto-note, and the wrap note (exactly the auto text) leaves 10/20 and goes back to plain auto.
-  // ⚠️ Cross-week on purpose. A line rewritten to a day 1-9 ("7/6/26") but still INSIDE an override is placed on
-  // its week's Monday, because notesForWaterfallDate's (frozen) trailing-date regex wants a two-digit day
-  // while fmtShort writes "7/6/26". That is older than this fix and awaits the owner (HANDOFF, 19 Oct 2026).
+  // Cross-week on purpose: it was written while a line rewritten to a day 1-9 inside an override still sat on its
+  // week's Monday (notesForWaterfallDate's two-digit-day pattern, since fixed: E18, E19), and it keeps covering
+  // the path where the auto line leaves its week.
   await load('autonote-grips');
   await gotoMonth('June 2026');
   const n5a = await notesShown();
@@ -664,6 +668,34 @@ try {
        !!g5 && has(n5a, '2026-06-29|Start Principal Photography 6/29/26') && p5.start === '2026-07-06' && !!p5.wrap && p5.wrap !== '10/20/26'
        && has(n5b, '2026-07-06|Start Principal Photography 7/6/26') && has(n5b, '2026-06-29|Table Read') && !says(n5b, /6\/29\/26/)
        && has(n5c, isoOfShort(p5.wrap) + '|Principal Photography Wraps ' + p5.wrap) && !says(n5c, /10\/20\/26/), out.D5);
+
+  // E18 -- the start grip onto a day 1-9 (Mon 6/29 -> Wed 7/1), the edited note still holding "Table Read". The
+  // rewritten line "Start Principal Photography 7/1/26" sits on 7/1 itself, not on its week's Monday. Red until
+  // notesForWaterfallDate's trailing-date pattern took a one-digit day (frozen edit, owner-approved 19 Oct 2026),
+  // since fmtShort writes "7/1/26".
+  await load('autonote-grips');
+  await gotoMonth('June 2026');
+  const h18 = visible(await restOn(await prodPill(0))).find(h => h.edge === 'start');
+  const mon18 = await cell(4, 1, 29), wed18 = await cell(4, 3, 1);
+  if (h18 && mon18 && wed18) await dragPath(h18, [[h18.x + (wed18.x - mon18.x) * 0.5, h18.y], [h18.x + (wed18.x - mon18.x), h18.y]]);
+  const p18 = await prod(), n18 = await notesShown();
+  out.E18 = { handle: h18, prod: p18, after: n18 };
+  kase('E18', 'start grip onto Wed 7/1: "Start Principal Photography 7/1/26" sits ON 7/1 (not Monday 6/29), Table Read on 6/29',
+       !!h18 && p18.start === '2026-07-01'
+       && has(n18, '2026-07-01|Start Principal Photography 7/1/26') && has(n18, '2026-06-29|Table Read')
+       && !has(n18, '2026-06-29|Start Principal Photography 7/1/26'), out.E18);
+
+  // E19 -- where a dated line inside an edited week note is drawn, no drag (both rules frozen edits in
+  // notesForWaterfallDate, owner-approved 19 Oct 2026). The 8/3 week's note holds "Cast read 8/4/26" (its own week,
+  // day 1-9: on 8/4, it was on Monday 8/3) and "Delivery 8/12/26" (dated in ANOTHER week: placed like an undated
+  // line, on Monday 8/3; it used to be drawn on no day at all). August's grid starts Sun 7/26.
+  await load('autonote-grips');
+  await gotoMonth('August 2026');
+  const n19 = await notesShown();
+  out.E19 = { august: n19 };
+  kase('E19', 'an edited week note: "Cast read 8/4/26" on 8/4 (not Monday), "Delivery 8/12/26" (another week) on Monday 8/3, not lost',
+       has(n19, '2026-08-04|Cast read 8/4/26') && has(n19, '2026-08-03|Delivery 8/12/26')
+       && !has(n19, '2026-08-03|Cast read 8/4/26') && !has(n19, '2026-08-12|Delivery 8/12/26'), out.E19);
   ws.close();
 } catch (e) {
   out.EX = String(e && e.message || e);

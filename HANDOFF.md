@@ -23,18 +23,28 @@
     other phases' grips (`apply`, `beginDrag` in `installPhaseEdgeHandles`) and body-drag (`installMonthPillDrag`).
   - Not changed, on purpose: body-drag still moves no note between weeks (the user's own lines stay in their week), and
     month-only `dayNotes` stay on their dates, as on every shift.
-- ⛔ **FOUND, NOT FIXED, NEEDS AN OWNER RULING (frozen):** `notesForWaterfallDate`'s trailing-date regex is
-  `/(\d{1,2})\/(\d{2})\/(\d{2})\s*$/`, which wants a TWO-digit day, but `fmtShort` writes "7/6/26". So any line inside
-  an edited week note dated the 1st–9th is drawn on its week's MONDAY in the month view and both month PDFs. It is
-  older than this fix; this fix just makes it more reachable, since a grip can land a rewritten line on such a day.
-  The candidate fix is one character (`\d{1,2}` for the day). Its gate would be gates 10 and 13 byte-identical
-  (no baseline calendar has an edited note, per M-13's record), plus a new case. `notesForWaterfallDate` carries
-  M-13's owner-approved frozen edit, so it is treated as frozen: ask before touching it.
+- ⛔ **TWO FROZEN LINES IN `notesForWaterfallDate`, OWNER-APPROVED BY PICKER THE SAME DAY** ("Yes, build it with the
+  gate", then "Add the fallback").
+  1. **The trailing-date pattern's DAY is `\d{1,2}`** (was `\d{2}`). `fmtShort` writes "7/1/26", so a line inside an
+     edited week note dated the 1st–9th never matched and was drawn on its week's MONDAY. The grips made it easy to
+     hit: the first shoot day dragged to 7/1 left "Start Principal Photography 7/1/26" on 6/29.
+  2. **A line dated OUTSIDE its note's week is placed like an undated one** (its pinned day, else the Monday).
+     ⭐ Found by measuring the first line before asking: each day reads only its own week's note, so such a line was
+     drawn on NO day at all. Before line 1 that was true only of two-digit days ("Wrap party 7/10/26" in the 6/29
+     week). Line 1 alone would have made "Delivery 7/7/26" vanish too, where it used to sit on Monday 6/29. So the
+     owner was asked again rather than shipping the approved one-character change alone.
+  - Waterfall, Excel and the waterfall PDF show a week's note as one block and are untouched. The direct month-PDF
+    writer parses `renderMonthView`'s HTML, so it inherits both lines.
+  - Proof: `pilldrag` E18 (start grip onto Wed 7/1) and E19 (the fixture's new 8/3 note, no drag) are red on the
+    grip-fix build `65389d35…` and green on `20f129fb…` (26/26). Full gate on build `20f129fb…`: **1,754 PASS, 0 FAIL, GATE PASSED** (17 min). Gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical (no baseline holds an edited note), waterfall PDF and Excel identical, `monthnotes` (M-13) green.
 - **Tests:** new fixture `autonote-grips.sptcal` (`monthnotes` + two scripted week notes; tests/fixtures/README).
   `pilldrag` E15 (start grip), E16 (out and back), E17 (wrap grip, the owner's shape), D5 (Production body-drag down a
-  week); `phaseedge` F13 (Writer's Rm start grip a week right). D5 and F13 are cross-week on purpose, to stay clear of
-  the regex above. **All five red on the pre-fix build `87028001…`** (the by-unit gated build, rebuilt from
+  week); `phaseedge` F13 (Writer's Rm start grip a week right). D5 and F13 are cross-week on purpose: they were
+  written before the regex above was fixed. **All five red on the pre-fix build `87028001…`** (the by-unit gated build, rebuilt from
   `6ad9e42`), green after: `pilldrag` 24/24, `phaseedge` 14/14. `npm run check` 40/40. Full gate on build `65389d35…`: **1,752 PASS, 0 FAIL, GATE PASSED** (17½ min, after another session's gate finished). Waterfall PDF and every Excel part identical, `fields.byId` at 72 ids, 0 clipped cells, gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** branch `autonote-grips` is two local commits on `6ad9e42`: the grip fix (`5e487d1`) and then the two
+  frozen lines, each committed on the owner's picker. **Not merged into `main`, not pushed.** Owner's picker, "Not
+  now": merge after the drag-handle session's work lands (next bullet). Then re-run the full gate on the merge.
 - ⚠️ **MERGE NOTE.** Session "Production week/episode drag handle behavior" has UNCOMMITTED edits in the main
   checkout's `installProductionEdgeHandles` (owner, 19 Oct 2026: an episode-end grip removes days, never pushes). It
   says `bound` now has its own `applyBound()` that never moves the first shoot day or the wrap, so it needs no note fix.

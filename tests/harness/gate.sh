@@ -1909,6 +1909,9 @@ PYPP
 # ⭐ 19 Oct 2026: E15-E17 and D5 load autonote-grips.sptcal. An EDITED auto-note ("Start Principal Photography
 # 6/29/26" + a line of the user's) follows the start grip, the wrap grip and a body-drag, as the shift tools'
 # R5 rewrite does (owner: "it doesnt move the comment with it"). All four were red on the build before the fix.
+# E18 and E19 hold two owner-approved frozen lines in notesForWaterfallDate (same day): a line dated the 1st-9th is
+# drawn on its own day, not its week's Monday, and a line dated outside its note's week is drawn on the Monday (or
+# its pinned day) instead of on no day at all. Both were red on the build before those lines.
 node "$HERE/pilldrag.mjs" --page "$PAGE" >/dev/null 2>&1
 python3 - "$HERE/pilldrag.json" "pilldrag (v1.4.0-saved, blocks, halfdays, autonote-grips)" <<'PYPD' || FAIL=1
 import json,sys

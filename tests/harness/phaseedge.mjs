@@ -437,8 +437,8 @@ try {
   // edited to "Writer's Room Opens 1/5/26" + "Pitch day". Its start grip goes a WEEK right, onto Mon 1/12
   // (January 2026's row 1 is Sun 1/4 - Sat 1/10, row 2 Sun 1/11 - Sat 1/17). The auto line leaves the 1/5
   // week's note, the user's line stays there, and the 1/12 week shows the plain auto-note.
-  // ⚠️ Cross-week on purpose: a line rewritten to a day 1-9 inside an override sits on its week's Monday,
-  // from notesForWaterfallDate's (frozen) two-digit-day regex. Older than this fix; see pilldrag.mjs D5.
+  // Cross-week on purpose: it covers the auto line leaving its week (see pilldrag.mjs D5, and E18/E19 for the
+  // one-digit-day placement fixed the same day).
   const notesShown = () => ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block'))
     .map(b => b.dataset.noteDay + '|' + b.innerText.replace(/\\s+/g, ' ').trim())`);
   await load('autonote-grips', 'January 2026');
