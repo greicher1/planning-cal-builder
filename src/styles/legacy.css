@@ -2610,6 +2610,10 @@
      place the current view already lives -- so nothing can show a row for the view you are not in. */
   body:has(#view-month-btn.active) .pref-view-sheet,
   body:not(:has(#view-month-btn.active)) .pref-view-month{ display:none; }
+  /* The Prep row (EPISODE-PREP-PLAN.md §6, owner ruling P1): per-episode prep is drawn in the month view
+     and its PDF only, so its row shows only there, off the same toggle as the rule above. Hidden, never
+     cleared: #prep-days and #prep-name are written by id, and keep their values in the waterfall. */
+  body:not(:has(#view-month-btn.active)) #prep-row{ display:none; }
   /* The month box's "Show" switches follow "Label Production by" (MONTH-PILL-LABEL-PLAN §5.2, owner
      ruling Q3): only the items the grey text can carry right now are offered. A switch hides while
      its item is the bar's text (the control's CHECKED radio, which is the label the bars are drawn
@@ -2695,13 +2699,13 @@
     font-style:italic; text-align:center;
   }
   /* A row: grip, name edited in place, (Episodes mode) its day count. Hairlines between rows. */
-  #episode-rows .episode-row{
+  #episode-rows .episode-row, #prep-rows .prep-unit-row{
     display:flex; align-items:center; gap:var(--mantine-spacing-sm); min-height:34px;
     padding:0 var(--mantine-spacing-md) 0 var(--mantine-spacing-sm);
     border-bottom:1px solid var(--mantine-color-gray-2); background:var(--mantine-color-white);
   }
-  #episode-rows .episode-row:last-child{ border-bottom:none; }
-  #episode-rows .episode-row:hover{ background:var(--mantine-color-gray-0); }
+  #episode-rows .episode-row:last-child, #prep-rows .prep-unit-row:last-child{ border-bottom:none; }
+  #episode-rows .episode-row:hover, #prep-rows .prep-unit-row:hover{ background:var(--mantine-color-gray-0); }
   #episode-rows .episode-row.is-dragging{ opacity:.4; }
   /* INSET, because the card clips (overflow:hidden) and an outer line would vanish at its edges. */
   #episode-rows .episode-row.drop-before{ box-shadow:inset 0 2px 0 var(--mantine-primary-color-filled); }
@@ -2716,22 +2720,38 @@
   #episode-rows .episode-row input.ep-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   /* A compact number field with its unit INSIDE, like a Mantine NumberInput's rightSection. The
      <label> wrapper is what draws the input's border, so a click on "days" focuses the number. */
-  #episode-rows .num-suffix{
+  #episode-rows .num-suffix, #prep-rows .num-suffix{
     display:inline-flex; align-items:center; flex:none; height:26px; box-sizing:border-box;
     border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
     background:var(--mantine-color-white); padding-right:var(--mantine-spacing-md); cursor:text;
   }
-  #episode-rows .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
-  #episode-rows .num-suffix input{
+  #episode-rows .num-suffix:focus-within, #prep-rows .num-suffix:focus-within{ border-color:var(--mantine-primary-color-filled); }
+  #episode-rows .num-suffix input, #prep-rows .num-suffix input{
     width:34px; height:24px; border:0; padding:0 4px 0 var(--mantine-spacing-md); background:transparent;
     font-size:var(--mantine-font-size-sm); text-align:right; box-shadow:none; outline:none;
     -moz-appearance:textfield; appearance:textfield;
   }
   #episode-rows .num-suffix input::-webkit-inner-spin-button,
-  #episode-rows .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
-  #episode-rows .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
+  #episode-rows .num-suffix input::-webkit-outer-spin-button,
+  #prep-rows .num-suffix input::-webkit-inner-spin-button,
+  #prep-rows .num-suffix input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  #episode-rows .num-suffix span, #prep-rows .num-suffix span{ font-size:var(--mantine-font-size-xxs); color:var(--mantine-color-gray-6); }
   /* A block's day count that someone has typed (the per-block override) keeps a quiet cue. */
   #episode-rows .num-suffix input.blk-days.is-edited{ font-weight:700; }
+  /* The Prep row's list (EPISODE-PREP-PLAN.md §6): the episode list's rows, a name and one box. Its own
+     length, typed over the default, gets the per-block override's bold cue. */
+  #prep-rows .prep-unit-name{ flex:1; min-width:0; padding:0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
+    font-weight:500; color:var(--mantine-color-black); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #prep-rows .num-suffix input.is-edited{ font-weight:700; }
+  #prep-rows .num-suffix input::placeholder{ color:var(--mantine-color-gray-5); }
+  #prep-rows .num-suffix:has(input.is-invalid){
+    border-color:var(--mantine-color-danger-6); box-shadow:0 0 0 2px var(--mantine-color-danger-1);
+  }
+  #prep-rows .prep-unit-row[data-whole-err]{ flex-wrap:wrap; }
+  #prep-rows .prep-unit-row[data-whole-err]::after{ flex-basis:100%; text-align:right; padding-bottom:4px; }
+  .prep-caption{ grid-column:2; font-size:var(--mantine-font-size-xxs); line-height:1.45; color:var(--mantine-color-gray-6); margin:2px 5px 0; }
+  .prep-panel{ grid-column:1 / -1; }
+  .prep-panel:has(#prep-rows:not(:empty)){ margin-top:var(--mantine-spacing-md); }
 
   /* Production Hiatus keeps the SOLID rule every phase's hiatus has (owner, 22 Sep 2026: "why is it
      a dashed line above Production hiatus instead of a solid line as it is with all the other

@@ -4,6 +4,55 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: PER-EPISODE PREP IS BUILT (EPISODE-PREP-PLAN steps 1–6), branch `claude/beautiful-bardeen-00c9f0`
+
+- **State:** built on `main` at `6ad9e42` (step 3 of MONTH-PILL-LABEL and by-unit both in), on branch
+  `claude/beautiful-bardeen-00c9f0`. The record is the plan's §13 ([`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md)). No
+  frozen line changed. **Not pushed.**
+  - Owner, by picker, 19 Oct 2026: *"Merge to main, don't push"* (and re-gate the merge). ⚠️ **`main` itself was NOT
+    moved.** The main checkout, where `main` is checked out, holds another session's live UNCOMMITTED work in
+    `src/legacy/app.js`, `HANDOFF.md`, `README.md`, `MONTH-VIEW-PLAN.md`, `gate.sh` and `pilldrag.mjs` (Production's
+    `bound`/`head` grips, owner rulings of 19 Oct 2026), all files this merge touches too. A merge there would be
+    refused or tangle that work, and moving the ref under it would desync that checkout.
+  - So the merge is **`claude/episode-prep-merge`**: `main` at `8515cd8` (the two context-menu plan commits) plus this
+    branch, `--no-ff`, with only this file conflicting (both entries kept). It is gated on its own (below). Once the
+    main checkout's work is committed, `main` lands it with `git merge --ff-only claude/episode-prep-merge` if `main`
+    has not moved again, or a normal merge if it has.
+- **What a user sees:** in the month view only, a **Prep** row under Production: name, colour swatch, *Default prep
+  days*, a summary line, and one box per episode in shooting order (per block in Blocks mode). Blank = the default,
+  0 = no prep for that one. Pills read *Prep 302* / *Prep Block 2*, in lanes UNDER the shoot, stacking when they
+  overlap. Waterfall, Excel and the waterfall PDF never show prep.
+- **Save format (permanent from the first file):** ids `prep-days`, `prep-name`; key `prepDays` on an episode or
+  block, written only when typed; `phaseColorOverride.episodePrep`. `SNAPSHOT_VERSION` unchanged.
+- ⛔ **Gate 5 moves by exactly two ids** (`prep-days` = `''`, `prep-name` = `'Prep'` on `v1.0.0-saved.html`), as plan
+  §7 said. ✅ **Re-cut 72 → 74 on the owner's sign-off** (picker, 19 Oct 2026), recorded in the baseline's README.
+- ⭐ **Learned / decided:**
+  1. **Prep's segment `start` is Production's start, a lane anchor, not its first day** (plan §13.1; ✅ the owner
+     kept it, picker 19 Oct 2026: "Under the shoot"):
+     frozen `renderMonthView` stacks lanes by `start`, and the true first day would put prep above the shoot and
+     make Production hop lanes. Real bounds are `firstDay`/`lastDay`; `monthRangeForSchedule()` reads them.
+  2. **Prep must be appended LAST in `computeSchedule()`** (after weeks, notes, holidays). That is what makes Excel
+     and the waterfall PDF byte-identical with prep on and off, which the leg now proves.
+  3. A holiday inside a prep but outside every phase gets no month-view note (adding one would reach the waterfall).
+  4. The episodes' and blocks' restore maps copy field by field: a new per-unit key must be named there too.
+- **Proof:** leg `episodeprep` (LIVE 23, RESTORE 24, BLOCKS 5), in `gate.sh`; Excel (16 parts) and the waterfall PDF
+  byte-identical on/off; `npm run check` 40/40; `check-refs.py` CLEAN.
+  - **Full gate on build `9b3f13ad1af1e310…` (1,518,415 bytes): 1,799 PASS, 5 FAIL** (17 min, 19 Oct 2026). Gates 1–4 green (0
+    clipped, waterfall PDF and every Excel part identical, v1.0.0 restores identically); gate 10's ten print documents
+    identical; gate 13's twenty written month PDFs byte-identical, no re-cut.
+  - **Gate 5 FAILED, as predicted:** gained exactly `prep-days` and `prep-name`, nothing lost, nothing changed (72 → 74
+    ids). ✅ **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
+  - ⚠️ **The other four failures were contention, and passed alone.** Two other sessions' gates (worktree
+    `autonote-grips`, and a scratchpad `wt-old` twice) ran on this machine at the same time as this one: `pilllabel`
+    `carry-rich` W0 and `halfdays` W3 (a month walk cut to one month) and `monthexport` X6 on `stintswap-reshape` and X4 on
+    `dayoverrides` (timed dialog cases that passed on every other calendar). Re-run alone afterwards: `pilllabel` 12 and
+    16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
+- **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
+  sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
+- ⏭ **Next:** land `claude/episode-prep-merge` on `main` once the main checkout's own work is committed (the owner's
+  call: it is another session's work); push only on the owner's word. Possibly cut the two prep fixtures into gates 10
+  and 13 as new cases (not done; that is a baseline change the owner has not asked for).
+
 ### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK (AND DAY-NUMBER) MENU IN THE MONTH VIEW (not built; all rulings in, ready to build)
 
 - Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
@@ -247,7 +296,7 @@
   4. **Chrome moved to 155.0.8059.82** since the 15 Oct cut (.40). Its compressor did not move anything: all nineteen untouched gate-13 files stayed byte-identical under .82.
   5. **The owner's Mac ran this session on battery (17-18%).** Ask for power before a full gate, not during one.
 
-### 📝 15 Oct 2026: PLANNED — PER-EPISODE PREP, DERIVED FROM THE SHOOT, MONTH VIEW ONLY (not built)
+### 📝 15 Oct 2026: PLANNED — PER-EPISODE PREP, DERIVED FROM THE SHOOT, MONTH VIEW ONLY (✅ BUILT 19 Oct 2026, see the top entry)
 
 - From the custom-phases plan's ruling 6 (entry below): each episode gets a prep run of N working days ending the day
   before its first shoot day, computed from the shoot, so it follows every move. The plan is

@@ -3161,6 +3161,9 @@ export function initLegacyApp() {
       // ('CA-BC' etc.) when the country is Canada. Named unionCountry for continuity with the
       // rest of computeSchedule, which only ever uses it to look up HOLIDAYS[...].
       unionCountry: effectiveRegionKey(),
+      // Per-episode prep's default length and look (EPISODE-PREP-PLAN.md). Read here with every other
+      // field, so a computeSchedule() over a modified state (the solvers, spanCulprit) carries it.
+      prep: readPrepConfig(),
       simultaneousPost:{
         enabled: document.getElementById('simpost-enabled').checked,
         offsetWeeks: parseInt(document.getElementById('simpost-offset').value,10) || 0,
@@ -3658,7 +3661,13 @@ export function initLegacyApp() {
     const stintOrder = applyStintSwaps(weeks);
     const appliedColSwaps = applyColSwaps(weeks);
 
-    return {weeks, maxConcurrent, totalWeeks, overallStart, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    const schedule = {weeks, maxConcurrent, totalWeeks, overallStart, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    // ⭐ PER-EPISODE PREP, appended LAST (EPISODE-PREP-PLAN.md §4): every week, column, maxConcurrent, note
+    // and holiday above was built without it, so the waterfall, Excel and the waterfall PDF -- which read
+    // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
+    // view, which draws schedule.segments, sees it. ⛔ Do not move this above the week loop.
+    appendEpisodePrep(schedule, state, hiatuses);
+    return schedule;
   }
 
   // Resolve gridColSwaps into the disjoint transpositions that actually apply to ONE week.
@@ -5558,8 +5567,133 @@ export function initLegacyApp() {
           update();
         });
       });
+      // The Prep row goes straight under Production, which it is derived from (EPISODE-PREP-PLAN.md §6).
+      if(p.key === 'production') wrap.appendChild(buildPrepRow());
     });
   }
+
+  // ⭐ THE PREP ROW (EPISODE-PREP-PLAN.md §6, rulings P1, P2, P4). A phase-row in look only: it is not a
+  // phase, carries no start-/weeks- field and is never in getAllPhaseDefs() (see PREP_KEY).
+  //   - Shown only in the MONTH VIEW (P1), by CSS off the view toggle (legacy.css, .prep-row), the rule
+  //     the month-only Preferences use. Hidden, never cleared: it changes nothing in the waterfall.
+  //   - #prep-name and #prep-days are its two id'd fields, so fields.byId carries them. ⛔ BOTH ARE
+  //     PERMANENT SAVE FORMAT, and this row is STATIC (never rebuilt on restore), so an absent id is
+  //     defaulted explicitly in applyStateSnapshot() and in New's reset -- the audit M-5 trap.
+  //   - The per-episode (per-block) boxes in #prep-rows carry NO id, like the episode list's own boxes:
+  //     their values live on episodeDefs[].prepDays / blockDefs[].prepDays, which the snapshot carries.
+  //     An id there would bake a junk key into every saved file and add a phantom undo step per key.
+  //   - The list and the summary line are refreshPrepUI()'s, from update().
+  function buildPrepRow(){
+    const row = document.createElement('div');
+    row.className = 'phase-row prep-row';
+    row.id = 'prep-row';
+    row.innerHTML = `
+        <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
+        <div class="custom-phase-header">
+          <input type="text" class="phase-name-input" id="prep-name" value="${PREP_DEF.label}" placeholder="${PREP_DEF.label}" aria-label="Prep name">
+        </div>
+        <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
+        <div class="phase-fields">
+          <label title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep days <input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None"></label>
+        </div>
+        <div class="phase-meta prep-meta" id="prep-meta"></div>
+        <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
+    row.querySelector('#prep-name').addEventListener('input', update);
+    row.querySelector('#prep-days').addEventListener('input', update);
+    const sw = row.querySelector('.swatch');
+    sw.addEventListener('click', ()=>{
+      openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=>{
+        phaseColorOverride[PREP_KEY] = i;
+        reflectPrepSwatch();
+        update();
+      });
+    });
+    // One episode's (block's) own length. Blank goes back to the default by REMOVING the key, so a box
+    // typed and cleared leaves the file as it was. update() is what recomputes and banks the undo step.
+    row.addEventListener('input', (e)=>{
+      const t = e.target;
+      if(!t || !t.classList || !t.classList.contains('prep-unit-days')) return;
+      const r = t.closest('.prep-unit-row');
+      if(!r) return;
+      const list = r.dataset.kind === 'block' ? blockDefs : episodeDefs;
+      const def = list.find(x=> x.id === r.dataset.id);
+      if(!def) return;
+      if(t.value === '') delete def.prepDays; else def.prepDays = t.value;
+      t.classList.toggle('is-edited', hasPrepOverride(def));
+      update();
+    });
+    return row;
+  }
+  function reflectPrepSwatch(){
+    const sw = document.getElementById('swatch-' + PREP_KEY);
+    const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)];
+    if(sw && opt) sw.style.background = opt.color;
+  }
+
+  // The Prep row's list and summary line, from update() (after render, like refreshCustomUnitMeta).
+  // The list follows the SHOOTING order (effectiveShootOrder, ruling 9), or the blocks in Blocks mode
+  // (P4), so it re-sequences wherever the episode list does. It is REBUILT only when its rows change
+  // (the mode, which units, their order or names), never on a keystroke in one of its own boxes, which
+  // would take the focus and the caret. Otherwise the values are written back in place from the store,
+  // skipping the box being typed in, so an undo or a Load shows the restored lengths. Nothing here
+  // writes an id'd field, so update() calling it adds no undo step.
+  function refreshPrepUI(schedule){
+    const wrap = document.getElementById('prep-rows');
+    const metaEl = document.getElementById('prep-meta');
+    if(!wrap) return;
+    const info = showInfoStatus();
+    const blocks = info.blocks;
+    const dflt = prepDayCount((document.getElementById('prep-days') || {}).value);
+    let units = [];
+    if(info.complete){
+      if(blocks) units = blockDefs.map(b=> ({kind: 'block', def: b, name: b.name || 'Block'}));
+      else {
+        const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+        units = effectiveShootOrder().map(id=> byId.get(id)).filter(Boolean).map(e=> ({kind: 'episode', def: e, name: e.name || 'Episode'}));
+      }
+    }
+    const key = (blocks ? 'B' : 'E') + '|' + units.map(u=> u.def.id + ':' + u.name).join('|');
+    if(wrap._prepKey !== key){
+      wrap._prepKey = key;
+      wrap.innerHTML = !units.length ? '' :
+        '<div class="ep-hint">Blank uses the default. 0 gives ' + (blocks ? 'that block' : 'that episode') + ' no prep.</div>'
+        + '<div class="ep-list">' + units.map(u=>`
+          <div class="prep-unit-row" data-kind="${u.kind}" data-id="${escHtml(u.def.id)}">
+            <span class="prep-unit-name">${escHtml(u.name)}</span>
+            <label class="num-suffix" title="Prep days for ${escHtml(u.name)}"><input type="number" class="prep-unit-days prep-days-in" min="0" step="1" value="" placeholder="–" aria-label="${escHtml(u.name)} prep days"><span>days</span></label>
+          </div>`).join('') + '</div>';
+    }
+    const ph = Number.isFinite(dflt) ? String(dflt) : '–';
+    wrap.querySelectorAll('.prep-unit-row').forEach(r=>{
+      const list = r.dataset.kind === 'block' ? blockDefs : episodeDefs;
+      const def = list.find(x=> x.id === r.dataset.id);
+      const inp = r.querySelector('.prep-unit-days');
+      if(!inp) return;
+      if(inp.placeholder !== ph) inp.placeholder = ph;
+      const want = hasPrepOverride(def) ? String(def.prepDays) : '';
+      if(document.activeElement !== inp && inp.value !== want) inp.value = want;
+      inp.classList.toggle('is-edited', hasPrepOverride(def));
+    });
+    if(metaEl) metaEl.textContent = prepSummary(schedule, info, units, dflt);
+  }
+  // The summary line: what was made, or why nothing was (plan §6).
+  function prepSummary(schedule, info, units, dflt){
+    const word = info.blocks ? 'block' : 'episode';
+    if(!info.complete) return 'Complete Show Info to add prep.';
+    const seg = ((schedule && schedule.segments) || []).find(s=> s.key === PREP_KEY);
+    if(seg){
+      const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const n = seg.preps.length;
+      const span = n ? ' · ' + DOW[seg.firstDay.getUTCDay()] + ' ' + fmtShort(seg.firstDay) + ' → '
+                   + DOW[seg.lastDay.getUTCDay()] + ' ' + fmtShort(seg.lastDay) : '';
+      return n + ' prep' + (n === 1 ? '' : 's') + span;
+    }
+    const anyLen = (Number.isFinite(dflt) && dflt > 0) || units.some(u=> prepDayCount(u.def.prepDays) > 0);
+    if(!anyLen) return 'No prep. Type a default, or a length for one ' + word + '.';
+    return 'No prep yet: Production has no shoot days.';
+  }
+
+  // (The prep runs themselves are appendEpisodePrep's, beside productionUnits().)
 
   // Custom phases: user-named, always standard start-date + weeks (never shooting-days mode,
   // never auto-noted). Color is pickable -- including matching one of the 6 standard categories,
@@ -5692,6 +5826,50 @@ export function initLegacyApp() {
   // ⛔ LABELS, NOT DATES: the order decides which days each episode occupies, never how many days
   // Production has. Σ days is order-independent, so the wrap cannot move.
   let episodeShootOrder = [];
+
+  // ⭐ PER-EPISODE PREP (EPISODE-PREP-PLAN.md; owner rulings P1-P5, 15 Oct 2026). Each episode -- each
+  // BLOCK in Blocks mode (P4), the first one included (P3) -- gets a run of N working days ending the
+  // day before its first shoot day. It is DERIVED from the shoot (appendEpisodePrep), so it follows
+  // every move, and nothing is stored but the lengths: the default (#prep-days) and a per-episode or
+  // per-block override (episodeDefs[].prepDays / blockDefs[].prepDays, P2). It is drawn in the MONTH
+  // VIEW and the month PDF ONLY (P1), never in the waterfall, Excel or the waterfall PDF.
+  // ⛔ NOT A PHASE, and never returned by getAllPhaseDefs(). readState() and frozen render()'s hint
+  // loop both do getElementById('start-' + key).value for every def, and prep has no start field, so a
+  // prep def there would throw and take the whole render with it (plan §4.1). It is one SEGMENT that
+  // computeSchedule() appends AFTER the weeks are built; the waterfall, Excel and the waterfall PDF read
+  // schedule.weeks and never schedule.segments, so they cannot see it.
+  // ⛔ 'episodePrep' IS PERMANENT from the first file saved with a picked colour: phaseColorOverride
+  // stores the prep colour under it (plan §4.4). The default colour is Light purple, which no built-in
+  // phase uses, so a prep bar beside Production's green and Prod Prep's slate reads as its own thing.
+  // (My pick, not a ruling: it is the unpicked default and stored nowhere, so it is cheap to change.)
+  const PREP_KEY = 'episodePrep';
+  const PREP_DEF = {key: PREP_KEY, label: 'Prep', color: '#E4DFEC', textColor: '#5F497A'};
+  // A prep length as typed: a whole number of working days, 0 included (an override of 0 means "no
+  // prep for this one", §5), or NaN for a blank or unreadable box. parseInt, like every other duration
+  // here; reflectStartDateValidity() rings a fraction ("Whole days only").
+  function prepDayCount(v){
+    const n = parseInt(v, 10);
+    return (Number.isFinite(n) && n >= 0) ? n : NaN;
+  }
+  // Does this episode or block carry its own prep length? An ABSENT key means "use the default", and
+  // so does '' -- the restore maps and the input handler never write '', so a calendar nobody gave a
+  // prep length saves byte for byte what it saved before prep existed.
+  function hasPrepOverride(def){
+    return !!def && def.prepDays !== undefined && def.prepDays !== null && def.prepDays !== '';
+  }
+  // The prep "phase" as drawn: the name typed in the Prep row (#prep-name, blank = "Prep") and its
+  // colour (phaseColorOverride.episodePrep, else the default above).
+  function prepDisplayDef(){
+    const nameEl = document.getElementById('prep-name');
+    const typed = nameEl ? nameEl.value.trim() : '';
+    const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)] || PHASE_COLOR_OPTIONS[0];
+    return {key: PREP_KEY, label: typed || PREP_DEF.label, color: opt.color, textColor: opt.text};
+  }
+  // What readState() hands computeSchedule(): the default length and the def. The per-unit overrides
+  // are read from episodeDefs/blockDefs at schedule time, as productionUnits() reads their day counts.
+  function readPrepConfig(){
+    return {dflt: prepDayCount((document.getElementById('prep-days') || {}).value), def: prepDisplayDef()};
+  }
 
   function getAllPhaseDefs(){
     const fixed = PHASES.map(p=>{
@@ -7921,10 +8099,16 @@ export function initLegacyApp() {
   // such a bar is named by what mvProdLabel picks -- "Ep. 201", "Block 1", or this week label --
   // with the rest in its grey text (unitBarLabel). A Production run with no unit (no Show Info, or
   // days past Σ units) keeps the week label, exactly as before.
+  // A prep pill names the prep and its unit, "Prep 202" (EPISODE-PREP-PLAN.md §8), from the run
+  // pillRunsForWeek() handed over (takePrepRun), never from the date: two overlapping preps share one.
   function segPillLabel(s, date){
     if(s.key === 'production'){
       const r = takeProdRun(date);
       if(r && r.unit) return unitBarLabel(r.kind, r.unit, prodWeekLabel(s, date));
+    }
+    if(s.key === PREP_KEY){
+      const r = takePrepRun(date);
+      return prepPillLabel(s, r ? r.prep : null);
     }
     return prodWeekLabel(s, date);
   }
@@ -7939,6 +8123,13 @@ export function initLegacyApp() {
   // The run(s) of consecutive covered days for a phase within one week row, so each can be
   // drawn as a single pill spanning those columns.
   function pillRunsForWeek(schedule, weekStart, seg){
+    // Per-episode prep: one run per prep per stretch of its days, overlapping preps included (P5), and
+    // recorded for segPillLabel(), which the frozen loop asks run by run (takePrepRun).
+    if(seg.key === PREP_KEY){
+      const prepRuns = prepRunsForWeek(schedule, weekStart, seg);
+      _prepRuns = {week: isoOf(weekStart), runs: prepRuns, next: 0};
+      return prepRuns;
+    }
     const runs = [];
     let run = null;
     for(let i=0;i<7;i++){
@@ -8793,7 +8984,9 @@ export function initLegacyApp() {
       // that got dropped rather than deleting someone's work silently.
       while(episodeDefs.length > wanted){
         const last = episodeDefs.pop();
-        if(last.nameEdited || last.daysEdited) dropped.push(last.name || 'an episode');
+        // A typed prep length is an edit too (EPISODE-PREP-PLAN.md §6): it goes with the episode, so it
+        // is named in the same "Removed ..." warning rather than lost in silence.
+        if(last.nameEdited || last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'an episode');
       }
     }
     episodeDefs.forEach((e, i)=>{
@@ -8825,7 +9018,7 @@ export function initLegacyApp() {
       // what the warning names.
       while(blockDefs.length > wanted){
         const last = blockDefs.pop();
-        if(last.daysEdited) dropped.push(last.name || 'a block');
+        if(last.daysEdited || hasPrepOverride(last)) dropped.push(last.name || 'a block');
       }
     }
     blockDefs.forEach((b, i)=>{
@@ -9133,6 +9326,130 @@ export function initLegacyApp() {
     }
     _prodUnitCache.set(schedule, out);
     return out;
+  }
+
+  // ⭐ PER-EPISODE PREP: THE DERIVATION (EPISODE-PREP-PLAN.md §5). computeSchedule() calls this LAST, after
+  // every week, note and holiday is built, and it only APPENDS one segment, so it moves no date anywhere.
+  // For every unit productionUnits() lays on the shoot -- episodes in SHOOTING order, or blocks (P4) --
+  // the first one included (P3):
+  //   n     = the unit's own prepDays if it has one, else the default (#prep-days) (P2);
+  //   first = the unit's first shoot day (a half switch day counts: the unit is shot on it);
+  //   run   = n working days counted BACK from the day before `first`. A working day is isUnitWorkDay()'s:
+  //           Mon-Fri, not an ENABLED union holiday, not in an all-phase hiatus -- the one copy of the
+  //           rule a Days phase is walked with. No ownHi: Production's own hiatus pauses the SHOOT.
+  // n blank or 0 skips the unit, so a blank default with no overrides makes NO segment at all, and that
+  // is how every calendar saved before prep existed opens. dayOverrides play no part: they decide which
+  // days are SHOT, and a Saturday the shoot works is not a prep day. No Show Info, no prep.
+  // The segment, the only one of its kind:
+  //   days      the union of every run's days: segCoversDate() reads it (the custom-units groundwork);
+  //   preps     each run, in unit order: pillRunsForWeek() splits prep's pills by them (§8);
+  //   firstDay / lastDay  its real bounds: monthRangeForSchedule() reads them, so a first prep that
+  //             starts before every phase still gets its month.
+  //   start     ⛔ NOT its first day. Frozen renderMonthView stacks a week's phases in lanes by `start`
+  //             (earliest on top, a stable sort), so this is Production's own start, and prep -- appended
+  //             after Production -- sorts straight after it. Production then keeps exactly the lane it
+  //             has today, and each prep stacks UNDER the shoot it overlaps, the example's "second
+  //             lane". With its true first day, prep would sort ABOVE the shoot, and Production would
+  //             hop down a lane in every week a prep overlaps. (My decision, not a ruling; one line.)
+  //             landmarkDate() and scheduleLastDay() skip prep, so neither ever reads it.
+  // Waterfall, Excel and the waterfall PDF read schedule.weeks, never this, so they cannot draw it (P1).
+  function appendEpisodePrep(schedule, state, hiatuses){
+    const cfg = state && state.prep;
+    if(!cfg) return;
+    const blocks = isBlocksMode();
+    const defs = blocks ? blockDefs : episodeDefs;
+    const lengthOf = def=>{
+      const own = hasPrepOverride(def) ? prepDayCount(def.prepDays) : NaN;
+      return Number.isFinite(own) ? own : cfg.dflt;
+    };
+    // The cheap exit, before any unit is laid out: the backward solvers call computeSchedule() up to 300
+    // times a solve, and a calendar with no prep length at all must pay nothing.
+    if(!(cfg.dflt > 0) && !defs.some(d=> lengthOf(d) > 0)) return;
+    const prod = (schedule.segments || []).find(s=> s.key === 'production');
+    if(!prod || !prod.shootDays || !prod.shootDays.length) return;
+    if(!showInfoStatus().complete) return;
+    const U = productionUnits(schedule);
+    if(!U) return;
+    const ctx = {holidayIsos: new Set(fullHolidayList(state.unionCountry).filter(h=> h.enabled).map(h=> h.date)),
+                 hiatuses: hiatuses || [], ownHi: null};
+    const preps = [], all = new Set();
+    let firstDay = null, lastDay = null;
+    U.units.forEach(u=>{
+      const def = (U.kind === 'block') ? blockDefs[u.i] : episodeDefs.find(e=> e.id === u.id);
+      const n = lengthOf(def);
+      if(!(n > 0) || !u.days.size) return;
+      // A unit's days were added in shoot order, which is date order, so the first is its first day.
+      const first = parseDateUTC(u.days.values().next().value);
+      if(!first) return;
+      const list = [];
+      // Bounded like a Days phase's walk: a typo'd length stops one calendar's worth of weeks back.
+      for(let d = addDays(first, -1), safety = 0; list.length < n && safety < MAX_WEEKS * 7; d = addDays(d, -1), safety++){
+        if(isUnitWorkDay(d, ctx)) list.unshift(isoOf(d));
+      }
+      if(!list.length) return;
+      const p = {kind: U.kind, unit: u, days: new Set(list), first: parseDateUTC(list[0]), last: parseDateUTC(list[list.length - 1])};
+      list.forEach(iso=> all.add(iso));
+      if(!firstDay || p.first < firstDay) firstDay = p.first;
+      if(!lastDay || p.last > lastDay) lastDay = p.last;
+      preps.push(p);
+    });
+    if(!preps.length) return;
+    const def = cfg.def || PREP_DEF;
+    schedule.segments.push({key: PREP_KEY, label: def.label, name: def.label, color: def.color, textColor: def.textColor,
+      start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
+      days: all, preps, shootDays: null, phaseHiatus: null, prep: true});
+  }
+
+  // Prep's pills in one Sun-Sat row: each prep's own runs, in unit order (P5: overlapping preps STACK).
+  // Two preps that share days come back as two runs over the same columns, and frozen takeLane() puts
+  // the second in the next free lane -- separate lanes, no frozen edit (§8). A prep's days are working
+  // days only, so a run breaks at a weekend, a holiday and a hiatus, as a Days phase's does.
+  function prepRunsForWeek(schedule, weekStart, seg){
+    const out = [];
+    (seg.preps || []).forEach(p=>{
+      let run = null;
+      for(let i=0;i<7;i++){
+        const d = addDays(weekStart, i);
+        if(p.days.has(isoOf(d)) && !isHiatusDate(schedule, d)){
+          if(!run) run = {startCol:i, endCol:i, date:d, prep:p};
+          else run.endCol = i;
+        } else if(run){ out.push(run); run = null; }
+      }
+      if(run) out.push(run);
+    });
+    return out;
+  }
+  // ⚠️ THE SECOND PLACE THIS FILE LEANS ON THE FROZEN LOOP'S CALL ORDER, and on the same contract as
+  // _prodRuns/takeProdRun (read that comment): frozen renderMonthView does, and is frozen as doing,
+  //   pillRunsForWeek(...).forEach(r=>{ segPillLabel(s, start of r); ...; place(...) })
+  // so the Nth prep label asked for after pillRunsForWeek() is its Nth run. A date alone cannot tell
+  // two overlapping preps apart: both continue from the week before and start on the same Monday
+  // (plan §8). takePrepRun() takes the next run if it starts on that column, else the first one that
+  // does. If the loop were ever re-ordered, the worst case is two overlapping prep bars swapping names
+  // -- no date can move. The episodeprep leg holds the overlap's labels and lanes.
+  let _prepRuns = null;   // {week: iso of the row's Sunday, runs, next}
+  function takePrepRun(date){
+    const P = _prepRuns;
+    if(!P) return null;
+    const col = date.getUTCDay();
+    if(isoOf(addDays(date, -col)) !== P.week) return null;
+    let k = (P.runs[P.next] && P.runs[P.next].startCol === col) ? P.next : -1;
+    if(k < 0) k = P.runs.findIndex(r=> r.startCol === col);
+    if(k < 0) return null;
+    P.next = k + 1;
+    return P.runs[k];
+  }
+  // A prep pill's text: the Prep row's name and the unit it preps, "Prep 202" or "Prep Block 2" (P4: the
+  // block's name). Read at render time, so renaming an episode or the row shows at once.
+  function prepPillLabel(s, p){
+    const name = s.label || PREP_DEF.label;
+    if(!p) return name;
+    if(p.kind === 'block'){
+      const b = blockDefs[p.unit.i];
+      return name + ' ' + ((b && b.name) || ('Block ' + (p.unit.i + 1)));
+    }
+    const e = episodeDefs.find(x=> x.id === p.unit.id);
+    return e ? name + ' ' + shortEpisodeName(e) : name;
   }
 
   // The bar text and the grey text of one unit's run -- the ONLY place a split bar's two strings are
@@ -13855,6 +14172,7 @@ export function initLegacyApp() {
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
     refreshCustomUnitMeta(currentSchedule);
+    refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
@@ -13921,8 +14239,10 @@ export function initLegacyApp() {
     return Number.isFinite(n) && n !== parseInt(v, 10);
   }
   const HALF_FIELDS = '#episode-rows .ep-days, #episode-rows .blk-days, #shoot-days-per-ep, #days-per-block';
+  // The prep lengths (EPISODE-PREP-PLAN.md) count WORKING days, whole ones, like a Days phase.
+  const PREP_FIELDS = '.form-panel .prep-days-in';
   const WHOLE_FIELDS = '.form-panel input[id^="weeks-"], #hiatus-list .hiatus-weeks, .phiatus-weeks, #simpost-offset, '
-                     + HALF_FIELDS + ', .form-panel .phase-days';
+                     + HALF_FIELDS + ', .form-panel .phase-days, ' + PREP_FIELDS;
   function reflectStartDateValidity(state, extraBad){
     // unitBadFields: a Dates phase's end before its start (CUSTOM-PHASE-UNITS-PLAN.md) -- one phase
     // left out, never the whole calendar refused, so it is not a badYearField.
@@ -13933,18 +14253,19 @@ export function initLegacyApp() {
       bad.add(el);
       // The two Show Info defaults are Mantine NumberInputs, whose input sits in the wrapper rather
       // than inside its <label>, so the wrapper hosts the words (printed under the field).
-      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('label')
-                || el.closest('.mantine-InputWrapper-root');
+      const host = el.closest('.episode-row') || el.closest('.block-head') || el.closest('.prep-unit-row')
+                || el.closest('label') || el.closest('.mantine-InputWrapper-root');
       // Both rules, kept side by side (merged 15 Oct 2026): an episode's or block's count may end in .5
       // (HALF_FIELDS, the half-days ruling), while a custom phase's Days box counts WORKING days,
       // which are whole (CUSTOM-PHASE-UNITS-PLAN.md) -- isWholeNumberTypo() applies the whole rule to
       // it because it is not in HALF_FIELDS.
       if(host) hosts.set(host, el.matches(HALF_FIELDS) ? 'Whole or half days only'
-                             : el.classList.contains('phase-days') ? 'Whole days only' : 'Whole weeks only');
+                             : (el.classList.contains('phase-days') || el.classList.contains('prep-days-in')) ? 'Whole days only'
+                             : 'Whole weeks only');
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
     hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end').forEach(el=>{
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end, ' + PREP_FIELDS).forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{
@@ -14836,6 +15157,11 @@ export function initLegacyApp() {
       const sw = document.getElementById('swatch-'+p.key);
       if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
     });
+    // The Prep row (EPISODE-PREP-PLAN.md): static markup, so New puts it back by hand -- no default, the
+    // name "Prep", the default colour. The per-episode lengths go with episodeDefs/blockDefs below.
+    { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
+    { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
+    reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
     document.querySelectorAll('.phiatus-start').forEach(el=>{ el.value = ''; });
@@ -16067,8 +16393,10 @@ export function initLegacyApp() {
     return d;
   }
   // The last workday of the whole schedule: the latest of every phase's last workday.
+  // Prep is skipped (EPISODE-PREP-PLAN.md §4.2): it always ends before its shoot, but it is derived, not
+  // scheduled, so it must never be what the schedule's end is read from.
   function scheduleLastDay(){
-    const segs = (currentSchedule && currentSchedule.segments) || [];
+    const segs = ((currentSchedule && currentSchedule.segments) || []).filter(s=> s.key !== PREP_KEY);
     if(!segs.length) return null;
     let last = null;
     segs.forEach(s=>{ const d = phaseLastWorkday(s); if(d && (!last || d > last)) last = d; });
@@ -17068,7 +17396,9 @@ export function initLegacyApp() {
         if(edge === 'end') return scheduleLastDay();
         const segs = (currentSchedule && currentSchedule.segments) || [];
         let first = null;
-        segs.forEach(s=>{ if(!first || s.start < first) first = s.start; });
+        // ⛔ Not prep (EPISODE-PREP-PLAN.md §4.2): it is derived from the shoot and moves with it, so it
+        // cannot be a landmark to anchor the shoot BY -- and its `start` is a lane anchor, not a date.
+        segs.forEach(s=>{ if(s.key !== PREP_KEY && (!first || s.start < first)) first = s.start; });
         return first;
       }
       if(edge === 'start') return phaseStartDate(key);
@@ -17682,10 +18012,13 @@ export function initLegacyApp() {
     if(!segs.length) return null;
     let min = Infinity, max = -Infinity;
     segs.forEach(s=>{
-      min = Math.min(min, s.start.getTime());
+      // Per-episode prep carries its real bounds as firstDay/lastDay; its `start` is a lane anchor
+      // (appendEpisodePrep). Read the bounds, so a first prep before every phase still gets its month
+      // (EPISODE-PREP-PLAN.md §4.2). Every other segment has neither and reads exactly as before.
+      min = Math.min(min, (s.firstDay || s.start).getTime());
       // `end` is exclusive, so step back a day to get the last day actually covered -- a phase
       // ending on the 1st shouldn't drag in a whole extra month.
-      max = Math.max(max, addDays(s.end, -1).getTime());
+      max = Math.max(max, (s.lastDay || addDays(s.end, -1)).getTime());
     });
     (schedule.hiatuses||[]).forEach(h=>{
       if(segs.some(s=> h.start < s.end && h.end > s.start)){
@@ -20814,12 +21147,22 @@ export function initLegacyApp() {
     }
     // Episodes, blocks, the shooting order: ids are minted by the app, day counts are numbers.
     const cleanId = v => (typeof v === 'string' && SNAP_ID.test(v)) ? v : undefined;
+    // A prep length (EPISODE-PREP-PLAN.md) is a day count like `days`, and it reaches value="…" the same
+    // way. Anything else is counted and DROPPED rather than kept as '': an absent key is "use the
+    // default", which is all a bad value could have meant.
+    const cleanPrepDays = o => {
+      if(!('prepDays' in o)) return;
+      const d = countVal(o.prepDays);
+      if(d !== o.prepDays) bad.n++;
+      if(d === '') delete o.prepDays; else o.prepDays = d;
+    };
     if(Array.isArray(s.episodeDefs)){
       s.episodeDefs = s.episodeDefs.filter(e=>{ if(isPlainObj(e)) return true; bad.n++; return false; }).map(e=>{
         const o = Object.assign({}, e);
         if(o.id !== undefined && !cleanId(o.id)){ bad.n++; delete o.id; }   // applyStateSnapshot mints a fresh one
         if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
         if(o.days !== undefined){ const d = countVal(o.days); if(d !== o.days) bad.n++; o.days = d; }
+        cleanPrepDays(o);
         return o;
       });
     }
@@ -20833,6 +21176,7 @@ export function initLegacyApp() {
           const eps = Array.isArray(o.episodes) ? o.episodes : [];
           o.episodes = eps.filter(x=>{ if(cleanId(x)) return true; bad.n++; return false; });
         }
+        cleanPrepDays(o);
         return o;
       });
     }
@@ -20917,10 +21261,14 @@ export function initLegacyApp() {
     restoredFileIsPreHolidayFix = migrateRegionSnapshot(snap);
     // 1. Rebuild custom phase rows, then set their saved counter
     if(Array.isArray(snap.episodeDefs)){
+      // ⛔ FIELD BY FIELD, so a new per-episode key must be named here or every load, undo and crash
+      // recovery drops it silently. `prepDays` (EPISODE-PREP-PLAN.md §4.3) is copied only when the file
+      // has one: absent means "use the default", and a calendar that never set one round-trips exactly.
       episodeDefs = snap.episodeDefs.map(e=>({
         id: e.id || ('ep'+(++episodeCounter)),
         name: e.name || '', days: (e.days===undefined?'':e.days),
-        nameEdited: !!e.nameEdited, daysEdited: !!e.daysEdited
+        nameEdited: !!e.nameEdited, daysEdited: !!e.daysEdited,
+        ...(hasPrepOverride(e) ? {prepDays: e.prepDays} : {})
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
     }
@@ -20991,7 +21339,12 @@ export function initLegacyApp() {
     // be SCHEDULED IN BLOCKS MODE from the first file's block count -- a different wrap date, on
     // someone else's plan, with no error anywhere. An absent show-mode means Episodes, always.
     const hasField = id => !!(snap.fields && snap.fields.byId && (id in snap.fields.byId));
-    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', '']].forEach(([id, dflt])=>{
+    // ⛔ And the Prep row's two fields (EPISODE-PREP-PLAN.md §7), which are STATIC markup a restore never
+    // rebuilds. Without these, a calendar saved before prep existed, opened after one with a default
+    // prep length, would be DRAWN WITH PREP RUNS from the previous file's default -- someone else's
+    // prep on your show. Absent means no default and the name "Prep".
+    [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
+     ['prep-days', ''], ['prep-name', PREP_DEF.label]].forEach(([id, dflt])=>{
       const el = document.getElementById(id);
       if(el && !hasField(id)) el.value = dflt;
     });
@@ -21022,6 +21375,8 @@ export function initLegacyApp() {
       days: (b && b.days !== undefined) ? b.days : '',
       daysEdited: !!(b && b.daysEdited),
       episodes: (b && Array.isArray(b.episodes)) ? b.episodes.filter(x=> typeof x === 'string') : [],
+      // The per-block prep length (P4), under the same rule as the episodes' map above.
+      ...(hasPrepOverride(b) ? {prepDays: b.prepDays} : {}),
     })) : [];
     // Never below the highest id already in use, so the next block cannot collide with a saved one.
     blockCounter = Math.max(typeof snap.blockCounter === 'number' ? snap.blockCounter : 0,
@@ -21210,6 +21565,7 @@ export function initLegacyApp() {
       const nameEl = document.getElementById('name-'+p.key);
       if(nameField && nameEl) nameField.placeholder = ((nameEl.value.trim() || p.label)) + ' Hiatus';
     });
+    reflectPrepSwatch();   // the Prep row's colour lives in the same store (EPISODE-PREP-PLAN.md)
     // 4e. Match per-phase hiatus field visibility + name placeholders to the restored values.
     refreshPhaseHiatusUI();
     document.querySelectorAll('#custom-phase-rows .phase-row').forEach(row=>{
