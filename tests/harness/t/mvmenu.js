@@ -1,8 +1,9 @@
 // mvmenu -- the month view's day menu (MONTH-CONTEXT-MENU-PLAN.md). Plan step 1: the right-click
 // listener and its guards, the panel and its close rules, and four items -- Add note, Add 1-day
 // phase here, Add 1-week phase here, Show this week in the waterfall. Plan step 2 (the A-cases): Add
-// hiatus ▸, its submenu (pointer, grace period, keys) and its three kinds of item. Later steps add
-// their sections here, and flip the "absent" checks below as they do.
+// hiatus ▸, its submenu (pointer, grace period, keys) and its three kinds of item. Plan step 3 (the
+// P-cases): the bar's own section -- Start here (a mover), End here (the edge handle's rule), Colour…,
+// Show in Phases card. Later steps add their sections here, and flip the "absent" checks below as they do.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
@@ -192,10 +193,12 @@ window.addEventListener('load', function () { (async function () {
         && mr.left >= 0 && mr.top >= 0 && mr.right <= innerWidth && mr.bottom <= innerHeight,
       {hit: h1.el.className, prevented: h1.prevented, info: i1, ring: rr && [rr.left, rr.width], cell: [cr.left, cr.width]},
       'the menu for 2026-07-08 on production');
-    add('H1s', 'The sections are This day and the way out, in that order, and the items are exactly step 1\'s four plus step 2\'s Add hiatus, none greyed out on a shoot day; focus is on the first',
-      i1 && eq(i1.sections, ['day', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS)
-        && i1.items.every(function (x) { return !x.disabled; }) && i1.focus === 'note',
-      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, out; ' + ITEMS.join(', '));
+    // On a bar, step 3's section for it sits between This day and the way out (the P-cases test it).
+    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'phase-show'], ITEMS.slice(4));
+    add('H1s', 'The sections are This day, Production\'s own (step 3) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus and step 3\'s four, only End Production here greyed out on a shoot day; focus is on the first',
+      i1 && eq(i1.sections, ['day', 'phase', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
+        && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'note',
+      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, phase, out; ' + ITEMS_BAR.join(', '));
     key('Escape');
     add('S1', 'Opening and closing the menu leaves fields.byId exactly as it was, and Escape leaves no panel or ring behind',
       eq(sig(), s0) && !menuEl() && !document.querySelector('.day-menu-ring'), sigDiff(s0, sig()), 'no change');
@@ -515,8 +518,9 @@ window.addEventListener('load', function () { (async function () {
     // A3: the keyboard.
     var kk = [];
     function kstate(){ return (menuInfo() ? menuInfo().focus : 'closed') + (subEl() ? '+sub' : ''); }
+    // Reached from the top, so the walk holds whatever sections follow This day (step 3 adds the bar's).
     key('Home'); kk.push(kstate());
-    key('End'); key('ArrowUp'); kk.push(kstate());
+    key('ArrowDown'); key('ArrowDown'); key('ArrowDown'); kk.push(kstate());
     key('ArrowRight'); kk.push(kstate());
     key('ArrowDown'); kk.push(kstate());
     key('ArrowLeft'); kk.push(kstate());
@@ -683,6 +687,152 @@ window.addEventListener('load', function () { (async function () {
     add('H6', 'A right-click on Post\'s start handle opens the menu for Mon 2 Nov with Post as its bar',
       !!qh && h6.el === qh && h6.prevented && i6 && i6.day === '2026-11-02' && i6.ph === 'post', {hit: h6.el && h6.el.className, info: i6}, '2 Nov, post');
     key('Escape');
+
+    // ---- P: the bar's own section (plan step 3, §3.4–3.7) ----
+    // Post (halfdays): a Weeks phase from Mon 2 Nov 2026, Snap to Mon ticked, 16 weeks. The leg is on November.
+    function phaseLabel(){ var l = menuEl() && menuEl().querySelector('[data-section="phase"] .day-menu-label'); return l ? txt(l) : null; }
+    function fv(id){ var e = document.getElementById(id); return e ? (e.type === 'checkbox' ? e.checked : e.value) : undefined; }
+    function inNov(days){ return days.filter(function (d) { return d.slice(0, 7) === '2026-11'; }); }
+    var NOV_WK1 = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'];
+
+    await rclick('2026-11-11', 'bar:post');
+    var p1 = menuInfo();
+    add('P1', 'Right-click on Post\'s bar on Wed 11 Nov: This day, then Post\'s own section headed "Post" with its colour, then the way out; Start, End, Colour… and Show in Phases card, none greyed out',
+      !!p1 && eq(p1.sections, ['day', 'phase', 'out']) && phaseLabel() === 'Post' && !!menuEl().querySelector('[data-section="phase"] .day-menu-swatch')
+        && eq(p1.items.filter(function (x) { return /^phase-(start|end|colour|show)$/.test(x.id); }).map(function (x) { return [x.id, x.disabled, x.second]; }),
+              [['phase-start', false, 'Moves it. Its length stays'], ['phase-end', false, 'Keeps its start. Changes its length'], ['phase-colour', false, ''], ['phase-show', false, '']]),
+      p1 && {sections: p1.sections, label: phaseLabel(), items: p1.items}, 'day, phase (Post), out');
+    key('Escape');
+
+    // P2: Start Post here on a WEDNESDAY: a mover, so the length stays and Snap to Mon comes off.
+    a = await primeThenOpen('2026-11-11', 'bar:post');
+    choose('phase-start');
+    await settle();
+    var p2 = {start: fv('start-post'), snap: fv('snap-post'), weeks: fv('weeks-post'), unit: fv('unit-post'), first: inNov(pillDays('post'))[0]};
+    var after2 = sig();
+    add('P2', 'Start Post here on Wed 11 Nov moves Post to start that day: start 2026-11-11, Snap to Mon UNTICKED, still 16 weeks in Weeks, its first bar day 11 Nov',
+      p2.start === '2026-11-11' && p2.snap === false && p2.weeks === '16' && p2.unit === 'weeks' && p2.first === '2026-11-11' && !menuEl(),
+      p2, 'start 2026-11-11, snap off, 16 weeks');
+    await T.sleep(700);
+    await undo();
+    var ok2 = eq(sig(), a.before) && (document.getElementById('show-title') || {}).value === 'Menu step ' + n;
+    await redo();
+    var ok2r = eq(sig(), after2);
+    await undo();
+    add('P2u', 'Exactly one undo step: undo lands on the state just before (the title typed before kept), redo on the state after', ok2 && ok2r, sigDiff(a.before, sig()), 'one step');
+    // On a Monday Snap to Mon is left ticked; on the day it already starts, the item is greyed out.
+    await rclick('2026-11-16', 'bar:post');
+    choose('phase-start');
+    await settle();
+    var p2m = {start: fv('start-post'), snap: fv('snap-post')};
+    await T.sleep(700);
+    await undo();
+    await rclick('2026-11-02', 'bar:post');
+    var p2g = item(menuInfo(), 'phase-start');
+    key('Escape');
+    add('P2m', 'Start Post here on Mon 16 Nov keeps Snap to Mon ticked; on Mon 2 Nov, where it already starts, the item is greyed out ("It already starts on this day")',
+      p2m.start === '2026-11-16' && p2m.snap === true && p2g.disabled && p2g.second === 'It already starts on this day', {monday: p2m, onItsStart: p2g}, 'snap kept; greyed on 2 Nov');
+
+    // P4: End Post here on Wed 11 Nov, the end handle's rule: Weeks first becomes Dates where it is drawn.
+    a = await primeThenOpen('2026-11-11', 'bar:post');
+    choose('phase-end');
+    await settle();
+    var p4 = {unit: fv('unit-post'), start: fv('start-post'), end: fv('end-post'), drawn: pillDays('post')};
+    var d4 = sigDiff(a.before, sig());
+    // weeks-<key> is a Dates phase's old-build fallback, kept in step by syncCustomUnitFallback() as the end handle does.
+    add('P4', 'End Post here on Wed 11 Nov: Post becomes Dates from 2026-11-02 to 2026-11-11 and is drawn on exactly 2-6 and 9-11 Nov; fields.byId changes only its unit, start, end and weeks fallback',
+      p4.unit === 'dates' && p4.start === '2026-11-02' && p4.end === '2026-11-11'
+        && eq(p4.drawn, NOV_WK1.concat(['2026-11-09', '2026-11-10', '2026-11-11'])) && d4.added.length === 0 && d4.removed.length === 0
+        && d4.changed.every(function (k) { return /^(unit|start|end|weeks)-post$/.test(k); }) && d4.changed.indexOf('end-post') >= 0,
+      {fields: p4, diff: d4}, 'dates 11/2-11/11');
+    await T.sleep(700);
+    await rclick('2026-11-11', 'bar:post');
+    var p4g = item(menuInfo(), 'phase-end');
+    key('Escape');
+    await undo();
+    add('P4u', 'On the day it now ends, End Post here is greyed out ("It already ends on this day"); one undo puts Post back in Weeks with the title typed before kept',
+      p4g.disabled && p4g.second === 'It already ends on this day' && eq(sig(), a.before) && fv('unit-post') === 'weeks', {greyed: p4g, diff: sigDiff(a.before, sig())}, 'greyed, then one step back');
+
+    // P5: Colour… opens the swatch's own picker under the bar; a pick is one step.
+    // The bar is read BEFORE the right-click: the menu opens at the pointer, so its corner covers that point.
+    function barAt(q){ var el = document.elementFromPoint(q.x, q.y); return el && el.closest && el.closest('.mv-pill[data-ph="post"]'); }
+    T.set('show-title', 'Menu step ' + (++n));
+    a = {before: sig()};
+    var q5 = await pointOn('2026-11-04', 'bar:post');
+    var bar5 = barAt(q5);
+    var bg0 = bar5 && getComputedStyle(bar5).backgroundColor, sw0 = document.getElementById('swatch-post').style.background;
+    rclickAt(q5.x, q5.y);
+    choose('phase-colour');
+    await T.sleep(50);                                   // its click-away listeners attach after a tick
+    var pop5 = document.querySelector('.phase-color-pop');
+    var pr5 = pop5 && pop5.getBoundingClientRect(), br5 = bar5 && bar5.getBoundingClientRect();
+    var sel0 = pop5 ? [].findIndex.call(pop5.children, function (c) { return c.classList.contains('selected'); }) : -1;
+    var pick = sel0 === 6 ? 7 : 6;
+    var p5open = !!pop5 && !menuEl() && Math.abs(pr5.left - br5.left) < 2 && pr5.top >= br5.bottom && pr5.top - br5.bottom < 12 && sel0 >= 0;
+    if(pop5) pop5.children[pick].click();
+    await settle();
+    var bar5b = barAt(await pointOn('2026-11-04', 'bar:post'));
+    var p5 = {open: p5open, selected: sel0, picked: pick, pill: bar5b && getComputedStyle(bar5b).backgroundColor, was: bg0,
+              swatch: document.getElementById('swatch-post').style.background, swatchWas: sw0, popGone: !document.querySelector('.phase-color-pop')};
+    add('P5', 'Colour… on Post\'s bar opens the colour picker just under the bar, on Post\'s current colour; a pick repaints the bars and the sidebar swatch',
+      p5.open && p5.popGone && p5.pill !== p5.was && p5.swatch !== p5.swatchWas && p5.pill === p5.swatch, p5, 'picker under the bar; bars and swatch repainted');
+    await T.sleep(700);
+    await undo();
+    var bar5c = barAt(await pointOn('2026-11-04', 'bar:post'));
+    add('P5u', 'One undo puts Post\'s colour back, keeping the title typed before',
+      !!bar5c && getComputedStyle(bar5c).backgroundColor === bg0 && document.getElementById('swatch-post').style.background === sw0
+        && (document.getElementById('show-title') || {}).value === 'Menu step ' + n,
+      {pill: bar5c && getComputedStyle(bar5c).backgroundColor, swatch: document.getElementById('swatch-post').style.background}, 'the old colour');
+
+    // P6: Show in Phases card.
+    var showTab = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
+    if(showTab) showTab.click();
+    await T.sleep(700);
+    a = await primeThenOpen('2026-11-04', 'bar:post');   // a title typed just before: the step must not fold it in
+    choose('phase-show');
+    await T.sleep(100);
+    var row6 = document.getElementById('swatch-post').closest('.phase-row'), fp = document.querySelector('.form-panel');
+    var rr6 = row6.getBoundingClientRect(), fr6 = fp.getBoundingClientRect();
+    var p6 = {tab: activeTab(), row: [Math.round(rr6.top), Math.round(rr6.bottom)], panel: [Math.round(fr6.top), Math.round(fr6.bottom)]};
+    add('P6', 'Show in Phases card switches the sidebar to Phases with Post\'s row in view',
+      p6.tab === 'phases' && rr6.top >= fr6.top - 1 && rr6.top < fr6.bottom && !menuEl(), p6, 'phases, row in view');
+    await T.sleep(700);
+    await undo();
+    add('P6u', 'Exactly one undo step: it goes back to the Show tab and keeps the title typed just before',
+      activeTab() === 'show' && eq(sig(), a.before) && (document.getElementById('show-title') || {}).value === 'Menu step ' + n,
+      {tab: activeTab(), diff: sigDiff(a.before, sig())}, 'show, title kept');
+
+    // P3: Production. End is greyed out (ruling Q3), and Start is a MOVER: a day mark travels with the shoot BY
+    // SHOOT-DAY NUMBER (owner ruling R2). Marked off through the real Full day/Off popover on Wed 8 Jul, natural
+    // shoot day 7 (6/29, 6/30, 7/1, 7/2, 7/6, 7/7, 7/8; 7/3 is a holiday). Moved to Mon 13 Jul, day 7 is Tue 21
+    // Jul (7/13-7/17, 7/20, 7/21), so the mark lands there and Wed 22 Jul becomes shoot day 7. A mark left on its
+    // DATE would leave 21 Jul as shoot day 7.
+    await toMonth('July 2026');
+    var p8 = await pointOn('2026-07-08', 'num');
+    document.elementFromPoint(p8.x, p8.y).dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, clientX: p8.x, clientY: p8.y, button: 0}));
+    var offOpt = document.querySelector('.day-ov-pop .day-ov-opt[data-ov="off"]');
+    if(offOpt) offOpt.click();
+    await settle();
+    await T.sleep(700);
+    function header(iso){ return rclick(iso, 'num').then(function () { var c = menuInfo().ctx; key('Escape'); return c; }); }
+    var h3a = {d8: await header('2026-07-08'), d9: await header('2026-07-09')};
+    a = await primeThenOpen('2026-07-13', 'bar:production');
+    var p3e = item(menuInfo(), 'phase-end');
+    choose('phase-start');
+    await settle();
+    var h3b = {start: fv('start-production'), first: pillDays('production')[0], d21: await header('2026-07-21'), d22: await header('2026-07-22')};
+    add('P3', 'Production: End is greyed out ("Its end comes from the shoot days"); Start Production here on Mon 13 Jul moves the shoot there AND its Off mark with it by shoot-day number: off on 8 Jul (9 Jul shoot day 7) before, off on 21 Jul (22 Jul shoot day 7) after',
+      !!offOpt && p3e.disabled && p3e.second === 'Its end comes from the shoot days' && !/Shoot day/.test(h3a.d8) && /^Shoot day 7 /.test(h3a.d9)
+        && h3b.start === '2026-07-13' && h3b.first === '2026-07-13' && !/Shoot day/.test(h3b.d21) && /^Shoot day 7 /.test(h3b.d22),
+      {offOpt: !!offOpt, end: p3e, before: h3a, after: h3b}, 'mark on 21 Jul, 22 Jul shoot day 7');
+    await T.sleep(700);
+    await undo();
+    var h3u = {start: fv('start-production'), d8: await header('2026-07-08'), d9: await header('2026-07-09')};
+    add('P3u', 'One undo moves the shoot back to 29 Jun with the mark back on 8 Jul (9 Jul shoot day 7), the title typed before kept',
+      h3u.start === '2026-06-29' && !/Shoot day/.test(h3u.d8) && /^Shoot day 7 /.test(h3u.d9) && eq(sig(), a.before), h3u, 'back, mark on 8 Jul');
+    await undo();                                       // the title typed before the item,
+    await undo();                                       // and the mark itself, so S2 starts clean
+    await toMonth('November 2026');
 
     // ---- S2: a shareable copy exported with the menu open carries no menu ----
     var settings = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'settings'; });

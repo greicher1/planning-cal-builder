@@ -1,7 +1,7 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: STEPS 1 AND 2 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Step 2 (Add
-hiatus ▸) is on branch `day-menu-step2`, not merged. Steps 3–5 are not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: STEPS 1–3 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Steps 2 (Add
+hiatus ▸) and 3 (the bar's own section) are on branch `day-menu-step3`, not merged. Steps 4 and 5 are not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -418,11 +418,23 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
      **greyed out** ("Its hiatus already starts this week") rather than an empty undo step; and the sidebar does
      **not** switch tabs, because the band shows on the calendar at once.
    - `mvmenu` grows to 47 cases (A1–A7, A1p, A4u, A5u, S3).
-3. **The phase section.**
+3. ✅ **The phase section. BUILT 19 Oct 2026** (branch `day-menu-step3`; HANDOFF has the record).
    - Start here (a mover).
    - Lift `setPhaseEdge` out of `installPhaseEdgeHandles` for End here.
    - Lift `setPhaseColor` for Colour….
    - Show in Phases card.
+   - ⚠️ **Built differently from the plan's wording in one respect: there is no single `setPhaseEdge(key, edge,
+     iso)`.** The handle cannot call one, because it writes on every step of a drag from the fields as they stood at
+     the press ("back where it began" restores those). So the rule is lifted as its parts, at module scope:
+     `phaseEdgePlan` (read at the press), `phaseEdgeSolve`, `phaseEdgeWrite` and `phaseEdgeLanded`. The handle and the
+     menu both call them, so the rule still exists once. `phaseedge` 13/13 after the lift.
+   - `setPhaseColor(key, i)` is the one writer for all three swatch pickers (built-in, custom, Prep) and the menu.
+   - **Small calls, each cheap to change:** a **Prep** pill gets the section too, with Start and End greyed out
+     ("Prep is worked out from each episode’s first shoot day") and Colour… and Show in Phases card working. The plan
+     predates prep. Start and End are greyed out where they would change nothing ("It already starts / ends on this
+     day"). The section's label is the phase's name alone, not the mockup's "Production · Ep. 202"; the header
+     already names the episode.
+   - `mvmenu` grows to 59 cases (P1–P6 with their undo cases).
 4. **The shoot-day section, and the menu takes over the left-click** (ruling L1).
    - Lift `dayOverrideRows(sit)` out of `openDayOvPop`.
    - Point the existing day click at the menu, anchored under the day number, and retire the popover.

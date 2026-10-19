@@ -2483,7 +2483,10 @@
   .day-menu-label{
     padding:7px 10px 3px; font-size:var(--mantine-font-size-xxs); line-height:14px; font-weight:600;
     letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted);
+    display:flex; align-items:center; gap:6px;
   }
+  /* Step 3: the bar's section is headed by its name and its colour, a small swatch like the sidebar's. */
+  .day-menu-swatch{ width:9px; height:9px; flex:none; border-radius:3px; border:1px solid rgba(0,0,0,.18); }
   .day-menu-foot{
     margin-top:var(--mantine-spacing-xs); padding:5px 10px 4px;
     border-top:1px solid var(--mantine-color-gray-2);

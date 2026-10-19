@@ -4,6 +4,42 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: DAY MENU STEPS 2 AND 3 BUILT (branch `day-menu-step3`, worktree `.claude/worktrees/day-menu-step3`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** Owner: *"Keep the plan order: build step 2 (Add hiatus) next"*, then *"start step
+  3"*. Both are built on `day-menu-step3`, which contains `day-menu-step2`. Not merged into `main`, not pushed. Step 4
+  (the left-click takes over, Full day/Off fold in) is what the owner is waiting for (entry below).
+- **Gate:** step 2's own gate never ran: it queued behind another session's gate, which ran for over an hour. Since step
+  3's branch contains step 2, ONE gate on step 3 covers everything that would merge. If it fails, gate
+  `day-menu-step2` alone to tell which step is at fault.
+- **Step 2, Add hiatus ▸** (`hiatusSections`, `addHiatusHere`, `setPhaseHiatusHere`): plan §3.3 and ruling Q2. The panel
+  grew a submenu (`panelHtml`, `wirePanel`, `openSub`, `closeSub`; the menu object is now `{el, ring, iso, back, root,
+  sub}`).
+  - ⭐ **Learned: a submenu needs a grace period.** The diagonal from "Add hiatus" into a lower line of a left-flipped
+    submenu crosses "Show this week in the waterfall", and an immediate switch closed the submenu on the way in.
+    `SUB_GRACE_MS` = 250; reaching the submenu cancels the switch.
+  - ⭐ **Learned: the browser pane's tools wait longer than 250 ms between steps**, so a quick pointer move cannot be
+    reproduced with them. Drive timing-sensitive pointer work with dispatched events, as the A2 case does.
+  - Small calls: the field gets the week's Monday; a no-op move is greyed out; the sidebar does not switch tabs.
+- **Step 3, the bar's section** (`phaseSection`, `startPhaseHere`, `endPhaseHere`, `phaseColourHere`, `showPhaseRow`):
+  plan §3.4–3.7.
+  - **The end handle's rule is at module scope now**, as `phaseEdgePlan` / `phaseEdgeSolve` / `phaseEdgeWrite` /
+    `phaseEdgeLanded`, just above `installPhaseEdgeHandles`, which calls them through aliases. Not one function, as the
+    plan said: the handle writes on every drag step from its press-time plan. `phaseedge` 13/13 after the lift.
+  - `setPhaseColor(key, i)` and `phaseColorIndexOf(key)` beside `autoPhaseColorIndex`: the one colour writer for all
+    three swatch pickers and the menu. It never writes an override for a key no phase has.
+  - Start is a mover inside `asShootDayMove()` (ruling R2). P3 proves it with an Off mark set through the real popover.
+  - Small calls: a Prep pill gets the section (Start/End greyed out with the reason); no-op Start/End greyed out; the
+    section label is the name alone.
+  - ⭐ **Learned: an undo-bracket case must type something just before the item.** P6 first passed with its bracket
+    removed, because the debounce banks a lone tab switch as its own step anyway. The bracket only matters when it
+    stops an earlier edit folding in.
+- **Proof so far:** `mvmenu` 59/59 on the step-3 build; ten mutants across the two steps each turn exactly their own case
+  red; `phaseedge` 13/13; `npm run check` 40/40; hand checks in the browser pane (Add hiatus on 8 Jul, End Post and
+  Colour… on Post, the Prep section). ⏳ **The full gate is pending.**
+- ⚠️ **Not covered by any leg:** the Prep section (hand-checked only; the proposed "mvmenu prep case" session would
+  cover it), and a real Mac Ctrl+click (from step 1).
+
 ### ✅ 19 Oct 2026: DAY MENU STEP 1 AND PER-EPISODE PREP ARE LIVE AT `dac24c9` (merge `9cb903e` + fix `8e99717`), GATED
 
 - ✅ **PUSHED AND LIVE at `dac24c9` (19 Oct 2026, 13:30), verified BYTE-IDENTICAL to the gated build** (`89413c30…`,

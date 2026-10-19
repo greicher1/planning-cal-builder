@@ -28,6 +28,41 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
+
+Step 3 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click on a phase's bar adds a section for
+that phase, headed by its name and colour, between "This day" and "Show this week in the waterfall":
+- **Start <phase> here** moves the whole phase so it starts on that day, keeping its length: the same as dragging the
+  bar there. Snap to Mon comes off on any day but a Monday. Production is a mover too, so its day marks travel with
+  it by shoot-day number (owner ruling R2).
+- **End <phase> here** keeps the start and ends the phase on that day, by the end handle's own rule: a Weeks phase
+  becomes Dates first. **Production's is greyed out**, "Its end comes from the shoot days" (ruling Q3).
+- **Colour…** opens the swatch's colour picker under the bar.
+- **Show in Phases card** switches the sidebar to Phases with that phase's row in view.
+- A **Prep** pill gets the section too: Start and End are greyed out, because prep is worked out from each episode's
+  first shoot day. Its Colour… and Show in Phases card work.
+- An item that would change nothing is greyed out with its reason ("It already starts on this day"). Each item is
+  one undo step.
+- **Under the hood:** the end handle's rule and the three swatch pickers' colour writes are each lifted to one shared
+  function, unchanged, so the menu and the sidebar cannot drift apart. No frozen code changed; nothing new is saved.
+- **Verified:** `mvmenu` 59/59, and five mutants each turn exactly their own case red. `phaseedge` 13/13 after the
+  lift, with real pointer input. Checked by hand on Post (End, Colour…) and on a Prep pill. The full gate is pending.
+
+### Unreleased — Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
+
+Step 2 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The day menu gains **Add hiatus**, which opens a
+submenu beside it:
+- **All phases** adds a two-week all-phase hiatus from that week's Monday, locked in place, as the sidebar's
+  "+ Add hiatus" does.
+- **One phase only** lists each phase running that day; choosing one switches on its own two-week hiatus.
+- On a phase that already has its own hiatus the item reads **"Move <phase>'s hiatus here"**: it moves the start and
+  keeps the length and name (ruling Q2). In the week it already starts, it is greyed out.
+- Each line says the week, "Week of Mon 6 Jul · 2 weeks", because a hiatus always covers whole Monday-to-Sunday weeks.
+- The submenu opens on hover, a click, Enter or →; ← and Escape close it. A 250 ms grace period keeps it open while
+  the pointer crosses the next item on its way in.
+- **Verified:** `mvmenu` 47/47, five mutants each red on their own case; checked by hand. Its full gate was folded
+  into step 3's, which contains it.
+
 ### Unreleased — Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
 
 Owner: *"One i know i want is to right click to add a custom phase starting on the day youre hovering over."* Step 1

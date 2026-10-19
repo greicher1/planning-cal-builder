@@ -5561,11 +5561,7 @@ export function initLegacyApp() {
       });
       const sw = row.querySelector('.swatch');
       sw.addEventListener('click', ()=>{
-        openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=>{
-          phaseColorOverride[p.key] = i;
-          sw.style.background = PHASE_COLOR_OPTIONS[i].color;
-          update();
-        });
+        openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=> setPhaseColor(p.key, i));
       });
       // The Prep row goes straight under Production, which it is derived from (EPISODE-PREP-PLAN.md §6).
       if(p.key === 'production') wrap.appendChild(buildPrepRow());
@@ -5602,11 +5598,7 @@ export function initLegacyApp() {
     row.querySelector('#prep-days').addEventListener('input', update);
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
-      openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=>{
-        phaseColorOverride[PREP_KEY] = i;
-        reflectPrepSwatch();
-        update();
-      });
+      openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=> setPhaseColor(PREP_KEY, i));
     });
     // One episode's (block's) own length. Blank goes back to the default by REMOVING the key, so a box
     // typed and cleared leaves the file as it was. update() is what recomputes and banks the undo step.
@@ -5717,6 +5709,29 @@ export function initLegacyApp() {
     if(p.key in phaseColorOverride) return phaseColorOverride[p.key];
     const idx = PHASE_COLOR_OPTIONS.findIndex(o=>o.color.toUpperCase() === String(p.color||'').toUpperCase());
     return idx >= 0 ? idx : 0;
+  }
+  // ⭐ ONE WRITER of a phase's colour (MONTH-CONTEXT-MENU-PLAN §3.6, plan step 3, 19 Oct 2026): the
+  // three swatches' pickers (a built-in phase, a custom phase, the Prep row) and the day menu's Colour…
+  // all call this. Their bodies were written inline, one each, and are moved here unchanged: a built-in
+  // phase keeps its pick in phaseColorOverride, a custom phase in its own colorIndex, prep in
+  // phaseColorOverride.episodePrep. Then the sidebar swatch is repainted and update() runs.
+  // ⛔ `i` indexes PHASE_COLOR_OPTIONS, whose ORDER IS FILE FORMAT (CLAUDE.md). This only stores it.
+  function setPhaseColor(key, i){
+    if(key === PREP_KEY){ phaseColorOverride[PREP_KEY] = i; reflectPrepSwatch(); update(); return; }
+    const cp = customPhaseDefs.find(c=> c.key === key);
+    if(cp) cp.colorIndex = i;
+    else if(PHASES.some(p=> p.key === key)) phaseColorOverride[key] = i;   // never a key no phase has
+    const sw = document.getElementById('swatch-' + key);
+    if(sw) sw.style.background = PHASE_COLOR_OPTIONS[i].color;
+    update();
+  }
+  // The colour a phase's picker opens on: what setPhaseColor() last stored, or the phase's own.
+  function phaseColorIndexOf(key){
+    if(key === PREP_KEY) return autoPhaseColorIndex(PREP_DEF);
+    const cp = customPhaseDefs.find(c=> c.key === key);
+    if(cp) return cp.colorIndex;
+    const p = PHASES.find(x=> x.key === key);
+    return p ? autoPhaseColorIndex(p) : 0;
   }
 
   // A small floating picker of the standard phase colors, anchored under a clicked color square.
@@ -5971,12 +5986,7 @@ export function initLegacyApp() {
     });
     const swEl = row.querySelector('.swatch');
     swEl.addEventListener('click', ()=>{
-      const cp = customPhaseDefs.find(c=>c.key===row.dataset.key);
-      openPhaseColorPop(swEl, cp ? cp.colorIndex : 0, (i)=>{
-        if(cp) cp.colorIndex = i;
-        swEl.style.background = PHASE_COLOR_OPTIONS[i].color;
-        update();
-      });
+      openPhaseColorPop(swEl, phaseColorIndexOf(row.dataset.key), (i)=> setPhaseColor(row.dataset.key, i));
     });
     // Keep the hiatus toggle/name field's placeholder -- which defaults to the phase's own name
     // -- in step as it's typed.
@@ -7321,29 +7331,126 @@ export function initLegacyApp() {
   // the same pooled .phase-edge-handle and .phase-edge-shield, so neither month PDF can see them and
   // buildSavedHtml() already strips both. Out and back in one gesture puts back EXACTLY what was there
   // (MONTH-9's rule), the unit included, and banks nothing; Escape does the same.
+  // ---------- A phase's edge, by the edge handle's rule (MONTH-CONTEXT-MENU-PLAN.md §3.5) ----------
+  // ⭐ LIFTED OUT OF installPhaseEdgeHandles BELOW (plan step 3, 19 Oct 2026), UNCHANGED, so the handle and
+  // the day menu's "End <phase> here" share ONE rule. The handle keeps its gesture: it makes the plan once,
+  // at the press, and writes through it on every step, because "back where it began" means the fields as
+  // they stood at the press. The menu makes a plan, solves one day and writes once. The phaseedge leg is
+  // this rule's gate, as before.
+  const PHASE_EDGE_SEARCH = 400;   // days either side of the target to look for a drawable day
+  function phaseSegOf(key){
+    return ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+  }
+  // pillRunsForWeek()'s own test of a covered day, so an edge sits exactly where a pill edge does.
+  function phaseDrawnOn(seg, d){
+    return segCoversDate(seg, d) && !isHiatusDate(currentSchedule, d) && !isPhaseHiatusDate(seg, d);
+  }
+  // The phase's first and last DRAWN day: where its two handles live. null if it draws nothing.
+  function phaseDrawnEnds(seg){
+    let first = null, last = null;
+    for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(phaseDrawnOn(seg, d)){ first = d; break; }
+    for(let d = addDays(seg.end, -1); d >= seg.start; d = addDays(d, -1)) if(phaseDrawnOn(seg, d)){ last = d; break; }
+    return (first && last) ? {first: isoOf(first), last: isoOf(last)} : null;
+  }
+  // Only a phase with a Length select: every custom phase and the five built-ins, never Production.
+  function phaseHasEdgeUnit(key){
+    return !!key && key !== 'production' && !!document.getElementById('unit-' + key);
+  }
+  // Everything a move of one edge needs, read off the schedule NOW; null when the phase has no such edge.
+  // `fields` is everything a move may write, so it can be put back exactly and so "did anything change"
+  // is one comparison. Snap to Mon is not among them: it is hidden and ignored once the phase is Dates.
+  function phaseEdgePlan(key, kind){
+    const seg = phaseSegOf(key), ends = seg && phaseDrawnEnds(seg);
+    const startEl = key && document.getElementById('start-' + key);
+    if(!seg || !ends || !startEl || !startEl.value || !phaseHasEdgeUnit(key)) return null;
+    const unit = customPhaseUnit(key);
+    if(unit === 'days' && !document.getElementById('days-' + key)) return null;
+    if(unit !== 'days' && !document.getElementById('end-' + key)) return null;
+    const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
+    const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
+    const edge0 = kind === 'start' ? ends.first : ends.last;
+    return {key, kind, unit, ends, edge0, cur: edge0, startEl, ctx,
+            fields, was: fields.map(f=> f.value),
+            segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
+            // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
+            // Weeks, which becomes Dates). Read off the schedule now: hiatuses and holidays do not
+            // change while an edge moves.
+            lands: unit === 'days' ? (x=> isUnitWorkDay(x, ctx))
+                 : (x=>{ const w = x.getUTCDay(); return w !== 0 && w !== 6 && !isHiatusDate(sched, x) && !isPhaseHiatusDate(seg, x); })};
+  }
+  // The drawable day nearest `T`, inside the floor; ties go toward where the edge began.
+  function phaseEdgeSolve(d, T){
+    if(d.kind === 'end' && T < d.ends.first) T = d.ends.first;
+    if(d.kind === 'start' && T > d.ends.last) T = d.ends.last;
+    const t = parseDateUTC(T);
+    const back = d.edge0 < T ? -1 : 1;                 // the step that shrinks the change
+    for(let k = 0; k <= PHASE_EDGE_SEARCH; k++){
+      for(const s of (k ? [back, -back] : [0])){
+        const x = addDays(t, s * k), iso = isoOf(x);
+        if(d.kind === 'end' && iso < d.ends.first) continue;
+        if(d.kind === 'start' && iso > d.ends.last) continue;
+        if(iso === d.edge0 || d.lands(x)) return iso;
+      }
+    }
+    return null;
+  }
+  // Working days from a to b inclusive, by the scheduler's own predicate.
+  function phaseEdgeCount(d, a, b){
+    let n = 0;
+    for(let x = parseDateUTC(a), e = parseDateUTC(b); x <= e; x = addDays(x, 1)) if(isUnitWorkDay(x, d.ctx)) n++;
+    return n;
+  }
+  // The fields for the edge at D. The caller runs update() next.
+  function phaseEdgeWrite(d, D){
+    const el = id=> document.getElementById(id + '-' + d.key);
+    if(D === d.edge0){
+      // Back where it began: EXACTLY what was there, the unit included (MONTH-9's rule).
+      d.fields.forEach((f, i)=>{ f.value = d.was[i]; });
+    } else {
+      if(d.unit === 'weeks'){
+        // Ruling 8: the gesture switches the constraint, as body-drag switches Snap to Mon (§6.3). The
+        // phase is first re-stated as Dates exactly where it is scheduled; then the edge applies.
+        // .value without a 'change' event, as body-drag sets .checked: onCustomUnitChange() would
+        // run update() and prefill again, and update() is next anyway. The boxes show by CSS off
+        // the checked option, so the row follows with no event.
+        el('unit').value = 'dates';
+        d.startEl.value = d.segStart;
+        el('end').value = d.lastWeekday;
+      }
+      if(d.unit === 'days'){
+        if(d.kind === 'start'){ d.startEl.value = D; el('days').value = String(phaseEdgeCount(d, D, d.ends.last)); }
+        else el('days').value = String(phaseEdgeCount(d, d.ends.first, D));
+      } else if(d.kind === 'start'){
+        d.startEl.value = D;           // ⛔ directly, never setPhaseStart(): the end is held
+      } else {
+        el('end').value = D;
+      }
+    }
+    d.cur = D;
+  }
+  // ⛔ After update(): the held edge must not have moved, and the moved one must be where it was computed
+  // to land, by the real scheduler. If not, this arithmetic disagrees with it, and a silent wrong date in
+  // someone's plan is the outcome to refuse: the caller puts the fields back (Production's guard, the
+  // same reasoning).
+  function phaseEdgeLanded(d, D){
+    if(D === d.edge0) return true;
+    const seg = phaseSegOf(d.key), e2 = seg && phaseDrawnEnds(seg);
+    return !!e2 && (d.kind === 'start' ? e2.first === D && e2.last === d.ends.last
+                                       : e2.first === d.ends.first && e2.last === D);
+  }
+
   (function installPhaseEdgeHandles(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
     const HANDLE_W = 10;            // px, as Production's
-    const SEARCH = 400;             // days either side of the pointer to look for a drawable day
     const pool = [];                // handle elements, reused; each carries ._spec and ._pill
     let shownFor = null;
     let shield = null;
     let drag = null;
 
-    const segOf = key=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+    // The rule itself is at module scope, just above (plan step 3); these are its names in here.
+    const segOf = phaseSegOf, drawnEnds = phaseDrawnEnds, hasUnit = phaseHasEdgeUnit, solve = phaseEdgeSolve;
     const dayDiff = (a, b)=> Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
-    // pillRunsForWeek()'s own test of a covered day, so a handle sits exactly where a pill edge does.
-    const drawn = (seg, d)=> segCoversDate(seg, d) && !isHiatusDate(currentSchedule, d) && !isPhaseHiatusDate(seg, d);
-    // The phase's first and last DRAWN day: where its two handles live. null if it draws nothing.
-    function drawnEnds(seg){
-      let first = null, last = null;
-      for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(drawn(seg, d)){ first = d; break; }
-      for(let d = addDays(seg.end, -1); d >= seg.start; d = addDays(d, -1)) if(drawn(seg, d)){ last = d; break; }
-      return (first && last) ? {first: isoOf(first), last: isoOf(last)} : null;
-    }
-    // Only a phase with a Length select: every custom phase and the five built-ins, never Production.
-    const hasUnit = key=> !!key && key !== 'production' && !!document.getElementById('unit-' + key);
 
     function specsFor(pill){
       const key = pill.getAttribute('data-ph');
@@ -7423,29 +7530,6 @@ export function initLegacyApp() {
     // Every render replaces every pill (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
     new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
 
-    // The drawable day nearest `T`, inside the floor; ties go toward where the edge began.
-    function solve(d, T){
-      if(d.kind === 'end' && T < d.ends.first) T = d.ends.first;
-      if(d.kind === 'start' && T > d.ends.last) T = d.ends.last;
-      const t = parseDateUTC(T);
-      const back = d.edge0 < T ? -1 : 1;                 // the step that shrinks the change
-      for(let k = 0; k <= SEARCH; k++){
-        for(const s of (k ? [back, -back] : [0])){
-          const x = addDays(t, s * k), iso = isoOf(x);
-          if(d.kind === 'end' && iso < d.ends.first) continue;
-          if(d.kind === 'start' && iso > d.ends.last) continue;
-          if(iso === d.edge0 || d.lands(x)) return iso;
-        }
-      }
-      return null;
-    }
-    // Working days from a to b inclusive, by the scheduler's own predicate.
-    function countWork(d, a, b){
-      let n = 0;
-      for(let x = parseDateUTC(a), e = parseDateUTC(b); x <= e; x = addDays(x, 1)) if(isUnitWorkDay(x, d.ctx)) n++;
-      return n;
-    }
-
     // Keep the dragged handle on its edge as the grid re-renders under it.
     function follow(){
       const d = drag, pills = wrap.querySelectorAll('.mv-pill[data-ph="' + d.key + '"]');
@@ -7460,44 +7544,13 @@ export function initLegacyApp() {
     }
 
     function apply(D){
-      const d = drag, el = id=> document.getElementById(id + '-' + d.key);
-      if(D === d.edge0){
-        // Back where it began: EXACTLY what was there, the unit included (MONTH-9's rule).
-        d.fields.forEach((f, i)=>{ f.value = d.was[i]; });
-      } else {
-        if(d.unit === 'weeks'){
-          // Ruling 8: the gesture switches the constraint, as body-drag switches Snap to Mon (§6.3). The
-          // phase is first re-stated as Dates exactly where it is scheduled; then the edge applies.
-          // .value without a 'change' event, as body-drag sets .checked: onCustomUnitChange() would
-          // run update() and prefill again, and update() is next anyway. The boxes show by CSS off
-          // the checked option, so the row follows with no event.
-          el('unit').value = 'dates';
-          d.startEl.value = d.segStart;
-          el('end').value = d.lastWeekday;
-        }
-        if(d.unit === 'days'){
-          if(d.kind === 'start'){ d.startEl.value = D; el('days').value = String(countWork(d, D, d.ends.last)); }
-          else el('days').value = String(countWork(d, d.ends.first, D));
-        } else if(d.kind === 'start'){
-          d.startEl.value = D;           // ⛔ directly, never setPhaseStart(): the end is held
-        } else {
-          el('end').value = D;
-        }
-      }
-      d.cur = D;
+      const d = drag;
+      phaseEdgeWrite(d, D);
       update();
       // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
       cancelPendingUndoPush();
-      // ⛔ The held edge must not have moved, and the dragged one must be where it was computed to land,
-      // by the real scheduler. If not, this arithmetic disagrees with it, and a silent wrong date in
-      // someone's plan is the outcome to refuse: put it back and let the gesture go inert (Production's
-      // guard, the same reasoning).
-      if(D !== d.edge0){
-        const seg = segOf(d.key), e2 = seg && drawnEnds(seg);
-        const ok = !!e2 && (d.kind === 'start' ? e2.first === D && e2.last === d.ends.last
-                                               : e2.first === d.ends.first && e2.last === D);
-        if(!ok){ d.broken = true; apply(d.edge0); return; }
-      }
+      // A move the scheduler disagrees with is put back, and the gesture goes inert (phaseEdgeLanded).
+      if(!phaseEdgeLanded(d, D)){ d.broken = true; apply(d.edge0); return; }
       follow();
     }
 
@@ -7519,26 +7572,12 @@ export function initLegacyApp() {
       if(e.button !== 0 || drag || viewMode !== 'month') return;
       if(isMacCtrlClick(e)) return;                    // a right-click on a Mac: the day menu's
       const spec = h._spec, pill = h._pill;
-      const key = spec && spec.key;
-      const seg = key && segOf(key), g = pill && pillRange(pill), ends = seg && drawnEnds(seg);
-      const startEl = key && document.getElementById('start-' + key);
-      if(!spec || !seg || !g || !ends || !startEl || !startEl.value || !hasUnit(key)) return;
-      if(spec.day !== (spec.kind === 'start' ? ends.first : ends.last)) return;   // stale: the grid moved
-      const unit = customPhaseUnit(key);
-      // Everything a drag may write, so it can be put back exactly and so "did anything change" is
-      // one comparison. Snap to Mon is not among them: it is hidden and ignored once the phase is Dates.
-      const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
-      const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
-      const d = {key, kind: spec.kind, handle: h, unit, ends, edge0: spec.day, cur: spec.day, startEl, ctx,
-                 fields, was: fields.map(f=> f.value),
-                 segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
-                 // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
-                 // Weeks, which becomes Dates). Read off the schedule at the press: hiatuses and holidays
-                 // do not change while the edge moves.
-                 lands: unit === 'days' ? (x=> isUnitWorkDay(x, ctx))
-                      : (x=>{ const w = x.getUTCDay(); return w !== 0 && w !== 6 && !isHiatusDate(sched, x) && !isPhaseHiatusDate(seg, x); })};
-      if(unit === 'days' && !document.getElementById('days-' + key)) return;
-      if(unit !== 'days' && !document.getElementById('end-' + key)) return;
+      const g = pill && pillRange(pill);
+      // The plan, read at the press (phaseEdgePlan, module scope): what the drag may write and where it may land.
+      const d = spec && g && phaseEdgePlan(spec.key, spec.kind);
+      if(!d) return;
+      if(spec.day !== d.edge0) return;                 // stale: the grid moved
+      d.handle = h;
       e.preventDefault();
       e.stopPropagation();
       // Read the pointer as if it had pressed on the CENTRE of the edge's own day, so the edge moves
@@ -7917,10 +7956,11 @@ export function initLegacyApp() {
   // Owner, 19 Oct 2026: "One i know i want is to right click to add a custom phase starting on the
   // day youre hovering over." A right-click anywhere on a day in the month view opens one menu for
   // that day. Built here: plan STEP 1 -- the listener, the panel and its close rules, and four items
-  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall) -- and
-  // STEP 2, Add hiatus ▸ and the submenu it opens. The phase, shoot-day, hiatus and holiday sections,
-  // and the left-click on a day's number (ruling L1, which retires the Full day/Off popover) are
-  // steps 3 to 5. Until step 4 a left-click still opens that popover.
+  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall) --
+  // STEP 2, Add hiatus ▸ and the submenu it opens -- and STEP 3, the bar's own section (phaseSection).
+  // The shoot-day, hiatus and holiday sections, and the left-click on a day's number (ruling L1, which
+  // retires the Full day/Off popover) are steps 4 and 5. Until step 4 a left-click still opens that
+  // popover.
   //
   // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
   // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
@@ -7955,6 +7995,10 @@ export function initLegacyApp() {
       table: 'M4 5h16v14H4zM4 10h16M10 5v14',
       pause: 'M6 5h4v14H6zM14 5h4v14h-4z',
       chev:  'M9 6l6 6-6 6',
+      start: 'M14 12H4M10 8l4 4-4 4M20 4v16',
+      end:   'M10 12h10M14 8l-4 4 4 4M4 4v16',
+      palette: 'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
+      sidebar: 'M4 5h16v14H4zM9 5v14',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -7984,7 +8028,7 @@ export function initLegacyApp() {
       let pill = handle ? handle._pill : t.closest('.mv-pill[data-ph]');
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
-      return {iso, date, key, target: t};
+      return {iso, date, key, target: t, pill};
     }
 
     // What the header says is on the day, all from the schedule: the shoot day, each bar drawn on it
@@ -8057,13 +8101,112 @@ export function initLegacyApp() {
           // Built when it opens, not with the menu: nothing in it is needed until then.
           {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)},
         ]},
+      ].concat(phaseSection(ctx) || [], [
         // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
         // first in its row; the second line says which week that is.
         {id: 'out', items: [
           {id: 'waterfall', icon: 'table', text: 'Show this week in the waterfall', note: 'Week of ' + dayMonth(week),
            run: ()=> showWeekInWaterfall(week)},
         ]},
-      ];
+      ]);
+    }
+
+    // The bar under the pointer (plan §3.4–3.7, step 3): its own section, after "This day", headed by its
+    // name and colour. A phase's bar, a custom phase's, or a Prep pill; the sim-post bar names no phase.
+    //   Start <phase> here  a MOVER, the same as dragging the bar to this day (installMonthPillDrag).
+    //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
+    //   Colour…             the swatch's own picker, beside the bar (setPhaseColor).
+    //   Show in Phases card the phase's row, scrolled into view.
+    // Prep is worked out from each episode's first shoot day, so it has no start or end of its own to
+    // move: both are greyed out with that reason (owner ruling 1, 18 Sep 2026), and its colour and row work.
+    // An item that would change nothing is greyed out with that reason rather than banking an empty step.
+    function phaseSection(ctx){
+      const key = ctx.key;
+      if(!key) return null;
+      const isPrep = key === PREP_KEY;
+      if(!isPrep && !getAllPhaseDefs().some(p=> p.key === key)) return null;
+      const seg = phaseSegOf(key);
+      if(!seg) return null;
+      // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
+      const name = (seg.name || seg.label || phaseLabelFor(key)).replace(/\s*wk\s*\d+\s*$/i, '');
+      const items = [];
+      if(isPrep){
+        const why = 'Prep is worked out from each episode’s first shoot day';
+        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', disabled: true, why});
+        items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true, why});
+      } else {
+        const startEl = document.getElementById('start-' + key);
+        const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
+        const noMove = !!startEl && startEl.value === ctx.iso && !(snapEl && snapEl.checked && ctx.date.getUTCDay() !== 1);
+        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', note: 'Moves it. Its length stays',
+          disabled: !startEl || noMove, why: 'It already starts on this day',
+          run: ()=> startPhaseHere(ctx, key)});
+        if(key === 'production'){
+          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true,
+            why: 'Its end comes from the shoot days'});
+        } else {
+          const d = phaseEdgePlan(key, 'end'), D = d && phaseEdgeSolve(d, ctx.iso);
+          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', note: 'Keeps its start. Changes its length',
+            disabled: !D || D === d.edge0, why: D ? 'It already ends on this day' : 'It can’t end on this day',
+            run: ()=> endPhaseHere(ctx, key)});
+        }
+      }
+      items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
+      items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
+      return [{id: 'phase', label: name, swatch: seg.color, items}];
+    }
+
+    // ⛔ A MOVER (owner ruling R2): Production's day marks travel with it by shoot-day number, so it runs
+    // inside asShootDayMove(), as the body drag binds them for its whole gesture. Through setPhaseStart(),
+    // the one writer, so a Dates phase's end moves with its start. Snap to Mon comes off on any day but a
+    // Monday, as the body drag's does; on a Monday it is left as it was.
+    function startPhaseHere(ctx, key){
+      if(!document.getElementById('start-' + key)) return;
+      const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
+      pushUndoSnapshot();
+      asShootDayMove(()=>{
+        setPhaseStart(key, ctx.iso);
+        if(snapEl && ctx.date.getUTCDay() !== 1) snapEl.checked = false;
+        update();
+      });
+      syncCustomUnitFallback(key);                      // a Days or Dates phase's old-build fallback, in the step
+      pushUndoSnapshot();
+    }
+
+    // The end handle's rule, once: plan, solve, write, update, and the scheduler's verdict. A move it
+    // disagrees with is put back, as the handle puts a drag back, and the step then banks nothing.
+    function endPhaseHere(ctx, key){
+      const d = phaseEdgePlan(key, 'end'), D = d && phaseEdgeSolve(d, ctx.iso);
+      if(!D || D === d.edge0) return;
+      pushUndoSnapshot();
+      phaseEdgeWrite(d, D);
+      update();
+      if(!phaseEdgeLanded(d, D)){ phaseEdgeWrite(d, d.edge0); update(); }
+      syncCustomUnitFallback(key);
+      pushUndoSnapshot();
+    }
+
+    // The swatch's own picker, under the bar the menu was opened on. Opening it changes nothing; a pick
+    // is one undo step. Its click-away listeners attach after a tick, so the click that chose the item
+    // cannot close it.
+    function phaseColourHere(ctx, key){
+      const anchor = (ctx.pill && document.body.contains(ctx.pill)) ? ctx.pill : document.getElementById('swatch-' + key);
+      if(!anchor) return;
+      openPhaseColorPop(anchor, phaseColorIndexOf(key), i=>{
+        pushUndoSnapshot();
+        setPhaseColor(key, i);
+        pushUndoSnapshot();
+      });
+    }
+
+    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
+    function showPhaseRow(key){
+      const sw = document.getElementById('swatch-' + key);
+      const row = sw && sw.closest('.phase-row');
+      pushUndoSnapshot();
+      setSidebarTab('phases');
+      pushUndoSnapshot();
+      if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
 
     // Add hiatus ▸ (plan §3.3): one for everything, then one for each phase running on the day.
@@ -8269,7 +8412,9 @@ export function initLegacyApp() {
       sections.forEach((sec, si)=>{
         if(head || si > 0) html += '<div class="day-menu-sep" role="separator"></div>';
         html += '<div class="day-menu-group" role="group" data-section="' + sec.id + '">';
-        if(sec.label) html += '<div class="day-menu-label">' + escHtml(sec.label) + '</div>';
+        if(sec.label) html += '<div class="day-menu-label">'
+          + (sec.swatch ? '<span class="day-menu-swatch" style="background:' + escHtml(sec.swatch) + '"></span>' : '')
+          + escHtml(sec.label) + '</div>';
         sec.items.forEach(it=>{
           const i = items.length;
           items.push(it);
