@@ -4,11 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: DAY MENU STEP 1 IS MERGED INTO LOCAL `main` (`9cb903e` + `8e99717`), GATED, NOT PUSHED
+### ✅ 19 Oct 2026: DAY MENU STEP 1 AND PER-EPISODE PREP ARE LIVE AT `dac24c9` (merge `9cb903e` + fix `8e99717`), GATED
 
-- **State:** ✅ **merged into local `main` at `9cb903e`** (19 Oct 2026), plus one fix the merge exposed, `8e99717`.
+- ✅ **PUSHED AND LIVE at `dac24c9` (19 Oct 2026, 13:30), verified BYTE-IDENTICAL to the gated build** (`89413c30…`,
+  1,532,060 bytes, fetched with a cache-buster). Deploy run 39319899551: "Build and check" and "Deploy to Pages" both
+  green. Owner's picker: "Push all of main now". The push `04a1f18..dac24c9` (14 commits) also shipped per-episode
+  prep (`e50583b`, its own entry below) and the docs between, all in the gated build. `version.json` still reads
+  1.4.3, so installed copies show no update notice. A version cut is overdue.
+- **State:** merged into local `main` at `9cb903e` (19 Oct 2026), plus one fix the merge exposed, `8e99717`.
   Owner: *"Merge claude/gifted-ramanujan-f162cf into main, resolve the doc conflicts, and run the full gate. Don't
-  push."* **Not pushed.** The feature's own entry is below ("THE MONTH VIEW'S DAY MENU — STEP 1 BUILT").
+  push."* The push came after, on its own picker. The feature's own entry is below ("THE MONTH VIEW'S DAY MENU —
+  STEP 1 BUILT").
 - **The merge:** a normal `--no-ff` merge, because `main` had gained the episode grips (`04a1f18`) and per-episode prep
   (`e50583b`) since the branch was cut at `8515cd8`. `app.js`, `legacy.css` and `gate.sh` auto-merged. `HANDOFF.md`,
   `README.md` and `tests/harness/README.md` conflicted, each because both sides had added an entry at the same spot;
@@ -37,9 +43,8 @@
   - `npm run check` 40/40; `check-refs.py` CLEAN.
 - ⚠️ **Still not verified:** a real Mac Ctrl+click on a bar and on an edge handle (plan §5). The owner should try it
   once.
-- ⏭ **Next:** push only on the owner's word. `origin/main` is at `04a1f18`, so a push of `main` ships **everything**
-  in `git log origin/main..main`: per-episode prep (`e50583b`, gated at 1,808 PASS), this menu, and the docs between.
-  A version cut is overdue (`version.json` still 1.4.3). Then plan step 2 (Add hiatus ▸).
+- ⏭ **Next:** the owner tries a real Mac Ctrl+click. A version cut is overdue (`version.json` still 1.4.3). Add a prep
+  case to `mvmenu`. Then plan step 2 (Add hiatus ▸), built from `main`.
 
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 
@@ -58,7 +63,7 @@
   is not the signal. The drags' `autoNoteBaseline()` goes inert by declaration (§3.4). No frozen code, no save-format
   change. The gate is plan §5 (N1–N12; gates 10 and 13 byte-identical).
 
-### ◐ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO LOCAL `main` (EPISODE-PREP-PLAN steps 1–6), NOT PUSHED
+### ✅ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO `main` (EPISODE-PREP-PLAN steps 1–6), LIVE AT `dac24c9`
 
 - **State:** ✅ **merged into local `main` at `e50583b`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into
   local main, resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
@@ -110,8 +115,7 @@
     16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
 - **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
   sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
-- ⏭ **Next:** push only on the owner's word. `origin/main` is at `04a1f18`, so a push of `main` also ships every
-  later local commit (other sessions' docs included): check `git log origin/main..main` first. Possibly cut the two prep fixtures into gates 10 and 13 as new cases (not done; that is a
+- ⏭ **Next:** ✅ pushed and live at `dac24c9` with the day menu (19 Oct 2026, top entry). Possibly cut the two prep fixtures into gates 10 and 13 as new cases (not done; that is a
   baseline change the owner has not asked for). A version cut is overdue (`version.json` still 1.4.3).
 
 ### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
