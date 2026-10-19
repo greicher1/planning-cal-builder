@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged onto `main` as branch `autonote-merge`, `c869a13`; worktree `.claude/worktrees/autonote-merge`; NOT on `main`, NOT live)
+### ◐ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` `5676649` on branch `autonote-merge`, gated 1,815 PASS / 0 FAIL; on local `main` only by the owner's picker; NOT pushed, NOT live)
 
 - ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
   comment for start of photography isnt moving when you drag the first day of production"*. The fix (below) had been
@@ -22,8 +22,25 @@
     "E15–E17" in any older note about this fix means today's E19–E21.
   - **Proof on the merged build `bb678d3e…` (1,514,654 bytes):** `pilldrag` 30/30 and `phaseedge` 14/14 on private
     port 8791; `npm run check` 40/40. In the app pane, the owner's calendar with its start reset to 10/18 was
-    dragged to Thu 10/21 with the pointer, and the note moved to 10/21 reading "10/21/27". Full gate: ⏭ queued
-    behind two other sessions' gates on port 8796 (log in this session's scratchpad); record the result here.
+    dragged to Thu 10/21 with the pointer, and the note moved to 10/21 reading "10/21/27". (That build was never
+    full-gated alone: `main` moved first, see the next bullet.)
+  - **Then merged with `main` at `5676649`** (per-episode prep `e50583b`, the AUTONOTE-FOLLOW plan `73dd658`, a
+    HANDOFF note), in the same worktree, `git merge --no-ff main`, on the owner's word: *"merge autonote-merge
+    with current local main, run the full gate, and then ask me about committing and pushing."* `src/legacy/app.js`,
+    `gate.sh` and `tests/fixtures/README.md` auto-merged. The two sides touch different functions (prep: `readState`,
+    `update`'s `refreshPrepUI`, the snapshot, `computeSchedule`'s tail; this: the three month drags,
+    `rewriteMovedAutoNotes`, `notesForWaterfallDate`), and prep adds no auto-notes, so nothing interacts. Only this
+    file and `README.md` conflicted; both sides' entries kept, this one on top.
+  - **Proof on the merged build `1e9e4fe0…` (1,522,744 bytes):** `npm run check` 40/40; on private port 8851
+    `pilldrag` 30/30 (E15–E18 the episode grips, E19–E23 and D5 this fix), `phaseedge` 14/14 (F13), `episodeprep`
+    23 + 24 + 5. ✅ **Full gate: 1,815 PASS, 0 FAIL, GATE PASSED** (12:23–12:41, port 8796). Gates 1–4 green (0
+    clipped, waterfall PDF and every Excel part identical), gate 5 at **74 ids** (prep's re-cut), gate 10's ten
+    print documents identical, gate 13's twenty written month PDFs byte-identical.
+  - ⭐ **Learned: a gate queued by another session runs on whatever tree the worktree holds when it STARTS.** The
+    run above was queued at 12:04 by the session that made `c869a13` (scratchpad `a38fe754…`), to gate `c869a13`.
+    It started at 12:23, after this merge and its build were already in the worktree, so it gated the merge. That
+    was the right tree here, and it was confirmed by its 74 ids and the unchanged build hash, not assumed. Before
+    trusting someone else's queued gate, check both. Never rebuild `dist/` while a gate reads it.
   - ⚠️ **The owner's 11:59 save will NOT heal itself.** The copy the app wrote into the main checkout's
     `tests/fixtures/stintswap-reshape.sptcal` at 11:59 has start 10/21 but `{"2027-10-18": "Start Principal
     Photography 10/18/27"}`. The old build left that note behind, and it now opens with neither week's auto text,
@@ -31,9 +48,10 @@
     it: in Waterfall, Reset Notes (it is that file's only waterfall note), or edit the note to read 10/21/27,
     which matches the auto text and so goes back to auto. Auto-healing such notes would be a new rule, and the
     owner has not been asked.
-  - ⏭ **To land it:** `main` must take both this branch and the episode-prep merge that is staged in the main
-    checkout. Both touch `src/legacy/app.js`. Whichever lands second merges the other and re-runs the full gate.
-    Then push only on the owner's per-push picker, and verify the live file.
+  - ⏭ **To land it:** `main` fast-forwards to `autonote-merge` (the merge above has `5676649` as a parent) on the
+    owner's commit picker. Then push only on the owner's separate per-push picker, and verify the live file
+    byte-identical to `1e9e4fe0…`. The main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still the
+    owner's app save, not anyone's change: leave it modified.
 
 - Owner, 19 Oct 2026: *"when i use the grab handle to change the start of the very first day of production, it doesnt
   move the comment with it in the month view"*.
@@ -93,6 +111,67 @@
      out, build, copy `dist/index.html` to an untracked `dist-prefix/`, re-apply, rebuild. Then run the legs with
      `--page /dist-prefix/index.html` on a private `HARNESS_PORT`, so no other session's server is pkilled.
 
+### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
+
+- **The trap:** `autonote-grips` (unmerged) fixed the month drags. Every other schedule change still leaves an edited
+  "Start Principal Photography 6/29/26" / "… Wraps 10/20/26" on its old date, on screen, in Excel and in both PDFs.
+  That covers a typed or picked start, episode or block days, Show Info, a custom holiday, the Region, Rebuild From,
+  Close all gaps and autostart. Reproduced with trusted input on `autonote-grips.sptcal` against the drag-fix build
+  `20f129fb…` (plan §1).
+- ⭐ **Learned, measured:** `update()` runs on every keystroke's intermediate value. Typing 07/06/2026 fires on
+  2026-07-29 and the years 0002/0020/0202. Retyping 06/30 over 06/29 fires on 2026-06-03. "12" over 10 episodes
+  fires on "1". So a rewrite chained from the previous schedule would cut the Start line at 6/3 and never get it back.
+- **Owner's picker, all recommended:** (1) one hook in `update()`, with a per-note memory recomputed from the
+  original every time; (2) the user's own lines stay on their week; (3) build in its own worktree off `main` AFTER
+  `autonote-grips` is merged. The exclusions are `suppressDirty` / `applyingUndoRedo`, plus the memory cleared in
+  `applyStateSnapshot` and `resetAll` and held during `shiftCalendar`. Plan §3.3 has the reasons; `monthCursorRecheck`
+  is not the signal. The drags' `autoNoteBaseline()` goes inert by declaration (§3.4). No frozen code, no save-format
+  change. The gate is plan §5 (N1–N12; gates 10 and 13 byte-identical).
+
+### ◐ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO LOCAL `main` (EPISODE-PREP-PLAN steps 1–6), NOT PUSHED
+
+- **State:** ✅ **merged into local `main`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into local main,
+  resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
+  - Built on `main` at `6ad9e42` on branch `claude/beautiful-bardeen-00c9f0`, then merged with `main` at `8515cd8` as
+    **`claude/episode-prep-merge`** (gated there, below), because the main checkout then held the grips session's
+    uncommitted work. By the time it landed, `main` had moved on by the episode-grips commits (`04a1f18`, LIVE, and
+    `1c3ce15`), so this is a normal `--no-ff` merge, not a fast-forward. `src/legacy/app.js` and `gate.sh` auto-merged;
+    only this file and `README.md` conflicted, and both entries were kept in each.
+  - The record is the plan's §13 ([`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md)). No frozen line changed.
+- **What a user sees:** in the month view only, a **Prep** row under Production: name, colour swatch, *Default prep
+  days*, a summary line, and one box per episode in shooting order (per block in Blocks mode). Blank = the default,
+  0 = no prep for that one. Pills read *Prep 302* / *Prep Block 2*, in lanes UNDER the shoot, stacking when they
+  overlap. Waterfall, Excel and the waterfall PDF never show prep.
+- **Save format (permanent from the first file):** ids `prep-days`, `prep-name`; key `prepDays` on an episode or
+  block, written only when typed; `phaseColorOverride.episodePrep`. `SNAPSHOT_VERSION` unchanged.
+- ⛔ **Gate 5 moves by exactly two ids** (`prep-days` = `''`, `prep-name` = `'Prep'` on `v1.0.0-saved.html`), as plan
+  §7 said. ✅ **Re-cut 72 → 74 on the owner's sign-off** (picker, 19 Oct 2026), recorded in the baseline's README.
+- ⭐ **Learned / decided:**
+  1. **Prep's segment `start` is Production's start, a lane anchor, not its first day** (plan §13.1; ✅ the owner
+     kept it, picker 19 Oct 2026: "Under the shoot"):
+     frozen `renderMonthView` stacks lanes by `start`, and the true first day would put prep above the shoot and
+     make Production hop lanes. Real bounds are `firstDay`/`lastDay`; `monthRangeForSchedule()` reads them.
+  2. **Prep must be appended LAST in `computeSchedule()`** (after weeks, notes, holidays). That is what makes Excel
+     and the waterfall PDF byte-identical with prep on and off, which the leg now proves.
+  3. A holiday inside a prep but outside every phase gets no month-view note (adding one would reach the waterfall).
+  4. The episodes' and blocks' restore maps copy field by field: a new per-unit key must be named there too.
+- **Proof:** leg `episodeprep` (LIVE 23, RESTORE 24, BLOCKS 5), in `gate.sh`; Excel (16 parts) and the waterfall PDF
+  byte-identical on/off; `npm run check` 40/40; `check-refs.py` CLEAN.
+  - **Full gate on build `9b3f13ad1af1e310…` (1,518,415 bytes): 1,799 PASS, 5 FAIL** (17 min, 19 Oct 2026). Gates 1–4 green (0
+    clipped, waterfall PDF and every Excel part identical, v1.0.0 restores identically); gate 10's ten print documents
+    identical; gate 13's twenty written month PDFs byte-identical, no re-cut.
+  - **Gate 5 FAILED, as predicted:** gained exactly `prep-days` and `prep-name`, nothing lost, nothing changed (72 → 74
+    ids). ✅ **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
+  - ⚠️ **The other four failures were contention, and passed alone.** Two other sessions' gates (worktree
+    `autonote-grips`, and a scratchpad `wt-old` twice) ran on this machine at the same time as this one: `pilllabel`
+    `carry-rich` W0 and `halfdays` W3 (a month walk cut to one month) and `monthexport` X6 on `stintswap-reshape` and X4 on
+    `dayoverrides` (timed dialog cases that passed on every other calendar). Re-run alone afterwards: `pilllabel` 12 and
+    16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
+- **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
+  sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
+- ⏭ **Next:** push only on the owner's word. Possibly cut the two prep fixtures into gates 10 and 13 as new cases
+  (not done; that is a baseline change the owner has not asked for).
+
 ### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
 
 - ✅ **PUSHED AND LIVE at `04a1f18` (19 Oct 2026), verified BYTE-IDENTICAL to the gated build** (`f1ac3ff2…`,
@@ -103,7 +182,8 @@
   - the right-click menu plan and mockup (`f9dfc73`, `8515cd8`, docs only).
 
   `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is overdue.
-- ⏭ **Open:** the standalone `pilllabel (dayoverrides)` re-run (port 8744), still running at push time. See Proof.
+- ✅ **Closed after the push:** standalone `pilllabel (dayoverrides)` on the live build `f1ac3ff2…` (port 8744, once
+  another session's gate had finished) passed **29/29**, K1 and C3 included. The gate's two failures were load flakes.
 - **Two owner requests, 19 Oct 2026**, both in `installProductionEdgeHandles()` (`src/legacy/app.js`, not frozen):
   1. *"when you drag the edge handles of a production week or episode that is directly touching another week or
      episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
@@ -153,7 +233,8 @@
     - Waterfall PDF and every Excel part identical; `v1.0.0-saved.html` restores identically; 0 clipped cells;
       `fields.byId` 72 ids; gate 10's print documents identical; gate 13's written month PDFs byte-identical.
     - The two failures were `pilllabel (dayoverrides)` K1 ("timed out waiting for: save enabled") and C3. That leg
-      reads no grip. A standalone re-run on port 8744 was still running at commit time; ⏭ **confirm it.**
+      reads no grip. ✅ Re-run standalone on the same build, it passed 29/29 (K1 and C3 included). A first
+      standalone attempt, made while another session's gate ran, wrote no result at all.
   - Both gates ran in a clean detached worktree at `6ad9e42` with the change copied in, because the main checkout's
     `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's).
   - Checked in the app pane (v1.4.0-saved, July 2026): 201's end left a day leaves Thu 7/9 hatched off with 202 still
@@ -402,7 +483,7 @@
   4. **Chrome moved to 155.0.8059.82** since the 15 Oct cut (.40). Its compressor did not move anything: all nineteen untouched gate-13 files stayed byte-identical under .82.
   5. **The owner's Mac ran this session on battery (17-18%).** Ask for power before a full gate, not during one.
 
-### 📝 15 Oct 2026: PLANNED — PER-EPISODE PREP, DERIVED FROM THE SHOOT, MONTH VIEW ONLY (not built)
+### 📝 15 Oct 2026: PLANNED — PER-EPISODE PREP, DERIVED FROM THE SHOOT, MONTH VIEW ONLY (✅ BUILT 19 Oct 2026, see the top entry)
 
 - From the custom-phases plan's ruling 6 (entry below): each episode gets a prep run of N working days ending the day
   before its first shoot day, computed from the shoot, so it follows every move. The plan is
