@@ -28,6 +28,28 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog is open (19 Oct 2026)
+
+⇧⌘S, ⌘N and ⇧⌘E already did nothing while one of the app's dialogs (or the template header editor) was up. Plain ⌘S
+still clicked Save, and ⌘Z / ⇧⌘Z still ran the app's undo and redo underneath the question. Reproduced with real key
+presses, that did harm:
+- **⌘Z under "Remove hiatus?", then Remove: the hiatus was not removed.** Undo rebuilds the hiatus rows, and the
+  question's handler then removed a row that was no longer on the page.
+- **⌘Z under "Remove phase?", then Remove: a ghost row.** The phase left the calendar, but its row stayed in the
+  sidebar, where edits did nothing.
+- **⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change.** Save asked its own
+  question, and a second dialog answers the first as Cancel.
+- **⌘Z under the template header editor** put the header back in Auto with the editor still open.
+
+Now ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog or the template header editor is up. ⌘Z inside a text field, the header
+editor's included, is still the field's own undo, and with no dialog all three work as before.
+- **Verified:** a new harness leg, `dlgkeys`, 16 cases. It is red on the old engine (D1–D12) and green with the fix.
+  Three mutants each fail only the cases they should. `filekeys`, `cmdprint`, `nofsa` and `regionlock` are green, and
+  `npm run check` passes 40/40. In the app, with real keys, ⌘Z and ⌘S under "Remove hiatus?" did nothing, and Remove
+  then removed it. Full gate on build `13d1154f…` (1,510,349 bytes): **1,763 PASS, 0 FAIL, GATE PASSED** (17 min,
+  first run, after the other session's gate finished). That is the previous 1,747 plus the 16 new cases. Every frozen
+  output is identical to baseline, and `fields.byId` still holds 72 ids.
+
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
 Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small

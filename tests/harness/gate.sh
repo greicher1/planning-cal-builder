@@ -1541,6 +1541,10 @@ done
 # and every note's line breaks against Chrome's own breaker on the same font program.
 # filekeys guards the file actions' keyboard shortcuts (owner, 1 Oct 2026): ⌘N New, ⇧⌘S Save As and
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
+# dlgkeys guards ⌘S, ⌘Z and ⇧⌘Z under the app's dialogs (19 Oct 2026): none of them may act while a question
+# (or the template header editor) is up. Before, ⌘Z under "Remove hiatus?" made Remove do nothing, under "Remove
+# phase?" it left a ghost row, and ⌘S under the Region's "Continue?" on a file changed on disk dropped the Region
+# change. It loads its own linked file through the fake picker, so it takes no state. In-field undo stays (X1, X2).
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 # halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
@@ -1566,7 +1570,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
-              filekeys:v1.4.2-saved:150 \
+              filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
