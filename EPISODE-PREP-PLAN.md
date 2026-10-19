@@ -1,7 +1,8 @@
 # EPISODE-PREP-PLAN.md
 
-**Status: PLAN, 15 Oct 2026. Nothing built.** ✅ **All rulings received 15 Oct 2026** (§9). Ready to
-build (§10).
+**Status: BUILT 19 Oct 2026 on branch `claude/beautiful-bardeen-00c9f0` (§13), committed locally, not merged, not
+pushed.** *(Was: "PLAN, 15 Oct 2026. Nothing built.")* ✅ **All rulings received 15 Oct 2026** (§9). No frozen line
+changed. Gate 5 moves by the two ids §7 predicted, and its re-cut waits for the owner's sign-off.
 **Written against:** `400ea6c`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) (its ruling 6 is where this plan comes
@@ -286,3 +287,54 @@ still has the per-episode branch: `episodeSpans()` is stubbed to return `[]`, wh
 the lane back to "Production Week N". So per-episode shoot bars are reachable again with **no
 frozen edit**. But they would reverse ruling 8 and move every episodic calendar's month PDF, so
 that is the owner's call inside that plan. `MONTH-PILL-LABEL-PLAN.md` was not edited.
+
+---
+
+## 13. ✅ As built (19 Oct 2026, branch `claude/beautiful-bardeen-00c9f0`, on `main` at `6ad9e42`)
+
+Steps 1–6, in order. **No frozen line changed.** Everything is in `src/legacy/app.js` (non-frozen functions), the
+sidebar CSS in `src/styles/legacy.css`, and the harness.
+
+| Step | As built |
+|---|---|
+| 1 | Already laid by custom-units: a segment may carry `days` (a Set), and `segCoversDate()` reads it. Nothing to do |
+| 2 | `PREP_KEY = 'episodePrep'`, `PREP_DEF` (default colour Light purple, index 2: my pick, stored nowhere). `episodeDefs[].prepDays` / `blockDefs[].prepDays` written only when typed (`hasPrepOverride()`): absent and `''` both mean the default, so a calendar with no prep length saves exactly what it saved before. Both restore maps copy it; `sanitizeSnapshot()` holds it to `countVal` and drops a bad one. `#prep-days` / `#prep-name` join `show-mode` in `applyStateSnapshot()`'s absent-means-default list (`''` / `'Prep'`), and New resets them. The colour lives in `phaseColorOverride.episodePrep`; `reflectPrepSwatch()` repaints the swatch on restore and New. A typed prep length counts as an edit in the "Removed …" warning |
+| 3 | `buildPrepRow()`, appended under Production by `buildPhaseRows()`. Shown only in the month view (`body:not(:has(#view-month-btn.active)) #prep-row`). `refreshPrepUI()`, from `update()`, rebuilds the list only when its rows change (mode, ids, order, names) and otherwise writes values and placeholders back in place, skipping the focused box, so typing keeps the caret and undo/Load show the restored lengths. `prepSummary()` writes the line. Prep boxes are in `WHOLE_FIELDS` ("Whole days only") |
+| 4 | `appendEpisodePrep()`, called LAST in `computeSchedule()`, after the weeks, notes and holidays. Units from `productionUnits()` (shooting order; blocks in Blocks mode); each unit's first shoot day; n working days back by `isUnitWorkDay()` with no `ownHi`. A cheap exit when no length is set (the solvers call `computeSchedule()` up to 300 times). One segment: `days` (union), `preps` (per run), `firstDay`/`lastDay`. `landmarkDate()` (whole-schedule start) and `scheduleLastDay()` skip it; `monthRangeForSchedule()` reads `firstDay`/`lastDay` |
+| 5 | `pillRunsForWeek()` returns `prepRunsForWeek()`'s runs for prep and records them in `_prepRuns`; `segPillLabel()` names each run through `takePrepRun()` (the `_prodRuns` call-order contract, §8) with `prepPillLabel()`: "Prep 302", "Prep Block 2" |
+| 6 | Leg `tests/harness/t/episodeprep.js`, fixtures `episodeprep.sptcal` and `episodeprep-blocks.sptcal`, a block in `gate.sh` |
+
+### 13.1 ⭐ One decision of mine the plan did not make: prep's `start` is a LANE ANCHOR
+
+§5 said the segment's `start`/`end` would be its outer bounds. Frozen `renderMonthView` orders each week's lanes by
+`start` (earliest on top, a stable sort). With its true first day, prep sorts ABOVE Production (a first-episode prep
+starts before the shoot), so in every week a prep overlaps, Production would drop a lane, and in the other weeks it
+would sit on top: the shoot hopping lanes week to week. So the segment's `start` is **Production's own start**, and
+prep, appended after Production, sorts straight after it. Production keeps exactly the lane it has today, and each prep
+stacks under the shoot it overlaps (the example's "second lane"). The real bounds are `firstDay`/`lastDay`, which
+`monthRangeForSchedule()` reads. `RESTORE` R12 holds every non-prep bar of every month (text, columns, lane) identical
+with prep on and off. It is one line in `appendEpisodePrep()` if the owner wants prep on top instead.
+
+### 13.2 Found while building
+
+- **The waterfall's holiday notes are computed from the segments BEFORE prep is appended**, so a union holiday that
+  falls only inside a prep (no phase covers it) gets no holiday note in the month view either. Adding one would add a
+  note to the waterfall too, which P1 forbids. Not an issue on any fixture (Prod Prep covers Presidents' Day there).
+- **A typo'd length** walks back at most `MAX_WEEKS × 7` days, like a Days phase. It is not refused (prep is not in
+  the weeks, so the too-large check cannot see it), and the month view would gain the months it reaches.
+- **The two guards in §4.2 are defensive only.** With `start` = Production's start, prep can never move the
+  whole-schedule start or the last day, so no mutant of either guard can go red. They stay, so a later change to the
+  anchor cannot quietly reach Anchor To.
+- **My first hand trace was wrong, and the leg caught it:** Prep 303's ten days back from Mon 3/29 reach Mon 3/8; I had
+  stopped at 3/9. The app was right.
+
+### 13.3 Proof
+
+- `episodeprep` LIVE 23/23, RESTORE 24/24, BLOCKS 5/5 (each about 4 s wall-clock), 0 console errors.
+- ⭐ **Month view only:** RESTORE exports the workbook and the waterfall PDF with prep ON (the fixture through a real
+  Load) and OFF (the same file with the prep keys removed, through a real Load). Every Excel part bar
+  `docProps/core.xml` and the PDF (74,581 bytes) are byte-identical, and `gate.sh` asserts it.
+- The written month PDF of both fixtures, on and off (`monthexport`, its X2 holding the built writer to the sliced
+  source with prep in it): only February to April differ, one page per month either way. Contact sheets for the owner
+  are in the session notes folder, not the repo.
+- The full gate: see HANDOFF.
