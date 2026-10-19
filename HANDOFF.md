@@ -23,8 +23,19 @@
 
 ### ◐ 19 Oct 2026: PER-EPISODE PREP IS MERGED INTO LOCAL `main` (EPISODE-PREP-PLAN steps 1–6), NOT PUSHED
 
-- **State:** ✅ **merged into local `main`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into local main,
-  resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
+- **State:** ✅ **merged into local `main` at `e50583b`** (19 Oct 2026). Owner: *"Merge claude/episode-prep-merge into
+  local main, resolve the HANDOFF/README conflicts, and run the full gate on its own port. Don't push."* **Not pushed.**
+  - ✅ **Full gate on the merge: 1,808 PASS, 0 FAIL** (build `082563a2…`, 1,522,314 bytes, port 8761, 12:05–12:22,
+    19 Oct 2026). It ran in a clean detached worktree at `e50583b`, because the main checkout's
+    `tests/fixtures/stintswap-reshape.sptcal` is still modified (not this work's), and only after the prep session's
+    own gate on the branch had exited. Gates 1–4 green (0 clipped, waterfall PDF and every Excel part identical,
+    v1.0.0 restores identically), gate 5 at 74 ids, gate 10's ten print documents identical, gate 13's twenty
+    written month PDFs byte-identical. `pilldrag` 24/24 and `episodeprep` all green in the same run. `npm run check`
+    40/40; `check-refs.py` CLEAN.
+  - **The grips and prep cannot reach each other's elements** (read from the merged code): the episode grips select
+    `.mv-pill[data-ph="production"]` only, and the phase-edge grips need a `unit-<key>` element, which the Prep row
+    has none of. So prep pills carry no handles and simply re-derive after a drag. ⚠️ No leg drags a grip on a
+    calendar WITH prep set (`pilldrag`'s calendars have none), so that is reasoned, not measured.
   - Built on `main` at `6ad9e42` on branch `claude/beautiful-bardeen-00c9f0`, then merged with `main` at `8515cd8` as
     **`claude/episode-prep-merge`** (gated there, below), because the main checkout then held the grips session's
     uncommitted work. By the time it landed, `main` had moved on by the episode-grips commits (`04a1f18`, LIVE, and
@@ -62,8 +73,9 @@
     16 months, W0–W3 true; `monthexport` all nine cases on both. None of those calendars has prep.
 - **Owner's PDFs:** the written month PDF of both fixtures with prep and without, and `monthbase.py sheets` contact
   sheets (only Feb–Apr 2027 differ), in the session-notes folder `episode-prep/` (not the repo).
-- ⏭ **Next:** push only on the owner's word. Possibly cut the two prep fixtures into gates 10 and 13 as new cases
-  (not done; that is a baseline change the owner has not asked for).
+- ⏭ **Next:** push only on the owner's word. `origin/main` is at `04a1f18`, so a push of `main` also ships every
+  later local commit (other sessions' docs included): check `git log origin/main..main` first. Possibly cut the two prep fixtures into gates 10 and 13 as new cases (not done; that is a
+  baseline change the owner has not asked for). A version cut is overdue (`version.json` still 1.4.3).
 
 ### ✅ 19 Oct 2026: EPISODE GRIPS REMOVE DAYS, NEVER PUSH, AND EVERY EPISODE'S START HAS ONE (committed `04a1f18`, LIVE)
 
