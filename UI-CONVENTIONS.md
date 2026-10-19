@@ -1150,6 +1150,18 @@ Nothing in this document ships without all of these, every stage:
       every edge × unit, custom and built-in; the held end never moving; the Weeks → Dates switch with
       one undo; floors; weekend, holiday and hiatus step-overs; out-and-back and Escape banking nothing;
       and print media.
+    - `hiatusdrag.mjs` (19 Oct 2026), the same trusted input on a hiatus band (HIATUS-DRAG-PLAN.md,
+      owner rulings 1–4). H0–H12 cover:
+      - where the move layer and the two grips appear, and that a locked or ambiguous band gets none;
+      - a week at a time by row (a Sunday drop means that row's week);
+      - an all-phase drag asking Keep or Undo, with Ctrl+Z held under the question;
+      - a phase's own hiatus never asking, and never leaving its phase;
+      - no overlap, and the floors;
+      - the band's look travelling with it;
+      - the half day staying on its date;
+      - Escape, and print media.
+      ⚠️ The crash-backup half of the hold can't be seen headless (IndexedDB never settles there), so it
+      was proved in the app pane.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
 

@@ -294,6 +294,11 @@ mid-phase gap mechanism is a per-phase hiatus, which is week-granular (`{start, 
 other phases it would need day-granular hiatuses, which is a separate save-format change and is not
 planned here.
 
+➡️ **19 Oct 2026: a hiatus itself can now be dragged, by the WEEK.** You can move it, or change its first
+or last week, in this view. See [`HIATUS-DRAG-PLAN.md`](HIATUS-DRAG-PLAN.md). It copies §6.7's phase
+handles (body-level chrome, zero frozen edits), and it keeps the week granularity this section relies on.
+Dragging a hiatus by the day would still be the save-format change described above.
+
 ### 6.5 ⛔ The gate — and the stop condition
 
 1. Month PDF diffed against a pre-change export — **only** the intended new elements differ.

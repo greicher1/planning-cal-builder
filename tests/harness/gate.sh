@@ -1945,6 +1945,32 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPE
 
+# ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
+# ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
+# reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
+# where elementsFromPoint has the body-level layer or grip topmost (H0). On hiatusdrag.sptcal: a
+# week at a time by ROW (a Sunday drop is that row's week, H4); a locked hiatus offers nothing (H0);
+# an all-phase drag asks Keep or Undo, Ctrl+Z is held under the question, and Undo banks nothing (H1,
+# H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
+# band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
+# stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
+# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# settles in headless Chrome); it was proved in the app pane.
+node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHD
+
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
 # unhashed legs), so no t/ leg can see it. This loads the page WITHOUT ?test=, installs a

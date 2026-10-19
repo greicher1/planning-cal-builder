@@ -2910,3 +2910,27 @@
    text selection underneath. Removed on release; a release outside the window is caught on the next
    move (the mousemove's buttons test). */
 .phase-edge-shield{ position:fixed; inset:0; z-index:300; cursor:ew-resize; }   /* the popover tier; last in the DOM, so on top */
+
+/* ---- The hiatus drag (HIATUS-DRAG-PLAN.md, 19 Oct 2026) -----------------------------------------
+   Body-level chrome laid over a month-view hiatus band by installHiatusDrag(), on the same terms as
+   the phase handles above: nothing inside #table-wrap, no `.mv-*` rule, and nothing the print path can
+   reach. A band is click-through (.mv-bars{pointer-events:none}), so the LAYER is what the pointer
+   grabs: transparent, over the band's visible box, the band's own radius. The grips sit on top of it.
+   A week is a row, so the grips and the edge shield say up/down. z-index 49/50: under the popovers. */
+.hiatus-drag-layer{ position:fixed; z-index:49; border-radius:9px; cursor:grab; }
+.hiatus-drag-layer[hidden]{ display:none; }
+/* Ruling 1: a locked hiatus says so, and does nothing. */
+.hiatus-drag-layer.is-locked{ cursor:not-allowed; }
+.hiatus-grip{
+  position:fixed; z-index:50; width:10px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:ns-resize; user-select:none;
+}
+.hiatus-grip[hidden]{ display:none; }
+.hiatus-grip::before{
+  content:''; width:3px; height:62%; min-height:8px; border-radius:2px;
+  background:currentColor; opacity:.5;
+}
+.hiatus-grip:hover::before{ opacity:.9; }
+.hiatus-drag-shield{ position:fixed; inset:0; z-index:300; cursor:ns-resize; }
+.hiatus-drag-shield.is-move{ cursor:grabbing; }
