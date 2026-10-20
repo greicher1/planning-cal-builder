@@ -139,6 +139,8 @@ Weekends are blank in every mode (ruling 3), which is what custom phases already
     turns Snap to Mon off, the month-view drag's rule (MONTH-VIEW-PLAN §6.3).
 - ✅ **As built, a Days segment STARTS on its first counted day,** not the typed one, so a start typed on a
   weekend or holiday gives the waterfall no empty week row. The hint says *First working day …*.
+- ⭐ **19 Oct 2026: a custom phase's "wk N" can be switched off** ("Number weeks", [`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md)).
+  Going to Days or Dates unticks it, so a one-day Days phase reads as its bare name.
 - **Validation:** an end date before the start date, or a day count below 1, puts a red hint on the
   row and leaves the phase unscheduled. That matches what a week count of 0 does today.
 

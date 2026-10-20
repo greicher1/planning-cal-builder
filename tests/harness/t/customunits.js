@@ -61,7 +61,10 @@ window.addEventListener('load', function () { (async function () {
       Array.from(tr.children).forEach(function (td) {
         var t = (td.textContent || '').trim();
         if(/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(t)){ date = t; return; }
-        var m = /^(.*?) wk \d+$/.exec(t);
+        // ⚠️ Or the BARE name (PHASE-NUMBERING-PLAN.md, 19 Oct 2026): LIVE sets Days and Dates through the By select,
+        // which unticks "Number weeks", so Read-through, Stage Build and Rigging read without "wk N" there. RESTORE's
+        // fixture predates the box and stays numbered.
+        var m = /^(.*?) wk \d+$/.exec(t) || (['Scout', 'Read-through', 'Stage Build', 'Rigging'].indexOf(t) !== -1 ? [t, t] : null);
         if(m && date){ (map[m[1]] = map[m[1]] || []).push(date); }
       });
     });

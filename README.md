@@ -64,6 +64,37 @@ Step 5 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), the last o
   The legs that use those sidebar controls are green. **Full gate: 1,951 PASS, 0 FAIL**, every frozen output
   identical.
 
+### Unreleased — A custom phase can drop its "wk N": the Number weeks box (19 Oct 2026)
+
+[`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md). The owner wanted one- or two-day phases that do not read "week x"
+by default, and asked whether that should be a separate "Event" feature. Ruled: keep them as phases (a one-day item
+takes a waterfall column like any phase), and give the setting to **custom phases only**.
+
+- **Each custom phase row has a "Number weeks" checkbox**, under the By box, in every unit. Off, the phase is its bare
+  name everywhere: *Table Read* instead of *Table Read wk 1* in the waterfall, Excel and the waterfall PDF, and instead
+  of *Table Read Week 1* in the month view, both month PDFs and the day menu's header. The six built-in phases have no
+  box and are unchanged.
+- **It follows the unit:** switching By to Days or Dates unticks it, and switching back to Weeks ticks it (owner Q2).
+  Days ↔ Dates keeps whatever was set. The day menu's "Add 1-day phase here" makes an unticked phase, and "Add 1-week
+  phase here" a ticked one. The month view's edge drag, which switches a Weeks phase to Dates, leaves it alone (Q3).
+  Each change is one undo step with the unit.
+- **Save format:** one new permanent id per custom phase, `wknum-<key>` (`{checked}` in `fields.byId`). Absent means
+  numbered, so every calendar saved before this, including Days and Dates phases saved since 16 Oct, prints exactly as
+  before (Q4). No restore default was needed: custom rows are rebuilt fresh on every load. `SNAPSHOT_VERSION` stays 1,
+  and an older build shows such a phase with its "wk N", losing nothing else.
+- **No frozen code.** The waterfall's text comes from `getAllPhaseDefs()`' template and the month view's from
+  `prodWeekLabel()`. ⚠️ A shorter label makes its automatic column narrower (the frozen width model measuring new
+  text), so on a calendar with unticked phases the waterfall PDF's grid is narrower and, being centred, sits further
+  right: 36 pt narrower on the fixture.
+- **Verified:** new leg `phasenum` (55 checks in the page, 4 in `gate.sh`) on new fixture `phasenumbering.sptcal`, both
+  runs green on build `3ea7edd8…`. On the pre-change build `05169b7f…` (the live one) its label checks are red, Excel's
+  included. Month-PDF contact sheets of the fixture, live build vs this one: only the removed "Week N" text differs
+  (March, 1,172 pixels; April identical). `npm run check` 40/40. **Full gate on build `3ea7edd8…` (port 8939, 16:41–17:22): 1,876 PASS, 5 FAIL.** Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at **74 ids** (unchanged: its calendar has no custom phases), gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical. No re-cut. The five were `customunits (live)`'s
+  waterfall reader, which only knew "Name wk N" and now accepts the bare name (that run builds Days and Dates phases
+  through the By select, which unticks the box), and two contention flakes on record (`monthexport` X6, `pilldrag`'s
+  deadline). All three legs re-run alone: 92 PASS, 0 FAIL. Then merged with `main` at `6b9eeb4` (day menu steps 2–4,
+  off weeks, prep above Production): full gate on the merged build `2e2b0d65…`, **2,001 PASS, 0 FAIL**.
+
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day

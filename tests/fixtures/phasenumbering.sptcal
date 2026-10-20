@@ -1,0 +1,537 @@
+{
+ "version": 1,
+ "customPhaseDefs": [
+  {
+   "key": "custom1",
+   "colorIndex": 0
+  },
+  {
+   "key": "custom2",
+   "colorIndex": 1
+  },
+  {
+   "key": "custom3",
+   "colorIndex": 2
+  },
+  {
+   "key": "custom4",
+   "colorIndex": 3
+  },
+  {
+   "key": "custom5",
+   "colorIndex": 4
+  },
+  {
+   "key": "custom6",
+   "colorIndex": 5
+  }
+ ],
+ "customPhaseCounter": 6,
+ "phaseColorOverride": {},
+ "episodeDefs": [],
+ "episodeCounter": 0,
+ "blockDefs": [],
+ "blockCounter": 0,
+ "blockAssignEdited": false,
+ "episodeShootOrder": [],
+ "userNotes": {},
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "dayOverrides": {},
+ "headerMode": "auto",
+ "headerManual": {},
+ "headerTemplates": false,
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "mvHeaderTemplates": false,
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {},
+ "hiatusColors": {},
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {},
+ "holidayView": {},
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "singleColumn": false,
+ "sidebarTab": "phases",
+ "colWidths": {},
+ "colWidthsAlt": {},
+ "rowHeights": {},
+ "rowHeightsByWeek": {},
+ "cellSpans": {},
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": ""
+   },
+   "season-num": {
+    "value": ""
+   },
+   "show-mode": {
+    "value": "episodes"
+   },
+   "shoot-days-per-ep": {
+    "value": ""
+   },
+   "num-episodes": {
+    "value": ""
+   },
+   "num-blocks": {
+    "value": ""
+   },
+   "days-per-block": {
+    "value": ""
+   },
+   "show-version": {
+    "value": ""
+   },
+   "union-place": {
+    "value": ""
+   },
+   "custom-hol-name": {
+    "value": ""
+   },
+   "custom-hol-date": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": ""
+   },
+   "unit-writersRoom": {
+    "value": "weeks"
+   },
+   "weeks-writersRoom": {
+    "value": ""
+   },
+   "end-writersRoom": {
+    "value": ""
+   },
+   "snap-writersRoom": {
+    "checked": true
+   },
+   "phiatus-en-writersRoom": {
+    "checked": false
+   },
+   "phiatus-name-writersRoom": {
+    "value": ""
+   },
+   "phiatus-start-writersRoom": {
+    "value": ""
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": "2027-03-01"
+   },
+   "unit-prePrep": {
+    "value": "weeks"
+   },
+   "weeks-prePrep": {
+    "value": "3"
+   },
+   "end-prePrep": {
+    "value": ""
+   },
+   "snap-prePrep": {
+    "checked": true
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": ""
+   },
+   "unit-prodPrep": {
+    "value": "weeks"
+   },
+   "weeks-prodPrep": {
+    "value": ""
+   },
+   "end-prodPrep": {
+    "value": ""
+   },
+   "snap-prodPrep": {
+    "checked": true
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": ""
+   },
+   "snap-production": {
+    "checked": true
+   },
+   "weeks-production": {
+    "value": ""
+   },
+   "phiatus-en-production": {
+    "checked": false
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": ""
+   },
+   "phiatus-weeks-production": {
+    "value": "2"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "prep-name": {
+    "value": "Prep"
+   },
+   "prep-days": {
+    "value": ""
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": ""
+   },
+   "unit-post": {
+    "value": "weeks"
+   },
+   "weeks-post": {
+    "value": ""
+   },
+   "end-post": {
+    "value": ""
+   },
+   "snap-post": {
+    "checked": true
+   },
+   "phiatus-en-post": {
+    "checked": false
+   },
+   "phiatus-name-post": {
+    "value": ""
+   },
+   "phiatus-start-post": {
+    "value": ""
+   },
+   "phiatus-weeks-post": {
+    "value": "2"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": ""
+   },
+   "unit-localization": {
+    "value": "weeks"
+   },
+   "weeks-localization": {
+    "value": ""
+   },
+   "end-localization": {
+    "value": ""
+   },
+   "snap-localization": {
+    "checked": true
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   },
+   "name-custom1": {
+    "value": "Table Read"
+   },
+   "start-custom1": {
+    "value": "2027-03-10"
+   },
+   "unit-custom1": {
+    "value": "days"
+   },
+   "weeks-custom1": {
+    "value": "1"
+   },
+   "days-custom1": {
+    "value": "1"
+   },
+   "end-custom1": {
+    "value": ""
+   },
+   "snap-custom1": {
+    "checked": true
+   },
+   "wknum-custom1": {
+    "checked": false
+   },
+   "phiatus-en-custom1": {
+    "checked": false
+   },
+   "phiatus-name-custom1": {
+    "value": ""
+   },
+   "phiatus-start-custom1": {
+    "value": ""
+   },
+   "phiatus-weeks-custom1": {
+    "value": "2"
+   },
+   "name-custom2": {
+    "value": "Scout"
+   },
+   "start-custom2": {
+    "value": "2027-03-18"
+   },
+   "unit-custom2": {
+    "value": "dates"
+   },
+   "weeks-custom2": {
+    "value": "2"
+   },
+   "days-custom2": {
+    "value": ""
+   },
+   "end-custom2": {
+    "value": "2027-03-22"
+   },
+   "snap-custom2": {
+    "checked": true
+   },
+   "wknum-custom2": {
+    "checked": false
+   },
+   "phiatus-en-custom2": {
+    "checked": false
+   },
+   "phiatus-name-custom2": {
+    "value": ""
+   },
+   "phiatus-start-custom2": {
+    "value": ""
+   },
+   "phiatus-weeks-custom2": {
+    "value": "2"
+   },
+   "name-custom3": {
+    "value": "Stage Lock"
+   },
+   "start-custom3": {
+    "value": "2027-03-01"
+   },
+   "unit-custom3": {
+    "value": "weeks"
+   },
+   "weeks-custom3": {
+    "value": "2"
+   },
+   "days-custom3": {
+    "value": ""
+   },
+   "end-custom3": {
+    "value": ""
+   },
+   "snap-custom3": {
+    "checked": true
+   },
+   "wknum-custom3": {
+    "checked": false
+   },
+   "phiatus-en-custom3": {
+    "checked": false
+   },
+   "phiatus-name-custom3": {
+    "value": ""
+   },
+   "phiatus-start-custom3": {
+    "value": ""
+   },
+   "phiatus-weeks-custom3": {
+    "value": "2"
+   },
+   "name-custom4": {
+    "value": "Rigging"
+   },
+   "start-custom4": {
+    "value": "2027-03-08"
+   },
+   "unit-custom4": {
+    "value": "weeks"
+   },
+   "weeks-custom4": {
+    "value": "2"
+   },
+   "days-custom4": {
+    "value": ""
+   },
+   "end-custom4": {
+    "value": ""
+   },
+   "snap-custom4": {
+    "checked": true
+   },
+   "wknum-custom4": {
+    "checked": true
+   },
+   "phiatus-en-custom4": {
+    "checked": false
+   },
+   "phiatus-name-custom4": {
+    "value": ""
+   },
+   "phiatus-start-custom4": {
+    "value": ""
+   },
+   "phiatus-weeks-custom4": {
+    "value": "2"
+   },
+   "name-custom5": {
+    "value": "Fitting"
+   },
+   "start-custom5": {
+    "value": "2027-03-26"
+   },
+   "unit-custom5": {
+    "value": "dates"
+   },
+   "weeks-custom5": {
+    "value": "1"
+   },
+   "days-custom5": {
+    "value": ""
+   },
+   "end-custom5": {
+    "value": "2027-03-26"
+   },
+   "snap-custom5": {
+    "checked": true
+   },
+   "wknum-custom5": {
+    "checked": false
+   },
+   "phiatus-en-custom5": {
+    "checked": false
+   },
+   "phiatus-name-custom5": {
+    "value": ""
+   },
+   "phiatus-start-custom5": {
+    "value": ""
+   },
+   "phiatus-weeks-custom5": {
+    "value": "2"
+   },
+   "name-custom6": {
+    "value": "Camera Test"
+   },
+   "start-custom6": {
+    "value": "2027-03-29"
+   },
+   "unit-custom6": {
+    "value": "weeks"
+   },
+   "weeks-custom6": {
+    "value": "1"
+   },
+   "days-custom6": {
+    "value": ""
+   },
+   "end-custom6": {
+    "value": ""
+   },
+   "snap-custom6": {
+    "checked": true
+   },
+   "wknum-custom6": {
+    "checked": true
+   },
+   "phiatus-en-custom6": {
+    "checked": false
+   },
+   "phiatus-name-custom6": {
+    "value": ""
+   },
+   "phiatus-start-custom6": {
+    "value": ""
+   },
+   "phiatus-weeks-custom6": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2026-12-21",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2027-12-20",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2028-12-18",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   },
+   {
+    "start": "2029-12-24",
+    "weeks": "2",
+    "locked": true,
+    "name": ""
+   }
+  ]
+ }
+}

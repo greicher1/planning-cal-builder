@@ -113,6 +113,37 @@
   lands on `main` first, a push carries it too, and the combined `main` needs a gate before pushing. Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
   plan §3.8's "Edit note…" section, which no step built.
 
+### 🔨 19 Oct 2026: BUILT: A CUSTOM PHASE WITHOUT "wk N" (branch `phase-numbering`, [`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md))
+
+- ⏭ **RESUME HERE.** Built in worktree `.claude/worktrees/phase-numbering`, branch `phase-numbering`, cut from `main`
+  at `e86aa5e` (the plan's commit), committed as `56603e8`. **Merged with `main` at `6b9eeb4` (day menu steps 2–4, off weeks, prep above Production), as `1a21a49`**, on the owner's go-ahead relayed by the day-menu step-4 session (*"Yes, tell it to merge and gate"*). Code auto-merged; only the docs conflicted (both sides' entries kept). **Full gate on the merged build `2e2b0d65…` (1,544,045 bytes, port 8939, 23:19–23:39): 2,001 PASS, 0 FAIL, GATE PASSED.** 0 clipped, 74 ids, gate 13's twenty written month PDFs byte-identical, `phasenum` 59/59, `mvmenu` 77/77 (I1 and I4 add the 1-day and 1-week phases).
+  **`main` not moved, nothing pushed:** both wait on the owner's own pickers.
+- Owner, 19 Oct 2026: one- or two-day phases should not read "week x" by default. Asked whether that is a separate
+  "Event" feature or a setting on phases. **Ruled:** R1, keep them as phases (a one-day item takes a waterfall column
+  like any phase); R2, the setting is for custom phases only. Then Q1–Q4 (plan §8), all as recommended.
+- **What it is:** a "Number weeks" checkbox on each custom row, id `wknum-<key>`, ⛔ **save format from now on**
+  (`{checked}` in `fields.byId`). Absent means numbered, so every saved calendar prints as before. Off, the phase is its
+  bare name in the waterfall, Excel, both PDFs, the month view and the day menu. By → Days/Dates unticks it, back to
+  Weeks ticks it, Days ↔ Dates keeps it, `addPhaseHere(ctx,'day')` unticks it, the edge drag's switch leaves it alone.
+- ⭐ **Learned:**
+  1. **The built-ins' template is "Wk", capital W** (`Pre Prep Wk 1`), custom phases' is "wk". A leg written from the
+     plan's prose expected "wk" and failed on the control. Read `PHASES` before writing an expected label.
+  2. **ExcelJS reports a merged cell's value from every cell it covers.** "Camera Test wk 1" spans four columns and
+     counted four times. Count master cells only (`c.isMerged && c.master.address !== c.address` → skip).
+  3. **A narrower label moves the waterfall PDF's whole grid**, because the frozen width model sizes columns from text
+     and the writer centres the grid: 36 pt narrower and 18 pt to the right on the fixture. Expected, frozen, and only
+     on calendars that untick a box. Measured from the two PDFs' `Tm` positions, not from the picture.
+  4. **The pre-change build of `main` (`05169b7f…`) is byte-identical to the live app**, so "red on the pre-change
+     build" here is also "red on what users have".
+- **Proof so far, build `3ea7edd8…` (1,533,056 bytes):** `npm run check` 40/40. `phasenum` LIVE 24/24 and RESTORE
+  31/31, plus `gate.sh`'s 4 (both PDFs' text runs, the console), run standalone on private port 8938. Red on
+  `05169b7f…`. Month-PDF contact sheets (live vs this) differ only in the removed "Week N" text. By hand in the app pane,
+  a real click on the box and one Undo each changed the waterfall cell as expected, 0 console errors.
+- **Full gate on build `3ea7edd8…` (port 8939, 16:41–17:22): 1,876 PASS, 5 FAIL.** Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at **74 ids** (unchanged: its calendar has no custom phases), gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical. No re-cut.
+  - The five: `customunits (live)` × 3, the waterfall rows of Read-through, Stage Build and Rigging. That leg builds them through the By select, which now unticks Number weeks, and its reader only knew "Name wk N". It now accepts the bare name too (`t/customunits.js`, `sheetRows()`); its RESTORE run, on a fixture that predates the box, had passed. And two contention flakes already on record: `monthexport (mvheaderlegacy)` X6, a timed dialog case whose PDF was byte-identical, and `pilldrag`'s 480 s deadline. **All three legs re-run as `gate.sh` runs them, after the other session's gate exited (17:59–18:02): 92 PASS, 0 FAIL.** Two more sessions' gates started a minute into it.
+- ⏭ **Next:** the owner's pickers: fast-forward `main` to this branch, then push and verify the live file. If `main`
+  has moved again first, merge it in and re-run the full gate.
+
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 
 - ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):
@@ -355,29 +386,6 @@
 - ⏭ **Next:** step A is built (entry above). Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the
   unmerged `day-menu-step3` both touch `prodWeekLabel()`, which is step B's site.
 
-### 🔨 19 Oct 2026: BUILT ON BRANCH `phase-numbering` (`56603e8`): A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not merged)
-
-- ⏭ **It is BUILT, not just planned: do not build it again.** Branch `phase-numbering` (worktree
-  `.claude/worktrees/phase-numbering`), commit `56603e8`, cut from `e86aa5e`. That branch's HANDOFF entry has the
-  full record: full gate 1,876 PASS, 5 FAIL, the five explained and re-run green (92 PASS, 0 FAIL), gates 1–5, 10 and
-  13 unchanged. **Not merged into `main`, not pushed.** The owner said "Not yet" to merging. `main` has moved since
-  (the prep start grip, live at `f0c7925`), so landing it means merging `main` in and re-running the full gate.
-
-- Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
-  feature or a setting on phases.
-- **Ruled (19 Oct 2026):** R1, **keep them as phases**: a one-day item takes a waterfall column like any phase.
-  R2, **the setting is for custom phases only**, never the six built-ins.
-- ⭐ **Why it is small:** Days and Dates custom phases (CUSTOM-PHASE-UNITS) already ARE the one-day item, and the day
-  menu's "one day" item already makes one. Only the label is wrong: *Name wk 1* from `getAllPhaseDefs()`'s template
-  (waterfall, Excel, waterfall PDF), *Name Week 1* from `prodWeekLabel()` (month view, both month PDFs, the day menu).
-  Neither is frozen.
-- **The design:** a "Number weeks" checkbox per custom row, new permanent id `wknum-<key>` (not `num-`, which means a
-  count). Absent means numbered, so every saved calendar is unchanged. No restore default is needed, because custom rows
-  are rebuilt fresh. The By select going to Days/Dates unticks it, and so must `addPhaseHere(ctx,'day')`, which sets the
-  unit with no event. The edge drag's Weeks → Dates switch leaves it alone.
-- ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
-  it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
-- Q1 was ruled in words the same day: *"Name and place as recommended"*.
 ### ◐ 19 Oct 2026: DAY MENU STEP 4 BUILT — LEFT-CLICK OPENS THE MENU, THE FULL DAY/OFF POPOVER IS RETIRED (branch `day-menu-step4`, worktree `.claude/worktrees/day-menu-step4`), NOT MERGED
 
 - ⏭ **RESUME HERE for the day menu.** This is ruling L1, the step the owner was waiting for (*"I thought you were going

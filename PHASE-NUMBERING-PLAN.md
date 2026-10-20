@@ -1,8 +1,8 @@
 # PHASE-NUMBERING-PLAN.md
 
-**Status: PLANNED 19 Oct 2026, not built.** Rulings R1 and R2 received from the owner the same day (§2), then Q2–Q4
-by picker (§8), each as recommended. Q1 (the control's name and place) was not asked; its recommendation stands
-unless the owner says otherwise.
+**Status: BUILT 19 Oct 2026 on branch `phase-numbering`** (worktree `.claude/worktrees/phase-numbering`), merged with
+`main` at `6b9eeb4` as `1a21a49` and gated (2,001 PASS, 0 FAIL); `main` not moved, not pushed. Rulings R1 and R2 received from the owner the same day (§2), then Q2–Q4 by picker and Q1 in words (§8),
+all as recommended. §11 records what was built and how it was proven.
 **Written against:** `9d47784`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) →
 [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md) §5–§8 → this file.
@@ -141,7 +141,7 @@ Start date [ 10/07/2026 ]   By [ Days ▾ ]  [ 1 ]
 
 | # | Question | Ruling |
 |---|---|---|
-| Q1 | Name and place: "Number weeks", under the By box, shown in all three units? | ⏳ **Not asked.** Recommended: yes. A Weeks phase may want it off too, e.g. a three-week "Location Lock" |
+| Q1 | Name and place: "Number weeks", under the By box, shown in all three units? | ✅ **Yes** (owner, 19 Oct 2026: *"Name and place as recommended"*). A Weeks phase may want it off too, e.g. a three-week "Location Lock" |
 | Q2 | Switching back to Weeks: turn numbering back **on**, or leave it as it is? | ✅ **Turn it on** (owner, 19 Oct 2026, picker). Weeks is numbered by default. The accepted cost: someone who unticked it on a Weeks phase, tried Days, and came back must untick it again |
 | Q3 | The month drag's Weeks → Dates switch: leave numbering alone? | ✅ **Leave it alone** (owner, 19 Oct 2026, picker). A three-week phase dragged one day shorter keeps its week numbers |
 | Q4 | Days or Dates phases saved 16–19 Oct open numbered (§5). Acceptable, or should those open unnumbered? | ✅ **Open numbered** (owner, 19 Oct 2026, picker). "Absent means unnumbered for Days and Dates" would change saved calendars' text with no edit, which is what the save rules exist to prevent. Unticking is one click |
@@ -188,3 +188,36 @@ re-runs `mvmenu`.
   on a private `HARNESS_PORT`.
 - **The new fixture's month PDF goes to the owner** as `monthbase.py sheets` contact sheets before any commit, per the
   month-PDF writer's ruling 4 for a deliberate change to the month PDF.
+
+---
+
+## 11. As built (19 Oct 2026)
+
+- **The code is §4.1 exactly**, in `src/legacy/app.js`: the checkbox in `addCustomPhaseRow()` (label class
+  `phase-wknum`, input class `phase-wknum-cb`), `numbered` and the template in `getAllPhaseDefs()`, one line in
+  `prodWeekLabel()`, the flip in `onCustomUnitChange()`, and one line in `addPhaseHere(ctx, 'day')`. The label shares
+  Snap to Mon's CSS in `legacy.css` (its own line, left-aligned), and is excluded from the By column's caption rule.
+- ⭐ **One refinement of §6: the flip happens only when the unit CROSSES the Weeks boundary.** Weeks → Days or Dates
+  unticks it and back to Weeks ticks it (Q2), but Days ↔ Dates keeps the user's setting. The previous unit is the
+  segment's (a Weeks segment carries no `unit`). An unscheduled phase has no segment, so there the new unit decides.
+  §6's table read "changed to Days or Dates → Off", which would have unticked a box the user had just ticked on a Days
+  phase when it moved to Dates.
+- ⚠️ **What a narrower label does to the waterfall, measured.** The frozen width model sizes the automatic columns from
+  their text, so unticked phases make the grid narrower, and the waterfall PDF centres the grid on its page. On the
+  fixture the grid is 36 pt narrower and every column sits 18 pt further right, while the title and the "2027" header
+  stay put. This happens only on a calendar with an unticked box; every existing baseline is held byte-identical.
+- **Fixture** `tests/fixtures/phasenumbering.sptcal` and **leg** `tests/harness/t/phasenum.js` (gate stanza after
+  `builtindates`). Both runs green on build `3ea7edd8…`: 55 checks in the page, plus 4 in `gate.sh` (the two PDFs' text
+  runs, and each run's console).
+- **Proven red** on the pre-change build `05169b7f…`, which is byte-identical to the live app. Built in place into an
+  untracked `dist-prefix/`, then run on private port 8938: every label check failed, Excel's included, and the run
+  stopped at the first step that needs the box.
+- **Month-PDF contact sheets** (`monthbase.py sheets`, the live build's month PDF of the fixture vs this build's): March
+  differs by 1,172 pixels, all of them the removed "Week N" text on Stage Lock, Table Read, Scout and Fitting. April is
+  identical. Sent to the owner with the waterfall's before | after | difference.
+- **A real mouse click, by hand in the app pane** (not in the leg, whose events are synthetic): on the fixture, clicking
+  Table Read's box ticked it and the waterfall cell read *Table Read wk 1* at once; one click on the toolbar's Undo put
+  back the unticked box and *Table Read*, with 0 console errors.
+- **Full gate on build `3ea7edd8…` (port 8939, 16:41–17:22): 1,876 PASS, 5 FAIL.** Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at **74 ids** (unchanged: its calendar has no custom phases), gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical. No re-cut.
+  - The five: `customunits (live)` × 3, the waterfall rows of Read-through, Stage Build and Rigging. That leg builds them through the By select, which now unticks Number weeks, and its reader only knew "Name wk N". It now accepts the bare name too (`t/customunits.js`, `sheetRows()`); its RESTORE run, on a fixture that predates the box, had passed. And two contention flakes already on record: `monthexport (mvheaderlegacy)` X6, a timed dialog case whose PDF was byte-identical, and `pilldrag`'s 480 s deadline. **All three legs re-run as `gate.sh` runs them, after the other session's gate exited (17:59–18:02): 92 PASS, 0 FAIL.** Two more sessions' gates started a minute into it.
+- **Merged with `main` at `6b9eeb4` (day menu steps 2–4, off weeks, prep above Production), as `1a21a49`**, on the owner's go-ahead relayed by the day-menu step-4 session (*"Yes, tell it to merge and gate"*). Code auto-merged; only the docs conflicted (both sides' entries kept). **Full gate on the merged build `2e2b0d65…` (1,544,045 bytes, port 8939, 23:19–23:39): 2,001 PASS, 0 FAIL, GATE PASSED.** 0 clipped, 74 ids, gate 13's twenty written month PDFs byte-identical, `phasenum` 59/59, `mvmenu` 77/77 (I1 and I4 add the 1-day and 1-week phases).

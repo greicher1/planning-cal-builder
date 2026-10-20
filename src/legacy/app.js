@@ -5977,7 +5977,14 @@ export function initLegacyApp() {
       const nameEl = document.getElementById('name-'+cp.key);
       const name = (nameEl && nameEl.value.trim()) || 'Custom phase';
       const opt = PHASE_COLOR_OPTIONS[cp.colorIndex] || PHASE_COLOR_OPTIONS[0];
-      return { key:cp.key, label:name, color:opt.color, textColor:opt.text, template:n=>`${name} wk ${n}` };
+      // "Number weeks" (PHASE-NUMBERING-PLAN.md). Off, the waterfall, Excel and waterfall PDF read the
+      // bare name: the template is the one place their cell text is made (computeSchedule). The month
+      // view reads `numbered` off the segment, which copies this def (prodWeekLabel). A missing box
+      // reads as numbered, which is what every calendar saved before it had.
+      const numEl = document.getElementById('wknum-'+cp.key);
+      const numbered = !numEl || numEl.checked;
+      return { key:cp.key, label:name, color:opt.color, textColor:opt.text, numbered,
+               template: numbered ? n=>`${name} wk ${n}` : ()=> name };
     });
     return fixed.concat(custom);
   }
@@ -6051,6 +6058,7 @@ export function initLegacyApp() {
         <label>Start date <input type="date" id="start-${key}"></label>
         ${byUnitHtml(key, true, `<input type="number" id="weeks-${key}" min="1" step="1" placeholder="e.g. 12" aria-label="Weeks">`)}
         <label class="phase-snap pu-weeks" title="On: this phase starts on the Monday of its week, as it always has. Off: it starts on the exact date you pick."><input type="checkbox" id="snap-${key}" class="phase-snap-cb" checked> Snap to Mon</label>
+        <label class="phase-wknum" title="On: this phase's bars read &quot;Name wk 1, wk 2...&quot;. Off: just the name, in every view and export."><input type="checkbox" id="wknum-${key}" class="phase-wknum-cb" checked> Number weeks</label>
       </div>
       <div class="phase-meta" id="meta-${key}"></div>
       <div class="phase-meta unit-meta" id="unitmeta-${key}"></div>
@@ -6064,6 +6072,13 @@ export function initLegacyApp() {
     // calendar's unit. Which boxes show is pure CSS off the select's CHECKED OPTION (legacy.css,
     // `.phase-unit`), the #show-mode pattern: no restore, undo or load path can leave the visible
     // boxes disagreeing with the unit that is actually scheduling. Hidden boxes keep their values.
+    // ⭐ PHASE-NUMBERING-PLAN.md (owner, 19 Oct 2026): "Number weeks" -- off, every output names the
+    // phase without "wk N" (getAllPhaseDefs' template, prodWeekLabel). Custom rows only (ruling R2).
+    // ⛔ `wknum-<key>` is SAVE FORMAT too. ABSENT means numbered, which this markup's `checked` gives a
+    // freshly built row, and every restore builds custom rows fresh -- so a calendar saved before it
+    // existed prints exactly as it did, and no previous calendar's unticked box can leak into one. It
+    // shows in every unit (no pu-* class), and its input event reaches update() through the blanket
+    // binding below, as Snap to Mon's does. Not `num-`: that prefix means a count (num-episodes).
     // ⛔ Every handler below reads the row's key AT EVENT TIME (`row.dataset.key`), never the `key`
     // this function minted. applyStateSnapshot() re-keys a restored row to its SAVED key (custom2,
     // say, when custom1 was deleted before it was saved) by renaming ids and dataset.key -- it cannot
@@ -6166,6 +6181,19 @@ export function initLegacyApp() {
       const snapEl = document.getElementById('snap-' + key);
       if(snapEl) snapEl.checked = false;
       if(startEl && startEl.value !== isoOf(seg.start)) startEl.value = isoOf(seg.start);
+    }
+    // "Number weeks" follows the unit across the Weeks boundary (PHASE-NUMBERING-PLAN §6, owner Q2):
+    // into Days or Dates it goes off -- a phase made short reads as its bare name -- and back to Weeks
+    // it comes on. Days <-> Dates keeps whatever the user set. The previous unit is the segment's
+    // (a Weeks segment has no `unit`); an unscheduled phase has no segment, so the new unit decides.
+    // Same fields.byId snapshot as unit-<key>, so one undo restores both. Only this handler flips
+    // it: a restore sets .value with no event, and the month drag's Weeks -> Dates switch leaves it
+    // alone on purpose (owner Q3: a drag changes dates, not the name).
+    const wkNumEl = document.getElementById('wknum-' + key);
+    if(wkNumEl){
+      const isWeeks = unit === 'weeks';
+      const wasWeeks = seg ? !(seg.unit === 'days' || seg.unit === 'dates') : !isWeeks;
+      if(wasWeeks !== isWeeks) wkNumEl.checked = isWeeks;
     }
     update();
     syncCustomUnitFallback(key);
@@ -8773,6 +8801,9 @@ export function initLegacyApp() {
         field('unit').value = 'dates';
         field('start').value = ctx.iso;
         field('end').value = ctx.iso;
+        // A one-day phase reads as its bare name (PHASE-NUMBERING-PLAN §6). The unit is set with no
+        // 'change' event, so onCustomUnitChange() never runs to untick it: do it here, in the bracket.
+        field('wknum').checked = false;
       } else {
         field('start').value = ctx.iso;
         field('weeks').value = '1';
@@ -9636,6 +9667,10 @@ export function initLegacyApp() {
   // (Named for its new caller; it serves every phase.)
   function prodWeekLabel(s, date){
     const name = (s.name || s.label || '').replace(/\s*wk\s*\d+\s*$/i,'');
+    // A custom phase with "Number weeks" off (PHASE-NUMBERING-PLAN.md) is its bare name in the month
+    // view too, the day menu's header included. Only custom defs carry the flag, so `=== false` leaves
+    // Production, the built-ins and prep exactly as they were.
+    if(s.numbered === false) return name;
     // ⭐ THE WATERFALL'S NUMBER (OFF-WEEK-PLAN.md step B; owner ruling Q5, 19 Oct 2026). The week loop in
     // computeSchedule() records every number it hands out on the segment (seg.weekNo), skipping all-phase
     // hiatus weeks, the phase's own hiatus and Production's off weeks. This used to count CALENDAR weeks from

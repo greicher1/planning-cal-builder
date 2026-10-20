@@ -2848,12 +2848,14 @@
      18 Sep 2026. Both the built-in and the custom-phase builders nest this inside `.phase-fields`,
      so one selector covers both. ⚠️ Keep flex-direction EXPLICIT: the competing rule sets column,
      so relying on the row default silently loses again. */
-  .phase-fields label.phase-snap{
+  /* A custom phase's "Number weeks" (PHASE-NUMBERING-PLAN.md) is the same quiet toggle, on its own line
+     under Snap to Mon, and shown in every unit (it carries no .pu-* class). */
+  .phase-fields label.phase-snap, .phase-fields label.phase-wknum{
     display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
     gap:6px; flex:0 0 100%;                 /* own line, like the labels above it -- but left-aligned */
     font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
   }
-  .phase-snap input{ margin:0; cursor:pointer; flex:none; }
+  .phase-snap input, .phase-wknum input{ margin:0; cursor:pointer; flex:none; }
 
   /* A phase's Length: Weeks / Days / Dates (CUSTOM-PHASE-UNITS-PLAN.md). Since 16 Oct 2026 the
      select sits IN the length column's caption, "By [Weeks ▾]" over the box, instead of on a
@@ -2879,7 +2881,7 @@
     display:flex; align-items:center; gap:6px; height:22px;
     font-size:var(--mantine-font-size-xs); font-weight:500; color:var(--mantine-color-gray-9);
   }
-  .phase-fields:has(> .pu-by) > label:not(.phase-snap){ gap:6px; line-height:22px; }
+  .phase-fields:has(> .pu-by) > label:not(.phase-snap):not(.phase-wknum){ gap:6px; line-height:22px; }
   .phase-unit{
     width:auto; min-width:0; height:22px;
     padding:0 22px 0 8px; font-size:var(--mantine-font-size-xs);
