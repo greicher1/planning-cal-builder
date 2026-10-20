@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, NOT MERGED
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, GATED 2,080 / 0, `main` MERGED IN, NOT YET IN `main`
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
   `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
@@ -43,8 +43,18 @@
   On `releases/v1.5.0.html`, `labelsetup` passes only its 8 controls. Twenty mutants each turn their own cases red
   (table in the plan's §9 once the gate is in). Gate 10 alone: nine documents identical; `mvheaderlegacy` moved by
   45 `<option>`s with a pixel-identical printed PDF, and was **re-cut on the owner's "Re-cut it"**.
-- ⏭ **Next:** the full gate (queued behind two other sessions' gates), then the owner's merge picker, then the push
-  picker. Merge `main` first if a sibling has landed.
+- ✅ **Full gate on bundle B alone, build `736220ac…` at `b624009` (port 8961, 15:10:57–15:30:47, alone after a
+  ~30 min queue behind two other sessions' gates): 2,080 PASS, 0 FAIL, GATE PASSED.** 0 clipped; the waterfall PDF and
+  every Excel part identical; `fields.byId` 74 ids; gate 10's ten print documents identical (`mvheaderlegacy` against
+  its re-cut); gate 13's twenty written month PDFs byte-identical, so the size options never reach the writer;
+  `labelsetup` 41, `mvmenu` 87, `regioncaveat` 13.
+- **Merged `main` in (`5e285af`)**: the prep pause switch (gap-report item 1) had landed on local `main` meanwhile. The
+  one code conflict was two conditional `captureSnapshot()` keys at the same spot (`prepPauseOff`,
+  `blocksEpisodesOptional`); both kept, `main`'s first. Merged build `c164e88b…` (1,556,617 bytes): check 40/40, refs
+  CLEAN, `labelsetup` 41/41, `mvmenu` 87/87, `regioncaveat` 13/13, `offweek` and `episodeprep` pass.
+- ⏭ **Next:** the merged build's full gate (queued), then the owner's merge picker (fast-forward `main` to this
+  branch), then the push picker. `month-notes` (items 2, 6, 10, 15, 17) has not landed; whichever lands second
+  merges by hand: see the shared notes folder's `bundle-B-labels-setup.md` for this branch's touchpoints.
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
