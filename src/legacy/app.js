@@ -8774,6 +8774,15 @@ export function initLegacyApp() {
     const h = seg && seg.phaseHiatus;
     return !!(h && date>=h.start && date<h.end);
   }
+  // Does the month view's per-phase hiatus band cover this date? Its own hiatus (the test the frozen block
+  // used to spell out inline, `d>=ph.start && d<ph.end`), or an off week (OFF-WEEK-PLAN.md §3.5, the frozen
+  // edit the owner approved with its gate as Q7, 19 Oct 2026). ⛔ The block reaches here only when the
+  // segment has one or the other, and only Production's segment, on a calendar with an off week, has
+  // offWeeks, so on every other calendar this is the old test exactly.
+  function inPhaseBand(seg, date){
+    return isPhaseHiatusDate(seg, date)
+        || !!(seg && seg.offWeeks && seg.offWeeks.has(isoOf(mondayOf(date))));
+  }
 
   // The label a phase's pill shows for a given date, e.g. "Writers Room Week 3".
   // Production's bars are cut per episode or block (owner, 15 Oct 2026; productionSplitRuns), and
@@ -9341,14 +9350,14 @@ export function initLegacyApp() {
         // the Holiday Hiatus band, but scoped to this one phase; edits made in the Waterfall
         // (rename/recolor, keyed by week + phase) show through here too.
         const ph = s.phaseHiatus;
-        if(ph){
+        if(ph || s.offWeeks){
           const hRuns = [];
           let hr = null;
           for(let i=0;i<7;i++){
             const d = addDays(weekStart, i);
             const dow = d.getUTCDay();
             const inBand = (dow>=1 && dow<=5) && d>=s.start && d<s.end
-                           && d>=ph.start && d<ph.end && !isHiatusDate(schedule, d);
+                           && inPhaseBand(s, d) && !isHiatusDate(schedule, d);
             if(inBand){ if(!hr) hr = {startCol:i, endCol:i, date:d}; else hr.endCol = i; }
             else if(hr){ hRuns.push(hr); hr = null; }
           }
