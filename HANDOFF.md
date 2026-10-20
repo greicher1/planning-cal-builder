@@ -65,7 +65,7 @@
 - ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
   verifies the live `index.html` against the gated build afterwards.
 
-### ◐ 20 Oct 2026: BUNDLE A — FIVE MONTH-VIEW NOTE FEATURES (items 2, 6, 10, 15, 17) — BUILT, NOT MERGED (branch `claude/month-notes-2951a8`, [`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md))
+### ✅ 20 Oct 2026: BUNDLE A — FIVE MONTH-VIEW NOTE FEATURES (items 2, 6, 10, 15, 17) — MERGED INTO LOCAL `main` (`f54ddef`), PUSH HELD (branch `claude/month-notes-2951a8`, [`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md))
 
 - ⏭ **RESUME HERE for bundle A.** One of three sessions the owner started from the 20 Oct 2026 gap report (private;
   nothing about the calendars behind it belongs in this repo). Siblings: `prep-switch` (item 1, lands first) and
@@ -164,8 +164,16 @@
   the prep switch's own 25 checks.
 - ⚠️ Bundle B (`labels-setup`) also re-cut gate 10's `mvheaderlegacy` and edited `mvmenu.js`; whichever lands second
   re-cuts that baseline from a merged-build run and re-checks `mvmenu` K1. The shared notes folder has the detail.
-- ⏭ **Next:** the owner's pickers: merge into local `main` (a fast-forward: `main` is `670a591`, already in this branch),
-  then, separately, the push.
+- ✅ **Merged** on the owner's picker (*"Merge into main"*): local `main` fast-forwarded `670a591` → `f54ddef`. The main
+  checkout held another session's UNCOMMITTED HANDOFF note (the reference-waterfall rulings, 15:25), which the
+  fast-forward also touches: it was backed up, set aside, and re-applied byte-for-byte on top (`git apply`, checked
+  with `cmp`), still uncommitted. The checkout's modified `stintswap-reshape.sptcal` and untracked `Reshape Fixture…`
+  were not touched.
+- ⛔ **Push HELD** by the owner (*"Hold for bundle B"*): ship the prep switch, bundle A and bundle B together, after B
+  merges and a combined gate. `main` (`f54ddef`) is 15 commits ahead of `origin/main` (`5d4737d`) before this note.
+- ⏭ **Next:** bundle B (`labels-setup`) merges `main` (now with bundle A) and gates: it must re-cut gate 10's
+  `mvheaderlegacy` from the merged build (both bundles changed that document) and re-check `mvmenu` K1. Then the
+  owner's push picker; whoever pushes verifies the live `index.html` against the gated build.
 
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
