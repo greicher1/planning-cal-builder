@@ -356,6 +356,12 @@ not picked); *"1 col + spacer, row 1"*; *"Grid + boxes together"*; *"Grid + boxe
 - **`OVER_PANEL` gained `.sb-fmt, .sb-menu, .sb-drop`**: the format bar can hang over the grid's edge, and the grid's
   hit test must stop at a body-level panel.
 
+- **Checked against the owner's standing rule** (20 Oct 2026, relayed: *"The app needs to be easy for anyone to use"*):
+  every string is plain words ("Side boxes", "Color key on the left", "Hide this row", "Show 1 hidden row", "Drop on
+  the right"), no engine word (segment, row slot) reaches the screen, each control shows only where it applies (the
+  button in the Waterfall view, grip and × on hover, Show hidden only when a row is hidden, the format bar only while
+  editing), and moving and sizing are drags. No change was needed.
+
 ## 11. As built and proven (20 Oct 2026)
 
 - **Code:** `src/legacy/app.js`, block "SIDE BOXES" after `let customHolidays = [];` (store, sanitizer, layout,
