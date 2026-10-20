@@ -1,8 +1,8 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: ALL FIVE STEPS BUILT, 19 Oct 2026** (§10). Step 1 is live at `dac24c9`. Steps 2–4 (Add hiatus ▸, the bar's
-own section, the left-click with the popover retired) are merged into local `main` on branch `day-menu-merge`. Step 5
-(the hiatus and holiday sections) is on `day-menu-step5`, cut from that merge, not merged. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: ALL FIVE STEPS BUILT, 19 Oct 2026** (§10). Step 1 went live at `dac24c9`, and steps 2–4 (Add hiatus ▸,
+the bar's own section, the left-click with the popover retired) at `8400b38`. Step 5 (the hiatus and holiday sections)
+is on `day-menu-step5`, cut from the step-4 merge, and not merged. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.

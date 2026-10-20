@@ -4,6 +4,80 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: DAY MENU STEP 5 BUILT — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`, worktree `.claude/worktrees/day-menu-step5`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** Queued by the session that started this one: the owner said *"keep going"* after
+  step 4. It was cut from `day-menu-merge` at `45da192` (step 4 merged with `main`), not from `day-menu-step4`, so it
+  carries the `offweek` leg's fix and needs no second merge. Not merged into `main`, not pushed. Steps 2–4 are LIVE
+  at `8400b38` (entry below). This is the last step of MONTH-CONTEXT-MENU-PLAN.
+- **What a user gets** (plan §3.10, §3.11):
+  - **Inside an all-phase hiatus:** a section per hiatus, labelled with its name (or "Hiatus") and its dates, e.g.
+    "Hiatus · 21 Dec – 3 Jan". It holds:
+    - Lock in place ☑, with "Stays on these dates when the calendar shifts" or "Moves when the calendar shifts";
+    - Show in Phases card;
+    - a red Remove hiatus…, which asks "Remove this hiatus?" first (ruling Q4).
+  - **Inside a phase's own hiatus:** a section ("Production’s hiatus · 6 Jul – 19 Jul") whose one item removes it, with
+    no question, as the sidebar's toggle asks none.
+  - **On a holiday:** "Holiday · <name>" (ruling Q6), holding:
+    - Enabled ☑, which asks the holiday list's "Recompute the schedule?" first. Its second line says what off means:
+      "Off means Production shoots this day" on a weekday in the shoot, or the weekend note.
+    - Show in month view ☑ and Show in waterfall ☑, greyed out while the holiday is off.
+  - Each item is one undo step, banked after any question's answer.
+- **Code** (no frozen symbol, nothing new saved):
+  - `bandSections`, `lockHiatusHere`, `showHiatusRow`, `removeHiatusHere`, `removePhaseHiatusHere`, `holidaySections`,
+    `holidayEnabledHere` and `holidayViewHere`, in `installMonthDayMenu`.
+  - The hiatus row's × is lifted into `confirmRemoveHiatus(row)` / `removeHiatusRow(row)` beside `addHiatusRow`, as
+    step 4 did for custom phases.
+  - The holiday list's two handlers are lifted, unchanged, into `setHolidayEnabled(hid, on)` / `setHolidayView(hid,
+    view, on)` just above it.
+  - `panelHtml` gained checkbox items (`check: true` → `menuitemcheckbox`).
+- ⚠️ **One departure from the plan, recorded in its §3.11:** the menu does not click the holiday list's boxes. The list
+  shows only holidays inside a phase plus custom ones, so a holiday on any other day has no box to click. The lifted
+  functions keep the rule in one place all the same.
+- **Small calls, each cheap to change:**
+  - every hiatus label carries its dates, which is what tells two on one day apart;
+  - Lock's second line says what the lock does;
+  - Remove hiatus… is red and last;
+  - the two Show items keep their stored ticks while greyed out, as the list's disabled boxes do.
+- **Tests:** `mvmenu` 86 cases. V1–V9 are new, and K1's keyboard walk now passes into the hiatus section.
+  - V1: 22 Dec's section and items.
+  - V2: Lock, one step.
+  - V3: Show in Phases card.
+  - V4: Remove asks, Cancel keeps, Remove is one step.
+  - V5: 25 Dec's holiday section, checked as the list's own boxes are.
+  - V6: 3 Jul's Enabled asks the recompute question (a day note is typed first so that it does). Cancel keeps it, and
+    Continue makes 3 Jul shoot day 5 and greys the Show items.
+  - V7: Show in month view hides the holiday's block.
+  - V8: Production's own hiatus.
+  - V9: two hiatuses on one day.
+  The V-cases are null-safe (`chooseIf`), so a build missing an item turns its case red rather than ending the leg.
+- **Proof so far, build `7e7f2600…`:**
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private port 8879: `mvmenu` 86/86, `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20, `loadcarry` 6/6,
+    `regionlock` 14/14, `hdrcontrols` 12/12, `hiatusblank` 4/4, `wrapdate` green through gate.sh's evaluator.
+  - Twelve mutants (`dist-mut/`, source restored, `cmp`; the real build hashed back to `7e7f2600…`) each turn their own
+    cases red. Some cases after them go red too, as a removed hiatus or holiday shifts what follows:
+
+    | Mutant | Red on `mvmenu` |
+    |---|---|
+    | no hiatus section | K1, V1–V5, V9 |
+    | no leading push in Lock | V2 |
+    | Lock shown always checked | V2 |
+    | Remove without its question | V4, then V5 and V9 |
+    | Remove whatever the answer | V4, then V5 and V9 |
+    | no leading push in Remove | V4 |
+    | no holiday section | V5–V7 |
+    | Enabled without its question | V6, V7 |
+    | Show items never greyed | V6 |
+    | no leading push in Show | V7 |
+    | no phase-hiatus section | V8 |
+    | labels without dates | V1, V9 |
+
+  - ⏳ **The full gate is pending** (queued on port 8880).
+- ⏭ **Next:** the full gate; then the owner's pickers on merging and, separately, pushing (the starting session asked
+  for both questions once step 5 is gated). Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
+  plan §3.8's "Edit note…" section, which no step built.
+
 ### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATE PENDING, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate

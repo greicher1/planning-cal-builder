@@ -28,6 +28,22 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — The day menu's hiatus and holiday sections (19 Oct 2026)
+
+Step 5 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), the last one.
+- **On a day inside a hiatus,** the menu has a section for it, named with its dates ("Hiatus · 21 Dec – 3 Jan"):
+  **Lock in place**, **Show in Phases card**, and **Remove hiatus…**, which asks "Remove this hiatus?" first, as the
+  Phases card's × does. Two hiatuses on one day get a section each. A phase's own hiatus gets a section whose one item
+  removes it.
+- **On a holiday,** "Holiday · <name>": **Enabled**, which asks the holiday list's "Recompute the schedule?" question
+  first and says on its second line what turning it off means for the shoot; **Show in month view** and **Show in
+  waterfall**, greyed out while the holiday is off.
+- Each item is one undo step. No frozen code changed and nothing new is saved. The hiatus row's × and the holiday
+  list's two switches are shared with the menu, so the sidebar and the menu cannot drift apart.
+- **Verified:** `mvmenu` 86/86, with nine new cases on 22 Dec (the hiatus), 25 Dec (the hiatus and Christmas Day), 3 Jul
+  (a weekday holiday in the shoot) and 8 Jul (Production's own hiatus). Twelve mutants each turn their own cases red.
+  The legs that use those sidebar controls are green. The full gate is pending.
+
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
