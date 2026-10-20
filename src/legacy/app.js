@@ -12646,6 +12646,366 @@ export function initLegacyApp() {
   // express (those are whole Monday-snapped weeks). Not tied to a region.
   let customHolidays = [];
 
+  // ---------- SIDE BOXES (owner ruling 7, 20 Oct 2026; SIDE-BOXES-PLAN.md) ----------
+  // Boxes beside the waterfall: a COLOUR KEY or a titled TEXT BOX, any number of each, stacked on the
+  // LEFT or the RIGHT of the grid. Edited on screen beside the grid and printed in the workbook and the
+  // waterfall PDF, where the grid prints smaller to make room (plan §5). Not in the month view.
+  //
+  // ⛔ THEY LIVE OUTSIDE #table-wrap. Its children are frozen, so the boxes render into two .side-col
+  // hosts in main.preview-panel, AFTER #table-wrap in the DOM (the toolbar/#table-wrap sibling contract
+  // is untouched) and placed left and right by CSS grid. The month view hides them by CSS keyed on
+  // #view-month-btn.active, whose class both setViewMode() and applyStateSnapshot() set BEFORE their
+  // render -- so renderMonthView() never measures a #table-wrap narrowed by a side column. That width
+  // repaginates the month PDF (MANTINE-SEAM §5.3).
+  //
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `sideBoxes`, written ONLY while a box exists (the prepPauseOff
+  // absent-key shape), so a calendar that never had a box -- or deleted its last one -- saves byte for
+  // byte what it did before this existed, and both writers stay byte-identical for it (plan §6).
+  //
+  // ⛔ No control in here carries an id: collectFieldValues() sweeps input[id]/select[id]/textarea[id]
+  // into every saved file and the undo stack. The editable text is contenteditable, the format bar's
+  // native controls are class-only.
+  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, titleFmt?, names?, hidden?, lines? }]
+  let sideWidths = {};    // { left?: chars, right?: chars } -- dragged widths only; absent = SIDE_DEFAULT_CHARS
+  const SIDE_SIDES = ['left', 'right'];
+  const SIDE_KINDS = ['key', 'text'];
+  // Excel column units, the unit every grid column uses (plan §5.1, ruling Q3: one column per side,
+  // ~2 in by default, a 2-unit spacer beside the grid).
+  const SIDE_DEFAULT_CHARS = 20, SIDE_MIN_CHARS = 8, SIDE_MAX_CHARS = 60, SIDE_GAP_CHARS = 2;
+  const SIDE_MAX_BOXES = 40, SIDE_MAX_LINES = 200, SIDE_MAX_TEXT = 2000, SIDE_MAX_NAME = 200;
+  const SIDE_TITLE_DEFAULT = { key: 'Color Key', text: 'Notes' };
+  // What an unformatted title looks like, and an unformatted line. A title is a line with these
+  // defaults under its own format (plan §3.2).
+  const SIDE_TITLE_FMT = { bold: true, align: 'center' };
+  const SIDE_LINE_FMT = { align: 'left' };
+  // The grid header's fill in both writers (exportExcel HEADER_FILL, buildWaterfallPdf HEADER_FILL_PDF).
+  const SIDE_TITLE_FILL = '#D9D9D9';
+  // The PDF frame and header rule, the values buildWaterfallPdf draws the grid's with (FRAME, HDR_RULE).
+  const SIDE_PDF_FRAME = '#1E1D1B', SIDE_PDF_RULE = '#1E1D1B';
+  // A single line needs its glyph box (ascent + descent is 1.22 em in Carlito/Calibri) plus a little
+  // air; every further line costs SHEET_LINE_RATIO. At 11 pt that is 13.2 pt, one 15 pt row; a 13 pt line
+  // or a wrapped one takes two rows rather than being squeezed (plan §5.2).
+  const SIDE_GLYPH_RATIO = 1.2;
+  const SIDE_KEY_SHRINK_FLOOR = 0.5;
+
+  function sideText(v, max){ return stripXmlIllegal(String(v), ' ').replace(/[\r\n]+/g, ' ').slice(0, max); }
+  function sideHex(v){ const h = (typeof v === 'string') ? v.toUpperCase() : ''; return /^#[0-9A-F]{6}$/.test(h) ? h : null; }
+  function sideNewBox(side, kind){
+    const b = { side, kind, title: SIDE_TITLE_DEFAULT[kind] };
+    if(kind === 'key'){ b.names = {}; b.hidden = []; }
+    else b.lines = [{ t: '' }];
+    return b;
+  }
+
+  // Held to the shape the app writes (audit H-1), from sanitizeSnapshot(). Returns undefined when the
+  // value is unusable; an unknown `kind` (a future build's box) is dropped and counted, never guessed at.
+  function cleanSideBoxes(v, bad){
+    if(!isPlainObj(v)){ bad.n++; return undefined; }
+    const out = { boxes: [], widths: {} };
+    let boxes = v.boxes;
+    if(!Array.isArray(boxes)){ if(boxes !== undefined) bad.n++; boxes = []; }
+    if(boxes.length > SIDE_MAX_BOXES) bad.n++;
+    boxes.slice(0, SIDE_MAX_BOXES).forEach(b=>{
+      if(!isPlainObj(b) || !SIDE_SIDES.includes(b.side) || !SIDE_KINDS.includes(b.kind)){ bad.n++; return; }
+      const o = { side: b.side, kind: b.kind,
+                  title: (typeof b.title === 'string') ? sideText(b.title, SIDE_MAX_NAME) : SIDE_TITLE_DEFAULT[b.kind] };
+      if(b.title !== undefined && typeof b.title !== 'string') bad.n++;
+      if(b.titleFmt !== undefined){ const f = cleanHeaderFormatEntry(b.titleFmt, bad); if(f) o.titleFmt = f; }
+      if(b.kind === 'key'){
+        o.names = {};
+        if(b.names !== undefined){
+          if(isPlainObj(b.names)) Object.keys(b.names).forEach(k=>{
+            const h = sideHex(k);
+            if(h && typeof b.names[k] === 'string') o.names[h] = sideText(b.names[k], SIDE_MAX_NAME); else bad.n++;
+          });
+          else bad.n++;
+        }
+        o.hidden = [];
+        if(b.hidden !== undefined){
+          if(Array.isArray(b.hidden)) b.hidden.forEach(x=>{
+            const h = sideHex(x);
+            if(!h){ bad.n++; return; }
+            if(!o.hidden.includes(h)) o.hidden.push(h);
+          });
+          else bad.n++;
+        }
+      } else {
+        o.lines = [];
+        let ls = b.lines;
+        if(!Array.isArray(ls)){ if(ls !== undefined) bad.n++; ls = []; }
+        if(ls.length > SIDE_MAX_LINES) bad.n++;
+        ls.slice(0, SIDE_MAX_LINES).forEach(l=>{
+          if(!isPlainObj(l) || (l.t !== undefined && typeof l.t !== 'string')){ bad.n++; return; }
+          const ln = { t: sideText(l.t || '', SIDE_MAX_TEXT) };
+          if(l.f !== undefined){ const f = cleanHeaderFormatEntry(l.f, bad); if(f) ln.f = f; }
+          o.lines.push(ln);
+        });
+        if(!o.lines.length) o.lines.push({ t: '' });   // a text box always has a line to type in
+      }
+      out.boxes.push(o);
+    });
+    if(v.widths !== undefined){
+      if(isPlainObj(v.widths)) SIDE_SIDES.forEach(s=>{
+        if(!(s in v.widths)) return;
+        const n = finiteNum(v.widths[s]);
+        if(n !== null && n >= SIDE_MIN_CHARS && n <= SIDE_MAX_CHARS) out.widths[s] = n; else bad.n++;
+      });
+      else bad.n++;
+    }
+    return out;
+  }
+
+  function sideWidthChars(side){
+    const w = sideWidths[side];
+    return clampChars((w !== undefined) ? w : SIDE_DEFAULT_CHARS, SIDE_MIN_CHARS, SIDE_MAX_CHARS);
+  }
+
+  // The colour key's entries, read from the COMPUTED schedule -- the cells all three outputs draw -- so
+  // it cannot list a phase the waterfall does not show or miss one it does (plan §3.1). Rulings Q1/Q2:
+  // the order phases first appear down the waterfall; phases sharing a colour share a row, their names
+  // joined " / "; Simultaneous Post's yellow when it shows; the hiatus red last, when a hiatus shows.
+  function sideKeyEntries(schedule){
+    const weeks = (schedule && schedule.weeks) || [];
+    const labelOf = {};
+    getAllPhaseDefs().forEach(d=>{ labelOf[d.key] = d.label; });
+    const order = [], byHex = new Map();
+    let hiatus = false;
+    const add = (hex, name)=>{
+      const h = sideHex(hex) || '#FFFFFF';
+      let e = byHex.get(h);
+      if(!e){ e = { hex: h, names: [] }; byHex.set(h, e); order.push(e); }
+      if(name && !e.names.includes(name)) e.names.push(name);
+    };
+    weeks.forEach(w=>{
+      const cells = w.cells || [];
+      if(cells.length && cells[0].type === 'hiatus'){ hiatus = true; return; }
+      cells.forEach(c=>{
+        if(c.type === 'phase') add(c.color, labelOf[c.key] || 'Phase');
+        else if(c.type === 'phaseHiatus') hiatus = true;
+      });
+      if(w.simPost) add(SIMPOST_COLOR, 'Simultaneous Post');
+    });
+    if(hiatus) add(HIATUS_COLOR, 'Hiatus');
+    // The hiatus row goes LAST even when a phase shares the red: moved, not duplicated.
+    const hi = sideHex(HIATUS_COLOR), at = order.findIndex(e => e.hex === hi);
+    if(at >= 0 && at !== order.length - 1) order.push(order.splice(at, 1)[0]);
+    return order.map(e => ({ hex: e.hex, name: e.names.join(' / ') }));
+  }
+  // The rows ONE key box shows: its hidden colours left out, its edited names applied.
+  function sideKeyRows(b, entries){
+    const hidden = b.hidden || [], names = b.names || {};
+    return entries.filter(e => !hidden.includes(e.hex))
+                  .map(e => ({ hex: e.hex, name: (names[e.hex] !== undefined) ? names[e.hex] : e.name, auto: e.name }));
+  }
+
+  // Greedy wrap at the box's width, with the grid's own measure (11 pt basis, scaled to the size). The
+  // same rule buildWaterfallPdf's wrapLines() uses for notes, decision for decision.
+  function sideWrap(text, chars, sizePt, bold){
+    const availPx = Math.max(1, chars * EXCEL_MDW) * (11 / sizePt);
+    const spaceW = measureTextPx(' ', bold);
+    const words = String(text).split(/\s+/).filter(Boolean);
+    if(!words.length) return [''];
+    const out = [];
+    let line = '', lineW = 0;
+    words.forEach(w=>{
+      const ww = measureTextPx(w, bold);
+      const cand = lineW ? lineW + spaceW + ww : ww;
+      if(cand <= availPx || lineW === 0){ line = lineW ? line + ' ' + w : w; lineW = cand; }
+      else { out.push(line); line = w; lineW = ww; }
+    });
+    out.push(line);
+    return out;
+  }
+  // A key name stays on one row and shrinks to fit it, as a phase label does.
+  function sideKeyScale(name, chars){
+    const w = measureTextPx(String(name || ''), true), avail = Math.max(1, chars * EXCEL_MDW);
+    if(!name || w <= avail) return 1;
+    return Math.max(SIDE_KEY_SHRINK_FLOOR, Math.floor(avail / w * 50) / 50);
+  }
+  // A sheet row's height in points: row 0 is the header row (the workbook's row 1), row i >= 1 the
+  // grid's body row i-1 -- its dragged height or the default -- and any row past the grid the default.
+  // These are the exact numbers buildWaterfallPdf lays the grid out with (HDR_ROW_PT, rowPt[]).
+  function sideRowPtFn(schedule){
+    let maxRows = 0;
+    if(schedule && schedule.weeks && schedule.weeks.length){
+      maxRows = sheetRowCount(schedule, computeYearBlocks(schedule.weeks));
+    }
+    const fn = i => ((i >= 1 && i <= maxRows) ? (rowHeights[i - 1] || ROW_DEFAULT_PX) : ROW_DEFAULT_PX) * ROW_PX_TO_PT;
+    fn.maxRows = maxRows;
+    return fn;
+  }
+  function sideRowsFor(nLines, sizePt, row0, rowPt){
+    const need = (nLines - 1) * sizePt * SHEET_LINE_RATIO + sizePt * SIDE_GLYPH_RATIO;
+    let have = 0, k = 0;
+    while(have < need - 0.01 && k < 400){ have += rowPt(row0 + k); k++; }
+    return Math.max(1, k);
+  }
+
+  // ⭐ THE ONE LAYOUT. The screen, exportExcel and buildWaterfallPdf all read this, so the three cannot
+  // place a box differently -- the lesson of the column model (PROJECT-CONTEXT §9a). Per side: segments
+  // (`title` | `key` | `line`), each a run of whole sheet rows; boxes stack from row 0 with one empty row
+  // between them (ruling Q3). null for a side with no box.
+  function sideBoxLayout(schedule){
+    const rowPt = sideRowPtFn(schedule);
+    const entries = sideBoxes.some(b => b.kind === 'key') ? sideKeyEntries(schedule) : [];
+    const out = { any: false, rowPt, maxRows: rowPt.maxRows, left: null, right: null };
+    SIDE_SIDES.forEach(side=>{
+      const mine = [];
+      sideBoxes.forEach((b, i)=>{ if(b.side === side) mine.push(i); });
+      if(!mine.length) return;
+      const chars = sideWidthChars(side);
+      const segs = [], extents = [];
+      let row = 0;
+      mine.forEach((i, n)=>{
+        const b = sideBoxes[i];
+        if(n) row++;
+        const row0 = row;
+        const text = (type, str, f, base, fill, li)=>{
+          const fm = Object.assign({}, base, f || {});
+          const size = fm.size || 11, bold = !!fm.bold;
+          const lines = sideWrap(str, chars, size, bold);
+          const rows = sideRowsFor(lines.length, size, row, rowPt);
+          segs.push({ box: i, type, li, row, rows, text: str, lines, size, bold, italic: !!fm.italic,
+                      color: fm.color || '#000000', align: fm.align || 'left', fill: fm.highlight || fill || null });
+          row += rows;
+        };
+        text('title', b.title, b.titleFmt, SIDE_TITLE_FMT, SIDE_TITLE_FILL, -1);
+        if(b.kind === 'key'){
+          sideKeyRows(b, entries).forEach(e=>{
+            const size = Math.round(11 * sideKeyScale(e.name, chars) * 100) / 100;
+            segs.push({ box: i, type: 'key', hex: e.hex, auto: e.auto, row, rows: 1, text: e.name, lines: [e.name],
+                        size, bold: true, italic: false, color: textColorFor(e.hex), align: 'center', fill: e.hex });
+            row++;
+          });
+        } else {
+          b.lines.forEach((l, li)=> text('line', l.t, l.f, SIDE_LINE_FMT, null, li));
+        }
+        extents.push({ box: i, row0, row1: row - 1 });
+      });
+      out[side] = { chars, segs, extents, rows: row };
+      out.any = true;
+    });
+    return out;
+  }
+  // ⛔ What the frozen writers call. A box must never be able to stop an export: on any error the
+  // writers get "no boxes" -- which is also exactly what they got before this feature existed.
+  function sideBoxLayoutSafe(schedule){
+    if(!sideBoxes.length) return { any: false, left: null, right: null, rows: 0 };
+    try { return sideBoxLayout(schedule); }
+    catch(err){ console.error(err); return { any: false, left: null, right: null }; }
+  }
+  // Width in points (= the grid's column units through charsToScreenPx, which IS points in the PDF) of
+  // a side and its spacer; 0 for a side with no box.
+  function sideSidePt(S){ return S ? charsToScreenPx(S.chars) + charsToScreenPx(SIDE_GAP_CHARS) : 0; }
+  // The extent BOTH writers hand frozen sheetPageOrientation() (ruling Q4: orientation from grid +
+  // boxes). The FLAT height model, as sheetGridMetrics() measures the grid -- a dragged row must not be
+  // able to turn the page over. With no box it returns the grid's own numbers, untouched.
+  function sideBoxPageExtent(L, metrics){
+    if(!L || !L.any) return { w: metrics.gridW, h: metrics.gridH };
+    const rows = Math.max(L.left ? L.left.rows : 0, L.right ? L.right.rows : 0);
+    return { w: metrics.gridW + sideSidePt(L.left) + sideSidePt(L.right),
+             h: Math.max(metrics.gridH, rows * ROW_DEFAULT_PX * ROW_PX_TO_PT) };
+  }
+  // The PDF's real extents, in unscaled points: what buildWaterfallPdf fits and centres. All zero
+  // with no box, which is what keeps its arithmetic -- and its bytes -- exactly as they were.
+  function sideBoxPdfExtent(L){
+    if(!L || !L.any) return { left: 0, right: 0, h: 0 };
+    const sideH = S => { let h = 0; if(S) for(let i = 0; i < S.rows; i++) h += L.rowPt(i); return h; };
+    return { left: sideSidePt(L.left), right: sideSidePt(L.right), h: Math.max(sideH(L.left), sideH(L.right)) };
+  }
+
+  // ⛔ Called ONLY from frozen exportExcel (frozen edit E3, owner-approved 20 Oct 2026). `cols` gives the
+  // side column for each side; the spacer is the column between it and the grid. `gridRows` is the
+  // last row the grid sets a height on -- rows past it get the default 15 pt explicitly (plan §5.1).
+  function writeSideBoxesXlsx(ws, L, cols, gridRows){
+    if(!L || !L.any) return;
+    const thin = { style: 'thin' };
+    const argb = hex => 'FF' + String(hex).replace('#', '').toUpperCase();
+    SIDE_SIDES.forEach(side=>{
+      const S = L[side];
+      if(!S) return;
+      const col = cols[side];
+      ws.getColumn(col).width = Math.min(EXCEL_MAX_COL_CHARS, S.chars);
+      ws.getColumn(side === 'left' ? col + 1 : col - 1).width = SIDE_GAP_CHARS;
+      for(let r = 0; r < S.rows; r++){
+        if(r + 1 > gridRows) ws.getRow(r + 1).height = ROW_DEFAULT_PX * ROW_PX_TO_PT;
+      }
+      S.segs.forEach(sg=>{
+        const r0 = sg.row + 1, r1 = sg.row + sg.rows;
+        if(r1 > r0) ws.mergeCells(r0, col, r1, col);
+        const cell = ws.getRow(r0).getCell(col);
+        cell.value = sg.text ? sg.text : null;
+        const font = { name: 'Calibri', size: sg.size, color: { argb: argb(sg.color) } };
+        if(sg.bold) font.bold = true;
+        if(sg.italic) font.italic = true;
+        cell.font = font;
+        // Key names never wrap (they shrink, like phase labels); text wraps inside its merged rows.
+        cell.alignment = { horizontal: sg.align, vertical: 'middle', wrapText: sg.type !== 'key' };
+        if(sg.fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(sg.fill) } };
+      });
+      // Each box's outline, set on EVERY cell of its rows: a merged range only draws an edge its own
+      // cells carry (exportExcel's note on the hiatus band's rightmost cell). Plus the rule under the title.
+      S.extents.forEach(ex=>{
+        const t = S.segs.find(sg => sg.box === ex.box && sg.type === 'title');
+        const titleEnd = t ? t.row + t.rows - 1 : -1;
+        for(let r = ex.row0; r <= ex.row1; r++){
+          const bd = { left: thin, right: thin };
+          if(r === ex.row0) bd.top = thin;
+          if(r === ex.row1 || r === titleEnd) bd.bottom = thin;
+          ws.getRow(r + 1).getCell(col).border = bd;
+        }
+      });
+    });
+  }
+
+  // ⛔ Called ONLY from frozen buildWaterfallPdf (frozen edit E6, owner-approved 20 Oct 2026), after the
+  // grid is drawn. `g` carries the writer's own geometry and fonts: scale, the content's left edge, the
+  // grid's right edge and top, and the two Carlito faces.
+  function drawSideBoxesPdf(page, L, g){
+    if(!L || !L.any) return;
+    const S = v => v * g.scale;
+    const asc = g.reg.ascent / g.reg.unitsPerEm, desc = g.reg.descent / g.reg.unitsPerEm;
+    // buildWaterfallPdf's baselineIn(): CSS half-leading on the font's real metrics, block centred.
+    const baselineIn = (topY, h, lines, size, i)=>{
+      const lh = size * SHEET_LINE_RATIO;
+      const top = topY + Math.max(0, (h - lines * lh) / 2);
+      return top + i * lh + (lh - (asc - desc) * size) / 2 + asc * size;
+    };
+    const rowY = [];   // unscaled top of each sheet row, from the grid's top
+    const yOf = i => { while(rowY.length <= i){ const k = rowY.length; rowY.push(k ? rowY[k - 1] + L.rowPt(k - 1) : 0); } return rowY[i]; };
+    SIDE_SIDES.forEach(side=>{
+      const B = L[side];
+      if(!B) return;
+      const w = S(charsToScreenPx(B.chars));
+      const x = side === 'left' ? g.contentX : g.gridRight + S(charsToScreenPx(SIDE_GAP_CHARS));
+      const pad = S(3);
+      B.segs.forEach(sg=>{
+        const y = g.gridTop + S(yOf(sg.row)), h = S(yOf(sg.row + sg.rows) - yOf(sg.row));
+        if(sg.fill) page.rect(x, y, w, h, sg.fill);
+        const size = S(sg.size), ttf = sg.bold ? g.bold : g.reg, tag = sg.bold ? 'F2' : 'F1';
+        page.clipPush(x, y, w, h);
+        sg.lines.forEach((ln, i)=>{
+          const tw = ttfTextWidth(ttf, ln, size);
+          const tx = sg.align === 'center' ? x + (w - tw) / 2 : sg.align === 'right' ? x + w - pad - tw : x + pad;
+          page.text(ln, tx, baselineIn(y, h, sg.lines.length, size, i), tag, size, sg.color, sg.italic ? 0.21 : 0);
+        });
+        page.clipPop();
+      });
+      B.extents.forEach(ex=>{
+        const y0 = g.gridTop + S(yOf(ex.row0)), y1 = g.gridTop + S(yOf(ex.row1 + 1));
+        const t = B.segs.find(sg => sg.box === ex.box && sg.type === 'title');
+        if(t && t.row + t.rows - 1 < ex.row1){
+          const ty = g.gridTop + S(yOf(t.row + t.rows));
+          page.line(x, ty, x + w, ty, SIDE_PDF_RULE, 0.75);
+        }
+        page.line(x, y0, x + w, y0, SIDE_PDF_FRAME, 1.2);
+        page.line(x, y1, x + w, y1, SIDE_PDF_FRAME, 1.2);
+        page.line(x, y0, x, y1, SIDE_PDF_FRAME, 1.2);
+        page.line(x + w, y0, x + w, y1, SIDE_PDF_FRAME, 1.2);
+      });
+    });
+  }
+
   // The 10 "Standard Colors" from Microsoft Office / Excel's color picker.
   const EXCEL_STANDARD_COLORS = [
     '#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050',
@@ -16814,6 +17174,7 @@ export function initLegacyApp() {
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
     mvProdLabel = null;
+    sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -17004,7 +17365,9 @@ export function initLegacyApp() {
     // which is exactly when a Shift+Cmd+E export can fire.
     // .day-menu / .day-menu-ring added 19 Oct 2026 with the month view's day menu
     // (MONTH-CONTEXT-MENU-PLAN.md): body-level, and a Shift+Cmd+E pressed with it open exports it.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .sb-fmt, .sb-menu, .sb-drop').forEach(el=>el.remove());
+    // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
+    // format bar, the Side boxes menu and the drag indicator are all body-level.
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =
@@ -17031,6 +17394,11 @@ export function initLegacyApp() {
     // #hiatus-reset-host joined the list with owner ruling 5 (30 Sep 2026): "Reset hiatus bands" is
     // portalled there, so a copy built without it would boot with a stale button beside React's.
     clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
+    // The side columns (SIDE-BOXES-PLAN.md §7) go back to their shipped state too -- empty, hidden, no
+    // grid on the panel: the copy's own engine draws its boxes from the saved state when it opens, as
+    // #table-wrap is drawn.
+    clone.querySelectorAll('.side-col').forEach(el=>{ el.replaceChildren(); el.hidden = true; el.removeAttribute('style'); });
+    { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.classList.remove('has-side-boxes'); }
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -17388,6 +17756,9 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 20 Oct 2026 (SIDE-BOXES-PLAN.md, owner ruling 7): the boxes beside the waterfall. ⛔ PERMANENT key.
+      // Written ONLY while a box exists, so a calendar with none saves byte for byte as before.
+      ...(sideBoxes.length ? {sideBoxes: {boxes: sideBoxes, widths: sideWidths}} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -22922,6 +23293,12 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // Side boxes (SIDE-BOXES-PLAN.md §7): every string, format, colour key and width checked here, and
+    // an empty set dropped -- the app never writes one, and absent already means "no boxes".
+    if('sideBoxes' in s){
+      const sb = cleanSideBoxes(s.sideBoxes, bad);
+      if(sb && sb.boxes.length) s.sideBoxes = sb; else delete s.sideBoxes;
+    }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23234,6 +23611,10 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL as well: a file with no key has no boxes -- never the previous file's. A deep copy,
+    // so editing a box can never reach back into a snapshot the undo stack is holding.
+    sideBoxes = (snap.sideBoxes && Array.isArray(snap.sideBoxes.boxes)) ? JSON.parse(JSON.stringify(snap.sideBoxes.boxes)) : [];
+    sideWidths = (snap.sideBoxes && isPlainObj(snap.sideBoxes.widths)) ? Object.assign({}, snap.sideBoxes.widths) : {};
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
