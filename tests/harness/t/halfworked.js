@@ -22,6 +22,11 @@
 // Every day is opened through the real gesture: the cell is HIT-TESTED at its day-number band (the
 // only part of a day cell a pointer can reach -- HANDOFF, 18 Sep 2026) and the element actually on
 // top there is clicked. A dispatched event at the node would prove the handler and nothing else.
+// ⚠️ Since day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, ruling L1, 19 Oct 2026) that click opens the DAY
+// MENU, and the retired Full day/Off popover's rows are its shoot-day section. Each row keeps its data-ov,
+// so the leg reads the same values as before, from [data-section="shoot"] rows; every value it asserts is
+// unchanged. The checked row (aria-checked) is the popover's current one, a greyed one is aria-disabled,
+// and a row's warning is its small.day-menu-warn line.
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {test: 'halfworked'};
@@ -63,7 +68,12 @@ window.addEventListener('load', function () { (async function () {
     return JSON.parse(JSON.stringify(got.state));
   }
   async function settle(){ await T.sleep(600); }
-  function closePops(){ document.body.click(); }
+  // An outside press closes the day menu (its close rule is the press, not the click); the click closes the
+  // rest, as it did.
+  function closePops(){
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
+    document.body.click();
+  }
   async function undo(n){ for(var i = 0; i < (n || 1); i++){ document.getElementById('undo-btn').click(); await T.sleep(900); } }
 
   // ---- the month view, driven the way a pointer drives it ----
@@ -101,24 +111,25 @@ window.addEventListener('load', function () { (async function () {
   async function openDay(n){
     closePops(); await T.sleep(150);
     (await hitDay(n)).click(); await T.sleep(250);
-    var pop = document.querySelector('.day-ov-pop');
-    if(!pop) throw new Error('no day popover opened for day ' + n);
+    var pop = document.querySelector('.day-menu');
+    if(!pop || !pop.querySelector('[data-section="shoot"]')) throw new Error('no day menu with a shoot-day section opened for day ' + n);
     return pop;
   }
   function options(pop){
-    return Array.prototype.map.call(pop.querySelectorAll('.day-ov-opt'), function (b) {
-      return {v: b.getAttribute('data-ov'), label: ((b.childNodes[0] || {}).textContent || '').trim(),
-              current: b.classList.contains('is-current'), disabled: !!b.disabled,
-              warn: ((b.querySelector('.day-ov-warn') || {}).textContent || '')};
+    return Array.prototype.map.call(pop.querySelectorAll('[data-section="shoot"] .day-menu-item[data-ov]'), function (b) {
+      var t = b.querySelector('.day-menu-text');
+      return {v: b.getAttribute('data-ov'), label: (((t && t.childNodes[0]) || {}).textContent || '').trim(),
+              current: b.getAttribute('aria-checked') === 'true', disabled: b.getAttribute('aria-disabled') === 'true',
+              warn: ((b.querySelector('small.day-menu-warn') || {}).textContent || '')};
     });
   }
   // The option row itself must be what a pointer reaches, and the element on top is what is clicked.
   async function choose(pop, v){
-    var b = pop.querySelector('.day-ov-opt[data-ov="' + v + '"]');
-    if(!b) throw new Error('no option "' + v + '" in the popover');
+    var b = pop.querySelector('[data-section="shoot"] .day-menu-item[data-ov="' + v + '"]');
+    if(!b) throw new Error('no option "' + v + '" in the day menu');
     var r = b.getBoundingClientRect();
     var top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
-    if(!top || !top.closest || top.closest('.day-ov-opt') !== b) throw new Error('option "' + v + '" is covered');
+    if(!top || !top.closest || top.closest('.day-menu-item') !== b) throw new Error('option "' + v + '" is covered');
     top.click();
     await settle();
   }

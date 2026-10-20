@@ -1,7 +1,8 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: STEP 1 BUILT, 19 Oct 2026** (§10; branch `claude/gifted-ramanujan-f162cf`, gated, not merged). Steps 2–5 are
-not built. ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: ALL FIVE STEPS BUILT, 19 Oct 2026** (§10). Step 1 went live at `dac24c9`, and steps 2–4 (Add hiatus ▸,
+the bar's own section, the left-click with the popover retired) at `8400b38`. Step 5 (the hiatus and holiday sections)
+is on `day-menu-step5`, cut from the step-4 merge, and not merged. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -50,7 +51,7 @@ order, and each one shows only when it applies:
 | Section | Shows when | Items |
 |---|---|---|
 | *(This day)* | always | Add note · **Add 1-day phase here** · **Add 1-week phase here** · Add hiatus ▸ (All phases / one phase only) |
-| *<phase>* | the pointer is on that phase's bar | Start <phase> here · End <phase> here · Colour… · Show in Phases card |
+| *<phase>* | the pointer is on that phase's bar | Start <phase> here · End <phase> here · Colour… · Show in Phases card · Remove <phase>… (custom phases only; added at step 4) |
 | Note | the pointer is on a note | Edit note… |
 | Shoot day N | the day is inside the shoot | the shoot-day popover's own choices, and only those |
 | Hiatus | the day is inside an all-phase hiatus | Lock in place ☑ · Show in Phases card · Remove hiatus |
@@ -186,6 +187,18 @@ it is cheap to change.)*
 - `setSidebarTab('phases')`, then scroll the row into view: the phase's row in `#phase-rows` / `#custom-phase-rows`,
   or the covering `.hiatus-entry` in the All-phase hiatus card.
 
+### 3.7a Remove <phase>… (custom phases only; added at step 4)
+
+- **Owner, 19 Oct 2026:** *"Will you be able to delete a custom phase from this menu"*. Asked by picker, they chose
+  *"Yes, add it to step 4"*.
+- **The sidebar row's × itself.** Its handler is lifted into `confirmRemoveCustomPhase(row)` (the question, asked only
+  when there is something to lose, which a drawn phase always has) and `removeCustomPhaseRow(row)`. The × and the
+  menu's `removePhaseHere(key)` both call them, so the words and the effect are the same.
+- **One undo step after the answer**, as ruling Q4's Remove hiatus is planned: the bracket is synchronous, so the item
+  awaits first. Cancel banks nothing.
+- **Last in the section, in red** (`.is-danger`), as a destructive item.
+- **Not on a built-in phase or Prep.** Neither can be removed anywhere.
+
 ### 3.8 Edit note…
 
 - `openMvNoteEditor()` on the note element itself, which already carries `data-note-week/day/kind/index`. This is
@@ -218,6 +231,14 @@ it is cheap to change.)*
 - ⛔ **Each shoot row keeps `data-ov="<value>"`**, the attribute the `halfdays` and `halfworked` legs read today. Their
   rewrite is then a selector change, and they keep asserting the same values.
 - `setOverride` already banks exactly one undo step.
+- ✅ **Built at step 4 (19 Oct 2026)** as `dayOverrideRows(sit)` and `shootSection(d)` in `installDayOverrideUI`, lent to
+  the menu as `dayOverrideUI.section`. Small calls, each cheap to change:
+  - The rows are `menuitemradio` items with `aria-checked`. The checked one carries a tick where an icon would be, as the
+    popover's current row did.
+  - The section's label is "Shoot day N" on a day with a shoot-day number. Any other day the shoot covers (a weekend,
+    a holiday, a hiatus day, a day marked Off) reads "Not a shoot day".
+  - The footer keeps "Shift + right-click opens the browser's own menu" under the double-click hint. The popover's
+    "Esc to close" is not carried over; the menu has always closed on Esc.
 
 ### 3.10 The hiatus section
 
@@ -234,6 +255,16 @@ it is cheap to change.)*
 - **Not offered: renaming or recolouring a hiatus.** `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
   note editor (`openNoteEditor` on `td.sheet-hiatus-cell`). The month-view bands have no editor, no handler and no
   attributes. Building one would be its own piece of work.
+- ✅ **Built at step 5 (19 Oct 2026)** as `bandSections(ctx)` in `installMonthDayMenu`:
+  - The × is lifted into `confirmRemoveHiatus(row)` and `removeHiatusRow(row)`, beside `addHiatusRow`. The row's ×
+    and the menu's `removeHiatusHere` both call them, as Remove <phase>… does (§3.7a). The menu does not click the ×,
+    because the bracket has to sit between the answer and the removal.
+  - Every hiatus section's label carries its dates ("Hiatus · 21 Dec – 3 Jan", or the row's name in place of
+    "Hiatus"), so two on one day are told apart without a special case.
+  - Lock in place is a `menuitemcheckbox`. Its second line says what the lock does: "Stays on these dates when the
+    calendar shifts" or "Moves when the calendar shifts".
+  - A phase's own hiatus: its Remove asks nothing, because unticking it in the sidebar asks nothing either (Q4 is
+    about the all-phase ×'s question). Its label carries the phase's name and the dates.
 
 ### 3.11 The holiday section
 
@@ -248,6 +279,15 @@ it is cheap to change.)*
     `render(currentSchedule)`. They change only what is drawn, so the call is `render`, not `update`. Both are
     disabled while the holiday is off, as they are in the list.
 - ✅ **Ruling Q6 (owner, 19 Oct 2026): the holiday section stays in the menu.**
+- ✅ **Built at step 5 (19 Oct 2026)** as `holidaySections(ctx)`. ⚠️ **It does not click the list's boxes.** The list
+  shows only the holidays inside a phase, plus custom ones (`renderHolidayVisList`), so a holiday on any other day
+  has no box to click. Instead the two handlers are lifted, unchanged, into `setHolidayEnabled(hid, on)` and
+  `setHolidayView(hid, view, on)`, which the list's boxes and the menu both call. The rule still exists once.
+  - Enabled asks `confirmHolidayRecompute()` first, as the box does, then banks one undo step. Its second line: "Off
+    means Production shoots this day" (on a weekday inside the shoot), "Off: Production shoots this day" once it is
+    off, or "On a weekend: its (Observed) day is the one that counts".
+  - The two Show items are greyed out while the holiday is off ("The holiday is off"), and keep their stored ticks,
+    as the list's disabled boxes do.
 
 ### 3.12 Show this week in the waterfall
 
@@ -278,6 +318,18 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
   It drops its `if(!sit) return`, so days outside the shoot open the menu too. "+" slots, notes and bars sit above the
   cell, so they never reach it. Placement is the popover's own `place()`: under the anchor, pulled in from the right
   edge, and flipped above when it would run off the bottom.
+  - ✅ **As built (step 4), three differences from this paragraph:**
+    1. **The listener moved into `installMonthDayMenu`**, beside the right-click, because the toggle is the menu's
+       state. The section is still built in `installDayOverrideUI`.
+    2. **The menu closes on the PRESS** (its outside-press rule), so the toggle has to remember that a left press on
+       the open menu's own day closed it (`pressClosed`). Otherwise the click that follows would open the menu again,
+       and double-click-to-clear would leave a menu open. A script's click, with no press, toggles directly.
+    3. **The placement rule needed a third case.** The menu is far taller than the popover was, so on a short window it
+       fits on neither side of the number. Held inside the window there, it would cover the number, and the second
+       click of a double-click would land on an item. It opens beside the day instead.
+  - No `stopPropagation()` (the popover had one): the menu has no click-away of its own, and the document's
+    click-away listeners should see the click. A Mac Ctrl+click's trailing click is ignored (`isMacCtrlClick`), or it
+    would close the menu its own contextmenu just opened.
 - **The day:** `dayAtPoint(x, y)`, which is at module scope. Check first that the point is inside `.mv-body`, because
   `dayAtPoint` clamps: a point below the grid returns the last week. Scope every selector to `#table-wrap`, because
   `#print-root` holds `.mv-daycell`s too.
@@ -371,6 +423,9 @@ under the pointer, and which bar. Everything else comes from the schedule, the s
 1. **A hiatus whose label was emptied on purpose makes the shoot-day popover offer Full day / Off on a hiatus day.**
    `daySituation()` returns `hiatus: ''`, which is falsy, so `openDayOvPop` treats the day as an ordinary weekday. The
    menu shares that code (§3.9), so it would share the bug. The fix is one test (`!= null`), and it fixes both.
+   ✅ **FIXED at step 4, owner-approved 19 Oct 2026 by picker ("Yes, fix it").** `dayOverrideRows` tests `!= null`,
+   `daySituation` always gives a hiatus day a string, and a nameless hiatus is "the hiatus" in the reason. Case
+   `mvmenu` N1 (red on a mutant that reverts the test).
 2. **CLAUDE.md says the shareable-copy clone strips "five classes".** `buildSavedHtml`'s list holds eleven today.
 
 ---
@@ -407,19 +462,51 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
    - The panel, its close rules and its place in the strip list.
    - The macOS Ctrl+click guard on the three month drags.
    - Four items: Add note, **Add 1-day phase here**, **Add 1-week phase here**, Show this week in the waterfall.
-2. **Add hiatus ▸**, both kinds.
-3. **The phase section.**
+2. ✅ **Add hiatus ▸**, both kinds. **BUILT 19 Oct 2026** (branch `day-menu-step2`; HANDOFF has the record).
+   - The root item opens a submenu beside it, flipped left near the window's edge. A hover opens it with focus left on
+     the item; a click, Enter, Space or → opens it on its first item; ← and Escape close it.
+   - ⭐ **A 250 ms grace period** before a hover elsewhere on the root closes it. This was not in the plan. Without it,
+     the diagonal into a lower line of a left-flipped submenu crossed "Show this week in the waterfall" and closed the
+     submenu on the way in.
+   - Three small calls, each cheap to change: the field gets the week's **Monday**, not the day clicked (the same
+     schedule, and no "Snapped to Mon" note in the sidebar); a move inside the week its hiatus already starts is
+     **greyed out** ("Its hiatus already starts this week") rather than an empty undo step; and the sidebar does
+     **not** switch tabs, because the band shows on the calendar at once.
+   - `mvmenu` grows to 47 cases (A1–A7, A1p, A4u, A5u, S3).
+3. ✅ **The phase section. BUILT 19 Oct 2026** (branch `day-menu-step3`; HANDOFF has the record).
    - Start here (a mover).
    - Lift `setPhaseEdge` out of `installPhaseEdgeHandles` for End here.
    - Lift `setPhaseColor` for Colour….
    - Show in Phases card.
-4. **The shoot-day section, and the menu takes over the left-click** (ruling L1).
-   - Lift `dayOverrideRows(sit)` out of `openDayOvPop`.
-   - Point the existing day click at the menu, anchored under the day number, and retire the popover.
-   - Rewrite the `halfdays` and `halfworked` legs' popover selectors.
-
-   Until this step lands, left-click keeps opening the popover. Fix §8.1 at the same time, if the owner agrees.
-5. **The hiatus and holiday sections.**
+   - ⚠️ **Built differently from the plan's wording in one respect: there is no single `setPhaseEdge(key, edge,
+     iso)`.** The handle cannot call one, because it writes on every step of a drag from the fields as they stood at
+     the press ("back where it began" restores those). So the rule is lifted as its parts, at module scope:
+     `phaseEdgePlan` (read at the press), `phaseEdgeSolve`, `phaseEdgeWrite` and `phaseEdgeLanded`. The handle and the
+     menu both call them, so the rule still exists once. `phaseedge` 13/13 after the lift.
+   - `setPhaseColor(key, i)` is the one writer for all three swatch pickers (built-in, custom, Prep) and the menu.
+   - **Small calls, each cheap to change:** a **Prep** pill gets the section too, with Start and End greyed out
+     ("Prep is worked out from each episode’s first shoot day") and Colour… and Show in Phases card working. The plan
+     predates prep. Start and End are greyed out where they would change nothing ("It already starts / ends on this
+     day"). The section's label is the phase's name alone, not the mockup's "Production · Ep. 202"; the header
+     already names the episode.
+   - Start here and End here carry an edited auto-note with them (R5), as the drags do since the auto-note grip
+     fix merged into `main` the same day. Case P7.
+   - `mvmenu` grows to 61 cases (P1–P7 with their undo cases).
+4. ✅ **The shoot-day section, and the menu takes over the left-click** (ruling L1). **BUILT 19 Oct 2026** (branch
+   `day-menu-step4`, cut from `day-menu-step3`; HANDOFF has the record).
+   - Lift `dayOverrideRows(sit)` out of `openDayOvPop`. Done; the section is `shootSection(d)`, lent as
+     `dayOverrideUI.section`.
+   - Point the existing day click at the menu, anchored under the day number, and retire the popover. Done, with the
+     three differences recorded in §4. `openDayOvPop`, its closers, its observer and the `.day-ov-*` CSS are gone.
+   - Rewrite the `halfdays` and `halfworked` legs' popover selectors. Done: they read `[data-section="shoot"]
+     [data-ov]`, and every value they assert is unchanged.
+   - Right-click stays as a second way in (the owner has not asked to drop it).
+   - §8.1 fixed, on the owner's yes.
+   - **Added on the owner's request the same day:** Remove <phase>… on a custom phase's bar (§3.7a).
+   - `mvmenu` grows to 77 cases (L1–L9, G7, N1, R1–R3u; C2 flipped; H1s and P3 updated).
+5. ✅ **The hiatus and holiday sections. BUILT 19 Oct 2026** (branch `day-menu-step5`, cut from `day-menu-merge`, which
+   is step 4 merged with `main`; HANDOFF has the record). §3.10 and §3.11 have the as-built notes; the one departure
+   from the plan is that the holiday items call lifted functions rather than clicking the list's boxes.
 
 ---
 
@@ -448,6 +535,9 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
   `.day-ov-pop` never appears. A click on 12 Jul's number opens it too, although no popover opened there before. A
   click on a "+" slot still opens the note editor. Clicking 8 Jul twice closes it, and a double-click on a marked day
   still clears the mark.
+  - ⚠️ **Corrected at the build:** 12 Jul is a weekend INSIDE the shoot, so the popover did open there (Weekend — not
+    shot / Work this day). The day where a click opened nothing before is one outside the shoot. `mvmenu` L3 uses
+    Sun 28 Jun, the day before the first shoot day, and L2 checks 12 Jul's rows.
 - **Existing legs that must stay green:**
   - the CDP legs `pilldrag` and `phaseedge` (`tests/harness/*.mjs`);
   - `customunits`, `halfmarks`, `overrides`, `monthnotes`, `monthdragundo` and `sharecopy2`;

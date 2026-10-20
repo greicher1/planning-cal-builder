@@ -26,6 +26,141 @@
   - ⚠️ PHASE-NUMBERING (branch `phase-numbering`, `56603e8`, not merged) also edits `prodWeekLabel()`. Whichever
     lands second merges by hand and re-runs `weeknum` and `mvmenu`.
 
+### ◐ 19 Oct 2026: DAY MENU STEP 5 MERGED INTO `main`, GATED — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`), NOT PUSHED
+
+- ⏭ **RESUME HERE for the day menu.** Queued by the session that started this one: the owner said *"keep going"* after
+  step 4. It was cut from `day-menu-merge` at `45da192` (step 4 merged with `main`), not from `day-menu-step4`, so it
+  carries the `offweek` leg's fix and needs no second merge. Not merged into `main`, not pushed. Steps 2–4 are LIVE
+  at `8400b38` (entry below). This is the last step of MONTH-CONTEXT-MENU-PLAN.
+- **What a user gets** (plan §3.10, §3.11):
+  - **Inside an all-phase hiatus:** a section per hiatus, labelled with its name (or "Hiatus") and its dates, e.g.
+    "Hiatus · 21 Dec – 3 Jan". It holds:
+    - Lock in place ☑, with "Stays on these dates when the calendar shifts" or "Moves when the calendar shifts";
+    - Show in Phases card;
+    - a red Remove hiatus…, which asks "Remove this hiatus?" first (ruling Q4).
+  - **Inside a phase's own hiatus:** a section ("Production’s hiatus · 6 Jul – 19 Jul") whose one item removes it, with
+    no question, as the sidebar's toggle asks none.
+  - **On a holiday:** "Holiday · <name>" (ruling Q6), holding:
+    - Enabled ☑, which asks the holiday list's "Recompute the schedule?" first. Its second line says what off means:
+      "Off means Production shoots this day" on a weekday in the shoot, or the weekend note.
+    - Show in month view ☑ and Show in waterfall ☑, greyed out while the holiday is off.
+  - Each item is one undo step, banked after any question's answer.
+- **Code** (no frozen symbol, nothing new saved):
+  - `bandSections`, `lockHiatusHere`, `showHiatusRow`, `removeHiatusHere`, `removePhaseHiatusHere`, `holidaySections`,
+    `holidayEnabledHere` and `holidayViewHere`, in `installMonthDayMenu`.
+  - The hiatus row's × is lifted into `confirmRemoveHiatus(row)` / `removeHiatusRow(row)` beside `addHiatusRow`, as
+    step 4 did for custom phases.
+  - The holiday list's two handlers are lifted, unchanged, into `setHolidayEnabled(hid, on)` / `setHolidayView(hid,
+    view, on)` just above it.
+  - `panelHtml` gained checkbox items (`check: true` → `menuitemcheckbox`).
+- ⚠️ **One departure from the plan, recorded in its §3.11:** the menu does not click the holiday list's boxes. The list
+  shows only holidays inside a phase plus custom ones, so a holiday on any other day has no box to click. The lifted
+  functions keep the rule in one place all the same.
+- **Small calls, each cheap to change:**
+  - every hiatus label carries its dates, which is what tells two on one day apart;
+  - Lock's second line says what the lock does;
+  - Remove hiatus… is red and last;
+  - the two Show items keep their stored ticks while greyed out, as the list's disabled boxes do.
+- **Tests:** `mvmenu` 86 cases. V1–V9 are new, and K1's keyboard walk now passes into the hiatus section.
+  - V1: 22 Dec's section and items.
+  - V2: Lock, one step.
+  - V3: Show in Phases card.
+  - V4: Remove asks, Cancel keeps, Remove is one step.
+  - V5: 25 Dec's holiday section, checked as the list's own boxes are.
+  - V6: 3 Jul's Enabled asks the recompute question (a day note is typed first so that it does). Cancel keeps it, and
+    Continue makes 3 Jul shoot day 5 and greys the Show items.
+  - V7: Show in month view hides the holiday's block.
+  - V8: Production's own hiatus.
+  - V9: two hiatuses on one day.
+  The V-cases are null-safe (`chooseIf`), so a build missing an item turns its case red rather than ending the leg.
+- **Proof so far, build `7e7f2600…`:**
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private port 8879: `mvmenu` 86/86, `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20, `loadcarry` 6/6,
+    `regionlock` 14/14, `hdrcontrols` 12/12, `hiatusblank` 4/4, `wrapdate` green through gate.sh's evaluator.
+  - Twelve mutants (`dist-mut/`, source restored, `cmp`; the real build hashed back to `7e7f2600…`) each turn their own
+    cases red. Some cases after them go red too, as a removed hiatus or holiday shifts what follows:
+
+    | Mutant | Red on `mvmenu` |
+    |---|---|
+    | no hiatus section | K1, V1–V5, V9 |
+    | no leading push in Lock | V2 |
+    | Lock shown always checked | V2 |
+    | Remove without its question | V4, then V5 and V9 |
+    | Remove whatever the answer | V4, then V5 and V9 |
+    | no leading push in Remove | V4 |
+    | no holiday section | V5–V7 |
+    | Enabled without its question | V6, V7 |
+    | Show items never greyed | V6 |
+    | no leading push in Show | V7 |
+    | no phase-hiatus section | V8 |
+    | labels without dates | V1, V9 |
+
+  - ✅ **Full gate on build `7e7f2600…` at `b275ef6` (port 8880, 23:00–23:19): 1,951 PASS, 0 FAIL, GATE PASSED.**
+    Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at 74 ids, gate 10's ten
+    print documents identical, gate 13's twenty written month PDFs byte-identical, `mvmenu` 86/86.
+- ✅ **Merged into local `main`** on the owner's picker (*"Yes, merge it"*). `main` had gained only docs since the
+  branch was cut (`8400b38`, `6b9eeb4`), so the merge brought in no code and the gated build `7e7f2600…` is what lands.
+  Only HANDOFF conflicted, because both sides added entries; both are kept. **Not pushed:** the owner chose *"Ask me
+  after the merge"*.
+- ⏭ **Next:** the owner's push picker. If Number weeks (`phase-numbering`, gating in its own session) lands on `main`
+  first, a push carries it too, and the combined `main` needs a gate before pushing. Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
+  plan §3.8's "Edit note…" section, which no step built.
+
+### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
+
+- ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):
+  *"Push and verify live"*. Local `main` was fast-forwarded to the gated merge `8400b38` first, on the earlier "Yes,
+  merge and gate it". One `git push origin main` (`6e868b1..8400b38`, 22:35) sent 14 commits: day menu steps 2–4
+  with Remove <phase>…, and the docs between them (`373194e`, the off-week session's note, included). Deploy run
+  39375696507 succeeded. The live `index.html`, fetched with a cache-buster, is **byte-identical to the gated
+  build**: sha256 `e4339f4d91ef6985…`, 1,543,479 bytes (first fetch, 22:36). `version.json` still reads 1.4.3, so
+  installed copies show no update notice. A version cut is overdue.
+- **What users now get:** a left-click on a day's number opens the day menu; the Full day/Off popover is gone and its
+  choices are the menu's shoot-day section; Add hiatus ▸; the bar's own section (Start / End / Colour… / Show in
+  Phases card, and Remove <phase>… on a custom phase); the §8.1 fix.
+- ⏭ **Next:** step 5 (the hiatus and holiday sections) is built on `day-menu-step5`, cut from the merge. Its legs and
+  gate come next; merging and pushing it are the owner's calls, asked separately.
+
+### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATED (2 contention FAILs, both green alone)
+
+- ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate
+  passes"*. That second answer was a conditional approval for ONE push of `main`. When it was given, the push would
+  also have shipped Off weeks, but the off-week session pushed those itself (live at `6e868b1`), and `main` (`373194e`,
+  docs only) is merged in here. The push now ships the day menu alone. The session reads "passes" strictly: on any
+  FAIL, even a known flake, it asks again before pushing.
+- **The merge:** `git merge --no-ff day-menu-step4` on a branch cut from `main` at `2b4ce32`, in its own worktree. The
+  main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still modified, and it is not this work's.
+  - `app.js`, `legacy.css` and `gate.sh` auto-merged.
+  - `HANDOFF.md`, `README.md` and `tests/harness/README.md` conflicted, each because both sides added entries at the
+    same spot. Both sides are kept. The harness README keeps `main`'s `offweek` row and step 4's `mvmenu` row.
+  - ⭐ **One fix the merge needed:** `main`'s new `offweek` leg marked its days off through the retired Full day/Off
+    popover (`.day-ov-pop`). Its `mark()` now reads the menu's `[data-section="shoot"] [data-ov]` rows, the same
+    selector change `halfworked` got, with the same values.
+  - Checked that §8.1's fix leaves off weeks alone: they are `seg.offWeeks`, which `daySituation` never reads.
+- **Proof on the merged build `e4339f4d…` (1,543,479 bytes):** `npm run check` 40/40; `check-refs.py` CLEAN. On
+  private ports 8876/8877: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20, `loadcarry` 6/6,
+  `offweek` live 5/5 and restore 27/27 (through gate.sh's own evaluator), `pilldrag` 30/30, `phaseedge` 23/23.
+- **Full gate on build `e4339f4d…` at `45da192` (port 8878, 20:53–22:33, a loaded machine): 1,939 PASS, 2 FAIL,
+  neither a difference.**
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical. Gate 5 at 74 ids.
+  - Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are byte-identical.
+  - `mvmenu` 77/77, and `offweek` live green.
+  - **The 2 failures:** `pilllabel (halfdays)` W0, "months 1 vs 16" (the known contention flake), and `offweek
+    (offweek)` R10, "timed out waiting for: the loaded file's name in the file menu (… 10000ms real)".
+  - **Re-run alone afterwards** on the same build and port through gate.sh's own evaluators, with no gate running:
+    `pilllabel (halfdays)` 29/29 and `offweek (offweek)` 27/27, W0 and R10 included.
+  - So the gate did not strictly pass. On the owner's conditional push approval ("Push if the merge's gate passes"),
+    the session asked again before pushing rather than counting these as passes.
+- ⚠️ **THE DISK FILLED UP during this merge (19 Oct 2026, about 20:00), and it will again.** Writes failed with
+  ENOSPC: 1.8 TB used, 250 MB free. The cause: `/private/var/folders/ws/…/X/com.google.Chrome.code_sign_clone/` held
+  **1,430 copies of the Chrome app** (about 2.4 GB each by `du`), dated from 1 Oct onward. Chrome on macOS clones its
+  bundle there at each launch and deletes the clone on a clean exit. The harness hard-kills headless Chrome (`run.sh`,
+  the CDP legs), so every leg leaves one behind. The owner's running Chrome uses exactly one of them,
+  `code_sign_clone.dHnFAB`, which must never be deleted. Asked whether to delete the rest, the owner gave no
+  preference, so nothing outside the project was deleted. About 10 GB came free soon after; who freed it is not
+  known. **Follow-up:** have the harness's headless launches clean up after themselves, or stop the clone (a launch
+  flag, to be found and tested). Until then, whoever runs many legs fills the disk again.
+
 ### ✅ 19 Oct 2026: OFF WEEKS (STEP A) ARE LIVE AT `6e868b1` (verified byte-identical, `42f69b58`)
 
 - ✅ **PUSHED AND LIVE.** Owner: *"Push local main to origin now, then verify the live site serves the gated build."*
@@ -236,6 +371,178 @@
 - ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
   it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
 - Q1 was ruled in words the same day: *"Name and place as recommended"*.
+### ◐ 19 Oct 2026: DAY MENU STEP 4 BUILT — LEFT-CLICK OPENS THE MENU, THE FULL DAY/OFF POPOVER IS RETIRED (branch `day-menu-step4`, worktree `.claude/worktrees/day-menu-step4`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** This is ruling L1, the step the owner was waiting for (*"I thought you were going
+  to combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*). Cut
+  from `day-menu-step3` at `02f28a1`, so it holds steps 2 and 3 and the `main` merge at `cfeae91`. It is not merged
+  into `main` and not pushed. If `day-menu-step3` gains a commit (its gate result), merge it in here.
+- **What a user gets:**
+  - A left-click on a day's number (or anywhere on a hiatus day) opens the day menu under the number. It flips above
+    the number near the window's bottom, and goes beside the day when neither side fits.
+  - Full day / Off (and the weekend, holiday and hiatus rows) are the menu's shoot-day section, below Add hiatus. Its
+    label is "Shoot day N", or "Not a shoot day" when the day has no number. The current row is ticked.
+  - Days outside the shoot open the menu too, with no shoot section.
+  - Clicking the open day again closes it, so double-click-to-clear works. On a shoot day the footer says "Double-click
+    a marked day to clear it".
+  - Right-click still works. "+" slots, notes and bars keep their own left-clicks.
+  - ⭐ **Added the same day, at the owner's request** (asked *"Will you be able to delete a custom phase from this
+    menu"*, then picked "Yes, add it to step 4"): a CUSTOM phase's bar ends its section with a red **Remove
+    <phase>…**. It asks the sidebar ×'s own question ("Remove this phase? Its name, dates, duration and hiatus will be
+    lost.") and is one undo step after the answer. Cancel changes nothing. A built-in phase or Prep has no such item.
+- **Code** (no frozen symbol touched, nothing new saved):
+  - `installDayOverrideUI` keeps `daySituation`, `setOverride` and the dblclick. It lifts the popover's row list into
+    `dayOverrideRows(sit)` → `{rows, stale}`, and builds the menu's section in `shootSection(d)`, lent as
+    `dayOverrideUI.section`. `openDayOvPop`, `closeDayOvPop`, `activeOv`, its document click/Escape closers and its
+    re-pointing observer are gone. So is `dayOverrideUI.close`.
+  - `installMonthDayMenu`:
+    - the left-click listener on `#table-wrap` (moved here from `installDayOverrideUI`, beside the right-click);
+    - `pressClosed` in the capture mousedown;
+    - `openMenu(ctx, at)`, where `at` is `{x, y}` or `{anchor, cell}`;
+    - `panelHtml` gained radio items (`radio`, `checked`, `ov` → `data-ov`), a warning second line
+      (`small.day-menu-warn`) and a section `notice`;
+    - `ICON.check`.
+  - `legacy.css`: the `.day-ov-*` block is replaced by a retirement note. Four small `.day-menu-*` rules added (the
+    checked tick, the warning ink, the notice line).
+  - Remove <phase>…: the sidebar ×'s handler is lifted into two module-scope halves just above `addCustomPhaseRow`,
+    `confirmRemoveCustomPhase(row)` (the question) and `removeCustomPhaseRow(row)` (the removal). The × and the menu's
+    `removePhaseHere(key)` both call them, and the menu banks its undo step between the two. `removeCustomPhaseRow`
+    now refuses a row that left the document while the question was up, which the × did not check before.
+    `panelHtml` gained `danger` (`.is-danger`, red), and `ICON.trash` was added.
+  - `.day-ov-pop` stays in `OVER_PANEL` and in `buildSavedHtml`'s strip list. Nothing creates one now, so the entries
+    are inert; they were left rather than edited.
+- ⭐ **Learned: the menu closes on the PRESS, so a click-toggle needs to remember the press.** The popover closed on a
+  document `click`, so its "click the open day again" check saw the menu still open. The menu's capture `mousedown`
+  closes it first, and the click would reopen it. A left press on the open menu's own day sets `pressClosed`, and the
+  click it becomes opens nothing. A script's `el.click()` (no press) still toggles through `menu.iso === iso`. Mutants:
+  without the swallow `mvmenu` L5 and L7 go red; without the script toggle, L5 alone.
+- ⭐ **Learned: the popover's `place()` rule has a third case for a menu this tall.** On a 768 px window a mid-screen day
+  fits the ~400 px menu neither under nor above its number. Clamped into the window it covered the number, so a
+  double-click's second click would choose a row. It opens beside the day there. Hand-checked in the browser pane
+  (1024×768, 15 Jul: the menu at x 702, the cell ends at 698). No leg covers it, because the harness window is 1600×1200.
+- ⭐ **Learned: a Mac Ctrl+click may be followed by a `click` carrying ctrlKey,** which the toggle would read as a
+  second click on the open day. The left-click returns on `isMacCtrlClick(e)`. Case G7, red on a mutant without it.
+  ⚠️ As in step 1, a real Mac Ctrl+click is still unverified.
+- ✅ **§8.1 fixed, owner's picker "Yes, fix it"** (asked this session). `dayOverrideRows` tests `sit.hiatus != null`.
+  `daySituation` gives every hiatus day a string, so a non-string stored label cannot read as "no hiatus" either. The
+  reason reads "Inside the hiatus — …" when the label is empty. Case N1.
+- ⚠️ **The plan's §11 was wrong about 12 Jul.** It is a weekend INSIDE the shoot, so the popover did open there. L3 uses
+  Sun 28 Jun (before the shoot) for "opens where nothing opened before"; the plan now says so.
+- ⭐ **Learned: a case that leaves the sidebar scrolled can close a later case's menu.** The R-cases' Add 1-week phase
+  here left the sidebar on Phases, scrolled to the new row. S2's menu was still open right after the export click, so
+  the copy was taken with it open, but a `.form-panel` scroll landed before the leg looked again and closed it. That is
+  the menu's own close rule, working as built. The R-cases now go back to the Show tab, as P6 does.
+- **Tests:**
+  - `mvmenu` 77 cases: L1–L9 (left-click), G7, N1, R1–R3u (Remove <phase>…). C2 is flipped. H1s gains the shoot section. P3 sets its Off mark
+    through the menu. Every left-click is press + release + click on `elementFromPoint` (`lclickAt`).
+  - `halfdays` D5 and `halfworked` read `[data-section="shoot"] [data-ov]`, with every asserted value unchanged.
+    `halfworked`'s `closePops()` presses outside before its click.
+  - The gate.sh comment and tests/harness/README updated (`halfworked` has a row there now).
+- **Proof:**
+  - Build `aa3239d1…` (1,538,031 bytes), with Remove <phase>…. `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private ports 8873/8874, all on `/dist/index.html`: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24,
+    `overrides` 20/20, `loadcarry` 6/6 (it clicks the sidebar's ×), `pilldrag` 30/30, `phaseedge` 14/14.
+  - Fifteen mutants (scratch copy of `app.js`, mutate, build into an untracked `dist-mut/<name>/`, restore, `cmp`; the
+    rebuilt `dist` hashed back to `aa3239d1…`), all re-run on the 77-case leg. On `mvmenu`, each turns its own cases
+    red:
+
+    | Mutant | Red on `mvmenu` |
+    |---|---|
+    | no left-click | C2, L1–L5, and the leg ends |
+    | `if(!sit) return` back | L3 |
+    | no press swallow | L5, L7 |
+    | no script toggle | L5 |
+    | anchor 40 px low | L1 |
+    | no flip | L8 |
+    | no footer hint | L1s, L2, L7 |
+    | §8.1 reverted | N1 |
+    | no Mac Ctrl guard | G7 |
+    | no leading push in `setOverride` | L6, and L9 after it |
+    | the pointer's day instead of the cell's | L4, and L5 after it |
+    | Remove on every phase, built-in too | R1, and H1s (Production's bar gains it) |
+    | Remove without its question | R2, and the leg ends (the phase is gone) |
+    | Remove whatever the answer | R2, and the leg ends |
+    | no leading push in `removePhaseHere` | R3u |
+
+    The no-left-click build is also red on `halfdays` D5 and `halfworked` (EX).
+  - By hand in the browser pane, with real clicks: 7 Jul's menu (flipped above), Off, a real double-click to clear it
+    (no menu or ring left), the holiday and pre-shoot days, and the beside placement. Then a real right-click on a
+    custom "Edit Bay" bar: Remove Edit Bay… in red, the "Remove phase" dialog, Remove, and one Undo bringing it back.
+  - **Full gate on build `aa3239d1…` at `92cd59b` (port 8875, 19:36–19:54): 1,857 PASS, 7 FAIL, none of them a
+    difference.** It ran after two other sessions' gates. One other session ran its own legs during it (`off-week`,
+    port 8962), so the machine was loaded.
+    - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+    - Gate 5 holds at 74 ids. Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are
+      byte-identical.
+    - `mvmenu` 77/77, and `halfdays`, `halfworked`, `overrides`, `pilldrag`, `phaseedge`, `customunits`, `loadcarry`
+      and `sharecopy2` all green.
+    - **The 7 failures were all contention:**
+      - `pilllabel (shootorder)` ×5, "months 1 vs 16": the month walk cut short, the flake recorded under the
+        auto-note entry below.
+      - `launchopen` L6.
+      - `cspproof`: "Chrome never wrote DevToolsActivePort", so Chrome did not start.
+    - **Re-run alone afterwards** on the same build and port, exactly as gate.sh runs them (no gate running):
+      `pilllabel (shootorder)` 29/29 through gate.sh's own evaluator, `launchopen` 16/16, `cspproof` 15/15.
+- ⏭ **Next:** the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
+  sections) after. The two open items from steps 1–3 still stand: an `mvmenu` prep case, and a real Mac Ctrl+click.
+
+### ◐ 19 Oct 2026: DAY MENU STEPS 2 AND 3 BUILT (branch `day-menu-step3`, worktree `.claude/worktrees/day-menu-step3`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** Owner: *"Keep the plan order: build step 2 (Add hiatus) next"*, then *"start step
+  3"*. Both are built on `day-menu-step3`, which contains `day-menu-step2`. Not merged into `main`, not pushed. Step 4
+  (the left-click takes over, Full day/Off fold in) is what the owner is waiting for: ✅ built on `day-menu-step4`,
+  cut from this branch (entry above).
+- **Gate:** step 2's own gate never ran: it queued behind another session's gate, which ran for over an hour. Since step
+  3's branch contains step 2, ONE gate on step 3 covers everything that would merge. If it fails, gate
+  `day-menu-step2` alone to tell which step is at fault.
+- **Step 2, Add hiatus ▸** (`hiatusSections`, `addHiatusHere`, `setPhaseHiatusHere`): plan §3.3 and ruling Q2. The panel
+  grew a submenu (`panelHtml`, `wirePanel`, `openSub`, `closeSub`; the menu object is now `{el, ring, iso, back, root,
+  sub}`).
+  - ⭐ **Learned: a submenu needs a grace period.** The diagonal from "Add hiatus" into a lower line of a left-flipped
+    submenu crosses "Show this week in the waterfall", and an immediate switch closed the submenu on the way in.
+    `SUB_GRACE_MS` = 250; reaching the submenu cancels the switch.
+  - ⭐ **Learned: the browser pane's tools wait longer than 250 ms between steps**, so a quick pointer move cannot be
+    reproduced with them. Drive timing-sensitive pointer work with dispatched events, as the A2 case does.
+  - Small calls: the field gets the week's Monday; a no-op move is greyed out; the sidebar does not switch tabs.
+- **Step 3, the bar's section** (`phaseSection`, `startPhaseHere`, `endPhaseHere`, `phaseColourHere`, `showPhaseRow`):
+  plan §3.4–3.7.
+  - **The end handle's rule is at module scope now**, as `phaseEdgePlan` / `phaseEdgeSolve` / `phaseEdgeWrite` /
+    `phaseEdgeLanded`, just above `installPhaseEdgeHandles`, which calls them through aliases. Not one function, as the
+    plan said: the handle writes on every drag step from its press-time plan. `phaseedge` 13/13 after the lift.
+  - `setPhaseColor(key, i)` and `phaseColorIndexOf(key)` beside `autoPhaseColorIndex`: the one colour writer for all
+    three swatch pickers and the menu. It never writes an override for a key no phase has.
+  - Start is a mover inside `asShootDayMove()` (ruling R2). P3 proves it with an Off mark set through the real popover.
+  - Small calls: a Prep pill gets the section (Start/End greyed out with the reason); no-op Start/End greyed out; the
+    section label is the name alone.
+  - ⭐ **Learned: an undo-bracket case must type something just before the item.** P6 first passed with its bracket
+    removed, because the debounce banks a lone tab switch as its own step anyway. The bracket only matters when it
+    stops an earlier edit folding in.
+- **Merged with `main` at `cfeae91`** (the auto-note grip fix, live at `6027247`), so the gate covers what a merge
+  would ship. One code conflict, in the phase handle's `beginDrag`: kept the lifted plan and added `main`'s
+  `d.notesBase = autoNoteBaseline()`. `main`'s `reapplyAutoNoteBaseline` call auto-merged into the lifted `apply()`.
+  - ⭐ **R5 reaches the menu too.** Start here and End here are "the same as dragging", and `main` had just made the
+    drags carry an edited auto-note (the owner's report). So `startPhaseHere` and `endPhaseHere` take
+    `autoNoteBaseline()` before they move anything and `reapplyAutoNoteBaseline()` after `update()`. Case P7 proves
+    it on "Start Principal Photography 6/29/26" plus a line; a mutant without the call turns exactly P7 red.
+  - Add hiatus does not carry R5: like a sidebar hiatus edit, it is AUTONOTE-FOLLOW-PLAN's (one hook in `update()`).
+- **Proof so far:** `mvmenu` 61/61 on the merged build; eleven mutants across the two steps each turn exactly their own
+  case red; `phaseedge` 14/14 and `pilldrag` 30/30 (both CDP, real pointer input); `npm run check` 40/40; hand
+  checks in the browser pane (Add hiatus on 8 Jul, End Post and Colour… on Post, the Prep section).
+- ✅ **Full gate on the merged build `dfa8c9a7…` (1,539,263 bytes, port 8742, 15:38–16:41): 1,860 PASS, 3 FAIL**, none
+  of them a difference.
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+  - Gate 5 at 74 ids. Gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical.
+    `mvmenu` 61/61.
+  - The three failures:
+    - `phaseedge` hit its 480 s deadline;
+    - `cspproof` B0 and X1, both of which need ExcelJS from its CDN URL. V0 (zero CSP violations) passed in the same run.
+  - Re-run standalone on the same build: `cspproof` 15/15 with 0 violations, `phaseedge` 14/14.
+  - The gate ran 63 minutes, about three times its usual length, with other sessions' gates queued behind and running
+    beside it.
+- ⏭ **Next:** step 4 is being built in its own session on branch `day-menu-step4` (cut from this one). Merging into
+  `main` and pushing are the owner's calls, asked separately.
+- ⚠️ **Not covered by any leg:** the Prep section (hand-checked only; the proposed "mvmenu prep case" session would
+  cover it), and a real Mac Ctrl+click (from step 1).
 
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
