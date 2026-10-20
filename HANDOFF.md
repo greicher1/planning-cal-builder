@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, NOT ON `main`
+### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, NOT YET ON `main`
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
   content is confidential and stays out of this repo). The parent session cut three bundles; this one lands first.
@@ -42,10 +42,21 @@
     S2, both MINTs, the M-5 trap: 12); box with an id (R13's id count 75, S1); `false` written when unticked (R13 and
     both MINTs); box not reflected (8); New not resetting (R14).
   - `npm run check` 40/40; `check-refs.py` CLEAN.
-- ⚠️ **Disk:** 7.0 GB free at the start (1.8 TB volume). The leftover `code_sign_clone` copies (1,521 now, see the
-  19 Oct merge entry) are still there and were not touched. Each harness run leaves about 10 MB.
-- ⏭ **Next:** the full gate on this build, then the owner's picker to merge into local `main`, then a separate
-  picker for the push. No version cut unless the owner asks.
+- **Full gate, first run, on build `7054bec6…` at `d8737b2` (port 8953, 14:09:03–14:29:00): 2,060 PASS, 1 FAIL.** The
+  one FAIL was `offweek` R10 (a step before the new cases) timing out after 10 s waiting for a Load. The `month-notes`
+  session was running its own legs and mutants at the same time (load average 6–9). Re-run alone through the gate's
+  own evaluator, twice: `offweek` LIVE 6/6 and RESTORE 44/44 both times, R10 included. Not counted as a pass: the
+  whole gate was re-run.
+- ✅ **Full gate, second run, same build (port 8953, 14:30:17–14:50:16): 2,062 PASS, 0 FAIL, GATE PASSED.** That is
+  v1.5.0's 2,037 plus exactly the 25 new checks (offweek R11–R14 17, its MINT 1, episodeprep 7). 0 clipped; the
+  waterfall PDF and every Excel part identical; v1.0.0 restores identically; `fields.byId` 74 ids; gate 10's ten
+  print documents and gate 13's twenty written PDFs identical. Gates 1–4, 10 and 13 did not move, as the switch's
+  default is the old behaviour.
+- ⚠️ **Disk:** 7.0 GB free at the start (1.8 TB volume), 6.0 GB before the second gate, 9.8 GB after it (someone
+  freed space). The leftover `code_sign_clone` copies (1,521, see the 19 Oct merge entry) were not touched. Each
+  harness run leaves about 10 MB; a full gate about 1 GB.
+- ⏭ **Next:** the owner's picker to fast-forward local `main` to this branch (`main` is still `be67ca5`, an
+  ancestor), then a separate picker for the push. No version cut unless the owner asks.
 
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 

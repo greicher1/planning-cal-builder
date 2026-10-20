@@ -53,7 +53,8 @@ default: don't skip"*, *"Prep card, saved"*, and for Production's own hiatus *"F
   no prep on an in-shoot Off day or in Production's own hiatus; unticked (and a file with no key), prep on 9/3,
   9/7–9/10, 9/20–9/24 and 10/8; one undo; Save, Load and the older-file trap; New. `episodeprep` LIVE S1–S2 (the
   box: in the row, unticked, no id, hit-testable, one undo) and the M-5 trap in RESTORE. Ten mutants each turn
-  their own cases red. Full gate: see HANDOFF.
+  their own cases red. Full gate on the build: 2,062 PASS, 0 FAIL, with the waterfall PDF, every Excel part, 74
+  ids and every month print document and written month PDF identical to their baselines.
 
 ### Unreleased — Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
 
