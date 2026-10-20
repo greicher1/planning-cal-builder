@@ -35,7 +35,7 @@ Owner ruling 3 (20 Oct 2026): the waterfall always padded to full calendar years
 December of the last, and a reference calendar the owner wanted to match started on its first working week. The
 owner asked for a start/end override instead of a change to the year split. Asked before building, by picker:
 *"Move like a hiatus"*, *"Applies in both"*, *"Strip above the grid"*, *"Names and weeks"*.
-- **A Calendar range card in the Show tab**, with Start and End dates. A typed start is the waterfall's first row
+- **A Calendar range card in the Show tab** (waterfall view only, as Single Column Mode is), with Start and End dates. A typed start is the waterfall's first row
   (its Monday), a typed end its last (the week it falls in). **Blank keeps today's padding**, so every calendar
   ever saved, and every new one until a date is typed, looks and exports exactly as before.
 - **It cuts the waterfall, Excel and the waterfall PDF, never the month view or the month PDF.** Weeks outside the

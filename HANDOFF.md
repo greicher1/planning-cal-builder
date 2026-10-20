@@ -31,6 +31,10 @@
     `schedule.weeks` (Simultaneous Post bands) and `notesByIdx` by date. That is safe because each export runs only
     from its own view, and `setViewMode()` runs `update()`. `weekAutoTexts()` reads `wholeCalendar()` so R5's
     rewrite answers the same in either view. Without a range `wholeCalendar` returns the schedule itself.
+  - ✅ **The card shows in the WATERFALL view only** (`pref-view-sheet`, Single Column Mode's precedent), and its
+    "i" is three plain sentences: the owner's standing rule, relayed 20 Oct 2026 by the column-reuse session ("The
+    app needs to be easy for anyone to use"; show a control only when it is relevant). Its dates stay in force in
+    the month view. Leg R6b, and a mutant without the class is red on R6b alone.
   - The strip `#calrange-notice` (amber, the holiday strip's look, ✂ icon) is beside `#colswap-notice` in
     `src/index.html`, observed by the app shell's grid fit, re-hidden in the shareable copy's clone.
     `reflectCalRangeNotice()` runs from `update()` before the swap. Dismissal is per message.

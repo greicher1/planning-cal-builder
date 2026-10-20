@@ -119,15 +119,18 @@ export function ShowInfoCard() {
 // applyStateSnapshot() blanks them for a file without them. ⛔ Native date inputs, uncontrolled, for the
 // reason the custom holiday's is: the restore path and the shift tools write `el.value` imperatively, and
 // DatePop.jsx attaches to any native date field in the sidebar.
+// ✅ WATERFALL VIEW ONLY (`pref-view-sheet`, legacy.css): it changes nothing in the month view, and the owner's
+// standing rule (20 Oct 2026, "The app needs to be easy for anyone to use") is to show a control only where it
+// matters -- Single Column Mode's precedent. Hidden, never cleared: the dates stay in force for Excel and the PDF.
+// The hint is kept to plain words on purpose: no "block" (Blocks mode means shooting blocks), no layout detail.
 export function CalendarRangeCard() {
   return (
-    <section className="card" data-tab="show">
+    <section className="card pref-view-sheet" data-tab="show">
       <h2>
         <IconCalendarRange className="card-ic" /><span>Calendar range</span>
-        <InfoHint label="Calendar range" width={300}>
-          Where the waterfall starts and ends, in the app, Excel and the PDF. Leave a date blank for full
-          calendar years (in Single Column Mode, the first or last working week). Weeks outside the range are
-          cut; the month view still shows the whole calendar. A new year still starts a new column block.
+        <InfoHint label="Calendar range" width={280}>
+          The first and last week of the waterfall, in Excel and the PDF too. Leave a date blank to keep the
+          usual start or end. The month view always shows everything.
         </InfoHint>
       </h2>
       <div className="side-block">

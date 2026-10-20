@@ -2640,7 +2640,8 @@
   /* Preferences rows that belong to one view (owner, 22 Sep 2026): Single Column Mode is a
      waterfall layout, the two "Show … in Month View" switches are month-only. Keyed off the view
      toggle's `.active`, which setViewMode() maintains and the markup ships on Waterfall -- the one
-     place the current view already lives -- so nothing can show a row for the view you are not in. */
+     place the current view already lives -- so nothing can show a row for the view you are not in.
+     The Show tab's Calendar range card (owner ruling 3) carries .pref-view-sheet too: waterfall only. */
   body:has(#view-month-btn.active) .pref-view-sheet,
   body:not(:has(#view-month-btn.active)) .pref-view-month{ display:none; }
   /* The Prep row (EPISODE-PREP-PLAN.md §6, owner ruling P1): per-episode prep is drawn in the month view

@@ -233,7 +233,7 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- R6: the month view keeps the whole calendar ------------------------------------------------------
     await view('month');
-    var nM = notice();
+    var nM = notice(), cardInMonth = getComputedStyle(card).display;
     var rangedMonths = await walkMonths();
     await setRange('', '');
     fullMonths = await walkMonths();
@@ -243,8 +243,14 @@ window.addEventListener('load', function () { (async function () {
       same && fullMonths.length >= 12 && /Simultaneous Post/.test(joined) && /Writer(&#39;|'|’)s Room Opens/.test(joined) && !nM.shown && nM.text === expectText,
       { ranged: rangedMonths.length, full: fullMonths.length, firstDiff: rangedMonths.findIndex(function (h, i) { return h !== fullMonths[i]; }), noticeShown: nM.shown });
     await setRange('2026-09-02', '2027-01-20');
+    var keptInMonth = { s: val('cal-range-start'), e: val('cal-range-end') };
     await view('sheet');
-    kase('R6b', 'back in the waterfall the strip shows again', notice().shown, {});
+    // The owner's standing rule (20 Oct 2026): a control shows only where it matters. The card hides in the month
+    // view, where it changes nothing, and its dates stay in force.
+    kase('R6b', 'back in the waterfall the strip shows again; the card hides in the month view (dates kept) and shows in the waterfall',
+      notice().shown && cardInMonth === 'none' && getComputedStyle(card).display !== 'none' && card.offsetHeight > 0 &&
+      keptInMonth.s === '2026-09-02' && keptInMonth.e === '2027-01-20',
+      { cardInMonth: cardInMonth, cardInSheet: getComputedStyle(card).display, kept: keptInMonth });
 
     // ---- R7: Single Column Mode ----------------------------------------------------------------------------
     $('one-col-btn').click(); await T.sleep(1200); await settle();
