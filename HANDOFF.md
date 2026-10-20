@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 20 Oct 2026: v1.5.0 CUT on the Number weeks merge (branch `numweeks-merge`), NOT TAGGED UNTIL ITS RELEASE GATE, NOT PUSHED
+
+- ⏭ **RESUME HERE.** The owner asked for a cut on this push and to be told the number before it goes out. Picked
+  **1.5.0**, a minor bump, not 1.4.4: 29 changelog entries since v1.4.3, three weeks of them, the largest batch since
+  1.4.0, which is where this history has used a minor bump. 26 of the 29 were already live; the cut tells installed
+  copies about all of them.
+- **The cut steps** (CLAUDE.md, as v1.4.3 did them):
+  - `APP_VERSION` (`src/legacy/app.js`), `version.json` and `package.json` = 1.5.0, together. `package-lock.json`
+    still reads 1.2.0, untouched as at every earlier cut. The root `index.html` is untouched (`cmp`-equal to
+    `releases/v1.2.0.html`).
+  - README: `## v1.5.0 — …` over the 29 entries, whose headings drop "Unreleased —" as v1.4.3's did. The 91 older
+    "Unreleased" headings below v1.3.0 are history and were left alone.
+  - `releases/v1.5.0.html` is byte-identical to `dist` (sha256 `62a95e8a94041185…`, 1,547,058 bytes).
+  - `tests/fixtures/v1.5.0-saved.sptcal`, a real Save (`t/mintfixture.js`): 43 keys (v1.4.3's set) and 74 ids, v1.4.3's
+    62 plus 12, none removed (`unit-*` / `end-*` for the built-in Weeks phases, `prep-days`, `prep-name`).
+- **Proof:** the v1.5.0 build differs from the gated merge build `72ce05dd…` in exactly 45 bytes, in two places: the
+  version literal and the CSP hash of the script that holds it (`cmp -l`). `npm run check` 40/40, `check-refs.py`
+  CLEAN. The release gate on `62a95e8a…` started 10:26:21 on port 8971, alone; its result goes here.
+- ⏭ **Next:** the release gate's result, then `git tag -a v1.5.0` on the cut commit, fast-forward `main`, and the
+  owner's push picker. After an approved push, check that the live `index.html` is `62a95e8a…` and `version.json`
+  reads 1.5.0.
+
 ### ◐ 20 Oct 2026: NUMBER WEEKS MERGED WITH STEP B AND DAY MENU STEP 5 (branch `numweeks-merge`, `d4cb4bf`), GATED 2,037 / 0, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, 20 Oct 2026: *"Hold the push. Merge Number weeks into main now, resolve the app.js

@@ -28,7 +28,30 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
-### Unreleased — The month view numbers weeks as the waterfall does (19 Oct 2026)
+
+## v1.5.0 — the month view becomes an editor: the day menu, drags, half days, prep and off weeks (20 Oct 2026)
+
+Twenty-nine changes since v1.4.3, three weeks of them. All but the last three were already live before
+this cut. This version is how installed copies hear about them: `version.json` moves with `APP_VERSION`, so
+a window that is already open shows the update notice. A minor bump, not a patch, for the size of it.
+- **New with this cut** (merge `d4cb4bf`): the day menu's hiatus and holiday sections; the month view numbers
+  weeks as the waterfall does (off weeks step B); a custom phase's **Number weeks** box.
+- **The month view is edited directly:** left- or right-click a day for the day menu (Full day / Off, add a
+  phase, Add hiatus ▸, the bar's own Start / End / Colour…); drag Production's edges, any phase's start or end,
+  and where an episode's prep starts; episode grips that remove days and never push.
+- **Production:** half days typed into an episode's or block's count; a week with no shoot days reads as a
+  Production hiatus; per-episode prep, above Production, derived from the shoot; month bars labelled by Week,
+  Episode or Block (Preferences ▸ "Label Production by").
+- **Custom phases:** a length in Weeks, Days or Dates, under "By [Weeks ▾]", and the Number weeks box.
+- **Export PDF in the month view writes the PDF itself** (the direct writer, steps 1–6), with the print path
+  kept as the rollback.
+- **Verified:** the merged build `72ce05dd…` passed the full gate, 2,037 PASS / 0 FAIL, alone. The v1.5.0 build
+  (`62a95e8a…`, 1,547,058 bytes, `releases/v1.5.0.html` byte-identical) differs from it in exactly 45 bytes, in two
+  places: the version string and the CSP hash of the script that holds it. `npm run check` 40/40. Fixture
+  `tests/fixtures/v1.5.0-saved.sptcal`, a real Save: 43 keys as before, and 74 ids, v1.4.3's 62 plus 12, none
+  removed.
+
+### The month view numbers weeks as the waterfall does (19 Oct 2026)
 
 OFF-WEEK-PLAN step B, owner ruling Q5 ("match the waterfall"), built separately from step A (Q6). The month view
 counted CALENDAR weeks from a phase's start, while the waterfall, Excel and the waterfall PDF skip hiatus weeks. So
@@ -47,7 +70,7 @@ vs *Post Week 10*. Every calendar where a phase runs through a hiatus showed thi
   header. It is red on the pre-change build on all seven, each of which runs a phase through a hiatus.
   Full gate on build `eadef87e…` (port 8963, 22:34–23:00): **1,856 PASS, 45 FAIL**. Gates 1–5 green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids); `weeknum` 27/27; `offweek` 32/32. 30 failures are the month baselines, as expected: all ten gate-10 print documents and all twenty gate-13 written PDFs moved, and **every difference is a Week number**. The documents are identical once each `Week <n>` is masked; the PDFs' words, page by page, are too. Changed pages differ by 0.01–0.06% of pixels, the digits only. The other 15 (`onecol`, `pwagatelogic`, `loadcarry`, 12 `pilllabel` checks on `shootorder` and `halfdays`) were no-result or "months 1 vs 16" month-walk flakes, and passed when re-run alone with the gate's own judging (17, 10, 6, 29, 29). A second re-run, beside another session's gate, failed one different `pilllabel (halfdays)` check (W1) the same way. **After the owner's sign-off ("Re-cut both", picker) gates 10 and 13 were re-cut, and the full gate re-ran: 1,928 PASS, 0 FAIL, GATE PASSED** (build `eadef87e…`, port 8963, 23:58–00:17, alone): 0 clipped, waterfall PDF and Excel identical, 74 ids, all ten print documents and all twenty written PDFs identical to the new baselines, `weeknum` 27/27, `offweek` 32/32, `pilllabel` all green.
 
-### Unreleased — The day menu's hiatus and holiday sections (19 Oct 2026)
+### The day menu's hiatus and holiday sections (19 Oct 2026)
 
 Step 5 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), the last one.
 - **On a day inside a hiatus,** the menu has a section for it, named with its dates ("Hiatus · 21 Dec – 3 Jan"):
@@ -64,7 +87,7 @@ Step 5 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), the last o
   The legs that use those sidebar controls are green. **Full gate: 1,951 PASS, 0 FAIL**, every frozen output
   identical.
 
-### Unreleased — A custom phase can drop its "wk N": the Number weeks box (19 Oct 2026)
+### A custom phase can drop its "wk N": the Number weeks box (19 Oct 2026)
 
 [`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md). The owner wanted one- or two-day phases that do not read "week x"
 by default, and asked whether that should be a separate "Event" feature. Ruled: keep them as phases (a one-day item
@@ -95,7 +118,7 @@ takes a waterfall column like any phase), and give the setting to **custom phase
   deadline). All three legs re-run alone: 92 PASS, 0 FAIL. Then merged with `main` at `6b9eeb4` (day menu steps 2–4,
   off weeks, prep above Production): full gate on the merged build `2e2b0d65…`, **2,001 PASS, 0 FAIL**.
 
-### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
+### A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
 ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), Q1–Q7): not single days, but a week inside the shoot the camera never rolls in.
@@ -124,7 +147,7 @@ This is step A; step B (the month view numbering weeks as the waterfall does) is
   1,901 PASS, 0 FAIL, GATE PASSED** on build `42f69b58…`, with no other gate running. Every frozen output is
   identical, and `offweek` is 32/32.
 
-### Unreleased — Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
+### Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
 
 Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
 default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
@@ -152,7 +175,7 @@ episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep
   the two meet were re-run: `npm run check` 40/40, `restore` (gate 5) identical, `episodeprep` 26 + 24 + 11 with Excel
   and the waterfall PDF identical prep on/off, `phaseedge` 23/23 (the grip's G0–G8 included), on build `42d1bd24…`.
 
-### Unreleased — Drag where an episode's prep starts, in the month view (19 Oct 2026)
+### Drag where an episode's prep starts, in the month view (19 Oct 2026)
 
 Owner: *"will you be able to change when exactly each episode prep starts"*, then *"plan a start grip on each prep pill
 in the month view that writes that episode's (or block's) prep length, with the end staying tied to the shoot"*.
@@ -177,7 +200,7 @@ PREP-GRIP-PLAN.md, with both rulings as recommended.
   were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
   the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical. Merged with `main` (beside the note fix): **1,860 PASS, 0 FAIL, GATE
   PASSED** on build `314f7722…`, with every frozen output identical and `pilllabel` green.
-### Unreleased — Left-click a day in the month view: the day menu, with Full day / Off in it (19 Oct 2026)
+### Left-click a day in the month view: the day menu, with Full day / Off in it (19 Oct 2026)
 
 Step 4 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), owner ruling L1: *"I thought you were going to
 combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*.
@@ -218,7 +241,7 @@ combine the full day/off day menu with the right-click menu … would instead po
   because the popover it used is gone. Full gate on the merged build `e4339f4d`: 1,939 PASS, 2 FAIL, every frozen
   output identical. The 2 were contention (`pilllabel (halfdays)` W0, `offweek (offweek)` R10), and both pass alone.
 
-### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
+### The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
 
 Step 3 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click on a phase's bar adds a section for
 that phase, headed by its name and colour, between "This day" and "Show this week in the waterfall":
@@ -244,7 +267,7 @@ that phase, headed by its name and colour, between "This day" and "Show this wee
     identical, and `mvmenu` passes 61/61. The three (`phaseedge` timing out, and `cspproof` B0/X1 waiting on ExcelJS
     from its CDN) passed when re-run alone on the same build: 14/14 and 15/15, with zero CSP violations.
 
-### Unreleased — Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
+### Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
 
 Step 2 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The day menu gains **Add hiatus**, which opens a
 submenu beside it:
@@ -259,7 +282,7 @@ submenu beside it:
 - **Verified:** `mvmenu` 47/47, five mutants each red on their own case; checked by hand. Its full gate was folded
   into step 3's, which contains it.
 
-### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
+### Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both
 were found while fixing the grips (entry below). Owner's pickers: *"Yes, build it with the gate"* and *"Add the
@@ -280,7 +303,7 @@ fallback"*.
   written month PDFs byte-identical (no baseline holds an edited note), waterfall PDF and Excel identical, `monthnotes`
   (M-13) green.
 
-### Unreleased — An edited "Start Principal Photography" note follows the month view's grips (19 Oct 2026)
+### An edited "Start Principal Photography" note follows the month view's grips (19 Oct 2026)
 
 Owner: *"when i use the grab handle to change the start of the very first day of production, it doesnt move the
 comment with it in the month view"*. An untouched auto-note always followed, because it is recomputed. But once a
@@ -320,7 +343,7 @@ first shoot day to 10/19, the note stayed on 10/18 and still said 10/18/27, on s
   month walk cut short while two other gates ran. Re-run standalone, it passed twice (35/35). Every frozen output identical,
   as above; `mvmenu` 36/36.
 
-### Unreleased — Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
+### Right-click a day in the month view: add a phase that starts there (19 Oct 2026)
 
 Owner: *"One i know i want is to right click to add a custom phase starting on the day youre hovering over."* Step 1
 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click anywhere on a day in the month view opens a
@@ -370,7 +393,7 @@ Week 2"), and the day is ringed while it is open. Four items:
     Gate 13's twenty written month PDFs are byte-identical, and `fields.byId` holds at 74 ids. `mvmenu` passes 36/36,
     and `monthdragundo` passes on its own.
 
-### Unreleased — Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
+### Per-episode prep in the month view, derived from the shoot (19 Oct 2026)
 
 EPISODE-PREP-PLAN.md, all five owner rulings (P1–P5, 15 Oct 2026). Each episode gets a prep run of N working days
 ending the day before its first shoot day. It is worked out from the shoot, so it moves whenever the shoot moves:
@@ -398,7 +421,7 @@ a new start date, a shift tool, a holiday, a hiatus or a new shooting order. Onl
   is every other bar of the month view. Full gate: every existing output unchanged (gates 1–4, 10, 13); gate 5
   re-cut 72 → 74 for the two new ids, on the owner's sign-off.
 
-### Unreleased — Episode grips remove days and never push, and every episode's start has a grip (19 Oct 2026)
+### Episode grips remove days and never push, and every episode's start has a grip (19 Oct 2026)
 
 Owner: *"when you drag the edge handles of a production week or episode that is directly touching another week or
 episode, it moves the other episode/week with it. When its not directly touching another one, and you adjust the
@@ -438,7 +461,7 @@ ruling 9b ("push") from 15 Oct 2026 for the grip at the end of an episode or blo
   grip. Several sessions were running harnesses at once. A first gate, run on the shared default port, had collided
   with another session's server (HANDOFF).
 
-### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
+### A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
 Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small
 drop down menu"*. The Length picker had a line of its own above Start date (`Length [Weeks ▾]`). Now it sits in the
@@ -457,7 +480,7 @@ second field's caption, so a phase row reads **Start date | By [Weeks ▾]**, wi
   rings "Whole days only", and at a 1280 px window the 333 px sidebar fits both columns side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilldrag` 20/20 and all 244 `pilllabel` checks green. `npm run check` 40/40.
 
 
-### Unreleased — "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
+### "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
 
 Step 3 of MONTH-PILL-LABEL-PLAN.md. The engine (step 2) shipped at `54ffe15` with nothing to drive it; this adds the
 controls, so a user can now pick the label.
@@ -491,7 +514,7 @@ controls, so a user can now pick the label.
   identical, with no re-cut. `pilllabel` passed all 244 checks; `shootorder`, `phaseedge`, `pilldrag`, `customunits`,
   `builtindates`, `halfdays` and `halfmarks` all pass. `npm run check` 40/40, `check-refs.py` CLEAN.
 
-### Unreleased — Drag any phase's start or end in the month view, by the day (16 Oct 2026)
+### Drag any phase's start or end in the month view, by the day (16 Oct 2026)
 
 Rest the pointer on a phase's first or last pill in the month view, and a grip appears on its start or end. Drag it to
 change that edge by the day. This covers every custom phase (Weeks, Days or Dates) and the five built-in phases (Weeks
@@ -540,7 +563,7 @@ Production keeps its own grips from step 7, unchanged.
   written month PDFs are byte-identical, `halfdays` among them. `phaseedge` 13/13, `pilldrag` 20/20, `pilllabel`
   90/90, `customunits` and `builtindates` all pass. `npm run check` 40/40, `check-refs.py` CLEAN.
 
-### Unreleased — A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
+### A custom phase's length can be Weeks, Days or Dates (15 Oct 2026)
 
 Steps 1–4 and 6 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md), for day-level control in the month view.
 - **The five built-in Weeks phases get a Length too (step 6, owner rulings 7 and 9d):** Writer's Rm, Pre Prep, Prod
@@ -613,7 +636,7 @@ Steps 1–4 and 6 of [`CUSTOM-PHASE-UNITS-PLAN.md`](CUSTOM-PHASE-UNITS-PLAN.md),
     are byte-identical; and 0 cells are clipped.
   - `npm run check` passes 40/40.
 
-### Unreleased — A switch day's two month bars meet half way through the square (16 Oct 2026)
+### A switch day's two month bars meet half way through the square (16 Oct 2026)
 
 The owner's own idea, on seeing the stacked bars: *"maybe rather than having both pills overlap, the bar ends half way
 thru the calendar square and the next pill starts in the second half of the square"*. Planned in
@@ -639,7 +662,7 @@ thru the calendar square and the next pill starts in the second half of the squa
   A bar with no switch day gets no new text.
 - **Verified:** full gate on build `be311b275aa4d884…` (1,482,152 bytes): **1,493 PASS, 0 FAIL, GATE PASSED** (14 min, 16 Oct 2026, no other gate alongside). Gate 13: all twenty written month PDFs byte-identical to their baselines, nineteen of them untouched and `halfdays` at its new cut. Gate 10: all ten print documents identical. `pilllabel` 90/90, `pilldrag` 20/20, `halfdays` 26/26, `halfmarks` 5/5, `monthlayout` on `halfdays` and `halfmarks`, `monthwriter` hd and hm, `fields.byId` 62 ids. `halfdays` was re-cut in gates 10 and 13 only after the owner saw contact sheets ("Yes, re-cut halfdays"). `npm run check` 40/40.
 
-### Unreleased — Production's month bars can be labelled by Week, Episode or Block: the engine (15 Oct 2026)
+### Production's month bars can be labelled by Week, Episode or Block: the engine (15 Oct 2026)
 
 Step 2 of MONTH-PILL-LABEL-PLAN.md, rebuilt on top of half days. There is no control yet (step 3), so nothing a user
 sees changes unless a file carries the new key.
@@ -672,7 +695,7 @@ sees changes unless a file carries the new key.
   `halfdays` 25/25 and `shootorder` 9/9 with their Show-switch checks revised; `pilldrag` 20/20 (E8–E14). Full gate:
   1,441 PASS, 0 FAIL. The owner signed off the Week and Episode month PDFs before the commit.
 
-### Unreleased — Half days are typed into an episode's or block's day count; the switch day shows both (15 Oct 2026)
+### Half days are typed into an episode's or block's day count; the switch day shows both (15 Oct 2026)
 
 The owner corrected what a half day is: *"instances where we would switch to the next episode or block half way thru
 a day"*. So a day count can now end in **.5**, and marking a single day "Half day" is gone.
@@ -703,7 +726,7 @@ a day"*. So a day count can now end in **.5**, and marking a single day "Half da
   any existing calendar. Full gate: 1,329 PASS after the re-cut; `hdrfile` and `conflict` failed in that run only and
   pass standalone (see HANDOFF). `npm run check` 40/40.
 
-### Unreleased — Drag Production's edges in the month view: the shoot, each episode, each week (15 Oct 2026)
+### Drag Production's edges in the month view: the shoot, each episode, each week (15 Oct 2026)
 
 In the month view, rest the pointer on a Production pill and thin grips appear on it. Drag one to move that edge by
 the day. MONTH-VIEW-PLAN.md step 7, owner rulings 3a and 9a–9c (§6.7): *"you should be able to drag either side of
@@ -742,7 +765,7 @@ each episode/production week/block individually"*.
   19/19 pass, in 79 s standalone and again inside the gate. `npm run check` 40/40.
 - ✅ **Full gate on the build (`cdf602c1…`): 1,292 PASS, 0 FAIL, GATE PASSED** (13 min 46 s). Every frozen output is unchanged, which is what "no frozen code changed" has to mean: 0 clipped cells, the waterfall PDF and every Excel part identical, `v1.0.0-saved.html` restores identically, `fields.byId` at 62 ids, all nine month print documents identical with one sheet per month (gate 10), and all nineteen written month PDFs byte-identical (gate 13).
 
-### Unreleased — The hover button says "Swap Column" (15 Oct 2026)
+### The hover button says "Swap Column" (15 Oct 2026)
 
 The teal hover button over a phase's block in the waterfall said **Swap Block**. It now says **Swap Column**, at the
 owner's request. Its tooltip now ends "then swap them with the column beside it", so "block" is not in it either.
@@ -757,7 +780,7 @@ call the selected run a "block".
   for them pass, with 0 console errors. `npm run check` passes 40/40. The full gate was not run: the change is one
   string on the overlay, outside the grid and the writers.
 
-### Unreleased — The month PDF the writer makes is byte-baselined: the direct writer's step 6 (5 Oct 2026)
+### The month PDF the writer makes is byte-baselined: the direct writer's step 6 (5 Oct 2026)
 
 Step 6 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, the last step. **Users see no change.** This is
 test coverage only: no app code moved, and the build is byte-identical to step 5's (`d7bf748a…`).
@@ -801,7 +824,7 @@ test coverage only: no app code moved, and the build is byte-identical to step 5
     padding. `monthexport` stayed green while gate 13 named the change.
   - **The full gate:** **1,278 PASS, 0 FAIL, GATE PASSED** in 13 min 20 s, on the unchanged build. That is step 5's 1,151, plus `monthexport` on twelve more calendars (108) and gate 13's nineteen lines. Gate 2's waterfall PDF is identical bar the date stamp, with every Excel part identical, 0 clipped cells and `fields.byId` at 62 ids. Gate 10's nine documents are unchanged. `snapoff` passed on all three calendars.
 
-### Unreleased — Export PDF in the month view writes the PDF itself: the direct writer's step 5 (2 Oct 2026)
+### Export PDF in the month view writes the PDF itself: the direct writer's step 5 (2 Oct 2026)
 
 Step 5 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, ruling 4(a): "replace, and keep a
 rollback". **Users see a change.** In the month view, Export PDF (and ⌘P and ⇧⌘E there) no longer opens
@@ -845,7 +868,7 @@ the browser's print dialog. The app writes the month PDF itself.
     had one harness flake (`snapoff`, no result file; it passed alone, and in the rerun)
 - **Size:** +30,732 bytes (1,433,765 to 1,464,497), now that the build keeps the writer.
 
-### Unreleased — the month PDF's fit, the direct writer's step 4 (1 Oct 2026)
+### The month PDF's fit, the direct writer's step 4 (1 Oct 2026)
 
 Step 4 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
 see no change:** the month PDF is still Chrome's print path, and the build is byte-identical to one
@@ -891,7 +914,7 @@ without the writer (`f0115600…`, 1,433,765 bytes), because the minifier drops 
     are identical to their baselines.
   - The owner has the print, writer and difference contact sheets.
 
-### Unreleased — the month PDF's emitter and serializer, the direct writer's step 3 (1 Oct 2026)
+### The month PDF's emitter and serializer, the direct writer's step 3 (1 Oct 2026)
 
 Step 3 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
 see no change:** the month PDF is still Chrome's print path, and the build is byte-identical to one
@@ -938,7 +961,7 @@ without the writer, because the minifier drops it until step 5 routes the export
   exact 8 mm lines sit up to 0.75 px from it.
 - **Size:** none. The build is byte-identical to `main`'s (`f0115600…`, 1,433,765 bytes).
 
-### Unreleased — the month PDF's layout model, the direct writer's step 2 (1 Oct 2026)
+### The month PDF's layout model, the direct writer's step 2 (1 Oct 2026)
 
 Step 2 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8. **Nothing calls it yet, so users
 see no change.** The month PDF is still Chrome's print path, and the build's minifier drops the new
@@ -978,7 +1001,7 @@ code as unused until step 5 routes the export to it.
 - **Size:** +857 bytes (1,432,908 to 1,433,765). The minified script gains one discarded constant,
   and the rest is the font blocks' revised comment.
 
-### Unreleased — the month PDF's fonts: four static Inter programs, ready for the direct writer (1 Oct 2026)
+### The month PDF's fonts: four static Inter programs, ready for the direct writer (1 Oct 2026)
 
 Step 1 of [`MONTH-PDF-WRITER-PLAN.md`](MONTH-PDF-WRITER-PLAN.md) §8, under the owner's ruling 1(a):
 the month PDF will be set in Inter, the month view's own typeface. **Nothing reads these fonts yet,
