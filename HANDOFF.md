@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 19 Oct 2026: PLANNED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built, no rulings)
+
+- Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
+  already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
+  write off marks on every drag. The owner then asked for "option 1" to be planned: **a week inside the shoot with no
+  shoot days reads and counts as a Production hiatus week.**
+- ⭐ **Measured, 19 Oct 2026, on a scratch build of `e86aa5e` (`05169b7f…`, the live app):**
+  1. A week with all five weekdays off prints ***Production wk 5*** in the waterfall, Excel and the waterfall PDF, and
+     pushes every later week's number up by one.
+  2. ⚠️ **The month view and the waterfall already number weeks differently after ANY hiatus, for every phase.**
+     `prodWeekLabel()` counts calendar weeks; the week loop skips hiatus weeks. On `dayoverrides.sptcal` the week after
+     Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
+     *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
+- **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
+  `sim.shootDays`, in `computeSchedule()` only. Every writer already draws that cell, so no frozen edit and no
+  save-format change. No fixture can hold one (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** recommended, the month view reads the number the week loop handed out
+  (`seg.weekNo`), never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a
+  gate 10/13 re-cut on sign-off.
+- ⏭ **Next:** the owner rules Q1–Q6 (plan §8). ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
+  `prodWeekLabel()`, which is step B's site.
+
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
 
 - Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
