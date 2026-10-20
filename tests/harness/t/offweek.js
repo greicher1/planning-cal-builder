@@ -404,6 +404,59 @@ window.addEventListener('load', function () { (async function () {
         var rows = monthRows();
         check(Object.keys(rows).every(function (k) { return !rows[k].bands.length; }), 'R10 and its month view draws no Production band');
       });
+
+      // ⭐ R11 -- prep is never laid on a day marked Off, nor in Production's own hiatus (owner, 19 Oct 2026, by
+      // picker: "Skip it, start earlier", "Yes, skip it too"). Both PAUSE prep as a holiday does: each run keeps
+      // its 5 days and starts earlier. Hand trace with a 5-day default (shot range 8/9-11/4; before the change
+      // in brackets):
+      //   Prep 301  8/2-8/6            the Q3 week: its marks precede the first shoot day, so they are inert
+      //   Prep 302  8/9-8/13
+      //   Prep 303  8/16-8/20          past 9/7-9/10 off, Labor Day, 8/30-9/3 off, the 8/23 hiatus  [9/3, 9/7-9/10]
+      //   Prep 304  9/13-9/17          past 9/20-9/24 off                                            [9/20-9/24]
+      //   Prep 305  9/17, 9/27-9/30    past 9/20-9/24 off                                            [9/24, 9/27-9/30]
+      //   Prep 306  10/1, 10/11-10/14  past Production's own hiatus, 10/4-10/8                       [10/8, 10/11-10/14]
+      //   Prep 307  10/15, 10/18-10/21
+      //   Prep 308  10/22, 10/25-10/28
+      await step('R11', async function () {
+        await load(fixtureText);
+        T.set('prep-days', '5'); await settle();
+        var got = {};
+        for(var i = 0; i < MONTHS_OF_SHOOT.length; i++){
+          await toMonth(MONTHS_OF_SHOOT[i]);
+          var first = monthOnScreen().first, gs = first.getTime() - first.getUTCDay() * DAY;
+          document.querySelectorAll('#table-wrap .mv-body > .mv-week').forEach(function (w, k) {
+            w.querySelectorAll('.mv-pill[data-ph="episodePrep"]').forEach(function (p) {
+              var sp = p.querySelector('.mv-pill-block'), txt = '';
+              p.childNodes.forEach(function (n) { if(n !== sp) txt += n.textContent; });
+              var gc = String(p.style.gridColumn || '').split('/').map(function (x) { return parseInt(x, 10); });
+              var o = (got[txt.trim()] = got[txt.trim()] || {});
+              for(var c = gc[0] - 1; c <= gc[1] - 2; c++) o[iso(new Date(gs + (7 * k + c) * DAY))] = 1;
+            });
+          });
+        }
+        var map = {};
+        Object.keys(got).sort().forEach(function (k) { map[k] = Object.keys(got[k]).sort().join(','); });
+        var WANT = {
+          'Prep 301': '2027-08-02,2027-08-03,2027-08-04,2027-08-05,2027-08-06',
+          'Prep 302': '2027-08-09,2027-08-10,2027-08-11,2027-08-12,2027-08-13',
+          'Prep 303': '2027-08-16,2027-08-17,2027-08-18,2027-08-19,2027-08-20',
+          'Prep 304': '2027-09-13,2027-09-14,2027-09-15,2027-09-16,2027-09-17',
+          'Prep 305': '2027-09-17,2027-09-27,2027-09-28,2027-09-29,2027-09-30',
+          'Prep 306': '2027-10-01,2027-10-11,2027-10-12,2027-10-13,2027-10-14',
+          'Prep 307': '2027-10-15,2027-10-18,2027-10-19,2027-10-20,2027-10-21',
+          'Prep 308': '2027-10-22,2027-10-25,2027-10-26,2027-10-27,2027-10-28'
+        };
+        out.r11 = map;
+        check(sameObj(map, WANT), 'R11 with a 5-day default, every prep run matches the hand trace (each keeps 5 days and starts earlier)');
+        if(!sameObj(map, WANT)) out.r11diff = diffObj(map, WANT);
+        var marks = JSON.parse(fixtureText).dayOverrides || {};
+        var days = [].concat.apply([], Object.keys(map).map(function (k) { return map[k].split(','); }));
+        var onOff = days.filter(function (d) { return marks[d] === 'off' && d >= '2027-08-09' && d <= '2027-11-04'; });
+        var inOwn = days.filter(function (d) { return d >= '2027-10-04' && d <= '2027-10-08'; });
+        out.r11bad = {onOff: onOff, inOwn: inOwn};
+        check(!onOff.length, 'R11 no prep pill sits on a day marked Off inside the shoot (' + onOff.join(' ') + ')');
+        check(!inOwn.length, 'R11 no prep pill sits in Production\'s own hiatus, 10/4-10/8 (' + inOwn.join(' ') + ')');
+      });
     }
   } catch (e) { out.EX = String(e && e.stack || e); fails.push('exception'); }
   out.health = T.appHealth ? T.appHealth() : null;

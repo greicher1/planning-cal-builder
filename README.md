@@ -28,6 +28,26 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased: Episodic Prep and Block Prep skip days marked Off, and Production's own hiatus (19 Oct 2026)
+
+Owner: *"will episodic prep or block prep days go in days marked 'off'? they really shouldnt do that as it doesnt
+make much sense"*. They did. Prep counted back over Mon–Fri, skipping only union holidays and all-phase hiatuses.
+`EPISODE-PREP-PLAN.md` §5 said "`dayOverrides` play no part", but that was a design note, not one of the P1–P5
+rulings. Ruled by picker the same day: *"Skip it, start earlier"* and, for Production's own hiatus, *"Yes, skip it
+too"*.
+- **Month view and month PDF only.** A day marked **Off** between the first and last shoot day is no longer a prep
+  day, and neither is a day in Production's own hiatus. Both **pause** prep as a holiday does: each episode's (or
+  block's) prep keeps its full length and starts earlier. So a week that reads "Production Hiatus" has no prep,
+  whether off marks or Production's own hiatus made it. The prep start grip follows automatically, because it reads
+  prep's days from the schedule.
+- **Unchanged:** the shoot itself, every other phase, the waterfall, Excel and the waterfall PDF (prep never reaches
+  them, P1). An Off mark outside the shot range is ignored here, as the shoot already ignores it. A worked Saturday is
+  still not a prep day. Nothing new is saved.
+- **Verified:** new case R11 in the `offweek` leg's RESTORE run. It sets a 5-day default on `offweek.sptcal` and holds
+  all eight prep runs to a hand trace. It is red on the live build `e4339f4d…` exactly as the trace predicts (Prep 303
+  on 9/3 and 9/7–9/10, Prep 304 across the 9/20 off week, Prep 306 on 10/8 in Production's own hiatus), and green on
+  the new build.
+
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day

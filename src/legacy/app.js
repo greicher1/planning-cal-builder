@@ -10724,11 +10724,20 @@ export function initLegacyApp() {
   //   n     = the unit's own prepDays if it has one, else the default (#prep-days) (P2);
   //   first = the unit's first shoot day (a half switch day counts: the unit is shot on it);
   //   run   = n working days counted BACK from the day before `first`. A working day is isUnitWorkDay()'s:
-  //           Mon-Fri, not an ENABLED union holiday, not in an all-phase hiatus -- the one copy of the
-  //           rule a Days phase is walked with. No ownHi: Production's own hiatus pauses the SHOOT.
+  //           Mon-Fri, not an ENABLED union holiday, not in an all-phase hiatus, and not in PRODUCTION's
+  //           own hiatus (ownHi) -- the one copy of the rule a Days phase is walked with -- and also not
+  //           a day marked Off.
+  // ⭐ Off days and Production's own hiatus are NOT prep days (owner, 19 Oct 2026, by picker: "Skip it,
+  // start earlier" and "Yes, skip it too"). An Off day is a day nobody works, and since OFF-WEEK-PLAN
+  // step A a week of them reads "Production Hiatus", the same words as Production's own hiatus, so the
+  // two behave the same. Both PAUSE prep, as a holiday does: the run keeps its n days and starts
+  // earlier. Until then the walk read neither (EPISODE-PREP-PLAN §5's "dayOverrides play no part",
+  // a design note, never a ruling), and prep was drawn across off weeks.
+  //   Only an Off mark INSIDE the shot range counts (refreshOverrideNote()'s rule): one left outside it
+  //   is stale, the shoot ignores it and the month view never draws it, so it must not move prep.
+  //   'on' / 'onhalf' still play no part: a Saturday the shoot works is not a prep day.
   // n blank or 0 skips the unit, so a blank default with no overrides makes NO segment at all, and that
-  // is how every calendar saved before prep existed opens. dayOverrides play no part: they decide which
-  // days are SHOT, and a Saturday the shoot works is not a prep day. No Show Info, no prep.
+  // is how every calendar saved before prep existed opens. No Show Info, no prep.
   // The segment, the only one of its kind:
   //   days      the union of every run's days: segCoversDate() reads it (the custom-units groundwork);
   //   preps     each run, in unit order: pillRunsForWeek() splits prep's pills by them (§8);
@@ -10760,7 +10769,9 @@ export function initLegacyApp() {
     const U = productionUnits(schedule);
     if(!U) return;
     const ctx = {holidayIsos: new Set(fullHolidayList(state.unionCountry).filter(h=> h.enabled).map(h=> h.date)),
-                 hiatuses: hiatuses || [], ownHi: null};
+                 hiatuses: hiatuses || [], ownHi: prod.phaseHiatus || null};
+    const shot0 = prod.shootDays[0], shotN = prod.shootDays[prod.shootDays.length - 1];
+    const offDay = iso=> dayOverrides[iso] === 'off' && iso >= shot0 && iso <= shotN;
     const preps = [], all = new Set();
     let firstDay = null, lastDay = null;
     U.units.forEach(u=>{
@@ -10773,7 +10784,7 @@ export function initLegacyApp() {
       const list = [];
       // Bounded like a Days phase's walk: a typo'd length stops one calendar's worth of weeks back.
       for(let d = addDays(first, -1), safety = 0; list.length < n && safety < MAX_WEEKS * 7; d = addDays(d, -1), safety++){
-        if(isUnitWorkDay(d, ctx)) list.unshift(isoOf(d));
+        if(isUnitWorkDay(d, ctx) && !offDay(isoOf(d))) list.unshift(isoOf(d));
       }
       if(!list.length) return;
       const p = {kind: U.kind, unit: u, days: new Set(list), first: parseDateUTC(list[0]), last: parseDateUTC(list[list.length - 1])};
