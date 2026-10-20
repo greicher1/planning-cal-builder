@@ -3245,11 +3245,27 @@ export function initLegacyApp() {
       if(start && parseDateUTC(start)===null){ hasInvalidYear = true; badYearFields.push(sEl); }
       if(start && weeks>0) phaseHiatuses[p.key] = {start, weeks};
     });
+    // ⭐ THE CALENDAR RANGE (owner ruling 3, 20 Oct 2026): the Show tab's two dates, which replace the
+    // waterfall's full-year padding (computeSchedule). Either may be blank, and blank is today's padding.
+    // A bad year refuses the calendar as every other date field's does. An end in a week BEFORE the
+    // start's leaves the range out and rings the end, the way a Dates phase's end before its start
+    // leaves that phase out: nothing is refused for it.
+    let calRange = null;
+    {
+      const sEl = document.getElementById('cal-range-start'), eEl = document.getElementById('cal-range-end');
+      const s = sEl ? sEl.value : '', e = eEl ? eEl.value : '';
+      if(s && parseDateUTC(s)===null){ hasInvalidYear = true; badYearFields.push(sEl); }
+      if(e && parseDateUTC(e)===null){ hasInvalidYear = true; badYearFields.push(eEl); }
+      const sd = parseDateUTC(s), ed = parseDateUTC(e);
+      if(sd && ed && mondayOf(ed) < mondayOf(sd)) unitBadFields.push(eEl);
+      else if(sd || ed) calRange = {start: sd ? s : '', end: ed ? e : ''};
+    }
     return {
       phases,
       allDefs,
       hiatuses,
       phaseHiatuses,
+      calRange,
       hasInvalidYear,
       badYearFields,
       unitBadFields,
@@ -3652,8 +3668,20 @@ export function initLegacyApp() {
     if(allStarts.length===0) allStarts.push(allEnds[0]);
     if(allEnds.length===0) allEnds.push(allStarts[0]);
 
-    const overallStart = new Date(Math.min.apply(null, allStarts));
-    const overallEnd   = new Date(Math.max.apply(null, allEnds));
+    // ⭐ THE CALENDAR RANGE (owner ruling 3, 20 Oct 2026) REPLACES THAT PADDING, IN THE WATERFALL ONLY.
+    // A typed start is the first row (its Monday), a typed end the last (the week it falls in); a blank
+    // one keeps the padding above, in either layout (single column's tight bounds included). The loop
+    // below still runs over the padded span AND the range, so every phase's weeks are numbered from its
+    // real start, and the month view, which reads the WHOLE week list (wholeCalendar), keeps every week.
+    // The waterfall's rows are cut out of that list after the notes (calRangeCut).
+    // ⚠️ With no range, wfStart/wfEnd ARE the padding and the loop is exactly today's.
+    const padStart = Math.min.apply(null, allStarts), padEnd = Math.max.apply(null, allEnds);
+    const rangeFrom = state.calRange && parseDateUTC(state.calRange.start);
+    const rangeTo   = state.calRange && parseDateUTC(state.calRange.end);
+    const wfStart = rangeFrom ? mondayOf(rangeFrom).getTime() : padStart;
+    const wfEnd   = rangeTo ? addDays(mondayOf(rangeTo), 7).getTime() : padEnd;
+    const overallStart = new Date(Math.min(padStart, wfStart));
+    const overallEnd   = new Date(Math.max(padEnd, wfEnd));
     const totalWeeks = Math.round((overallEnd-overallStart)/DAY_MS/7);
 
     if(!Number.isFinite(totalWeeks) || totalWeeks < 0){
@@ -3849,10 +3877,22 @@ export function initLegacyApp() {
     // Stint swaps FIRST, then per-week ones on top: the stint swap is the coarser statement (a whole
     // block trades columns) and a per-week entry then refines individual weeks of the result. The
     // reverse order would let a week-level exchange be undone by the block-level one.
-    const stintOrder = applyStintSwaps(weeks);
-    const appliedColSwaps = applyColSwaps(weeks);
+    // ⭐ ON THE WATERFALL'S ROWS: with a calendar range they are cut out of the whole list first (wfStart
+    // above), because a swap is the waterfall's and is indexed by its rows (the gate's weekIdx).
+    const cut = (rangeFrom || rangeTo) ? cutToCalendarRange(weeks, notesByIdx, overallStart, wfStart, wfEnd) : null;
+    const wf = cut || {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart};
+    const stintOrder = applyStintSwaps(wf.weeks);
+    const appliedColSwaps = applyColSwaps(wf.weeks);
 
-    const schedule = {weeks, maxConcurrent, totalWeeks, overallStart, productionInfo, notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    const schedule = {weeks: wf.weeks, maxConcurrent: wf.maxConcurrent, totalWeeks: wf.totalWeeks, overallStart: wf.overallStart, productionInfo, notesByIdx: wf.notesByIdx, segments, hiatuses, phaseHolidays, appliedColSwaps, stintOrder};
+    if(cut){
+      // The whole list, for the month view (wholeCalendar), and the work weeks each phase lost, for the
+      // notice (reflectCalRangeNotice). A range that leaves no row at all (a start after the calendar's
+      // last week, or an end before its first) is render()'s invalid-range message, in the waterfall only.
+      schedule.fullRange = {weeks, notesByIdx, maxConcurrent, totalWeeks, overallStart, error: undefined};
+      schedule.calRangeCut = cut.lost;
+      if(!cut.weeks.length) schedule.error = 'invalid-range';
+    }
     // ⭐ PER-EPISODE PREP, appended LAST (EPISODE-PREP-PLAN.md §4): every week, column, maxConcurrent, note
     // and holiday above was built without it, so the waterfall, Excel and the waterfall PDF -- which read
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
@@ -3861,6 +3901,24 @@ export function initLegacyApp() {
     // After the prep, whose first and last days widen the month range. MONTH-NOTES-PLAN.md §3, ruling Q1.
     schedule.monthOnlyHolidays = monthOnlyHolidaysFor(schedule);
     return schedule;
+  }
+
+  // The waterfall's rows under a calendar range (owner ruling 3): weeks [wfStart, wfEnd) of the loop's whole
+  // list, the notes re-indexed to them, and the WORK weeks each phase has outside them (its 'phase' cells;
+  // a paused week is not work lost). The week objects are shared, not copied: the month view reads the
+  // same ones through fullRange, and only the waterfall's swaps write to them, on `col`, which it never reads.
+  function cutToCalendarRange(weeks, notesByIdx, loopStart, wfStart, wfEnd){
+    const a = Math.max(0, Math.round((wfStart - loopStart)/DAY_MS/7));
+    const b = Math.max(a, Math.min(weeks.length, Math.round((wfEnd - loopStart)/DAY_MS/7)));
+    const kept = weeks.slice(a, b), notes = {}, lost = {};
+    Object.keys(notesByIdx).forEach(i=>{ const j = Number(i) - a; if(j >= 0 && j < kept.length) notes[j] = notesByIdx[i]; });
+    weeks.forEach((w, i)=>{
+      if(i >= a && i < b) return;
+      w.cells.forEach(c=>{ if(c.type === 'phase') lost[c.key] = (lost[c.key] || 0) + 1; });
+    });
+    let maxConcurrent = 1;
+    kept.forEach(w=>{ maxConcurrent = Math.max(maxConcurrent, w.cells.length); });
+    return {weeks: kept, notesByIdx: notes, maxConcurrent, totalWeeks: kept.length, overallStart: new Date(wfStart), lost};
   }
 
   // Resolve gridColSwaps into the disjoint transpositions that actually apply to ONE week.
@@ -16211,6 +16269,15 @@ export function initLegacyApp() {
     // sheetColumnWidths, and the latter measures every label and note of every week.
     const gated = maybeRunColSwapGate(state, currentSchedule);
     if(gated && gated.schedule) currentSchedule = gated.schedule;
+    // ⭐ THE CALENDAR RANGE CUTS THE WATERFALL, EXCEL AND THE WATERFALL PDF, NEVER THE MONTH VIEW (owner
+    // ruling 3, 20 Oct 2026). computeSchedule hands back the waterfall's rows, so in the month view this
+    // puts the whole calendar back. Picked here, per view, because frozen render() hands its schedule to
+    // frozen renderMonthView, and frozen exportMonthPdf reads currentSchedule itself. Each export runs only
+    // from its own view (Excel and the waterfall PDF from the waterfall, the month PDF from the month view),
+    // so each reads the right one, and setViewMode() runs update(), so a switch re-picks. Without a range
+    // there is nothing to put back and this is the schedule itself.
+    reflectCalRangeNotice(currentSchedule);
+    if(viewMode === 'month') currentSchedule = wholeCalendar(currentSchedule);
     // ⛔ L-17 (owner ruling, 29 Sep 2026): a DIFFERENT calendar opens where it always did.
     // renderMonthView (frozen) now clamps an out-of-range month cursor to the NEAREST month, which is
     // right for a range that shrinks while you edit. But Load, backup recovery and New/Reset REPLACE
@@ -16266,10 +16333,52 @@ export function initLegacyApp() {
         .map(h => ({ iso: h.date, name: h.name })),
       hiatuses: (state.hiatuses || []).map(h => ({ start: h.start, weeks: h.weeks }))
     });
-    reflectStartDateValidity(state, refreshSpanHint(state));
+    reflectStartDateValidity(state, refreshSpanHint(state).concat(calRangeEmptyFields(currentSchedule)));
     markDirty();
     restoreScroll(scrollSnap);
   }
+
+  // The schedule the MONTH view reads: the whole week list under a calendar range (computeSchedule's
+  // fullRange), the schedule itself without one. Also what anything about the calendar rather than the
+  // waterfall's rows reads (weekAutoTexts), so it answers the same in either view.
+  function wholeCalendar(sch){
+    return (sch && sch.fullRange) ? Object.assign({}, sch, sch.fullRange) : sch;
+  }
+  // A range that leaves the waterfall no row rings both of its dates; render() says why.
+  function calRangeEmptyFields(sch){
+    if(!(sch && sch.calRangeCut && sch.error === 'invalid-range')) return [];
+    return ['cal-range-start', 'cal-range-end'].map(id => document.getElementById(id)).filter(el => el && el.value);
+  }
+  // The strip naming the phases a calendar range cuts (owner, 20 Oct 2026, by picker: "Strip above the
+  // grid", "Names and weeks"). Waterfall view only, since the month view cuts nothing. Dismissed per
+  // MESSAGE, as the column-order strip is, so a different cut later still speaks up.
+  const calRangeNoticeState = { text: '', dismissed: '' };
+  function reflectCalRangeNotice(sch){
+    const el = document.getElementById('calrange-notice');
+    if(!el) return;
+    const lost = (sch && sch.calRangeCut) || {};
+    const parts = [];
+    let total = 0;
+    getAllPhaseDefs().forEach(p=>{
+      const n = lost[p.key];
+      if(!n) return;
+      total += n;
+      parts.push(n + (n === 1 ? ' week of ' : ' weeks of ') + phaseDisplayName(p.key));
+    });
+    const list = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : (parts[0] || '');
+    const msg = list ? 'The calendar range cuts ' + list + ' from the waterfall, Excel and PDF. The month view still shows '
+                     + (total === 1 ? 'it.' : 'them.') : '';
+    calRangeNoticeState.text = msg;
+    const txt = el.querySelector('.ln-text');
+    if(txt && txt.textContent !== msg) txt.textContent = msg;
+    el.hidden = !msg || viewMode === 'month' || calRangeNoticeState.dismissed === msg;
+  }
+  document.addEventListener('click', e=>{
+    if(!(e.target.closest && e.target.closest('#calrange-notice .ln-x'))) return;
+    calRangeNoticeState.dismissed = calRangeNoticeState.text;
+    const el = document.getElementById('calrange-notice');
+    if(el) el.hidden = true;
+  });
 
   // The diegetic invalid-date signal (owner request №4). Until now a bad start date said so ONLY
   // in the phase's meta readout ("Check that year — doesn't look right"), which sits below the
@@ -16345,7 +16454,7 @@ export function initLegacyApp() {
     });
     document.querySelectorAll('.form-panel [data-whole-err]').forEach(h=>{ if(!hosts.has(h)) h.removeAttribute('data-whole-err'); });
     hosts.forEach((words, h)=>{ if(h.getAttribute('data-whole-err') !== words) h.setAttribute('data-whole-err', words); });
-    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end, ' + PREP_FIELDS).forEach(el=>{
+    document.querySelectorAll('#hiatus-list .hiatus-start, .phiatus-start, #hiatus-list .hiatus-weeks, .phiatus-weeks, .form-panel input[id^="weeks-"], #simpost-offset, ' + HALF_FIELDS + ', .form-panel .phase-days, .form-panel .phase-end, ' + PREP_FIELDS + ', #cal-range-start, #cal-range-end').forEach(el=>{
       el.classList.toggle('is-invalid', bad.has(el));
     });
     getAllPhaseDefs().forEach(p=>{
@@ -16382,6 +16491,13 @@ export function initLegacyApp() {
     const fits = st => { try { const r = computeSchedule(st); return !r.error && r.weeks.length > 0; } catch(e){ return false; } };
     const num = v => Number(v).toLocaleString('en-US');
     const withPhase = (key, cfg) => Object.assign({}, state, {phases: Object.assign({}, state.phases, {[key]: cfg})});
+    // A calendar range typed far from the work (owner ruling 3) stretches the week loop as a typo'd year
+    // does, so it is asked first: the cause when the calendar fits without it.
+    if(state.calRange && fits(Object.assign({}, state, {calRange: null}))){
+      const end = !!state.calRange.end && fits(Object.assign({}, state, {calRange: Object.assign({}, state.calRange, {end: ''})}));
+      return {text: 'The calendar range\u2019s ' + (end ? 'end' : 'start') + ' date makes the calendar too long. Check that year.',
+              el: document.getElementById(end ? 'cal-range-end' : 'cal-range-start')};
+    }
     const found = [];
     (state.allDefs || []).forEach(p=>{
       const cfg = state.phases[p.key];
@@ -17232,6 +17348,11 @@ export function initLegacyApp() {
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
+  // The calendar range (owner ruling 3): it moves where the waterfall starts and ends, so it recomputes.
+  ['cal-range-start', 'cal-range-end'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', update);
+  });
   // Block shooting (BLOCKS-PLAN.md §3). Switching mode changes which list drives Production, so it
   // re-renders the panel AND recomputes -- and switching back must land on the previous dates
   // exactly, which holds because neither mode's inputs are ever cleared.
@@ -17332,6 +17453,7 @@ export function initLegacyApp() {
     document.getElementById('shoot-days-per-ep').value = '';
     document.getElementById('num-episodes').value = '';
     document.getElementById('show-version').value = '';
+    ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
     // Back to Episodes, the mode every calendar starts in -- and the block list with it.
     const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
@@ -17516,7 +17638,7 @@ export function initLegacyApp() {
     // have. Reproduced in headless Chrome (tests/harness/t/sharecopy.js). Hidden rather than
     // removed because the copy is a working app: its own engine may need to raise these later.
     // #browser-notice (audit L-20) joined them: a copy exported from Safari must not carry it into Chrome.
-    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice').forEach(el=>{ el.hidden = true; });
+    clone.querySelectorAll('#legacy-notice, #update-notice, #holiday-notice, #browser-notice, #calrange-notice').forEach(el=>{ el.hidden = true; });
     // Transient interaction classes on <body> must not be serialised. grid-cell-hover carries
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
@@ -18166,6 +18288,9 @@ export function initLegacyApp() {
   // edited auto-note OPENS with. Both views, because a note edited from the month view starts with
   // the month's auto text (holidays included; audit M-13).
   function weekAutoTexts(schedule, weekIso){
+    // The whole calendar, not the waterfall's rows: a note outside a calendar range still has its week's
+    // auto text, so a shift rewrites it the same in either view (wholeCalendar).
+    schedule = wholeCalendar(schedule);
     const weeks = (schedule && schedule.weeks) || [];
     const idx = weeks.findIndex(w => isoOf(w.date) === weekIso);
     const list = (idx >= 0 && schedule.notesByIdx) ? (schedule.notesByIdx[idx] || []) : [];
@@ -18452,6 +18577,13 @@ export function initLegacyApp() {
       const lock = row.querySelector('.hiatus-locked');
       if(lock && lock.checked){ lockedHiatuses++; recordStayingWeeks(row); return; }
       if(shiftDateFieldValue(startEl, days)) movedHiatuses++;
+    });
+    // 2b. The calendar range's two dates (owner ruling 3, 20 Oct 2026, by picker: "Move like a hiatus").
+    //     Each moves as an unlocked hiatus does: always on a whole-calendar move, and on a ripple only if it
+    //     is on or after the cutoff. Rebuild From never comes here, so it leaves them, as ruled.
+    ['cal-range-start', 'cal-range-end'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el && el.value && inRange(el.value)) shiftDateFieldValue(el, days);
     });
 
     // 3. Week-keyed stores. Which weeks are pinned has to be worked out BEFORE anything moves:
@@ -23869,8 +24001,11 @@ export function initLegacyApp() {
     // prep on your show. Absent means no default and the name "Prep", a DEFAULT name, which the
     // update() after the restore shows as the file's mode's own, "Episodic Prep" or "Block Prep"
     // (syncPrepName): show-mode is restored by then, whatever order these run in.
+    // ...and the calendar range (owner ruling 3): a file saved before it, opened after one with a range, would
+    // otherwise be CUT to the previous show's dates. Absent means blank, the full years it was saved with.
     [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
-     ['prep-days', ''], ['prep-name', PREP_DEF.label]].forEach(([id, dflt])=>{
+     ['prep-days', ''], ['prep-name', PREP_DEF.label],
+     ['cal-range-start', ''], ['cal-range-end', '']].forEach(([id, dflt])=>{
       const el = document.getElementById(id);
       if(el && !hasField(id)) el.value = dflt;
     });
@@ -24239,7 +24374,7 @@ export function initLegacyApp() {
     // fit() force the up-to-date geometry.
     const mo = new MutationObserver(fit);
     // span-hint (audit N-2) sits above the toolbar, so it moves the grid exactly as a notice does.
-    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice'].forEach(id=>{
+    ['legacy-notice','holiday-notice','update-notice','colswap-notice','span-hint','browser-notice','calrange-notice'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'], childList: true, subtree: true, characterData: true });
     });

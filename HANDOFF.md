@@ -105,6 +105,65 @@
   - **Proof:** leg `tests/harness/t/phasecolors.js`, 10/10 on the build; 8 of 10 red on the pre-change build
     (`dist-pre5/`, `ff6e3f60…`); the rotate-over-14 mutant turns exactly C8 red.
 - ⏳ **Next on this branch: the full gate, then the owner's merge question.**
+### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — BUILT (branch `claude/cal-range-1fe2e5`, worktree `.claude/worktrees/cal-range-1fe2e5`), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the calendar range.** One of the parallel sessions building the 20 Oct rulings (entry below,
+  copied in from the main checkout, where it is uncommitted). This one owns ruling 3. Shared notes for the group:
+  `~/Library/Application Support/Claude/side-session-notes/local_20e265cd-…/cal-range.md`.
+- **Asked before building (owner, picker, 20 Oct 2026), all four the recommended option:** shift tools *"Move like a
+  hiatus"* (Shift All and Anchor To move both dates; Shift From moves a date only if it is on or after the phase
+  shifted from; Rebuild From leaves it); Single Column Mode *"Applies in both"* (a blank date keeps each layout's
+  own default); the notice *"Strip above the grid"* (waterfall view only, dismissible); wording *"Names and weeks"*.
+- **Built** (no frozen code; `src/legacy/app.js`, `Sidebar.jsx`, `main.jsx`, `icons.jsx`, `index.html`, `legacy.css`):
+  - `readState()` reads `#cal-range-start` / `#cal-range-end` into `state.calRange`. A bad year refuses the calendar
+    like every date field (`badYearFields`); an end in a week before the start's is `unitBadFields` (ringed, range
+    left out, nothing refused).
+  - ⭐ `computeSchedule()`: the padding block is untouched. After it, `wfStart`/`wfEnd` are the range's Monday and
+    the Monday after its end's week, or the padding where blank. **The week loop runs over the union of the padded
+    span and the range**, so counters, `seg.weekNo`, sim-post numbering and notes are what they always were, then
+    `cutToCalendarRange()` slices the waterfall's rows (and re-indexes `notesByIdx`) BEFORE `applyStintSwaps` /
+    `applyColSwaps`, which are the waterfall's and indexed by its rows. Without a range the cut is skipped and every
+    line reads as before (gates 1–4, 10, 13 prove it). The schedule carries `fullRange` (the whole list) and
+    `calRangeCut` (work weeks lost per phase key; `phaseHiatus` cells do not count). A range that leaves no row is
+    `error: 'invalid-range'` on the waterfall's schedule only.
+  - ⛔ **`currentSchedule` IS VIEW-DEPENDENT under a range.** `update()` swaps in `wholeCalendar(sch)` (the schedule
+    with `fullRange` laid over it) when `viewMode === 'month'`, because frozen `render()` passes its argument to frozen
+    `renderMonthView`, frozen `exportMonthPdf` reads `currentSchedule` itself, and the month view reads
+    `schedule.weeks` (Simultaneous Post bands) and `notesByIdx` by date. That is safe because each export runs only
+    from its own view, and `setViewMode()` runs `update()`. `weekAutoTexts()` reads `wholeCalendar()` so R5's
+    rewrite answers the same in either view. Without a range `wholeCalendar` returns the schedule itself.
+  - ✅ **The card shows in the WATERFALL view only** (`pref-view-sheet`, Single Column Mode's precedent), and its
+    "i" is three plain sentences: the owner's standing rule, relayed 20 Oct 2026 by the column-reuse session ("The
+    app needs to be easy for anyone to use"; show a control only when it is relevant). Its dates stay in force in
+    the month view. Leg R6b, and a mutant without the class is red on R6b alone.
+  - The strip `#calrange-notice` (amber, the holiday strip's look, ✂ icon) is beside `#colswap-notice` in
+    `src/index.html`, observed by the app shell's grid fit, re-hidden in the shareable copy's clone.
+    `reflectCalRangeNotice()` runs from `update()` before the swap. Dismissal is per message.
+  - Shift tools: step 2b of `shiftCalendarDates()`. Span hint: `spanCulprit()` asks the range first. Restore: the
+    two ids are in `applyStateSnapshot()`'s absent-means-default list (`''`). `resetAll()` clears them. The ring
+    list in `reflectStartDateValidity()` includes them.
+- **Proof so far** (build at the commit below; port 8969):
+  - New leg **`calrange`**, 18/18 (C0, C1, R1–R14, R6b, H0), in `gate.sh`'s audit-fix loop. **Red on the pre-change
+    build** (`670a591`, built in a scratch worktree): C0, C1 and EX ("no #cal-range-start").
+  - **Eleven mutants, each red on its own cases:** month view handed the cut schedule (R6, R10); strip shown in the
+    month view (R6); no absent-means-default (R12); shift ignores the range (R8); ripple ignores the cutoff (R8);
+    loop over the range only, so counts restart (R2, R3, R6, R6b, R10, R13); clone keeps the strip up (R13); New
+    keeps the dates (R14); end-before-start not ringed (R9); paused weeks counted as lost (R3, R6); no span cause
+    (R11). Not covered by a case: Anchor To (the same `shiftCalendar(delta)` path as Shift All), and
+    `weekAutoTexts()` reading the whole calendar.
+  - `restore` alone: gate 5 gains exactly `cal-range-start: ''` and `cal-range-end: ''`, nothing lost or changed;
+    `rows`, `cells`, `gridWidthPt`, `bytes`, `sig` identical, 0 clipped. ✅ **Gate 5 re-cut 74 → 76 ids on the
+    owner's sign-off** (picker, 20 Oct 2026: "Re-cut it"), commit `a624eb1`, written up in the baseline README. The
+    two lines were inserted after `show-version` by a script that aborted on any other difference.
+  - `npm run check` 40/40; `check-refs.py` CLEAN. Dev pane: the card under Show info, the strip, the waterfall from
+    8/31/26 with "Writer's Rm wk 7"-style labels continuing, and the month view byte-identical across 13 months with
+    and without a range.
+- ⚠️ **For the column-reuse session** (also in `computeSchedule`): this diff touches only the lines right after the
+  padding (`padStart` … `overallEnd`) and the swap call site (`cut` / `wf` / the `schedule` literal, whose keys are
+  now spelled out). `segCol` and the placement loop are untouched. Column reuse changes `col` upstream of the cut,
+  so the two compose: the cut only slices weeks.
+- ⏭ **Next:** the full gate on build `9da4794b…` at `224eef0` (queued 15:55 behind two other sessions' gates, port 8969, log in
+  this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 

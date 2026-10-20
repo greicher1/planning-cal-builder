@@ -80,7 +80,7 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, RegionCard, HolidaysCard, AutoNotesCard, AppCard, PreferencesCard, HeadersCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, CalendarRangeCard, RegionCard, HolidaysCard, AutoNotesCard, AppCard, PreferencesCard, HeadersCard, HiatusResetButton } from './chrome/Sidebar.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
@@ -118,7 +118,7 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
-      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /><AutoNotesCard /><PreferencesCard /><HeadersCard /><AppCard /></>, '#sidebar-static')}
+      {portal(<><ShowInfoCard /><CalendarRangeCard /><RegionCard /><HolidaysCard /><AutoNotesCard /><PreferencesCard /><HeadersCard /><AppCard /></>, '#sidebar-static')}
       {/* The All-phase hiatus card's rows are engine-generated, so the card itself cannot be a
           React component -- but its header is static markup, so its "i" portals in here. Keeps
           one InfoHint implementation rather than a CSS-only lookalike for this one card. */}
