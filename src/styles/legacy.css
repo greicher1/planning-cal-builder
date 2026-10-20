@@ -868,6 +868,15 @@
   .phiatus-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
+  /* A phase hiatus's "Number weeks" (owner ruling 8, 20 Oct 2026): the custom phase's Number weeks look,
+     on its own line under the snap note. (0,2,1), to beat the column rule above AND the type rule
+     further down (`.phase-hiatus-fields label`, (0,1,1)), for the same reason .phase-snap needs it. */
+  .phase-hiatus-fields label.phiatus-wknum{
+    display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
+    gap:6px; flex:0 0 100%;
+    font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
+  }
+  .phiatus-wknum input{ margin:0; cursor:pointer; flex:none; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
   /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
   .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled); cursor:pointer; text-align:left; }

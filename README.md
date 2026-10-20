@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Number weeks" on a phase's own hiatus (owner ruling 8, 20 Oct 2026)
+
+A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
+for a **Number weeks** box on each phase's hiatus, off by default, after a reference calendar numbered its hiatus weeks.
+- **The box** sits under the hiatus's Start date and Weeks, on every phase that has a hiatus (built-in and custom).
+  Ticked, the band reads **"Pre Prep Hiatus wk 1", "wk 2", "wk 3"**, counting the hiatus's own weeks, in the waterfall,
+  Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break wk 1").
+- **A band you retyped by clicking it in the grid keeps exactly what you typed** (owner's picker, 20 Oct 2026), ticked
+  or not; its neighbours are numbered. Reset hiatus bands puts it back into the numbering.
+- **Unticked, nothing changes**, and every calendar ever saved opens unticked.
+- **How:** the labels are written through `syncHiatusNamesFromSidebar()` into `hiatusTexts`, the path the hiatus Name
+  field already takes. It had to be that path, not computeSchedule's default label: frozen `renderMonthView` builds
+  its own band label from the phase name and reads only `hiatusTexts` over it, so a default label would never have
+  reached the month view or the month PDF. No frozen code changed.
+- **Saved with the calendar** as `phaseHiatusNumbered: {<phase key>: true}`, written only while a box is ticked, so a
+  calendar that never ticks one saves byte for byte what it did. The box has no id, so `fields.byId` (gate 5) is
+  unchanged. Restored unconditionally (an older file loaded after a ticked one opens unticked); New clears it;
+  removing a custom phase drops its entry. `SNAPSHOT_VERSION` unchanged: an older build ignores the key, and its own
+  sync reverts the numbered labels it finds to the plain name.
+- **Production's off weeks** (a week with no shoot days) are not numbered; the box numbers only the hiatus it sits on.
+- **Verified:** new leg `phiatusnum`, 17 cases (every output's text, read back from the files; the hit-tested click;
+  one undo step; the save key with the id set unchanged; unticking gives a saved file byte-identical to the one
+  before the tick; Load, the older-file trap, New, Shift All, the retyped band). Red on the pre-change build (15 of
+  17), green after.
+
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),

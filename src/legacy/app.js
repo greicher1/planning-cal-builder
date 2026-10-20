@@ -5841,6 +5841,10 @@ export function initLegacyApp() {
 
   // Markup for the per-phase hiatus controls, dropped under each phase's fields. IDs are keyed
   // by phase so their values round-trip through collectFieldValues()/restore like any field.
+  // ⛔ Except "Number weeks" (ruling 8), which has NO id on purpose: an id here is six static ids on the
+  // built-in rows, which moves gate 5's fields.byId set and, on a static row, needs a restore default
+  // (the M-5 trap). Its store is phaseHiatusNumbered, its key is read off #phiatus-fields-<key> (which
+  // the restore's re-key renames with the row), and refreshPhaseHiatusUI() reflects it.
   function phaseHiatusBlockHtml(key, label){
     // The toggle's own caption IS the name field -- not a checkbox <label> wrapping static text
     // plus a separate Name box below it. The checkbox and the text input are independent sibling
@@ -5855,6 +5859,7 @@ export function initLegacyApp() {
           <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
           <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
           <div class="snap-note"></div>
+          <label class="phiatus-wknum" title="On: this hiatus's band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed."><input type="checkbox" class="phiatus-wknum-cb"> Number weeks</label>
         </div>
       </div>`;
   }
@@ -6056,6 +6061,7 @@ export function initLegacyApp() {
     if(!row.isConnected) return false;
     const k = row.dataset.key;
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
+    delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
     row.remove();
     update();
     return true;
@@ -9259,7 +9265,9 @@ export function initLegacyApp() {
     const stillOwned = new Set();
     // Shared by both kinds below: claim every week `name`'s row covers, but only where nothing
     // has hand-edited the band since we last claimed it.
-    const applyRange = (name, startStr, weeksStr, makeKey) => {
+    // `numbered` (a phase's own hiatus only, ruling 8) appends " wk N" to each week's label, N counting
+    // the hiatus's own weeks from its Monday-snapped start: the weeks its Weeks box asks for.
+    const applyRange = (name, startStr, weeksStr, makeKey, numbered) => {
       // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
       // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
       // it: a named hiatus typed as 999999 weeks wrote ~550,000 hiatusTexts keys -- a 28 MB snapshot,
@@ -9274,8 +9282,9 @@ export function initLegacyApp() {
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
-          if(hiatusTexts[key] !== name) hiatusTexts[key] = name;
-          hiatusNameSyncedKeys[key] = name;
+          const label = numbered ? name + ' wk ' + (i + 1) : name;
+          if(hiatusTexts[key] !== label) hiatusTexts[key] = label;
+          hiatusNameSyncedKeys[key] = label;
         } else if(key in hiatusTexts){
           delete hiatusTexts[key];
           delete hiatusNameSyncedKeys[key];
@@ -9298,7 +9307,14 @@ export function initLegacyApp() {
       const startEl = document.getElementById('phiatus-start-'+p.key);
       const weeksEl = document.getElementById('phiatus-weeks-'+p.key);
       const name = nameEl ? nameEl.value.trim() : '';
-      applyRange(name, startEl && startEl.value, weeksEl && weeksEl.value, wk => wk + '|' + p.key);
+      // ⭐ "Number weeks" (ruling 8) goes through THIS sync, not computeSchedule's defaultLabel, because
+      // frozen renderMonthView builds its own band label from the phase NAME and reads only hiatusTexts
+      // over it: hiatusTexts is the one channel that reaches the waterfall, Excel, both PDFs AND the
+      // month view, the channel the sidebar Name already uses. With no Name typed, a numbered band
+      // claims the default name the waterfall gives it ("<phase> Hiatus", computeSchedule's baseLabel).
+      const numbered = !!phaseHiatusNumbered[p.key];
+      applyRange(name || (numbered ? (p.label || 'Phase') + ' Hiatus' : ''),
+                 startEl && startEl.value, weeksEl && weeksEl.value, wk => wk + '|' + p.key, numbered);
     });
     // A key we owned before that no row claims this pass (row deleted, toggle turned off, or
     // shifted off these dates) reverts to the default instead of being left stranded with a
@@ -12637,6 +12653,13 @@ export function initLegacyApp() {
   // sidebar Name field: a key is only synced again while hiatusTexts still holds exactly what we
   // last put there.
   let hiatusNameSyncedKeys = {};
+  // A phase's own hiatus, "Number weeks" (owner ruling 8, 20 Oct 2026): phase key -> true. Ticked, the
+  // band reads "<hiatus name> wk 1", "wk 2", ... -- written by syncHiatusNamesFromSidebar(), so it
+  // reaches every output the sidebar Name already reaches. ⛔ CALENDAR DATA: captureSnapshot()'s
+  // `phaseHiatusNumbered`, written only while something is ticked, so a calendar that never ticks a box
+  // saves byte for byte what it did before. Unticked is an ABSENT key, never false. The boxes carry NO
+  // id, so collectFieldValues() never sweeps them (gate 5's id set is unchanged).
+  let phaseHiatusNumbered = {};
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -16564,6 +16587,13 @@ export function initLegacyApp() {
           update();
         } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks') || t.classList.contains('phiatus-name')){
           update();
+        } else if(t.classList.contains('phiatus-wknum-cb')){
+          // The store, then update(): its sync writes the numbered labels and markDirty() banks ONE undo step.
+          const f = t.closest('.phase-hiatus-fields');
+          const key = f ? f.id.replace('phiatus-fields-','') : '';
+          if(!key) return;
+          if(t.checked) phaseHiatusNumbered[key] = true; else delete phaseHiatusNumbered[key];
+          update();
         }
       });
     });
@@ -16574,6 +16604,12 @@ export function initLegacyApp() {
       const key = cb.id.replace('phiatus-en-','');
       const f = document.getElementById('phiatus-fields-'+key);
       if(f) f.style.display = cb.checked ? 'flex' : 'none';
+    });
+    // "Number weeks" shows its store, so a Load, an undo and New put the tick back with the rest.
+    document.querySelectorAll('.phiatus-wknum-cb').forEach(cb=>{
+      const f = cb.closest('.phase-hiatus-fields');
+      const on = !!(f && phaseHiatusNumbered[f.id.replace('phiatus-fields-','')]);
+      if(cb.checked !== on) cb.checked = on;
     });
   }
   // A Region change ASKS FIRST while a note could be misplaced (owner ruling 6, relayed 30 Sep 2026;
@@ -16804,6 +16840,7 @@ export function initLegacyApp() {
     // ...and the two per-phase controls this reset used to miss (audit M-5): New / Reset All kept
     // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
+    phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -17388,6 +17425,9 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 20 Oct 2026: a phase hiatus's "Number weeks" (owner ruling 8). ⛔ PERMANENT key, phase key ->
+      // true. Nothing ticked is an ABSENT key, so such a calendar saves byte for byte as before.
+      ...(Object.keys(phaseHiatusNumbered).length ? {phaseHiatusNumbered: Object.assign({}, phaseHiatusNumbered)} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -22922,6 +22962,8 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // A hiatus's "Number weeks" (ruling 8): only `true` means ticked, and the app never writes anything else.
+    setMap('phaseHiatusNumbered', v => v === true ? true : undefined, SNAP_ID);
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23234,6 +23276,11 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL as well: a file with no key numbers no hiatus -- never the previous file's ticks.
+    // Assigned BEFORE 4e below, whose refreshPhaseHiatusUI() reflects it into the rebuilt rows' boxes.
+    phaseHiatusNumbered = {};
+    if(isPlainObj(snap.phaseHiatusNumbered))
+      Object.keys(snap.phaseHiatusNumbered).forEach(k=>{ if(snap.phaseHiatusNumbered[k] === true) phaseHiatusNumbered[k] = true; });
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){
