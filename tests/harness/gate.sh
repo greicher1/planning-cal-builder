@@ -1558,7 +1558,12 @@ done
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
+# settingswin guards the Settings window (owner ruling 12, 20 Oct 2026), which took over the sidebar's old Settings
+# tab: every moved id is in it once, on its tab; fields.byId gets #union-place and the two custom-holiday fields in
+# their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;
+# opening it is no undo step; a re-render never puts a Mantine Switch's stale state over the engine's (W9); it covers
+# the sidebar and moves neither the preview nor the grid box; and an old file's sidebarTab 'settings' opens on Show.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
