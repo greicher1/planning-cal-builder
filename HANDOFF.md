@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATE PENDING, NOT PUSHED
+### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATED (2 contention FAILs, both green alone), NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate
   passes"*. That second answer was a conditional approval for ONE push of `main`. When it was given, the push would
@@ -23,7 +23,17 @@
 - **Proof on the merged build `e4339f4d…` (1,543,479 bytes):** `npm run check` 40/40; `check-refs.py` CLEAN. On
   private ports 8876/8877: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20, `loadcarry` 6/6,
   `offweek` live 5/5 and restore 27/27 (through gate.sh's own evaluator), `pilldrag` 30/30, `phaseedge` 23/23.
-  ⏳ **The full gate is pending.**
+- **Full gate on build `e4339f4d…` at `45da192` (port 8878, 20:53–22:33, a loaded machine): 1,939 PASS, 2 FAIL,
+  neither a difference.**
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical. Gate 5 at 74 ids.
+  - Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are byte-identical.
+  - `mvmenu` 77/77, and `offweek` live green.
+  - **The 2 failures:** `pilllabel (halfdays)` W0, "months 1 vs 16" (the known contention flake), and `offweek
+    (offweek)` R10, "timed out waiting for: the loaded file's name in the file menu (… 10000ms real)".
+  - **Re-run alone afterwards** on the same build and port through gate.sh's own evaluators, with no gate running:
+    `pilllabel (halfdays)` 29/29 and `offweek (offweek)` 27/27, W0 and R10 included.
+  - So the gate did not strictly pass. On the owner's conditional push approval ("Push if the merge's gate passes"),
+    the session asked again before pushing rather than counting these as passes.
 - ⚠️ **THE DISK FILLED UP during this merge (19 Oct 2026, about 20:00), and it will again.** Writes failed with
   ENOSPC: 1.8 TB used, 250 MB free. The cause: `/private/var/folders/ws/…/X/com.google.Chrome.code_sign_clone/` held
   **1,430 copies of the Chrome app** (about 2.4 GB each by `du`), dated from 1 Oct onward. Chrome on macOS clones its
