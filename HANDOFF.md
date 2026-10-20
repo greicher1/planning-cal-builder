@@ -4,14 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 19 Oct 2026: OFF WEEKS, STEP A BUILT AND COMMITTED on branch `off-week` (worktree `.claude/worktrees/off-week`), NOT MERGED, NOT PUSHED
+### ✅ 19 Oct 2026: OFF WEEKS, STEP A MERGED INTO LOCAL `main` AT `2b4ce32`, NOT PUSHED
 
-- ⏭ **RESUME HERE.** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
+- ⭐ **Merged (owner, 19 Oct 2026):** *"Merge off-week into local main, resolve any doc conflicts, and run the full gate
+  on its own port once no other gate is running. Don't push."* `main` (`ccf633a`, with Prep above Production and the
+  prep start grip, both live) was merged into `off-week` as `2b4ce32`. Local `main` was then fast-forwarded to it.
+  `app.js` auto-merged (it differs from `ccf633a` by exactly off-week's 56 lines), and so did `gate.sh`. HANDOFF and
+  README conflicted only because both sides added entries at the top; all are kept. Merged build `42f69b58…`
+  (1,538,034 bytes): `npm run check` 40/40, `check-refs.py` CLEAN, `offweek` 4/4 and 25/25.
+  - ✅ **Full gate on the merge: 1,901 PASS, 0 FAIL, GATE PASSED** (build `42f69b58…`, port 8962, 20:02–20:21, with no
+    other gate running). 0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically
+    (74 ids); gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical; `offweek`
+    32/32. Every leg that timed out beside another session's gate before the merge passed in this run.
+  - ⚠️ **Learned: `pgrep -f "gate.sh"` is a REGEX**, and it matched the Claude app's own renderer process, so a waiter
+    built on it saw a gate running forever. Match `"zsh \./gate\.sh"`.
+- **The build (before the merge).** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
   own commit. Run its gate and show me the month PDF contact sheets before committing. Don't push."* Contact sheets
   went to the owner, who then chose three commits (picker, 19 Oct 2026): `9174e43` the `computeSchedule()` change, `f79adc9`
   the two frozen lines in `renderMonthView` with `inPhaseBand()` alone (so the frozen edit reads and reverts on its
   own), then the leg, the fixture, the gate wiring and these docs. The leg tests both halves, which is why it came
-  last. **Not merged into `main`, not pushed.** Merging and pushing are each the owner's call.
+  last. Merged into local `main` afterwards (top bullet). **Not pushed**: pushing is the owner's call.
 - **What it does:** a week inside the shoot with no shoot days reads *Production Hiatus* in the own-hiatus cell
   (waterfall, Excel, waterfall PDF) and is not counted. The month view gets the same red band, Mon–Fri. Plan §11 has
   the record.
@@ -34,8 +46,7 @@
   Worth raising with the owner.
 - The proof builds (`dist-prefix/`, `dist-noband/`) were deleted after use. To re-prove red, rebuild them by the
   in-place method (HANDOFF 19 Oct "Learned" 3); for `dist-noband`, revert just the two frozen lines.
-- ⏭ **Next:** the owner decides on merging `off-week` into `main` and, separately, on pushing. `main` has moved
-  since `3b189af` only if other sessions merged meanwhile, so check before merging. Then step B (the month view's
+- ⏭ **Next:** the owner decides on pushing (it is merged locally). Then step B (the month view's
   numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
   (`version.json` 1.4.3).
 

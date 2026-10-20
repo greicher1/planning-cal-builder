@@ -53,7 +53,9 @@ This is step A; step B (the month view numbering weeks as the waterfall does) is
   build (12 cases and the PDF), and with only the frozen band edit removed exactly its 5 month-band cases are red.
   The print document A/B on the new fixture differs in 3 of 47 week rows, all of them off-week rows. September's
   Labor Day row grows 57 → 78 px because the band takes a lane, and the other seven months are pixel-identical in
-  both month PDFs. Owner contact sheets made. Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL**. Gates 1–5 are green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids). Gate 10's ten print documents are identical, and gate 13's twenty written month PDFs are byte-identical. The five failures were timeouts and the known `pilllabel (halfdays)` W3 flake, while another session's full gate ran beside it. Each passed when re-run alone on the same build: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24, `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40.
+  both month PDFs. Owner contact sheets made. Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL**. Gates 1–5 are green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids). Gate 10's ten print documents are identical, and gate 13's twenty written month PDFs are byte-identical. The five failures were timeouts and the known `pilllabel (halfdays)` W3 flake, while another session's full gate ran beside it. Each passed when re-run alone on the same build: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24, `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40. **Merged with `main` (`ccf633a`, Prep above Production) as `2b4ce32`:
+  1,901 PASS, 0 FAIL, GATE PASSED** on build `42f69b58…`, with no other gate running. Every frozen output is
+  identical, and `offweek` is 32/32.
 
 ### Unreleased — Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
 
