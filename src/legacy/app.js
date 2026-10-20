@@ -3306,6 +3306,31 @@ export function initLegacyApp() {
               holidaysHit, shootDays, halfDays, delivered: count};
     }
 
+    // ⭐ OFF WEEKS (OFF-WEEK-PLAN.md §3; owner rulings Q1-Q3, 19 Oct 2026). A week row inside the shoot
+    // that the camera never rolls in -- every weekday marked off, or off marks and union holidays together
+    // -- used to print as an ordinary numbered "Production wk 5" and push every later week's number up by
+    // one. It now reads and counts as a Production hiatus week: the week loop below gives it EXACTLY the
+    // cell Production's own hiatus gives a paused week, which every writer already draws, so no frozen
+    // code is involved and nothing new is saved (the band is derived from the off marks, every time).
+    // Returns a Set of week-Monday ISOs, or null when there are none.
+    //   - Read from sim.shootDays, the one list of days the camera rolls. The month view draws from the
+    //     same array (segCoversDate), so the two views cannot disagree about which weeks are dark. A week
+    //     with only a worked Saturday or only a half day has a shoot day, so it is not one.
+    //   - ⛔ Only AFTER the first shoot day's week (ruling Q3): a dark week before anything has shot stays
+    //     the numbered "wk 1" it was. There is no trailing case: `end` is the week after the last shoot day.
+    //   - Weeks already inside an all-phase hiatus or Production's own are skipped: they make their own bands.
+    function productionOffWeeks(start, end, sim, ownHi){
+      if(!sim.shootDays.length) return null;
+      const shotWeeks = new Set(sim.shootDays.map(iso => isoOf(mondayOf(parseDateUTC(iso)))));
+      const off = new Set();
+      for(let wk = addDays(mondayOf(sim.firstShootDay), 7); wk < end; wk = addDays(wk, 7)){
+        if(hiatuses.some(h=> wk>=h.start && wk<h.end)) continue;
+        if(ownHi && wk>=ownHi.start && wk<ownHi.end) continue;
+        if(!shotWeeks.has(isoOf(wk))) off.add(isoOf(wk));
+      }
+      return off.size ? off : null;
+    }
+
     // A custom phase given in DAYS or DATES (CUSTOM-PHASE-UNITS-PLAN.md §5). Returns the segment's
     // bounds, or null when it cannot be scheduled.
     //   Days   walk forward from the typed start, counting only Mon-Fri days that are not an
@@ -3366,7 +3391,7 @@ export function initLegacyApp() {
         // ⚠️ Only the PHASE start is conditional. Every other mondayOf() in this file keys weeks for
         // notes, spans and row heights, and those stay Monday-based because a grid cell IS a week.
         const start = (cfg.snap === false) ? parsed : mondayOf(parsed);
-        let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null;
+        let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null, offWeeksForSegment = null;
         if(p.key==='production'){
           // Only ENABLED holidays cost a shoot day; a holiday switched off in Settings is treated
           // as an ordinary working day.
@@ -3383,10 +3408,12 @@ export function initLegacyApp() {
           // hiatus weeks are stop-work and get a Hiatus band instead. Count the same way here
           // so the hint agrees with the grid rather than counting elapsed calendar weeks.
           const prodOwnHi = phaseHiatusRanges['production'];
+          offWeeksForSegment = productionOffWeeks(start, end, sim, prodOwnHi);
           let workedWeeks = 0;
           for(let wkStart = new Date(start.getTime()); wkStart < end; wkStart = addDays(wkStart, 7)){
             const inHiatus = hiatuses.some(h=> wkStart>=h.start && wkStart<h.end)
-                             || (prodOwnHi && wkStart>=prodOwnHi.start && wkStart<prodOwnHi.end);
+                             || (prodOwnHi && wkStart>=prodOwnHi.start && wkStart<prodOwnHi.end)
+                             || !!(offWeeksForSegment && offWeeksForSegment.has(isoOf(mondayOf(wkStart))));
             if(!inHiatus) workedWeeks++;
           }
           weeksForSegment = workedWeeks;
@@ -3405,7 +3432,12 @@ export function initLegacyApp() {
         } else {
           end = extendEndForHiatus(start, cfg.weeks, p.key);
         }
-        segments.push(Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment, phaseHiatus: phaseHiatusRanges[p.key] || null}));
+        const seg = Object.assign({}, p, {start, end, weeks:weeksForSegment, enteredDate:parsed, shootDays:shootDaysForSegment, phaseHiatus: phaseHiatusRanges[p.key] || null});
+        // ⛔ Only when there IS one. The month band's frozen block tests `s.offWeeks` for presence
+        // (OFF-WEEK-PLAN.md §3.5), so an empty Set here would make its edit reachable on calendars it
+        // was proved inert on. Every segment without off weeks keeps exactly its old shape.
+        if(offWeeksForSegment) seg.offWeeks = offWeeksForSegment;
+        segments.push(seg);
       }
     });
 
@@ -3575,7 +3607,10 @@ export function initLegacyApp() {
         const active = segments.filter(s=> s.start < addDays(weekStart,7) && s.end > weekStart).sort((a,b)=>a.start-b.start);
         active.forEach(ph=>{
           const ownHi = ph.phaseHiatus;
-          if(ownHi && weekStart>=ownHi.start && weekStart<ownHi.end){
+          // An off week (productionOffWeeks) takes this same branch, so it is the same cell and does not
+          // advance the counter either. Only Production's segment ever carries offWeeks.
+          const offWeek = !!(ph.offWeeks && ph.offWeeks.has(isoOf(weekStart)));
+          if(offWeek || (ownHi && weekStart>=ownHi.start && weekStart<ownHi.end)){
             // This phase is paused this week: draw a hiatus band in ITS column only. It keeps
             // its slot (so neighbors can't slide into it) but never spans sideways, and it does
             // not advance the phase's week counter -- the paused weeks aren't work weeks.
