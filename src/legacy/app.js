@@ -9350,9 +9350,13 @@ export function initLegacyApp() {
         ? ' <span class="hv-oor">(outside schedule)</span>'
         : '';
       const wk = weekend ? ' title="Falls on a weekend — no shoot day to skip. Its (Observed) entry is the one that counts."' : '';
-      const del = h.custom
+      // Every row carries the × slot, empty on a built-in, so the three checkbox columns keep one x
+      // position down the list. The bare button sat after the Month cell on custom rows only and
+      // pushed all three of their boxes 22 px left of the header (owner screenshot, 20 Oct 2026).
+      // legacy.css shows the slot, in the header too, only while some row has a ×.
+      const del = '<span class="hv-del-slot">' + (h.custom
         ? '<button type="button" class="icon-btn hv-del" data-hid="'+escHtml(h.hid)+'" title="Remove this custom holiday">&times;</button>'
-        : '';
+        : '') + '</span>';
       return '<div class="hv-row">'
         + '<span class="hv-label'+dim+'" title="'+label+'">'
         +   '<span class="hv-name">'+escHtml(h.name)+tag+oor+'</span>'

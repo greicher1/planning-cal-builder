@@ -4,6 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS (on `main`; the owner approved one commit and one push by picker)
+
+- Owner, with a screenshot of Settings ▸ Holidays: *"fix formatting issue"*. Custom rows' three boxes sat 22 px left
+  of the header and of the built-in rows. The `.hv-del` × was the only extra child of a custom row, and it is 18 px
+  wide with a 4 px margin.
+- **Fix:** every row and the header carry a `.hv-del-slot` (22 px, empty on built-ins), shown only while
+  `#holiday-vis:has(.hv-del)`. The header's Month label is matched by `.hv-head-month`. It used to be
+  `span:last-child`, which the slot would now hit. Chrome only: `renderHolidayVisList()`, `Sidebar.jsx`
+  `HolidaysCard`, `legacy.css`.
+- **Proof** (dev pane, measured centres): with customs, every row and header at 113/159/204, × at 239. With none,
+  slot `display:none` and 135/181/226, as before the change. `npm run check` 40/40 (build `b3cae2ac…`, 1,547,338
+  bytes); `regionlock` 14/14 and `wrapdate` green on `/dist/index.html`, port 8977. Full gate NOT run: nothing
+  frozen, exported or saved changed.
+- ⚠️ Leg queries of `.hv-row` must not assume the × is the row's last child or that a row has exactly four
+  children. The three legs that read these rows use `querySelector`, so they are unaffected.
+
 ### ✅ 20 Oct 2026: v1.5.0 IS LIVE at `ed466ca` (verified byte-identical, `62a95e8a`). Cut on the Number weeks merge (`2ebcfc1`), release gate 2,037 / 0
 
 - ⏭ **RESUME HERE.** The owner asked for a cut on this push and to be told the number before it goes out. Picked

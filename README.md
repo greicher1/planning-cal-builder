@@ -29,6 +29,21 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
+
+In Settings ▸ Holidays, a custom holiday's Enable, W'fall note and Month note boxes sat 22 px left of
+the headers and of the built-in holidays' boxes, so they looked like the wrong column (owner screenshot).
+The × that removes a custom holiday was an extra item at the end of custom rows only, and it pushed those
+rows' three boxes over. Now every row and the header carry a × column, empty on built-in rows. It takes
+room only while the list has a custom holiday, so a list without one looks exactly as it did.
+- **Code:** `renderHolidayVisList()` wraps the × in a `.hv-del-slot` on every row. The header gains the same
+  slot, and its Month label is matched by a class (`.hv-head-month`), not `:last-child`. legacy.css shows
+  the slot with `#holiday-vis:has(.hv-del)`. No frozen symbol, nothing saved.
+- **Verified** in the dev build: with three custom holidays every row's boxes are at x 113/159/204, the
+  header's centres. Before, custom rows were at 113/159/204 and the rest at 135/181/226. With none, the slot
+  is hidden and every box is back at 135/181/226. The × still removes a holiday. `npm run check` 40/40;
+  `regionlock` 14/14 (it removes custom holidays with the ×) and `wrapdate` (reads the list) pass on the build.
+
 ## v1.5.0 — the month view becomes an editor: the day menu, drags, half days, prep and off weeks (20 Oct 2026)
 
 Twenty-nine changes since v1.4.3, three weeks of them. All but the last three were already live before

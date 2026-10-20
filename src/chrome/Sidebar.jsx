@@ -655,7 +655,10 @@ export function HolidaysCard() {
           <span className="hv-head-name">Holiday</span>
           <span>Enable</span>
           <span>W’fall<br />note</span>
-          <span>Month<br />note</span>
+          <span className="hv-head-month">Month<br />note</span>
+          {/* Lines up with each row's × slot (renderHolidayVisList); legacy.css shows it only
+              while a custom holiday is listed. */}
+          <span className="hv-del-slot" aria-hidden="true"></span>
         </div>
         {/* Engine-owned: renderHolidayVisList() writes this element's innerHTML, and re-writes it
             on every change — which is why a NodeList captured across a click is detached. */}
