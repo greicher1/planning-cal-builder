@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 20 Oct 2026: v1.5.0 CUT on the Number weeks merge (`2ebcfc1`), RELEASE GATE 2,037 / 0, TAGGED, PUSH APPROVED
+### ✅ 20 Oct 2026: v1.5.0 IS LIVE at `ed466ca` (verified byte-identical, `62a95e8a`). Cut on the Number weeks merge (`2ebcfc1`), release gate 2,037 / 0
 
 - ⏭ **RESUME HERE.** The owner asked for a cut on this push and to be told the number before it goes out. Picked
   **1.5.0**, a minor bump, not 1.4.4: 29 changelog entries since v1.4.3, three weeks of them, the largest batch since
@@ -31,9 +31,17 @@
 - **Push:** the owner, while the release gate ran: *"push after gate is done"*. That is ONE push of `main` plus the
   tag, as v1.3.1 and v1.4.0 went out "plus tag". ⚠️ `v1.4.3`'s tag was never pushed (`git ls-remote --tags origin`
   stops at v1.4.2); it was left alone.
-- ⏭ **Next:** after the push, check that the live `index.html` is `62a95e8a…` and `version.json` reads 1.5.0.
+- ✅ **PUSHED AND LIVE.** One `git push origin main v1.5.0` at 10:46 (`8400b38..ed466ca`, 17 commits, plus the tag).
+  Deploy run 39469008534 succeeded. At 10:47:31 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to `releases/v1.5.0.html`** (sha256 `62a95e8a94041185…`, 1,547,058 bytes, `cmp`), and the live
+  `version.json` read 1.5.0, so every open window now shows the update notice.
+- ⏭ **Next:** two finished features are still on their own branches and not in v1.5.0: "Number Production Days"
+  (`shoot-day-nums`, `07f10f6`) and `prep-skip-off` (`6de29c8`, its own gate 1,945 / 0). Each needs a merge with
+  `main`, a full gate, and the owner's own push. Also open: the empty Q3 week (off weeks step A entry), and the main
+  checkout's modified `tests/fixtures/stintswap-reshape.sptcal` and untracked `Reshape Fixture 2026-09-29.sptcal`,
+  which belong to none of this work and wait on the owner.
 
-### ◐ 20 Oct 2026: NUMBER WEEKS MERGED WITH STEP B AND DAY MENU STEP 5 (branch `numweeks-merge`, `d4cb4bf`), GATED 2,037 / 0, NOT PUSHED
+### ✅ 20 Oct 2026: NUMBER WEEKS MERGED WITH STEP B AND DAY MENU STEP 5 (branch `numweeks-merge`, `d4cb4bf`), GATED 2,037 / 0, LIVE IN v1.5.0
 
 - ⏭ **RESUME HERE.** Owner, 20 Oct 2026: *"Hold the push. Merge Number weeks into main now, resolve the app.js
   conflict, re-run the full gate on the combined build, then ask me before pushing."* Then, by button: *"after the
@@ -61,7 +69,7 @@
     after it ended.
 - ⏭ **Next:** the v1.5.0 cut on top of this (entry to follow), then the owner's push picker.
 
-### ◐ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — MERGED INTO `main` WITH DAY MENU STEP 5 (`4ea4e54`), NOT PUSHED
+### ◐ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — MERGED INTO `main` WITH DAY MENU STEP 5 (`4ea4e54`), LIVE IN v1.5.0
 
 - ⏭ **RESUME HERE.** Owner: *"Do this task here: 'Off weeks step B: month view numbers weeks like waterfall'"*.
   Built, gated, contact-sheeted. The owner signed off (picker: "Re-cut both", "Commit after green"), gates 10 and 13
@@ -89,7 +97,7 @@
   - ⚠️ PHASE-NUMBERING (branch `phase-numbering`, `56603e8`, not merged) also edits `prodWeekLabel()`. Whichever
     lands second merges by hand and re-runs `weeknum` and `mvmenu`.
 
-### ◐ 19 Oct 2026: DAY MENU STEP 5 MERGED INTO `main`, GATED — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`), NOT PUSHED
+### ◐ 19 Oct 2026: DAY MENU STEP 5 MERGED INTO `main`, GATED — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`), LIVE IN v1.5.0
 
 - ⏭ **RESUME HERE for the day menu.** Queued by the session that started this one: the owner said *"keep going"* after
   step 4. It was cut from `day-menu-merge` at `45da192` (step 4 merged with `main`), not from `day-menu-step4`, so it
