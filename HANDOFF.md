@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 20 Oct 2026: v1.5.0 CUT on the Number weeks merge (branch `numweeks-merge`), NOT TAGGED UNTIL ITS RELEASE GATE, NOT PUSHED
+### ◐ 20 Oct 2026: v1.5.0 CUT on the Number weeks merge (`2ebcfc1`), RELEASE GATE 2,037 / 0, TAGGED, PUSH APPROVED
 
 - ⏭ **RESUME HERE.** The owner asked for a cut on this push and to be told the number before it goes out. Picked
   **1.5.0**, a minor bump, not 1.4.4: 29 changelog entries since v1.4.3, three weeks of them, the largest batch since
@@ -21,10 +21,17 @@
     62 plus 12, none removed (`unit-*` / `end-*` for the built-in Weeks phases, `prep-days`, `prep-name`).
 - **Proof:** the v1.5.0 build differs from the gated merge build `72ce05dd…` in exactly 45 bytes, in two places: the
   version literal and the CSP hash of the script that holds it (`cmp -l`). `npm run check` 40/40, `check-refs.py`
-  CLEAN. The release gate on `62a95e8a…` started 10:26:21 on port 8971, alone; its result goes here.
-- ⏭ **Next:** the release gate's result, then `git tag -a v1.5.0` on the cut commit, fast-forward `main`, and the
-  owner's push picker. After an approved push, check that the live `index.html` is `62a95e8a…` and `version.json`
-  reads 1.5.0.
+  CLEAN.
+- ✅ **Release gate on the v1.5.0 build `62a95e8a…` (port 8971, 10:26:21–10:46:02, alone): 2,037 PASS, 0 FAIL, GATE
+  PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; gate 10's ten print documents and gate
+  13's twenty written PDFs identical; `mvmenu` 86, `weeknum` 27, `phasenum` 59. The same count as the merge build's
+  gate, as the 45-byte difference predicts.
+- **Tag** `v1.5.0` on the cut commit `2ebcfc1`, placed after this gate, as v1.4.0 to v1.4.3 were. Local `main` was
+  fast-forwarded to the cut before the gate finished, because the owner had asked for the merge to land on `main`.
+- **Push:** the owner, while the release gate ran: *"push after gate is done"*. That is ONE push of `main` plus the
+  tag, as v1.3.1 and v1.4.0 went out "plus tag". ⚠️ `v1.4.3`'s tag was never pushed (`git ls-remote --tags origin`
+  stops at v1.4.2); it was left alone.
+- ⏭ **Next:** after the push, check that the live `index.html` is `62a95e8a…` and `version.json` reads 1.5.0.
 
 ### ◐ 20 Oct 2026: NUMBER WEEKS MERGED WITH STEP B AND DAY MENU STEP 5 (branch `numweeks-merge`, `d4cb4bf`), GATED 2,037 / 0, NOT PUSHED
 
