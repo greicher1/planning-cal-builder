@@ -1,8 +1,8 @@
 # MONTH-CONTEXT-MENU-PLAN.md
 
-**Status: STEPS 1–4 BUILT, 19 Oct 2026** (§10). Step 1 is merged into `main` and live at `dac24c9`. Steps 2 (Add
-hiatus ▸) and 3 (the bar's own section) are on branch `day-menu-step3`, and step 4 (the left-click; the popover
-retired) is on `day-menu-step4`, cut from it. None of 2–4 is merged. Step 5 is not built. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
+**Status: ALL FIVE STEPS BUILT, 19 Oct 2026** (§10). Step 1 is live at `dac24c9`. Steps 2–4 (Add hiatus ▸, the bar's
+own section, the left-click with the popover retired) are merged into local `main` on branch `day-menu-merge`. Step 5
+(the hiatus and holiday sections) is on `day-menu-step5`, cut from that merge, not merged. §8.1 is fixed (step 4). ✅ **All rulings received 19 Oct 2026, by picker** (§9). ⭐ Ruling L1 makes it more than a right-click menu: **left-clicking a day's number opens the same menu**,
 and it replaces the Full day/Off popover.
 **Mockup:** [`mockups/month-context-menu.html`](mockups/month-context-menu.html). It shows the real month view with a
 working menu on it (§12). It is not the app: each item only describes what it would do.
@@ -255,6 +255,16 @@ it is cheap to change.)*
 - **Not offered: renaming or recolouring a hiatus.** `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
   note editor (`openNoteEditor` on `td.sheet-hiatus-cell`). The month-view bands have no editor, no handler and no
   attributes. Building one would be its own piece of work.
+- ✅ **Built at step 5 (19 Oct 2026)** as `bandSections(ctx)` in `installMonthDayMenu`:
+  - The × is lifted into `confirmRemoveHiatus(row)` and `removeHiatusRow(row)`, beside `addHiatusRow`. The row's ×
+    and the menu's `removeHiatusHere` both call them, as Remove <phase>… does (§3.7a). The menu does not click the ×,
+    because the bracket has to sit between the answer and the removal.
+  - Every hiatus section's label carries its dates ("Hiatus · 21 Dec – 3 Jan", or the row's name in place of
+    "Hiatus"), so two on one day are told apart without a special case.
+  - Lock in place is a `menuitemcheckbox`. Its second line says what the lock does: "Stays on these dates when the
+    calendar shifts" or "Moves when the calendar shifts".
+  - A phase's own hiatus: its Remove asks nothing, because unticking it in the sidebar asks nothing either (Q4 is
+    about the all-phase ×'s question). Its label carries the phase's name and the dates.
 
 ### 3.11 The holiday section
 
@@ -269,6 +279,15 @@ it is cheap to change.)*
     `render(currentSchedule)`. They change only what is drawn, so the call is `render`, not `update`. Both are
     disabled while the holiday is off, as they are in the list.
 - ✅ **Ruling Q6 (owner, 19 Oct 2026): the holiday section stays in the menu.**
+- ✅ **Built at step 5 (19 Oct 2026)** as `holidaySections(ctx)`. ⚠️ **It does not click the list's boxes.** The list
+  shows only the holidays inside a phase, plus custom ones (`renderHolidayVisList`), so a holiday on any other day
+  has no box to click. Instead the two handlers are lifted, unchanged, into `setHolidayEnabled(hid, on)` and
+  `setHolidayView(hid, view, on)`, which the list's boxes and the menu both call. The rule still exists once.
+  - Enabled asks `confirmHolidayRecompute()` first, as the box does, then banks one undo step. Its second line: "Off
+    means Production shoots this day" (on a weekday inside the shoot), "Off: Production shoots this day" once it is
+    off, or "On a weekend: its (Observed) day is the one that counts".
+  - The two Show items are greyed out while the holiday is off ("The holiday is off"), and keep their stored ticks,
+    as the list's disabled boxes do.
 
 ### 3.12 Show this week in the waterfall
 
@@ -485,7 +504,9 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
    - §8.1 fixed, on the owner's yes.
    - **Added on the owner's request the same day:** Remove <phase>… on a custom phase's bar (§3.7a).
    - `mvmenu` grows to 77 cases (L1–L9, G7, N1, R1–R3u; C2 flipped; H1s and P3 updated).
-5. **The hiatus and holiday sections.**
+5. ✅ **The hiatus and holiday sections. BUILT 19 Oct 2026** (branch `day-menu-step5`, cut from `day-menu-merge`, which
+   is step 4 merged with `main`; HANDOFF has the record). §3.10 and §3.11 have the as-built notes; the one departure
+   from the plan is that the holiday items call lifted functions rather than clicking the list's boxes.
 
 ---
 

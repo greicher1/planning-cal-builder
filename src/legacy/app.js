@@ -6322,6 +6322,22 @@ export function initLegacyApp() {
     });
   }
 
+  // Removing an all-phase hiatus, in two halves shared by the row's × (below) and the month day
+  // menu's "Remove hiatus…" (installMonthDayMenu, MONTH-CONTEXT-MENU-PLAN.md step 5; ruling Q4: it
+  // asks first, as the × does). The menu banks its undo step BETWEEN them, after the answer, because
+  // the bracket is synchronous (plan §7). The question is asked only when there is something to lose.
+  async function confirmRemoveHiatus(row){
+    const startEl = row.querySelector('.hiatus-start');
+    return !(startEl && startEl.value) || !!(await uiConfirm('Remove this hiatus?', { title: 'Remove hiatus', confirmLabel: 'Remove', danger: true }));
+  }
+  // ⚠️ A row that left the document while the question was up (an undo or a load rebuilds every
+  // hiatus row) is not removed; update() would only redraw what is already there.
+  function removeHiatusRow(row){
+    if(!row.isConnected) return false;
+    row.remove(); update();
+    return true;
+  }
+
   // `prefillLocked` defaults to TRUE: an all-phase hiatus is normally anchored to the real
   // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
   // is unless the user unlocks it. Per-phase hiatuses have no such lock -- they belong to their
@@ -6348,10 +6364,11 @@ export function initLegacyApp() {
       <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
       <div class="snap-note"></div>
     `;
+    // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
+    // removeHiatusRow, just above this function), so the two ask the same question.
     row.querySelector('.remove-hiatus').addEventListener('click', async ()=>{
-      const startEl = row.querySelector('.hiatus-start');
-      if(startEl && startEl.value && !(await uiConfirm('Remove this hiatus?', { title: 'Remove hiatus', confirmLabel: 'Remove', danger: true }))) return;
-      row.remove(); update();
+      if(!(await confirmRemoveHiatus(row))) return;
+      removeHiatusRow(row);
     });
     row.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', update));
     list.appendChild(row);
@@ -8251,8 +8268,8 @@ export function initLegacyApp() {
   // STEP 2, Add hiatus ▸ and the submenu it opens -- STEP 3, the bar's own section (phaseSection) --
   // and STEP 4, ruling L1: a LEFT-click on the day itself opens the same menu under the day's number,
   // and the Full day/Off popover is retired. Its choices are the menu's shoot-day section, built by
-  // installDayOverrideUI from the popover's own rows (dayOverrideUI.section). The hiatus and holiday
-  // sections are step 5.
+  // installDayOverrideUI from the popover's own rows (dayOverrideUI.section) -- and STEP 5, the hiatus and
+  // holiday sections (bandSections, holidaySections).
   //
   // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
   // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
@@ -8369,8 +8386,8 @@ export function initLegacyApp() {
       return adds.find(a=> !a.classList.contains('mv-note-add-full')) || adds[0] || null;
     }
 
-    // The menu, as sections in their fixed order (plan §2): This day, the bar's, the shoot day's, the
-    // way out. "This day" always comes first, so the two Add … phase items are always the second and
+    // The menu, as sections in their fixed order (plan §2): This day, the bar's, the shoot day's, each
+    // hiatus's, each holiday's, the way out. "This day" always comes first, so the two Add … phase items are always the second and
     // third lines; ruling L1 kept that order on a left-click too, so Full day/Off sit below them. A
     // choice the app refuses is greyed out WITH ITS REASON, never hidden (the standing rule; owner
     // ruling 1, 18 Sep 2026).
@@ -8397,7 +8414,7 @@ export function initLegacyApp() {
           // Built when it opens, not with the menu: nothing in it is needed until then.
           {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)},
         ]},
-      ].concat(phaseSection(ctx) || [], dayOverrideUI.section(d) || [], [
+      ].concat(phaseSection(ctx) || [], dayOverrideUI.section(d) || [], bandSections(ctx), holidaySections(ctx), [
         // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
         // first in its row; the second line says which week that is.
         {id: 'out', items: [
@@ -8598,6 +8615,127 @@ export function initLegacyApp() {
       pushUndoSnapshot();
     }
 
+    // ---- Step 5: the hiatus and holiday sections (plan §3.10, §3.11) ----
+    const dm = d=> d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
+    // A hiatus row's span, read as readState() reads it (a start and weeks > 0) and as computeSchedule()
+    // places it (from its start's Monday, whole weeks), or null when the row draws nothing.
+    function bandSpan(row){
+      const s = parseDateUTC((row.querySelector('.hiatus-start') || {}).value || '');
+      const w = Math.min(parseInt((row.querySelector('.hiatus-weeks') || {}).value, 10), MAX_WEEKS);
+      if(!s || !(w > 0)) return null;
+      const a = mondayOf(s);
+      return {start: a, end: addDays(a, w * 7)};
+    }
+    // Each hiatus on the day gets a section of its own (plan §3.10). Bands can never be a pointer target,
+    // so the rows come from the sidebar: #hiatus-list's own rows, which line up with schedule.hiatuses.
+    // Two on one day are told apart by their dates, which every label carries. Then each phase's OWN
+    // hiatus on the day: Remove only, because Lock does not apply (a phase's hiatus always travels with
+    // its phase), and with no question, because unticking it in the sidebar asks none either.
+    function bandSections(ctx){
+      const d = ctx.date, out = [];
+      Array.prototype.forEach.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), (row, j)=>{
+        const sp = bandSpan(row);
+        if(!sp || !(d >= sp.start && d < sp.end)) return;
+        const name = ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL;
+        const lock = row.querySelector('.hiatus-locked'), locked = !!(lock && lock.checked);
+        out.push({id: 'hiatus', label: name + ' · ' + dm(sp.start) + ' – ' + dm(addDays(sp.end, -1)), items: [
+          {id: 'band-lock-' + j, check: true, checked: locked, text: 'Lock in place',
+           note: locked ? 'Stays on these dates when the calendar shifts' : 'Moves when the calendar shifts',
+           run: ()=> lockHiatusHere(row)},
+          {id: 'band-show-' + j, icon: 'sidebar', text: 'Show in Phases card', run: ()=> showHiatusRow(row)},
+          {id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true, run: ()=> removeHiatusHere(row)},
+        ]});
+      });
+      const seen = new Set();
+      ((currentSchedule || {}).segments || []).forEach(seg=>{
+        const ph = seg.phaseHiatus;
+        if(seen.has(seg.key) || !ph || !(d >= ph.start && d < ph.end)) return;
+        const en = document.getElementById('phiatus-en-' + seg.key);
+        if(!en || !en.checked) return;
+        seen.add(seg.key);
+        const name = (seg.name || seg.label || phaseLabelFor(seg.key)).replace(/\s*wk\s*\d+\s*$/i, '');
+        out.push({id: 'phase-hiatus', label: name + '’s hiatus · ' + dm(mondayOf(ph.start)) + ' – ' + dm(addDays(ph.end, -1)), items: [
+          {id: 'phi-remove-' + seg.key, icon: 'trash', text: 'Remove ' + name + '’s hiatus', danger: true,
+           run: ()=> removePhaseHiatusHere(seg.key)},
+        ]});
+      });
+      return out;
+    }
+    // Lock in place: the row's own box, plus the input event its own listener runs update() on.
+    function lockHiatusHere(row){
+      const lock = row.isConnected && row.querySelector('.hiatus-locked');
+      if(!lock) return;
+      pushUndoSnapshot();
+      lock.checked = !lock.checked;
+      lock.dispatchEvent(new Event('input', {bubbles: true}));
+      pushUndoSnapshot();
+    }
+    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Show in Phases card is.
+    function showHiatusRow(row){
+      pushUndoSnapshot();
+      setSidebarTab('phases');
+      pushUndoSnapshot();
+      if(row.isConnected) row.scrollIntoView({block: 'center', inline: 'nearest'});
+    }
+    // Exactly the row's own ×: its question first (ruling Q4), then its removal, ONE undo step banked
+    // after the answer. Cancel changes nothing and banks nothing.
+    async function removeHiatusHere(row){
+      if(!row.isConnected || !(await confirmRemoveHiatus(row))) return;
+      if(!row.isConnected) return;
+      pushUndoSnapshot();
+      removeHiatusRow(row);
+      pushUndoSnapshot();
+    }
+    // A phase's own hiatus: its toggle off, then the refresh and update() its sidebar toggle runs.
+    function removePhaseHiatusHere(key){
+      const en = document.getElementById('phiatus-en-' + key);
+      if(!en || !en.checked) return;
+      pushUndoSnapshot();
+      en.checked = false;
+      refreshPhaseHiatusUI();
+      update();
+      pushUndoSnapshot();
+    }
+
+    // Each holiday on the day, enabled or not, gets a section (plan §3.11, ruling Q6). Holidays have no
+    // DOM marker, so they come from fullHolidayList(), custom ones included. The three items are the
+    // holiday list's three boxes, through the same two functions (setHolidayEnabled, setHolidayView).
+    //   Enabled             asks confirmHolidayRecompute() first, as the list's box does. Its second line
+    //                       says what it means for the shoot: on a weekday inside the shoot, off means
+    //                       Production shoots that day; on a weekend it costs no shoot day either way.
+    //   Show in month view  display only, and greyed out while the holiday is off, as the list's are.
+    //   Show in waterfall
+    function holidaySections(ctx){
+      const d = ctx.date, iso = ctx.iso, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
+      const info = (currentSchedule || {}).productionInfo, days = (info && info.shootDays) || [];
+      const inShoot = days.length > 0 && iso >= days[0] && iso <= days[days.length - 1];
+      return fullHolidayList(effectiveRegionKey()).filter(h=> h.date === iso).map((h, j)=>{
+        const on = h.enabled !== false, why = 'The holiday is off';
+        const note = weekend ? 'On a weekend: its (Observed) day is the one that counts'
+                   : inShoot ? (on ? 'Off means Production shoots this day' : 'Off: Production shoots this day')
+                   : '';
+        const view = (v, text, k)=> ({id: 'hol-' + k + '-' + j, check: true, checked: holidayVisibleIn(h.hid, v), text,
+          disabled: !on, why, run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
+        return {id: 'holiday', label: 'Holiday · ' + h.name, items: [
+          {id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)},
+          view('month', 'Show in month view', 'month'),
+          view('sheet', 'Show in waterfall', 'sheet'),
+        ]};
+      });
+    }
+    // The question first (the list's box asks the same one), then ONE undo step after the answer.
+    async function holidayEnabledHere(hid, on){
+      if(!(await confirmHolidayRecompute())) return;
+      pushUndoSnapshot();
+      setHolidayEnabled(hid, on);
+      pushUndoSnapshot();
+    }
+    function holidayViewHere(hid, view, on){
+      pushUndoSnapshot();
+      setHolidayView(hid, view, on);
+      pushUndoSnapshot();
+    }
+
     // ---- The four items ----
 
     // ⭐ Exactly what a click on the day's "+" does. Nothing is written until the editor commits, by
@@ -8732,7 +8870,8 @@ export function initLegacyApp() {
     // submenu carries a chevron and aria-haspopup.
     // Step 4's shoot rows are RADIO items (radio: true): role menuitemradio, aria-checked, a tick in
     // place of an icon on the checked one (the popover's tick), and data-ov="<value>", the attribute
-    // the legs read. A row's warning ("Overrides Independence Day") is its second line, in the
+    // the legs read. Step 5's switches (Lock in place, a holiday's three boxes) are CHECKBOX items
+    // (check: true): menuitemcheckbox, the same tick. A row's warning ("Overrides Independence Day") is its second line, in the
     // popover's warning ink.
     function panelHtml(sections, head){
       const items = [];
@@ -8748,11 +8887,12 @@ export function initLegacyApp() {
           items.push(it);
           const warn = !it.disabled && !!it.warn;
           const second = it.disabled ? it.why : (it.warn || it.note || '');
-          const ico = it.radio ? (it.checked ? 'check' : '') : it.icon;
+          const toggle = it.radio || it.check;
+          const ico = toggle ? (it.checked ? 'check' : '') : it.icon;
           html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + (it.danger ? ' is-danger' : '') + '"'
-                + ' role="' + (it.radio ? 'menuitemradio' : 'menuitem') + '" tabindex="-1"'
+                + ' role="' + (it.radio ? 'menuitemradio' : it.check ? 'menuitemcheckbox' : 'menuitem') + '" tabindex="-1"'
                 + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '')
-                + (it.radio ? ' aria-checked="' + !!it.checked + '" data-ov="' + escHtml(it.ov) + '"' : '')
+                + (toggle ? ' aria-checked="' + !!it.checked + '"' : '') + (it.radio ? ' data-ov="' + escHtml(it.ov) + '"' : '')
                 + (it.sub ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
                 + (ico ? icon(ico) : '<span class="day-menu-ico" aria-hidden="true"></span>')
                 + '<span class="day-menu-text">' + escHtml(it.text)
@@ -16379,6 +16519,23 @@ export function initLegacyApp() {
       update();
     });
   })();
+  // One holiday's two kinds of switch, once each: the holiday list's boxes below and the month day
+  // menu's holiday section (installMonthDayMenu, MONTH-CONTEXT-MENU-PLAN.md step 5, §3.11) both call
+  // these. Not the menu clicking the list's boxes, as §3.11 first had it: the list shows only the
+  // holidays inside a phase (and custom ones), so a holiday on any other day has no box to click.
+  // Showing one in a view is display-only: render, never update, so the calendar math is untouched.
+  function setHolidayView(hid, view, on){
+    const cur = Object.assign({}, holidayView[hid]);
+    cur[view] = !!on;
+    holidayView[hid] = cur;
+    markDirty();
+    render(currentSchedule);
+  }
+  // Turning one on or off moves shoot days: a full recompute. Callers ask confirmHolidayRecompute() first.
+  function setHolidayEnabled(hid, on){
+    if(on) delete holidayOff[hid]; else holidayOff[hid] = true;
+    update();
+  }
   // Per-holiday, per-view checklist. Toggling a box records an explicit override for that holiday
   // and re-renders. Display-only: it never re-runs the schedule, so the calendar math is untouched.
   (function(){
@@ -16387,12 +16544,7 @@ export function initLegacyApp() {
     host.addEventListener('change', e=>{
       const cb = e.target.closest('.hv-cb');
       if(!cb) return;
-      const hid = cb.dataset.hid, view = cb.dataset.view;
-      const cur = Object.assign({}, holidayView[hid]);
-      cur[view] = cb.checked;
-      holidayView[hid] = cur;
-      markDirty();
-      render(currentSchedule);
+      setHolidayView(cb.dataset.hid, cb.dataset.view, cb.checked);
     });
     // Enabling/disabling a holiday changes Production's dates, so it can shift notes the user has
     // already placed. Same hazard the Region selectors guard against -- but this is one holiday and
@@ -16402,8 +16554,7 @@ export function initLegacyApp() {
       if(!cb) return;
       const hid = cb.dataset.hid;
       if(!(await confirmHolidayRecompute())){ cb.checked = !cb.checked; return; }   // put the box back
-      if(cb.checked) delete holidayOff[hid]; else holidayOff[hid] = true;
-      update();   // full recompute: this moves shoot days
+      setHolidayEnabled(hid, cb.checked);   // full recompute: this moves shoot days
     });
     host.addEventListener('click', async e=>{
       const del = e.target.closest('.hv-del');

@@ -6,8 +6,9 @@
 // Show in Phases card. Plan step 4 (the L-cases, G7, N1, and C2 flipped): ruling L1, a LEFT-click on a
 // day opens the same menu under its number, the Full day/Off popover is retired, and its choices are the
 // menu's shoot-day section (data-ov rows); and (the R-cases, the owner's own addition the same day) Remove
-// <phase>… on a custom phase's bar. Later steps add their sections here, and flip the "absent" checks below
-// as they do.
+// <phase>… on a custom phase's bar. Plan step 5 (the V-cases, and K1 updated): the hiatus and holiday
+// sections -- Lock in place, Show in Phases card and Remove hiatus… (asks first, ruling Q4); a phase's own
+// hiatus; a holiday's Enabled (asks the recompute question first) and its two Show boxes (ruling Q6).
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
@@ -549,8 +550,8 @@ window.addEventListener('load', function () { (async function () {
     key('ArrowUp'); kf.push(menuInfo().focus);
     key('Home'); kf.push(menuInfo().focus);
     key('End'); kf.push(menuInfo().focus);
-    add('K1', 'Arrow keys, Home and End move focus through the items that are not greyed out, wrapping',
-      eq(kf, ['phase-week', 'hiatus', 'waterfall', 'hiatus', 'phase-week', 'waterfall']), kf, 'phase-week, hiatus, waterfall, hiatus, phase-week, waterfall');
+    add('K1', 'Arrow keys, Home and End move focus through the items that are not greyed out (into the hiatus section, step 5), wrapping',
+      eq(kf, ['phase-week', 'hiatus', 'band-lock-0', 'hiatus', 'phase-week', 'waterfall']), kf, 'phase-week, hiatus, band-lock-0 (step 5\'s hiatus section), hiatus, phase-week, waterfall');
     var s4 = sig();
     key('Escape');
     var h5 = await rclick('2026-12-25', 'mid');
@@ -1161,6 +1162,201 @@ window.addEventListener('load', function () { (async function () {
     await undo();                                       // and the mark itself, so S2 starts clean
     await toMonth('November 2026');
 
+    // ---- V: the hiatus and holiday sections (plan step 5, §3.10 and §3.11; rulings Q4 and Q6) ----
+    // halfdays' all-phase hiatus is its first #hiatus-list row: Mon 21 Dec 2026, 2 weeks, locked, no name.
+    function sections(){ var m = menuEl(); return m ? [].map.call(m.querySelectorAll('[data-section]'), function (s) { return s.getAttribute('data-section'); }) : []; }
+    function secInfo(id){
+      var m = menuEl();
+      return m ? [].map.call(m.querySelectorAll('[data-section="' + id + '"]'), function (s) {
+        return {label: txt(s.querySelector('.day-menu-label')), items: [].map.call(s.querySelectorAll('.day-menu-item'), function (b) {
+          return {id: b.getAttribute('data-item'), role: b.getAttribute('role'), checked: b.getAttribute('aria-checked'), disabled: b.getAttribute('aria-disabled') === 'true',
+                  danger: b.classList.contains('is-danger'), text: txt(b.querySelector('.day-menu-text')).replace(txt(b.querySelector('small')), '').trim(), second: txt(b.querySelector('small'))};
+        })};
+      }) : [];
+    }
+    // Null-safe from here: a build missing an item must turn ITS case red, not end the leg.
+    function chooseIf(id){ if(id) choose(id); else key('Escape'); return !!id; }
+    function itemId(sec, re){ var s = secInfo(sec)[0]; var it = s && s.items.find(function (x) { return re.test(x.id); }); return it ? it.id : null; }
+    function band0(){ var r = document.querySelector('#hiatus-list .hiatus-entry'); return r ? {start: r.querySelector('.hiatus-start').value, locked: r.querySelector('.hiatus-locked').checked} : null; }
+    function bandRows(){ return document.querySelectorAll('#hiatus-list .hiatus-entry').length; }
+    async function question(re){
+      for(var i = 0; i < 40; i++){ var t = T.modalText(); if(re.test(t)) return t; await T.sleep(20); }
+      return '';
+    }
+    var BAND = 'Hiatus · 21 Dec – 3 Jan';
+    await toMonth('December 2026');
+    await rclick('2026-12-22', 'mid');
+    var v1 = {sections: sections(), band: secInfo('hiatus')};
+    key('Escape');
+    add('V1', 'Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with Lock in place (a checked menuitemcheckbox, "Stays on these dates when the calendar shifts"), Show in Phases card, and a red Remove hiatus…',
+      eq(v1.sections, ['day', 'hiatus', 'out']) && v1.band.length === 1 && v1.band[0].label === BAND
+        && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger]; }),
+              [['band-lock', 'menuitemcheckbox', 'true', 'Lock in place', 'Stays on these dates when the calendar shifts', false],
+               ['band-show', 'menuitem', null, 'Show in Phases card', '', false],
+               ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true]]),
+      v1, 'day, hiatus (' + BAND + '), out');
+
+    // V2: Lock in place, one undo step.
+    a = await primeThenOpen('2026-12-22', 'mid');
+    chooseIf(itemId('hiatus', /^band-lock-/));
+    await settle();
+    var v2 = {row: band0(), menu: !!menuEl()};
+    await rclick('2026-12-22', 'mid');
+    v2.after = (secInfo('hiatus')[0] || {items: []}).items[0];
+    key('Escape');
+    await T.sleep(700);
+    await undo();
+    v2.undone = {row: band0(), title: (document.getElementById('show-title') || {}).value};
+    await redo();
+    v2.redone = band0();
+    await undo();
+    add('V2', 'Lock in place unticks the row\'s own Lock box (the menu then shows it unchecked, "Moves when the calendar shifts"); one undo locks it again with the title typed before kept, and redo unlocks it',
+      !v2.menu && v2.row.locked === false && v2.after.checked === 'false' && v2.after.second === 'Moves when the calendar shifts'
+        && v2.undone.row.locked === true && v2.undone.title === 'Menu step ' + n && v2.redone.locked === false && band0().locked === true,
+      v2, 'unlocked; one step');
+
+    // V3: Show in Phases card, one undo step.
+    var showTabV = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
+    if(showTabV) showTabV.click();
+    await T.sleep(700);
+    a = await primeThenOpen('2026-12-22', 'mid');
+    chooseIf(itemId('hiatus', /^band-show-/));
+    await T.sleep(100);
+    var rowV = document.querySelector('#hiatus-list .hiatus-entry'), fpV = document.querySelector('.form-panel');
+    var rrV = rowV.getBoundingClientRect(), frV = fpV.getBoundingClientRect();
+    var v3 = {tab: activeTab(), row: [Math.round(rrV.top), Math.round(rrV.bottom)], panel: [Math.round(frV.top), Math.round(frV.bottom)]};
+    await T.sleep(700);
+    await undo();
+    v3.undone = {tab: activeTab(), title: (document.getElementById('show-title') || {}).value};
+    add('V3', 'Show in Phases card switches the sidebar to Phases with the 21 Dec hiatus row in view; one undo goes back to Show with the title typed before kept',
+      v3.tab === 'phases' && rrV.top >= frV.top - 1 && rrV.top < frV.bottom && v3.undone.tab === 'show' && v3.undone.title === 'Menu step ' + n,
+      v3, 'phases, row in view; one step');
+
+    // V4: Remove hiatus… asks the sidebar's own question first (ruling Q4); Cancel keeps it; Remove is one step.
+    var rowsV = bandRows();
+    a = await primeAt('2026-12-22', 'mid');
+    chooseIf(itemId('hiatus', /^band-remove-/));
+    var q4 = await question(/Remove this hiatus\?/);
+    if(q4) T.clickModalButton('Cancel');
+    await settle();
+    var v4 = {question: q4, cancel: {rows: bandRows(), row: band0(), same: eq(sig(), a.before)}};
+    await T.sleep(700);
+    a = await primeAt('2026-12-22', 'mid');
+    chooseIf(itemId('hiatus', /^band-remove-/));
+    var q4b = await question(/Remove this hiatus\?/);
+    if(q4b) T.clickModalButton('Remove');
+    await settle();
+    await rclick('2026-12-22', 'mid');
+    v4.removed = {rows: bandRows(), first: band0(), sections: sections(), ctx: menuInfo() && menuInfo().ctx, bands: document.querySelectorAll('#table-wrap .mv-hiatus-bar').length};
+    key('Escape');
+    await T.sleep(700);
+    await undo();
+    v4.undone = {rows: bandRows(), first: band0(), title: (document.getElementById('show-title') || {}).value};
+    add('V4', 'Remove hiatus… asks "Remove this hiatus?" (the sidebar ×\'s question); Cancel keeps it; Remove takes the 21 Dec row away, so 22 Dec has no hiatus section or band; one undo brings the row back, locked, with the title typed before kept',
+      /Remove hiatus Remove this hiatus\?/.test(q4) && v4.cancel.rows === rowsV && v4.cancel.row.start === '2026-12-21' && v4.cancel.same && !!q4b
+        && v4.removed.rows === rowsV - 1 && v4.removed.first.start !== '2026-12-21' && v4.removed.sections.indexOf('hiatus') < 0 && !/Hiatus/.test(v4.removed.ctx)
+        && v4.undone.rows === rowsV && v4.undone.first.start === '2026-12-21' && v4.undone.first.locked && v4.undone.title === 'Menu step ' + n,
+      v4, 'asked; cancel keeps; remove is one step');
+
+    // V5: Fri 25 Dec, the hiatus AND Christmas Day: a holiday section after the hiatus one. Its boxes read as the
+    // holiday list's own boxes do (Christmas falls inside Post, so the list has a row for it).
+    await rclick('2026-12-25', 'mid');
+    var v5 = {sections: sections(), hol: secInfo('holiday')};
+    key('Escape');
+    function listBox(name, view){
+      var row = [].find.call(document.querySelectorAll('#holiday-vis-list .hv-row'), function (r) { return txt(r.querySelector('.hv-name')).indexOf(name) === 0; });
+      var b = row && row.querySelector(view === 'en' ? '.hv-en' : '.hv-cb[data-view="' + view + '"]');
+      return b ? String(b.checked) : null;
+    }
+    var x5 = {en: listBox('Christmas Day', 'en'), month: listBox('Christmas Day', 'month'), sheet: listBox('Christmas Day', 'sheet')};
+    add('V5', 'Fri 25 Dec: This day, the hiatus, then "Holiday · Christmas Day" (ruling Q6) with Enabled, Show in month view and Show in waterfall, each checked exactly as the holiday list\'s own box is',
+      eq(v5.sections, ['day', 'hiatus', 'holiday', 'out']) && v5.hol.length === 1 && v5.hol[0].label === 'Holiday · Christmas Day'
+        && eq(v5.hol[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.text, x.disabled]; }),
+              [['hol-en', 'menuitemcheckbox', 'Enabled', false], ['hol-month', 'menuitemcheckbox', 'Show in month view', false], ['hol-sheet', 'menuitemcheckbox', 'Show in waterfall', false]])
+        && x5.en === v5.hol[0].items[0].checked && x5.month === v5.hol[0].items[1].checked && x5.sheet === v5.hol[0].items[2].checked,
+      {menu: v5, list: x5}, 'the list\'s own checks');
+
+    // V6-V8 in July: Fri 3 Jul, Independence Day (Observed), a weekday holiday inside the shoot.
+    await toMonth('July 2026');
+    await rclick('2026-07-03', 'num');
+    var v6a = {sections: sections(), hol: secInfo('holiday')[0]};
+    key('Escape');
+    // A day note first, so a holiday change can misplace something and the recompute question is asked.
+    var plus6 = monthCells()['2026-07-06'].week.querySelector('.mv-note-add[data-note-day="2026-07-06"]:not(.mv-note-add-full)');
+    await bringIntoView(plus6);
+    plus6.click();
+    var ta6v = document.querySelector('#mv-note-pop textarea');
+    if(ta6v){ ta6v.value = 'Holiday check'; ta6v.dispatchEvent(new Event('input', {bubbles: true})); ta6v.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true})); }
+    await settle();
+    await T.sleep(700);
+    a = await primeAt('2026-07-03', 'num');
+    chooseIf(itemId('holiday', /^hol-en-/));
+    var q6 = await question(/Recompute the schedule\?/);
+    if(q6) T.clickModalButton('Cancel');
+    await settle();
+    var v6 = {question: q6, cancel: {list: listBox('Independence Day', 'en'), same: eq(sig(), a.before)}};
+    await T.sleep(700);
+    a = await primeAt('2026-07-03', 'num');
+    chooseIf(itemId('holiday', /^hol-en-/));
+    var q6b = await question(/Recompute the schedule\?/);
+    if(q6b) T.clickModalButton('Continue');
+    await settle();
+    await rclick('2026-07-03', 'num');
+    v6.off = {ctx: menuInfo().ctx, list: listBox('Independence Day', 'en'), hol: secInfo('holiday')[0]};
+    key('Escape');
+    await T.sleep(700);
+    await undo();
+    await rclick('2026-07-03', 'num');
+    v6.undone = {ctx: menuInfo().ctx, list: listBox('Independence Day', 'en'), title: (document.getElementById('show-title') || {}).value};
+    key('Escape');
+    add('V6', '3 Jul: "Holiday · Independence Day (Observed)" after the shoot section, Enabled checked, "Off means Production shoots this day". Unticking asks the holiday list\'s question first; Cancel changes nothing; Continue makes 3 Jul shoot day 5, unticks the list\'s box and greys out the two Show items ("The holiday is off"); one undo puts it back, the title kept',
+      eq(v6a.sections, ['day', 'shoot', 'holiday', 'out']) && v6a.hol.label === 'Holiday · Independence Day (Observed)' && v6a.hol.items[0].checked === 'true'
+        && v6a.hol.items[0].second === 'Off means Production shoots this day'
+        && /Recompute the schedule\?/.test(q6) && v6.cancel.list === 'true' && v6.cancel.same && !!q6b
+        && /^Shoot day 5 /.test(v6.off.ctx) && v6.off.list === 'false' && v6.off.hol.items[0].checked === 'false' && v6.off.hol.items[0].second === 'Off: Production shoots this day'
+        && v6.off.hol.items[1].disabled && v6.off.hol.items[1].second === 'The holiday is off' && v6.off.hol.items[2].disabled
+        && !/Shoot day/.test(v6.undone.ctx) && v6.undone.list === 'true' && v6.undone.title === 'Menu step ' + n,
+      {before: v6a, flow: v6}, 'asked; off is shoot day 5; one step');
+
+    // V7: Show in month view, display only, one undo step: the holiday's own block leaves the month view.
+    function holBlock(){ return [].some.call(document.querySelectorAll('#table-wrap .mv-note-block'), function (b) { return /Independence Day \(Observed\)/.test(txt(b)); }); }
+    var v7 = {shown: holBlock()};
+    a = await primeAt('2026-07-03', 'num');
+    chooseIf(itemId('holiday', /^hol-month-/));
+    await settle();
+    v7.after = {shown: holBlock(), list: listBox('Independence Day', 'month')};
+    await T.sleep(700);
+    await undo();
+    v7.undone = {shown: holBlock(), list: listBox('Independence Day', 'month'), title: (document.getElementById('show-title') || {}).value};
+    add('V7', 'Show in month view on 3 Jul hides Independence Day (Observed)\'s block from the month view and unticks the list\'s Month box; one undo shows it again, the title kept',
+      v7.shown && !v7.after.shown && v7.after.list === 'false' && v7.undone.shown && v7.undone.list === 'true' && v7.undone.title === 'Menu step ' + n,
+      v7, 'hidden; one step');
+    await undo();                                      // the title typed before V7,
+    await undo();                                      // V6's title,
+    await undo();                                      // and the day note, so the I-cases start clean
+
+    // V8: a phase's OWN hiatus. Production only from Wed 8 Jul (step 2's item), then its section on 8 Jul.
+    await rclick('2026-07-08', 'bar:production');
+    subChoose('hiatus-production');
+    await settle();
+    await T.sleep(700);
+    a = await primeAt('2026-07-08', 'num');
+    var v8 = {sections: sections(), phi: secInfo('phase-hiatus')};
+    chooseIf(itemId('phase-hiatus', /^phi-remove-/));
+    await settle();
+    v8.after = {en: fv('phiatus-en-production'), prod: prodOn(WK6).length};
+    await T.sleep(700);
+    await undo();
+    v8.undone = {en: fv('phiatus-en-production'), prod: prodOn(WK6).length, title: (document.getElementById('show-title') || {}).value};
+    add('V8', 'With Production\'s own hiatus over 6–19 Jul, 8 Jul has a section "Production’s hiatus · 6 Jul – 19 Jul" after the shoot day\'s, whose one item, Remove Production’s hiatus (red, no question), unticks it and the shoot is back on 6–17 Jul; one undo puts it back, the title kept',
+      eq(v8.sections, ['day', 'shoot', 'phase-hiatus', 'out']) && v8.phi.length === 1 && v8.phi[0].label === 'Production’s hiatus · 6 Jul – 19 Jul'
+        && eq(v8.phi[0].items.map(function (x) { return [x.id, x.text, x.danger]; }), [['phi-remove-production', 'Remove Production’s hiatus', true]])
+        && v8.after.en === false && v8.after.prod === WK6.length && v8.undone.en === true && v8.undone.prod === 0 && v8.undone.title === 'Menu step ' + n,
+      v8, 'removed; one step');
+    await undo();                                      // the title,
+    await undo();                                      // and the hiatus itself
+    await toMonth('November 2026');                    // where S2 expects the calendar
+
     // ---- S2: a shareable copy exported with the menu open carries no menu ----
     var settings = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'settings'; });
     if(settings) settings.click();
@@ -1221,6 +1417,20 @@ window.addEventListener('load', function () { (async function () {
       !!band && n1.named.day === '2026-07-22' && n1.named.label === 'Not a shoot day' && eq(rowsOf(n1.named), GREY('Hiatus'))
         && n1.blank.day === '2026-07-22' && n1.blank.label === 'Not a shoot day' && eq(rowsOf(n1.blank), GREY('the hiatus')),
       {band: !!band, named: n1.named, blank: n1.blank}, 'the greyed Work this day, both times');
+
+    // V9 (step 5): two all-phase hiatuses on one day get a section each, told apart by their dates (plan §3.10).
+    // Run last, after N1: a one-week hiatus from Mon 21 Dec beside halfdays' two-week one.
+    T.addHiatus('2026-12-21', 1);
+    await settle();
+    await toMonth('December 2026');
+    await rclick('2026-12-22', 'mid');
+    var v9 = {sections: sections(), bands: secInfo('hiatus').map(function (x) { return [x.label, x.items.map(function (i) { return i.id; })]; })};
+    key('Escape');
+    var ids9 = [].concat.apply([], v9.bands.map(function (b) { return b[1]; }));
+    add('V9', 'Two hiatuses on Tue 22 Dec (halfdays\' 21 Dec – 3 Jan and a new 21 Dec – 27 Dec) get a section each, labelled by their dates, with no item id repeated',
+      eq(v9.sections, ['day', 'hiatus', 'hiatus', 'out']) && eq(v9.bands.map(function (b) { return b[0]; }), ['Hiatus · 21 Dec – 3 Jan', 'Hiatus · 21 Dec – 27 Dec'])
+        && ids9.length === 6 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
+      v9, 'two sections, by dates');
 
     out.health = T.appHealth();
     add('E1', 'No uncaught page errors', !(out.health.errors || []).length, out.health.errors, '[]');

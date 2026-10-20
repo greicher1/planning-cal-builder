@@ -2452,7 +2452,7 @@
      exists to protect: allowed, and never silent, so its second line keeps the popover's warning ink.
      A stored value no row offers gets a notice line under the section, indented to the labels. */
   .day-menu-item[aria-checked="true"] .day-menu-ico{ color:var(--edit-accent); }
-  .day-menu-item[aria-checked="true"] .day-menu-text{ font-weight:600; }
+  .day-menu-item[role="menuitemradio"][aria-checked="true"] .day-menu-text{ font-weight:600; }
   .day-menu-text small.day-menu-warn{ color:#7A5B14; font-weight:400; }
   .day-menu-text small{ font-weight:400; }
   /* A destructive item (Remove <phase>…, step 4) reads in red, as Mantine's menus mark one. */
