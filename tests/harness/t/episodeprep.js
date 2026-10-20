@@ -440,10 +440,16 @@ window.addEventListener('load', function () { (async function () {
       // R5 (on the shifted calendar): a first prep in a month no phase reaches still gets that month. With
       // Prod Prep cleared, Production is the first phase (Mon 3/1) and Prep 302 runs 2/22-2/26.
       T.set('start-prodPrep', ''); await settle();
-      var firstMonth = null;
-      await eachMonth(function (mo) { if(!firstMonth) firstMonth = MONTHS[mo.getUTCMonth()] + ' ' + mo.getUTCFullYear(); });
-      out.firstMonth = firstMonth;
-      check(firstMonth === 'February 2027', 'R5 the month view starts in February, the first prep’s month, though no phase does');
+      // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §3, "One month each side"): the view now pages one month before
+      // the range it covers, so the walk starts on an empty January. February is still the first month with a bar.
+      var firstMonth = null, firstPaged = null;
+      await eachMonth(function (mo, rows) {
+        var name = MONTHS[mo.getUTCMonth()] + ' ' + mo.getUTCFullYear();
+        if(!firstPaged) firstPaged = name;
+        if(!firstMonth && rows.some(function (r) { return r.bars.length; })) firstMonth = name;
+      });
+      out.firstMonth = firstMonth; out.firstPaged = firstPaged;
+      check(firstMonth === 'February 2027' && firstPaged === 'January 2027', 'R5 the month view starts in February, the first prep’s month, though no phase does (and pages one month before it, to January)');
       await undo(); await undo();
       out.shiftUndone = await prepMap();
       check(sameMap(out.shiftUndone, WANT_ON) && $('start-prodPrep').value === '2027-01-18', 'R4 undo restores the calendar and every prep');

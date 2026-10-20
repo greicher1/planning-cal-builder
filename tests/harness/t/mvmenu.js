@@ -173,6 +173,8 @@ window.addEventListener('load', function () { (async function () {
     return rows.length ? rows[rows.length - 1].dataset.key : null;
   }
   var CANT_WEEKEND = 'A phase can’t be drawn on a weekend', CANT_HIATUS = 'A phase can’t be drawn inside a hiatus';
+  // ⚠️ Retired 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): a hiatus day has "+" lanes now, so
+  // Add note is offered there (H4, H5, I2c). Kept so the record of what the item used to say stays readable.
   var NO_LANES = 'A hiatus day has no note lanes';
   var ITEMS = ['note', 'phase-day', 'phase-week', 'hiatus', 'waterfall'];
 
@@ -533,32 +535,48 @@ window.addEventListener('load', function () { (async function () {
     await toMonth('December 2026');
     var h4 = await rclick('2026-12-22', 'mid');
     var i4 = menuInfo();
-    add('H4', 'Tue 22 Dec, inside the hiatus: Add note greyed out ("' + NO_LANES + '") and Add 1-day phase here greyed out ("' + CANT_HIATUS + '"); Add 1-week phase here and Add hiatus offered',
-      h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && item(i4, 'note').disabled && item(i4, 'note').second === NO_LANES
+    // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): Add note is OFFERED inside a hiatus,
+    // because the frozen renderer now draws a hiatus day's "+" lanes. It was greyed out ("A hiatus day has no note
+    // lanes") until then. Add 1-day phase here stays greyed: a phase still cannot be drawn there.
+    add('H4', 'Tue 22 Dec, inside the hiatus: Add note OFFERED (a hiatus day has note lanes since 20 Oct 2026) and Add 1-day phase here greyed out ("' + CANT_HIATUS + '"); Add 1-week phase here and Add hiatus offered',
+      h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && !item(i4, 'note').disabled
         && item(i4, 'phase-day').disabled && item(i4, 'phase-day').second === CANT_HIATUS && !item(i4, 'phase-week').disabled
         && !item(i4, 'hiatus').disabled && /Hiatus/.test(i4.ctx),
-      i4, 'note and 1-day greyed');
+      i4, 'note offered, 1-day greyed');
     rows0 = customRows();
     choose('phase-day');
-    choose('note');
-    add('I2b', 'Clicking either greyed-out item on 22 Dec does nothing: no row, no note editor, the menu still open',
+    add('I2b', 'Clicking the greyed-out Add 1-day phase here on 22 Dec does nothing: no row, no note editor, the menu still open',
       customRows() === rows0 && !document.getElementById('mv-note-pop') && !!menuEl(), {rows: customRows(), editor: !!document.getElementById('mv-note-pop')}, 'nothing');
-    // K: the keyboard, here where two items are greyed out.
+    // K: the keyboard, here where one item is greyed out (it was two until 20 Oct 2026, Add note among them).
     var kf = [menuInfo().focus];
+    key('ArrowDown'); kf.push(menuInfo().focus);
     key('ArrowDown'); kf.push(menuInfo().focus);
     key('ArrowDown'); kf.push(menuInfo().focus);
     key('ArrowUp'); kf.push(menuInfo().focus);
     key('Home'); kf.push(menuInfo().focus);
     key('End'); kf.push(menuInfo().focus);
     add('K1', 'Arrow keys, Home and End move focus through the items that are not greyed out (into the hiatus section, step 5), wrapping',
-      eq(kf, ['phase-week', 'hiatus', 'band-lock-0', 'hiatus', 'phase-week', 'waterfall']), kf, 'phase-week, hiatus, band-lock-0 (step 5\'s hiatus section), hiatus, phase-week, waterfall');
+      eq(kf, ['note', 'phase-week', 'hiatus', 'band-lock-0', 'hiatus', 'note', 'waterfall']), kf, 'note, phase-week, hiatus, band-lock-0 (step 5\'s hiatus section), hiatus, note, waterfall');
     var s4 = sig();
     key('Escape');
+    // I2c (20 Oct 2026, MONTH-NOTES-PLAN.md §4): Add note on a hiatus day opens the month note editor for THAT day, as
+    // its own "+" does. Escape closes it, nothing stored.
+    await rclick('2026-12-22', 'mid');
+    choose('note');
+    await T.sleep(300);
+    var ed22 = document.getElementById('mv-note-pop');
+    var ed22day = ed22 ? (ed22.querySelector('.mv-note-pop-day') || {}).textContent : null;
+    var ed22hint = ed22 ? (ed22.querySelector('.mv-note-pop-hint') || {}).textContent : '';
+    if(ed22) ed22.querySelector('textarea').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await T.sleep(200);
+    add('I2c', 'Add note on Tue 22 Dec, inside the hiatus, opens the month note editor for 12/22/26 (a day note), and Escape leaves nothing behind',
+      !!ed22 && ed22day === '12/22/26' && /Month view only/.test(ed22hint) && !document.getElementById('mv-note-pop') && eq(sig(), s4),
+      {editor: !!ed22, day: ed22day, hint: ed22hint}, 'the editor for 12/22/26');
     var h5 = await rclick('2026-12-25', 'mid');
     var i5 = menuInfo();
-    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header, both greyed out as on 22 Dec',
+    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; as on 22 Dec, Add note offered and Add 1-day phase here greyed out',
       h5.inBody && h5.prevented && i5 && i5.day === '2026-12-25' && /Hiatus/.test(i5.ctx) && /Christmas Day/.test(i5.ctx)
-        && item(i5, 'note').disabled && item(i5, 'phase-day').disabled && !item(i5, 'phase-week').disabled,
+        && !item(i5, 'note').disabled && item(i5, 'phase-day').disabled && !item(i5, 'phase-week').disabled,
       i5, 'hiatus + Christmas Day');
     // K2: Enter chooses. Show this week in the waterfall from a hiatus week: its row is a band, not a note cell.
     key('End');
@@ -1391,7 +1409,9 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     await toMonth('July 2026');
     var n1 = {};
-    await lclick('2026-07-22', 'mid');
+    // ⚠️ On the day's NUMBER since 20 Oct 2026 (MONTH-NOTES-PLAN.md §4): a hiatus day has "+" lanes now, so a left-click
+    // at its middle adds a note there, as on any day. It opened the menu only because a hiatus day used to draw none.
+    await lclick('2026-07-22', 'num');
     n1.named = {day: menuInfo() && menuInfo().day, label: shootLabel(), rows: shootRows()};
     key('Escape');
     document.getElementById('view-sheet-btn').click();
@@ -1408,7 +1428,7 @@ window.addEventListener('load', function () { (async function () {
       await settle();
     }
     await toMonth('July 2026');
-    await lclick('2026-07-22', 'mid');
+    await lclick('2026-07-22', 'num');
     n1.blank = {day: menuInfo() && menuInfo().day, ctx: menuInfo() && menuInfo().ctx, label: shootLabel(), rows: shootRows()};
     key('Escape');
     var GREY = function (name) { return [['on', 'Work this day', true, 'Inside ' + name + ' — shorten the hiatus to work these days']]; };

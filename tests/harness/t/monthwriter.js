@@ -139,6 +139,8 @@ window.addEventListener('load', function () { (async function () {
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
     var noteWidthOf = function (s) { return F.mvlTextWidth(fonts['500'].font, s, G.noteFontPx); };
+    // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
+    var pillWidthOf = function (s) { return F.mvlTextWidth(fonts['600'].font, s, G.noteFontPx); };
     var ascentAt = function (size) { return Math.round(fonts['400'].font.ascent * size / fonts['400'].font.unitsPerEm); };
 
     // ---- the documents, stamp pinned ------------------------------------------------------------------------------
@@ -187,7 +189,7 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], pages = parseDoc(doc.html);
       if(pages.length !== doc.measured.length) throw new Error(doc.name + ': ' + pages.length + ' pages but ' + doc.measured.length + ' measured');
-      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf); });
+      var months = pages.map(function (pg) { return F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf); });
       var layout = {geometry: G, months: months};
       var fitted = F.fitMonthLayout(layout, fonts);
       var again = F.fitMonthLayout(layout, fonts), viaJson = F.fitMonthLayout(JSON.parse(JSON.stringify(layout)), fonts);
