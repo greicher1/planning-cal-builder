@@ -2326,6 +2326,110 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSB
 
+# ---- shootdays: "Number Production Days", "Day N" on every shoot day in the month view (19 Oct 2026) -------------
+# Off by default; calendar data (captureSnapshot's mvNumberShootDays, an ABSENT key when off); shown whatever labels the
+# bars. Its frozen edit (renderMonthView's data-shoot-day attribute, legacy.css's ::after) was approved with a gate:
+# gates 10 and 13, byte-identical with it off, are one half; this block is the other.
+#   shootdays leg   on offweek (the hand trace), dayoverrides-onhalf (half days) and blocks (all three labels): the
+#                   switch, every square against the day menu's "Shoot day N", only the attribute moving (every month
+#                   byte-identical with it taken out, every week as tall), the ::after on the date's baseline, one undo
+#                   step, Save/Load, restore unconditionally, off written as NO key, and the month PDF the app writes.
+#                   Here, that PDF's text (pdftotext -raw), page by page, against the numbers the screen showed.
+#   monthemit       on shootdays and shootdays-onhalf (minted by the leg): every "Day N" the writer draws, held to
+#                   Chrome's own print layout of the same pages (D0's start/end/baseline, K0's font and ink, X3, X4),
+#                   and at least one judged. Their files are NOT the 15 the time-zone check counts.
+#   monthwriter     on shootdays-onhalf, and monthab.py on its file against Chrome's real print (P0-P5). ⚠️ NOT on
+#                   shootdays: offweek fails P5 the same way WITH THE SETTING OFF (cell-sized "lines" unpaired in its
+#                   off weeks, August and September 2027), so that is offweek's, found 19 Oct 2026 and not yet traced.
+#   monthexport     on shootdays: the BUILT app's month PDF is byte-identical to the sliced source's (X2).
+for SDSTATE in offweek dayoverrides-onhalf blocks; do
+  rm -f "$HERE/shootdays.json" "$HERE/shootdays.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" shootdays 900 >/dev/null 2>&1
+  python3 - "$HERE/shootdays.json" "$HERE/shootdays.pdf" "shootdays ($SDSTATE)" <<'PYSD' || FAIL=1
+import json,sys,re,subprocess
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+bad = 0
+# The checks first, even from a run that threw: a mutant that breaks restore shows its own named case (A9a) and THEN
+# the timeout it causes further on, which says far more than the timeout alone.
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+# The written month PDF: each page reads its month's numbers, in order, as the screen showed them. "Labor Day 9/6/27"
+# is a holiday's name, not a number: (?!/) keeps "Day 9/..." out.
+try:
+    exp = a.get('pdfExpect') or []
+    got, wrong = [], []
+    for i, m in enumerate(exp):
+        txt = subprocess.run(['pdftotext', '-raw', '-f', str(i + 1), '-l', str(i + 1), pdf, '-'], capture_output=True, text=True, check=True).stdout
+        days = [int(n) for n in re.findall(r'\bDay (\d+)\b(?!/)', txt)]
+        got.append(len(days))
+        if days != m.get('days'): wrong.append(m.get('title') + ': ' + str(days[:8]) + ' vs ' + str((m.get('days') or [])[:8]))
+    ok = bool(exp) and not wrong and sum(got) > 0
+    print(('  PASS  ' if ok else '  FAIL  ')+label+f': the written month PDF reads every month\'s "Day N" in order, as on screen ({sum(got)} on {len(exp)} pages){(" -- " + "; ".join(wrong[:3])) if wrong else ""}')
+    bad = bad or not ok
+except Exception as e:
+    print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYSD
+done
+for SDSTATE in shootdays shootdays-onhalf; do
+  rm -f "$HERE/monthemit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+  python3 - "$HERE/monthemit.json" "monthemit ($SDSTATE)" <<'PYSDE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+n = (info.get('totals') or {}).get('shootDays') or 0
+print(('  PASS  ' if n > 0 else '  FAIL  ')+label+f': D0 judged {n} "Day N" against Chrome (Chrome kerns them up to {(info.get("kerning") or {}).get("shootDay")} px narrower)')
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) and n > 0 else 1)
+PYSDE
+done
+rm -f "$HERE/monthwriter.json"; rm -f -- "$HERE"/monthwriter.*.pdf(N)
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays-onhalf HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthwriter 300 >/dev/null 2>&1
+python3 - "$HERE/monthwriter.json" "monthwriter (shootdays-onhalf)" <<'PYSDW' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYSDW
+python3 "$HERE/monthab.py" "$HERE/monthwriter.json" "$HERE/monthwriter.print.pdf" --label "monthwriter (shootdays-onhalf)" --no-pixels || FAIL=1
+rm -f "$HERE/monthexport.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays "$HERE/run.sh" monthexport 300 >/dev/null 2>&1
+python3 - "$HERE/monthexport.json" "monthexport (shootdays)" <<'PYSDX' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
+PYSDX
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

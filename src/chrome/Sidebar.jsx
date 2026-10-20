@@ -427,6 +427,22 @@ export function CalendarMonthCard() {
                   aria-label="Pause prep on days marked Off"
                   title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them." />
         </SettingRow>
+
+        {/* Number Production Days (owner, 19 Oct 2026): "Day 12" in the top right of every shoot day's
+            square, on screen and in the month PDF. OFF BY DEFAULT. It was a row of the old Preferences
+            card's month box; it lands here, under This calendar, because it is CALENDAR DATA (owner's
+            picker, "Saved in the calendar"): the engine's `mvNumberShootDays` is the one store and travels
+            as captureSnapshot()'s own key. ⛔ Inside .prefs-card, so collectFieldValues() skips this id and
+            fields.byId does not move. ⛔ UNCONTROLLED (no `checked`, no defaultChecked): the engine writes
+            .checked in reflectMvNumberShootDays(), and a toggle reaches setMvNumberShootDays() through
+            'change'. ✅ NEVER CONTEXTUAL (owner, the same day: "it should add the numbers no matter if we are
+            in episode mode/block mode or week mode"). */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="pref-mv-shootdays" label="Number Production Days">
+          <Switch id="pref-mv-shootdays" size="md"
+                  aria-label="Number Production Days"
+                  title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
+        </SettingRow>
       </div>
     </section>
   )

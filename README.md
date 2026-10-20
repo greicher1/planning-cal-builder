@@ -525,6 +525,42 @@ takes a waterfall column like any phase), and give the setting to **custom phase
   off weeks, prep above Production): full gate on the merged build `2e2b0d65…`, **2,001 PASS, 0 FAIL**.
 
 ### A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
+### Unreleased — Month view: "Number Production Days" (19 Oct 2026)
+
+Owner: *"a setting that is off by default but can be turned on in settings that numbers the production days on the
+month view calendar"*, and *"it should add the numbers no matter if we are in episode mode/block mode or week mode"*.
+- **What it does.** Settings ▸ Preferences, in Month View, has a new **Number Production Days** switch, off by
+  default. With it on, every shoot day's square shows **"Day N"** at its top right, on the date's line, in the grey
+  of the bars' secondary text. This shows on screen and in both month PDFs.
+  - N is the shoot-day count the day menu already shows as "Shoot day N", so the two always agree.
+  - A half day is one numbered day and keeps its ½. A worked weekend or holiday is numbered. Off days, weekends,
+    holidays and hiatus days are not.
+  - The numbers and the switch are the same whatever Label Production by and Schedule by say.
+- **Saved with the calendar** (owner's ruling, against the per-user recommendation), like Label Production by.
+  Turning it on dirties the file and is one undo step. A new `captureSnapshot()` key, `mvNumberShootDays`, holds only
+  `true`; off is an absent key, so every calendar saved before this opens exactly as it did. `SNAPSHOT_VERSION` and
+  `fields.byId` are untouched (74 ids). An older build ignores the key.
+- **A frozen edit, owner-approved with its gate.** `renderMonthView` adds a `data-shoot-day` attribute to a shoot
+  day's existing cell, and a new `.mv-daycell[data-shoot-day]::after` rule draws it. Neither adds an element, a text
+  node or a lane, so no row can grow. With the setting off, nothing is emitted. The month-PDF writer reads the
+  attribute and draws the text where Chrome prints it.
+- **Verified:**
+  - New leg `shootdays`, 15/15 on each of three calendars. It holds every square of every month to the day menu,
+    proves each month byte-identical to the off view once the attribute is removed (every week as tall), and checks
+    Save, Load, Undo and restore. It also reads the written month PDF page by page.
+  - `monthemit` holds every "Day N" to Chrome's own print layout: within 0.028 px, baseline exact, Chrome's kerning
+    measured.
+  - `monthwriter`/`monthab.py` (P0–P5) and `monthexport` pass on the new fixtures `shootdays` and `shootdays-onhalf`.
+  - 10 of 11 mutants turn red; the eleventh is equivalent, and the reason is recorded.
+  - Contact sheets of the written PDF, off against on: only the "Day N" text differs, and months with no shoot day
+    are pixel-identical.
+  - With the setting off, a subset of `gate.sh` passed 674/0: gates 1–5, gate 10's ten print documents identical,
+    gate 13's twenty written month PDFs byte-identical, and the Preferences-card legs. The full gate has not run yet,
+    because disk space is short.
+  - `monthab.py` P4 now treats a "½" as its own token: pdftotext groups lines differently in the two files.
+  - Found, not this change's: `monthab.py` P5 fails on `offweek` with the setting off.
+
+### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
 ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), Q1–Q7): not single days, but a week inside the shoot the camera never rolls in.
