@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 19 Oct 2026: PREP SKIPS OFF DAYS AND PRODUCTION'S OWN HIATUS: BUILT AND COMMITTED ON BRANCH `prep-skip-off` (worktree `.claude/worktrees/prep-skip-off`), NOT MERGED
+### 🔨 19 Oct 2026: PREP SKIPS OFF DAYS AND PRODUCTION'S OWN HIATUS: BUILT, COMMITTED AND GATED (1,945 PASS / 0 FAIL) ON BRANCH `prep-skip-off` (worktree `.claude/worktrees/prep-skip-off`), NOT MERGED
 
 - Owner: *"will episodic prep or block prep days go in days marked 'off'? they really shouldnt do that as it doesnt
   make much sense"*. **They did.** `appendEpisodePrep` walked back over `isUnitWorkDay()` with `ownHi: null` and never
@@ -26,9 +26,13 @@
   - Through `gate.sh`'s own evaluators: `episodeprep` 27 + 27 + 12 (its hand trace has no off mark and no own hiatus,
     so it is unchanged; the workbook and waterfall PDF are byte-identical with prep on and off), `offweek` 5 + 30,
     `phaseedge` 23/23 (G0–G8). That is 124 PASS, 0 FAIL. `npm run check` 40/40; `check-refs.py` CLEAN.
-  - ⚠️ **The full gate was NOT run.** Another session's gate (`day-menu-step5`) was running, and the disk has 7 GB
-    free. Gates 10 and 13 cannot move: no baseline fixture holds a prep length.
-- ⏭ **Next:** committed on the owner's picker ("Commit on prep-skip-off"). The full gate runs once no other gate is running (owner: "Run it once the slot is free"). Push: owner said "Not yet"; merging and pushing are asked separately after the gate.
+  - ✅ **Full gate on build `9f52874a…` at `9820894`: 1,945 PASS, 0 FAIL, GATE PASSED** (port 8944, 20 Oct 2026
+    00:18–00:37, alone: a detached waiter started it once the `ep-name` session's gate had exited). 0 clipped; the
+    waterfall PDF and every Excel part identical; `fields.byId` at 74 ids; the month print documents identical;
+    `offweek` 30/30 with R11; `episodeprep`, `phaseedge` green.
+- ⏭ **Next:** committed on the owner's picker ("Commit on prep-skip-off"), and the full gate passed (owner: "Run it
+  once the slot is free"). Push: the owner said "Not yet". Merging into `main` and pushing are each asked separately.
+  `main` may have moved by then, so merge it in and re-run at least the legs above before any push.
 
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 
