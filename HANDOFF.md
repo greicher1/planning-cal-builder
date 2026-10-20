@@ -152,8 +152,20 @@
   a before / after / difference sheet of `dayoverrides`' July) **and "Cut both"** (`mvnotes` in gates 10 and 13, on a
   contact sheet of its print path beside its written file). Cut from gate 1's own captures; both baselines' READMEs
   record it. `blocksoff` matches the new `reference` document.
-- ⏭ **Next:** full gate 2 (running), then commit, merge `main` on the owner's picker (siblings may have landed by then),
-  and the push picker.
+- **Committed** (`91f95c5` code + legs, `1e0ad71` baselines, `c282f44` docs) and **merged with local `main`** at
+  `670a591` (the prep pause switch) as `19aaf0f`: only HANDOFF, README and the harness README conflicted (entries added
+  at the same spot; all kept, `main`'s first). Gate 2 on the unmerged branch was stopped before it started, since only
+  the merged build's gate counts.
+- **Full gate 3 on the merged build `3e7dc4f6…`** (1,562,459 bytes; port 8985, 15:30–15:51; bundle B's gate had just
+  ended): **2,158 PASS, 2 FAIL**, both the known contention flakes, both green re-run alone: `pilllabel (shootorder)` W1
+  "months 1 vs 18" (the month walk cut short; 29/29 through gate.sh's own evaluator) and `launchopen` L6 (16/16).
+  Everything else green: gates 1–5 (0 clipped, the waterfall PDF and every Excel part identical, 74 ids), gate 10's
+  eleven documents and gate 13's twenty-one written PDFs identical to the (re-cut and new) baselines, `mvnotes` 30 + 14,
+  the prep switch's own 25 checks.
+- ⚠️ Bundle B (`labels-setup`) also re-cut gate 10's `mvheaderlegacy` and edited `mvmenu.js`; whichever lands second
+  re-cuts that baseline from a merged-build run and re-checks `mvmenu` K1. The shared notes folder has the detail.
+- ⏭ **Next:** the owner's pickers: merge into local `main` (a fast-forward: `main` is `670a591`, already in this branch),
+  then, separately, the push.
 
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
