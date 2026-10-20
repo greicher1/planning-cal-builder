@@ -8366,6 +8366,430 @@ export function initLegacyApp() {
     }, true);
   })();
 
+  // ---------- Hiatus drag: move a hiatus, or change its first or last week, in the month view ----------
+  // HIATUS-DRAG-PLAN.md. Owner, 19 Oct 2026: "whole-week move and edges, same pattern as the phase
+  // grips". Grab a band anywhere to move the hiatus. A START grip on its first week and an END grip on
+  // its last change its length, holding the other end. Both kinds work: an all-phase hiatus (a
+  // .hiatus-entry row) and a phase's own (phiatus-*-<key>).
+  //
+  // ⛔ A HIATUS IS WHOLE WEEKS, so one step is one week, read off the ROW under the pointer. A month
+  // row runs Sunday to Saturday and shows the Monday-to-Sunday week starting the day after its Sunday,
+  // so a Sunday is read as its own row. mondayOf() alone would put it in the week before, one row up.
+  //
+  // ⛔ ZERO FROZEN EDITS, which shapes everything below.
+  //   * A band carries NO identity. renderMonthView place()s it with an empty data slot. So each band
+  //     is identified from its row's week and the schedule (identify()), and an ambiguous band gets
+  //     NOTHING. A wrong guess would move someone else's hiatus, and the after-step check could not
+  //     catch that, because the move itself would be faithful.
+  //   * A band is CLICK-THROUGH (.mv-bars{pointer-events:none}), so it never appears in
+  //     elementsFromPoint() and e.target over it is the day cell. Hover is found by rect, and the
+  //     gesture lives on a body-level layer laid over the band, under body-level grips. The print
+  //     path hides every direct child of <body> but #print-root, so neither month PDF can carry them.
+  //     A click on the layer no longer reaches the day cell under the band. The day menu still opens
+  //     from the day-number strip, as it does for every day a pill covers.
+  //
+  // THE OWNER'S RULINGS (19 Oct 2026, picker; plan §8):
+  //   1. A LOCKED all-phase hiatus can't be dragged: the layer says so, and there are no grips.
+  //   2. Production's day marks stay on their dates. So this is NOT a mover, and nothing here runs
+  //      inside asShootDayMove().
+  //   3. "ask for unlocked all phase hiatuses, dont ask for per phase hiatuses": an all-phase drag
+  //      that changed something asks Keep or Undo on release. Persistence is held from the press to
+  //      the answer (holdPersistence()).
+  //   4. The band's look comes with it: hiatusTexts / hiatusNameSyncedKeys / hiatusColors /
+  //      hiatusFontSize, for this hiatus's own weeks (rekey()). cellSpans is NOT touched: a week|key
+  //      span belongs to that phase's cell, whatever the week holds.
+  (function installHiatusDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const WEEK_MS = 7 * DAY_MS;
+    const GRIP_W = 10;              // px, as the phase handles
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let shown = null;               // the band the layer is on
+    let shield = null;
+    let drag = null;
+    let asking = false;             // the Keep/Undo question is open
+
+    const make = cls=>{
+      const e = document.createElement('div');
+      e.className = cls;
+      e.hidden = true;
+      document.body.appendChild(e);
+      return e;
+    };
+    const layer = make('hiatus-drag-layer');
+    const grips = {start: make('hiatus-grip'), end: make('hiatus-grip')};
+    grips.start.setAttribute('data-hiatus-edge', 'start');
+    grips.end.setAttribute('data-hiatus-edge', 'end');
+    layer.addEventListener('mousedown', e=> beginDrag(e, 'move', layer));
+    grips.start.addEventListener('mousedown', e=> beginDrag(e, 'start', grips.start));
+    grips.end.addEventListener('mousedown', e=> beginDrag(e, 'end', grips.end));
+    const ours = t=> t === layer || t === grips.start || t === grips.end;
+
+    const rowWeek = iso=>{ const d = parseDateUTC(iso); return d.getUTCDay() === 0 ? addDays(d, 1) : mondayOf(d); };
+    const segOf = key=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+    const endOf = h=> addDays(h.start, h.weeks * 7);
+    const sameRange = (a, b)=> !!a && !!b && a.start.getTime() === b.start.getTime() && a.end.getTime() === b.end.getTime();
+    const samePos = (a, b)=> a.start.getTime() === b.start.getTime() && a.weeks === b.weeks;
+    const fmtDay = d=> DOW[d.getUTCDay()] + ' ' + fmtShort(d);
+
+    // Every hiatus, read the way readState() + computeSchedule read it: a Monday-snapped start and
+    // whole weeks. sEl / wEl are the fields a drag writes.
+    function allPhaseHiatuses(){
+      const out = [];
+      document.querySelectorAll('#hiatus-list .hiatus-entry').forEach(row=>{
+        const sEl = row.querySelector('.hiatus-start'), wEl = row.querySelector('.hiatus-weeks');
+        const lEl = row.querySelector('.hiatus-locked');
+        const d = sEl && sEl.value && parseDateUTC(sEl.value), weeks = wEl ? parseInt(wEl.value, 10) : NaN;
+        if(!d || !(weeks > 0)) return;
+        const start = mondayOf(d);
+        out.push({kind: 'all', sEl, wEl, start, weeks, end: addDays(start, weeks * 7), locked: !!(lEl && lEl.checked), suffix: ''});
+      });
+      return out;
+    }
+    function phaseHiatus(key){
+      const en = document.getElementById('phiatus-en-' + key);
+      const sEl = document.getElementById('phiatus-start-' + key), wEl = document.getElementById('phiatus-weeks-' + key);
+      if(!en || !en.checked || !sEl || !wEl) return null;
+      const d = sEl.value && parseDateUTC(sEl.value), weeks = parseInt(wEl.value, 10);
+      if(!d || !(weeks > 0)) return null;
+      const start = mondayOf(d);
+      return {kind: 'phase', key, sEl, wEl, start, weeks, end: addDays(start, weeks * 7), locked: false, suffix: '|' + key};
+    }
+    // The label renderMonthView gives a phase's own band, used only to tell two candidates apart.
+    function phaseBandLabel(s, week){
+      const k = isoOf(week) + '|' + s.key;
+      return (k in hiatusTexts) ? hiatusTexts[k] : (s.name || s.label || 'Phase').replace(/\s*wk\s*\d+\s*$/i, '') + ' Hiatus';
+    }
+
+    // Which hiatus a band belongs to, or null. ⛔ Refuse rather than guess (see the header).
+    function identify(band){
+      const g = pillRange(band);
+      if(!g || !currentSchedule || !currentSchedule.hiatuses) return null;
+      const from = parseDateUTC(g.from), to = parseDateUTC(g.to), week = rowWeek(g.from);
+      // An all-phase band is drawn on all-phase hiatus days, a phase's own only off them.
+      if(isHiatusDate(currentSchedule, from)){
+        const hits = allPhaseHiatuses().filter(h=> week >= h.start && week < h.end);
+        if(hits.length !== 1) return null;                       // two rows share this week
+        const h = hits[0];
+        if(!currentSchedule.hiatuses.some(x=> sameRange(x, h))) return null;    // the scheduler disagrees
+        return {h, week};
+      }
+      let cands = [];
+      ((currentSchedule && currentSchedule.segments) || []).forEach(s=>{
+        const ph = s.phaseHiatus;
+        if(!ph || !(from >= ph.start && to < ph.end && from >= s.start && to < s.end)) return;
+        const h = phaseHiatus(s.key);
+        if(h && sameRange(ph, h)) cands.push({h, s});
+      });
+      if(cands.length > 1){
+        const txt = band.textContent;
+        cands = cands.filter(c=> phaseBandLabel(c.s, week) === txt);
+      }
+      return cands.length === 1 ? {h: cands[0].h, week} : null;
+    }
+    const nameOf = band=>{ const t = band.textContent.trim(); return t ? '“' + t + '”' : 'this hiatus'; };
+
+    function hide(except){
+      shown = null;
+      [layer, grips.start, grips.end].forEach(e=>{ if(e !== except) e.hidden = true; });
+    }
+    // `side` is 'all' for the layer, or which end a grip sits on.
+    function place(e, band, side){
+      const v = visibleRect(band);
+      if(!v){ e.hidden = true; return; }
+      if(side === 'all'){
+        e.style.left = v.left + 'px';
+        e.style.width = (v.right - v.left) + 'px';
+      } else {
+        const x = side === 'left' ? v.full.left : v.full.right - GRIP_W;
+        if(x < v.left - 1 || x + GRIP_W > v.right + 1){ e.hidden = true; return; }   // that end is scrolled away
+        e.style.left = x + 'px';
+        e.style.color = getComputedStyle(band).color;        // the band's own text colour reads on its fill
+      }
+      e.style.top = v.top + 'px';
+      e.style.height = (v.bottom - v.top) + 'px';
+      e.hidden = false;
+    }
+    function showFor(band){
+      if(band === shown) return;
+      hide();
+      const id = identify(band);
+      if(!id) return;
+      shown = band;
+      const name = nameOf(band);
+      layer._band = band;
+      layer.classList.toggle('is-locked', id.h.locked);
+      layer.title = id.h.locked
+        ? name + ' is locked in place. Untick “Lock in place” in the sidebar to drag it.'
+        : 'Drag up or down to move ' + name + ' a week at a time.';
+      place(layer, band, 'all');
+      if(id.h.locked) return;                                    // ruling 1: no grips either
+      const last = addDays(id.h.end, -7);
+      if(id.week.getTime() === id.h.start.getTime()){
+        grips.start._band = band;
+        grips.start.title = 'Drag up or down to change the week ' + name + ' starts. Its last week stays put.';
+        place(grips.start, band, 'left');
+      }
+      if(id.week.getTime() === last.getTime()){
+        grips.end._band = band;
+        grips.end.title = 'Drag up or down to change the week ' + name + ' ends. Its first week stays put.';
+        place(grips.end, band, 'right');
+      }
+    }
+    // The band under a point, by its box: bands are click-through, so nothing else can say.
+    function bandAt(x, y){
+      const bands = wrap.querySelectorAll('.mv-hiatus-bar');
+      for(let i = 0; i < bands.length; i++){
+        const r = bands[i].getBoundingClientRect();
+        if(x < r.left || x >= r.right || y < r.top || y >= r.bottom) continue;
+        const v = visibleRect(bands[i]);
+        if(v && x >= v.left && x < v.right && y >= v.top && y < v.bottom) return bands[i];
+      }
+      return null;
+    }
+    // Another gesture owns the pointer: a phase or Production edge drag, or a pill or swap drag.
+    const busy = ()=> !!document.querySelector('.phase-edge-shield, .hiatus-drag-shield') || document.body.classList.contains('grid-swapping');
+
+    document.addEventListener('mousemove', e=>{
+      if(drag || asking) return;
+      const t = e.target;
+      if(viewMode !== 'month' || busy() || !t || !(ours(t) || wrap.contains(t))){ hide(); return; }
+      const band = bandAt(e.clientX, e.clientY);
+      if(!band){ hide(); return; }
+      showFor(band);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hide(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hide(); });
+    // Every render replaces every band (sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hide(); }).observe(wrap, {childList: true, subtree: true});
+
+    // ---- the gesture ----
+    const original = d=> ({start: d.start0, weeks: d.weeks0});
+    // Where the pointer's week asks the hiatus to be. Floors at one week; neither edge crosses the other.
+    function target(d, W){
+      if(d.kind === 'move') return {start: addDays(d.start0, Math.round((W - d.w0) / WEEK_MS) * 7), weeks: d.weeks0};
+      if(d.kind === 'start'){ const s = W > d.last0 ? d.last0 : W; return {start: s, weeks: Math.round((d.last0 - s) / WEEK_MS) + 1}; }
+      const last = W < d.start0 ? d.start0 : W;
+      return {start: d.start0, weeks: Math.round((last - d.start0) / WEEK_MS) + 1};
+    }
+    // One week back toward `cur`, for the limits below.
+    function stepToward(d, c, cur){
+      if(d.kind === 'end') return {start: c.start, weeks: c.weeks + (c.weeks < cur.weeks ? 1 : -1)};
+      const dir = c.start < cur.start ? 1 : -1;
+      return {start: addDays(c.start, 7 * dir), weeks: d.kind === 'start' ? c.weeks - dir : c.weeks};
+    }
+    // ⚠️ No overlap with another all-phase hiatus. Sitting next to one is fine, because the two still draw
+    // as separate rows' bands. A shared week is what makes a band ambiguous, and it is almost always a mistake.
+    const overlapsOther = (d, c)=> d.others.some(o=> c.start < o.end && o.start < endOf(c));
+
+    // Ruling 4: this hiatus's own week keys follow it. Built from the PRESS-time copies every step, so
+    // out and back is exact. A move carries each week's look to the week it lands on. A lengthening copies
+    // the end week's look onto each added week. A shortening leaves the dropped weeks' keys where they
+    // are: inert on a week with no band, as the shift tools leave them. Where the source has no key, the
+    // destination's is deleted, so a leftover from some earlier hiatus cannot show on this one.
+    function rekey(d, c){
+      const sfx = d.h.suffix, out = {};
+      const src = w=>{
+        if(d.kind === 'move') return addDays(d.start0, Math.round((w - c.start) / WEEK_MS) * 7);
+        return w < d.start0 ? d.start0 : w > d.last0 ? d.last0 : w;
+      };
+      Object.keys(d.maps).forEach(name=>{
+        const orig = d.maps[name], m = Object.assign({}, orig);
+        if(d.kind === 'move') for(let i = 0; i < d.weeks0; i++) delete m[isoOf(addDays(d.start0, 7 * i)) + sfx];
+        for(let i = 0; i < c.weeks; i++){
+          const w = addDays(c.start, 7 * i);
+          if(d.kind !== 'move' && w >= d.start0 && w <= d.last0) continue;    // a week it already had keeps its own
+          const k = isoOf(w) + sfx, sk = isoOf(src(w)) + sfx;
+          if(sk in orig) m[k] = orig[sk]; else delete m[k];
+        }
+        out[name] = m;
+      });
+      return out;
+    }
+    function setMaps(m){
+      hiatusTexts = m.hiatusTexts; hiatusNameSyncedKeys = m.hiatusNameSyncedKeys;
+      hiatusColors = m.hiatusColors; hiatusFontSize = m.hiatusFontSize;
+    }
+    function writeTo(d, c){
+      if(samePos(c, original(d))){
+        // Back where it began: EXACTLY what was there, a non-Monday start included (MONTH-9's rule).
+        d.h.sEl.value = d.wasStart; d.h.wEl.value = d.wasWeeks;
+        setMaps(Object.keys(d.maps).reduce((o, k)=>{ o[k] = Object.assign({}, d.maps[k]); return o; }, {}));
+      } else {
+        // An end drag keeps the start as typed. Only a step that moves the start writes a Monday.
+        d.h.sEl.value = c.start.getTime() === d.start0.getTime() ? d.wasStart : isoOf(c.start);
+        d.h.wEl.value = String(c.weeks);
+        setMaps(rekey(d, c));
+      }
+      update();
+      // ⛔ update() re-armed the 500 ms undo debounce. Kill it: the gesture banks its own ONE step.
+      cancelPendingUndoPush();
+    }
+    // Did the scheduler put it where this arithmetic says? false = it disagrees (refuse the gesture).
+    function landed(d, c){
+      const want = {start: c.start, end: endOf(c)};
+      if(d.h.kind === 'all') return (currentSchedule.hiatuses || []).some(x=> sameRange(x, want));
+      const s = segOf(d.h.key);
+      return !!s && sameRange(s.phaseHiatus, want);
+    }
+    // A phase's own hiatus must still pause its phase somewhere, or its band vanishes and nothing is
+    // left to grab: a sidebar entry that does nothing.
+    function stillDrawn(d, c){
+      if(d.h.kind === 'all') return true;
+      const s = segOf(d.h.key);
+      if(!s) return false;
+      for(let x = new Date(c.start.getTime()), e = endOf(c); x < e; x = addDays(x, 1)){
+        const w = x.getUTCDay();
+        if(w !== 0 && w !== 6 && x >= s.start && x < s.end && !isHiatusDate(currentSchedule, x)) return true;
+      }
+      return false;
+    }
+    function tryStep(d, c){
+      if(d.h.kind === 'all' && overlapsOther(d, c)) return false;
+      writeTo(d, c);
+      if(!currentSchedule.error && landed(d, c) && stillDrawn(d, c)){ d.cur = c; return true; }
+      // ⛔ If the scheduler disagrees, this arithmetic is wrong, and a silent wrong date in someone's plan
+      // is the outcome to refuse: put it all back and let the gesture go inert (the phase handles' guard).
+      // A limit (a refused span, or a phase hiatus pushed off its phase) just stays one week short.
+      const disagrees = !currentSchedule.error && !landed(d, c);
+      writeTo(d, disagrees ? original(d) : d.cur);
+      if(disagrees){ d.cur = original(d); d.broken = true; }
+      return false;
+    }
+    // Keep the dragged layer or grip on its band as the grid re-renders under it.
+    function follow(d){
+      const weekNow = d.kind === 'move' ? addDays(d.w0, Math.round((d.cur.start - d.start0) / WEEK_MS) * 7)
+                    : d.kind === 'start' ? d.cur.start : addDays(endOf(d.cur), -7);
+      const bands = wrap.querySelectorAll('.mv-hiatus-bar');
+      for(let i = 0; i < bands.length; i++){
+        const g = pillRange(bands[i]);
+        if(!g || rowWeek(g.from).getTime() !== weekNow.getTime()) continue;
+        const id = identify(bands[i]);
+        if(id && id.h.sEl === d.h.sEl){
+          place(d.el, bands[i], d.kind === 'move' ? 'all' : d.kind === 'start' ? 'left' : 'right');
+          return;
+        }
+      }
+      d.el.hidden = true;            // that week is on a page this month does not show
+    }
+
+    function lastShootDay(){
+      const info = currentSchedule && currentSchedule.productionInfo;
+      return (info && info.shootDays && info.shootDays.length) ? info.shootDays[info.shootDays.length - 1] : null;
+    }
+    function phaseEnds(){
+      const o = {};
+      ((currentSchedule && currentSchedule.segments) || []).forEach(s=>{ o[s.key] = s.end ? s.end.getTime() : null; });
+      return o;
+    }
+    // The question (ruling 3): what moved, in the user's terms. The hiatus's own weekdays (its bands run
+    // Monday to Friday), Production's wrap, and any other phase whose end moved.
+    function question(d){
+      const c = d.cur, was = original(d);
+      const lastFri = p=> addDays(endOf(p), -3);
+      const weeks = n=> n + ' week' + (n === 1 ? '' : 's');
+      let msg = d.name.charAt(0).toUpperCase() + d.name.slice(1) + ' now runs ' + fmtDay(c.start) + ' – ' + fmtDay(lastFri(c))
+              + ' (' + weeks(c.weeks) + '). It was ' + fmtDay(was.start) + ' – ' + fmtDay(lastFri(was))
+              + ' (' + weeks(was.weeks) + ').';
+      const wrapNow = lastShootDay();
+      if(d.wrap0 && wrapNow && wrapNow !== d.wrap0){
+        msg += '\n\nProduction now wraps ' + fmtDay(parseDateUTC(wrapNow)) + '. It wrapped ' + fmtDay(parseDateUTC(d.wrap0)) + '.';
+      }
+      const ends = phaseEnds();
+      const moved = ((currentSchedule && currentSchedule.segments) || [])
+        .filter(s=> s.key !== 'production' && d.ends0[s.key] !== undefined && ends[s.key] !== d.ends0[s.key])
+        .map(s=> s.name || s.label || s.key);
+      if(moved.length){
+        msg += '\n\nIt also changes when ' + (moved.length === 1 ? moved[0] + ' ends.'
+             : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1] + ' end.');
+      }
+      return msg;
+    }
+
+    function beginDrag(e, kind, el){
+      if(e.button !== 0 || drag || asking || viewMode !== 'month') return;
+      const band = el._band;
+      if(!band || !wrap.contains(band)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = identify(band);                    // read again: the grid may have moved since the hover
+      if(!id || id.h.locked) return;
+      const h = id.h;
+      if(kind === 'start' && id.week.getTime() !== h.start.getTime()) return;
+      if(kind === 'end' && id.week.getTime() !== addDays(h.end, -7).getTime()) return;
+      const d = {kind, el, h, name: nameOf(band), w0: id.week,
+                 start0: h.start, weeks0: h.weeks, last0: addDays(h.end, -7),
+                 wasStart: h.sEl.value, wasWeeks: h.wEl.value,
+                 maps: {hiatusTexts: Object.assign({}, hiatusTexts), hiatusNameSyncedKeys: Object.assign({}, hiatusNameSyncedKeys),
+                        hiatusColors: Object.assign({}, hiatusColors), hiatusFontSize: Object.assign({}, hiatusFontSize)},
+                 others: h.kind === 'all' ? allPhaseHiatuses().filter(o=> o.sEl !== h.sEl) : [],
+                 wrap0: lastShootDay(), ends0: phaseEnds(), broken: false};
+      d.cur = original(d);
+      // Flush whatever came before into its own step (body-drag's leading push), then hold the writers
+      // until this gesture is settled (ruling 3; per-phase too, which costs nothing and asks nothing).
+      pushUndoSnapshot();
+      holdPersistence();
+      drag = d;
+      hide(el);
+      shield = document.createElement('div');
+      shield.className = 'hiatus-drag-shield' + (kind === 'move' ? ' is-move' : '');
+      document.body.appendChild(shield);
+    }
+
+    async function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hide();
+      if(!d) return;
+      const changed = !samePos(d.cur, original(d));
+      if(changed && d.h.kind === 'all'){
+        asking = true;
+        let keep = false;
+        try {
+          keep = await uiConfirm(question(d), {title: 'Move hiatus', confirmLabel: 'Keep', cancelLabel: 'Undo'});
+        } catch(err){ keep = false; }
+        asking = false;
+        if(!keep){
+          // Undo: exactly what was there, the look included, and NO step banked.
+          writeTo(d, original(d));
+          releasePersistence();
+          return;
+        }
+      }
+      releasePersistence();
+      // ⛔ THE TRAILING PUSH IS THE STEP, as the phase handles'. A drag that ends where it began banks none.
+      if(changed){ pushUndoSnapshot(); markDirty(); }
+    }
+
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const T = dayAtPoint(e.clientX, e.clientY);
+      if(!T) return;
+      const d = drag;
+      let c = target(d, rowWeek(T));
+      // From where the pointer asks toward where it is, one week at a time, so a limit stops it short.
+      while(!samePos(c, d.cur)){
+        if(tryStep(d, c)) break;
+        if(d.broken) return;
+        c = stepToward(d, c, d.cur);
+      }
+      follow(d);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    // Escape puts the hiatus back where the gesture began, and banks nothing (no question either).
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      if(!samePos(drag.cur, original(drag))){ writeTo(drag, original(drag)); drag.cur = original(drag); }
+      endDrag();
+    }, true);
+  })();
+
   // ⛔ Audit M-7: HOLIDAYS covers a fixed span of years (2024-2031 since v1.3.1), and a shoot day
   // outside it skips NO holidays -- the wrap comes out early and the Holidays card lists nothing --
   // which v1.3.0 did in silence. The span is read off the region's own data, never a constant, so a
@@ -19103,7 +19527,10 @@ export function initLegacyApp() {
     // .day-menu / .day-menu-ring added 19 Oct 2026 with the month view's day menu
     // (MONTH-CONTEXT-MENU-PLAN.md): body-level, and a Shift+Cmd+E pressed with it open exports it.
     // .paste-notes-overlay added 20 Oct 2026 with Paste notes… (MONTH-NOTES-PLAN.md §5)
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop').forEach(el=>el.remove());
+    // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
+    // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
+    // makes fresh ones when it boots, so a kept set would be a second, dead one.
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield').forEach(el=>el.remove());
     // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
     // format bar, the Side boxes menu and the drag indicator are all body-level.
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
@@ -19585,11 +20012,34 @@ export function initLegacyApp() {
 
   // Rolling local backup (debounced so typing doesn't hammer IndexedDB).
   let backupTimer = null;
+  let backupPending = false;   // a backup is scheduled and has not been written yet
   function scheduleBackup(){
     clearTimeout(backupTimer);
+    backupPending = true;
     backupTimer = setTimeout(writeBackup, 3000);
   }
+  // ⛔ A HOLD ON EVERYTHING THAT PERSISTS THE CALENDAR: this backup, autosave, and the Save and Undo
+  // keys (HIATUS-DRAG-PLAN.md ruling 3, 19 Oct 2026). A hiatus drag asks Keep or Undo on release with
+  // the move already on screen, and until the user answers, the move is not theirs. Region's question
+  // (confirmRegionChange) solved the same problem by holding the OLD value while it asked. A drag
+  // cannot do that, because the user is looking at the new one, so the writers are held instead.
+  // Taken at the press, released after the answer. A backup that fell due meanwhile is written at
+  // the release, from whatever the answer left.
+  // ⚠️ The press first FLUSHES a pending backup, so edits made in the 3 s before it are not stranded:
+  // a window closed while the question is up would otherwise recover a state older than the drag.
+  let persistHold = 0;
+  let backupHeld = false;
+  function holdPersistence(){
+    if(backupPending){ clearTimeout(backupTimer); writeBackup(); }
+    persistHold++;
+  }
+  function releasePersistence(){
+    if(persistHold > 0) persistHold--;
+    if(!persistHold && backupHeld){ backupHeld = false; scheduleBackup(); }
+  }
   function writeBackup(){
+    if(persistHold){ backupHeld = true; return; }
+    backupPending = false;
     try {
       idbSet(BACKUP_SLOT, { state: captureSnapshot(), at: Date.now(), fileName: (savedFileHandle && savedFileHandle.name) || null });
     } catch(e){ /* non-fatal */ }
@@ -20540,6 +20990,8 @@ export function initLegacyApp() {
       // user's hands. Skip it; the next one comes round in AUTOSAVE_MS, and the crash backup covers
       // the gap. (The half-typed text is not state until it is committed anyway.)
       if(activeNoteEditor || activeMvNote) return;
+      // A hiatus drag is waiting on Keep or Undo (holdPersistence()). The next tick comes round.
+      if(persistHold) return;
       // R4 / audit M-6: paused until the user decides, through Save, what to do about the change.
       if(fileConflict) return;
       try {
@@ -21520,6 +21972,10 @@ export function initLegacyApp() {
     const meta = e.metaKey || e.ctrlKey;
     if(!meta) return;
     const key = e.key.toLowerCase();
+    // ⛔ Not while a hiatus drag waits on Keep or Undo (holdPersistence()). Cmd+S would save a move the
+    // user may still refuse, and Cmd+Z would step back past the press underneath the open question.
+    // Plain Cmd+S is not stopped by appDialogOpen() below, so the hold has to be checked here.
+    if(persistHold && (key === 's' || key === 'z')){ e.preventDefault(); return; }
     if(key === 's'){
       e.preventDefault();
       // ⛔ Not while one of the app's dialogs is open, plain Save included (19 Oct 2026, the dlgkeys

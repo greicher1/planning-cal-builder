@@ -925,6 +925,42 @@ editor's included, is still the field's own undo, and with no dialog all three w
   then removed it. Full gate on build `13d1154f…` (1,510,349 bytes): **1,763 PASS, 0 FAIL, GATE PASSED** (17 min,
   first run, after the other session's gate finished). That is the previous 1,747 plus the 16 new cases. Every frozen
   output is identical to baseline, and `fields.byId` still holds 72 ids.
+### Unreleased — Drag a hiatus in the month view: move it by the week, or change its first or last week (19 Oct 2026)
+
+Owner, 19 Oct 2026, asking first whether hiatus periods could be dragged (they couldn't: their dates were typed in
+the sidebar only), then: *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase
+grips)"*. HIATUS-DRAG-PLAN.md has the plan, the rulings and the as-built record.
+- **Grab a hiatus band anywhere and drag it up or down to move it a week at a time.** A **start grip** sits on its
+  first week, and an **end grip** on its last, to lengthen or shorten it while the other end stays put. A row is a
+  week, so dropping anywhere in a row means that week, a Sunday included. A hiatus is never less than a week long.
+  Both kinds of hiatus work: all-phase, and a phase's own.
+- **The owner's four rulings:**
+  - **A hiatus locked in place can't be dragged.** Its band shows a not-allowed cursor and a tooltip saying to
+    untick *Lock in place*. ⚠️ Every all-phase hiatus starts locked, so on a new calendar the user unlocks one
+    first.
+  - **Production's half days, days off and worked days stay on their dates.**
+  - **Moving an all-phase hiatus asks "Move hiatus": Keep or Undo.** The question names the old and new weeks,
+    Production's new wrap, and any other phase whose end moved. A phase's own hiatus never asks. Undo, Escape mid-drag,
+    or a drag back to where it began leave nothing behind and add no undo step. Keep is one undo step.
+  - **The band's own look comes with it.** That means a colour set on the band, a label typed on the band, and its
+    text size. A lengthened hiatus copies its end week's look onto the added weeks.
+- **Limits:** a dragged all-phase hiatus stops short of overlapping another one (sitting next to it is fine). A
+  phase's own hiatus can't be dragged to where it would no longer pause its phase. A week shared by two overlapping
+  hiatuses offers no drag, because the app can't tell which one you mean. The drag reaches only the month on screen.
+- ⛔ **Nothing is saved while the question is open.** The move is already on screen, so the app holds the crash
+  backup, autosave, and the Cmd/Ctrl+S and Cmd/Ctrl+Z keys until you answer. Plain Cmd+S used to save, and Cmd+Z to
+  undo, underneath any dialog.
+- **No frozen code was edited, and the save format is unchanged** (no new key, no new id). A hiatus band carries no
+  identity in the frozen month view and lets clicks through. So the drag is body-level chrome laid over the band, and
+  each band is identified from its week and the schedule. When the band is ambiguous it gets nothing rather than a
+  guess. The print path hides the chrome, and a shareable copy strips it.
+- **Verified:**
+  - new leg `hiatusdrag.mjs` (H0–H12, trusted CDP input, in `gate.sh`) passes 13/13 on the synthetic
+    `hiatusdrag.sptcal`, after going red on three mutants;
+  - the backup hold checked in the app pane: the backup stayed on the old dates for 21 s with the question open, and
+    caught up one second after Keep;
+  - `npm run check` 40/40;
+  - the full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
 
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 

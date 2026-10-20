@@ -1827,6 +1827,62 @@
   Full day / Off on a hiatus day. Also, CLAUDE.md's "five classes" strip list holds eleven now.
 - ⛔ **Half-day marks stay withdrawn** (owner, 15 Oct 2026). This session's first list of options wrongly offered
   "Half day" in the menu.
+### ◐ 19 Oct 2026: DRAG A HIATUS IN THE MONTH VIEW. COMMITTED AS `fffb589` ON `hiatus-drag`; NOT MERGED, NOT PUSHED ([`HIATUS-DRAG-PLAN.md`](HIATUS-DRAG-PLAN.md); branch `hiatus-drag`, worktree `.claude/worktrees/hiatus-drag`)
+
+- Owner, 19 Oct 2026, after asking whether hiatus periods can be dragged (they couldn't: their dates were typed in the
+  sidebar only): *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase grips).
+  Put the open decisions to me before building."* Plan, rulings and as-built record are in the plan doc (§8, §10).
+- **What it does:** grab a band to move the hiatus a week at a time, or use the start grip on its first week or the
+  end grip on its last. A step is one week, read off the ROW under the pointer (a Sunday is its own row's week). It
+  works on all-phase hiatuses and on a phase's own. The code is `installHiatusDrag()`, right after
+  `installPhaseEdgeHandles`. There are zero frozen edits and no save-format change.
+- **The owner's rulings (picker), two against the recommendation:**
+  - ⭐ **A LOCKED hiatus can't be dragged.** Its band shows a not-allowed layer with a tooltip, and no grips. ⚠️
+    Every all-phase hiatus starts locked (`addHiatusRow()`'s default), so a new calendar has nothing draggable until
+    one is unlocked.
+  - ⭐ **The owner's own words: "ask for unlocked all phase hiatuses, dont ask for per phase hiatuses".** Read as:
+    every all-phase drag that changed something asks *Move hiatus*, Keep or Undo, whether or not notes exist. ✅
+    **The owner confirmed that reading (19 Oct 2026): "Keep it as built".**
+  - Production's day marks stay on their dates (not a mover, no `asShootDayMove()`).
+  - The band's look (`hiatusTexts` / `hiatusNameSyncedKeys` / `hiatusColors` / `hiatusFontSize`) comes with it.
+- ⛔ **NEW: `holdPersistence()` / `releasePersistence()`, beside `writeBackup()`.** While the question is open, the
+  move is on screen but not yet the user's. So the hold:
+  - stops the crash backup (one that fell due is written at the release);
+  - skips the autosave tick;
+  - swallows Cmd/Ctrl+S and Cmd/Ctrl+Z in the global shortcut handler.
+
+  ⚠️ **This closed something already true of EVERY dialog:** plain Cmd+S is not stopped by `appDialogOpen()`, and
+  Cmd+Z ran under any open modal. Only this question is held. The others are as they were, which may be worth a
+  look of its own.
+- ⚠️ **Three facts that shaped it, all easy to miss:**
+  - A month-view hiatus band carries NO identity: it is `place()`d with an empty data slot. So each band is
+    identified from its row's week and the schedule, ties between two phases' own bands are broken on the label,
+    and an ambiguous band gets nothing.
+  - **Lanes are packed per WEEK** (`takeLane()` searches from lane 0 every week), so a band's `grid-row` says
+    nothing about which phase it belongs to. The plan first assumed it did.
+  - Bands are click-through (`.mv-bars{pointer-events:none}`), so hover is found by rect. The gesture lives on a
+    body-level layer, which `buildSavedHtml()` now strips along with the grips and the shield.
+- ⚠️ **Found while building:**
+  - `daySituation()`'s comment says Production's own hiatus is not painted in the month view. It is: seen in the
+    pane as "Production Hiatus" in Production's lane. The comment is stale. It was left unedited (another
+    session's area).
+  - Typing a new hiatus date in the sidebar still leaves the band's hand-set colour, typed label and size on the OLD
+    weeks, while the shift tools and now the drag carry them. That gap is unchanged and unscheduled.
+  - The Help overlay has no month-view drag section at all, for pills, phase grips or this.
+- **Proof so far:**
+  - `tests/harness/hiatusdrag.mjs` (H0–H12) passes 13/13 on the synthetic `tests/fixtures/hiatusdrag.sptcal` and is
+    in `gate.sh` after `phaseedge`. It went red on three mutants first (A: H0, H1, H4, H5, H9, H10; B: H1, H6, H7;
+    C: H2, H8, H11), each restored and `cmp`-checked.
+  - The backup half of the hold was checked in the app pane, because IndexedDB never settles headless.
+  - `npm run check` 40/40.
+  - The full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
+- **State:** committed as `fffb589` on branch `hiatus-drag` (owner's picker, 19 Oct 2026). Asked about main, the
+  owner chose **"Leave it on its branch"**: not merged into `main`, not pushed. Merge once the main checkout has no
+  other session's uncommitted edits to `src/legacy/app.js`.
+- ⚠️ **Why a worktree:** at the time, three other sessions were running in the main checkout and one was editing
+  `src/legacy/app.js` (Production's episode boundary handles). The new IIFE sits in a different region, but
+  `pillRange` / `visibleRect` / `dayAtPoint` / `cellDate` are shared module-scope helpers. Re-run `pilldrag`,
+  `phaseedge` and `hiatusdrag` after merging.
 
 ### ◐ 16 Oct 2026: A PHASE'S UNIT PICKER READS "BY [WEEKS ▾]" ABOVE ITS BOX (branch `by-unit`, worktree `.claude/worktrees/by-unit`)
 
