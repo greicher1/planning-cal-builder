@@ -47,8 +47,9 @@
     (R11). Not covered by a case: Anchor To (the same `shiftCalendar(delta)` path as Shift All), and
     `weekAutoTexts()` reading the whole calendar.
   - `restore` alone: gate 5 gains exactly `cal-range-start: ''` and `cal-range-end: ''`, nothing lost or changed;
-    `rows`, `cells`, `gridWidthPt`, `bytes`, `sig` identical, 0 clipped. ⚠️ **Gate 5 needs a re-cut, 74 → 76 ids**,
-    on the owner's sign-off, as every earlier id addition had.
+    `rows`, `cells`, `gridWidthPt`, `bytes`, `sig` identical, 0 clipped. ✅ **Gate 5 re-cut 74 → 76 ids on the
+    owner's sign-off** (picker, 20 Oct 2026: "Re-cut it"), commit `a624eb1`, written up in the baseline README. The
+    two lines were inserted after `show-version` by a script that aborted on any other difference.
   - `npm run check` 40/40; `check-refs.py` CLEAN. Dev pane: the card under Show info, the strip, the waterfall from
     8/31/26 with "Writer's Rm wk 7"-style labels continuing, and the month view byte-identical across 13 months with
     and without a range.
@@ -56,7 +57,8 @@
   padding (`padStart` … `overallEnd`) and the swap call site (`cut` / `wf` / the `schedule` literal, whose keys are
   now spelled out). `segCol` and the placement loop are untouched. Column reuse changes `col` upstream of the cut,
   so the two compose: the cut only slices weeks.
-- ⏭ **Next:** the owner's sign-off on the gate 5 re-cut, a full gate, then the merge picker.
+- ⏭ **Next:** the full gate on build `af58730a…` (queued 15:55 behind two other sessions' gates, port 8969, log in
+  this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 
