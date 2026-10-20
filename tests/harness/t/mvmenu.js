@@ -383,12 +383,27 @@ window.addEventListener('load', function () { (async function () {
 
     // L3: a day OUTSIDE the shoot, where a left-click opened nothing before (the popover's `if(!sit) return`).
     // Sun 28 Jun is the day before the first shoot day, drawn greyed out at the start of July's grid.
+    // ⭐ CHANGED DELIBERATELY 20 Oct 2026 (LABELS-SETUP-PLAN.md item 5, the owner's "The weekend just before"):
+    // Sat 27 and Sun 28 Jun are the weekend just before Mon 29 Jun's first shoot day, so 28 Jun now HAS a
+    // shoot-day section, "Not a shoot day", offering Weekend — not shot (checked) and Work this day, which
+    // writes 'lead', never 'on'. It used to assert no section here. L3b holds the old assertion on a day that
+    // is still outside: Fri 26 Jun, a weekday, which the weekend stops at.
     var l3 = await lclick('2026-06-28', 'num');
     var li3 = menuInfo();
-    add('L3', 'Sun 28 Jun, the day before the shoot (an out-of-month day in July\'s grid): a left-click opens the menu too, with no shoot-day section and only the Shift + right-click line in its footer',
-      l3.inCell && !!li3 && li3.day === '2026-06-28' && eq(li3.sections, ['day', 'out']) && shootRows().length === 0 && eq(footLines(), FOOT_SHOOT.slice(1)),
-      {hit: l3.el && l3.el.className, info: li3 && {day: li3.day, sections: li3.sections}, foot: footLines()}, 'day, out');
+    add('L3', '⭐ Sun 28 Jun, the day before the shoot (an out-of-month day in July\'s grid) and the weekend just before it (item 5): a left-click opens the menu with a shoot-day section, "Not a shoot day": Weekend — not shot (checked) · Work this day (data-ov "lead"), and the double-click line in its footer',
+      l3.inCell && !!li3 && li3.day === '2026-06-28' && eq(li3.sections, ['day', 'shoot', 'out']) && shootLabel() === 'Not a shoot day'
+        && eq(shootRows().map(function (r) { return [r.ov, r.text, r.checked]; }), [['', 'Weekend — not shot', 'true'], ['lead', 'Work this day', 'false']])
+        && eq(footLines(), FOOT_SHOOT),
+      {hit: l3.el && l3.el.className, info: li3 && {day: li3.day, sections: li3.sections}, label: shootLabel(), rows: shootRows(), foot: footLines()}, 'day, shoot (lead), out');
     key('Escape');
+    await toMonth('June 2026');
+    var l3b = await lclick('2026-06-26', 'num');
+    var li3b = menuInfo();
+    add('L3b', 'Fri 26 Jun, a weekday before that weekend: a left-click opens the menu with no shoot-day section and only the Shift + right-click line in its footer',
+      l3b.inCell && !!li3b && li3b.day === '2026-06-26' && eq(li3b.sections, ['day', 'out']) && shootRows().length === 0 && eq(footLines(), FOOT_SHOOT.slice(1)),
+      {hit: l3b.el && l3b.el.className, info: li3b && {day: li3b.day, sections: li3b.sections}, foot: footLines()}, 'day, out');
+    key('Escape');
+    await toMonth('July 2026');
 
     // L4: "+" slots, notes and bars keep their own left-clicks (they sit in .mv-bars, above the cell).
     var l4 = {};
@@ -1188,10 +1203,14 @@ window.addEventListener('load', function () { (async function () {
     await rclick('2026-12-22', 'mid');
     var v1 = {sections: sections(), band: secInfo('hiatus')};
     key('Escape');
-    add('V1', 'Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with Lock in place (a checked menuitemcheckbox, "Stays on these dates when the calendar shifts"), Show in Phases card, and a red Remove hiatus…',
+    // Since 20 Oct 2026 (LABELS-SETUP-PLAN.md item 9) the section also carries Number weeks (the row's own new
+    // box, unticked) and Colour… after Lock; the labelsetup leg drives both.
+    add('V1', 'Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with Lock in place (a checked menuitemcheckbox, "Stays on these dates when the calendar shifts"), Number weeks (unchecked), Colour…, Show in Phases card, and a red Remove hiatus…',
       eq(v1.sections, ['day', 'hiatus', 'out']) && v1.band.length === 1 && v1.band[0].label === BAND
         && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger]; }),
               [['band-lock', 'menuitemcheckbox', 'true', 'Lock in place', 'Stays on these dates when the calendar shifts', false],
+               ['band-num', 'menuitemcheckbox', 'false', 'Number weeks', 'Labels its weeks Hiatus Week 1, 2…', false],
+               ['band-colour', 'menuitem', null, 'Colour…', '', false],
                ['band-show', 'menuitem', null, 'Show in Phases card', '', false],
                ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true]]),
       v1, 'day, hiatus (' + BAND + '), out');
@@ -1429,7 +1448,7 @@ window.addEventListener('load', function () { (async function () {
     var ids9 = [].concat.apply([], v9.bands.map(function (b) { return b[1]; }));
     add('V9', 'Two hiatuses on Tue 22 Dec (halfdays\' 21 Dec – 3 Jan and a new 21 Dec – 27 Dec) get a section each, labelled by their dates, with no item id repeated',
       eq(v9.sections, ['day', 'hiatus', 'hiatus', 'out']) && eq(v9.bands.map(function (b) { return b[0]; }), ['Hiatus · 21 Dec – 3 Jan', 'Hiatus · 21 Dec – 27 Dec'])
-        && ids9.length === 6 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
+        && ids9.length === 10 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
       v9, 'two sections, by dates');
 
     out.health = T.appHealth();
