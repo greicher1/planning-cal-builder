@@ -4,6 +4,28 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — COMMITTED on branch `offweek-step-b` (worktree `.claude/worktrees/offweek-step-b`), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner: *"Do this task here: 'Off weeks step B: month view numbers weeks like waterfall'"*.
+  Built, gated, contact-sheeted. The owner signed off (picker: "Re-cut both", "Commit after green"), gates 10 and 13
+  were re-cut, and the gate re-ran green. Committed in three commits on `offweek-step-b`: the change with its leg,
+  the baseline re-cut, the docs. **Not merged into `main`, not pushed**: both are the owner's call.
+- **The change** (OFF-WEEK-PLAN §6 (a), §12): the week loop records `seg.weekNo[weekIso] = num`, and `prodWeekLabel()`
+  reads it, falling back to the old calendar count only for a week never numbered. The month view, both month PDFs, the
+  grey Week text and the day menu's header now say what the waterfall says. No frozen code, no save-format change.
+  Build `eadef87e…`.
+- **Proof:**
+  - New leg `weeknum` on seven calendars: 343 bars agree with the waterfall. Red on the pre-change build on all seven,
+    because each runs a phase through a hiatus.
+  - Full gate on build `eadef87e…` (port 8963, 22:34–23:00): **1,856 PASS, 45 FAIL**. Gates 1–5 green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids); `weeknum` 27/27; `offweek` 32/32. 30 failures are the month baselines, as expected: all ten gate-10 print documents and all twenty gate-13 written PDFs moved, and **every difference is a Week number**. The documents are identical once each `Week <n>` is masked; the PDFs' words, page by page, are too. Changed pages differ by 0.01–0.06% of pixels, the digits only. The other 15 (`onecol`, `pwagatelogic`, `loadcarry`, 12 `pilllabel` checks on `shootorder` and `halfdays`) were no-result or "months 1 vs 16" month-walk flakes, and passed when re-run alone with the gate's own judging (17, 10, 6, 29, 29). A second re-run, beside another session's gate, failed one different `pilllabel (halfdays)` check (W1) the same way.
+- ✅ **After the owner's sign-off ("Re-cut both", picker) gates 10 and 13 were re-cut, and the full gate re-ran: 1,928 PASS, 0 FAIL, GATE PASSED** (build `eadef87e…`, port 8963, 23:58–00:17, alone): 0 clipped, waterfall PDF and Excel identical, 74 ids, all ten print documents and all twenty written PDFs identical to the new baselines, `weeknum` 27/27, `offweek` 32/32, `pilllabel` all green.
+- ⚠️ **Queueing, again:** two other sessions' gates took the free slot ahead of a waiter polling every 15 s. Polling
+  every 3 s with a 2–6 s random pause got it.
+- ⏭ **Next:** merge `offweek-step-b` into `main` and push, each on the owner's word. Raise the empty Q3 week with the
+  owner (step A entry). A version cut is overdue (`version.json` 1.4.3).
+  - ⚠️ PHASE-NUMBERING (branch `phase-numbering`, `56603e8`, not merged) also edits `prodWeekLabel()`. Whichever
+    lands second merges by hand and re-runs `weeknum` and `mvmenu`.
+
 ### ✅ 19 Oct 2026: OFF WEEKS (STEP A) ARE LIVE AT `6e868b1` (verified byte-identical, `42f69b58`)
 
 - ✅ **PUSHED AND LIVE.** Owner: *"Push local main to origin now, then verify the live site serves the gated build."*

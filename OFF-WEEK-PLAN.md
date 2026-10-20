@@ -1,8 +1,8 @@
 # OFF-WEEK-PLAN.md
 
-**Status: STEP A BUILT AND COMMITTED 19 Oct 2026 on branch `off-week`** (`9174e43`, `f79adc9` the frozen band alone, then the leg and docs; §11). Not merged, not pushed. Q1–Q7 were all answered by
+**Status: STEP A LIVE (`6e868b1`); STEP B BUILT, GATED AND COMMITTED 19–20 Oct 2026 on branch `offweek-step-b`, month baselines re-cut on the owner's sign-off (§12). Not merged, not pushed.** Step A was committed on branch `off-week` (`9174e43`, `f79adc9` the frozen band alone, then the leg and docs; §11). Not merged, not pushed. Q1–Q7 were all answered by
 the owner the same day (§8). That includes Q7, the sign-off on §3.5's frozen edit to `renderMonthView`, approved
-against §3.5's five-point gate. Step B is planned and ruled, not built.
+against §3.5's five-point gate.
 **Written against:** `e86aa5e`. Every number in §2 was measured that day on a scratch build of `e86aa5e`
 (`05169b7f…`, byte-identical to the live app), not read off the code.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) → [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md)
@@ -422,3 +422,32 @@ gate and show me the month PDF contact sheets before committing. Don't push."*
    arise on this calendar.
 4. The band takes the lane Production's bars use in the weeks either side (lane 1 on the fixture), by the same
    first-fit rule as an own-hiatus band.
+
+---
+
+## 12. Step B as built (19 Oct 2026, branch `offweek-step-b`)
+
+Owner: *"Do this task here: 'Off weeks step B: month view numbers weeks like waterfall'"*, ruled earlier as Q5 (a) and
+Q6 (built separately).
+
+**The code, exactly §6 (a), no frozen code:**
+- The week loop: `(ph.weekNo || (ph.weekNo = {}))[isoOf(weekStart)] = num`, beside `weekCounters[ph.key]++`. `ph` is the
+  very object `schedule.segments` carries, so the month view reads what the waterfall printed.
+- `prodWeekLabel()`: the recorded number for `mondayOf(date)`, else the old calendar count. It never counts again.
+- Build `eadef87e…`. Pre-change build `42f69b58…` (the live app).
+
+**Proof (the leg, `weeknum`):** N0 on seven calendars (`dayoverrides`, `offweek`, `carry-rich`, `customunits`,
+`blocks`, `halfdays`, `episodeprep`): 343 bars, every one naming the waterfall's number. The fixed cases N2–N6 and D1,
+the day menu's header, also hold. **Red on the pre-change build on all seven:** each runs a phase through a hiatus.
+That is the "most calendars" of §2, measured.
+
+**The gate:** Full gate on build `eadef87e…` (port 8963, 22:34–23:00): **1,856 PASS, 45 FAIL**. Gates 1–5 green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids); `weeknum` 27/27; `offweek` 32/32. 30 failures are the month baselines, as expected: all ten gate-10 print documents and all twenty gate-13 written PDFs moved, and **every difference is a Week number**. The documents are identical once each `Week <n>` is masked; the PDFs' words, page by page, are too. Changed pages differ by 0.01–0.06% of pixels, the digits only. The other 15 (`onecol`, `pwagatelogic`, `loadcarry`, 12 `pilllabel` checks on `shootorder` and `halfdays`) were no-result or "months 1 vs 16" month-walk flakes, and passed when re-run alone with the gate's own judging (17, 10, 6, 29, 29). A second re-run, beside another session's gate, failed one different `pilllabel (halfdays)` check (W1) the same way.
+
+**The renumbering, counted** (labels whose number changed, of all "Week N" labels): in the print documents, 22 of 158
+on the reference calendar (Post after the winter hiatus), and 64 of 142 on `dayoverrides` (Production after Summer
+Break, then Post). In the written PDFs, from 3 of 14 (`colswap-simpost-refuse`) to 42 of 120 (`stintswap-reshape`).
+Contact sheets (`monthbase.py sheets`, baseline against this build) for all 17 gate-13 calendars plus `offweek` went to
+the owner on 19 Oct 2026. **After the owner's sign-off ("Re-cut both", picker) gates 10 and 13 were re-cut, and the full gate re-ran: 1,928 PASS, 0 FAIL, GATE PASSED** (build `eadef87e…`, port 8963, 23:58–00:17, alone): 0 clipped, waterfall PDF and Excel identical, 74 ids, all ten print documents and all twenty written PDFs identical to the new baselines, `weeknum` 27/27, `offweek` 32/32, `pilllabel` all green. Both baseline READMEs record the re-cut.
+
+⚠️ **Learned:** `pdftotext -layout` re-spaces its columns when a label gets a digit shorter, so a Week-only change reads
+as "text moved" there. Compare the words in reading order, page by page, with whitespace collapsed.

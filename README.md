@@ -28,6 +28,24 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — The month view numbers weeks as the waterfall does (19 Oct 2026)
+
+OFF-WEEK-PLAN step B, owner ruling Q5 ("match the waterfall"), built separately from step A (Q6). The month view
+counted CALENDAR weeks from a phase's start, while the waterfall, Excel and the waterfall PDF skip hiatus weeks. So
+after any hiatus the two views named the same week differently: on `dayoverrides`, the week of 7/20/26 read
+*Production wk 3* in the waterfall but *Production Week 4* in the month view, and across the winter hiatus *Post wk 8*
+vs *Post Week 10*. Every calendar where a phase runs through a hiatus showed this, which is most of them.
+- **Now one number:** the waterfall's week loop records each number it hands out on the phase's segment
+  (`seg.weekNo`), and `prodWeekLabel()` reads it. So the month view, both month PDFs, a Week-labelled Production bar's
+  grey text and the day menu's header all say what the waterfall says. All-phase hiatus weeks, a phase's own hiatus
+  and Production's off weeks are not counted, in either view. There is no second copy of the counting rule.
+- **Unchanged:** the waterfall, Excel and the waterfall PDF (they never read the month label); every date; any phase
+  with no hiatus inside its run (its calendar weeks and its worked weeks are the same numbers). No frozen code, no
+  save-format change.
+- **Verified:** new leg `weeknum` on seven calendars. Every month-view bar that names a week (343 bars) names the
+  waterfall's number for that phase and week, with fixed cases for `dayoverrides` and `offweek` and the day menu's
+  header. It is red on the pre-change build on all seven, each of which runs a phase through a hiatus.
+  Full gate on build `eadef87e…` (port 8963, 22:34–23:00): **1,856 PASS, 45 FAIL**. Gates 1–5 green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids); `weeknum` 27/27; `offweek` 32/32. 30 failures are the month baselines, as expected: all ten gate-10 print documents and all twenty gate-13 written PDFs moved, and **every difference is a Week number**. The documents are identical once each `Week <n>` is masked; the PDFs' words, page by page, are too. Changed pages differ by 0.01–0.06% of pixels, the digits only. The other 15 (`onecol`, `pwagatelogic`, `loadcarry`, 12 `pilllabel` checks on `shootorder` and `halfdays`) were no-result or "months 1 vs 16" month-walk flakes, and passed when re-run alone with the gate's own judging (17, 10, 6, 29, 29). A second re-run, beside another session's gate, failed one different `pilllabel (halfdays)` check (W1) the same way. **After the owner's sign-off ("Re-cut both", picker) gates 10 and 13 were re-cut, and the full gate re-ran: 1,928 PASS, 0 FAIL, GATE PASSED** (build `eadef87e…`, port 8963, 23:58–00:17, alone): 0 clipped, waterfall PDF and Excel identical, 74 ids, all ten print documents and all twenty written PDFs identical to the new baselines, `weeknum` 27/27, `offweek` 32/32, `pilllabel` all green.
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
