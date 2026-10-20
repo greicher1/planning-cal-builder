@@ -17,7 +17,13 @@ From a reference calendar the app could not lay out (kept out of the repo):
 - **Tie:** when two phases end that week, it takes the column of the phase it "starts after".
 - **Otherwise** it takes the lowest free column, and failing that a new column on the right.
 - **Opt-in per calendar, saved in the file.** Every existing calendar and export stays byte-identical.
-- **Override from both** the phase row in the sidebar and a grid gesture.
+- ~~Override from both the phase row in the sidebar and a grid gesture.~~ **Simplified the same day** (owner:
+  *"we dont want the settings for this column reuse to be too complicated/hard to understand. This goes for
+  everything. The app needs to be easy for anyone to use"*). The result:
+  - **one checkbox**, "Reuse empty columns", in Settings;
+  - any wrong pick is fixed by **dragging the block in the grid**;
+  - a phase row shows a note **only when something was moved by hand**;
+  - **no dropdowns, no "Own column"**.
 
 ## 2. Why today's rule cannot do it, and why swaps cannot either
 
@@ -34,10 +40,12 @@ can never remove one. The only place to change the count is where `col` is assig
 
 With the calendar's switch ON, the `segCol` block runs this instead (start order, ties by phase order, as today):
 
-1. **Free columns** are those whose last occupant has ended by this segment's start (`colFreeAt <= start`).
-   Today's "right of every running phase" floor (`minCol`) is NOT applied.
-2. **Override.** If the phase has an override "same column as X", X is placed, and X's column is free at this
-   start, take it.
+1. **Free columns** are those whose last occupant's final week row ends before this segment's first week row.
+   Week rows, not raw dates, so two snap-off phases that meet mid-week can never share a cell. For an all-snapped
+   calendar this is today's `colFreeAt <= start`. Today's "right of every running phase" floor (`minCol`) is NOT
+   applied.
+2. **Moved by hand.** If the phase was dragged into X's column (stored as "follows X"), X is placed, and X's column
+   is free at this start, take it.
 3. **Handoff.** Otherwise, take a free column whose last occupant ended the week this segment starts: same Monday,
    or separated only by all-phase hiatus weeks (ruled Q5).
 4. **Tie among handoffs:** the column of this phase's predecessor in `PHASE_CHAIN` (the phase its "↳ Start
@@ -59,29 +67,30 @@ data, so **no frozen edit** is needed, and the switch OFF runs today's code path
 earlier phase in the fixed `PHASE_CHAIN`, which lists the six built-ins only. Custom phases have no predecessor,
 so for them rule 4 falls back to the leftmost.
 
-## 4. The per-phase override
+## 4. Moving a phase by hand (simplified)
 
-- **Sidebar:** a "Column" select on each phase row, shown only while the switch is on. Options: Auto, Own column
-  (ruled Q4: never takes a freed column, always opens a new one on the right), and "Same column as <phase>" for
-  each phase that starts earlier.
-- **Grid gesture** (ruled Q3): drag a block's swap knob onto a column that is free for the phase's whole run, and
-  the phase moves in. The gesture stores "Same column as <the phase that last held that column>". Dropped onto a
-  busy column, the knob swaps, as today. A free column that no earlier phase ever held has nobody to follow, so
-  the drop is refused with a message on the chip, as refused swaps are.
-- **Can't be honoured** (X still running at this start, X unscheduled, or another phase took the column first):
-  placement falls back to Auto, and the row says why (ruled Q6). The stored choice is kept, never deleted, as stale
-  swaps are, so it applies again once it fits and a temporary typo cannot destroy it.
+- **The only control is the grid's existing drag.** With the checkbox on, drag a block's swap knob onto a column
+  that is free for the phase's whole run, and the phase moves in. That stores "follows <the phase that last held
+  that column>". Dropped onto a busy column, the knob swaps, as today. A free column that no earlier phase ever
+  held has nobody to follow, so that drop is refused on the chip, as refused swaps are. Nothing new to learn: it
+  is the drag Swap Column already uses.
+- **The phase row says nothing unless the phase was moved by hand:**
+  - honoured: "Column set by hand · Reset" (Reset clears it, one undo step);
+  - can't be honoured, because X is still running at this start, X is unscheduled, or another phase holds the
+    column: "Put back automatically: <phase> is in that column then · Reset" (ruled Q6). The choice is kept, never
+    deleted, as stale swaps are, so it applies again once it fits.
+- No per-row dropdown, and no "Own column" (Q4 withdrawn by the simplification).
 
 ## 5. Save format
 
 - `colReuse` (boolean) in `captureSnapshot()`. Absent means off, today's layout.
-- `colFollow` (`{ phaseKey: otherPhaseKey | 'own' }`) in `captureSnapshot()`. Absent means `{}`.
+- `colFollow` (`{ phaseKey: otherPhaseKey }`) in `captureSnapshot()`. Absent means `{}`.
 - Both restored unconditionally in `applyStateSnapshot()`, reset by New, part of undo.
 - Keyed by phase key, as the swap stores are: stable under renames and date edits.
 - A file from this build opened in an older build loses only the reuse, which an older build can't draw anyway.
   No `SNAPSHOT_VERSION` bump.
-- The switch and the select are controls whose values live in these stores, not in `fields.byId`. Each gets its
-  own id and is excluded from `collectFieldValues()` the way `.tools-menu` is, so nothing is saved twice.
+- The checkbox's value lives in `colReuse`, not in `fields.byId`. It is excluded from `collectFieldValues()` the
+  way `.tools-menu` is, so nothing is saved twice.
 
 ## 6. What else reads columns, and what happens to it
 
@@ -106,16 +115,18 @@ so for them rule 4 falls back to the leftmost.
   - override honoured, then refused with its message;
   - save → load round trip;
   - undo of the switch;
-  - Excel's columns and the waterfall PDF's text runs agree with the screen.
-  - It must be red on the pre-change build.
+  - Excel puts each phase in the column the screen does (read through the page's ExcelJS), and the waterfall
+    PDF exports. The PDF's columns come from the same frozen `computeBlockLayout` the screen and Excel read,
+    and its text is centred, so a text-run x position would prove nothing a column check doesn't.
+  - It must be red on the pre-change build. ✅ It is: LIVE throws (no box), RESTORE opens with the old layout.
 - **Inertness:** the full gate with the switch off. Waterfall PDF and every Excel part byte-identical, 0 clipped,
   `fields.byId` count unchanged.
 
 ## 8. Steps
 
 1. Engine: the rule (§3) behind `colReuse`, plus `colFollow`. Save, restore, undo, and Q7's width clearing.
-2. Sidebar: the switch, in a card of its own in the Settings tab (ruled Q8); the Settings-window session re-homes
-   it. Then the Column select with its can't-honour message.
+2. The "Reuse empty columns" checkbox, in a card of its own in the Settings tab (ruled Q8), with one line under it.
+   The Settings-window session re-homes it. Then the row note (§4).
 3. Grid gesture: drag the knob into a free column (§4).
 4. Fixtures, leg, full gate, changelog, HANDOFF.
 
@@ -123,8 +134,12 @@ so for them rule 4 falls back to the leftmost.
 
 - **Q1** When the chain doesn't settle a tie (custom phases): **the leftmost.**
 - **Q2** **Production's column goes left** when two columns first appear in the same week of a year.
-- **Q3** **Drag into a free column**, through the existing swap knob.
-- **Q4** **Yes**, the select offers "Own column".
+- **Q3** **Drag into a free column**, through the existing swap knob. After the simplification it is the ONLY way
+  to move a phase by hand.
+- **Q4** ~~Yes, the select offers "Own column".~~ Withdrawn: no select, no "Own column".
+- **Simplification (owner, 20 Oct 2026, after Q1–Q8):** one checkbox, the drag, and a row note only when
+  something was moved by hand. The owner asked whether Swap Column alone could do this; it cannot, because a swap
+  never removes a column (§2).
 - **Q5** **Yes**, a handoff counts across all-phase hiatus weeks.
 - **Q6** A can't-be-honoured override falls back to **Auto with a note on the row**; the choice is kept.
 - **Q7** Turning the switch on or off **clears hand-dragged widths in the years whose columns change**, one undo.

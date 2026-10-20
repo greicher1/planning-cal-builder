@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Reuse empty columns": a phase can take over the column of one that just finished (20 Oct 2026)
+
+The owner shared a reference waterfall that keeps two or three steady columns across several years. The app could
+build every phase and week count of it, but not its layout. A phase that starts while another runs always went to
+that phase's right, so a column freed on the left was never reused, and 2–3 extra columns piled up per year. Swap
+Column couldn't fix it: a swap trades two columns' places and never removes one. Ruled by picker (COLUMN-REUSE-PLAN.md
+§9), then simplified by the owner: *"we dont want the settings for this column reuse to be too complicated/hard to
+understand. This goes for everything."*
+- **One box, Settings ▸ Preferences ▸ Reuse empty columns**, with one line under it. Ticked, a phase that starts the
+  week another ends moves into that column, even across an all-phase hiatus. On a tie it follows the built-in phase
+  its "Start after" button names, and otherwise the leftmost. With no handoff it takes the lowest free column, or a
+  new one. When two columns start a year together, Production's goes on the left.
+- **To fix a pick, drag in the grid.** Select a whole block (Swap Column), and the knob beside a free column moves
+  the phase in. Onto a busy column it swaps, as before. Only then does the phase's row get a note: "Moved by hand
+  into <phase>'s column · Reset". If the move can't apply (say the other phase now runs longer), the note turns
+  amber, says why, and the move applies again once it fits.
+- **Unticked, nothing changes.** Every calendar opens unticked, and the box adds nothing to the saved file until it's
+  used (`colReuse`, `colFollow`, both absent when unused). It is one undo step. Turning it on or off resets
+  hand-dragged column widths only in years whose columns change.
+- **No frozen edit.** Only the column assignment in `computeSchedule` changes; the frozen layout functions, Excel and
+  both waterfall PDFs read it as data.
+- **Verified:** new leg `colreuse`, on a synthetic 2030–2032 calendar with one phase per rule. LIVE has 21 gate checks:
+  every rule, the drag, the note, Reset, the width rule, undo/redo, the save format, and Excel's columns against the
+  screen. RESTORE (4 checks) opens `tests/fixtures/colreuse.sptcal`. It is red on the pre-change build. By hand in the app pane,
+  real clicks on Reset and on the knob moved the phase, 0 console errors. Full gate: see HANDOFF.
+
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),
