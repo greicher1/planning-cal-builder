@@ -1,6 +1,7 @@
 # SIDE-BOXES-PLAN.md
 
-**Status: PLANNED, NOT BUILT.** Waiting on the owner's answers to §9 and the frozen-edit sign-off in §6.
+**Status: RULED 20 Oct 2026, BUILDING.** The owner answered all eight questions in §9 by picker, each as recommended,
+and approved the frozen edits E1–E6 (§6). Nothing is merged or pushed.
 **Branch:** `claude/side-boxes-129c72` (worktree `.claude/worktrees/side-boxes-129c72`).
 **Written against:** `670a591`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) (top entry, "RULED, NOT YET PLANNED", ruling 7)
@@ -320,11 +321,14 @@ Each step is committed on this branch with its own leg cases.
 
 ---
 
-## 9. Questions for the owner
+## 9. Rulings (owner, 20 Oct 2026, by picker)
 
-Recommended answers first; the plan above is written as if each recommendation is taken.
+✅ **Every answer was the recommended one**, so the plan above stands as written. The owner's picks, verbatim:
+*"Grid order, joined"*; *"Hiatus red, if one shows"*, *"Sim Post yellow"*, *"Any row can be hidden"* (Notes purple
+not picked); *"1 col + spacer, row 1"*; *"Grid + boxes together"*; *"Grid + boxes"* (header); *"Full line width"*;
+*"Preview toolbar menu"*; *"Approve E1–E6"*.
 
-| # | Question | Recommended | Alternatives |
+| # | Question | ✅ Ruled | Not chosen |
 |---|---|---|---|
 | Q1 | Key rows: what order, and what does a shared colour say? | **Order the phases first appear down the waterfall; a shared colour reads "Pre Prep / Prod Prep"; hiatus last** | Sidebar order; first phase's name only |
 | Q2 | Which rows besides the phases? | **Hiatus red when the calendar shows a hiatus; Simultaneous Post yellow when it shows; any row can be hidden (× on the row, restorable)** | Hiatus always; Notes purple too; no hiding |
