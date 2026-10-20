@@ -1558,6 +1558,11 @@ done
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
+# hdrrow guards the waterfall's header text and dates (owner rulings 2, 4 and 10, 20 Oct 2026; HEADER-ROW-PLAN.md):
+# Header: Off, the 1/6/2025 date format and custom column headings -- each inert by default (its I cases), each
+# driven through its real control and read back from the screen, the workbook and the waterfall PDF, each one undo
+# step, saved, loaded and immune to the M-5 trap. Red on the pre-change build; eight mutants, each red. Its own
+# line, mid-list, so sessions appending at the end never conflict with it.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1572,6 +1577,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               regioncaveat:-:120 simpostlabel:-:120 prodspan:-:150 winansi:-:150 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
+              hdrrow:-:400 \
               filekeys:v1.4.2-saved:150 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \

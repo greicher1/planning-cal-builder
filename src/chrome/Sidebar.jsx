@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading, IconColumns } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 
@@ -467,6 +467,55 @@ export function HeadersCard() {
       </h2>
       <div className="side-block">
         <HeaderPresets />
+      </div>
+    </section>
+  )
+}
+
+// The waterfall's own CALENDAR settings (owner rulings 2 and 4, 20 Oct 2026; HEADER-ROW-PLAN.md): how
+// its dates read, and whether its header row takes typed headings. "For now" -- the Settings window
+// session re-homes calendar settings when the branches merge.
+//
+// ⛔ CALENDAR DATA, NOT PREFERENCES, although the card carries `prefs-card`. That class is here for its
+// one job: collectFieldValues() skips it, so these id'd controls never enter fields.byId (74 ids). Each
+// value travels as its own captureSnapshot() key instead -- `dateFormat`, `headerRowCustom` -- the
+// #one-col-btn arrangement. ⛔ Moving a control out of a .prefs-card would put it in the file twice.
+// ⛔ UNCONTROLLED: the engine writes .value / .checked (reflectDateFormat, reflectHeaderRowCustom) and
+// catches 'change' on document. A controlled input would fight it on every commit.
+// Hidden in the Month view (`pref-view-sheet`, legacy.css): nothing here reaches the month.
+export function WaterfallLayoutCard() {
+  return (
+    <section className="card prefs-card pref-view-sheet" data-tab="settings">
+      <h2>
+        <IconColumns className="card-ic" /><span>Waterfall Layout</span>
+        <InfoHint label="Waterfall Layout" width={320}>
+          How the waterfall&rsquo;s dates and column headings read, on screen and in Excel and the
+          PDF. With Custom Column Headings on, the year moves over the Date column and you click any
+          heading to type your own; neighbouring columns with the same heading merge. These belong to
+          the calendar, so they travel with a file you send.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
+        <Group justify="space-between" wrap="nowrap" gap="sm">
+          <Text component="label" htmlFor="wf-date-format" size="sm" style={{ cursor: 'pointer' }}>
+            Dates
+          </Text>
+          <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
+                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
+            <option value="">1/6/25</option>
+            <option value="m/d/yyyy">1/6/2025</option>
+          </NativeSelect>
+        </Group>
+        <Divider my="sm" />
+        {/* Ruling 2's opt-in (owner's picker, 20 Oct 2026). Off is Date | year | Notes, as every
+            calendar has always printed. ⛔ Uncontrolled, like #one-col-btn: reflectHeaderRowCustom(). */}
+        <Group justify="space-between" wrap="nowrap" gap="sm">
+          <Text component="label" htmlFor="wf-hdr-custom" size="sm" style={{ cursor: 'pointer' }}>
+            Custom Column Headings
+          </Text>
+          <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
+                  title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
+        </Group>
       </div>
     </section>
   )

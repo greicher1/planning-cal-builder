@@ -2971,6 +2971,75 @@ export function initLegacyApp() {
     const yy = String(date.getUTCFullYear()).slice(2);
     return `${mm}/${dd}/${yy}`;
   }
+  // ---------- The waterfall's date format (owner ruling 4, 20 Oct 2026; HEADER-ROW-PLAN.md §3) ----------
+  // A CALENDAR setting: 1/6/25 (the default, '') or 1/6/2025 ('m/d/yyyy'). It reaches the waterfall's
+  // date column, Excel's date cells and the waterfall PDF's date column -- nothing else. The ~30 other
+  // fmtShort() uses (sidebar meta, popover titles, messages) are untouched, and so are the dates inside
+  // automatic notes (owner's picker, "Keep 1/6/25"): those notes also feed the month view and both month
+  // PDFs, which the ruling leaves out, and notesForWaterfallDate() places an edited note's line by a
+  // two-digit-year date in its text.
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `dateFormat`, written only when not the default, so a calendar
+  // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
+  const WEEK_DATE_FORMATS = ['m/d/yyyy'];
+  let dateFormat = '';
+  // The date column's text. Read by three FROZEN call sites -- renderSpreadsheetView's date cell,
+  // sheetColumnWidths' date measurement (so a longer date widens its column THROUGH the width model) and
+  // buildWaterfallPdf's date cell -- and fmtShort() itself while the setting is the default, so those
+  // three draw exactly what they drew before.
+  function fmtWeekDate(date){
+    if(dateFormat !== 'm/d/yyyy') return fmtShort(date);
+    return `${date.getUTCMonth()+1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+  }
+  // Excel's date-cell format. 'mm-dd-yy' is ExcelJS's name for built-in format 14, which Excel draws
+  // in the READER'S system short-date format -- so the default is left exactly as it was written.
+  // 'm/d/yyyy' is an explicit custom format, the same on every machine.
+  function weekDateNumFmt(){ return dateFormat === 'm/d/yyyy' ? 'm/d/yyyy' : 'mm-dd-yy'; }
+
+  // ---------- The waterfall's header row (owner ruling 2, 20 Oct 2026; HEADER-ROW-PLAN.md §4) ----------
+  // Off (the default): every year block's header row is `Date | <year> | Notes`, exactly as always --
+  // the three frozen writers run their original lines untouched. On (owner's picker, "Opt-in switch"):
+  // every heading is typed text, PER COLUMN, and neighbours with identical text merge into one cell.
+  // Untyped, the Date column and the phase columns show the block's year and Notes shows "Notes", so
+  // turning it on draws `[ 2026 over Date + phases ][ Notes ]` until something is typed.
+  // ⛔ CALENDAR DATA: `headerRowCustom` (written only as true) and `headerRowLabels` (only typed labels,
+  // keyed by the width model's own column keys -- y2026:date, y2026:s0, y2026:notes -- written only
+  // when non-empty). The labels are kept while the switch is off, so turning it back on brings them back.
+  // ⚠️ Keyed by COLUMN, not by phase (the ruling: "labels are per column"): a stint swap moves the
+  // phases under a heading and leaves the heading where it is. Single Column Mode's one block is the
+  // first year's, so its columns read that year's labels.
+  let headerRowCustom = false;
+  let headerRowLabels = {};
+  const HDR_ROW_KEY = /^y\d{4}:(?:date|notes|s\d{1,3})$/;
+  const HDR_ROW_MAX = 200;   // characters; a heading is one line, and Excel caps a cell at 32,767
+  function headerRowDefault(block, key){ return /:notes$/.test(key) ? 'Notes' : String(block.year); }
+  function headerRowLabel(block, key){
+    return Object.prototype.hasOwnProperty.call(headerRowLabels, key) ? headerRowLabels[key]
+      : headerRowDefault(block, key);
+  }
+  // One year block's headings as RUNS of identical neighbouring text: {text, start, span, keys, chars}.
+  // `cols` is sheetColumnWidths()' flat list for the block -- the same list all three writers already
+  // walk -- so a run's columns and widths are the ones the screen, Excel and the PDF draw.
+  function headerRowRuns(block, cols){
+    const runs = [];
+    cols.forEach((c, i)=>{
+      const text = headerRowLabel(block, c.key);
+      const last = runs[runs.length - 1];
+      if(last && last.text === text){ last.span++; last.keys.push(c.key); last.chars += c.chars; }
+      else runs.push({ text, start: i, span: 1, keys: [c.key], chars: c.chars });
+    });
+    return runs;
+  }
+  // A heading too long for its cells SHRINKS, as a phase label does, and never widens a column: the
+  // width model does not measure headings. The scale is relative to the 11px heading, measured in
+  // bold at the model's 11pt basis against `chars x EXCEL_MDW` -- cellTextFit's own width -- and
+  // floored at NOTE_SHRINK_FLOOR, past which it clips like a phase label. The PDF fits by its own
+  // font metrics and Excel by shrinkToFit; this is the screen's.
+  function headerRowFit(text, chars){
+    if(!text) return 1;
+    const need = measureTextPx(text, true), avail = Math.max(1, chars * EXCEL_MDW);
+    if(need <= avail) return 1;
+    return Math.max(NOTE_SHRINK_FLOOR, Math.floor(avail / need * 50) / 50);
+  }
   // Format the auto-generated notes for a week as inline "Label date" lines, e.g.
   // "Writers Room Opens 7/20/26". Multiple notes in the same week are newline-separated.
   function autoNotesText(autoNotes){
@@ -11299,6 +11368,21 @@ export function initLegacyApp() {
     yearBlocks.forEach((b, bi)=>{
       const isFirst = bi===0, isLast = bi===yearBlocks.length-1;
       const mc = blockMaxConcurrent[bi];
+      // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 2, HEADER-ROW-PLAN.md §4): typed headings.
+      // A SECOND PATH, taken only on a calendar that turned Custom column headings on; otherwise the
+      // three lines below run exactly as they always did, so the default markup is unchanged by
+      // construction. One <th> per run of identical neighbouring headings (headerRowRuns), carrying
+      // the run's first column key for the editor (openHeaderRowPop), and shrunk to fit its cells.
+      if(headerRowCustom){
+        const runs = headerRowRuns(b, colWidthsFor[bi].cols);
+        runs.forEach((run, ri)=>{
+          const edge = ((isFirst && ri === 0) ? ' sheet-blockstart' : '') + ((isLast && ri === runs.length - 1) ? ' sheet-blockend' : '');
+          const sc = headerRowFit(run.text, run.chars);
+          headerHtml += `<th${run.span > 1 ? ` colspan="${run.span}"` : ''} class="hdrrow-cell${edge}" data-hcol="${run.keys[0]}"`
+            + ` title="Click to edit this heading"${sc < 1 ? ` style="font-size:${(11 * sc).toFixed(2)}px"` : ''}>${escHtml(run.text)}</th>`;
+        });
+        return;
+      }
       headerHtml += `<th class="${isFirst?'sheet-blockstart':''}">Date</th>`;
       headerHtml += `<th colspan="${mc}">${b.year}</th>`;
       headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}">Notes</th>`;
@@ -11336,7 +11420,9 @@ export function initLegacyApp() {
         }
         const idx = b.startIdx + r;
         const w = schedule.weeks[idx];
-        bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}">${fmtShort(w.date)}</td>`;
+        // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4, HEADER-ROW-PLAN.md §3): the date format.
+        // fmtWeekDate() is fmtShort() unless the calendar chose 1/6/2025.
+        bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}">${fmtWeekDate(w.date)}</td>`;
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
           const hKey = w.date.toISOString().slice(0,10);
@@ -12157,11 +12243,16 @@ export function initLegacyApp() {
       else arr[idx] = { code: arr[idx].code, text: arr[idx].text.slice(0, keep).replace(/\s+$/, '') + '…' };
       headerStr = assembleHeader();
     }
-    ws.headerFooter.oddHeader = headerStr;
+    // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 10, HEADER-ROW-PLAN.md §2): Header: Off writes
+    // NO page header -- an empty one still carried the unconditional `&L` + HSIZE codes -- and reclaims
+    // the top margin, 0.25in like the sides, matching SHEET_PAGE_MARGIN_PT's 18pt so the PDF and the
+    // workbook are fitted to the same printable box. With the header on, both statements are exactly
+    // what they were.
+    if(!headerOff) ws.headerFooter.oddHeader = headerStr;
     ws.pageSetup.margins = {
       left: 0.25, right: 0.25,
-      top: 0.75, bottom: 0.75,
-      header: 0.3, footer: 0.3
+      top: headerOff ? 0.25 : 0.75, bottom: 0.75,
+      header: headerOff ? 0 : 0.3, footer: 0.3
     };
 
     function setFill(cell, hex){
@@ -12201,6 +12292,28 @@ export function initLegacyApp() {
       const yearLabel = yearBlocks[b].year;
 
       // header row
+      // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 2, HEADER-ROW-PLAN.md §4): typed headings,
+      // a SECOND PATH taken only on a calendar with Custom column headings on; otherwise the original
+      // lines below write row 1 exactly as before. One merged cell per run of identical neighbouring
+      // headings (headerRowRuns, the same runs the screen and the PDF draw), with the original look:
+      // bold, grey fill, a top rule, the block's outer rules on its first and last columns. The year
+      // stays a NUMBER where it is the text, as today's year cell is. shrinkToFit is Excel's own fit:
+      // a heading never widens a column. An empty heading is an empty cell.
+      if(headerRowCustom){
+        headerRowRuns(yearBlocks[b], widths.cols).forEach(run=>{
+          const c0 = startCol + run.start, c1 = c0 + run.span - 1;
+          if(c1 > c0) ws.mergeCells(1, c0, 1, c1);
+          const hc = ws.getRow(1).getCell(c0);
+          if(run.text) hc.value = run.text === String(yearLabel) ? yearLabel : run.text;
+          baseStyle(hc, {font:{bold:true}});
+          hc.alignment = {horizontal:'center', vertical:'middle', shrinkToFit:true};
+          for(let c=c0;c<=c1;c++){
+            const cc = ws.getRow(1).getCell(c);
+            setFill(cc, HEADER_FILL);
+            cc.border = Object.assign({top:thin}, c===dateCol ? {left:thin} : {}, c===notesCol ? {right:thin} : {});
+          }
+        });
+      } else {
       const hDate = ws.getRow(1).getCell(dateCol);
       hDate.value = 'Date'; baseStyle(hDate, {font:{bold:true}}); setFill(hDate, HEADER_FILL);
       hDate.border = {top:thin, left:thin};
@@ -12215,6 +12328,7 @@ export function initLegacyApp() {
       const hNotes = ws.getRow(1).getCell(notesCol);
       hNotes.value = 'Notes'; baseStyle(hNotes, {font:{bold:true}}); setFill(hNotes, HEADER_FILL);
       hNotes.border = {top:thin, right:thin};
+      }
 
       for(let r=0;r<rowsInBlock;r++){
         const excelRow = r+2;
@@ -12227,7 +12341,9 @@ export function initLegacyApp() {
 
         // date cell (hardcode very first cell; formula-chain everything else)
         const dCell = ws.getRow(excelRow).getCell(dateCol);
-        baseStyle(dCell, {font:{bold:true}, numFmt:'mm-dd-yy'});
+        // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4): the date format. 'mm-dd-yy' (built-in
+        // format 14) unless the calendar chose 1/6/2025. The cells stay real dates either way.
+        baseStyle(dCell, {font:{bold:true}, numFmt:weekDateNumFmt()});
         // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-7, 29 Sep 2026): each formula carries
         // its CACHED result. Written bare, a formula has no <v>, and every app that shows the stored
         // value instead of recalculating -- Quick Look, phone and web previewers -- showed a blank Date
@@ -12543,9 +12659,13 @@ export function initLegacyApp() {
     });
     reflectGridlines();
     reflectMonthTagPrefs();
+    reflectDateFormat();
+    reflectHeaderRowCustom();
   }
   reflectGridlines();
   reflectMonthTagPrefs();
+  reflectDateFormat();
+  reflectHeaderRowCustom();
   (function(){
     const track = document.querySelector('.side-tabs-track');
     if(!track) return;
@@ -13003,7 +13123,16 @@ export function initLegacyApp() {
   // landscape sheet the fit is usually height-bound, so that 54pt came straight off the size of
   // the calendar -- a near-square grid ended up 540pt wide on a 792pt page with 1.75in of white
   // down each side. Reclaiming it is the one free increase available.
-  const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, t: 54, b: 18, hdr: 21.6, ftr: 0 };
+  //
+  // ⛔ HEADER: OFF RECLAIMS THE TOP (owner ruling 10 and its picker "Reclaim it", 20 Oct 2026;
+  // HEADER-ROW-PLAN.md §2). With no page header there is nothing for the 54pt top or the 21.6pt
+  // header band to hold, so the top becomes the sides' 18pt and the band 0. Getters, so the change is
+  // in this DECLARATION and nothing that reads it is edited (sanctioned pattern 1): buildWaterfallPdf's
+  // page box, sheetPageOrientation and Single Column's fill all read this one object, which is what
+  // keeps the PDF and the workbook turning the page the same way. exportExcel writes the matching
+  // 0.25in top itself. While headerOff is false each getter returns exactly the number it replaced.
+  const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, get t(){ return headerOff ? 18 : 54; }, b: 18,
+                                 get hdr(){ return headerOff ? 0 : 21.6; }, ftr: 0 };
   const SHEET_PAPER_PT = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
 
   function sheetGridMetrics(schedule, yearBlocks, colWidthsFor){
@@ -13044,7 +13173,9 @@ export function initLegacyApp() {
       for(let i=b.startIdx; i<b.startIdx+b.count; i++){
         const week = schedule.weeks[i];
         // Date cells are bold, so they measure wider than the same digits in the body font.
-        dateMax = Math.max(dateMax, measureTextPx(fmtShort(week.date), true));
+        // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4): measured in the calendar's date format,
+        // so 1/6/2025 widens the column through this model rather than clipping. fmtShort() by default.
+        dateMax = Math.max(dateMax, measureTextPx(fmtWeekDate(week.date), true));
         if(week.cells.length && week.cells[0].type==='hiatus') continue;   // spans the block
         const rows = computePhaseRowLayout(week, mc, blockSlotMaps[bi], blockOccupancy[bi],
                                            i - b.startIdx, blockSimSlot[bi]);
@@ -13253,6 +13384,19 @@ export function initLegacyApp() {
   // `manual` gate read it. The one authorised frozen edit (H3b) is the mode button's label
   // expression and nothing else.
   let headerTemplates = false;
+  // ⛔ HEADER: OFF (owner ruling 10, 20 Oct 2026; HEADER-ROW-PLAN.md §2): no title block on screen,
+  // in Excel or in the waterfall PDF. A FLAG ON TOP of the mode, for the same reason headerTemplates
+  // is one (H3): the frozen renderer's `manual` gate keeps its two values. Off hides whatever mode is
+  // underneath without touching it, so choosing Manual or Template again brings back the lines you had.
+  //   * headerLine() returns '' while it is set -- the one choke point all three outputs read, so the
+  //     PDF writer's `if(hdrLines)` draws nothing with no edit inside it (sanctioned pattern 1).
+  //   * SHEET_PAGE_MARGIN_PT's top and header margins read it (owner's picker, "Reclaim it"): the grid
+  //     starts 18pt down like the sides, and sheetPageOrientation turns both outputs the same way.
+  //   * the screen and the print fallback hide .cal-header-bar off a <body> class (reflectHeaderOff).
+  // ⛔ CALENDAR DATA: captureSnapshot()'s `headerOff`, written only as `true`, so a calendar that never
+  // turns it off saves byte for byte as before. The month view's header has no Off (the ruling names
+  // the waterfall).
+  let headerOff = false;
   // The month view has its own header with its own auto/manual switch. It's deliberately
   // INDEPENDENT of the waterfall header above: the two documents are printed separately and
   // often want different wording, so taking one manual never touches the other.
@@ -14047,7 +14191,9 @@ export function initLegacyApp() {
     if(mv){
       if(!(mvHeaderMode === 'manual' && mvHeaderTemplates)) setMvHeaderMode('template');
     } else {
-      if(!(headerMode === 'manual' && headerTemplates)) setHeaderMode('template');
+      // headerOff too: editing lines that stay hidden would be editing blind. From Off over a
+      // Template this only clears the flag (setHeaderMode).
+      if(headerOff || !(headerMode === 'manual' && headerTemplates)) setHeaderMode('template');
     }
 
     const root = document.createElement('div');
@@ -14493,6 +14639,7 @@ export function initLegacyApp() {
           headerFormat = cleanHeaderFormatMap(p.sheet.format || {}, { n: 0 });
           headerTemplates = true;
           headerMode = 'manual';
+          headerOff = false;   // applying a header shows it: a preset that changed nothing visible would read as broken
         }
       });
       render(currentSchedule);
@@ -14551,6 +14698,9 @@ export function initLegacyApp() {
     // workbook will actually lose instead of "the last lines will be dropped". `total` stays the
     // UNTRIMMED length: that is the number the user is over by. The hdrcut leg holds this copy to
     // the workbook's real header.
+    // Header: Off writes no page header at all (exportExcel), so there is no budget to show; null
+    // hides the line, as a failed estimate already does.
+    if(headerOff) return null;
     const HF_MAX = 255;
     const HSIZE_COST = '&B&12&"Calibri,Bold"'.length;      // 20, and there are three of them
     const hd = computeHeaderDefaults(currentSchedule);
@@ -15352,9 +15502,16 @@ export function initLegacyApp() {
   // showing "Saved" and could not be undone. Same bug class as the one the notes-reset branch
   // carries a comment about. Fixed by construction here: one exit path, and it always marks.
   function setHeaderMode(next){
-    const from = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
-    if(next === from) return;
+    // `shown` includes Off (headerModeKey); `from` is the mode underneath it, which is what the five
+    // transitions below move between. Off -> the mode underneath only clears the flag, so the lines
+    // come back exactly as they were; Off -> anything else clears it and then takes that transition.
+    const shown = headerModeKey(false);
+    if(next === shown) return;
     asOneHeaderStep(()=>{
+      if(next === 'off'){ headerOff = true; render(currentSchedule); markDirty(); return; }
+      headerOff = false;
+      const from = headerMode === 'auto' ? 'auto' : (headerTemplates ? 'template' : 'manual');
+      if(next === from){ render(currentSchedule); markDirty(); return; }
       if(next === 'auto'){
         // Discards hand edits AND formatting, exactly as "Header: Auto" always has.
         headerMode = 'auto'; headerManual = {}; headerFormat = {}; headerTemplates = false;
@@ -15472,6 +15629,9 @@ export function initLegacyApp() {
       desc:'Lines you write, with live data in {braces}. Edit a line to see its tokens.' },
     { key:'manual',   label:'Manual',
       desc:'Plain text you type. Nothing updates itself.' },
+    // Owner ruling 10 (20 Oct 2026). Waterfall only: openHeaderModePop() leaves it out of the month's menu.
+    { key:'off',      label:'Off', sheetOnly: true,
+      desc:'No title block. The grid starts at the top; Excel and the PDF print no header.' },
   ];
   // `mv` selects which header the menu drives. The rows, the copy and the bake warning are the
   // same in both views -- the modes mean the same thing -- so this is one menu, not two.
@@ -15481,6 +15641,7 @@ export function initLegacyApp() {
     const pop = document.createElement('div');
     pop.className = 'hdr-mode-pop';
     HDR_MODE_CHOICES.forEach(c=>{
+      if(mv && c.sheetOnly) return;
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'hdr-mode-choice' + (c.key === current ? ' is-current' : '');
@@ -15561,6 +15722,7 @@ export function initLegacyApp() {
   // All three are React-rendered, so they are reached by DELEGATION from document, never captured at
   // evaluation time (HANDOFF §2b-3's law).
   function headerModeKey(mv){
+    if(!mv && headerOff) return 'off';
     const auto = mv ? mvHeaderMode === 'auto' : headerMode === 'auto';
     return auto ? 'auto' : ((mv ? mvHeaderTemplates : headerTemplates) ? 'template' : 'manual');
   }
@@ -15575,6 +15737,14 @@ export function initLegacyApp() {
   }
   new MutationObserver(pushViewControls).observe(document.getElementById('table-wrap'), { childList: true });
   pushViewControls();
+  // Header: Off on screen and in the print fallback (HEADER-ROW-PLAN §2). The frozen renderer still
+  // emits .cal-header-bar, with every line empty; a <body> class hides it (legacy.css), because the
+  // print fallback renders into #print-root, which is <body>'s child and not inside #table-wrap.
+  // Run off the same re-render observer as the buttons above: every way headerOff changes -- the
+  // menu, an undo, a Load, New -- ends in render() rebuilding #table-wrap (sanctioned pattern 3).
+  function reflectHeaderOff(){ document.body.classList.toggle('wf-hdr-off', headerOff); }
+  new MutationObserver(reflectHeaderOff).observe(document.getElementById('table-wrap'), { childList: true });
+  reflectHeaderOff();
   document.addEventListener('click', e=>{
     const b = e.target.closest && e.target.closest('#tb-hdr-mode-btn');
     if(!b) return;
@@ -15716,6 +15886,10 @@ export function initLegacyApp() {
   //     hand-coded output -- already final text, never a template -- so resolving it would be
   //     asking the resolver to re-read a value, which is exactly what the one-pass rule forbids.
   function headerLine(id, defaults){
+    // Header: Off prints nothing, and every consumer drops a line whose text is empty (HEADER-ROW-PLAN
+    // §2). ⚠️ setHeaderMode() clears the flag BEFORE it bakes a Template into Manual, or the bake would
+    // read these empty strings and wipe the lines.
+    if(headerOff) return '';
     if(headerMode === 'manual'){
       if(id in headerManual){
         const raw = headerManual[id];
@@ -16182,6 +16356,176 @@ export function initLegacyApp() {
     update();
     markDirty();
   }
+  // The date format (owner ruling 4; HEADER-ROW-PLAN.md §3). Shaped like setSingleColumn(): the select
+  // (#wf-date-format, the Waterfall Layout card) REFLECTS `dateFormat` and never holds it, and a change
+  // is CALENDAR DATA -- one undo step, the file dirtied. render(), not update(): nothing scheduled moves.
+  // An unknown value is the default.
+  function reflectDateFormat(){
+    const sel = document.getElementById('wf-date-format');
+    if(sel && sel.value !== dateFormat) sel.value = dateFormat;
+  }
+  function setDateFormat(next){
+    next = WEEK_DATE_FORMATS.includes(next) ? next : '';
+    if(next === dateFormat){ reflectDateFormat(); return; }
+    asOneHeaderStep(()=>{
+      dateFormat = next;
+      render(currentSchedule);
+      markDirty();
+    });
+    reflectDateFormat();
+  }
+  // ⛔ 'change' on document: React renders the select, so it is reached by delegation, never captured
+  // at evaluation time (HANDOFF §2b-3's law). It sits in .prefs-card, so collectFieldValues() never
+  // sweeps it: the format travels as the snapshot key only, the #one-col-btn arrangement.
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.id === 'wf-date-format') setDateFormat(e.target.value);
+  });
+
+  // ---------- Custom column headings: the switch and the editor (HEADER-ROW-PLAN.md §4) ----------
+  // The switch (#wf-hdr-custom, the Waterfall Layout card) has the same contract as the date select:
+  // it reflects `headerRowCustom`, a change is one undo step and dirties the file, and it is caught by
+  // delegation because React renders it.
+  function reflectHeaderRowCustom(){
+    const b = document.getElementById('wf-hdr-custom');
+    if(b && b.checked !== headerRowCustom) b.checked = headerRowCustom;
+  }
+  function setHeaderRowCustom(next){
+    next = !!next;
+    if(next === headerRowCustom){ reflectHeaderRowCustom(); return; }
+    asOneHeaderStep(()=>{
+      headerRowCustom = next;
+      render(currentSchedule);
+      markDirty();
+    });
+    reflectHeaderRowCustom();
+  }
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.id === 'wf-hdr-custom') setHeaderRowCustom(e.target.checked);
+  });
+
+  // The editor: a panel ANCHORED to the clicked heading and appended to <body>, never written into the
+  // cell (the .note-pop pattern, and its class, so the overlay family's look, OVER_PANEL and the
+  // shareable copy's strip list all cover it). ⛔ NO id on anything in it: collectFieldValues() sweeps
+  // every input[id] in the document, and this panel is outside every skipped class (UI-CONVENTIONS
+  // §10 item 9).
+  // A heading is PER COLUMN, so the panel shows one field per column of the clicked cell -- a merged
+  // cell is several columns that happen to read the same, and typing a different word into one of them
+  // is how it splits. The field under the pointer takes focus. Enter or a click outside saves, as one
+  // undo step; Esc cancels; Reset returns these columns to their defaults (the year, or "Notes").
+  let activeHdrRowPop = null;   // { pop, th, place, fields: [{key, input, def}] }
+  function closeHeaderRowPop(){
+    if(!activeHdrRowPop) return;
+    const { pop, place } = activeHdrRowPop;
+    window.removeEventListener('scroll', place, true);
+    window.removeEventListener('resize', place);
+    pop.remove();
+    activeHdrRowPop = null;
+  }
+  // One line, no control characters (a pasted tab or newline included), capped -- the same shape
+  // sanitizeSnapshot holds a loaded heading to, so a typed one and a loaded one can never differ.
+  function cleanHeadingText(v){
+    return stripXmlIllegal(v, ' ').replace(/[\r\n\t]+/g, ' ').trim().slice(0, HDR_ROW_MAX);
+  }
+  function commitHeaderRowPop(toDefaults){
+    if(!activeHdrRowPop) return;
+    const { fields } = activeHdrRowPop;
+    closeHeaderRowPop();
+    const next = Object.assign({}, headerRowLabels);
+    fields.forEach(f=>{
+      const v = toDefaults ? f.def : cleanHeadingText(f.input.value);
+      // A heading typed back to its default is no longer a typed heading: it follows the year again.
+      if(v === f.def) delete next[f.key]; else next[f.key] = v;
+    });
+    if(JSON.stringify(next) === JSON.stringify(headerRowLabels)) return;
+    asOneHeaderStep(()=>{
+      headerRowLabels = next;
+      render(currentSchedule);
+      markDirty();
+    });
+  }
+  function headingColumnName(key){
+    if(/:date$/.test(key)) return 'Date column';
+    if(/:notes$/.test(key)) return 'Notes column';
+    const m = key.match(/:s(\d+)$/);
+    return m ? 'Column ' + (+m[1] + 1) : key;
+  }
+  function openHeaderRowPop(th, clientX){
+    closeHeaderRowPop();
+    if(!currentSchedule || !currentSchedule.weeks) return;
+    // Re-derive the run from the model rather than trusting the markup: the same blocks and column
+    // list the renderer used, found by the run's first column key.
+    const yearBlocks = computeYearBlocks(currentSchedule.weeks);
+    const widths = sheetColumnWidths(currentSchedule, yearBlocks, computeBlockLayout(currentSchedule, yearBlocks));
+    let block = null, run = null;
+    yearBlocks.forEach((b, bi)=>{
+      headerRowRuns(b, widths[bi].cols).forEach(r=>{ if(r.keys[0] === th.dataset.hcol){ block = b; run = r; } });
+    });
+    if(!run) return;
+    // Which column of the run is under the pointer: walk the run's <col> widths from the cell's left.
+    let at = 0;
+    {
+      let x = th.getBoundingClientRect().left;
+      run.keys.forEach((k, i)=>{
+        const col = document.querySelector('#table-wrap col[data-ckey="' + k + '"]');
+        const w = col ? (parseFloat(col.style.width) || 0) : 0;
+        if(clientX >= x) at = i;
+        x += w;
+      });
+    }
+    const pop = document.createElement('div');
+    pop.className = 'note-pop hdrrow-pop';
+    pop.innerHTML = `<div class="note-pop-title">${escHtml('Heading · ' + block.year)}</div>
+      <div class="hdrrow-fields">${run.keys.map(k=>`<label class="hdrrow-field"><span>${escHtml(headingColumnName(k))}</span>
+        <input type="text" maxlength="${HDR_ROW_MAX}" spellcheck="false" value="${escHtml(headerRowLabel(block, k))}"></label>`).join('')}</div>
+      <div class="hdrrow-actions"><button type="button" class="hdrrow-reset">Reset</button></div>
+      <div class="note-pop-hint">${run.keys.length > 1 ? 'Neighbouring columns with the same heading merge. ' : ''}Enter to save · Esc to cancel</div>`;
+    document.body.appendChild(pop);
+    const place = ()=>{
+      const r = th.getBoundingClientRect();
+      pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
+      pop.style.left = (window.scrollX + r.left) + 'px';
+      const pr = pop.getBoundingClientRect();
+      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
+      if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    const inputs = [...pop.querySelectorAll('input')];
+    activeHdrRowPop = { pop, th, place,
+      fields: run.keys.map((k, i)=>({ key: k, input: inputs[i], def: headerRowDefault(block, k) })) };
+    pop.querySelector('.hdrrow-reset').addEventListener('click', e=>{ e.stopPropagation(); commitHeaderRowPop(true); });
+    const focus = inputs[at] || inputs[0];
+    focus.focus();
+    focus.select();
+  }
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    const th = e.target && e.target.closest ? e.target.closest('th.hdrrow-cell[data-hcol]') : null;
+    if(!th) return;
+    e.stopPropagation();
+    if(activeHdrRowPop && activeHdrRowPop.th === th) return;   // already editing this heading
+    if(activeHdrRowPop) commitHeaderRowPop();                  // re-renders; find the fresh cell
+    const fresh = th.isConnected ? th
+      : document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + th.dataset.hcol + '"]');
+    if(fresh) openHeaderRowPop(fresh, e.clientX);
+  });
+  document.addEventListener('click', e=>{
+    if(!activeHdrRowPop) return;
+    if(activeHdrRowPop.pop.contains(e.target) || activeHdrRowPop.th.contains(e.target)) return;
+    commitHeaderRowPop();
+  });
+  document.addEventListener('keydown', e=>{
+    if(!activeHdrRowPop) return;
+    if(e.key === 'Escape'){ e.preventDefault(); closeHeaderRowPop(); return; }
+    if(e.key === 'Enter'){ e.preventDefault(); commitHeaderRowPop(); }
+  });
+  // ⛔ A render that rebuilds the grid under an open editor (an undo, a Load, the switch turned off)
+  // leaves it anchored to a detached cell. Observed, not hooked: nothing in render() is edited
+  // (sanctioned pattern 3), and the edit is dropped, as the cell it was for may no longer exist.
+  new MutationObserver(()=>{
+    if(activeHdrRowPop && !activeHdrRowPop.th.isConnected) closeHeaderRowPop();
+  }).observe(document.getElementById('table-wrap'), { childList: true });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
   // through update() + markDirty() -- it dirties the file and is one undo step, where the per-user
@@ -16813,6 +17157,8 @@ export function initLegacyApp() {
     document.getElementById('custom-phase-rows').innerHTML = '';
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
+    dateFormat = ''; reflectDateFormat();
+    headerRowCustom = false; headerRowLabels = {}; reflectHeaderRowCustom();
     mvProdLabel = null;
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
@@ -16842,7 +17188,7 @@ export function initLegacyApp() {
     blockDefs = []; blockCounter = 0; blockAssignEdited = false; lastDroppedBlocks = [];
     episodeShootOrder = [];
     refreshEpisodesUI();
-    headerMode = 'auto'; headerManual = {}; headerTemplates = false;
+    headerMode = 'auto'; headerManual = {}; headerTemplates = false; headerOff = false;
     mvHeaderMode = 'auto'; mvHeaderManual = {}; mvHeaderTemplates = false;
     headerFormat = {}; mvHeaderFormat = {};
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
@@ -17388,6 +17734,17 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 20 Oct 2026, owner ruling 10 (HEADER-ROW-PLAN.md §2): Header: Off. ⛔ PERMANENT key, written
+      // only as `true`, so a calendar whose header is on saves byte for byte as before.
+      ...(headerOff ? {headerOff: true} : {}),
+      // 20 Oct 2026, owner ruling 4 (HEADER-ROW-PLAN.md §3): the waterfall's date format. ⛔ PERMANENT key
+      // and value ('m/d/yyyy'); the default, 1/6/25, is an ABSENT key.
+      ...(dateFormat ? {dateFormat} : {}),
+      // 20 Oct 2026, owner ruling 2 (HEADER-ROW-PLAN.md §4): Custom column headings and the typed
+      // headings. ⛔ PERMANENT keys. Off is an ABSENT key, and no typed heading is an absent map, so a
+      // calendar that never uses them saves byte for byte as before.
+      ...(headerRowCustom ? {headerRowCustom: true} : {}),
+      ...(Object.keys(headerRowLabels).length ? {headerRowLabels} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -19622,6 +19979,16 @@ export function initLegacyApp() {
     const names = {};
     getAllPhaseDefs().forEach(d=>{ names[d.key] = d.label; });
     const yearBlocks = computeYearBlocks(schedule.weeks);
+    // Typed column headings are user text now (HEADER-ROW-PLAN §4), unlike the Date / year / Notes the
+    // comment above calls ASCII by construction. Only while they print, and only a block that exists.
+    if(headerRowCustom){
+      const years = new Set(yearBlocks.map(b => 'y' + b.year + ':'));
+      Object.keys(headerRowLabels).forEach(k=>{
+        if(!years.has(k.slice(0, k.indexOf(':') + 1))) return;
+        const label = headerRowLabels[k];
+        scan(label, 'hr|' + label, ()=> 'in the column heading \u201c' + label + '\u201d');
+      });
+    }
     const { blockSlotMaps, blockMaxConcurrent, blockOccupancy, blockSimSlot } = computeBlockLayout(schedule, yearBlocks);
     const maxRows = sheetRowCount(schedule, yearBlocks);
     const notesByIdx = schedule.notesByIdx || {};
@@ -20438,6 +20805,27 @@ export function initLegacyApp() {
         page.clipPop();
         x += w;
       };
+      // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 2, HEADER-ROW-PLAN.md §4): typed headings, a
+      // SECOND PATH taken only with Custom column headings on; otherwise the three put() calls below
+      // draw exactly what they always drew. One label per run of identical neighbouring headings
+      // (headerRowRuns -- the screen's and the workbook's runs), centred over the run and clipped to
+      // it, at put()'s size unless it needs less: then it shrinks by this font's own advance widths,
+      // floored like a phase label. The row stays one fill with no rules, as Excel's header row is.
+      if(headerRowCustom){
+        headerRowRuns(b, colWidthsFor[bi].cols).forEach(run=>{
+          const w = S(cols.slice(run.start, run.start + run.span).reduce((a,c)=>a+c.w,0));
+          if(run.text){
+            const size0 = S(HDR_ROW_PT*0.55), tw = ttfTextWidth(bold, run.text, size0);
+            const room = Math.max(1, w - S(EXCEL_CELL_PAD * SHEET_ZOOM));
+            const size = tw > room ? size0 * Math.max(NOTE_SHRINK_FLOOR, room / tw) : size0;
+            page.clipPush(x, hy, w, hh);
+            drawLines(run.text, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
+            page.clipPop();
+          }
+          x += w;
+        });
+        return;
+      }
       put('Date', S(cols[0].w));
       put(String(b.year), S(cols.slice(1,-1).reduce((a,c)=>a+c.w,0)));
       put('Notes', S(cols[cols.length-1].w));
@@ -20467,7 +20855,8 @@ export function initLegacyApp() {
         const dw = S(cols[0].w);
         const dsize = S(11);
         page.clipPush(bx, ry, dw, rh);
-        drawLines(fmtShort(w.date), bx + dw/2, ry, rh, dsize, '#000000', 'F2', bold, dw);
+        // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4): the date format; fmtShort() by default.
+        drawLines(fmtWeekDate(w.date), bx + dw/2, ry, rh, dsize, '#000000', 'F2', bold, dw);
         page.clipPop();
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
@@ -22799,6 +23188,10 @@ export function initLegacyApp() {
     // was handed to Object.assign. Same cleaner, same id rule, so it lands as headerManual would.
     setMap('headerOverrides', str, SNAP_LINE_ID);
     setMap('mvHeaderManual', str, SNAP_LINE_ID);
+    // Typed column headings (HEADER-ROW-PLAN §4): keyed by a column key, one line, capped -- they
+    // reach a <th>, a workbook cell and a PDF text run.
+    setMap('headerRowLabels', v => (typeof v === 'string')
+      ? stripXmlIllegal(v, ' ').replace(/[\r\n\t]+/g, ' ').slice(0, HDR_ROW_MAX) : undefined, HDR_ROW_KEY);
     ['headerFormat', 'mvHeaderFormat'].forEach(name=>{
       if(!(name in s)) return;
       if(!isPlainObj(s[name])){ bad.n++; s[name] = {}; return; }
@@ -22922,6 +23315,9 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
+    if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
+    if('headerRowCustom' in s && typeof s.headerRowCustom !== 'boolean'){ bad.n++; delete s.headerRowCustom; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23176,6 +23572,8 @@ export function initLegacyApp() {
     // key, so it must land on false, which is Manual: literal text, tokens never resolved, and
     // therefore byte-for-byte what that file has always rendered.
     headerTemplates = snap.headerTemplates === true;
+    // ⛔ UNCONDITIONAL, the same way: a file with no key has its header on -- never the previous file's Off.
+    headerOff = snap.headerOff === true;
     headerOverridesNeedDefaults = false;   // unconditional: set only by the legacy branch below
     if(snap.headerMode === 'manual' || (snap.headerManual && Object.keys(snap.headerManual).length)){
       headerMode = 'manual';
@@ -23227,6 +23625,14 @@ export function initLegacyApp() {
     // 10 Sep 2026 has no key, and false is the shape it was written in.
     singleColumn = snap.singleColumn === true;
     reflectSingleColumn();
+    // ⛔ UNCONDITIONAL: a file with no key prints 1/6/25 -- never the previously open file's format.
+    dateFormat = WEEK_DATE_FORMATS.includes(snap.dateFormat) ? snap.dateFormat : '';
+    reflectDateFormat();
+    // ⛔ UNCONDITIONAL, both: no key = Date | year | Notes and no typed headings, never the previous file's.
+    headerRowCustom = snap.headerRowCustom === true;
+    headerRowLabels = (snap.headerRowLabels && typeof snap.headerRowLabels === 'object')
+      ? Object.assign({}, snap.headerRowLabels) : {};
+    reflectHeaderRowCustom();
     // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
     // never whatever the previously open file chose.
     mvProdLabel = MV_PROD_LABELS.includes(snap.mvProdLabel) ? snap.mvProdLabel : null;
