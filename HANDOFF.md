@@ -4,12 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — COMMITTED on branch `offweek-step-b` (worktree `.claude/worktrees/offweek-step-b`), NOT MERGED, NOT PUSHED
+### ◐ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — MERGED INTO `main` WITH DAY MENU STEP 5 (`4ea4e54`), NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner: *"Do this task here: 'Off weeks step B: month view numbers weeks like waterfall'"*.
   Built, gated, contact-sheeted. The owner signed off (picker: "Re-cut both", "Commit after green"), gates 10 and 13
   were re-cut, and the gate re-ran green. Committed in three commits on `offweek-step-b`: the change with its leg,
-  the baseline re-cut, the docs. **Not merged into `main`, not pushed**: both are the owner's call.
+  the baseline re-cut, the docs.
+- ✅ **Merged (20 Oct 2026, reflog):** at 09:39 `main` (`1608b7a`, day menu step 5) was merged INTO `offweek-step-b` as
+  `4ea4e54`, and at 09:40 local `main` was fast-forwarded to it. So `main` = `offweek-step-b` = `4ea4e54`, 9 commits
+  ahead of `origin/main` (`8400b38`): day menu step 5 and step B. **Not pushed**: the owner's call, and on 20 Oct the owner held it
+  to add Number weeks first (entry above, once written). ⚠️ Step B's 1,928 was at `79c98e2` and step 5's 1,951 at
+  `b275ef6`, so neither had been gated beside the other. The off-week session started a full gate on `4ea4e54` at
+  09:40 on 20 Oct (port 8963). *(This heading read "NOT MERGED" for the morning after the merge. Corrected 20 Oct 2026.)*
 - **The change** (OFF-WEEK-PLAN §6 (a), §12): the week loop records `seg.weekNo[weekIso] = num`, and `prodWeekLabel()`
   reads it, falling back to the old calendar count only for a week never numbered. The month view, both month PDFs, the
   grey Week text and the day menu's header now say what the waterfall says. No frozen code, no save-format change.
@@ -21,8 +27,8 @@
 - ✅ **After the owner's sign-off ("Re-cut both", picker) gates 10 and 13 were re-cut, and the full gate re-ran: 1,928 PASS, 0 FAIL, GATE PASSED** (build `eadef87e…`, port 8963, 23:58–00:17, alone): 0 clipped, waterfall PDF and Excel identical, 74 ids, all ten print documents and all twenty written PDFs identical to the new baselines, `weeknum` 27/27, `offweek` 32/32, `pilllabel` all green.
 - ⚠️ **Queueing, again:** two other sessions' gates took the free slot ahead of a waiter polling every 15 s. Polling
   every 3 s with a 2–6 s random pause got it.
-- ⏭ **Next:** merge `offweek-step-b` into `main` and push, each on the owner's word. Raise the empty Q3 week with the
-  owner (step A entry). A version cut is overdue (`version.json` 1.4.3).
+- ⏭ **Next:** push `main` (`4ea4e54`), on the owner's word, once its merged-build gate is green. Raise the empty Q3
+  week with the owner (step A entry). A version cut is overdue (`version.json` 1.4.3).
   - ⚠️ PHASE-NUMBERING (branch `phase-numbering`, `56603e8`, not merged) also edits `prodWeekLabel()`. Whichever
     lands second merges by hand and re-runs `weeknum` and `mvmenu`.
 
@@ -102,8 +108,9 @@
   branch was cut (`8400b38`, `6b9eeb4`), so the merge brought in no code and the gated build `7e7f2600…` is what lands.
   Only HANDOFF conflicted, because both sides added entries; both are kept. **Not pushed:** the owner chose *"Ask me
   after the merge"*.
-- ⏭ **Next:** the owner's push picker. If Number weeks (`phase-numbering`, gating in its own session) lands on `main`
-  first, a push carries it too, and the combined `main` needs a gate before pushing. Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
+- ⏭ **Next:** the owner's push picker. ⚠️ Off weeks step B landed on `main` after this (`4ea4e54`, entry above), so a
+  push now carries both, on the merged build's gate. If Number weeks (`phase-numbering`, gating in its own session)
+  lands on `main` first, a push carries it too, and the combined `main` needs a gate before pushing. Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
   plan §3.8's "Edit note…" section, which no step built.
 
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
