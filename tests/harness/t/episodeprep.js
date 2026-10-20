@@ -84,7 +84,9 @@ window.addEventListener('load', function () { (async function () {
         for(var c = gc[0] - 1; c <= gc[1] - 2; c++) days.push(iso(new Date(start.getTime() + c * DAY)));
         var sp = p.querySelector('.mv-pill-block'), txt = '';
         p.childNodes.forEach(function (n) { if(n !== sp) txt += n.textContent; });
-        return {ph: p.getAttribute('data-ph') || '', text: txt.trim(), cols: String(p.style.gridColumn).replace(/\s+/g, ''),
+        // A Production bar's text WITHOUT the "Shoot " it carries by default since 20 Oct 2026 (owner): this leg is about
+        // prep, and halfdays D2s and barprefix hold the prefix. A prep pill never has one.
+        return {ph: p.getAttribute('data-ph') || '', text: txt.trim().replace(/^Shoot /, ''), cols: String(p.style.gridColumn).replace(/\s+/g, ''),
                 lane: parseInt(p.style.gridRow, 10), days: days, bg: p.style.backgroundColor};
       });
       return {start: iso(start), bars: bars};
