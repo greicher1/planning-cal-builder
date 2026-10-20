@@ -39,6 +39,105 @@
   numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
   (`version.json` 1.4.3).
 
+### ✅ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" — LIVE AT `451aaa2` (verified byte-identical, `42d1bd24`)
+
+- ✅ **PUSHED AND LIVE.** Owner's picker: "Fast-forward main and push". Local `main` fast-forwarded `71dafc6` →
+  `451aaa2`, and one `git push origin main` (`f0c7925..451aaa2`, 18:09) also sent the two docs commits already on
+  `main` (`765e8d0`, `71dafc6`). Deploy run 39351807634 succeeded. The live `index.html`, fetched with a cache-buster,
+  is **byte-identical to the tested build**: sha256 `42d1bd24edb2cec6…`, 1,537,597 bytes. `version.json` still reads
+  1.4.3, so installed copies show no update notice. A version cut is overdue.
+- Committed on `prep-name` as `a14fb38` (owner's picker, "Commit on prep-name"), cut from `main` at `e86aa5e`. Then
+  **merged with `main` at `765e8d0`** (the prep start grip, live at `f0c7925`) as `bbb3e85`: the code auto-merged, and
+  only this file and `README.md` conflicted (both entries kept). Then `71dafc6` (HANDOFF only) as `451aaa2`.
+- ⭐ **Targeted legs instead of a second full gate, on the owner's word** (*"run npm run check plus the episodeprep,
+  phaseedge and restore legs instead of the full gate"*). The full gate had already run on this change alone, and the
+  grip's own merged build was full-gated and is live, so what the merge could break is where the two meet: the grip
+  finds its pill by text ("Prep 303") and names it through `prepPillLabel`. On merged build `42d1bd24…` (1,537,597
+  bytes), port 8887: `npm run check` 40/40, `check-refs.py` CLEAN; `restore` identical to the re-cut baseline (74 ids,
+  `prep-name` "Episodic Prep", 0 clipped, grid signature identical); `episodeprep` 26 + 24 + 11, with the workbook (16
+  parts) and the waterfall PDF (74,581 bytes) byte-identical with prep on and off; `phaseedge` 23/23, the grip's G0–G8
+  included. ⚠️ Gates 10 and 13 (month print documents, written month PDFs) were NOT re-run on the merge; neither
+  baseline holds prep, and both were byte-identical on each side alone.
+
+- Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+  default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+  episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*. Then,
+  mid-build: *"ok actually dont put the 'Ep' just write 'Prep 303' but do write 'Prep Block 1'"*. So the pills read
+  exactly as they did; only the row's place and default name changed.
+- **What was built (no frozen code; `src/legacy/app.js` only):**
+  - `buildPhaseRows` appends the Prep row BEFORE Production's row. No id moved, and nothing reads rows by position.
+  - The default name is `autoPrepName()`. A DEFAULT name is any of `PREP_AUTO_NAMES` ('', "Prep", "Episodic Prep",
+    "Block Prep"). `syncPrepName()` rewrites it to the mode's own from `refreshPrepUI` (every `update()`) and on the
+    box's `change`, never while the box has the focus (typing "Prep Art" passes through "Prep"). A typed name is
+    kept across a mode switch.
+  - `prepDisplayDef()` returns `pillName` ("Prep" for a default name, else the typed one), carried on the segment.
+    `prepPillLabel()` reads it, so pills stay "Prep 303" / "Prep Block 1", and "Art Prep 303" for a typed name.
+- ⭐ **No save-format change, and no migration code.** "Prep" is in the default set, so a file saved with the old
+  default opens on the new one; the restore default and New's reset still write "Prep" and the next `update()`
+  renames it. Checked in the browser: a fresh load of `episodeprep.sptcal` is not dirty and has no undo step.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" (or the other mode's default) cannot be kept.
+- ✅ **Gate 5 moved by ONE value, as predicted:** `prep-name` on `v1.0.0-saved.html` goes "Prep" → "Episodic Prep" (ids
+  unchanged, 74). **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
+- **Proof so far:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (1,532,965 bytes), port 8883. New checks N1 (order),
+  N2 (Blocks renames and saves "Block Prep"), R0/K0 (the fixtures were minted with "Prep" and open on the new default:
+  keep them that way), K3 (follows the mode both ways), K4 (a typed name survives), K5 (focused box left alone).
+  `npm run check` 40/40, `check-refs.py` CLEAN.
+- ✅ **Full gate on build `e778ffb3…` (port 8885, 17:40–17:58, after `prep-grip-plan`'s gate had exited): 1,859 PASS,
+  1 FAIL.** The one is gate 5 exactly as predicted: lost none, gained none, changed `['prep-name']`. Gates 1–4 green
+  (0 clipped, waterfall PDF and every Excel part identical), gate 10's ten print documents identical, gate 13's twenty
+  written month PDFs byte-identical, `episodeprep` all three runs green, Excel and waterfall PDF identical with prep on
+  and off.
+- **Will conflict lightly with:** `prep-grip-plan` (calls `prepPillLabel(prepSeg() || {}, p)`, fine with `pillName`)
+  and `day-menu-step3` (rewrites `buildPrepRow`'s swatch handler, a few lines below the name input).
+- ⛔ **Learned: check the port in a command of its own, BEFORE the leg.** This session put `lsof` in the same command
+  as a leg on 8871. `lsof` did show the port busy, but by then `run.sh`'s `pkill -f "srv.js 8871 "` had stopped
+  `day-menu-step4-8871`, another session's PREVIEW server from the shared `.claude/launch.json`. It was restarted from
+  that same config. Check `lsof` AND `grep '"port"' .claude/launch.json` (a preview may be claimed but not running).
+
+### ✅ 19 Oct 2026: A START GRIP ON EACH PREP PILL — LIVE AT `f0c7925` (verified byte-identical, `314f7722`), GATED 1,860 PASS / 0 FAIL
+
+- Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
+  prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
+  [`PREP-GRIP-PLAN.md`](PREP-GRIP-PLAN.md). ✅ Both rulings went as recommended (pickers, same day): a drag onto the
+  default length stores it as the episode's own (Q1), and the floor is 1 working day (Q2). Then "Build it".
+- ⭐ **The one real problem, and its answer:** a prep pill carries only `data-ph="episodePrep"`, and in
+  `episodeprep.sptcal` Prep 303 and Prep 304 both have a pill starting Mon 3/1/27, only 303's being its first day. So a
+  grip must find its prep by the ORDER of the row's prep pills, which is `prepRunsForWeek()`'s order (frozen
+  `renderMonthView` emits `placed` in push order; `takePrepRun()` already leans on the same call order). It must also
+  cross-check every pill's grid columns against its run and show no grip on a mismatch. Never by date or label alone.
+- **Built:** `installPrepEdgeHandles()`, right after `installPhaseEdgeHandles()` in `src/legacy/app.js`. No frozen
+  code, no save-format change: it writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as the Prep row's box does.
+  - `prepOfPill()`: the order lookup plus the column cross-check.
+  - `probeDays()`: one `computeSchedule()` at the press, with the unit's length + 80, gives the working days, so the
+    walk is never re-implemented. The probe also refuses unless today's prep is exactly the probe's tail.
+  - `solve()`: the nearest working day; ties go to the smaller change, and n ≥ 1 by construction (Q2).
+  - The guard after each `update()`: the start where computed, the end unmoved, else put back and go inert.
+- **Tests:** `phaseedge.mjs` G0–G8, in their own `{}` block (the F cases already use `h1`…`h12`). The planned G9 is
+  folded into G1. 22/22. Mutants, each red first: by date → G0, G1; the default → G1–G7; the number written back at
+  the start → G3, G6; no floor → G5.
+- ⚠️ **"Nothing banked" is the Undo button here, not F9's Ctrl+Z probe.** `episodeprep.sptcal` is SAVED in the month
+  view, so `load()`'s click on the month button is no step and the stack starts empty. The first run read G3 and G6
+  as red for that reason alone. G2 shows Undo off before a real drag and on after it.
+- ⚠️ **Contention, measured:** with another session's full gate running, `phaseedge` reached F4 in 480 s and hit its
+  deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
+- **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
+  `main`'s docs-only commits up to `3b189af`. Local `main` was fast-forwarded to the branch tip, and ✅ **PUSHED AND
+  LIVE at `f0c7925`** on the owner's picker ("Push now", 19 Oct 2026). The push was `6027247..f0c7925`. Deploy run
+  39350049235 had "Build and check" and "Deploy to Pages" both green. The live file, fetched with a cache-buster, is
+  byte-identical to the gated build `314f7722…`. No version cut: `version.json` still reads 1.4.3, so installed copies
+  show no update notice.
+  - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
+    E15–E19, D5 and F13 all pass.
+  - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's
+    twenty written month PDFs byte-identical. `pilllabel` passed everywhere this time.
+  - `main`'s later commits are docs only (OFF-WEEK-PLAN twice, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
+- ⚠️ **Queueing for a gate, learned the hard way (same day):** four sessions queued full gates. A waiter run as this
+  tool's background job was killed silently twice. A plain `while ps | grep gate.sh` loop also lost the free slot to
+  another session's waiter. What worked was a waiter started with `nohup … &!` (detached from the tool) that, on
+  seeing the slot free, pauses 8–20 s at random and looks again before starting. That keeps two waiters from starting
+  together and stalling each other (the 75-minute run above, with its no-result `pilllabel`).
+
 ### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md); step A built, entry above)
 
 - Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
@@ -74,7 +173,13 @@
 - ⏭ **Next:** step A is built (entry above). Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the
   unmerged `day-menu-step3` both touch `prodWeekLabel()`, which is step B's site.
 
-### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
+### 🔨 19 Oct 2026: BUILT ON BRANCH `phase-numbering` (`56603e8`): A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not merged)
+
+- ⏭ **It is BUILT, not just planned: do not build it again.** Branch `phase-numbering` (worktree
+  `.claude/worktrees/phase-numbering`), commit `56603e8`, cut from `e86aa5e`. That branch's HANDOFF entry has the
+  full record: full gate 1,876 PASS, 5 FAIL, the five explained and re-run green (92 PASS, 0 FAIL), gates 1–5, 10 and
+  13 unchanged. **Not merged into `main`, not pushed.** The owner said "Not yet" to merging. `main` has moved since
+  (the prep start grip, live at `f0c7925`), so landing it means merging `main` in and re-running the full gate.
 
 - Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
   feature or a setting on phases.
@@ -90,7 +195,7 @@
   unit with no event. The edge drag's Weeks → Dates switch leaves it alone.
 - ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
   it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
-- ⏭ **Next:** build it in its own worktree off `main` (plan §9), when the owner asks.
+- Q1 was ruled in words the same day: *"Name and place as recommended"*.
 
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
@@ -305,7 +410,8 @@
     `1c3ce15`), so this is a normal `--no-ff` merge, not a fast-forward. `src/legacy/app.js` and `gate.sh` auto-merged;
     only this file and `README.md` conflicted, and both entries were kept in each.
   - The record is the plan's §13 ([`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md)). No frozen line changed.
-- **What a user sees:** in the month view only, a **Prep** row under Production: name, colour swatch, *Default prep
+- **What a user sees:** in the month view only, a **Prep** row under Production (⚠️ ABOVE it, named "Episodic Prep" /
+  "Block Prep", since the `prep-name` entry at the top): name, colour swatch, *Default prep
   days*, a summary line, and one box per episode in shooting order (per block in Blocks mode). Blank = the default,
   0 = no prep for that one. Pills read *Prep 302* / *Prep Block 2*, in lanes UNDER the shoot, stacking when they
   overlap. Waterfall, Excel and the waterfall PDF never show prep.

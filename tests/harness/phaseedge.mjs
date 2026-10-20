@@ -54,6 +54,19 @@
 //       (Mon 1/5 -> Mon 1/12) with its week's note EDITED ("Writer's Room Opens 1/5/26" + "Pitch day"): the
 //       1/12 week reads "Writer's Room Opens 1/12/26", Pitch day stays on 1/5, no 1/5/26 left; ONE Ctrl+Z
 //       restores it. Red before the fix.
+//
+// ⭐ THE PREP START GRIP (PREP-GRIP-PLAN.md, owner, 19 Oct 2026), on episodeprep.sptcal and its Blocks twin:
+//   G0  the row of Sun 2/28/27: Prep 303's pill from Mon 3/1 (its first day) has a start grip, Prep 304's from the SAME
+//       Monday (a continuation) has none, 304's first pill (2/24) has one; never an end grip
+//   G1  Prep 303's start left a working day (3/1 -> Fri 2/26): its box 10 -> 11, its end still 3/12, nothing else moved;
+//       ONE Ctrl+Z -> 10
+//   G2  Prep 302 (blank, the default 5) onto Mon 2/15, Presidents' Day: lands Tue 2/16, box 4; Undo off -> on
+//   G3  out a day and back in ONE gesture: the box BLANK again (not "5"), Undo still off
+//   G4  onto Sat 2/13 and Sun 2/14: no change; onto Thu 2/11: 6
+//   G5  the floor (ruling Q2(a)): past its end -> one working day, Fri 2/19
+//   G6  Escape mid-drag: back to blank, the shield gone, Undo still off
+//   G7  Blocks: Prep Block 3 (its own 12) left a working day: 13, the other blocks' boxes unchanged
+//   G8  print: the prep grip is display:none, and never inside the grid
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
@@ -457,6 +470,218 @@ try {
        && n13b.indexOf("2026-01-12|Writer's Room Opens 1/12/26") >= 0 && n13b.indexOf('2026-01-05|Pitch day') >= 0
        && !n13b.some(s => /Opens 1\/5\/26/.test(s))
        && f13u.unit === 'weeks' && f13u.start === '2026-01-05' && JSON.stringify(n13c) === JSON.stringify(n13a), out.F13);
+  // ---- G: the prep START grip (PREP-GRIP-PLAN.md, owner, 19 Oct 2026) ----------------------------
+  // Its own block, so its names cannot collide with the F cases'.
+  {
+  // episodeprep.sptcal (t/episodeprep.js's hand trace; all 2027, Atlanta): default 5 working days, 304 its own 8,
+  // 303 its own 10. Prep 302 Fri 2/12 + 2/16-2/19 (Presidents' Day 2/15 skipped); Prep 304 2/24-3/5; Prep 303
+  // 3/1-3/12 (the hiatus week of 3/15 lies before its shoot). February 2027's page starts Sun 1/31: row 1 is
+  // 2/7-2/13, row 2 2/14-2/20, row 3 2/21-2/27, row 4 2/28-3/6.
+  // Every prep pill on the page with its label and dates (the grid starts on the Sunday on or before the 1st).
+  // `pick` scrolls the earliest ('first') or latest ('last') pill of `label` into view and returns just it.
+  const prepPills = (label, pick, from) => ev(`(async () => {
+    const M = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const [mn, yr] = document.querySelector('#table-wrap .mv-monthyear').textContent.trim().split(/\\s+/);
+    const first = Date.UTC(+yr, M.indexOf(mn), 1), g0 = first - new Date(first).getUTCDay() * 864e5;
+    const iso = t => new Date(t).toISOString().slice(0, 10);
+    const weeks = Array.from(document.querySelectorAll('#table-wrap .mv-body > .mv-week'));
+    const read = p => { const row = weeks.indexOf(p.closest('.mv-week')), a = +p.style.gridColumnStart, b = +p.style.gridColumnEnd;
+      const r = p.getBoundingClientRect();
+      const label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim();
+      return { label, row, from: iso(g0 + (row * 7 + a - 1) * 864e5), to: iso(g0 + (row * 7 + b - 2) * 864e5),
+               x: r.left + Math.min(r.width / 2, 30), y: r.top + r.height / 2, l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+    const els = Array.from(document.querySelectorAll('#table-wrap .mv-pill[data-ph="episodePrep"]'));
+    const want = ${JSON.stringify(label || null)}, pick = ${JSON.stringify(pick || null)}, on = ${JSON.stringify(from || null)};
+    if (!want) return els.map(read);
+    const mine = els.filter(p => read(p).label === want && (!on || read(p).from === on)).sort((a, b) => read(a).from < read(b).from ? -1 : 1);
+    const el = pick === 'last' ? mine[mine.length - 1] : mine[0];
+    if (!el) return null;
+    el.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 300));
+    return read(el); })()`);
+  // The pill of `label` that starts on `from`, scrolled into view (two preps can share a start day).
+  const prepPillOn = (label, from) => prepPills(label, 'first', from);
+  // The Prep row's per-unit boxes: {name: {v, edited}}.
+  const prepBoxes = () => ev(`Object.fromEntries(Array.from(document.querySelectorAll('#prep-rows .prep-unit-row')).map(r => {
+    const i = r.querySelector('.prep-unit-days');
+    return [r.querySelector('.prep-unit-name').textContent.trim(), { v: i.value, edited: i.classList.contains('is-edited') }]; }))`);
+  // ⚠️ "Nothing banked" is read off the Undo button, not F9's Ctrl+Z probe: episodeprep.sptcal is SAVED in the
+  // month view, so load()'s click on the month button is no step, and the stack starts empty. G2 shows the
+  // button enabled after a real drag, so the probe can see a banked step.
+  const undoOff = () => ev(`(() => { const u = document.getElementById('undo-btn'); return !!u && (u.disabled || u.hasAttribute('data-disabled')); })()`);
+  const spanOf = (ps, label) => { const m = ps.filter(p => p.label === label).sort((a, b) => a.from < b.from ? -1 : 1);
+    return m.length ? { from: m[0].from, to: m[m.length - 1].to } : null; };
+  const others = () => ev(`(() => { const o = {}; document.querySelectorAll('input[id^="start-"], input[id^="end-"]').forEach(i => { o[i.id] = i.value; });
+    o.meta = (document.getElementById('meta-production') || {}).innerText || ''; return o; })()`);
+
+  // G0 -- February: in the row of Sun 2/28 two prep pills start on Mon 3/1. Only Prep 303's is its first day.
+  await load('episodeprep', 'February 2027');
+  const p303 = await prepPillOn('Prep 303', '2027-03-01'), p304c = await prepPillOn('Prep 304', '2027-03-01');
+  const p304 = await prepPillOn('Prep 304', '2027-02-24');
+  // Each pill is re-found (and scrolled to) right before resting on it, so its coordinates are current.
+  const r303 = p303 && await prepPillOn('Prep 303', '2027-03-01');
+  const g0a = r303 ? (await restOn(r303)).filter(h => h.ph === 'episodePrep') : [];
+  const r304c = p304c && await prepPillOn('Prep 304', '2027-03-01');
+  const g0b = r304c ? (await restOn(r304c)).filter(h => h.ph === 'episodePrep') : [];
+  const r304 = p304 && await prepPillOn('Prep 304', '2027-02-24');
+  const g0c = r304 ? (await restOn(r304)).filter(h => h.ph === 'episodePrep') : [];
+  out.G0 = { p303: r303, p304c: r304c, p304: r304, on303: g0a, on304cont: g0b, on304first: g0c };
+  const vis = hs => hs.filter(h => !h.hidden);
+  const s303 = vis(g0a)[0], s304 = vis(g0c)[0];
+  kase('G0', "Feb: Prep 303's pill from Mon 3/1 has a START grip (topmost, on <body>); Prep 304's from the same Monday has none; 304's first pill (2/24) has one; never an end grip",
+       !!p303 && !!p304c && p303.row === 4 && p304c.row === 4
+       && vis(g0a).length === 1 && s303.edge === 'start' && s303.topmost === true && s303.parentIsBody === true
+       && Math.abs(s303.l - r303.l) < 1 && /Prep 303/.test(s303.title)
+       && vis(g0b).length === 0
+       && vis(g0c).length === 1 && s304.edge === 'start' && Math.abs(s304.l - r304.l) < 1 && /Prep 304/.test(s304.title)
+       && [...g0a, ...g0b, ...g0c].every(h => h.hidden || h.edge === 'start'), out.G0);
+
+  // G1 (+G9) -- Prep 303's start left one working day, Mon 3/1 -> Fri 2/26: its box 10 -> 11, its end still 3/12,
+  // nothing else moved; ONE Ctrl+Z -> 10.
+  await load('episodeprep', 'February 2027');
+  const g1o = await others(), g1b0 = await prepBoxes(), g1p0 = await prepPills();
+  const q1 = await prepPillOn('Prep 303', '2027-03-01');
+  const h1 = q1 ? vis((await restOn(q1)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const mon1 = await cell(4, 1, 1), fri1 = await cell(3, 5, 26);
+  if (h1 && mon1 && fri1) await dragPath(h1, [[h1.x + (fri1.x - mon1.x) * 0.5, h1.y], toward(h1, mon1, fri1)], 'prodPrep');
+  const g1b = await prepBoxes(), g1p = await prepPills(), g1oa = await others();
+  await gotoMonth('March 2027');
+  const g1m = await prepPills();
+  await ctrlZ();
+  const g1u = await prepBoxes(), g1um = await prepPills();
+  out.G1 = { before: g1b0, after: g1b, pillsBefore: g1p0, pillsAfter: g1p, march: g1m, undone: g1u, others: [g1o, g1oa] };
+  // Dates only: a new pill can add a lane to a row, which moves the other pills' pixels but not their days.
+  const others0 = ps => JSON.stringify(ps.filter(p => p.label !== 'Prep 303').map(p => p.label + '|' + p.from + '|' + p.to).sort());
+  kase('G1', "Prep 303's start left a working day (Mon 3/1 -> Fri 2/26): box 10 -> 11 (edited), end still 3/12, no other prep, phase or the shoot moved; ONE Ctrl+Z -> 10",
+       !!h1 && g1b0['Episode 303'].v === '10' && g1b['Episode 303'].v === '11' && g1b['Episode 303'].edited === true
+       && (spanOf(g1p, 'Prep 303') || {}).from === '2027-02-26' && (spanOf(g1m, 'Prep 303') || {}).to === '2027-03-12'
+       && others0(g1p) === others0(g1p0) && JSON.stringify(g1oa) === JSON.stringify(g1o)
+       && Object.keys(g1b).every(k => k === 'Episode 303' || JSON.stringify(g1b[k]) === JSON.stringify(g1b0[k]))
+       && g1u['Episode 303'].v === '10' && (spanOf(g1um, 'Prep 303') || {}).from === '2027-03-01', out.G1);
+
+  // G2 -- Prep 302 (blank: the default 5) right onto Mon 2/15, Presidents' Day: lands Tue 2/16, box 4, end 2/19.
+  await load('episodeprep', 'February 2027');
+  const q2 = await prepPills('Prep 302', 'first');
+  const h2 = q2 ? vis((await restOn(q2)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const fri2 = await cell(1, 5, 12), mon2 = await cell(2, 1, 15);
+  const g2off0 = await undoOff();
+  if (h2 && fri2 && mon2) await dragPath(h2, [[h2.x + 8, h2.y], toward(h2, fri2, mon2)], 'prodPrep');
+  const g2b = await prepBoxes(), g2p = await prepPills(), g2off = await undoOff();
+  out.G2 = { pill: q2, handle: h2, boxes: g2b, pills: g2p, undoOffBefore: g2off0, undoOffAfter: g2off };
+  kase('G2', 'Prep 302 (blank, default 5) right onto Mon 2/15 (Presidents\' Day): lands Tue 2/16, box 4 (edited), end 2/19; Undo off before, on after',
+       !!h2 && q2.from === '2027-02-12' && g2off0 === true && g2off === false && g2b['Episode 302'].v === '4' && g2b['Episode 302'].edited === true
+       && JSON.stringify(spanOf(g2p, 'Prep 302')) === JSON.stringify({ from: '2027-02-16', to: '2027-02-19' }), out.G2);
+
+  // G3 -- Prep 302 out a day and back in ONE gesture: the box is BLANK again, not "5", and nothing is banked.
+  await load('episodeprep', 'February 2027');
+  const q3 = await prepPills('Prep 302', 'first');
+  const h3 = q3 ? vis((await restOn(q3)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const fri3 = await cell(1, 5, 12), thu3 = await cell(1, 4, 11);
+  let g3mid = null;
+  if (h3 && fri3 && thu3) {
+    await mouse('mouseMoved', h3.x, h3.y, 0);
+    await mouse('mousePressed', h3.x, h3.y, 1);
+    await sleep(150);
+    await mouse('mouseMoved', ...toward(h3, fri3, thu3), 1);
+    await sleep(400);
+    g3mid = await prepBoxes();
+    await mouse('mouseMoved', h3.x, h3.y, 1);
+    await sleep(400);
+    await mouse('mouseReleased', h3.x, h3.y, 0);
+    await sleep(700);
+  }
+  const g3b = await prepBoxes(), g3off = await undoOff();
+  out.G3 = { mid: g3mid, after: g3b, undoOff: g3off };
+  kase('G3', 'Prep 302 out to Thu 2/11 (6) and back in ONE gesture: the box BLANK again (not "5"), not edited; nothing banked (Undo still off)',
+       !!h3 && !!g3mid && g3mid['Episode 302'].v === '6' && g3b['Episode 302'].v === '' && g3b['Episode 302'].edited === false
+       && g3off === true, out.G3);
+
+  // G4 -- right onto Sat 2/13 and Sun 2/14: no change (Fri is nearer; Sun ties with Tue 2/16, the smaller change
+  // wins); then left onto Thu 2/11: 6.
+  await load('episodeprep', 'February 2027');
+  const q4 = await prepPills('Prep 302', 'first');
+  const h4 = q4 ? vis((await restOn(q4)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const fri4 = await cell(1, 5, 12), sat4 = await cell(1, 6, 13), sun4 = await cell(2, 0, 14), thu4 = await cell(1, 4, 11);
+  const mids4 = [];
+  if (h4 && fri4 && sat4 && sun4 && thu4) {
+    await mouse('mouseMoved', h4.x, h4.y, 0);
+    await mouse('mousePressed', h4.x, h4.y, 1);
+    await sleep(150);
+    for (const to of [sat4, sun4, thu4]) { await mouse('mouseMoved', ...toward(h4, fri4, to), 1); await sleep(400); mids4.push((await prepBoxes())['Episode 302'].v); }
+    await mouse('mouseReleased', ...toward(h4, fri4, thu4), 0);
+    await sleep(700);
+  }
+  const g4p = await prepPills();
+  out.G4 = { mids: mids4, pills: g4p };
+  kase('G4', 'Prep 302 onto Sat 2/13 and Sun 2/14: no change (blank); onto Thu 2/11: 6, from 2/11',
+       !!h4 && JSON.stringify(mids4) === '["","","6"]' && (spanOf(g4p, 'Prep 302') || {}).from === '2027-02-11', out.G4);
+
+  // G5 -- the floor (Q2(a)): Prep 302's start dragged past its end, onto Mon 2/22: ONE working day, Fri 2/19.
+  await load('episodeprep', 'February 2027');
+  const q5 = await prepPills('Prep 302', 'first');
+  const h5 = q5 ? vis((await restOn(q5)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const fri5 = await cell(1, 5, 12), mon5 = await cell(3, 1, 22);
+  if (h5 && fri5 && mon5) await dragPath(h5, [[h5.x + 8, h5.y], toward(h5, fri5, mon5)], 'prodPrep');
+  const g5b = await prepBoxes(), g5p = await prepPills();
+  out.G5 = { boxes: g5b, pills: g5p };
+  kase('G5', 'floor: Prep 302 dragged past its end (onto Mon 2/22): 1 working day, Fri 2/19, box 1',
+       !!h5 && g5b['Episode 302'].v === '1' && JSON.stringify(spanOf(g5p, 'Prep 302')) === JSON.stringify({ from: '2027-02-19', to: '2027-02-19' }), out.G5);
+
+  // G6 -- Escape mid-drag: put back (blank), the shield gone, nothing banked.
+  await load('episodeprep', 'February 2027');
+  const q6 = await prepPills('Prep 302', 'first');
+  const h6 = q6 ? vis((await restOn(q6)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const fri6 = await cell(1, 5, 12), thu6 = await cell(1, 4, 11);
+  let g6mid = null, g6shield = null;
+  if (h6 && fri6 && thu6) {
+    await mouse('mouseMoved', h6.x, h6.y, 0);
+    await mouse('mousePressed', h6.x, h6.y, 1);
+    await sleep(150);
+    await mouse('mouseMoved', ...toward(h6, fri6, thu6), 1);
+    await sleep(400);
+    g6mid = await prepBoxes();
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await sleep(400);
+    g6shield = await ev(`!!document.querySelector('.phase-edge-shield')`);
+    await mouse('mouseReleased', ...toward(h6, fri6, thu6), 0);
+    await sleep(500);
+  }
+  const g6b = await prepBoxes(), g6off = await undoOff();
+  out.G6 = { mid: g6mid, shield: g6shield, after: g6b, undoOff: g6off };
+  kase('G6', 'Escape mid-drag (Prep 302 at 6): back to blank, the shield gone; nothing banked (Undo still off)',
+       !!h6 && !!g6mid && g6mid['Episode 302'].v === '6' && g6shield === false && g6b['Episode 302'].v === '' && g6off === true, out.G6);
+
+  // G7 -- Blocks (episodeprep-blocks): Prep Block 3 (its own 12, from Thu 3/4) left a working day: Block 3's box 13,
+  // from Wed 3/3. March 2027's page starts Sun 2/28, so row 0 is 2/28-3/6.
+  await load('episodeprep-blocks', 'March 2027');
+  const q7 = await prepPills('Prep Block 3', 'first');
+  const h7 = q7 ? vis((await restOn(q7)).filter(h => h.ph === 'episodePrep'))[0] : null;
+  const thu7 = await cell(0, 4, 4), wed7 = await cell(0, 3, 3);
+  const g7b0 = await prepBoxes();
+  if (h7 && thu7 && wed7) await dragPath(h7, [[h7.x + (wed7.x - thu7.x) * 0.5, h7.y], toward(h7, thu7, wed7)], 'prodPrep');
+  const g7b = await prepBoxes(), g7p = await prepPills();
+  out.G7 = { pill: q7, handle: h7, before: g7b0, after: g7b, pills: g7p };
+  kase('G7', 'Blocks: Prep Block 3 (own 12, from Thu 3/4) left a working day: Block 3\'s box 13 (edited), from Wed 3/3; the other blocks\' boxes unchanged',
+       !!h7 && q7.from === '2027-03-04' && g7b0['Block 3'].v === '12' && g7b['Block 3'].v === '13' && g7b['Block 3'].edited === true
+       && (spanOf(g7p, 'Prep Block 3') || {}).from === '2027-03-03'
+       && Object.keys(g7b).every(k => k === 'Block 3' || JSON.stringify(g7b[k]) === JSON.stringify(g7b0[k])), out.G7);
+
+  // G8 -- print: the prep grip is display:none under body.printing-calendar in print media, and never in the grid.
+  await load('episodeprep', 'February 2027');
+  const q8 = await prepPills('Prep 302', 'first');
+  const h8 = q8 ? vis((await restOn(q8)).filter(h => h.ph === 'episodePrep')) : [];
+  await send('Emulation.setEmulatedMedia', { media: 'print' });
+  const e8 = await ev(`(() => { document.body.classList.add('printing-calendar');
+    const h = document.querySelector('.phase-edge-handle[data-ph="episodePrep"]:not([hidden])');
+    const r = { shown: !!h, display: h ? getComputedStyle(h).display : null,
+      inPrintRoot: document.querySelectorAll('#print-root .phase-edge-handle, #print-root .phase-edge-shield').length,
+      inTableWrap: document.querySelectorAll('#table-wrap .phase-edge-handle, #table-wrap .phase-edge-shield').length };
+    document.body.classList.remove('printing-calendar'); return r; })()`);
+  await send('Emulation.setEmulatedMedia', { media: '' });
+  out.G8 = { handles: h8, print: e8 };
+  kase('G8', 'print media + body.printing-calendar: the prep grip is display:none; none in #print-root or #table-wrap',
+       h8.length === 1 && e8.shown === true && e8.display === 'none' && e8.inPrintRoot === 0 && e8.inTableWrap === 0, out.G8);
+  }
   ws.close();
 } catch (e) {
   out.EX = String(e && e.message || e);

@@ -246,6 +246,19 @@ Inserted after `simpost-count`, where the two fields sit in the DOM (the Prep ro
 those two lines. Gate 5 compares the key set and values, not the order. Unchanged by this: **`sig`, `rows`, `cells`,
 `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended, by a script that aborted on any other difference.
 
+## ✅ `restore.json`'s `form` RE-CUT — `prep-name` "Prep" → "Episodic Prep" (19 Oct 2026, the Prep row's default name)
+
+A deliberate change of one DEFAULT value, re-cut on the owner's sign-off (picker, 19 Oct 2026: "Re-cut it"). The owner
+asked for the Prep row's default name to follow Schedule by: "Episodic Prep" or "Block Prep" (EPISODE-PREP-PLAN.md §14).
+`v1.0.0-saved.html` has no `prep-name`, restores to the old default "Prep", and the `update()` after the restore renames
+that default to its mode's own, so `fields.byId` now reads "Episodic Prep". The full gate on build `e778ffb3…` reported
+exactly this and nothing else in gate 5: **lost none, gained none, changed `['prep-name']`**, still 74 ids. Only that one
+value in `restore.json` was edited, and the result was checked equal to the gated run's `form`.
+
+⭐ **The back-compat proof is that it is not "Prep".** "Prep" is still read as the default (`PREP_AUTO_NAMES`), so every
+calendar saved with it opens on the new name; the `episodeprep` leg's R0 and K0 hold that on both prep fixtures, which
+were minted with "Prep" and must stay so.
+
 ## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
 
 A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut

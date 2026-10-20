@@ -54,6 +54,61 @@ This is step A; step B (the month view numbering weeks as the waterfall does) is
   The print document A/B on the new fixture differs in 3 of 47 week rows, all of them off-week rows. September's
   Labor Day row grows 57 → 78 px because the band takes a lane, and the other seven months are pixel-identical in
   both month PDFs. Owner contact sheets made. Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL**. Gates 1–5 are green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids). Gate 10's ten print documents are identical, and gate 13's twenty written month PDFs are byte-identical. The five failures were timeouts and the known `pilllabel (halfdays)` W3 flake, while another session's full gate ran beside it. Each passed when re-run alone on the same build: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24, `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40.
+
+### Unreleased — Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
+
+Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*.
+- **The Prep row is directly above Production** in the Phases card (it was under it). Only the order moved. No id
+  changed, and nothing reads the rows by position.
+- **Its default name follows Schedule by:** "Episodic Prep" on an Episodes calendar, "Block Prep" on a Blocks one, and
+  it changes when the mode does. A name the user types is kept across a mode switch. There is no new id or key:
+  `#prep-name` still holds the name, and the values "Prep" (the old default), "Episodic Prep", "Block Prep" and blank
+  all mean the default. So **every calendar saved with the old default opens on the new one**, and no file needs
+  converting. The box is never rewritten while it has the focus, because typing "Prep Art" passes through "Prep".
+- **Pills still read just "Prep 303" / "Prep Block 1"**, whatever the default name. A first build wrote "Prep Ep. 303",
+  to match Production's bars; the owner took the "Ep." out the same day (*"dont put the 'Ep' just write 'Prep 303' but
+  do write 'Prep Block 1'"*). With a typed name, that name replaces "Prep" ("Art Prep 303"), as before. Waterfall,
+  Excel and the waterfall PDF never show prep, so they cannot change.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" cannot be kept. It reads as the default, and its pills would say
+  "Prep" either way.
+- **Verified:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (new: N1 the order, N2 Blocks renames and saves
+  "Block Prep", K0/R0 the fixtures' old "Prep" opens as the new default, K3 the name follows the mode both ways, K4 a
+  typed name survives it and names every pill, K5 the focused box is left alone). `npm run check` 40/40;
+  `check-refs.py` CLEAN. Both fixtures checked by eye in the browser. Full gate on that build: **1,859 PASS, 1 FAIL**,
+  the one being gate 5's predicted `prep-name` value ("Prep" → "Episodic Prep" on `v1.0.0-saved.html`); waterfall PDF,
+  every Excel part and gate 13's twenty written month PDFs byte-identical, 0 clipped cells. Gate 5 re-cut on the
+  owner's sign-off. Merged with `main` (the prep start grip) as `bbb3e85`, then on the owner's word only the legs where
+  the two meet were re-run: `npm run check` 40/40, `restore` (gate 5) identical, `episodeprep` 26 + 24 + 11 with Excel
+  and the waterfall PDF identical prep on/off, `phaseedge` 23/23 (the grip's G0–G8 included), on build `42d1bd24…`.
+
+### Unreleased — Drag where an episode's prep starts, in the month view (19 Oct 2026)
+
+Owner: *"will you be able to change when exactly each episode prep starts"*, then *"plan a start grip on each prep pill
+in the month view that writes that episode's (or block's) prep length, with the end staying tied to the shoot"*.
+PREP-GRIP-PLAN.md, with both rulings as recommended.
+- **One grip per prep,** on the left edge of the pill holding its first day. Left gives more prep days, right fewer.
+  The end does not move: a prep still ends the working day before its episode's (or block's) first shoot day.
+  There is no end grip, and the middle of a prep pill still does nothing.
+- **It writes that unit's own prep length,** exactly what its box in the Prep row holds, and the box follows the
+  drag. A length that lands on the default is still stored as that episode's own (ruling Q1). A drag that comes back
+  to where it began leaves the box exactly as it was, blank included.
+- **Working days only,** as the prep itself is counted: a weekend, an enabled union holiday or a hiatus day under the
+  pointer is stepped over, and ties go to the smaller change. It floors at one working day (ruling Q2); 0 (no prep)
+  is still typed in the box.
+- **One undo step per drag;** out and back, or Escape, banks nothing. Nothing else moves: prep is added after every
+  date is built, and the waterfall, Excel and the waterfall PDF never show it.
+- **Two preps can start a pill on the same day** (Prep 303 and 304 from Mon 3/1/27 in the test calendar). The grip
+  finds its prep by the order the month view lays out a row's prep pills, the order the pill names already rely on.
+  Each pill's columns are checked against its run first, so a mismatch shows no grip rather than dragging the wrong
+  prep.
+- No frozen code, and no save-format change: `prepDays` already exists.
+- **Verified:** `phaseedge` G0–G8 (trusted mouse input on `episodeprep` and its Blocks twin), 22/22. Four mutants
+  were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
+  the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical. Merged with `main` (beside the note fix): **1,860 PASS, 0 FAIL, GATE
+  PASSED** on build `314f7722…`, with every frozen output identical and `pilllabel` green.
+
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both

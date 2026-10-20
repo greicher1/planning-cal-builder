@@ -5586,6 +5586,11 @@ export function initLegacyApp() {
           </label>
         </div>` : ''}
       `;
+      // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
+      // come before production phase in the left side bar"), where prep falls in time. It was under
+      // Production, which it is derived from (EPISODE-PREP-PLAN.md §6). Only the order moved: no id
+      // changed, so the save format cannot, and nothing in the engine reads the rows by position.
+      if(p.key === 'production') wrap.appendChild(buildPrepRow());
       wrap.appendChild(row);
       row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
         // Keep the hiatus name field's placeholder in step with the phase's typed name, same as
@@ -5602,8 +5607,6 @@ export function initLegacyApp() {
           update();
         });
       });
-      // The Prep row goes straight under Production, which it is derived from (EPISODE-PREP-PLAN.md §6).
-      if(p.key === 'production') wrap.appendChild(buildPrepRow());
     });
   }
 
@@ -5625,7 +5628,7 @@ export function initLegacyApp() {
     row.innerHTML = `
         <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
         <div class="custom-phase-header">
-          <input type="text" class="phase-name-input" id="prep-name" value="${PREP_DEF.label}" placeholder="${PREP_DEF.label}" aria-label="Prep name">
+          <input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">
         </div>
         <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
         <div class="phase-fields">
@@ -5634,6 +5637,9 @@ export function initLegacyApp() {
         <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
     row.querySelector('#prep-name').addEventListener('input', update);
+    // Leaving the box puts a default name back to this mode's ("Prep", or blank, becomes "Episodic
+    // Prep"), as refreshPrepUI() does on every update() while the box is not being typed in.
+    row.querySelector('#prep-name').addEventListener('change', syncPrepName);
     row.querySelector('#prep-days').addEventListener('input', update);
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
@@ -5670,9 +5676,12 @@ export function initLegacyApp() {
   // (P4), so it re-sequences wherever the episode list does. It is REBUILT only when its rows change
   // (the mode, which units, their order or names), never on a keystroke in one of its own boxes, which
   // would take the focus and the caret. Otherwise the values are written back in place from the store,
-  // skipping the box being typed in, so an undo or a Load shows the restored lengths. Nothing here
-  // writes an id'd field, so update() calling it adds no undo step.
+  // skipping the box being typed in, so an undo or a Load shows the restored lengths. The one id'd
+  // field written here is #prep-name, and only when it holds a default name for the OTHER mode
+  // (syncPrepName): that follows a Schedule-mode change or a Load, which are steps of their own, so
+  // update() calling this still adds no undo step.
   function refreshPrepUI(schedule){
+    syncPrepName();
     const wrap = document.getElementById('prep-rows');
     const metaEl = document.getElementById('prep-meta');
     if(!wrap) return;
@@ -5892,13 +5901,38 @@ export function initLegacyApp() {
   function hasPrepOverride(def){
     return !!def && def.prepDays !== undefined && def.prepDays !== null && def.prepDays !== '';
   }
-  // The prep "phase" as drawn: the name typed in the Prep row (#prep-name, blank = "Prep") and its
-  // colour (phaseColorOverride.episodePrep, else the default above).
+  // ⭐ THE PREP ROW'S DEFAULT NAME FOLLOWS THE SCHEDULE MODE (owner, 19 Oct 2026): "Episodic Prep" on an
+  // Episodes calendar, "Block Prep" on a Blocks one. Its pills still read just "Prep 303" / "Prep
+  // Block 1" (prepPillLabel). #prep-name stays the one store, so there is no new id and no new key:
+  // a DEFAULT name is one of these values, and it is rewritten to the mode's own whenever the box is
+  // not being typed in (syncPrepName). "Prep" is in the list because it was the default until this
+  // change (EPISODE-PREP-PLAN §6), so every calendar saved with it opens on the new default; and blank
+  // is, because it always meant the default. Any other name is the user's, and is kept.
+  // ⚠️ The cost, accepted: a name of exactly "Prep" (or the other mode's default) cannot be kept.
+  // It reads as this mode's default, and its pills would say "Prep" either way.
+  const PREP_AUTO_NAMES = ['', PREP_DEF.label, 'Episodic Prep', 'Block Prep'];
+  function autoPrepName(){ return isBlocksMode() ? 'Block Prep' : 'Episodic Prep'; }
+  function isAutoPrepName(v){ return PREP_AUTO_NAMES.includes(String(v == null ? '' : v).trim()); }
+  // Puts a default name back to the mode's, never while the box has the focus: a user typing
+  // "Prep Art" passes through "Prep". A write here is not an edit (no input event, no markDirty), and
+  // it happens only when the mode changed or a file was loaded, both of which are steps already.
+  function syncPrepName(){
+    const el = document.getElementById('prep-name');
+    if(!el) return;
+    const want = autoPrepName();
+    if(el.placeholder !== want) el.placeholder = want;
+    if(document.activeElement !== el && isAutoPrepName(el.value) && el.value !== want) el.value = want;
+  }
+  // The prep "phase" as drawn: the name typed in the Prep row (#prep-name; a default name above is the
+  // mode's) and its colour (phaseColorOverride.episodePrep, else the default above). `pillName` is what
+  // a pill puts before its unit: "Prep" for a default name, else the typed one ("Art Prep 303").
   function prepDisplayDef(){
     const nameEl = document.getElementById('prep-name');
     const typed = nameEl ? nameEl.value.trim() : '';
+    const auto = isAutoPrepName(typed);
     const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)] || PHASE_COLOR_OPTIONS[0];
-    return {key: PREP_KEY, label: typed || PREP_DEF.label, color: opt.color, textColor: opt.text};
+    return {key: PREP_KEY, label: auto ? autoPrepName() : typed, pillName: auto ? PREP_DEF.label : typed,
+            color: opt.color, textColor: opt.text};
   }
   // What readState() hands computeSchedule(): the default length and the def. The per-unit overrides
   // are read from episodeDefs/blockDefs at schedule time, as productionUnits() reads their day counts.
@@ -7620,6 +7654,254 @@ export function initLegacyApp() {
       if(!drag || e.key !== 'Escape') return;
       e.preventDefault();
       if(drag.cur !== drag.edge0) apply(drag.edge0);
+      endDrag();
+    }, true);
+  })();
+
+  // ---------- Prep's handle: where each prep STARTS (PREP-GRIP-PLAN.md) ----------
+  // Owner, 19 Oct 2026: "a start grip on each prep pill in the month view that writes that episode's (or
+  // block's) prep length, with the end staying tied to the shoot". So ONE handle per prep, on the left edge
+  // of the pill that holds its first day. Never an end handle: a prep ends the working day before its
+  // unit's first shoot day (EPISODE-PREP-PLAN §1). Never a body-drag: prep has no start-<key> field.
+  // The drag writes the unit's OWN length, episodeDefs[].prepDays / blockDefs[].prepDays, exactly what its
+  // box in the Prep row writes. So there is no new state and no save-format change, and one undo restores it.
+  //   Q1(a) (owner's picker): a length equal to the default is still stored as the unit's own, because a drag
+  //         is a statement about that episode. Only back at the press length is what was there put back,
+  //         blank included (MONTH-9's rule).
+  //   Q2(a): it floors at ONE working day. 0 (no prep) stays something typed in the box.
+  // ⛔ WHICH PREP A PILL IS comes from the ORDER of its row's prep pills, cross-checked by their columns
+  // (prepOfPill). ⛔ THE WORKING DAYS come from the derivation itself (probeDays), never a second walk.
+  // ⭐ ZERO FROZEN EDITS, the other grips' shape: body-level chrome, the pooled .phase-edge-handle and
+  // .phase-edge-shield. The print path hides every child of <body> but #print-root, and buildSavedHtml()
+  // strips both, so neither month PDF nor a shareable copy can carry one.
+  (function installPrepEdgeHandles(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;            // px, as the other grips'
+    const PAD = 80;                 // working days the probe walks past today's start
+    const pool = [];                // handle elements, reused; each carries ._spec and ._pill
+    let shownFor = null;
+    let shield = null;
+    let drag = null;
+
+    const prepSeg = ()=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === PREP_KEY) || null;
+    const sameUnit = (a, b)=> !!a && !!b && a.kind === b.kind
+      && (a.kind === 'block' ? a.unit.i === b.unit.i : a.unit.id === b.unit.id);
+    const defOf = p=> p.kind === 'block' ? blockDefs[p.unit.i] : episodeDefs.find(e=> e.id === p.unit.id);
+
+    // The prep a pill draws, with its pillRange(), or null.
+    // ⛔ NOT BY DATE. Two preps can each have a pill starting on the same day of one row: in
+    // episodeprep.sptcal, Prep 303 and Prep 304 both run from Mon 3/1/27, and only 303's is its first day.
+    // Frozen renderMonthView place()s a row's prep runs in prepRunsForWeek()'s order, and emits `placed` in
+    // push order (the contract takePrepRun() already names), so the row's Nth prep pill is its Nth run.
+    // Every pill's columns are checked against its run before that is trusted. On any mismatch there is no
+    // handle (cellDate()'s rule: refuse rather than guess). prepRunsForWeek() is pure; it sets no state.
+    function prepOfPill(pill){
+      const seg = prepSeg(), g = pillRange(pill);
+      if(!seg || !g) return null;
+      const pills = Array.prototype.filter.call(pill.parentNode.children,
+        el=> el.classList && el.classList.contains('mv-pill') && el.getAttribute('data-ph') === PREP_KEY);
+      const runs = prepRunsForWeek(currentSchedule, parseDateUTC(g.rowSun), seg);
+      if(pills.length !== runs.length) return null;
+      for(let k = 0; k < runs.length; k++){
+        if(parseInt(pills[k].style.gridColumnStart, 10) !== runs[k].startCol + 1
+           || parseInt(pills[k].style.gridColumnEnd, 10) !== runs[k].endCol + 2) return null;
+      }
+      const k = pills.indexOf(pill);
+      return (k >= 0 && runs[k].prep) ? {prep: runs[k].prep, g} : null;
+    }
+    // The handle a pill carries: only the pill holding its prep's first day has one.
+    function specFor(pill){
+      const hit = prepOfPill(pill);
+      if(!hit || hit.g.from !== isoOf(hit.prep.first)) return null;
+      return {kind: 'start', side: 'left', day: hit.g.from, prep: hit.prep};
+    }
+    function titleFor(p){
+      const def = defOf(p);
+      const unit = p.kind === 'block' ? ((def && def.name) || ('Block ' + (p.unit.i + 1))) : ((def && def.name) || 'this episode');
+      return 'Drag to change when ' + prepPillLabel(prepSeg() || {}, p) + ' starts. It still ends the working day before '
+        + unit + '’s first shoot day; its prep days change (now ' + p.days.size + ').';
+    }
+
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){
+      shownFor = null;
+      pool.forEach(h=>{ if(h !== except) h.hidden = true; });
+    }
+    function place(h, pill, spec){
+      const v = visibleRect(pill);
+      if(!v){ h.hidden = true; return; }
+      const x = v.full.left;
+      // The edge itself must be on screen, not just some of the pill.
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = pill;
+      h.setAttribute('data-edge', 'start');
+      h.setAttribute('data-ph', PREP_KEY);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(pill).color;      // the pill's own text colour reads on its fill
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const spec = specFor(pill);
+      if(!spec) return;
+      shownFor = pill;
+      const h = handleAt(0);
+      place(h, pill, spec);
+      h.title = titleFor(spec.prep);
+    }
+
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle')) return;   // resting on one
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest('.mv-pill[data-ph="' + PREP_KEY + '"]');
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    // Every render replaces every pill (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Every working day the derivation would count for this prep, oldest first, ending on its last day: the
+    // unit's length raised by PAD, one computeSchedule(), and the length put back before anything renders
+    // (probeShootDays()' shape). Nothing re-walks the days, so a holiday, a hiatus or a later rule can never
+    // be counted one way here and another in appendEpisodePrep(). null on any doubt: no drag.
+    function probeDays(p, def){
+      const had = hasPrepOverride(def), was = def.prepDays;
+      try {
+        def.prepDays = String(p.days.size + PAD);
+        const sch = computeSchedule(readState());
+        const seg = sch && (sch.segments || []).find(s=> s.key === PREP_KEY);
+        const q = seg && (seg.preps || []).find(x=> sameUnit(x, p));
+        if(!q) return null;
+        const list = Array.from(q.days).sort();
+        // Today's prep must be exactly the probe's tail, or the arithmetic below means nothing.
+        const today = Array.from(p.days).sort();
+        return (list.length >= today.length && list.slice(-today.length).join() === today.join()) ? list : null;
+      } catch(err){ return null; }
+      finally {
+        if(had) def.prepDays = was; else delete def.prepDays;
+      }
+    }
+    // The working day nearest `T`, and the length that starts the prep there. Ties go to the smaller change.
+    // A day past the end lands on the end itself: one working day (Q2(a)).
+    function solve(d, T){
+      const L = d.list, tT = parseDateUTC(T).getTime();
+      let best = -1, bestDist = 0;
+      for(let k = 0; k < L.length; k++){
+        const dist = Math.abs(parseDateUTC(L[k]).getTime() - tT);
+        const n = L.length - k;
+        if(best < 0 || dist < bestDist
+           || (dist === bestDist && Math.abs(n - d.n0) < Math.abs((L.length - best) - d.n0))){ best = k; bestDist = dist; }
+      }
+      return best < 0 ? null : {n: L.length - best, iso: L[best]};
+    }
+
+    // Keep the dragged handle on its prep's first pill as the grid re-renders under it.
+    function follow(){
+      const d = drag;
+      const pills = wrap.querySelectorAll('.mv-pill[data-ph="' + PREP_KEY + '"]');
+      for(let k = 0; k < pills.length; k++){
+        const hit = prepOfPill(pills[k]);
+        if(hit && sameUnit(hit.prep, d.prep) && hit.g.from === isoOf(hit.prep.first)){
+          place(d.handle, pills[k], {kind: 'start', side: 'left', day: hit.g.from, prep: hit.prep});
+          return;
+        }
+      }
+      d.handle.hidden = true;            // the start is on a day this page does not show
+    }
+
+    function apply(step){
+      const d = drag, def = d.def;
+      if(step.n === d.n0){
+        // Back where it began: EXACTLY what was there, a blank box included (MONTH-9's rule).
+        if(d.had) def.prepDays = d.was; else delete def.prepDays;
+      } else {
+        def.prepDays = String(step.n);   // Q1(a): the unit's own, even when it equals the default
+      }
+      d.cur = step;
+      update();                          // refreshPrepUI() shows the new length in the unit's box
+      // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
+      cancelPendingUndoPush();
+      // ⛔ The end must not have moved, and the start must be where it was computed to land, by the real
+      // derivation. If not, put it back and let the gesture go inert (every grip's guard, same reasoning).
+      if(step.n !== d.n0){
+        const seg = prepSeg(), q = seg && (seg.preps || []).find(x=> sameUnit(x, d.prep));
+        const ok = !!q && isoOf(q.first) === step.iso && isoOf(q.last) === d.last;
+        if(!ok){ d.broken = true; apply({n: d.n0, iso: d.first0}); return; }
+      }
+      follow();
+    }
+
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      // ⛔ THE TRAILING PUSH IS THE STEP, as every grip's. A drag that ends where it began banks none.
+      if(d && (hasPrepOverride(d.def) !== d.had || (d.had && d.def.prepDays !== d.was))){ pushUndoSnapshot(); markDirty(); }
+    }
+
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, pill = h._pill;
+      const hit = pill && prepOfPill(pill);
+      // Stale (the grid moved under a resting pointer): no drag.
+      if(!spec || !hit || !sameUnit(hit.prep, spec.prep) || hit.g.from !== isoOf(hit.prep.first)) return;
+      const p = hit.prep, def = defOf(p);
+      if(!def) return;
+      const list = probeDays(p, def);
+      if(!list) return;
+      const d = {handle: h, prep: p, def, had: hasPrepOverride(def), was: def.prepDays, n0: p.days.size,
+                 first0: isoOf(p.first), last: isoOf(p.last), list, cur: {n: p.days.size, iso: isoOf(p.first)}};
+      e.preventDefault();
+      e.stopPropagation();
+      // Read the pointer as if it had pressed on the CENTRE of the prep's first day, so the edge moves when
+      // the pointer crosses half a day (body-drag's rounding, and every grip's).
+      const cr = hit.g.cells[hit.g.a - 1].getBoundingClientRect();
+      d.dx = e.clientX - (cr.left + cr.width / 2);
+      // Flush whatever came before into its own step (body-drag's leading push).
+      pushUndoSnapshot();
+      drag = d;
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const T = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      if(!T) return;
+      const step = solve(drag, T);
+      if(step && step.n !== drag.cur.n) apply(step);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    // Escape puts the start back where the gesture began, and banks nothing.
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur.n !== drag.n0) apply({n: drag.n0, iso: drag.first0});
       endDrag();
     }, true);
   })();
@@ -10098,8 +10380,8 @@ export function initLegacyApp() {
     });
     if(!preps.length) return;
     const def = cfg.def || PREP_DEF;
-    schedule.segments.push({key: PREP_KEY, label: def.label, name: def.label, color: def.color, textColor: def.textColor,
-      start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
+    schedule.segments.push({key: PREP_KEY, label: def.label, name: def.label, pillName: def.pillName,
+      color: def.color, textColor: def.textColor, start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
       days: all, preps, shootDays: null, phaseHiatus: null, prep: true});
   }
 
@@ -10142,10 +10424,15 @@ export function initLegacyApp() {
     P.next = k + 1;
     return P.runs[k];
   }
-  // A prep pill's text: the Prep row's name and the unit it preps, "Prep 202" or "Prep Block 2" (P4: the
-  // block's name). Read at render time, so renaming an episode or the row shows at once.
+  // A prep pill's text: "Prep" and the unit it preps, "Prep 303" or "Prep Block 2" (P4: the block's
+  // name). Owner, 19 Oct 2026: the row's default name is "Episodic Prep" / "Block Prep", but the pills
+  // read "just" Prep. So the prefix is the segment's pillName: "Prep" for a default name, the typed
+  // name otherwise (R8: the pills take a name the user gave the row). ⚠️ NO "Ep." before the episode:
+  // it was built with one, to match Production's bars, and the owner took it out the same day ("dont
+  // put the Ep, just write Prep 303, but do write Prep Block 1"). Read at render time, so renaming an
+  // episode or the row shows at once.
   function prepPillLabel(s, p){
-    const name = s.label || PREP_DEF.label;
+    const name = s.pillName || PREP_DEF.label;
     if(!p) return name;
     if(p.kind === 'block'){
       const b = blockDefs[p.unit.i];
@@ -15861,7 +16148,8 @@ export function initLegacyApp() {
       if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
     });
     // The Prep row (EPISODE-PREP-PLAN.md): static markup, so New puts it back by hand -- no default, the
-    // name "Prep", the default colour. The per-episode lengths go with episodeDefs/blockDefs below.
+    // name "Prep", the default colour. "Prep" is a DEFAULT name (PREP_AUTO_NAMES), so the update() after
+    // New shows it as "Episodic Prep" (syncPrepName). The per-episode lengths go with episodeDefs/blockDefs below.
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     reflectPrepSwatch();
@@ -22081,7 +22369,9 @@ export function initLegacyApp() {
     // ⛔ And the Prep row's two fields (EPISODE-PREP-PLAN.md §7), which are STATIC markup a restore never
     // rebuilds. Without these, a calendar saved before prep existed, opened after one with a default
     // prep length, would be DRAWN WITH PREP RUNS from the previous file's default -- someone else's
-    // prep on your show. Absent means no default and the name "Prep".
+    // prep on your show. Absent means no default and the name "Prep", a DEFAULT name, which the
+    // update() after the restore shows as the file's mode's own, "Episodic Prep" or "Block Prep"
+    // (syncPrepName): show-mode is restored by then, whatever order these run in.
     [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
      ['prep-days', ''], ['prep-name', PREP_DEF.label]].forEach(([id, dflt])=>{
       const el = document.getElementById(id);

@@ -17,6 +17,11 @@
 //     BLOCKS. Prep per block (P4), labelled with the block's name, an overlap, and the Schedule-by switch
 //     keeping both modes' lengths.
 //
+// THE NAME AND THE ORDER (owner, 19 Oct 2026): the Prep row sits directly ABOVE Production; its default
+// name is "Episodic Prep" / "Block Prep" by Schedule mode; its pills read "Prep 302" / "Prep Block 2".
+// Both fixtures were minted with the OLD default, "Prep", so RESTORE and BLOCKS also prove that a file
+// saved before the change opens on the new default (R0, K0). Do not re-mint them without keeping one.
+//
 // THE CALENDAR (made-up 2027 dates and a made-up show shape; region Atlanta = US-GEN):
 //   Prod Prep Mon 1/18/27 x 5 wk; Production from Mon 2/22/27, Season 3, 6 episodes x 5 days; Post Mon
 //   4/19/27 x 8 wk; one all-phase hiatus, the week of Mon 3/15/27 (LOCKED, as every new hiatus row is).
@@ -285,8 +290,13 @@ window.addEventListener('load', function () { (async function () {
       var sig = T.formSignature();
       out.ids = {prepDays: 'prep-days' in sig, prepName: 'prep-name' in sig, nameValue: sig['prep-name'],
                  inList: document.querySelectorAll('#prep-rows [id]').length};
-      check(out.ids.prepDays && out.ids.prepName && out.ids.nameValue === 'Prep' && out.ids.inList === 0,
-            'L2 prep-days and prep-name are in fields.byId, the name reads "Prep", and no box in the list has an id');
+      check(out.ids.prepDays && out.ids.prepName && out.ids.nameValue === 'Episodic Prep' && out.ids.inList === 0,
+            'L2 prep-days and prep-name are in fields.byId, the name reads "Episodic Prep", and no box in the list has an id');
+      // N1: the Prep row sits directly above Production's (owner, 19 Oct 2026).
+      var nx = $('prep-row').nextElementSibling;
+      out.order1 = {nextHasProduction: !!(nx && nx.querySelector('#name-production')),
+                    rowsBefore: [].indexOf.call($('phase-rows').children, $('prep-row'))};
+      check(out.order1.nextHasProduction, 'N1 the Prep row is directly above Production in the Phases card');
       // L3: month view only (P1).
       out.rowShown = {month: shownEl($('prep-row'))};
       await view('sheet'); out.rowShown.sheet = shownEl($('prep-row')); await view('month');
@@ -367,10 +377,12 @@ window.addEventListener('load', function () { (async function () {
       (snap.episodeDefs || []).forEach(function (e) { if('prepDays' in e) pd[e.name] = e.prepDays; });
       out.saved = {prepDays: (snap.fields.byId['prep-days'] || {}).value, prepName: (snap.fields.byId['prep-name'] || {}).value, perEp: pd,
                    colour: (snap.phaseColorOverride || {}).episodePrep};
-      check(out.saved.prepDays === '5' && out.saved.prepName === 'Prep' && JSON.stringify(pd) === '{"Episode 303":"10","Episode 304":"8"}'
+      check(out.saved.prepDays === '5' && out.saved.prepName === 'Episodic Prep' && JSON.stringify(pd) === '{"Episode 303":"10","Episode 304":"8"}'
             && out.saved.colour === undefined, 'MINT the file carries prep-days 5, prep-name, and prepDays on exactly 304 and 303');
 
       T.set('show-mode', 'blocks'); T.set('num-blocks', '3'); T.set('days-per-block', '10'); await settle();
+      out.blockName = $('prep-name').value;
+      check(out.blockName === 'Block Prep', 'N2 switched to Blocks, the default name becomes "Block Prep"');
       out.blockList = prepList();
       check(out.blockList.map(function (x) { return x.kind + ':' + x.name; }).join() === 'block:Block 1,block:Block 2,block:Block 3',
             'B0 in Blocks mode the list holds the blocks (P4)');
@@ -379,6 +391,7 @@ window.addEventListener('load', function () { (async function () {
       check(sameMap(out.liveBlocks, WANT_BLOCKS), 'B0 every block’s prep matches the hand trace (built live)');
       if(!sameMap(out.liveBlocks, WANT_BLOCKS)) out.liveBlocksDiff = mapDiff(out.liveBlocks, WANT_BLOCKS);
       out.textBlocks = await save();
+      check(((JSON.parse(out.textBlocks).fields.byId['prep-name']) || {}).value === 'Block Prep', 'N2 the Blocks file saves the name "Block Prep"');
     }
 
     if(st === 'episodeprep'){
@@ -388,7 +401,8 @@ window.addEventListener('load', function () { (async function () {
       out.health = T.appHealth();
       tab('phases'); await T.sleep(200);
       out.restored = {days: $('prep-days').value, name: $('prep-name').value, list: prepList()};
-      check(out.restored.days === '5' && out.restored.name === 'Prep', 'R0 the default and the name are restored');
+      check(out.restored.days === '5' && out.restored.name === 'Episodic Prep',
+            'R0 the default is restored, and the file’s old default name "Prep" opens as "Episodic Prep"');
       check(JSON.stringify(out.restored.list.map(function (x) { return x.name + '=' + x.value + (x.edited ? '*' : ''); }))
             === JSON.stringify(['Episode 302=', 'Episode 301=', 'Episode 304=8*', 'Episode 303=10*', 'Episode 306=', 'Episode 305=']),
             'R0 the list is in shooting order with 304’s and 303’s own lengths');
@@ -452,12 +466,12 @@ window.addEventListener('load', function () { (async function () {
       await undo();
       check(prepBox('Episode 301').value === '' && sameMap(await prepMap(), WANT_ON), 'R7 one undo empties the box and restores the default run');
 
-      // R8: renaming the row renames every pill.
-      T.set('prep-name', 'Ep Prep'); await settle();
+      // R8: renaming the row renames every pill; a name the user gives it replaces "Prep" before the unit.
+      T.set('prep-name', 'Art Prep'); await settle();
       var renamed = await prepMap();
-      check(Object.keys(renamed).sort().join() === 'Ep Prep 301,Ep Prep 302,Ep Prep 303,Ep Prep 304,Ep Prep 305,Ep Prep 306', 'R8 the pills take the row’s name');
+      check(Object.keys(renamed).sort().join() === 'Art Prep 301,Art Prep 302,Art Prep 303,Art Prep 304,Art Prep 305,Art Prep 306', 'R8 the pills take the row’s name');
       await undo();
-      check($('prep-name').value === 'Prep' && sameMap(await prepMap(), WANT_ON), 'R8 one undo restores the name');
+      check($('prep-name').value === 'Episodic Prep' && sameMap(await prepMap(), WANT_ON), 'R8 one undo restores the name');
 
       // R9: survives Save and Load, through the real paths.
       var savedText = await save();
@@ -495,7 +509,7 @@ window.addEventListener('load', function () { (async function () {
       await load(JSON.stringify(old));
       out.m5 = {days: $('prep-days').value, name: $('prep-name').value, swatch: $('swatch-episodePrep').style.backgroundColor,
                 list: prepList().map(function (x) { return x.value; }), map: await prepMap()};
-      check(out.m5.days === '' && out.m5.name === 'Prep' && out.m5.swatch === 'rgb(228, 223, 236)' && out.m5.list.join('') === ''
+      check(out.m5.days === '' && out.m5.name === 'Episodic Prep' && out.m5.swatch === 'rgb(228, 223, 236)' && out.m5.list.join('') === ''
             && sameMap(out.m5.map, {}), 'R11 an older calendar loaded after one with prep set opens with NO prep: default, name, colour and lengths all reset');
       // The OFF side: prep is gone, and nothing else in the month view moved -- Production keeps its lanes.
       out.otherOff = await otherBars();
@@ -511,7 +525,8 @@ window.addEventListener('load', function () { (async function () {
       await settle();
       out.health = T.appHealth();
       tab('phases'); await T.sleep(200);
-      out.restored = {mode: $('show-mode').value, list: prepList()};
+      out.restored = {mode: $('show-mode').value, name: $('prep-name').value, list: prepList()};
+      check(out.restored.name === 'Block Prep', 'K0 the Blocks file’s old default name "Prep" opens as "Block Prep"');
       check(out.restored.mode === 'blocks' && out.restored.list.map(function (x) { return x.kind + ':' + x.name + '=' + x.value; }).join()
             === 'block:Block 1=,block:Block 2=,block:Block 3=12', 'K0 Blocks mode restores one box per block, Block 3 with its own 12');
       out.map = await prepMap();
@@ -528,8 +543,29 @@ window.addEventListener('load', function () { (async function () {
       T.set('show-mode', 'episodes'); await settle();
       out.asEpisodes = await prepMap();
       check(sameMap(out.asEpisodes, WANT_ON), 'K3 switched to Episodes, the dormant per-episode lengths draw the Episodes hand trace');
+      check($('prep-name').value === 'Episodic Prep', 'K3 switched to Episodes, the default name follows: "Episodic Prep"');
       T.set('show-mode', 'blocks'); await settle();
       check(sameMap(await prepMap(), WANT_BLOCKS), 'K3 switched back to Blocks, the per-block lengths draw again');
+      check($('prep-name').value === 'Block Prep', 'K3 and the name follows back: "Block Prep"');
+      // K4: a name the user typed is theirs: a mode switch keeps it, and the pills carry it.
+      T.set('prep-name', 'Art Prep'); await settle();
+      T.set('show-mode', 'episodes'); await settle();
+      out.k4 = {name: $('prep-name').value, pills: Object.keys(await prepMap()).sort()};
+      check(out.k4.name === 'Art Prep' && out.k4.pills.length === 6 && out.k4.pills.every(function (k) { return /^Art Prep 30\d$/.test(k); }),
+            'K4 a typed name survives a Schedule-mode switch and names every pill ("Art Prep 30x")');
+      T.set('show-mode', 'blocks'); await settle();
+      check($('prep-name').value === 'Art Prep' && Object.keys(await prepMap()).sort().join() === 'Art Prep Block 1,Art Prep Block 2,Art Prep Block 3',
+            'K4 and back in Blocks it still reads "Art Prep", pills "Art Prep Block 1-3"');
+      // K5: typing passes through "Prep" on the way to "Prep Art", so the box is never rewritten while it
+      // has the focus; leaving it with a default name puts this mode's back.
+      tab('phases'); await T.sleep(100);
+      $('prep-name').focus();
+      setEl($('prep-name'), 'Prep'); await settle();
+      out.k5 = {typing: $('prep-name').value, focused: document.activeElement === $('prep-name')};
+      $('prep-name').blur(); $('prep-name').dispatchEvent(new Event('change', {bubbles: true})); await T.sleep(100);
+      out.k5.left = $('prep-name').value;
+      check(out.k5.focused && out.k5.typing === 'Prep' && out.k5.left === 'Block Prep',
+            'K5 "Prep" is left alone while the box has the focus, and becomes "Block Prep" when it is left');
     }
   } catch (e) { out.EX = String(e && e.stack || e); fails.push('exception'); }
   out.fails = fails;
