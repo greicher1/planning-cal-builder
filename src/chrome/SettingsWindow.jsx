@@ -97,7 +97,7 @@ const REGION_PANEL = (
 // since presets are per machine.
 const PRESETS_PANEL = (
   <>
-    <ScopeLine icon={IconMonitor}>Presets stay on this computer. The header a calendar wears is saved in its file.</ScopeLine>
+    <ScopeLine icon={IconMonitor}>Presets stay on this computer. The header you apply is saved with the calendar.</ScopeLine>
     <HeadersCard />
   </>
 )

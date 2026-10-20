@@ -64,6 +64,14 @@
     - the Month card without `.prefs-card` → W3/W3b/W5b.
   - `npm run check` 40/40; `check-refs.py` CLEAN.
   - The first `offweek` runs failed R8/R11 on Load timeouts at load average 17; they passed alone.
+- ⭐ **Standing rule (owner, 20 Oct 2026, relayed by the column-reuse session), for all of this work:** *"we dont
+  want the settings for this column reuse to be too complicated/hard to understand. This goes for everything. The
+  app needs to be easy for anyone to use"*. Read against the window: plain one-word tab names, one line per tab
+  saying whether it travels with the file, cards shown only in their own view, no engine words. One line changed
+  for it: Presets' *"The header a calendar wears is saved in its file"* now reads *"The header you apply is saved
+  with the calendar."* Build `455ea88e…` (1,569,073 bytes): `npm run check` 40/40, `settingswin` 17/17. ⚠️ The
+  owner removed the Preferences card's visible descriptions on 9 Sep 2026 (*"theyre not necessary"*), so no
+  per-setting description lines were added; each control keeps its hover title.
 - GATE_RESULT_PLACEHOLDER
 - ⚠️ **Left for after the merges:** the dead `.prep-pause-off` selectors in `legacy.css` (the phase-fields toggle rule)
   were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
