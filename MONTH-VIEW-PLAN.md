@@ -185,6 +185,12 @@ A week worked Tue–Sat renders identically to Mon–Fri. The waterfall's atom i
 days. If that becomes unacceptable, the answer is not a divergent waterfall — it is week-level
 annotation, and that is a separate ruling.
 
+⭐ **One week-level case is now shown (19 Oct 2026, [`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md)):** a week
+inside the shoot with NO shoot days (every weekday `off`, or off marks and union holidays together).
+It used to print as an ordinary numbered "Production wk N". It now reads as a Production hiatus week
+in the waterfall, Excel and the waterfall PDF, and as the same red band in the month view. It is
+derived from `sim.shootDays` and never saved.
+
 ## 5. Per-phase start day (owner request, 16 Sep 2026)
 
 > *"right now start dates of phases snap to the closest monday. thats fine as the default, but i
@@ -316,6 +322,7 @@ list, and the last two were not on it — each was approved on its own as it was
 | `mv-day-half/off/on` classes on day cells | 16 Sep 2026 | adds a CLASS to an existing cell — no element, no lane, no text node, so row heights cannot move |
 | `#table-wrap .mv-pill{pointer-events:auto; cursor:grab}` | **18 Sep 2026** | **scoped so it cannot match inside `#print-root`** — `#print-root` is not a DESCENDANT of `#table-wrap`. Neither property renders in any case |
 | `#table-wrap .mv-daycell{cursor:pointer}` | **18 Sep 2026** | same — and `cursor` has no printed representation at all |
+| Per-phase hiatus band also covers an **off week**: `if(ph \|\| s.offWeeks)` and `inPhaseBand(s, d)` in `renderMonthView` (OFF-WEEK-PLAN §3.5) | **19 Oct 2026**, as Q7, edit and gate shown together | Inert without an off week (only Production's segment carries `offWeeks`, and only when non-empty): gates 10 and 13 byte-identical. The A/B on `offweek.sptcal` differs only in its off-week rows. Row heights in those rows may move, because the band takes a lane |
 
 ⚠️ **The third was not foreseen and §6.1 is wrong about it.** *"Body-drag needs no new frozen
 markup — the pill itself is the target"* is true about markup and false about reachability: the

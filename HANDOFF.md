@@ -4,7 +4,42 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built; all seven questions ruled)
+### ✅ 19 Oct 2026: OFF WEEKS, STEP A BUILT AND COMMITTED on branch `off-week` (worktree `.claude/worktrees/off-week`), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
+  own commit. Run its gate and show me the month PDF contact sheets before committing. Don't push."* Contact sheets
+  went to the owner, who then chose three commits (picker, 19 Oct 2026): `9174e43` the `computeSchedule()` change, `f79adc9`
+  the two frozen lines in `renderMonthView` with `inPhaseBand()` alone (so the frozen edit reads and reverts on its
+  own), then the leg, the fixture, the gate wiring and these docs. The leg tests both halves, which is why it came
+  last. **Not merged into `main`, not pushed.** Merging and pushing are each the owner's call.
+- **What it does:** a week inside the shoot with no shoot days reads *Production Hiatus* in the own-hiatus cell
+  (waterfall, Excel, waterfall PDF) and is not counted. The month view gets the same red band, Mon–Fri. Plan §11 has
+  the record.
+- **Proof:**
+  - New leg `offweek`, in `gate.sh` after `episodeprep`. LIVE 4 cases; RESTORE 25 cases plus the PDF's text.
+  - Red on the pre-change build `05169b7f…`: 12 cases and the PDF. With only the band removed (`dist-noband`): exactly
+    the 5 month-band cases.
+  - Print document A/B (`monthcmp.py ab`) on the new fixture: 3 of 47 week rows differ, all off-week rows.
+  - Contact sheets (`monthbase.py sheets` for the written PDF, a PIL triptych for the print path): only August and
+    September change; the other seven months are pixel-identical.
+  - Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL.** Gates 1–5 green (0 clipped,
+    waterfall PDF and every Excel part identical, v1.0.0 restores identically, 74 ids). Gate 10's ten print documents
+    identical, and gate 13's twenty written month PDFs byte-identical: Q7 point 1, the frozen edit inert when unused.
+    `offweek` 32/32. ⚠️ The five failures were contention: `prep-grip-plan`'s full gate ran alongside the whole time
+    (pilldrag/phaseedge/cspproof deadlines, an `episodeprep` load timeout, the known `pilllabel (halfdays)` W3 flake).
+    Re-run alone on the same build and port, each passed: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24,
+    `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40; `check-refs.py` CLEAN.
+- ⚠️ **Found, not this change's:** the Q3 week (all marks before the first shoot day) is EMPTY in the month view,
+  because no mark outside the shoot's span is drawn, while the waterfall says *Production wk 1*. Same on the old build.
+  Worth raising with the owner.
+- The proof builds (`dist-prefix/`, `dist-noband/`) were deleted after use. To re-prove red, rebuild them by the
+  in-place method (HANDOFF 19 Oct "Learned" 3); for `dist-noband`, revert just the two frozen lines.
+- ⏭ **Next:** the owner decides on merging `off-week` into `main` and, separately, on pushing. `main` has moved
+  since `3b189af` only if other sessions merged meanwhile, so check before merging. Then step B (the month view's
+  numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
+  (`version.json` 1.4.3).
+
+### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md); step A built, entry above)
 
 - Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
   already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
@@ -36,9 +71,8 @@
   contact sheets.
   - ✅ **Q7, approved by the owner (picker, 19 Oct 2026): "Approve with that gate"**, with the edit and the gate shown
     together. The approval covers those two lines and that gate only. Anything more goes back to the owner.
-- ⏭ **Next:** build step A when the owner asks, in a worktree off `main`, with the month band in its own commit.
-  Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
-  `prodWeekLabel()`, which is step B's site.
+- ⏭ **Next:** step A is built (entry above). Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the
+  unmerged `day-menu-step3` both touch `prodWeekLabel()`, which is step B's site.
 
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
 

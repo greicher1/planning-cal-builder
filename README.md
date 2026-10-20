@@ -28,6 +28,32 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
+
+Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
+([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), Q1–Q7): not single days, but a week inside the shoot the camera never rolls in.
+This is step A; step B (the month view numbering weeks as the waterfall does) is ruled and not built.
+- **Waterfall, Excel, waterfall PDF.** Such a week (an "off week": every weekday off, or off marks and union holidays
+  together) used to print as an ordinary *Production wk 5*, and pushed every later week's number up by one. It now
+  reads *Production Hiatus* (the Production name plus "Hiatus") in the red band Production's own hiatus uses,
+  renameable and recolourable per week, and the weeks after it are numbered as if it were not there. A week with a
+  worked Saturday or only a half day still has a shoot day, so it is still a numbered week.
+- **Month view and both month PDFs.** The same red band, Mon–Fri, over the hatched off days, in Production's lane. A
+  rename or recolour made in the waterfall shows here too. This is a two-line frozen edit in `renderMonthView`,
+  approved by the owner with its five-point gate (Q7). On a calendar with no off week it is inert.
+- **Unchanged:** every date (the wrap, Start Principal Photography, every other phase); the header's *N-Week
+  Production Span* (a paused week stays in the span, as with Production's own hiatus); Simultaneous Post; the day
+  menu (mark any day of the week back on and the week returns by itself); and every calendar without such a week.
+  Nothing new is saved: the band is derived from the off marks each time, so `SNAPSHOT_VERSION` and `fields.byId`
+  are untouched. A dark week BEFORE the first shoot day stays *Production wk 1* (Q3). The `{production.weeks}` header
+  token now counts worked weeks. A saved calendar that already has an off week changes when it next opens (Q1,
+  accepted).
+- **Verified:** new leg `offweek`. LIVE mints `tests/fixtures/offweek.sptcal` through the real day popover and Save.
+  RESTORE runs 25 cases plus `gate.sh`'s own reading of the waterfall PDF's text. The leg is red on the pre-change
+  build (12 cases and the PDF), and with only the frozen band edit removed exactly its 5 month-band cases are red.
+  The print document A/B on the new fixture differs in 3 of 47 week rows, all of them off-week rows. September's
+  Labor Day row grows 57 → 78 px because the band takes a lane, and the other seven months are pixel-identical in
+  both month PDFs. Owner contact sheets made. Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL**. Gates 1–5 are green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids). Gate 10's ten print documents are identical, and gate 13's twenty written month PDFs are byte-identical. The five failures were timeouts and the known `pilllabel (halfdays)` W3 flake, while another session's full gate ran beside it. Each passed when re-run alone on the same build: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24, `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40.
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both

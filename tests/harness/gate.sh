@@ -2089,6 +2089,47 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
 PYEP
 done
 
+# ---- offweek: a Production week with no shoot days reads and counts as a Production hiatus (OFF-WEEK-PLAN.md) --
+# Two runs. LIVE builds the synthetic calendar through the UI, marks every day off (and one Saturday worked)
+# through the month view's day popover, hit-tested, and mints tests/fixtures/offweek.sptcal from its real Save.
+# RESTORE holds the waterfall to the hand trace in the leg's header (two off weeks banded, one of them Labor
+# Day plus four offs; a Saturday-worked week and the Q3 leading week still numbered; the own hiatus and the
+# all-phase hiatus as they were), the header span and the {production.weeks} token, the workbook read back
+# with ExcelJS, the month band (Mon-Fri, no bar, the hatching kept), Full day + one undo, a rename seen in both
+# views through Save/Load, Shift All, and a calendar with no off week loaded after it. Here, the waterfall PDF's
+# own text (pdftotext): three Production Hiatus cells and wk 1 to wk 10 once each.
+# ⛔ Gates 10 and 13 are the other half of this proof: no fixture they read holds an off week, so the frozen
+# month-band edit (OFF-WEEK-PLAN §3.5, Q7) must leave every one of their files byte-identical.
+for OWSTATE in "" offweek; do
+  rm -f "$HERE/offweek.json" "$HERE/offweek.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$OWSTATE" "$HERE/run.sh" offweek 600 >/dev/null 2>&1
+  python3 - "$HERE/offweek.json" "$HERE/offweek.pdf" "offweek (${OWSTATE:-live})" <<'PYOW' || FAIL=1
+import json,sys,re,subprocess,os
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    try:
+        txt = subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout
+        wks = sorted(int(n) for n in re.findall(r'Production wk (\d+)', txt))
+        hi = len(re.findall(r'Production Hiatus', txt))
+        ok = wks == list(range(1, 11)) and hi == 3
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': the waterfall PDF reads Production wk 1 to wk 10 once each and three Production Hiatus cells (got wk {wks}, {hi} bands)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the waterfall PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYOW
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

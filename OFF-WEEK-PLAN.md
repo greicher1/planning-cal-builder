@@ -1,8 +1,8 @@
 # OFF-WEEK-PLAN.md
 
-**Status: PLANNED AND FULLY RULED 19 Oct 2026, not built.** Q1–Q7 were all answered by the owner the same day (§8).
-That includes Q7, the sign-off on §3.5's frozen edit to `renderMonthView`, approved against §3.5's five-point gate.
-⏭ Ready to build when the owner asks: step A first, then step B, each separately.
+**Status: STEP A BUILT AND COMMITTED 19 Oct 2026 on branch `off-week`** (`9174e43`, `f79adc9` the frozen band alone, then the leg and docs; §11). Not merged, not pushed. Q1–Q7 were all answered by
+the owner the same day (§8). That includes Q7, the sign-off on §3.5's frozen edit to `renderMonthView`, approved
+against §3.5's five-point gate. Step B is planned and ruled, not built.
 **Written against:** `e86aa5e`. Every number in §2 was measured that day on a scratch build of `e86aa5e`
 (`05169b7f…`, byte-identical to the live app), not read off the code.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) → [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md)
@@ -369,3 +369,56 @@ Whichever lands second rebases and re-runs `mvmenu` and `pilllabel`.
 - **Leg cases:** on `dayoverrides.sptcal`, the week after Summer Break reads *Production Week 3* in the month view, as
   the waterfall's *wk 3*. Post across the winter hiatus matches. The day menu's header matches. A phase with no hiatus
   reads exactly as before.
+
+---
+
+## 11. Step A as built (19 Oct 2026, branch `off-week`)
+
+Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its own commit. Run its
+gate and show me the month PDF contact sheets before committing. Don't push."*
+
+**The code, exactly §3.3 and §3.5:**
+- `computeSchedule()`: `productionOffWeeks(start, end, sim, ownHi)` beside `simulateProductionSchedule()`, called from
+  Production's branch. `workedWeeks` skips its weeks, and the segment carries `offWeeks` only when the set is
+  non-empty. The week loop's own-hiatus branch also takes an off week.
+- `renderMonthView` (frozen, Q7): the two lines of §3.5, nothing else. `inPhaseBand()` sits beside
+  `isPhaseHiatusDate()`.
+- Build `6ceef4cb…` (1,532,941 bytes). Pre-change build `05169b7f…` (the live app).
+
+**Proof (the leg, `offweek`):**
+- LIVE mints `tests/fixtures/offweek.sptcal`: 19 off marks and one worked Saturday, every one set through the
+  day popover, hit-tested.
+- RESTORE: 25 of 25 cases, plus `gate.sh`'s own reading of the waterfall PDF's text.
+- **Red on the pre-change build:** 12 cases fail, and the PDF reads wk 1–12 with one band. The 10 that pass are the
+  ones that hold either way (the span, the own hiatus, the Q3 and Saturday weeks, the hatching, the numbering being
+  gapless, `dayoverrides`).
+- **Red with ONLY the frozen band edit removed** (`dist-noband`): exactly the 5 month-band cases (R5's band, R6's
+  undo, R7's two month reads, R9's agreement). Every waterfall case passes. So each half is proved on its own.
+
+**Q7's gate, point by point:**
+1. ✅ Gates 10 and 13 byte-identical in the full gate (build `6ceef4cb…`): all ten print documents and all twenty
+   written month PDFs. The full gate was 1,796 PASS and 5 FAIL. All five failures were contention with another
+   session's gate, and each passed when re-run alone (HANDOFF).
+2. ✅ A/B of the print document (`monthcmp.py ab`, `05169b7f…` vs `6ceef4cb…`): 3 of 47 week rows differ, the 8/30
+   week on the August and September pages and the Labor Day week. Every one is an off-week row. In each, the band
+   replaces the first lane's "+" note slots. September's fit changes for the Labor Day row alone, 57 → 78 px (grow 57
+   → 36), because the band now shares that row with the holiday's note. Each month is still one sheet.
+3. ✅ The band covers Mon–Fri of each off week and is absent from the Saturday-worked and Q3 weeks (the leg's R5).
+4. ✅ A waterfall rename and recolour show on the month band and survive Save and Load (R7, rename).
+5. ✅ Contact sheets: the written PDF (`monthbase.py sheets`) and the print path (a PIL triptych, since
+   `monthbase.py` reads only the writer's files). Only August (1.6% / 1.5% of pixels) and September (15.0% / 11.2%)
+   change, and the other seven months are pixel-identical in both. Sent to the owner 19 Oct 2026; the review is
+   pending.
+
+**Learned, measured:**
+1. ⚠️ **The Q3 week is empty in the month view, and that predates this change.** Marks before the first shoot day
+   are outside the shoot's span, and the month view draws no mark there (the `dayOverrides` UI's own rule). So the
+   week of 8/2 shows nothing at all in the month view, while the waterfall says *Production wk 1*. The pre-change
+   build does the same. Ruling Q3 keeps the waterfall's text; the owner may want to revisit it now that it is visible.
+2. **A view switch is an undo step** (`viewMode` is in the snapshot). A leg that switches views between a change and
+   its undo is undoing the switch. R6 undoes in the same view, then redoes and reads the waterfall.
+3. **Shift All +1 wk on the fixture carried both off weeks along** (to 9/6 and 9/13; the locked 8/23 hiatus stayed),
+   and the two views still agreed. That is the plain case §4 said would hold, so the rename-parting edge did not
+   arise on this calendar.
+4. The band takes the lane Production's bars use in the weeks either side (lane 1 on the fixture), by the same
+   first-fit rule as an own-hiatus band.
