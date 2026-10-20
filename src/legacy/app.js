@@ -5762,7 +5762,21 @@ export function initLegacyApp() {
     {name:"Slate (like Prod Prep)",   color:'#D6DCE5', text:'#222A35'},
     {name:"Green (like Production)",  color:'#E2F0D9', text:'#375623'},
     {name:"Orange (like Post)",       color:'#FBE5D6', text:'#8A4A1F'},
+    // ⭐ Owner ruling 5 (20 Oct 2026; "Set A, stronger" by picker, from swatches shown in both views): five
+    // stronger colours, APPENDED. ⛔ Append only, never insert or re-order: phaseColorOverride and a custom
+    // phase's colorIndex are INDICES into this array, saved in every file (CLAUDE.md). The waterfall draws phase
+    // text black on any fill (GRID_TEXT_COLOR), and black reads on all five (WCAG 7.1:1 to 19.6:1); `text` is the
+    // month view's bar ink, a dark shade of the same hue (5.1:1 or better). An older build opening a file that
+    // uses one falls back as sanitizeSnapshot() says above: the automatic colour, or Gray for a custom phase.
+    {name:"Bright green",             color:'#92D050', text:'#1E4620'},
+    {name:"Strong blue",              color:'#5B9BD5', text:'#0B2545'},
+    {name:"Pink",                     color:'#FF66CC', text:'#5C0A3E'},
+    {name:"Yellow",                   color:'#FFFF00', text:'#5C5200'},
+    {name:"Peach",                    color:'#F4B084', text:'#6B2E0C'},
   ];
+  // A new custom phase's default colour cycles through the first NINE only, as it always has: the strong colours
+  // are a deliberate pick, never a default, so a calendar that never picks one never shows one (ruling 5).
+  const PHASE_COLOR_ROTATION = 9;
   // Per-auto-phase color override: key -> index into PHASE_COLOR_OPTIONS. Auto phases default to
   // whichever preset matches their built-in color; the user can repick from the swatch.
   let phaseColorOverride = {};
@@ -6073,7 +6087,7 @@ export function initLegacyApp() {
 
   function addCustomPhaseRow(){
     const key = 'custom' + (++customPhaseCounter);
-    const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
+    const colorIndex = customPhaseDefs.length % PHASE_COLOR_ROTATION;
     customPhaseDefs.push({key, colorIndex});
     const opt = PHASE_COLOR_OPTIONS[colorIndex];
     const wrap = document.getElementById('custom-phase-rows');

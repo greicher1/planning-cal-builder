@@ -52,7 +52,18 @@
     for exactly that reason; A0b is now a positive control and A7 matches the fragments.
   - **Proof:** leg `tests/harness/t/autonotekinds.js` in the AFSPEC list, 16/16 on the build; on the build before it
     (`dist-pre9/`, `a5984ff1…`) 13 of 16 red. Not yet: the full gate.
-- ⏳ **Ruling 5 (colours): next on this branch.**
+- ✅ **Ruling 5, five colours: built and committed.** Appended to `PHASE_COLOR_OPTIONS` as indices 9–13: Bright
+  green `#92D050`/`#1E4620`, Strong blue `#5B9BD5`/`#0B2545`, Pink `#FF66CC`/`#5C0A3E`, Yellow `#FFFF00`/`#5C5200`,
+  Peach `#F4B084`/`#6B2E0C` (fill/month-view ink). Black waterfall text reads on all five (WCAG 7.1–19.6:1); each ink
+  is 5.1:1 or better.
+  - ⭐ **A new custom phase's default still rotates through the first NINE** (`PHASE_COLOR_ROTATION = 9` in
+    `addCustomPhaseRow`, which used `% PHASE_COLOR_OPTIONS.length`). Without it a tenth custom phase would have
+    defaulted to Bright green: the strong colours are a pick, never a default.
+  - The picker (`.phase-color-pop`, three columns) needed no CSS: the old nine fill three rows, the new five the next
+    two. No `SNAPSHOT_VERSION` bump: `sanitizeSnapshot` already turns an index an older build lacks into its fallback.
+  - **Proof:** leg `tests/harness/t/phasecolors.js`, 10/10 on the build; 8 of 10 red on the pre-change build
+    (`dist-pre5/`, `ff6e3f60…`); the rotate-over-14 mutant turns exactly C8 red.
+- ⏳ **Next on this branch: the full gate, then the owner's merge question.**
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 

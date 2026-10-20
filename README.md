@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Five stronger phase colours (owner ruling 5, 20 Oct 2026)
+
+The phase colour picker offered nine pastels. A reference calendar used stronger colours, and the owner ruled for five
+more, appended, with no free colour picker. Two candidate sets were rendered in the waterfall and the month view for
+the owner, who chose the stronger one by picker.
+- **New in every colour picker** (a phase's swatch, the Prep row's, the day menu's Colour…), after the existing nine:
+  **Bright green** `#92D050`, **Strong blue** `#5B9BD5`, **Pink** `#FF66CC`, **Yellow** `#FFFF00`, **Peach** `#F4B084`.
+  The picker grows from three rows to five.
+- **Readable:** waterfall phase text stays black on any fill, and black reads on all five (contrast 7.1:1 to 19.6:1).
+  The month view inks each bar in a dark shade of its own colour (5.1:1 or better).
+- **Nothing changes until you pick one.** A new custom phase's default colour still cycles through the original nine,
+  and every saved calendar keeps its colours: the new entries are APPENDED, because a saved calendar stores each
+  phase's colour as its position in the list.
+- An older build opening a calendar that uses a new colour shows that phase in its automatic colour (a built-in
+  phase) or Gray (a custom phase), as it already did for any colour it does not have. Nothing is refused.
+- **Verified:** new leg `phasecolors`, 10 cases: the picker's 14 in order, each new colour in the waterfall, Excel, both
+  PDFs and the month view, read back from the files; both index stores through Save, New and Load; the default
+  rotation. Red on the pre-change build (8 of 10), green after.
+
 ### Unreleased — Automatic notes: choose which kinds of automatic note a calendar shows (owner ruling 9, 20 Oct 2026)
 
 The calendar writes three kinds of note for you: **Writer's Room Opens**, **Start Principal Photography** and

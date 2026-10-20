@@ -1567,6 +1567,10 @@ done
 # writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
 # key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
 # the M-5 trap, and New.
+# phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
+# order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
+# fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
+# new custom phase's default colour still cycling through the first nine only.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1584,7 +1588,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               filekeys:v1.4.2-saved:150 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
-              mvmenu:halfdays:150 phiatusnum:-:300 autonotekinds:-:300; do
+              mvmenu:halfdays:150 phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
