@@ -51,7 +51,8 @@ PREP-GRIP-PLAN.md, with both rulings as recommended.
 - No frozen code, and no save-format change: `prepDays` already exists.
 - **Verified:** `phaseedge` G0–G8 (trusted mouse input on `episodeprep` and its Blocks twin), 22/22. Four mutants
   were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
-  the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+  the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical. Merged with `main` (beside the note fix): **1,860 PASS, 0 FAIL, GATE
+  PASSED** on build `314f7722…`, with every frozen output identical and `pilllabel` green.
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both

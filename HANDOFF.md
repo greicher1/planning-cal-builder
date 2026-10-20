@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — BUILT AND GATED ON A BRANCH (branch `prep-grip-plan`, worktree `.claude/worktrees/prep-grip-plan`)
+### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — MERGED INTO LOCAL `main`, GATED 1,860 PASS / 0 FAIL, NOT PUSHED (branch `prep-grip-plan`)
 
 - Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
   prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
@@ -31,9 +31,60 @@
 - ⚠️ **Contention, measured:** with another session's full gate running, `phaseedge` reached F4 in 480 s and hit its
   deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
 - **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
-- **STATE:** commits on branch `prep-grip-plan` (cut from `main` at `c4bf9d5`); not merged, not pushed. It touches
-  `src/legacy/app.js` beside `installPhaseEdgeHandles()` and `tests/harness/phaseedge.mjs`, as does `autonote-grips`
-  (F13), so whichever lands second merges two additive blocks. Keep both.
+- **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
+  `main`'s docs-only commits up to `cfeb3a7`. **Local `main` is fast-forwarded to the branch tip. NOT PUSHED:** that is
+  the owner's picker.
+  - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
+    E15–E19, D5 and F13 all pass.
+  - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's
+    twenty written month PDFs byte-identical. `pilllabel` passed everywhere this time.
+  - `main`'s later commits are docs only (OFF-WEEK-PLAN, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
+- ⚠️ **Queueing for a gate, learned the hard way (same day):** four sessions queued full gates. A waiter run as this
+  tool's background job was killed silently twice. A plain `while ps | grep gate.sh` loop also lost the free slot to
+  another session's waiter. What worked was a waiter started with `nohup … &!` (detached from the tool) that, on
+  seeing the slot free, pauses 8–20 s at random and looks again before starting. That keeps two waiters from starting
+  together and stalling each other (the 75-minute run above, with its no-result `pilllabel`).
+
+### 📝 19 Oct 2026: PLANNED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built, no rulings)
+
+- Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
+  already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
+  write off marks on every drag. The owner then asked for "option 1" to be planned: **a week inside the shoot with no
+  shoot days reads and counts as a Production hiatus week.**
+- ⭐ **Measured, 19 Oct 2026, on a scratch build of `e86aa5e` (`05169b7f…`, the live app):**
+  1. A week with all five weekdays off prints ***Production wk 5*** in the waterfall, Excel and the waterfall PDF, and
+     pushes every later week's number up by one.
+  2. ⚠️ **The month view and the waterfall already number weeks differently after ANY hiatus, for every phase.**
+     `prodWeekLabel()` counts calendar weeks; the week loop skips hiatus weeks. On `dayoverrides.sptcal` the week after
+     Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
+     *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
+- **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
+  `sim.shootDays`, in `computeSchedule()` only. Every writer already draws that cell, so no frozen edit and no
+  save-format change. No fixture can hold one (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** recommended, the month view reads the number the week loop handed out
+  (`seg.weekNo`), never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a
+  gate 10/13 re-cut on sign-off.
+- ⏭ **Next:** the owner rules Q1–Q6 (plan §8). ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
+  `prodWeekLabel()`, which is step B's site.
+
+### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
+
+- Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
+  feature or a setting on phases.
+- **Ruled (19 Oct 2026):** R1, **keep them as phases**: a one-day item takes a waterfall column like any phase.
+  R2, **the setting is for custom phases only**, never the six built-ins.
+- ⭐ **Why it is small:** Days and Dates custom phases (CUSTOM-PHASE-UNITS) already ARE the one-day item, and the day
+  menu's "one day" item already makes one. Only the label is wrong: *Name wk 1* from `getAllPhaseDefs()`'s template
+  (waterfall, Excel, waterfall PDF), *Name Week 1* from `prodWeekLabel()` (month view, both month PDFs, the day menu).
+  Neither is frozen.
+- **The design:** a "Number weeks" checkbox per custom row, new permanent id `wknum-<key>` (not `num-`, which means a
+  count). Absent means numbered, so every saved calendar is unchanged. No restore default is needed, because custom rows
+  are rebuilt fresh. The By select going to Days/Dates unticks it, and so must `addPhaseHere(ctx,'day')`, which sets the
+  unit with no event. The edge drag's Weeks → Dates switch leaves it alone.
+- ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
+  it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
+- ⏭ **Next:** build it in its own worktree off `main` (plan §9), when the owner asks.
+
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
 - ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
@@ -204,8 +255,10 @@
   for. Whether it goes ahead of steps 2–3, and whether right-click stays as a second way in, is the owner's call.
   ⭐ **Learned:** say plainly what a partial step leaves out before asking to push it. The README entry said
   "left-click still opens the Full day/Off popover until step 4", but the push question did not.
-- ⏭ **Next:** step 4 (the owner's call on order, above). The owner tries a real Mac Ctrl+click. A version cut is
-  overdue (`version.json` still 1.4.3). Add a prep case to `mvmenu`. Build every step from `main`.
+- ⏭ **Next:** ⭐ **Steps 2 and 3 are BUILT on branch `day-menu-step3`** (worktree `.claude/worktrees/day-menu-step3`,
+  merged with `main` at `cfeae91`; its own HANDOFF entry has the record). Not merged here yet. The owner chose the plan
+  order (19 Oct 2026), so step 4 comes after them, built from that branch or from `main` once it is merged. The owner
+  tries a real Mac Ctrl+click. A version cut is overdue (`version.json` still 1.4.3). Add a prep case to `mvmenu`.
 
 ### 📝 19 Oct 2026: PLANNED AND RULED: AN EDITED AUTO-NOTE FOLLOWS SIDEBAR EDITS TOO ([`AUTONOTE-FOLLOW-PLAN.md`](AUTONOTE-FOLLOW-PLAN.md), not built)
 

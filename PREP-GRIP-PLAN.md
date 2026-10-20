@@ -1,6 +1,6 @@
 # PREP-GRIP-PLAN.md: a start grip on each prep pill
 
-**Status: BUILT AND GATED ON BRANCH `prep-grip-plan` (19 Oct 2026); not merged, not pushed.** Record in §8. Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
+**Status: BUILT, MERGED INTO LOCAL `main` AND GATED (1,860 PASS / 0 FAIL on `314f7722…`, 19 Oct 2026); not pushed.** Record in §8. Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
 hand: *"will you be able to change when exactly each episode prep starts or is it always n number of days until the
 day before first shoot day"*. Then, on the proposal: *"plan a start grip on each prep pill in the month view that
 writes that episode's (or block's) prep length, with the end staying tied to the shoot. Plan it and ask me before
@@ -160,3 +160,5 @@ and `episodeprep` stays green.
   because `episodeprep` is saved in the month view. `phaseedge` 22/22, in 1 min 55 s alone. All four mutants were red
   first.
 - **Gate:** Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **Merged gate:** after merging `main` (the live note fix beside it), build `314f7722…`: 1,860 PASS, 0 FAIL, every
+  frozen output identical.
