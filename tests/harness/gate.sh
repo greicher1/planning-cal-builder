@@ -2115,7 +2115,9 @@ done
 # locked hiatus between two episodes, a shuffled shooting order, two overlaps, one of them two preps from
 # the same Monday in separate lanes with their own names), then Shift All, a first prep's own month, a
 # shooting-order drag, undo, rename, Save/Load, the colour, and ⛔ the M-5 trap (the same calendar with
-# no prep keys, loaded after it, opens with NO prep). BLOCKS does prep per block (P4).
+# no prep keys, loaded after it, opens with NO prep, and with the Pause prep switch unticked). BLOCKS does prep per
+# block (P4). LIVE also checks the "Pause prep on days marked Off" box (20 Oct 2026): in the Prep row, unticked,
+# NO id (so fields.byId cannot move), hit-testable, one undo step, and absent from the minted file.
 # ⭐ "MONTH VIEW ONLY" IS PROVEN HERE, not asserted: RESTORE exports the workbook and the waterfall PDF
 # with prep ON and again with it OFF, and every Excel part (bar core.xml's timestamp) and the PDF must be
 # byte-identical, while every non-prep bar of the month view is identical too.
@@ -2162,8 +2164,10 @@ done
 # Day plus four offs; a Saturday-worked week and the Q3 leading week still numbered; the own hiatus and the
 # all-phase hiatus as they were), the header span and the {production.weeks} token, the workbook read back
 # with ExcelJS, the month band (Mon-Fri, no bar, the hatching kept), Full day + one undo, a rename seen in both
-# views through Save/Load, Shift All, a calendar with no off week loaded after it, and (R11) prep with a 5-day
-# default, which skips the in-shoot Off days and Production's own hiatus (owner, 19 Oct 2026). Here, the waterfall PDF's
+# views through Save/Load, Shift All, a calendar with no off week loaded after it, and (R11-R14) prep with a 5-day
+# default and the Prep row's "Pause prep on days marked Off" switch (owner, 20 Oct 2026; EPISODE-PREP-PLAN §15):
+# ticked, prep skips the in-shoot Off days and Production's own hiatus; unticked, the default and a file with no
+# key, it runs through them; one undo step; saved as prepPauseOff and restored unconditionally; New unticks it. Here, the waterfall PDF's
 # own text (pdftotext): three Production Hiatus cells and wk 1 to wk 10 once each.
 # ⛔ Gates 10 and 13 are the other half of this proof: no fixture they read holds an off week, so the frozen
 # month-band edit (OFF-WEEK-PLAN §3.5, Q7) must leave every one of their files byte-identical.

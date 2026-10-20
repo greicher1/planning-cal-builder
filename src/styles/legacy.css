@@ -2856,13 +2856,14 @@
      so one selector covers both. ⚠️ Keep flex-direction EXPLICIT: the competing rule sets column,
      so relying on the row default silently loses again. */
   /* A custom phase's "Number weeks" (PHASE-NUMBERING-PLAN.md) is the same quiet toggle, on its own line
-     under Snap to Mon, and shown in every unit (it carries no .pu-* class). */
-  .phase-fields label.phase-snap, .phase-fields label.phase-wknum{
+     under Snap to Mon, and shown in every unit (it carries no .pu-* class). So is the Prep row's "Pause
+     prep on days marked Off" (owner, 20 Oct 2026), on its own line under Default prep days. */
+  .phase-fields label.phase-snap, .phase-fields label.phase-wknum, .phase-fields label.prep-pause-off{
     display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
     gap:6px; flex:0 0 100%;                 /* own line, like the labels above it -- but left-aligned */
     font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
   }
-  .phase-snap input, .phase-wknum input{ margin:0; cursor:pointer; flex:none; }
+  .phase-snap input, .phase-wknum input, .prep-pause-off input{ margin:0; cursor:pointer; flex:none; }
 
   /* A phase's Length: Weeks / Days / Dates (CUSTOM-PHASE-UNITS-PLAN.md). Since 16 Oct 2026 the
      select sits IN the length column's caption, "By [Weeks ▾]" over the box, instead of on a

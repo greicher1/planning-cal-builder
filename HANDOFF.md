@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, NOT ON `main`
+
+- ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
+  content is confidential and stays out of this repo). The parent session cut three bundles; this one lands first.
+  Sibling sessions `month-notes` and `labels-setup` merge after it. Their shared-notes folder has a note listing
+  every symbol this touches.
+- **Rulings, 20 Oct 2026, by picker:** *"Switch, default: don't skip"* and *"Prep card, saved"* (relayed by the
+  parent session), and, asked here, Production's own hiatus *"Follow the switch"*. Why: real calendars keep
+  prepping on the shoot crew's down days and on crew travel/prep days. Recorded in EPISODE-PREP-PLAN §5 and §15.
+- **The merge:** `prep-skip-off` (`6de29c8`, cut before v1.5.0) into this branch (cut from `main` at `be67ca5`) as
+  `708fab6`. Docs-only conflicts (HANDOFF, README, harness README: both sides added entries at one spot, all kept).
+  `appendEpisodePrep` auto-merged, and every symbol it reads (`prod.phaseHiatus`, `prod.shootDays`,
+  `isUnitWorkDay`, `dayOverrides`) is unchanged in v1.5.0.
+- **Built** (`src/legacy/app.js`, `legacy.css`; no frozen code):
+  - `let prepPauseOff = false` beside `PREP_DEF`; `readPrepConfig()` hands it to `appendEpisodePrep` as
+    `cfg.pauseOff`, which gates both `ownHi` (Production's own hiatus) and `offDay()`. Unticked = the live app's prep
+    exactly.
+  - The box: `<label class="prep-pause-off"><input type="checkbox" class="prep-pause-off-cb">`, under Default prep
+    days, the Snap to Mon look. ⛔ **No id**, so `collectFieldValues()` never sweeps it: gate 5 stays at 74 ids, no
+    sign-off needed. `refreshPrepUI()` reflects the variable into the box, so undo, Load and New all follow.
+  - ⛔ **Save format:** top-level `prepPauseOff`, written ONLY as `true` (the `mvProdLabel` absent-key shape), so a
+    calendar that never ticks it saves byte for byte as before. Restored unconditionally (`=== true`);
+    `sanitizeSnapshot()` drops a non-boolean; `resetAll()` clears it. `SNAPSHOT_VERSION` unchanged (an older build
+    ignores the key, which reads as unticked).
+- **Proof so far** (build `7054bec6…`, 1,548,256 bytes; port 8953):
+  - `offweek` RESTORE 42/42: R11 (ticked by a hit-tested click: the 19 Oct hand trace), R12 (a file with no key:
+    unticked, prep on 9/3, 9/7–9/10, 9/20–9/24 and 10/8), R13 (one undo, redo; an unticked Save has no key; a ticked
+    Save has `prepPauseOff: true` and the same 74 ids; Load brings it back; the M-5 trap), R14 (New unticks). LIVE
+    5/5, its MINT has no key.
+  - `episodeprep` LIVE 32 (S1 the box: in the row, unticked, no id, hit-testable; S2 ticking moves nothing on a
+    calendar with nothing to skip, keeps the id set, one undo; MINT no key), RESTORE 25 (the M-5 trap also unticks),
+    BLOCKS 11. 0 console errors in every run.
+  - **Ten mutants, each red on its own cases** (offweek RESTORE + LIVE, episodeprep LIVE + RESTORE each): always
+    skip (R12, R13 ×2); never skip (R11 ×3, R13 ×3); own hiatus always skipped (R12 ×2, R13 ×2); own hiatus never
+    skipped (R11 ×2, R13 ×3); key not saved (R13 ×3, S2, and episodeprep LIVE threw); conditional restore (R12–R14,
+    S2, both MINTs, the M-5 trap: 12); box with an id (R13's id count 75, S1); `false` written when unticked (R13 and
+    both MINTs); box not reflected (8); New not resetting (R14).
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+- ⚠️ **Disk:** 7.0 GB free at the start (1.8 TB volume). The leftover `code_sign_clone` copies (1,521 now, see the
+  19 Oct merge entry) are still there and were not touched. Each harness run leaves about 10 MB.
+- ⏭ **Next:** the full gate on this build, then the owner's picker to merge into local `main`, then a separate
+  picker for the push. No version cut unless the owner asks.
+
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
 - **Pushed and live.** The owner approved one commit and one push by picker. `git push origin main` sent
@@ -232,6 +275,10 @@
   has moved again first, merge it in and re-run the full gate.
 
 ### 🔨 19 Oct 2026: PREP SKIPS OFF DAYS AND PRODUCTION'S OWN HIATUS: BUILT, COMMITTED AND GATED (1,945 PASS / 0 FAIL) ON BRANCH `prep-skip-off` (worktree `.claude/worktrees/prep-skip-off`), NOT MERGED
+
+> ⚠️ **SUPERSEDED 20 Oct 2026.** The owner made this a switch, OFF by default ("Pause prep on days marked Off"), and
+> it was merged into `main` that way: see the 20 Oct entry at the top. Unticked, prep runs through Off days and
+> Production's own hiatus as before; the rule below is what the switch turns on.
 
 - Owner: *"will episodic prep or block prep days go in days marked 'off'? they really shouldnt do that as it doesnt
   make much sense"*. **They did.** `appendEpisodePrep` walked back over `isUnitWorkDay()` with `ownHi: null` and never
