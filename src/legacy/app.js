@@ -225,6 +225,19 @@ export function initLegacyApp() {
   // column in each year block. A phase key is stable under both, and under renames.
   let gridStintSwaps = {};
 
+  // ---------- Column reuse (COLUMN-REUSE-PLAN.md; owner rulings 20 Oct 2026) ----------
+  // The calendar's "Reuse empty columns" box. Ticked, computeSchedule places phases with
+  // placeSegmentsReusingColumns() instead of its start-order block, so a phase can move into the column
+  // of one that has just finished. ⛔ CALENDAR DATA, in captureSnapshot() as `colReuse` -- and ABSENT
+  // when clear, so every file saved without it is byte-for-byte the snapshot it was.
+  let colReuse = false;
+  // Phases moved by hand: colFollow[phaseKey] = the phase whose column it takes. Set only by dragging a
+  // block into a free column (the one control, by the owner's keep-it-simple ruling), cleared by the
+  // row note's Reset. ⛔ KEYED BY PHASE KEY, like the swap stores, and for their reason: a column is an
+  // opaque number that shifts with every date edit. A choice that can't apply is kept, never deleted --
+  // it applies again once it fits, and a typo in a date cannot destroy it.
+  let colFollow = {};
+
   // How a cell's text has to be squeezed to sit on one line in `chars` of column width.
   // Shared by the screen and the Excel export so both shrink by exactly the same amount, and by
   // notes AND phase labels so a narrowed column of either kind behaves the same way. The
@@ -3360,6 +3373,97 @@ export function initLegacyApp() {
     };
   }
 
+  // ---------- Column reuse: the placement (COLUMN-REUSE-PLAN.md §3) ----------
+  // Runs INSTEAD of computeSchedule's start-order block when `colReuse` is on, and fills the same
+  // segCol map. ⛔ It decides `col` and nothing else: frozen computeBlockLayout / computePhaseRowLayout
+  // read `col` as data and derive fewer columns from it, so this needs no frozen edit.
+  //
+  // Why the old rule can't reuse a column: it puts each phase RIGHT of every earlier phase still
+  // running, so a column freed on the left stays empty while anything to its right runs on. The swap
+  // tools can't help either -- they preserve each week's col multiset, so they reorder columns and
+  // never remove one.
+  //
+  // In start order (ties by phase order, as the old rule):
+  //   1. moved by hand (colFollow): X's column, if X is placed and its column is free now;
+  //   2. a HANDOFF column -- its last occupant's final week is this phase's week before, or only
+  //      all-phase hiatus weeks lie between (ruled Q5); on a tie, the column of the phase this one's
+  //      "Start after" button names (PHASE_CHAIN, built-ins only), else the leftmost (ruled Q1);
+  //   3. the lowest free column;
+  //   4. a new column on the right.
+  // Then Production's column is numbered 0 (ruled Q2). Frozen computeBlockLayout orders a year's
+  // columns by first appearance and breaks ties on `col`, so this only decides which goes left when
+  // two columns start a year together -- the shoot's.
+  //
+  // ⚠️ FREE MEANS WEEK ROWS, not raw dates. A column is free for a phase once its last occupant's final
+  // week row is above this phase's first. With raw dates, two snap-off phases meeting mid-week would
+  // land in one column on the same row. For an all-snapped calendar the two tests are identical.
+  //
+  // Returns { phaseKey: {ok, follows, reason?, blocker?} } for every phase moved by hand.
+  function placeSegmentsReusingColumns(segments, hiatuses, segCol){
+    const WEEK = 7*DAY_MS;
+    const firstRow = s => mondayOf(s.start).getTime();
+    const rowsEnd  = s => mondayOf(addDays(s.end, 6)).getTime();   // exclusive, naturalEnds' rounding
+    const inHiatus = t => hiatuses.some(h => t >= h.start.getTime() && t < h.end.getTime());
+    const byStart = segments
+      .map((seg, i)=>({seg, i}))
+      .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
+      .map(o=>o.seg);
+    const cols = [];              // cols[i] = { freeAt: rowsEnd of its last occupant, last: that segment }
+    const placed = new Map();     // phase key -> its segment, once placed
+    const moves = {};
+    byStart.forEach(seg=>{
+      const first = firstRow(seg);
+      const free = i => cols[i].freeAt <= first;
+      const handoff = i => {
+        if(!free(i)) return false;
+        for(let t = cols[i].freeAt; t < first; t += WEEK) if(!inHiatus(t)) return false;
+        return true;
+      };
+      let at = -1;
+      const want = colFollow[seg.key];
+      if(want && want !== seg.key){
+        const x = placed.get(want);
+        const xc = x ? segCol.get(x) : -1;
+        if(x && free(xc)){ at = xc; moves[seg.key] = { ok:true, follows:want }; }
+        else moves[seg.key] = { ok:false, follows:want,
+          reason: x ? 'busy' : (segments.some(s => s.key === want) ? 'later' : 'unscheduled'),
+          blocker: x ? cols[xc].last.key : null };
+      }
+      if(at < 0){
+        const hand = [];
+        for(let i = 0; i < cols.length; i++) if(handoff(i)) hand.push(i);
+        if(hand.length === 1) at = hand[0];
+        else if(hand.length > 1){
+          const pred = chainPredecessorPlaced(seg.key, placed);
+          const pc = pred ? segCol.get(placed.get(pred)) : -1;
+          at = hand.indexOf(pc) >= 0 ? pc : hand[0];
+        } else {
+          for(let i = 0; i < cols.length; i++) if(free(i)){ at = i; break; }
+        }
+      }
+      if(at < 0){ at = cols.length; cols.push({ freeAt:0, last:null }); }
+      cols[at].freeAt = rowsEnd(seg);
+      cols[at].last = seg;
+      segCol.set(seg, at);
+      placed.set(seg.key, seg);
+    });
+    const prod = placed.get('production');
+    const pc = prod ? segCol.get(prod) : 0;
+    if(pc > 0){
+      for(const [s, c] of segCol) segCol.set(s, c === pc ? 0 : (c < pc ? c + 1 : c));
+    }
+    return moves;
+  }
+  // The nearest PLACED phase before `key` in PHASE_CHAIN -- the phase its "↳ Start after" button names,
+  // when that phase is on the calendar. Null for a custom phase, which is not in the chain.
+  // ⚠️ PHASE_CHAIN is a const declared far below this point. Only ever reached with column reuse on,
+  // which no calendar can be before the file has finished evaluating, so it is never read in its TDZ.
+  function chainPredecessorPlaced(key, placed){
+    const idx = PHASE_CHAIN.indexOf(key);
+    for(let i = idx - 1; i >= 0; i--) if(placed.has(PHASE_CHAIN[i])) return PHASE_CHAIN[i];
+    return null;
+  }
+
   // ---------- core scheduling ----------
   function computeSchedule(state){
     if(state.hasInvalidYear){
@@ -3776,7 +3880,12 @@ export function initLegacyApp() {
     //     than the highest column occupied by any phase still running at this seg's start.
     //   - Ties on start date keep their original phase order (stable sort by index).
     const segCol = new Map();
-    {
+    // ⭐ COLUMN REUSE (COLUMN-REUSE-PLAN.md §3). With the calendar's "Reuse empty columns" box ticked, a
+    // different placement runs INSTEAD of the block below. Clear -- the default, and every file saved
+    // before the box existed -- the block below runs exactly as it always has. That is the whole
+    // inertness argument, so never fold the two together.
+    const colMoves = colReuse ? placeSegmentsReusingColumns(segments, hiatuses, segCol) : null;
+    if(!colReuse){
       const byStart = segments
         .map((seg, i)=>({seg, i}))
         .sort((a,b)=> (a.seg.start - b.seg.start) || (a.i - b.i))
@@ -3964,6 +4073,9 @@ export function initLegacyApp() {
       schedule.calRangeCut = cut.lost;
       if(!cut.weeks.length) schedule.error = 'invalid-range';
     }
+    // Whether each hand move applied, for the phase rows' notes. Only with column reuse on, so the
+    // schedule of a calendar without it carries exactly the keys it always did.
+    if(colMoves) schedule.colMoves = colMoves;
     // ⭐ PER-EPISODE PREP, appended LAST (EPISODE-PREP-PLAN.md §4): every week, column, maxConcurrent, note
     // and holiday above was built without it, so the waterfall, Excel and the waterfall PDF -- which read
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
@@ -5082,6 +5194,12 @@ export function initLegacyApp() {
     const mode = swapSelectionMode();
     if(mode.mode === 'stint'){
       const run = stintRunFor(mode.year, mode.phaseKey, dir);
+      // A whole block beside a FREE column, with column reuse on, is a move rather than a refused swap
+      // (COLUMN-REUSE-PLAN.md §4). Null when there is no column there at all: the swap's own refusal.
+      if(!run.ok && run.reason === 'no-partner' && colReuse){
+        const mv = followRunFor(mode.year, mode.phaseKey, dir);
+        if(mv) return mv;
+      }
       return run.ok ? Object.assign(run, canSwapStint(run)) : run;
     }
     const seed = swapSeed();
@@ -5127,6 +5245,61 @@ export function initLegacyApp() {
     return true;
   }
 
+  // ---------- Column reuse: moving a block into a free column (COLUMN-REUSE-PLAN.md §4) ----------
+  // The one hand control column reuse has (owner, 20 Oct 2026: keep it simple). With a whole block
+  // selected and the column beside it free for every week the phase runs, the swap knob moves the
+  // PHASE into that column. That is stored as "follows <the phase that last held the column>", because
+  // the placement works on whole phases, not on one year's block.
+  // ⛔ JUDGED BY A TRIAL PLACEMENT, not by reasoning: the verdict is what placeSegmentsReusingColumns
+  // actually does with the choice, so a move can never land anywhere but where it was shown.
+  // Null means no column on that side at all, and the caller keeps the swap's own refusal.
+  function followRunFor(year, phaseKey, dir){
+    const sched = currentSchedule;
+    if(!sched || !sched.weeks || !sched.weeks.length) return null;
+    const mine = stintTds(year, phaseKey);
+    if(!mine.length) return null;
+    const slot = +mine[0].dataset.own + dir;
+    const blocks = computeYearBlocks(sched.weeks);        // FROZEN, read-only
+    const bi = blocks.findIndex(b => b.year === year);
+    if(bi < 0) return null;
+    const bl = computeBlockLayout(sched, blocks);         // FROZEN, read-only
+    let col;
+    for(const [c, s] of bl.blockSlotMaps[bi]) if(s === slot) col = c;
+    if(col === undefined) return null;
+    const base = { mode:'follow', ok:false, year, phaseKey, dir, weeks: mine.map(td => td.dataset.week) };
+    // Owner ruling D5 holds here too: the Simultaneous Post lane is anchored to Production's column.
+    if(phaseKey === 'production' && swapBlockHasSimPost(year)) return Object.assign(base, { reason:'simpost' });
+    const myRows = new Set();
+    sched.weeks.forEach((w, i)=>{ if(w.cells.some(c => c.key === phaseKey && c.col !== undefined)) myRows.add(i); });
+    if(!myRows.size) return null;
+    const first = Math.min(...myRows);
+    let follows = null;
+    for(let i = 0; i < sched.weeks.length; i++){
+      const c = sched.weeks[i].cells.find(x => x.col === col && x.key !== phaseKey);
+      if(!c) continue;
+      if(myRows.has(i)) return Object.assign(base, { reason:'follow-busy', blocker: c.key });
+      if(i < first) follows = c.key;                      // the latest one before this phase begins
+    }
+    if(!follows) return Object.assign(base, { reason:'follow-nobody' });
+    const saved = colFollow;
+    let trial = null;
+    colFollow = Object.assign({}, colFollow, { [phaseKey]: follows });
+    try { trial = computeSchedule(readState()); } finally { colFollow = saved; }
+    const v = trial && trial.colMoves && trial.colMoves[phaseKey];
+    if(!v || !v.ok) return Object.assign(base, { reason:'follow-busy', blocker: (v && v.blocker) || follows });
+    return Object.assign(base, { ok:true, follows,
+      label: 'Move ' + phaseLabelFor(phaseKey) + ' into the free column, after ' + phaseLabelFor(follows) });
+  }
+  function finishFollowMove(cand){
+    const v = followRunFor(cand.year, cand.phaseKey, cand.dir);   // re-derived, as the swaps re-derive
+    if(!v || !v.ok){ flashSwapMsg(v ? swapWhy(v) : SWAP_WHY['no-partner']); return false; }
+    colFollow = Object.assign({}, colFollow, { [v.phaseKey]: v.follows });
+    update();                                             // ends in markDirty(): one undo step
+    flashSwapMsg('Moved ' + phaseLabelFor(v.phaseKey) + ' into ' + phaseLabelFor(v.follows)
+      + '’s column. Its row in Phases has a Reset.', 0, { weeks: v.weeks, phaseKey: v.phaseKey });
+    return true;
+  }
+
   // The mode line the chip shows before commit (COLUMN-ORDER-PLAN.md §2.2), built from the eligible
   // candidates so it names exactly what each direction would do -- and, for a block swap, every
   // partner it would trade with.
@@ -5141,6 +5314,7 @@ export function initLegacyApp() {
       let warn = false;
       const text = 'All ' + mode.count + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' in ' + mode.year + ' — '
         + eligible.map(c => {
+            if(c.mode === 'follow') return arrow(c) + ' moves it into the free column, after ' + phaseLabelFor(c.follows);
             const rs = reshapeText(c.reshaped);
             if(rs) warn = true;
             return arrow(c) + ' trades the whole block with ' + joinNames(c.partners.map(phaseLabelFor))
@@ -5192,6 +5366,11 @@ export function initLegacyApp() {
            + fmtShort(parseDateUTC(v.collideAt.weekIso)) + '.';
     if(v.reason === 'simpost')
       return phaseLabelFor('production') + '’s column can’t move while Simultaneous Post is on.';
+    // Column reuse's move into a free column (followRunFor).
+    if(v.reason === 'follow-busy' && v.blocker)
+      return phaseLabelFor(v.blocker) + ' uses that column while ' + phaseLabelFor(v.phaseKey) + ' runs.';
+    if(v.reason === 'follow-nobody')
+      return 'A phase can only move into a column after another phase there has finished.';
     if(SWAP_WHY[v.reason]) return SWAP_WHY[v.reason];
     return 'Can’t swap: ' + (SWAP_REASON_TEXT[v.reason] || v.reason) + '.';
   }
@@ -5238,6 +5417,9 @@ export function initLegacyApp() {
     // (swapSelectionMode), and a block swap changes gridStintSwaps rather than gridColSwaps.
     const mode = swapSelectionMode();
     return mode.mode + ':' + (mode.year || '') + ':' + (mode.phaseKey || '') + ':' + gridSel.size
+      // Column reuse decides whether a free neighbour is a move (followRunFor), and ticking the box can
+      // leave every col unchanged -- so it is part of the key, or the old refusal would stay cached.
+      + '|' + (colReuse ? 'reuse' : '') + ':' + Object.keys(colFollow).sort().map(k => k + '>' + colFollow[k]).join(',')
       + '|' + Object.keys(gridStintSwaps).sort().join(',')
       + '|' + seed.weekIso + '|' + seed.phaseKey + '|' + wk.length
       + '|' + wk.map(w => w.cells.map(c => (c.key || '') + (c.col === undefined ? 'x' : c.col)).join('')).join('.')
@@ -5411,7 +5593,16 @@ export function initLegacyApp() {
     // which is the documented reason frozen .span-preview is a ghost in the first place.
     if(swapDrag && swapDrag.dir && swapDrag.run && selLayer){
       const run = swapDrag.run;
-      if(run.members){
+      if(run.mode === 'follow'){
+        // Column reuse's move: the block lands one column over, on its own rows. The ghost borrows the
+        // block's own width; the next render draws the real thing.
+        const bs = swapRunBoxes(run.weeks, run.phaseKey, g);
+        if(bs.length){
+          const u = swapUnion(bs), w = u.r - u.l;
+          selLayer.appendChild(swapRect('grid-swap-ghost', run.dir > 0
+            ? { l:u.r, r:u.r + w, t:u.t, bo:u.bo } : { l:u.l - w, r:u.l, t:u.t, bo:u.bo }));
+        }
+      } else if(run.members){
         // Block mode: every member lands in the OTHER column over its own weeks -- the column's
         // x-range read off the first partner's (or the stint's) cells, the rows read off the member.
         const xr = key => { const bs = swapRunBoxes(run.memberWeeks[key], key, g); return bs.length ? swapUnion(bs) : null; };
@@ -5568,6 +5759,7 @@ export function initLegacyApp() {
     return finishSwapMove(cand);
   }
   function finishSwapMove(cand){
+    if(cand.mode === 'follow') return finishFollowMove(cand);
     if(cand.mode === 'stint') return finishStintMove(cand);
     // ⛔ RE-DERIVE from the seed instead of trusting the cached candidate. Verdicts are debounced and
     // cached (see swapCandKey), so the run in hand can be up to a beat stale -- and a run carries the
@@ -17999,6 +18191,7 @@ export function initLegacyApp() {
     render(currentSchedule);
     // AFTER render(), which owns meta-<key> and is frozen. See refreshOverrideNote().
     refreshOverrideNote();
+    reflectColMoveNotes();
     refreshCustomUnitMeta(currentSchedule);
     refreshPrepUI(currentSchedule);
     refreshHolidayCoverageNote();
@@ -18615,6 +18808,102 @@ export function initLegacyApp() {
   new MutationObserver(()=>{
     if(activeHdrRowPop && !activeHdrRowPop.th.isConnected) closeHeaderRowPop();
   }).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ---------- Column reuse: the box, the row notes, Reset (COLUMN-REUSE-PLAN.md §4) ----------
+  // The "Reuse empty columns" box. Shaped like setSingleColumn(): the control reflects the variable and
+  // never holds it, and a change is calendar data -- one undo step, a dirty file.
+  // ⭐ Hand-dragged column widths (ruled Q7): `y2026:s1` names a POSITION, so once a year's columns
+  // change, a width would land on a different phase. The years whose columns change get automatic
+  // widths again, in the same undo step; every other year keeps its own.
+  function setColReuse(next){
+    next = !!next;
+    if(colReuse === next) return;
+    asOneHeaderStep(()=>{
+      const before = yearColumnShapes(currentSchedule);
+      colReuse = next;
+      const after = yearColumnShapes(computeSchedule(readState()));
+      const kept = {};
+      let dropped = false;
+      Object.keys(colWidths).forEach(k=>{
+        const m = /^y(\d+):s\d+$/.exec(k);
+        if(m && before[m[1]] !== after[m[1]]){ dropped = true; return; }
+        kept[k] = colWidths[k];
+      });
+      if(dropped) colWidths = kept;   // a fresh object: an undo step may still hold the old one
+    });
+    reflectColReuse();
+    update();
+    markDirty();
+  }
+  function reflectColReuse(){
+    const b = document.getElementById('col-reuse-btn');
+    if(b) b.checked = colReuse;
+  }
+  // Each year's columns as a string: which phases sit in each position. Two equal strings mean a width
+  // dragged in that year still lands on the same phases. Built by CALLING the frozen layout, never by
+  // re-deriving its rules.
+  function yearColumnShapes(schedule){
+    const out = {};
+    if(!schedule || !schedule.weeks || !schedule.weeks.length) return out;
+    const blocks = computeYearBlocks(schedule.weeks);      // FROZEN, read-only
+    const bl = computeBlockLayout(schedule, blocks);       // FROZEN, read-only
+    blocks.forEach((b, bi)=>{
+      const map = bl.blockSlotMaps[bi];
+      const bySlot = Array.from({length: bl.blockMaxConcurrent[bi]}, ()=> new Set());
+      for(let i = b.startIdx; i < b.startIdx + b.count; i++){
+        schedule.weeks[i].cells.forEach(c=>{
+          if(c.col !== undefined && map.has(c.col) && bySlot[map.get(c.col)]) bySlot[map.get(c.col)].add(c.key);
+        });
+      }
+      out[b.year] = bySlot.map(s => [...s].sort().join(',')).join('|');
+    });
+    return out;
+  }
+  // ⛔ DELEGATED from document, never bound to the node: the box is React-rendered, and the engine must
+  // not capture React nodes at evaluation time (HANDOFF, the #file-menu lesson).
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.id === 'col-reuse-btn') setColReuse(e.target.checked);
+  });
+
+  // The phase row says something ONLY when the phase was moved by hand (owner: "a row note only when
+  // something was moved by hand"). Runs from update() after render(), which owns meta-<key> and is
+  // frozen -- the refreshOverrideNote() arrangement. The note is a <div> with an id, which
+  // collectFieldValues() never sweeps (it takes input/select/textarea only).
+  function reflectColMoveNotes(){
+    const moves = (colReuse && currentSchedule && currentSchedule.colMoves) || {};
+    document.querySelectorAll('.col-move-note').forEach(el=>{ if(!moves[el.dataset.key]) el.remove(); });
+    Object.keys(moves).forEach(key=>{
+      const meta = document.getElementById('meta-' + key);
+      if(!meta) return;
+      let el = document.getElementById('colnote-' + key);
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'colnote-' + key;
+        el.className = 'col-move-note';
+        el.dataset.key = key;
+        meta.insertAdjacentElement('afterend', el);
+      }
+      const m = moves[key], who = phaseLabelFor(m.follows);
+      const why = m.reason === 'later' ? who + ' starts later'
+        : m.reason === 'unscheduled' ? who + ' isn’t on the calendar'
+        : (m.blocker && m.blocker !== m.follows) ? phaseLabelFor(m.blocker) + ' is in that column then'
+        : who + ' is still running';
+      const text = m.ok ? 'Moved by hand into ' + who + '’s column'
+                        : 'Can’t use ' + who + '’s column: ' + why;
+      el.classList.toggle('is-stale', !m.ok);
+      el.innerHTML = escHtml(text) + ' · <button type="button" class="col-move-reset" data-key="'
+        + escHtml(key) + '" title="Let the app choose this phase’s column again">Reset</button>';
+    });
+  }
+  // Reset: forget the hand move. update() ends in markDirty(), which banks the one undo step.
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('.col-move-reset');
+    if(!b || !(b.dataset.key in colFollow)) return;
+    const next = Object.assign({}, colFollow);
+    delete next[b.dataset.key];
+    colFollow = next;
+    update();
+  });
   // Production's month-bar label (MONTH-PILL-LABEL-PLAN.md §5.1). Shaped like setSingleColumn(): the
   // control reflects the variable and never holds it, and a change is CALENDAR DATA, so it goes
   // through update() + markDirty() -- it dirties the file and is one undo step, where the per-user
@@ -19307,6 +19596,7 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
+    colReuse = false; colFollow = {}; reflectColReuse();
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -19965,6 +20255,10 @@ export function initLegacyApp() {
       // wrong in a build from last week.
       colWidths, colWidthsAlt, rowHeights, rowHeightsByWeek, cellSpans,
       gridColSwaps, gridStintSwaps,
+      // 20 Oct 2026, COLUMN-REUSE-PLAN.md §5. ⛔ PERMANENT keys. Each is ABSENT until used, so a calendar
+      // that never ticks "Reuse empty columns" or moves a phase by hand saves byte for byte what it did.
+      ...(colReuse ? {colReuse: true} : {}),
+      ...(Object.keys(colFollow).length ? {colFollow: Object.assign({}, colFollow)} : {}),
       fields: collectFieldValues()
     };
   }
@@ -25819,6 +26113,8 @@ export function initLegacyApp() {
     const swap = v => (isPlainObj(v) && typeof v.with === 'string' && SNAP_ID.test(v.with)) ? Object.assign({}, v) : undefined;
     setMap('gridColSwaps', swap);
     setMap('gridStintSwaps', swap);
+    // A hand move names another phase by key (COLUMN-REUSE-PLAN.md §5).
+    setMap('colFollow', v => (typeof v === 'string' && SNAP_ID.test(v)) ? v : undefined, SNAP_ID);
     // Strings and flags keyed by week / holiday.
     setMap('hiatusTexts', str);
     setMap('hiatusNameSyncedKeys', str);
@@ -26334,6 +26630,11 @@ export function initLegacyApp() {
     // open file had.
     mvNumberShootDays = snap.mvNumberShootDays === true;
     reflectMvNumberShootDays();
+    // ⛔ UNCONDITIONAL, both (COLUMN-REUSE-PLAN.md §5): a file with no key places phases the old way and
+    // has no hand moves -- never the previously open calendar's.
+    colReuse = snap.colReuse === true;
+    colFollow = (snap.colFollow && typeof snap.colFollow === 'object') ? Object.assign({}, snap.colFollow) : {};
+    reflectColReuse();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

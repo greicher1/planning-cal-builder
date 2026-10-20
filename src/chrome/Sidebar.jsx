@@ -375,6 +375,20 @@ export function CalendarWaterfallCard() {
                   aria-label="Single Column Mode"
                   title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
         </SettingRow>
+        {/* ✅ COLUMN-REUSE-PLAN.md (owner, 20 Oct 2026): ONE box and one line under it -- the owner's
+            ruling is that this stays simple. Same arrangement as #one-col-btn above: calendar data
+            carried by captureSnapshot()'s own `colReuse` key, inside .prefs-card so
+            collectFieldValues() never sweeps it into fields.byId, and UNCONTROLLED -- the engine writes
+            .checked in reflectColReuse() and listens for 'change' on the document. It was built beside
+            Single Column Mode in the old Preferences card, and stays beside it here, in the Settings
+            window's Calendar tab, since it is this calendar's. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="col-reuse-btn" label="Reuse empty columns">
+          <Switch id="col-reuse-btn" size="md" aria-label="Reuse empty columns" />
+        </SettingRow>
+        <Text size="xs" c="dimmed" mt={4}>
+          When one phase ends and the next begins, the next one moves into the freed column.
+        </Text>
         {/* The waterfall's dates and column headings (owner rulings 2 and 4, 20 Oct 2026; HEADER-ROW-PLAN.md),
             folded into this card when the Settings window merged: they were a "Waterfall Layout" card of
             their own in the old Settings tab. The same .prefs-card rule as the switch above: each id is

@@ -1259,6 +1259,69 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
+# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
+# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
+# drag to fix a pick, and a row note only when something was moved by hand.
+#
+# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
+# frozen computeBlockLayout derives fewer columns from `col` as data. The byte-compare above, on
+# calendars that never tick it, is the inertness proof. This leg proves the rules, on a SYNTHETIC
+# calendar (2030-2032) with one phase per rule of the plan's §3.
+# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
+# LIVE's own snapshot.
+for CRSTATE in "" colreuse; do
+  rm -f "$HERE/colreuse.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
+  python3 - "$HERE/colreuse.json" "colreuse (${CRSTATE:-live})" <<'PYCR' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+if a.get('mode') == 'live':
+    chk(a.get('boxExists') and a.get('boxStartsOff') and a.get('boxSkippedBySweep'),
+        'the box exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
+    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
+        'OFF saves no colReuse/colFollow key and shows no row note: a calendar that never ticks it is unchanged')
+    oc=a.get('onCols') or {}
+    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
+    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
+    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
+    chk(a.get('newColumn'), 'nothing free: a new column')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
+    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
+    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
+        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(a.get('selectedMix') and a.get('moved'),
+        f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
+    chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
+    chk(a.get('pdfExported'), 'the waterfall PDF exports')
+    chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
+        f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
+    chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
+else:
+    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
+    chk(a.get('newClears'), 'New clears the box and the hand moves')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYCR
+done
+
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
 # ⛔ THE FORWARD-COMPATIBILITY HALF of moving rowHeights from row-index keys to week keys, and the
 # risky half: every calendar anyone has ever dragged a row in stores `rowHeights: {"<index>": px}`.

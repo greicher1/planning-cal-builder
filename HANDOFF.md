@@ -359,6 +359,58 @@
   were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
   be re-homed into the window; `settingswin` W2 fails on any `data-tab="settings"` card.
 - ⏭ **Next:** the owner decides whether to merge into `main` (ask by picker). No push.
+### 🔨 20 Oct 2026: "REUSE EMPTY COLUMNS" IS BUILT ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT MERGED (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+
+- ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
+  plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
+- ⭐ **The simplification (owner, 20 Oct 2026):** *"we dont want the settings for this column reuse to be too
+  complicated/hard to understand. This goes for everything. The app needs to be easy for anyone to use"*. It
+  replaced a Column dropdown on every phase row and an "Own column" choice with:
+  - one box, **Settings ▸ Preferences ▸ Reuse empty columns** (`#col-reuse-btn`, beside Single Column Mode, inside
+    `.prefs-card`, so it is never swept into `fields.byId`);
+  - the grid's existing drag;
+  - a row note only when a phase was moved by hand.
+  The rule was forwarded to all five sibling sessions. The owner asked whether Swap Column alone could do it; it
+  cannot, because a swap never removes a column.
+- **What was built (no frozen edit):**
+  - `placeSegmentsReusingColumns()` runs INSTEAD of computeSchedule's start-order `segCol` block when `colReuse` is
+    on. Off, that block runs untouched.
+  - Stores `colReuse` / `colFollow`, both ABSENT from the snapshot until used. Restored unconditionally, sanitized,
+    reset by New.
+  - `setColReuse()`: one undo step, and it clears hand-dragged widths in the years whose columns change (ruled Q7,
+    via `yearColumnShapes()`, which calls the frozen layout read-only).
+  - `reflectColMoveNotes()`, run from update() after render() (the refreshOverrideNote() arrangement, since render()
+    owns meta-<key> and is frozen), and the note's Reset.
+  - `followRunFor()` / `finishFollowMove()`: a third swap-candidate mode, 'follow'. A whole block next to a FREE
+    column, with reuse on, makes the knob a move instead of a "no partner" refusal. It is judged by a trial
+    placement, so it can only land where it was shown.
+- ⭐ **Learned:**
+  1. **"Free" has to mean week ROWS, not raw dates.** Two snap-off phases that meet mid-week would otherwise share
+     one cell. For an all-snapped calendar the two tests agree.
+  2. **`PHASE_CHAIN` is declared ~13,000 lines below computeSchedule.** It is read only with reuse on, which no
+     calendar can be before the IIFE finishes: the load-time restore is the file's last statement. Keep it that way.
+  3. **The swap candidate cache key must include `colReuse`**, since ticking the box can leave every `col` unchanged
+     and the old refusal would stay cached.
+  4. **Pane coordinates:** with a 1024-px viewport the screenshot frame is 800×600. A coordinate click uses the
+     screenshot frame, but a ref click reports viewport pixels. One miss opened an empty note editor, which was
+     closed with Escape, nothing typed.
+- **Proof so far:**
+  - `npm run check` 40/40 on the build.
+  - New leg `colreuse`, LIVE 21 checks and RESTORE 4, green on private port 8983. Red on the pre-change build
+    `670a591`: LIVE throws (no box), RESTORE opens with the old layout and no note.
+  - Fixture `tests/fixtures/colreuse.sptcal` (synthetic, cut from LIVE's own snapshot).
+  - In the app pane, real clicks: Reset moved Mix back, and the knob ("Move Mix into the free column, after Loc")
+    moved it in, with 0 console errors. The two 404s are the update check asking the test server for
+    `dist/version.json`.
+  - Full gate: queued behind two other sessions' gates (entry to follow).
+- ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
+  There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
+  phases fall back to the leftmost column (Q1).
+- Checked by hand: the rule reproduces the reference calendar's column count and left/right order in every year,
+  with no swaps, once Production's column is numbered first (Q2).
+- ⚠️ **The entry below was written in the main checkout, uncommitted, while five sibling sessions started.** Each
+  session copies it into its own branch verbatim, and so did this one, so the copies merge cleanly. Drop the main
+  checkout's uncommitted copy once a branch carrying it is merged.
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 
