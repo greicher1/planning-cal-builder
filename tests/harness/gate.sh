@@ -2135,6 +2135,32 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
 PYOW
 done
 
+# ---- weeknum: the month view numbers weeks as the waterfall does (OFF-WEEK-PLAN.md step B, ruling Q5) ---------
+# N0 on each calendar: every month-view bar whose label carries "Week N", in every month and for every phase
+# but prep, names the waterfall's own number for that phase and week (prodWeekLabel reads seg.weekNo, which
+# the week loop records; it used to count calendar weeks, and disagreed after every hiatus). N1 guards against
+# a page that drew nothing. dayoverrides adds the fixed cases (Production Week 3 after Summer Break, Post Week 8
+# after the winter hiatus, a hiatus-free phase unchanged, the day menu's header); offweek adds two off weeks.
+for WNSTATE in dayoverrides offweek carry-rich customunits blocks halfdays episodeprep; do
+  rm -f "$HERE/weeknum.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$WNSTATE" "$HERE/run.sh" weeknum 900 >/dev/null 2>&1
+  python3 - "$HERE/weeknum.json" "weeknum ($WNSTATE)" <<'PYWN' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what'))[:170])
+if a.get('mismatch'): print('        mismatches: '+str(a['mismatch'][:4]))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYWN
+done
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

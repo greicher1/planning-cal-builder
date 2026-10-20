@@ -3620,6 +3620,10 @@ export function initLegacyApp() {
               color: HIATUS_COLOR, textColor: HIATUS_TEXT, label: baseLabel});
           } else {
             const num = weekCounters[ph.key]++;
+            // ⭐ Recorded as it is handed out (OFF-WEEK-PLAN.md step B, ruling Q5, 19 Oct 2026), so the month
+            // view reads THIS number (prodWeekLabel) instead of counting again. `ph` is the very segment object
+            // schedule.segments carries.
+            (ph.weekNo || (ph.weekNo = {}))[isoOf(weekStart)] = num;
             cells.push({type:'phase', key:ph.key, label:ph.template(num), color:ph.color, textColor:ph.textColor, col:segCol.get(ph)});
           }
         });
@@ -9088,7 +9092,17 @@ export function initLegacyApp() {
   // (Named for its new caller; it serves every phase.)
   function prodWeekLabel(s, date){
     const name = (s.name || s.label || '').replace(/\s*wk\s*\d+\s*$/i,'');
-    const weekNo = Math.floor((mondayOf(date) - mondayOf(s.start))/DAY_MS/7) + 1;
+    // ⭐ THE WATERFALL'S NUMBER (OFF-WEEK-PLAN.md step B; owner ruling Q5, 19 Oct 2026). The week loop in
+    // computeSchedule() records every number it hands out on the segment (seg.weekNo), skipping all-phase
+    // hiatus weeks, the phase's own hiatus and Production's off weeks. This used to count CALENDAR weeks from
+    // the start instead, so after any hiatus the month view said "Post Week 10" where the waterfall, Excel and
+    // the waterfall PDF said "Post wk 8" (measured; most calendars run a phase through the winter hiatus).
+    // ⛔ Read it, never count again here: a second copy of the loop's rule is exactly what drifted.
+    // The calendar count is only a fallback, for a week the loop never numbered (no bar is drawn in a hiatus
+    // or off week, so a drawn bar should never need it).
+    const wk = isoOf(mondayOf(date));
+    const weekNo = (s.weekNo && wk in s.weekNo) ? s.weekNo[wk]
+                 : Math.floor((mondayOf(date) - mondayOf(s.start))/DAY_MS/7) + 1;
     return weekNo > 0 ? `${name} Week ${weekNo}` : name;
   }
 
