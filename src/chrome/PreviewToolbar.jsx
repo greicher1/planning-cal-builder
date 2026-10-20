@@ -228,10 +228,12 @@ export function PreviewToolbar() {
                 type="button" size="xs" variant="default"
                 title={hdr.view === 'month'
                   ? 'Choose how the Month view’s header is written: Auto, Template or Manual'
-                  : 'Choose how the header is written: Auto, Template or Manual'}
+                  : 'Choose how the header is written: Auto, Template or Manual, or turn it Off'}
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
-          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual' : 'Header: Auto'}
+          {/* 'off' is the waterfall's Header: Off (owner ruling 10, 20 Oct 2026); the month never sends it. */}
+          {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
+            : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>
 
         {/* Paste notes… (MONTH-NOTES-PLAN.md §5; owner, 20 Oct 2026, by picker): many month-view notes at once.

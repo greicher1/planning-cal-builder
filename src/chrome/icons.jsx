@@ -129,6 +129,17 @@ export function IconNote(props) {
   )
 }
 
+// A grid whose top row is split into headed columns -- the waterfall's header row and date column
+// (HEADER-ROW-PLAN.md). Not IconTable (Export Excel) and not IconHeading (the title block above it).
+export function IconColumns(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+      <path d="M2 6h12M5.5 2.5v11M10 2.5v11" />
+    </svg>
+  )
+}
+
 export function IconShare(props) {
   return (
     <svg {...base} {...props}>

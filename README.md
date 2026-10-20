@@ -134,6 +134,44 @@ owner asked for a start/end override instead of a change to the year split. Aske
   and the M-5 trap, the shareable copy, New. Red on the pre-change build; eleven mutants each turn their own cases
   red. `npm run check` 40/40.
 
+### Unreleased — The waterfall's header text and dates: Header: Off, a 1/6/2025 date format, custom column headings (20 Oct 2026)
+
+Owner rulings 2, 4 and 10 of 20 Oct 2026, from comparing a reference waterfall with the app: every phase and
+week count could be rebuilt, but not the layout. All three change frozen code (the waterfall renderer, the
+Excel writer and the waterfall PDF writer); the owner signed off `HEADER-ROW-PLAN.md` by picker (*"Yes, build
+it"*) with every question answered by the recommended option. **Each is off by default**, so every existing
+calendar shows, saves and exports exactly as before.
+- **Header: Off** (ruling 10). A fourth choice in the waterfall's Header menu, beside Auto, Template and Manual.
+  The title block goes: on screen the grid starts at the top, Excel writes no page header, and the waterfall
+  PDF draws none. The top margin is reclaimed in both exports (*"Reclaim it"*): 0.25 in, like the sides,
+  instead of 0.75 in, so the grid prints larger. The page orientation is still decided the same way for both.
+  Off hides whatever header was there: choosing Manual or Template again brings those lines back. The month
+  view's header has no Off.
+- **Dates: 1/6/25 or 1/6/2025** (ruling 4). A calendar setting in a new **Waterfall Layout** card in the
+  Settings tab. It changes the waterfall's Date column on screen, Excel's date cells (still real dates, now
+  formatted `m/d/yyyy`) and the PDF's Date column. The column widens through the width model, so nothing is
+  clipped. Dates inside automatic notes keep 1/6/25 (*"Keep 1/6/25"*), because those notes also feed the
+  month view and both month PDFs.
+- **Custom Column Headings** (ruling 2), a switch in the same card (*"Opt-in switch"*). Off, every year block
+  reads `Date | 2026 | Notes` as always. On, the year moves over the Date column and every heading is click-to-edit:
+  a small panel shows one field per column of the clicked cell. Headings are per column, and neighbouring
+  columns with the same heading merge into one cell, on screen, in Excel and in the PDF. A heading too long for
+  its column shrinks to fit (it clips past the 0.6 floor, like a phase label); it never widens a column.
+  Turning the switch off keeps the typed headings for next time.
+- **Saved with the calendar** as `headerOff: true`, `dateFormat: "m/d/yyyy"`, `headerRowCustom: true` and
+  `headerRowLabels`. None is written while its feature is off, so an untouched calendar saves byte for byte
+  as before. `fields.byId` is unchanged: the two new controls sit in a `.prefs-card`, like Single Column Mode.
+  A file without a key always opens with that feature off, never the previous file's setting. Each change is
+  one undo step; New clears all three.
+- ⚠️ **Found while building:** Excel's default date cells use built-in format 14, which Excel draws in the
+  *reader's* system short-date format. On a machine whose short date has a four-digit year (US Windows's
+  default), today's workbooks already show 1/6/2025. Left as it is (the default must not change); the
+  1/6/2025 setting writes an explicit format that reads the same everywhere.
+- **Verified:** a new gate leg, `hdrrow`, 30 cases. It reads the screen, the workbook (through ExcelJS) and
+  the PDF's content stream for each feature. It passed 30/30 on three runs with 0 console errors. It is red on
+  the pre-change build (`7054bec6`), and each of eight mutants turns it red. The PDFs were rendered and
+  looked at. The custom workbook passes `check-xlsx.sh`. `npm run check` 40/40; `check-refs.py` clean.
+  Full gate: see `HANDOFF.md` (top entry).
 
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 

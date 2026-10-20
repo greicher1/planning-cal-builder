@@ -164,6 +164,73 @@
   so the two compose: the cut only slices weeks.
 - ⏭ **Next:** the full gate on build `9da4794b…` at `224eef0` (queued 15:55 behind two other sessions' gates, port 8969, log in
   this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
+### 🔨 20 Oct 2026: RULINGS 2, 4 AND 10 BUILT — HEADER: OFF, A 1/6/2025 DATE FORMAT, CUSTOM COLUMN HEADINGS (branch `claude/header-row-fe6f32`, worktree `.claude/worktrees/header-row-fe6f32`, [`HEADER-ROW-PLAN.md`](HEADER-ROW-PLAN.md)), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the waterfall's header text and dates.** One of six parallel sessions building the 20 Oct
+  rulings (entry below). This one owns rulings 2 (header row), 4 (date format) and 10 (Header: Off).
+- **Signed off by the owner, 20 Oct 2026, by picker:** *"Yes, build it"* on `HEADER-ROW-PLAN.md`'s frozen edits, and
+  the recommended option on each of its three questions:
+  - **Year cell: *"Opt-in switch"*.** The year moves over the Date column only on a calendar that turns Custom
+    Column Headings on. Every other calendar keeps `Date | year | Notes`, so no baseline moves.
+  - **Note dates: *"Keep 1/6/25"*.** Automatic notes keep two-digit years, because they also feed the month view
+    and both month PDFs, which ruling 4 leaves out.
+  - **Top margin: *"Reclaim it"*.** With Header: Off, both exports start the grid 0.25 in (18 pt) from the top.
+- **Built** (`src/legacy/app.js`, `Sidebar.jsx`, `main.jsx`, `icons.jsx`, `PreviewToolbar.jsx`, `legacy.css`). Each
+  frozen edit is a second path or one expression that runs only when the feature is on (signed off as such):
+  - **Header: Off.** `let headerOff` is a flag over `headerMode`, which keeps its two values (decision H3).
+    - It reaches the outputs through pattern 1, with no frozen body edited: `headerLine()` returns `''` (so the PDF
+      writer's `if(hdrLines)` draws nothing), and `SHEET_PAGE_MARGIN_PT.t` / `.hdr` became getters (18 / 0 when off).
+      Those getters also move `sheetPageOrientation` and Single Column's fill, so both exports turn the page alike.
+    - One frozen edit, in `exportExcel`: no `oddHeader` (an empty header still wrote `&L` + codes), and the
+      matching 0.25 in top.
+    - Screen and print fallback: `body.wf-hdr-off` hides `.cal-header-bar` and `.hdr-tools` (CSS only), set by
+      `reflectHeaderOff()` off a `#table-wrap` observer.
+    - The menu row is waterfall-only (`sheetOnly`). Off -> the mode underneath only clears the flag; presets and the
+      template editor clear it. The Excel budget meter hides while off.
+  - **Date format.** `dateFormat` ('' or 'm/d/yyyy'), `fmtWeekDate()` at three frozen call sites (the screen's date
+    cell, `sheetColumnWidths`' date measurement, the PDF's date cell) and `weekDateNumFmt()` for Excel's `numFmt`.
+    The default stays ExcelJS's `'mm-dd-yy'` = built-in format 14.
+  - **Custom column headings.** `headerRowCustom` and `headerRowLabels`, keyed by the width model's own column keys.
+    - `headerRowRuns()` groups identical neighbours, and all three writers walk the same runs.
+    - The frozen header-row loop of each writer gains a branch taken only when the switch is on. Excel's original
+      lines sit in its `else`, unchanged.
+    - A heading never widens a column. It shrinks: the screen by `headerRowFit()` (bold, `chars x EXCEL_MDW`, floor
+      0.6, then clip), the PDF by its own advance widths, Excel by `shrinkToFit`.
+    - The editor is a `.note-pop.hdrrow-pop` with one field per column of the clicked cell and no ids. It is
+      re-derived from the model, not the markup, and an observer closes it if its cell is rebuilt.
+    - `pdfUnprintablePlaces()` now scans typed headings: its comment said the column heads were ASCII by
+      construction, which stops being true.
+  - **The card:** `WaterfallLayoutCard`, Settings tab, `prefs-card pref-view-sheet` (hidden in the month view), with
+    `#wf-date-format` and `#wf-hdr-custom`. They are calendar data travelling as snapshot keys, the `#one-col-btn`
+    arrangement. ⛔ The Settings-window session re-homes them: keep them in a `.prefs-card` or they enter `fields.byId`.
+  - ⛔ **Save format:** `headerOff: true`, `dateFormat: 'm/d/yyyy'`, `headerRowCustom: true` and `headerRowLabels`.
+    Each is written only when used, restored unconditionally and held to shape by `sanitizeSnapshot` (labels: key
+    `HDR_ROW_KEY`, one line, 200 characters). New clears all four. `SNAPSHOT_VERSION` is unchanged: an older build
+    ignores the keys and shows today's output.
+- **Proof** (build `d5a739547a8936a2…`, 1,557,908 bytes):
+  - New leg **`hdrrow`**, 30 cases (I inert, O Off, D dates, H headings, N New), registered in `gate.sh`'s generic
+    block on its own line. It passed 30/30 on three runs with 0 console errors.
+  - **Red on the pre-change build** `7054bec6`: I2 and O1 fail, and the leg stops at the missing Off row. The I cases
+    pass on both builds, as an inert check should.
+  - **Eight mutants, each red:** conditional `headerOff` restore (O5, O7: undo restores through the same path),
+    `dateFormat` unsaved (D5), conditional labels restore, a heading commit without an undo step, `headerLine`
+    ignoring Off (O4), the margin not reclaimed (O4), the switch not reflected on Load, New keeping the format (N1).
+  - The custom and Off PDFs were rendered with `pdftoppm` and looked at. The custom workbook passes
+    `check-xlsx.sh` (`numFmtId 164 = m/d/yyyy`). `npm run check` 40/40; `check-refs.py` clean.
+  - **Full gate: queued on port 8965 behind other sessions' gates.** Result to be written here.
+- ⚠️ **Learned:**
+  - Excel's default date cells (built-in format 14) follow the reader's system short date, so US Windows already
+    shows 1/6/2025. This is unverified on Windows. It was left alone because it is the default; it is a later
+    call for the owner.
+  - A leg's Load should wait on restored state, not the file-menu label. `openRecentFile()` writes the label only
+    after `await persistRecents()` (IndexedDB), which stalled in one run of three under virtual time. `hdrrow`
+    gives each loaded text a different `sidebarTab` and waits for that tab.
+  - `t/lib.js` still says *"No dollar sign anywhere in this file or in a test (see srv.js)"*, but that warning is
+    out of date. Since 25 Sep 2026 `srv.js` injects legs with a FUNCTION replacement, which reads no `$`
+    patterns. `hdrrow` avoids `$` anyway. The comment in `lib.js` was left as it is: it is not this branch's file.
+- ⏭ **Next:** the full gate's result; then the owner's merge picker. Merging next to the side-boxes branch
+  should give only textual conflicts near the writers' header rows and `hdrLeftX`. Gate 5's `restore.json` is
+  untouched here; cal-range re-cut it to 76 ids.
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 
@@ -173,6 +240,8 @@
   Owner: *"walk me thru all the changes/features we could add, asking me questions about each before you start
   planning"*. The rulings below came by picker. **Nothing is planned or built.** First up, by the owner's pick:
   **column reuse**.
+- ✅ **Rulings 2, 4 and 10 are built** on `claude/header-row-fe6f32` (entry above, `HEADER-ROW-PLAN.md`). This entry was
+  uncommitted in the main checkout when that branch was cut; copied in here verbatim.
 - **Rulings (owner, 20 Oct 2026):**
   1. **Column reuse.** Automatic, with a per-phase override. A phase takes the column of a phase that ENDS THE WEEK
      IT STARTS. On a tie it takes the column of the phase it is set to "Start after". Otherwise the lowest free
