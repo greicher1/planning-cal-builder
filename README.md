@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
+
+On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),
+and ruled *"Skip it, start earlier"* and, for Production's own hiatus, *"Yes, skip it too"*. That was built on a
+branch and never shipped. On 20 Oct, with two real calendars recreated in the app, the owner found that real
+schedules keep prepping on the shoot crew's down days and on crew travel/prep days, and ruled by picker: *"Switch,
+default: don't skip"*, *"Prep card, saved"*, and for Production's own hiatus *"Follow the switch"*.
+- **Month view and month PDF only.** The Prep row (month view, Phases tab) has a new box under Default prep days,
+  **Pause prep on days marked Off**, unticked by default. Ticked, a day marked Off between the first and last shoot
+  day, and a day in Production's own hiatus, **pause** prep as a holiday does: each episode's (or block's) prep
+  keeps its full length and starts earlier. The prep start grip follows, because it reads prep's days from the
+  schedule.
+- **Unticked, nothing changes**: prep runs through Off days and Production's own hiatus, exactly as before. Every
+  calendar ever saved opens unticked.
+- **Saved with the calendar** as `prepPauseOff: true`. Unticked writes no key at all, so a calendar that never
+  ticks it saves byte for byte what it did. The box has no id, so `fields.byId` (gate 5's 74 ids) is unchanged. An
+  older file loaded after a ticked calendar opens unticked, and so does New. Ticking it is one undo step.
+- **Unchanged:** the shoot, every other phase, the waterfall, Excel and the waterfall PDF (prep never reaches
+  them). An Off mark outside the shot range is ignored, as the shoot ignores it. A worked Saturday is never a prep
+  day.
+- **Verified:** `offweek` RESTORE R11–R14 against a hand trace on `offweek.sptcal` with a 5-day default: ticked,
+  no prep on an in-shoot Off day or in Production's own hiatus; unticked (and a file with no key), prep on 9/3,
+  9/7–9/10, 9/20–9/24 and 10/8; one undo; Save, Load and the older-file trap; New. `episodeprep` LIVE S1–S2 (the
+  box: in the row, unticked, no id, hit-testable, one undo) and the M-5 trap in RESTORE. Ten mutants each turn
+  their own cases red. Full gate on the build: 2,062 PASS, 0 FAIL, with the waterfall PDF, every Excel part, 74
+  ids and every month print document and written month PDF identical to their baselines.
 ### Unreleased — A hiatus band can be recoloured and numbered from the month view (20 Oct 2026)
 
 Owner: *"Recolour from day menu"* and *"Number the weeks"* (LABELS-SETUP-PLAN.md item 9). The day menu's hiatus
