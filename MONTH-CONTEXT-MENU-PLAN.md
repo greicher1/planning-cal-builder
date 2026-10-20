@@ -80,9 +80,13 @@ menu can call it, so that the rule exists only once (§10).
 - **Calls** `openMvNoteEditor(anchor, weekKey, dayIso, 'day')`. The anchor is the day's own "+" (`.mv-note-add`).
   The editor takes the new note's lane from `anchor.style.gridRow`. Given any other element it opens nothing, without
   an error.
-- **Greyed out on a day inside an all-phase hiatus:** "A hiatus day has no note lanes". The renderer draws no "+"
+- ~~**Greyed out on a day inside an all-phase hiatus:** "A hiatus day has no note lanes". The renderer draws no "+"
   there, so there is nothing to anchor the editor on. That is how the month view behaves today; the menu does not
-  get round it.
+  get round it.~~ ✅ **SUPERSEDED 20 Oct 2026** ([`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md) §4; owner, by picker:
+  *"Every hiatus day"*). A frozen edit to `renderMonthView`'s "+" loop gives every hiatus day its "+" lanes, its
+  banded weekdays and its weekend alike, so the item finds its anchor there and is offered like on any day. Nothing
+  in the menu changed but the reason it no longer gives. The `mvmenu` leg's H4, H5, I2b and K1 were revised and I2c
+  added (Add note on 22 Dec opens the editor for 12/22/26).
 - On a day whose lanes are full there is only the full-day "+" (`.mv-note-add-full`). Check at the build whether it
   opens a new note. If it does not, grey the item out as "This day's note lanes are full".
   ✅ **Checked at step 1 (from the code):** it does. The full-day "+" has no `grid-row`, so `openMvNoteEditor` gives the

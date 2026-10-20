@@ -117,3 +117,24 @@ the screen range. A custom holiday in a gap between phases, or in the first or l
 draws too: "any day the month view shows". On a calendar with no custom holidays the list is empty and nothing moves.
 For Q2 the frozen CSS rule clears `.mv-note-block`'s border for a `#FFFFFF00` fill, on screen and in `#print-root`, and
 the writer draws neither fill nor ring for it.
+
+## 9. As built (20 Oct 2026)
+
+All five items, as §2–§6 describe, with these settled at the build:
+
+- **Item 2.** The editor's two rows are the standard ten, then No fill, the four tints and the three greys. Tints:
+  Pink `#F7C1D9`, Lavender `#D5C8EC`, Peach `#FCCB9E`, Pale blue `#BBDCF7`; greys: Light grey `#D9D9D9`, Grey `#A6A6A6`
+  (both black ink), Dark grey `#595959` (white ink). The colour is remembered when a note is committed with a pick; a
+  new note with no pick takes the remembered colour. The writer LISTS a No fill bar's fill and ring, marked `clear`, and
+  `mvlPageOps` paints neither, so the bar keeps its box for the `monthemit` leg to measure.
+- **Item 6.** A click on a month-only holiday in a week with NO waterfall row (an edge month's) adds a day note there,
+  as its "+" does; inside a week that has a row, the waterfall-note editor opens with the holiday line in it and leaves
+  that line out of what it saves (M-13's rule). A hiatus band alone does not make an edge month print.
+- **Item 10.** The day menu's left-click comment and its Add note reason were brought in line; nothing else in the menu
+  changed.
+- **Item 15.** A line with no comma or tab splits at its first space. The month view pages to the first pasted note's
+  month when none of them is on the month in view.
+- **Item 17.** The screen measures with `mvPillLineCount` (10 px, 600, line-height 1.5, padding 1 px 8 px), the
+  writer wraps at `noteBoxW − 18` with the 600-weight PDF font.
+
+Proof: the README's five entries and HANDOFF's entry of the same date.
