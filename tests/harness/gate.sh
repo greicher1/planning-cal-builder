@@ -1569,6 +1569,19 @@ done
 # Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
 # header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… and Number weeks (C). Twenty
 # mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
+# phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
+# waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
+# box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
+# trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
+# Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
+# writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
+# key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
+# the M-5 trap, and New.
+# phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
+# order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
+# fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
+# new custom phase's default colour still cycling through the first nine only.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1587,7 +1600,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
               mvmenu:halfdays:150 \
-              mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600; do
+              mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
+              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

@@ -3142,10 +3142,14 @@ export function initLegacyApp() {
     });
     return out;
   }
-  // Drop holiday auto-notes the user hasn't enabled for this view; pass everything else through.
+  // Drop holiday auto-notes the user hasn't enabled for this view, and any note of a KIND the calendar has
+  // switched off (owner ruling 9, the Automatic notes card: autoNotesOff); pass everything else through.
+  // ⭐ This is the ONE filter every reader of schedule.notesByIdx goes through -- the waterfall, Excel, both
+  // PDFs, the month view, the note editor's pre-fill and the column widths -- so a kind switched off leaves
+  // all of them at once, and none can disagree. A user's own note (userNotes) never passes through here.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !n.holiday || holidayVisibleIn(n.hid, view));
+    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view)));
   }
   function colLetter(n){
     let s='';
@@ -3821,8 +3825,8 @@ export function initLegacyApp() {
     }
 
     if(productionInfo){
-      addNote(productionInfo.firstShootDay, 'Start Principal Photography');
-      addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
+      addNote(productionInfo.firstShootDay, 'Start Principal Photography', {kind:'principalStart'});
+      addNote(productionInfo.lastShootDay, 'Principal Photography Wraps', {kind:'principalWrap'});
     }
     // Holiday notes: one per phase-spanning holiday, tagged so each view -- and each individual
     // holiday -- can independently show or hide it (see autoNotesForView / holidayVisibleIn).
@@ -3832,7 +3836,7 @@ export function initLegacyApp() {
     phaseHolidays.filter(h=>h.enabled).forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
+    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens'});
 
     // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
     // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
@@ -5908,7 +5912,21 @@ export function initLegacyApp() {
     {name:"Slate (like Prod Prep)",   color:'#D6DCE5', text:'#222A35'},
     {name:"Green (like Production)",  color:'#E2F0D9', text:'#375623'},
     {name:"Orange (like Post)",       color:'#FBE5D6', text:'#8A4A1F'},
+    // ⭐ Owner ruling 5 (20 Oct 2026; "Set A, stronger" by picker, from swatches shown in both views): five
+    // stronger colours, APPENDED. ⛔ Append only, never insert or re-order: phaseColorOverride and a custom
+    // phase's colorIndex are INDICES into this array, saved in every file (CLAUDE.md). The waterfall draws phase
+    // text black on any fill (GRID_TEXT_COLOR), and black reads on all five (WCAG 7.1:1 to 19.6:1); `text` is the
+    // month view's bar ink, a dark shade of the same hue (5.1:1 or better). An older build opening a file that
+    // uses one falls back as sanitizeSnapshot() says above: the automatic colour, or Gray for a custom phase.
+    {name:"Bright green",             color:'#92D050', text:'#1E4620'},
+    {name:"Strong blue",              color:'#5B9BD5', text:'#0B2545'},
+    {name:"Pink",                     color:'#FF66CC', text:'#5C0A3E'},
+    {name:"Yellow",                   color:'#FFFF00', text:'#5C5200'},
+    {name:"Peach",                    color:'#F4B084', text:'#6B2E0C'},
   ];
+  // A new custom phase's default colour cycles through the first NINE only, as it always has: the strong colours
+  // are a deliberate pick, never a default, so a calendar that never picks one never shows one (ruling 5).
+  const PHASE_COLOR_ROTATION = 9;
   // Per-auto-phase color override: key -> index into PHASE_COLOR_OPTIONS. Auto phases default to
   // whichever preset matches their built-in color; the user can repick from the swatch.
   let phaseColorOverride = {};
@@ -5993,6 +6011,10 @@ export function initLegacyApp() {
 
   // Markup for the per-phase hiatus controls, dropped under each phase's fields. IDs are keyed
   // by phase so their values round-trip through collectFieldValues()/restore like any field.
+  // ⛔ Except "Number weeks" (ruling 8), which has NO id on purpose: an id here is six static ids on the
+  // built-in rows, which moves gate 5's fields.byId set and, on a static row, needs a restore default
+  // (the M-5 trap). Its store is phaseHiatusNumbered, its key is read off #phiatus-fields-<key> (which
+  // the restore's re-key renames with the row), and refreshPhaseHiatusUI() reflects it.
   function phaseHiatusBlockHtml(key, label){
     // The toggle's own caption IS the name field -- not a checkbox <label> wrapping static text
     // plus a separate Name box below it. The checkbox and the text input are independent sibling
@@ -6007,6 +6029,7 @@ export function initLegacyApp() {
           <label>Start date <input type="date" class="phiatus-start" id="phiatus-start-${key}"></label>
           <label>Weeks <input type="number" class="phiatus-weeks" id="phiatus-weeks-${key}" min="1" step="1" value="2"></label>
           <div class="snap-note"></div>
+          <label class="phiatus-wknum" title="On: this hiatus's band reads &quot;Name wk 1, wk 2...&quot; in every view and export. A band you retyped keeps what you typed."><input type="checkbox" class="phiatus-wknum-cb"> Number weeks</label>
         </div>
       </div>`;
   }
@@ -6217,6 +6240,7 @@ export function initLegacyApp() {
     if(!row.isConnected) return false;
     const k = row.dataset.key;
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
+    delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
     row.remove();
     update();
     return true;
@@ -6224,7 +6248,7 @@ export function initLegacyApp() {
 
   function addCustomPhaseRow(){
     const key = 'custom' + (++customPhaseCounter);
-    const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
+    const colorIndex = customPhaseDefs.length % PHASE_COLOR_ROTATION;
     customPhaseDefs.push({key, colorIndex});
     const opt = PHASE_COLOR_OPTIONS[colorIndex];
     const wrap = document.getElementById('custom-phase-rows');
@@ -9481,9 +9505,12 @@ export function initLegacyApp() {
     const stillOwned = new Set();
     // Shared by both kinds below: claim every week `name`'s row covers, but only where nothing
     // has hand-edited the band since we last claimed it.
-    // `name` is the band's label, or a function of the week's index (0-based) for a row whose "Number
-    // weeks" is ticked (item 9).
-    const applyRange = (name0, startStr, weeksStr, makeKey) => {
+    // `name0` is the band's label, or a function of the week's index (0-based) for an all-phase row whose
+    // "Number weeks" is ticked (LABELS-SETUP item 9). `numbered` (a phase's own hiatus only, ruling 8)
+    // appends " wk N" to each week's label, N counting the hiatus's own weeks from its Monday-snapped
+    // start: the weeks its Weeks box asks for. The two never meet: item 9 leaves phases' own hiatuses
+    // unnumbered, and ruling 8 passes a plain string.
+    const applyRange = (name0, startStr, weeksStr, makeKey, numbered) => {
       // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
       // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
       // it: a named hiatus typed as 999999 weeks wrote ~550,000 hiatusTexts keys -- a 28 MB snapshot,
@@ -9499,8 +9526,9 @@ export function initLegacyApp() {
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
-          if(hiatusTexts[key] !== name) hiatusTexts[key] = name;
-          hiatusNameSyncedKeys[key] = name;
+          const label = numbered ? name + ' wk ' + (i + 1) : name;
+          if(hiatusTexts[key] !== label) hiatusTexts[key] = label;
+          hiatusNameSyncedKeys[key] = label;
         } else if(key in hiatusTexts){
           delete hiatusTexts[key];
           delete hiatusNameSyncedKeys[key];
@@ -9528,7 +9556,14 @@ export function initLegacyApp() {
       const startEl = document.getElementById('phiatus-start-'+p.key);
       const weeksEl = document.getElementById('phiatus-weeks-'+p.key);
       const name = nameEl ? nameEl.value.trim() : '';
-      applyRange(name, startEl && startEl.value, weeksEl && weeksEl.value, wk => wk + '|' + p.key);
+      // ⭐ "Number weeks" (ruling 8) goes through THIS sync, not computeSchedule's defaultLabel, because
+      // frozen renderMonthView builds its own band label from the phase NAME and reads only hiatusTexts
+      // over it: hiatusTexts is the one channel that reaches the waterfall, Excel, both PDFs AND the
+      // month view, the channel the sidebar Name already uses. With no Name typed, a numbered band
+      // claims the default name the waterfall gives it ("<phase> Hiatus", computeSchedule's baseLabel).
+      const numbered = !!phaseHiatusNumbered[p.key];
+      applyRange(name || (numbered ? (p.label || 'Phase') + ' Hiatus' : ''),
+                 startEl && startEl.value, weeksEl && weeksEl.value, wk => wk + '|' + p.key, numbered);
     });
     // A key we owned before that no row claims this pass (row deleted, toggle turned off, or
     // shifted off these dates) reverts to the default instead of being left stranded with a
@@ -12979,6 +13014,20 @@ export function initLegacyApp() {
   // sidebar Name field: a key is only synced again while hiatusTexts still holds exactly what we
   // last put there.
   let hiatusNameSyncedKeys = {};
+  // A phase's own hiatus, "Number weeks" (owner ruling 8, 20 Oct 2026): phase key -> true. Ticked, the
+  // band reads "<hiatus name> wk 1", "wk 2", ... -- written by syncHiatusNamesFromSidebar(), so it
+  // reaches every output the sidebar Name already reaches. ⛔ CALENDAR DATA: captureSnapshot()'s
+  // `phaseHiatusNumbered`, written only while something is ticked, so a calendar that never ticks a box
+  // saves byte for byte what it did before. Unticked is an ABSENT key, never false. The boxes carry NO
+  // id, so collectFieldValues() never sweeps them (gate 5's id set is unchanged).
+  let phaseHiatusNumbered = {};
+  // Which KINDS of automatic note are switched off (owner ruling 9, 20 Oct 2026): kind -> true. The kinds are
+  // the `kind` computeSchedule's addNote() tags a note with -- 'writersRoomOpens', 'principalStart',
+  // 'principalWrap' -- and the Automatic notes card's boxes carry the same word as data-autonote. Holiday notes
+  // are not a kind here: they keep their per-holiday list (owner's picker, 20 Oct 2026). autoNotesForView()
+  // applies it. ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesOff`, written only while a kind is off, so a
+  // calendar that never unticks one saves byte for byte as before. The boxes carry NO id.
+  let autoNotesOff = {};
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -16205,6 +16254,9 @@ export function initLegacyApp() {
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
     reflectMvProdLabel();
+    // The Automatic notes card (ruling 9): here for the same reason -- an undo, a Load or New changes
+    // autoNotesOff without touching the boxes.
+    reflectAutoNoteKinds();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -16645,6 +16697,24 @@ export function initLegacyApp() {
     setMvProdLabel(t.value);
   });
 
+  // The Automatic notes card (owner ruling 9; Sidebar.jsx's AutoNotesCard). Its boxes are plain, UNCONTROLLED
+  // checkboxes with NO id, named by data-autonote: React renders them once and the engine owns their state.
+  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry), then update() re-renders every
+  // view and banks ONE undo step through markDirty().
+  function reflectAutoNoteKinds(){
+    document.querySelectorAll('input[data-autonote]').forEach(cb=>{
+      const on = !autoNotesOff[cb.getAttribute('data-autonote')];
+      if(cb.checked !== on) cb.checked = on;
+    });
+  }
+  document.addEventListener('change', e=>{
+    const t = e.target;
+    const kind = t && t.getAttribute && t.getAttribute('data-autonote');
+    if(!kind || !SNAP_ID.test(kind)) return;
+    if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    update();
+  });
+
   function setViewMode(mode){
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
@@ -16976,6 +17046,13 @@ export function initLegacyApp() {
           update();
         } else if(t.classList.contains('phiatus-start') || t.classList.contains('phiatus-weeks') || t.classList.contains('phiatus-name')){
           update();
+        } else if(t.classList.contains('phiatus-wknum-cb')){
+          // The store, then update(): its sync writes the numbered labels and markDirty() banks ONE undo step.
+          const f = t.closest('.phase-hiatus-fields');
+          const key = f ? f.id.replace('phiatus-fields-','') : '';
+          if(!key) return;
+          if(t.checked) phaseHiatusNumbered[key] = true; else delete phaseHiatusNumbered[key];
+          update();
         }
       });
     });
@@ -16986,6 +17063,12 @@ export function initLegacyApp() {
       const key = cb.id.replace('phiatus-en-','');
       const f = document.getElementById('phiatus-fields-'+key);
       if(f) f.style.display = cb.checked ? 'flex' : 'none';
+    });
+    // "Number weeks" shows its store, so a Load, an undo and New put the tick back with the rest.
+    document.querySelectorAll('.phiatus-wknum-cb').forEach(cb=>{
+      const f = cb.closest('.phase-hiatus-fields');
+      const on = !!(f && phaseHiatusNumbered[f.id.replace('phiatus-fields-','')]);
+      if(cb.checked !== on) cb.checked = on;
     });
   }
   // A Region change ASKS FIRST while a note could be misplaced (owner ruling 6, relayed 30 Sep 2026;
@@ -17216,6 +17299,8 @@ export function initLegacyApp() {
     // ...and the two per-phase controls this reset used to miss (audit M-5): New / Reset All kept
     // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
+    phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
+    autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -17810,6 +17895,12 @@ export function initLegacyApp() {
       // on the old rule -- so every other snapshot is byte-for-byte what it was. Its ABSENCE on a count-less
       // Blocks file is what marks a file saved before the change (applyStateSnapshot).
       ...((isBlocksMode() && !hasEpisodeCount() && !blocksEpisodesLegacy) ? {blocksEpisodesOptional: true} : {}),
+      // 20 Oct 2026: a phase hiatus's "Number weeks" (owner ruling 8). ⛔ PERMANENT key, phase key ->
+      // true. Nothing ticked is an ABSENT key, so such a calendar saves byte for byte as before.
+      ...(Object.keys(phaseHiatusNumbered).length ? {phaseHiatusNumbered: Object.assign({}, phaseHiatusNumbered)} : {}),
+      // 20 Oct 2026: the automatic-note kinds switched off (owner ruling 9). ⛔ PERMANENT key and kind words.
+      // Every kind on, the default, is an ABSENT key.
+      ...(Object.keys(autoNotesOff).length ? {autoNotesOff: Object.assign({}, autoNotesOff)} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -23673,6 +23764,11 @@ export function initLegacyApp() {
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
+    // A hiatus's "Number weeks" (ruling 8): only `true` means ticked, and the app never writes anything else.
+    setMap('phaseHiatusNumbered', v => v === true ? true : undefined, SNAP_ID);
+    // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
+    // KEPT (a round trip must never lose data); autoNotesForView() simply never meets a note of that kind.
+    setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23992,6 +24088,16 @@ export function initLegacyApp() {
     // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
     // update() after the restore puts the Prep row's box in step (refreshPrepUI).
     prepPauseOff = snap.prepPauseOff === true;
+    // ⛔ UNCONDITIONAL as well: a file with no key numbers no hiatus -- never the previous file's ticks.
+    // Assigned BEFORE 4e below, whose refreshPhaseHiatusUI() reflects it into the rebuilt rows' boxes.
+    phaseHiatusNumbered = {};
+    if(isPlainObj(snap.phaseHiatusNumbered))
+      Object.keys(snap.phaseHiatusNumbered).forEach(k=>{ if(snap.phaseHiatusNumbered[k] === true) phaseHiatusNumbered[k] = true; });
+    // ⛔ UNCONDITIONAL: a file with no key shows every kind -- never the previous file's choices. The update()
+    // after the restore puts the card's boxes in step (reflectAutoNoteKinds).
+    autoNotesOff = {};
+    if(isPlainObj(snap.autoNotesOff))
+      Object.keys(snap.autoNotesOff).forEach(k=>{ if(snap.autoNotesOff[k] === true) autoNotesOff[k] = true; });
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

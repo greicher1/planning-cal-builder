@@ -29,6 +29,75 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Five stronger phase colours (owner ruling 5, 20 Oct 2026)
+
+The phase colour picker offered nine pastels. A reference calendar used stronger colours, and the owner ruled for five
+more, appended, with no free colour picker. Two candidate sets were rendered in the waterfall and the month view for
+the owner, who chose the stronger one by picker.
+- **New in every colour picker** (a phase's swatch, the Prep row's, the day menu's Colour…), after the existing nine:
+  **Bright green** `#92D050`, **Strong blue** `#5B9BD5`, **Pink** `#FF66CC`, **Yellow** `#FFFF00`, **Peach** `#F4B084`.
+  The picker grows from three rows to five.
+- **Readable:** waterfall phase text stays black on any fill, and black reads on all five (contrast 7.1:1 to 19.6:1).
+  The month view inks each bar in a dark shade of its own colour (5.1:1 or better).
+- **Nothing changes until you pick one.** A new custom phase's default colour still cycles through the original nine,
+  and every saved calendar keeps its colours: the new entries are APPENDED, because a saved calendar stores each
+  phase's colour as its position in the list.
+- An older build opening a calendar that uses a new colour shows that phase in its automatic colour (a built-in
+  phase) or Gray (a custom phase), as it already did for any colour it does not have. Nothing is refused.
+- **Verified:** new leg `phasecolors`, 10 cases: the picker's 14 in order, each new colour in the waterfall, Excel, both
+  PDFs and the month view, read back from the files; both index stores through Save, New and Load; the default
+  rotation. Red on the pre-change build (8 of 10), green after.
+
+### Unreleased — Automatic notes: choose which kinds of automatic note a calendar shows (owner ruling 9, 20 Oct 2026)
+
+The calendar writes three kinds of note for you: **Writer's Room Opens**, **Start Principal Photography** and
+**Principal Photography Wraps**. A reference calendar the owner shared carried only some of them, and there was no
+way to leave one out short of editing each week's note by hand. Owner ruling 9: a calendar setting choosing which
+kinds show.
+- **A new card, Settings ▸ Automatic notes**, with one box per kind, all ticked by default. Untick one and it leaves
+  the Notes column, the month view, Excel, the waterfall PDF and the month PDF at once. The Settings-window work will
+  move the card into that window.
+- **Notes you typed are never changed**, including an automatic note you edited ("Writer's Room Opens 1/4/27" plus a
+  line of your own stays exactly as typed when its kind is off).
+- **Holiday notes are not on the card** (owner's picker, 20 Oct 2026): they keep their per-holiday choices under
+  Holidays. The header's own lines ("Principal Photography 5.3.27 / Wrap: …") are header text, not notes, and are
+  unchanged.
+- **How:** computeSchedule tags each automatic note with its kind, and `autoNotesForView()`, the one filter every
+  reader of the notes already goes through (both views, every export, the note editor, the column widths), drops a
+  kind that is switched off. No frozen code changed.
+- **Saved with the calendar** as `autoNotesOff: {<kind>: true}`, written only while a kind is off, so a calendar that
+  leaves every box ticked saves byte for byte what it did. The boxes have no id, so `fields.byId` (gate 5) is
+  unchanged. Restored unconditionally (an older file opens with every kind on); New ticks every box; one undo step.
+- **Verified:** new leg `autonotekinds`, 16 cases (every output, read back from the files, with a positive control for
+  the month PDF; the user's own and edited notes; the save key with `fields.byId` and `userNotes` unchanged; a
+  byte-identical file once every kind is back on; Shift All, Load, the older-file trap, New). Red on the build before
+  it (13 of 16), green after.
+
+### Unreleased — "Number weeks" on a phase's own hiatus (owner ruling 8, 20 Oct 2026)
+
+A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
+for a **Number weeks** box on each phase's hiatus, off by default, after a reference calendar numbered its hiatus weeks.
+- **The box** sits under the hiatus's Start date and Weeks, on every phase that has a hiatus (built-in and custom).
+  Ticked, the band reads **"Pre Prep Hiatus wk 1", "wk 2", "wk 3"**, counting the hiatus's own weeks, in the waterfall,
+  Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break wk 1").
+- **A band you retyped by clicking it in the grid keeps exactly what you typed** (owner's picker, 20 Oct 2026), ticked
+  or not; its neighbours are numbered. Reset hiatus bands puts it back into the numbering.
+- **Unticked, nothing changes**, and every calendar ever saved opens unticked.
+- **How:** the labels are written through `syncHiatusNamesFromSidebar()` into `hiatusTexts`, the path the hiatus Name
+  field already takes. It had to be that path, not computeSchedule's default label: frozen `renderMonthView` builds
+  its own band label from the phase name and reads only `hiatusTexts` over it, so a default label would never have
+  reached the month view or the month PDF. No frozen code changed.
+- **Saved with the calendar** as `phaseHiatusNumbered: {<phase key>: true}`, written only while a box is ticked, so a
+  calendar that never ticks one saves byte for byte what it did. The box has no id, so `fields.byId` (gate 5) is
+  unchanged. Restored unconditionally (an older file loaded after a ticked one opens unticked); New clears it;
+  removing a custom phase drops its entry. `SNAPSHOT_VERSION` unchanged: an older build ignores the key, and its own
+  sync reverts the numbered labels it finds to the plain name.
+- **Production's off weeks** (a week with no shoot days) are not numbered; the box numbers only the hiatus it sits on.
+- **Verified:** new leg `phiatusnum`, 17 cases (every output's text, read back from the files; the hit-tested click;
+  one undo step; the save key with the id set unchanged; unticking gives a saved file byte-identical to the one
+  before the tick; Load, the older-file trap, New, Shift All, the retyped band). Red on the pre-change build (15 of
+  17), green after.
+
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),

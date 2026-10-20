@@ -868,6 +868,15 @@
   .phiatus-name:focus{ border-color:var(--mantine-primary-color-filled); background:var(--mantine-color-white); outline:none; }
   .phase-hiatus-fields{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
   .phase-hiatus-fields label{ display:flex; flex-direction:column; gap:3px; font-size:11px; color:var(--text-muted); flex:1; }
+  /* A phase hiatus's "Number weeks" (owner ruling 8, 20 Oct 2026): the custom phase's Number weeks look,
+     on its own line under the snap note. (0,2,1), to beat the column rule above AND the type rule
+     further down (`.phase-hiatus-fields label`, (0,1,1)), for the same reason .phase-snap needs it. */
+  .phase-hiatus-fields label.phiatus-wknum{
+    display:flex; flex-direction:row; align-items:center; justify-content:flex-start;
+    gap:6px; flex:0 0 100%;
+    font-size:11px; color:var(--mantine-color-gray-6); cursor:pointer; user-select:none;
+  }
+  .phiatus-wknum input{ margin:0; cursor:pointer; flex:none; }
   .phase-fields{grid-column:2; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
   /* Per-phase "start after the previous phase" shortcut, sits under the Start date / Weeks fields. */
   .autostart-btn{ grid-column:2; justify-self:start; margin-top:5px; background:none; border:none; padding:1px 0; font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled); cursor:pointer; text-align:left; }
@@ -2922,6 +2931,12 @@
      same headers as a built-in row's; before, the × was the custom row's only extra child and
      pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
      row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
+  /* The Automatic notes card (owner ruling 9): one checkbox row per kind, the holiday list's type scale. The
+     boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
+  .autonote-list{ display:flex; flex-direction:column; gap:var(--mantine-spacing-sm); }
+  .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
+  .autonote-row input{ margin:0; flex:none; }
   .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
   #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 

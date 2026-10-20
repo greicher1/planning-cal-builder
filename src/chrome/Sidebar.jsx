@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading, IconNote } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 
@@ -220,6 +220,47 @@ export function RegionCard() {
       {/* ⛔ #union-lock-hint USED TO SIT HERE ("Locked — … Use Reset Notes & Hiatus first"). Owner
           ruling 6 (relayed 30 Sep 2026) replaced the Region LOCK with a "Continue?" question that
           the engine asks on change (confirmRegionChange), so there is no locked state to explain. */}
+      </div>
+    </section>
+  )
+}
+
+// "Automatic notes" (owner ruling 9, 20 Oct 2026): which KINDS of automatic note this calendar shows, all on
+// by default. Its own card in the Settings tab for now; the Settings-window work re-homes it.
+//
+// ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, captureSnapshot()'s `autoNotesOff`), so this
+// is NOT a .prefs-card -- and therefore NOT ONE `id` ON ANY CONTROL HERE: collectFieldValues() sweeps every
+// input[id] in the document, and an id here would bake a second, disagreeing copy into every saved calendar
+// with a phantom undo step. That is also why these are plain <input type="checkbox">, never Mantine's
+// Checkbox or Switch: both mint an id with useId() when given none (UI-CONVENTIONS §8.3). legacy.css's
+// `.form-panel input[type=checkbox]` gives them the Mantine look.
+// ⛔ UNCONTROLLED, and the engine owns them: `data-autonote` is the kind word the engine's computeSchedule
+// tags each note with (permanent, it is save format), its change listener writes the store, and
+// reflectAutoNoteKinds() writes .checked on every update() -- so undo, Load and New all show through.
+// Holiday notes are deliberately not a row (owner's picker): they keep their per-holiday list above.
+const AUTO_NOTE_ROWS = [
+  { kind: 'writersRoomOpens', label: 'Writer’s Room Opens' },
+  { kind: 'principalStart', label: 'Start Principal Photography' },
+  { kind: 'principalWrap', label: 'Principal Photography Wraps' },
+]
+export function AutoNotesCard() {
+  return (
+    <section className="card" data-tab="settings">
+      <h2>
+        <IconNote className="card-ic" /><span>Automatic notes</span>
+        <InfoHint label="Automatic notes" width={300}>
+          Notes the calendar writes for you, dated from the schedule. Untick one to leave it out of the Notes
+          column, the month view and every export. Notes you typed yourself never change. Holiday notes are
+          chosen holiday by holiday under Holidays. Saved with the calendar.
+        </InfoHint>
+      </h2>
+      <div className="side-block autonote-list">
+        {AUTO_NOTE_ROWS.map((r) => (
+          <label key={r.kind} className="autonote-row">
+            <input type="checkbox" data-autonote={r.kind} defaultChecked />
+            <span>{r.label}</span>
+          </label>
+        ))}
       </div>
     </section>
   )
