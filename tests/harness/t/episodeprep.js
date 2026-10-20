@@ -178,18 +178,22 @@ window.addEventListener('load', function () { (async function () {
     var r = el.getBoundingClientRect();
     return r.width > 0 && document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2).indexOf(el) !== -1;
   }
-  // "Pause prep on days marked Off" (owner, 20 Oct 2026): the Prep row's id-less checkbox, clicked where a
-  // pointer would land (the element on top at its centre must be the box).
-  function pauseBox(){ return document.querySelector('#prep-row .prep-pause-off-cb'); }
+  // "Pause prep on days marked Off" (owner, 20 Oct 2026). It was the Prep row's id-less checkbox; the owner
+  // moved it the same day into the Settings window ▸ Calendar ▸ Month view (ruling 12), where it is the switch
+  // #prep-pause-off inside .prefs-card -- so the sweep still never takes it. Clicked where a pointer would land:
+  // the element on top at the centre of the switch's TRACK (the input itself is invisible) must be the track's.
+  function pauseBox(){ return $('prep-pause-off'); }
+  function pauseTrack(){ var cb = pauseBox(), r = cb && cb.closest('.mantine-Switch-root'); return r && r.querySelector('.mantine-Switch-track'); }
+  function pauseText(){ var l = [].find.call(document.querySelectorAll('label[for="prep-pause-off"]'), function (x) { return x.textContent.trim(); }); return l ? l.textContent.trim() : ''; }
   async function clickPause(){
-    if(!shownEl($('prep-row'))) await view('month');   // the Prep row shows in the month view only (P1)
-    tab('phases'); await T.sleep(150);
-    var cb = pauseBox(); cb.scrollIntoView({block: 'center'}); await T.sleep(100);
-    var r = cb.getBoundingClientRect();
+    if(!shownEl($('prep-row'))) await view('month');   // the card shows in the month view only, like the Prep row (P1)
+    await T.openSettings('calendar');
+    var tr = pauseTrack(), r = tr.getBoundingClientRect();
     var top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    if(top !== cb) throw new Error('the Pause prep box is covered (' + (top && (top.className || top.tagName)) + ')');
+    if(!top || !tr.contains(top)) throw new Error('the Pause prep switch is covered (' + (top && (top.className || top.tagName)) + ')');
     top.click();
     await settle();
+    await T.closeSettings();
   }
   async function pickColour(index){
     $('swatch-episodePrep').click();
@@ -383,16 +387,24 @@ window.addEventListener('load', function () { (async function () {
       out.colour.undone = purple.map(function (b) { return b.bg; });
       check(purple.length && purple.every(function (b) { return b.bg === 'rgb(228, 223, 236)'; }), 'L11 one undo puts the default Light purple back');
 
-      // S1: "Pause prep on days marked Off" (owner, 20 Oct 2026, by picker: "Switch, default: don't skip", "Prep
-      // card, saved"). It is in the Prep row, unticked, and carries NO id: collectFieldValues() sweeps every
-      // id'd control into fields.byId, so an id would re-cut the save format's id set. The snapshot's
-      // prepPauseOff key is its one store.
+      // S1: "Pause prep on days marked Off" (owner, 20 Oct 2026, by picker: "Switch, default: don't skip"; then,
+      // the same day, "prep pause ... in the Settings window ... under This calendar", ruling 12). It is a switch in
+      // the Settings window's Calendar tab, unticked, and the Prep row has no box any more. Its id is new and SAFE
+      // only because the card is .prefs-card: collectFieldValues() sweeps every other id'd control into
+      // fields.byId, so outside it the id would re-cut the save format's id set. The snapshot's prepPauseOff key
+      // is its one store.
       var pcb = pauseBox(), sigKeys = Object.keys(T.formSignature()).sort().join();
-      out.pause = {present: !!pcb && $('prep-row').contains(pcb), checked: pcb && pcb.checked, id: pcb ? pcb.id : null,
-                   text: pcb && ((pcb.closest('label') || {}).textContent || '').trim(), reach: reachable(pcb)};
-      check(out.pause.present && out.pause.checked === false && out.pause.id === '' && out.pause.text === 'Pause prep on days marked Off',
-            'S1 the Prep row has an UNTICKED "Pause prep on days marked Off" box with no id');
-      check(out.pause.reach, 'S1 the Pause prep box is hit-testable');
+      if(!shownEl($('prep-row'))) await view('month');
+      await T.openSettings('calendar');
+      out.pause = {present: !!pcb && T.settingsTabOf(pcb) === 'calendar', checked: pcb && pcb.checked, id: pcb ? pcb.id : null,
+                   skipped: !!pcb && !!pcb.closest('.prefs-card') && !('prep-pause-off' in T.formSignature()),
+                   oldBox: !!document.querySelector('#prep-row input[type="checkbox"]'),
+                   text: pauseText(), reach: reachable(pauseTrack())};
+      check(out.pause.present && out.pause.checked === false && out.pause.text === 'Pause prep on days marked Off' && !out.pause.oldBox,
+            'S1 Settings ▸ Calendar has an UNTICKED "Pause prep on days marked Off" switch, and the Prep row no box');
+      check(out.pause.skipped, 'S1 the switch is inside .prefs-card, so fields.byId never holds its id');
+      check(out.pause.reach, 'S1 the Pause prep switch is hit-testable');
+      await T.closeSettings();
       // S2: this calendar has no Off mark and no own hiatus, so ticking it moves no prep run. One undo step.
       await clickPause();
       out.pause.ticked = {checked: pauseBox().checked, sameIds: Object.keys(T.formSignature()).sort().join() === sigKeys, map: await prepMap()};

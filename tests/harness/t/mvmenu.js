@@ -1003,9 +1003,19 @@ window.addEventListener('load', function () { (async function () {
     var showTab = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
     if(showTab) showTab.click();
     await T.sleep(700);
+    // ⭐ With the Settings window OPEN (owner ruling 12, 20 Oct 2026): it lies over the whole sidebar, so
+    // revealSidebarTab() must close it or the row being shown is hidden behind it. Opening it is session
+    // UI, no undo step, so P6u's single step is unchanged.
+    await T.openSettings('calendar');
+    var winOpen6 = document.getElementById('settings-window').classList.contains('is-open');
     a = await primeThenOpen('2026-11-04', 'bar:post');   // a title typed just before: the step must not fold it in
     choose('phase-show');
     await T.sleep(100);
+    var win6 = document.getElementById('settings-window');
+    add('P6w', 'With the Settings window open, Show in Phases card closes it (it covers the whole sidebar), and the sidebar is clickable again',
+      winOpen6 && !win6.classList.contains('is-open') && !document.querySelector('.form-panel.settings-open') && !document.querySelector('[inert]')
+        && document.querySelector('.side-settings-btn').getAttribute('aria-expanded') === 'false',
+      {before: winOpen6, after: win6.className, inert: document.querySelectorAll('[inert]').length}, 'open, then closed with no inert left');
     var row6 = document.getElementById('swatch-post').closest('.phase-row'), fp = document.querySelector('.form-panel');
     var rr6 = row6.getBoundingClientRect(), fr6 = fp.getBoundingClientRect();
     var p6 = {tab: activeTab(), row: [Math.round(rr6.top), Math.round(rr6.bottom)], panel: [Math.round(fr6.top), Math.round(fr6.bottom)]};
@@ -1358,8 +1368,7 @@ window.addEventListener('load', function () { (async function () {
     await toMonth('November 2026');                    // where S2 expects the calendar
 
     // ---- S2: a shareable copy exported with the menu open carries no menu ----
-    var settings = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'settings'; });
-    if(settings) settings.click();
+    await T.openSettings('calendar');   // #share-copy-btn: the Settings window's Calendar tab (ruling 12)
     await T.until(function () { return !!document.getElementById('share-copy-btn'); }, 'the Export-App button', 80, 100);
     await T.sleep(900);
     await rclick('2026-11-04', 'num');

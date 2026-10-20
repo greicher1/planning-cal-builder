@@ -62,6 +62,53 @@ function ScopeLine({ icon: Icon, children }) {
   )
 }
 
+// ⛔ THE PANELS' CONTENTS ARE BUILT ONCE, HERE, AND THAT IS A CORRECTNESS REQUIREMENT. Mantine's Switch
+// is controlled INSIDE itself (useUncontrolled, then <input checked={state}>), so the engine's `.checked`
+// writes -- reflectSingleColumn(), refreshPrepUI(), reflectMonthTagPrefs(), on every undo, Load and New --
+// never reach its state, and the next time React re-renders a Switch it writes that stale state back
+// over the engine's. In the sidebar the cards never re-rendered after mount, so it never showed. This
+// window re-renders on every open, close and tab change: before this, a Load of a file with Pause prep
+// OFF, then opening the window, showed it ON (offweek R12 and R14 caught it, 20 Oct 2026). Handing React
+// the SAME element objects every render makes it skip the cards' subtrees entirely, so nothing in them
+// re-renders after the first commit. ⚠️ Never build these inside SettingsWindow's render, and never
+// give a card props or context that change: either brings the stale-state write back.
+//
+// ⚠️ PANEL ORDER IS SWEEP ORDER. The Calendar tab's controls are all skipped by the sweep (.prefs-card)
+// or are buttons, and Presets' and Preferences' likewise, so only the Region tab contributes ids to
+// fields.byId -- in the order RegionCard, HolidaysCard, as before. A new card with a SWEPT id in the
+// Calendar tab would land before #union-place in every saved file.
+const CALENDAR_PANEL = (
+  <>
+    <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
+    <CalendarWaterfallCard />
+    <CalendarMonthCard />
+    <AppCard />
+  </>
+)
+const REGION_PANEL = (
+  <>
+    <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
+    <RegionCard />
+    <HolidaysCard />
+  </>
+)
+// The saved-presets library (owner, 20 Oct 2026). ⚠️ The SIDE-BOX presets card goes here, after
+// HeadersCard, when ruling 7 merges -- a .prefs-card like HeadersCard if any control in it carries an id,
+// since presets are per machine.
+const PRESETS_PANEL = (
+  <>
+    <ScopeLine icon={IconMonitor}>Presets stay on this computer. The header a calendar wears is saved in its file.</ScopeLine>
+    <HeadersCard />
+  </>
+)
+const PREFS_PANEL = (
+  <>
+    <ScopeLine icon={IconMonitor}>These stay on this computer. Send someone a calendar and they keep their own.</ScopeLine>
+    <PrefsWaterfallCard />
+    <PrefsMonthCard />
+  </>
+)
+
 export function SettingsWindow() {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('calendar')
@@ -156,7 +203,7 @@ export function SettingsWindow() {
           Mantine 9's Tabs keeps inactive panels mounted by default, but through React's <Activity
           mode="hidden"> (keepMountedMode defaults to "activity", @mantine/core 9.5.2). A hidden
           Activity renders its children at a LOWER PRIORITY -- after main.jsx's flushSync has
-          returned, so initLegacyApp() would run with two of the three tabs missing from the DOM --
+          returned, so initLegacyApp() would run with three of the four tabs missing from the DOM --
           and it unmounts their effects, so ProdLabelControl and HeaderPresets would never install
           their bridge functions. display-none mode renders every panel in the first commit and
           hides the inactive ones with display:none, the sidebar's old `.tab-hidden` contract.
@@ -171,36 +218,10 @@ export function SettingsWindow() {
           ))}
         </Tabs.List>
 
-        {/* ⚠️ PANEL ORDER IS SWEEP ORDER. The calendar tab's controls are all skipped by the sweep
-            (.prefs-card) or are buttons, and the preferences tab's likewise, so only the Region tab
-            contributes ids to fields.byId -- in the order RegionCard, HolidaysCard, as before. A new
-            card with a SWEPT id in the first tab would land before #union-place in every saved file. */}
-        <Tabs.Panel value="calendar" className="sw-panel">
-          <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
-          <CalendarWaterfallCard />
-          <CalendarMonthCard />
-          <AppCard />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="region" className="sw-panel">
-          <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
-          <RegionCard />
-          <HolidaysCard />
-        </Tabs.Panel>
-
-        {/* The saved-presets library (owner, 20 Oct 2026). ⚠️ The SIDE-BOX presets card goes here,
-            after HeadersCard, when ruling 7 merges -- a .prefs-card like HeadersCard if any control in
-            it carries an id, since presets are per machine. */}
-        <Tabs.Panel value="presets" className="sw-panel">
-          <ScopeLine icon={IconMonitor}>Presets stay on this computer. The header a calendar wears is saved in its file.</ScopeLine>
-          <HeadersCard />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="prefs" className="sw-panel">
-          <ScopeLine icon={IconMonitor}>These stay on this computer. Send someone a calendar and they keep their own.</ScopeLine>
-          <PrefsWaterfallCard />
-          <PrefsMonthCard />
-        </Tabs.Panel>
+        <Tabs.Panel value="calendar" className="sw-panel">{CALENDAR_PANEL}</Tabs.Panel>
+        <Tabs.Panel value="region" className="sw-panel">{REGION_PANEL}</Tabs.Panel>
+        <Tabs.Panel value="presets" className="sw-panel">{PRESETS_PANEL}</Tabs.Panel>
+        <Tabs.Panel value="prefs" className="sw-panel">{PREFS_PANEL}</Tabs.Panel>
       </Tabs>
     </div>
   )
