@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, NOT YET ON `main`
+### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
   content is confidential and stays out of this repo). The parent session cut three bundles; this one lands first.
@@ -55,8 +55,14 @@
 - ⚠️ **Disk:** 7.0 GB free at the start (1.8 TB volume), 6.0 GB before the second gate, 9.8 GB after it (someone
   freed space). The leftover `code_sign_clone` copies (1,521, see the 19 Oct merge entry) were not touched. Each
   harness run leaves about 10 MB; a full gate about 1 GB.
-- ⏭ **Next:** the owner's picker to fast-forward local `main` to this branch (`main` is still `be67ca5`, an
-  ancestor), then a separate picker for the push. No version cut unless the owner asks.
+- ✅ **Merged (owner, by picker, 20 Oct 2026: "Merge into main").** Local `main` fast-forwarded `be67ca5..48c2788`
+  in the main checkout; its modified `tests/fixtures/stintswap-reshape.sptcal` and untracked `Reshape Fixture
+  2026-09-29.sptcal` (not this work's) were left alone.
+- ⏸ **Push HELD (owner, by picker: "Hold the push").** For example, to ship with the `month-notes` and
+  `labels-setup` bundles in one push. Each push still needs its own picker. `origin/main` is `5d4737d`, so local
+  `main` is 4 commits ahead (`be67ca5` docs, then this bundle's three, plus this note). No version cut.
+- ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
+  verifies the live `index.html` against the gated build afterwards.
 
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
