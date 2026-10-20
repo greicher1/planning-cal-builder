@@ -4,6 +4,48 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" (branch `prep-name`, worktree `.claude/worktrees/prep-name`, committed, not merged)
+
+- ⏭ **RESUME HERE.** Committed on `prep-name` (owner's picker, "Commit on prep-name"), cut from `main` at `e86aa5e`.
+  `main` has since gained the prep start grip (live at `f0c7925`), so this needs a merge with `main` before it can
+  ship. The owner asked whether a full gate is really needed after that merge; see the answer in the session, and
+  record what was decided here.
+
+- Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+  default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+  episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*. Then,
+  mid-build: *"ok actually dont put the 'Ep' just write 'Prep 303' but do write 'Prep Block 1'"*. So the pills read
+  exactly as they did; only the row's place and default name changed.
+- **What was built (no frozen code; `src/legacy/app.js` only):**
+  - `buildPhaseRows` appends the Prep row BEFORE Production's row. No id moved, and nothing reads rows by position.
+  - The default name is `autoPrepName()`. A DEFAULT name is any of `PREP_AUTO_NAMES` ('', "Prep", "Episodic Prep",
+    "Block Prep"). `syncPrepName()` rewrites it to the mode's own from `refreshPrepUI` (every `update()`) and on the
+    box's `change`, never while the box has the focus (typing "Prep Art" passes through "Prep"). A typed name is
+    kept across a mode switch.
+  - `prepDisplayDef()` returns `pillName` ("Prep" for a default name, else the typed one), carried on the segment.
+    `prepPillLabel()` reads it, so pills stay "Prep 303" / "Prep Block 1", and "Art Prep 303" for a typed name.
+- ⭐ **No save-format change, and no migration code.** "Prep" is in the default set, so a file saved with the old
+  default opens on the new one; the restore default and New's reset still write "Prep" and the next `update()`
+  renames it. Checked in the browser: a fresh load of `episodeprep.sptcal` is not dirty and has no undo step.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" (or the other mode's default) cannot be kept.
+- ✅ **Gate 5 moved by ONE value, as predicted:** `prep-name` on `v1.0.0-saved.html` goes "Prep" → "Episodic Prep" (ids
+  unchanged, 74). **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
+- **Proof so far:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (1,532,965 bytes), port 8883. New checks N1 (order),
+  N2 (Blocks renames and saves "Block Prep"), R0/K0 (the fixtures were minted with "Prep" and open on the new default:
+  keep them that way), K3 (follows the mode both ways), K4 (a typed name survives), K5 (focused box left alone).
+  `npm run check` 40/40, `check-refs.py` CLEAN.
+- ✅ **Full gate on build `e778ffb3…` (port 8885, 17:40–17:58, after `prep-grip-plan`'s gate had exited): 1,859 PASS,
+  1 FAIL.** The one is gate 5 exactly as predicted: lost none, gained none, changed `['prep-name']`. Gates 1–4 green
+  (0 clipped, waterfall PDF and every Excel part identical), gate 10's ten print documents identical, gate 13's twenty
+  written month PDFs byte-identical, `episodeprep` all three runs green, Excel and waterfall PDF identical with prep on
+  and off.
+- **Will conflict lightly with:** `prep-grip-plan` (calls `prepPillLabel(prepSeg() || {}, p)`, fine with `pillName`)
+  and `day-menu-step3` (rewrites `buildPrepRow`'s swatch handler, a few lines below the name input).
+- ⛔ **Learned: check the port in a command of its own, BEFORE the leg.** This session put `lsof` in the same command
+  as a leg on 8871. `lsof` did show the port busy, but by then `run.sh`'s `pkill -f "srv.js 8871 "` had stopped
+  `day-menu-step4-8871`, another session's PREVIEW server from the shared `.claude/launch.json`. It was restarted from
+  that same config. Check `lsof` AND `grep '"port"' .claude/launch.json` (a preview may be claimed but not running).
+
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
 
 - Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"

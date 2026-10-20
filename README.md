@@ -28,6 +28,31 @@ way a user would notice or a future session would need to return to. See
 [`CLAUDE.md`](CLAUDE.md) → "⛔ Changelog every substantial change" for when and how.
 
 <!-- Newest first. Add new entries directly under this line. -->
+### Unreleased — Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
+
+Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*.
+- **The Prep row is directly above Production** in the Phases card (it was under it). Only the order moved. No id
+  changed, and nothing reads the rows by position.
+- **Its default name follows Schedule by:** "Episodic Prep" on an Episodes calendar, "Block Prep" on a Blocks one, and
+  it changes when the mode does. A name the user types is kept across a mode switch. There is no new id or key:
+  `#prep-name` still holds the name, and the values "Prep" (the old default), "Episodic Prep", "Block Prep" and blank
+  all mean the default. So **every calendar saved with the old default opens on the new one**, and no file needs
+  converting. The box is never rewritten while it has the focus, because typing "Prep Art" passes through "Prep".
+- **Pills still read just "Prep 303" / "Prep Block 1"**, whatever the default name. A first build wrote "Prep Ep. 303",
+  to match Production's bars; the owner took the "Ep." out the same day (*"dont put the 'Ep' just write 'Prep 303' but
+  do write 'Prep Block 1'"*). With a typed name, that name replaces "Prep" ("Art Prep 303"), as before. Waterfall,
+  Excel and the waterfall PDF never show prep, so they cannot change.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" cannot be kept. It reads as the default, and its pills would say
+  "Prep" either way.
+- **Verified:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (new: N1 the order, N2 Blocks renames and saves
+  "Block Prep", K0/R0 the fixtures' old "Prep" opens as the new default, K3 the name follows the mode both ways, K4 a
+  typed name survives it and names every pill, K5 the focused box is left alone). `npm run check` 40/40;
+  `check-refs.py` CLEAN. Both fixtures checked by eye in the browser. Full gate on that build: **1,859 PASS, 1 FAIL**,
+  the one being gate 5's predicted `prep-name` value ("Prep" → "Episodic Prep" on `v1.0.0-saved.html`); waterfall PDF,
+  every Excel part and gate 13's twenty written month PDFs byte-identical, 0 clipped cells.
+
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both

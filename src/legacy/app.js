@@ -5551,6 +5551,11 @@ export function initLegacyApp() {
           </label>
         </div>` : ''}
       `;
+      // The Prep row goes straight ABOVE Production (owner, 19 Oct 2026: "the prep phase … should
+      // come before production phase in the left side bar"), where prep falls in time. It was under
+      // Production, which it is derived from (EPISODE-PREP-PLAN.md §6). Only the order moved: no id
+      // changed, so the save format cannot, and nothing in the engine reads the rows by position.
+      if(p.key === 'production') wrap.appendChild(buildPrepRow());
       wrap.appendChild(row);
       row.querySelector('.phase-name-input').addEventListener('input', (e)=>{
         // Keep the hiatus name field's placeholder in step with the phase's typed name, same as
@@ -5567,8 +5572,6 @@ export function initLegacyApp() {
           update();
         });
       });
-      // The Prep row goes straight under Production, which it is derived from (EPISODE-PREP-PLAN.md §6).
-      if(p.key === 'production') wrap.appendChild(buildPrepRow());
     });
   }
 
@@ -5590,7 +5593,7 @@ export function initLegacyApp() {
     row.innerHTML = `
         <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
         <div class="custom-phase-header">
-          <input type="text" class="phase-name-input" id="prep-name" value="${PREP_DEF.label}" placeholder="${PREP_DEF.label}" aria-label="Prep name">
+          <input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">
         </div>
         <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
         <div class="phase-fields">
@@ -5599,6 +5602,9 @@ export function initLegacyApp() {
         <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
     row.querySelector('#prep-name').addEventListener('input', update);
+    // Leaving the box puts a default name back to this mode's ("Prep", or blank, becomes "Episodic
+    // Prep"), as refreshPrepUI() does on every update() while the box is not being typed in.
+    row.querySelector('#prep-name').addEventListener('change', syncPrepName);
     row.querySelector('#prep-days').addEventListener('input', update);
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
@@ -5635,9 +5641,12 @@ export function initLegacyApp() {
   // (P4), so it re-sequences wherever the episode list does. It is REBUILT only when its rows change
   // (the mode, which units, their order or names), never on a keystroke in one of its own boxes, which
   // would take the focus and the caret. Otherwise the values are written back in place from the store,
-  // skipping the box being typed in, so an undo or a Load shows the restored lengths. Nothing here
-  // writes an id'd field, so update() calling it adds no undo step.
+  // skipping the box being typed in, so an undo or a Load shows the restored lengths. The one id'd
+  // field written here is #prep-name, and only when it holds a default name for the OTHER mode
+  // (syncPrepName): that follows a Schedule-mode change or a Load, which are steps of their own, so
+  // update() calling this still adds no undo step.
   function refreshPrepUI(schedule){
+    syncPrepName();
     const wrap = document.getElementById('prep-rows');
     const metaEl = document.getElementById('prep-meta');
     if(!wrap) return;
@@ -5857,13 +5866,38 @@ export function initLegacyApp() {
   function hasPrepOverride(def){
     return !!def && def.prepDays !== undefined && def.prepDays !== null && def.prepDays !== '';
   }
-  // The prep "phase" as drawn: the name typed in the Prep row (#prep-name, blank = "Prep") and its
-  // colour (phaseColorOverride.episodePrep, else the default above).
+  // ⭐ THE PREP ROW'S DEFAULT NAME FOLLOWS THE SCHEDULE MODE (owner, 19 Oct 2026): "Episodic Prep" on an
+  // Episodes calendar, "Block Prep" on a Blocks one. Its pills still read just "Prep 303" / "Prep
+  // Block 1" (prepPillLabel). #prep-name stays the one store, so there is no new id and no new key:
+  // a DEFAULT name is one of these values, and it is rewritten to the mode's own whenever the box is
+  // not being typed in (syncPrepName). "Prep" is in the list because it was the default until this
+  // change (EPISODE-PREP-PLAN §6), so every calendar saved with it opens on the new default; and blank
+  // is, because it always meant the default. Any other name is the user's, and is kept.
+  // ⚠️ The cost, accepted: a name of exactly "Prep" (or the other mode's default) cannot be kept.
+  // It reads as this mode's default, and its pills would say "Prep" either way.
+  const PREP_AUTO_NAMES = ['', PREP_DEF.label, 'Episodic Prep', 'Block Prep'];
+  function autoPrepName(){ return isBlocksMode() ? 'Block Prep' : 'Episodic Prep'; }
+  function isAutoPrepName(v){ return PREP_AUTO_NAMES.includes(String(v == null ? '' : v).trim()); }
+  // Puts a default name back to the mode's, never while the box has the focus: a user typing
+  // "Prep Art" passes through "Prep". A write here is not an edit (no input event, no markDirty), and
+  // it happens only when the mode changed or a file was loaded, both of which are steps already.
+  function syncPrepName(){
+    const el = document.getElementById('prep-name');
+    if(!el) return;
+    const want = autoPrepName();
+    if(el.placeholder !== want) el.placeholder = want;
+    if(document.activeElement !== el && isAutoPrepName(el.value) && el.value !== want) el.value = want;
+  }
+  // The prep "phase" as drawn: the name typed in the Prep row (#prep-name; a default name above is the
+  // mode's) and its colour (phaseColorOverride.episodePrep, else the default above). `pillName` is what
+  // a pill puts before its unit: "Prep" for a default name, else the typed one ("Art Prep 303").
   function prepDisplayDef(){
     const nameEl = document.getElementById('prep-name');
     const typed = nameEl ? nameEl.value.trim() : '';
+    const auto = isAutoPrepName(typed);
     const opt = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)] || PHASE_COLOR_OPTIONS[0];
-    return {key: PREP_KEY, label: typed || PREP_DEF.label, color: opt.color, textColor: opt.text};
+    return {key: PREP_KEY, label: auto ? autoPrepName() : typed, pillName: auto ? PREP_DEF.label : typed,
+            color: opt.color, textColor: opt.text};
   }
   // What readState() hands computeSchedule(): the default length and the def. The per-unit overrides
   // are read from episodeDefs/blockDefs at schedule time, as productionUnits() reads their day counts.
@@ -10054,8 +10088,8 @@ export function initLegacyApp() {
     });
     if(!preps.length) return;
     const def = cfg.def || PREP_DEF;
-    schedule.segments.push({key: PREP_KEY, label: def.label, name: def.label, color: def.color, textColor: def.textColor,
-      start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
+    schedule.segments.push({key: PREP_KEY, label: def.label, name: def.label, pillName: def.pillName,
+      color: def.color, textColor: def.textColor, start: prod.start, end: addDays(lastDay, 1), firstDay, lastDay, weeks: 0,
       days: all, preps, shootDays: null, phaseHiatus: null, prep: true});
   }
 
@@ -10098,10 +10132,15 @@ export function initLegacyApp() {
     P.next = k + 1;
     return P.runs[k];
   }
-  // A prep pill's text: the Prep row's name and the unit it preps, "Prep 202" or "Prep Block 2" (P4: the
-  // block's name). Read at render time, so renaming an episode or the row shows at once.
+  // A prep pill's text: "Prep" and the unit it preps, "Prep 303" or "Prep Block 2" (P4: the block's
+  // name). Owner, 19 Oct 2026: the row's default name is "Episodic Prep" / "Block Prep", but the pills
+  // read "just" Prep. So the prefix is the segment's pillName: "Prep" for a default name, the typed
+  // name otherwise (R8: the pills take a name the user gave the row). ⚠️ NO "Ep." before the episode:
+  // it was built with one, to match Production's bars, and the owner took it out the same day ("dont
+  // put the Ep, just write Prep 303, but do write Prep Block 1"). Read at render time, so renaming an
+  // episode or the row shows at once.
   function prepPillLabel(s, p){
-    const name = s.label || PREP_DEF.label;
+    const name = s.pillName || PREP_DEF.label;
     if(!p) return name;
     if(p.kind === 'block'){
       const b = blockDefs[p.unit.i];
@@ -15817,7 +15856,8 @@ export function initLegacyApp() {
       if(sw) sw.style.background = PHASE_COLOR_OPTIONS[autoPhaseColorIndex(p)].color;
     });
     // The Prep row (EPISODE-PREP-PLAN.md): static markup, so New puts it back by hand -- no default, the
-    // name "Prep", the default colour. The per-episode lengths go with episodeDefs/blockDefs below.
+    // name "Prep", the default colour. "Prep" is a DEFAULT name (PREP_AUTO_NAMES), so the update() after
+    // New shows it as "Episodic Prep" (syncPrepName). The per-episode lengths go with episodeDefs/blockDefs below.
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     reflectPrepSwatch();
@@ -22037,7 +22077,9 @@ export function initLegacyApp() {
     // ⛔ And the Prep row's two fields (EPISODE-PREP-PLAN.md §7), which are STATIC markup a restore never
     // rebuilds. Without these, a calendar saved before prep existed, opened after one with a default
     // prep length, would be DRAWN WITH PREP RUNS from the previous file's default -- someone else's
-    // prep on your show. Absent means no default and the name "Prep".
+    // prep on your show. Absent means no default and the name "Prep", a DEFAULT name, which the
+    // update() after the restore shows as the file's mode's own, "Episodic Prep" or "Block Prep"
+    // (syncPrepName): show-mode is restored by then, whatever order these run in.
     [['show-mode', 'episodes'], ['num-blocks', ''], ['days-per-block', ''],
      ['prep-days', ''], ['prep-name', PREP_DEF.label]].forEach(([id, dflt])=>{
       const el = document.getElementById(id);
