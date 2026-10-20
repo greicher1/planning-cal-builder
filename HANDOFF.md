@@ -1647,6 +1647,58 @@
   - the first enabled item is focused on open, as in the mockup.
 
 #### The plan (written 19 Oct 2026, all rulings in)
+### ◐ 19 Oct 2026: ⌘S, ⌘Z AND ⇧⌘Z DO NOTHING UNDER A DIALOG (branch `claude/distracted-wozniak-03ba74`, not merged, not pushed)
+
+- **The question (from the hiatus-drag session):** the global keydown handler checked `appDialogOpen()` for ⇧⌘S, ⌘N,
+  ⇧⌘E and (its own way) ⌘P, but plain ⌘S clicked Save and ⌘Z / ⇧⌘Z ran `undo()` / `redo()` under any dialog. Mantine
+  traps focus on the dialog's own button, which is not a field, so the in-field exemption never applied.
+- **Real harm, reproduced with TRUSTED keys in the pane, then held by a leg:**
+  - ⌘Z under **"Remove hiatus?"**, then Remove: **the hiatus stayed.** `undo()` → `applyStateSnapshot()` rebuilds the
+    hiatus rows, and the handler then ran `row.remove()` on the row it captured, which was no longer in the document.
+  - ⌘Z under **"Remove phase?"**, then Remove: **a ghost row.** The def left `customPhaseDefs` and the phase left the
+    calendar, but the REBUILT row for the same key stayed in the sidebar. Editing it changed nothing, and a reload
+    dropped it.
+  - ⌘S under the **Region's "Continue?"** on a linked file changed on disk: Save asked "File changed on disk", and
+    `Dialogs.jsx` answers an open dialog as Cancel when a second one opens. **The Region change was dropped** without
+    the user answering. Any Save error alert would do the same to any question.
+  - ⌘Z under the **template header editor** (focus on a button, not its fields): it undid the switch to Template that
+    opening the editor makes, so the header read "Header: Auto" with the editor still open.
+  - Everywhere else (Region, the four holiday questions, New, Load, the file-conflict choice) the answer still did
+    what it said. But ⌘S wrote the linked file and ⌘Z/⇧⌘Z stepped the calendar while the question was pending.
+    ⌘S under the conflict choice itself was already harmless (`saveInFlight`).
+- **The fix** (`src/legacy/app.js`, the keydown handler beside `appDialogOpen()`): `if(appDialogOpen()) return;` first
+  in the `s` branch (after `preventDefault()`, so Chrome's Save Page never opens), covering plain S and Shift+S; and in
+  the `z` tail AFTER the in-field exemption, so a field inside a dialog keeps its own undo (the header editor's
+  template inputs). ⌘P is untouched: it still checks only `.mantine-Modal-content` (HANDOFF 1 Oct 2026, "Found, NOT
+  changed").
+- **Proof:** new leg **`dlgkeys`** (in-page, `gate.sh` AFSPEC list beside `filekeys`, no state: it loads
+  `v1.4.2-saved` through `openViaFakePicker` so Save has a linked file to write). D1–D12 open a question, press ⌘S,
+  ⌘Z and ⇧⌘Z on the focused element, then answer. X1–X3 are the kept behaviour, E0 the console.
+  - **Red on the unfixed engine** (`git show HEAD:`, restored, `cmp`): D1–D12 all fail, X1–X3 and E0 pass.
+  - **Green with the fix:** 16/16.
+  - **Mutants**, each red only where it should be:
+    - M1, no S guard: D1–D9, D11, D12 (not D10, where `saveInFlight` already stops it);
+    - M2, no Z guard: D1–D10, D12 (not D11, which is ⌘S only);
+    - M3, the Z guard before the field exemption: X1 only.
+  - ⚠️ The first M2 run left D5 green. Under that question the newest undo step is the typed holiday name, not the
+    title, so the probes now compare the whole `formSignature()` as well.
+  - `filekeys` 16/16, `cmdprint` 6/6, `nofsa` 7/7, `regionlock` 14/14, `npm run check` 40/40.
+  - In the pane on the fixed build, with real keys: ⌘Z and ⌘S under "Remove hiatus?" left the title edit and opened
+    no picker, Remove removed the hiatus, and ⌘Z with no dialog undid that.
+- ⚠️ **Headless Chrome leaves focus on `<body>` under a Mantine modal; the pane put it on the dialog's Cancel.** Both
+  are non-editable, so the bug is the same, but the leg focuses the dialog's autofocus button by hand to match a user.
+- **For the hiatus-drag merge (uncommitted in `.claude/worktrees/hiatus-drag` when this was written):** its
+  `persistHold` check goes just above `if(key === 's'){`, and this change is inside that branch and at the tail, so the
+  hunks should not overlap. Its Keep/Undo question is a `uiConfirm`, so `appDialogOpen()` now covers the keys while
+  it is up. `persistHold` still matters for the drag itself, before the question, and for the backup and autosave.
+  Keep both.
+- **Full gate on build `13d1154f…` (1,510,349 bytes, `f9dfc73` + this change): 1,763 PASS, 0 FAIL, GATE PASSED**
+  (10:57–11:14, `HARNESS_PORT=8698`). It started only after the hiatus-drag session's gate had exited. The count is
+  1,747 + `dlgkeys`' 16. Every frozen output is identical to baseline, and `fields.byId` is at 72 ids.
+- **Not changed, for the owner:** the Help overlay (`#help-overlay`) is not a Mantine modal, so ⌘Z still undoes
+  behind it. Nothing there holds a stale row, so it is cosmetic.
+
+### 📝 19 Oct 2026: PLANNED — A RIGHT-CLICK MENU IN THE MONTH VIEW (not built)
 
 - Owner, 19 Oct 2026: *"One i know i want is to right click to add a custom phase starting on the day youre hovering
   over."* The plan is [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The mockup is

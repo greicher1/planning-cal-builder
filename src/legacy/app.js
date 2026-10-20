@@ -21409,7 +21409,9 @@ export function initLegacyApp() {
     const a = document.activeElement;
     if(a && a !== document.body && typeof a.blur === 'function') a.blur();
   }
-  // Is one of the app's dialogs up? The new shortcuts do nothing while one is. A Mantine modal is
+  // Is one of the app's dialogs up? The shortcuts do nothing while one is: N, Shift+E and Shift+S
+  // from 1 Oct 2026, and plain S, Z and Shift+Z since 19 Oct 2026. (P keeps its own modal-only test,
+  // see HANDOFF 1 Oct 2026.) A Mantine modal is
   // Cmd+P's rule: a second dialog would answer the open one as Cancel. ⚠️ The template header editor
   // (.hde-overlay) counts too, because it sits ABOVE the modal tier (z-index 400): New's question
   // opened from under it could be neither seen nor answered, and the editor's draft would then land
@@ -21444,11 +21446,16 @@ export function initLegacyApp() {
     const key = e.key.toLowerCase();
     if(key === 's'){
       e.preventDefault();
+      // ⛔ Not while one of the app's dialogs is open, plain Save included (19 Oct 2026, the dlgkeys
+      // leg). Save can ask its own question (a file changed on disk, an error), and a second dialog
+      // answers the open one as Cancel: Cmd+S under the Region's "Continue?" dropped the Region change
+      // the user was being asked about. Under any other question it wrote the linked file mid-answer.
+      if(appDialogOpen()) return;
       // Shift is Save As. Without the File System Access API there is no Save As (its button is
       // hidden, and Save already downloads a new copy each time), so there Shift stays plain Save,
       // which is all Cmd+Shift+S ever did before.
       if(e.shiftKey && supportsFsAccess){
-        if(e.repeat || appDialogOpen()) return;
+        if(e.repeat) return;
         blurLikeAPress();
         if(saveAsBtn) saveAsBtn.click();
         return;
@@ -21492,6 +21499,14 @@ export function initLegacyApp() {
     const isEditable = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
     if(isEditable) return;
     e.preventDefault();
+    // ⛔ Not under one of the app's dialogs (19 Oct 2026, the dlgkeys leg). Mantine traps focus on the
+    // dialog's own button, which is not a field, so the exemption above never applied and the app's
+    // undo ran beneath the question. undo() rebuilds the phase and hiatus rows, and the handlers that
+    // asked hold the OLD row: Remove then removed a detached row, so a confirmed "Remove hiatus" did
+    // nothing and "Remove phase" left a ghost row in the sidebar. Under the template header editor it
+    // undid the switch to Template with the editor still open. A field inside a dialog keeps its own
+    // undo, because this check comes after the exemption.
+    if(appDialogOpen()) return;
     if(e.shiftKey) redo(); else undo();
   });
 

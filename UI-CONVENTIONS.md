@@ -1212,6 +1212,16 @@ Nothing in this document ships without all of these, every stage:
     (K14). ⌘S and ⌘P are unchanged. End to end, Save As on a linked calendar writes a new file and
     switches to it. `nofsa` gains B5: without the API, ⇧⌘S stays plain Save.
 
+    The dialog-keys fix (19 Oct 2026) adds `dlgkeys` (no state; it loads its own linked file through
+    the fake picker). Plain ⌘S, ⌘Z and ⇧⌘Z now do nothing while a dialog or the template header editor
+    is up, as ⇧⌘S, ⌘N and ⇧⌘E already did. It opens twelve questions (D1–D12), presses the three keys
+    under each, and then answers. Each key must be prevented and do nothing (no Save, no write, no undo
+    or redo, the same question still up), and the answer must still do what it says. Before the fix,
+    ⌘Z under "Remove hiatus?" made Remove do nothing, and under "Remove phase?" it left a ghost row.
+    ⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change. Kept:
+    ⌘Z inside a field, the header editor's included, is the field's own undo (X1, X2), and with no
+    dialog the three keys work as before (X3).
+
     Double-click to open (1 Oct 2026) adds `launchopen`: a `.sptcal` the OS hands the app through
     `launchQueue` loads as Load… does. It covers a cold launch (no recovery question on top, the
     backup kept), the linked file Save writes back to, the unsaved-work question (Cancel and Load),
