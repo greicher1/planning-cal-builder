@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — "Shoot" before every episode's month bar, and a prefix of your own per episode or block (20 Oct 2026)
+
+The owner asked on 16 Oct for "Shoot" before "Ep. 101" in the month view. That was built then on a branch that
+never merged, and today it was asked again, *"so long as you can remove it and rename it to something else entirely
+per episode/block"*. Three rulings by picker: the prefix is changed **from the bar**; it shows on **every calendar**,
+old files included; and it is **"Shoot" before episodes only**, with blocks bare by default.
+- **Month view and both month PDFs:** an episode's bars read **"Shoot Ep. 101"** (a renamed episode: "Shoot Pilot").
+  A block's bars read "Block 1" as before. When a Blocks calendar is labelled by episode, its bars read "Shoot Ep. 201,
+  202". The grey text under a bar and the day menu's header name the unit with no prefix.
+- **Change it from the bar:** right-click an episode's or block's bar, and the bar's section of the day menu has
+  **Prefix…**, whose second line says what the bars carry now ("“Shoot” before Ep. 202"). It opens a
+  small box beside the bar: type a word ("Pickup", "2nd Unit"), leave it blank for none, or **Reset**. Enter saves,
+  Esc cancels. One undo step. On a switch day the menu offers one Prefix… for each episode shot that day. Labelled by
+  Production Week there is no bar per episode, so Prefix… is greyed out and says so.
+- **Kept from 16 Oct:** a switch day's one-day **half** bar never takes a prefix. Measured then, "Shoot " adds 30.8 px
+  and both PDFs give that half bar 50 px, so it would print "Shoot E…" and lose the episode it exists to name.
+- **Saved** on the episode's or block's own entry as `barPrefix`, and only where it differs from the default, so a
+  calendar nobody edits saves byte for byte as before. An older build ignores the key. A value the app never writes
+  is dropped on Load, with the validator's warning.
+
+Verified: new leg `barprefix`, 13 cases on halfdays (default and half-bar rule, the menu item, the box, one undo
+step, Save, blank, Reset, Escape, Load and the old-file trap, bad values, the Week label, the written PDF's text) and
+4 on blocks; `halfdays` gains D2s (the default on every July bar but the two one-day half bars); `halfmarks`,
+`labelsetup` and `mvmenu` updated for the new text and item. Gates 10 and 13 change for every Episodes calendar and
+need the owner's re-cut sign-off.
+
 ### Unreleased — Today's branches merged; the new settings find their place in the Settings window (20 Oct 2026)
 
 The owner asked for everything built on 20 Oct, and the finished features left on older branches, to be merged. Ten

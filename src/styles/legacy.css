@@ -2596,6 +2596,22 @@
     background:none; border:0; padding:0; cursor:pointer;
   }
   .hdrrow-reset:hover{ text-decoration:underline; }
+  /* An episode's or block's bar prefix (owner, 20 Oct 2026; unitBarLabel), from the month view's day menu.
+     A .note-pop like the heading editor, with the same field and Reset looks. Body-level chrome, never a
+     .mv-* rule. */
+  .barprefix-pop{ width:240px; }
+  .barprefix-input{
+    width:100%; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-black); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    padding:4px var(--mantine-spacing-sm);
+  }
+  .barprefix-actions{ margin-top:var(--mantine-spacing-sm); }
+  .barprefix-reset{
+    font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled);
+    background:none; border:0; padding:0; cursor:pointer;
+  }
+  .barprefix-reset:hover{ text-decoration:underline; }
   td.sheet-note-cell.editing{outline:2px solid var(--edit-accent); outline-offset:-2px; cursor:text;}
   td.sheet-hiatus-cell.editing{outline:2px solid #333; outline-offset:-2px; cursor:text;}
   /* Filled note & hiatus cells are click-to-edit, but with only cursor:text they read as static
