@@ -1,7 +1,7 @@
 # LABELS-SETUP-PLAN.md — bundle B: six label and setup changes
 
-**Status:** 📝 PLANNED AND RULED 20 Oct 2026. The owner's rulings are in §1, the answers to this plan's
-questions in §8.
+**Status:** 🔨 BUILT 20 Oct 2026, not merged. The owner's rulings are in §1, the answers to this plan's
+questions in §8, the two sign-offs during the build and the as-built record in §10.
 **Branch:** `claude/labels-setup-c74155` (worktree `.claude/worktrees/labels-setup-c74155`), cut from
 local `main` at `be67ca5` (live v1.5.0 + a docs commit).
 **Siblings:** `prep-switch` (item 1, lands first) and `month-notes` (items 2, 6, 10, 15, 17). Expect to
@@ -188,3 +188,54 @@ A leg or leg extension per item, on synthetic fixtures, each with mutants. `npm 
 `python3 tools/check-refs.py`, then the full gate (serialised with other sessions). README changelog
 entries and a HANDOFF entry. Merge into local `main` on the owner's picker (merge `main` first if the
 siblings have landed), then ask by picker whether to push.
+
+## 10. As built (20 Oct 2026)
+
+**Two more sign-offs, by picker, after a screenshot and an A/B:**
+
+- *"Approve the edit"*: a lead day showed the bar but not the worked-day tint, which frozen `renderMonthView`'s
+  `_ovDays` decides. One condition there now marks `'lead'` as `'on'`. Inert on every baseline (no fixture has a
+  `'lead'` mark); `labelsetup` L2t reads the class.
+- *"Re-cut it"*: gate 10's `mvheaderlegacy` document gained the three size options (45 elements over 15 months). Its
+  fit table is identical, and its printed PDF is pixel-identical to v1.5.0's on all 15 pages at 150 dpi. Re-cut,
+  recorded in that baseline's README. The other nine gate-10 documents did not move.
+
+**Departures from §2–§7, each small:**
+
+- Item 3: a number is digits only after `shortEpisodeName`'s "Episode " strip (`/^\d+$/`, the test the range fold
+  already used). "101A" reads as a name. `episodeListLabel` became `episodeListItems` + `epListLabel`.
+- Item 4: a blank count in Blocks mode shows NO episodes, even where `episodeDefs` still holds the list from before
+  the count was cleared (the sync never empties it, so typing the count back restores the names):
+  `blockEpisodeDefs()`. The block panel's hint then says where episode names come from.
+- Item 5: the lead weekend is found walking back from the first shoot day over enabled union holidays and Off days
+  too, so a Tuesday start after a Monday holiday has one. A Wednesday start (snap off) has none, because walking from
+  that Saturday would shoot the Monday and Tuesday it skipped.
+- Item 9: the colour popover is the phase picker's, given an `options` list, so the shareable copy's strip list and
+  the close rules needed nothing new.
+
+**Mutants** (`labelsetup` on a build of each, `dist-mut/`, source restored and the real build hashed back each time):
+
+| Mutant | Red |
+|---|---|
+| "Ep." before every name | E1, E1h, E2, E3 |
+| no "Ep." on a mixed list | E2, E3 |
+| no old-file rule | B4, B5, B6u |
+| a Show Info edit never clears it | B6 |
+| `blocksEpisodesOptional` never written | B3, B3r |
+| a blank count still shows the old episodes | B2 |
+| the menu writes `'on'` | L1, L2, L2m, L4, L5, L6, L6w |
+| a stored `'on'` on the lead weekend counts | L6 |
+| the segment does not move with the lead day | L2 |
+| no second walk | L2, L2m, L4, L5, L6w |
+| no lead days in `daySituation` | L1, L2, L2m, L4, L5, L6, L6w |
+| no sizes 10–12 | H1, H2 |
+| no fixed-date token | H3 |
+| no France option | F1, F2, F3 |
+| Number weeks ignored by the sync | C1, C4 |
+| Colour… paints one week | C2, C2m, C3 |
+| `numbered` always saved | C0, C4 |
+| `numbered` not restored | C1, C4 |
+| no leading undo push in Number weeks | C1u |
+| no leading undo push in Colour… | C3u |
+
+The tint's frozen edit has no mutant: the build before it is one (the lead day's cell carried no `mv-day-*` class).

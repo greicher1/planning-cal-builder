@@ -29,6 +29,84 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A hiatus band can be recoloured and numbered from the month view (20 Oct 2026)
+
+Owner: *"Recolour from day menu"* and *"Number the weeks"* (LABELS-SETUP-PLAN.md item 9). The day menu's hiatus
+section gains two items:
+- **Colour…** opens the waterfall band editor's ten colours under the day. A pick paints every week of that
+  hiatus, in the waterfall and the month view together, because it writes the waterfall's own `hiatusColors`
+  store. The default red clears it. One undo step. (MONTH-CONTEXT-MENU-PLAN §3.10 had this as "not offered".)
+- **Number weeks**, also a new box on each hiatus row beside Lock in place (the owner's pick: per row). Off unless
+  ticked, so every existing calendar prints as it did. Ticked, the bands read "Hiatus Week 1", "Hiatus Week 2" …,
+  or "<name> Week N" for a named hiatus, in the waterfall, Excel, both PDFs and the month view. A band renamed by
+  hand keeps its own text. Saved as `numbered: true` on that row only; no new id.
+- **Verified:** `labelsetup` C0–C4 (both weeks recoloured in both views, one undo each with a title typed just
+  before kept, the box round-tripped through Save and Load); `mvmenu` V1/V9 expect the two items.
+
+### Unreleased — France joins the Location list (20 Oct 2026)
+
+Owner: *"Film agreement's list"*, *"France only"*, then *"France, 11 days"* on seeing the list and its sources
+(LABELS-SETUP-PLAN.md item 8). Location ▸ Europe ▸ **France** uses the film agreement's eleven paid holidays for
+crew (IDCC 3097, Titre II art. 42): New Year's Day, Easter Monday, 1 May, 8 May, Ascension, Whit Monday, 14 July,
+15 August, All Saints, 11 November and Christmas. A holiday on a weekend is lost, with no substitute day. The note
+under the picker says that Alsace-Moselle adds Good Friday and 26 December (add them as custom holidays there), and
+that TV productions under the audiovisual agreement work Whit Monday.
+- **Code:** a `FR` region in `tools/gen_holidays.py`, with its sources and provenance; `HOLIDAYS` / `REGION_CAVEATS`
+  regenerated; a `PLACES` entry and an appended `eu-france` option.
+- **Verified:** every existing list regenerates byte-identically (the span minus France equals the old one) and
+  `validate_holidays.py` is CLEAN, France 88 rows for 2024–2031. `labelsetup` F1–F3 (14 Jul not shot, 3 Jul shot,
+  Save); `regioncaveat` A11. ⚠️ Légifrance refused automated reads, so the agreement was read in its official
+  bulletin text (a copy) and checked against two consolidations; the generator records which.
+
+### Unreleased — The month header takes sizes 10, 11 and 12, and offers a fixed date (20 Oct 2026)
+
+Owner: *"10"* (LABELS-SETUP-PLAN.md item 7). The month header's size list now starts at 10 (it started at 14), and
+the token list offers `{date:<today>}`, a date that never updates, and the snippet `Revised as of {date:<today>}`.
+The token already worked; nothing offered it.
+- **Verified:** `labelsetup` H1–H3. ⚠️ A manual month header's markup includes its size list, so gate 10's
+  `mvheaderlegacy` document gained 45 hidden `<option>`s. Its printed PDF is pixel-identical on all 15 pages at
+  150 dpi and its text is the same; the owner signed off the A/B and the baseline was re-cut. The other nine gate-10
+  documents are identical.
+
+### Unreleased — A shoot can start on the weekend just before its first day (20 Oct 2026)
+
+Owner: *"The weekend just before"* (LABELS-SETUP-PLAN.md item 5). In the month view, the Saturday and Sunday
+immediately before the first shoot day now offer **Work this day**. Marked, that day becomes shoot day 1, so the
+wrap comes one working day earlier. Weeks run Monday to Sunday, so that weekend's week becomes Production Week 1
+and later weeks number one higher (the owner: *"Yes, build it so"*).
+- ⛔ **A new day word, `lead`, not `on`.** An `on` already stored on that weekend (left behind when a start date was
+  typed later) did nothing, and still does nothing: letting it count would move that calendar's wrap with no edit.
+  The menu shows it as stored but not in effect.
+- The movers (Shift All, Start here, Rebuild From …) carry it by shoot-day number, onto the weekend before the moved
+  shoot. A mark a week further back is never reached.
+- ⛔ **One frozen edit, owner-approved by picker:** `renderMonthView`'s `_ovDays` gives a `lead` day the worked-day
+  tint, as a worked weekend inside the shoot has. No baseline moves: no fixture holds one.
+- **Verified:** `labelsetup` L0–L7 (6.27.26 / 8.31.26 from Saturday; 8.28.26 with both days; Start Production here on
+  13 Jul carries both to 11–12 Jul). `mvmenu` L3 changed deliberately (28 Jun now has a shoot-day section).
+
+### Unreleased — Blocks mode needs no episode count (20 Oct 2026)
+
+Owner: *"Optional; old files keep dates"* (LABELS-SETUP-PLAN.md item 4). A Blocks calendar now schedules Production
+from its block days with no Number of Episodes, which reads "(optional)" in Blocks mode. With no count, the blocks
+are labelled by name alone.
+- ⛔ **The old-file rule.** A count-less Blocks file saved before this has Production UNSCHEDULED, and must open that
+  way. It keeps the old rule until its next edit to Schedule by, Number of Episodes, Number of Blocks, Days per
+  Block or a block's own days (the owner's pick). Then Production appears, from that edit. A new snapshot key,
+  `blocksEpisodesOptional: true`, written only on a count-less Blocks calendar on the new rule, is what tells the
+  two apart. No other file's snapshot changes.
+- **Verified:** `labelsetup` B1–B7, on a real v1.5.0 Save of such a calendar (`tests/fixtures/blocks-noeps-v1.5.0.sptcal`):
+  it opens unscheduled, stays so after a title edit, schedules 48 days after Days per Block 15 → 16, and one undo
+  puts the old rule back. BLOCKS-PLAN §3 records the new ruling.
+
+### Unreleased — "Ep." only before episode numbers (20 Oct 2026)
+
+Owner: *"'Ep.' only before numbers"* (LABELS-SETUP-PLAN.md item 3; *"Never add Ep."* declined, because it would
+re-cut every month baseline). An episode renamed "Pilot" read "Ep. Pilot" on its month bar and in the grey text. It
+now reads "Pilot". A mixed list puts "Ep." before each run of numbers: "Pilot, Ep. 102, 103" (the owner's pick).
+Lists of numbered episodes read exactly as before.
+- **Verified:** `labelsetup` E1–E3 (bars, the day menu's header, Week mode's lists, a Blocks list). No fixture that
+  renders labels has a renamed episode (surveyed), and gates 10 and 13 hold every numbered calendar byte-identical.
+
 ### Unreleased — Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
 
 In Settings ▸ Holidays, a custom holiday's Enable, W'fall note and Month note boxes sat 22 px left of
