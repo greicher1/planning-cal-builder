@@ -84,7 +84,13 @@
   Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
   `prodWeekLabel()`, which is step B's site.
 
-### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
+### 🔨 19 Oct 2026: BUILT ON BRANCH `phase-numbering` (`56603e8`): A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not merged)
+
+- ⏭ **It is BUILT, not just planned: do not build it again.** Branch `phase-numbering` (worktree
+  `.claude/worktrees/phase-numbering`), commit `56603e8`, cut from `e86aa5e`. That branch's HANDOFF entry has the
+  full record: full gate 1,876 PASS, 5 FAIL, the five explained and re-run green (92 PASS, 0 FAIL), gates 1–5, 10 and
+  13 unchanged. **Not merged into `main`, not pushed.** The owner said "Not yet" to merging. `main` has moved since
+  (the prep start grip, live at `f0c7925`), so landing it means merging `main` in and re-running the full gate.
 
 - Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
   feature or a setting on phases.
@@ -100,7 +106,7 @@
   unit with no event. The edge drag's Weeks → Dates switch leaves it alone.
 - ✅ **Q2–Q4 ruled by picker the same day, all as recommended** (plan §8): back to Weeks re-ticks it, the drag leaves
   it alone, and older files open numbered. Q1 (name and place) was not asked; the recommendation stands.
-- ⏭ **Next:** build it in its own worktree off `main` (plan §9), when the owner asks.
+- Q1 was ruled in words the same day: *"Name and place as recommended"*.
 
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
