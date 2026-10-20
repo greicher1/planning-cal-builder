@@ -51,7 +51,7 @@ order, and each one shows only when it applies:
 | Section | Shows when | Items |
 |---|---|---|
 | *(This day)* | always | Add note · **Add 1-day phase here** · **Add 1-week phase here** · Add hiatus ▸ (All phases / one phase only) |
-| *<phase>* | the pointer is on that phase's bar | Start <phase> here · End <phase> here · Colour… · Show in Phases card |
+| *<phase>* | the pointer is on that phase's bar | Start <phase> here · End <phase> here · Colour… · Show in Phases card · Remove <phase>… (custom phases only; added at step 4) |
 | Note | the pointer is on a note | Edit note… |
 | Shoot day N | the day is inside the shoot | the shoot-day popover's own choices, and only those |
 | Hiatus | the day is inside an all-phase hiatus | Lock in place ☑ · Show in Phases card · Remove hiatus |
@@ -186,6 +186,18 @@ it is cheap to change.)*
 
 - `setSidebarTab('phases')`, then scroll the row into view: the phase's row in `#phase-rows` / `#custom-phase-rows`,
   or the covering `.hiatus-entry` in the All-phase hiatus card.
+
+### 3.7a Remove <phase>… (custom phases only; added at step 4)
+
+- **Owner, 19 Oct 2026:** *"Will you be able to delete a custom phase from this menu"*. Asked by picker, they chose
+  *"Yes, add it to step 4"*.
+- **The sidebar row's × itself.** Its handler is lifted into `confirmRemoveCustomPhase(row)` (the question, asked only
+  when there is something to lose, which a drawn phase always has) and `removeCustomPhaseRow(row)`. The × and the
+  menu's `removePhaseHere(key)` both call them, so the words and the effect are the same.
+- **One undo step after the answer**, as ruling Q4's Remove hiatus is planned: the bracket is synchronous, so the item
+  awaits first. Cancel banks nothing.
+- **Last in the section, in red** (`.is-danger`), as a destructive item.
+- **Not on a built-in phase or Prep.** Neither can be removed anywhere.
 
 ### 3.8 Edit note…
 
@@ -471,7 +483,8 @@ Each step can be committed on its own, and one new leg, `mvmenu`, grows with eac
      [data-ov]`, and every value they assert is unchanged.
    - Right-click stays as a second way in (the owner has not asked to drop it).
    - §8.1 fixed, on the owner's yes.
-   - `mvmenu` grows to 73 cases (L1–L9, G7, N1; C2 flipped; H1s and P3 updated).
+   - **Added on the owner's request the same day:** Remove <phase>… on a custom phase's bar (§3.7a).
+   - `mvmenu` grows to 77 cases (L1–L9, G7, N1, R1–R3u; C2 flipped; H1s and P3 updated).
 5. **The hiatus and holiday sections.**
 
 ---

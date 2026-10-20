@@ -5930,6 +5930,35 @@ export function initLegacyApp() {
       </div>`;
   }
 
+  // Removing a custom phase, in two halves shared by the row's × (below) and the month day menu's
+  // "Remove <phase>…" (installMonthDayMenu; owner, 19 Oct 2026, added to MONTH-CONTEXT-MENU-PLAN.md
+  // step 4). The menu banks its own undo step BETWEEN them, after the answer: the bracket is
+  // synchronous, so it cannot wrap a question (plan §7). Both read the row's key AT CALL TIME, for the
+  // re-keying reason the comment inside addCustomPhaseRow gives.
+  // The question, asked only when there's something to lose -- an untouched blank row deletes freely.
+  async function confirmRemoveCustomPhase(row){
+    const k = row.dataset.key;
+    const nameEl = row.querySelector('.phase-name-input');
+    const startEl = document.getElementById('start-'+k);
+    const weeksEl = document.getElementById('weeks-'+k);
+    const daysEl = document.getElementById('days-'+k);
+    const endEl = document.getElementById('end-'+k);
+    const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim())
+                    || (daysEl && daysEl.value) || (endEl && endEl.value);
+    return !hasData || !!(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }));
+  }
+  // The removal. ⚠️ A row that left the document while the question was up (an undo or a load rebuilds
+  // every custom row) is not removed: its key may name the rebuilt row now, and dropping that row's def
+  // while it stays on screen would leave readState() a row with no definition.
+  function removeCustomPhaseRow(row){
+    if(!row.isConnected) return false;
+    const k = row.dataset.key;
+    customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
+    row.remove();
+    update();
+    return true;
+  }
+
   function addCustomPhaseRow(){
     const key = 'custom' + (++customPhaseCounter);
     const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
@@ -5969,20 +5998,11 @@ export function initLegacyApp() {
     // longer existed: remove stranded a ghost def and the next update() threw in readState on the
     // missing start-<key>, a colour pick never persisted, and a rename never reached its hiatus
     // placeholder. HANDOFF §2b-3 known bug #1; fixed with M-2 (FIX-PLAN.md 1.1, 25 Sep 2026).
+    // Both halves are shared with the month day menu's "Remove <phase>…" (confirmRemoveCustomPhase,
+    // removeCustomPhaseRow, just above this function), so the two ask the same question.
     row.querySelector('.remove-custom-phase').addEventListener('click', async ()=>{
-      const k = row.dataset.key;
-      // Only prompt when there's something to lose -- an untouched blank row deletes freely.
-      const nameEl = row.querySelector('.phase-name-input');
-      const startEl = document.getElementById('start-'+k);
-      const weeksEl = document.getElementById('weeks-'+k);
-      const daysEl = document.getElementById('days-'+k);
-      const endEl = document.getElementById('end-'+k);
-      const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim())
-                      || (daysEl && daysEl.value) || (endEl && endEl.value);
-      if(hasData && !(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }))) return;
-      customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
-      row.remove();
-      update();
+      if(!(await confirmRemoveCustomPhase(row))) return;
+      removeCustomPhaseRow(row);
     });
     const swEl = row.querySelector('.swatch');
     swEl.addEventListener('click', ()=>{
@@ -7955,6 +7975,7 @@ export function initLegacyApp() {
       palette: 'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
       sidebar: 'M4 5h16v14H4zM9 5v14',
       check: 'M5 12.5l4.5 4.5L19 7.5',
+      trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -8075,6 +8096,7 @@ export function initLegacyApp() {
     //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
     //   Colour…             the swatch's own picker, beside the bar (setPhaseColor).
     //   Show in Phases card the phase's row, scrolled into view.
+    //   Remove <phase>…     a CUSTOM phase only, the row's own × with its question (step 4, removePhaseHere).
     // Prep is worked out from each episode's first shoot day, so it has no start or end of its own to
     // move: both are greyed out with that reason (owner ruling 1, 18 Sep 2026), and its colour and row work.
     // An item that would change nothing is greyed out with that reason rather than banking an empty step.
@@ -8111,6 +8133,11 @@ export function initLegacyApp() {
       }
       items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
       items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
+      // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
+      // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
+      // such item.
+      if(customPhaseDefs.some(cp=> cp.key === key))
+        items.push({id: 'phase-remove', icon: 'trash', text: 'Remove ' + name + '…', danger: true, run: ()=> removePhaseHere(key)});
       return [{id: 'phase', label: name, swatch: seg.color, items}];
     }
 
@@ -8161,6 +8188,21 @@ export function initLegacyApp() {
         setPhaseColor(key, i);
         pushUndoSnapshot();
       });
+    }
+
+    // Exactly the row's own ×: its question first (the same words, only when there is something to
+    // lose), then its removal, which is ONE undo step banked AFTER the answer (plan §7: the bracket is
+    // synchronous, so an item that asks awaits first). Cancel changes nothing and banks nothing. The
+    // row is found again after the answer, by key, in case the question outlived it.
+    async function removePhaseHere(key){
+      const rowOf = ()=> document.querySelector('#custom-phase-rows .phase-row[data-key="' + key + '"]');
+      const row = rowOf();
+      if(!row || !(await confirmRemoveCustomPhase(row))) return;
+      const now = rowOf();
+      if(!now) return;
+      pushUndoSnapshot();
+      removeCustomPhaseRow(now);
+      pushUndoSnapshot();
     }
 
     // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
@@ -8390,7 +8432,7 @@ export function initLegacyApp() {
           const warn = !it.disabled && !!it.warn;
           const second = it.disabled ? it.why : (it.warn || it.note || '');
           const ico = it.radio ? (it.checked ? 'check' : '') : it.icon;
-          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + '"'
+          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + (it.danger ? ' is-danger' : '') + '"'
                 + ' role="' + (it.radio ? 'menuitemradio' : 'menuitem') + '" tabindex="-1"'
                 + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '')
                 + (it.radio ? ' aria-checked="' + !!it.checked + '" data-ov="' + escHtml(it.ov) + '"' : '')

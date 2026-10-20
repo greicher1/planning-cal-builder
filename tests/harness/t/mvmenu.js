@@ -5,8 +5,9 @@
 // P-cases): the bar's own section -- Start here (a mover), End here (the edge handle's rule), Colour…,
 // Show in Phases card. Plan step 4 (the L-cases, G7, N1, and C2 flipped): ruling L1, a LEFT-click on a
 // day opens the same menu under its number, the Full day/Off popover is retired, and its choices are the
-// menu's shoot-day section (data-ov rows). Later steps add their sections here, and flip the "absent"
-// checks below as they do.
+// menu's shoot-day section (data-ov rows); and (the R-cases, the owner's own addition the same day) Remove
+// <phase>… on a custom phase's bar. Later steps add their sections here, and flip the "absent" checks below
+// as they do.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
@@ -1014,6 +1015,82 @@ window.addEventListener('load', function () { (async function () {
     add('P6u', 'Exactly one undo step: it goes back to the Show tab and keeps the title typed just before',
       activeTab() === 'show' && eq(sig(), a.before) && (document.getElementById('show-title') || {}).value === 'Menu step ' + n,
       {tab: activeTab(), diff: sigDiff(a.before, sig())}, 'show, title kept');
+
+    // ---- R: Remove <phase>… (owner, 19 Oct 2026, by picker: added to step 4) ----
+    // A custom phase made here through the menu's own Add 1-week phase here, from Wed 11 Nov over Post, and named.
+    // The item is the sidebar row's × (its question, then its removal), banked as ONE undo step after the answer.
+    await rclick('2026-11-11', 'num');
+    choose('phase-week');
+    await settle();
+    var kR = lastCustomKey();
+    T.set('name-' + kR, 'Edit Bay');
+    await settle();
+    await T.sleep(700);
+    var daysR = pillDays(kR);
+    function rowR(){ return !!document.querySelector('#custom-phase-rows .phase-row[data-key="' + kR + '"]'); }
+    function removeItem(){
+      var b = menuEl() && menuEl().querySelector('[data-item="phase-remove"]');
+      return b ? {text: txt(b.querySelector('.day-menu-text')), danger: b.classList.contains('is-danger'), disabled: b.getAttribute('aria-disabled') === 'true', role: b.getAttribute('role')} : null;
+    }
+    await rclick('2026-11-12', 'bar:' + kR);
+    var r1 = {ph: menuInfo().ph, items: menuInfo().items.filter(function (x) { return /^phase-(start|end|colour|show|remove)$/.test(x.id); }).map(function (x) { return x.id; }), remove: removeItem()};
+    key('Escape');
+    await rclick('2026-11-12', 'bar:post');
+    r1.post = {ph: menuInfo().ph, remove: removeItem()};
+    key('Escape');
+    add('R1', 'On the custom phase "Edit Bay"\'s bar its section ends with "Remove Edit Bay…", a red item that is not greyed out; Post\'s bar (a built-in phase) has no such item',
+      !!kR && r1.ph === kR && eq(r1.items, ['phase-start', 'phase-end', 'phase-colour', 'phase-show', 'phase-remove']) && !!r1.remove && r1.remove.text === 'Remove Edit Bay…'
+        && r1.remove.danger && !r1.remove.disabled && r1.remove.role === 'menuitem' && r1.post.ph === 'post' && r1.post.remove === null && daysR.length > 0,
+      {key: kR, days: daysR, r1: r1}, 'Remove Edit Bay… on its bar, none on Post');
+    // A title typed just before the item, with the bar already in view, so nothing waits between the two.
+    async function primeAt(iso, where){
+      var q = await pointOn(iso, where);
+      T.set('show-title', 'Menu step ' + (++n));
+      var before = sig();
+      rclickAt(q.x, q.y);
+      return {before: before};
+    }
+    // The question, or '' if none comes (a build that does not ask must turn its case red, not end the leg).
+    async function removeQuestion(){
+      for(var i = 0; i < 40; i++){ var t = T.modalText(); if(/Remove this phase\?/.test(t)) return t; await T.sleep(20); }
+      return '';
+    }
+    a = await primeAt('2026-11-12', 'bar:' + kR);
+    choose('phase-remove');
+    var q2 = await removeQuestion();
+    if(q2) T.clickModalButton('Cancel');
+    await settle();
+    var r2 = {question: q2, row: rowR(), days: pillDays(kR), menu: !!menuEl(), diff: sigDiff(a.before, sig())};
+    add('R2', 'Remove Edit Bay… asks the sidebar\'s own question ("Remove this phase? Its name, dates, duration and hiatus will be lost."), and Cancel keeps the phase: its row, its bar, fields.byId unchanged',
+      /Remove this phase\? Its name, dates, duration and hiatus will be lost\./.test(q2) && r2.row && eq(r2.days, daysR) && eq(sig(), a.before) && !r2.menu,
+      r2, 'asked; nothing removed');
+    await T.sleep(700);
+    var idsR = Object.keys(sig()).filter(function (k) { return k.slice(-(kR.length + 1)) === '-' + kR; }).sort();
+    a = await primeAt('2026-11-12', 'bar:' + kR);
+    var rowsR = customRows();
+    choose('phase-remove');
+    var q3 = await removeQuestion();
+    if(q3) T.clickModalButton('Remove');
+    await settle();
+    var after3 = sig(), d3 = sigDiff(a.before, after3);
+    var r3 = {question: !!q3, rows: [rowsR, customRows()], row: rowR(), days: pillDays(kR), removed: d3.removed.slice().sort(), ids: idsR, diff: d3};
+    add('R3', 'Remove confirms it: Edit Bay\'s row and bar are gone, and fields.byId loses exactly that row\'s ids and nothing else',
+      r3.question && r3.rows[1] === r3.rows[0] - 1 && !r3.row && r3.days.length === 0 && idsR.length > 0 && eq(r3.removed, idsR) && d3.added.length === 0 && d3.changed.length === 0,
+      r3, 'the row\'s ids removed, nothing else');
+    await T.sleep(700);
+    await undo();
+    var u3 = {row: rowR(), name: fv('name-' + kR), days: pillDays(kR), title: (document.getElementById('show-title') || {}).value, same: eq(sig(), a.before)};
+    await redo();
+    var re3 = {row: rowR(), same: eq(sig(), after3)};
+    add('R3u', 'Exactly one undo step: undo brings Edit Bay back (its row, its name, its bar on the same days) with the title typed just before kept; redo removes it again',
+      u3.row && u3.name === 'Edit Bay' && eq(u3.days, daysR) && u3.same && u3.title === 'Menu step ' + n && !re3.row && re3.same,
+      {undo: u3, redo: re3, diff: sigDiff(a.before, sig())}, 'one step');
+    // ⚠️ Back to the Show tab, where the cases after these began before them. Add 1-week phase here left the
+    // sidebar on Phases, scrolled to the new row, and the sidebar's scroll then landed during S2's export and
+    // closed the menu S2 holds open (a scroll outside the menu closes it).
+    var showTabR = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
+    if(showTabR) showTabR.click();
+    await T.sleep(700);
 
     // P3: Production. End is greyed out (ruling Q3), and Start is a MOVER: a day mark travels with the shoot BY
     // SHOOT-DAY NUMBER (owner ruling R2). Marked off on Wed 8 Jul through the menu's shoot-day Off, opened by a

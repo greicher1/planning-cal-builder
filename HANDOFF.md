@@ -19,6 +19,10 @@
   - Clicking the open day again closes it, so double-click-to-clear works. On a shoot day the footer says "Double-click
     a marked day to clear it".
   - Right-click still works. "+" slots, notes and bars keep their own left-clicks.
+  - ⭐ **Added the same day, at the owner's request** (asked *"Will you be able to delete a custom phase from this
+    menu"*, then picked "Yes, add it to step 4"): a CUSTOM phase's bar ends its section with a red **Remove
+    <phase>…**. It asks the sidebar ×'s own question ("Remove this phase? Its name, dates, duration and hiatus will be
+    lost.") and is one undo step after the answer. Cancel changes nothing. A built-in phase or Prep has no such item.
 - **Code** (no frozen symbol touched, nothing new saved):
   - `installDayOverrideUI` keeps `daySituation`, `setOverride` and the dblclick. It lifts the popover's row list into
     `dayOverrideRows(sit)` → `{rows, stale}`, and builds the menu's section in `shootSection(d)`, lent as
@@ -33,6 +37,11 @@
     - `ICON.check`.
   - `legacy.css`: the `.day-ov-*` block is replaced by a retirement note. Four small `.day-menu-*` rules added (the
     checked tick, the warning ink, the notice line).
+  - Remove <phase>…: the sidebar ×'s handler is lifted into two module-scope halves just above `addCustomPhaseRow`,
+    `confirmRemoveCustomPhase(row)` (the question) and `removeCustomPhaseRow(row)` (the removal). The × and the menu's
+    `removePhaseHere(key)` both call them, and the menu banks its undo step between the two. `removeCustomPhaseRow`
+    now refuses a row that left the document while the question was up, which the × did not check before.
+    `panelHtml` gained `danger` (`.is-danger`, red), and `ICON.trash` was added.
   - `.day-ov-pop` stays in `OVER_PANEL` and in `buildSavedHtml`'s strip list. Nothing creates one now, so the entries
     are inert; they were left rather than edited.
 - ⭐ **Learned: the menu closes on the PRESS, so a click-toggle needs to remember the press.** The popover closed on a
@@ -52,18 +61,23 @@
   reason reads "Inside the hiatus — …" when the label is empty. Case N1.
 - ⚠️ **The plan's §11 was wrong about 12 Jul.** It is a weekend INSIDE the shoot, so the popover did open there. L3 uses
   Sun 28 Jun (before the shoot) for "opens where nothing opened before"; the plan now says so.
+- ⭐ **Learned: a case that leaves the sidebar scrolled can close a later case's menu.** The R-cases' Add 1-week phase
+  here left the sidebar on Phases, scrolled to the new row. S2's menu was still open right after the export click, so
+  the copy was taken with it open, but a `.form-panel` scroll landed before the leg looked again and closed it. That is
+  the menu's own close rule, working as built. The R-cases now go back to the Show tab, as P6 does.
 - **Tests:**
-  - `mvmenu` 73 cases: L1–L9 (left-click), G7, N1. C2 is flipped. H1s gains the shoot section. P3 sets its Off mark
+  - `mvmenu` 77 cases: L1–L9 (left-click), G7, N1, R1–R3u (Remove <phase>…). C2 is flipped. H1s gains the shoot section. P3 sets its Off mark
     through the menu. Every left-click is press + release + click on `elementFromPoint` (`lclickAt`).
   - `halfdays` D5 and `halfworked` read `[data-section="shoot"] [data-ov]`, with every asserted value unchanged.
     `halfworked`'s `closePops()` presses outside before its click.
   - The gate.sh comment and tests/harness/README updated (`halfworked` has a row there now).
 - **Proof:**
-  - Build `65f57260…` (1,537,363 bytes). `npm run check` 40/40; `check-refs.py` CLEAN.
-  - On private ports 8873/8874, all on `/dist/index.html`: `mvmenu` 73/73, `halfdays` 26/26, `halfworked` 24/24,
-    `overrides` 20/20, `pilldrag` 30/30, `phaseedge` 14/14.
-  - Eleven mutants (scratch copy of `app.js`, mutate, build into an untracked `dist-mut/<name>/`, restore, `cmp`; the
-    rebuilt `dist` hashed back to `65f57260…`). On `mvmenu`, each turns its own cases red:
+  - Build `aa3239d1…` (1,538,031 bytes), with Remove <phase>…. `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private ports 8873/8874, all on `/dist/index.html`: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24,
+    `overrides` 20/20, `loadcarry` 6/6 (it clicks the sidebar's ×), `pilldrag` 30/30, `phaseedge` 14/14.
+  - Fifteen mutants (scratch copy of `app.js`, mutate, build into an untracked `dist-mut/<name>/`, restore, `cmp`; the
+    rebuilt `dist` hashed back to `aa3239d1…`), all re-run on the 77-case leg. On `mvmenu`, each turns its own cases
+    red:
 
     | Mutant | Red on `mvmenu` |
     |---|---|
@@ -78,10 +92,15 @@
     | no Mac Ctrl guard | G7 |
     | no leading push in `setOverride` | L6, and L9 after it |
     | the pointer's day instead of the cell's | L4, and L5 after it |
+    | Remove on every phase, built-in too | R1, and H1s (Production's bar gains it) |
+    | Remove without its question | R2, and the leg ends (the phase is gone) |
+    | Remove whatever the answer | R2, and the leg ends |
+    | no leading push in `removePhaseHere` | R3u |
 
     The no-left-click build is also red on `halfdays` D5 and `halfworked` (EX).
   - By hand in the browser pane, with real clicks: 7 Jul's menu (flipped above), Off, a real double-click to clear it
-    (no menu or ring left), the holiday and pre-shoot days, and the beside placement.
+    (no menu or ring left), the holiday and pre-shoot days, and the beside placement. Then a real right-click on a
+    custom "Edit Bay" bar: Remove Edit Bay… in red, the "Remove phase" dialog, Remove, and one Undo bringing it back.
   - ⏳ **The full gate is pending.**
 - ⏭ **Next:** the full gate; then the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
   sections) after. The two open items from steps 1–3 still stand: an `mvmenu` prep case, and a real Mac Ctrl+click.

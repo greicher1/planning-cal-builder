@@ -47,16 +47,21 @@ combine the full day/off day menu with the right-click menu … would instead po
 - **Double-click a marked day still clears it.** Clicking the day whose menu is open closes the menu. The menu's
   footer says "Double-click a marked day to clear it" on a shoot day.
 - **Unchanged:** a click on a "+" opens the note editor, a click on a note edits it, and a press on a bar drags it.
+- **Remove a custom phase from its bar** (the owner's request the same day). A custom phase's section ends with a red
+  **Remove <phase>…**. It asks the Phases card's own question first ("Remove this phase? Its name, dates, duration and
+  hiatus will be lost."), and the removal is one undo step. Built-in phases have no such item, as they can't be
+  removed anywhere.
 - **Fixed with it (plan §8.1, the owner's yes by picker):** a hiatus whose band label was emptied on purpose made its
   days offer Full day / Off, which do nothing inside a hiatus. They now offer only the greyed-out "Work this day",
   "Inside the hiatus — shorten the hiatus to work these days".
 - No frozen code changed and nothing new is saved. The `.day-ov-*` styles went with the popover.
-- **Verified:** `mvmenu` 73/73, with C2 flipped and new cases for the left-click: where it opens, the toggle,
-  double-click-to-clear, the flip, "+" slots, notes and bars, a Mac Ctrl+click, §8.1. Eleven mutants each turn their own
-  cases red. `halfdays` (D5) and `halfworked` now read the menu's `data-ov` rows, with every value they assert
-  unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20,
-  `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by hand in the browser pane: a real click on
-  7 Jul, Off, a real double-click to clear, and the beside placement on a 768 px window. The full gate is pending.
+- **Verified:** `mvmenu` 77/77, with C2 flipped and new cases for the left-click: where it opens, the toggle,
+  double-click-to-clear, the flip, "+" slots, notes and bars, a Mac Ctrl+click, §8.1, and Remove <phase>…. Fifteen
+  mutants each turn their own cases red. `halfdays` (D5) and `halfworked` now read the menu's `data-ov` rows, with
+  every value they assert unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked`
+  24/24, `overrides` 20/20, `loadcarry` 6/6, `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by
+  hand in the browser pane: a real click on 7 Jul, Off, a real double-click to clear, the beside placement on a 768 px
+  window, and Remove on a custom phase with one Undo. The full gate is pending.
 
 ### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
 

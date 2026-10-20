@@ -2455,6 +2455,8 @@
   .day-menu-item[aria-checked="true"] .day-menu-text{ font-weight:600; }
   .day-menu-text small.day-menu-warn{ color:#7A5B14; font-weight:400; }
   .day-menu-text small{ font-weight:400; }
+  /* A destructive item (Remove <phase>…, step 4) reads in red, as Mantine's menus mark one. */
+  .day-menu-item.is-danger:not(.is-disabled), .day-menu-item.is-danger:not(.is-disabled) .day-menu-ico{ color:var(--mantine-color-red-7); }
   .day-menu-notice{
     padding:2px 10px 4px 35px; font-size:var(--mantine-font-size-xxs); line-height:14px; color:var(--text-faint);
   }

@@ -1556,8 +1556,8 @@ done
 # guards and close rules, and its items, each one undo step, on halfdays.sptcal. Every right-click is hit-tested
 # (dispatched on elementFromPoint). It grows with each plan step. Since step 4 (ruling L1) also the LEFT-click on a
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
-# double-click-to-clear working, and where it opens under the number. halfdays (D5) and halfworked read that
-# section's data-ov rows where they read the popover's.
+# double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
+# halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
