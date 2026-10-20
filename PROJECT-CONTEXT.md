@@ -423,10 +423,15 @@ automatic" (§9a).
 
 ### Sidebar tabs
 
-Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`. Sections are
-`<section class="card" data-tab="...">`. The Settings tab holds **Production Region** and
-**Holidays** together — they were previously split across two tabs, which made the region
-undiscoverable.
+Two tabs: **Show** and **Phases** (`setSidebarTab()`. Sections are
+`<section class="card" data-tab="...">`), and a **Settings** button beside them. Until 20 Oct 2026
+Settings was a third tab; owner ruling 12 made it the **Settings window**
+(`src/chrome/SettingsWindow.jsx`), a tabbed panel that slides in over the sidebar and leaves the
+waterfall visible. Its tabs: **Calendar** (saved in the file: Single Column Mode, Label Production by,
+Pause prep, Export App With Data), **Region** (Production Region and Holidays, which were once split
+across two sidebar tabs, which made the region undiscoverable), **Presets** (header presets; the
+side-box presets will join them) and **Preferences** (this computer only). An old file's
+`sidebarTab: 'settings'` opens on Show. UI-CONVENTIONS §8.8 and §8.9 hold the two traps it found.
 
 ---
 
@@ -1240,8 +1245,8 @@ static `admin.html` that authors holiday rules and exports a pack is the recomme
 **not** a live API, which would break offline use and risk silently shifting dates under already-
 saved calendars. Holiday data must never auto-update into an existing calendar.
 
-**Not yet done:** non-holiday settings (export options, defaults) in the Settings tab — the owner
-asked to hold off on those.
+**Not yet done:** non-holiday settings (export options, defaults) — the owner asked to hold off on
+those. Since 20 Oct 2026 calendar-level settings go in the Settings window's Calendar tab.
 
 > **This section is no longer the live list.** [`HANDOFF.md`](HANDOFF.md) §2 is what has been asked
 > for and not yet delivered, and **§8 is the sequenced build order** across all of it — the docs

@@ -64,7 +64,9 @@ window.addEventListener('load', function () { (async function () {
   function boxes() { return KINDS.map(function (k) { var b = box(k); return b ? b.checked : null; }); }
   // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
   async function clickBox(kind) {
-    var tab = document.querySelector('.side-tab-btn[data-tab="settings"]'); if (tab) tab.click();
+    // The card lives in the Settings window's Calendar tab since ruling 12 merged (it was the sidebar's
+    // Settings tab): open it there so the box is laid out and on top.
+    await T.openSettings('calendar');
     await T.sleep(150);
     var b = box(kind);
     if (!b) throw new Error('no Automatic notes box for ' + kind);
@@ -146,7 +148,6 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     await T.typeUserNote('2027-03-01', 'Table read');
     await T.typeUserNote('2027-01-04', WR + '\nPitch day');
-    var tab = document.querySelector('.side-tab-btn[data-tab="settings"]'); if (tab) tab.click();   // sidebarTab is saved state
     await settle();
     var saveA = await save();
 
@@ -168,8 +169,8 @@ window.addEventListener('load', function () { (async function () {
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no
       // form control, as on every card.)
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
-      kase('A1', 'the card: in the Settings tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
-           !!sec && sec.getAttribute('data-tab') === 'settings' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
+      kase('A1', 'the card: in the Settings window\'s Calendar tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
+           !!sec && T.settingsTabOf(sec) === 'calendar' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
            same(labels, ['Writer’s Room Opens', 'Start Principal Photography', 'Principal Photography Wraps']) &&
            same(boxes(), [true, true, true]) && ids.length === 0 && !sec.closest('.prefs-card'),
            { labels: labels, boxes: boxes(), ids: ids });

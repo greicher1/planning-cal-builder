@@ -5916,7 +5916,6 @@ export function initLegacyApp() {
         <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
         <div class="phase-fields">
           <label title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep days <input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None"></label>
-          <label class="prep-pause-off" title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them."><input type="checkbox" class="prep-pause-off-cb"> Pause prep on days marked Off</label>
         </div>
         <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
@@ -5925,11 +5924,10 @@ export function initLegacyApp() {
     // Prep"), as refreshPrepUI() does on every update() while the box is not being typed in.
     row.querySelector('#prep-name').addEventListener('change', syncPrepName);
     row.querySelector('#prep-days').addEventListener('input', update);
-    // The switch writes its variable, then update() recomputes and (through markDirty) banks ONE undo step.
-    row.querySelector('.prep-pause-off-cb').addEventListener('change', (e)=>{
-      prepPauseOff = !!e.target.checked;
-      update();
-    });
+    // ⚠️ "Pause prep on days marked Off" was a box in this row until the owner moved it into the
+    // Settings window ▸ Calendar (ruling 12, 20 Oct 2026). It is React-rendered there
+    // (#prep-pause-off, Sidebar.jsx CalendarMonthCard), so it is handled by delegation below, never
+    // captured here.
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
       openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=> setPhaseColor(PREP_KEY, i));
@@ -5967,8 +5965,9 @@ export function initLegacyApp() {
   // update() calling this still adds no undo step.
   function refreshPrepUI(schedule){
     syncPrepName();
-    // The switch shows its variable, so an undo, a Load or New puts the tick back with the rest.
-    const pauseCb = document.querySelector('#prep-row .prep-pause-off-cb');
+    // The switch shows its variable, so an undo, a Load or New puts the tick back with the rest. It is
+    // in the Settings window now (ruling 12), looked up by id on every call.
+    const pauseCb = document.getElementById('prep-pause-off');
     if(pauseCb && pauseCb.checked !== prepPauseOff) pauseCb.checked = prepPauseOff;
     const wrap = document.getElementById('prep-rows');
     const metaEl = document.getElementById('prep-meta');
@@ -6237,9 +6236,19 @@ export function initLegacyApp() {
   // ⛔ CALENDAR DATA, NOT A PREFERENCE: it is captureSnapshot()'s `prepPauseOff`, never localStorage.
   // UNTICKED IS AN ABSENT KEY (mvProdLabel's shape), so every calendar saved before the switch existed,
   // and every one that leaves it off, saves byte for byte what it did. ⛔ The key is permanent.
-  // ⛔ Its checkbox in the Prep row carries NO id, so collectFieldValues() never sweeps it into
-  // fields.byId: this variable is the one store, and the box only ever reflects it (refreshPrepUI).
+  // ⛔ Its switch (#prep-pause-off, the Settings window since ruling 12; a box in the Prep row with no
+  // id before) is skipped by collectFieldValues() through .prefs-card, so fields.byId never holds it:
+  // this variable is the one store, and the switch only ever reflects it (refreshPrepUI).
   let prepPauseOff = false;
+  // The switch writes its variable, then update() recomputes and (through markDirty) banks ONE undo
+  // step. By delegation on the id: the switch is React's, in the Settings window (owner ruling 12), and
+  // the engine never holds the node. ⛔ It sits inside .prefs-card, so the sweep skips its id and this
+  // variable stays the one store.
+  document.addEventListener('change', e=>{
+    if(!e.target || e.target.id !== 'prep-pause-off') return;
+    prepPauseOff = !!e.target.checked;
+    update();
+  });
   // A prep length as typed: a whole number of working days, 0 included (an override of 0 means "no
   // prep for this one", §5), or NaN for a blank or unreadable box. parseInt, like every other duration
   // here; reflectStartDateValidity() rings a fraction ("Whole days only").
@@ -8928,7 +8937,7 @@ export function initLegacyApp() {
       const sw = document.getElementById('swatch-' + key);
       const row = sw && sw.closest('.phase-row');
       pushUndoSnapshot();
-      setSidebarTab('phases');
+      revealSidebarTab('phases');
       pushUndoSnapshot();
       if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
@@ -9101,7 +9110,7 @@ export function initLegacyApp() {
     // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Show in Phases card is.
     function showHiatusRow(row){
       pushUndoSnapshot();
-      setSidebarTab('phases');
+      revealSidebarTab('phases');
       pushUndoSnapshot();
       if(row.isConnected) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
@@ -9208,7 +9217,7 @@ export function initLegacyApp() {
       update();
       // The old-build fallback (weeks-<key>) of a Dates phase, inside the step. A no-op on Weeks.
       syncCustomUnitFallback(key);
-      setSidebarTab('phases');
+      revealSidebarTab('phases');
       pushUndoSnapshot();
       const name = field('name');
       const row = name && name.closest('.phase-row');
@@ -13098,8 +13107,13 @@ export function initLegacyApp() {
 
   let sidebarTab = 'show';
   function setSidebarTab(tab){
-    if(tab === 'holidays') tab = 'settings';   // pre-rename saves
-    if(!['show','phases','settings'].includes(tab)) tab = 'show';
+    // ⭐ 'settings' IS NOT A TAB ANY MORE (owner ruling 12, 20 Oct 2026): what it showed moved into the
+    // Settings window, which is session UI and never saved. ⛔ But the KEY's old values stay readable
+    // forever: a calendar saved with the Settings tab up (or 'holidays', its pre-rename name) carries
+    // sidebarTab:'settings', and it opens on Show -- the fallback any unknown value already took.
+    // Opening the window instead was rejected: a Load that pops a panel over the sidebar because of
+    // where someone else's sidebar was when they saved is a surprise, not a restore.
+    if(!['show','phases'].includes(tab)) tab = 'show';
     sidebarTab = tab;
     document.querySelectorAll('.side-tab-btn').forEach(b=>{
       const on = b.dataset.tab === tab;
@@ -13114,6 +13128,15 @@ export function initLegacyApp() {
     reflectMonthTagPrefs();
     reflectDateFormat();
     reflectHeaderRowCustom();
+  }
+  // A tab the user is being SENT to -- "Show in Phases card", Add phase here -- closes the Settings
+  // window first, because it lies over the whole sidebar and would hide the row being revealed.
+  // ⛔ Only these calls. setSidebarTab() itself must never close it: every undo, redo and Load
+  // replays the saved sidebarTab through it, and an undo of a change made IN the window would
+  // otherwise shut the window under the user's hands.
+  function revealSidebarTab(tab){
+    chrome.settingsWindow({open: false});
+    setSidebarTab(tab);
   }
   reflectGridlines();
   reflectMonthTagPrefs();
@@ -19025,6 +19048,13 @@ export function initLegacyApp() {
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
     if(clone.body) clone.body.classList.remove('grid-cell-hover', 'grid-selecting', 'grid-resizing', 'row', 'span');
+    // The Settings window's open state reaches OUTSIDE its host (SettingsWindow.jsx): .settings-open on
+    // the sidebar, `inert` on everything the window covers, and the button's aria-expanded. Emptying
+    // #settings-host below removes the window but not those, so a copy exported with the window up
+    // would boot with a sidebar nothing can click. The app sets `inert` nowhere else.
+    clone.querySelectorAll('[inert]').forEach(el=> el.removeAttribute('inert'));
+    clone.querySelectorAll('.form-panel.settings-open').forEach(el=> el.classList.remove('settings-open'));
+    clone.querySelectorAll('.side-settings-btn').forEach(el=> el.setAttribute('aria-expanded', 'false'));
     // EMPTY THE REACT HOSTS (audit H-2, FIX-PLAN.md 1.6, 25 Sep 2026). These ship as empty
     // containers in the markup (src/index.html) and React renders the chrome INTO them at runtime:
     // the header controls, the preview toolbar, the static sidebar cards, the hiatus hint. cloneNode
@@ -19036,7 +19066,9 @@ export function initLegacyApp() {
     // L-21). The live document is untouched -- this is the clone.
     // #hiatus-reset-host joined the list with owner ruling 5 (30 Sep 2026): "Reset hiatus bands" is
     // portalled there, so a copy built without it would boot with a stale button beside React's.
-    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
+    // #settings-host joined it with the Settings window (owner ruling 12, 20 Oct 2026): Region, Holidays
+    // and the preferences render there now, so a copy that kept them would boot with two of each.
+    clone.querySelectorAll('header.app-header, .view-toggle-row, #sidebar-static, #settings-host, #hiatus-hint-host, #hiatus-reset-host, #react-root').forEach(el=> el.replaceChildren());
     // The side columns (SIDE-BOXES-PLAN.md §7) go back to their shipped state too -- empty, hidden, no
     // grid on the panel: the copy's own engine draws its boxes from the saved state when it opens, as
     // #table-wrap is drawn.

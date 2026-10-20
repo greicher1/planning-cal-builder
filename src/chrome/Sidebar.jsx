@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconSliders, IconHeading, IconNote, IconColumns } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 
@@ -172,7 +172,7 @@ export function HiatusResetButton() {
 
 export function RegionCard() {
   return (
-    <section className="card" data-tab="settings">
+    <section className="card">
       <h2>
         <IconMapPin className="card-ic" /><span>Production Region</span>
         {/* Was a permanent three-line paragraph here (owner, 31 Aug 2026). The copy is unchanged;
@@ -264,7 +264,7 @@ export function RegionCard() {
 }
 
 // "Automatic notes" (owner ruling 9, 20 Oct 2026): which KINDS of automatic note this calendar shows, all on
-// by default. Its own card in the Settings tab for now; the Settings-window work re-homes it.
+// by default. Its own card in the Settings window's Calendar tab (SettingsWindow.jsx), saved with the calendar.
 //
 // ⛔ CALENDAR DATA, saved in the file (the engine's autoNotesOff, captureSnapshot()'s `autoNotesOff`), so this
 // is NOT a .prefs-card -- and therefore NOT ONE `id` ON ANY CONTROL HERE: collectFieldValues() sweeps every
@@ -283,13 +283,13 @@ const AUTO_NOTE_ROWS = [
 ]
 export function AutoNotesCard() {
   return (
-    <section className="card" data-tab="settings">
+    <section className="card">
       <h2>
         <IconNote className="card-ic" /><span>Automatic notes</span>
         <InfoHint label="Automatic notes" width={300}>
           Notes the calendar writes for you, dated from the schedule. Untick one to leave it out of the Notes
           column, the month view and every export. Notes you typed yourself never change. Holiday notes are
-          chosen holiday by holiday under Holidays. Saved with the calendar.
+          chosen holiday by holiday under Holidays, in the Region tab.
         </InfoHint>
       </h2>
       <div className="side-block autonote-list">
@@ -304,173 +304,222 @@ export function AutoNotesCard() {
   )
 }
 
-// ⛔ PREFERENCES, NOT CALENDAR DATA -- and the card says so, because nothing else in this tab
-// behaves that way. Production Region and Holidays above it travel INSIDE a saved .sptcal; these
-// stay on this computer and never enter captureSnapshot(). Users will not guess that split.
+// ⭐ THE SETTINGS WINDOW'S CARDS (owner ruling 12, 20 Oct 2026). The old Preferences card held two
+// kinds of thing -- settings saved in the calendar and preferences kept on this computer -- and its
+// hint had to explain the split. The window's tabs ARE that split now (SettingsWindow.jsx), so the
+// card is cut along it: CalendarWaterfallCard / CalendarMonthCard under the Calendar tab, and
+// PrefsWaterfallCard / PrefsMonthCard under Preferences. Owner's placement, relayed the same day:
+// Single Column Mode, Label Production by and "Pause prep on days marked Off" are THIS CALENDAR's.
 //
-// ⛔ `prefs-card` is load-bearing, not decorative: collectFieldValues() sweeps every input[id] /
-// select[id] / textarea[id] in the document, and the engine skips this class. Without it the
-// control would be baked into every saved calendar AND add a phantom undo step on every change.
-// Any future preference control belongs INSIDE this card for that reason alone.
-export function PreferencesCard() {
+// ⛔ `prefs-card` IS ON ALL FOUR, AND ON THE TWO CALENDAR CARDS IT DOES NOT MEAN "PREFERENCE".
+// collectFieldValues() sweeps every input[id] / select[id] / textarea[id] in the document into
+// fields.byId and skips this class (reflectFieldsToAttributes() too). What the class really means is
+// "not swept: these controls are recorded somewhere else". For the preferences that somewhere is
+// localStorage; for the calendar settings it is each one's OWN captureSnapshot() key (singleColumn,
+// mvProdLabel, prepPauseOff), the single source of truth, which the control only reflects. Take the
+// class off a calendar card and #one-col-btn, the mv-prod-label radios and #prep-pause-off land in
+// fields.byId as a second, drifting copy, and gate 5's id set changes. A calendar setting that IS
+// meant to be in fields.byId (as #union-place is) must sit OUTSIDE these cards.
+//
+// ✅ BY VIEW (owner, 22 Sep 2026): "Single column mode setting should only show in waterfall view and
+// the two show in month view settings should only show up in the month view" -- and, the same day,
+// "the grid lines in exports setting should only show in the waterfall view not the month view". The
+// rows that were split by a Box inside the old card are split by CARD now: .pref-view-sheet and
+// .pref-view-month, shown/hidden in CSS off the view toggle's `.active` (legacy.css, :has()), which
+// setViewMode() already maintains -- no second copy of the view state to drift. Hiding a card changes
+// nothing about what its controls store.
+
+// Shared by the four: label left, small control right -- the settings-row shape (owner, 10 Sep 2026),
+// a <Text size="sm"> label rather than the control's own `label` prop so every row shares one type
+// scale.
+function SettingRow({ htmlFor, label, children }) {
   return (
-    <section className="card prefs-card" data-tab="settings">
+    <Group justify="space-between" wrap="nowrap" gap="sm">
+      <Text component="label" htmlFor={htmlFor} size="sm" style={{ cursor: 'pointer' }}>
+        {label}
+      </Text>
+      {children}
+    </Group>
+  )
+}
+
+export function CalendarWaterfallCard() {
+  return (
+    <section className="card prefs-card pref-view-sheet">
       <h2>
-        <IconSliders className="card-ic" /><span>Preferences</span>
-        {/* ⛔ THIS CARD NO LONGER HOLDS ONE KIND OF THING, AND THE HINT HAS TO SAY SO. It used to
-            promise "these stay on this computer and are not part of a saved calendar", which was
-            true of gridlines and is FALSE of One column -- that one is calendar data, in
-            captureSnapshot(), so it travels inside a file you send. Leaving the old wording would
-            have been a confident lie about where someone's settings go. */}
-        {/* ⚠️ Re-worded for MONTH-PILL-LABEL-PLAN step 3: "Label Production by" is the second
-            setting here that belongs to the calendar (owner ruling Q2), and the Show switches are
-            three now, so "the two Month View settings" was no longer true either way. */}
-        <InfoHint label="Preferences" width={330}>
-          Grid lines and the Month View “Show” switches stay on this computer — send someone a
-          calendar and they keep their own. Single Column Mode and Label Production by belong to the
-          calendar itself, so they travel with a file you send.
+        <IconRows className="card-ic" /><span>Waterfall</span>
+        <InfoHint label="Waterfall" width={320}>
+          How the waterfall reads, on screen and in Excel and the PDF. With Custom Column Headings on,
+          the year moves over the Date column and you click any heading to type your own; neighbouring
+          columns with the same heading merge.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
+        {/* ⭐ A real switch, not a button that changes colour (owner: "this should be a toggle like
+            in iOS settings").
+            ⛔ IT IS AN <input type="checkbox"> WITH AN id, INSIDE .prefs-card, AND THAT IS SAFE --
+            but only because of the class. collectFieldValues() skips it, so the switch is NOT in
+            fields.byId; One column travels through captureSnapshot()'s own `singleColumn` key, the
+            single source of truth.
+            ⚠️ AN EARLIER COMMENT HERE CLAIMED A CHECKBOX WOULD BE STORED TWICE AND DISAGREE WITH
+            ITSELF. That was wrong, and the correction is worth keeping: skipped-by-the-sweep means
+            exactly ONE store, so nothing can disagree. The genuine hazard is the mirror image -- an
+            id'd control of any kind placed OUTSIDE this class would be in fields.byId AND the
+            snapshot, and those two can drift.
+            ⛔ UNCONTROLLED ON PURPOSE: no `checked` prop. The engine owns the state and writes
+            .checked in reflectSingleColumn(); a controlled input would fight it on every commit.
+            ⚠️ Named by the owner, 10 Sep 2026. The id stays `one-col-btn`: it is the engine's
+            binding and both gate legs' handle, and renaming it would buy nothing but breakage. */}
+        <SettingRow htmlFor="one-col-btn" label="Single Column Mode">
+          <Switch id="one-col-btn" size="md"
+                  aria-label="Single Column Mode"
+                  title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
+        </SettingRow>
+        {/* The waterfall's dates and column headings (owner rulings 2 and 4, 20 Oct 2026; HEADER-ROW-PLAN.md),
+            folded into this card when the Settings window merged: they were a "Waterfall Layout" card of
+            their own in the old Settings tab. The same .prefs-card rule as the switch above: each id is
+            skipped by the sweep and travels as its own captureSnapshot() key (`dateFormat`,
+            `headerRowCustom`), so gate 5's id set does not move.
+            ⛔ UNCONTROLLED: the engine writes .value / .checked (reflectDateFormat, reflectHeaderRowCustom)
+            and catches 'change' on document. A controlled input would fight it on every commit. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="wf-date-format" label="Dates">
+          <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
+                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
+            <option value="">1/6/25</option>
+            <option value="m/d/yyyy">1/6/2025</option>
+          </NativeSelect>
+        </SettingRow>
+        <Divider my="sm" />
+        {/* Ruling 2's opt-in (owner's picker, 20 Oct 2026). Off is Date | year | Notes, as every
+            calendar has always printed. */}
+        <SettingRow htmlFor="wf-hdr-custom" label="Custom Column Headings">
+          <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
+                  title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
+        </SettingRow>
+      </div>
+    </section>
+  )
+}
+
+export function CalendarMonthCard() {
+  return (
+    <section className="card prefs-card pref-view-month">
+      <h2><IconCalendarPlain className="card-ic" /><span>Month view</span></h2>
+      <div className="side-block">
+        {/* ✅ MONTH-PILL-LABEL-PLAN step 3 (owner rulings Q1–Q3, 15 Oct 2026): what Production's
+            month bars are labelled by. CALENDAR DATA (Q2) -- see ProdLabelControl. First in the card
+            and never hidden, so the row below can open on its own divider. */}
+        <ProdLabelControl />
+
+        {/* "Pause prep on days marked Off" (owner, 20 Oct 2026). It was a box in the Prep row of the
+            Phases card ("Prep card, saved"); the owner moved it here the same day, under This
+            calendar. CALENDAR DATA: the engine's prepPauseOff is the one store, saved as the
+            top-level `prepPauseOff` key (written only as `true`). ⛔ The id is new and it is SAFE
+            ONLY INSIDE .prefs-card: the box carried no id at all before, so fields.byId never held
+            it, and it must not start to. ⛔ Uncontrolled: refreshPrepUI() writes .checked from the
+            variable, so an undo, a Load or New puts the switch back with the rest; the engine takes
+            the change by delegation on the id. Month view only, like the Prep row it acts on: prep
+            is drawn in the month view and its PDF and nowhere else. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="prep-pause-off" label="Pause prep on days marked Off">
+          <Switch id="prep-pause-off" size="md"
+                  aria-label="Pause prep on days marked Off"
+                  title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them." />
+        </SettingRow>
+      </div>
+    </section>
+  )
+}
+
+export function PrefsWaterfallCard() {
+  return (
+    <section className="card prefs-card pref-view-sheet">
+      <h2>
+        <IconRows className="card-ic" /><span>Waterfall</span>
+        {/* ⚠️ The visible description was removed 9 Sep 2026 at the owner's request ("remove the
+            descriptions, theyre not necessary"). Its content -- export-only, the editor's own grid
+            is unchanged -- lives in this ⓘ: it is the answer to "why did nothing change on screen?". */}
+        <InfoHint label="Grid Lines in Exports" width={300}>
+          How the cell borders are drawn in the Excel workbook and the waterfall PDF. The grid on
+          screen is unchanged.
         </InfoHint>
       </h2>
       <div className="side-block">
         {/* Uncontrolled ON PURPOSE: the engine writes .value in reflectGridlines(), the same
-            contract #tool-anchor-date has. A controlled input would ignore that write. */}
-        {/* ⛔ Export-only, and the description says so: the owner ruled 3 Sep 2026 that this is
-            "about the pdf export ... not in the live app view". The editor's own gridlines are
-            unchanged by it. */}
-        {/* ⛔ No separate "Default" entry (owner, 3 Sep 2026): None IS the default, and a Default
+            contract #tool-anchor-date has. A controlled input would ignore that write.
+            ⛔ Export-only: the owner ruled 3 Sep 2026 that this is "about the pdf export ... not in
+            the live app view". The editor's own gridlines are unchanged by it.
+            ⛔ No separate "Default" entry (owner, 3 Sep 2026): None IS the default, and a Default
             that merely meant None was a second name for the same output. None is listed first for
-            that reason -- it is what a fresh calendar exports and what the reference exports look
-            like. */}
-        {/* ⚠️ The visible description was removed 9 Sep 2026 at the owner's request ("remove the
-            descriptions, theyre not necessary"). Its content -- export-only, the editor's own grid
-            is unchanged -- moved into the ⓘ above rather than being deleted: it is the answer to
-            "why did nothing change on screen?", and the card title alone does not give it. */}
-        {/* Label left, small control right -- the same row shape as Single Column Mode below, so
-            the card reads as a list of settings rather than two unrelated widgets (owner, 10 Sep
-            2026). The label is a <Text size="sm"> rather than NativeSelect's own `label` prop
-            precisely so the two rows share one type scale; the built-in label is a different size.
+            that reason.
             ⚠️ "EXPORTS", PLURAL, AND THAT PLURAL IS LOAD-BEARING. This drives SHEET_GRIDLINES, which
             BOTH writers read -- exportExcel draws the workbook's cell borders from it just as
             buildWaterfallPdf draws the PDF's. It briefly shipped as "Grid Lines in PDF Export",
             which was flagged as understating the reach and corrected by the owner the same day.
-            ⛔ Uncontrolled, as before: the engine writes .value in reflectGridlines(). */}
+            Grid lines is a waterfall setting by what it DOES, not only by ruling: nothing in the
+            month view or exportMonthPdf reads SHEET_GRIDLINES. Hidden in Month view, it still
+            applies to every waterfall export. */}
+        <SettingRow htmlFor="pref-gridlines" label="Grid Lines in Exports">
+          <NativeSelect id="pref-gridlines" size="xs" w={132}
+                        aria-label="Grid Lines in Exports">
+            <option value="none">None</option>
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed (Excel style)</option>
+          </NativeSelect>
+        </SettingRow>
+      </div>
+    </section>
+  )
+}
 
-        {/* ✅ BY VIEW (owner, 22 Sep 2026): "Single column mode setting should only show in waterfall
-            view and the two show in month view settings should only show up in the month view" --
-            and, the same day, "the grid lines in exports setting should only show in the waterfall
-            view not the month view". Shown/hidden in CSS off the view toggle's `.active`
-            (legacy.css, :has()), which setViewMode() already maintains -- no second copy of the view
-            state to drift. ⚠️ This REVERSES a 10 Sep 2026 decision recorded below, on the owner's
-            instruction; hiding a row changes nothing about what it stores.
-            Grid lines is a waterfall setting by what it DOES, not only by ruling: SHEET_GRIDLINES is
-            read by exportExcel, buildWaterfallPdf and the print-fallback waterfall PDF, and by
-            nothing in the month view or exportMonthPdf. Hidden in Month view, it still applies to
-            every waterfall export -- exactly as before.
-            ⛔ THE DIVIDERS SIT ONLY BETWEEN ROWS OF THE SAME GROUP. Exactly one of these two boxes is
-            ever visible, so each opens on a control, never on a rule -- a leading divider in either
-            would dangle at the top of the card in that view. */}
-        <Box className="pref-view-sheet">
-          <Group justify="space-between" wrap="nowrap" gap="sm">
-            <Text component="label" htmlFor="pref-gridlines" size="sm" style={{ cursor: 'pointer' }}>
-              Grid Lines in Exports
-            </Text>
-            <NativeSelect id="pref-gridlines" size="xs" w={132}
-                          aria-label="Grid Lines in Exports">
-              <option value="none">None</option>
-              <option value="solid">Solid</option>
-              <option value="dashed">Dashed (Excel style)</option>
-            </NativeSelect>
-          </Group>
-
-          {/* Visible separation between settings (owner, 10 Sep 2026) -- two unrelated controls
-              stacked with nothing between them read as one confusing group. */}
+export function PrefsMonthCard() {
+  return (
+    <section className="card prefs-card pref-view-month">
+      <h2><IconCalendarPlain className="card-ic" /><span>Month view</span></h2>
+      <div className="side-block">
+        {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
+            text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
+            chose this knowing two people printing one calendar can get different month PDFs.
+            ⛔ Inside .prefs-card, so collectFieldValues() skips them and they never enter a saved
+            calendar; the engine owns the state (prefs.mvWeek / prefs.mvBlocks / prefs.mvEpisodes,
+            ABSENT = ON) and writes .checked in reflectMonthTagPrefs() -- uncontrolled, like
+            #one-col-btn.
+            ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
+            on what mode we are on"): only the items the grey text can carry right now are offered.
+            A switch hides while its item is the bar's text -- "Label Production by", which is in
+            Calendar tab's Month view card now -- and Show Blocks hides on a calendar with no
+            blocks. Pure CSS off that control's checked radio and #show-mode (legacy.css), so no path
+            can leave them out of step. ⛔ HIDDEN, NEVER UNMOUNTED: the engine writes .checked by id.
+            The caption is first and never hidden, so each row can carry its OWN divider on top (the
+            22 Sep "pretty tight" ruling) and hiding any of them never leaves one dangling. At least
+            one row always shows. The order is the grey text's own: Week, Block, Episodes. */}
+        <Text size="xs" c="dimmed">Grey text in Production’s bars, on screen and in the month PDF</Text>
+        <Box className="pref-mv-row pref-mv-row-week">
           <Divider my="sm" />
-
-          {/* ⭐ A real switch, not a button that changes colour (owner: "this should be a toggle like
-              in iOS settings"). Mantine's Switch, label left and switch right, which is the settings-row
-              shape everyone already knows.
-              ⛔ IT IS AN <input type="checkbox"> WITH AN id, INSIDE .prefs-card, AND THAT IS SAFE --
-              but only because of the card. collectFieldValues() sweeps `input[id]` into every saved
-              calendar and skips this class, so the switch is NOT in fields.byId; One column travels
-              instead through captureSnapshot()'s own `singleColumn` key, which is the single source of
-              truth. `pref-gridlines` is the same arrangement and predates it.
-              ⚠️ AN EARLIER COMMENT HERE CLAIMED A CHECKBOX WOULD BE STORED TWICE AND DISAGREE WITH
-              ITSELF. That was wrong, and the correction is worth keeping: skipped-by-the-sweep means
-              exactly ONE store, so nothing can disagree. The genuine hazard is the mirror image -- an
-              id'd control of any kind placed OUTSIDE this card would be in fields.byId AND the
-              snapshot, and those two can drift.
-              ⛔ UNCONTROLLED ON PURPOSE: no `checked` prop. The engine owns the state and writes
-              .checked in reflectSingleColumn(); a controlled input would fight it on every commit,
-              the same contract #pref-gridlines has. */}
-          {/* ⚠️ Named by the owner, 10 Sep 2026. The id stays `one-col-btn`: it is the engine's
-              binding and both gate legs' handle, and renaming it would buy nothing but breakage. */}
-          <Group justify="space-between" wrap="nowrap" gap="sm">
-            <Text component="label" htmlFor="one-col-btn" size="sm" style={{ cursor: 'pointer' }}>
-              Single Column Mode
-            </Text>
-            <Switch id="one-col-btn" size="md"
-                    aria-label="Single Column Mode"
-                    title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
-          </Group>
+          <SettingRow htmlFor="pref-mv-week" label="Show Production Week in Month View">
+            <Switch id="pref-mv-week" size="md" defaultChecked
+                    aria-label="Show Production Week in Month View"
+                    title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
         </Box>
 
-        <Box className="pref-view-month">
-          {/* ✅ MONTH-PILL-LABEL-PLAN step 3 (owner rulings Q1–Q3, 15 Oct 2026): what Production's
-              month bars are labelled by. CALENDAR DATA, unlike the switches below it -- see
-              ProdLabelControl. First in the box, and never hidden while the box shows, so every
-              switch row below can open on its own divider. */}
-          <ProdLabelControl />
+        <Box className="pref-mv-row pref-mv-row-blocks">
+          <Divider my="sm" />
+          <SettingRow htmlFor="pref-mv-blocks" label="Show Blocks in Month View">
+            <Switch id="pref-mv-blocks" size="md" defaultChecked
+                    aria-label="Show Blocks in Month View"
+                    title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
+        </Box>
 
-          {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
-              text -- the Production Week, the block, and the episodes being shot. PER-USER, like
-              the two settings above: the owner chose this knowing two people printing one calendar
-              can get different month PDFs. ⛔ Inside .prefs-card, so collectFieldValues() skips them
-              and they never enter a saved calendar; the engine owns the state (prefs.mvWeek /
-              prefs.mvBlocks / prefs.mvEpisodes, ABSENT = ON) and writes .checked in
-              reflectMonthTagPrefs() -- uncontrolled, like #one-col-btn.
-              ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
-              on what mode we are on"): only the items the grey text can carry right now are offered.
-              A switch hides while its item is the bar's text, and Show Blocks hides on a calendar
-              with no blocks. Pure CSS off the control's checked radio and #show-mode (legacy.css),
-              so no path can leave them out of step. ⛔ HIDDEN, NEVER UNMOUNTED: the engine writes
-              .checked by id. Each row carries its OWN divider on top (the 22 Sep "pretty tight"
-              ruling), so hiding any of them can never leave two dividers stacked or one dangling.
-              The order is the grey text's own: Week, Block, Episodes. */}
-          <Box className="pref-mv-row pref-mv-row-week">
-            <Divider my="sm" />
-            <Group justify="space-between" wrap="nowrap" gap="sm">
-              <Text component="label" htmlFor="pref-mv-week" size="sm" style={{ cursor: 'pointer' }}>
-                Show Production Week in Month View
-              </Text>
-              <Switch id="pref-mv-week" size="md" defaultChecked
-                      aria-label="Show Production Week in Month View"
-                      title="Name the Production Week in grey inside Production's bars — on screen and in the month PDF" />
-            </Group>
-          </Box>
-
-          <Box className="pref-mv-row pref-mv-row-blocks">
-            <Divider my="sm" />
-            <Group justify="space-between" wrap="nowrap" gap="sm">
-              <Text component="label" htmlFor="pref-mv-blocks" size="sm" style={{ cursor: 'pointer' }}>
-                Show Blocks in Month View
-              </Text>
-              <Switch id="pref-mv-blocks" size="md" defaultChecked
-                      aria-label="Show Blocks in Month View"
-                      title="Name the shooting block in grey inside Production's bars — on screen and in the month PDF" />
-            </Group>
-          </Box>
-
-          <Box className="pref-mv-row pref-mv-row-episodes">
-            <Divider my="sm" />
-            <Group justify="space-between" wrap="nowrap" gap="sm">
-              <Text component="label" htmlFor="pref-mv-episodes" size="sm" style={{ cursor: 'pointer' }}>
-                Show Episodes in Month View
-              </Text>
-              <Switch id="pref-mv-episodes" size="md" defaultChecked
-                      aria-label="Show Episodes in Month View"
-                      title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
-            </Group>
-          </Box>
+        <Box className="pref-mv-row pref-mv-row-episodes">
+          <Divider my="sm" />
+          <SettingRow htmlFor="pref-mv-episodes" label="Show Episodes in Month View">
+            <Switch id="pref-mv-episodes" size="md" defaultChecked
+                    aria-label="Show Episodes in Month View"
+                    title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
+          </SettingRow>
         </Box>
       </div>
     </section>
@@ -541,7 +590,7 @@ function ProdLabelControl() {
 // The hdrpreset leg asserts `.hdr-presets` still resolves `.closest('.prefs-card')`.
 export function HeadersCard() {
   return (
-    <section className="card prefs-card" data-tab="settings">
+    <section className="card prefs-card">
       <h2>
         <IconHeading className="card-ic" /><span>Headers</span>
         <InfoHint label="Headers" width={320}>
@@ -557,57 +606,10 @@ export function HeadersCard() {
   )
 }
 
-// The waterfall's own CALENDAR settings (owner rulings 2 and 4, 20 Oct 2026; HEADER-ROW-PLAN.md): how
-// its dates read, and whether its header row takes typed headings. "For now" -- the Settings window
-// session re-homes calendar settings when the branches merge.
-//
-// ⛔ CALENDAR DATA, NOT PREFERENCES, although the card carries `prefs-card`. That class is here for its
-// one job: collectFieldValues() skips it, so these id'd controls never enter fields.byId (74 ids). Each
-// value travels as its own captureSnapshot() key instead -- `dateFormat`, `headerRowCustom` -- the
-// #one-col-btn arrangement. ⛔ Moving a control out of a .prefs-card would put it in the file twice.
-// ⛔ UNCONTROLLED: the engine writes .value / .checked (reflectDateFormat, reflectHeaderRowCustom) and
-// catches 'change' on document. A controlled input would fight it on every commit.
-// Hidden in the Month view (`pref-view-sheet`, legacy.css): nothing here reaches the month.
-export function WaterfallLayoutCard() {
-  return (
-    <section className="card prefs-card pref-view-sheet" data-tab="settings">
-      <h2>
-        <IconColumns className="card-ic" /><span>Waterfall Layout</span>
-        <InfoHint label="Waterfall Layout" width={320}>
-          How the waterfall&rsquo;s dates and column headings read, on screen and in Excel and the
-          PDF. With Custom Column Headings on, the year moves over the Date column and you click any
-          heading to type your own; neighbouring columns with the same heading merge. These belong to
-          the calendar, so they travel with a file you send.
-        </InfoHint>
-      </h2>
-      <div className="side-block">
-        <Group justify="space-between" wrap="nowrap" gap="sm">
-          <Text component="label" htmlFor="wf-date-format" size="sm" style={{ cursor: 'pointer' }}>
-            Dates
-          </Text>
-          <NativeSelect id="wf-date-format" size="xs" w={132} aria-label="Dates"
-                        title="How the waterfall’s Date column reads, on screen, in Excel and in the PDF">
-            <option value="">1/6/25</option>
-            <option value="m/d/yyyy">1/6/2025</option>
-          </NativeSelect>
-        </Group>
-        <Divider my="sm" />
-        {/* Ruling 2's opt-in (owner's picker, 20 Oct 2026). Off is Date | year | Notes, as every
-            calendar has always printed. ⛔ Uncontrolled, like #one-col-btn: reflectHeaderRowCustom(). */}
-        <Group justify="space-between" wrap="nowrap" gap="sm">
-          <Text component="label" htmlFor="wf-hdr-custom" size="sm" style={{ cursor: 'pointer' }}>
-            Custom Column Headings
-          </Text>
-          <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
-                  title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
-        </Group>
-      </div>
-    </section>
-  )
-}
-
-// The header PRESET library (HEADER-PRESETS-PLAN.md §3.5). Lives in the Preferences card because a
-// preset IS a preference -- how this person likes headers, not what this calendar says.
+// The header PRESET library (HEADER-PRESETS-PLAN.md §3.5). A .prefs-card because a preset IS a
+// preference -- how this person likes headers, not what this calendar says. Since ruling 12 it is the
+// Settings window's Presets tab (owner: "a tab in settings that keeps both presaved headers and
+// presaved side boxes").
 //
 // ⛔ NOT ONE `id` ON ANY CONTROL IN HERE, and the .prefs-card skip is not the reason. That skip
 // covers controls inside the card; the rule is kept absolutely because it is simpler to hold than to
@@ -751,7 +753,7 @@ function HeaderPresets() {
 
 export function AppCard() {
   return (
-    <section className="card" data-tab="settings">
+    <section className="card">
       <h2>
         <IconShare className="card-ic" /><span>App</span>
         <InfoHint label="Export App With Data">
@@ -772,7 +774,7 @@ export function AppCard() {
 
 export function HolidaysCard() {
   return (
-    <section className="card" data-tab="settings">
+    <section className="card">
       <h2>
         <IconCalendarDot className="card-ic" /><span>Holidays</span>
         <InfoHint label="Holidays" width={280}>

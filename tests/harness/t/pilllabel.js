@@ -298,9 +298,12 @@ window.addEventListener('load', function () { (async function () {
 
     // ==== STEP 3: THE REAL CONTROL (MONTH-PILL-LABEL-PLAN §5, 16 Oct 2026) ===============================
     // Preferences ▸ "Label Production by", a SegmentedControl named mv-prod-label, driven the way a user does:
-    // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' and sidebarTab
-    // 'settings' set in its JSON, so the month box is on screen (rows are judged by layout) and no view or
-    // tab click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
+    // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' set in its JSON, so no
+    // view click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
+    // ⚠️ Since the Settings window (owner ruling 12, 20 Oct 2026) the control is in its Calendar tab and the
+    // Show switches in its Preferences tab; rows() opens the tab that holds each row before judging its
+    // layout (T.shownInSettings), and opening the window is session UI, never an undo step. The JSON still
+    // carries sidebarTab 'settings' -- a value no build writes any more -- which the engine reads as Show.
     //
     //   C   on open, the selected segment is the label the bars are drawn in: no key = Schedule by (Q7, Q10),
     //       'block' on an Episodes calendar = Episode (Q11); Block disabled exactly on an Episodes calendar.
@@ -316,7 +319,6 @@ window.addEventListener('load', function () { (async function () {
     //       is dirtied; it is ONE undo step (one Undo empties the stack and restores no-key's month view,
     //       Redo re-applies it); Save writes the key; Load of that saved text shows it again (round trip);
     //       and picking Schedule by's own label from there clears the key (Q10) and draws no key's view
-    function shown(id) { var el = document.getElementById(id); return !!el && el.getClientRects().length > 0; }
     function ctl() {
       var r = [].slice.call(document.querySelectorAll('input[name="mv-prod-label"]'));
       var on = r.filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
@@ -324,7 +326,7 @@ window.addEventListener('load', function () { (async function () {
       return { checked: on.length === 1 ? on[0] : (on.join('+') || null), n: r.length,
                ids: r.map(function (x) { return x.id; }).join(','), blockDisabled: blk ? blk.disabled : null };
     }
-    function rows() { return { week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), episodes: shown('pref-mv-episodes') }; }
+    async function rows() { return { week: await T.shownInSettings('pref-mv-week'), blocks: await T.shownInSettings('pref-mv-blocks'), episodes: await T.shownInSettings('pref-mv-episodes') }; }
     // Plan §5.2's table: a switch is hidden while its item is the bar's text; Show Blocks only on a Blocks calendar.
     function wantRows(label) { return { week: label !== 'week', blocks: blocksCal && label !== 'block', episodes: label !== 'episode' }; }
     function statusText() { return ((document.getElementById('save-status') || {}).textContent || '').trim(); }
@@ -368,7 +370,7 @@ window.addEventListener('load', function () { (async function () {
       await openText(withCtl(kv));
       var got = null;
       try { await shows(want); } catch (e) { got = e.message; }
-      var c = ctl(), rw = rows(), wr = wantRows(want);
+      var c = ctl(), rw = await rows(), wr = wantRows(want);
       out.C[kv === undefined ? 'none' : kv] = { want: want, got: c.checked, n: c.n, ids: c.ids, blockDisabled: c.blockDisabled,
         rows: rw, rowsOk: JSON.stringify(rw) === JSON.stringify(wr), err: got };
     }
@@ -391,6 +393,7 @@ window.addEventListener('load', function () { (async function () {
       // requestAnimationFrame (its Transition), which this headless run never fires, so [role=tooltip] stays
       // absent here. floating-ui's useRole sets aria-describedby on the reference the moment it opens. The
       // text itself was checked by a real hover in the pane ("Schedule by Blocks to label by block").
+      await T.openSettings('calendar');   // the control is laid out only on its own tab
       var ref = document.querySelector('label[for="mv-prod-label-block"] span span');
       out.B.describedBefore = ref ? ref.getAttribute('aria-describedby') : 'no reference';
       if (ref) {
@@ -440,7 +443,7 @@ window.addEventListener('load', function () { (async function () {
       R.undoBefore = undoOff(); R.statusBefore = statusText();
       await pick(m);
       R.view = byKey[m] ? sameHtml(await months(), byKey[m]) : 'no reference for ' + m;
-      R.rows = JSON.stringify(rows()) === JSON.stringify(wantRows(m));
+      R.rows = JSON.stringify(await rows()) === JSON.stringify(wantRows(m));
       await T.sleep(700);
       R.statusAfter = statusText(); R.undoAfter = undoOff();
       document.getElementById('undo-btn').click();

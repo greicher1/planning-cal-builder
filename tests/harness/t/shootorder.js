@@ -31,7 +31,11 @@ window.addEventListener('load', function () { (async function () {
               sp ? sp.textContent : ''];
     });
   }
-  function shown(id) { var el = document.getElementById(id); return !!el && el.getClientRects().length > 0; }
+  async function settingsRows() {
+    return { onecol: await T.shownInSettings('one-col-btn'), label: await T.shownInSettings('mv-prod-label-week'),
+             week: await T.shownInSettings('pref-mv-week'), blocks: await T.shownInSettings('pref-mv-blocks'),
+             eps: await T.shownInSettings('pref-mv-episodes') };
+  }
   function tab(name) { var b = document.querySelector('.side-tab-btn[data-tab="' + name + '"]'); if (b) b.click(); }
   async function settle() {
     var last = -1, st = 0;
@@ -81,11 +85,12 @@ window.addEventListener('load', function () { (async function () {
       function (p) { return /^Episode\b/.test(p.textContent.trim()); }).length;
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------
-    tab('settings'); await T.sleep(200);
+    // These rows are in the Settings window since owner ruling 12 (20 Oct 2026) -- One column and the label
+    // control in its Calendar tab, the Show switches in Preferences -- so each is judged on its own tab.
     // ⚠️ Since MONTH-PILL-LABEL-PLAN step 3 (16 Oct 2026) the Show rows are CONTEXTUAL (plan §5.2): on this Episodes
     // calendar with no label chosen the bar names the episode, so only Show Production Week is offered. The
     // label control itself is month-only like them. pilllabel holds the whole table.
-    out.rowsInMonth = { onecol: shown('one-col-btn'), label: shown('mv-prod-label-week'), week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    out.rowsInMonth = await settingsRows();
     document.getElementById('pref-mv-episodes').click();
     await settle();
     out.pillsEpsOff = pills();
@@ -96,7 +101,8 @@ window.addEventListener('load', function () { (async function () {
     out.pillsEpsBackOn = pills();
     document.getElementById('view-sheet-btn').click();
     await settle();
-    out.rowsInSheet = { onecol: shown('one-col-btn'), label: shown('mv-prod-label-week'), week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), eps: shown('pref-mv-episodes') };
+    out.rowsInSheet = await settingsRows();
+    await T.closeSettings();   // it lies over the sidebar, and section 4 drags in the Phases card
 
     // ---- 4. ruling 9: a drag re-sequences the shoot; no date moves; one undo step ---------------
     // ⚠️ The Phases tab must be VISIBLE: a hidden panel measures 0x0, so every drop would read as

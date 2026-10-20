@@ -219,3 +219,23 @@ export function IconDownload(props) {
     </svg>
   )
 }
+
+// The Settings window's two scope lines (owner ruling 12): a page with a folded corner for "saved in
+// this calendar's file", a monitor for "stays on this computer". Same family: 16 viewBox, stroke 1.6.
+export function IconFile(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9.5 2H4.5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5z" />
+      <path d="M9.5 2v3h3" />
+    </svg>
+  )
+}
+
+export function IconMonitor(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2" y="2.5" width="12" height="8.5" rx="1.5" />
+      <path d="M6 14h4M8 11v3" />
+    </svg>
+  )
+}

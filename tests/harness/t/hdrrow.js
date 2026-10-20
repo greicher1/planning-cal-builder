@@ -157,13 +157,15 @@ window.addEventListener('load', function () { (async function () {
   // then awaits persistRecents() (IndexedDB) before renderRecents() writes the label -- and IndexedDB can
   // stall under --virtual-time-budget (README, fsprobe). Waiting on the label failed one run in three, at a
   // different load each time. So each loaded text carries a different `sidebarTab` (a key applyStateSnapshot
-  // restores and refreshAfterRestore shows), cycling through all three, and the load is in when that tab is.
-  var loads = 0, TABS = ['phases', 'settings', 'show'];
+  // restores and refreshAfterRestore shows), alternating between the two, and the load is in when that tab is.
+  // (It cycled 'settings' too until the Settings window retired that tab, 20 Oct 2026: a file saved on it now
+  // opens on Show, settingswin W12, so waiting for 'settings' never ends.)
+  var loads = 0, TABS = ['phases', 'show'];
   function activeTab() { var b = document.querySelector('.side-tab-btn.active'); return b ? b.dataset.tab : ''; }
   async function load(text) {
     var stem = 'hdrrow-load-' + (++loads), name = stem + '.sptcal';
-    var snap = JSON.parse(text), tab = TABS[loads % 3];
-    if (tab === activeTab()) tab = TABS[(loads + 1) % 3];
+    var snap = JSON.parse(text), tab = TABS[loads % 2];
+    if (tab === activeTab()) tab = TABS[(loads + 1) % 2];
     snap.sidebarTab = tab;
     var p = T.openViaFakePicker('/tests/fixtures/v1.5.0-saved.sptcal', name, { text: JSON.stringify(snap), writes: written });
     // The unsaved-work question can come up late under load: keep answering it until the file is in.

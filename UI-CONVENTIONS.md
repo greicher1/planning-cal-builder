@@ -872,7 +872,7 @@ page, one job. Its conventions are its own, and deliberately not the app's:
 
 ---
 
-## 8. ⛔ Seven verified traps
+## 8. ⛔ Nine verified traps
 
 **Every one of these was a decision that looked right and was wrong.** They were caught by reading
 the installed Mantine source, not by reasoning about it. Each would have broken the save format or
@@ -991,6 +991,35 @@ grep assertion to `tools/check-refs.py` that the block contains no unwrapped Man
 
 **And decide explicitly whether the size increase is acceptable for the "email it around" property**
 — that is an owner question, not an engineering one.
+
+### 8.8 `Tabs` keeps inactive panels mounted through `<Activity>`, which renders them LATE (20 Oct 2026)
+
+Found building the Settings window. `@mantine/core` 9.5.2's `Tabs` defaults to `keepMounted: true`
+**and `keepMountedMode: "activity"`**: `Tabs.Panel` wraps an inactive panel's children in React's
+`<Activity mode="hidden">`. A hidden Activity renders its children at a lower priority, after the
+visible content, so they are **not in the DOM when `main.jsx`'s `flushSync` returns** and
+`initLegacyApp()` binds by id. It also unmounts their effects, so a component inside that installs a
+bridge function from `useLayoutEffect` (ProdLabelControl, HeaderPresets) never installs it.
+
+**Pass `keepMountedMode="display-none"`.** Every panel then renders in the first commit and the
+inactive ones get `display:none`, the old `.tab-hidden` contract. The `settingswin` leg's W1 finds
+every moved id in its tab on a fresh page; in Activity mode three of the four tabs would be missing.
+
+### 8.9 A Mantine `Switch` puts its OWN state back over the engine's on any re-render (20 Oct 2026)
+
+`Switch` is "uncontrolled" only from the outside. Inside it calls `useUncontrolled()` and renders
+`<input checked={state}>`, so it IS a React-controlled input. The engine writes `.checked` directly
+(`reflectSingleColumn()`, `refreshPrepUI()`, `reflectMonthTagPrefs()`), on every undo, Load and New.
+React never sees those writes, and the next time it re-renders that Switch it writes its remembered
+state back. After a Load of a file with Pause prep off, opening the Settings window showed it on.
+
+It never showed in the sidebar because those cards never re-rendered after mount. The Settings
+window re-renders on every open, close and tab change. **The fix is not to re-render the cards:** the
+four panels' contents are module-level constants (`SettingsWindow.jsx`, `CALENDAR_PANEL` …), so React
+gets the same element objects each render and skips their subtrees. ⚠️ **Any Switch, Checkbox or
+SegmentedControl whose value the engine writes must sit in a subtree that never re-renders, or take
+its value through the bridge** (`mvProdLabel` does). `settingswin` W9 holds it: undo, then re-render
+the window, and the switch must still show the engine's value. `offweek` R12 and R14 caught it first.
 
 ---
 
