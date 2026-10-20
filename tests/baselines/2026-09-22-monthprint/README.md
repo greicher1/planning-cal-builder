@@ -245,6 +245,22 @@ exercised by no baseline. A change that tips a month *into* `scale` still fails 
 differs, and the fit table reports the mode change — but the scale branch's own output is unproven.
 A fixture with a comment-heavy week in a six-week month would close it.
 
+## ✅ RE-CUT 20 Oct 2026: `mvheaderlegacy` only, for the month header's sizes 10, 11 and 12
+
+LABELS-SETUP-PLAN.md item 7 (owner: *"10"*). The header's size toolbar is part of a MANUAL month header's
+markup, so its new options are in the print document. Signed off by the owner by picker (*"Re-cut it"*)
+after an A/B against the v1.5.0 release and a contact sheet of the printed months.
+
+| | before (v1.5.0) | after |
+|---|---|---|
+| elements | 4,256 | **4,301**: 3 `<option>` × 15 months |
+| bytes | 506,543 | 507,893 |
+| fit table | | **identical**, every row height and mode |
+| months → sheets | 15 → 15 | 15 → 15 |
+| printed PDF | | **pixel-identical** on all 15 pages at 150 dpi (`pdftoppm`), and the same `pdftotext` |
+
+The other nine cases were captured on the same build and are identical to their baselines, untouched.
+
 ## Re-cutting
 
 Only deliberately, and record it here with a table of what moved and why — an undocumented re-cut

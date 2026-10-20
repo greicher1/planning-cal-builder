@@ -1508,7 +1508,7 @@ export function initLegacyApp() {
   //
   // Weekend handling: a holiday landing on Sat/Sun also emits an '(Observed)' weekday entry.
   // US shifts Sat->Fri / Sun->Mon per ASA Art. 7. Canada/UK/Victoria roll forward to the next
-  // free weekday. Lithuania does not transfer at all.
+  // free weekday. Lithuania, Germany and France do not transfer at all.
   const HOLIDAYS = {
     // United States — IATSE general -- IATSE Area Standards Agreement (Art. 7) · West Coast Studio Local Agreements (¶ 9(e)(4))
     // source: https://www.asa.iatse.net/  (verified 2026-09-11)
@@ -2882,6 +2882,98 @@ export function initLegacyApp() {
       {date:'2031-12-25', name:'Christmas Day'},
       {date:'2031-12-26', name:'Second Day of Christmas'},
     ],
+    // France -- Convention collective nationale de la production cinématographique (IDCC 3097), Titre II art. 42
+    // source: https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf  (verified 2026-10-20)
+    'FR': [
+      {date:'2024-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2024-04-01', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2024-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2024-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2024-05-09', name:'Ascension Day (Ascension)'},
+      {date:'2024-05-20', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2024-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2024-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2024-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2024-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2024-12-25', name:'Christmas Day (Noël)'},
+      {date:'2025-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2025-04-21', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2025-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2025-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2025-05-29', name:'Ascension Day (Ascension)'},
+      {date:'2025-06-09', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2025-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2025-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2025-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2025-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2025-12-25', name:'Christmas Day (Noël)'},
+      {date:'2026-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2026-04-06', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2026-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2026-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2026-05-14', name:'Ascension Day (Ascension)'},
+      {date:'2026-05-25', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2026-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2026-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2026-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2026-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2026-12-25', name:'Christmas Day (Noël)'},
+      {date:'2027-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2027-03-29', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2027-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2027-05-06', name:'Ascension Day (Ascension)'},
+      {date:'2027-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2027-05-17', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2027-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2027-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2027-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2027-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2027-12-25', name:'Christmas Day (Noël)'},
+      {date:'2028-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2028-04-17', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2028-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2028-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2028-05-25', name:'Ascension Day (Ascension)'},
+      {date:'2028-06-05', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2028-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2028-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2028-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2028-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2028-12-25', name:'Christmas Day (Noël)'},
+      {date:'2029-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2029-04-02', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2029-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2029-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2029-05-10', name:'Ascension Day (Ascension)'},
+      {date:'2029-05-21', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2029-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2029-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2029-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2029-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2029-12-25', name:'Christmas Day (Noël)'},
+      {date:'2030-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2030-04-22', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2030-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2030-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2030-05-30', name:'Ascension Day (Ascension)'},
+      {date:'2030-06-10', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2030-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2030-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2030-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2030-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2030-12-25', name:'Christmas Day (Noël)'},
+      {date:'2031-01-01', name:'New Year\'s Day (Jour de l\'an)'},
+      {date:'2031-04-14', name:'Easter Monday (Lundi de Pâques)'},
+      {date:'2031-05-01', name:'Labour Day (Fête du travail)'},
+      {date:'2031-05-08', name:'Victory in Europe Day (Victoire 1945)'},
+      {date:'2031-05-22', name:'Ascension Day (Ascension)'},
+      {date:'2031-06-02', name:'Whit Monday (Lundi de Pentecôte)'},
+      {date:'2031-07-14', name:'Bastille Day (Fête nationale)'},
+      {date:'2031-08-15', name:'Assumption Day (Assomption)'},
+      {date:'2031-11-01', name:'All Saints\' Day (Toussaint)'},
+      {date:'2031-11-11', name:'Armistice Day (Armistice 1918)'},
+      {date:'2031-12-25', name:'Christmas Day (Noël)'},
+    ],
   };
 
   // ⛔ GENERATED with HOLIDAYS by tools/gen_holidays.py: the caveat each agreement carries --
@@ -2895,6 +2987,7 @@ export function initLegacyApp() {
     'UK-NI': "Scripted TV cl. 11.4 lets the Producer nominate bank holidays as paid leave, EXCEPT on Band 4 productions. Counted as non-shoot here; switch off per production if yours works them.",
     'AU-VIC': "Melbourne Cup Day applies statewide only where a non-metro council has not arranged an alternate local holiday — a regional unit may be off on a different day.",
     'LT': "Lithuania does not transfer a holiday that falls on a weekend. Separately, the Government moves WORKING days around holidays by annual resolution — that is not derivable and must be checked each year.",
+    'FR': "Alsace-Moselle (Bas-Rhin, Haut-Rhin, Moselle) adds Good Friday and 26 December — add them as custom holidays for a shoot there. TV productions under the audiovisual agreement (IDCC 2642) work Whit Monday as the solidarity day.",
   };
 
   // ⛔ WHICH COLUMN BLOCK DOES THIS WEEK BELONG TO? Until 10 Sep 2026 that was the same question as
@@ -3228,7 +3321,9 @@ export function initLegacyApp() {
     // weekends, any Holiday Hiatus days, and any union holiday for the selected country,
     // until enough actual shoot days have been counted. Returns the last real shoot day
     // and the list of union holidays that landed on a would-be shoot day (for notes).
-    function simulateProductionSchedule(start, shootDaysRequested, holidayList){
+    // `noLead` (LABELS-SETUP-PLAN.md item 5): walk as if no day carried a 'lead' mark, which is how the
+    // lead weekend itself is found (productionLeadWeekend). Every other caller leaves it off.
+    function simulateProductionSchedule(start, shootDaysRequested, holidayList, noLead){
       const ownHi = phaseHiatusRanges['production'];
       let current = start;
       let count = 0;
@@ -3254,7 +3349,8 @@ export function initLegacyApp() {
         const inHiatus = hiatuses.some(h=> current>=h.start && current<h.end)
                          || (ownHi && current>=ownHi.start && current<ownHi.end);
         const iso = current.toISOString().slice(0,10);
-        const ov = dayOverrides[iso];
+        const ov0 = dayOverrides[iso];
+        const ov = (noLead && ov0 === 'lead') ? undefined : ov0;
         const holiday = holidayList.find(h=>h.date===iso);
         // ⛔ 'on' forces a day the CALENDAR would skip -- a weekend, or a union holiday being
         // worked. It does NOT override a hiatus: a hiatus is a stop-work period the user
@@ -3263,7 +3359,9 @@ export function initLegacyApp() {
         // ⚠️ JUDGMENT CALL, not an owner ruling -- flagged for confirmation.
         // 'onhalf' is 'on' worked as a HALF day (owner request, 29 Sep 2026: "a half day on a weekend
         // or holiday"). It forces the day exactly as 'on' does, hiatus rule included.
-        const forced = (ov === 'on' || ov === 'onhalf') && !inHiatus;
+        // 'lead' is 'on' written on the weekend just BEFORE the first shoot day (owner, 20 Oct 2026,
+        // LABELS-SETUP-PLAN.md item 5). Wherever this walk reaches it, it is exactly 'on'.
+        const forced = (ov === 'on' || ov === 'onhalf' || ov === 'lead') && !inHiatus;
         // An unrecognised value behaves as no override at all. applyStateSnapshot copies values
         // through verbatim so a round trip is lossless; ignoring what we do not understand is this
         // function's job, not the restore path's.
@@ -3304,6 +3402,40 @@ export function initLegacyApp() {
       // the two views want different ones -- see refreshOverrideNote().
       return {firstShootDay: firstShootDay || start, lastShootDay: lastShootDay || start,
               holidaysHit, shootDays, halfDays, delivered: count};
+    }
+
+    // ⭐ THE WEEKEND JUST BEFORE (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 5, by picker). A shoot can
+    // begin on the Saturday or Sunday immediately before its first shoot day: the day menu offers "Work
+    // this day" there and writes 'lead', and the walk then starts from that day.
+    //   - The weekend is found from the shoot as it stands WITHOUT any 'lead' mark (`sim0`), walking back
+    //     from its first shoot day over the days the calendar skips anyway (an enabled union holiday or a
+    //     day marked Off on a weekday), collecting the Sunday and then the Saturday, and stopping at the
+    //     Saturday, at any other weekday, or at a hiatus day. So a Monday start offers Sat + Sun, a
+    //     Tuesday start after a Monday holiday offers the same weekend, and a Wednesday start (snap off)
+    //     offers none: walking from that Saturday would shoot the Monday and Tuesday it skipped.
+    //   - ⛔ Its own word, never 'on'. An 'on' already stored on such a weekend is INERT in every existing
+    //     file (typing a new start date leaves marks on their dates), and letting it start counting would
+    //     move that calendar's wrap with no edit -- 'onhalf''s precedent exactly. A 'lead' further back
+    //     is never reached, so it is inert too.
+    //   - A mark inside a hiatus is ignored, the standing rule ('on' never punches through one).
+    // Returns {days: the weekend's ISOs, latest first, whether marked or not -- the menu's lead rows --
+    //          from: the earliest marked one as a Date, or null}.
+    function productionLeadWeekend(sim0, holidayList){
+      const out = {days: [], from: null};
+      if(!sim0.shootDays.length) return out;
+      const ownHi = phaseHiatusRanges['production'];
+      const hol = new Set(holidayList.map(h=>h.date));
+      let d = addDays(parseDateUTC(sim0.shootDays[0]), -1);
+      for(let guard = 0; guard < 14; guard++, d = addDays(d, -1)){
+        if(hiatuses.some(h=> d>=h.start && d<h.end) || (ownHi && d>=ownHi.start && d<ownHi.end)) break;
+        const iso = isoOf(d), dow = d.getUTCDay();
+        if(dow === 0 || dow === 6){
+          out.days.push(iso);
+          if(dayOverrides[iso] === 'lead') out.from = d;
+          if(dow === 6) break;
+        } else if(!(hol.has(iso) || dayOverrides[iso] === 'off')) break;
+      }
+      return out;
     }
 
     // ⭐ OFF WEEKS (OFF-WEEK-PLAN.md §3; owner rulings Q1-Q3, 19 Oct 2026). A week row inside the shoot
@@ -3390,13 +3522,27 @@ export function initLegacyApp() {
         // disagreement (MONTH-VIEW-PLAN.md §1).
         // ⚠️ Only the PHASE start is conditional. Every other mondayOf() in this file keys weeks for
         // notes, spans and row heights, and those stay Monday-based because a grid cell IS a week.
-        const start = (cfg.snap === false) ? parsed : mondayOf(parsed);
+        // `let`: Production's segment can start EARLIER than its entered start, on the weekend just before
+        // it (productionLeadWeekend). Every other phase keeps this value.
+        let start = (cfg.snap === false) ? parsed : mondayOf(parsed);
         let end, weeksForSegment = cfg.weeks, shootDaysForSegment = null, offWeeksForSegment = null;
         if(p.key==='production'){
           // Only ENABLED holidays cost a shoot day; a holiday switched off in Settings is treated
           // as an ordinary working day.
           const holidayList = fullHolidayList(state.unionCountry).filter(h=>h.enabled);
-          const sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
+          let sim = simulateProductionSchedule(start, cfg.rawValue, holidayList);
+          // The weekend just before (item 5). Only a calendar holding a 'lead' mark pays the second walk,
+          // and only one whose mark is ON that weekend changes: the walk starts there, and the segment at
+          // that day (its Monday when snapped) -- the existing week rule, so that weekend's week becomes
+          // Production's first week row (the owner's "Yes, build it so", by picker).
+          const hasLead = Object.keys(dayOverrides).some(k=> dayOverrides[k] === 'lead');
+          const lead = hasLead ? productionLeadWeekend(simulateProductionSchedule(start, cfg.rawValue, holidayList, true), holidayList)
+                               : {days: [], from: null};
+          if(!hasLead && sim.shootDays.length) lead.days = productionLeadWeekend(sim, holidayList).days;
+          if(lead.from){
+            sim = simulateProductionSchedule(lead.from, cfg.rawValue, holidayList);
+            start = (cfg.snap === false) ? lead.from : mondayOf(lead.from);
+          }
           // ⛔ Measure the span in WHOLE WEEKS from the start's Monday (audit H-3). With a snap-off
           // (non-Monday) start, using the raw start here rounded up and gave Production a phantom
           // trailing week with no shoot day in it -- a wrap shown a week late in the exports. The
@@ -3427,7 +3573,9 @@ export function initLegacyApp() {
           // PHOTOGRAPHY wants firstShootDay; anything laying out weeks wants startDate.
           productionInfo = {startDate:start, firstShootDay:sim.firstShootDay, lastShootDay:sim.lastShootDay,
                             holidaysHit:sim.holidaysHit, shootDays:sim.shootDays, halfDays:sim.halfDays,
-                            delivered:sim.delivered, requested:cfg.rawValue};
+                            delivered:sim.delivered, requested:cfg.rawValue,
+                            // The weekend just before the first shoot day (item 5), for the day menu.
+                            leadDays:lead.days};
           shootDaysForSegment = sim.shootDays;
         } else {
           end = extendEndForHiatus(start, cfg.weeks, p.key);
@@ -5811,12 +5959,14 @@ export function initLegacyApp() {
     if(activeColorPop._anchor && activeColorPop._anchor.contains(e.target)) return;
     closePhaseColorPop();
   }
-  function openPhaseColorPop(anchorEl, currentIndex, onPick){
+  // `options` ({color, name}[]) defaults to the phase palette; the month day menu's hiatus Colour… passes
+  // the waterfall band editor's (EXCEL_STANDARD_COLORS) and gets the same popover, close rules and strip.
+  function openPhaseColorPop(anchorEl, currentIndex, onPick, options){
     closePhaseColorPop();
     const pop = document.createElement('div');
     pop.className = 'phase-color-pop';
     pop._anchor = anchorEl;
-    PHASE_COLOR_OPTIONS.forEach((o,i)=>{
+    (options || PHASE_COLOR_OPTIONS).forEach((o,i)=>{
       const sw = document.createElement('span');
       sw.className = 'pc-sw' + (i===currentIndex ? ' selected' : '');
       sw.style.background = o.color;
@@ -5890,6 +6040,15 @@ export function initLegacyApp() {
   // whole arrangement, not about one block.
   let blockAssignEdited = false;
   let lastDroppedBlocks = [];
+  // ✅ BLOCKS MODE NEEDS NO EPISODE COUNT (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 4: "Optional; old
+  // files keep dates"). Production is Σ block days with or without episodes. But a Blocks file with no
+  // count, saved BEFORE that, has Production unscheduled -- the old rule listed 'Number of Episodes' as
+  // missing -- and under the new rule it would open with Production, its prep and Sim Post suddenly
+  // drawn: dates appearing with no edit. This flag is true for exactly such a calendar, and while it
+  // is, showInfoStatus() keeps the old rule. Set ONLY by applyStateSnapshot() (from the snapshot's
+  // blocksEpisodesOptional key, see captureSnapshot), cleared by the next Show Info edit
+  // (showInfoEdited(): the owner's pick, by picker), false on a new calendar.
+  let blocksEpisodesLegacy = false;
   // ✅ RULING 9 (owner, 22 Sep 2026): the SHOOTING ORDER of the episodes, as episode ids. EMPTY MEANS
   // NATURAL ORDER (201, 202, ...), and it stays empty until someone actually drags an episode --
   // so opening a calendar saved before this existed mutates nothing: no phantom undo step, no
@@ -6398,7 +6557,7 @@ export function initLegacyApp() {
   // calendar (the built-in defaults are all winter breaks), so the shift tools leave it where it
   // is unless the user unlocks it. Per-phase hiatuses have no such lock -- they belong to their
   // phase's work, so they always travel with a shift.
-  function addHiatusRow(prefillStart, prefillWeeks, prefillLocked, prefillName){
+  function addHiatusRow(prefillStart, prefillWeeks, prefillLocked, prefillName, prefillNumbered){
     const list = document.getElementById('hiatus-list');
     const row = document.createElement('div');
     row.className = 'hiatus-entry';
@@ -6412,12 +6571,17 @@ export function initLegacyApp() {
     // Both values are escaped: they come straight out of a file, and were the one unescaped
     // interpolation left in this row (audit H-1).
     const weeksVal = (prefillWeeks === undefined || prefillWeeks === null) ? 2 : prefillWeeks;
+    // "Number weeks" (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 9: "Number the weeks", per row by
+    // picker): OFF unless ticked, so every existing calendar prints as it did. Ticked, the row's bands read
+    // "<name> Week 1" … through syncHiatusNamesFromSidebar(). A class, never an id: hiatus rows are saved as
+    // fields.hiatuses (collectFieldValues), so fields.byId and gate 5's id set are untouched.
     row.innerHTML = `
       <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
       <label>Start date <input type="date" class="hiatus-start" value="${escAttr(prefillStart)}"></label>
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
       <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
+      <label class="hiatus-lock hiatus-numbered" title="Label each week of this hiatus: Hiatus Week 1, Hiatus Week 2…"><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}>Number weeks</label>
       <div class="snap-note"></div>
     `;
     // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
@@ -7173,7 +7337,7 @@ export function initLegacyApp() {
     // own mark goes back to being unworked; anything else is marked off. Shared by the week edges and
     // `bound`, so a day dragged out reads the same whichever grip did it.
     function markOut(d, m, iso){
-      if(!d.natural(iso) && (m[iso] === 'on' || m[iso] === 'onhalf')) delete m[iso];
+      if(!d.natural(iso) && (m[iso] === 'on' || m[iso] === 'onhalf' || m[iso] === 'lead')) delete m[iso];
       else m[iso] = 'off';
     }
     function weekMarks(d, T){
@@ -8100,7 +8264,7 @@ export function initLegacyApp() {
     // The halves are the simulation's own verdict, so a mark it ignored is never counted. An 'onhalf'
     // (a weekend or holiday worked half) is BOTH a half and an added day, and is counted as both.
     const halves = (info.halfDays || []).length;
-    const ons = info.shootDays.filter(iso => dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf').length;
+    const ons = info.shootDays.filter(iso => dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf' || dayOverrides[iso] === 'lead').length;
     // 'off' days are absent from shootDays by definition, so count them across the span instead.
     const first = info.shootDays[0], last = info.shootDays[info.shootDays.length - 1];
     const offs = Object.keys(dayOverrides).filter(iso =>
@@ -8174,7 +8338,12 @@ export function initLegacyApp() {
       if(!info || !info.shootDays || !info.shootDays.length) return null;
       const iso = isoOf(d);
       const first = info.shootDays[0], last = info.shootDays[info.shootDays.length - 1];
-      if(iso < first || iso > last) return null;
+      // ✅ THE WEEKEND JUST BEFORE (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 5): the Saturday and
+      // Sunday immediately before the first shoot day (productionInfo.leadDays, the engine's own verdict,
+      // marked or not) offer "Work this day" too, which writes 'lead' and makes that day the first shoot
+      // day. Every other day outside the shoot stays null, for the reason above.
+      const lead = (info.leadDays || []).indexOf(iso) !== -1;
+      if(!lead && (iso < first || iso > last)) return null;
       const dow = d.getUTCDay();
       const prodSeg = (currentSchedule.segments || []).find(s=>s.key === 'production');
       const ownHi = prodSeg && prodSeg.phaseHiatus;
@@ -8194,8 +8363,11 @@ export function initLegacyApp() {
       // The same list computeSchedule simulates against: only ENABLED holidays cost a day.
       const holiday = fullHolidayList(effectiveRegionKey())
         .filter(h=>h.enabled).find(h=>h.date === iso) || null;
-      return {iso, date:d, cur: dayOverrides[iso] || '', hiatus,
-              weekend: (dow === 0 || dow === 6), holiday};
+      // A 'lead' left INSIDE the shoot (its start typed earlier since) is 'on' there, exactly as the
+      // simulation reads it, so it shows as the "Work this day" it is rather than as a stale word.
+      const cur0 = dayOverrides[iso] || '';
+      return {iso, date:d, cur: (!lead && cur0 === 'lead') ? 'on' : cur0, hiatus,
+              weekend: (dow === 0 || dow === 6), holiday, lead};
     }
 
     function setOverride(iso, val){
@@ -8233,7 +8405,9 @@ export function initLegacyApp() {
       } else if(sit.weekend || sit.holiday){
         const warn = sit.holiday ? ('Overrides ' + sit.holiday.name) : '';
         rows.push({v:'', label: sit.holiday ? 'Holiday — not shot' : 'Weekend — not shot'});
-        rows.push({v:'on', label:'Work this day', warn});
+        // On the weekend just before the shoot the word is 'lead', never 'on' (item 5): an 'on' stored
+        // there before this shipped is inert and must stay so, and shows as the stale notice below.
+        rows.push({v: sit.lead ? 'lead' : 'on', label:'Work this day', warn});
         // Half a weekend or holiday (owner request, 29 Sep 2026). A separate word, not 'half': see the
         // HALF WEIGHT note in simulateProductionSchedule. Both rows override the holiday, so both say so.
         // ✅ WITHDRAWN AS A CHOICE (owner, 15 Oct 2026, with 'half' below): "We don't need a function
@@ -8255,7 +8429,7 @@ export function initLegacyApp() {
       const matched = rows.some(r => r.v === sit.cur && !r.disabled);
       // Named by the label that set it where this build knows the word -- "onhalf" is not something
       // a user ever typed -- and verbatim where it does not.
-      const OV_LABELS = {half:'Half day', off:'Off', on:'Work this day', onhalf:'Work half day'};
+      const OV_LABELS = {half:'Half day', off:'Off', on:'Work this day', onhalf:'Work half day', lead:'Work this day'};
       const stale = sit.cur && !matched ? (OV_LABELS[sit.cur] || sit.cur) : '';
       if(sit.cur && !rows.some(r => r.v === '')) rows.push({v:'', label:'Clear override'});
       return {rows, stale};
@@ -8695,10 +8869,15 @@ export function initLegacyApp() {
         if(!sp || !(d >= sp.start && d < sp.end)) return;
         const name = ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL;
         const lock = row.querySelector('.hiatus-locked'), locked = !!(lock && lock.checked);
+        const num = row.querySelector('.hiatus-num'), numbered = !!(num && num.checked);
         out.push({id: 'hiatus', label: name + ' · ' + dm(sp.start) + ' – ' + dm(addDays(sp.end, -1)), items: [
           {id: 'band-lock-' + j, check: true, checked: locked, text: 'Lock in place',
            note: locked ? 'Stays on these dates when the calendar shifts' : 'Moves when the calendar shifts',
            run: ()=> lockHiatusHere(row)},
+          // Item 9 (owner, 20 Oct 2026): the row's own "Number weeks" box, and a colour for its bands.
+          {id: 'band-num-' + j, check: true, checked: numbered, text: 'Number weeks',
+           note: 'Labels its weeks ' + name + ' Week 1, 2…', run: ()=> numberHiatusHere(row)},
+          {id: 'band-colour-' + j, icon: 'palette', text: 'Colour…', run: ()=> hiatusColourHere(ctx, row)},
           {id: 'band-show-' + j, icon: 'sidebar', text: 'Show in Phases card', run: ()=> showHiatusRow(row)},
           {id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true, run: ()=> removeHiatusHere(row)},
         ]});
@@ -8727,6 +8906,45 @@ export function initLegacyApp() {
       lock.dispatchEvent(new Event('input', {bubbles: true}));
       pushUndoSnapshot();
     }
+    // Number weeks: the row's own box, plus the input event its own listener runs update() on -- Lock's shape.
+    function numberHiatusHere(row){
+      const box = row.isConnected && row.querySelector('.hiatus-num');
+      if(!box) return;
+      pushUndoSnapshot();
+      box.checked = !box.checked;
+      box.dispatchEvent(new Event('input', {bubbles: true}));
+      pushUndoSnapshot();
+    }
+    // ✅ Colour… (owner, 20 Oct 2026, item 9: "Recolour from day menu"; supersedes MONTH-CONTEXT-MENU-PLAN
+    // §3.10's "not offered"). The phase picker's popover, given the waterfall band editor's palette, under the
+    // day. A pick writes hiatusColors for EVERY week of this hiatus -- the store the waterfall's band editor
+    // writes one week of and frozen renderMonthView reads -- so both views change together. The default
+    // colour deletes the keys, as the waterfall editor does. Opening it changes nothing; a pick is one step.
+    function hiatusColourHere(ctx, row){
+      const sp = bandSpan(row);
+      if(!sp) return;
+      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; });
+      if(!cell) return;
+      const weeks = [];
+      for(let w = sp.start; w < sp.end; w = addDays(w, 7)) weeks.push(isoOf(w));
+      const palette = EXCEL_STANDARD_COLORS.map(c=> ({color: c, name: c}));
+      const cur = weeks.map(hiatusColorFor);
+      const same = cur.every(c=> c.toUpperCase() === cur[0].toUpperCase());
+      const at = same ? palette.findIndex(o=> o.color.toUpperCase() === cur[0].toUpperCase()) : -1;
+      openPhaseColorPop(cell, at, i=>{
+        const c = palette[i].color;
+        pushUndoSnapshot();
+        weeks.forEach(wk=>{
+          if(c.toUpperCase() === HIATUS_COLOR.toUpperCase()) delete hiatusColors[wk];
+          else hiatusColors[wk] = c;
+        });
+        render(currentSchedule);
+        markDirty();
+        pushUndoSnapshot();
+      }, palette);
+    }
+
     // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Show in Phases card is.
     function showHiatusRow(row){
       pushUndoSnapshot();
@@ -9263,7 +9481,9 @@ export function initLegacyApp() {
     const stillOwned = new Set();
     // Shared by both kinds below: claim every week `name`'s row covers, but only where nothing
     // has hand-edited the band since we last claimed it.
-    const applyRange = (name, startStr, weeksStr, makeKey) => {
+    // `name` is the band's label, or a function of the week's index (0-based) for a row whose "Number
+    // weeks" is ticked (item 9).
+    const applyRange = (name0, startStr, weeksStr, makeKey) => {
       // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
       // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
       // it: a named hiatus typed as 999999 weeks wrote ~550,000 hiatusTexts keys -- a 28 MB snapshot,
@@ -9275,6 +9495,7 @@ export function initLegacyApp() {
       const monday = mondayOf(startDate);
       for(let i=0;i<weeks;i++){
         const key = makeKey(isoOf(addDays(monday, i*7)));
+        const name = (typeof name0 === 'function') ? name0(i) : name0;
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
@@ -9291,7 +9512,12 @@ export function initLegacyApp() {
       const name = ((row.querySelector('.hiatus-name')||{}).value || '').trim();
       const startStr = (row.querySelector('.hiatus-start')||{}).value;
       const weeksStr = (row.querySelector('.hiatus-weeks')||{}).value;
-      applyRange(name, startStr, weeksStr, wk => wk);
+      // ⭐ NUMBERED (owner, 20 Oct 2026, item 9): "Hiatus Week 1", "Hiatus Week 2" … on every band of the
+      // row, the default label standing in for a blank name. Written into hiatusTexts like a name, so the
+      // waterfall, Excel, both PDFs and the month view all print it with no frozen edit, and a band renamed
+      // by hand keeps its text (the ownership rule above). Unticked, the row is exactly what it was.
+      const numbered = !!(row.querySelector('.hiatus-num') || {}).checked;
+      applyRange(numbered ? (i => (name || HIATUS_DEFAULT_LABEL) + ' Week ' + (i + 1)) : name, startStr, weeksStr, wk => wk);
     });
     // Per-phase hiatus: only while its own toggle is on, matching readState()'s own gate --
     // an unchecked phase's start/weeks fields still hold values but describe nothing active.
@@ -10012,7 +10238,10 @@ export function initLegacyApp() {
         if(!v) return '';
         if(v === 'off') return (iso >= first && iso <= last) ? 'off' : '';
         if(v === 'onhalf') return shot.has(iso) ? (halves.has(iso) ? 'onhalf' : 'on') : '';
-        return shot.has(iso) ? (v === 'half' ? 'half' : (v === 'on' ? 'on' : '')) : '';
+        // ⛔ FROZEN EDIT, owner-approved 20 Oct 2026 by picker ("Approve the edit", LABELS-SETUP-PLAN.md item 5):
+        // 'lead' (a day worked on the weekend just before the shoot) marks as 'on', the worked-day tint, in the
+        // month view and both month PDFs. One condition; no baseline holds a 'lead' mark, so none moves.
+        return shot.has(iso) ? (v === 'half' ? 'half' : ((v === 'on' || v === 'lead') ? 'on' : '')) : '';
       };
     })();
 
@@ -10570,7 +10799,9 @@ export function initLegacyApp() {
     const missing = [];
     if(!season) missing.push('Season');
     if(blocks){
-      if(!Number.isFinite(numEp) || numEp <= 0) missing.push('Number of Episodes');
+      // Optional in Blocks mode since 20 Oct 2026 -- except on a calendar saved before that with no
+      // count, which keeps the old rule until its next Show Info edit (blocksEpisodesLegacy).
+      if(blocksEpisodesLegacy && (!Number.isFinite(numEp) || numEp <= 0)) missing.push('Number of Episodes');
       if(!Number.isFinite(numBlocks) || numBlocks <= 0) missing.push('Number of Blocks');
       if(!Number.isFinite(perBlock) || perBlock <= 0) missing.push('Shooting Days per Block');
     } else {
@@ -10616,6 +10847,22 @@ export function initLegacyApp() {
     const el = document.getElementById('show-mode');
     return !!el && el.value === 'blocks';
   }
+  // A positive Number of Episodes? In Blocks mode a blank count means the calendar HAS no episodes,
+  // even where episodeDefs still holds the list from before it was cleared (the sync never empties it,
+  // so typing the count back restores the names): blockEpisodeDefs() is the one reader of that rule.
+  function hasEpisodeCount(){
+    return parseInt((document.getElementById('num-episodes') || {}).value || '', 10) > 0;
+  }
+  // A block's episodes, as defs in its stored (shooting) order, or none when Blocks mode has no count.
+  function blockEpisodeDefs(b){
+    if(!b || !hasEpisodeCount()) return [];
+    const byId = new Map(episodeDefs.map(e=>[e.id, e]));
+    return (b.episodes || []).map(id=> byId.get(id)).filter(Boolean);
+  }
+  // The next Show Info edit puts an old count-less Blocks file on the new rule (blocksEpisodesLegacy).
+  // Called FIRST by the handlers of exactly the fields the owner's option named: Schedule by, Number of
+  // Episodes, Number of Blocks, Days per Block and a block's own day count.
+  function showInfoEdited(){ blocksEpisodesLegacy = false; }
 
   // Episode numbering follows the industry convention: season 1 -> 101, 102...; season 5 ->
   // 501, 502... Falls back to plain 1, 2, 3 when no season is chosen.
@@ -10809,17 +11056,22 @@ export function initLegacyApp() {
   function renderBlockRows(){
     const wrap = document.getElementById('episode-rows');
     if(!wrap) return;
-    const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-    wrap.innerHTML = '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to move an '
-      + 'episode to another block, or to change the order it is shot in. It changes the calendar’s labels, '
-      + 'never its dates.</div>'
+    // No episode count (optional in Blocks mode since 20 Oct 2026): the blocks still schedule, and the
+    // hint says where episodes come from instead of how to drag ones that are not there.
+    const hasEps = hasEpisodeCount();
+    wrap.innerHTML = (hasEps
+      ? '<div class="ep-hint">Drag <span class="ep-grip-ic" aria-hidden="true"></span> to move an '
+        + 'episode to another block, or to change the order it is shot in. It changes the calendar’s labels, '
+        + 'never its dates.</div>'
+      : '<div class="ep-hint">Add a Number of Episodes in Show Info to name the episodes in each block. '
+        + 'Blocks schedule without one.</div>')
       + blockDefs.map(b=>{
-        const eps = b.episodes.map(id=> byId.get(id)).filter(Boolean);
+        const eps = blockEpisodeDefs(b);
         return `
       <div class="block-row" data-id="${escHtml(b.id)}">
         <div class="block-head">
           <span class="blk-name">${escHtml(b.name)}</span>
-          <span class="blk-count">${eps.length} ep${eps.length === 1 ? '' : 's'}</span>
+          <span class="blk-count">${hasEps ? eps.length + ' ep' + (eps.length === 1 ? '' : 's') : ''}</span>
           <label class="num-suffix" title="Shooting days in ${escHtml(b.name)}"><input type="number" class="blk-days${b.daysEdited ? ' is-edited' : ''}" min="1" step="0.5"
                  value="${b.days===''?'':escHtml(b.days)}" placeholder="–" aria-label="${escHtml(b.name)} shooting days"><span>days</span></label>
         </div>
@@ -10827,7 +11079,7 @@ export function initLegacyApp() {
           <div class="episode-row" data-id="${escHtml(e.id)}">
             <span class="ep-grip" draggable="true" title="Drag to another block, or to change the shooting order" aria-label="Drag to move ${escHtml(e.name)}"></span>
             <input type="text" class="ep-name" value="${escHtml(e.name)}" placeholder="Episode name" aria-label="Episode name">
-          </div>`).join('') || '<div class="blk-empty">No episodes — drop one here</div>' }</div>
+          </div>`).join('') || (hasEps ? '<div class="blk-empty">No episodes — drop one here</div>' : '') }</div>
       </div>`;
       }).join('');
   }
@@ -11175,12 +11427,11 @@ export function initLegacyApp() {
     if(kind === 'block'){
       const b = blockDefs[unit.i];
       parts.block = (b && b.name) || ('Block ' + (unit.i + 1));
-      const byId = new Map(episodeDefs.map(e=>[e.id, e]));
-      const eps = b ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
-      parts.episode = eps ? 'Ep. ' + eps : '';
+      // "Ep." before numbers only (epListLabel, owner 20 Oct 2026); none when Blocks mode has no count.
+      parts.episode = epListLabel(blockEpisodeDefs(b));
     } else {
       const e = episodeDefs.find(x=> x.id === unit.id);
-      parts.episode = 'Ep. ' + (e ? shortEpisodeName(e) : '');
+      parts.episode = e ? epListLabel([e]) : 'Ep. ';
     }
     // `kind` IS Schedule by here: productionUnits() is 'block' exactly on a Blocks calendar. So a
     // 'block' on an Episodes calendar lands on 'episode' with no special case.
@@ -11300,7 +11551,8 @@ export function initLegacyApp() {
   //   Preferences    "Show Blocks" / "Show Episodes" drop their half (ruling 10); both off is ''.
   //   "Ep." (owner, 22 Sep 2026: "Can we put 'Ep' before the episode numbers", then "Maybe it should
   //   be 'Ep.'") is written ONCE per list, not per number -- the three-block worst case had 43 px to spare before it, and a prefix
-  //   on every number would have spent it.
+  //   on every number would have spent it. Since 20 Oct 2026 it is once per RUN of numbers and never before a
+  //   renamed episode ("Pilot, Ep. 102, 103"): epListLabel().
   function productionPillTag(schedule, weekStart, fromCol, toCol){
     // ✅ RULING 7 (owner, 22 Sep 2026): a ONE-DAY piece of the pill carries no grey text. There is
     // no room -- "Production Week 16" alone nearly fills a single day column, and the tag truncated
@@ -11328,15 +11580,14 @@ export function initLegacyApp() {
     const byId = new Map(episodeDefs.map(e=>[e.id, e]));
     if(U.kind === 'episode'){
       if(!showE) return '';
-      const eps = episodeListLabel(touched.map(u=> byId.get(u.id)).filter(Boolean));
-      return eps ? 'Ep. ' + eps : '';
+      return epListLabel(touched.map(u=> byId.get(u.id)).filter(Boolean));
     }
     if(!showB && !showE) return '';
     return touched.map(u=>{
       const b = blockDefs[u.i];
       if(!b) return '';
-      const eps = showE ? episodeListLabel((b.episodes || []).map(id=> byId.get(id)).filter(Boolean)) : '';
-      return [showB ? (b.name || ('Block ' + (u.i + 1))) : '', eps ? 'Ep. ' + eps : ''].filter(Boolean).join(' · ');
+      const eps = showE ? epListLabel(blockEpisodeDefs(b)) : '';
+      return [showB ? (b.name || ('Block ' + (u.i + 1))) : '', eps].filter(Boolean).join(' · ');
     }).filter(Boolean).join(' / ');
   }
 
@@ -11344,18 +11595,28 @@ export function initLegacyApp() {
   // folded to a range ("201–203") -- it is the run that eats width in a narrow day column. Two stay
   // listed ("201, 202"), because a range of two reads as a typo. A name that is not a plain number
   // ("Pilot") is never folded. Order is the caller's (shooting order).
-  function episodeListLabel(defs){
+  // ✅ "Ep." ONLY BEFORE NUMBERS (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 3): an episode
+  // renamed "Pilot" used to read "Ep. Pilot". Each item is a plain number, a range of them, or a name
+  // ({text, num}), and epListLabel() writes "Ep." once before each RUN of numbered items and never
+  // before a name: "Ep. 201, 202", "Pilot", "Pilot, Ep. 102, 103" (the owner's pick for a mixed list,
+  // by picker). A list of numbers only is exactly the string it was, so no calendar of numbered
+  // episodes moves (gates 10 and 13). Declined: "Never add Ep.", which would re-cut every baseline.
+  function episodeListItems(defs){
     const names = defs.map(shortEpisodeName);
+    const isNum = s=> /^\d+$/.test(s);
     const out = [];
     for(let i=0;i<names.length;){
       let j = i;
-      while(j + 1 < names.length && /^\d+$/.test(names[j]) && /^\d+$/.test(names[j+1])
+      while(j + 1 < names.length && isNum(names[j]) && isNum(names[j+1])
             && parseInt(names[j+1], 10) === parseInt(names[j], 10) + 1) j++;
-      if(j - i >= 2){ out.push(names[i] + '–' + names[j]); }
-      else { for(let k=i;k<=j;k++) out.push(names[k]); }
+      if(j - i >= 2){ out.push({text: names[i] + '–' + names[j], num: true}); }
+      else { for(let k=i;k<=j;k++) out.push({text: names[k], num: isNum(names[k])}); }
       i = j + 1;
     }
-    return out.join(', ');
+    return out;
+  }
+  function epListLabel(defs){
+    return episodeListItems(defs).map((x, i, a)=> (x.num && !(i > 0 && a[i-1].num)) ? 'Ep. ' + x.text : x.text).join(', ');
   }
 
   // Mirrors the actual Excel export layout: year-blocks side by side, same column
@@ -12677,6 +12938,8 @@ export function initLegacyApp() {
   //     'off'    -- not shot, though it would normally be a working day
   //     'on'     -- shot, though it would normally be skipped (a weekend, or a holiday being worked)
   //     'onhalf' -- 'on' at half weight: a weekend or holiday worked as a half day (29 Sep 2026)
+  //     'lead'   -- 'on' on the weekend just BEFORE the first shoot day, which then starts the shoot
+  //                 (20 Oct 2026, LABELS-SETUP-PLAN.md item 5). Its own word so no stored 'on' starts counting
   // This is what gives week-by-week control -- "week starts Tuesday" is Mon:'off', "runs into
   // Saturday" is Sat:'on' -- WITHOUT turning Production into a list of independently-dated blocks.
   // Production stays derivable from start + count + holidays + hiatuses + this map, which is what
@@ -12684,7 +12947,7 @@ export function initLegacyApp() {
   // Read by simulateProductionSchedule(), which is the only place that decides what a value DOES.
   // ⚠️ One word per day, always: a value is a plain lowercase word so the restore validator and
   // every older build keep it verbatim, and a build that does not know a word ignores it.
-  let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' | 'onhalf' }
+  let dayOverrides = {};    // { 'YYYY-MM-DD': 'half' | 'off' | 'on' | 'onhalf' | 'lead' }
   // While a tool MOVES the shoot, the marks' shoot-day pins (see beginShootDayMove). Session state,
   // never saved. Declared beside the store it governs, ahead of any update() that reads it.
   let overrideMove = null;
@@ -13851,7 +14114,11 @@ export function initLegacyApp() {
   const HDR_LEGACY_SLOTS = ['c4'];
 
   function headerFmtToolbarHtml(mv){
-    const sizes = mv ? [14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
+    // The month header gained 10, 11 and 12 (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 7: "10"):
+    // a long "Revised as of …" line needs room. headerFormatCss() already takes 1-400.
+    // ⚠️ This markup is printed into a MANUAL month header's document, so the option list moves gate
+    // 10's mvheaderlegacy capture; the owner signed off the A/B before it was re-cut.
+    const sizes = mv ? [10,11,12,14,16,18,20,22,26,30] : [8,9,10,11,12,13,14,16,18,22];
     return `<div class="hdr-fmt" role="toolbar" aria-label="Header text formatting" data-mv="${mv?1:0}">
       <select class="hf-ctl hf-size" title="Text size" aria-label="Text size">
         <option value="">Size</option>
@@ -14976,6 +15243,9 @@ export function initLegacyApp() {
     } catch(e){ return ''; }
   }
   function hdrTokenGroups(){
+    // LOCAL today, as {today} reads it (buildHeaderCtx), written as the token's YYYY-MM-DD.
+    const now = new Date(), two = n=> String(n).padStart(2, '0');
+    const todayIso = now.getFullYear() + '-' + two(now.getMonth() + 1) + '-' + two(now.getDate());
     const groups = [
       { name: 'Show', items: [
         ['{title}', 'Show title'],
@@ -14991,6 +15261,10 @@ export function initLegacyApp() {
         ['{today:long}', 'Today, as September 8, 2026'],
         ['{today:slash}', 'Today, as 9/8/26'],
         ['{today:iso}', 'Today, as 2026-09-08'],
+        // ⭐ A FIXED date (owner, 20 Oct 2026, item 7: "Revised as of <a date>" must be findable).
+        // lookupHeaderToken() has resolved {date:YYYY-MM-DD[:fmt]} since 5 Oct 2026, but no menu offered
+        // it. Inserted as TODAY'S date, which the user then edits; it never moves after that.
+        ['{date:' + todayIso + '}', 'A fixed date, which never updates'],
       ]},
     ];
     // Every phase the calendar actually has, built-in and custom, under its CURRENT name -- so a
@@ -15015,6 +15289,7 @@ export function initLegacyApp() {
       // from the preview when its data is missing explains the idea faster than any tooltip.
       ['[{episodes} Episodes]', 'Hidden when there is no count'],
       ['[{version}]', 'Hidden until a version is set'],
+      ['Revised as of {date:' + todayIso + '}', 'A revision line with a fixed date'],
     ]});
     return groups;
   }
@@ -16227,6 +16502,11 @@ export function initLegacyApp() {
     'eu-lithuania': {region:'LT', label:'Lithuania',
       locals:'No crew collective agreement identified — Labour Code Art. 123 governs',
       caveat:null},
+    // France (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 8: "France only"). ⛔ The value is save format,
+    // appended like every place before it. Alsace-Moselle's two extra days are REGION_CAVEATS.FR's line.
+    'eu-france': {region:'FR', label:'France',
+      locals:'Film crew: production cinématographique (IDCC 3097)',
+      caveat:null},
   };
   const DEFAULT_PLACE = 'us-general';
 
@@ -16415,6 +16695,7 @@ export function initLegacyApp() {
       if(!def) return;
       def.days = e.target.value; def.daysEdited = true;
       e.target.classList.add('is-edited');
+      showInfoEdited();
       refreshDerivedInfo();
       update();
     });
@@ -16867,17 +17148,17 @@ export function initLegacyApp() {
   document.getElementById('show-version').addEventListener('input', ()=>{ render(currentSchedule); markDirty(); });
   document.getElementById('season-num').addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
   document.getElementById('shoot-days-per-ep').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
-  document.getElementById('num-episodes').addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
+  document.getElementById('num-episodes').addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   // Block shooting (BLOCKS-PLAN.md §3). Switching mode changes which list drives Production, so it
   // re-renders the panel AND recomputes -- and switching back must land on the previous dates
   // exactly, which holds because neither mode's inputs are ever cleared.
   ['show-mode'].forEach(id=>{
     const el = document.getElementById(id);
-    if(el) el.addEventListener('change', ()=>{ refreshEpisodesUI(); update(); });
+    if(el) el.addEventListener('change', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   });
   ['num-blocks', 'days-per-block'].forEach(id=>{
     const el = document.getElementById(id);
-    if(el) el.addEventListener('input', ()=>{ refreshEpisodesUI(); update(); });
+    if(el) el.addEventListener('input', ()=>{ showInfoEdited(); refreshEpisodesUI(); update(); });
   });
   // ⛔ BATCH 5 (FIX-PLAN §7, the suspected "NumberInput clamp-on-blur desync" -- REPRODUCED in the
   // pane, 30 Sep 2026, with real typing and a real Tab). Mantine clamps these four counts to their
@@ -16971,6 +17252,7 @@ export function initLegacyApp() {
     const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
     ['num-blocks', 'days-per-block'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     blockDefs = []; blockCounter = 0; blockAssignEdited = false; lastDroppedBlocks = [];
+    blocksEpisodesLegacy = false;
     episodeShootOrder = [];
     refreshEpisodesUI();
     headerMode = 'auto'; headerManual = {}; headerTemplates = false;
@@ -17077,7 +17359,10 @@ export function initLegacyApp() {
         locked: lockEl ? !!lockEl.checked : true,
         // Saves written before naming existed have no `name`; restore reads a missing value as
         // '', matching a fresh row and leaving the band's default "Hiatus" label untouched.
-        name: (row.querySelector('.hiatus-name')||{}).value || ''
+        name: (row.querySelector('.hiatus-name')||{}).value || '',
+        // "Number weeks" (item 9). ⛔ Written ONLY when ticked, so a row that never had it is byte-for-byte
+        // the entry it always was; restore reads a missing value as unticked.
+        ...(((row.querySelector('.hiatus-num')||{}).checked) ? {numbered: true} : {})
       });
     });
     return {byId, hiatuses};
@@ -17520,6 +17805,11 @@ export function initLegacyApp() {
       // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
       // byte what it did before the switch existed.
       ...(prepPauseOff ? {prepPauseOff: true} : {}),
+      // 20 Oct 2026 (LABELS-SETUP-PLAN.md item 4): "this Blocks calendar schedules with no episode count".
+      // ⛔ PERMANENT key. Written ONLY where it changes something -- Blocks mode, no count, not an old file
+      // on the old rule -- so every other snapshot is byte-for-byte what it was. Its ABSENCE on a count-less
+      // Blocks file is what marks a file saved before the change (applyStateSnapshot).
+      ...((isBlocksMode() && !hasEpisodeCount() && !blocksEpisodesLegacy) ? {blocksEpisodesOptional: true} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -17945,7 +18235,10 @@ export function initLegacyApp() {
       pins: keys.map(iso => ({iso, kind: dayOverrides[iso], pin: pinOverride(iso, base),
                               // a worked weekend/holiday: it adds a day only while OFF the natural list.
                               // 'onhalf' is one too, at half weight, and travels exactly as 'on' does.
-                              worked: (dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf')
+                              // So is 'lead' (item 5): off the natural list by definition, it is pinned
+                              // to the first natural day's Monday minus 1 or 2, and lands on the weekend
+                              // just before the moved shoot.
+                              worked: (dayOverrides[iso] === 'on' || dayOverrides[iso] === 'onhalf' || dayOverrides[iso] === 'lead')
                                       && base.indexOf(iso) === -1}))
     };
     return true;
@@ -23244,7 +23537,7 @@ export function initLegacyApp() {
       ['sheet', 'month'].forEach(k=>{ if(typeof v[k] === 'boolean') out[k] = v[k]; });
       return out;
     });
-    // A day override is a plain word the simulation understands ('half' | 'off' | 'on' | 'onhalf'). Unknown
+    // A day override is a plain word the simulation understands ('half' | 'off' | 'on' | 'onhalf' | 'lead'). Unknown
     // WORDS are kept -- a round trip must never lose data, and the simulation ignores them -- but
     // nothing that is not a lowercase word gets through.
     setMap('dayOverrides', v => (typeof v === 'string' && /^[a-z]{1,16}$/.test(v)) ? v : undefined);
@@ -23370,6 +23663,7 @@ export function initLegacyApp() {
           if(o.weeks !== undefined){ const w = countVal(o.weeks); if(w !== o.weeks) bad.n++; o.weeks = w; }
           if(o.name !== undefined && typeof o.name !== 'string'){ bad.n++; o.name = ''; }
           if(o.locked !== undefined && typeof o.locked !== 'boolean'){ bad.n++; delete o.locked; }
+          if(o.numbered !== undefined && typeof o.numbered !== 'boolean'){ bad.n++; delete o.numbered; }
           return o;
         });
       } else if('hiatuses' in f && f.hiatuses !== undefined){ bad.n++; delete f.hiatuses; }
@@ -23451,7 +23745,7 @@ export function initLegacyApp() {
       document.getElementById('hiatus-list').innerHTML = '';
       // h.locked is absent in saves written before the lock existed -> addHiatusRow defaults it to
       // locked, which matches how those calendars behaved (nothing shifted them).
-      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name));
+      snap.fields.hiatuses.forEach(h=> addHiatusRow(h.start, h.weeks, h.locked, h.name, h.numbered === true));
     }
 
     // ⚠️ RESTORE UNCONDITIONALLY -- and step 3 below cannot do that on its own. It iterates the
@@ -23545,6 +23839,13 @@ export function initLegacyApp() {
         }
       });
     }
+
+    // ⛔ UNCONDITIONAL (LABELS-SETUP-PLAN.md item 4), read off the fields just applied: a count-less
+    // Blocks calendar WITHOUT the key was saved before episodes became optional, and keeps the old rule
+    // (Production waits for a count) until its next Show Info edit. With the key, or in any other state,
+    // the new rule. Undo, the crash backup and a shareable copy come through here too, so each keeps the
+    // rule it was taken under.
+    blocksEpisodesLegacy = isBlocksMode() && !hasEpisodeCount() && snap.blocksEpisodesOptional !== true;
 
     // 4. Restore user notes and view mode. Migrate any old-format entries
     //    ({label, noteDate}) into the new single-text shape ({text}).

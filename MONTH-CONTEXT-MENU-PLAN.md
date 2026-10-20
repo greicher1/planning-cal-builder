@@ -256,9 +256,15 @@ it is cheap to change.)*
   apart.
 - **A phase's own hiatus** on that day gets a section "<phase>'s hiatus" whose only item is Remove (untick
   `phiatus-en-<key>`). Lock does not apply: a phase's own hiatus always travels with its phase.
-- **Not offered: renaming or recolouring a hiatus.** `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
+- ~~**Not offered: renaming or recolouring a hiatus.**~~ `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
   note editor (`openNoteEditor` on `td.sheet-hiatus-cell`). The month-view bands have no editor, no handler and no
   attributes. Building one would be its own piece of work.
+  ✅ **RECOLOURING SUPERSEDED, 20 Oct 2026** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 9, owner: *"Recolour
+  from day menu"* and *"Number the weeks"*). The section now carries **Number weeks** (the row's own new
+  `.hiatus-num` box, a `menuitemcheckbox`, Lock's shape) and **Colour…**, the phase picker's `.phase-color-pop` given
+  the waterfall band editor's ten colours. A pick writes `hiatusColors` for EVERY week of the hiatus, so the
+  waterfall and the month view change together; the default colour deletes the keys. Renaming stays the waterfall's
+  (or the row's Name field).
 - ✅ **Built at step 5 (19 Oct 2026)** as `bandSections(ctx)` in `installMonthDayMenu`:
   - The × is lifted into `confirmRemoveHiatus(row)` and `removeHiatusRow(row)`, beside `addHiatusRow`. The row's ×
     and the menu's `removeHiatusHere` both call them, as Remove <phase>… does (§3.7a). The menu does not click the ×,

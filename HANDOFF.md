@@ -4,6 +4,47 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, NOT MERGED
+
+- ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
+  `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
+  at `be67ca5`. ⛔ The report came from recreating two real production calendars; nothing about them is in this
+  work, and every fixture is synthetic.
+- **The rulings** (all by picker, 20 Oct 2026, verbatim in the plan §1 and §8): "Ep." only before numbers, a mixed
+  list "Pilot, Ep. 102, 103"; Blocks need no episode count, old files keep dates, and an old file takes the new rule
+  on its next Show Info edit; the weekend just before, its week becoming Production Week 1; header sizes from 10;
+  France, the film agreement's 11 days, one place; hiatus Colour… and Number weeks, the box per row.
+- **What a user gets:** see the six README entries of 20 Oct 2026.
+- ⛔ **Save format, all additive, no `SNAPSHOT_VERSION` bump, no new id in `fields.byId`:**
+  - top-level `blocksEpisodesOptional: true`, written ONLY on a count-less Blocks calendar on the new rule. Its
+    ABSENCE on a count-less Blocks file is what marks a pre-change file (`blocksEpisodesLegacy`, set unconditionally
+    in `applyStateSnapshot`, cleared by `showInfoEdited()`);
+  - day word `'lead'` in `dayOverrides`, on the weekend just before the first shoot day. ⛔ Never `'on'`: a stored
+    `'on'` there was inert and must stay so (`'onhalf'`'s precedent);
+  - `fields.hiatuses[i].numbered: true`, written only when ticked;
+  - `union-place` value `eu-france`, appended.
+- **Code** (no frozen symbol but one, below): `epListLabel` / `episodeListItems` (item 3, `episodeListLabel` is
+  gone); `hasEpisodeCount`, `blockEpisodeDefs`, `showInfoEdited` (item 4); `productionLeadWeekend`, the `noLead`
+  walk, `productionInfo.leadDays`, `daySituation`'s `lead` (item 5); `headerFmtToolbarHtml`, `hdrTokenGroups` (item
+  7); `FR` in `tools/gen_holidays.py` with a per-region `verified` (item 8); `.hiatus-num`, `numberHiatusHere`,
+  `hiatusColourHere`, `openPhaseColorPop`'s `options` (item 9).
+- ⛔ **One frozen edit, owner-approved by picker ("Approve the edit"):** `_ovDays` in `renderMonthView` marks `'lead'`
+  as `'on'`, the worked-day tint. Inert on every baseline. Added to the frozen-edit table below.
+- ⭐ **Learned:**
+  1. **A view switch is its own undo step**, so a leg that acts in the month view, reads the waterfall and then
+     clicks Undo undoes the view switch. `labelsetup` undoes in the view it acted in, then redoes before switching.
+  2. **The month-view header lines carry `data-mvhid`, not `data-hid`.**
+  3. **A "Load another calendar?" question can come later than 4 s** under load; the leg answers it whenever it
+     shows, until the title is in (B4 flaked once before that).
+  4. **Légifrance answers automated reads with a 403 and then a human check.** The France provenance says what was
+     read instead.
+- **Proof so far, build `736220ac…`:** `labelsetup` 41/41 (new leg, in `gate.sh`'s generic block); `mvmenu` 87/87
+  (L3 changed, L3b new, V1/V9 updated); `npm run check` 40/40; `check-refs.py` CLEAN; `validate_holidays.py` CLEAN.
+  On `releases/v1.5.0.html`, `labelsetup` passes only its 8 controls. Twenty mutants each turn their own cases red
+  (table in the plan's §9 once the gate is in). Gate 10 alone: nine documents identical; `mvheaderlegacy` moved by
+  45 `<option>`s with a pixel-identical printed PDF, and was **re-cut on the owner's "Re-cut it"**.
+- ⏭ **Next:** the full gate (queued behind two other sessions' gates), then the owner's merge picker, then the push
+  picker. Merge `main` first if a sibling has landed.
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
@@ -4697,6 +4738,9 @@ hour of someone's time would make the 41 minutes a non-issue and this whole poli
 | `.mv-daycell:hover` chip + tint | **21 Sep** | **inert** — same scoping, AND `:hover` has no meaning in a print rendering. Verified: `cursor` computes `auto` on `#print-root` cells |
 | hiatus bands skip Sat/Sun | 18 Sep | ⛔ **CHANGES IT, deliberately** |
 | half-day overlay on the pill | **21 Sep** | ⛔ **CHANGES IT, deliberately** — see the A/B below |
+| `'lead'` marks as `'on'` in `_ovDays` (the worked-day tint on the weekend just before the shoot, LABELS-SETUP-PLAN item 5) | **20 Oct** | **inert on every baseline** — no fixture holds a `'lead'` mark. Owner, by picker: *"Approve the edit"* |
+
+*(Rows added since this table was written are listed here too; the table's title still counts seven.)*
 
 ⚠️ **The scoping argument for rows 3 and 4 was stated wrongly everywhere and is now corrected.**
 The docs said *"`#print-root` is a SIBLING of `#table-wrap`"*. It is not — measured: `#print-root` is
@@ -6900,6 +6944,13 @@ also statute-based. Closing this needs someone with access to the TV FFS.
 `PHASE_COLOR_OPTIONS`' array order. Renaming or removing one silently breaks every calendar saved
 with it. **This is why Germany went in as two entries rather than one**: shipping `de-germany` and
 splitting it later would have required a migration.
+
+✅ **FRANCE ADDED 20 Oct 2026** (`FR`, place `eu-france`, appended; LABELS-SETUP-PLAN.md item 8): the film
+agreement's eleven days, no weekend substitution, Alsace-Moselle and the TV solidarity day as the caveat. The §2j
+regression check was rerun and held: the regenerated span minus France is byte-identical to the old span, and
+`validate_holidays.py` is CLEAN on all sixteen lists. A region may now carry its own `verified` date
+(`spec.get("verified", VERIFIED)`), which is what kept every older source line unchanged. ⚠️ Légifrance blocks
+automated reads (403, then a human check); the provenance note in the generator says what was read instead.
 
 **Still missing, in the owner's own priority order if they want more:** Hungary (Budapest — Origo /
 Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrandov), Ireland
