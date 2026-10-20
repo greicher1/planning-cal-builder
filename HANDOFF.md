@@ -61,7 +61,7 @@
   padding (`padStart` … `overallEnd`) and the swap call site (`cut` / `wf` / the `schedule` literal, whose keys are
   now spelled out). `segCol` and the placement loop are untouched. Column reuse changes `col` upstream of the cut,
   so the two compose: the cut only slices weeks.
-- ⏭ **Next:** the full gate on build `af58730a…` (queued 15:55 behind two other sessions' gates, port 8969, log in
+- ⏭ **Next:** the full gate on build `9da4794b…` at `224eef0` (queued 15:55 behind two other sessions' gates, port 8969, log in
   this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
