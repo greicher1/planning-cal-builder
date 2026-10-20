@@ -116,6 +116,116 @@
 - ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
   verifies the live `index.html` against the gated build afterwards.
 
+### ✅ 20 Oct 2026: BUNDLE A — FIVE MONTH-VIEW NOTE FEATURES (items 2, 6, 10, 15, 17) — MERGED INTO LOCAL `main` (`f54ddef`), PUSH HELD (branch `claude/month-notes-2951a8`, [`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md))
+
+- ⏭ **RESUME HERE for bundle A.** One of three sessions the owner started from the 20 Oct 2026 gap report (private;
+  nothing about the calendars behind it belongs in this repo). Siblings: `prep-switch` (item 1, lands first) and
+  `labels-setup` (items 3–5, 7–9). Worktree `.claude/worktrees/month-notes-2951a8`, cut from local `main` at `be67ca5`.
+  Owner's release rule: merge into local `main` only after a green full gate and the owner's picker; ask by picker
+  before every push.
+- **The rulings** (20 Oct 2026, by picker, verbatim in the plan §1, and Q1–Q4 in §8): item 2 all four ("Remember last
+  colour", "'No fill' plain text", "Light tints", "Greys"); item 6 "One month each side", PDFs "Only if they hold
+  something", Q1 "Your own only" (custom holidays only); item 10 "Every hiatus day"; item 15 "'Paste notes…' box", Q4
+  "Fix them first"; item 17 "Wrap to two lines", Q3 "Any one-day piece"; item 2's Q2 "No box at all".
+- **What was built** (the README's five entries have the detail):
+  - **Item 2.** `MV_NOTE_PALETTE` beside the frozen `EXCEL_STANDARD_COLORS` (untouched). No fill = `#FFFFFF00`, which
+    the frozen renderer draws as transparent with black ink with NO edit, and which `sanitizeSnapshot` accepts for a
+    day note only. One frozen CSS line clears its border. `prefs.mvNoteColor` (localStorage). The writer lists a No
+    fill bar's fill and ring as `clear` and `mvlPageOps` skips them.
+  - **Item 6.** `monthRangeForSchedule` answers by context (screen: core ± 1 month; building a PDF: `monthPrintRange`).
+    ⛔ Frozen `exportMonthPdf` reads the range BEFORE its loop sets `printingCursor`, so its two callers (the Export
+    button's print route and the writer's "Print instead") arm the one-shot `mvPrintRangeOnce`. `update()` places the
+    cursor on the nearest CORE month, because the frozen clamp would otherwise open every calendar on its empty edge.
+    `schedule.monthOnlyHolidays` (enabled custom holidays outside every phase, inside the screen range), drawn by
+    `notesForWaterfallDate` and nothing else.
+  - **Item 10.** Frozen edit: the "+" loop's `if(isHiatusDate(schedule, d)) continue;` is gone.
+  - **Item 15.** `openPasteNotes` / `parsePastedNotes` / `addPastedNotes`, engine-built, no ids; the toolbar button is
+    React's (`PreviewToolbar.jsx`, month view only, reached by delegation).
+  - **Item 17.** Frozen edits: `mvPillLanes` in the pill `place()` call, and `.mv-pill.mv-pill-2l`. The writer decides
+    its own wrap (`mvlWrapsPill`, `mvlPillLines`) with the 600 font: `buildMonthLayout(schedule, inter500, inter600)`.
+- **Proof so far:**
+  - New leg `mvnotes` (LIVE 30 cases, RESTORE 14) on the new synthetic fixture `tests/fixtures/mvnotes.sptcal`, minted by
+    its own LIVE run's real Save. `monthemit` 16/16 and `monthwriter` 12/12 + its A/B P0–P5 on that fixture.
+  - ⭐ **Item 10's A/B, gate 10:** all ten documents differ ONLY by hidden `.mv-note-add` elements (identical with them
+    masked; +66 to +135 each), sheet counts unchanged, and the printed sheets are pixel-identical to the live build's
+    (`dist-mut/base`, `b3cae2ac…`, 156 pages, 0 differ). So gate 10 needs a re-cut and gate 13 should not move.
+  - `carry-rich` and `stintswap-reshape` (custom phases and a custom holiday) byte-identical to gate 13.
+  - **Fourteen mutants** (scratch mutators, `dist-mut/<name>/`, source restored and `cmp`-checked; the rebuilt `dist`
+    hashed back to `f6a73938…`), each red:
+
+    | Mutant | Red |
+    |---|---|
+    | day notes keep the ten-colour palette | `mvnotes` P1–P5, V4, E9, M1 |
+    | the No fill CSS line removed | P2; R1 |
+    | the colour never remembered | P3, P4, V4 |
+    | no edge months on screen | E2, E3, E7 and every case paged there |
+    | the PDFs never print an edge month | E8, E9 |
+    | no month-only holidays | E3, E6, E7 |
+    | the "+" loop skips hiatus days again | H1, H2, E9, M1; `mvmenu` H4, K1, I2c, H5 |
+    | a paste banked one step per note | V5 |
+    | no pill ever wraps (screen) | W1, W3; R2 |
+    | no cursor placement in `update()` | E1 (opens on December 2025) |
+    | the writer never wraps a pill | the gate's `mvnotes month PDF` check, 2 of 3 |
+    | Add allowed with bad lines | V2 |
+    | the sanitizer drops No fill again | LIVE throws (undo of a No fill note); RESTORE E9, R1, Z |
+    | an edge holiday's click opens a waterfall note | E7 |
+
+    Two of them first came out GREEN and taught something: m08 because `T.memoryIDB()` keeps backups BY REFERENCE and
+    `captureSnapshot()` hands over the live `dayNotes`, so the leg compared the store with itself (the leg's `snap()`
+    now copies); m11 because `monthemit` compares only weeks the writer lays out as the print document does, so a
+    pill that stops wrapping drops out of its comparison (hence the new `pdftotext` check in `gate.sh`).
+  - ⚠️ **Disk.** Free space was 6.6 GB at the start and 5 GB before the gate. `/private/tmp/tc*` held 3,198 harness
+    Chrome profiles from every session (19 GB). On the owner's picker ("Harness profiles"), the 879 older than a day
+    that hold a Chrome profile were deleted (3.7 GB freed, 9 GB free after). The 1,522 `code_sign_clone` copies were
+    left alone, as before.
+- ⭐ **Learned:**
+  1. **An 8-digit hex is the cheapest "no colour" a frozen renderer can be handed.** `background:${oc}` takes
+     `#RRGGBBAA` as valid CSS, and `textColorFor` reads only the first six digits, so the frozen line paints it right
+     with no edit, and a sanitizing build degrades it to the default instead of to something invisible.
+  2. **A range read in TWO contexts by frozen code needs the context from outside.** `printingCursor` already marked
+     "building a PDF" inside both exports' loops; only `exportMonthPdf`'s first line falls outside it, hence the one-shot.
+  3. **The writer legs slice the source and call `mvlMonthLayout` themselves** (`monthexport`, `monthwriter`,
+     `monthemit`), so a new argument to the model has to be passed there too, or the built app and the slice differ.
+  4. **`monthemit` assumed every bar has a painted fill.** A No fill bar is now LISTED (`clear: true`) so its box stays
+     measurable, and the leg checks Chrome's zero-alpha fill and border against `clear` instead of against a colour.
+- **Full gate 1** on build `f6a73938…` (port 8985, 14:50–15:10, alone): **2,058 PASS, 20 FAIL.**
+  - 12 expected: gate 10's ten documents (the hidden "+") and the two missing `mvnotes` baselines (gates 10 and 13).
+    Gate 13 byte-identical on all twenty existing runs; the waterfall PDF, every Excel part, 0 clipped, 74 ids.
+  - 8 were legs that assumed the old behaviour, each fixed in the LEG and re-run green on the build:
+    `monthlayout` ×4 (its slice anchor is `buildMonthLayout`'s return line, which now passes `pillWidthOf`: 14/14 each);
+    `monthlanes` L17a/L17b ("the last/first month" read off a disabled arrow; now one arrow press short of it: 6/6);
+    `mvmenu` N1 (left-clicked a hiatus day's MIDDLE to open the menu, which now adds a note; clicks the number: 87/87);
+    `episodeprep` R5 (the walk now starts on the empty edge month; it finds the first month with a bar: 24/24).
+  - ⭐ Learned: **a leg that reads "the first/last month" from `mv-prev`/`mv-next` being disabled now means the EDGE
+    month.** Five legs page that way (`blocks`, `hiatuslabel`, `pilllabel`, `shootorder`, `weeknum`); they walk every
+    month and compare walks, so edges cost them nothing, and they stayed green.
+- ✅ **Re-cut and new cases, signed off by the owner (picker, 20 Oct 2026): "Re-cut all ten"** (gate 10, on the A/B and
+  a before / after / difference sheet of `dayoverrides`' July) **and "Cut both"** (`mvnotes` in gates 10 and 13, on a
+  contact sheet of its print path beside its written file). Cut from gate 1's own captures; both baselines' READMEs
+  record it. `blocksoff` matches the new `reference` document.
+- **Committed** (`91f95c5` code + legs, `1e0ad71` baselines, `c282f44` docs) and **merged with local `main`** at
+  `670a591` (the prep pause switch) as `19aaf0f`: only HANDOFF, README and the harness README conflicted (entries added
+  at the same spot; all kept, `main`'s first). Gate 2 on the unmerged branch was stopped before it started, since only
+  the merged build's gate counts.
+- **Full gate 3 on the merged build `3e7dc4f6…`** (1,562,459 bytes; port 8985, 15:30–15:51; bundle B's gate had just
+  ended): **2,158 PASS, 2 FAIL**, both the known contention flakes, both green re-run alone: `pilllabel (shootorder)` W1
+  "months 1 vs 18" (the month walk cut short; 29/29 through gate.sh's own evaluator) and `launchopen` L6 (16/16).
+  Everything else green: gates 1–5 (0 clipped, the waterfall PDF and every Excel part identical, 74 ids), gate 10's
+  eleven documents and gate 13's twenty-one written PDFs identical to the (re-cut and new) baselines, `mvnotes` 30 + 14,
+  the prep switch's own 25 checks.
+- ⚠️ Bundle B (`labels-setup`) also re-cut gate 10's `mvheaderlegacy` and edited `mvmenu.js`; whichever lands second
+  re-cuts that baseline from a merged-build run and re-checks `mvmenu` K1. The shared notes folder has the detail.
+- ✅ **Merged** on the owner's picker (*"Merge into main"*): local `main` fast-forwarded `670a591` → `f54ddef`. The main
+  checkout held another session's UNCOMMITTED HANDOFF note (the reference-waterfall rulings, 15:25), which the
+  fast-forward also touches: it was backed up, set aside, and re-applied byte-for-byte on top (`git apply`, checked
+  with `cmp`), still uncommitted. The checkout's modified `stintswap-reshape.sptcal` and untracked `Reshape Fixture…`
+  were not touched.
+- ⛔ **Push HELD** by the owner (*"Hold for bundle B"*): ship the prep switch, bundle A and bundle B together, after B
+  merges and a combined gate. `main` (`f54ddef`) is 15 commits ahead of `origin/main` (`5d4737d`) before this note.
+- ⏭ **Next:** bundle B (`labels-setup`) merges `main` (now with bundle A) and gates: it must re-cut gate 10's
+  `mvheaderlegacy` from the merged build (both bundles changed that document) and re-check `mvmenu` K1. Then the
+  owner's push picker; whoever pushes verifies the live `index.html` against the gated build.
+
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
 - **Pushed and live.** The owner approved one commit and one push by picker. `git push origin main` sent

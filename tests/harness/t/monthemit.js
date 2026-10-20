@@ -126,6 +126,8 @@ window.addEventListener('load', function () { (async function () {
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
     var noteWidthOf = function (s) { return F.mvlTextWidth(fonts['500'].font, s, G.noteFontPx); };
+    // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
+    var pillWidthOf = function (s) { return F.mvlTextWidth(fonts['600'].font, s, G.noteFontPx); };
     // Chrome's rounded ascent at a size: a text fragment's rect top is its baseline less this.
     var ascentAt = function (size) { return Math.round(fonts['400'].font.ascent * size / fonts['400'].font.unitsPerEm); };
 
@@ -168,7 +170,7 @@ window.addEventListener('load', function () { (async function () {
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], lay = chromeLayout(doc.html);
       var months = lay.pages.map(function (pg, pi) {
-        var m = F.mvlMonthLayout(pg.inner, noteWidthOf);
+        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf);
         m.fit = {rows: pg.rows.slice()};
         return m;
       });
@@ -587,10 +589,18 @@ window.addEventListener('load', function () { (async function () {
         var bar = list.filter(function (o) { return o.role === 'bar' && o.wk === wi && o.i === k; })[0];
         if(!bar){ K.push(bWhere + ': not drawn'); return; }
         var fill = rgbOf(cb.cs.bg), ink = rgbOf(cb.cs.color), brd = rgbOf(cb.cs.border);
-        if(!sameC(bar.c, fill.c)) K.push(bWhere + ': fill ' + fmtC(bar.c) + ' vs ' + cb.cs.bg);
-        if(bar.r !== parseFloat(cb.cs.radius)) K.push(bWhere + ': radius ' + bar.r + ' vs ' + cb.cs.radius);
         var ring = list.filter(function (o) { return o.role === 'bar-ring' && o.wk === wi && o.i === k; })[0];
-        if(!ring || !sameC(ring.c, mix(brd.c, brd.a, fill.c))) K.push(bWhere + ': border ' + (ring ? fmtC(ring.c) : 'missing') + ' vs ' + cb.cs.border + ' over the fill');
+        // ⭐ A No fill note (MONTH-NOTES-PLAN.md §2, 20 Oct 2026): Chrome paints a zero-alpha fill and a zero-alpha
+        // border (the frozen CSS line, ruling Q2), so the writer must paint neither: both listed, both `clear`.
+        // Any other bar is opaque, and must not be clear.
+        if(fill.a === 0 || brd.a === 0){
+          if(!(fill.a === 0 && brd.a === 0 && bar.clear && ring && ring.clear)) K.push(bWhere + ': a clear bar (' + cb.cs.bg + ', border ' + cb.cs.border + ') drawn ' + (bar.clear ? 'clear' : 'painted') + (ring && ring.clear ? '' : ', its ring painted'));
+        } else {
+          if(bar.clear || (ring && ring.clear)) K.push(bWhere + ': an opaque bar drawn clear');
+          if(!sameC(bar.c, fill.c)) K.push(bWhere + ': fill ' + fmtC(bar.c) + ' vs ' + cb.cs.bg);
+          if(!ring || !sameC(ring.c, mix(brd.c, brd.a, fill.c))) K.push(bWhere + ': border ' + (ring ? fmtC(ring.c) : 'missing') + ' vs ' + cb.cs.border + ' over the fill');
+        }
+        if(bar.r !== parseFloat(cb.cs.radius)) K.push(bWhere + ': radius ' + bar.r + ' vs ' + cb.cs.radius);
         var shades = list.filter(function (o) { return o.role === 'bar-shade' && o.wk === wi && o.i === k; }).length;
         var layers = (cb.cs.bgImage.match(/linear-gradient\(/g) || []).length;
         if(shades !== layers) K.push(bWhere + ': ' + shades + ' half-day shades for ' + layers + ' layers');
@@ -745,7 +755,9 @@ window.addEventListener('load', function () { (async function () {
             var wantLines = it.lines.filter(function (l) { return l !== ''; });
             if(!same(drawnLines, wantLines)) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + JSON.stringify(drawnLines) + ' for ' + JSON.stringify(wantLines));
           } else {
-            var lbl = F.mvlFlat(it.text), head = mine.filter(function (o) { return o.role === 'bar-text'; }).map(function (o) { return o.s; }).join('');
+            // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6) draws its label as LINES, the model's breaks, so
+            // they are joined with the space each break took; every other bar draws one run.
+            var lbl = F.mvlFlat(it.text), head = mine.filter(function (o) { return o.role === 'bar-text'; }).map(function (o) { return o.s; }).join(it.lines ? ' ' : '');
             var cut = mine.some(function (o) { return o.role === 'bar-ell'; });
             if(cut ? lbl.indexOf(head) !== 0 : head !== lbl) bad.X4.push(where + ' week ' + (wi + 1) + ' bar ' + (k + 1) + ': drew "' + head + '" for "' + lbl + '"');
             var tagText = F.mvlFlat(it.tag || ''), tg = mine.filter(function (o) { return o.role === 'bar-tag'; }).map(function (o) { return o.s; }).join('');

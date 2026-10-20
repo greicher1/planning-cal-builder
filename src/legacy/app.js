@@ -806,7 +806,7 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu';
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu, .paste-notes-overlay';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -3854,6 +3854,8 @@ export function initLegacyApp() {
     // schedule.weeks, never schedule.segments -- are byte-identical with prep on or off. Only the month
     // view, which draws schedule.segments, sees it. ⛔ Do not move this above the week loop.
     appendEpisodePrep(schedule, state, hiatuses);
+    // After the prep, whose first and last days widen the month range. MONTH-NOTES-PLAN.md §3, ruling Q1.
+    schedule.monthOnlyHolidays = monthOnlyHolidaysFor(schedule);
     return schedule;
   }
 
@@ -8627,7 +8629,8 @@ export function initLegacyApp() {
       return [
         {id: 'day', items: [
           {id: 'note', icon: 'note', text: 'Add note',
-           disabled: !anchor, why: hiatus ? 'A hiatus day has no note lanes' : 'This day has no note line to open',
+           // A hiatus day has its "+" lanes since 20 Oct 2026 (MONTH-NOTES-PLAN.md §4), so it is no longer a reason.
+           disabled: !anchor, why: 'This day has no note line to open',
            run: ()=> addNote(ctx, anchor)},
           // ⛔ Greyed out where it could not be drawn: segCoversDate never draws a non-Production phase
           // on a Saturday or Sunday, and pillRunsForWeek draws nothing inside a hiatus, so the phase
@@ -9392,8 +9395,9 @@ export function initLegacyApp() {
     }, true);
 
     // ⭐ RULING L1 (plan step 4): a LEFT-click on the day itself opens the menu, under its number. "The
-    // day itself" is whatever of the cell a pointer can reach: the number band at its top, or anywhere
-    // on a hiatus day, which draws no "+". "+" slots, notes and bars live in .mv-bars, a SIBLING of the
+    // day itself" is whatever of the cell a pointer can reach: the number band at its top. (A hiatus day
+    // used to be reachable anywhere, because it drew no "+"; since 20 Oct 2026 it has its "+" lanes like any
+    // day, MONTH-NOTES-PLAN.md §4, so there too it is the number band.) "+" slots, notes and bars live in .mv-bars, a SIBLING of the
     // day grid, so their clicks never match .mv-daycell and keep their own left-clicks (installDay-
     // OverrideUI's comment has the hit-testing record). This is the listener the popover used, moved
     // here beside the right-click, and every day opens it: the popover's `if(!sit) return` is gone, so a
@@ -9551,12 +9555,20 @@ export function initLegacyApp() {
     const shown = inRange.slice();
     const have = {};
     inRange.forEach(h=> have[h.hid] = true);
+    // A custom holiday the month view draws outside the phases (MONTH-NOTES-PLAN.md §3, ruling Q1) says so,
+    // rather than "(outside schedule)", which stays for one beyond the months the view shows. Its id is enough:
+    // monthOnlyHolidays lists only enabled holidays, so an off one in that range is tagged by its date instead.
+    const monthOnly = {};
+    ((schedule && schedule.monthOnlyHolidays) || []).forEach(h=> monthOnly[h.hid] = true);
+    const core = schedule ? monthCoreRange(schedule) : null;
+    const viewFrom = core ? monthStep(core.first, -1) : null, viewTo = core ? monthStep(core.last, 2) : null;
     (customHolidays || []).forEach(c=>{
       if(!c || !c.date || !c.name || have[c.id]) return;
       const d = parseDateUTC(c.date);
       if(!d) return;
+      const inView = !!monthOnly[c.id] || (!!viewFrom && d >= viewFrom && d < viewTo);
       shown.push({iso:c.date, name:c.name, date:d, hid:c.id, custom:true,
-                  enabled:holidayEnabled(c.id), outOfRange:true});
+                  enabled:holidayEnabled(c.id), outOfRange:!inView, monthOnly:inView});
     });
     shown.sort((a,b)=> a.date - b.date);
     const placeEl = document.getElementById('union-place');
@@ -9596,7 +9608,7 @@ export function initLegacyApp() {
         : '';
       const oor = h.outOfRange
         ? ' <span class="hv-oor">(outside schedule)</span>'
-        : '';
+        : (h.monthOnly ? ' <span class="hv-oor">(month view only)</span>' : '');
       const wk = weekend ? ' title="Falls on a weekend — no shoot day to skip. Its (Observed) entry is the one that counts."' : '';
       // Every row carries the × slot, empty on a built-in, so the three checkbox columns keep one x
       // position down the list. The bare button sat after the Month cell on custom rows only and
@@ -9858,6 +9870,9 @@ export function initLegacyApp() {
   // range-clamp the live view applies, so it's kept in its own variable rather than fighting
   // monthCursor for control.
   let printingCursor = null;
+  // Armed by the two callers of frozen exportMonthPdf for its first read of the month range; see
+  // monthRangeForSchedule (MONTH-NOTES-PLAN.md §3). Declared up here so no early render meets it in its TDZ.
+  let mvPrintRangeOnce = false;
 
   function isoOf(d){ return d.toISOString().slice(0,10); }
 
@@ -10040,6 +10055,20 @@ export function initLegacyApp() {
         .map(n => n.date ? `${n.label} ${fmtShort(n.date)}` : n.label)
         .forEach(t=>out.push(t));
     }
+    // ⭐ YOUR OWN HOLIDAYS WHEREVER THE MONTH VIEW SHOWS THEM (MONTH-NOTES-PLAN.md §3; owner ruling Q1, 20 Oct 2026,
+    // by picker: "Your own only"). A custom holiday no phase covers -- before the first, after the last, in a gap
+    // between two, or in the month added each side -- has no note in notesByIdx (phaseHolidays holds only those
+    // inside a phase, and addNote needs a week row an edge month does not have). computeSchedule lists them as
+    // schedule.monthOnlyHolidays, and they are drawn here, on their day, as a holiday note is: "Name m/d/yy",
+    // when the holiday is on and shown in the month view. Read here and nowhere else, so the waterfall, Excel and
+    // the waterfall PDF never see them. Once each: a line the week's own note already carries is not added again.
+    // ⛔ Union holidays keep the old rule, inside a phase only. On a calendar with no custom holiday outside its
+    // phases the list is empty and this adds nothing, which is what keeps gates 10 and 13 still.
+    (schedule.monthOnlyHolidays || []).forEach(h=>{
+      if(h.iso !== iso || !holidayVisibleIn(h.hid, 'month')) return;
+      const t = `${h.name} ${fmtShort(h.date)}`;
+      if(out.indexOf(t) === -1) out.push(t);
+    });
     return out;
   }
 
@@ -10077,6 +10106,41 @@ export function initLegacyApp() {
     if(_mvNoteLineCache.size > 800) _mvNoteLineCache.clear();
     _mvNoteLineCache.set(key, lines);
     return lines;
+  }
+  // ⭐ ONE-DAY CUSTOM PILLS WRAP (MONTH-NOTES-PLAN.md §6; owner, 20 Oct 2026, by picker: "Wrap to two lines", and
+  // ruling Q3, "Any one-day piece"). How many lines a one-day custom-phase pill's label needs at the bar's own
+  // type, 1 or 2: measured like mvNoteLineCount, in a hidden element styled as .mv-bar is (10 px, 600,
+  // line-height 1.5, padding 1px 8px, a 1 px border) but allowed to wrap as .mv-pill-2l lets it. More than two
+  // is two: the second line is cut with "…" (-webkit-line-clamp), the rule every bar already follows.
+  // A pill of any other phase, or of more than one day, never comes here, so it keeps its one cut line.
+  let _mvPillMeasureEl = null;
+  const _mvPillLineCache = new Map();
+  function mvPillLineCount(text, boxW){
+    const t = String(text == null ? '' : text);
+    if(!t.trim()) return 1;
+    const key = Math.round(boxW) + '|' + t;
+    if(_mvPillLineCache.has(key)) return _mvPillLineCache.get(key);
+    if(!_mvPillMeasureEl){
+      _mvPillMeasureEl = document.createElement('div');
+      _mvPillMeasureEl.setAttribute('aria-hidden','true');
+      _mvPillMeasureEl.style.cssText = 'position:absolute; left:-99999px; top:0; visibility:hidden; box-sizing:border-box;'
+        + "font-family:'Inter',-apple-system,sans-serif; font-size:10px; font-weight:600; line-height:1.5;"
+        + 'padding:1px 8px; border:1px solid transparent; white-space:normal; word-break:break-word;';
+      document.body.appendChild(_mvPillMeasureEl);
+    }
+    _mvPillMeasureEl.style.width = Math.max(24, boxW) + 'px';
+    _mvPillMeasureEl.textContent = t;
+    const h = _mvPillMeasureEl.offsetHeight;   // = lines*15 (line-height) + 2 (padding) + 2 (border)
+    const lines = Math.min(2, Math.max(1, Math.round((h - 4) / 15)));
+    if(_mvPillLineCache.size > 800) _mvPillLineCache.clear();
+    _mvPillLineCache.set(key, lines);
+    return lines;
+  }
+  // The lanes a phase pill takes in a week row: 2 for a one-day run of a CUSTOM phase whose label needs two
+  // lines, else 1, which is every pill on every calendar before 20 Oct 2026 that has no such run.
+  function mvPillLanes(seg, run, label, boxW){
+    if(!seg || !/^custom\d+$/.test(seg.key) || !run || run.startCol !== run.endCol) return 1;
+    return mvPillLineCount(label, boxW);
   }
   // Border-box width of a note bar = one day column minus the bar's 1px horizontal margins.
   function mvNoteBoxWidth(){
@@ -10443,11 +10507,18 @@ export function initLegacyApp() {
             // itself goes to halfSlices(), halfInset() and place(), which read only its halfStart/halfEnd
             // flags. Only productionSplitRuns() sets them, so every other run -- every other phase, and
             // every Production run not on a .5 switch day -- writes exactly the style and lane it did.
-            place(r.startCol, r.endCol, 'mv-bar mv-pill',
+            // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §6: "Wrap to two lines", ruling
+            // Q3 "Any one-day piece"): a ONE-DAY run of a CUSTOM phase whose label does not fit one line takes TWO
+            // lanes and .mv-pill-2l, which lets it wrap (legacy.css) where every other bar cuts with "…". This
+            // supersedes, for that case only, MONTH-PILL-LABEL Q5 ("A width remedy? None") and HALF-SQUARE-BARS §5
+            // ("Cut it with …"). Custom phases carry no blkTag and no half inset, so neither is in play. Every
+            // other pill, and a one-day custom pill whose label fits, gets 1 and '' and is byte-identical.
+            const pillLanes = mvPillLanes(s, r, lbl, noteBoxW);
+            place(r.startCol, r.endCol, 'mv-bar mv-pill' + (pillLanes > 1 ? ' mv-pill-2l' : ''),
               `background:${bg}; color:${fg};` + halfSlices(weekStart, r.startCol, r.endCol, r) + halfInset(r),
               escHtml(lbl) + (blkTag ? ' · ' + escHtml(blkTag) : ''),
               escHtml(lbl) + (blkTag ? '<span class="mv-pill-block">' + escHtml(blkTag) + '</span>' : ''),
-              `data-ph="${s.key}"`, 1, r);
+              `data-ph="${s.key}"`, pillLanes, r);
           });
         }
         // Episode pills occupy Production's lane.
@@ -10590,9 +10661,17 @@ export function initLegacyApp() {
 
       // Every free slot gets its own "+", so a note can be added on the exact line it will
       // occupy rather than always landing at the bottom of the block.
+      // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §4: "Every hiatus day"): a hiatus
+      // day takes notes like any day. This loop used to skip every date inside an all-phase hiatus
+      // (`if(isHiatusDate(schedule, d)) continue;`), so neither the band's weekdays nor that week's weekend had a
+      // "+", and the day menu's Add note was greyed there ("A hiatus day has no note lanes"). A note stored on
+      // such a day was always DRAWN (the notes loop above never skipped hiatus days); only the way to add one was
+      // missing. The band keeps its lane: its columns are in `occupied`, so a "+" goes on the free lines below.
+      // ⚠️ THIS MOVES GATE 10 on every calendar with a hiatus on a printed month, by design: the "+" lanes are in
+      // the print document, hidden (#print-root .mv-note-add{display:none}), so only .mv-note-add elements may
+      // differ. Gate 13 must not move: the writer reads `.mv-bar:not(.mv-note-add)`.
       for(let i=0;i<7;i++){
         const d = addDays(weekStart, i);
-        if(isHiatusDate(schedule, d)) continue;
         const dIso = isoOf(d);
         const wkKey = isoOf(mondayOf(d));
         let anyFree = false;
@@ -12914,6 +12993,42 @@ export function initLegacyApp() {
     '#C00000', '#FF0000', '#FFC000', '#FFFF00', '#92D050',
     '#00B050', '#00B0F0', '#0070C0', '#002060', '#7030A0'
   ];
+  // ⭐ THE MONTH NOTE PALETTE (MONTH-NOTES-PLAN.md §2; owner, 20 Oct 2026, by picker: "Remember last colour",
+  // "'No fill' plain text", "Light tints", "Greys", all four). A DAY note's colours: No fill, the ten standard
+  // colours above, four light tints and three greys. Its own list, because the literal above is frozen
+  // (MANTINE-SEAM §4.8) and is still the WATERFALL note's palette: a waterfall-owned note's colour is
+  // noteColors[week], which the waterfall, Excel and the waterfall PDF print, and none of them knows No fill.
+  // Each entry carries a name, which "Paste notes…" reads (pasteNoteColor). Every tint and grey is plain
+  // #RRGGBB, so the frozen renderer, sanitizeSnapshot and both month PDFs take it as they take any colour.
+  // ⛔ NO FILL IS '#FFFFFF00', white at zero alpha. It needs no format change, and every build draws it
+  // harmlessly: the frozen renderer's `background:${oc}; color:${textColorFor(oc)}` paints a transparent fill
+  // with black ink (textColorFor reads the first six digits, white), with no edit; a build from v1.3.0 to
+  // v1.5.0 resets a colour that is not #RRGGBB to null in sanitizeSnapshot, so the note shows the default
+  // purple; an older build draws it as this one does. A 'none' was rejected: a pre-v1.3.0 build inks it
+  // textColorFor('none'), white on nothing. The frozen CSS line beside .mv-note-block takes its border away
+  // (ruling Q2, "No box at all"), and the month-PDF writer draws neither fill nor ring for it (mvlNoFill).
+  const MV_NOTE_NOFILL = '#FFFFFF00';
+  const MV_NOTE_PALETTE = [{name: 'No fill', color: MV_NOTE_NOFILL}].concat(
+    ['Dark red', 'Red', 'Orange', 'Yellow', 'Light green', 'Green', 'Light blue', 'Blue', 'Dark blue', 'Purple']
+      .map(function(name, i){ return {name: name, color: EXCEL_STANDARD_COLORS[i]}; }),
+    [{name: 'Pink', color: '#F7C1D9'}, {name: 'Lavender', color: '#D5C8EC'}, {name: 'Peach', color: '#FCCB9E'},
+     {name: 'Pale blue', color: '#BBDCF7'},
+     {name: 'Light grey', color: '#D9D9D9'}, {name: 'Grey', color: '#A6A6A6'}, {name: 'Dark grey', color: '#595959'}]);
+  function isMvNoFill(c){ return typeof c === 'string' && c.toUpperCase() === MV_NOTE_NOFILL; }
+  // The colour a NEW day note opens on: the one last committed from the editor (prefs.mvNoteColor, per user,
+  // never in a saved calendar), or the default purple. Only a palette colour is honoured, so a hand-edited
+  // store cannot reach a style attribute.
+  function mvNoteStartColor(){
+    const c = prefs.mvNoteColor;
+    const hit = (typeof c === 'string') && MV_NOTE_PALETTE.find(function(p){ return p.color.toUpperCase() === c.toUpperCase(); });
+    return hit ? hit.color : MILESTONE_COLOR;
+  }
+  function rememberMvNoteColor(c){
+    if(!MV_NOTE_PALETTE.some(function(p){ return p.color.toUpperCase() === String(c).toUpperCase(); })) return;
+    if(prefs.mvNoteColor === c) return;
+    prefs.mvNoteColor = c;
+    savePrefs();
+  }
   // Black or white text depending on the fill's luminance, so labels stay readable
   // on light colors like yellow or light green.
   function textColorFor(hex){
@@ -16056,11 +16171,27 @@ export function initLegacyApp() {
     // rendered, sends renderMonthView down its unchanged !monthCursor branch. It stays armed until a
     // schedule HAS a month range: New leaves no dates, and today the first month is decided only once
     // some are typed.
+    // ⚠️ Since 20 Oct 2026 (one month each side, MONTH-NOTES-PLAN.md §3) "inside it" means the CORE months, the
+    // ones the phases cover, so a loaded calendar never opens on its empty edge month.
     if(monthCursorRecheck){
-      const mr = monthRangeForSchedule(currentSchedule);
+      const mr = monthCoreRange(currentSchedule);
       if(mr){
         monthCursorRecheck = false;
         if(monthCursor && (monthCursor < mr.first || monthCursor > mr.last)) monthCursor = null;
+      }
+    }
+    // ⭐ THE CURSOR NEVER LANDS ON AN EMPTY EDGE BY ITSELF (MONTH-NOTES-PLAN.md §3). The screen's range now runs
+    // one month past the phases each side, and frozen renderMonthView sends a cursor with no month, or one
+    // outside that range, to the range's end: the edge. So the cursor is placed HERE first, against the
+    // schedule about to be rendered: an absent one, or one off either end, goes to the nearest month the phases
+    // cover, which is exactly where renderMonthView used to put it. A cursor the user paged to an edge is inside
+    // the range and is left alone.
+    {
+      const core = monthCoreRange(currentSchedule);
+      if(core){
+        const first = monthStep(core.first, -1), last = monthStep(core.last, 1);
+        if(!monthCursor || monthCursor < first) monthCursor = new Date(core.first.getTime());
+        else if(monthCursor > last) monthCursor = new Date(core.last.getTime());
       }
     }
     // ⛔ BEFORE render(), which reads rowHeights by index. The week list may just have changed.
@@ -17289,7 +17420,8 @@ export function initLegacyApp() {
     // which is exactly when a Shift+Cmd+E export can fire.
     // .day-menu / .day-menu-ring added 19 Oct 2026 with the month view's day menu
     // (MONTH-CONTEXT-MENU-PLAN.md): body-level, and a Shift+Cmd+E pressed with it open exports it.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring').forEach(el=>el.remove());
+    // .paste-notes-overlay added 20 Oct 2026 with Paste notes… (MONTH-NOTES-PLAN.md §5)
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .paste-notes-overlay').forEach(el=>el.remove());
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
     // regression -- v1.0.0 had neither element, so this restores v1.0.0's output rather than
     // changing it). They ship hidden in the markup and are un-hidden at runtime by `el.hidden =
@@ -19627,7 +19759,7 @@ export function initLegacyApp() {
   // opened from under it could be neither seen nor answered, and the editor's draft would then land
   // on whichever calendar was left behind. A mouse cannot reach the header buttons past either one.
   function appDialogOpen(){
-    return !!document.querySelector('.mantine-Modal-content, .hde-overlay');
+    return !!document.querySelector('.mantine-Modal-content, .hde-overlay, .paste-notes-overlay');
   }
 
   // Global keyboard shortcuts: Cmd/Ctrl+Z (undo), Cmd/Ctrl+Shift+Z (redo), Cmd/Ctrl+S (save),
@@ -19694,7 +19826,7 @@ export function initLegacyApp() {
     // owner accepted that with the ruling.
     if(key === 'p'){
       e.preventDefault();
-      if(document.querySelector('.mantine-Modal-content')) return;
+      if(document.querySelector('.mantine-Modal-content, .paste-notes-overlay')) return;
       const btn = document.getElementById(viewMode === 'month' ? 'export-btn' : 'export-wf-pdf-btn');
       if(btn) btn.click();
       return;
@@ -19836,7 +19968,12 @@ export function initLegacyApp() {
   document.getElementById('export-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
     if(viewMode === 'month'){
-      if(monthPdfMode() === 'print') exportMonthPdf();
+      // ⛔ Armed for frozen exportMonthPdf's first line, which reads the month range before its loop sets
+      // printingCursor (monthRangeForSchedule, MONTH-NOTES-PLAN.md §3). Cleared after, whatever it did.
+      if(monthPdfMode() === 'print'){
+        mvPrintRangeOnce = true;
+        try { exportMonthPdf(); } finally { mvPrintRangeOnce = false; }
+      }
       else await exportMonthPdfDirect();
       return;
     }
@@ -19976,7 +20113,55 @@ export function initLegacyApp() {
   // the output matches what's on screen rather than being a second implementation that drifts.
   // Every month from the first phase to the last is rendered into a print-only container, so
   // the PDF spans the whole schedule rather than just the month being viewed.
+  // ⭐ ONE MONTH EACH SIDE (MONTH-NOTES-PLAN.md §3; owner, 20 Oct 2026, by picker: "One month each side", and for
+  // the PDFs "Only if they hold something"). This function keeps its name and every caller, two of them frozen
+  // (renderMonthView's clamp and arrows, exportMonthPdf's month loop), and answers by CONTEXT:
+  //  - ON SCREEN, the core range (monthCoreRange, below: the months the phases cover) plus one month each side,
+  //    so the view pages to the month before the first phase and the month after the last, where a note can be
+  //    added and a custom holiday shows;
+  //  - WHILE A MONTH PDF IS BUILT, the core range plus an edge month only when that month's own days hold a note
+  //    or a drawn holiday (monthPrintRange). On a calendar with none it is the core range exactly, which is what
+  //    keeps every existing calendar's month PDF byte-identical (gates 10 and 13).
+  // "While a PDF is built" is printingCursor, which both exports set inside their month loops, so every
+  // renderMonthView call they make (its arrows' disabled marks included) sees the print range. Frozen
+  // exportMonthPdf reads the range once BEFORE its loop sets the cursor, so its two callers arm
+  // mvPrintRangeOnce just before calling it, and that first read takes it. The writer (buildMonthLayout) asks
+  // monthPrintRange directly. ⛔ The flag is one-shot on purpose: the render() exportMonthPdf makes to restore
+  // the live view comes after its loop, with the cursor cleared, and must see the screen's range again.
+  // (mvPrintRangeOnce is declared beside printingCursor, ahead of any render that could read it.)
+  function monthStep(d, n){ return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1)); }
   function monthRangeForSchedule(schedule){
+    const core = monthCoreRange(schedule);
+    const forPrint = !!printingCursor || mvPrintRangeOnce;
+    mvPrintRangeOnce = false;
+    if(!core) return null;
+    if(forPrint) return monthPrintRange(schedule, core);
+    return { first: monthStep(core.first, -1), last: monthStep(core.last, 1) };
+  }
+  // The months a month PDF prints: the core range, and each edge month that holds something.
+  function monthPrintRange(schedule, core){
+    core = core || monthCoreRange(schedule);
+    if(!core) return null;
+    const before = monthStep(core.first, -1), after = monthStep(core.last, 1);
+    return { first: monthHoldsSomething(schedule, before) ? before : core.first,
+             last: monthHoldsSomething(schedule, after) ? after : core.last };
+  }
+  // Does any day OF this month (not its page's spillover, which belongs to the months beside it) carry what the
+  // month view draws as a note: a waterfall note or holiday (notesForWaterfallDate, the renderer's own source,
+  // month-only custom holidays included) or a day note with text? A phase cannot be there: an edge month is
+  // outside the phases by definition. A hiatus band alone is not "something" (the owner's three were notes,
+  // holidays and phases).
+  function monthHoldsSomething(schedule, monthStart){
+    const days = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)).getUTCDate();
+    for(let i = 0; i < days; i++){
+      const d = addDays(monthStart, i);
+      if(notesForWaterfallDate(schedule, d).length) return true;
+      if(dayNoteList(isoOf(d)).some(function(e){ return e && String(e.text || '').trim(); })) return true;
+    }
+    return false;
+  }
+  // The months the phases cover: what monthRangeForSchedule returned before 20 Oct 2026, body unchanged.
+  function monthCoreRange(schedule){
     const segs = (schedule.segments || []);
     if(!segs.length) return null;
     let min = Infinity, max = -Infinity;
@@ -20001,6 +20186,22 @@ export function initLegacyApp() {
       first: new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1)),
       last:  new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), 1))
     };
+  }
+  // The custom holidays the month view draws although no phase covers them (ruling Q1, MONTH-NOTES-PLAN.md §3):
+  // every ENABLED custom holiday not in schedule.phaseHolidays whose date falls in the months the screen shows,
+  // the core months and one each side. notesForWaterfallDate draws them; the Settings list tags them "(month
+  // view only)". Derived, never saved. Empty with no phase, or with no custom holiday outside the phases.
+  function monthOnlyHolidaysFor(schedule){
+    const core = monthCoreRange(schedule);
+    if(!core) return [];
+    const from = monthStep(core.first, -1), to = monthStep(core.last, 2);   // `to` is exclusive
+    const inPhase = {};
+    (schedule.phaseHolidays || []).forEach(function(h){ inPhase[h.hid] = true; });
+    return fullHolidayList(null)
+      .filter(function(h){ return h.custom && h.enabled && !inPhase[h.hid]; })
+      .map(function(h){ return {iso: h.date, name: h.name, date: parseDateUTC(h.date), hid: h.hid}; })
+      .filter(function(h){ return h.date && h.date >= from && h.date < to; })
+      .sort(function(a, b){ return a.date - b.date; });
   }
 
   function exportMonthPdf(){
@@ -21460,12 +21661,33 @@ export function initLegacyApp() {
   // Parsed, every note wrapped in the PDF's note box, and every week re-packed: a note at the lanes
   // its PDF lines need (at most three, as on screen), everything else at the span the renderer gave
   // it. The screen's placement is then dropped, so nothing downstream can use it by mistake.
-  function mvlMonthLayout(html, widthOf){
+  // ⭐ ONE-DAY CUSTOM PILLS WRAP (MONTH-NOTES-PLAN.md §6, ruling Q3 "Any one-day piece"): the pills renderMonthView
+  // lets wrap (mvPillLanes) are one-day bars of a custom phase, which the parsed item says by itself (data-ph,
+  // from === to). The writer decides for itself whether one wraps, at the PDF's own box and with the PDF's own
+  // font, as it re-wraps every note (ruling 2), so its file never depends on the window the screen measured in.
+  function mvlWrapsPill(it){ return it.kind === 'pill' && /^custom\d+$/.test(it.ph || '') && it.from === it.to; }
+  // Such a pill's lines at the PDF's width: .mv-pill-2l's white-space:normal and word-break:break-word in the
+  // bar's box, less its 8 px padding and 1 px border each side. One line means it fits and does not wrap.
+  // `widthOf` measures at the bar's own type (10 px, 600: .mv-bar), not a note's.
+  function mvlPillLines(text, widthOf){
+    return mvlWrapText(mvlFlat(text), MVL_GEOMETRY.noteBoxW - 2 * (8 + 1), widthOf);
+  }
+  function mvlMonthLayout(html, widthOf, pillWidthOf){
     const m = mvlParseMonth(html);
     m.weeks.forEach(function(w){
-      w.items.forEach(function(it){ it.lines = it.kind === 'note' ? mvlNoteLines(it.text, widthOf) : null; });
+      w.items.forEach(function(it){
+        it.lines = it.kind === 'note' ? mvlNoteLines(it.text, widthOf) : null;
+        // A wrapping pill carries its lines as a note does (`lines`), and only when it needs two or more.
+        // Without the bar's font (a caller passing none) it keeps the renderer's own lanes and one cut line.
+        if(pillWidthOf && mvlWrapsPill(it)){
+          const pl = mvlPillLines(it.text, pillWidthOf);
+          if(pl.length > 1) it.lines = pl;
+        }
+      });
       const packed = mvlPackLanes(w.items, function(it){
-        return it.kind === 'note' ? Math.min(MVL_GEOMETRY.noteMaxLanes, it.lines.length) : it.htmlLanes;
+        if(it.kind === 'note') return Math.min(MVL_GEOMETRY.noteMaxLanes, it.lines.length);
+        if(pillWidthOf && mvlWrapsPill(it)) return it.lines ? 2 : 1;
+        return it.htmlLanes;
       });
       w.items = w.items.map(function(it, k){
         const o = { kind: it.kind, from: it.from, to: it.to, lane: packed[k].lane, lanes: packed[k].lanes,
@@ -21487,8 +21709,9 @@ export function initLegacyApp() {
   // wrong month on screen. The `finally` clears it even when a month throws, and puts monthCursor
   // back as exportMonthPdf does (renderMonthView leaves it alone while printingCursor is set).
   // Returns plain data: JSON in, JSON out, no DOM and no functions.
-  function buildMonthLayout(schedule, inter500){
-    const range = monthRangeForSchedule(schedule);
+  function buildMonthLayout(schedule, inter500, inter600){
+    // The months the print path prints (MONTH-NOTES-PLAN.md §3): an edge month only when it holds something.
+    const range = monthPrintRange(schedule);
     const htmls = [];
     if(range){
       const savedCursor = monthCursor;
@@ -21505,7 +21728,9 @@ export function initLegacyApp() {
       }
     }
     const widthOf = function(s){ return mvlTextWidth(inter500.font, s, MVL_GEOMETRY.noteFontPx); };
-    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };
+    // A one-day custom pill wraps at the bar's own type, .mv-bar's 600 at the same 10 px (MONTH-NOTES-PLAN.md §6).
+    const pillWidthOf = inter600 ? function(s){ return mvlTextWidth(inter600.font, s, MVL_GEOMETRY.noteFontPx); } : null;
+    return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };
   }
 
   // ---------- Month PDF writer: the emitter and the serializer (MONTH-PDF-WRITER-PLAN.md §3.2, step 3) ----------
@@ -21642,6 +21867,9 @@ export function initLegacyApp() {
     if(m) return [m[1], m[2], m[3]].map(function(h){ return parseInt(h + h, 16) / 255; });
     throw new Error('Month PDF: a colour of "' + s + '".');
   }
+  // No fill (MV_NOTE_NOFILL, MONTH-NOTES-PLAN.md §2): the one eight-digit colour the renderer can write, a
+  // zero-alpha white. mvlRgb still throws on it, so a caller that forgot to ask cannot paint it white.
+  function mvlNoFill(css){ return /^#[0-9a-f]{6}00$/i.test(String(css).trim()); }
   // `fg` at `alpha` over `bg`: what a translucent paint looks like where it lies.
   function mvlMix(fg, alpha, bg){ return fg.map(function(v, i){ return v * alpha + bg[i] * (1 - alpha); }); }
 
@@ -21807,6 +22035,8 @@ export function initLegacyApp() {
   function mvlBarHeight(it, S){
     const B = S.bar;
     if(it.kind === 'note') return it.lines.length * S.note.lineH + 2 * (S.note.padY + B.border);
+    // A wrapping one-day custom pill (mvlWrapsPill) is two of the bar's lines tall: -webkit-line-clamp:2.
+    if(it.lines) return Math.min(2, it.lines.length) * B.size * S.lineHeight + 2 * (B.padY + B.border);
     return B.size * S.lineHeight + 2 * (B.padY + B.border);
   }
   function mvlLaneTracks(items, availH, S){
@@ -21860,9 +22090,15 @@ export function initLegacyApp() {
   function mvlPaintBar(it, x, y, w, h, fonts, out, at, S){
     const P = S, B = P.bar;
     const r = it.kind === 'note' ? 0 : B.radius, black = [0, 0, 0];
-    const fill = mvlRgb(it.fill), ink = mvlRgb(it.ink);
+    // A No fill note (MONTH-NOTES-PLAN.md §2) is its text alone: no fill, and no ring either (ruling Q2, the
+    // frozen CSS line beside .mv-note-block). Both are still LISTED, marked `clear`, so the bar keeps its box in
+    // the display list for whoever measures it (the monthemit leg); mvlPageOps paints nothing for a clear one.
+    // Its "white" is never painted; it only seeds the mixes below.
+    const clear = mvlNoFill(it.fill);
+    const fill = clear ? [1, 1, 1] : mvlRgb(it.fill), ink = mvlRgb(it.ink);
     const tag = function(o){ o.wk = at.wk; o.i = at.i; return o; };
-    out.push(tag({ k: 'fill', x: x, y: y, w: w, h: h, r: r, c: fill, role: 'bar', kind: it.kind }));
+    const clr = function(o){ if(clear) o.clear = true; return o; };
+    out.push(clr(tag({ k: 'fill', x: x, y: y, w: w, h: h, r: r, c: fill, role: 'bar', kind: it.kind })));
     // The shade is a background layer one day wide over the bottom half of the PADDING box, clipped to
     // the bar's rounded edge (halfSlices: background-size W% 100%, positioned in the padding box).
     const px = x + B.border, py = y + B.border, pw = w - 2 * B.border, ph = h - 2 * B.border;
@@ -21884,7 +22120,7 @@ export function initLegacyApp() {
     });
     // The 18% border lies over the fill, and in a rounded bottom corner over the shade too, so it is
     // drawn once over the fill and again, clipped to each slice, over the shade.
-    out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' }));
+    out.push(clr(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' })));
     slices.forEach(function(s){
       out.push({ k: 'clip', x: s.x, y: s.y, w: s.w, h: s.h, r: 0 });
       out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, shade), role: 'bar-ring' }));
@@ -21914,7 +22150,19 @@ export function initLegacyApp() {
       const lw = wOf(label);
       // vertical-align:top sets the grey tag's own 13.5 px line box at the top of the bar's line.
       const tagBase = py + B.padY + mvlLineMetrics(fonts[T.weight].font, T.size, T.size * P.lineHeight).base;
-      if(!tagText){
+      if(it.lines){
+        // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6): its first two lines as the model broke them,
+        // and when there are more, the second cut as -webkit-line-clamp cuts it -- the line as laid out, then the
+        // "…" after it, shortened between characters only if the "…" would not fit (the bar-ell role, as ever).
+        const lineH = B.size * P.lineHeight;
+        put(it.lines[0], cx, base, B.weight, B.size, ink, 'bar-text');
+        if(it.lines.length === 2) put(it.lines[1], cx, base + lineH, B.weight, B.size, ink, 'bar-text');
+        else if(it.lines.length > 2){
+          const s2 = it.lines[1], head = (wOf(s2) + ellW <= cw) ? s2 : mvlLongestStart(s2, cw - ellW, wOf);
+          put(head, cx, base + lineH, B.weight, B.size, ink, 'bar-text');
+          put('…', cx + wOf(head), base + lineH, B.weight, B.size, ink, 'bar-ell');
+        }
+      } else if(!tagText){
         // One run: a hiatus band centres it, pills and Simultaneous Post start it at the left, and a
         // cut line starts at the left whatever its alignment (CSS Text §6.1).
         const f = mvlFitLine(label, cw, wOf, ellW), hw = wOf(f.head);
@@ -22102,6 +22350,7 @@ export function initLegacyApp() {
     const stack = [];
     const setFill = function(c){ const s = rgb(c); if(s !== fill){ ops.push(s + ' rg'); fill = s; } };
     list.forEach(function(o){
+      if(o.clear) return;                       // a No fill note's fill and ring: listed, never painted
       if(o.k === 'fill'){ setFill(o.c); ops.push(path(o.x, o.y, o.w, o.h, o.r) + ' f'); }
       else if(o.k === 'ring'){
         // The band between the outer edge and the edge `t` inside it, filled even-odd.
@@ -22529,14 +22778,15 @@ export function initLegacyApp() {
       try {
         const fonts = {};
         for(const w of MVL_FONT_WEIGHTS) fonts[w] = await loadInterPdfFont(w);
-        const layout = fitMonthLayout(buildMonthLayout(currentSchedule, fonts['500']), fonts);
+        const layout = fitMonthLayout(buildMonthLayout(currentSchedule, fonts['500'], fonts['600']), fonts);
         places = mvlUnprintable(layout, fonts);
         bytes = await buildMonthPdf(layout);
       } catch(err){
         console.error(err);
         if(await uiConfirm('Something went wrong writing the month PDF: ' + err.message + '\n\nPrint it with the browser instead?',
                            { title: 'The month PDF could not be written', confirmLabel: 'Print instead', cancelLabel: 'Cancel' })){
-          exportMonthPdf();
+          mvPrintRangeOnce = true;   // as the Export button's print route arms it (monthRangeForSchedule)
+          try { exportMonthPdf(); } finally { mvPrintRangeOnce = false; }
         }
         return;
       }
@@ -22591,6 +22841,7 @@ export function initLegacyApp() {
       // matches, and is kept as their own text. And a note opened and left unchanged is not written
       // at all: the day pin below would otherwise freeze an untouched auto-note into an override.
       const monthOnly = new Set(weekAuto.filter(n => n.holiday && holidayVisibleIn(n.hid, 'month') && !holidayVisibleIn(n.hid, 'sheet'))
+                                        .concat(monthOnlyNotesForWeek(weekKey))   // no waterfall row prints these at all
                                         .map(n => autoNotesText([n])));
       if(text !== String(activeMvNote.initialText || '').trim()){
         const kept = text.split('\n').filter(l => !monthOnly.has(l.trim())).join('\n').trim();
@@ -22607,6 +22858,9 @@ export function initLegacyApp() {
       // No colour picked = default (purple): stored as null so it renders MILESTONE_COLOR.
       const list = dayNoteList(dayIso).slice();
       const idx = (editIndex != null && editIndex >= 0 && editIndex < list.length) ? editIndex : -1;
+      // "Remember last colour" (MONTH-NOTES-PLAN.md §2): a colour picked in this editor is the one the next
+      // new note opens on. Written only when a note is actually kept, and only per user (prefs).
+      if(text && pendingColor) rememberMvNoteColor(pendingColor);
       if(text){
         const entry = {text, lane:(lane!=null?lane:null), color:pendingColor || (idx>=0 ? list[idx].color : null) || null};
         if(entry.color && entry.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) entry.color = null;
@@ -22649,6 +22903,15 @@ export function initLegacyApp() {
     }
     return null;
   }
+  // The month-only custom holidays (MONTH-NOTES-PLAN.md §3, ruling Q1) of one week, as holiday auto-notes, for
+  // the waterfall-note editor: it opens on every note the month view shows for the week, as it does for a
+  // holiday inside a phase, and leaves these lines out of what it saves (writeActiveMvNote), because no
+  // waterfall row could ever print them.
+  function monthOnlyNotesForWeek(weekKey){
+    return ((currentSchedule && currentSchedule.monthOnlyHolidays) || [])
+      .filter(function(h){ return isoOf(mondayOf(h.date)) === weekKey && holidayVisibleIn(h.hid, 'month'); })
+      .map(function(h){ return {label: h.name, date: h.date, holiday: true, hid: h.hid}; });
+  }
   function openMvNoteEditor(anchor, weekKey, dayIso, kind){
     // Clicking straight from one note to another "+" (common when clicking "out" onto the grid,
     // where an invisible per-lane "+" sits) must SAVE the note in progress AND show it right away.
@@ -22669,6 +22932,14 @@ export function initLegacyApp() {
       kind = fresh.dataset.noteKind || 'day';
     }
     closeMvNoteEditor();
+    // A month-only holiday in a week with NO waterfall row (an edge month's, MONTH-NOTES-PLAN.md §3) has no
+    // waterfall note to edit, and writing one would store a week the waterfall cannot show. A click on it adds
+    // a day note there instead, as that day's "+" does. Only that block: any other waterfall note keeps its
+    // editor, a stale one left outside the weeks included.
+    if(kind === 'wf' && currentSchedule && !(currentSchedule.weeks || []).some(w => isoOf(w.date) === weekKey)){
+      const said = (anchor.textContent || '').trim();
+      if(monthOnlyNotesForWeek(weekKey).some(n => isoOf(n.date) === dayIso && autoNotesText([n]) === said)) kind = 'day';
+    }
     const isWf = (kind === 'wf');
     // Which line was clicked. Notes remember it so they stay on the line you chose.
     const laneAttr = anchor.style.gridRow ? (parseInt(anchor.style.gridRow, 10) - 1) : null;
@@ -22681,10 +22952,10 @@ export function initLegacyApp() {
       // So show every note the week currently has, not just the line clicked -- otherwise
       // saving would silently drop the others (e.g. editing Thanksgiving would delete
       // "Day after Thanksgiving" from the same week).
-      const autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
+      const autoNotes = ((currentSchedule.notesByIdx && currentSchedule.weeks) ? (()=>{
         const idx = currentSchedule.weeks.findIndex(w=>isoOf(w.date)===weekKey);
         return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'month') : [];
-      })() : [];
+      })() : []).concat(monthOnlyNotesForWeek(weekKey));
       curText = effectiveNoteText(weekKey, autoNotes);
       curColor = noteColors[weekKey] || MILESTONE_COLOR;
     } else {
@@ -22694,12 +22965,19 @@ export function initLegacyApp() {
       const ni = anchor.dataset.noteIndex !== undefined ? parseInt(anchor.dataset.noteIndex, 10) : -1;
       const entry = (ni >= 0 && ni < list.length) ? list[ni] : null;
       curText = entry ? (entry.text || '') : '';
-      curColor = (entry && entry.color) || MILESTONE_COLOR;
+      // A "+" opens on the remembered colour (MONTH-NOTES-PLAN.md §2); an existing note on its own.
+      curColor = entry ? (entry.color || MILESTONE_COLOR) : mvNoteStartColor();
       editIdx = entry ? ni : null;
     }
-    const swatches = EXCEL_STANDARD_COLORS.map(c =>
-      `<span class="color-swatch${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${c}" style="background:${c};"></span>`
-    ).join('');
+    // A day note picks from the month note palette (No fill, the standard ten, the tints, the greys), in two
+    // rows; a waterfall-owned note keeps the standard ten, which are all its writers know.
+    const swatch = (c, name) =>
+      `<span class="color-swatch${isMvNoFill(c) ? ' is-nofill' : ''}${c.toUpperCase()===curColor.toUpperCase()?' selected':''}" data-color="${c}" title="${name || c}"${isMvNoFill(c) ? '' : ` style="background:${c};"`}></span>`;
+    const swatches = isWf
+      ? EXCEL_STANDARD_COLORS.map(c => swatch(c)).join('')
+      : MV_NOTE_PALETTE.slice(1, 11).map(p => swatch(p.color, p.name)).join('')
+        + '</div><div class="note-color-row mv-note-tints" title="Highlight color">'
+        + [MV_NOTE_PALETTE[0]].concat(MV_NOTE_PALETTE.slice(11)).map(p => swatch(p.color, p.name)).join('');
     const pop = document.createElement('div');
     pop.id = 'mv-note-pop';
     pop.className = 'mv-note-pop';
@@ -22755,7 +23033,9 @@ export function initLegacyApp() {
       });
     }
     textarea.focus(); textarea.select();
-    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:null,
+    // A new day note TAKES the remembered colour unless another is picked, so it is pending from the start.
+    const startPending = (!isWf && editIdx === null && curColor !== MILESTONE_COLOR) ? curColor : null;
+    activeMvNote = {kind: isWf ? 'wf' : 'day', weekKey, dayIso, lane: laneAttr, editIndex: editIdx, textarea, pendingColor:startPending,
                     anchor, place,
                     // What the editor opened with, so a waterfall note that was opened and left
                     // unchanged is not frozen into an override on the way out (audit M-13).
@@ -22816,6 +23096,181 @@ export function initLegacyApp() {
     if(fresh && activeMvNote.place){ activeMvNote.anchor = fresh; activeMvNote.place(); }
     else closeMvNoteEditor();
   }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
+
+  // ---------- Month view: Paste notes… (MONTH-NOTES-PLAN.md §5; owner, 20 Oct 2026, by picker) ----------
+  // The owner's "'Paste notes…' box": many month-view notes at once, one per line, as `date, text, colour`, read
+  // back in a preview with each line's error, and added as ONE undo step. Ruling Q4 ("Fix them first"): Add stays
+  // off until every line reads.
+  //  - A line with a TAB (pasted from a spreadsheet) splits on its tabs: date, text, then a colour column. A line
+  //    without one splits at its first comma, and at its last comma only when what follows reads as a colour, so
+  //    a note's own text may carry commas. With neither, the date ends at the first space.
+  //  - Dates: m/d/yy, m/d/yyyy, yyyy-mm-dd (a two-digit year is 20yy, as fmtShort writes it), inside the months
+  //    the month view shows (monthRangeForSchedule: the phases' months and one each side), or the note could be
+  //    seen nowhere.
+  //  - Colours: a name from the month note palette (case, spaces and hyphens ignored, "gray" read as "grey"; "no
+  //    fill", "none" and "plain" are No fill) or #RRGGBB. None given: the colour a new note opens on
+  //    (mvNoteStartColor), as the editor's "+" would.
+  // Each note goes into dayNotes exactly as the editor writes one (writeActiveMvNote): its text trimmed and
+  // stripped of what XML forbids, the default purple as null, `lane: null` (what the editor stores from a full
+  // day's "+"), after the day's own notes. A day is never full: a week grows for its notes, as for the editor's.
+  // ⛔ The box is engine-built and body-level, like the day menu, and none of its controls has an id, so
+  // collectFieldValues() cannot sweep it into a saved file or an undo step. buildSavedHtml strips it from a
+  // shareable copy, and appDialogOpen() counts it, so the file shortcuts wait while it is up.
+  function pasteNoteKey(s){ return String(s || '').toLowerCase().replace(/gray/g, 'grey').replace(/[\s_-]+/g, ''); }
+  function pasteNoteColor(word){
+    const w = String(word || '').trim();
+    if(!w) return null;
+    if(/^#[0-9a-f]{6}$/i.test(w)) return w.toUpperCase();
+    const k = pasteNoteKey(w);
+    if(k === 'none' || k === 'plain') return MV_NOTE_NOFILL;
+    const hit = MV_NOTE_PALETTE.find(function(p){ return pasteNoteKey(p.name) === k; });
+    return hit ? hit.color : null;
+  }
+  function pasteNoteDate(word){
+    const w = String(word || '').trim();
+    let y, m, d, x;
+    if((x = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(w))){ m = +x[1]; d = +x[2]; y = +x[3]; if(x[3].length === 2) y += 2000; }
+    else if((x = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(w))){ y = +x[1]; m = +x[2]; d = +x[3]; }
+    else return null;
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return (dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d) ? dt : null;
+  }
+  const PASTE_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pasteMonthLabel(d){ return PASTE_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+  // Every non-blank line of the box, read: {line, iso, date, text, color} or {line, raw, error}.
+  function parsePastedNotes(text, schedule){
+    const range = schedule ? monthRangeForSchedule(schedule) : null;
+    const end = range ? monthStep(range.last, 1) : null;
+    const out = [];
+    String(text || '').split(/\r\n?|\n/).forEach(function(raw, i){
+      const line = stripXmlIllegal(raw, ' ');
+      if(!line.trim()) return;
+      const n = i + 1, bad = function(msg){ out.push({line: n, raw: line.trim(), error: msg}); };
+      let dateW, body, colorW = '';
+      if(line.indexOf('\t') >= 0){
+        const parts = line.split('\t');
+        dateW = parts[0]; body = parts[1] || '';
+        if(parts.length > 2){ colorW = parts.slice(2).join(' ').trim(); }
+      } else if(line.indexOf(',') >= 0){
+        const c = line.indexOf(',');
+        dateW = line.slice(0, c); body = line.slice(c + 1);
+        const l = body.lastIndexOf(',');
+        if(l >= 0 && pasteNoteColor(body.slice(l + 1))){ colorW = body.slice(l + 1); body = body.slice(0, l); }
+      } else {
+        const t = line.trim(), sp = t.search(/\s/);
+        dateW = sp < 0 ? t : t.slice(0, sp); body = sp < 0 ? '' : t.slice(sp + 1);
+      }
+      const date = pasteNoteDate(dateW);
+      if(!date) return bad('can’t read the date “' + String(dateW).trim() + '” (use 10/20/26 or 2026-10-20)');
+      if(!range) return bad('the calendar has no months to put it on yet: add a phase first');
+      if(date < range.first || date >= end){
+        return bad(fmtShort(date) + ' is outside the months this calendar shows (' + pasteMonthLabel(range.first)
+                   + ' – ' + pasteMonthLabel(range.last) + ')');
+      }
+      const note = String(body).trim();
+      if(!note) return bad('no note text after the date');
+      let color = mvNoteStartColor();
+      if(colorW){
+        color = pasteNoteColor(colorW);
+        if(!color) return bad('can’t read the colour “' + colorW + '”');
+      }
+      out.push({line: n, iso: isoOf(date), date: date, text: note, color: color});
+    });
+    return out;
+  }
+  // The whole paste, as ONE undo step: anything pending is banked first, then every note, then the step.
+  function addPastedNotes(rows){
+    const ok = rows.filter(function(r){ return !r.error; });
+    if(!ok.length || ok.length !== rows.length) return 0;
+    cancelPendingUndoPush();
+    pushUndoSnapshot();
+    ok.forEach(function(r){
+      const list = dayNoteList(r.iso).slice();
+      const entry = {text: r.text, lane: null, color: r.color};
+      if(entry.color && entry.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) entry.color = null;
+      list.push(entry);
+      dayNotes[r.iso] = list;
+    });
+    // If none of them is on the month in view, go to the first one's month, so the paste is seen to land.
+    const onScreen = ok.some(function(r){ return monthCursor && r.date.getUTCFullYear() === monthCursor.getUTCFullYear()
+                                                 && r.date.getUTCMonth() === monthCursor.getUTCMonth(); });
+    if(!onScreen){
+      const first = ok.slice().sort(function(a, b){ return a.date - b.date; })[0].date;
+      monthCursor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1));
+    }
+    markDirty();
+    render(currentSchedule);
+    pushUndoSnapshot();
+    return ok.length;
+  }
+  function closePasteNotes(){
+    const ov = document.querySelector('.paste-notes-overlay');
+    if(ov) ov.remove();
+  }
+  function openPasteNotes(){
+    if(viewMode !== 'month') return;
+    if(activeMvNote) commitMvNoteEditor();
+    closePasteNotes();
+    const ov = document.createElement('div');
+    ov.className = 'paste-notes-overlay';
+    ov.innerHTML = '<div class="paste-notes" role="dialog" aria-modal="true" aria-label="Paste notes">'
+      + '<div class="paste-notes-head"><div class="paste-notes-title">Paste notes</div>'
+      + '<button type="button" class="paste-notes-x" aria-label="Close">×</button></div>'
+      + '<p class="paste-notes-hint">One note per line: <b>date, text, colour</b>. Dates as 10/20/26 or 2026-10-20. '
+      + 'A colour is a swatch’s name (red, pink, pale blue, light grey, no fill…) or #RRGGBB, and can be left off. '
+      + 'Columns copied from a spreadsheet work too.</p>'
+      + '<textarea class="paste-notes-text" rows="8" spellcheck="false" aria-label="Notes, one per line" '
+      + 'placeholder="10/20/26, Table read, pale blue&#10;10/23/26, Network notes due"></textarea>'
+      + '<div class="paste-notes-sum" aria-live="polite"></div>'
+      + '<div class="paste-notes-preview"></div>'
+      + '<div class="paste-notes-foot"><span class="paste-notes-keys">Month view only · ⌘/Ctrl-Enter to add · Esc to cancel</span>'
+      + '<button type="button" class="paste-notes-cancel">Cancel</button>'
+      + '<button type="button" class="paste-notes-add" disabled>Add notes</button></div></div>';
+    document.body.appendChild(ov);
+    const ta = ov.querySelector('.paste-notes-text'), add = ov.querySelector('.paste-notes-add');
+    const sum = ov.querySelector('.paste-notes-sum'), prev = ov.querySelector('.paste-notes-preview');
+    let rows = [];
+    const refresh = function(){
+      rows = parsePastedNotes(ta.value, currentSchedule);
+      const errs = rows.filter(function(r){ return r.error; }).length, good = rows.length - errs;
+      prev.innerHTML = rows.map(function(r){
+        if(r.error) return '<div class="paste-row is-error"><span class="paste-row-n">Line ' + r.line + '</span>'
+          + '<span class="paste-row-err">' + escHtml(r.error) + '</span></div>';
+        const sw = isMvNoFill(r.color) ? '<span class="color-swatch is-nofill" title="No fill"></span>'
+          : '<span class="color-swatch" style="background:' + r.color + ';"></span>';
+        return '<div class="paste-row"><span class="paste-row-n">Line ' + r.line + '</span>'
+          + '<span class="paste-row-date">' + escHtml(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][r.date.getUTCDay()] + ' ' + fmtShort(r.date)) + '</span>'
+          + sw + '<span class="paste-row-text">' + escHtml(r.text) + '</span></div>';
+      }).join('');
+      sum.textContent = !rows.length ? '' : (errs ? (errs === 1 ? '1 line needs fixing' : errs + ' lines need fixing') + ' before anything is added'
+                                                  : (good === 1 ? '1 note ready' : good + ' notes ready'));
+      sum.classList.toggle('is-error', !!errs);
+      add.disabled = !good || !!errs;
+      add.textContent = good && !errs ? (good === 1 ? 'Add 1 note' : 'Add ' + good + ' notes') : 'Add notes';
+    };
+    const go = function(){
+      if(add.disabled) return;
+      const n = addPastedNotes(rows);
+      if(n) closePasteNotes();
+    };
+    ta.addEventListener('input', refresh);
+    add.addEventListener('click', go);
+    ov.querySelector('.paste-notes-cancel').addEventListener('click', closePasteNotes);
+    ov.querySelector('.paste-notes-x').addEventListener('click', closePasteNotes);
+    // A press on the dimmed page outside the box cancels, as the app's dialogs do.
+    ov.addEventListener('mousedown', function(e){ if(e.target === ov) closePasteNotes(); });
+    ov.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closePasteNotes(); }
+      else if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)){ e.preventDefault(); e.stopPropagation(); go(); }
+    });
+    ta.focus();
+    refresh();
+  }
+  // The toolbar's Paste notes… button is React's (PreviewToolbar.jsx, month view only), so it is reached by
+  // delegation, as the Header button is.
+  document.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('#paste-notes-btn')) openPasteNotes();
+  });
 
   // ---------- Restore saved data when this file was produced by "Save to File" ----------
   function restoreSavedState(){
@@ -23170,7 +23625,9 @@ export function initLegacyApp() {
         if(!isPlainObj(e)) return null;
         const o = Object.assign({}, e);
         o.text = stripXmlIllegal(o.text == null ? '' : o.text, '\n');
-        if(o.color != null && !isHexColor(o.color)){ bad.n++; o.color = null; }
+        // A day note's colour is #RRGGBB, or exactly No fill (MV_NOTE_NOFILL, MONTH-NOTES-PLAN.md §2), the one
+        // eight-digit value the month note palette writes. Nothing else new reaches the style attribute.
+        if(o.color != null && !isHexColor(o.color) && !isMvNoFill(o.color)){ bad.n++; o.color = null; }
         if(o.lane != null && !Number.isInteger(o.lane)){ bad.n++; o.lane = null; }
         return o;
       };

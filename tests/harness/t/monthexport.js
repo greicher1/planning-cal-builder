@@ -162,6 +162,8 @@ window.addEventListener('load', function () { (async function () {
     var fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
     var noteW = function (s) { return F.mvlTextWidth(fonts['500'].font, s, F.G.noteFontPx); };
+    // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
+    var pillW = function (s) { return F.mvlTextWidth(fonts['600'].font, s, F.G.noteFontPx); };
     // The calendar through the PRINT path (its switch), and then through the sliced writer.
     async function sliceFile(){
       // ⚠️ The button stays DISABLED until the export before this one has saved and closed its file, and a click on it
@@ -180,7 +182,7 @@ window.addEventListener('load', function () { (async function () {
       // No print document (the switch did not reach the print path) is the case's failure, judged there.
       if(!got) return {layout: {months: []}, bytes: new Uint8Array(0), months: 0, printed: false};
       var dom = new DOMParser().parseFromString('<div id="x">' + printed + '</div>', 'text/html');
-      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW); });
+      var months = Array.prototype.map.call(dom.querySelectorAll('#x > .print-page'), function (p) { return F.mvlMonthLayout(p.innerHTML, noteW, pillW); });
       var layout = F.fitMonthLayout({geometry: F.G, months: months}, fonts);
       return {layout: layout, bytes: await F.buildMonthPdf(layout), months: months.length, printed: true};
     }

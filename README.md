@@ -133,6 +133,88 @@ Lists of numbered episodes read exactly as before.
 - **Verified:** `labelsetup` E1–E3 (bars, the day menu's header, Week mode's lists, a Blocks list). No fixture that
   renders labels has a renamed episode (surveyed), and gates 10 and 13 hold every numbered calendar byte-identical.
 
+### Unreleased — Month view: one-day custom-phase pills wrap to two lines (20 Oct 2026)
+
+A one-day custom phase (a table read, a scout) shows its name as a one-day pill, and a long name was cut to a few
+letters and "…". Owner, by picker: *"Wrap to two lines"*, for *"Any one-day piece"* of a custom phase (MONTH-NOTES-PLAN
+§6, Q3). Such a pill now takes two lanes and wraps its name, and is cut with "…" only at the end of the second line.
+Every other bar, and a one-day custom pill whose name fits, is unchanged.
+- **Code:** a frozen edit in `renderMonthView`'s pill `place()` call (`mvPillLanes`, measured like a note by
+  `mvPillLineCount`) and one frozen CSS rule, `.mv-pill.mv-pill-2l`. The month-PDF writer decides for itself, at the
+  PDF's own width and the bar's own font (`mvlWrapsPill`, `mvlPillLines`), as it does for notes, so its file does not
+  depend on the window. `buildMonthLayout` takes the 600-weight font for it.
+- Supersedes, for this case only, MONTH-PILL-LABEL Q5 ("no width remedy") and HALF-SQUARE-BARS §5 ("Cut it with …").
+- **Verified:** the `mvnotes` leg's W1–W4 (two lanes and two lines; a short name stays one line; the Friday piece of a
+  phase starting on a Friday wraps while its full week does not; no other bar in 18 months wraps). In the written PDF:
+  *Network Table Read and / Studio Notes Session*. `monthemit` on the new fixture holds every box and baseline the
+  writer draws to Chrome's print layout (16/16), and `monthwriter`'s A/B finds the same text on all 17 pages of the
+  writer's file and the print path's.
+
+### Unreleased — Month view: Paste notes… (20 Oct 2026)
+
+Owner, by picker: *"'Paste notes…' box"*. A **Paste notes…** button in the month view's toolbar opens a box that takes
+many month-view notes at once, one per line as `date, text, colour` (MONTH-NOTES-PLAN §5).
+- Dates as `10/20/26`, `10/20/2026` or `2026-10-20`, inside the months the view shows. A colour is a swatch's name
+  ("pale blue", "Gray", "no fill"…) or `#RRGGBB`, and can be left off (then the colour a new note opens on). Columns
+  copied from a spreadsheet (tabs) work, and a note's text may hold commas.
+- A live preview reads every line back, or says what is wrong with it. Ruling Q4, *"Fix them first"*: Add stays off
+  until every line reads. The whole paste is ONE undo step. Notes are written exactly as the editor writes them.
+- The box is engine-built and body-level, with no id on any control, so nothing in it reaches a saved file or the
+  undo history; a shareable copy strips it; the file shortcuts wait while it is open.
+- **Verified:** `mvnotes` V1–V6 (month view only, no ids; three bad lines named and Add off; nine notes with every
+  colour form read right, commas kept, lane null, appended after a day's own note; one undo removes all nine and one
+  redo restores them; Escape and an outside press add nothing).
+
+### Unreleased — Month view: notes on every hiatus day (20 Oct 2026)
+
+A day inside an all-phase hiatus had no "+" to add a note on, and the day menu's Add note was greyed there ("A hiatus
+day has no note lanes"). Owner, by picker: *"Every hiatus day"*. Now the band's weekdays and the hiatus week's weekend
+take notes like any day, on the lines below the band (MONTH-NOTES-PLAN §4).
+- **Code:** a frozen edit: `renderMonthView`'s "+" loop no longer skips hiatus dates. The day menu's Add note is offered
+  there as a result; `mvmenu` H4, H5, I2b and K1 were revised and I2c added. MONTH-CONTEXT-MENU-PLAN §3.1 updated.
+- **The A/B (gate 10):** on all ten gate-10 calendars the print document differs ONLY by hidden "+" elements (66 to
+  135 more each; identical once they are masked), every month still prints one sheet, and the printed sheets are
+  pixel-identical to the live build's (156 pages, 0 differ). The writer reads `.mv-bar:not(.mv-note-add)`, so gate 13
+  does not move.
+- **Verified:** `mvnotes` H1–H2 (a "+" on all seven days of the 12/21/26 hiatus week; one is hit-testable at its centre,
+  and a note typed there is drawn on 12/23 below the band).
+
+### Unreleased — Month view: one month each side, and your own holidays wherever it shows them (20 Oct 2026)
+
+Owner, by picker: *"One month each side"*, and for the PDFs *"Only if they hold something"* (MONTH-NOTES-PLAN §3). The
+month view now pages to the month before the first phase month and the month after the last, where notes can be
+added. The month PDFs print such an edge month only when its own days hold a note or a drawn holiday, so a calendar
+without one prints exactly as before. Ruling Q1, *"Your own only"*: a custom holiday no phase covers (before the first,
+in a gap, after the last, or in an edge month) now draws in the month view, tagged "(month view only)" in Settings;
+union holidays keep today's rule, inside a phase only. The waterfall, Excel and the waterfall PDF never see them.
+- **Code:** `monthRangeForSchedule` answers by context: the screen's range (one month each side) or, while a month PDF
+  is built, the print range (`monthPrintRange`, `monthHoldsSomething`). Frozen `exportMonthPdf` reads its range before
+  its loop, so its two callers arm a one-shot flag. `update()` places the month cursor on the first phase month, so a
+  calendar never opens on an empty edge. `schedule.monthOnlyHolidays`, drawn by `notesForWaterfallDate`. A click on
+  such a holiday in a week with no waterfall row adds a day note. No frozen edit, nothing saved.
+- **Verified:** `mvnotes` E1–E11 (opens on January 2026; pages from December 2025 to May 2027 and no further; the edge
+  month takes notes and draws its custom holiday, not Christmas; the tags; a holiday in a gap; the print path and the
+  writer both print December 2025, which holds notes, and not May 2027, which holds nothing: 17 months, one page each;
+  the waterfall shows no month-only holiday even when it is ticked for it). `carry-rich` and `stintswap-reshape`, the
+  gate-13 calendars with custom phases and holidays, are byte-identical to their baselines.
+
+### Unreleased — Month view note editor: No fill, light tints, greys, and the colour you last used (20 Oct 2026)
+
+Owner, by picker, all four: *"Remember last colour"*, *"'No fill' plain text"*, *"Light tints"* (pink, lavender, peach,
+pale blue), *"Greys"* (light, mid, dark) (MONTH-NOTES-PLAN §2). A day note's editor now shows two rows of swatches: the
+ten standard colours, then No fill, the four tints and the three greys. A new note opens on the colour you last
+picked; an existing note opens on its own. A waterfall note keeps the ten, because the waterfall and Excel print its
+colour.
+- **No fill** is stored as `#FFFFFF00` (white at zero alpha): no format change, and every build draws it harmlessly
+  (this one as plain black text, v1.3.0–v1.5.0 as the default purple, older builds as plain text). Ruling Q2, *"No box
+  at all"*: one frozen CSS line clears its outline. The month-PDF writer lists its fill and outline as `clear` and
+  paints neither.
+- **The last colour** is a per-user preference (`sptcal.prefs`, `mvNoteColor`), never in a saved calendar.
+- **Verified:** `mvnotes` P1–P5 and M1, R1 (the two rows; No fill drawn with a transparent fill and border and black
+  ink; the next note opens on it; Pink with black ink, Dark grey with white; an existing note on its own colour; a
+  waterfall note's ten; the saved file keeps `#FFFFFF00` and carries no preference; restored, it still draws without a
+  box).
+
 ### Unreleased — Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
 
 In Settings ▸ Holidays, a custom holiday's Enable, W'fall note and Month note boxes sat 22 px left of

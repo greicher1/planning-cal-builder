@@ -196,6 +196,8 @@ PY
 #                   60-lane cap (L-16) -- and its August is in SCALE mode, the first case that exercises
 #                   exportMonthPdf's shrink-to-fit branch at all
 #   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
+#   mvnotes         ⭐ ADDED 20 Oct 2026 (MONTH-NOTES-PLAN.md): an edge month that prints because it holds notes and a
+#                   custom holiday, No fill / tint / grey day notes, a note on a hiatus day, one-day custom pills that wrap
 #   halfdays        ⭐ ADDED 15 Oct 2026: episodes of 4.5 days (one of 5), so Production's bars split per episode
 #                   and STACKED on each switch day ("Stacked bars, always"). ⭐ Since 16 Oct 2026
 #                   (HALF-SQUARE-BARS-PLAN.md) the two meet half way through the square in ONE lane
@@ -206,7 +208,7 @@ for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvhea
               mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
               dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
               month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel \
-              halfdays:halfdays:halfdays; do
+              halfdays:halfdays:halfdays mvnotes:mvnotes:mvnotes; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
@@ -1558,7 +1560,11 @@ done
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
-# labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
+# mvnotes guards bundle A of the 20 Oct 2026 gap list (MONTH-NOTES-PLAN.md, the owner's rulings by picker): the day-note
+# editor's palette, No fill and remembered colour (P), one month each side and the custom holidays drawn there (E),
+# notes on every hiatus day (H), Paste notes… (V) and one-day custom pills that wrap (W). LIVE builds the synthetic
+# calendar through the UI and mints tests/fixtures/mvnotes.sptcal; the second run holds that file to the same facts.
+# labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 41 cases on halfdays and the fixtures it opens through
 # the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
 # Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
 # header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… and Number weeks (C). Twenty
@@ -1580,7 +1586,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               filekeys:v1.4.2-saved:150 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
-              mvmenu:halfdays:150 labelsetup:halfdays:600; do
+              mvmenu:halfdays:150 \
+              mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1602,6 +1609,33 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
+# ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
+# by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut
+# with "…" at the end of its second line. `monthemit` cannot see this: it compares only weeks the writer lays out as the
+# print document does, and a pill that stops wrapping changes its week's lanes. Mutant m11 (the writer never wraps) is
+# green there and red here.
+python3 - "$HERE/mvnotes.month.pdf" <<'PYMN' || FAIL=1
+import subprocess, sys
+bad = 0
+def chk(c, m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ') + m)
+    if not c: bad = 1
+try: txt = subprocess.run(['pdftotext', '-layout', sys.argv[1], '-'], capture_output=True, text=True, check=True).stdout
+except Exception as e:
+    print('  FAIL  mvnotes month PDF: unreadable: ' + str(e)); sys.exit(1)
+L = [l.strip() for l in txt.split('\n')]
+def follows(a, b): return any(L[i].startswith(a) and i + 1 < len(L) and L[i + 1].startswith(b) for i in range(len(L)))
+chk(follows('Network Table Read and', 'Studio Notes Session'),
+    'mvnotes month PDF: the one-day phase\'s name wraps to two lines ("Network Table Read and" / "Studio Notes Session")')
+chk(sum(1 for l in L if l == 'Camera Tests With Th\u2026') == 2 and sum(1 for l in L if l.startswith('Costume and Hair') and l == 'Costume and Hair') == 2,
+    'mvnotes month PDF: the Friday piece wraps and is cut with "\u2026" at the end of its second line, on both pages that show 5/1/26')
+chk(any(l.startswith('Costume and Hair Camera Tests With The Director Week 2') for l in L),
+    'mvnotes month PDF: the same phase\'s full-week piece stays one line')
+sys.exit(bad)
+PYMN
+
 # ---- monthemit (MONTH-PDF-WRITER-PLAN.md §8 step 3): the month-PDF writer's emitter + serializer --------
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer out of src/legacy/app.js (owner ruling: "slice it, no hook"
 # extends to the emitter), lays every print document out in Chrome with the app's print rules, hands the emitter
@@ -1619,7 +1653,9 @@ done
 # no comparison here needs pdfcmp.py's date exemption.
 MEA="/tmp/gate${GTAG}-mea"; MEB="/tmp/gate${GTAG}-meb"
 rm -rf "$MEA" "$MEB"; mkdir -p "$MEA" "$MEB"
-for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse"; do
+# mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md) adds No fill notes (listed, never painted) and one-day custom pills that wrap.
+for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse" \
+              "na:-:-:mvnotes"; do
   MERUN="${MESPEC%%:*}"; MEREST="${MESPEC#*:}"; METZ="${MEREST%%:*}"; MEREST="${MEREST#*:}"
   MEWIN="${MEREST%%:*}"; MESTATE=""; [[ "$MEREST" == *:* ]] && MESTATE="${MEREST#*:}"
   [[ $METZ == - ]] && METZ=""; [[ $MEWIN == - ]] && MEWIN=""
@@ -1694,12 +1730,13 @@ PYMF
 #   win   notewrap again, in a 1280 x 800 window: ⛔ its writer file byte-identical to nw's, while the print DOCUMENT
 #         must differ -- the print path's note spans follow the window, the writer's do not, and a control that changed
 #         nothing would pass vacuously.
+#   mv    mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md): a printed edge month, No fill notes, one-day custom pills that wrap.
 #   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
 #         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
               "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
-              "hm:-:-:halfmarks"; do
+              "hm:-:-:halfmarks" "mv:-:-:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -1780,7 +1817,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -1858,7 +1895,8 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
-              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays"; do
+              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
+              "nn:mvnotes:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
