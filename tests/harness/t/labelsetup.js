@@ -329,9 +329,12 @@ window.addEventListener('load', function () { (async function () {
     add('L2', '⭐ Work this day on Sat 27 Jun makes it the first shoot day: the shoot reads 6.27.26 to 8.31.26 (one weekday fewer at the end), and the weekend\'s week is Production wk 1, so 29 Jun\'s is wk 2 (the owner\'s "Yes, build it so")',
       picked && l1.pp === '6.27.26 / 8.31.26' && l1.wk1 === 'Production wk 1' && l1.wk2 === 'Production wk 2', l1, '6.27.26 / 8.31.26, wk 1 = 22 Jun');
     await toMonth('June 2026');
+    var l2t = [].slice.call(monthCells()['2026-06-27'].cell.classList).filter(function (k) { return /^mv-day-/.test(k); });
     await lclick('2026-06-27');
     var l2m = {label: shootLabel(), rows: shootRows(), ctx: menuCtx()};
     closeMenu();
+    add('L2t', '⭐ The worked lead day takes the worked-day tint (mv-day-on), as a worked weekend inside the shoot does (the owner-approved frozen edit to _ovDays)',
+      eq(l2t, ['mv-day-on']), l2t, ['mv-day-on']);
     add('L2m', 'The day menu on 27 Jun now says "Shoot day 1", with Work this day checked',
       l2m.label === 'Shoot day 1' && eq(l2m.rows, [['', 'Weekend — not shot', 'false'], ['lead', 'Work this day', 'true']]) && /^Shoot day 1 /.test(l2m.ctx), l2m, 'Shoot day 1');
     await T.sleep(700);

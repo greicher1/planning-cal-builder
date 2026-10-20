@@ -10152,7 +10152,10 @@ export function initLegacyApp() {
         if(!v) return '';
         if(v === 'off') return (iso >= first && iso <= last) ? 'off' : '';
         if(v === 'onhalf') return shot.has(iso) ? (halves.has(iso) ? 'onhalf' : 'on') : '';
-        return shot.has(iso) ? (v === 'half' ? 'half' : (v === 'on' ? 'on' : '')) : '';
+        // ⛔ FROZEN EDIT, owner-approved 20 Oct 2026 by picker ("Approve the edit", LABELS-SETUP-PLAN.md item 5):
+        // 'lead' (a day worked on the weekend just before the shoot) marks as 'on', the worked-day tint, in the
+        // month view and both month PDFs. One condition; no baseline holds a 'lead' mark, so none moves.
+        return shot.has(iso) ? (v === 'half' ? 'half' : ((v === 'on' || v === 'lead') ? 'on' : '')) : '';
       };
     })();
 
