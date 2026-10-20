@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: A START GRIP ON EACH PREP PILL — MERGED INTO LOCAL `main`, GATED 1,860 PASS / 0 FAIL, NOT PUSHED (branch `prep-grip-plan`)
+### ✅ 19 Oct 2026: A START GRIP ON EACH PREP PILL — LIVE AT `f0c7925` (verified byte-identical, `314f7722`), GATED 1,860 PASS / 0 FAIL
 
 - Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
   prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
@@ -32,8 +32,11 @@
   deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
 - **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
 - **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
-  `main`'s docs-only commits up to `3b189af`. **Local `main` is fast-forwarded to the branch tip. NOT PUSHED:** that is
-  the owner's picker.
+  `main`'s docs-only commits up to `3b189af`. Local `main` was fast-forwarded to the branch tip, and ✅ **PUSHED AND
+  LIVE at `f0c7925`** on the owner's picker ("Push now", 19 Oct 2026). The push was `6027247..f0c7925`. Deploy run
+  39350049235 had "Build and check" and "Deploy to Pages" both green. The live file, fetched with a cache-buster, is
+  byte-identical to the gated build `314f7722…`. No version cut: `version.json` still reads 1.4.3, so installed copies
+  show no update notice.
   - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
     E15–E19, D5 and F13 all pass.
   - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's

@@ -1,6 +1,6 @@
 # PREP-GRIP-PLAN.md: a start grip on each prep pill
 
-**Status: BUILT, MERGED INTO LOCAL `main` AND GATED (1,860 PASS / 0 FAIL on `314f7722…`, 19 Oct 2026); not pushed.** Record in §8. Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
+**Status: LIVE at `f0c7925` (19 Oct 2026), verified byte-identical to the gated build `314f7722…` (1,860 PASS / 0 FAIL).** Record in §8. Rulings Q1(a) and Q2(a), and "Build it", by the owner's picker the same day. Owner, 19 Oct 2026, asked whether a prep's start can be changed by
 hand: *"will you be able to change when exactly each episode prep starts or is it always n number of days until the
 day before first shoot day"*. Then, on the proposal: *"plan a start grip on each prep pill in the month view that
 writes that episode's (or block's) prep length, with the end staying tied to the shoot. Plan it and ask me before
