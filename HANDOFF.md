@@ -4,7 +4,13 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS (on `main`; the owner approved one commit and one push by picker)
+### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
+
+- **Pushed and live.** The owner approved one commit and one push by picker. `git push origin main` sent
+  `ed466ca..5d4737d`, which also carried the docs-only `ff462f0`. Deploy run 39475485319. At 11:32:53 the live
+  `index.html`, fetched with a cache-buster, was byte-identical to the local build (sha256 `b3cae2ac52cb766b…`,
+  1,547,338 bytes). No version cut: `version.json` stays 1.5.0, so installed copies get it on their next load
+  without an update notice.
 
 - Owner, with a screenshot of Settings ▸ Holidays: *"fix formatting issue"*. Custom rows' three boxes sat 22 px left
   of the header and of the built-in rows. The `.hv-del` × was the only extra child of a custom row, and it is 18 px
