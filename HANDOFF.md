@@ -7,9 +7,10 @@
 ### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATE PENDING, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate
-  passes"*. That second answer was a conditional approval for ONE push of `main`, which also ships Off weeks (`2b4ce32`
-  and its two commits, merged locally earlier and not live). The session reads "passes" strictly: on any FAIL, even a
-  known flake, it asks again before pushing.
+  passes"*. That second answer was a conditional approval for ONE push of `main`. When it was given, the push would
+  also have shipped Off weeks, but the off-week session pushed those itself (live at `6e868b1`), and `main` (`373194e`,
+  docs only) is merged in here. The push now ships the day menu alone. The session reads "passes" strictly: on any
+  FAIL, even a known flake, it asks again before pushing.
 - **The merge:** `git merge --no-ff day-menu-step4` on a branch cut from `main` at `2b4ce32`, in its own worktree. The
   main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still modified, and it is not this work's.
   - `app.js`, `legacy.css` and `gate.sh` auto-merged.
@@ -33,14 +34,33 @@
   known. **Follow-up:** have the harness's headless launches clean up after themselves, or stop the clone (a launch
   flag, to be found and tested). Until then, whoever runs many legs fills the disk again.
 
-### ✅ 19 Oct 2026: OFF WEEKS, STEP A BUILT AND COMMITTED on branch `off-week` (worktree `.claude/worktrees/off-week`), NOT MERGED, NOT PUSHED
+### ✅ 19 Oct 2026: OFF WEEKS (STEP A) ARE LIVE AT `6e868b1` (verified byte-identical, `42f69b58`)
 
-- ⏭ **RESUME HERE.** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
+- ✅ **PUSHED AND LIVE.** Owner: *"Push local main to origin now, then verify the live site serves the gated build."*
+  One `git push origin main` (`451aaa2..6e868b1`, 20:49) sent six commits: the three off-week commits, the merge
+  `2b4ce32`, its gate record `6e868b1`, and `ccf633a` (the prep-name session's HANDOFF note, docs only, unpushed until
+  now). Deploy run 39366270707: "Build and check" and "Deploy to Pages" both green. The live `index.html`, fetched
+  with a cache-buster, is **byte-identical to the gated build**: sha256 `42f69b58d41c2df1…`, 1,538,034 bytes (first
+  fetch, 20:50). `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is
+  overdue.
+- ⭐ **Merged (owner, 19 Oct 2026):** *"Merge off-week into local main, resolve any doc conflicts, and run the full gate
+  on its own port once no other gate is running. Don't push."* `main` (`ccf633a`, with Prep above Production and the
+  prep start grip, both live) was merged into `off-week` as `2b4ce32`. Local `main` was then fast-forwarded to it.
+  `app.js` auto-merged (it differs from `ccf633a` by exactly off-week's 56 lines), and so did `gate.sh`. HANDOFF and
+  README conflicted only because both sides added entries at the top; all are kept. Merged build `42f69b58…`
+  (1,538,034 bytes): `npm run check` 40/40, `check-refs.py` CLEAN, `offweek` 4/4 and 25/25.
+  - ✅ **Full gate on the merge: 1,901 PASS, 0 FAIL, GATE PASSED** (build `42f69b58…`, port 8962, 20:02–20:21, with no
+    other gate running). 0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically
+    (74 ids); gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical; `offweek`
+    32/32. Every leg that timed out beside another session's gate before the merge passed in this run.
+  - ⚠️ **Learned: `pgrep -f "gate.sh"` is a REGEX**, and it matched the Claude app's own renderer process, so a waiter
+    built on it saw a gate running forever. Match `"zsh \./gate\.sh"`.
+- **The build (before the merge).** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
   own commit. Run its gate and show me the month PDF contact sheets before committing. Don't push."* Contact sheets
   went to the owner, who then chose three commits (picker, 19 Oct 2026): `9174e43` the `computeSchedule()` change, `f79adc9`
   the two frozen lines in `renderMonthView` with `inPhaseBand()` alone (so the frozen edit reads and reverts on its
   own), then the leg, the fixture, the gate wiring and these docs. The leg tests both halves, which is why it came
-  last. **Not merged into `main`, not pushed.** Merging and pushing are each the owner's call.
+  last. Merged into local `main` afterwards (top bullet). **Not pushed**: pushing is the owner's call.
 - **What it does:** a week inside the shoot with no shoot days reads *Production Hiatus* in the own-hiatus cell
   (waterfall, Excel, waterfall PDF) and is not counted. The month view gets the same red band, Mon–Fri. Plan §11 has
   the record.
@@ -63,8 +83,7 @@
   Worth raising with the owner.
 - The proof builds (`dist-prefix/`, `dist-noband/`) were deleted after use. To re-prove red, rebuild them by the
   in-place method (HANDOFF 19 Oct "Learned" 3); for `dist-noband`, revert just the two frozen lines.
-- ⏭ **Next:** the owner decides on merging `off-week` into `main` and, separately, on pushing. `main` has moved
-  since `3b189af` only if other sessions merged meanwhile, so check before merging. Then step B (the month view's
+- ⏭ **Next:** step B (the month view's
   numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
   (`version.json` 1.4.3).
 
