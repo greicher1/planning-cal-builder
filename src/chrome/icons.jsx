@@ -136,6 +136,16 @@ export function IconRows(props) {
   )
 }
 
+// The Calendar range card (owner ruling 3): a calendar with a bracketed span across it.
+export function IconCalendarRange(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+      <path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4" />
+    </svg>
+  )
+}
+
 export function IconCalendarPlain(props) {
   return (
     <svg {...base} {...props}>

@@ -426,6 +426,7 @@ DOM inputs → readState() → computeSchedule(state) → render(schedule) → m
   - Global hiatuses apply to all phases; `phaseHiatuses[key]` pauses only its own phase.
   - `MAX_WEEKS = 600` guards against typo'd years hanging the page.
 - **`render(schedule)`** dispatches to `renderSpreadsheetView()` (waterfall) or `renderMonthView()` per `viewMode` (`'sheet' | 'month'`), plus the summary row and holiday-visibility list.
+- ⚠️ **The calendar range (Show tab, owner ruling 3, 20 Oct 2026) makes `currentSchedule` VIEW-DEPENDENT.** With a range set, `computeSchedule()` returns the WATERFALL's rows (cut to the range) plus `fullRange`, the whole week list, and `update()` lays `fullRange` back over it in the month view (`wholeCalendar()`), because frozen `render()` and `exportMonthPdf` read one schedule and the month view must keep every week. Each export runs only from its own view, and `setViewMode()` runs `update()`. Code that is about the CALENDAR rather than the waterfall's rows (`weekAutoTexts()`) must read `wholeCalendar(sch)`. With no range, nothing differs.
 
 **After applying a state snapshot, `refreshAfterRestore()` must run** — not a bare `update()`. It is the single list of post-restore UI refreshes (sidebar tab, region tracking, episode rows, sim-post, then `update`). The three restore paths each used to keep their own copy of that list and drifted, which left a stale "Complete Show Info" notice and an empty episode list after opening a saved file.
 

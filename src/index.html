@@ -461,6 +461,16 @@
   <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
 </div>
 
+<!-- Shown in the WATERFALL view while a calendar range (Show tab, owner ruling 3, 20 Oct 2026) cuts work
+     weeks off phases: it names each phase and how many weeks it loses. Owner, by picker: a strip above the
+     grid, names and weeks. The month view cuts nothing, so the strip hides there. Same shape and CSS as
+     the strips above; re-hidden in a shareable copy's clone, whose own engine raises it again. -->
+<div id="calrange-notice" role="status" aria-live="polite" hidden>
+  <span class="ln-icon" aria-hidden="true">&#9986;</span>
+  <span class="ln-text"></span>
+  <button type="button" class="ln-x" aria-label="Dismiss">&times;</button>
+</div>
+
 <!-- Audit L-20, owner ruling R6 (Chrome/Edge only). Shown only where the File System Access API is
      missing (Safari, Firefox): there the file menu -- Load... with it -- is hidden and Save only
      downloads a copy, so a calendar can never be loaded back, and nothing used to say so. Blue like

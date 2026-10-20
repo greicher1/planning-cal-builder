@@ -19,7 +19,7 @@
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
 import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
-import { IconTv, IconMapPin, IconCalendarDot, IconShare, IconSliders, IconHeading } from './icons.jsx'
+import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconSliders, IconHeading } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
 
@@ -106,6 +106,41 @@ export function ShowInfoCard() {
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>
+      </div>
+    </section>
+  )
+}
+
+// The calendar range (owner ruling 3, 20 Oct 2026): where the WATERFALL starts and ends, replacing its
+// full-year padding. Blank is today's padding, in either layout. It cuts the waterfall, Excel and the
+// waterfall PDF, never the month view, and a year block still starts each 1 January (computeYearBlocks).
+// ⛔ TWO NEW PERMANENT ids, `cal-range-start` and `cal-range-end`: collectFieldValues() sweeps them into
+// fields.byId, so they are part of the save format from the first calendar saved with them, and
+// applyStateSnapshot() blanks them for a file without them. ⛔ Native date inputs, uncontrolled, for the
+// reason the custom holiday's is: the restore path and the shift tools write `el.value` imperatively, and
+// DatePop.jsx attaches to any native date field in the sidebar.
+export function CalendarRangeCard() {
+  return (
+    <section className="card" data-tab="show">
+      <h2>
+        <IconCalendarRange className="card-ic" /><span>Calendar range</span>
+        <InfoHint label="Calendar range" width={300}>
+          Where the waterfall starts and ends, in the app, Excel and the PDF. Leave a date blank for full
+          calendar years (in Single Column Mode, the first or last working week). Weeks outside the range are
+          cut; the month view still shows the whole calendar. A new year still starts a new column block.
+        </InfoHint>
+      </h2>
+      <div className="side-block">
+        <Group gap="sm" grow wrap="nowrap" align="flex-start">
+          <Stack gap={4} style={{ minWidth: 0 }}>
+            <Text component="label" htmlFor="cal-range-start" size="sm" fw={500}>Start</Text>
+            <input type="date" id="cal-range-start" />
+          </Stack>
+          <Stack gap={4} style={{ minWidth: 0 }}>
+            <Text component="label" htmlFor="cal-range-end" size="sm" fw={500}>End</Text>
+            <input type="date" id="cal-range-end" />
+          </Stack>
+        </Group>
       </div>
     </section>
   )

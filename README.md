@@ -29,6 +29,44 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Calendar range: choose where the waterfall starts and ends (20 Oct 2026)
+
+Owner ruling 3 (20 Oct 2026): the waterfall always padded to full calendar years, January of the first year to
+December of the last, and a reference calendar the owner wanted to match started on its first working week. The
+owner asked for a start/end override instead of a change to the year split. Asked before building, by picker:
+*"Move like a hiatus"*, *"Applies in both"*, *"Strip above the grid"*, *"Names and weeks"*.
+- **A Calendar range card in the Show tab**, with Start and End dates. A typed start is the waterfall's first row
+  (its Monday), a typed end its last (the week it falls in). **Blank keeps today's padding**, so every calendar
+  ever saved, and every new one until a date is typed, looks and exports exactly as before.
+- **It cuts the waterfall, Excel and the waterfall PDF, never the month view or the month PDF.** Weeks outside the
+  range are cut. A cut phase keeps counting from its real start (a range beginning mid-shoot starts on
+  "Production wk 5", not wk 1). A new year still starts a new column block, as before.
+- **A strip above the grid names what is cut**, in the waterfall view only: *"The calendar range cuts 10 weeks of
+  Writer's Rm and 6 weeks of Post from the waterfall, Excel and PDF. The month view still shows them."* It counts
+  work weeks; a phase's own hiatus weeks are not work lost. Dismissible, per message.
+- **The shift tools move it like an unlocked hiatus.** Shift All and Anchor To move both dates; Shift From moves a
+  date only if it is on or after the phase shifted from; Rebuild From leaves it.
+- **Single Column Mode honours it too.** A blank date keeps that layout's own first or last working week.
+- **Dates that cannot make a range say so.** An end before the start is ringed and the range is left out. A
+  start after the calendar's last week (or an end before its first) leaves no row: the waterfall says to check
+  the dates, both are ringed, and the month view still draws. A year typed far away names itself in the "too
+  long" hint, as a phase's typo'd year does.
+- **Saved with the calendar** as two new field ids, `cal-range-start` and `cal-range-end`. A file saved before
+  them opens with no range, even after a calendar that had one (the M-5 trap), and New clears them. No
+  `SNAPSHOT_VERSION` bump: an older build ignores the two ids and shows full years.
+- **How it is built (no frozen code):** `computeSchedule` runs its week loop over the padded span AND the range,
+  so week numbers and the month view's notes and Simultaneous Post bands are computed as before, then cuts the
+  waterfall's rows out of it before the column swaps. The whole list rides along as `schedule.fullRange`, and
+  `update()` hands it to the month view (`wholeCalendar`), because frozen `render()` and `exportMonthPdf` read the
+  one `currentSchedule`.
+- **Verified:** new leg `calrange`, 18 cases on a synthetic calendar, every expectation derived from the same
+  calendar with the range blank: the rows kept and their labels, the strip's words, Excel's Date columns, the
+  waterfall PDF's text, the month view identical month by month (13 months, cut Simultaneous Post and Writer's
+  Room weeks included), Single Column Mode, Shift All / Shift From and undo, the three bad-date cases, Save / Load
+  and the M-5 trap, the shareable copy, New. Red on the pre-change build; eleven mutants each turn their own cases
+  red. `npm run check` 40/40.
+
+
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),
