@@ -7,7 +7,8 @@
 ### 🔨 19 Oct 2026: BUILT: A CUSTOM PHASE WITHOUT "wk N" (branch `phase-numbering`, [`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md))
 
 - ⏭ **RESUME HERE.** Built in worktree `.claude/worktrees/phase-numbering`, branch `phase-numbering`, cut from `main`
-  at `e86aa5e` (the plan's commit). **Not merged, not pushed.** Full gate passed after a re-run (see Proof).
+  at `e86aa5e` (the plan's commit), committed as `56603e8`. **Merged with `main` at `6b9eeb4` (day menu steps 2–4, off weeks, prep above Production), as `1a21a49`**, on the owner's go-ahead relayed by the day-menu step-4 session (*"Yes, tell it to merge and gate"*). Code auto-merged; only the docs conflicted (both sides' entries kept). **Full gate on the merged build `2e2b0d65…` (1,544,045 bytes, port 8939, 23:19–23:39): 2,001 PASS, 0 FAIL, GATE PASSED.** 0 clipped, 74 ids, gate 13's twenty written month PDFs byte-identical, `phasenum` 59/59, `mvmenu` 77/77 (I1 and I4 add the 1-day and 1-week phases).
+  **`main` not moved, nothing pushed:** both wait on the owner's own pickers.
 - Owner, 19 Oct 2026: one- or two-day phases should not read "week x" by default. Asked whether that is a separate
   "Event" feature or a setting on phases. **Ruled:** R1, keep them as phases (a one-day item takes a waterfall column
   like any phase); R2, the setting is for custom phases only. Then Q1–Q4 (plan §8), all as recommended.
@@ -31,8 +32,8 @@
   a real click on the box and one Undo each changed the waterfall cell as expected, 0 console errors.
 - **Full gate on build `3ea7edd8…` (port 8939, 16:41–17:22): 1,876 PASS, 5 FAIL.** Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at **74 ids** (unchanged: its calendar has no custom phases), gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical. No re-cut.
   - The five: `customunits (live)` × 3, the waterfall rows of Read-through, Stage Build and Rigging. That leg builds them through the By select, which now unticks Number weeks, and its reader only knew "Name wk N". It now accepts the bare name too (`t/customunits.js`, `sheetRows()`); its RESTORE run, on a fixture that predates the box, had passed. And two contention flakes already on record: `monthexport (mvheaderlegacy)` X6, a timed dialog case whose PDF was byte-identical, and `pilldrag`'s 480 s deadline. **All three legs re-run as `gate.sh` runs them, after the other session's gate exited (17:59–18:02): 92 PASS, 0 FAIL.** Two more sessions' gates started a minute into it.
-- ⏭ **Next:** the owner's pickers to commit on the branch, merge into `main`, and push. After a merge, re-run the full
-  gate if `main` has moved (another session's work lands often).
+- ⏭ **Next:** the owner's pickers: fast-forward `main` to this branch, then push and verify the live file. If `main`
+  has moved again first, merge it in and re-run the full gate.
 
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 

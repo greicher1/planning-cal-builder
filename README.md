@@ -56,7 +56,8 @@ takes a waterfall column like any phase), and give the setting to **custom phase
   (March, 1,172 pixels; April identical). `npm run check` 40/40. **Full gate on build `3ea7edd8…` (port 8939, 16:41–17:22): 1,876 PASS, 5 FAIL.** Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at **74 ids** (unchanged: its calendar has no custom phases), gate 10's print documents identical, gate 13's twenty written month PDFs byte-identical. No re-cut. The five were `customunits (live)`'s
   waterfall reader, which only knew "Name wk N" and now accepts the bare name (that run builds Days and Dates phases
   through the By select, which unticks the box), and two contention flakes on record (`monthexport` X6, `pilldrag`'s
-  deadline). All three legs re-run alone: 92 PASS, 0 FAIL.
+  deadline). All three legs re-run alone: 92 PASS, 0 FAIL. Then merged with `main` at `6b9eeb4` (day menu steps 2–4,
+  off weeks, prep above Production): full gate on the merged build `2e2b0d65…`, **2,001 PASS, 0 FAIL**.
 
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
