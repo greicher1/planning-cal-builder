@@ -340,3 +340,18 @@ with prep on and off. It is one line in `appendEpisodePrep()` if the owner wants
 - **Full gate: 1,799 PASS, 5 FAIL.** Every existing output unchanged on all four outputs (gates 1–4, 10, 13). Gate 5
   moved by exactly the two ids of §7 (72 → 74), re-cut on the owner's sign-off (picker, 19 Oct 2026). The four other failures came from
   two other sessions' gates running alongside, and passed when re-run alone (HANDOFF has the detail).
+
+## 14. Changed after it shipped (owner, 19 Oct 2026, branch `prep-name`)
+
+*"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its default name
+should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or episodes"*. Then, on the
+labels: *"dont put the 'Ep' just write 'Prep 303' but do write 'Prep Block 1'"*.
+
+- **§6's place moved:** the Prep row is now directly ABOVE Production (`buildPhaseRows`), where prep falls in time.
+- **§6's default name is the mode's:** "Episodic Prep" / "Block Prep" (`autoPrepName`). §7 is unchanged: no new id or
+  key. A DEFAULT name is any of `PREP_AUTO_NAMES` ('', "Prep", "Episodic Prep", "Block Prep"), and `syncPrepName`
+  rewrites it to the mode's own from `refreshPrepUI` and on the box's `change`, never while the box has the focus. So a
+  file saved with the old "Prep" opens on the new default, and the restore and New defaults could stay "Prep".
+- **§8's pills are unchanged:** "Prep 303" / "Prep Block 1". The prefix is now the segment's `pillName` ("Prep" for a
+  default name, the typed name otherwise), no longer the row's name, which would have made "Episodic Prep 303".
+- ⛔ Gate 5's `prep-name` value on `v1.0.0-saved.html` moves from "Prep" to "Episodic Prep": a re-cut for the owner.

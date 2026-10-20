@@ -58,6 +58,170 @@ takes a waterfall column like any phase), and give the setting to **custom phase
   through the By select, which unticks the box), and two contention flakes on record (`monthexport` X6, `pilldrag`'s
   deadline). All three legs re-run alone: 92 PASS, 0 FAIL.
 
+### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
+
+Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
+([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), Q1–Q7): not single days, but a week inside the shoot the camera never rolls in.
+This is step A; step B (the month view numbering weeks as the waterfall does) is ruled and not built.
+- **Waterfall, Excel, waterfall PDF.** Such a week (an "off week": every weekday off, or off marks and union holidays
+  together) used to print as an ordinary *Production wk 5*, and pushed every later week's number up by one. It now
+  reads *Production Hiatus* (the Production name plus "Hiatus") in the red band Production's own hiatus uses,
+  renameable and recolourable per week, and the weeks after it are numbered as if it were not there. A week with a
+  worked Saturday or only a half day still has a shoot day, so it is still a numbered week.
+- **Month view and both month PDFs.** The same red band, Mon–Fri, over the hatched off days, in Production's lane. A
+  rename or recolour made in the waterfall shows here too. This is a two-line frozen edit in `renderMonthView`,
+  approved by the owner with its five-point gate (Q7). On a calendar with no off week it is inert.
+- **Unchanged:** every date (the wrap, Start Principal Photography, every other phase); the header's *N-Week
+  Production Span* (a paused week stays in the span, as with Production's own hiatus); Simultaneous Post; the day
+  menu (mark any day of the week back on and the week returns by itself); and every calendar without such a week.
+  Nothing new is saved: the band is derived from the off marks each time, so `SNAPSHOT_VERSION` and `fields.byId`
+  are untouched. A dark week BEFORE the first shoot day stays *Production wk 1* (Q3). The `{production.weeks}` header
+  token now counts worked weeks. A saved calendar that already has an off week changes when it next opens (Q1,
+  accepted).
+- **Verified:** new leg `offweek`. LIVE mints `tests/fixtures/offweek.sptcal` through the real day popover and Save.
+  RESTORE runs 25 cases plus `gate.sh`'s own reading of the waterfall PDF's text. The leg is red on the pre-change
+  build (12 cases and the PDF), and with only the frozen band edit removed exactly its 5 month-band cases are red.
+  The print document A/B on the new fixture differs in 3 of 47 week rows, all of them off-week rows. September's
+  Labor Day row grows 57 → 78 px because the band takes a lane, and the other seven months are pixel-identical in
+  both month PDFs. Owner contact sheets made. Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL**. Gates 1–5 are green (0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically; 74 ids). Gate 10's ten print documents are identical, and gate 13's twenty written month PDFs are byte-identical. The five failures were timeouts and the known `pilllabel (halfdays)` W3 flake, while another session's full gate ran beside it. Each passed when re-run alone on the same build: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24, `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40. **Merged with `main` (`ccf633a`, Prep above Production) as `2b4ce32`:
+  1,901 PASS, 0 FAIL, GATE PASSED** on build `42f69b58…`, with no other gate running. Every frozen output is
+  identical, and `offweek` is 32/32.
+
+### Unreleased — Month view: Prep sits above Production and is named "Episodic Prep" / "Block Prep" (19 Oct 2026)
+
+Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*.
+- **The Prep row is directly above Production** in the Phases card (it was under it). Only the order moved. No id
+  changed, and nothing reads the rows by position.
+- **Its default name follows Schedule by:** "Episodic Prep" on an Episodes calendar, "Block Prep" on a Blocks one, and
+  it changes when the mode does. A name the user types is kept across a mode switch. There is no new id or key:
+  `#prep-name` still holds the name, and the values "Prep" (the old default), "Episodic Prep", "Block Prep" and blank
+  all mean the default. So **every calendar saved with the old default opens on the new one**, and no file needs
+  converting. The box is never rewritten while it has the focus, because typing "Prep Art" passes through "Prep".
+- **Pills still read just "Prep 303" / "Prep Block 1"**, whatever the default name. A first build wrote "Prep Ep. 303",
+  to match Production's bars; the owner took the "Ep." out the same day (*"dont put the 'Ep' just write 'Prep 303' but
+  do write 'Prep Block 1'"*). With a typed name, that name replaces "Prep" ("Art Prep 303"), as before. Waterfall,
+  Excel and the waterfall PDF never show prep, so they cannot change.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" cannot be kept. It reads as the default, and its pills would say
+  "Prep" either way.
+- **Verified:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (new: N1 the order, N2 Blocks renames and saves
+  "Block Prep", K0/R0 the fixtures' old "Prep" opens as the new default, K3 the name follows the mode both ways, K4 a
+  typed name survives it and names every pill, K5 the focused box is left alone). `npm run check` 40/40;
+  `check-refs.py` CLEAN. Both fixtures checked by eye in the browser. Full gate on that build: **1,859 PASS, 1 FAIL**,
+  the one being gate 5's predicted `prep-name` value ("Prep" → "Episodic Prep" on `v1.0.0-saved.html`); waterfall PDF,
+  every Excel part and gate 13's twenty written month PDFs byte-identical, 0 clipped cells. Gate 5 re-cut on the
+  owner's sign-off. Merged with `main` (the prep start grip) as `bbb3e85`, then on the owner's word only the legs where
+  the two meet were re-run: `npm run check` 40/40, `restore` (gate 5) identical, `episodeprep` 26 + 24 + 11 with Excel
+  and the waterfall PDF identical prep on/off, `phaseedge` 23/23 (the grip's G0–G8 included), on build `42d1bd24…`.
+
+### Unreleased — Drag where an episode's prep starts, in the month view (19 Oct 2026)
+
+Owner: *"will you be able to change when exactly each episode prep starts"*, then *"plan a start grip on each prep pill
+in the month view that writes that episode's (or block's) prep length, with the end staying tied to the shoot"*.
+PREP-GRIP-PLAN.md, with both rulings as recommended.
+- **One grip per prep,** on the left edge of the pill holding its first day. Left gives more prep days, right fewer.
+  The end does not move: a prep still ends the working day before its episode's (or block's) first shoot day.
+  There is no end grip, and the middle of a prep pill still does nothing.
+- **It writes that unit's own prep length,** exactly what its box in the Prep row holds, and the box follows the
+  drag. A length that lands on the default is still stored as that episode's own (ruling Q1). A drag that comes back
+  to where it began leaves the box exactly as it was, blank included.
+- **Working days only,** as the prep itself is counted: a weekend, an enabled union holiday or a hiatus day under the
+  pointer is stepped over, and ties go to the smaller change. It floors at one working day (ruling Q2); 0 (no prep)
+  is still typed in the box.
+- **One undo step per drag;** out and back, or Escape, banks nothing. Nothing else moves: prep is added after every
+  date is built, and the waterfall, Excel and the waterfall PDF never show it.
+- **Two preps can start a pill on the same day** (Prep 303 and 304 from Mon 3/1/27 in the test calendar). The grip
+  finds its prep by the order the month view lays out a row's prep pills, the order the pill names already rely on.
+  Each pill's columns are checked against its run first, so a mismatch shows no grip rather than dragging the wrong
+  prep.
+- No frozen code, and no save-format change: `prepDays` already exists.
+- **Verified:** `phaseedge` G0–G8 (trusted mouse input on `episodeprep` and its Blocks twin), 22/22. Four mutants
+  were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
+  the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical. Merged with `main` (beside the note fix): **1,860 PASS, 0 FAIL, GATE
+  PASSED** on build `314f7722…`, with every frozen output identical and `pilllabel` green.
+### Unreleased — Left-click a day in the month view: the day menu, with Full day / Off in it (19 Oct 2026)
+
+Step 4 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), owner ruling L1: *"I thought you were going to
+combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*.
+- **A left-click on a day's number opens the day menu**, under the number. It is the same menu a right-click opens,
+  and right-click still works anywhere on a day. On a hiatus day, which has no "+" lines, a click anywhere on it opens
+  the menu. Near the bottom of the window the menu opens above the number. On a window too short for either, it opens
+  beside the day, so it never covers the number.
+- **The Full day / Off popover is retired.** Its choices are now the menu's shoot-day section, headed "Shoot day 7"
+  (or "Not a shoot day" on a weekend, a holiday, a hiatus day or a day marked Off), below Add hiatus. The rows are
+  the same as before, built by the same code: Full day / Off on a weekday; Weekend or Holiday — not shot and Work
+  this day, with "Overrides <holiday>"; the greyed-out Work this day inside a hiatus. A withdrawn half-day row still
+  shows only on a day that holds one, and a stored mark that no row offers gets its line. The current choice is
+  ticked. Each choice is one undo step.
+- **Every day opens the menu now**, including days outside the shoot, where a click used to do nothing. Those have no
+  shoot-day section.
+- **Double-click a marked day still clears it.** Clicking the day whose menu is open closes the menu. The menu's
+  footer says "Double-click a marked day to clear it" on a shoot day.
+- **Unchanged:** a click on a "+" opens the note editor, a click on a note edits it, and a press on a bar drags it.
+- **Remove a custom phase from its bar** (the owner's request the same day). A custom phase's section ends with a red
+  **Remove <phase>…**. It asks the Phases card's own question first ("Remove this phase? Its name, dates, duration and
+  hiatus will be lost."), and the removal is one undo step. Built-in phases have no such item, as they can't be
+  removed anywhere.
+- **Fixed with it (plan §8.1, the owner's yes by picker):** a hiatus whose band label was emptied on purpose made its
+  days offer Full day / Off, which do nothing inside a hiatus. They now offer only the greyed-out "Work this day",
+  "Inside the hiatus — shorten the hiatus to work these days".
+- No frozen code changed and nothing new is saved. The `.day-ov-*` styles went with the popover.
+- **Verified:** `mvmenu` 77/77, with C2 flipped and new cases for the left-click: where it opens, the toggle,
+  double-click-to-clear, the flip, "+" slots, notes and bars, a Mac Ctrl+click, §8.1, and Remove <phase>…. Fifteen
+  mutants each turn their own cases red. `halfdays` (D5) and `halfworked` now read the menu's `data-ov` rows, with
+  every value they assert unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked`
+  24/24, `overrides` 20/20, `loadcarry` 6/6, `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by
+  hand in the browser pane: a real click on 7 Jul, Off, a real double-click to clear, the beside placement on a 768 px
+  window, and Remove on a custom phase with one Undo. **Full gate:** 1,857 PASS, 7 FAIL, every frozen output
+  identical: gate 10's ten print documents, gate 13's twenty written month PDFs byte for byte, the waterfall PDF and
+  every Excel part, 74 ids. The 7 were contention on a loaded machine (`pilllabel (shootorder)` ×5, `launchopen` L6,
+  `cspproof` failing to start Chrome). Re-run alone, all pass: 29/29, 16/16, 15/15.
+- **Merged into `main`** (branch `day-menu-merge`). `main`'s new `offweek` leg now marks its days through the menu,
+  because the popover it used is gone. Full gate on the merged build `e4339f4d`: 1,939 PASS, 2 FAIL, every frozen
+  output identical. The 2 were contention (`pilllabel (halfdays)` W0, `offweek (offweek)` R10), and both pass alone.
+
+### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
+
+Step 3 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click on a phase's bar adds a section for
+that phase, headed by its name and colour, between "This day" and "Show this week in the waterfall":
+- **Start <phase> here** moves the whole phase so it starts on that day, keeping its length: the same as dragging the
+  bar there. Snap to Mon comes off on any day but a Monday. Production is a mover too, so its day marks travel with
+  it by shoot-day number (owner ruling R2).
+- **End <phase> here** keeps the start and ends the phase on that day, by the end handle's own rule: a Weeks phase
+  becomes Dates first. **Production's is greyed out**, "Its end comes from the shoot days" (ruling Q3).
+- **Colour…** opens the swatch's colour picker under the bar.
+- **Show in Phases card** switches the sidebar to Phases with that phase's row in view.
+- A **Prep** pill gets the section too: Start and End are greyed out, because prep is worked out from each episode's
+  first shoot day. Its Colour… and Show in Phases card work.
+- An item that would change nothing is greyed out with its reason ("It already starts on this day"). Each item is
+  one undo step.
+- **An edited auto-note follows** Start and End here, as it follows the drags since the fix just before this one:
+  "Start Principal Photography 6/29/26" with a line added becomes 7/13/26 when the shoot is started on 13 Jul.
+- **Under the hood:** the end handle's rule and the three swatch pickers' colour writes are each lifted to one shared
+  function, unchanged, so the menu and the sidebar cannot drift apart. No frozen code changed; nothing new is saved.
+- **Verified:** `mvmenu` 61/61, and six mutants each turn exactly their own case red. `phaseedge` 14/14 and
+  `pilldrag` 30/30 after the lift and the merge with the auto-note fix, with real pointer input. Checked by hand on
+  Post (End, Colour…) and on a Prep pill.
+  - Full gate on the merged build `dfa8c9a7…`: 1,860 PASS, 3 FAIL, none of them a difference. Every frozen output is
+    identical, and `mvmenu` passes 61/61. The three (`phaseedge` timing out, and `cspproof` B0/X1 waiting on ExcelJS
+    from its CDN) passed when re-run alone on the same build: 14/14 and 15/15, with zero CSP violations.
+
+### Unreleased — Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
+
+Step 2 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The day menu gains **Add hiatus**, which opens a
+submenu beside it:
+- **All phases** adds a two-week all-phase hiatus from that week's Monday, locked in place, as the sidebar's
+  "+ Add hiatus" does.
+- **One phase only** lists each phase running that day; choosing one switches on its own two-week hiatus.
+- On a phase that already has its own hiatus the item reads **"Move <phase>'s hiatus here"**: it moves the start and
+  keeps the length and name (ruling Q2). In the week it already starts, it is greyed out.
+- Each line says the week, "Week of Mon 6 Jul · 2 weeks", because a hiatus always covers whole Monday-to-Sunday weeks.
+- The submenu opens on hover, a click, Enter or →; ← and Escape close it. A 250 ms grace period keeps it open while
+  the pointer crosses the next item on its way in.
+- **Verified:** `mvmenu` 47/47, five mutants each red on their own case; checked by hand. Its full gate was folded
+  into step 3's, which contains it.
+
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 
 Two owner-approved frozen lines in `notesForWaterfallDate`, the month view's and both month PDFs' note source. Both

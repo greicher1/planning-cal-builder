@@ -1554,7 +1554,10 @@ done
 # packing to the print document's one-lane switch days.
 # mvmenu guards the month view's day menu (MONTH-CONTEXT-MENU-PLAN.md, 19 Oct 2026): a right-click on a day, its
 # guards and close rules, and its items, each one undo step, on halfdays.sptcal. Every right-click is hit-tested
-# (dispatched on elementFromPoint). It grows with each plan step.
+# (dispatched on elementFromPoint). It grows with each plan step. Since step 4 (ruling L1) also the LEFT-click on a
+# day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
+# double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
+# halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1946,8 +1949,13 @@ PYPD
 # land only on drawn days (F1, F2, F4), floors (F6), out and back and Escape bank nothing (F9, F10), and
 # print media hides the handles (F12). Run red on three mutants before it was wired in. F13 (19 Oct 2026,
 # autonote-grips.sptcal): an edited "Writer's Room Opens" follows the start grip; red before the fix.
+# ⭐ 19 Oct 2026, G0-G8 (PREP-GRIP-PLAN.md): the prep START grip on episodeprep.sptcal and its Blocks twin. The grip finds
+# its prep by the ORDER of the row's prep pills (two can start on the same day: Prep 303/304 from Mon 3/1/27), writes
+# that unit's own prep length, floors at one working day, and out-and-back or Escape banks nothing. Four mutants were
+# each red before it was wired in: choosing the pill by date (G0, G1), writing the default (G1-G7), writing the number
+# back at the start (G3, G6), and no floor (G5).
 node "$HERE/phaseedge.mjs" --page "$PAGE" >/dev/null 2>&1
-python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, autonote-grips)" <<'PYPE' || FAIL=1
+python3 - "$HERE/phaseedge.json" "phaseedge (customunits, builtindates, autonote-grips, episodeprep)" <<'PYPE' || FAIL=1
 import json,sys
 path, label = sys.argv[1], sys.argv[2]
 try: a=json.load(open(path))
@@ -2145,6 +2153,47 @@ if a.get('run') == 'restore':
         print('  FAIL  '+label+': the on/off exports could not be compared: '+str(e)); bad = 1
 sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
 PYEP
+done
+
+# ---- offweek: a Production week with no shoot days reads and counts as a Production hiatus (OFF-WEEK-PLAN.md) --
+# Two runs. LIVE builds the synthetic calendar through the UI, marks every day off (and one Saturday worked)
+# through the month view's day popover, hit-tested, and mints tests/fixtures/offweek.sptcal from its real Save.
+# RESTORE holds the waterfall to the hand trace in the leg's header (two off weeks banded, one of them Labor
+# Day plus four offs; a Saturday-worked week and the Q3 leading week still numbered; the own hiatus and the
+# all-phase hiatus as they were), the header span and the {production.weeks} token, the workbook read back
+# with ExcelJS, the month band (Mon-Fri, no bar, the hatching kept), Full day + one undo, a rename seen in both
+# views through Save/Load, Shift All, and a calendar with no off week loaded after it. Here, the waterfall PDF's
+# own text (pdftotext): three Production Hiatus cells and wk 1 to wk 10 once each.
+# ⛔ Gates 10 and 13 are the other half of this proof: no fixture they read holds an off week, so the frozen
+# month-band edit (OFF-WEEK-PLAN §3.5, Q7) must leave every one of their files byte-identical.
+for OWSTATE in "" offweek; do
+  rm -f "$HERE/offweek.json" "$HERE/offweek.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$OWSTATE" "$HERE/run.sh" offweek 600 >/dev/null 2>&1
+  python3 - "$HERE/offweek.json" "$HERE/offweek.pdf" "offweek (${OWSTATE:-live})" <<'PYOW' || FAIL=1
+import json,sys,re,subprocess,os
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+bad = 0
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if a.get('run') == 'restore':
+    try:
+        txt = subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True, check=True).stdout
+        wks = sorted(int(n) for n in re.findall(r'Production wk (\d+)', txt))
+        hi = len(re.findall(r'Production Hiatus', txt))
+        ok = wks == list(range(1, 11)) and hi == 3
+        print(('  PASS  ' if ok else '  FAIL  ')+label+f': the waterfall PDF reads Production wk 1 to wk 10 once each and three Production Hiatus cells (got wk {wks}, {hi} bands)')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the waterfall PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYOW
 done
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------

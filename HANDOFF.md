@@ -34,6 +34,421 @@
 - ⏭ **Next:** the owner's pickers to commit on the branch, merge into `main`, and push. After a merge, re-run the full
   gate if `main` has moved (another session's work lands often).
 
+### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
+
+- ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):
+  *"Push and verify live"*. Local `main` was fast-forwarded to the gated merge `8400b38` first, on the earlier "Yes,
+  merge and gate it". One `git push origin main` (`6e868b1..8400b38`, 22:35) sent 14 commits: day menu steps 2–4
+  with Remove <phase>…, and the docs between them (`373194e`, the off-week session's note, included). Deploy run
+  39375696507 succeeded. The live `index.html`, fetched with a cache-buster, is **byte-identical to the gated
+  build**: sha256 `e4339f4d91ef6985…`, 1,543,479 bytes (first fetch, 22:36). `version.json` still reads 1.4.3, so
+  installed copies show no update notice. A version cut is overdue.
+- **What users now get:** a left-click on a day's number opens the day menu; the Full day/Off popover is gone and its
+  choices are the menu's shoot-day section; Add hiatus ▸; the bar's own section (Start / End / Colour… / Show in
+  Phases card, and Remove <phase>… on a custom phase); the §8.1 fix.
+- ⏭ **Next:** step 5 (the hiatus and holiday sections) is built on `day-menu-step5`, cut from the merge. Its legs and
+  gate come next; merging and pushing it are the owner's calls, asked separately.
+
+### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATED (2 contention FAILs, both green alone)
+
+- ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate
+  passes"*. That second answer was a conditional approval for ONE push of `main`. When it was given, the push would
+  also have shipped Off weeks, but the off-week session pushed those itself (live at `6e868b1`), and `main` (`373194e`,
+  docs only) is merged in here. The push now ships the day menu alone. The session reads "passes" strictly: on any
+  FAIL, even a known flake, it asks again before pushing.
+- **The merge:** `git merge --no-ff day-menu-step4` on a branch cut from `main` at `2b4ce32`, in its own worktree. The
+  main checkout's `tests/fixtures/stintswap-reshape.sptcal` is still modified, and it is not this work's.
+  - `app.js`, `legacy.css` and `gate.sh` auto-merged.
+  - `HANDOFF.md`, `README.md` and `tests/harness/README.md` conflicted, each because both sides added entries at the
+    same spot. Both sides are kept. The harness README keeps `main`'s `offweek` row and step 4's `mvmenu` row.
+  - ⭐ **One fix the merge needed:** `main`'s new `offweek` leg marked its days off through the retired Full day/Off
+    popover (`.day-ov-pop`). Its `mark()` now reads the menu's `[data-section="shoot"] [data-ov]` rows, the same
+    selector change `halfworked` got, with the same values.
+  - Checked that §8.1's fix leaves off weeks alone: they are `seg.offWeeks`, which `daySituation` never reads.
+- **Proof on the merged build `e4339f4d…` (1,543,479 bytes):** `npm run check` 40/40; `check-refs.py` CLEAN. On
+  private ports 8876/8877: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24, `overrides` 20/20, `loadcarry` 6/6,
+  `offweek` live 5/5 and restore 27/27 (through gate.sh's own evaluator), `pilldrag` 30/30, `phaseedge` 23/23.
+- **Full gate on build `e4339f4d…` at `45da192` (port 8878, 20:53–22:33, a loaded machine): 1,939 PASS, 2 FAIL,
+  neither a difference.**
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical. Gate 5 at 74 ids.
+  - Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are byte-identical.
+  - `mvmenu` 77/77, and `offweek` live green.
+  - **The 2 failures:** `pilllabel (halfdays)` W0, "months 1 vs 16" (the known contention flake), and `offweek
+    (offweek)` R10, "timed out waiting for: the loaded file's name in the file menu (… 10000ms real)".
+  - **Re-run alone afterwards** on the same build and port through gate.sh's own evaluators, with no gate running:
+    `pilllabel (halfdays)` 29/29 and `offweek (offweek)` 27/27, W0 and R10 included.
+  - So the gate did not strictly pass. On the owner's conditional push approval ("Push if the merge's gate passes"),
+    the session asked again before pushing rather than counting these as passes.
+- ⚠️ **THE DISK FILLED UP during this merge (19 Oct 2026, about 20:00), and it will again.** Writes failed with
+  ENOSPC: 1.8 TB used, 250 MB free. The cause: `/private/var/folders/ws/…/X/com.google.Chrome.code_sign_clone/` held
+  **1,430 copies of the Chrome app** (about 2.4 GB each by `du`), dated from 1 Oct onward. Chrome on macOS clones its
+  bundle there at each launch and deletes the clone on a clean exit. The harness hard-kills headless Chrome (`run.sh`,
+  the CDP legs), so every leg leaves one behind. The owner's running Chrome uses exactly one of them,
+  `code_sign_clone.dHnFAB`, which must never be deleted. Asked whether to delete the rest, the owner gave no
+  preference, so nothing outside the project was deleted. About 10 GB came free soon after; who freed it is not
+  known. **Follow-up:** have the harness's headless launches clean up after themselves, or stop the clone (a launch
+  flag, to be found and tested). Until then, whoever runs many legs fills the disk again.
+
+### ✅ 19 Oct 2026: OFF WEEKS (STEP A) ARE LIVE AT `6e868b1` (verified byte-identical, `42f69b58`)
+
+- ✅ **PUSHED AND LIVE.** Owner: *"Push local main to origin now, then verify the live site serves the gated build."*
+  One `git push origin main` (`451aaa2..6e868b1`, 20:49) sent six commits: the three off-week commits, the merge
+  `2b4ce32`, its gate record `6e868b1`, and `ccf633a` (the prep-name session's HANDOFF note, docs only, unpushed until
+  now). Deploy run 39366270707: "Build and check" and "Deploy to Pages" both green. The live `index.html`, fetched
+  with a cache-buster, is **byte-identical to the gated build**: sha256 `42f69b58d41c2df1…`, 1,538,034 bytes (first
+  fetch, 20:50). `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is
+  overdue.
+- ⭐ **Merged (owner, 19 Oct 2026):** *"Merge off-week into local main, resolve any doc conflicts, and run the full gate
+  on its own port once no other gate is running. Don't push."* `main` (`ccf633a`, with Prep above Production and the
+  prep start grip, both live) was merged into `off-week` as `2b4ce32`. Local `main` was then fast-forwarded to it.
+  `app.js` auto-merged (it differs from `ccf633a` by exactly off-week's 56 lines), and so did `gate.sh`. HANDOFF and
+  README conflicted only because both sides added entries at the top; all are kept. Merged build `42f69b58…`
+  (1,538,034 bytes): `npm run check` 40/40, `check-refs.py` CLEAN, `offweek` 4/4 and 25/25.
+  - ✅ **Full gate on the merge: 1,901 PASS, 0 FAIL, GATE PASSED** (build `42f69b58…`, port 8962, 20:02–20:21, with no
+    other gate running). 0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically
+    (74 ids); gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical; `offweek`
+    32/32. Every leg that timed out beside another session's gate before the merge passed in this run.
+  - ⚠️ **Learned: `pgrep -f "gate.sh"` is a REGEX**, and it matched the Claude app's own renderer process, so a waiter
+    built on it saw a gate running forever. Match `"zsh \./gate\.sh"`.
+- **The build (before the merge).** Owner: *"Build step A of OFF-WEEK-PLAN in its own worktree off main, with the month band in its
+  own commit. Run its gate and show me the month PDF contact sheets before committing. Don't push."* Contact sheets
+  went to the owner, who then chose three commits (picker, 19 Oct 2026): `9174e43` the `computeSchedule()` change, `f79adc9`
+  the two frozen lines in `renderMonthView` with `inPhaseBand()` alone (so the frozen edit reads and reverts on its
+  own), then the leg, the fixture, the gate wiring and these docs. The leg tests both halves, which is why it came
+  last. Merged into local `main` afterwards (top bullet). **Not pushed**: pushing is the owner's call.
+- **What it does:** a week inside the shoot with no shoot days reads *Production Hiatus* in the own-hiatus cell
+  (waterfall, Excel, waterfall PDF) and is not counted. The month view gets the same red band, Mon–Fri. Plan §11 has
+  the record.
+- **Proof:**
+  - New leg `offweek`, in `gate.sh` after `episodeprep`. LIVE 4 cases; RESTORE 25 cases plus the PDF's text.
+  - Red on the pre-change build `05169b7f…`: 12 cases and the PDF. With only the band removed (`dist-noband`): exactly
+    the 5 month-band cases.
+  - Print document A/B (`monthcmp.py ab`) on the new fixture: 3 of 47 week rows differ, all off-week rows.
+  - Contact sheets (`monthbase.py sheets` for the written PDF, a PIL triptych for the print path): only August and
+    September change; the other seven months are pixel-identical.
+  - Full gate on build `6ceef4cb…` (port 8962, 18:02–19:36): **1,796 PASS, 5 FAIL.** Gates 1–5 green (0 clipped,
+    waterfall PDF and every Excel part identical, v1.0.0 restores identically, 74 ids). Gate 10's ten print documents
+    identical, and gate 13's twenty written month PDFs byte-identical: Q7 point 1, the frozen edit inert when unused.
+    `offweek` 32/32. ⚠️ The five failures were contention: `prep-grip-plan`'s full gate ran alongside the whole time
+    (pilldrag/phaseedge/cspproof deadlines, an `episodeprep` load timeout, the known `pilllabel (halfdays)` W3 flake).
+    Re-run alone on the same build and port, each passed: `pilllabel (halfdays)` 29/29, `episodeprep` 24/24,
+    `cspproof` 15/15, `phaseedge` 14/14, `pilldrag` 30/30. `npm run check` 40/40; `check-refs.py` CLEAN.
+- ⚠️ **Found, not this change's:** the Q3 week (all marks before the first shoot day) is EMPTY in the month view,
+  because no mark outside the shoot's span is drawn, while the waterfall says *Production wk 1*. Same on the old build.
+  Worth raising with the owner.
+- The proof builds (`dist-prefix/`, `dist-noband/`) were deleted after use. To re-prove red, rebuild them by the
+  in-place method (HANDOFF 19 Oct "Learned" 3); for `dist-noband`, revert just the two frozen lines.
+- ⏭ **Next:** step B (the month view's
+  numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
+  (`version.json` 1.4.3).
+
+### ✅ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" — LIVE AT `451aaa2` (verified byte-identical, `42d1bd24`)
+
+- ✅ **PUSHED AND LIVE.** Owner's picker: "Fast-forward main and push". Local `main` fast-forwarded `71dafc6` →
+  `451aaa2`, and one `git push origin main` (`f0c7925..451aaa2`, 18:09) also sent the two docs commits already on
+  `main` (`765e8d0`, `71dafc6`). Deploy run 39351807634 succeeded. The live `index.html`, fetched with a cache-buster,
+  is **byte-identical to the tested build**: sha256 `42d1bd24edb2cec6…`, 1,537,597 bytes. `version.json` still reads
+  1.4.3, so installed copies show no update notice. A version cut is overdue.
+- Committed on `prep-name` as `a14fb38` (owner's picker, "Commit on prep-name"), cut from `main` at `e86aa5e`. Then
+  **merged with `main` at `765e8d0`** (the prep start grip, live at `f0c7925`) as `bbb3e85`: the code auto-merged, and
+  only this file and `README.md` conflicted (both entries kept). Then `71dafc6` (HANDOFF only) as `451aaa2`.
+- ⭐ **Targeted legs instead of a second full gate, on the owner's word** (*"run npm run check plus the episodeprep,
+  phaseedge and restore legs instead of the full gate"*). The full gate had already run on this change alone, and the
+  grip's own merged build was full-gated and is live, so what the merge could break is where the two meet: the grip
+  finds its pill by text ("Prep 303") and names it through `prepPillLabel`. On merged build `42d1bd24…` (1,537,597
+  bytes), port 8887: `npm run check` 40/40, `check-refs.py` CLEAN; `restore` identical to the re-cut baseline (74 ids,
+  `prep-name` "Episodic Prep", 0 clipped, grid signature identical); `episodeprep` 26 + 24 + 11, with the workbook (16
+  parts) and the waterfall PDF (74,581 bytes) byte-identical with prep on and off; `phaseedge` 23/23, the grip's G0–G8
+  included. ⚠️ Gates 10 and 13 (month print documents, written month PDFs) were NOT re-run on the merge; neither
+  baseline holds prep, and both were byte-identical on each side alone.
+
+- Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
+  default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or
+  episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep. 303' or 'Prep Block 1'"*. Then,
+  mid-build: *"ok actually dont put the 'Ep' just write 'Prep 303' but do write 'Prep Block 1'"*. So the pills read
+  exactly as they did; only the row's place and default name changed.
+- **What was built (no frozen code; `src/legacy/app.js` only):**
+  - `buildPhaseRows` appends the Prep row BEFORE Production's row. No id moved, and nothing reads rows by position.
+  - The default name is `autoPrepName()`. A DEFAULT name is any of `PREP_AUTO_NAMES` ('', "Prep", "Episodic Prep",
+    "Block Prep"). `syncPrepName()` rewrites it to the mode's own from `refreshPrepUI` (every `update()`) and on the
+    box's `change`, never while the box has the focus (typing "Prep Art" passes through "Prep"). A typed name is
+    kept across a mode switch.
+  - `prepDisplayDef()` returns `pillName` ("Prep" for a default name, else the typed one), carried on the segment.
+    `prepPillLabel()` reads it, so pills stay "Prep 303" / "Prep Block 1", and "Art Prep 303" for a typed name.
+- ⭐ **No save-format change, and no migration code.** "Prep" is in the default set, so a file saved with the old
+  default opens on the new one; the restore default and New's reset still write "Prep" and the next `update()`
+  renames it. Checked in the browser: a fresh load of `episodeprep.sptcal` is not dirty and has no undo step.
+- ⚠️ **Accepted cost:** a name of exactly "Prep" (or the other mode's default) cannot be kept.
+- ✅ **Gate 5 moved by ONE value, as predicted:** `prep-name` on `v1.0.0-saved.html` goes "Prep" → "Episodic Prep" (ids
+  unchanged, 74). **Re-cut on the owner's sign-off** (picker, 19 Oct 2026: "Re-cut it"), recorded in the baseline's README.
+- **Proof so far:** `episodeprep` 26 + 24 + 11 on build `e778ffb3…` (1,532,965 bytes), port 8883. New checks N1 (order),
+  N2 (Blocks renames and saves "Block Prep"), R0/K0 (the fixtures were minted with "Prep" and open on the new default:
+  keep them that way), K3 (follows the mode both ways), K4 (a typed name survives), K5 (focused box left alone).
+  `npm run check` 40/40, `check-refs.py` CLEAN.
+- ✅ **Full gate on build `e778ffb3…` (port 8885, 17:40–17:58, after `prep-grip-plan`'s gate had exited): 1,859 PASS,
+  1 FAIL.** The one is gate 5 exactly as predicted: lost none, gained none, changed `['prep-name']`. Gates 1–4 green
+  (0 clipped, waterfall PDF and every Excel part identical), gate 10's ten print documents identical, gate 13's twenty
+  written month PDFs byte-identical, `episodeprep` all three runs green, Excel and waterfall PDF identical with prep on
+  and off.
+- **Will conflict lightly with:** `prep-grip-plan` (calls `prepPillLabel(prepSeg() || {}, p)`, fine with `pillName`)
+  and `day-menu-step3` (rewrites `buildPrepRow`'s swatch handler, a few lines below the name input).
+- ⛔ **Learned: check the port in a command of its own, BEFORE the leg.** This session put `lsof` in the same command
+  as a leg on 8871. `lsof` did show the port busy, but by then `run.sh`'s `pkill -f "srv.js 8871 "` had stopped
+  `day-menu-step4-8871`, another session's PREVIEW server from the shared `.claude/launch.json`. It was restarted from
+  that same config. Check `lsof` AND `grep '"port"' .claude/launch.json` (a preview may be claimed but not running).
+
+### ✅ 19 Oct 2026: A START GRIP ON EACH PREP PILL — LIVE AT `f0c7925` (verified byte-identical, `314f7722`), GATED 1,860 PASS / 0 FAIL
+
+- Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
+  prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
+  [`PREP-GRIP-PLAN.md`](PREP-GRIP-PLAN.md). ✅ Both rulings went as recommended (pickers, same day): a drag onto the
+  default length stores it as the episode's own (Q1), and the floor is 1 working day (Q2). Then "Build it".
+- ⭐ **The one real problem, and its answer:** a prep pill carries only `data-ph="episodePrep"`, and in
+  `episodeprep.sptcal` Prep 303 and Prep 304 both have a pill starting Mon 3/1/27, only 303's being its first day. So a
+  grip must find its prep by the ORDER of the row's prep pills, which is `prepRunsForWeek()`'s order (frozen
+  `renderMonthView` emits `placed` in push order; `takePrepRun()` already leans on the same call order). It must also
+  cross-check every pill's grid columns against its run and show no grip on a mismatch. Never by date or label alone.
+- **Built:** `installPrepEdgeHandles()`, right after `installPhaseEdgeHandles()` in `src/legacy/app.js`. No frozen
+  code, no save-format change: it writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as the Prep row's box does.
+  - `prepOfPill()`: the order lookup plus the column cross-check.
+  - `probeDays()`: one `computeSchedule()` at the press, with the unit's length + 80, gives the working days, so the
+    walk is never re-implemented. The probe also refuses unless today's prep is exactly the probe's tail.
+  - `solve()`: the nearest working day; ties go to the smaller change, and n ≥ 1 by construction (Q2).
+  - The guard after each `update()`: the start where computed, the end unmoved, else put back and go inert.
+- **Tests:** `phaseedge.mjs` G0–G8, in their own `{}` block (the F cases already use `h1`…`h12`). The planned G9 is
+  folded into G1. 22/22. Mutants, each red first: by date → G0, G1; the default → G1–G7; the number written back at
+  the start → G3, G6; no floor → G5.
+- ⚠️ **"Nothing banked" is the Undo button here, not F9's Ctrl+Z probe.** `episodeprep.sptcal` is SAVED in the month
+  view, so `load()`'s click on the month button is no step and the stack starts empty. The first run read G3 and G6
+  as red for that reason alone. G2 shows Undo off before a real drag and on after it.
+- ⚠️ **Contention, measured:** with another session's full gate running, `phaseedge` reached F4 in 480 s and hit its
+  deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
+- **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
+  `main`'s docs-only commits up to `3b189af`. Local `main` was fast-forwarded to the branch tip, and ✅ **PUSHED AND
+  LIVE at `f0c7925`** on the owner's picker ("Push now", 19 Oct 2026). The push was `6027247..f0c7925`. Deploy run
+  39350049235 had "Build and check" and "Deploy to Pages" both green. The live file, fetched with a cache-buster, is
+  byte-identical to the gated build `314f7722…`. No version cut: `version.json` still reads 1.4.3, so installed copies
+  show no update notice.
+  - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
+    E15–E19, D5 and F13 all pass.
+  - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's
+    twenty written month PDFs byte-identical. `pilllabel` passed everywhere this time.
+  - `main`'s later commits are docs only (OFF-WEEK-PLAN twice, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
+- ⚠️ **Queueing for a gate, learned the hard way (same day):** four sessions queued full gates. A waiter run as this
+  tool's background job was killed silently twice. A plain `while ps | grep gate.sh` loop also lost the free slot to
+  another session's waiter. What worked was a waiter started with `nohup … &!` (detached from the tool) that, on
+  seeing the slot free, pauses 8–20 s at random and looks again before starting. That keeps two waiters from starting
+  together and stalling each other (the 75-minute run above, with its no-result `pilllabel`).
+
+### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md); step A built, entry above)
+
+- Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
+  already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
+  write off marks on every drag. The owner then asked for "option 1" to be planned: **a week inside the shoot with no
+  shoot days reads and counts as a Production hiatus week.**
+- ⭐ **Measured, 19 Oct 2026, on a scratch build of `e86aa5e` (`05169b7f…`, the live app):**
+  1. A week with all five weekdays off prints ***Production wk 5*** in the waterfall, Excel and the waterfall PDF, and
+     pushes every later week's number up by one.
+  2. ⚠️ **The month view and the waterfall already number weeks differently after ANY hiatus, for every phase.**
+     `prodWeekLabel()` counts calendar weeks; the week loop skips hiatus weeks. On `dayoverrides.sptcal` the week after
+     Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
+     *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
+- **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
+  `sim.shootDays`, in `computeSchedule()`. Every writer already draws that cell. There is no save-format change. No
+  fixture can hold such a week (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** the month view reads the number the week loop handed out (`seg.weekNo`),
+  never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a gate 10/13 re-cut
+  on sign-off.
+- ✅ **Ruled by picker, 19 Oct 2026:**
+  - Q1: existing calendars change on open, with no setting.
+  - Q2: the band reads "Phase Name" + Hiatus, as the per-phase hiatus does.
+  - Q3: a leading empty week stays numbered.
+  - Q4: **add a band in the month view too** (against the recommendation).
+  - Q5: the month view matches the waterfall's numbers.
+  - Q6: A and B are built separately.
+- ⛔ **Q4 is a FROZEN EDIT**, two lines in `renderMonthView`'s per-phase hiatus block. That block reads one
+  `s.phaseHiatus` range directly, so no sanctioned pattern reaches it. The edit and its five-point gate are plan
+  §3.5. It is inert without an off week, so gates 10 and 13 must stay byte-identical. Step A now also needs month-PDF
+  contact sheets.
+  - ✅ **Q7, approved by the owner (picker, 19 Oct 2026): "Approve with that gate"**, with the edit and the gate shown
+    together. The approval covers those two lines and that gate only. Anything more goes back to the owner.
+- ⏭ **Next:** step A is built (entry above). Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the
+  unmerged `day-menu-step3` both touch `prodWeekLabel()`, which is step B's site.
+
+### ◐ 19 Oct 2026: DAY MENU STEP 4 BUILT — LEFT-CLICK OPENS THE MENU, THE FULL DAY/OFF POPOVER IS RETIRED (branch `day-menu-step4`, worktree `.claude/worktrees/day-menu-step4`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** This is ruling L1, the step the owner was waiting for (*"I thought you were going
+  to combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*). Cut
+  from `day-menu-step3` at `02f28a1`, so it holds steps 2 and 3 and the `main` merge at `cfeae91`. It is not merged
+  into `main` and not pushed. If `day-menu-step3` gains a commit (its gate result), merge it in here.
+- **What a user gets:**
+  - A left-click on a day's number (or anywhere on a hiatus day) opens the day menu under the number. It flips above
+    the number near the window's bottom, and goes beside the day when neither side fits.
+  - Full day / Off (and the weekend, holiday and hiatus rows) are the menu's shoot-day section, below Add hiatus. Its
+    label is "Shoot day N", or "Not a shoot day" when the day has no number. The current row is ticked.
+  - Days outside the shoot open the menu too, with no shoot section.
+  - Clicking the open day again closes it, so double-click-to-clear works. On a shoot day the footer says "Double-click
+    a marked day to clear it".
+  - Right-click still works. "+" slots, notes and bars keep their own left-clicks.
+  - ⭐ **Added the same day, at the owner's request** (asked *"Will you be able to delete a custom phase from this
+    menu"*, then picked "Yes, add it to step 4"): a CUSTOM phase's bar ends its section with a red **Remove
+    <phase>…**. It asks the sidebar ×'s own question ("Remove this phase? Its name, dates, duration and hiatus will be
+    lost.") and is one undo step after the answer. Cancel changes nothing. A built-in phase or Prep has no such item.
+- **Code** (no frozen symbol touched, nothing new saved):
+  - `installDayOverrideUI` keeps `daySituation`, `setOverride` and the dblclick. It lifts the popover's row list into
+    `dayOverrideRows(sit)` → `{rows, stale}`, and builds the menu's section in `shootSection(d)`, lent as
+    `dayOverrideUI.section`. `openDayOvPop`, `closeDayOvPop`, `activeOv`, its document click/Escape closers and its
+    re-pointing observer are gone. So is `dayOverrideUI.close`.
+  - `installMonthDayMenu`:
+    - the left-click listener on `#table-wrap` (moved here from `installDayOverrideUI`, beside the right-click);
+    - `pressClosed` in the capture mousedown;
+    - `openMenu(ctx, at)`, where `at` is `{x, y}` or `{anchor, cell}`;
+    - `panelHtml` gained radio items (`radio`, `checked`, `ov` → `data-ov`), a warning second line
+      (`small.day-menu-warn`) and a section `notice`;
+    - `ICON.check`.
+  - `legacy.css`: the `.day-ov-*` block is replaced by a retirement note. Four small `.day-menu-*` rules added (the
+    checked tick, the warning ink, the notice line).
+  - Remove <phase>…: the sidebar ×'s handler is lifted into two module-scope halves just above `addCustomPhaseRow`,
+    `confirmRemoveCustomPhase(row)` (the question) and `removeCustomPhaseRow(row)` (the removal). The × and the menu's
+    `removePhaseHere(key)` both call them, and the menu banks its undo step between the two. `removeCustomPhaseRow`
+    now refuses a row that left the document while the question was up, which the × did not check before.
+    `panelHtml` gained `danger` (`.is-danger`, red), and `ICON.trash` was added.
+  - `.day-ov-pop` stays in `OVER_PANEL` and in `buildSavedHtml`'s strip list. Nothing creates one now, so the entries
+    are inert; they were left rather than edited.
+- ⭐ **Learned: the menu closes on the PRESS, so a click-toggle needs to remember the press.** The popover closed on a
+  document `click`, so its "click the open day again" check saw the menu still open. The menu's capture `mousedown`
+  closes it first, and the click would reopen it. A left press on the open menu's own day sets `pressClosed`, and the
+  click it becomes opens nothing. A script's `el.click()` (no press) still toggles through `menu.iso === iso`. Mutants:
+  without the swallow `mvmenu` L5 and L7 go red; without the script toggle, L5 alone.
+- ⭐ **Learned: the popover's `place()` rule has a third case for a menu this tall.** On a 768 px window a mid-screen day
+  fits the ~400 px menu neither under nor above its number. Clamped into the window it covered the number, so a
+  double-click's second click would choose a row. It opens beside the day there. Hand-checked in the browser pane
+  (1024×768, 15 Jul: the menu at x 702, the cell ends at 698). No leg covers it, because the harness window is 1600×1200.
+- ⭐ **Learned: a Mac Ctrl+click may be followed by a `click` carrying ctrlKey,** which the toggle would read as a
+  second click on the open day. The left-click returns on `isMacCtrlClick(e)`. Case G7, red on a mutant without it.
+  ⚠️ As in step 1, a real Mac Ctrl+click is still unverified.
+- ✅ **§8.1 fixed, owner's picker "Yes, fix it"** (asked this session). `dayOverrideRows` tests `sit.hiatus != null`.
+  `daySituation` gives every hiatus day a string, so a non-string stored label cannot read as "no hiatus" either. The
+  reason reads "Inside the hiatus — …" when the label is empty. Case N1.
+- ⚠️ **The plan's §11 was wrong about 12 Jul.** It is a weekend INSIDE the shoot, so the popover did open there. L3 uses
+  Sun 28 Jun (before the shoot) for "opens where nothing opened before"; the plan now says so.
+- ⭐ **Learned: a case that leaves the sidebar scrolled can close a later case's menu.** The R-cases' Add 1-week phase
+  here left the sidebar on Phases, scrolled to the new row. S2's menu was still open right after the export click, so
+  the copy was taken with it open, but a `.form-panel` scroll landed before the leg looked again and closed it. That is
+  the menu's own close rule, working as built. The R-cases now go back to the Show tab, as P6 does.
+- **Tests:**
+  - `mvmenu` 77 cases: L1–L9 (left-click), G7, N1, R1–R3u (Remove <phase>…). C2 is flipped. H1s gains the shoot section. P3 sets its Off mark
+    through the menu. Every left-click is press + release + click on `elementFromPoint` (`lclickAt`).
+  - `halfdays` D5 and `halfworked` read `[data-section="shoot"] [data-ov]`, with every asserted value unchanged.
+    `halfworked`'s `closePops()` presses outside before its click.
+  - The gate.sh comment and tests/harness/README updated (`halfworked` has a row there now).
+- **Proof:**
+  - Build `aa3239d1…` (1,538,031 bytes), with Remove <phase>…. `npm run check` 40/40; `check-refs.py` CLEAN.
+  - On private ports 8873/8874, all on `/dist/index.html`: `mvmenu` 77/77, `halfdays` 26/26, `halfworked` 24/24,
+    `overrides` 20/20, `loadcarry` 6/6 (it clicks the sidebar's ×), `pilldrag` 30/30, `phaseedge` 14/14.
+  - Fifteen mutants (scratch copy of `app.js`, mutate, build into an untracked `dist-mut/<name>/`, restore, `cmp`; the
+    rebuilt `dist` hashed back to `aa3239d1…`), all re-run on the 77-case leg. On `mvmenu`, each turns its own cases
+    red:
+
+    | Mutant | Red on `mvmenu` |
+    |---|---|
+    | no left-click | C2, L1–L5, and the leg ends |
+    | `if(!sit) return` back | L3 |
+    | no press swallow | L5, L7 |
+    | no script toggle | L5 |
+    | anchor 40 px low | L1 |
+    | no flip | L8 |
+    | no footer hint | L1s, L2, L7 |
+    | §8.1 reverted | N1 |
+    | no Mac Ctrl guard | G7 |
+    | no leading push in `setOverride` | L6, and L9 after it |
+    | the pointer's day instead of the cell's | L4, and L5 after it |
+    | Remove on every phase, built-in too | R1, and H1s (Production's bar gains it) |
+    | Remove without its question | R2, and the leg ends (the phase is gone) |
+    | Remove whatever the answer | R2, and the leg ends |
+    | no leading push in `removePhaseHere` | R3u |
+
+    The no-left-click build is also red on `halfdays` D5 and `halfworked` (EX).
+  - By hand in the browser pane, with real clicks: 7 Jul's menu (flipped above), Off, a real double-click to clear it
+    (no menu or ring left), the holiday and pre-shoot days, and the beside placement. Then a real right-click on a
+    custom "Edit Bay" bar: Remove Edit Bay… in red, the "Remove phase" dialog, Remove, and one Undo bringing it back.
+  - **Full gate on build `aa3239d1…` at `92cd59b` (port 8875, 19:36–19:54): 1,857 PASS, 7 FAIL, none of them a
+    difference.** It ran after two other sessions' gates. One other session ran its own legs during it (`off-week`,
+    port 8962), so the machine was loaded.
+    - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+    - Gate 5 holds at 74 ids. Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are
+      byte-identical.
+    - `mvmenu` 77/77, and `halfdays`, `halfworked`, `overrides`, `pilldrag`, `phaseedge`, `customunits`, `loadcarry`
+      and `sharecopy2` all green.
+    - **The 7 failures were all contention:**
+      - `pilllabel (shootorder)` ×5, "months 1 vs 16": the month walk cut short, the flake recorded under the
+        auto-note entry below.
+      - `launchopen` L6.
+      - `cspproof`: "Chrome never wrote DevToolsActivePort", so Chrome did not start.
+    - **Re-run alone afterwards** on the same build and port, exactly as gate.sh runs them (no gate running):
+      `pilllabel (shootorder)` 29/29 through gate.sh's own evaluator, `launchopen` 16/16, `cspproof` 15/15.
+- ⏭ **Next:** the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
+  sections) after. The two open items from steps 1–3 still stand: an `mvmenu` prep case, and a real Mac Ctrl+click.
+
+### ◐ 19 Oct 2026: DAY MENU STEPS 2 AND 3 BUILT (branch `day-menu-step3`, worktree `.claude/worktrees/day-menu-step3`), NOT MERGED
+
+- ⏭ **RESUME HERE for the day menu.** Owner: *"Keep the plan order: build step 2 (Add hiatus) next"*, then *"start step
+  3"*. Both are built on `day-menu-step3`, which contains `day-menu-step2`. Not merged into `main`, not pushed. Step 4
+  (the left-click takes over, Full day/Off fold in) is what the owner is waiting for: ✅ built on `day-menu-step4`,
+  cut from this branch (entry above).
+- **Gate:** step 2's own gate never ran: it queued behind another session's gate, which ran for over an hour. Since step
+  3's branch contains step 2, ONE gate on step 3 covers everything that would merge. If it fails, gate
+  `day-menu-step2` alone to tell which step is at fault.
+- **Step 2, Add hiatus ▸** (`hiatusSections`, `addHiatusHere`, `setPhaseHiatusHere`): plan §3.3 and ruling Q2. The panel
+  grew a submenu (`panelHtml`, `wirePanel`, `openSub`, `closeSub`; the menu object is now `{el, ring, iso, back, root,
+  sub}`).
+  - ⭐ **Learned: a submenu needs a grace period.** The diagonal from "Add hiatus" into a lower line of a left-flipped
+    submenu crosses "Show this week in the waterfall", and an immediate switch closed the submenu on the way in.
+    `SUB_GRACE_MS` = 250; reaching the submenu cancels the switch.
+  - ⭐ **Learned: the browser pane's tools wait longer than 250 ms between steps**, so a quick pointer move cannot be
+    reproduced with them. Drive timing-sensitive pointer work with dispatched events, as the A2 case does.
+  - Small calls: the field gets the week's Monday; a no-op move is greyed out; the sidebar does not switch tabs.
+- **Step 3, the bar's section** (`phaseSection`, `startPhaseHere`, `endPhaseHere`, `phaseColourHere`, `showPhaseRow`):
+  plan §3.4–3.7.
+  - **The end handle's rule is at module scope now**, as `phaseEdgePlan` / `phaseEdgeSolve` / `phaseEdgeWrite` /
+    `phaseEdgeLanded`, just above `installPhaseEdgeHandles`, which calls them through aliases. Not one function, as the
+    plan said: the handle writes on every drag step from its press-time plan. `phaseedge` 13/13 after the lift.
+  - `setPhaseColor(key, i)` and `phaseColorIndexOf(key)` beside `autoPhaseColorIndex`: the one colour writer for all
+    three swatch pickers and the menu. It never writes an override for a key no phase has.
+  - Start is a mover inside `asShootDayMove()` (ruling R2). P3 proves it with an Off mark set through the real popover.
+  - Small calls: a Prep pill gets the section (Start/End greyed out with the reason); no-op Start/End greyed out; the
+    section label is the name alone.
+  - ⭐ **Learned: an undo-bracket case must type something just before the item.** P6 first passed with its bracket
+    removed, because the debounce banks a lone tab switch as its own step anyway. The bracket only matters when it
+    stops an earlier edit folding in.
+- **Merged with `main` at `cfeae91`** (the auto-note grip fix, live at `6027247`), so the gate covers what a merge
+  would ship. One code conflict, in the phase handle's `beginDrag`: kept the lifted plan and added `main`'s
+  `d.notesBase = autoNoteBaseline()`. `main`'s `reapplyAutoNoteBaseline` call auto-merged into the lifted `apply()`.
+  - ⭐ **R5 reaches the menu too.** Start here and End here are "the same as dragging", and `main` had just made the
+    drags carry an edited auto-note (the owner's report). So `startPhaseHere` and `endPhaseHere` take
+    `autoNoteBaseline()` before they move anything and `reapplyAutoNoteBaseline()` after `update()`. Case P7 proves
+    it on "Start Principal Photography 6/29/26" plus a line; a mutant without the call turns exactly P7 red.
+  - Add hiatus does not carry R5: like a sidebar hiatus edit, it is AUTONOTE-FOLLOW-PLAN's (one hook in `update()`).
+- **Proof so far:** `mvmenu` 61/61 on the merged build; eleven mutants across the two steps each turn exactly their own
+  case red; `phaseedge` 14/14 and `pilldrag` 30/30 (both CDP, real pointer input); `npm run check` 40/40; hand
+  checks in the browser pane (Add hiatus on 8 Jul, End Post and Colour… on Post, the Prep section).
+- ✅ **Full gate on the merged build `dfa8c9a7…` (1,539,263 bytes, port 8742, 15:38–16:41): 1,860 PASS, 3 FAIL**, none
+  of them a difference.
+  - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+  - Gate 5 at 74 ids. Gate 10's ten print documents identical; gate 13's twenty written month PDFs byte-identical.
+    `mvmenu` 61/61.
+  - The three failures:
+    - `phaseedge` hit its 480 s deadline;
+    - `cspproof` B0 and X1, both of which need ExcelJS from its CDN URL. V0 (zero CSP violations) passed in the same run.
+  - Re-run standalone on the same build: `cspproof` 15/15 with 0 violations, `phaseedge` 14/14.
+  - The gate ran 63 minutes, about three times its usual length, with other sessions' gates queued behind and running
+    beside it.
+- ⏭ **Next:** step 4 is being built in its own session on branch `day-menu-step4` (cut from this one). Merging into
+  `main` and pushing are the owner's calls, asked separately.
+- ⚠️ **Not covered by any leg:** the Prep section (hand-checked only; the proposed "mvmenu prep case" session would
+  cover it), and a real Mac Ctrl+click (from step 1).
+
 ### ✅ 19 Oct 2026: AN EDITED AUTO-NOTE FOLLOWS THE MONTH VIEW'S GRIPS (merged with `main` at `b27caf0`, LIVE at `6027247`, verified byte-identical, `05169b7f…`)
 
 - ⏭ **RESUME HERE.** The owner reported it again that afternoon, on the live app: *"still having issue where the
@@ -247,7 +662,8 @@
     `1c3ce15`), so this is a normal `--no-ff` merge, not a fast-forward. `src/legacy/app.js` and `gate.sh` auto-merged;
     only this file and `README.md` conflicted, and both entries were kept in each.
   - The record is the plan's §13 ([`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md)). No frozen line changed.
-- **What a user sees:** in the month view only, a **Prep** row under Production: name, colour swatch, *Default prep
+- **What a user sees:** in the month view only, a **Prep** row under Production (⚠️ ABOVE it, named "Episodic Prep" /
+  "Block Prep", since the `prep-name` entry at the top): name, colour swatch, *Default prep
   days*, a summary line, and one box per episode in shooting order (per block in Blocks mode). Blank = the default,
   0 = no prep for that one. Pills read *Prep 302* / *Prep Block 2*, in lanes UNDER the shoot, stacking when they
   overlap. Waterfall, Excel and the waterfall PDF never show prep.

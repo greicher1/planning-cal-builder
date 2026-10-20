@@ -828,9 +828,10 @@ popovers are absolute inside the toolbar and hang left from their button. At 102
 now cut it off, and leftward overflow is the one direction a scroll container can never scroll to.
 `openPop()` now slides an open panel right until it fits (`keepPopInPanel`), and does so again on
 resize. **Any new absolutely-positioned panel inside `.preview-panel` must be measured at 1024 px
-for the same reason.** Body-level popovers (`.note-pop`, `.mv-note-pop`, `.day-ov-pop`, the date and
-select pops) are unaffected, and their capture-phase scroll listeners follow the panel's scroll —
-verified by real wheel scrolls.
+for the same reason.** Body-level popovers (`.note-pop`, `.mv-note-pop`, the date and select pops, and
+`.day-ov-pop` until the month day menu retired it on 19 Oct 2026) are unaffected, and their capture-phase
+scroll listeners follow the panel's scroll — verified by real wheel scrolls. The day menu (`.day-menu`)
+does not follow: it closes on any scroll.
 
 **Measured on the build, `blocks.sptcal`** — `document.scrollingElement.scrollHeight === innerHeight`
 in both views at every size:
