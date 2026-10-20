@@ -32,20 +32,20 @@
   deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
 - **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
 - **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
-  `main`'s docs-only commits up to `cfeb3a7`. **Local `main` is fast-forwarded to the branch tip. NOT PUSHED:** that is
+  `main`'s docs-only commits up to `3b189af`. **Local `main` is fast-forwarded to the branch tip. NOT PUSHED:** that is
   the owner's picker.
   - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
     E15–E19, D5 and F13 all pass.
   - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's
     twenty written month PDFs byte-identical. `pilllabel` passed everywhere this time.
-  - `main`'s later commits are docs only (OFF-WEEK-PLAN, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
+  - `main`'s later commits are docs only (OFF-WEEK-PLAN twice, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
 - ⚠️ **Queueing for a gate, learned the hard way (same day):** four sessions queued full gates. A waiter run as this
   tool's background job was killed silently twice. A plain `while ps | grep gate.sh` loop also lost the free slot to
   another session's waiter. What worked was a waiter started with `nohup … &!` (detached from the tool) that, on
   seeing the slot free, pauses 8–20 s at random and looks again before starting. That keeps two waiters from starting
   together and stalling each other (the 75-minute run above, with its no-result `pilllabel`).
 
-### 📝 19 Oct 2026: PLANNED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built, no rulings)
+### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built; all seven questions ruled)
 
 - Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
   already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
@@ -59,12 +59,26 @@
      Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
      *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
 - **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
-  `sim.shootDays`, in `computeSchedule()` only. Every writer already draws that cell, so no frozen edit and no
-  save-format change. No fixture can hold one (at most one off mark in any, scanned), so every baseline should hold.
-- **Step B, the numbering, is separate:** recommended, the month view reads the number the week loop handed out
-  (`seg.weekNo`), never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a
-  gate 10/13 re-cut on sign-off.
-- ⏭ **Next:** the owner rules Q1–Q6 (plan §8). ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
+  `sim.shootDays`, in `computeSchedule()`. Every writer already draws that cell. There is no save-format change. No
+  fixture can hold such a week (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** the month view reads the number the week loop handed out (`seg.weekNo`),
+  never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a gate 10/13 re-cut
+  on sign-off.
+- ✅ **Ruled by picker, 19 Oct 2026:**
+  - Q1: existing calendars change on open, with no setting.
+  - Q2: the band reads "Phase Name" + Hiatus, as the per-phase hiatus does.
+  - Q3: a leading empty week stays numbered.
+  - Q4: **add a band in the month view too** (against the recommendation).
+  - Q5: the month view matches the waterfall's numbers.
+  - Q6: A and B are built separately.
+- ⛔ **Q4 is a FROZEN EDIT**, two lines in `renderMonthView`'s per-phase hiatus block. That block reads one
+  `s.phaseHiatus` range directly, so no sanctioned pattern reaches it. The edit and its five-point gate are plan
+  §3.5. It is inert without an off week, so gates 10 and 13 must stay byte-identical. Step A now also needs month-PDF
+  contact sheets.
+  - ✅ **Q7, approved by the owner (picker, 19 Oct 2026): "Approve with that gate"**, with the edit and the gate shown
+    together. The approval covers those two lines and that gate only. Anything more goes back to the owner.
+- ⏭ **Next:** build step A when the owner asks, in a worktree off `main`, with the month band in its own commit.
+  Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
   `prodWeekLabel()`, which is step B's site.
 
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)

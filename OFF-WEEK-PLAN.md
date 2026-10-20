@@ -1,6 +1,8 @@
 # OFF-WEEK-PLAN.md
 
-**Status: PLANNED 19 Oct 2026, not built. No rulings yet** (§8).
+**Status: PLANNED AND FULLY RULED 19 Oct 2026, not built.** Q1–Q7 were all answered by the owner the same day (§8).
+That includes Q7, the sign-off on §3.5's frozen edit to `renderMonthView`, approved against §3.5's five-point gate.
+⏭ Ready to build when the owner asks: step A first, then step B, each separately.
 **Written against:** `e86aa5e`. Every number in §2 was measured that day on a scratch build of `e86aa5e`
 (`05169b7f…`, byte-identical to the live app), not read off the code.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) → [`MONTH-VIEW-PLAN.md`](MONTH-VIEW-PLAN.md)
@@ -99,8 +101,11 @@ It makes **exactly the cell a Production-own-hiatus week makes**, and does not a
  color:HIATUS_COLOR, textColor:HIATUS_TEXT, label:'Production Hiatus'}
 ```
 
-(The label is `(ph.label || 'Phase') + ' Hiatus'`, the existing branch's own rule, so a renamed Production reads
-*"Shoot Hiatus"*.)
+✅ **Q2 (owner, 19 Oct 2026): the same red band, labelled "Phase Name" + Hiatus, *"just as the regular per phase
+hiatus would be"*.** That is the existing branch's own rule, `(ph.label || 'Phase') + ' Hiatus'`. `ph.label` is the
+typed name (`getAllPhaseDefs()`), so a Production renamed *Shoot* reads *Shoot Hiatus*. ⚠️ The name typed in
+Production's OWN hiatus row (`phiatus-name-production`) does not apply. `syncHiatusNamesFromSidebar()` writes it
+only onto that row's own weeks, and an off week is not one of them.
 
 ⭐ **Why this shape: every consumer already handles it, so no frozen code changes.** `computePhaseRowLayout()` lays a
 `phaseHiatus` cell out for `renderSpreadsheetView()`, `exportExcel()` and `buildWaterfallPdf()`, resolving
@@ -117,9 +122,12 @@ place since 1 Sep 2026 for Production's own hiatus.
 2. **The week loop:** the own-hiatus branch's test becomes
    `(ownHi && …) || (ph.offWeeks && ph.offWeeks.has(isoOf(weekStart)))`.
 
-That is the whole change. Neither site is frozen. The solvers (Rebuild From, Anchor To, Close all gaps,
-`spanCulprit`) and the column-swap gate call `computeSchedule()` on trial states, so they see off weeks consistently,
-with nothing to add.
+Neither site is frozen. The solvers (Rebuild From, Anchor To, Close all gaps, `spanCulprit`) and the column-swap
+gate call `computeSchedule()` on trial states, so they see off weeks consistently, with nothing to add. Put
+`offWeeks` on the segment **only when it is non-empty**. That keeps §3.5's edit provably inert on every other
+calendar.
+
+3. **The month band (Q4)** is §3.5, a frozen edit.
 
 ### 3.4 What a user sees (the §2 calendar)
 
@@ -129,7 +137,8 @@ with nothing to add.
 | The weeks after it | *wk 6 … wk 18* | *wk 5 … wk 17* |
 | Header *"N-Week Production Span"* | 18 (measured) | **18, unchanged:** a Production hiatus week stays in the span (audit L-11) |
 | Header token `{production.weeks}` | 18 (read from `workedWeeks`, not measured) | 17 |
-| Month view, both month PDFs, the day menu | — | **unchanged** (Q4) |
+| Month view and both month PDFs, week of 8/3 | five hatched off days, no bar | **the same hatching plus a red *Production Hiatus* band Mon–Fri**, placed as an own-hiatus band is (Q4, §3.5). A rename or recolour made in the waterfall shows here too |
+| The day menu | — | **unchanged.** Its header names the bars covering a day, and an off-week day has none |
 | Wrap date, shoot-day count, every date | — | **unchanged**: same simulation |
 | Simultaneous Post | — | **unchanged**: `isSimPostWeek()` skips only all-phase hiatus weeks, as it does for an own hiatus |
 | The notes column on that row | — | **unchanged**: a Production band covers its own column only |
@@ -139,6 +148,69 @@ cell the note treatment: it can wrap, it takes a per-band size, its text colour 
 "Click to rename or recolor this hiatus" tip. The automatic column width may also move, because the width model
 measures the new text. That is the frozen model working on new text, as PHASE-NUMBERING-PLAN §7 put it. It is not an
 edit to the model.
+
+### 3.5 The month band: a frozen edit (Q4 ruled; ✅ Q7, its sign-off, approved 19 Oct 2026)
+
+✅ **Q4 (owner, 19 Oct 2026): "Add a band".** The owner chose it knowing it is a frozen edit that comes back with a
+test plan first. This section is that test plan.
+
+**Why none of the three sanctioned patterns reaches it** (CLAUDE.md, "Sanctioned ways…"). The band is drawn inside
+frozen `renderMonthView`, in its per-phase hiatus block, which reads **one** range directly:
+`const ph = s.phaseHiatus; if(ph){ … d>=ph.start && d<ph.end … }`. An off week is a set of weeks, and Production
+can also have its own hiatus elsewhere. So no declaration elsewhere can make that test also mean "or an off week",
+and observing the grid draws nothing. Giving the segment a second, synthetic `phaseHiatus` would break every other
+reader of it: the week loop, `isPhaseHiatusDate()`, the day menu and the shoot simulation.
+
+**The edit, two lines in that block and nothing else:**
+
+```js
+// before
+const ph = s.phaseHiatus;
+if(ph){
+  …
+  const inBand = (dow>=1 && dow<=5) && d>=s.start && d<s.end
+                 && d>=ph.start && d<ph.end && !isHiatusDate(schedule, d);
+// after
+const ph = s.phaseHiatus;
+if(ph || s.offWeeks){
+  …
+  const inBand = (dow>=1 && dow<=5) && d>=s.start && d<s.end
+                 && inPhaseBand(s, d) && !isHiatusDate(schedule, d);
+```
+
+`inPhaseBand(s, d)` is new and not frozen: `isPhaseHiatusDate(s, d) || (s.offWeeks && s.offWeeks.has(isoOf(mondayOf(d))))`.
+`isPhaseHiatusDate()` is the same `h.start <= d < h.end` test the old line spelled out. The label, key, colour and
+`place()` call below are untouched, so the band is the own-hiatus band exactly: `<week>|<key>` text and colour from
+`hiatusTexts` / `hiatusColors`, with *Name Hiatus* as the default.
+
+**Why it is inert on every calendar without an off week:** with no `s.offWeeks` (§3.3 sets it only when non-empty),
+`ph || s.offWeeks` is `ph`, and `inPhaseBand()` is the old test. The block emits the same markup byte for byte.
+
+**What it touches downstream, read from the code:**
+- The written month PDF parses frozen `renderMonthView`'s HTML (`buildMonthLayout`), and the print path prints it.
+  Both already handle `mv-hiatus-bar` (own hiatus), so both get the band with no change of their own.
+- The grips attach only to `.mv-pill[data-ph]`. The band's `place()` passes no `data-ph`, so it gets none.
+- `pillRunsForWeek()` already draws no pill there (an off week has no shoot days).
+
+✅ **Q7 (owner, 19 Oct 2026, picker): "Approve with that gate".** The owner approved the edit above and the
+acceptance gate below, shown together in the picker. ⛔ **The approval covers exactly these two lines and this
+gate.** A build that needs more of `renderMonthView`, or that fails a point below, goes back to the owner.
+
+**The acceptance gate** (in §10 too):
+1. **Gates 10 and 13 byte-identical, no re-cut.** No fixture holds an off week (§5), so this proves the edit is inert
+   when unused, on the print document and on all twenty written month PDFs.
+2. **A/B on `offweek.sptcal`** (`monthcmp.py ab`, the pre-change build vs the change): every difference sits in an
+   off week's row. That means the band, plus the free-lane "+" note affordances it displaces, since those fill every
+   free lane. Every other row is identical. Any difference elsewhere is a regression.
+   - ⚠️ A row can gain a lane. Lanes are first-fit per row in a stable order, and the band takes the first lane free
+     at Production's turn, the same rule an own-hiatus band follows. If that row then grows, the month's PDF fit
+     can change scale for that month only. That is the band taking space, not a regression, and the contact sheets
+     show it.
+3. **The band's geometry:** on each off week it spans Mon–Fri, and it is absent from the Saturday-worked week and
+   the Q3 week.
+4. **A waterfall rename and recolour show on the month band**, and survive a save round trip.
+5. **Contact sheets** (`monthbase.py sheets`) of `offweek.sptcal`'s month PDF, written and printed, go to the owner
+   before any commit, per the month-PDF writer's ruling 4.
 
 ---
 
@@ -165,8 +237,8 @@ edit to the model.
   weekdays in one week is **three** (LT, at Christmas), counted the same day. Custom holidays could, and they count as
   any other cause. So **every gate baseline should stay byte-identical** (§10).
 - **A real user's calendar with a dark interior week changes the next time it opens**: that week's label, and the
-  number on every week after it. That is the point of the change, but it is a change to saved calendars with no edit,
-  which is what Q1 asks about.
+  number on every week after it. With Q4, it gains the month band too. ✅ **Accepted with no setting (Q1, owner,
+  19 Oct 2026).**
 
 ---
 
@@ -177,7 +249,7 @@ waterfall and *Week 7* in the month view.
 
 | Option | What it means | What moves |
 |---|---|---|
-| **(a) The month view numbers like the waterfall** ⭐ recommended | The week loop records each segment's number per week as it hands it out (`seg.weekNo[weekIso] = num`, beside `weekCounters[ph.key]++`). `prodWeekLabel()` reads it for `mondayOf(date)` and falls back to today's calendar count when there is none. One rule, in one place, read by both views | The month view, both month PDFs and the day menu's header, on every calendar where a phase runs through a hiatus, which is most of them (the default winter hiatus) |
+| **(a) The month view numbers like the waterfall** ✅ **ruled (Q5, owner, 19 Oct 2026)** | The week loop records each segment's number per week as it hands it out (`seg.weekNo[weekIso] = num`, beside `weekCounters[ph.key]++`). `prodWeekLabel()` reads it for `mondayOf(date)` and falls back to today's calendar count when there is none. One rule, in one place, read by both views | The month view, both month PDFs and the day menu's header, on every calendar where a phase runs through a hiatus, which is most of them (the default winter hiatus) |
 | (b) Leave it | The two views keep disagreeing after every hiatus | Nothing |
 | (c) The waterfall numbers like the month view | Count calendar weeks in the week loop | The waterfall, Excel and the waterfall PDF of nearly every calendar, and a phase's last number would stop being its worked weeks. Every frozen-output baseline would move |
 
@@ -194,33 +266,40 @@ Notes on (a):
   `monthbase.py sheets` contact sheets **before** any commit, and gates 10 and 13 are re-cut only on that sign-off.
   The diff should be limited to *Week N* strings (`monthcmp.py ab`), and anything else is a regression.
 
-Step B does not depend on step A, and A does not depend on B. **Build them as two changes with two gates** (Q6), so
-the waterfall change and the month change are each signed off on their own outputs.
+Step B does not depend on step A, and A does not depend on B. ✅ **Two changes with two gates (Q6, owner, 19 Oct
+2026)**, so each is signed off on its own outputs.
+
+⚠️ **Q4 changed what step A's review is.** Q6 was offered as "the waterfall change ships with no PDF review". With
+the band, step A also changes the month PDFs of calendars that have an off week. So step A now needs the owner's
+month-PDF contact sheets of its fixture, and the frozen edit Q7 approved. It still needs **no baseline
+re-cut**, because no fixture has an off week (§5). Step B is the one that re-cuts gates 10 and 13.
 
 ---
 
 ## 7. What does not change
 
-- **Frozen code:** nothing, in either step.
+- **Frozen code:** nothing, except §3.5's two lines in `renderMonthView` (Q4, approved as Q7). Step B touches none.
 - **Single off days, half days, worked weekends and holidays:** exactly as today, in every view.
 - **The day menu:** an off week is not a hiatus to it. Its days still offer Full day, and "Work this day" is not
   greyed. Marking one day back on is the undo, and the week returns by itself.
 - **Every date:** the wrap, Start Principal Photography, every other phase. Off weeks are derived from the dates and
   never feed them.
-- **The month view in step A** (Q4), and the waterfall in step B.
+- **The month view in step A, apart from the band.** The hatching, the pills, the grips and the notes stay as they
+  are. **The waterfall in step B.**
 
 ---
 
 ## 8. Questions for the owner
 
-| # | Question | Recommendation |
+| # | Question | ✅ Ruling |
 |---|---|---|
-| Q1 | A saved calendar that already has a dark week inside the shoot changes when it next opens: that week's label, and the numbers of the weeks after it. Accept that, with no setting to turn it off? | **Yes.** The old text names a production week that did not happen. A setting would be one more id in every file to keep the wrong text |
-| Q2 | The band reads *Production Hiatus* (the same text, colour and renaming as Production's own hiatus)? | **Yes.** Different text (*"No shoot days"*) or a colour of its own is also possible with no frozen edit, since both are data on the cell. But it would be a third kind of band to learn |
-| Q3 | A dark week **before** the first shoot day (the whole first week marked off, or a start typed on a Friday holiday): leave it as *Production wk 1* as today, or make it an off week too? | **Leave it.** A hiatus before anything has shot reads as a pause in something not started. The honest fix is "Production starts at its first shoot day's week", which moves the segment and its column, so it is a separate change |
-| Q4 | Step A leaves the month view alone: the week shows five hatched days and no bar. Or draw a *Production Hiatus* band there too? | **Leave it.** The hatching already says it, and the month band code (inside frozen `renderMonthView`) reads the segment's one own-hiatus range, so drawing off weeks would be a frozen edit |
-| Q5 | Step B: (a) the month view numbers like the waterfall, (b) leave it, or (c) the waterfall numbers like the month view? | **(a)**, §6 |
-| Q6 | Build A and B as two changes, each with its own gate and sign-off? | **Yes**, §6 |
+| Q1 | A saved calendar that already has a dark week inside the shoot changes when it next opens: that week's label, and the numbers of the weeks after it. Accept that, with no setting to turn it off? | ✅ **Yes, acceptable** (owner, 19 Oct 2026). As recommended: the old text names a production week that did not happen |
+| Q2 | What should the band look like? | ✅ **The same red band, labelled "Phase Name" + Hiatus, *"just as the regular per phase hiatus would be"*** (owner, 19 Oct 2026, typed in place of the offered *"Production Hiatus"*). That is the recommendation, with the rule stated by name: a renamed Production reads *Shoot Hiatus* (§3.2) |
+| Q3 | A dark week **before** the first shoot day (the whole first week marked off, or a start typed on a Friday holiday): leave it as *Production wk 1* as today, or make it an off week too? | ✅ **Leave it** (owner, 19 Oct 2026: "ok"). As recommended. "Production starts at its first shoot day's week" would be a separate change |
+| Q4 | The month view: leave the off week as five hatched days, or draw a band there too? | ✅ **Add a band** (owner, 19 Oct 2026). **Not** the recommendation, which was to leave it. It is a frozen edit, so it comes with Q7 |
+| Q5 | Step B: (a) the month view numbers like the waterfall, (b) leave it, or (c) the waterfall numbers like the month view? | ✅ **(a), match the waterfall** (owner, 19 Oct 2026). As recommended |
+| Q6 | Build A and B as two changes, each with its own gate and sign-off? | ✅ **Separately** (owner, 19 Oct 2026). As recommended. ⚠️ Since Q4, step A carries a month-PDF review too (§6) |
+| Q7 | Sign off §3.5's frozen edit to `renderMonthView` (two lines), against §3.5's five-point gate? | ✅ **Approved with that gate** (owner, 19 Oct 2026, picker). The approval covers those two lines and that gate only (§3.5) |
 
 ---
 
@@ -244,13 +323,17 @@ Whichever lands second rebases and re-runs `mvmenu` and `pilllabel`.
 
    Record it in `tests/fixtures/README.md`.
 2. **The predicate and the two code sites** (§3.3).
-3. **The leg, then the full gate** (§10).
-4. **Docs:** README changelog entry, HANDOFF, and a pointer from MONTH-VIEW-PLAN's `dayOverrides` section to here.
+3. **The month band** (§3.5, approved as Q7). It goes in its own commit inside step A, so the frozen edit can be
+   read and reverted on its own.
+4. **The leg, then the full gate** (§10), then the owner's month-PDF contact sheets of `offweek.sptcal`.
+5. **Docs:** README changelog entry, HANDOFF, and a pointer from MONTH-VIEW-PLAN's `dayOverrides` section to here.
+   CLAUDE.md's frozen list is unchanged, since `renderMonthView` is on it already. But the edit is recorded beside the
+   earlier approved month-view edits (MONTH-VIEW-PLAN), with its gate.
 
-**Step B** (after Q5)
+**Step B** (ruled (a), Q5)
 
-5. `seg.weekNo` in the week loop; `prodWeekLabel()` reads it.
-6. Leg cases, the full gate, the owner's contact sheets, then a re-cut of gates 10 and 13 on sign-off (§10).
+6. `seg.weekNo` in the week loop; `prodWeekLabel()` reads it.
+7. Leg cases, the full gate, the owner's contact sheets, then a re-cut of gates 10 and 13 on sign-off (§10).
 
 ---
 
@@ -259,14 +342,17 @@ Whichever lands second rebases and re-runs `mvmenu` and `pilllabel`.
 **Step A**
 
 - **Gates 1–5, 10 and 13 unchanged, with no re-cut.** No fixture holds an off week (§5), so any output that moves is
-  a regression. ⛔ **If one moves, stop and report. Do not re-cut.**
+  a regression. That includes the frozen month edit, which this proves inert when unused (Q7 point 1).
+  ⛔ **If one moves, stop and report. Do not re-cut.**
 - Gate 5 stays at 74 ids: there is no new id.
 - **New leg `offweek`, on `offweek.sptcal`, asserting:**
   - the waterfall text of every case week, and that the count skips the hiatus, the own hiatus and the off weeks
     alike;
   - the same text in the exported workbook and in the waterfall PDF;
   - the header's span and `{production.weeks}` (§3.4);
-  - the wrap date, the shoot-day count and the month view's markup identical to the pre-change build;
+  - the wrap date and the shoot-day count identical to the pre-change build, and the month view's markup identical
+    except §3.5's band (Q7 point 2);
+  - the month band on every off week, with the waterfall's text and colour (Q7 points 3 and 4);
   - one day menu ▸ Full day on an off week's day brings back the numbered week, and one undo returns the band;
   - a rename on the band survives a save round trip, and Shift All by one week carries band and rename together;
   - the Saturday-worked week and the Q3 week stay numbered.
