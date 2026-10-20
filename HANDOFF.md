@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 19 Oct 2026: PLANNED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built, no rulings)
+### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built; all seven questions ruled)
 
 - Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
   already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
@@ -18,12 +18,26 @@
      Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
      *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
 - **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
-  `sim.shootDays`, in `computeSchedule()` only. Every writer already draws that cell, so no frozen edit and no
-  save-format change. No fixture can hold one (at most one off mark in any, scanned), so every baseline should hold.
-- **Step B, the numbering, is separate:** recommended, the month view reads the number the week loop handed out
-  (`seg.weekNo`), never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a
-  gate 10/13 re-cut on sign-off.
-- ⏭ **Next:** the owner rules Q1–Q6 (plan §8). ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
+  `sim.shootDays`, in `computeSchedule()`. Every writer already draws that cell. There is no save-format change. No
+  fixture can hold such a week (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** the month view reads the number the week loop handed out (`seg.weekNo`),
+  never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a gate 10/13 re-cut
+  on sign-off.
+- ✅ **Ruled by picker, 19 Oct 2026:**
+  - Q1: existing calendars change on open, with no setting.
+  - Q2: the band reads "Phase Name" + Hiatus, as the per-phase hiatus does.
+  - Q3: a leading empty week stays numbered.
+  - Q4: **add a band in the month view too** (against the recommendation).
+  - Q5: the month view matches the waterfall's numbers.
+  - Q6: A and B are built separately.
+- ⛔ **Q4 is a FROZEN EDIT**, two lines in `renderMonthView`'s per-phase hiatus block. That block reads one
+  `s.phaseHiatus` range directly, so no sanctioned pattern reaches it. The edit and its five-point gate are plan
+  §3.5. It is inert without an off week, so gates 10 and 13 must stay byte-identical. Step A now also needs month-PDF
+  contact sheets.
+  - ✅ **Q7, approved by the owner (picker, 19 Oct 2026): "Approve with that gate"**, with the edit and the gate shown
+    together. The approval covers those two lines and that gate only. Anything more goes back to the owner.
+- ⏭ **Next:** build step A when the owner asks, in a worktree off `main`, with the month band in its own commit.
+  Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
   `prodWeekLabel()`, which is step B's site.
 
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
