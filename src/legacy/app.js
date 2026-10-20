@@ -9831,6 +9831,14 @@ export function initLegacyApp() {
            + (r.halfEnd ? ' margin-right:calc(' + pct + ' + 1px);' : '');
     };
 
+    // ⛔ FROZEN EDIT (owner-approved 19 Oct 2026 by picker, "Approve with that gate"): which shoot day
+    // each date is, or null when the "Number Production Days" setting is off. The rule lives outside
+    // the frozen code, in mvShootDayNumberer(), so the day menu's "Shoot day N" and this number are
+    // one count. HEIGHT-NEUTRAL BY CONSTRUCTION, like the mv-day-* marks above: it only puts an
+    // attribute on a cell of .mv-daygrid, which is position:absolute; inset:0 behind the bars, so
+    // nothing in a cell can move a row's height (the gate measures that anyway).
+    const _sdNum = mvShootDayNumberer(schedule);
+
     const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const head = dowNames.map(n=>`<div class="mv-dow">${n}</div>`).join('');
 
@@ -9851,7 +9859,13 @@ export function initLegacyApp() {
         const ov = _ovDays ? _ovDays(isoOf(d)) : '';
         if(ov === 'onhalf') cls.push('mv-day-on', 'mv-day-half');
         else if(ov) cls.push('mv-day-' + ov);
-        dayCells += `<div class="${cls.join(' ')}"><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
+        // ⛔ FROZEN EDIT (owner-approved 19 Oct 2026 by picker, "Approve with that gate"): the shoot-day
+        // number, as an ATTRIBUTE on the existing cell -- no element, no text node -- which CSS draws
+        // (.mv-daycell[data-shoot-day]::after) and the month-PDF writer reads back (mvlParseMonth).
+        // `_sdNum` is null whenever the setting is off, so `sd` is 0 and this line writes exactly the
+        // cell it wrote before: gates 10 and 13 byte-identical is the proof.
+        const sd = _sdNum ? _sdNum(isoOf(d)) : 0;
+        dayCells += `<div class="${cls.join(' ')}"${sd ? ` data-shoot-day="${sd}"` : ''}><span class="mv-daynum">${d.getUTCDate()}</span></div>`;
       }
 
       // Bars are collected as objects first so each can be given an explicit grid ROW. That
@@ -12232,6 +12246,20 @@ export function initLegacyApp() {
   // ⛔ The key and its three VALUES are permanent from the first file saved with them.
   const MV_PROD_LABELS = ['week', 'episode', 'block'];
   let mvProdLabel = null;
+  // Number Production's shoot days in the month view: "Day 12" in the top right of each shoot day's
+  // square (owner, 19 Oct 2026: "a setting that is off by default but can be turned on in settings
+  // that numbers the production days on the month view calendar").
+  //  - ⛔ CALENDAR DATA, NOT A PREFERENCE (owner's picker, 19 Oct 2026: "Saved in the calendar",
+  //    against the recommendation to keep it per user like the Show switches). So it is
+  //    captureSnapshot()'s `mvNumberShootDays`, the mvProdLabel arrangement: everyone who opens the
+  //    file sees and prints the same numbers, and a change dirties the file and is one undo step.
+  //  - OFF IS AN ABSENT KEY, never `false` (the mvProdLabel rule): every calendar saved before the
+  //    setting opens exactly as it did, and an off calendar's snapshot is byte-for-byte unchanged.
+  //  - ✅ WHATEVER LABELS THE BARS (owner, the same day: "it should add the numbers no matter if we are
+  //    in episode mode/block mode or week mode"). It reads only productionInfo.shootDays, never
+  //    Schedule by or mvProdLabel, and its switch is never hidden by them (Sidebar.jsx).
+  // ⛔ The key is permanent from the first file saved with it, and its only value is `true`.
+  let mvNumberShootDays = false;
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
   // ---------- Gridlines preference ----------
@@ -12315,9 +12343,11 @@ export function initLegacyApp() {
     });
     reflectGridlines();
     reflectMonthTagPrefs();
+    reflectMvNumberShootDays();
   }
   reflectGridlines();
   reflectMonthTagPrefs();
+  reflectMvNumberShootDays();
   (function(){
     const track = document.querySelector('.side-tabs-track');
     if(!track) return;
@@ -16006,6 +16036,47 @@ export function initLegacyApp() {
     setMvProdLabel(t.value);
   });
 
+  // ---------- Number Production Days (month view) ----------
+  // Which shoot day a date is, for frozen renderMonthView: a function iso -> 1..N (0 = not a shoot
+  // day), or null when the setting is off or nothing is shot. N is the day's place in
+  // productionInfo.shootDays, the simulation's own list -- the SAME count the day menu's "Shoot day N"
+  // (shootSection) and its header facts (dayFacts) use, so the square and the menu cannot disagree.
+  // Consequences of reading that list, all deliberate:
+  //  - a half day is one numbered day, as the menu numbers it (its ½ already sits beside the date);
+  //  - a weekend or holiday marked worked is numbered, and a day marked Off is not;
+  //  - weekends, holidays and hiatus days are not shoot days, so they carry no number;
+  //  - Schedule by and Label Production by never enter into it (owner, 19 Oct 2026).
+  function mvShootDayNumberer(schedule){
+    if(!mvNumberShootDays) return null;
+    const pi = schedule && schedule.productionInfo;
+    if(!pi || !pi.shootDays || !pi.shootDays.length) return null;
+    const at = new Map(pi.shootDays.map((iso, i)=> [iso, i + 1]));
+    return iso => at.get(iso) || 0;
+  }
+  // Shaped like setMvProdLabel(): CALENDAR DATA, so a change goes through update() + markDirty() --
+  // it dirties the file and is one undo step. The switch reflects the variable and never holds it.
+  function setMvNumberShootDays(next){
+    if(mvNumberShootDays === !!next) return;
+    mvNumberShootDays = !!next;
+    reflectMvNumberShootDays();
+    update();
+    markDirty();
+  }
+  // The switch is a Mantine <Switch> (an <input type="checkbox">), UNCONTROLLED, inside .prefs-card so
+  // collectFieldValues() skips it and fields.byId does not move -- the #one-col-btn contract. Written
+  // here on every path that can change the value: a toggle, Load, undo/redo, backup recovery, New, and
+  // whenever the Settings tab opens (setSidebarTab), so a late React commit cannot leave it stale.
+  function reflectMvNumberShootDays(){
+    const b = document.getElementById('pref-mv-shootdays');
+    if(b) b.checked = mvNumberShootDays;
+  }
+  // 'change', not 'click', for #one-col-btn's reason: the checkbox has already flipped by the click,
+  // and a keyboard toggle (Space) fires change too.
+  document.addEventListener('change', e=>{
+    if(!e.target || e.target.id !== 'pref-mv-shootdays') return;
+    setMvNumberShootDays(e.target.checked);
+  });
+
   function setViewMode(mode){
     viewMode = mode;
     ['sheet','month'].forEach(m=>{
@@ -16574,6 +16645,7 @@ export function initLegacyApp() {
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
     mvProdLabel = null;
+    mvNumberShootDays = false; reflectMvNumberShootDays();
     document.getElementById('simpost-enabled').checked = false;
     document.getElementById('simpost-offset').value = 0;
     const spCount = document.getElementById('simpost-count');
@@ -17144,6 +17216,10 @@ export function initLegacyApp() {
       // null or a fourth value (owner's picker): it follows Schedule by, and a file that never chose
       // is byte-for-byte the snapshot it was before the key existed.
       ...(mvProdLabel ? {mvProdLabel} : {}),
+      // 19 Oct 2026: number Production's shoot days in the month view ("Day 12"). ⛔ PERMANENT key,
+      // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
+      // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
+      ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -20864,9 +20940,14 @@ export function initLegacyApp() {
         if(n !== d.getUTCDate() || out !== (d.getUTCMonth() !== month) || weekend !== (i === 0 || i === 6)){
           throw new Error('Month layout: ' + label + ', week ' + (wk + 1) + ', day ' + (i + 1) + ' is not ' + isoOf(d) + '.');
         }
+        // The shoot-day number renderMonthView writes while "Number Production Days" is on (19 Oct 2026);
+        // 0 for every other cell, and for every cell of a calendar with it off.
+        const sdAttr = c.getAttribute('data-shoot-day');
+        const sd = sdAttr === null ? 0 : parseInt(sdAttr, 10);
+        if(sdAttr !== null && !(sd > 0 && String(sd) === sdAttr)) throw new Error('Month layout: ' + label + ', ' + isoOf(d) + ' is shoot day "' + sdAttr + '".');
         return { iso: isoOf(d), n, out, weekend,
                  mark: cl.contains('mv-day-off') ? 'off' : (cl.contains('mv-day-on') ? 'on' : ''),
-                 half: cl.contains('mv-day-half') };
+                 half: cl.contains('mv-day-half'), sd };
       });
       const items = Array.from(wkEl.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add)')).map(mvlParseItem);
       return { start: days[0].iso, days, items };
@@ -21041,6 +21122,10 @@ export function initLegacyApp() {
     dayNum: { size: 11, weight: '600', ink: '#333333', onInk: '#7A5B14', outAlpha: 0.35, offAlpha: 0.5 },
     // .mv-day-half .mv-daynum::after{ content:'½'; margin-left:2px; font-weight:700; opacity:.75 }
     half: { gap: 2, weight: '700', alpha: 0.75 },
+    // .mv-daycell[data-shoot-day]::after{ content:'Day ' attr(data-shoot-day); float:right; 10px 500;
+    // line-height:24px; #5C6470 }, and .mv-out[data-shoot-day]::after{ opacity:.35 } (19 Oct 2026,
+    // "Number Production Days"). `padRight` is .mv-daycell's own 5 px right padding, the float's edge.
+    shootDay: { size: 10, weight: '500', lineH: 24, ink: '#5C6470', outAlpha: 0.35, padRight: 5 },
     // an off day's text-decoration:line-through: Chrome's `auto` thickness, max(1px, a tenth of the
     // font size), centred two thirds of the way down the font's (rounded) ascent
     strike: { minPx: 1, perSize: 0.1, at: 2 / 3 },
@@ -21090,6 +21175,8 @@ export function initLegacyApp() {
       dayNum: { size: P.dayNum.size * k, weight: P.dayNum.weight, ink: P.dayNum.ink, onInk: P.dayNum.onInk,
                 outAlpha: P.dayNum.outAlpha, offAlpha: P.dayNum.offAlpha },
       half: P.half, strike: P.strike, halfShade: P.halfShade,
+      shootDay: { size: P.shootDay.size * k, weight: P.shootDay.weight, lineH: P.shootDay.lineH * k,
+                  ink: P.shootDay.ink, outAlpha: P.shootDay.outAlpha, padRight: P.shootDay.padRight },
     };
   }
 
@@ -21508,10 +21595,27 @@ export function initLegacyApp() {
         const nx = cx + bl + S.cellPadLeft, nb = cy + S.cellPadTop + dnBase;
         out.push({ k: 'text', s: s, x: nx, y: nb, w: nw, wt: DN.weight, size: DN.size, c: mvlMix(inkC, alpha, bg),
                    ls: 0, skew: 0, role: 'daynum', wk: wi, d: di });
+        const halfW = d.half ? mvlMeasure(fonts, S.half.weight, '½', DN.size) : 0;
         if(d.half){
-          out.push({ k: 'text', s: '½', x: nx + nw + S.half.gap, y: nb, w: mvlMeasure(fonts, S.half.weight, '½', DN.size),
+          out.push({ k: 'text', s: '½', x: nx + nw + S.half.gap, y: nb, w: halfW,
                      wt: S.half.weight, size: DN.size, c: mvlMix(inkC, alpha * S.half.alpha, bg), ls: 0, skew: 0,
                      role: 'half', wk: wi, d: di });
+        }
+        // "Day N" (19 Oct 2026): the cell's ::after, floated right. It follows the date (and its ½) on
+        // the first line when both fit in the cell's content width; else Chrome drops the float below
+        // that line -- the cell's strut line, as that is the line box's height -- and so does this. Its
+        // baseline comes from its OWN 24 px line box, which puts it on the date's (see the CSS). Chrome
+        // kerns "Day" and this does not, so Chrome's is up to 0.73 px narrower and starts that much later;
+        // the end, the float's anchor, is where Chrome's is (monthemit D0, to 0.03 px).
+        if(d.sd){
+          const SD = S.shootDay, sdS = 'Day ' + d.sd, sdW = mvlMeasure(fonts, SD.weight, sdS, SD.size);
+          const contentW = G.dayW - bl - S.cellPadLeft - SD.padRight;
+          const inlineW = nw + (d.half ? S.half.gap + halfW : 0);
+          const sdTop = cy + S.cellPadTop + (inlineW + sdW <= contentW ? 0 : S.cellStrut * S.lineHeight);
+          out.push({ k: 'text', s: sdS, x: cx + G.dayW - SD.padRight - sdW, w: sdW,
+                     y: sdTop + mvlLineMetrics(fonts[SD.weight].font, SD.size, SD.lineH).base,
+                     wt: SD.weight, size: SD.size, c: mvlMix(mvlRgb(SD.ink), d.out ? SD.outAlpha : 1, bg),
+                     ls: 0, skew: 0, role: 'shootday', wk: wi, d: di });
         }
         if(d.mark === 'off'){
           const th = Math.max(S.strike.minPx, DN.size * S.strike.perSize), mid = nb - dnLm.A + dnLm.A * S.strike.at;
@@ -22677,6 +22781,7 @@ export function initLegacyApp() {
     // Small enums and counters.
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
+    if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -22985,6 +23090,10 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
     // never whatever the previously open file chose.
     mvProdLabel = MV_PROD_LABELS.includes(snap.mvProdLabel) ? snap.mvProdLabel : null;
+    // ⛔ UNCONDITIONAL, for the same reason: a file with no key is OFF -- never whatever the previously
+    // open file had.
+    mvNumberShootDays = snap.mvNumberShootDays === true;
+    reflectMvNumberShootDays();
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

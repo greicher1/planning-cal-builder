@@ -4,6 +4,100 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 19 Oct 2026: "NUMBER PRODUCTION DAYS" COMMITTED ON BRANCH `shoot-day-nums` (worktree `.claude/worktrees/shoot-day-nums`), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for this feature.** Built, leg-tested, and committed on the branch after the owner saw the contact
+  sheets (picker, 19 Oct 2026: "Commit on shoot-day-nums"). The owner's next step, by the same picker, is *"Full gate
+  after I free disk"*. The OWNER clears disk space first. Then run the full gate on the branch, on its own port, once
+  no other session's gate is running, and report. **No merge into `main` and no push without a new ask.**
+- **Owner, 19 Oct 2026:** *"I want a setting that is off by default but can be turned on in settings that numbers the
+  production days on the month view calendar"*, then, mid-build: *"it should add the numbers no matter if we are in
+  episode mode/block mode or week mode"*.
+- ✅ **Ruled by picker, same day:**
+  - The frozen edit was approved with its gate: *"Approve with that gate"*. The gate: with the setting off, gates 10
+    and 13 stay byte-identical; with it on, row heights do not move, every number matches the day menu's "Shoot day
+    N", and contact sheets go to the owner. The approval covers this edit and this gate only.
+  - The label reads **"Day 12"**, recommended over "D12" and "Day 12 of 40".
+  - ⭐ **Saved in the calendar**, AGAINST the recommendation (per-user, like the Show switches). So it is calendar
+    data, the `mvProdLabel` arrangement.
+- **What a user gets:** Settings ▸ Preferences, Month View box: a **Number Production Days** switch, off. On, every
+  shoot day's square shows "Day N" at its top right, on the date's line and baseline, in the bars' grey-text colour,
+  on screen and in both month PDFs. A half day is one numbered day, with its ½ kept beside the date. A worked weekend
+  or holiday is numbered. Off days, weekends, holidays and hiatus days are not. A spillover day's number fades with
+  its date. The switch never hides, under any Label Production by or Schedule by.
+- **Code:**
+  - `src/legacy/app.js` engine: `mvNumberShootDays` (beside `mvProdLabel`), `mvShootDayNumberer(schedule)`,
+    `setMvNumberShootDays()`, `reflectMvNumberShootDays()` and a `change` listener, all beside `setMvProdLabel`.
+    Also `captureSnapshot()` (`...(mvNumberShootDays ? {mvNumberShootDays: true} : {})`), `sanitizeSnapshot()` (anything
+    but `true` dropped), `applyStateSnapshot()` (unconditional), New/Reset, and `setSidebarTab()`.
+  - N is the day's place in `productionInfo.shootDays`, the same count `shootSection()` and `dayFacts()` use.
+  - ⛔ **The frozen edit, `renderMonthView`:** one declaration, `const _sdNum = mvShootDayNumberer(schedule);`, and
+    ` data-shoot-day="N"` on the existing `.mv-daycell`, emitted only when `_sdNum` gives a number. No element, no text
+    node. Off, the line writes exactly what it wrote before.
+  - ⛔ **Frozen CSS:** `.mv-daycell[data-shoot-day]::after` (floated right, 10px 500, `line-height:24px`, `#5C6470`)
+    and `.mv-out[data-shoot-day]::after{opacity:.35}`, beside the day-override marks. They match nothing while off.
+    ::after, not ::before: in a cell too narrow for both, the number drops a line and the date never moves.
+  - **Month-PDF writer** (not frozen): `MVL_PAINT.shootDay`, `mvlWeekPaint`, `mvlParseMonth` (reads and validates the
+    attribute) and the cell loop in `mvlPaintMonth`. Each "Day N" is drawn right-aligned, and drops a line exactly as
+    Chrome's float would.
+  - `src/chrome/Sidebar.jsx`: the switch row (`.pref-mv-shootdays-row`, NOT a `.pref-mv-row`), uncontrolled, inside
+    `.prefs-card` so `fields.byId` stays at 74. The ⓘ now names it among the settings that travel with a file.
+- ⭐ **Measured, not assumed:** in Chrome the "Day N" baseline and the date's are both 18.5 px down the cell.
+  `monthemit` holds the writer's text to Chrome's print layout: end and start within 0.028 px, baseline exact.
+- ⭐ **Learned: Chrome KERNS "Day" (up to 0.73 px narrower) and the writer does not**, like every month line. A
+  right-aligned run therefore STARTS later in Chrome. `monthemit`'s D0 holds the END (the anchor) and the start
+  corrected by Chrome's own width difference, the header's "kerning is accounted for, not tolerated" rule.
+  `info.kerning.shootDay` records it.
+- ⭐ **Learned: pdftotext's word grouping depends on each file's FONT BOXES**, which differ between Chrome's embedded
+  Inter and the writer's. On `shootdays-onhalf`, with "Day 4" 9 pt before July's "3½", the print read "Day 4 3 ½" as
+  one line and the writer read "3½" alone, though every glyph sits at the same x to 0.07 pt. `monthab.py`'s P4 now
+  splits every "½" off as its own token on both sides (`half_tokens`), which changes nothing on a page that already
+  agreed. A reorder of the writer's runs was tried first and did not help, so it was reverted.
+- ⚠️ **Found, not this change's: `monthab.py` P5 FAILS on `offweek` with the setting OFF.** Cell-sized "lines" are
+  unpaired in its off weeks (4 in August 2027, 11 in September; e.g. `('print', (318, 655, 139, 126), None)`), and
+  `shootdays` inherits it. `offweek` has never been in `monthwriter`'s gate list, so the gate never saw it. Not
+  traced. My guess, unverified: how the full-week off hatch prints under the red band. So `gate.sh` runs
+  `monthwriter` on `shootdays-onhalf` only.
+- **Tests (all new or extended; nothing existing loosened except P4's ½ split above):**
+  - New leg `t/shootdays.js`, 15 checks, on `offweek`, `dayoverrides-onhalf` and `blocks`: **15/15 on each.**
+    - Every square of every month is held to the day menu: 329, 539 and 574 squares; 0 mismatches.
+    - Each month byte-identical to off with the attribute stripped, and every week row as tall.
+    - Save, Load, Undo and the restore checks pass.
+    - The written month PDF's text matches page by page (49, 103 and 104 numbers).
+  - It mints `tests/fixtures/shootdays.sptcal` and `shootdays-onhalf.sptcal` (real Save; README rows added).
+  - `t/monthemit.js`: `shootDayProbe()` measures the ::after through a stand-in span carrying its computed style. D0,
+    K0, X3 and X4 judge "Day N". **16/16 on both fixtures** (49 and 103 judged).
+  - `monthwriter` + `monthab.py` on `shootdays-onhalf`: 12/12, P0–P5 PASS. `monthexport` on `shootdays`: 9/9 (the
+    built app's bytes equal the source's).
+  - `gate.sh`: a new block after `offweek` runs all of the above, about 50 s. Tried alone on port 8914: 108 PASS, 0
+    FAIL. The leg's judge prints its checks before an EX.
+  - **Mutants, all built into an untracked `dist-mut/` (since deleted), sources restored (`dist` hashed back):**
+    - Engine/CSS against the leg. Off-by-one numbering: A3, A4. Always on: A0, A6. Off written as `false`: A10,
+      A12, E0. CSS line-height 21px: A7. Conditional restore: A9a, plus a later timeout.
+    - The sixth, no reflect in `applyStateSnapshot`, is EQUIVALENT: `refreshAfterRestore()` reflects through
+      `setSidebarTab()`. The explicit call stays, as `reflectSingleColumn()` beside it does.
+    - Writer, against `monthemit` via `HARNESS_QUERY=src=`. padRight 4: D0. lineH 21: D0. No spillover fade: K0.
+      "Day" with no space: D0, X4. Not drawn: D0, X4.
+  - ⚠️ **Mutant builds must run from the REPO ROOT** (`npx vite build --outDir …` in `src/` misses
+    `vite.config.js` and emits a multi-file build that never boots under the harness).
+- **Contact sheets:** `monthbase.py sheets`, the written month PDF of `offweek` (off) against `shootdays` (on), from
+  `monthexport` with its pinned clock. Only August–November change (0.08–0.48% of pixels, the "Day N" text and
+  nothing else); the other five months are pixel-identical. Sent to the owner this session; regenerate with the
+  same two `monthexport` runs if needed.
+- **Gate:** build `d8172e2f…` (1,545,697 bytes), `npm run check` 40/40, `check-refs.py` CLEAN.
+  - **A SUBSET of `gate.sh`, cut from its own sections, on port 8915 (23:05–23:20), beside another session's full
+    gate: 674 PASS, 0 FAIL.** The sections were setup, gates 1–5, gate 10, `prefs`, `shootorder`, `pilllabel`,
+    `monthexport` + gate 13, and the new block.
+    - Gates 1–4: 0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically.
+    - Gate 5: 74 ids, so the switch is not in `fields.byId`.
+    - ⛔ **The approved gate's OFF half holds.** Gate 10's ten print documents are identical, and gate 13's twenty
+      written month PDFs are byte-identical.
+  - ⚠️ **The FULL gate has not run** (disk, below). It is owed before a merge to `main`. Its other ~1,300 checks cover
+    legs this change does not touch, but "owed" is the honest word.
+- ⚠️ **Disk, again:** 6.8 GB free at 23:15, with 1,473 Chrome `code_sign_clone` copies. Measured about 38 MB per
+  harness Chrome launch, so a full gate (well over 100 launches) could fill the disk near its end. So no unattended
+  full gate was started. Clear space first (HANDOFF 19 Oct, the disk-full note).
+
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 
 - ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):

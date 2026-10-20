@@ -242,8 +242,8 @@ export function PreferencesCard() {
             three now, so "the two Month View settings" was no longer true either way. */}
         <InfoHint label="Preferences" width={330}>
           Grid lines and the Month View “Show” switches stay on this computer — send someone a
-          calendar and they keep their own. Single Column Mode and Label Production by belong to the
-          calendar itself, so they travel with a file you send.
+          calendar and they keep their own. Single Column Mode, Label Production by and Number
+          Production Days belong to the calendar itself, so they travel with a file you send.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -384,6 +384,30 @@ export function PreferencesCard() {
               <Switch id="pref-mv-episodes" size="md" defaultChecked
                       aria-label="Show Episodes in Month View"
                       title="Name the episodes being shot, in grey inside Production's bars — on screen and in the month PDF" />
+            </Group>
+          </Box>
+
+          {/* Number Production Days (owner, 19 Oct 2026): "Day 12" in the top right of every shoot
+              day's square, on screen and in the month PDF. OFF BY DEFAULT.
+              ⛔ CALENDAR DATA, like Label Production by above and unlike the Show switches (owner's
+              picker, "Saved in the calendar"): the engine's `mvNumberShootDays` is the one store and
+              travels as captureSnapshot()'s own key. Inside .prefs-card, so collectFieldValues()
+              skips this id and fields.byId does not move. UNCONTROLLED (no `checked`, no
+              defaultChecked): the engine writes .checked in reflectMvNumberShootDays(), the
+              #one-col-btn contract, and a toggle reaches setMvNumberShootDays() through 'change'.
+              ✅ NEVER CONTEXTUAL (owner, the same day: "it should add the numbers no matter if we are
+              in episode mode/block mode or week mode"), so it is not a .pref-mv-row: the legacy.css
+              rules that hide those by Schedule by and Label Production by cannot reach it. It shows
+              whenever the month box does, and carries its own divider for the same reason they do. */}
+          <Box className="pref-mv-shootdays-row">
+            <Divider my="sm" />
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <Text component="label" htmlFor="pref-mv-shootdays" size="sm" style={{ cursor: 'pointer' }}>
+                Number Production Days
+              </Text>
+              <Switch id="pref-mv-shootdays" size="md"
+                      aria-label="Number Production Days"
+                      title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
             </Group>
           </Box>
         </Box>

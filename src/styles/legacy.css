@@ -1474,6 +1474,28 @@
      tinted rather than subtle on purpose: this one should never pass unnoticed. */
   .mv-day-on{ background:#FFF4E2; }
   .mv-day-on .mv-daynum{ color:#7A5B14; }
+  /* ---- Shoot-day numbers. ⛔ FROZEN EDIT (owner-approved 19 Oct 2026 by picker, "Approve with that
+     gate"). renderMonthView puts data-shoot-day="N" on a shoot day's cell only while the calendar's
+     "Number Production Days" setting is on, so with it off this rule matches nothing and every
+     calendar renders and prints exactly as before.
+     - HEIGHT-NEUTRAL like the marks above: a pseudo-element of a cell, and the cells live in
+       .mv-daygrid (position:absolute; inset:0), so nothing here can move a row.
+     - ::after, FLOATED RIGHT, on purpose. As the cell's last child it follows the date (and its ½) on
+       the first line, at the right edge, when they fit side by side. In a cell too narrow for both it
+       drops to the next line, under the bars, and the DATE NEVER MOVES -- a ::before float would have
+       pushed the date down instead.
+     - line-height:24px puts its baseline on the date's: the date's line is the cell's 14 px strut at
+       line-height 1.5 (21 px, baseline 16), and 10 px Inter in a 24 px line also sits 16 px down.
+       The month-PDF writer derives both from the fonts (mvlLineMetrics), not from this comment.
+     - The ink is .mv-pill-block's grey, the month view's existing "secondary label" colour; an
+       out-of-month day fades it as .mv-out fades the date.
+     ⚠️ The month-PDF writer copies these numbers (MVL_PAINT.shootDay); change one, change both. */
+  .mv-daycell[data-shoot-day]::after{
+    content:'Day ' attr(data-shoot-day);
+    float:right; white-space:nowrap;
+    font-size:10px; font-weight:500; line-height:24px; color:#5C6470;
+  }
+  .mv-out[data-shoot-day]::after{ opacity:.35; }
   /* Bars sit in normal flow ON TOP of the day grid, so tall content (a wrapped note) grows
      the week row rather than spilling over the week below. */
   .mv-bars{
