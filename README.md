@@ -61,7 +61,10 @@ combine the full day/off day menu with the right-click menu … would instead po
   every value they assert unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked`
   24/24, `overrides` 20/20, `loadcarry` 6/6, `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by
   hand in the browser pane: a real click on 7 Jul, Off, a real double-click to clear, the beside placement on a 768 px
-  window, and Remove on a custom phase with one Undo. The full gate is pending.
+  window, and Remove on a custom phase with one Undo. **Full gate:** 1,857 PASS, 7 FAIL, every frozen output
+  identical: gate 10's ten print documents, gate 13's twenty written month PDFs byte for byte, the waterfall PDF and
+  every Excel part, 74 ids. The 7 were contention on a loaded machine (`pilllabel (shootorder)` ×5, `launchopen` L6,
+  `cspproof` failing to start Chrome). Re-run alone, all pass: 29/29, 16/16, 15/15.
 
 ### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
 

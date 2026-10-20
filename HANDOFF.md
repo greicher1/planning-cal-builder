@@ -101,8 +101,22 @@
   - By hand in the browser pane, with real clicks: 7 Jul's menu (flipped above), Off, a real double-click to clear it
     (no menu or ring left), the holiday and pre-shoot days, and the beside placement. Then a real right-click on a
     custom "Edit Bay" bar: Remove Edit Bay… in red, the "Remove phase" dialog, Remove, and one Undo bringing it back.
-  - ⏳ **The full gate is pending.**
-- ⏭ **Next:** the full gate; then the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
+  - **Full gate on build `aa3239d1…` at `92cd59b` (port 8875, 19:36–19:54): 1,857 PASS, 7 FAIL, none of them a
+    difference.** It ran after two other sessions' gates. One other session ran its own legs during it (`off-week`,
+    port 8962), so the machine was loaded.
+    - Gates 1–4 green: 0 clipped, the waterfall PDF and every Excel part identical, v1.0.0 restores identically.
+    - Gate 5 holds at 74 ids. Gate 10's ten print documents are identical. Gate 13's twenty written month PDFs are
+      byte-identical.
+    - `mvmenu` 77/77, and `halfdays`, `halfworked`, `overrides`, `pilldrag`, `phaseedge`, `customunits`, `loadcarry`
+      and `sharecopy2` all green.
+    - **The 7 failures were all contention:**
+      - `pilllabel (shootorder)` ×5, "months 1 vs 16": the month walk cut short, the flake recorded under the
+        auto-note entry below.
+      - `launchopen` L6.
+      - `cspproof`: "Chrome never wrote DevToolsActivePort", so Chrome did not start.
+    - **Re-run alone afterwards** on the same build and port, exactly as gate.sh runs them (no gate running):
+      `pilllabel (shootorder)` 29/29 through gate.sh's own evaluator, `launchopen` 16/16, `cspproof` 15/15.
+- ⏭ **Next:** the owner's pickers on merging and pushing. Step 5 (the hiatus and holiday
   sections) after. The two open items from steps 1–3 still stand: an `mvmenu` prep case, and a real Mac Ctrl+click.
 
 ### ◐ 19 Oct 2026: DAY MENU STEPS 2 AND 3 BUILT (branch `day-menu-step3`, worktree `.claude/worktrees/day-menu-step3`), NOT MERGED
