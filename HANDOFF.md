@@ -49,6 +49,10 @@
   `closest('#share-copy-btn')` test. So any click anywhere in the 600 ms before pressing the button swallows the
   press, silently. Found when the leg's first share click followed other clicks; the fix is to test the target
   before the guard. The leg waits 700 ms before each share click.
+- 📝 **Relayed owner ruling, NOT built (20 Oct 2026, via the Settings-window session):** saved side-box PRESETS belong
+  in the Settings window's Presets tab, beside the header presets (*"maybe its a tab in settings that keeps both
+  presaved headers and presaved side boxes"*). Per machine, so localStorage (`sptcal.prefs`), never the snapshot.
+  Recorded in SIDE-BOXES-PLAN §12 with its two open questions; a follow-up for after the Settings window merges.
 - **The PDF's "characters that won't print" warning** (`pdfUnprintablePlaces()`, audit L-6) now also walks the box
   text, from the same layout the writer draws: a ★ in a box line is named "in the side box “Dates”" (leg G21).
 - ⚠️ **Traps hit while building:** a view switch is its own undo step (`viewMode` is saved), so a leg that switches

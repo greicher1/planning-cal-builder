@@ -373,3 +373,16 @@ not picked); *"1 col + spacer, row 1"*; *"Grid + boxes together"*; *"Grid + boxe
   three-line wrap, the band's left line at the box's edge; `#table-wrap` 1160 px wide in the month view with boxes and
   without; deleting the last box removes the `sideBoxes` key and gives back the identical PDF page content.
 - `check-xlsx.sh` on the workbook: OK. The PDF rendered with `pdftoppm` and inspected.
+
+## 12. Follow-up, not built: saved side-box presets
+
+Relayed by the Settings-window session (20 Oct 2026), owner's words to it: *"maybe its a tab in settings that keeps both
+presaved headers and presaved side boxes"*. Not part of ruling 7 as briefed, so not built here. If built:
+
+- A card in the Settings window's **Presets** tab (`src/chrome/SettingsWindow.jsx`, `<Tabs.Panel value="presets">`,
+  branch `claude/settings-window-30719d`, not merged), after `HeadersCard`.
+- **Per machine**: the `sptcal.prefs` localStorage store, never `captureSnapshot()`. Any id'd control means the card
+  carries `className="card prefs-card"`, or `collectFieldValues()` bakes the id into every saved file.
+- A preset would hold the `sideBoxes` shape (§7) and pass `cleanSideBoxes()` on the way in, as header presets pass
+  `cleanHeaderFormatMap()`. Open questions for the owner: what a preset holds (the whole arrangement, or one box), and
+  whether applying one replaces the calendar's boxes or adds to them.
