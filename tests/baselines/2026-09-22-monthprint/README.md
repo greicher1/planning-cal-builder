@@ -140,6 +140,28 @@ occupancy is identical and every note lands where it did. Only a half-day switch
 
 `halfdays` is `tests/fixtures/halfdays.sptcal`: 4.5-day episodes with Episode 201 at 5, 45.5 shoot days from 6/29/26.
 
+## ✅ RE-CUT 19 Oct 2026 — ALL NINE CASES: the month view numbers weeks as the waterfall does
+
+OFF-WEEK-PLAN.md step B, owner ruling Q5 ("match the waterfall"). `prodWeekLabel()` reads the number the
+waterfall's week loop handed out (`seg.weekNo`) instead of counting calendar weeks, so after a hiatus a bar reads
+*Post Week 8* where it read *Post Week 10*. No frozen code changed. Signed off on the written PDF's contact sheets
+(gate 13's README): **"Re-cut both"** (picker).
+
+**Text only, proven:** each new document equals its old one, character for character, once every `Week <n>` is
+masked. Elements, sheets and every row height are unchanged.
+
+| case | "Week N" labels renumbered | elements | sheets |
+|---|---|---|---|
+| `reference` (and `blocksoff`, held to it) | 22 of 158 | 3806 → 3806 | 16 → 16 |
+| `dayoverrides`, `mvheader`, `mvheaderlegacy`, `dayoverrides-onhalf` | 64 of 142 each | unchanged | 15 → 15 |
+| `blocks` | 22 of 156 | 3795 → 3795 | 16 → 16 |
+| `month-lanecap` | 22 of 156 | 4250 → 4250 | 16 → 16 |
+| `hiatus-blanklabel` | 46 of 158 | 3728 → 3728 | 16 → 16 |
+| `halfdays` | 22 of 144 | 3831 → 3831 | 16 → 16 |
+
+Cut from build `eadef87e89bcd27b…` (worktree `offweek-step-b`) with Google Chrome 155.0.8059.85, from the full gate's
+own `monthprint-<case>.json` captures.
+
 ## ✅ RE-CUT 16 Oct 2026 — `halfdays` ONLY: a switch day's two bars meet half way through the square
 
 The owner's idea, 15 Oct 2026 (HALF-SQUARE-BARS-PLAN.md). It is a frozen edit to `renderMonthView`, approved by

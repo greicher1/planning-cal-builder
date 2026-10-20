@@ -3,7 +3,7 @@
 **What this is.** The month PDF that **Export PDF** writes since step 5 of
 [`MONTH-PDF-WRITER-PLAN.md`](../../../MONTH-PDF-WRITER-PLAN.md): the direct writer, through the Save dialog. It is
 held **byte for byte** on eighteen calendars (seventeen until the 15 Oct 2026 re-cut added `halfdays`; `halfdays` alone
-re-cut again on 16 Oct 2026, below). It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
+re-cut again on 16 Oct 2026, and all seventeen files on 19 Oct 2026 for the week numbers, below). It is the before-side of `gate.sh`'s **gate 13** (UI-CONVENTIONS §10,
 item 13).
 
 Gate 10 (`../2026-09-22-monthprint/`) still holds the PRINT path. That is the rollback now, reached on localhost by
@@ -47,6 +47,22 @@ Every test before step 6 stood in for the Save dialog. So:
     mid-run. In that run, the reference under UTC+14 passed X0 and X1 and then failed X2 to E0. Its detailed result was
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
+
+## ✅ RE-CUT 19 Oct 2026 — ALL SEVENTEEN CASES: the month view numbers weeks as the waterfall does
+
+**A deliberate change to text only** (OFF-WEEK-PLAN.md step B, owner ruling Q5: "match the waterfall").
+- **What changed.** `prodWeekLabel()` names a bar's week by the number the waterfall's week loop handed out
+  (`seg.weekNo`). It used to count calendar weeks from the phase's start. So after any hiatus a bar now reads, for
+  example, *Post Week 8* (as the waterfall's *Post wk 8*) where it read *Post Week 10*. No frozen code changed.
+- **The sign-off came first.** The owner saw `monthbase.py sheets` contact sheets of the written PDF (baseline |
+  new | difference) for the calendars below, plus `offweek`. The answer was **"Re-cut both"** (picker, 19 Oct 2026).
+- **What moved.** Every case moved, because every one runs a phase through a hiatus (the default winter hiatus at
+  least). **Text only, proven:** each new file's words, page by page in reading order with whitespace collapsed, equal
+  the old file's once every `Week <n>` is masked. Changed pages differ by 0.01–0.06% of their pixels, the digits only.
+  Byte counts move by at most 8 (a number gains or loses a digit). From 3 of 14 "Week N" labels renumbered
+  (`colswap-simpost-refuse`) to 42 of 120 (`stintswap-reshape`).
+- **Cut from** build `eadef87e89bcd27b…`, worktree `offweek-step-b`, by the full gate's `monthexport` runs
+  (`/tmp/gate8963-mxa/`). `rz`, `rw` and `bo` were byte-identical to `r`. Google Chrome **155.0.8059.85**.
 
 ## ✅ RE-CUT 16 Oct 2026 — `halfdays` ONLY: a switch day's two bars meet half way through the square
 
@@ -92,23 +108,23 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 
 | case | pages | bytes | sha256 |
 |---|---|---|---|
-| `blocks` | 16 | 80,933 | `4af98b2ea9c92207…` |
-| `carry-rich` | 12 | 81,457 | `bd034ff31034fef4…` |
-| `colswap-simpost-refuse` | 3 | 52,125 | `819cac62161734bd…` |
-| `dayoverrides-onhalf` | 15 | 79,120 | `4540080dd3bb4a28…` |
-| `dayoverrides` | 15 | 78,436 | `932764d21796d4fe…` |
-| `halfdays` | 16 | 80,147 | `3eb50d8c8c3c9790…` |
-| `hiatus-blanklabel` | 16 | 81,701 | `7272ce5eff1147fa…` |
-| `month-dense60` | 16 | 82,776 | `81f48a4322b7da29…` |
-| `month-lanecap` | 16 | 82,027 | `eb44cecbd3bcb496…` |
-| `monthnotes` | 16 | 81,886 | `139b546ed23c993a…` |
-| `monthscale` | 16 | 82,611 | `a46662f974525fa8…` |
-| `mvheader` | 15 | 93,755 | `a9b4370482ea56b7…` |
-| `mvheaderlegacy` | 15 | 78,622 | `cdb75731c3828678…` |
-| `notewrap` | 16 | 82,314 | `446c172dabe3a7b5…` |
-| `reference` | 16 | 81,742 | `510963a0940e8fbd…` |
-| `shootorder` | 16 | 81,739 | `d51fe5193a677566…` |
-| `stintswap-reshape` | 25 | 102,989 | `2e5c97adbd73cef6…` |
+| `blocks` | 16 | 80,934 | `88ee3ae6d8173c1d…` |
+| `carry-rich` | 12 | 81,465 | `385bc5b5e493d1bc…` |
+| `colswap-simpost-refuse` | 3 | 52,125 | `12af188b4b23eb37…` |
+| `dayoverrides-onhalf` | 15 | 79,120 | `57d6b9de26e16a60…` |
+| `dayoverrides` | 15 | 78,438 | `20099017fa82b252…` |
+| `halfdays` | 16 | 80,149 | `7abb70b03d0d3d35…` |
+| `hiatus-blanklabel` | 16 | 81,704 | `52f0d45810ed5df9…` |
+| `month-dense60` | 16 | 82,777 | `5aa97399cc7d9408…` |
+| `month-lanecap` | 16 | 82,028 | `08f8539972ab7995…` |
+| `monthnotes` | 16 | 81,887 | `515936e08bd6a5df…` |
+| `monthscale` | 16 | 82,612 | `e77c869ce1359664…` |
+| `mvheader` | 15 | 93,755 | `7e8235327b6a8d88…` |
+| `mvheaderlegacy` | 15 | 78,622 | `e82b0587823b07eb…` |
+| `notewrap` | 16 | 82,312 | `0317f22757a9c2a0…` |
+| `reference` | 16 | 81,743 | `8f2f0dfab23f047a…` |
+| `shootorder` | 16 | 81,740 | `67c4f10b0d1719ef…` |
+| `stintswap-reshape` | 25 | 102,989 | `5e9ac90a36599aa2…` |
 
 Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture()` typed into a fresh page.
 
