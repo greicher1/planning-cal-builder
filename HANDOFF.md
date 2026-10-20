@@ -4,12 +4,21 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" (branch `prep-name`, worktree `.claude/worktrees/prep-name`, committed, not merged)
+### ◐ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" (branch `prep-name`, worktree `.claude/worktrees/prep-name`, merged with `main`, not pushed)
 
-- ⏭ **RESUME HERE.** Committed on `prep-name` (owner's picker, "Commit on prep-name"), cut from `main` at `e86aa5e`.
-  `main` has since gained the prep start grip (live at `f0c7925`), so this needs a merge with `main` before it can
-  ship. The owner asked whether a full gate is really needed after that merge; see the answer in the session, and
-  record what was decided here.
+- ⏭ **RESUME HERE.** Committed on `prep-name` as `a14fb38` (owner's picker, "Commit on prep-name"), cut from `main` at
+  `e86aa5e`. Then **merged with `main` at `765e8d0`** (the prep start grip, live at `f0c7925`) as `bbb3e85`: the code
+  auto-merged, and only this file and `README.md` conflicted (both entries kept). Local `main` is NOT moved, nothing
+  pushed: the owner is asked next.
+- ⭐ **Targeted legs instead of a second full gate, on the owner's word** (*"run npm run check plus the episodeprep,
+  phaseedge and restore legs instead of the full gate"*). The full gate had already run on this change alone, and the
+  grip's own merged build was full-gated and is live, so what the merge could break is where the two meet: the grip
+  finds its pill by text ("Prep 303") and names it through `prepPillLabel`. On merged build `42d1bd24…` (1,537,597
+  bytes), port 8887: `npm run check` 40/40, `check-refs.py` CLEAN; `restore` identical to the re-cut baseline (74 ids,
+  `prep-name` "Episodic Prep", 0 clipped, grid signature identical); `episodeprep` 26 + 24 + 11, with the workbook (16
+  parts) and the waterfall PDF (74,581 bytes) byte-identical with prep on and off; `phaseedge` 23/23, the grip's G0–G8
+  included. ⚠️ Gates 10 and 13 (month print documents, written month PDFs) were NOT re-run on the merge; neither
+  baseline holds prep, and both were byte-identical on each side alone.
 
 - Owner: *"the 'prep' phase in month view should come before production phase in the left side bar menu. Also its
   default name should be called 'Episodic Prep' or 'Block Prep' depending on if we are scheduling by block or

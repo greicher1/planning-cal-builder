@@ -51,7 +51,10 @@ episodes. Then when it shows in the calendar, the labels should just be 'Prep Ep
   typed name survives it and names every pill, K5 the focused box is left alone). `npm run check` 40/40;
   `check-refs.py` CLEAN. Both fixtures checked by eye in the browser. Full gate on that build: **1,859 PASS, 1 FAIL**,
   the one being gate 5's predicted `prep-name` value ("Prep" → "Episodic Prep" on `v1.0.0-saved.html`); waterfall PDF,
-  every Excel part and gate 13's twenty written month PDFs byte-identical, 0 clipped cells.
+  every Excel part and gate 13's twenty written month PDFs byte-identical, 0 clipped cells. Gate 5 re-cut on the
+  owner's sign-off. Merged with `main` (the prep start grip) as `bbb3e85`, then on the owner's word only the legs where
+  the two meet were re-run: `npm run check` 40/40, `restore` (gate 5) identical, `episodeprep` 26 + 24 + 11 with Excel
+  and the waterfall PDF identical prep on/off, `phaseedge` 23/23 (the grip's G0–G8 included), on build `42d1bd24…`.
 
 ### Unreleased — Drag where an episode's prep starts, in the month view (19 Oct 2026)
 
