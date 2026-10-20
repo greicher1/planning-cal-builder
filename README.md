@@ -29,6 +29,37 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — A Settings window over the sidebar, with Calendar, Region, Presets and Preferences tabs (20 Oct 2026)
+
+Owner ruling 12: *"a tabbed panel that slides in beside the grid and leaves the waterfall visible"*, holding what
+the sidebar's Settings tab held plus the new calendar settings, with tabs that separate what is saved in the
+calendar from what stays on this computer. Tab names and placement were ruled from a mock-up the same day: *"Shorter
+names"*, *"Keep by view"*, Single Column Mode, Label Production by and Pause prep under Calendar, and Presets as
+*"a tab in settings that keeps both presaved headers and presaved side boxes"*.
+- **The sidebar keeps Show and Phases.** Settings is now a button in the same place. It slides a window in over
+  the whole sidebar, and the waterfall or month view beside it stays live: a change shows as you make it.
+  Escape or × closes it.
+- **Calendar** (saved in the file): Single Column Mode in the Waterfall view; Label Production by and *Pause prep
+  on days marked Off* in the Month view; Export App With Data. Pause prep moved here from the Prep row.
+  **Region** (saved): Production Region with its caveats, the holiday list, custom holidays, Reset holidays.
+  **Presets**: the header template editor and presets; the side-box presets will join them. **Preferences**
+  (this computer only): Grid Lines in Exports, and the month view's three Show switches. Each tab opens on a line
+  saying which kind it is. Each card still shows only in its own view, as the sidebar's did.
+- **Nothing a calendar saves changed.** Every moved control keeps its id, and `fields.byId` keeps the same ids
+  (74) in the same order. The window's host sits exactly where the Region and Holidays cards were. The calendar
+  switches stay out of `fields.byId` as before. A file saved with the old Settings tab up opens on Show. A
+  shareable copy exported with the window open does not carry it open.
+- **Two Mantine traps, found and fixed:** `Tabs` keeps hidden panels mounted through React's `<Activity>` by
+  default, which renders them after the engine has looked for their ids; and a `Switch` puts its own remembered
+  state back over the engine's on any re-render, so after a Load, opening the window showed Pause prep the wrong
+  way round. The panels are rendered with `display:none` and built once, so the cards never re-render.
+- **Verified:** new leg `settingswin`, 17 cases: every moved id once, on its tab; the swept ids and their order;
+  every moved calendar setting set by hit-tested clicks, saved to its own key, reset by New, restored by Load;
+  no undo step for opening; the stale-switch trap after a Load and after an undo; it covers the sidebar and moves
+  neither the preview nor the grid box; focus, `inert`, Escape; an old file's `sidebarTab: 'settings'`. Ten legs
+  that drove the Settings tab now drive the window (`mvmenu` P6w: Show in Phases card closes it). Eight mutants,
+  each red on its own case. GATE_RESULT_PLACEHOLDER
+
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),

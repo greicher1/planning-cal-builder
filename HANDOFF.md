@@ -4,6 +4,125 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026: RULING 12, THE SETTINGS WINDOW — BUILT AND COMMITTED ON `claude/settings-window-30719d` (worktree `.claude/worktrees/settings-window-30719d`), NOT MERGED
+
+- ⏭ **RESUME HERE for the Settings window.** One of the parallel sessions for the entry below. Sibling sessions build
+  column reuse, the header row and date format, side boxes, a calendar range, and colours / hiatus numbers / auto-note
+  kinds. Their merge notes are in the shared-notes folder (`settings-window.md` there says where their settings go).
+- **Rulings (owner, 20 Oct 2026):**
+  - From the mock-up, by picker: tab names *"Shorter names"* (Calendar · Region · Preferences), and *"Keep by view"*
+    (a card shows only in its own view, as the sidebar's did).
+  - Headers: *"Its own card: Headers"*, then, in the owner's words: *"maybe its a tab in settings that keeps both
+    presaved headers and presaved side boxes"*. So a fourth tab, **Presets**. Relayed to the side-boxes session.
+  - Relayed by the owner's session "Production calendar recreation test": Single Column Mode, Label Production by and
+    "Pause prep on days marked Off" go under This calendar (now Calendar); France arrives with `#union-place`.
+- **Built** (no frozen code; `src/chrome/SettingsWindow.jsx` new; `Sidebar.jsx`, `main.jsx`, `bridge.js`,
+  `icons.jsx`, `src/index.html`, `legacy.css`, `app.js`):
+  - The rail: Show and Phases tabs, and a Settings **button** (`.side-settings-btn`) outside the tablist. React opens
+    the window by document delegation on the class.
+  - The window: a Mantine `Tabs` panel portalled into `#settings-host`, a static host right after `#sidebar-static`
+    inside `aside.form-panel`. CSS lays it over the sidebar (`position:absolute`, z 110, `top` = the sidebar's
+    scrollTop, `.settings-open` stops the sidebar scrolling). Closed is `display:none`, never unmounted. At 960 px
+    and below it goes in flow in the sidebar's place. Escape (from inside) and × close it. `inert` goes on what it
+    covers. Focus moves to the selected tab and back to the button.
+  - Tabs: Calendar (Waterfall card: Single Column Mode; Month view card: Label Production by, Pause prep; App:
+    Export App With Data), Region (RegionCard, HolidaysCard), Presets (HeadersCard), Preferences (Waterfall: Grid
+    Lines; Month view: the three Show switches). The old PreferencesCard is split into four cards by the save boundary.
+  - Pause prep moved out of the engine's Prep row into React as `#prep-pause-off`, inside `.prefs-card`. The engine
+    binds it by delegation and `refreshPrepUI()` writes it by id.
+  - Engine: `setSidebarTab()` reads 'settings' (and 'holidays') as Show. `revealSidebarTab()` (the three "show in
+    Phases card" flows) closes the window first. `setSidebarTab()` itself never does, because undo and Load replay
+    it. `buildSavedHtml()` empties `#settings-host` and strips `inert`, `.settings-open` and `aria-expanded`.
+    `chrome.settingsWindow({open, tab})` is the bridge.
+- ⛔ **What holds the save format:**
+  - `fields.byId` is built in DOCUMENT order. The host sits where the Region and Holidays cards were, so the window
+    gives byId exactly `#union-place`, `#custom-hol-name`, `#custom-hol-date`, in that order, after `#show-version`.
+  - Every other id'd control in the window is in a `.prefs-card`, the calendar cards too: there the class means "not
+    swept", because those values travel under their own keys (`singleColumn`, `mvProdLabel`, `prepPauseOff`).
+- ⛔ **Two traps, now UI-CONVENTIONS §8.8 and §8.9:**
+  - Mantine `Tabs` defaults to `keepMountedMode: "activity"`, which renders hidden panels after `flushSync`, so
+    `keepMountedMode="display-none"`.
+  - A Mantine `Switch` puts its remembered state back over the engine's `.checked` on any re-render. `offweek`
+    R12/R14 caught it: after a Load, Pause prep showed ticked once the window re-rendered. The panels' contents are
+    module-level constants, so React never re-renders the cards. Never build them inside the window's render.
+- **Legs:** `lib.js` gains `T.openSettings(tab)` (it switches the slide's transition off: headless Chrome never
+  finishes it), `closeSettings`, `settingsTabOf`, `shownInSettings`. These now drive the window: hdrexcel, hdrfile,
+  hdrpreset, hostile, sharecopy2 (it exports with the window open), mvmenu (+P6w), pilllabel, shootorder, episodeprep,
+  offweek (Pause prep, hit-tested on its switch's track). New leg **`settingswin`** W0–W12, in gate.sh's audit loop.
+- **Proof so far** (build `3bc2d4e4…`, 1,569,074 bytes, port 8934):
+  - `settingswin` 17/17.
+  - Through gate.sh's own evaluators: prefs 13, hdrpreset 19, hdrfile 14, hdrexcel 7, onecol 17, shootorder 9,
+    episodeprep 34 / 28 / 12, offweek 6 / 44, mvmenu 87, hdrversion 17, hdreditor 24, hdrtemplate 25. Also green:
+    sharecopy2, hostile 13, regionlock 14, regioncaveat 12.
+  - Eight mutants, each red on its own case:
+    - panels built in render → W9;
+    - Activity mode → W4/W5/W7;
+    - host after the Phases cards → W3;
+    - 'settings' still a tab → W12;
+    - `revealSidebarTab` not closing → mvmenu P6w;
+    - `inert` or the host kept in a copy → sharecopy2;
+    - the Month card without `.prefs-card` → W3/W3b/W5b.
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+  - The first `offweek` runs failed R8/R11 on Load timeouts at load average 17; they passed alone.
+- GATE_RESULT_PLACEHOLDER
+- ⚠️ **Left for after the merges:** the dead `.prep-pause-off` selectors in `legacy.css` (the phase-fields toggle rule)
+  were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
+  be re-homed into the window; `settingswin` W2 fails on any `data-tab="settings"` card.
+- ⏭ **Next:** the owner decides whether to merge into `main` (ask by picker). No push.
+
+### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
+
+- ⏭ **RESUME HERE for this work.** The owner shared a reference waterfall, kept in the chat only (confidentiality
+  rule), and asked whether the app could build it. It was rebuilt live in the dev pane, then reset, and its crash
+  backup slot was cleared; nothing was saved. **Every phase, label and week count matched; the layout did not.**
+  Owner: *"walk me thru all the changes/features we could add, asking me questions about each before you start
+  planning"*. The rulings below came by picker. **Nothing is planned or built.** First up, by the owner's pick:
+  **column reuse**.
+- **Rulings (owner, 20 Oct 2026):**
+  1. **Column reuse.** Automatic, with a per-phase override. A phase takes the column of a phase that ENDS THE WEEK
+     IT STARTS. On a tie it takes the column of the phase it is set to "Start after". Otherwise the lowest free
+     column, otherwise a new column on the right. **Opt-in per calendar** (saved in the file), so every existing
+     calendar and export stays byte-identical. Override from the phase row AND by a grid gesture.
+  2. **Header row.** Every header cell is typed and editable: the date-column cell (shows the year by default,
+     replacing "Date"), the phase columns, and Notes. Labels are per column, and neighbours with the same text merge.
+     A Notes column stays on every year.
+  3. **Year split: unchanged.** Instead, a **calendar start/end override** (blank = full years, as today). Rows
+     outside it are cut, with a notice naming the cut phases. Applies to the waterfall, Excel and the waterfall PDF,
+     not the month view. Set in the Show tab. The owner knows it does not move year boundaries.
+     ⚠️ They asked to "add back" this override; git history has no earlier one. Full-year padding dates from the
+     first commit.
+  4. **Date format:** a calendar setting, 1/6/25 (today) or 1/6/2025.
+  5. **Colours:** append to `PHASE_COLOR_OPTIONS` (append only): bright green, strong blue, pink, a stronger
+     yellow, a stronger peach. No free picker.
+  6. **All-phase hiatus:** stays one band.
+  7. **Side boxes:** any number of boxes left or right of the grid. Each is a **colour key** (one entry per colour,
+     editable names, drawn as a bordered key) or a **titled text box** with per-line styling (the header's controls).
+     Boxes grow as you type and stack per side, drag to reorder. They are edited on screen beside the grid, never in
+     its cells, and printed in Excel and the waterfall PDF (the grid prints smaller to make room). Not in the month view.
+  8. **Phase hiatus week numbers:** a "Number weeks" checkbox per phase hiatus, off by default.
+  9. **Automatic notes:** a calendar setting choosing which kinds show.
+  10. **Header: Off** mode, with no title block in the grid, Excel or PDF.
+  11. **Seasons:** nothing to build; phases are named by hand.
+  12. **A Settings window:** a tabbed panel that slides in beside the grid and leaves the waterfall visible. It holds
+      Region & holidays, Preferences and Export App With Data, plus the new calendar settings. Tabs separate
+      *this calendar* (saved in the file) from *my preferences* (this machine).
+- **Facts found while answering, for whoever plans this:**
+  - ⭐ **A year block's column count is the number of distinct `col` values in it**, set by computeSchedule's
+    greedy placement: a phase must sit right of every earlier phase still running. Swaps preserve each week's `col`
+    multiset (`applyColSwaps`), so they reorder columns and can never remove one. Column reuse therefore has to
+    change `col` upstream in computeSchedule (not frozen). Frozen computeBlockLayout then derives fewer slots from
+    that data.
+  - The handoff rule in ruling 1 reproduced every column of the reference except one tie, which "Start after"
+    settles. Left/right order within a year still comes from first appearance; the existing Swap Column fixes it.
+  - **Frozen edits needed, each with its own sign-off and gate measurement:** 2 (the header row is hard-coded
+    `Date | year | Notes` in renderSpreadsheetView, exportExcel and buildWaterfallPdf), 4 (dates in the frozen
+    renderers and writers), 7 (both writers, and the PDF's fit-to-page), 10. **No frozen edit:** 1, 3
+    (computeSchedule's padding), 5, 8, 9 and 12. ⚠️ For 12, every moved control keeps its id (save format). Preference
+    controls stay inside `.prefs-card`. The panel must stay mounted while closed (as `#file-menu` is), because
+    `collectFieldValues()` reads the DOM.
+  - Unverified: in the dev pane two real clicks on the header's New button did nothing, while `.click()` from JS
+    opened its confirm. Possibly my click coordinates; not investigated.
+
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
