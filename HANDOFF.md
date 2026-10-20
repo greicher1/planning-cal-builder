@@ -4,12 +4,16 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" (branch `prep-name`, worktree `.claude/worktrees/prep-name`, merged with `main`, not pushed)
+### ✅ 19 Oct 2026: PREP ABOVE PRODUCTION, NAMED "EPISODIC PREP" / "BLOCK PREP" — LIVE AT `451aaa2` (verified byte-identical, `42d1bd24`)
 
-- ⏭ **RESUME HERE.** Committed on `prep-name` as `a14fb38` (owner's picker, "Commit on prep-name"), cut from `main` at
-  `e86aa5e`. Then **merged with `main` at `765e8d0`** (the prep start grip, live at `f0c7925`) as `bbb3e85`: the code
-  auto-merged, and only this file and `README.md` conflicted (both entries kept). Local `main` is NOT moved, nothing
-  pushed: the owner is asked next.
+- ✅ **PUSHED AND LIVE.** Owner's picker: "Fast-forward main and push". Local `main` fast-forwarded `71dafc6` →
+  `451aaa2`, and one `git push origin main` (`f0c7925..451aaa2`, 18:09) also sent the two docs commits already on
+  `main` (`765e8d0`, `71dafc6`). Deploy run 39351807634 succeeded. The live `index.html`, fetched with a cache-buster,
+  is **byte-identical to the tested build**: sha256 `42d1bd24edb2cec6…`, 1,537,597 bytes. `version.json` still reads
+  1.4.3, so installed copies show no update notice. A version cut is overdue.
+- Committed on `prep-name` as `a14fb38` (owner's picker, "Commit on prep-name"), cut from `main` at `e86aa5e`. Then
+  **merged with `main` at `765e8d0`** (the prep start grip, live at `f0c7925`) as `bbb3e85`: the code auto-merged, and
+  only this file and `README.md` conflicted (both entries kept). Then `71dafc6` (HANDOFF only) as `451aaa2`.
 - ⭐ **Targeted legs instead of a second full gate, on the owner's word** (*"run npm run check plus the episodeprep,
   phaseedge and restore legs instead of the full gate"*). The full gate had already run on this change alone, and the
   grip's own merged build was full-gated and is live, so what the merge could break is where the two meet: the grip
