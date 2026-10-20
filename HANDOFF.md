@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, GATED 2,080 / 0, `main` MERGED IN, NOT YET IN `main`
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, GATED 2,080 / 0, MERGED WITH `main` (item 1 + bundle A), NOT YET IN `main`
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
   `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
@@ -52,9 +52,22 @@
   one code conflict was two conditional `captureSnapshot()` keys at the same spot (`prepPauseOff`,
   `blocksEpisodesOptional`); both kept, `main`'s first. Merged build `c164e88b…` (1,556,617 bytes): check 40/40, refs
   CLEAN, `labelsetup` 41/41, `mvmenu` 87/87, `regioncaveat` 13/13, `offweek` and `episodeprep` pass.
-- ⏭ **Next:** the merged build's full gate (queued), then the owner's merge picker (fast-forward `main` to this
-  branch), then the push picker. `month-notes` (items 2, 6, 10, 15, 17) has not landed; whichever lands second
-  merges by hand: see the shared notes folder's `bundle-B-labels-setup.md` for this branch's touchpoints.
+- **Full gate on that merged build `c164e88b…` at `5e285af` (port 8961, 15:51:57–16:12:30, alone): 2,075 PASS, 3
+  FAIL.** All three are timing flakes already on record, and all three passed when re-run alone through `gate.sh`'s
+  own loops and judges (16:32:55–16:33:23, **86 PASS, 0 FAIL**): `pilllabel (shootorder)` W3 and `pilllabel (halfdays)`
+  W2 ("months 1 vs 16", the month-walk flake) and `episodeprep (episodeprep)` ("timed out waiting for the loaded file's
+  name in the file menu"). Everything else held: 0 clipped, the waterfall PDF and every Excel part identical, 74 ids,
+  gate 10's ten documents and gate 13's twenty written PDFs identical. ⚠️ Commit `cc89cab` is titled for this result
+  but holds the paragraph above it (a chained command skipped the edit); this one is the record.
+- **Merged `main` in again (`34554f1`)**: bundle A (`month-notes`, items 2, 6, 10, 15, 17) had been merged into local
+  `main` on the owner's picker meanwhile, with the push held for this bundle. `app.js`, HANDOFF, README and `mvmenu.js`
+  merged clean (`mvmenu` now 88 cases, both bundles'); `gate.sh` and the harness README kept both sides. ⭐ **Both
+  bundles had re-cut `mvheaderlegacy`'s gate-10 baseline**, each signed off, so it was re-captured on the merged build
+  and checked to be exactly the union: against bundle A's cut only the 45 size options, against bundle B's only A's
+  92 hidden "+" slots, the fit table identical to both, a second capture byte-identical. Merged build `c9f2f5a5…`:
+  check 40/40, refs CLEAN, `labelsetup` 41, `mvmenu` 88, `mvnotes` 14, `regioncaveat` 13.
+- ⏭ **Next:** the full gate on `c9f2f5a5…` (queued), then the owner's merge picker (fast-forward `main` to this
+  branch: `main` is its ancestor), then the push picker, which would ship item 1, bundle A and bundle B together.
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
