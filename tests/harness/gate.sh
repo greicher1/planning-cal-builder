@@ -2040,6 +2040,64 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYBD
 done
 
+# ---- phasenum: a custom phase's "Number weeks" (PHASE-NUMBERING-PLAN.md, owner rulings 19 Oct 2026) -----
+# Two runs. LIVE builds the synthetic calendar through the UI and asserts the automatic flips as they
+# happen: By -> Days / Dates unticks the box, the day menu's "Add 1-day phase here" unticks it and its
+# 1-week item does not, the box shows in every unit and is hit-testable, and the built-ins have none (R2).
+# It mints tests/fixtures/phasenumbering.sptcal from its real Save. RESTORE holds every output's TEXT to a
+# hand trace: the waterfall rows, the month pills, the day menu's header, the workbook's cells, and the text
+# runs of the waterfall PDF and the WRITTEN month PDF (read here, from the files the leg hands back). Then:
+# unticking is one undo step, By -> Dates unticks and one undo restores unit and box, back to Weeks ticks it
+# (Q2), Days <-> Dates keeps the user's tick, the month edge drag's Weeks -> Dates switch leaves the box alone
+# (Q3), and the M-5 shape: customunits.sptcal (no wknum- ids) loaded after it opens with every box ticked.
+for PNSTATE in "" phasenumbering; do
+  rm -f "$HERE/phasenum.json" "$HERE/phasenum.pdf" "$HERE/phasenum.month.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$PNSTATE" "$HERE/run.sh" phasenum 300 >/dev/null 2>&1
+  python3 - "$HERE/phasenum.json" "phasenum (${PNSTATE:-live})" "$PNSTATE" "$HERE/phasenum.pdf" "$HERE/phasenum.month.pdf" <<'PYPN' || FAIL=1
+import json,sys,re,zlib
+from collections import Counter
+path, label, state, wfpdf, mvpdf = sys.argv[1:6]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+ok = a.get('pass') is True and bool(a.get('checks'))
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+if state:
+    # Every Flate stream's "(text) Tj" runs: both writers set a line of text as one literal string.
+    TJ = re.compile(rb'\(((?:\\.|[^\\)])*)\) Tj')
+    NAMES = ('Pre Prep', 'Table Read', 'Scout', 'Stage Lock', 'Rigging', 'Fitting', 'Camera Test')
+    def runs(p):
+        b = open(p, 'rb').read(); out = []
+        for m in re.finditer(rb'stream\r?\n', b):
+            s = m.end(); e = b.find(b'endstream', s)
+            try: d = zlib.decompress(b[s:e])
+            except Exception: continue
+            out += [re.sub(rb'\\(.)', rb'\1', x.group(1)).decode('latin-1') for x in TJ.finditer(d)]
+        return Counter(r for r in out if r.startswith(NAMES))
+    WANT = {
+      'waterfall PDF': (wfpdf, {'Pre Prep Wk 1': 1, 'Pre Prep Wk 2': 1, 'Pre Prep Wk 3': 1, 'Stage Lock': 2, 'Rigging wk 1': 1,
+                                'Rigging wk 2': 1, 'Table Read': 1, 'Scout': 2, 'Fitting': 1, 'Camera Test wk 1': 1}),
+      # Camera Test's one week runs Mon 3/29 - Fri 4/2, so it is drawn on the March page AND the April page.
+      'written month PDF': (mvpdf, {'Pre Prep Week 1': 1, 'Pre Prep Week 2': 1, 'Pre Prep Week 3': 1, 'Stage Lock': 2,
+                                    'Rigging Week 1': 1, 'Rigging Week 2': 1, 'Table Read': 1, 'Scout': 2, 'Fitting': 1,
+                                    'Camera Test Week 1': 2}),
+    }
+    for what, (p, want) in WANT.items():
+        try: got = runs(p)
+        except Exception as e: got = 'unreadable: ' + str(e)
+        good = got == Counter(want)
+        ok = ok and good
+        print(('  PASS  ' if good else '  FAIL  ')+label+': '+what+' text runs: the unnumbered phases bare, the numbered keep their week'
+              + ('' if good else ' -- got '+str(dict(got) if isinstance(got, Counter) else got)[:300]))
+sys.exit(0 if ok else 1)
+PYPN
+done
+
 # ---- episodeprep: per-episode prep, derived from the shoot, month view only (EPISODE-PREP-PLAN.md §11) -----
 # Three runs. LIVE builds the synthetic calendar through the UI (a blank default draws nothing; the two
 # ids in fields.byId and none in the list; the row hidden in the waterfall; the drop warning; the list in
