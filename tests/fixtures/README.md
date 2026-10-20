@@ -77,6 +77,7 @@ they are a working demonstration against the live site. They ship in the same re
 | File | Why it fails | Must now |
 |---|---|---|
 | `show-a.sptcal` | nothing: the GOOD file ("SHOW A": notes, a *Summer Break* hiatus) | be left exactly as it was after any bad load |
+| `sideboxes.sptcal` | the `sideboxes` leg (SIDE-BOXES-PLAN.md, 20 Oct 2026): `show-a.sptcal`'s made-up calendar with Prod Prep recoloured to Pre Prep's blue (`phaseColorOverride.prodPrep = 5`, so the key has a shared row) and a hand-added `sideBoxes` key: a five-line text box on the LEFT (bold, a line that wraps to three rows, italic red, a yellow highlight, a 14 pt centred line) and a colour key on the RIGHT. Hand-made from show-a's JSON, not a Save; the leg's F1 proves a real Save writes the same shape |
 | `loadfail-null-field.sptcal` | `fields.byId['season-num']` is `null` | be refused cleanly, calendar untouched |
 | `loadfail-null-hiatus.sptcal` | `fields.hiatuses` holds a `null` | the same |
 | `loadfail-colour.sptcal` | `phaseColorOverride.production = 9`, and `PHASE_COLOR_OPTIONS` has 0–8 | the same. This is what the first colour append would make every OLDER engine see |

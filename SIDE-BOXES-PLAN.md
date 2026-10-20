@@ -1,7 +1,8 @@
 # SIDE-BOXES-PLAN.md
 
-**Status: RULED 20 Oct 2026, BUILDING.** The owner answered all eight questions in §9 by picker, each as recommended,
-and approved the frozen edits E1–E6 (§6). Nothing is merged or pushed.
+**Status: BUILT 20 Oct 2026** (`55cce8d`, `9efd62a`), leg `sideboxes` 57/57, red on the pre-change build. The owner
+answered all eight questions in §9 by picker, each as recommended, and approved the frozen edits E1–E6 (§6). Full gate:
+see HANDOFF. Nothing is merged or pushed. §10 records where the build departs from the plan, §11 what was proven.
 **Branch:** `claude/side-boxes-129c72` (worktree `.claude/worktrees/side-boxes-129c72`).
 **Written against:** `670a591`.
 **Read first:** [`CLAUDE.md`](CLAUDE.md) → [`HANDOFF.md`](HANDOFF.md) (top entry, "RULED, NOT YET PLANNED", ruling 7)
@@ -338,3 +339,37 @@ not picked); *"1 col + spacer, row 1"*; *"Grid + boxes together"*; *"Grid + boxe
 | Q6 | A line's highlight | **Fills the line's full width**, in all three outputs (an Excel cell can only be filled whole) | Hugs the text on screen and in the PDF, as the header does; Excel then differs |
 | Q7 | Where boxes are added | **A "Side boxes ▾" menu in the preview toolbar**, waterfall view only | In the Settings window (ruling 12); both |
 | Q8 | The frozen edits E1–E6 (§6) | **Approved, with the gate in §6 as the proof** | Excel first, PDF after a separate A/B; not yet |
+
+---
+
+## 10. Where the build departs from the plan
+
+- **The format bar sits UNDER the line being edited**, not above it. Above, it hid the lines just typed, and for a
+  box at the top of its column it covered the preview toolbar. It flips above only when the window has no room
+  below. A right-side box's bar hangs from the box's right edge, so it opens over the grid.
+- **The grip and × sit inside the title row**, shown on hover or focus, rather than outside the box: the side column
+  scrolls, and anything outside the box would be clipped by it.
+- **Key names shrink to fit one row** (`sideKeyScale()`, bold measure, floor 50%), as a phase label shrinks; they
+  never wrap. Text lines wrap and take more rows instead.
+- **A side's width is a grid column's unit end to end**: dragged in screen px, stored as `screenPxToChars()`
+  clamped by `clampChars()` to 8–60 (which also steps off ExcelJS's 9.00 sentinel), drawn as `charsToScreenPx()`.
+- **`OVER_PANEL` gained `.sb-fmt, .sb-menu, .sb-drop`**: the format bar can hang over the grid's edge, and the grid's
+  hit test must stop at a body-level panel.
+
+## 11. As built and proven (20 Oct 2026)
+
+- **Code:** `src/legacy/app.js`, block "SIDE BOXES" after `let customHolidays = [];` (store, sanitizer, layout,
+  writer helpers, screen editor) and the hooks named in §7; the frozen edits E1–E6 in `exportExcel` and
+  `buildWaterfallPdf`, each commented in place. `src/index.html` (two hosts), `src/styles/legacy.css` ("Side boxes"
+  after the app-shell block), `src/chrome/PreviewToolbar.jsx` (`#tb-side-boxes-btn`).
+- **Leg `sideboxes`** (`tests/harness/t/sideboxes.js`, on `tests/fixtures/sideboxes.sptcal`, wired into `gate.sh`
+  just before the Node provers): 57 checks in six groups, S (screen), X (workbook), P (PDF), M (month view), G
+  (gestures, each hit-tested), F (file). Green 57/57 on build `367ce716…`. Red on the pre-change build `7054bec6…`.
+  Mutants, each red on its own check: the key written with no box (F5), E1 removed (X3), the month-view hide
+  removed (M1; F4 stayed green because the panel's grid rule is ALSO scoped to the Waterfall view, a second guard).
+- **What the leg measured:** the workbook's A = text box, B = 2-unit spacer, grid from C with its date chain `=C2+7`,
+  the key in K with fills and white-on-red, merges `A3:A5` and `A8:A9`, print area `A1:K53`; the PDF's box text left
+  of the grid (x 22.3 against the grid's Date at 121.9) and the key right of it (x 536.9), the italic shear, the
+  three-line wrap, the band's left line at the box's edge; `#table-wrap` 1160 px wide in the month view with boxes and
+  without; deleting the last box removes the `sideBoxes` key and gives back the identical PDF page content.
+- `check-xlsx.sh` on the workbook: OK. The PDF rendered with `pdftoppm` and inspected.

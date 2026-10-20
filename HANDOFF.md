@@ -4,6 +4,104 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026: SIDE BOXES (owner ruling 7) BUILT, gate pending (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the boxes beside the waterfall.** One of the parallel sessions started from the ruling-7 entry
+  below. Plan, mock-up ([`mockups/side-boxes.html`](mockups/side-boxes.html), a made-up calendar) and rulings in
+  `SIDE-BOXES-PLAN.md`; §11 is the as-built record.
+- **Rulings (owner, 20 Oct 2026, by picker, all eight the recommended option):** key rows in grid order, a shared
+  colour's names joined " / ", hiatus last (Q1); Hiatus red when a hiatus shows, Sim Post yellow when it shows, any
+  row hideable, Notes purple NOT included (Q2); Excel one column per side, 20 units by default, a 2-unit spacer,
+  boxes from row 1 (Q3); fit AND orientation over grid + boxes (Q4); the PDF header band over grid + boxes (Q5); a
+  line's highlight fills the whole line (Q6); added from a "Side boxes ▾" toolbar menu (Q7); **frozen edits E1–E6
+  approved** (Q8).
+- **Built** (`55cce8d` store, `9efd62a` screen + writers + leg):
+  - Store `sideBoxes` / `sideWidths`, one new snapshot key `sideBoxes: {boxes, widths}`, written ONLY while a box
+    exists, restored unconditionally (deep copy), sanitized by `cleanSideBoxes()` (an unknown `kind` or `side` is
+    dropped and counted), cleared by `resetAll()`. `SNAPSHOT_VERSION` unchanged. No new id: gate 5 stays 74.
+  - ⭐ ONE layout, `sideBoxLayout()`, read by the screen and both writers: segments in whole sheet rows, a line's rows
+    from a greedy wrap with `measureTextPx` in points (1.2 em for the first line, `SHEET_LINE_RATIO` per further
+    line). The key's rows come from the COMPUTED schedule (`sideKeyEntries()`), so they are what prints.
+  - Screen: two `.side-col` hosts after `#table-wrap` (no ids), a grid on `main.preview-panel.has-side-boxes` above
+    960 px in the Waterfall view only. ⛔ Hidden in the month view by `body:has(#view-month-btn.active)`, whose class
+    is set BEFORE the render, because `#table-wrap`'s width repaginates the month PDF (MANTINE-SEAM §5.3). The leg
+    holds it to the pixel. Each side's `max-height` copies the frozen `.sheet-scroll` expression; the leg asserts the
+    two computed values are equal.
+  - Frozen edits, each inert with no box: `exportExcel` E1 (`let cum=1 + sideLeftCols`), E2 (the gridlines loop from
+    the grid's first column), E3 (orientation from `sideBoxPageExtent()`, the print area, `writeSideBoxesXlsx()`);
+    `buildWaterfallPdf` E4 (`fitW`/`fitH`, `contentX`, `originX`), E5 (`hdrLeftX`/`hdrRightX` from `contentX`), E6
+    (orientation, `drawSideBoxesPdf()`). The two helpers are new code, not on the frozen list; the owner has not
+    ruled on freezing them.
+- **Proof so far** (build `367ce716…`):
+  - `sideboxes` leg, 57 checks, **57/57** green; **red on the pre-change build `7054bec6…`**; three mutants each red on
+    their own check (the key written with no box F5, E1 removed X3, the month-view hide removed M1).
+  - The exported workbook passes `check-xlsx.sh`; the PDF was rendered with `pdftoppm` and looked at.
+  - `npm run check` 40/40.
+- ⏳ **Full gate: queued** (port 9173, FIFO behind the other sessions' gates). Its byte-compares are the proof that
+  every existing calendar's waterfall PDF and Excel parts are unchanged.
+- ⚠️ **Merge notes:** the header-row session edits the same two writers' header-ROW code (different lines) and makes
+  `SHEET_PAGE_MARGIN_PT.t/.hdr` getters; quick-wins appends `PHASE_COLOR_OPTIONS` (the key picks the new colours up
+  with no change); cal-range makes `currentSchedule` view-dependent (the key reads the waterfall's, which is right).
+  All of them add snapshot keys after `prepPauseOff`, so expect adjacent-line conflicts there. Shared notes:
+  `side-boxes-ports-and-touchpoints.md` in the group's notes folder.
+- ⚠️ **Traps hit while building:** a view switch is its own undo step (`viewMode` is saved), so a leg that switches
+  views and then undoes lands on the switch; the share and export buttons carry a 600 ms re-click guard, so a leg
+  pressing one twice quickly gets one result; sibling sessions took ports 8963/8964, so `preview_start` silently
+  showed another worktree's build until the port moved (9171).
+
+### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
+
+- ⏭ **RESUME HERE for this work.** The owner shared a reference waterfall, kept in the chat only (confidentiality
+  rule), and asked whether the app could build it. It was rebuilt live in the dev pane, then reset, and its crash
+  backup slot was cleared; nothing was saved. **Every phase, label and week count matched; the layout did not.**
+  Owner: *"walk me thru all the changes/features we could add, asking me questions about each before you start
+  planning"*. The rulings below came by picker. **Nothing is planned or built.** First up, by the owner's pick:
+  **column reuse**.
+- **Rulings (owner, 20 Oct 2026):**
+  1. **Column reuse.** Automatic, with a per-phase override. A phase takes the column of a phase that ENDS THE WEEK
+     IT STARTS. On a tie it takes the column of the phase it is set to "Start after". Otherwise the lowest free
+     column, otherwise a new column on the right. **Opt-in per calendar** (saved in the file), so every existing
+     calendar and export stays byte-identical. Override from the phase row AND by a grid gesture.
+  2. **Header row.** Every header cell is typed and editable: the date-column cell (shows the year by default,
+     replacing "Date"), the phase columns, and Notes. Labels are per column, and neighbours with the same text merge.
+     A Notes column stays on every year.
+  3. **Year split: unchanged.** Instead, a **calendar start/end override** (blank = full years, as today). Rows
+     outside it are cut, with a notice naming the cut phases. Applies to the waterfall, Excel and the waterfall PDF,
+     not the month view. Set in the Show tab. The owner knows it does not move year boundaries.
+     ⚠️ They asked to "add back" this override; git history has no earlier one. Full-year padding dates from the
+     first commit.
+  4. **Date format:** a calendar setting, 1/6/25 (today) or 1/6/2025.
+  5. **Colours:** append to `PHASE_COLOR_OPTIONS` (append only): bright green, strong blue, pink, a stronger
+     yellow, a stronger peach. No free picker.
+  6. **All-phase hiatus:** stays one band.
+  7. **Side boxes:** any number of boxes left or right of the grid. Each is a **colour key** (one entry per colour,
+     editable names, drawn as a bordered key) or a **titled text box** with per-line styling (the header's controls).
+     Boxes grow as you type and stack per side, drag to reorder. They are edited on screen beside the grid, never in
+     its cells, and printed in Excel and the waterfall PDF (the grid prints smaller to make room). Not in the month view.
+  8. **Phase hiatus week numbers:** a "Number weeks" checkbox per phase hiatus, off by default.
+  9. **Automatic notes:** a calendar setting choosing which kinds show.
+  10. **Header: Off** mode, with no title block in the grid, Excel or PDF.
+  11. **Seasons:** nothing to build; phases are named by hand.
+  12. **A Settings window:** a tabbed panel that slides in beside the grid and leaves the waterfall visible. It holds
+      Region & holidays, Preferences and Export App With Data, plus the new calendar settings. Tabs separate
+      *this calendar* (saved in the file) from *my preferences* (this machine).
+- **Facts found while answering, for whoever plans this:**
+  - ⭐ **A year block's column count is the number of distinct `col` values in it**, set by computeSchedule's
+    greedy placement: a phase must sit right of every earlier phase still running. Swaps preserve each week's `col`
+    multiset (`applyColSwaps`), so they reorder columns and can never remove one. Column reuse therefore has to
+    change `col` upstream in computeSchedule (not frozen). Frozen computeBlockLayout then derives fewer slots from
+    that data.
+  - The handoff rule in ruling 1 reproduced every column of the reference except one tie, which "Start after"
+    settles. Left/right order within a year still comes from first appearance; the existing Swap Column fixes it.
+  - **Frozen edits needed, each with its own sign-off and gate measurement:** 2 (the header row is hard-coded
+    `Date | year | Notes` in renderSpreadsheetView, exportExcel and buildWaterfallPdf), 4 (dates in the frozen
+    renderers and writers), 7 (both writers, and the PDF's fit-to-page), 10. **No frozen edit:** 1, 3
+    (computeSchedule's padding), 5, 8, 9 and 12. ⚠️ For 12, every moved control keeps its id (save format). Preference
+    controls stay inside `.prefs-card`. The panel must stay mounted while closed (as `#file-menu` is), because
+    `collectFieldValues()` reads the DOM.
+  - Unverified: in the dev pane two real clicks on the header's New button did nothing, while `.click()` from JS
+    opened its confirm. Possibly my click coordinates; not investigated.
+
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
