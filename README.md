@@ -122,8 +122,10 @@ kinds show.
 A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
 for a **Number weeks** box on each phase's hiatus, off by default, after a reference calendar numbered its hiatus weeks.
 - **The box** sits under the hiatus's Start date and Weeks, on every phase that has a hiatus (built-in and custom).
-  Ticked, the band reads **"Pre Prep Hiatus wk 1", "wk 2", "wk 3"**, counting the hiatus's own weeks, in the waterfall,
-  Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break wk 1").
+  Ticked, the band reads **"Pre Prep Hiatus Week 1", "Week 2", "Week 3"**, counting the hiatus's own weeks, in the
+  waterfall, Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break
+  Week 1"). *(Built as "wk 1"; changed the same day to match the all-phase hiatus's "Hiatus Week 1", owner: "Make both
+  Number weeks boxes read the same way".)*
 - **A band you retyped by clicking it in the grid keeps exactly what you typed** (owner's picker, 20 Oct 2026), ticked
   or not; its neighbours are numbered. Reset hiatus bands puts it back into the numbering.
 - **Unticked, nothing changes**, and every calendar ever saved opens unticked.

@@ -10294,9 +10294,12 @@ export function initLegacyApp() {
     // has hand-edited the band since we last claimed it.
     // `name0` is the band's label, or a function of the week's index (0-based) for an all-phase row whose
     // "Number weeks" is ticked (LABELS-SETUP item 9). `numbered` (a phase's own hiatus only, ruling 8)
-    // appends " wk N" to each week's label, N counting the hiatus's own weeks from its Monday-snapped
+    // appends " Week N" to each week's label, N counting the hiatus's own weeks from its Monday-snapped
     // start: the weeks its Weeks box asks for. The two never meet: item 9 leaves phases' own hiatuses
     // unnumbered, and ruling 8 passes a plain string.
+    // ⭐ BOTH READ "<name> Week N" (owner, 20 Oct 2026, by button: "Make both Number weeks boxes read the
+    // same way"). Ruling 8 was built as "wk N" on its own branch and item 9 as "Week N"; the merge showed
+    // the two side by side, and the owner chose item 9's.
     const applyRange = (name0, startStr, weeksStr, makeKey, numbered) => {
       // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
       // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
@@ -10313,7 +10316,7 @@ export function initLegacyApp() {
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
-          const label = numbered ? name + ' wk ' + (i + 1) : name;
+          const label = numbered ? name + ' Week ' + (i + 1) : name;
           if(hiatusTexts[key] !== label) hiatusTexts[key] = label;
           hiatusNameSyncedKeys[key] = label;
         } else if(key in hiatusTexts){

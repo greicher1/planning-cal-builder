@@ -33,8 +33,10 @@
     tab, as ruling 3 says, and its two swept ids sit ahead of the window's, where its own branch put them.
   - `applyRange()` in `syncHiatusNamesFromSidebar()` takes both new arguments: bundle B's per-week name function (an
     all-phase row's "Number weeks", "Hiatus Week 1") and ruling 8's `numbered` flag (a phase's own hiatus, "wk 1").
-    ⚠️ **So the two "Number weeks" boxes read differently**: "Hiatus Week 1" on an all-phase hiatus, "Writer's Rm Hiatus
-    wk 1" on a phase's own. Each was ruled on its own branch. Ask the owner whether to make them match.
+    ✅ **The two "Number weeks" boxes read the same way now**: "<name> Week N", on an all-phase hiatus ("Hiatus Week 1")
+    and on a phase's own ("Writer's Rm Hiatus Week 1"). Ruling 8 had been built as "wk 1"; the owner, shown the two
+    side by side: *"Make both Number weeks boxes read the same way: '<name> Week N'"*. Changed on `shoot-prefix`
+    (`applyRange`'s one label line), with `phiatusnum`'s expectations.
   - The prep start grips (main) and the hiatus drag were added at the same spot and git interleaved them line by line
     (histogram diff too). The region was rebuilt from each side's whole block, each checked identical to its source.
   - `OVER_PANEL` and the shareable copy's strip list carry every branch's body-level chrome.
