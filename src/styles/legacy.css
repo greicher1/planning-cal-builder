@@ -453,28 +453,97 @@
      itself from the theme -- including the on-state, which is the app's primary colour, so it
      matches the active tab without a rule here. Nothing to override; the class is gone with it. */
 
+  /* The rail is the two tabs plus the Settings BUTTON (owner ruling 12, 20 Oct 2026): Settings opens
+     the Settings window rather than switching the sidebar, so it sits outside the tablist. flex 2:1
+     keeps the three the same width as when all three were tabs. */
+  .side-tabs{ display:flex; gap:var(--mantine-spacing-xxs); }
   .side-tabs-track{
-    display:flex; gap:var(--mantine-spacing-xxs);
+    display:flex; gap:var(--mantine-spacing-xxs); flex:2 1 0; min-width:0;
   }
-  .side-tab-btn{
+  .side-settings-btn{ flex:1 1 0; min-width:0; }
+  .side-tab-btn, .side-settings-btn{
     flex:1; display:flex; align-items:center; justify-content:center; gap:var(--mantine-spacing-sm);
     font-family:inherit; font-size:var(--mantine-font-size-sm); font-weight:500; letter-spacing:.01em;
     border:none; background:transparent; color:var(--mantine-color-gray-6);
     padding:8px 6px; border-radius:var(--mantine-radius-default); cursor:pointer;
     transition:color .12s ease, background .12s ease;
   }
-  .side-tab-btn .tab-ic{ width:15px; height:15px; flex:none; }
+  .side-tab-btn .tab-ic, .side-settings-btn .tab-ic{ width:15px; height:15px; flex:none; }
   .side-tab-btn.active{
     background:var(--mantine-primary-color-light);
     color:var(--mantine-primary-color-light-color);
     font-weight:600;
   }
-  .side-tab-btn:hover:not(.active){ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
-  .side-tab-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .side-tab-btn:hover:not(.active), .side-settings-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-gray-9); }
+  .side-tab-btn:focus-visible, .side-settings-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
   .card.tab-hidden{ display:none !important; }
   @media (max-width:960px){
     /* On the stacked mobile layout the panel isn't its own scroll region, so un-stick. */
     .side-tabs{ position:static; }
+  }
+
+  /* ---------- The Settings window (owner ruling 12, 20 Oct 2026; src/chrome/SettingsWindow.jsx) ----------
+     "A tabbed panel that slides in over the sidebar from a Settings button and leaves the waterfall
+     visible, so changes show live." It is laid over aside.form-panel -- exactly the sidebar's box,
+     the rail included -- and never over .preview-panel, so the grid, the grid fit and every popover
+     anchored to a cell are untouched by it.
+     ⛔ CLOSED IS display:none, NEVER UNMOUNTED. collectFieldValues() and readState() read the
+     window's controls by id on every save and every update; display:none is what `.tab-hidden` did to
+     these same cards whenever the sidebar showed another tab, so the engine has always coped with it.
+     The slide is a transform: @starting-style gives the way in, and `display ... allow-discrete` keeps
+     it displayed for the way out (Chrome/Edge are the targets, CLAUDE.md).
+     ⚠️ CONTAINING BLOCK = THE SIDEBAR'S SCROLL BOX. .form-panel is position:sticky, so it holds the
+     window -- and an absolute child of a scroll box scrolls with its content. SettingsWindow.jsx sets
+     `top` to the sidebar's scrollTop, and .settings-open stops the sidebar scrolling underneath; the
+     window scrolls inside its own tab panel instead.
+     z-index 110: above the sticky .side-tabs (100) in the sidebar's own stacking context (sticky
+     makes one), and so below every body-level popover (300) and the help modal (200). */
+  .settings-window{
+    display:none; flex-direction:column;
+    position:absolute; left:0; top:0; width:100%; height:100%; z-index:110;
+    background:var(--mantine-color-white);
+    transform:translateX(-100%);
+    transition:transform 180ms ease, display 180ms allow-discrete;
+  }
+  .settings-window.is-open{ display:flex; transform:none; }
+  @starting-style{ .settings-window.is-open{ transform:translateX(-100%); } }
+  @media (prefers-reduced-motion:reduce){ .settings-window{ transition:none; } }
+  .form-panel.settings-open{ overflow:hidden; }
+  /* The head lines up with the rail it covers: same padding, same rule under it. */
+  .sw-head{
+    flex:none; display:flex; align-items:center; gap:var(--mantine-spacing-sm);
+    padding:var(--mantine-spacing-md) var(--mantine-spacing-lg) var(--mantine-spacing-md) var(--mantine-spacing-xl);
+    border-bottom:1px solid var(--mantine-color-gray-2);
+  }
+  .sw-head-ic{ width:15px; height:15px; flex:none; color:var(--mantine-color-gray-7); }
+  .sw-title{ margin:0; flex:1; min-width:0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--mantine-color-gray-9); }
+  .sw-tabs{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  .sw-tablist{ flex:none; padding:0 var(--mantine-spacing-md); }
+  /* Four labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
+     the 280 px floor on one line. */
+  .sw-tab{ padding:10px 6px; font-size:var(--mantine-font-size-sm); font-weight:500; }
+  /* The panel is the window's ONE scroller, padded as .side-content is so the cards sit as they did. */
+  .sw-panel{
+    flex:1 1 0; min-height:0; overflow-y:auto;
+    padding:0 var(--mantine-spacing-xl) var(--mantine-spacing-xl);
+  }
+  .sw-scope{
+    display:flex; align-items:flex-start; gap:var(--mantine-spacing-sm);
+    padding:var(--mantine-spacing-lg) 0 var(--mantine-spacing-xs);
+    line-height:var(--mantine-line-height-sm);
+  }
+  .sw-scope-ic{ width:14px; height:14px; flex:none; margin-top:1px; color:var(--mantine-color-gray-5); }
+  /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
+     goes IN FLOW and takes the sidebar's place instead of lying over it. */
+  @media (max-width:960px){
+    .settings-window{ position:static; width:auto; height:auto; transform:none; transition:none; }
+    /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
+       nothing here, where the window's height is its content's, and they paint over the preview. */
+    .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }
+    .settings-window .sw-panel{ overflow:visible; }
+    .form-panel.settings-open{ overflow:visible; }
+    .form-panel.settings-open .side-tabs,
+    .form-panel.settings-open .side-content > :not(#settings-host){ display:none; }
   }
 
   .phase-row{
@@ -2649,9 +2718,11 @@
      Schedule-by rule above). Off the controls themselves, like the rules above, so no restore, undo
      or Load path can leave the rows out of step. Each row carries its own divider, so hiding one
      never strands another. ⛔ display:none, never unmounted: the engine writes .checked by id. */
-  .prefs-card:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
-  .prefs-card:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
-  .prefs-card:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,
+  /* ⚠️ body:has, not .prefs-card:has: since the Settings window (ruling 12) "Label Production by" is
+     in This calendar's Month view card and the switches are in My preferences', two cards apart. */
+  body:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
+  body:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
+  body:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,
   body:not(:has(#show-mode option[value="blocks"]:checked)) .pref-mv-row-blocks{ display:none; }
   /* ---- Production's total + the episode/block lists: Mantine's look (owner, 22 Sep 2026) ----
      "Can we restyle this to be nicer looking and extend across. Style using mantine. Also restyle

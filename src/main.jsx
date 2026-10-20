@@ -73,6 +73,10 @@ import '@mantine/core/styles/Stack.layer.css'
 // order here is Mantine's own, read off the byte offsets of each component's first class in
 // node_modules/@mantine/core/styles.layer.css; Switch sits last of the ones this app uses.
 import '@mantine/core/styles/Switch.layer.css'
+// The Settings window's tabs (owner ruling 12, 20 Oct 2026). LAST, by the same derived reading: Tabs'
+// first class sits after Switch's in styles.layer.css. Tab is an UnstyledButton, so its own rules must
+// come after UnstyledButton's reset or every tab loses its padding -- the round-7 Button trap again.
+import '@mantine/core/styles/Tabs.layer.css'
 import './styles/inter.css'
 import './styles/legacy.css'
 
@@ -80,7 +84,8 @@ import { theme } from './theme.js'
 import { InfoHint } from './chrome/InfoHint.jsx'
 import { Header } from './chrome/Header.jsx'
 import { PreviewToolbar } from './chrome/PreviewToolbar.jsx'
-import { ShowInfoCard, RegionCard, HolidaysCard, AppCard, PreferencesCard, HeadersCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { ShowInfoCard, HiatusResetButton } from './chrome/Sidebar.jsx'
+import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
@@ -118,7 +123,11 @@ function Chrome() {
     <>
       {portal(<Header />, 'header.app-header')}
       {portal(<PreviewToolbar />, '.view-toggle-row')}
-      {portal(<><ShowInfoCard /><RegionCard /><HolidaysCard /><PreferencesCard /><HeadersCard /><AppCard /></>, '#sidebar-static')}
+      {portal(<ShowInfoCard />, '#sidebar-static')}
+      {/* The Settings window (owner ruling 12): Region & holidays, the preferences, the header presets
+          and Export App With Data moved out of the sidebar's old Settings tab into it. Its host sits
+          right after #sidebar-static ON PURPOSE -- see SettingsWindow.jsx, point 1. */}
+      {portal(<SettingsWindow />, '#settings-host')}
       {/* The All-phase hiatus card's rows are engine-generated, so the card itself cannot be a
           React component -- but its header is static markup, so its "i" portals in here. Keeps
           one InfoHint implementation rather than a CSS-only lookalike for this one card. */}

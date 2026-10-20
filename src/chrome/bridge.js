@@ -104,6 +104,11 @@ export const chrome = {
   // engine's document listener by their name, `mv-prod-label`. ⛔ Click, not change: a controlled
   // radio fires no `change` in Chrome (React restores it inside the click; see setMvProdLabel).
   mvProdLabel: noop,
+  // { open?, tab? } — the Settings window (owner ruling 12, src/chrome/SettingsWindow.jsx). The
+  // engine only ever CLOSES it, when it sends the user to a sidebar tab the window would cover
+  // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
+  // step, and a Load or an undo leaves it as it is.
+  settingsWindow: noop,
 }
 
 export function installChrome(impl) {
