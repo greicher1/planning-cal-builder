@@ -5642,7 +5642,7 @@ export function initLegacyApp() {
     row.querySelector('#prep-name').addEventListener('change', syncPrepName);
     row.querySelector('#prep-days').addEventListener('input', update);
     // ⚠️ "Pause prep on days marked Off" was a box in this row until the owner moved it into the
-    // Settings window ▸ This calendar (ruling 12, 20 Oct 2026). It is React-rendered there
+    // Settings window ▸ Calendar (ruling 12, 20 Oct 2026). It is React-rendered there
     // (#prep-pause-off, Sidebar.jsx CalendarMonthCard), so it is handled by delegation below, never
     // captured here.
     const sw = row.querySelector('.swatch');

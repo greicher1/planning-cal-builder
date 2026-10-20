@@ -222,9 +222,9 @@ export function RegionCard() {
 // ⭐ THE SETTINGS WINDOW'S CARDS (owner ruling 12, 20 Oct 2026). The old Preferences card held two
 // kinds of thing -- settings saved in the calendar and preferences kept on this computer -- and its
 // hint had to explain the split. The window's tabs ARE that split now (SettingsWindow.jsx), so the
-// card is cut along it: CalendarWaterfallCard / CalendarMonthCard under "This calendar", and
-// PrefsWaterfallCard / PrefsMonthCard under "My preferences". Owner's placement, relayed the same
-// day: Single Column Mode, Label Production by and "Pause prep on days marked Off" are THIS CALENDAR.
+// card is cut along it: CalendarWaterfallCard / CalendarMonthCard under the Calendar tab, and
+// PrefsWaterfallCard / PrefsMonthCard under Preferences. Owner's placement, relayed the same day:
+// Single Column Mode, Label Production by and "Pause prep on days marked Off" are THIS CALENDAR's.
 //
 // ⛔ `prefs-card` IS ON ALL FOUR, AND ON THE TWO CALENDAR CARDS IT DOES NOT MEAN "PREFERENCE".
 // collectFieldValues() sweeps every input[id] / select[id] / textarea[id] in the document into
@@ -374,7 +374,7 @@ export function PrefsMonthCard() {
             ✅ CONTEXTUAL (plan §5.2, owner ruling Q3, "the toggles should contextually change based
             on what mode we are on"): only the items the grey text can carry right now are offered.
             A switch hides while its item is the bar's text -- "Label Production by", which is in
-            THIS CALENDAR's Month view card now -- and Show Blocks hides on a calendar with no
+            Calendar tab's Month view card now -- and Show Blocks hides on a calendar with no
             blocks. Pure CSS off that control's checked radio and #show-mode (legacy.css), so no path
             can leave them out of step. ⛔ HIDDEN, NEVER UNMOUNTED: the engine writes .checked by id.
             The caption is first and never hidden, so each row can carry its OWN divider on top (the
@@ -492,8 +492,10 @@ export function HeadersCard() {
   )
 }
 
-// The header PRESET library (HEADER-PRESETS-PLAN.md §3.5). Lives in the Preferences card because a
-// preset IS a preference -- how this person likes headers, not what this calendar says.
+// The header PRESET library (HEADER-PRESETS-PLAN.md §3.5). A .prefs-card because a preset IS a
+// preference -- how this person likes headers, not what this calendar says. Since ruling 12 it is the
+// Settings window's Presets tab (owner: "a tab in settings that keeps both presaved headers and
+// presaved side boxes").
 //
 // ⛔ NOT ONE `id` ON ANY CONTROL IN HERE, and the .prefs-card skip is not the reason. That skip
 // covers controls inside the card; the rule is kept absolutely because it is simpler to hold than to

@@ -96,7 +96,7 @@ export const chrome = {
   // { view: 'sheet'|'month' } — the app header's notes reset (ruling 4, and the owner's measured
   // fallback that put it where Reset All was): "Reset Notes" / "Reset Month Notes".
   notesResetBtn: noop,
-  // { value: 'week'|'episode'|'block', blockAvailable } — Preferences ▸ "Label Production by"
+  // { value: 'week'|'episode'|'block', blockAvailable } — Settings ▸ Calendar ▸ "Label Production by"
   // (MONTH-PILL-LABEL-PLAN.md §5.1). `value` is the label the month bars are DRAWN in, so with nothing
   // chosen it is what Schedule by gives; the engine's mvProdLabel is the only store. Bridged because a
   // SegmentedControl's indicator follows React state: an engine write to a radio's .checked would be

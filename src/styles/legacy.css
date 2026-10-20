@@ -2719,7 +2719,7 @@
      or Load path can leave the rows out of step. Each row carries its own divider, so hiding one
      never strands another. ⛔ display:none, never unmounted: the engine writes .checked by id. */
   /* ⚠️ body:has, not .prefs-card:has: since the Settings window (ruling 12) "Label Production by" is
-     in This calendar's Month view card and the switches are in My preferences', two cards apart. */
+     in the Calendar tab's Month view card and the switches are in the Preferences tab's, two cards apart. */
   body:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
   body:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
   body:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,
