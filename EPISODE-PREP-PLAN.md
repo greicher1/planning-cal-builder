@@ -128,8 +128,21 @@ For **every** episode in shooting order, the first included (P3):
   Pills are labelled with the block's name.
 - **A run with `n` blank or 0 is skipped.** A default of blank and no overrides = no prep and no
   segment. That is how every calendar saved before this opens.
-- **`dayOverrides` play no part.** They decide which days are SHOT. Prep counts working days before
-  the first one, so a Saturday the shoot works is not a prep day.
+- **`dayOverrides` play no part, unless "Pause prep on days marked Off" is ticked** (§15, owner, 20 Oct
+  2026). Unticked, the default, prep runs through days marked Off, as it always has.
+  - *History:* on 19 Oct 2026 the owner ruled, by picker, *"Skip it, start earlier"* (branch
+    `prep-skip-off`, never shipped on its own). That made every Off day a non-prep day. On 20 Oct 2026,
+    after two real calendars were recreated in the app, the owner made it a switch, off by default
+    (§15). The 19 Oct rule is now what the switch turns on.
+  - **Ticked:** a day marked **Off** inside the shot range (first to last shoot day, the same span the
+    day menu and the sidebar's "N off" count use) is not a prep day. It **pauses** prep as a holiday
+    does, so the run keeps its `n` days and starts earlier. An Off mark outside that range is inert, as
+    it is for the shoot.
+  - `'on'` / `'onhalf'` play no part either way: a Saturday the shoot works is not a prep day.
+- **Production's own hiatus follows the same switch** (owner, 20 Oct 2026, by picker: *"Follow the
+  switch"*). Ticked, it pauses prep too, as the 19 Oct ruling *"Yes, skip it too"* said: since
+  OFF-WEEK-PLAN step A, a week of Off days reads "Production Hiatus", the same words as Production's own
+  hiatus, so the two go together. Unticked, prep runs through it, as step 3 above says.
 - **If Show Info is incomplete,** there is no prep.
 - **The segment carries:**
   - `days`: the union of every run's days, which `segCoversDate` reads. This is the same
@@ -174,6 +187,7 @@ The numbers in that sketch are illustrative.
 | `episodeDefs[].prepDays` | `captureSnapshot()`'s existing array | blank: use the default |
 | `blockDefs[].prepDays` | same | blank: use the default |
 | `phaseColorOverride.episodePrep` | the existing store | the default prep colour |
+| `prepPauseOff` (20 Oct 2026, §15) | a top-level `captureSnapshot()` key, written only as `true` | unticked: prep runs through Off days and Production's own hiatus |
 
 - **`prep-name`, not `name-episodePrep`,** so nothing that reads the phase-name pattern
   (`name-<key>`, as `getAllPhaseDefs()` does for the built-ins) can mistake it for a phase.
@@ -355,3 +369,42 @@ labels: *"dont put the 'Ep' just write 'Prep 303' but do write 'Prep Block 1'"*.
 - **§8's pills are unchanged:** "Prep 303" / "Prep Block 1". The prefix is now the segment's `pillName` ("Prep" for a
   default name, the typed name otherwise), no longer the row's name, which would have made "Episodic Prep 303".
 - ⛔ Gate 5's `prep-name` value on `v1.0.0-saved.html` moves from "Prep" to "Episodic Prep": a re-cut for the owner.
+
+## 15. "Pause prep on days marked Off": a switch, off by default (owner, 20 Oct 2026)
+
+The 19 Oct rule (§5: prep skips Off days and Production's own hiatus) was built and gated on branch `prep-skip-off`
+but never merged. On 20 Oct 2026 the owner had two real production calendars recreated in the app to find gaps.
+They keep prepping on the shoot crew's down days and on crew travel/prep days, so skipping cannot be the only
+behaviour.
+
+**Rulings, 20 Oct 2026, by picker (verbatim):**
+
+- *"Switch, default: don't skip"*. By default prep runs through days marked Off, exactly as the live app did.
+  A calendar-level switch turns skipping on.
+- *"Prep card, saved"*. The control is a checkbox in the Episodic/Block Prep card, "Pause prep on days marked
+  Off", unticked by default and saved with the calendar.
+- Asked whether Production's own hiatus stays skipped always or follows the switch: *"Follow the switch"*. So
+  unticked, every existing calendar draws exactly the prep it drew before 19 Oct.
+
+**As built:**
+
+- The box is a quiet toggle (the Snap to Mon look) under "Default prep days" in the Prep row, so it shows in the
+  month view only, like the rest of the row. Its tooltip names both things it pauses.
+- ⛔ **The box carries NO id.** `collectFieldValues()` sweeps every id'd control into `fields.byId`, so an id
+  would have re-cut gate 5's id set (74). The store is the module variable `prepPauseOff`, and the box only
+  reflects it (`refreshPrepUI`, which every update, undo, Load and New reaches).
+- ⛔ **Save format: `prepPauseOff`, a top-level `captureSnapshot()` key, written ONLY as `true`.** Unticked is an
+  ABSENT key (the `mvProdLabel` shape), so a calendar that never ticks it saves byte for byte what it saved
+  before. `applyStateSnapshot()` restores it unconditionally (`=== true`), so an older file loaded after a
+  ticked one opens unticked; New resets it. `sanitizeSnapshot()` drops a non-boolean. `SNAPSHOT_VERSION` is
+  unchanged: an older build ignores the key and runs prep through, which is what unticked means.
+- `appendEpisodePrep` reads it as `cfg.pauseOff` (from `readPrepConfig`): `ownHi` is Production's own hiatus
+  only when ticked, and `offDay()` is false when unticked.
+- Not a per-user preference, so never `localStorage`.
+
+**Proof:** `offweek` RESTORE R11 (ticked: the 19 Oct hand trace), R12 (a file with no key: unticked, and prep on
+9/3, 9/7–9/10, 9/20–9/24 and 10/8), R13 (one undo step; Save writes the key and adds no id; Load brings it back;
+the same file with no key, loaded after it, opens unticked), R14 (New starts unticked). `episodeprep` LIVE S1–S2
+(the box: in the row, unticked, no id, hit-testable; ticking moves nothing where there is nothing to skip; one undo),
+both MINTs (no key), and RESTORE's M-5 trap (unticked after a ticked calendar).
+

@@ -5635,6 +5635,7 @@ export function initLegacyApp() {
         <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
         <div class="phase-fields">
           <label title="Working days: Monday to Friday, skipping union holidays and hiatus days">Default prep days <input type="number" id="prep-days" class="prep-days-in" min="0" step="1" placeholder="None"></label>
+          <label class="prep-pause-off" title="On: a day marked Off between the first and last shoot day, and a day in Production’s own hiatus, pause prep as a holiday does, so each prep keeps its length and starts earlier. Off: prep runs through them."><input type="checkbox" class="prep-pause-off-cb"> Pause prep on days marked Off</label>
         </div>
         <div class="phase-meta prep-meta" id="prep-meta"></div>
         <div class="prep-panel" id="prep-panel"><div id="prep-rows"></div></div>`;
@@ -5643,6 +5644,11 @@ export function initLegacyApp() {
     // Prep"), as refreshPrepUI() does on every update() while the box is not being typed in.
     row.querySelector('#prep-name').addEventListener('change', syncPrepName);
     row.querySelector('#prep-days').addEventListener('input', update);
+    // The switch writes its variable, then update() recomputes and (through markDirty) banks ONE undo step.
+    row.querySelector('.prep-pause-off-cb').addEventListener('change', (e)=>{
+      prepPauseOff = !!e.target.checked;
+      update();
+    });
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
       openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=> setPhaseColor(PREP_KEY, i));
@@ -5680,6 +5686,9 @@ export function initLegacyApp() {
   // update() calling this still adds no undo step.
   function refreshPrepUI(schedule){
     syncPrepName();
+    // The switch shows its variable, so an undo, a Load or New puts the tick back with the rest.
+    const pauseCb = document.querySelector('#prep-row .prep-pause-off-cb');
+    if(pauseCb && pauseCb.checked !== prepPauseOff) pauseCb.checked = prepPauseOff;
     const wrap = document.getElementById('prep-rows');
     const metaEl = document.getElementById('prep-meta');
     if(!wrap) return;
@@ -5909,6 +5918,17 @@ export function initLegacyApp() {
   // (My pick, not a ruling: it is the unpicked default and stored nowhere, so it is cheap to change.)
   const PREP_KEY = 'episodePrep';
   const PREP_DEF = {key: PREP_KEY, label: 'Prep', color: '#E4DFEC', textColor: '#5F497A'};
+  // ⭐ "PAUSE PREP ON DAYS MARKED OFF" (owner, 20 Oct 2026, by picker: "Switch, default: don't skip",
+  // "Prep card, saved", and for Production's own hiatus "Follow the switch"). Ticked, a day marked Off
+  // inside the shoot and a day in Production's own hiatus PAUSE prep, as a holiday does
+  // (appendEpisodePrep). Unticked -- the default -- prep runs through both, as it always has: real
+  // calendars keep prepping on the shoot crew's down days and on crew travel/prep days.
+  // ⛔ CALENDAR DATA, NOT A PREFERENCE: it is captureSnapshot()'s `prepPauseOff`, never localStorage.
+  // UNTICKED IS AN ABSENT KEY (mvProdLabel's shape), so every calendar saved before the switch existed,
+  // and every one that leaves it off, saves byte for byte what it did. ⛔ The key is permanent.
+  // ⛔ Its checkbox in the Prep row carries NO id, so collectFieldValues() never sweeps it into
+  // fields.byId: this variable is the one store, and the box only ever reflects it (refreshPrepUI).
+  let prepPauseOff = false;
   // A prep length as typed: a whole number of working days, 0 included (an override of 0 means "no
   // prep for this one", §5), or NaN for a blank or unreadable box. parseInt, like every other duration
   // here; reflectStartDateValidity() rings a fraction ("Whole days only").
@@ -5955,10 +5975,12 @@ export function initLegacyApp() {
     return {key: PREP_KEY, label: auto ? autoPrepName() : typed, pillName: auto ? PREP_DEF.label : typed,
             color: opt.color, textColor: opt.text};
   }
-  // What readState() hands computeSchedule(): the default length and the def. The per-unit overrides
-  // are read from episodeDefs/blockDefs at schedule time, as productionUnits() reads their day counts.
+  // What readState() hands computeSchedule(): the default length, the def and the Pause switch. The
+  // per-unit overrides are read from episodeDefs/blockDefs at schedule time, as productionUnits() reads
+  // their day counts.
   function readPrepConfig(){
-    return {dflt: prepDayCount((document.getElementById('prep-days') || {}).value), def: prepDisplayDef()};
+    return {dflt: prepDayCount((document.getElementById('prep-days') || {}).value), def: prepDisplayDef(),
+            pauseOff: prepPauseOff};
   }
 
   function getAllPhaseDefs(){
@@ -10997,10 +11019,21 @@ export function initLegacyApp() {
   //   first = the unit's first shoot day (a half switch day counts: the unit is shot on it);
   //   run   = n working days counted BACK from the day before `first`. A working day is isUnitWorkDay()'s:
   //           Mon-Fri, not an ENABLED union holiday, not in an all-phase hiatus -- the one copy of the
-  //           rule a Days phase is walked with. No ownHi: Production's own hiatus pauses the SHOOT.
+  //           rule a Days phase is walked with. With "Pause prep on days marked Off" ticked
+  //           (cfg.pauseOff), it is also not in PRODUCTION's own hiatus (ownHi) and not a day marked Off.
+  // ⭐ THE SWITCH (owner, 20 Oct 2026, by picker: "Switch, default: don't skip", "Prep card, saved",
+  // and "Follow the switch" for Production's own hiatus). UNTICKED, THE DEFAULT, neither is read: prep
+  // runs through Off days and Production's own hiatus, as it did before 19 Oct, because real calendars
+  // keep prepping on the shoot crew's down days and on crew travel/prep days. TICKED, both are NOT prep
+  // days (the 19 Oct rulings, "Skip it, start earlier" and "Yes, skip it too", now the switch's ON
+  // side): an Off day is a day the shoot does not work, and since OFF-WEEK-PLAN step A a week of them
+  // reads "Production Hiatus", the same words as Production's own hiatus, so the two go together. Both
+  // PAUSE prep, as a holiday does: the run keeps its n days and starts earlier.
+  //   Only an Off mark INSIDE the shot range counts (refreshOverrideNote()'s rule): one left outside it
+  //   is stale, the shoot ignores it and the month view never draws it, so it must not move prep.
+  //   'on' / 'onhalf' play no part either way: a Saturday the shoot works is not a prep day.
   // n blank or 0 skips the unit, so a blank default with no overrides makes NO segment at all, and that
-  // is how every calendar saved before prep existed opens. dayOverrides play no part: they decide which
-  // days are SHOT, and a Saturday the shoot works is not a prep day. No Show Info, no prep.
+  // is how every calendar saved before prep existed opens. No Show Info, no prep.
   // The segment, the only one of its kind:
   //   days      the union of every run's days: segCoversDate() reads it (the custom-units groundwork);
   //   preps     each run, in unit order: pillRunsForWeek() splits prep's pills by them (§8);
@@ -11032,7 +11065,9 @@ export function initLegacyApp() {
     const U = productionUnits(schedule);
     if(!U) return;
     const ctx = {holidayIsos: new Set(fullHolidayList(state.unionCountry).filter(h=> h.enabled).map(h=> h.date)),
-                 hiatuses: hiatuses || [], ownHi: null};
+                 hiatuses: hiatuses || [], ownHi: (cfg.pauseOff && prod.phaseHiatus) || null};
+    const shot0 = prod.shootDays[0], shotN = prod.shootDays[prod.shootDays.length - 1];
+    const offDay = iso=> !!cfg.pauseOff && dayOverrides[iso] === 'off' && iso >= shot0 && iso <= shotN;
     const preps = [], all = new Set();
     let firstDay = null, lastDay = null;
     U.units.forEach(u=>{
@@ -11045,7 +11080,7 @@ export function initLegacyApp() {
       const list = [];
       // Bounded like a Days phase's walk: a typo'd length stops one calendar's worth of weeks back.
       for(let d = addDays(first, -1), safety = 0; list.length < n && safety < MAX_WEEKS * 7; d = addDays(d, -1), safety++){
-        if(isUnitWorkDay(d, ctx)) list.unshift(isoOf(d));
+        if(isUnitWorkDay(d, ctx) && !offDay(isoOf(d))) list.unshift(isoOf(d));
       }
       if(!list.length) return;
       const p = {kind: U.kind, unit: u, days: new Set(list), first: parseDateUTC(list[0]), last: parseDateUTC(list[list.length - 1])};
@@ -16891,6 +16926,7 @@ export function initLegacyApp() {
     // New shows it as "Episodic Prep" (syncPrepName). The per-episode lengths go with episodeDefs/blockDefs below.
     { const el = document.getElementById('prep-days'); if(el) el.value = ''; }
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
+    prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -17480,6 +17516,10 @@ export function initLegacyApp() {
       // null or a fourth value (owner's picker): it follows Schedule by, and a file that never chose
       // is byte-for-byte the snapshot it was before the key existed.
       ...(mvProdLabel ? {mvProdLabel} : {}),
+      // 20 Oct 2026: "Pause prep on days marked Off" (owner's picker: "Prep card, saved"). ⛔ PERMANENT
+      // key. Unticked, the default, is an ABSENT key, so a calendar that never ticks it saves byte for
+      // byte what it did before the switch existed.
+      ...(prepPauseOff ? {prepPauseOff: true} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -23338,6 +23378,7 @@ export function initLegacyApp() {
     // Small enums and counters.
     if('viewMode' in s && s.viewMode !== 'sheet' && s.viewMode !== 'month'){ bad.n++; delete s.viewMode; }
     if('mvProdLabel' in s && !MV_PROD_LABELS.includes(s.mvProdLabel)){ bad.n++; delete s.mvProdLabel; }
+    if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23646,6 +23687,10 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
     // never whatever the previously open file chose.
     mvProdLabel = MV_PROD_LABELS.includes(snap.mvProdLabel) ? snap.mvProdLabel : null;
+    // ⛔ UNCONDITIONAL too: a file with no key (every calendar saved before 20 Oct 2026, and every one
+    // that leaves the switch off) runs prep through Off days -- never the previous file's tick. The
+    // update() after the restore puts the Prep row's box in step (refreshPrepUI).
+    prepPauseOff = snap.prepPauseOff === true;
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

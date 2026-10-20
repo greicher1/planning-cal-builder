@@ -188,6 +188,47 @@ window.addEventListener('load', function () { (async function () {
     await settle();
   }
 
+  // ---- prep and its "Pause prep on days marked Off" switch (owner, 20 Oct 2026) -------------------------------
+  // The Prep row shows in the MONTH VIEW only, on the Phases tab: both must be up before the box can be hit.
+  function pauseBox(){ return document.querySelector('#prep-row .prep-pause-off-cb'); }
+  async function showPrepRow(){
+    if(!document.querySelector('#table-wrap .mv-daygrid')) await view('month');
+    var b = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(b) b.click();
+    await T.sleep(200);
+  }
+  // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
+  async function clickPause(){
+    await showPrepRow();
+    var cb = pauseBox();
+    if(!cb) throw new Error('no Pause prep box in the Prep row');
+    cb.scrollIntoView({block: 'center'}); await T.sleep(120);
+    var r = cb.getBoundingClientRect();
+    var top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+    if(top !== cb) throw new Error('the Pause prep box is covered (' + (top && (top.className || top.tagName)) + ')');
+    top.click();
+    await settle();
+  }
+  // Every prep pill of the shoot's months, as {"Prep 303": "iso,iso,..."} (a pill's own text, not its grey span).
+  async function prepRuns(){
+    var got = {};
+    for(var i = 0; i < MONTHS_OF_SHOOT.length; i++){
+      await toMonth(MONTHS_OF_SHOOT[i]);
+      var first = monthOnScreen().first, gs = first.getTime() - first.getUTCDay() * DAY;
+      document.querySelectorAll('#table-wrap .mv-body > .mv-week').forEach(function (w, k) {
+        w.querySelectorAll('.mv-pill[data-ph="episodePrep"]').forEach(function (p) {
+          var sp = p.querySelector('.mv-pill-block'), txt = '';
+          p.childNodes.forEach(function (n) { if(n !== sp) txt += n.textContent; });
+          var gc = String(p.style.gridColumn || '').split('/').map(function (x) { return parseInt(x, 10); });
+          var o = (got[txt.trim()] = got[txt.trim()] || {});
+          for(var c = gc[0] - 1; c <= gc[1] - 2; c++) o[iso(new Date(gs + (7 * k + c) * DAY))] = 1;
+        });
+      });
+    }
+    var map = {};
+    Object.keys(got).sort().forEach(function (k) { map[k] = Object.keys(got[k]).sort().join(','); });
+    return map;
+  }
+
   // ---- the hand trace ------------------------------------------------------------------------------------------
   var EXPECT = {
     '2027-08-02': 'Production wk 1',  '2027-08-09': 'Production wk 2',  '2027-08-16': 'Production wk 3',
@@ -243,6 +284,7 @@ window.addEventListener('load', function () { (async function () {
       check(offs === 19 && snap.dayOverrides['2027-09-25'] === 'on' && Object.keys(snap.dayOverrides).length === 20,
             'MINT the file carries the 19 off marks and the worked Saturday, nothing else (' + offs + ' off)');
       check(!JSON.stringify(snap).match(/offWeek/i), 'MINT nothing named offWeek reaches the file (the band is derived, never saved)');
+      check(!('prepPauseOff' in snap), 'MINT the Pause prep switch was never ticked, so the file carries no prepPauseOff key');
       out.sptcal = btoa(unescape(encodeURIComponent(text)));
     }
 
@@ -403,6 +445,129 @@ window.addEventListener('load', function () { (async function () {
         await toMonth('August 2026');
         var rows = monthRows();
         check(Object.keys(rows).every(function (k) { return !rows[k].bands.length; }), 'R10 and its month view draws no Production band');
+      });
+
+      // ⭐ R11-R13 -- "Pause prep on days marked Off" (owner, 20 Oct 2026, by picker: "Switch, default: don't
+      // skip", "Prep card, saved", and "Follow the switch" for Production's own hiatus). TICKED, prep is never
+      // laid on a day marked Off inside the shoot, nor in Production's own hiatus: both PAUSE prep as a holiday
+      // does, so each run keeps its 5 days and starts earlier (the 19 Oct rulings, "Skip it, start earlier" and
+      // "Yes, skip it too"). UNTICKED, the default, prep runs through both, as the live app did before.
+      // Hand trace with a 5-day default (shot range 8/9-11/4; unticked in brackets where it differs):
+      //   Prep 301  8/2-8/6            the Q3 week: its marks precede the first shoot day, so they are inert
+      //   Prep 302  8/9-8/13
+      //   Prep 303  8/16-8/20          past 9/7-9/10 off, Labor Day, 8/30-9/3 off, the 8/23 hiatus  [9/3, 9/7-9/10]
+      //   Prep 304  9/13-9/17          past 9/20-9/24 off                                            [9/20-9/24]
+      //   Prep 305  9/17, 9/27-9/30    past 9/20-9/24 off                                            [9/24, 9/27-9/30]
+      //   Prep 306  10/1, 10/11-10/14  past Production's own hiatus, 10/4-10/8                       [10/8, 10/11-10/14]
+      //   Prep 307  10/15, 10/18-10/21
+      //   Prep 308  10/22, 10/25-10/28
+      var PAUSED = {
+        'Prep 301': '2027-08-02,2027-08-03,2027-08-04,2027-08-05,2027-08-06',
+        'Prep 302': '2027-08-09,2027-08-10,2027-08-11,2027-08-12,2027-08-13',
+        'Prep 303': '2027-08-16,2027-08-17,2027-08-18,2027-08-19,2027-08-20',
+        'Prep 304': '2027-09-13,2027-09-14,2027-09-15,2027-09-16,2027-09-17',
+        'Prep 305': '2027-09-17,2027-09-27,2027-09-28,2027-09-29,2027-09-30',
+        'Prep 306': '2027-10-01,2027-10-11,2027-10-12,2027-10-13,2027-10-14',
+        'Prep 307': '2027-10-15,2027-10-18,2027-10-19,2027-10-20,2027-10-21',
+        'Prep 308': '2027-10-22,2027-10-25,2027-10-26,2027-10-27,2027-10-28'
+      };
+      var THROUGH = Object.assign({}, PAUSED, {
+        'Prep 303': '2027-09-03,2027-09-07,2027-09-08,2027-09-09,2027-09-10',
+        'Prep 304': '2027-09-20,2027-09-21,2027-09-22,2027-09-23,2027-09-24',
+        'Prep 305': '2027-09-24,2027-09-27,2027-09-28,2027-09-29,2027-09-30',
+        'Prep 306': '2027-10-08,2027-10-11,2027-10-12,2027-10-13,2027-10-14'
+      });
+      var marks = JSON.parse(fixtureText).dayOverrides || {};
+      function badDays(map){
+        var days = [].concat.apply([], Object.keys(map).map(function (k) { return map[k].split(','); }));
+        return {onOff: days.filter(function (d) { return marks[d] === 'off' && d >= '2027-08-09' && d <= '2027-11-04'; }),
+                inOwn: days.filter(function (d) { return d >= '2027-10-04' && d <= '2027-10-08'; })};
+      }
+
+      await step('R11', async function () {
+        await load(fixtureText);
+        T.set('prep-days', '5'); await settle();
+        await clickPause();
+        check(pauseBox().checked, 'R11 a real click ticks "Pause prep on days marked Off"');
+        var map = await prepRuns();
+        out.r11 = map;
+        check(sameObj(map, PAUSED), 'R11 ticked, with a 5-day default, every prep run matches the hand trace (each keeps 5 days and starts earlier)');
+        if(!sameObj(map, PAUSED)) out.r11diff = diffObj(map, PAUSED);
+        var bad = out.r11bad = badDays(map);
+        check(!bad.onOff.length, 'R11 ticked, no prep pill sits on a day marked Off inside the shoot (' + bad.onOff.join(' ') + ')');
+        check(!bad.inOwn.length, 'R11 ticked, no prep pill sits in Production\'s own hiatus, 10/4-10/8 (' + bad.inOwn.join(' ') + ')');
+      });
+
+      // R12 -- THE DEFAULT. The same file, freshly loaded (it has no prepPauseOff key): the box is unticked and
+      // prep runs through the Off days and Production's own hiatus, exactly as before 19 Oct.
+      await step('R12', async function () {
+        await load(fixtureText);
+        T.set('prep-days', '5'); await settle();
+        await showPrepRow();
+        out.r12box = {present: !!pauseBox(), checked: pauseBox() && pauseBox().checked, id: pauseBox() && pauseBox().id,
+                      text: pauseBox() && (pauseBox().closest('label') || {}).textContent.trim()};
+        check(out.r12box.present && out.r12box.checked === false && out.r12box.text === 'Pause prep on days marked Off',
+              'R12 a file with no prepPauseOff key opens with "Pause prep on days marked Off" UNTICKED');
+        var map = await prepRuns();
+        out.r12 = map;
+        check(sameObj(map, THROUGH), 'R12 unticked, every prep run matches the hand trace\'s bracketed values (prep runs through Off days and the own hiatus)');
+        if(!sameObj(map, THROUGH)) out.r12diff = diffObj(map, THROUGH);
+        var bad = out.r12bad = badDays(map);
+        check(bad.onOff.join() === '2027-09-03,2027-09-07,2027-09-08,2027-09-09,2027-09-10,2027-09-20,2027-09-21,2027-09-22,2027-09-23,2027-09-24,2027-09-24'
+              && bad.inOwn.join() === '2027-10-08',
+              'R12 unticked, prep sits on the in-shoot Off days 9/3, 9/7-9/10, 9/20-9/24 and on 10/8 in Production\'s own hiatus');
+      });
+
+      // R13 -- one undo step, saved with the calendar, and restored UNCONDITIONALLY (the M-5 trap: an older
+      // file loaded after a ticked one must open unticked, never keep the previous file's tick).
+      await step('R13', async function () {
+        // Continues from R12: the fixture with a 5-day default, unticked.
+        var plain = JSON.parse(await save());
+        check(!('prepPauseOff' in plain), 'R13 an unticked calendar saves NO prepPauseOff key (byte for byte the format before the switch)');
+        await clickPause();
+        check(pauseBox().checked && sameObj(await prepRuns(), PAUSED), 'R13 ticking it pauses prep (the R11 trace)');
+        await showPrepRow();
+        $('undo-btn').click(); await settle();
+        await showPrepRow();
+        var undone = {checked: pauseBox().checked, map: await prepRuns()};
+        check(undone.checked === false && sameObj(undone.map, THROUGH), 'R13 ONE undo unticks it and prep runs through again');
+        $('redo-btn').click(); await settle();
+        await showPrepRow();
+        check(pauseBox().checked && sameObj(await prepRuns(), PAUSED), 'R13 redo ticks it again');
+        var savedText = await save(), snap = JSON.parse(savedText);
+        out.r13 = {key: snap.prepPauseOff, byId: Object.keys(snap.fields.byId).length, plainById: Object.keys(plain.fields.byId).length};
+        check(snap.prepPauseOff === true, 'R13 Save writes prepPauseOff: true');
+        check(JSON.stringify(Object.keys(snap.fields.byId).sort()) === JSON.stringify(Object.keys(plain.fields.byId).sort())
+              && !Object.keys(snap.fields.byId).some(function (k) { return /pause/i.test(k); }),
+              'R13 ticking adds nothing to fields.byId (' + out.r13.byId + ' ids, as unticked)');
+        await load(fixtureText);
+        await showPrepRow();
+        check(pauseBox().checked === false, 'R13 the fixture (no key) loaded straight after opens unticked');
+        await load(savedText);
+        await showPrepRow();
+        var back = {checked: pauseBox().checked, map: await prepRuns()};
+        check(back.checked === true && sameObj(back.map, PAUSED), 'R13 Loading the saved file brings the tick back, and prep pauses');
+        // ⛔ The M-5 trap: the same calendar as an OLDER file -- no key -- loaded after the ticked one.
+        var old = JSON.parse(savedText); delete old.prepPauseOff;
+        await load(JSON.stringify(old));
+        await showPrepRow();
+        var m5 = {checked: pauseBox().checked, map: await prepRuns()};
+        out.r13m5 = m5;
+        check(m5.checked === false && sameObj(m5.map, THROUGH),
+              'R13 the same calendar with no key, loaded after the ticked one, opens UNTICKED and prep runs through (never the previous file\'s tick)');
+      });
+
+      // R14 -- New starts unticked too: the Prep row is static markup, so New's reset puts the switch back by hand.
+      await step('R14', async function () {
+        await load(fixtureText);
+        await clickPause();
+        var before = pauseBox().checked;
+        $('new-file-btn').click();
+        for(var i = 0; i < 30; i++){ await T.sleep(100); if(/Start a new blank calendar/.test(T.modalText())){ T.clickModalButton('Start new'); break; } }
+        await settle();
+        await showPrepRow();
+        out.r14 = {before: before, after: pauseBox().checked};
+        check(before === true && out.r14.after === false, 'R14 New, after a calendar with the box ticked, starts with it UNTICKED');
       });
     }
   } catch (e) { out.EX = String(e && e.stack || e); fails.push('exception'); }

@@ -178,6 +178,19 @@ window.addEventListener('load', function () { (async function () {
     var r = el.getBoundingClientRect();
     return r.width > 0 && document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2).indexOf(el) !== -1;
   }
+  // "Pause prep on days marked Off" (owner, 20 Oct 2026): the Prep row's id-less checkbox, clicked where a
+  // pointer would land (the element on top at its centre must be the box).
+  function pauseBox(){ return document.querySelector('#prep-row .prep-pause-off-cb'); }
+  async function clickPause(){
+    if(!shownEl($('prep-row'))) await view('month');   // the Prep row shows in the month view only (P1)
+    tab('phases'); await T.sleep(150);
+    var cb = pauseBox(); cb.scrollIntoView({block: 'center'}); await T.sleep(100);
+    var r = cb.getBoundingClientRect();
+    var top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if(top !== cb) throw new Error('the Pause prep box is covered (' + (top && (top.className || top.tagName)) + ')');
+    top.click();
+    await settle();
+  }
   async function pickColour(index){
     $('swatch-episodePrep').click();
     await T.until(function () { return document.querySelectorAll('.phase-color-pop .pc-sw').length > index; }, 'the colour picker', 40, 100);
@@ -370,6 +383,24 @@ window.addEventListener('load', function () { (async function () {
       out.colour.undone = purple.map(function (b) { return b.bg; });
       check(purple.length && purple.every(function (b) { return b.bg === 'rgb(228, 223, 236)'; }), 'L11 one undo puts the default Light purple back');
 
+      // S1: "Pause prep on days marked Off" (owner, 20 Oct 2026, by picker: "Switch, default: don't skip", "Prep
+      // card, saved"). It is in the Prep row, unticked, and carries NO id: collectFieldValues() sweeps every
+      // id'd control into fields.byId, so an id would re-cut the save format's id set. The snapshot's
+      // prepPauseOff key is its one store.
+      var pcb = pauseBox(), sigKeys = Object.keys(T.formSignature()).sort().join();
+      out.pause = {present: !!pcb && $('prep-row').contains(pcb), checked: pcb && pcb.checked, id: pcb ? pcb.id : null,
+                   text: pcb && ((pcb.closest('label') || {}).textContent || '').trim(), reach: reachable(pcb)};
+      check(out.pause.present && out.pause.checked === false && out.pause.id === '' && out.pause.text === 'Pause prep on days marked Off',
+            'S1 the Prep row has an UNTICKED "Pause prep on days marked Off" box with no id');
+      check(out.pause.reach, 'S1 the Pause prep box is hit-testable');
+      // S2: this calendar has no Off mark and no own hiatus, so ticking it moves no prep run. One undo step.
+      await clickPause();
+      out.pause.ticked = {checked: pauseBox().checked, sameIds: Object.keys(T.formSignature()).sort().join() === sigKeys, map: await prepMap()};
+      check(out.pause.ticked.checked && out.pause.ticked.sameIds, 'S2 a real click ticks it, and the id\'d field set is unchanged');
+      check(sameMap(out.pause.ticked.map, WANT_ON), 'S2 ticked, with nothing to skip here, every prep run is unchanged');
+      await undo();
+      check(pauseBox().checked === false && sameMap(await prepMap(), WANT_ON), 'S2 one undo unticks it');
+
       // MINT: the Episodes fixture, then its Blocks twin.
       out.text = await save();
       var snap = JSON.parse(out.text);
@@ -379,6 +410,7 @@ window.addEventListener('load', function () { (async function () {
                    colour: (snap.phaseColorOverride || {}).episodePrep};
       check(out.saved.prepDays === '5' && out.saved.prepName === 'Episodic Prep' && JSON.stringify(pd) === '{"Episode 303":"10","Episode 304":"8"}'
             && out.saved.colour === undefined, 'MINT the file carries prep-days 5, prep-name, and prepDays on exactly 304 and 303');
+      check(!('prepPauseOff' in snap), 'MINT the switch is unticked, so the file carries no prepPauseOff key');
 
       T.set('show-mode', 'blocks'); T.set('num-blocks', '3'); T.set('days-per-block', '10'); await settle();
       out.blockName = $('prep-name').value;
@@ -512,11 +544,17 @@ window.addEventListener('load', function () { (async function () {
       (old.episodeDefs || []).forEach(function (e) { delete e.prepDays; });
       (old.blockDefs || []).forEach(function (b) { delete b.prepDays; });
       if(old.phaseColorOverride) delete old.phaseColorOverride.episodePrep;
+      delete old.prepPauseOff;
+      // ...and with "Pause prep on days marked Off" TICKED on the calendar it replaces (owner, 20 Oct 2026).
+      await clickPause();
+      out.m5tick = pauseBox().checked;
       await load(JSON.stringify(old));
       out.m5 = {days: $('prep-days').value, name: $('prep-name').value, swatch: $('swatch-episodePrep').style.backgroundColor,
                 list: prepList().map(function (x) { return x.value; }), map: await prepMap()};
       check(out.m5.days === '' && out.m5.name === 'Episodic Prep' && out.m5.swatch === 'rgb(228, 223, 236)' && out.m5.list.join('') === ''
             && sameMap(out.m5.map, {}), 'R11 an older calendar loaded after one with prep set opens with NO prep: default, name, colour and lengths all reset');
+      tab('phases'); await T.sleep(150);
+      check(out.m5tick === true && pauseBox().checked === false, 'R11 and with the Pause prep box UNTICKED, though the calendar before it had it ticked');
       // The OFF side: prep is gone, and nothing else in the month view moved -- Production keeps its lanes.
       out.otherOff = await otherBars();
       check(out.otherOn.length > 0 && JSON.stringify(out.otherOn) === JSON.stringify(out.otherOff),

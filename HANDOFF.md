@@ -4,6 +4,67 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
+
+- ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
+  content is confidential and stays out of this repo). The parent session cut three bundles; this one lands first.
+  Sibling sessions `month-notes` and `labels-setup` merge after it. Their shared-notes folder has a note listing
+  every symbol this touches.
+- **Rulings, 20 Oct 2026, by picker:** *"Switch, default: don't skip"* and *"Prep card, saved"* (relayed by the
+  parent session), and, asked here, Production's own hiatus *"Follow the switch"*. Why: real calendars keep
+  prepping on the shoot crew's down days and on crew travel/prep days. Recorded in EPISODE-PREP-PLAN §5 and §15.
+- **The merge:** `prep-skip-off` (`6de29c8`, cut before v1.5.0) into this branch (cut from `main` at `be67ca5`) as
+  `708fab6`. Docs-only conflicts (HANDOFF, README, harness README: both sides added entries at one spot, all kept).
+  `appendEpisodePrep` auto-merged, and every symbol it reads (`prod.phaseHiatus`, `prod.shootDays`,
+  `isUnitWorkDay`, `dayOverrides`) is unchanged in v1.5.0.
+- **Built** (`src/legacy/app.js`, `legacy.css`; no frozen code):
+  - `let prepPauseOff = false` beside `PREP_DEF`; `readPrepConfig()` hands it to `appendEpisodePrep` as
+    `cfg.pauseOff`, which gates both `ownHi` (Production's own hiatus) and `offDay()`. Unticked = the live app's prep
+    exactly.
+  - The box: `<label class="prep-pause-off"><input type="checkbox" class="prep-pause-off-cb">`, under Default prep
+    days, the Snap to Mon look. ⛔ **No id**, so `collectFieldValues()` never sweeps it: gate 5 stays at 74 ids, no
+    sign-off needed. `refreshPrepUI()` reflects the variable into the box, so undo, Load and New all follow.
+  - ⛔ **Save format:** top-level `prepPauseOff`, written ONLY as `true` (the `mvProdLabel` absent-key shape), so a
+    calendar that never ticks it saves byte for byte as before. Restored unconditionally (`=== true`);
+    `sanitizeSnapshot()` drops a non-boolean; `resetAll()` clears it. `SNAPSHOT_VERSION` unchanged (an older build
+    ignores the key, which reads as unticked).
+- **Proof so far** (build `7054bec6…`, 1,548,256 bytes; port 8953):
+  - `offweek` RESTORE 42/42: R11 (ticked by a hit-tested click: the 19 Oct hand trace), R12 (a file with no key:
+    unticked, prep on 9/3, 9/7–9/10, 9/20–9/24 and 10/8), R13 (one undo, redo; an unticked Save has no key; a ticked
+    Save has `prepPauseOff: true` and the same 74 ids; Load brings it back; the M-5 trap), R14 (New unticks). LIVE
+    5/5, its MINT has no key.
+  - `episodeprep` LIVE 32 (S1 the box: in the row, unticked, no id, hit-testable; S2 ticking moves nothing on a
+    calendar with nothing to skip, keeps the id set, one undo; MINT no key), RESTORE 25 (the M-5 trap also unticks),
+    BLOCKS 11. 0 console errors in every run.
+  - **Ten mutants, each red on its own cases** (offweek RESTORE + LIVE, episodeprep LIVE + RESTORE each): always
+    skip (R12, R13 ×2); never skip (R11 ×3, R13 ×3); own hiatus always skipped (R12 ×2, R13 ×2); own hiatus never
+    skipped (R11 ×2, R13 ×3); key not saved (R13 ×3, S2, and episodeprep LIVE threw); conditional restore (R12–R14,
+    S2, both MINTs, the M-5 trap: 12); box with an id (R13's id count 75, S1); `false` written when unticked (R13 and
+    both MINTs); box not reflected (8); New not resetting (R14).
+  - `npm run check` 40/40; `check-refs.py` CLEAN.
+- **Full gate, first run, on build `7054bec6…` at `d8737b2` (port 8953, 14:09:03–14:29:00): 2,060 PASS, 1 FAIL.** The
+  one FAIL was `offweek` R10 (a step before the new cases) timing out after 10 s waiting for a Load. The `month-notes`
+  session was running its own legs and mutants at the same time (load average 6–9). Re-run alone through the gate's
+  own evaluator, twice: `offweek` LIVE 6/6 and RESTORE 44/44 both times, R10 included. Not counted as a pass: the
+  whole gate was re-run.
+- ✅ **Full gate, second run, same build (port 8953, 14:30:17–14:50:16): 2,062 PASS, 0 FAIL, GATE PASSED.** That is
+  v1.5.0's 2,037 plus exactly the 25 new checks (offweek R11–R14 17, its MINT 1, episodeprep 7). 0 clipped; the
+  waterfall PDF and every Excel part identical; v1.0.0 restores identically; `fields.byId` 74 ids; gate 10's ten
+  print documents and gate 13's twenty written PDFs identical. Gates 1–4, 10 and 13 did not move, as the switch's
+  default is the old behaviour.
+- ⚠️ **Disk:** 7.0 GB free at the start (1.8 TB volume), 6.0 GB before the second gate, 9.8 GB after it (someone
+  freed space). The leftover `code_sign_clone` copies (1,521, see the 19 Oct merge entry) were not touched. Each
+  harness run leaves about 10 MB; a full gate about 1 GB.
+- ✅ **Merged (owner, by picker, 20 Oct 2026: "Merge into main").** Local `main` fast-forwarded `be67ca5..48c2788`
+  in the main checkout; its modified `tests/fixtures/stintswap-reshape.sptcal` and untracked `Reshape Fixture
+  2026-09-29.sptcal` (not this work's) were left alone.
+- ⏸ **Push HELD (owner, by picker: "Hold the push").** For example, to ship with the `month-notes` and
+  `labels-setup` bundles in one push. Each push still needs its own picker. `origin/main` is `5d4737d`; local
+  `main` is ahead of it by `be67ca5` (docs), `prep-skip-off`'s `9820894` and `6de29c8`, the merge `708fab6`, the
+  switch `d8737b2`, and this entry's HANDOFF notes (`git log origin/main..main` lists them). No version cut.
+- ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
+  verifies the live `index.html` against the gated build afterwards.
+
 ### ◐ 20 Oct 2026: BUNDLE A — FIVE MONTH-VIEW NOTE FEATURES (items 2, 6, 10, 15, 17) — BUILT, NOT MERGED (branch `claude/month-notes-2951a8`, [`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md))
 
 - ⏭ **RESUME HERE for bundle A.** One of three sessions the owner started from the 20 Oct 2026 gap report (private;
@@ -32,7 +93,7 @@
   - **Item 17.** Frozen edits: `mvPillLanes` in the pill `place()` call, and `.mv-pill.mv-pill-2l`. The writer decides
     its own wrap (`mvlWrapsPill`, `mvlPillLines`) with the 600 font: `buildMonthLayout(schedule, inter500, inter600)`.
 - **Proof so far:**
-  - New leg `mvnotes` (LIVE 30 cases, RESTORE 15) on the new synthetic fixture `tests/fixtures/mvnotes.sptcal`, minted by
+  - New leg `mvnotes` (LIVE 30 cases, RESTORE 14) on the new synthetic fixture `tests/fixtures/mvnotes.sptcal`, minted by
     its own LIVE run's real Save. `monthemit` 16/16 and `monthwriter` 12/12 + its A/B P0–P5 on that fixture.
   - ⭐ **Item 10's A/B, gate 10:** all ten documents differ ONLY by hidden `.mv-note-add` elements (identical with them
     masked; +66 to +135 each), sheet counts unchanged, and the printed sheets are pixel-identical to the live build's
@@ -320,6 +381,40 @@
   - The five: `customunits (live)` × 3, the waterfall rows of Read-through, Stage Build and Rigging. That leg builds them through the By select, which now unticks Number weeks, and its reader only knew "Name wk N". It now accepts the bare name too (`t/customunits.js`, `sheetRows()`); its RESTORE run, on a fixture that predates the box, had passed. And two contention flakes already on record: `monthexport (mvheaderlegacy)` X6, a timed dialog case whose PDF was byte-identical, and `pilldrag`'s 480 s deadline. **All three legs re-run as `gate.sh` runs them, after the other session's gate exited (17:59–18:02): 92 PASS, 0 FAIL.** Two more sessions' gates started a minute into it.
 - ⏭ **Next:** the owner's pickers: fast-forward `main` to this branch, then push and verify the live file. If `main`
   has moved again first, merge it in and re-run the full gate.
+
+### 🔨 19 Oct 2026: PREP SKIPS OFF DAYS AND PRODUCTION'S OWN HIATUS: BUILT, COMMITTED AND GATED (1,945 PASS / 0 FAIL) ON BRANCH `prep-skip-off` (worktree `.claude/worktrees/prep-skip-off`), NOT MERGED
+
+> ⚠️ **SUPERSEDED 20 Oct 2026.** The owner made this a switch, OFF by default ("Pause prep on days marked Off"), and
+> it was merged into `main` that way: see the 20 Oct entry at the top. Unticked, prep runs through Off days and
+> Production's own hiatus as before; the rule below is what the switch turns on.
+
+- Owner: *"will episodic prep or block prep days go in days marked 'off'? they really shouldnt do that as it doesnt
+  make much sense"*. **They did.** `appendEpisodePrep` walked back over `isUnitWorkDay()` with `ownHi: null` and never
+  read `dayOverrides`. EPISODE-PREP-PLAN §5's "`dayOverrides` play no part" was a design note, not a P1–P5 ruling. Its
+  reason (a worked Saturday is not a prep day) only ever covered `'on'`.
+- ✅ **Ruled by picker, 19 Oct 2026:** an Off day → *"Skip it, start earlier"* (prep keeps its length, as for a
+  holiday). Production's own hiatus → *"Yes, skip it too"*, because an off week now reads "Production Hiatus" and the
+  two should behave the same.
+- **Built (`src/legacy/app.js` only, no frozen code, nothing saved):** in `appendEpisodePrep`, `ctx.ownHi` is
+  `prod.phaseHiatus`, and `offDay(iso)` skips an `'off'` mark between the first and last shoot day. ⭐ **That span is
+  deliberate.** It is `refreshOverrideNote()`'s and `daySituation()`'s, so the marks prep obeys are exactly the ones the
+  user can see and change. The Q3 week's marks (before the first shoot day) are inert for prep, as they already are
+  for the month view and the day menu. On `offweek.sptcal`, Prep 301 therefore still sits on 8/2–8/6. The prep start
+  grip needs no change, because `probeDays()` asks `computeSchedule()`.
+- **Proof** (build `9f52874a…`, 1,543,588 bytes; port 8944):
+  - New case **R11** in `offweek` RESTORE: a 5-day default and all eight prep runs held to a hand trace (in the leg).
+    It is red on the live build `e4339f4d…` exactly as the trace's bracketed values say, and 30/30 green on the new
+    build.
+  - Through `gate.sh`'s own evaluators: `episodeprep` 27 + 27 + 12 (its hand trace has no off mark and no own hiatus,
+    so it is unchanged; the workbook and waterfall PDF are byte-identical with prep on and off), `offweek` 5 + 30,
+    `phaseedge` 23/23 (G0–G8). That is 124 PASS, 0 FAIL. `npm run check` 40/40; `check-refs.py` CLEAN.
+  - ✅ **Full gate on build `9f52874a…` at `9820894`: 1,945 PASS, 0 FAIL, GATE PASSED** (port 8944, 20 Oct 2026
+    00:18–00:37, alone: a detached waiter started it once the `ep-name` session's gate had exited). 0 clipped; the
+    waterfall PDF and every Excel part identical; `fields.byId` at 74 ids; the month print documents identical;
+    `offweek` 30/30 with R11; `episodeprep`, `phaseedge` green.
+- ⏭ **Next:** committed on the owner's picker ("Commit on prep-skip-off"), and the full gate passed (owner: "Run it
+  once the slot is free"). Push: the owner said "Not yet". Merging into `main` and pushing are each asked separately.
+  `main` may have moved by then, so merge it in and re-run at least the legs above before any push.
 
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 
