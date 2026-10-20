@@ -128,8 +128,16 @@ For **every** episode in shooting order, the first included (P3):
   Pills are labelled with the block's name.
 - **A run with `n` blank or 0 is skipped.** A default of blank and no overrides = no prep and no
   segment. That is how every calendar saved before this opens.
-- **`dayOverrides` play no part.** They decide which days are SHOT. Prep counts working days before
-  the first one, so a Saturday the shoot works is not a prep day.
+- ~~**`dayOverrides` play no part.**~~ ⚠️ **SUPERSEDED 19 Oct 2026 for Off days** (owner, by picker:
+  *"Skip it, start earlier"*). This line was a design note, never one of the P1–P5 rulings, and it let
+  prep land on days marked Off. Now a day marked **Off** inside the shot range (first to last shoot day,
+  the same span the day menu and the sidebar's "N off" count use) is not a prep day: it **pauses** prep
+  as a holiday does, so the run keeps its `n` days and starts earlier. An Off mark outside that range is
+  inert, as it is for the shoot. `'on'` / `'onhalf'` still play no part: a Saturday the shoot works is
+  not a prep day.
+- ⚠️ **Production's own hiatus pauses prep too** (same date, *"Yes, skip it too"*). Step 3 above used to
+  name only the all-phase hiatus. Since OFF-WEEK-PLAN step A, a week of Off days reads "Production
+  Hiatus", the same words as Production's own hiatus, so the two now behave the same.
 - **If Show Info is incomplete,** there is no prep.
 - **The segment carries:**
   - `days`: the union of every run's days, which `segCoversDate` reads. This is the same

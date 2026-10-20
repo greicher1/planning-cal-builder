@@ -231,6 +231,36 @@
 - ⏭ **Next:** the owner's pickers: fast-forward `main` to this branch, then push and verify the live file. If `main`
   has moved again first, merge it in and re-run the full gate.
 
+### 🔨 19 Oct 2026: PREP SKIPS OFF DAYS AND PRODUCTION'S OWN HIATUS: BUILT, COMMITTED AND GATED (1,945 PASS / 0 FAIL) ON BRANCH `prep-skip-off` (worktree `.claude/worktrees/prep-skip-off`), NOT MERGED
+
+- Owner: *"will episodic prep or block prep days go in days marked 'off'? they really shouldnt do that as it doesnt
+  make much sense"*. **They did.** `appendEpisodePrep` walked back over `isUnitWorkDay()` with `ownHi: null` and never
+  read `dayOverrides`. EPISODE-PREP-PLAN §5's "`dayOverrides` play no part" was a design note, not a P1–P5 ruling. Its
+  reason (a worked Saturday is not a prep day) only ever covered `'on'`.
+- ✅ **Ruled by picker, 19 Oct 2026:** an Off day → *"Skip it, start earlier"* (prep keeps its length, as for a
+  holiday). Production's own hiatus → *"Yes, skip it too"*, because an off week now reads "Production Hiatus" and the
+  two should behave the same.
+- **Built (`src/legacy/app.js` only, no frozen code, nothing saved):** in `appendEpisodePrep`, `ctx.ownHi` is
+  `prod.phaseHiatus`, and `offDay(iso)` skips an `'off'` mark between the first and last shoot day. ⭐ **That span is
+  deliberate.** It is `refreshOverrideNote()`'s and `daySituation()`'s, so the marks prep obeys are exactly the ones the
+  user can see and change. The Q3 week's marks (before the first shoot day) are inert for prep, as they already are
+  for the month view and the day menu. On `offweek.sptcal`, Prep 301 therefore still sits on 8/2–8/6. The prep start
+  grip needs no change, because `probeDays()` asks `computeSchedule()`.
+- **Proof** (build `9f52874a…`, 1,543,588 bytes; port 8944):
+  - New case **R11** in `offweek` RESTORE: a 5-day default and all eight prep runs held to a hand trace (in the leg).
+    It is red on the live build `e4339f4d…` exactly as the trace's bracketed values say, and 30/30 green on the new
+    build.
+  - Through `gate.sh`'s own evaluators: `episodeprep` 27 + 27 + 12 (its hand trace has no off mark and no own hiatus,
+    so it is unchanged; the workbook and waterfall PDF are byte-identical with prep on and off), `offweek` 5 + 30,
+    `phaseedge` 23/23 (G0–G8). That is 124 PASS, 0 FAIL. `npm run check` 40/40; `check-refs.py` CLEAN.
+  - ✅ **Full gate on build `9f52874a…` at `9820894`: 1,945 PASS, 0 FAIL, GATE PASSED** (port 8944, 20 Oct 2026
+    00:18–00:37, alone: a detached waiter started it once the `ep-name` session's gate had exited). 0 clipped; the
+    waterfall PDF and every Excel part identical; `fields.byId` at 74 ids; the month print documents identical;
+    `offweek` 30/30 with R11; `episodeprep`, `phaseedge` green.
+- ⏭ **Next:** committed on the owner's picker ("Commit on prep-skip-off"), and the full gate passed (owner: "Run it
+  once the slot is free"). Push: the owner said "Not yet". Merging into `main` and pushing are each asked separately.
+  `main` may have moved by then, so merge it in and re-run at least the legs above before any push.
+
 ### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
 
 - ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):

@@ -2162,7 +2162,8 @@ done
 # Day plus four offs; a Saturday-worked week and the Q3 leading week still numbered; the own hiatus and the
 # all-phase hiatus as they were), the header span and the {production.weeks} token, the workbook read back
 # with ExcelJS, the month band (Mon-Fri, no bar, the hatching kept), Full day + one undo, a rename seen in both
-# views through Save/Load, Shift All, and a calendar with no off week loaded after it. Here, the waterfall PDF's
+# views through Save/Load, Shift All, a calendar with no off week loaded after it, and (R11) prep with a 5-day
+# default, which skips the in-shoot Off days and Production's own hiatus (owner, 19 Oct 2026). Here, the waterfall PDF's
 # own text (pdftotext): three Production Hiatus cells and wk 1 to wk 10 once each.
 # ⛔ Gates 10 and 13 are the other half of this proof: no fixture they read holds an off week, so the frozen
 # month-band edit (OFF-WEEK-PLAN §3.5, Q7) must leave every one of their files byte-identical.
