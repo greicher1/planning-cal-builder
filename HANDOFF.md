@@ -4,8 +4,15 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 19 Oct 2026: OFF WEEKS, STEP A MERGED INTO LOCAL `main` AT `2b4ce32`, NOT PUSHED
+### ✅ 19 Oct 2026: OFF WEEKS (STEP A) ARE LIVE AT `6e868b1` (verified byte-identical, `42f69b58`)
 
+- ✅ **PUSHED AND LIVE.** Owner: *"Push local main to origin now, then verify the live site serves the gated build."*
+  One `git push origin main` (`451aaa2..6e868b1`, 20:49) sent six commits: the three off-week commits, the merge
+  `2b4ce32`, its gate record `6e868b1`, and `ccf633a` (the prep-name session's HANDOFF note, docs only, unpushed until
+  now). Deploy run 39366270707: "Build and check" and "Deploy to Pages" both green. The live `index.html`, fetched
+  with a cache-buster, is **byte-identical to the gated build**: sha256 `42f69b58d41c2df1…`, 1,538,034 bytes (first
+  fetch, 20:50). `version.json` still reads 1.4.3, so installed copies show no update notice. A version cut is
+  overdue.
 - ⭐ **Merged (owner, 19 Oct 2026):** *"Merge off-week into local main, resolve any doc conflicts, and run the full gate
   on its own port once no other gate is running. Don't push."* `main` (`ccf633a`, with Prep above Production and the
   prep start grip, both live) was merged into `off-week` as `2b4ce32`. Local `main` was then fast-forwarded to it.
@@ -46,7 +53,7 @@
   Worth raising with the owner.
 - The proof builds (`dist-prefix/`, `dist-noband/`) were deleted after use. To re-prove red, rebuild them by the
   in-place method (HANDOFF 19 Oct "Learned" 3); for `dist-noband`, revert just the two frozen lines.
-- ⏭ **Next:** the owner decides on pushing (it is merged locally). Then step B (the month view's
+- ⏭ **Next:** step B (the month view's
   numbers), in its own worktree. Raise the empty Q3 week (above) with the owner. A version cut is still overdue
   (`version.json` 1.4.3).
 
