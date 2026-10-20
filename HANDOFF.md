@@ -4,6 +4,34 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ◐ 20 Oct 2026: NUMBER WEEKS MERGED WITH STEP B AND DAY MENU STEP 5 (branch `numweeks-merge`, `d4cb4bf`), GATED 2,037 / 0, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner, 20 Oct 2026: *"Hold the push. Merge Number weeks into main now, resolve the app.js
+  conflict, re-run the full gate on the combined build, then ask me before pushing."* Then, by button: *"after the
+  gate passes, cut a version for this push (APP_VERSION, version.json, README, tag, releases copy) and tell me the
+  number you picked before you push."*
+- **The merge:** `phase-numbering` (`365b630`, already merged with `main` at `6b9eeb4` and gated 2,001 / 0 there) into
+  `main` (`8423c32` = `4ea4e54` + a docs fix), in its own worktree `.claude/worktrees/numweeks-merge` so the main
+  checkout's modified `tests/fixtures/stintswap-reshape.sptcal` (not this work's) could not reach the gate.
+  - ⭐ **The one code conflict was `prodWeekLabel()`, as both HANDOFF entries predicted.** Both edits are kept, Number
+    weeks' first: `if(s.numbered === false) return name;` (an unticked custom phase needs no number), then step B's read
+    of `seg.weekNo`. The waterfall needed no resolution: Number weeks reaches it through `ph.template(num)`, which step
+    B's week loop already calls beside its `seg.weekNo` record.
+  - `gate.sh`, `legacy.css` and the legs auto-merged. HANDOFF, README and the harness README conflicted only because
+    both sides added entries at the same spot; every entry is kept, `main`'s first.
+- **Proof:**
+  - `npm run check` 40/40, `check-refs.py` CLEAN, on build `72ce05dd…` (1,547,058 bytes).
+  - ✅ **Full gate on the merged build `72ce05dd…` at `d4cb4bf` (port 8971, 09:59:47–10:19:20, alone): 2,037 PASS,
+    0 FAIL, GATE PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; v1.0.0 restores identically;
+    `fields.byId` 74 ids; gate 10's ten print documents and gate 13's twenty written PDFs identical to step B's re-cut
+    baselines; `mvmenu` 86, `weeknum` 27, `phasenum` 59, `offweek` 32, all PASS.
+  - ✅ **And `4ea4e54` alone (step B + day menu step 5, before this merge)**, run by the off-week session: build
+    `44f0bc95…` (1,546,492 bytes), port 8963, 09:40:12–09:59:40, alone: **1,978 PASS, 0 FAIL, GATE PASSED**, with the
+    same frozen outputs identical, `weeknum` 27/27, `offweek` 32/32, `mvmenu` 86.
+  - ⚠️ Queueing: the second gate waited on the first with the 3 s poll and a 2–6 s random pause, and took the slot 7 s
+    after it ended.
+- ⏭ **Next:** the v1.5.0 cut on top of this (entry to follow), then the owner's push picker.
+
 ### ◐ 19–20 Oct 2026: OFF WEEKS STEP B — THE MONTH VIEW NUMBERS WEEKS AS THE WATERFALL DOES — MERGED INTO `main` WITH DAY MENU STEP 5 (`4ea4e54`), NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner: *"Do this task here: 'Off weeks step B: month view numbers weeks like waterfall'"*.
