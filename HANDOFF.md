@@ -32,8 +32,8 @@
     `buildWaterfallPdf` E4 (`fitW`/`fitH`, `contentX`, `originX`), E5 (`hdrLeftX`/`hdrRightX` from `contentX`), E6
     (orientation, `drawSideBoxesPdf()`). The two helpers are new code, not on the frozen list; the owner has not
     ruled on freezing them.
-- **Proof so far** (build `367ce716…`):
-  - `sideboxes` leg, 57 checks, **57/57** green; **red on the pre-change build `7054bec6…`**; three mutants each red on
+- **Proof so far** (build `b1accea4…`):
+  - `sideboxes` leg, 58 checks, **58/58** green; **red on the pre-change build `7054bec6…`**; three mutants each red on
     their own check (the key written with no box F5, E1 removed X3, the month-view hide removed M1).
   - The exported workbook passes `check-xlsx.sh`; the PDF was rendered with `pdftoppm` and looked at.
   - `npm run check` 40/40.
@@ -44,6 +44,13 @@
   with no change); cal-range makes `currentSchedule` view-dependent (the key reads the waterfall's, which is right).
   All of them add snapshot keys after `prepPauseOff`, so expect adjacent-line conflicts there. Shared notes:
   `side-boxes-ports-and-touchpoints.md` in the group's notes folder.
+- ⚠️ **Found, NOT fixed (pre-existing, outside this feature; a follow-up):** the "Export shareable copy" handler is
+  a DOCUMENT-wide click listener wrapped in `reClickGuard(600, …)`, and the guard runs BEFORE its
+  `closest('#share-copy-btn')` test. So any click anywhere in the 600 ms before pressing the button swallows the
+  press, silently. Found when the leg's first share click followed other clicks; the fix is to test the target
+  before the guard. The leg waits 700 ms before each share click.
+- **The PDF's "characters that won't print" warning** (`pdfUnprintablePlaces()`, audit L-6) now also walks the box
+  text, from the same layout the writer draws: a ★ in a box line is named "in the side box “Dates”" (leg G21).
 - ⚠️ **Traps hit while building:** a view switch is its own undo step (`viewMode` is saved), so a leg that switches
   views and then undoes lands on the switch; the share and export buttons carry a 600 ms re-click guard, so a leg
   pressing one twice quickly gets one result; sibling sessions took ports 8963/8964, so `preview_start` silently

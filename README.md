@@ -56,7 +56,7 @@ recommended, with sign-off for six frozen edits to the two writers.
 - **Saved with the calendar** as a new `sideBoxes` key, written only while a box exists: a calendar without boxes
   saves, and exports, byte for byte as before. No new field id.
 - ⚠️ The print-fallback waterfall PDF (off by default; the rollback) does not draw boxes.
-- **Verified:** a new leg, `sideboxes` (57 checks, in the gate): the screen, the workbook and the PDF read back, every
+- **Verified:** a new leg, `sideboxes` (58 checks, in the gate): the screen, the workbook and the PDF read back, every
   gesture through the hit stack, the month view's `#table-wrap` width equal with and without boxes, deleting the
   last box giving back the identical PDF page, a hostile file, New. Red on the pre-change build; three mutants each
   red. Full gate: see HANDOFF.

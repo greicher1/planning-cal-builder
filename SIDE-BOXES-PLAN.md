@@ -1,6 +1,6 @@
 # SIDE-BOXES-PLAN.md
 
-**Status: BUILT 20 Oct 2026** (`55cce8d`, `9efd62a`), leg `sideboxes` 57/57, red on the pre-change build. The owner
+**Status: BUILT 20 Oct 2026** (`55cce8d`, `9efd62a`), leg `sideboxes` 58/58, red on the pre-change build. The owner
 answered all eight questions in §9 by picker, each as recommended, and approved the frozen edits E1–E6 (§6). Full gate:
 see HANDOFF. Nothing is merged or pushed. §10 records where the build departs from the plan, §11 what was proven.
 **Branch:** `claude/side-boxes-129c72` (worktree `.claude/worktrees/side-boxes-129c72`).
@@ -363,8 +363,8 @@ not picked); *"1 col + spacer, row 1"*; *"Grid + boxes together"*; *"Grid + boxe
   `buildWaterfallPdf`, each commented in place. `src/index.html` (two hosts), `src/styles/legacy.css` ("Side boxes"
   after the app-shell block), `src/chrome/PreviewToolbar.jsx` (`#tb-side-boxes-btn`).
 - **Leg `sideboxes`** (`tests/harness/t/sideboxes.js`, on `tests/fixtures/sideboxes.sptcal`, wired into `gate.sh`
-  just before the Node provers): 57 checks in six groups, S (screen), X (workbook), P (PDF), M (month view), G
-  (gestures, each hit-tested), F (file). Green 57/57 on build `367ce716…`. Red on the pre-change build `7054bec6…`.
+  just before the Node provers): 58 checks in six groups, S (screen), X (workbook), P (PDF), M (month view), G
+  (gestures, each hit-tested), F (file). Green 58/58 on build `b1accea4…`. Red on the pre-change build `7054bec6…`.
   Mutants, each red on its own check: the key written with no box (F5), E1 removed (X3), the month-view hide
   removed (M1; F4 stayed green because the panel's grid rule is ALSO scoped to the Waterfall view, a second guard).
 - **What the leg measured:** the workbook's A = text box, B = 2-unit spacer, grid from C with its date chain `=C2+7`,

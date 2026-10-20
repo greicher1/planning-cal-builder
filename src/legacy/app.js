@@ -20696,6 +20696,17 @@ export function initLegacyApp() {
              'n|' + wk, ()=> 'in the note for the week of ' + when);
       }
     });
+    // The boxes beside the grid (SIDE-BOXES-PLAN.md, 20 Oct 2026): every title, key name and line
+    // drawSideBoxesPdf() draws, from the same layout it draws from.
+    const sideL = sideBoxLayoutSafe(schedule);
+    SIDE_SIDES.forEach(side=>{
+      const S = sideL[side];
+      if(!S) return;
+      S.segs.forEach(sg=>{
+        const b = sideBoxes[sg.box], title = (b && b.title) || '';
+        scan(sg.text, 'sb|' + sg.box, ()=> 'in the side box \u201c' + title + '\u201d');
+      });
+    });
     return places;
   }
   // Resolves true to go ahead. A warning must never stand between the user and the export, so a

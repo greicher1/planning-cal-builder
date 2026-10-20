@@ -47,9 +47,14 @@ window.addEventListener('load', function () { (async function () {
   function snapNow(){ var b = T.latestBackup(); return b ? b.state : null; }
   // The live state, read the way Save reads it: a real shareable copy's saved-state block.
   async function savedCopy(){
+    // ⚠️ The share handler is a DOCUMENT-wide click listener inside reClickGuard(600), and the guard runs
+    // before its target test: ANY click in the 600 ms before this one swallows it (a pre-existing quirk,
+    // logged in HANDOFF). So wait it out.
+    await T.sleep(700);
     var cap = T.captureDownload();
     $('share-copy-btn').click();
-    await T.until(cap.peek, 'the shareable copy', 200, 100);
+    try { await T.until(cap.peek, 'the shareable copy', 200, 100); }
+    catch(e){ out.shareStall = {modal: T.modalText(), btn: !!$('share-copy-btn'), menu: !!document.querySelector('#file-menu')}; cap.stop(); throw e; }
     var html = await cap.stop().text();
     var m = html.match(/<script id="saved-state" type="application\/json">([\s\S]*?)<\/script>/);
     return {html: html, snap: m ? JSON.parse(m[1]) : null};
@@ -189,6 +194,19 @@ window.addEventListener('load', function () { (async function () {
     var rl = qa('.sb-line', sideBoxEls('right')[1]).map(txt);
     check(rl.join('|') === 'Prep starts 5/18|and runs six weeks' && document.activeElement === q('.sb-line[data-li="1"]', sideBoxEls('right')[1]),
           'G7 Enter splits the line at the caret and moves to the new one (' + rl.join(' | ') + ')');
+    // A character the PDF's font cannot set is named BEFORE the export, box text included: the warning walks
+    // what the writer draws (pdfUnprintablePlaces), and the boxes are drawn now. Cancel, then take it out.
+    var l1 = q('.sb-line[data-li="1"]', sideBoxEls('right')[1]);
+    l1.textContent = 'and runs six weeks \u2605'; l1.dispatchEvent(new InputEvent('input', {bubbles: true}));
+    await T.sleep(700);
+    $('export-wf-pdf-btn').click();
+    await T.until(function () { return /Some characters/.test(T.modalText()); }, 'the unprintable-character warning', 50, 100);
+    out.unprintable = T.modalText();
+    check(/\u2605 in the side box \u201cDates\u201d/.test(out.unprintable), 'G21 a character the PDF cannot print is named in its side box before the export');
+    T.clickModalButton('Cancel');
+    await T.until(function () { return !/Some characters/.test(T.modalText()); }, 'the warning to close', 50, 100);
+    l1 = q('.sb-line[data-li="1"]', sideBoxEls('right')[1]);
+    l1.textContent = 'and runs six weeks'; l1.dispatchEvent(new InputEvent('input', {bubbles: true}));
     // The format bar, on the left box's bold first line: B turns it off, 16 makes it two rows tall.
     var lb = q('.sb-line[data-li="0"]', sideBoxEls('left')[0]);
     lb.focus(); lb.dispatchEvent(new FocusEvent('focusin', {bubbles: true}));
@@ -266,7 +284,6 @@ window.addEventListener('load', function () { (async function () {
     while(qa('.side-col .sb-del').length){ qa('.side-col .sb-del')[0].click(); await T.sleep(60); }
     check(!panel.classList.contains('has-side-boxes') && q('.side-left').hidden && q('.side-right').hidden,
           'F3 with the last box gone the panel is plain again');
-    await T.sleep(700);   // the share button's re-click guard is 600 ms
     var c0 = await savedCopy();
     var idsWithout = Object.keys((c0.snap.fields || {}).byId || {}).sort().join(',');
     check(c0.snap && !('sideBoxes' in c0.snap), 'F5 with no box the file has no sideBoxes key');
