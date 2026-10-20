@@ -46,6 +46,86 @@
   `day-menu-step4-8871`, another session's PREVIEW server from the shared `.claude/launch.json`. It was restarted from
   that same config. Check `lsof` AND `grep '"port"' .claude/launch.json` (a preview may be claimed but not running).
 
+### ✅ 19 Oct 2026: A START GRIP ON EACH PREP PILL — LIVE AT `f0c7925` (verified byte-identical, `314f7722`), GATED 1,860 PASS / 0 FAIL
+
+- Owner, 19 Oct 2026: *"plan a start grip on each prep pill in the month view that writes that episode's (or block's)
+  prep length, with the end staying tied to the shoot. Plan it and ask me before building."* The plan is
+  [`PREP-GRIP-PLAN.md`](PREP-GRIP-PLAN.md). ✅ Both rulings went as recommended (pickers, same day): a drag onto the
+  default length stores it as the episode's own (Q1), and the floor is 1 working day (Q2). Then "Build it".
+- ⭐ **The one real problem, and its answer:** a prep pill carries only `data-ph="episodePrep"`, and in
+  `episodeprep.sptcal` Prep 303 and Prep 304 both have a pill starting Mon 3/1/27, only 303's being its first day. So a
+  grip must find its prep by the ORDER of the row's prep pills, which is `prepRunsForWeek()`'s order (frozen
+  `renderMonthView` emits `placed` in push order; `takePrepRun()` already leans on the same call order). It must also
+  cross-check every pill's grid columns against its run and show no grip on a mismatch. Never by date or label alone.
+- **Built:** `installPrepEdgeHandles()`, right after `installPhaseEdgeHandles()` in `src/legacy/app.js`. No frozen
+  code, no save-format change: it writes `episodeDefs[].prepDays` / `blockDefs[].prepDays`, as the Prep row's box does.
+  - `prepOfPill()`: the order lookup plus the column cross-check.
+  - `probeDays()`: one `computeSchedule()` at the press, with the unit's length + 80, gives the working days, so the
+    walk is never re-implemented. The probe also refuses unless today's prep is exactly the probe's tail.
+  - `solve()`: the nearest working day; ties go to the smaller change, and n ≥ 1 by construction (Q2).
+  - The guard after each `update()`: the start where computed, the end unmoved, else put back and go inert.
+- **Tests:** `phaseedge.mjs` G0–G8, in their own `{}` block (the F cases already use `h1`…`h12`). The planned G9 is
+  folded into G1. 22/22. Mutants, each red first: by date → G0, G1; the default → G1–G7; the number written back at
+  the start → G3, G6; no floor → G5.
+- ⚠️ **"Nothing banked" is the Undo button here, not F9's Ctrl+Z probe.** `episodeprep.sptcal` is SAVED in the month
+  view, so `load()`'s click on the month button is no step and the stack starts empty. The first run read G3 and G6
+  as red for that reason alone. G2 shows Undo off before a real drag and on after it.
+- ⚠️ **Contention, measured:** with another session's full gate running, `phaseedge` reached F4 in 480 s and hit its
+  deadline. Alone it takes 1 min 55 s. Wait for `/bin/zsh ./gate.sh` to be gone before a leg you mean to trust.
+- **Proof:** `npm run check` 40/40, `check-refs` CLEAN. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical.
+- **STATE:** merged with `main` twice on the branch: `87896bd` (code, at `cfeae91`, beside the live note fix), then
+  `main`'s docs-only commits up to `3b189af`. Local `main` was fast-forwarded to the branch tip, and ✅ **PUSHED AND
+  LIVE at `f0c7925`** on the owner's picker ("Push now", 19 Oct 2026). The push was `6027247..f0c7925`. Deploy run
+  39350049235 had "Build and check" and "Deploy to Pages" both green. The live file, fetched with a cache-buster, is
+  byte-identical to the gated build `314f7722…`. No version cut: `version.json` still reads 1.4.3, so installed copies
+  show no update notice.
+  - **The merged build's gate:** `314f7722…`, **1,860 PASS, 0 FAIL, GATE PASSED** (19 min, alone, 17:22). G0–G8,
+    E15–E19, D5 and F13 all pass.
+  - Waterfall PDF and Excel identical; `fields.byId` at 74 ids; gate 10's ten print documents identical; gate 13's
+    twenty written month PDFs byte-identical. `pilllabel` passed everywhere this time.
+  - `main`'s later commits are docs only (OFF-WEEK-PLAN twice, PHASE-NUMBERING-PLAN, HANDOFF), so the result holds.
+- ⚠️ **Queueing for a gate, learned the hard way (same day):** four sessions queued full gates. A waiter run as this
+  tool's background job was killed silently twice. A plain `while ps | grep gate.sh` loop also lost the free slot to
+  another session's waiter. What worked was a waiter started with `nohup … &!` (detached from the tool) that, on
+  seeing the slot free, pauses 8–20 s at random and looks again before starting. That keeps two waiters from starting
+  together and stalling each other (the 75-minute run above, with its no-result `pilllabel`).
+
+### 📝 19 Oct 2026: PLANNED AND RULED: A PRODUCTION WEEK WITH NO SHOOT DAYS READS AS A PRODUCTION HIATUS ([`OFF-WEEK-PLAN.md`](OFF-WEEK-PLAN.md), not built; all seven questions ruled)
+
+- Owner asked whether days set to off should count as hiatus periods. Answered: **not single days.** An off day
+  already pauses the shoot like a hiatus day. A hiatus is whole weeks, Production has one of its own, and the grips
+  write off marks on every drag. The owner then asked for "option 1" to be planned: **a week inside the shoot with no
+  shoot days reads and counts as a Production hiatus week.**
+- ⭐ **Measured, 19 Oct 2026, on a scratch build of `e86aa5e` (`05169b7f…`, the live app):**
+  1. A week with all five weekdays off prints ***Production wk 5*** in the waterfall, Excel and the waterfall PDF, and
+     pushes every later week's number up by one.
+  2. ⚠️ **The month view and the waterfall already number weeks differently after ANY hiatus, for every phase.**
+     `prodWeekLabel()` counts calendar weeks; the week loop skips hiatus weeks. On `dayoverrides.sptcal` the week after
+     Summer Break is *Production wk 3* vs *Production Week 4*. Across the default winter hiatus, *Post wk 8* vs
+     *Post Week 10*. So most real calendars show this today. No doc recorded it as a decision.
+- **The design (step A):** reuse Production's own-hiatus cell (`type:'phaseHiatus'`) for such weeks, from
+  `sim.shootDays`, in `computeSchedule()`. Every writer already draws that cell. There is no save-format change. No
+  fixture can hold such a week (at most one off mark in any, scanned), so every baseline should hold.
+- **Step B, the numbering, is separate:** the month view reads the number the week loop handed out (`seg.weekNo`),
+  never a second count. It moves the month PDF of most calendars, so it needs contact sheets and a gate 10/13 re-cut
+  on sign-off.
+- ✅ **Ruled by picker, 19 Oct 2026:**
+  - Q1: existing calendars change on open, with no setting.
+  - Q2: the band reads "Phase Name" + Hiatus, as the per-phase hiatus does.
+  - Q3: a leading empty week stays numbered.
+  - Q4: **add a band in the month view too** (against the recommendation).
+  - Q5: the month view matches the waterfall's numbers.
+  - Q6: A and B are built separately.
+- ⛔ **Q4 is a FROZEN EDIT**, two lines in `renderMonthView`'s per-phase hiatus block. That block reads one
+  `s.phaseHiatus` range directly, so no sanctioned pattern reaches it. The edit and its five-point gate are plan
+  §3.5. It is inert without an off week, so gates 10 and 13 must stay byte-identical. Step A now also needs month-PDF
+  contact sheets.
+  - ✅ **Q7, approved by the owner (picker, 19 Oct 2026): "Approve with that gate"**, with the edit and the gate shown
+    together. The approval covers those two lines and that gate only. Anything more goes back to the owner.
+- ⏭ **Next:** build step A when the owner asks, in a worktree off `main`, with the month band in its own commit.
+  Step B comes after, separately. ⚠️ PHASE-NUMBERING-PLAN and the unmerged `day-menu-step3` both touch
+  `prodWeekLabel()`, which is step B's site.
+
 ### 📝 19 Oct 2026: PLANNED: A CUSTOM PHASE WITHOUT "wk N" ([`PHASE-NUMBERING-PLAN.md`](PHASE-NUMBERING-PLAN.md), not built)
 
 - Owner: one- or two-day phases should not read "week x" by default. Asked whether that is a separate "Event"
@@ -277,7 +357,8 @@
     `1c3ce15`), so this is a normal `--no-ff` merge, not a fast-forward. `src/legacy/app.js` and `gate.sh` auto-merged;
     only this file and `README.md` conflicted, and both entries were kept in each.
   - The record is the plan's §13 ([`EPISODE-PREP-PLAN.md`](EPISODE-PREP-PLAN.md)). No frozen line changed.
-- **What a user sees:** in the month view only, a **Prep** row under Production: name, colour swatch, *Default prep
+- **What a user sees:** in the month view only, a **Prep** row under Production (⚠️ ABOVE it, named "Episodic Prep" /
+  "Block Prep", since the `prep-name` entry at the top): name, colour swatch, *Default prep
   days*, a summary line, and one box per episode in shooting order (per block in Blocks mode). Blank = the default,
   0 = no prep for that one. Pills read *Prep 302* / *Prep Block 2*, in lanes UNDER the shoot, stacking when they
   overlap. Waterfall, Excel and the waterfall PDF never show prep.

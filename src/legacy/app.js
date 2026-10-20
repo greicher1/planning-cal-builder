@@ -7623,6 +7623,254 @@ export function initLegacyApp() {
     }, true);
   })();
 
+  // ---------- Prep's handle: where each prep STARTS (PREP-GRIP-PLAN.md) ----------
+  // Owner, 19 Oct 2026: "a start grip on each prep pill in the month view that writes that episode's (or
+  // block's) prep length, with the end staying tied to the shoot". So ONE handle per prep, on the left edge
+  // of the pill that holds its first day. Never an end handle: a prep ends the working day before its
+  // unit's first shoot day (EPISODE-PREP-PLAN §1). Never a body-drag: prep has no start-<key> field.
+  // The drag writes the unit's OWN length, episodeDefs[].prepDays / blockDefs[].prepDays, exactly what its
+  // box in the Prep row writes. So there is no new state and no save-format change, and one undo restores it.
+  //   Q1(a) (owner's picker): a length equal to the default is still stored as the unit's own, because a drag
+  //         is a statement about that episode. Only back at the press length is what was there put back,
+  //         blank included (MONTH-9's rule).
+  //   Q2(a): it floors at ONE working day. 0 (no prep) stays something typed in the box.
+  // ⛔ WHICH PREP A PILL IS comes from the ORDER of its row's prep pills, cross-checked by their columns
+  // (prepOfPill). ⛔ THE WORKING DAYS come from the derivation itself (probeDays), never a second walk.
+  // ⭐ ZERO FROZEN EDITS, the other grips' shape: body-level chrome, the pooled .phase-edge-handle and
+  // .phase-edge-shield. The print path hides every child of <body> but #print-root, and buildSavedHtml()
+  // strips both, so neither month PDF nor a shareable copy can carry one.
+  (function installPrepEdgeHandles(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const HANDLE_W = 10;            // px, as the other grips'
+    const PAD = 80;                 // working days the probe walks past today's start
+    const pool = [];                // handle elements, reused; each carries ._spec and ._pill
+    let shownFor = null;
+    let shield = null;
+    let drag = null;
+
+    const prepSeg = ()=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === PREP_KEY) || null;
+    const sameUnit = (a, b)=> !!a && !!b && a.kind === b.kind
+      && (a.kind === 'block' ? a.unit.i === b.unit.i : a.unit.id === b.unit.id);
+    const defOf = p=> p.kind === 'block' ? blockDefs[p.unit.i] : episodeDefs.find(e=> e.id === p.unit.id);
+
+    // The prep a pill draws, with its pillRange(), or null.
+    // ⛔ NOT BY DATE. Two preps can each have a pill starting on the same day of one row: in
+    // episodeprep.sptcal, Prep 303 and Prep 304 both run from Mon 3/1/27, and only 303's is its first day.
+    // Frozen renderMonthView place()s a row's prep runs in prepRunsForWeek()'s order, and emits `placed` in
+    // push order (the contract takePrepRun() already names), so the row's Nth prep pill is its Nth run.
+    // Every pill's columns are checked against its run before that is trusted. On any mismatch there is no
+    // handle (cellDate()'s rule: refuse rather than guess). prepRunsForWeek() is pure; it sets no state.
+    function prepOfPill(pill){
+      const seg = prepSeg(), g = pillRange(pill);
+      if(!seg || !g) return null;
+      const pills = Array.prototype.filter.call(pill.parentNode.children,
+        el=> el.classList && el.classList.contains('mv-pill') && el.getAttribute('data-ph') === PREP_KEY);
+      const runs = prepRunsForWeek(currentSchedule, parseDateUTC(g.rowSun), seg);
+      if(pills.length !== runs.length) return null;
+      for(let k = 0; k < runs.length; k++){
+        if(parseInt(pills[k].style.gridColumnStart, 10) !== runs[k].startCol + 1
+           || parseInt(pills[k].style.gridColumnEnd, 10) !== runs[k].endCol + 2) return null;
+      }
+      const k = pills.indexOf(pill);
+      return (k >= 0 && runs[k].prep) ? {prep: runs[k].prep, g} : null;
+    }
+    // The handle a pill carries: only the pill holding its prep's first day has one.
+    function specFor(pill){
+      const hit = prepOfPill(pill);
+      if(!hit || hit.g.from !== isoOf(hit.prep.first)) return null;
+      return {kind: 'start', side: 'left', day: hit.g.from, prep: hit.prep};
+    }
+    function titleFor(p){
+      const def = defOf(p);
+      const unit = p.kind === 'block' ? ((def && def.name) || ('Block ' + (p.unit.i + 1))) : ((def && def.name) || 'this episode');
+      return 'Drag to change when ' + prepPillLabel(prepSeg() || {}, p) + ' starts. It still ends the working day before '
+        + unit + '’s first shoot day; its prep days change (now ' + p.days.size + ').';
+    }
+
+    function handleAt(k){
+      while(pool.length <= k){
+        const h = document.createElement('div');
+        h.className = 'phase-edge-handle';
+        h.hidden = true;
+        h.addEventListener('mousedown', e=> beginDrag(e, h));
+        document.body.appendChild(h);
+        pool.push(h);
+      }
+      return pool[k];
+    }
+    function hideHandles(except){
+      shownFor = null;
+      pool.forEach(h=>{ if(h !== except) h.hidden = true; });
+    }
+    function place(h, pill, spec){
+      const v = visibleRect(pill);
+      if(!v){ h.hidden = true; return; }
+      const x = v.full.left;
+      // The edge itself must be on screen, not just some of the pill.
+      if(x < v.left - 1 || x + HANDLE_W > v.right + 1){ h.hidden = true; return; }
+      h._spec = spec;
+      h._pill = pill;
+      h.setAttribute('data-edge', 'start');
+      h.setAttribute('data-ph', PREP_KEY);
+      h.style.left = x + 'px';
+      h.style.top = v.top + 'px';
+      h.style.height = (v.bottom - v.top) + 'px';
+      h.style.color = getComputedStyle(pill).color;      // the pill's own text colour reads on its fill
+      h.hidden = false;
+    }
+    function showFor(pill){
+      if(pill === shownFor) return;
+      hideHandles();
+      const spec = specFor(pill);
+      if(!spec) return;
+      shownFor = pill;
+      const h = handleAt(0);
+      place(h, pill, spec);
+      h.title = titleFor(spec.prep);
+    }
+
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('phase-edge-handle')) return;   // resting on one
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hideHandles(); return; }
+      const pill = t && t.closest && t.closest('.mv-pill[data-ph="' + PREP_KEY + '"]');
+      if(!pill || !wrap.contains(pill)){ hideHandles(); return; }
+      showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hideHandles(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hideHandles(); });
+    // Every render replaces every pill (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
+
+    // Every working day the derivation would count for this prep, oldest first, ending on its last day: the
+    // unit's length raised by PAD, one computeSchedule(), and the length put back before anything renders
+    // (probeShootDays()' shape). Nothing re-walks the days, so a holiday, a hiatus or a later rule can never
+    // be counted one way here and another in appendEpisodePrep(). null on any doubt: no drag.
+    function probeDays(p, def){
+      const had = hasPrepOverride(def), was = def.prepDays;
+      try {
+        def.prepDays = String(p.days.size + PAD);
+        const sch = computeSchedule(readState());
+        const seg = sch && (sch.segments || []).find(s=> s.key === PREP_KEY);
+        const q = seg && (seg.preps || []).find(x=> sameUnit(x, p));
+        if(!q) return null;
+        const list = Array.from(q.days).sort();
+        // Today's prep must be exactly the probe's tail, or the arithmetic below means nothing.
+        const today = Array.from(p.days).sort();
+        return (list.length >= today.length && list.slice(-today.length).join() === today.join()) ? list : null;
+      } catch(err){ return null; }
+      finally {
+        if(had) def.prepDays = was; else delete def.prepDays;
+      }
+    }
+    // The working day nearest `T`, and the length that starts the prep there. Ties go to the smaller change.
+    // A day past the end lands on the end itself: one working day (Q2(a)).
+    function solve(d, T){
+      const L = d.list, tT = parseDateUTC(T).getTime();
+      let best = -1, bestDist = 0;
+      for(let k = 0; k < L.length; k++){
+        const dist = Math.abs(parseDateUTC(L[k]).getTime() - tT);
+        const n = L.length - k;
+        if(best < 0 || dist < bestDist
+           || (dist === bestDist && Math.abs(n - d.n0) < Math.abs((L.length - best) - d.n0))){ best = k; bestDist = dist; }
+      }
+      return best < 0 ? null : {n: L.length - best, iso: L[best]};
+    }
+
+    // Keep the dragged handle on its prep's first pill as the grid re-renders under it.
+    function follow(){
+      const d = drag;
+      const pills = wrap.querySelectorAll('.mv-pill[data-ph="' + PREP_KEY + '"]');
+      for(let k = 0; k < pills.length; k++){
+        const hit = prepOfPill(pills[k]);
+        if(hit && sameUnit(hit.prep, d.prep) && hit.g.from === isoOf(hit.prep.first)){
+          place(d.handle, pills[k], {kind: 'start', side: 'left', day: hit.g.from, prep: hit.prep});
+          return;
+        }
+      }
+      d.handle.hidden = true;            // the start is on a day this page does not show
+    }
+
+    function apply(step){
+      const d = drag, def = d.def;
+      if(step.n === d.n0){
+        // Back where it began: EXACTLY what was there, a blank box included (MONTH-9's rule).
+        if(d.had) def.prepDays = d.was; else delete def.prepDays;
+      } else {
+        def.prepDays = String(step.n);   // Q1(a): the unit's own, even when it equals the default
+      }
+      d.cur = step;
+      update();                          // refreshPrepUI() shows the new length in the unit's box
+      // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
+      cancelPendingUndoPush();
+      // ⛔ The end must not have moved, and the start must be where it was computed to land, by the real
+      // derivation. If not, put it back and let the gesture go inert (every grip's guard, same reasoning).
+      if(step.n !== d.n0){
+        const seg = prepSeg(), q = seg && (seg.preps || []).find(x=> sameUnit(x, d.prep));
+        const ok = !!q && isoOf(q.first) === step.iso && isoOf(q.last) === d.last;
+        if(!ok){ d.broken = true; apply({n: d.n0, iso: d.first0}); return; }
+      }
+      follow();
+    }
+
+    function endDrag(){
+      const d = drag;
+      drag = null;
+      if(shield){ shield.remove(); shield = null; }
+      hideHandles();
+      // ⛔ THE TRAILING PUSH IS THE STEP, as every grip's. A drag that ends where it began banks none.
+      if(d && (hasPrepOverride(d.def) !== d.had || (d.had && d.def.prepDays !== d.was))){ pushUndoSnapshot(); markDirty(); }
+    }
+
+    function beginDrag(e, h){
+      if(e.button !== 0 || drag || viewMode !== 'month') return;
+      const spec = h._spec, pill = h._pill;
+      const hit = pill && prepOfPill(pill);
+      // Stale (the grid moved under a resting pointer): no drag.
+      if(!spec || !hit || !sameUnit(hit.prep, spec.prep) || hit.g.from !== isoOf(hit.prep.first)) return;
+      const p = hit.prep, def = defOf(p);
+      if(!def) return;
+      const list = probeDays(p, def);
+      if(!list) return;
+      const d = {handle: h, prep: p, def, had: hasPrepOverride(def), was: def.prepDays, n0: p.days.size,
+                 first0: isoOf(p.first), last: isoOf(p.last), list, cur: {n: p.days.size, iso: isoOf(p.first)}};
+      e.preventDefault();
+      e.stopPropagation();
+      // Read the pointer as if it had pressed on the CENTRE of the prep's first day, so the edge moves when
+      // the pointer crosses half a day (body-drag's rounding, and every grip's).
+      const cr = hit.g.cells[hit.g.a - 1].getBoundingClientRect();
+      d.dx = e.clientX - (cr.left + cr.width / 2);
+      // Flush whatever came before into its own step (body-drag's leading push).
+      pushUndoSnapshot();
+      drag = d;
+      hideHandles(h);
+      shield = document.createElement('div');
+      shield.className = 'phase-edge-shield';
+      document.body.appendChild(shield);
+    }
+
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
+      if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.broken) return;
+      const T = dayAtPoint(e.clientX - drag.dx, e.clientY);
+      if(!T) return;
+      const step = solve(drag, T);
+      if(step && step.n !== drag.cur.n) apply(step);
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) endDrag(); });
+    // Escape puts the start back where the gesture began, and banks nothing.
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      if(drag.cur.n !== drag.n0) apply({n: drag.n0, iso: drag.first0});
+      endDrag();
+    }, true);
+  })();
+
   // ⛔ Audit M-7: HOLIDAYS covers a fixed span of years (2024-2031 since v1.3.1), and a shoot day
   // outside it skips NO holidays -- the wrap comes out early and the Holidays card lists nothing --
   // which v1.3.0 did in silence. The span is read off the region's own data, never a constant, so a
