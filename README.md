@@ -108,6 +108,84 @@ PREP-GRIP-PLAN.md, with both rulings as recommended.
   were each red first: choosing the pill by date (G0, G1), writing the default (G1–G7), writing the number back at
   the start (G3, G6), and no floor (G5). `npm run check` 40/40. Full gate on build `70005deb…`: **1,788 PASS, 1 FAIL** (75 min, under other sessions' load). The one failure is `pilllabel (dayoverrides-onhalf)` producing no result file at all. Run alone on the same build afterwards, that leg passes 29/29: the same 29 checks as before, with 74 ids (prep's two) for 72. Everything else is green: G0–G8, the waterfall PDF and Excel identical, `fields.byId` at 74 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical. Merged with `main` (beside the note fix): **1,860 PASS, 0 FAIL, GATE
   PASSED** on build `314f7722…`, with every frozen output identical and `pilllabel` green.
+### Unreleased — Left-click a day in the month view: the day menu, with Full day / Off in it (19 Oct 2026)
+
+Step 4 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), owner ruling L1: *"I thought you were going to
+combine the full day/off day menu with the right-click menu … would instead pop up from a left click"*.
+- **A left-click on a day's number opens the day menu**, under the number. It is the same menu a right-click opens,
+  and right-click still works anywhere on a day. On a hiatus day, which has no "+" lines, a click anywhere on it opens
+  the menu. Near the bottom of the window the menu opens above the number. On a window too short for either, it opens
+  beside the day, so it never covers the number.
+- **The Full day / Off popover is retired.** Its choices are now the menu's shoot-day section, headed "Shoot day 7"
+  (or "Not a shoot day" on a weekend, a holiday, a hiatus day or a day marked Off), below Add hiatus. The rows are
+  the same as before, built by the same code: Full day / Off on a weekday; Weekend or Holiday — not shot and Work
+  this day, with "Overrides <holiday>"; the greyed-out Work this day inside a hiatus. A withdrawn half-day row still
+  shows only on a day that holds one, and a stored mark that no row offers gets its line. The current choice is
+  ticked. Each choice is one undo step.
+- **Every day opens the menu now**, including days outside the shoot, where a click used to do nothing. Those have no
+  shoot-day section.
+- **Double-click a marked day still clears it.** Clicking the day whose menu is open closes the menu. The menu's
+  footer says "Double-click a marked day to clear it" on a shoot day.
+- **Unchanged:** a click on a "+" opens the note editor, a click on a note edits it, and a press on a bar drags it.
+- **Remove a custom phase from its bar** (the owner's request the same day). A custom phase's section ends with a red
+  **Remove <phase>…**. It asks the Phases card's own question first ("Remove this phase? Its name, dates, duration and
+  hiatus will be lost."), and the removal is one undo step. Built-in phases have no such item, as they can't be
+  removed anywhere.
+- **Fixed with it (plan §8.1, the owner's yes by picker):** a hiatus whose band label was emptied on purpose made its
+  days offer Full day / Off, which do nothing inside a hiatus. They now offer only the greyed-out "Work this day",
+  "Inside the hiatus — shorten the hiatus to work these days".
+- No frozen code changed and nothing new is saved. The `.day-ov-*` styles went with the popover.
+- **Verified:** `mvmenu` 77/77, with C2 flipped and new cases for the left-click: where it opens, the toggle,
+  double-click-to-clear, the flip, "+" slots, notes and bars, a Mac Ctrl+click, §8.1, and Remove <phase>…. Fifteen
+  mutants each turn their own cases red. `halfdays` (D5) and `halfworked` now read the menu's `data-ov` rows, with
+  every value they assert unchanged, and both go red on a build with no left-click. `halfdays` 26/26, `halfworked`
+  24/24, `overrides` 20/20, `loadcarry` 6/6, `pilldrag` 30/30, `phaseedge` 14/14; `npm run check` 40/40. Checked by
+  hand in the browser pane: a real click on 7 Jul, Off, a real double-click to clear, the beside placement on a 768 px
+  window, and Remove on a custom phase with one Undo. **Full gate:** 1,857 PASS, 7 FAIL, every frozen output
+  identical: gate 10's ten print documents, gate 13's twenty written month PDFs byte for byte, the waterfall PDF and
+  every Excel part, 74 ids. The 7 were contention on a loaded machine (`pilllabel (shootorder)` ×5, `launchopen` L6,
+  `cspproof` failing to start Chrome). Re-run alone, all pass: 29/29, 16/16, 15/15.
+
+### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
+
+Step 3 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). A right-click on a phase's bar adds a section for
+that phase, headed by its name and colour, between "This day" and "Show this week in the waterfall":
+- **Start <phase> here** moves the whole phase so it starts on that day, keeping its length: the same as dragging the
+  bar there. Snap to Mon comes off on any day but a Monday. Production is a mover too, so its day marks travel with
+  it by shoot-day number (owner ruling R2).
+- **End <phase> here** keeps the start and ends the phase on that day, by the end handle's own rule: a Weeks phase
+  becomes Dates first. **Production's is greyed out**, "Its end comes from the shoot days" (ruling Q3).
+- **Colour…** opens the swatch's colour picker under the bar.
+- **Show in Phases card** switches the sidebar to Phases with that phase's row in view.
+- A **Prep** pill gets the section too: Start and End are greyed out, because prep is worked out from each episode's
+  first shoot day. Its Colour… and Show in Phases card work.
+- An item that would change nothing is greyed out with its reason ("It already starts on this day"). Each item is
+  one undo step.
+- **An edited auto-note follows** Start and End here, as it follows the drags since the fix just before this one:
+  "Start Principal Photography 6/29/26" with a line added becomes 7/13/26 when the shoot is started on 13 Jul.
+- **Under the hood:** the end handle's rule and the three swatch pickers' colour writes are each lifted to one shared
+  function, unchanged, so the menu and the sidebar cannot drift apart. No frozen code changed; nothing new is saved.
+- **Verified:** `mvmenu` 61/61, and six mutants each turn exactly their own case red. `phaseedge` 14/14 and
+  `pilldrag` 30/30 after the lift and the merge with the auto-note fix, with real pointer input. Checked by hand on
+  Post (End, Colour…) and on a Prep pill.
+  - Full gate on the merged build `dfa8c9a7…`: 1,860 PASS, 3 FAIL, none of them a difference. Every frozen output is
+    identical, and `mvmenu` passes 61/61. The three (`phaseedge` timing out, and `cspproof` B0/X1 waiting on ExcelJS
+    from its CDN) passed when re-run alone on the same build: 14/14 and 15/15, with zero CSP violations.
+
+### Unreleased — Add hiatus ▸ in the day menu: all phases, or one phase, from that week (19 Oct 2026)
+
+Step 2 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md). The day menu gains **Add hiatus**, which opens a
+submenu beside it:
+- **All phases** adds a two-week all-phase hiatus from that week's Monday, locked in place, as the sidebar's
+  "+ Add hiatus" does.
+- **One phase only** lists each phase running that day; choosing one switches on its own two-week hiatus.
+- On a phase that already has its own hiatus the item reads **"Move <phase>'s hiatus here"**: it moves the start and
+  keeps the length and name (ruling Q2). In the week it already starts, it is greyed out.
+- Each line says the week, "Week of Mon 6 Jul · 2 weeks", because a hiatus always covers whole Monday-to-Sunday weeks.
+- The submenu opens on hover, a click, Enter or →; ← and Escape close it. A 250 ms grace period keeps it open while
+  the pointer crosses the next item on its way in.
+- **Verified:** `mvmenu` 47/47, five mutants each red on their own case; checked by hand. Its full gate was folded
+  into step 3's, which contains it.
 
 ### Unreleased — Month view: a note line dated the 1st–9th sits on its own day, and none is lost (19 Oct 2026)
 

@@ -4,8 +4,8 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh offweek 600
 //     LIVE + MINT. Builds the calendar below through the UI, marks every day off (and the one Saturday
-//     worked) through the month view's day popover, each click HIT-TESTED at the day-number band as a
-//     pointer would land, then saves through the real Save path (only the OS picker stood in for):
+//     worked) through the month view's day menu (the Full day/Off popover until day menu step 4), each
+//     click HIT-TESTED at the day-number band as a pointer would land, then saves through the real Save path (only the OS picker stood in for):
 //     out.sptcal -> tests/fixtures/offweek.sptcal.
 //
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=offweek ./run.sh offweek 600
@@ -113,16 +113,21 @@ window.addEventListener('load', function () { (async function () {
     if(!top || !top.closest || top.closest('.mv-daycell') !== cell) throw new Error('day ' + n + ' is not reachable at its number band');
     return top;
   }
+  // ⚠️ Since day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, ruling L1; merged into main with this leg on 19 Oct
+  // 2026) the click opens the DAY MENU, and the retired Full day/Off popover's rows are its shoot-day section,
+  // each keeping its data-ov: the same values, read from [data-section="shoot"]. The menu closes on a PRESS
+  // outside it, so the leg presses before its click-away.
   async function mark(n, v){
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
     document.body.click(); await T.sleep(150);
     (await hitDay(n)).click(); await T.sleep(250);
-    var pop = document.querySelector('.day-ov-pop');
-    if(!pop) throw new Error('no day popover opened for day ' + n);
-    var b = pop.querySelector('.day-ov-opt[data-ov="' + v + '"]');
+    var pop = document.querySelector('.day-menu');
+    if(!pop || !pop.querySelector('[data-section="shoot"]')) throw new Error('no day menu with a shoot-day section opened for day ' + n);
+    var b = pop.querySelector('[data-section="shoot"] .day-menu-item[data-ov="' + v + '"]');
     if(!b) throw new Error('no option "' + v + '" for day ' + n);
     var r = b.getBoundingClientRect();
     var top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
-    if(!top || !top.closest || top.closest('.day-ov-opt') !== b) throw new Error('option "' + v + '" is covered');
+    if(!top || !top.closest || top.closest('.day-menu-item') !== b) throw new Error('option "' + v + '" is covered');
     top.click();
     await settle();
   }

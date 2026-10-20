@@ -5601,11 +5601,7 @@ export function initLegacyApp() {
       });
       const sw = row.querySelector('.swatch');
       sw.addEventListener('click', ()=>{
-        openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=>{
-          phaseColorOverride[p.key] = i;
-          sw.style.background = PHASE_COLOR_OPTIONS[i].color;
-          update();
-        });
+        openPhaseColorPop(sw, autoPhaseColorIndex(p), (i)=> setPhaseColor(p.key, i));
       });
     });
   }
@@ -5643,11 +5639,7 @@ export function initLegacyApp() {
     row.querySelector('#prep-days').addEventListener('input', update);
     const sw = row.querySelector('.swatch');
     sw.addEventListener('click', ()=>{
-      openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=>{
-        phaseColorOverride[PREP_KEY] = i;
-        reflectPrepSwatch();
-        update();
-      });
+      openPhaseColorPop(sw, autoPhaseColorIndex(PREP_DEF), (i)=> setPhaseColor(PREP_KEY, i));
     });
     // One episode's (block's) own length. Blank goes back to the default by REMOVING the key, so a box
     // typed and cleared leaves the file as it was. update() is what recomputes and banks the undo step.
@@ -5761,6 +5753,29 @@ export function initLegacyApp() {
     if(p.key in phaseColorOverride) return phaseColorOverride[p.key];
     const idx = PHASE_COLOR_OPTIONS.findIndex(o=>o.color.toUpperCase() === String(p.color||'').toUpperCase());
     return idx >= 0 ? idx : 0;
+  }
+  // ⭐ ONE WRITER of a phase's colour (MONTH-CONTEXT-MENU-PLAN §3.6, plan step 3, 19 Oct 2026): the
+  // three swatches' pickers (a built-in phase, a custom phase, the Prep row) and the day menu's Colour…
+  // all call this. Their bodies were written inline, one each, and are moved here unchanged: a built-in
+  // phase keeps its pick in phaseColorOverride, a custom phase in its own colorIndex, prep in
+  // phaseColorOverride.episodePrep. Then the sidebar swatch is repainted and update() runs.
+  // ⛔ `i` indexes PHASE_COLOR_OPTIONS, whose ORDER IS FILE FORMAT (CLAUDE.md). This only stores it.
+  function setPhaseColor(key, i){
+    if(key === PREP_KEY){ phaseColorOverride[PREP_KEY] = i; reflectPrepSwatch(); update(); return; }
+    const cp = customPhaseDefs.find(c=> c.key === key);
+    if(cp) cp.colorIndex = i;
+    else if(PHASES.some(p=> p.key === key)) phaseColorOverride[key] = i;   // never a key no phase has
+    const sw = document.getElementById('swatch-' + key);
+    if(sw) sw.style.background = PHASE_COLOR_OPTIONS[i].color;
+    update();
+  }
+  // The colour a phase's picker opens on: what setPhaseColor() last stored, or the phase's own.
+  function phaseColorIndexOf(key){
+    if(key === PREP_KEY) return autoPhaseColorIndex(PREP_DEF);
+    const cp = customPhaseDefs.find(c=> c.key === key);
+    if(cp) return cp.colorIndex;
+    const p = PHASES.find(x=> x.key === key);
+    return p ? autoPhaseColorIndex(p) : 0;
   }
 
   // A small floating picker of the standard phase colors, anchored under a clicked color square.
@@ -5984,6 +5999,35 @@ export function initLegacyApp() {
       </div>`;
   }
 
+  // Removing a custom phase, in two halves shared by the row's × (below) and the month day menu's
+  // "Remove <phase>…" (installMonthDayMenu; owner, 19 Oct 2026, added to MONTH-CONTEXT-MENU-PLAN.md
+  // step 4). The menu banks its own undo step BETWEEN them, after the answer: the bracket is
+  // synchronous, so it cannot wrap a question (plan §7). Both read the row's key AT CALL TIME, for the
+  // re-keying reason the comment inside addCustomPhaseRow gives.
+  // The question, asked only when there's something to lose -- an untouched blank row deletes freely.
+  async function confirmRemoveCustomPhase(row){
+    const k = row.dataset.key;
+    const nameEl = row.querySelector('.phase-name-input');
+    const startEl = document.getElementById('start-'+k);
+    const weeksEl = document.getElementById('weeks-'+k);
+    const daysEl = document.getElementById('days-'+k);
+    const endEl = document.getElementById('end-'+k);
+    const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim())
+                    || (daysEl && daysEl.value) || (endEl && endEl.value);
+    return !hasData || !!(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }));
+  }
+  // The removal. ⚠️ A row that left the document while the question was up (an undo or a load rebuilds
+  // every custom row) is not removed: its key may name the rebuilt row now, and dropping that row's def
+  // while it stays on screen would leave readState() a row with no definition.
+  function removeCustomPhaseRow(row){
+    if(!row.isConnected) return false;
+    const k = row.dataset.key;
+    customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
+    row.remove();
+    update();
+    return true;
+  }
+
   function addCustomPhaseRow(){
     const key = 'custom' + (++customPhaseCounter);
     const colorIndex = customPhaseDefs.length % PHASE_COLOR_OPTIONS.length;
@@ -6023,29 +6067,15 @@ export function initLegacyApp() {
     // longer existed: remove stranded a ghost def and the next update() threw in readState on the
     // missing start-<key>, a colour pick never persisted, and a rename never reached its hiatus
     // placeholder. HANDOFF §2b-3 known bug #1; fixed with M-2 (FIX-PLAN.md 1.1, 25 Sep 2026).
+    // Both halves are shared with the month day menu's "Remove <phase>…" (confirmRemoveCustomPhase,
+    // removeCustomPhaseRow, just above this function), so the two ask the same question.
     row.querySelector('.remove-custom-phase').addEventListener('click', async ()=>{
-      const k = row.dataset.key;
-      // Only prompt when there's something to lose -- an untouched blank row deletes freely.
-      const nameEl = row.querySelector('.phase-name-input');
-      const startEl = document.getElementById('start-'+k);
-      const weeksEl = document.getElementById('weeks-'+k);
-      const daysEl = document.getElementById('days-'+k);
-      const endEl = document.getElementById('end-'+k);
-      const hasData = (startEl && startEl.value) || (weeksEl && weeksEl.value) || (nameEl && nameEl.value.trim())
-                      || (daysEl && daysEl.value) || (endEl && endEl.value);
-      if(hasData && !(await uiConfirm('Remove this phase? Its name, dates, duration and hiatus will be lost.', { title: 'Remove phase', confirmLabel: 'Remove', danger: true }))) return;
-      customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
-      row.remove();
-      update();
+      if(!(await confirmRemoveCustomPhase(row))) return;
+      removeCustomPhaseRow(row);
     });
     const swEl = row.querySelector('.swatch');
     swEl.addEventListener('click', ()=>{
-      const cp = customPhaseDefs.find(c=>c.key===row.dataset.key);
-      openPhaseColorPop(swEl, cp ? cp.colorIndex : 0, (i)=>{
-        if(cp) cp.colorIndex = i;
-        swEl.style.background = PHASE_COLOR_OPTIONS[i].color;
-        update();
-      });
+      openPhaseColorPop(swEl, phaseColorIndexOf(row.dataset.key), (i)=> setPhaseColor(row.dataset.key, i));
     });
     // Keep the hiatus toggle/name field's placeholder -- which defaults to the phase's own name
     // -- in step as it's typed.
@@ -7402,29 +7432,126 @@ export function initLegacyApp() {
   // the same pooled .phase-edge-handle and .phase-edge-shield, so neither month PDF can see them and
   // buildSavedHtml() already strips both. Out and back in one gesture puts back EXACTLY what was there
   // (MONTH-9's rule), the unit included, and banks nothing; Escape does the same.
+  // ---------- A phase's edge, by the edge handle's rule (MONTH-CONTEXT-MENU-PLAN.md §3.5) ----------
+  // ⭐ LIFTED OUT OF installPhaseEdgeHandles BELOW (plan step 3, 19 Oct 2026), UNCHANGED, so the handle and
+  // the day menu's "End <phase> here" share ONE rule. The handle keeps its gesture: it makes the plan once,
+  // at the press, and writes through it on every step, because "back where it began" means the fields as
+  // they stood at the press. The menu makes a plan, solves one day and writes once. The phaseedge leg is
+  // this rule's gate, as before.
+  const PHASE_EDGE_SEARCH = 400;   // days either side of the target to look for a drawable day
+  function phaseSegOf(key){
+    return ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+  }
+  // pillRunsForWeek()'s own test of a covered day, so an edge sits exactly where a pill edge does.
+  function phaseDrawnOn(seg, d){
+    return segCoversDate(seg, d) && !isHiatusDate(currentSchedule, d) && !isPhaseHiatusDate(seg, d);
+  }
+  // The phase's first and last DRAWN day: where its two handles live. null if it draws nothing.
+  function phaseDrawnEnds(seg){
+    let first = null, last = null;
+    for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(phaseDrawnOn(seg, d)){ first = d; break; }
+    for(let d = addDays(seg.end, -1); d >= seg.start; d = addDays(d, -1)) if(phaseDrawnOn(seg, d)){ last = d; break; }
+    return (first && last) ? {first: isoOf(first), last: isoOf(last)} : null;
+  }
+  // Only a phase with a Length select: every custom phase and the five built-ins, never Production.
+  function phaseHasEdgeUnit(key){
+    return !!key && key !== 'production' && !!document.getElementById('unit-' + key);
+  }
+  // Everything a move of one edge needs, read off the schedule NOW; null when the phase has no such edge.
+  // `fields` is everything a move may write, so it can be put back exactly and so "did anything change"
+  // is one comparison. Snap to Mon is not among them: it is hidden and ignored once the phase is Dates.
+  function phaseEdgePlan(key, kind){
+    const seg = phaseSegOf(key), ends = seg && phaseDrawnEnds(seg);
+    const startEl = key && document.getElementById('start-' + key);
+    if(!seg || !ends || !startEl || !startEl.value || !phaseHasEdgeUnit(key)) return null;
+    const unit = customPhaseUnit(key);
+    if(unit === 'days' && !document.getElementById('days-' + key)) return null;
+    if(unit !== 'days' && !document.getElementById('end-' + key)) return null;
+    const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
+    const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
+    const edge0 = kind === 'start' ? ends.first : ends.last;
+    return {key, kind, unit, ends, edge0, cur: edge0, startEl, ctx,
+            fields, was: fields.map(f=> f.value),
+            segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
+            // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
+            // Weeks, which becomes Dates). Read off the schedule now: hiatuses and holidays do not
+            // change while an edge moves.
+            lands: unit === 'days' ? (x=> isUnitWorkDay(x, ctx))
+                 : (x=>{ const w = x.getUTCDay(); return w !== 0 && w !== 6 && !isHiatusDate(sched, x) && !isPhaseHiatusDate(seg, x); })};
+  }
+  // The drawable day nearest `T`, inside the floor; ties go toward where the edge began.
+  function phaseEdgeSolve(d, T){
+    if(d.kind === 'end' && T < d.ends.first) T = d.ends.first;
+    if(d.kind === 'start' && T > d.ends.last) T = d.ends.last;
+    const t = parseDateUTC(T);
+    const back = d.edge0 < T ? -1 : 1;                 // the step that shrinks the change
+    for(let k = 0; k <= PHASE_EDGE_SEARCH; k++){
+      for(const s of (k ? [back, -back] : [0])){
+        const x = addDays(t, s * k), iso = isoOf(x);
+        if(d.kind === 'end' && iso < d.ends.first) continue;
+        if(d.kind === 'start' && iso > d.ends.last) continue;
+        if(iso === d.edge0 || d.lands(x)) return iso;
+      }
+    }
+    return null;
+  }
+  // Working days from a to b inclusive, by the scheduler's own predicate.
+  function phaseEdgeCount(d, a, b){
+    let n = 0;
+    for(let x = parseDateUTC(a), e = parseDateUTC(b); x <= e; x = addDays(x, 1)) if(isUnitWorkDay(x, d.ctx)) n++;
+    return n;
+  }
+  // The fields for the edge at D. The caller runs update() next.
+  function phaseEdgeWrite(d, D){
+    const el = id=> document.getElementById(id + '-' + d.key);
+    if(D === d.edge0){
+      // Back where it began: EXACTLY what was there, the unit included (MONTH-9's rule).
+      d.fields.forEach((f, i)=>{ f.value = d.was[i]; });
+    } else {
+      if(d.unit === 'weeks'){
+        // Ruling 8: the gesture switches the constraint, as body-drag switches Snap to Mon (§6.3). The
+        // phase is first re-stated as Dates exactly where it is scheduled; then the edge applies.
+        // .value without a 'change' event, as body-drag sets .checked: onCustomUnitChange() would
+        // run update() and prefill again, and update() is next anyway. The boxes show by CSS off
+        // the checked option, so the row follows with no event.
+        el('unit').value = 'dates';
+        d.startEl.value = d.segStart;
+        el('end').value = d.lastWeekday;
+      }
+      if(d.unit === 'days'){
+        if(d.kind === 'start'){ d.startEl.value = D; el('days').value = String(phaseEdgeCount(d, D, d.ends.last)); }
+        else el('days').value = String(phaseEdgeCount(d, d.ends.first, D));
+      } else if(d.kind === 'start'){
+        d.startEl.value = D;           // ⛔ directly, never setPhaseStart(): the end is held
+      } else {
+        el('end').value = D;
+      }
+    }
+    d.cur = D;
+  }
+  // ⛔ After update(): the held edge must not have moved, and the moved one must be where it was computed
+  // to land, by the real scheduler. If not, this arithmetic disagrees with it, and a silent wrong date in
+  // someone's plan is the outcome to refuse: the caller puts the fields back (Production's guard, the
+  // same reasoning).
+  function phaseEdgeLanded(d, D){
+    if(D === d.edge0) return true;
+    const seg = phaseSegOf(d.key), e2 = seg && phaseDrawnEnds(seg);
+    return !!e2 && (d.kind === 'start' ? e2.first === D && e2.last === d.ends.last
+                                       : e2.first === d.ends.first && e2.last === D);
+  }
+
   (function installPhaseEdgeHandles(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
     const HANDLE_W = 10;            // px, as Production's
-    const SEARCH = 400;             // days either side of the pointer to look for a drawable day
     const pool = [];                // handle elements, reused; each carries ._spec and ._pill
     let shownFor = null;
     let shield = null;
     let drag = null;
 
-    const segOf = key=> ((currentSchedule && currentSchedule.segments) || []).find(s=> s.key === key) || null;
+    // The rule itself is at module scope, just above (plan step 3); these are its names in here.
+    const segOf = phaseSegOf, drawnEnds = phaseDrawnEnds, hasUnit = phaseHasEdgeUnit, solve = phaseEdgeSolve;
     const dayDiff = (a, b)=> Math.round((parseDateUTC(b) - parseDateUTC(a)) / DAY_MS);
-    // pillRunsForWeek()'s own test of a covered day, so a handle sits exactly where a pill edge does.
-    const drawn = (seg, d)=> segCoversDate(seg, d) && !isHiatusDate(currentSchedule, d) && !isPhaseHiatusDate(seg, d);
-    // The phase's first and last DRAWN day: where its two handles live. null if it draws nothing.
-    function drawnEnds(seg){
-      let first = null, last = null;
-      for(let d = new Date(seg.start.getTime()); d < seg.end; d = addDays(d, 1)) if(drawn(seg, d)){ first = d; break; }
-      for(let d = addDays(seg.end, -1); d >= seg.start; d = addDays(d, -1)) if(drawn(seg, d)){ last = d; break; }
-      return (first && last) ? {first: isoOf(first), last: isoOf(last)} : null;
-    }
-    // Only a phase with a Length select: every custom phase and the five built-ins, never Production.
-    const hasUnit = key=> !!key && key !== 'production' && !!document.getElementById('unit-' + key);
 
     function specsFor(pill){
       const key = pill.getAttribute('data-ph');
@@ -7504,29 +7631,6 @@ export function initLegacyApp() {
     // Every render replaces every pill (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
     new MutationObserver(()=>{ if(!drag) hideHandles(); }).observe(wrap, {childList: true, subtree: true});
 
-    // The drawable day nearest `T`, inside the floor; ties go toward where the edge began.
-    function solve(d, T){
-      if(d.kind === 'end' && T < d.ends.first) T = d.ends.first;
-      if(d.kind === 'start' && T > d.ends.last) T = d.ends.last;
-      const t = parseDateUTC(T);
-      const back = d.edge0 < T ? -1 : 1;                 // the step that shrinks the change
-      for(let k = 0; k <= SEARCH; k++){
-        for(const s of (k ? [back, -back] : [0])){
-          const x = addDays(t, s * k), iso = isoOf(x);
-          if(d.kind === 'end' && iso < d.ends.first) continue;
-          if(d.kind === 'start' && iso > d.ends.last) continue;
-          if(iso === d.edge0 || d.lands(x)) return iso;
-        }
-      }
-      return null;
-    }
-    // Working days from a to b inclusive, by the scheduler's own predicate.
-    function countWork(d, a, b){
-      let n = 0;
-      for(let x = parseDateUTC(a), e = parseDateUTC(b); x <= e; x = addDays(x, 1)) if(isUnitWorkDay(x, d.ctx)) n++;
-      return n;
-    }
-
     // Keep the dragged handle on its edge as the grid re-renders under it.
     function follow(){
       const d = drag, pills = wrap.querySelectorAll('.mv-pill[data-ph="' + d.key + '"]');
@@ -7541,47 +7645,16 @@ export function initLegacyApp() {
     }
 
     function apply(D){
-      const d = drag, el = id=> document.getElementById(id + '-' + d.key);
-      if(D === d.edge0){
-        // Back where it began: EXACTLY what was there, the unit included (MONTH-9's rule).
-        d.fields.forEach((f, i)=>{ f.value = d.was[i]; });
-      } else {
-        if(d.unit === 'weeks'){
-          // Ruling 8: the gesture switches the constraint, as body-drag switches Snap to Mon (§6.3). The
-          // phase is first re-stated as Dates exactly where it is scheduled; then the edge applies.
-          // .value without a 'change' event, as body-drag sets .checked: onCustomUnitChange() would
-          // run update() and prefill again, and update() is next anyway. The boxes show by CSS off
-          // the checked option, so the row follows with no event.
-          el('unit').value = 'dates';
-          d.startEl.value = d.segStart;
-          el('end').value = d.lastWeekday;
-        }
-        if(d.unit === 'days'){
-          if(d.kind === 'start'){ d.startEl.value = D; el('days').value = String(countWork(d, D, d.ends.last)); }
-          else el('days').value = String(countWork(d, d.ends.first, D));
-        } else if(d.kind === 'start'){
-          d.startEl.value = D;           // ⛔ directly, never setPhaseStart(): the end is held
-        } else {
-          el('end').value = D;
-        }
-      }
-      d.cur = D;
+      const d = drag;
+      phaseEdgeWrite(d, D);
       update();
       // An edited "Writer's Room Opens" follows its date, and a holiday note the phase's new span adds
       // or drops is corrected in an edited note too (R5; see autoNoteBaseline).
       reapplyAutoNoteBaseline(d.notesBase);
       // ⛔ update() re-armed the 500ms undo debounce. Kill it: the gesture banks its own ONE step.
       cancelPendingUndoPush();
-      // ⛔ The held edge must not have moved, and the dragged one must be where it was computed to land,
-      // by the real scheduler. If not, this arithmetic disagrees with it, and a silent wrong date in
-      // someone's plan is the outcome to refuse: put it back and let the gesture go inert (Production's
-      // guard, the same reasoning).
-      if(D !== d.edge0){
-        const seg = segOf(d.key), e2 = seg && drawnEnds(seg);
-        const ok = !!e2 && (d.kind === 'start' ? e2.first === D && e2.last === d.ends.last
-                                               : e2.first === d.ends.first && e2.last === D);
-        if(!ok){ d.broken = true; apply(d.edge0); return; }
-      }
+      // A move the scheduler disagrees with is put back, and the gesture goes inert (phaseEdgeLanded).
+      if(!phaseEdgeLanded(d, D)){ d.broken = true; apply(d.edge0); return; }
       follow();
     }
 
@@ -7603,26 +7676,14 @@ export function initLegacyApp() {
       if(e.button !== 0 || drag || viewMode !== 'month') return;
       if(isMacCtrlClick(e)) return;                    // a right-click on a Mac: the day menu's
       const spec = h._spec, pill = h._pill;
-      const key = spec && spec.key;
-      const seg = key && segOf(key), g = pill && pillRange(pill), ends = seg && drawnEnds(seg);
-      const startEl = key && document.getElementById('start-' + key);
-      if(!spec || !seg || !g || !ends || !startEl || !startEl.value || !hasUnit(key)) return;
-      if(spec.day !== (spec.kind === 'start' ? ends.first : ends.last)) return;   // stale: the grid moved
-      const unit = customPhaseUnit(key);
-      // Everything a drag may write, so it can be put back exactly and so "did anything change" is
-      // one comparison. Snap to Mon is not among them: it is hidden and ignored once the phase is Dates.
-      const fields = ['unit', 'start', 'end', 'days', 'weeks'].map(id=> document.getElementById(id + '-' + key)).filter(Boolean);
-      const sched = currentSchedule, ctx = unitWorkDayCtx(sched, key);
-      const d = {key, kind: spec.kind, handle: h, unit, ends, edge0: spec.day, cur: spec.day, startEl, ctx,
-                 fields, was: fields.map(f=> f.value), notesBase: autoNoteBaseline(),
-                 segStart: isoOf(seg.start), lastWeekday: isoOf(segLastWeekday(seg)),
-                 // Where an edge may land: a working day for Days, a drawable weekday for Dates (and for
-                 // Weeks, which becomes Dates). Read off the schedule at the press: hiatuses and holidays
-                 // do not change while the edge moves.
-                 lands: unit === 'days' ? (x=> isUnitWorkDay(x, ctx))
-                      : (x=>{ const w = x.getUTCDay(); return w !== 0 && w !== 6 && !isHiatusDate(sched, x) && !isPhaseHiatusDate(seg, x); })};
-      if(unit === 'days' && !document.getElementById('days-' + key)) return;
-      if(unit !== 'days' && !document.getElementById('end-' + key)) return;
+      const g = pill && pillRange(pill);
+      // The plan, read at the press (phaseEdgePlan, module scope): what the drag may write and where it may land.
+      const d = spec && g && phaseEdgePlan(spec.key, spec.kind);
+      if(!d) return;
+      if(spec.day !== d.edge0) return;                 // stale: the grid moved
+      d.handle = h;
+      // The week notes at the press, so an edited auto-note's date follows the edge (R5; see autoNoteBaseline).
+      d.notesBase = autoNoteBaseline();
       e.preventDefault();
       e.stopPropagation();
       // Read the pointer as if it had pressed on the CENTRE of the edge's own day, so the edge moves
@@ -8007,31 +8068,31 @@ export function initLegacyApp() {
   // put to the owner on 18 Sep 2026. So the gesture works and is undiscoverable. Asking for one
   // scoped `#table-wrap .mv-daycell{cursor:pointer}` is the obvious follow-up; it is deliberately
   // not taken unilaterally.
-  // What the block below lends the month day menu (installMonthDayMenu, after it), whose helpers are
-  // otherwise private to it. Declared HERE, above the block, because the block fills it in while the
-  // engine evaluates. MONTH-CONTEXT-MENU-PLAN.md §4 (close it before the menu opens), and §3.9: plan
-  // step 4 adds the shoot-day rows here when the menu takes over the left-click.
-  const dayOverrideUI = {close(){}};
+  // (Taken since, by owner-approved frozen CSS edits on 18 and 21 Sep 2026: the pointer cursor and the
+  // purple chip on the day number. See the `#table-wrap .mv-daycell` rules in legacy.css.)
+  //
+  // ⭐ THE POPOVER IS RETIRED (19 Oct 2026, MONTH-CONTEXT-MENU-PLAN.md step 4, owner ruling L1). This
+  // block opened a small Full day/Off popover under the day. A left-click on a day now opens the month
+  // day menu instead (installMonthDayMenu, after this block), under the day's number, and the popover's
+  // choices are that menu's shoot-day section. The section is built HERE, from the popover's own row
+  // list (dayOverrideRows), so there is one set of row rules and nothing to drift. The left-click itself
+  // moved to installMonthDayMenu, beside the right-click, because the toggle (a click on the open day
+  // closes it, which keeps double-click-to-clear working) is the menu's state. The two notes above,
+  // on hit-testing and on the "+", hold for it unchanged. What stays here: daySituation, the rows,
+  // setOverride, the section, and the double-click that clears a mark.
+  // What the block lends the menu, whose helpers are otherwise private to it. Declared HERE, above the
+  // block, because the block fills it in while the engine evaluates.
+  const dayOverrideUI = {section(){ return null; }};
   (function installDayOverrideUI(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
-    let activeOv = null;    // {iso, row, col, cell, pop, place}
-
-    function closeDayOvPop(){
-      if(!activeOv) return;
-      window.removeEventListener('scroll', activeOv.place, true);
-      window.removeEventListener('resize', activeOv.place);
-      if(activeOv.pop && activeOv.pop.parentNode) activeOv.pop.parentNode.removeChild(activeOv.pop);
-      activeOv = null;
-    }
-    dayOverrideUI.close = closeDayOvPop;
 
     // cellDate(): module scope since 15 Oct 2026, because Production's edge handles read pill dates
     // through it too. See its definition above installMonthPillDrag.
 
 
-    // What is true of this day, as far as the SIMULATION is concerned -- so the popover offers what
-    // will actually take effect and nothing else.
+    // What is true of this day, as far as the SIMULATION is concerned -- so the menu's shoot-day section
+    // offers what will actually take effect and nothing else.
     // ⛔ Returns null for a day the shoot does not cover. An override out there is inert by design
     // (simulateProductionSchedule stops once the count is met, and renderMonthView's _ovDays draws
     // nothing outside the shot span), so offering the choice would be offering a no-op.
@@ -8051,8 +8112,11 @@ export function initLegacyApp() {
       // ruling 1 exists to end. Name both.
       const inAllHi = (currentSchedule.hiatuses || []).some(h=> d >= h.start && d < h.end);
       const inOwnHi = !!(ownHi && d >= ownHi.start && d < ownHi.end);
-      const hiatus = inAllHi ? hiatusTextFor(wkIso)
-                   : inOwnHi ? hiatusTextFor(wkIso + '|production')
+      // ⛔ A STRING inside a hiatus, possibly '' (a band label emptied on purpose), and null ONLY outside
+      // one: dayOverrideRows() tests `!= null` (plan §8.1), so a stored label that is not a string must
+      // not read as "no hiatus" either.
+      const hiatus = inAllHi ? String(hiatusTextFor(wkIso) || '')
+                   : inOwnHi ? String(hiatusTextFor(wkIso + '|production') || '')
                    : null;
       // The same list computeSchedule simulates against: only ENABLED holidays cost a day.
       const holiday = fullHolidayList(effectiveRegionKey())
@@ -8073,13 +8137,18 @@ export function initLegacyApp() {
       pushUndoSnapshot();
     }
 
-    function openDayOvPop(cell, loc, sit){
-      closeDayOvPop();
-      // Every row is {value, label}. The value written to dayOverrides; '' means "no override",
-      // which is how this UI spells "back to automatic" -- the same idiom cellSpans, column widths
-      // and row heights already use for double-click.
+    // The shoot day's choices: the rows the popover offered, and since step 4 the menu's shoot-day
+    // section (shootSection, below). Every row is {v, label, disabled?, reason?, warn?}. The value is
+    // written to dayOverrides; '' means "no override", which is how this UI spells "back to automatic"
+    // -- the same idiom cellSpans, column widths and row heights already use for double-click.
+    // Returns {rows, stale}: stale names a stored value no row offers (below), else ''.
+    function dayOverrideRows(sit){
       const rows = [];
-      if(sit.hiatus){
+      // ✅ PLAN §8.1, owner-approved 19 Oct 2026 (picker, "Yes, fix it"): `!= null`, not truthiness.
+      // daySituation() names the hiatus by its band label, and a label the user emptied on purpose is
+      // '' -- which read as "no hiatus", so that hiatus's days offered Full day / Off, both inert there
+      // because the shoot never runs inside a hiatus. A nameless one is "the hiatus" in the reason.
+      if(sit.hiatus != null){
         // ✅ OWNER RULING 1, 18 Sep 2026: a hiatus day shows "Work this day" GREYED OUT with its
         // reason, rather than hiding it. The BEHAVIOUR is unchanged -- 'on' still does not punch
         // through a hiatus, because a hiatus is a stop-work period the user deliberately scheduled
@@ -8087,7 +8156,7 @@ export function initLegacyApp() {
         // that the gap stops being silent, which is this project's standing rule that a refusal
         // must name its reason.
         rows.push({v:'on', label:'Work this day', disabled:true,
-                   reason:'Inside ' + sit.hiatus + ' — shorten the hiatus to work these days'});
+                   reason:'Inside ' + (sit.hiatus || 'the hiatus') + ' — shorten the hiatus to work these days'});
       } else if(sit.weekend || sit.holiday){
         const warn = sit.holiday ? ('Overrides ' + sit.holiday.name) : '';
         rows.push({v:'', label: sit.holiday ? 'Holiday — not shot' : 'Weekend — not shot'});
@@ -8116,77 +8185,38 @@ export function initLegacyApp() {
       const OV_LABELS = {half:'Half day', off:'Off', on:'Work this day', onhalf:'Work half day'};
       const stale = sit.cur && !matched ? (OV_LABELS[sit.cur] || sit.cur) : '';
       if(sit.cur && !rows.some(r => r.v === '')) rows.push({v:'', label:'Clear override'});
-
-      const pop = document.createElement('div');
-      pop.className = 'day-ov-pop';
-      // ⛔ NO `id` ON ANY CONTROL IN HERE. collectFieldValues() sweeps every input[id] / select[id] /
-      // textarea[id] in the document into saved files AND the undo stack, so an id'd control would
-      // be baked into every calendar and add phantom undo steps. Classes only -- the same reason the
-      // note editor's day/size selects are class-only.
-      const opts = rows.map(r=>{
-        const cls = ['day-ov-opt'];
-        if(!r.disabled && r.v === sit.cur) cls.push('is-current');
-        if(r.disabled) cls.push('is-disabled');
-        return `<button type="button" class="${cls.join(' ')}"${r.disabled?' disabled':''}`
-             + ` data-ov="${r.v}">${escHtml(r.label)}`
-             + (r.reason ? `<span class="day-ov-reason">${escHtml(r.reason)}</span>` : '')
-             + (r.warn   ? `<span class="day-ov-warn">${escHtml(r.warn)}</span>`     : '')
-             + `</button>`;
-      }).join('');
-      pop.innerHTML = `<div class="day-ov-pop-day">${escHtml(fmtShort(sit.date))}</div>`
-        + `<div class="day-ov-opts">${opts}</div>`
-        + (stale ? `<div class="day-ov-stale">Stored “${escHtml(stale)}” — not in effect on this day</div>` : '')
-        + `<div class="day-ov-hint">Double‑click a marked day to clear it · Esc to close</div>`;
-      document.body.appendChild(pop);
-
-      // Anchor, then clamp using the popover's REAL measured size -- flip above the day when it
-      // would overflow the bottom and pull it in from the right edge, mirroring openPhaseColorPop
-      // and the month-view note editor. A day near the bottom-right of the screen otherwise opens
-      // partly off-screen and unreachable.
-      const place = ()=>{
-        const a = activeOv && activeOv.cell;
-        if(!a || !document.body.contains(a)) return;   // a rebuild is the guard's job, not ours
-        const r = a.getBoundingClientRect();
-        pop.style.top  = (window.scrollY + r.bottom + 4) + 'px';
-        pop.style.left = (window.scrollX + r.left) + 'px';
-        const p = pop.getBoundingClientRect();
-        if(p.right  > window.innerWidth  - 8) pop.style.left = (window.scrollX + window.innerWidth - p.width - 8) + 'px';
-        if(p.bottom > window.innerHeight - 8) pop.style.top  = (window.scrollY + r.top - p.height - 4) + 'px';
-      };
-      activeOv = {iso:sit.iso, row:loc.row, col:loc.col, cell, pop, place};
-      place();
-      // The preview PANE scrolls, not just the window, so this has to be capture-phase.
-      window.addEventListener('scroll', place, true);
-      window.addEventListener('resize', place);
-
-      pop.addEventListener('click', e=>{
-        e.stopPropagation();
-        const btn = e.target.closest && e.target.closest('.day-ov-opt');
-        if(!btn || btn.disabled) return;
-        const v = btn.getAttribute('data-ov') || '';
-        const iso = activeOv ? activeOv.iso : null;
-        closeDayOvPop();                 // a discrete choice closes its own menu
-        if(iso) setOverride(iso, v);
-      });
+      return {rows, stale};
     }
 
-    wrap.addEventListener('click', e=>{
-      if(viewMode !== 'month') return;                  // guarded, unlike the seven older listeners
-      const cell = e.target.closest && e.target.closest('.mv-daycell');
-      if(!cell || !wrap.contains(cell)) return;
-      const loc = cellDate(cell);
-      if(!loc) return;
-      // Clicking the day whose popover is open closes it. That is what makes double-click work as
-      // "clear": the second click closes, then dblclick clears, and nothing is left hanging.
-      if(activeOv && activeOv.iso === isoOf(loc.date)){ closeDayOvPop(); return; }
-      const sit = daySituation(loc.date);
-      if(!sit) return;                                  // outside the shoot -- nothing to offer
-      e.stopPropagation();
-      openDayOvPop(cell, loc, sit);
-    });
+    // The menu's shoot-day section (plan §3.9), for a day the shoot covers, else null. EXACTLY the
+    // popover's choices, from dayOverrideRows(), in the menu's own item shape. Each row:
+    //   - keeps data-ov="<value>" (the halfdays, halfworked and mvmenu legs read it);
+    //   - is a menuitemradio, checked on the state the day is in now (the popover's tick);
+    //   - carries its reason (greyed out) or its warning as the item's second line;
+    //   - is ONE undo step, through setOverride's own push idiom.
+    // A stale value's "Stored “…” — not in effect on this day" is a line under the section. The label
+    // is the shoot-day number where the day has one; a weekend, a holiday, a hiatus day or a day marked
+    // Off has none, and reads "Not a shoot day".
+    function shootSection(d){
+      const sit = daySituation(d);
+      if(!sit) return null;
+      const n = currentSchedule.productionInfo.shootDays.indexOf(sit.iso) + 1;
+      const {rows, stale} = dayOverrideRows(sit);
+      return {id: 'shoot', label: n > 0 ? 'Shoot day ' + n : 'Not a shoot day',
+        notice: stale ? 'Stored “' + stale + '” — not in effect on this day' : '',
+        items: rows.map(r=>({
+          id: 'ov-' + (r.v || 'auto'), ov: r.v, radio: true, checked: !r.disabled && r.v === sit.cur,
+          text: r.label, disabled: !!r.disabled, why: r.reason || '', warn: r.warn || '',
+          run: ()=> setOverride(sit.iso, r.v),
+        }))};
+    }
+    dayOverrideUI.section = shootSection;
 
     // Double-click means "back to automatic" everywhere else in this app (cellSpans, column widths,
-    // row heights), so it means it here too.
+    // row heights), so it means it here too. ⭐ It still works with the menu in the way, through the
+    // menu's toggle: the first click opens it, the second press closes it and its click does not open
+    // it again (installMonthDayMenu), then this clears the mark. setOverride's render closes anything
+    // left open anyway, through the menu's own observer.
     wrap.addEventListener('dblclick', e=>{
       if(viewMode !== 'month') return;
       const cell = e.target.closest && e.target.closest('.mv-daycell');
@@ -8196,40 +8226,8 @@ export function initLegacyApp() {
       const iso = isoOf(loc.date);
       if(!dayOverrides[iso]) return;
       e.stopPropagation();
-      closeDayOvPop();
       setOverride(iso, '');
     });
-
-    document.addEventListener('click', e=>{
-      if(!activeOv) return;
-      if(e.target.closest && e.target.closest('.day-ov-pop')) return;
-      closeDayOvPop();
-    });
-    document.addEventListener('keydown', e=>{
-      if(activeOv && e.key === 'Escape'){ e.preventDefault(); closeDayOvPop(); }
-    });
-
-    // The rebuild guard. render() replaces #table-wrap's contents on every edit, so a body-level
-    // popover outlives its anchor and hangs over the calendar pointing at nothing. The waterfall
-    // note editor gets this from INSIDE frozen render(); a MutationObserver gives the same
-    // protection from outside, and observing mutates nothing -- CLAUDE.md's sanctioned third
-    // pattern, with .mv-note-pop as the worked example.
-    // ⭐ It RE-POINTS rather than closing where it can: the cell is addressable by (week, column),
-    // so a re-render that leaves the same day in the same slot keeps the popover alive. That also
-    // makes this immune to renders it did not start -- committing an open note editor, an undo, a
-    // sidebar edit. It closes only when the day genuinely went away (month navigated, view
-    // switched, the shoot no longer covers it).
-    new MutationObserver(()=>{
-      if(!activeOv) return;
-      if(activeOv.cell && document.body.contains(activeOv.cell)) return;
-      const body = wrap.querySelector('.mv-body');
-      const week = body && body.children[activeOv.row];
-      const grid = week && week.querySelector('.mv-daygrid');
-      const cell = grid && grid.children[activeOv.col];
-      const loc  = cell && cellDate(cell);
-      if(loc && isoOf(loc.date) === activeOv.iso){ activeOv.cell = cell; activeOv.place(); }
-      else closeDayOvPop();
-    }).observe(wrap, { childList: true, subtree: true });
   })();
 
   // ⚠️ On a Mac, Ctrl+click IS a right-click: Chrome sends a `mousedown` with button 0 and ctrlKey,
@@ -8249,10 +8247,12 @@ export function initLegacyApp() {
   // Owner, 19 Oct 2026: "One i know i want is to right click to add a custom phase starting on the
   // day youre hovering over." A right-click anywhere on a day in the month view opens one menu for
   // that day. Built here: plan STEP 1 -- the listener, the panel and its close rules, and four items
-  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall). Add
-  // hiatus ▸, the phase, shoot-day, hiatus and holiday sections, and the left-click on a day's number
-  // (ruling L1, which retires the Full day/Off popover) are steps 2 to 5. Until step 4 a left-click
-  // still opens that popover.
+  // (Add note, Add 1-day phase here, Add 1-week phase here, Show this week in the waterfall) --
+  // STEP 2, Add hiatus ▸ and the submenu it opens -- STEP 3, the bar's own section (phaseSection) --
+  // and STEP 4, ruling L1: a LEFT-click on the day itself opens the same menu under the day's number,
+  // and the Full day/Off popover is retired. Its choices are the menu's shoot-day section, built by
+  // installDayOverrideUI from the popover's own rows (dayOverrideUI.section). The hiatus and holiday
+  // sections are step 5.
   //
   // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
   // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
@@ -8273,7 +8273,8 @@ export function initLegacyApp() {
   (function installMonthDayMenu(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
-    // {el, ring, iso, items:[{id, disabled, run}], btns:[], active, back}
+    // {el, ring, iso, back, root: panel, sub: panel | null}. A panel is {el, items:[{id, disabled,
+    // run | sub}], btns:[], active, owner}; a submenu's owner is the index of the root item it hangs from.
     let menu = null;
 
     const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -8284,6 +8285,14 @@ export function initLegacyApp() {
       note:  'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
       plus:  'M12 5v14M5 12h14',
       table: 'M4 5h16v14H4zM4 10h16M10 5v14',
+      pause: 'M6 5h4v14H6zM14 5h4v14h-4z',
+      chev:  'M9 6l6 6-6 6',
+      start: 'M14 12H4M10 8l4 4-4 4M20 4v16',
+      end:   'M10 12h10M14 8l-4 4 4 4M4 4v16',
+      palette: 'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
+      sidebar: 'M4 5h16v14H4zM9 5v14',
+      check: 'M5 12.5l4.5 4.5L19 7.5',
+      trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -8313,7 +8322,7 @@ export function initLegacyApp() {
       let pill = handle ? handle._pill : t.closest('.mv-pill[data-ph]');
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
-      return {iso, date, key, target: t};
+      return {iso, date, key, target: t, pill};
     }
 
     // What the header says is on the day, all from the schedule: the shoot day, each bar drawn on it
@@ -8360,9 +8369,11 @@ export function initLegacyApp() {
       return adds.find(a=> !a.classList.contains('mv-note-add-full')) || adds[0] || null;
     }
 
-    // The menu, as sections in their fixed order (plan §2). "This day" always comes first, so the
-    // two Add … phase items are always the second and third lines. A choice the app refuses is
-    // greyed out WITH ITS REASON, never hidden (the standing rule; owner ruling 1, 18 Sep 2026).
+    // The menu, as sections in their fixed order (plan §2): This day, the bar's, the shoot day's, the
+    // way out. "This day" always comes first, so the two Add … phase items are always the second and
+    // third lines; ruling L1 kept that order on a left-click too, so Full day/Off sit below them. A
+    // choice the app refuses is greyed out WITH ITS REASON, never hidden (the standing rule; owner
+    // ruling 1, 18 Sep 2026).
     function menuSections(ctx){
       const d = ctx.date, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
       const hiatus = isHiatusDate(currentSchedule || {}, d);
@@ -8383,14 +8394,208 @@ export function initLegacyApp() {
            run: ()=> addPhaseHere(ctx, 'day')},
           {id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · from ' + dayMonth(d),
            run: ()=> addPhaseHere(ctx, 'week')},
+          // Built when it opens, not with the menu: nothing in it is needed until then.
+          {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)},
         ]},
+      ].concat(phaseSection(ctx) || [], dayOverrideUI.section(d) || [], [
         // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
         // first in its row; the second line says which week that is.
         {id: 'out', items: [
           {id: 'waterfall', icon: 'table', text: 'Show this week in the waterfall', note: 'Week of ' + dayMonth(week),
            run: ()=> showWeekInWaterfall(week)},
         ]},
-      ];
+      ]);
+    }
+
+    // The bar under the pointer (plan §3.4–3.7, step 3): its own section, after "This day", headed by its
+    // name and colour. A phase's bar, a custom phase's, or a Prep pill; the sim-post bar names no phase.
+    //   Start <phase> here  a MOVER, the same as dragging the bar to this day (installMonthPillDrag).
+    //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
+    //   Colour…             the swatch's own picker, beside the bar (setPhaseColor).
+    //   Show in Phases card the phase's row, scrolled into view.
+    //   Remove <phase>…     a CUSTOM phase only, the row's own × with its question (step 4, removePhaseHere).
+    // Prep is worked out from each episode's first shoot day, so it has no start or end of its own to
+    // move: both are greyed out with that reason (owner ruling 1, 18 Sep 2026), and its colour and row work.
+    // An item that would change nothing is greyed out with that reason rather than banking an empty step.
+    function phaseSection(ctx){
+      const key = ctx.key;
+      if(!key) return null;
+      const isPrep = key === PREP_KEY;
+      if(!isPrep && !getAllPhaseDefs().some(p=> p.key === key)) return null;
+      const seg = phaseSegOf(key);
+      if(!seg) return null;
+      // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
+      const name = (seg.name || seg.label || phaseLabelFor(key)).replace(/\s*wk\s*\d+\s*$/i, '');
+      const items = [];
+      if(isPrep){
+        const why = 'Prep is worked out from each episode’s first shoot day';
+        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', disabled: true, why});
+        items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true, why});
+      } else {
+        const startEl = document.getElementById('start-' + key);
+        const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
+        const noMove = !!startEl && startEl.value === ctx.iso && !(snapEl && snapEl.checked && ctx.date.getUTCDay() !== 1);
+        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', note: 'Moves it. Its length stays',
+          disabled: !startEl || noMove, why: 'It already starts on this day',
+          run: ()=> startPhaseHere(ctx, key)});
+        if(key === 'production'){
+          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true,
+            why: 'Its end comes from the shoot days'});
+        } else {
+          const d = phaseEdgePlan(key, 'end'), D = d && phaseEdgeSolve(d, ctx.iso);
+          items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', note: 'Keeps its start. Changes its length',
+            disabled: !D || D === d.edge0, why: D ? 'It already ends on this day' : 'It can’t end on this day',
+            run: ()=> endPhaseHere(ctx, key)});
+        }
+      }
+      items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
+      items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
+      // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
+      // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
+      // such item.
+      if(customPhaseDefs.some(cp=> cp.key === key))
+        items.push({id: 'phase-remove', icon: 'trash', text: 'Remove ' + name + '…', danger: true, run: ()=> removePhaseHere(key)});
+      return [{id: 'phase', label: name, swatch: seg.color, items}];
+    }
+
+    // ⛔ A MOVER (owner ruling R2): Production's day marks travel with it by shoot-day number, so it runs
+    // inside asShootDayMove(), as the body drag binds them for its whole gesture. Through setPhaseStart(),
+    // the one writer, so a Dates phase's end moves with its start. Snap to Mon comes off on any day but a
+    // Monday, as the body drag's does; on a Monday it is left as it was.
+    function startPhaseHere(ctx, key){
+      if(!document.getElementById('start-' + key)) return;
+      const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
+      // ⛔ R5, as on the body drag: an edited auto-note ("Start Principal Photography 6/29/26" plus a line of
+      // the user's) follows its date. The week notes are read before anything moves (autoNoteBaseline).
+      const notesBase = autoNoteBaseline();
+      pushUndoSnapshot();
+      asShootDayMove(()=>{
+        setPhaseStart(key, ctx.iso);
+        if(snapEl && ctx.date.getUTCDay() !== 1) snapEl.checked = false;
+        update();
+        reapplyAutoNoteBaseline(notesBase);
+      });
+      syncCustomUnitFallback(key);                      // a Days or Dates phase's old-build fallback, in the step
+      pushUndoSnapshot();
+    }
+
+    // The end handle's rule, once: plan, solve, write, update, and the scheduler's verdict. A move it
+    // disagrees with is put back, as the handle puts a drag back, and the step then banks nothing.
+    function endPhaseHere(ctx, key){
+      const d = phaseEdgePlan(key, 'end'), D = d && phaseEdgeSolve(d, ctx.iso);
+      if(!D || D === d.edge0) return;
+      const notesBase = autoNoteBaseline();             // R5, as the end handle does
+      pushUndoSnapshot();
+      phaseEdgeWrite(d, D);
+      update();
+      reapplyAutoNoteBaseline(notesBase);
+      if(!phaseEdgeLanded(d, D)){ phaseEdgeWrite(d, d.edge0); update(); reapplyAutoNoteBaseline(notesBase); }
+      syncCustomUnitFallback(key);
+      pushUndoSnapshot();
+    }
+
+    // The swatch's own picker, under the bar the menu was opened on. Opening it changes nothing; a pick
+    // is one undo step. Its click-away listeners attach after a tick, so the click that chose the item
+    // cannot close it.
+    function phaseColourHere(ctx, key){
+      const anchor = (ctx.pill && document.body.contains(ctx.pill)) ? ctx.pill : document.getElementById('swatch-' + key);
+      if(!anchor) return;
+      openPhaseColorPop(anchor, phaseColorIndexOf(key), i=>{
+        pushUndoSnapshot();
+        setPhaseColor(key, i);
+        pushUndoSnapshot();
+      });
+    }
+
+    // Exactly the row's own ×: its question first (the same words, only when there is something to
+    // lose), then its removal, which is ONE undo step banked AFTER the answer (plan §7: the bracket is
+    // synchronous, so an item that asks awaits first). Cancel changes nothing and banks nothing. The
+    // row is found again after the answer, by key, in case the question outlived it.
+    async function removePhaseHere(key){
+      const rowOf = ()=> document.querySelector('#custom-phase-rows .phase-row[data-key="' + key + '"]');
+      const row = rowOf();
+      if(!row || !(await confirmRemoveCustomPhase(row))) return;
+      const now = rowOf();
+      if(!now) return;
+      pushUndoSnapshot();
+      removeCustomPhaseRow(now);
+      pushUndoSnapshot();
+    }
+
+    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
+    function showPhaseRow(key){
+      const sw = document.getElementById('swatch-' + key);
+      const row = sw && sw.closest('.phase-row');
+      pushUndoSnapshot();
+      setSidebarTab('phases');
+      pushUndoSnapshot();
+      if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
+    }
+
+    // Add hiatus ▸ (plan §3.3): one for everything, then one for each phase running on the day.
+    // ⭐ A hiatus is a start and a number of weeks, and computeSchedule snaps the start to its Monday,
+    // so it always covers whole Monday-to-Sunday weeks. The second line says "Week of Mon 6 Jul", and
+    // the field is given THAT MONDAY rather than the day clicked: the result is the same, and the
+    // sidebar then shows no "Snapped to Mon" note for a date nobody typed. A Sunday belongs to the
+    // week of the Monday before it, as everywhere else.
+    // "Running" is the span rule, d >= start && d < end, not the drawn bars, so a weekend inside a
+    // week-based phase counts. A phase is offered only if it has its own hiatus controls, which every
+    // phase row has and the prep row does not.
+    // ✅ Ruling Q2: on a phase that already has its own hiatus the item MOVES it here, keeping its
+    // length. A phase has exactly one. Already starting this week, the move would change nothing, so
+    // it is greyed out with that reason rather than banking an empty undo step.
+    function hiatusSections(ctx){
+      const d = ctx.date, wk = mondayOf(d), from = 'Week of ' + dayMonth(wk);
+      const weeksText = n=> n + (n === 1 ? ' week' : ' weeks');
+      const phases = [], seen = new Set();
+      ((currentSchedule || {}).segments || []).forEach(seg=>{
+        if(seen.has(seg.key) || !(d >= seg.start && d < seg.end)) return;
+        if(!document.getElementById('phiatus-en-' + seg.key)) return;
+        seen.add(seg.key);
+        // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
+        const name = (seg.name || seg.label || phaseLabelFor(seg.key)).replace(/\s*wk\s*\d+\s*$/i, '');
+        const own = seg.phaseHiatus;
+        if(own){
+          const n = parseInt((document.getElementById('phiatus-weeks-' + seg.key) || {}).value, 10);
+          phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: 'Move ' + name + '’s hiatus here',
+            note: from + (n > 0 ? ' · ' + weeksText(n) : ''),
+            disabled: isoOf(mondayOf(own.start)) === isoOf(wk), why: 'Its hiatus already starts this week',
+            run: ()=> setPhaseHiatusHere(ctx, seg.key, true)});
+        } else {
+          phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: name + ' only', note: from + ' · ' + weeksText(2),
+            run: ()=> setPhaseHiatusHere(ctx, seg.key, false)});
+        }
+      });
+      const sections = [{id: 'hiatus-all', items: [
+        {id: 'hiatus-all', icon: 'pause', text: 'All phases', note: from + ' · ' + weeksText(2), run: ()=> addHiatusHere(ctx)},
+      ]}];
+      if(phases.length) sections.push({id: 'hiatus-phase', label: 'One phase only', items: phases});
+      return sections;
+    }
+
+    // Exactly what the sidebar's "+ Add hiatus" does, with the start filled in: a row two weeks long,
+    // locked in place (addHiatusRow's default), then update(). One undo step, bracketed.
+    function addHiatusHere(ctx){
+      pushUndoSnapshot();
+      addHiatusRow(isoOf(mondayOf(ctx.date)), 2);
+      update();
+      pushUndoSnapshot();
+    }
+
+    // The phase row's own hiatus: its toggle, start and weeks, then the same refresh a restore runs
+    // and update(). A new one is two weeks; a moved one keeps its length and its name (ruling Q2).
+    function setPhaseHiatusHere(ctx, key, move){
+      const en = document.getElementById('phiatus-en-' + key);
+      const start = document.getElementById('phiatus-start-' + key);
+      const weeks = document.getElementById('phiatus-weeks-' + key);
+      if(!en || !start || !weeks) return;
+      pushUndoSnapshot();
+      en.checked = true;
+      start.value = isoOf(mondayOf(ctx.date));
+      if(!move) weeks.value = '2';
+      refreshPhaseHiatusUI();
+      update();
+      pushUndoSnapshot();
     }
 
     // ---- The four items ----
@@ -8476,6 +8681,8 @@ export function initLegacyApp() {
       if(!menu) return;
       const m = menu;
       menu = null;
+      cancelSubTimer();
+      if(m.sub) m.sub.el.remove();
       m.el.remove();
       if(m.ring) m.ring.remove();
       const back = m.back;
@@ -8483,57 +8690,196 @@ export function initLegacyApp() {
         try { back.focus({preventScroll: true}); } catch(err){}
       }
     }
+    // Inside the menu or its open submenu: the close rules leave a press or a scroll there alone.
+    function inMenu(t){
+      return !!menu && t instanceof Node && (menu.el.contains(t) || (!!menu.sub && menu.sub.el.contains(t)));
+    }
 
-    function setActive(i){
+    function setActive(p, i){
       if(!menu) return;
-      menu.active = i;
-      menu.btns.forEach((b, j)=> b.classList.toggle('is-active', j === i));
-      (i >= 0 ? menu.btns[i] : menu.el).focus({preventScroll: true});
+      p.active = i;
+      p.btns.forEach((b, j)=> b.classList.toggle('is-active', j === i));
+      (i >= 0 ? p.btns[i] : p.el).focus({preventScroll: true});
     }
     // The next item that is not greyed out, wrapping; -1 when there is none.
-    function nextEnabled(from, dir){
-      const n = menu.items.length;
+    function nextEnabled(p, from, dir){
+      const n = p.items.length;
       for(let k = 1; k <= n; k++){
         const i = ((from + dir * k) % n + n) % n;
-        if(!menu.items[i].disabled) return i;
+        if(!p.items[i].disabled) return i;
       }
       return -1;
     }
-    function choose(i){
-      const it = menu && menu.items[i];
+    // Moving within a panel. On the root, leaving the item a submenu hangs from closes the submenu; the
+    // keyboard opens one only on → , Enter or Space, as a menu bar does.
+    function moveTo(p, i){
+      cancelSubTimer();
+      setActive(p, i);
+      if(menu && p === menu.root && menu.sub && menu.sub.owner !== i) closeSub(false);
+    }
+    function choose(p, i){
+      const it = p && p.items[i];
       if(!it || it.disabled) return;
+      if(it.sub){ openSub(i, true); return; }
       // Closed FIRST, focus handed back, then the item runs, so an item that moves focus (the note
       // editor, a new phase's name box) keeps it.
       closeMenu(true);
       it.run();
     }
 
-    function openMenu(ctx, x, y){
-      closeMenu(false);
-      // A right-click fires no `click`, so neither panel would close on its own. The note editor's
-      // rule is that an outside click COMMITS, so it commits -- and that renders, which the observer
-      // below must not take for a render under the open menu: takeRecords() drops those records.
-      dayOverrideUI.close();
-      if(activeMvNote) commitMvNoteEditor();
-      observer.takeRecords();
-
-      const sections = menuSections(ctx), items = [];
-      let html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
-               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>';
-      sections.forEach(sec=>{
-        html += '<div class="day-menu-sep" role="separator"></div><div class="day-menu-group" role="group" data-section="' + sec.id + '">';
+    // A panel's markup: its sections, each after a separator (the first too, under a header), each
+    // with an optional small label and an optional notice line under its items. An item with a
+    // submenu carries a chevron and aria-haspopup.
+    // Step 4's shoot rows are RADIO items (radio: true): role menuitemradio, aria-checked, a tick in
+    // place of an icon on the checked one (the popover's tick), and data-ov="<value>", the attribute
+    // the legs read. A row's warning ("Overrides Independence Day") is its second line, in the
+    // popover's warning ink.
+    function panelHtml(sections, head){
+      const items = [];
+      let html = '';
+      sections.forEach((sec, si)=>{
+        if(head || si > 0) html += '<div class="day-menu-sep" role="separator"></div>';
+        html += '<div class="day-menu-group" role="group" data-section="' + sec.id + '">';
+        if(sec.label) html += '<div class="day-menu-label">'
+          + (sec.swatch ? '<span class="day-menu-swatch" style="background:' + escHtml(sec.swatch) + '"></span>' : '')
+          + escHtml(sec.label) + '</div>';
         sec.items.forEach(it=>{
           const i = items.length;
           items.push(it);
-          const second = it.disabled ? it.why : (it.note || '');
-          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + '" role="menuitem" tabindex="-1"'
-                + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '') + '>'
-                + icon(it.icon) + '<span class="day-menu-text">' + escHtml(it.text)
-                + (second ? '<small>' + escHtml(second) + '</small>' : '') + '</span></button>';
+          const warn = !it.disabled && !!it.warn;
+          const second = it.disabled ? it.why : (it.warn || it.note || '');
+          const ico = it.radio ? (it.checked ? 'check' : '') : it.icon;
+          html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + (it.danger ? ' is-danger' : '') + '"'
+                + ' role="' + (it.radio ? 'menuitemradio' : 'menuitem') + '" tabindex="-1"'
+                + ' data-item="' + it.id + '" data-i="' + i + '"' + (it.disabled ? ' aria-disabled="true"' : '')
+                + (it.radio ? ' aria-checked="' + !!it.checked + '" data-ov="' + escHtml(it.ov) + '"' : '')
+                + (it.sub ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
+                + (ico ? icon(ico) : '<span class="day-menu-ico" aria-hidden="true"></span>')
+                + '<span class="day-menu-text">' + escHtml(it.text)
+                + (second ? '<small' + (warn ? ' class="day-menu-warn"' : '') + '>' + escHtml(second) + '</small>' : '') + '</span>'
+                + (it.sub ? icon('chev').replace('day-menu-ico', 'day-menu-chev') : '') + '</button>';
         });
+        if(sec.notice) html += '<div class="day-menu-notice">' + escHtml(sec.notice) + '</div>';
         html += '</div>';
       });
-      html += '<div class="day-menu-foot">Shift + right-click opens the browser’s own menu</div>';
+      return {html, items};
+    }
+
+    // ⭐ A GRACE PERIOD before a hover leaves an open submenu. The way into a submenu is often a
+    // diagonal, and it crosses the root's next item: "Add hiatus" to a lower line of a submenu flipped
+    // to the left runs over "Show this week in the waterfall". Switching at once closed the submenu
+    // under the pointer on its way in. So a hover onto another root item waits SUB_GRACE_MS, and
+    // reaching the submenu first cancels it. The keyboard switches at once.
+    const SUB_GRACE_MS = 250;
+    let subTimer = 0, subTimerFor = -1;
+    function cancelSubTimer(){ clearTimeout(subTimer); subTimer = 0; subTimerFor = -1; }
+    function hoverRoot(i){
+      const root = menu.root, it = root.items[i];
+      setActive(root, i);
+      // Hovering an item with a submenu opens it beside the item, leaving focus where it is.
+      if(it.sub && !it.disabled) openSub(i, false);
+      else closeSub(false);
+    }
+
+    // The pointer and the click, the same on the root and on a submenu.
+    function wirePanel(p){
+      const el = p.el;
+      el.addEventListener('mousemove', e=>{
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(!b || !menu) return;
+        const i = +b.dataset.i;
+        if(p !== menu.root){ cancelSubTimer(); if(i !== p.active) setActive(p, i); return; }
+        if(menu.sub && menu.sub.owner !== i){
+          if(subTimerFor === i) return;
+          cancelSubTimer();
+          subTimerFor = i;
+          subTimer = setTimeout(()=>{ subTimer = 0; subTimerFor = -1; if(menu && menu.root === p) hoverRoot(i); }, SUB_GRACE_MS);
+          return;
+        }
+        cancelSubTimer();
+        if(i !== p.active) hoverRoot(i);
+      });
+      if(p.owner >= 0) el.addEventListener('mouseenter', cancelSubTimer);
+      // The root keeps its item lit while the pointer crosses into the submenu that hangs from it, and
+      // a pointer that leaves the root drops any switch still waiting out its grace period.
+      el.addEventListener('mouseleave', ()=>{
+        if(!menu) return;
+        if(p === menu.root) cancelSubTimer();
+        if(!(p === menu.root && menu.sub)) setActive(p, -1);
+      });
+      el.addEventListener('click', e=>{
+        // ⛔ Stopped HERE, on the panel, in the bubble phase -- never from a capture listener
+        // (UI-CONVENTIONS §6a). The click that opens the note editor must not go on to reach the
+        // editor's own document click-away, which would commit and close it at once.
+        e.stopPropagation();
+        const b = e.target.closest && e.target.closest('.day-menu-item');
+        if(b && menu) choose(p, +b.dataset.i);
+      });
+      el.addEventListener('contextmenu', e=> e.preventDefault());
+    }
+
+    // The submenu of root item i, beside it: to its right, or flipped to its left when it would run off
+    // the window, and pulled up to stay inside it. One at a time. focusFirst moves focus into it (the
+    // keyboard, or a click); a hover leaves focus on the item.
+    function openSub(i, focusFirst){
+      if(!menu) return;
+      const root = menu.root, it = root.items[i];
+      if(!(menu.sub && menu.sub.owner === i)){
+        closeSub(false);
+        const built = panelHtml(it.sub(), false);
+        const el = document.createElement('div');
+        el.className = 'day-menu day-menu-sub';
+        el.setAttribute('role', 'menu');
+        el.setAttribute('aria-label', it.text);
+        el.setAttribute('data-parent', it.id);
+        el.tabIndex = -1;
+        el.innerHTML = built.html;
+        document.body.appendChild(el);
+        const p = {el, items: built.items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')), active: -1, owner: i};
+        wirePanel(p);
+        menu.sub = p;
+        root.btns[i].setAttribute('aria-expanded', 'true');
+        const M = 8, w = el.offsetWidth, h = el.offsetHeight, r = root.btns[i].getBoundingClientRect();
+        let left = r.right - 2, top = r.top - 5;
+        if(left + w > window.innerWidth - M) left = r.left - w + 2;
+        if(top + h > window.innerHeight - M) top = window.innerHeight - M - h;
+        el.style.left = Math.max(M, left) + 'px';
+        el.style.top = Math.max(M, top) + 'px';
+      }
+      if(root.active !== i) setActive(root, i);
+      if(focusFirst) setActive(menu.sub, nextEnabled(menu.sub, -1, 1));
+    }
+    // refocus hands focus back to the item the submenu hangs from (← and Escape).
+    function closeSub(refocus){
+      if(!menu || !menu.sub) return;
+      const s = menu.sub;
+      menu.sub = null;
+      s.el.remove();
+      const b = menu.root.btns[s.owner];
+      if(b) b.setAttribute('aria-expanded', 'false');
+      if(refocus) setActive(menu.root, s.owner);
+    }
+
+    // `at` is where it opens: {x, y}, the pointer of a right-click, or {anchor}, the day number a
+    // left-click opened it under (ruling L1).
+    function openMenu(ctx, at){
+      closeMenu(false);
+      // A right-click fires no `click`, so the note editor would not close on its own. Its rule is
+      // that an outside click COMMITS, so it commits -- and that renders, which the observer below
+      // must not take for a render under the open menu: takeRecords() drops those records. (The
+      // Full day/Off popover this also closed is retired, step 4.)
+      if(activeMvNote) commitMvNoteEditor();
+      observer.takeRecords();
+
+      const sections = menuSections(ctx);
+      const built = panelHtml(sections, true);
+      // The popover's hint moves to the footer, on a day with a shoot-day section (plan §3.9).
+      const foot = (sections.some(s=> s.id === 'shoot') ? ['Double-click a marked day to clear it'] : [])
+        .concat('Shift + right-click opens the browser’s own menu');
+      const html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
+               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>'
+               + built.html
+               + '<div class="day-menu-foot">' + foot.map(t=> '<div>' + escHtml(t) + '</div>').join('') + '</div>';
 
       const el = document.createElement('div');
       el.className = 'day-menu';
@@ -8563,32 +8909,41 @@ export function initLegacyApp() {
         document.body.appendChild(ring);
       }
 
-      // At the pointer, inside the window: it flips left or up rather than run off an edge.
       const M = 8, w = el.offsetWidth, h = el.offsetHeight;
-      let left = x, top = y;
-      if(left + w > window.innerWidth - M) left = x - w;
-      if(top + h > window.innerHeight - M) top = y - h;
-      el.style.left = Math.max(M, Math.min(left, window.innerWidth - M - w)) + 'px';
-      el.style.top = Math.max(M, Math.min(top, window.innerHeight - M - h)) + 'px';
+      if(at.anchor){
+        // Under the day's number, by the retired popover's own place() rule: 4 px below the anchor,
+        // pulled in from the right edge, and flipped above it when it would run off the bottom. The
+        // menu closes on any scroll, so it is placed once and never follows.
+        // ⚠️ One case that rule never met: the menu is far taller than the popover was, so on a short
+        // window it can fit on NEITHER side of the number. Held inside the window there, it would
+        // cover the number -- and the second click of a double-click would land on an item instead
+        // of the day, so double-click-to-clear would choose a row. It opens BESIDE the day instead.
+        const r = at.anchor.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+        let left = r.left, top = r.bottom + 4;
+        if(left + w > W - M) left = W - w - M;
+        if(top + h > H - M) top = r.top - h - 4;
+        if(top < M){
+          const c = (at.cell || at.anchor).getBoundingClientRect();
+          left = (c.right + 4 + w <= W - M) ? c.right + 4 : c.left - w - 4;
+          top = Math.min(r.top, H - M - h);
+        }
+        el.style.left = Math.max(M, left) + 'px';
+        el.style.top = Math.max(M, top) + 'px';
+      } else {
+        // At the pointer, inside the window: it flips left or up rather than run off an edge.
+        const x = at.x, y = at.y;
+        let left = x, top = y;
+        if(left + w > window.innerWidth - M) left = x - w;
+        if(top + h > window.innerHeight - M) top = y - h;
+        el.style.left = Math.max(M, Math.min(left, window.innerWidth - M - w)) + 'px';
+        el.style.top = Math.max(M, Math.min(top, window.innerHeight - M - h)) + 'px';
+      }
 
-      menu = {el, ring, iso: ctx.iso, items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')),
-              active: -1, back: document.activeElement};
-      el.addEventListener('mousemove', e=>{
-        const b = e.target.closest && e.target.closest('.day-menu-item');
-        if(b && menu && +b.dataset.i !== menu.active) setActive(+b.dataset.i);
-      });
-      el.addEventListener('mouseleave', ()=>{ if(menu) setActive(-1); });
-      el.addEventListener('click', e=>{
-        // ⛔ Stopped HERE, on the panel, in the bubble phase -- never from a capture listener
-        // (UI-CONVENTIONS §6a). The click that opens the note editor must not go on to reach the
-        // editor's own document click-away, which would commit and close it at once.
-        e.stopPropagation();
-        const b = e.target.closest && e.target.closest('.day-menu-item');
-        if(b) choose(+b.dataset.i);
-      });
-      el.addEventListener('contextmenu', e=> e.preventDefault());
+      const root = {el, items: built.items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')), active: -1, owner: -1};
+      menu = {el, ring, iso: ctx.iso, back: document.activeElement, root, sub: null};
+      wirePanel(root);
       // Focus moves into the menu, on its first item (§6), and goes back when Escape closes it.
-      setActive(nextEnabled(-1, 1));
+      setActive(root, nextEnabled(root, -1, 1));
     }
 
     // ⛔ Bubble phase, and preventDefault on THIS event only (plan §5). Never stopPropagation.
@@ -8596,33 +8951,82 @@ export function initLegacyApp() {
       const ctx = dayContextAt(e);
       if(!ctx) return;              // the browser's own menu
       e.preventDefault();
-      openMenu(ctx, e.clientX, e.clientY);
+      openMenu(ctx, {x: e.clientX, y: e.clientY});
     });
+
+    // The day a .mv-daycell in #table-wrap is, or null. #print-root holds .mv-daycells too.
+    function cellIso(t){
+      const cell = t && t.closest && t.closest('.mv-daycell');
+      const loc = cell && wrap.contains(cell) && cellDate(cell);
+      return loc ? isoOf(loc.date) : null;
+    }
+    // ⭐ THE TOGGLE (plan §2): a click on the day whose menu is open CLOSES it, which is what keeps
+    // double-click-to-clear working -- the second click closes, then the dblclick clears, and nothing
+    // is left hanging (the popover's own rule). But the outside-press rule below closes the menu on the
+    // PRESS, before the click arrives, so a click alone would just open it again. So a left press on
+    // the open menu's own day is remembered here, and the click it becomes opens nothing.
+    let pressClosed = null;
+
     // The close rules (plan §4). The press is caught in the CAPTURE phase only to close: an edge
     // handle stops its own mousedown, so a bubble listener would never hear a press on one.
     document.addEventListener('mousedown', e=>{
-      if(menu && !menu.el.contains(e.target)) closeMenu(false);
+      pressClosed = null;
+      if(!menu || inMenu(e.target)) return;
+      if(e.button === 0 && cellIso(e.target) === menu.iso) pressClosed = menu.iso;
+      closeMenu(false);
     }, true);
+
+    // ⭐ RULING L1 (plan step 4): a LEFT-click on the day itself opens the menu, under its number. "The
+    // day itself" is whatever of the cell a pointer can reach: the number band at its top, or anywhere
+    // on a hiatus day, which draws no "+". "+" slots, notes and bars live in .mv-bars, a SIBLING of the
+    // day grid, so their clicks never match .mv-daycell and keep their own left-clicks (installDay-
+    // OverrideUI's comment has the hit-testing record). This is the listener the popover used, moved
+    // here beside the right-click, and every day opens it: the popover's `if(!sit) return` is gone, so a
+    // day outside the shoot gets the menu without a shoot section. No stopPropagation: the menu has no
+    // click-away of its own, and the document's click-away listeners (the month note editor's commit,
+    // the toolbar popovers) should see a click on the calendar as the outside click it is.
+    wrap.addEventListener('click', e=>{
+      if(viewMode !== 'month' || e.button !== 0) return;
+      if(isMacCtrlClick(e)) return;           // the right-click it is: contextmenu opened the menu already
+      const iso = cellIso(e.target);
+      if(!iso) return;
+      const swallowed = pressClosed === iso;
+      pressClosed = null;
+      if(menu && menu.iso === iso){ closeMenu(false); return; }   // a click with no press: a script's
+      if(swallowed) return;
+      const cell = e.target.closest('.mv-daycell');
+      openMenu({iso, date: parseDateUTC(iso), key: null, target: e.target, pill: null},
+               {anchor: cell.querySelector('.mv-daynum') || cell, cell});
+    });
+    // The keys act on the panel that holds focus: the submenu once focus is in it, else the root (a
+    // hovered-open submenu leaves focus on its item, so ↑ ↓ still move through the root).
     document.addEventListener('keydown', e=>{
       if(!menu) return;
       const k = e.key;
-      if(k === 'Escape'){ e.preventDefault(); closeMenu(true); }
+      const p = (menu.sub && menu.sub.el.contains(document.activeElement)) ? menu.sub : menu.root;
+      // Escape and ← close the submenu first, with focus back on its item; Escape on the root closes all.
+      if(k === 'Escape'){ e.preventDefault(); if(menu.sub) closeSub(true); else closeMenu(true); }
       else if(k === 'Tab') closeMenu(true);
+      else if(k === 'ArrowLeft'){ if(menu.sub){ e.preventDefault(); closeSub(true); } }
+      else if(k === 'ArrowRight'){
+        const it = p === menu.root && p.items[p.active];
+        if(it && it.sub && !it.disabled){ e.preventDefault(); openSub(p.active, true); }
+      }
       else if(k === 'ArrowDown' || k === 'ArrowUp'){
         e.preventDefault();
         const dir = k === 'ArrowDown' ? 1 : -1;
-        const i = nextEnabled(menu.active >= 0 ? menu.active : (dir > 0 ? -1 : menu.items.length), dir);
-        if(i >= 0) setActive(i);
+        const i = nextEnabled(p, p.active >= 0 ? p.active : (dir > 0 ? -1 : p.items.length), dir);
+        if(i >= 0) moveTo(p, i);
       }
       else if(k === 'Home' || k === 'End'){
         e.preventDefault();
-        const i = k === 'Home' ? nextEnabled(-1, 1) : nextEnabled(menu.items.length, -1);
-        if(i >= 0) setActive(i);
+        const i = k === 'Home' ? nextEnabled(p, -1, 1) : nextEnabled(p, p.items.length, -1);
+        if(i >= 0) moveTo(p, i);
       }
-      else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(menu.active >= 0) choose(menu.active); }
+      else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(p.active >= 0) choose(p, p.active); }
     }, true);
     window.addEventListener('scroll', e=>{
-      if(menu && !(e.target instanceof Node && menu.el.contains(e.target))) closeMenu(false);
+      if(menu && !inMenu(e.target)) closeMenu(false);
     }, true);
     window.addEventListener('resize', ()=> closeMenu(false));
     window.addEventListener('blur', ()=> closeMenu(false));
@@ -9848,7 +10252,7 @@ export function initLegacyApp() {
   // A value between halves (4.3) rounds DOWN to one (4), as parseInt rounded 4.7 down to 4, and
   // reflectStartDateValidity() flags the box. ⛔ This replaced the 'half' DAY override (a day
   // marked "Half day" in the month view), which the owner withdrew the same day: "We don't need a
-  // function to mark random days as half days". Marks already saved keep counting; see openDayOvPop.
+  // function to mark random days as half days". Marks already saved keep counting; see dayOverrideRows.
   function dayCountVal(v){
     const n = parseFloat(v);
     const h = Number.isFinite(n) ? Math.floor(n * 2) / 2 : NaN;
@@ -16353,7 +16757,8 @@ export function initLegacyApp() {
     // calendar pointing at nothing.
     // .day-ov-pop added 18 Sep 2026 with the day-override UI -- same reason again. It is anchored
     // to a .mv-daycell but lives in <body> (the standing convention: never markup injected into the
-    // grid), so the #table-wrap emptying above does NOT remove it.
+    // grid), so the #table-wrap emptying above does NOT remove it. ⚠️ Retired 19 Oct 2026 (day menu
+    // step 4: its choices are the day menu's now), so nothing creates one; the entry is left, inert.
     // .phase-edge-handle / .phase-edge-shield added 15 Oct 2026 with Production's edge handles: body-level
     // chrome over the month grid, present while the pointer rests on a pill (or a drag is live) --
     // which is exactly when a Shift+Cmd+E export can fire.
