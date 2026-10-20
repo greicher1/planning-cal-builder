@@ -1,0 +1,231 @@
+{
+ "pages": 17,
+ "sheets": 17,
+ "mediaBoxes": [
+  "/MediaBox [0 0 792 612]"
+ ],
+ "stampHits": 17,
+ "bytes": 542874,
+ "elements": 4116,
+ "structSha1": "397c664d8c351e2f17fae48f39640099b766d10e",
+ "docSha1": "a07878add0d8c98c783bd46996e146685f70163f",
+ "fit": [
+  {
+   "month": "December 2025",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "78/g36",
+    "70/g44",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "January 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "91/g23",
+    "57/g57",
+    "95/g19",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "March 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "78/g36",
+    "78/g36",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "April 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "97/g17",
+    "57/g57",
+    "95/g19"
+   ]
+  },
+  {
+   "month": "May 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "95/g19",
+    "78/g36",
+    "78/g36",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "June 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57",
+    "108/g6"
+   ]
+  },
+  {
+   "month": "July 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "108/g6",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "August 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "September 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "October 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "95/g19",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "November 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "97/g17",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "December 2026",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "78/g36"
+   ]
+  },
+  {
+   "month": "January 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "78/g36",
+    "57/g57",
+    "57/g57",
+    "95/g19",
+    "57/g57",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "February 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57",
+    "78/g36"
+   ]
+  },
+  {
+   "month": "March 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "78/g36",
+    "57/g57",
+    "57/g57",
+    "78/g36",
+    "57/g57"
+   ]
+  },
+  {
+   "month": "April 2027",
+   "mode": "fill",
+   "scale": 1.0,
+   "rows": [
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57",
+    "57/g57"
+   ]
+  }
+ ],
+ "run": {
+  "fromState": true,
+  "printCalls": 1,
+  "cleanedUp": true,
+  "classCleared": true,
+  "stamps": [
+   "10.20.26"
+  ],
+  "errors": [],
+  "leftInPrintState": true
+ }
+}
