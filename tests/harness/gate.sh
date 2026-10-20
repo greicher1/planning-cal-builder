@@ -1562,6 +1562,11 @@ done
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
 # box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
 # trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
+# Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
+# writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
+# key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
+# the M-5 trap, and New.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1579,7 +1584,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               filekeys:v1.4.2-saved:150 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
-              mvmenu:halfdays:150 phiatusnum:-:300; do
+              mvmenu:halfdays:150 phiatusnum:-:300 autonotekinds:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1

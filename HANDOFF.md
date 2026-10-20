@@ -31,7 +31,28 @@
   - The retyped-band ruling is that ownership rule, unchanged. Production's off weeks are not numbered.
   - **Proof:** leg `tests/harness/t/phiatusnum.js` in gate.sh's AFSPEC list, 17/17 on the build; on the pre-change
     build (`dist-prefix/`, the in-place method) 15 of 17 red. Not yet: the full gate.
-- ⏳ **Ruling 9 (automatic-note picker) and ruling 5 (colours): next on this branch.**
+- ✅ **Ruling 9, the automatic-note picker: built and committed.**
+  - **The kinds** are exactly the three computeSchedule writes: `writersRoomOpens`, `principalStart`, `principalWrap`
+    (checked 20 Oct 2026: no other `addNote` call; custom phases are never auto-noted). ⛔ These words are SAVE FORMAT
+    now (they key `autoNotesOff` and the card's `data-autonote`). Holiday notes are not a kind (owner's picker).
+  - **Engine:** `addNote(..., {kind})` on those three lines of computeSchedule (the only computeSchedule lines this
+    branch touches); `autoNotesForView()` drops a kind in `autoNotesOff`; a document `change` listener on
+    `input[data-autonote]` writes the store and runs update(); `reflectAutoNoteKinds()` from update(). Snapshot key
+    `autoNotesOff`, written only while non-empty; sanitized to `true` values (unknown kind words kept); restored
+    unconditionally; `resetAll()` clears it.
+  - **Card:** `AutoNotesCard` in `Sidebar.jsx`, portaled after Holidays in `main.jsx`, icon `IconNote`. ⛔ Plain
+    `<input type="checkbox">` with NO id, never Mantine's Checkbox/Switch (both mint an id, UI-CONVENTIONS §8.3), and
+    NOT a `.prefs-card` (it is calendar data). For the Settings-window session: move the `<section>` whole; the engine
+    finds the boxes by `data-autonote` anywhere in the document.
+  - ⚠️ **An edge left as is:** R5's "an edited auto-note follows its date" compares against the FILTERED auto text, so
+    a note edited while its kind was on, then shifted while the kind is off, keeps its old date as typed. That is
+    "hand-edited notes are untouched"; nobody has asked otherwise.
+  - ⚠️ **Learned: the written month PDF WRAPS a note into short runs** ("Start Principal", "Principal Photography"), so
+    a leg that looks for the full note text there passes vacuously. The first draft of A7 was green on the OLD build
+    for exactly that reason; A0b is now a positive control and A7 matches the fragments.
+  - **Proof:** leg `tests/harness/t/autonotekinds.js` in the AFSPEC list, 16/16 on the build; on the build before it
+    (`dist-pre9/`, `a5984ff1…`) 13 of 16 red. Not yet: the full gate.
+- ⏳ **Ruling 5 (colours): next on this branch.**
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 

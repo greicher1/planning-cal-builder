@@ -118,6 +118,17 @@ export function IconHeading(props) {
   )
 }
 
+// A note with a folded corner and two lines of text -- the Automatic notes card (owner ruling 9).
+export function IconNote(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 2.5h6l3 3v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z" />
+      <path d="M9.5 2.5v3h3" />
+      <path d="M5 9h6M5 11.5h4" opacity=".55" />
+    </svg>
+  )
+}
+
 export function IconShare(props) {
   return (
     <svg {...base} {...props}>

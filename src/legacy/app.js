@@ -3049,10 +3049,14 @@ export function initLegacyApp() {
     });
     return out;
   }
-  // Drop holiday auto-notes the user hasn't enabled for this view; pass everything else through.
+  // Drop holiday auto-notes the user hasn't enabled for this view, and any note of a KIND the calendar has
+  // switched off (owner ruling 9, the Automatic notes card: autoNotesOff); pass everything else through.
+  // ⭐ This is the ONE filter every reader of schedule.notesByIdx goes through -- the waterfall, Excel, both
+  // PDFs, the month view, the note editor's pre-fill and the column widths -- so a kind switched off leaves
+  // all of them at once, and none can disagree. A user's own note (userNotes) never passes through here.
   function autoNotesForView(list, view){
     if(!list || !list.length) return list || [];
-    return list.filter(n => !n.holiday || holidayVisibleIn(n.hid, view));
+    return list.filter(n => !(n.kind && autoNotesOff[n.kind]) && (!n.holiday || holidayVisibleIn(n.hid, view)));
   }
   function colLetter(n){
     let s='';
@@ -3673,8 +3677,8 @@ export function initLegacyApp() {
     }
 
     if(productionInfo){
-      addNote(productionInfo.firstShootDay, 'Start Principal Photography');
-      addNote(productionInfo.lastShootDay, 'Principal Photography Wraps');
+      addNote(productionInfo.firstShootDay, 'Start Principal Photography', {kind:'principalStart'});
+      addNote(productionInfo.lastShootDay, 'Principal Photography Wraps', {kind:'principalWrap'});
     }
     // Holiday notes: one per phase-spanning holiday, tagged so each view -- and each individual
     // holiday -- can independently show or hide it (see autoNotesForView / holidayVisibleIn).
@@ -3684,7 +3688,7 @@ export function initLegacyApp() {
     phaseHolidays.filter(h=>h.enabled).forEach(h=> addNote(h.date, h.name, {holiday:true, hid:h.hid}));
     // "Writer's Room Opens" on the first week of the Writer's Room phase.
     const wrSeg = segments.find(s=>s.key==='writersRoom');
-    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens");
+    if(wrSeg) addNote(wrSeg.start, "Writer's Room Opens", {kind:'writersRoomOpens'});
 
     // Lay the user's column-order overrides over segCol's automatic assignment. Deliberately HERE,
     // inside computeSchedule and not as a post-pass: `col` is consumed only by frozen
@@ -12660,6 +12664,13 @@ export function initLegacyApp() {
   // saves byte for byte what it did before. Unticked is an ABSENT key, never false. The boxes carry NO
   // id, so collectFieldValues() never sweeps them (gate 5's id set is unchanged).
   let phaseHiatusNumbered = {};
+  // Which KINDS of automatic note are switched off (owner ruling 9, 20 Oct 2026): kind -> true. The kinds are
+  // the `kind` computeSchedule's addNote() tags a note with -- 'writersRoomOpens', 'principalStart',
+  // 'principalWrap' -- and the Automatic notes card's boxes carry the same word as data-autonote. Holiday notes
+  // are not a kind here: they keep their per-holiday list (owner's picker, 20 Oct 2026). autoNotesForView()
+  // applies it. ⛔ CALENDAR DATA: captureSnapshot()'s `autoNotesOff`, written only while a kind is off, so a
+  // calendar that never unticks one saves byte for byte as before. The boxes carry NO id.
+  let autoNotesOff = {};
   // Per-holiday, per-view note visibility overrides. { 'YYYY-MM-DD': {sheet:bool, month:bool} }
   // Absent key -> HOLIDAY_VIEW_DEFAULT. Display-only; never affects the schedule math.
   let holidayView = {};
@@ -15822,6 +15833,9 @@ export function initLegacyApp() {
     // The "Label Production by" control (Preferences, month view). Here because a change of Schedule by,
     // an undo or a Load can change what it shows without touching mvProdLabel's own setter.
     reflectMvProdLabel();
+    // The Automatic notes card (ruling 9): here for the same reason -- an undo, a Load or New changes
+    // autoNotesOff without touching the boxes.
+    reflectAutoNoteKinds();
     // Chrome OUTPUT: the date-picker popovers (src/chrome/DatePop.jsx) mark enabled holidays and
     // all-phase hiatus weeks in their calendars -- mark, never exclude. Pushed here like every
     // other chrome surface, so the popover never reaches into the engine.
@@ -16255,6 +16269,24 @@ export function initLegacyApp() {
     if(!t || t.name !== 'mv-prod-label' || t.disabled) return;
     if(t.value === mvProdLabelShown()) return;
     setMvProdLabel(t.value);
+  });
+
+  // The Automatic notes card (owner ruling 9; Sidebar.jsx's AutoNotesCard). Its boxes are plain, UNCONTROLLED
+  // checkboxes with NO id, named by data-autonote: React renders them once and the engine owns their state.
+  // A tick writes autoNotesOff (absent = shown, so ticking DELETES the entry), then update() re-renders every
+  // view and banks ONE undo step through markDirty().
+  function reflectAutoNoteKinds(){
+    document.querySelectorAll('input[data-autonote]').forEach(cb=>{
+      const on = !autoNotesOff[cb.getAttribute('data-autonote')];
+      if(cb.checked !== on) cb.checked = on;
+    });
+  }
+  document.addEventListener('change', e=>{
+    const t = e.target;
+    const kind = t && t.getAttribute && t.getAttribute('data-autonote');
+    if(!kind || !SNAP_ID.test(kind)) return;
+    if(t.checked) delete autoNotesOff[kind]; else autoNotesOff[kind] = true;
+    update();
   });
 
   function setViewMode(mode){
@@ -16841,6 +16873,7 @@ export function initLegacyApp() {
     // the previous calendar's Snap to Mon OFF and its per-phase hiatus names.
     document.querySelectorAll('.phiatus-name').forEach(el=>{ el.value = ''; });
     phaseHiatusNumbered = {};   // ...and their "Number weeks" (ruling 8); refreshPhaseHiatusUI() below unticks the boxes
+    autoNotesOff = {};          // every automatic-note kind back on (ruling 9); the update() after New ticks the boxes
     document.querySelectorAll('.phase-snap-cb').forEach(cb=>{ cb.checked = true; });
     // ...and the built-ins' Length / End date (CUSTOM-PHASE-UNITS-PLAN §7a): back to Weeks, no end.
     document.querySelectorAll('.phase-unit').forEach(el=>{ el.value = 'weeks'; });
@@ -17428,6 +17461,9 @@ export function initLegacyApp() {
       // 20 Oct 2026: a phase hiatus's "Number weeks" (owner ruling 8). ⛔ PERMANENT key, phase key ->
       // true. Nothing ticked is an ABSENT key, so such a calendar saves byte for byte as before.
       ...(Object.keys(phaseHiatusNumbered).length ? {phaseHiatusNumbered: Object.assign({}, phaseHiatusNumbered)} : {}),
+      // 20 Oct 2026: the automatic-note kinds switched off (owner ruling 9). ⛔ PERMANENT key and kind words.
+      // Every kind on, the default, is an ABSENT key.
+      ...(Object.keys(autoNotesOff).length ? {autoNotesOff: Object.assign({}, autoNotesOff)} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -22964,6 +23000,9 @@ export function initLegacyApp() {
     if('prepPauseOff' in s && typeof s.prepPauseOff !== 'boolean'){ bad.n++; delete s.prepPauseOff; }
     // A hiatus's "Number weeks" (ruling 8): only `true` means ticked, and the app never writes anything else.
     setMap('phaseHiatusNumbered', v => v === true ? true : undefined, SNAP_ID);
+    // The automatic-note kinds switched off (ruling 9): only `true`. A kind word this build does not know is
+    // KEPT (a round trip must never lose data); autoNotesForView() simply never meets a note of that kind.
+    setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -23281,6 +23320,11 @@ export function initLegacyApp() {
     phaseHiatusNumbered = {};
     if(isPlainObj(snap.phaseHiatusNumbered))
       Object.keys(snap.phaseHiatusNumbered).forEach(k=>{ if(snap.phaseHiatusNumbered[k] === true) phaseHiatusNumbered[k] = true; });
+    // ⛔ UNCONDITIONAL: a file with no key shows every kind -- never the previous file's choices. The update()
+    // after the restore puts the card's boxes in step (reflectAutoNoteKinds).
+    autoNotesOff = {};
+    if(isPlainObj(snap.autoNotesOff))
+      Object.keys(snap.autoNotesOff).forEach(k=>{ if(snap.autoNotesOff[k] === true) autoNotesOff[k] = true; });
     if(typeof snap.sidebarTab === 'string') setSidebarTab(snap.sidebarTab);
     // 4d. Restore auto-phase color overrides and reflect them on the built-in swatches.
     if(snap.phaseColorOverride && typeof snap.phaseColorOverride === 'object'){

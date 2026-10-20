@@ -2846,6 +2846,12 @@
      same headers as a built-in row's; before, the × was the custom row's only extra child and
      pushed its boxes 22 px left (owner screenshot, 20 Oct 2026). It takes room only while some
      row has a ×. The .hv-head prefix out-specifies `.hv-head span`'s 46 px. */
+  /* The Automatic notes card (owner ruling 9): one checkbox row per kind, the holiday list's type scale. The
+     boxes are plain checkboxes with no id (Sidebar.jsx says why); `.form-panel input[type=checkbox]` styles them. */
+  .autonote-list{ display:flex; flex-direction:column; gap:var(--mantine-spacing-sm); }
+  .autonote-row{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-gray-9); cursor:pointer; user-select:none; }
+  .autonote-row input{ margin:0; flex:none; }
   .hv-del-slot, .hv-head .hv-del-slot{ display:none; width:22px; flex:none; justify-content:flex-end; align-items:center; }
   #holiday-vis:has(.hv-del) .hv-del-slot{ display:flex; }
 

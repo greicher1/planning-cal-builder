@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Automatic notes: choose which kinds of automatic note a calendar shows (owner ruling 9, 20 Oct 2026)
+
+The calendar writes three kinds of note for you: **Writer's Room Opens**, **Start Principal Photography** and
+**Principal Photography Wraps**. A reference calendar the owner shared carried only some of them, and there was no
+way to leave one out short of editing each week's note by hand. Owner ruling 9: a calendar setting choosing which
+kinds show.
+- **A new card, Settings ▸ Automatic notes**, with one box per kind, all ticked by default. Untick one and it leaves
+  the Notes column, the month view, Excel, the waterfall PDF and the month PDF at once. The Settings-window work will
+  move the card into that window.
+- **Notes you typed are never changed**, including an automatic note you edited ("Writer's Room Opens 1/4/27" plus a
+  line of your own stays exactly as typed when its kind is off).
+- **Holiday notes are not on the card** (owner's picker, 20 Oct 2026): they keep their per-holiday choices under
+  Holidays. The header's own lines ("Principal Photography 5.3.27 / Wrap: …") are header text, not notes, and are
+  unchanged.
+- **How:** computeSchedule tags each automatic note with its kind, and `autoNotesForView()`, the one filter every
+  reader of the notes already goes through (both views, every export, the note editor, the column widths), drops a
+  kind that is switched off. No frozen code changed.
+- **Saved with the calendar** as `autoNotesOff: {<kind>: true}`, written only while a kind is off, so a calendar that
+  leaves every box ticked saves byte for byte what it did. The boxes have no id, so `fields.byId` (gate 5) is
+  unchanged. Restored unconditionally (an older file opens with every kind on); New ticks every box; one undo step.
+- **Verified:** new leg `autonotekinds`, 16 cases (every output, read back from the files, with a positive control for
+  the month PDF; the user's own and edited notes; the save key with `fields.byId` and `userNotes` unchanged; a
+  byte-identical file once every kind is back on; Shift All, Load, the older-file trap, New). Red on the build before
+  it (13 of 16), green after.
+
 ### Unreleased — "Number weeks" on a phase's own hiatus (owner ruling 8, 20 Oct 2026)
 
 A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
