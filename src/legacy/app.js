@@ -806,7 +806,9 @@ export function initLegacyApp() {
   // top, so with a note editor / date picker / colour picker open over the grid it would happily
   // return the cell UNDERNEATH the panel -- letting a click inside an open popover start a marquee
   // or apply a batch to a cell the user cannot even see.
-  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu';
+  // .sb-fmt / .sb-menu / .sb-drop (20 Oct 2026, SIDE-BOXES-PLAN.md): a side box's format bar can hang over
+  // the grid's edge, and the Side boxes menu over its top.
+  const OVER_PANEL = '.note-pop, .mv-note-pop, .day-ov-pop, .date-pop, .select-pop, .phase-color-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .day-menu, .sb-fmt, .sb-menu, .sb-drop';
   function hitCell(x, y){
     for(const el of document.elementsFromPoint(x, y)){
       if(el.closest && el.closest(OVER_PANEL)) return null;
@@ -12033,8 +12035,14 @@ export function initLegacyApp() {
     // Columns per block = date + phase slots (Simultaneous Post now lives inside the phase
     // area, no dedicated column) + single Notes column.
     const blockColsPerBlock = blockMaxConcurrent.map(mc => 1 + mc + 1);
+    // ⛔ FROZEN EDIT E1 (owner-approved 20 Oct 2026, SIDE-BOXES-PLAN.md §6): boxes beside the grid. A left
+    // side takes column A and its spacer column B, so the grid starts two columns over; every column
+    // below (the date formula chain included) is derived from blockStartCols and follows. With no left
+    // box sideLeftCols is 0 and this is `let cum=1`, byte for byte the workbook it always wrote.
+    const sideL = sideBoxLayoutSafe(schedule);
+    const sideLeftCols = sideL.left ? 2 : 0;
     const blockStartCols = [];
-    { let cum=1; for(let b=0;b<blockCount;b++){ blockStartCols.push(cum); cum += blockColsPerBlock[b]; } }
+    { let cum=1 + sideLeftCols; for(let b=0;b<blockCount;b++){ blockStartCols.push(cum); cum += blockColsPerBlock[b]; } }
 
     // Column widths come from the shared model, so the workbook, the on-screen grid and the
     // PDF are all laid out from the same numbers. This replaced a per-character weight table
@@ -12385,7 +12393,9 @@ export function initLegacyApp() {
       const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
       const totalColsForGrid = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
       for(let r=1;r<=totalRows;r++){
-        for(let c=1;c<=totalColsForGrid;c++){
+        // FROZEN EDIT E2 (owner-approved 20 Oct 2026): the grid's own columns only, so the gridlines
+        // preference never rules a side box's column. Starts at 1 with no left box, as it always did.
+        for(let c=1 + sideLeftCols;c<=totalColsForGrid;c++){
           const cell = ws.getRow(r).getCell(c);
           const b = cell.border || {};
           cell.border = {
@@ -12407,12 +12417,22 @@ export function initLegacyApp() {
       const totalCols = blockStartCols[blockCount-1] + blockColsPerBlock[blockCount-1] - 1;
       const totalRows = 1 + Math.max(...yearBlocks.map(b=>b.count));
       const metrics = sheetGridMetrics(schedule, yearBlocks, blockColWidths);
+      // ⛔ FROZEN EDIT E3 (owner-approved 20 Oct 2026, ruling Q4): the page turns on the grid + boxes
+      // together, from the ONE helper the PDF writer calls too, so the two outputs cannot turn
+      // differently. With no box sideBoxPageExtent() hands back the grid's own metrics untouched.
+      const sideExt = sideBoxPageExtent(sideL, metrics);
       ws.pageSetup.orientation =
-        sheetPageOrientation(metrics.gridW, metrics.gridH, blockCount).orientation;
+        sheetPageOrientation(sideExt.w, sideExt.h, blockCount).orientation;
       // Pin the print area to the used range. Left unset, Excel infers it, and any cell that
       // has ever been touched outside the grid drags a blank second page into the print job
       // -- which also defeats fitToHeight:1, since the "sheet" it fits is then the wrong size.
-      ws.pageSetup.printArea = 'A1:' + ws.getColumn(totalCols).letter + totalRows;
+      // E3 again: the area grows to take in a right side's spacer and column, and any box rows that
+      // run below the grid; fitToPage then puts it all on one page. Unchanged with no box.
+      const sideRightCol = totalCols + 2;
+      const sideRows = Math.max(sideL.left ? sideL.left.rows : 0, sideL.right ? sideL.right.rows : 0);
+      ws.pageSetup.printArea = 'A1:' + ws.getColumn(sideL.right ? sideRightCol : totalCols).letter
+                             + Math.max(totalRows, sideRows);
+      writeSideBoxesXlsx(ws, sideL, { left: 1, right: sideRightCol }, sheetRowCount(schedule, yearBlocks) + 1);
     }
 
     const buf = await wb.xlsx.writeBuffer();
@@ -13004,6 +13024,659 @@ export function initLegacyApp() {
         page.line(x + w, y0, x + w, y1, SIDE_PDF_FRAME, 1.2);
       });
     });
+  }
+
+  // ---------- SIDE BOXES ON SCREEN (plan §3.3, §4) ----------
+  // Rendered from the store into the two .side-col hosts after every grid render (a childList observer
+  // on #table-wrap: CLAUDE.md sanctioned pattern 3), and after every edit of their own. They are drawn
+  // like the grid, not like the chrome -- Carlito 11 px, the 20 px row pitch, a dark frame -- because
+  // they print; each line's min-height is its print row count x ROW_DEFAULT_PX (plan §4.2), so the
+  // screen shows how many rows a line takes in print. The chrome around them (grip, x, format bar, width
+  // handle, the Side boxes menu) is the app's.
+  const sideCols = { left: document.querySelector('.side-col[data-side="left"]'),
+                     right: document.querySelector('.side-col[data-side="right"]') };
+  const sidePanel = document.querySelector('main.preview-panel');
+  let sideLastSig = null;
+  let sideFmtTarget = null;     // { box, li } -- li -1 is the title -- or null
+  let sideFmtBar = null;        // the body-level format bar, built once
+  let sideFmtPressing = false;
+  let sideMenu = null, sideMenuAnchor = null;
+  let sideFmtLive = false;      // a colour well is being dragged: its edits bank as ONE step, on `change`
+
+  // Everything a render of the side columns depends on. A grid render that changes none of it leaves
+  // the side columns alone, so a caret in a box is never thrown away by an unrelated re-render.
+  function sideSignature(L){
+    if(!L.any) return '[]';
+    const pick = S => S && { c: S.chars, s: S.segs.map(sg => [sg.box, sg.type, sg.li, sg.hex, sg.rows, sg.size, sg.text]) };
+    return JSON.stringify([sideBoxes, sideWidths, pick(L.left), pick(L.right)]);
+  }
+  function sideFmtCss(f, base){
+    const fm = Object.assign({}, base, f || {});
+    const out = [];
+    const size = finiteNum(fm.size);
+    if(size && size > 0 && size <= 400) out.push('font-size:' + size + 'px');
+    out.push('font-weight:' + (fm.bold ? 700 : 400));
+    out.push('font-style:' + (fm.italic ? 'italic' : 'normal'));
+    if(isHexColor(fm.color)) out.push('color:' + fm.color);
+    // Ruling Q6: a highlight fills the whole line, as the workbook's cell fill must.
+    if(isHexColor(fm.highlight)) out.push('background-color:' + fm.highlight);
+    if(fm.align === 'left' || fm.align === 'center' || fm.align === 'right') out.push('text-align:' + fm.align);
+    return out.join(';');
+  }
+  function sideBoxHtml(L, S, i){
+    const b = sideBoxes[i];
+    const segs = S.segs.filter(sg => sg.box === i);
+    const h = sg => 'min-height:' + (sg.rows * ROW_DEFAULT_PX) + 'px';
+    let html = `<div class="sb-box" data-i="${i}" data-kind="${b.kind}">`
+      + `<div class="sb-chrome"><button type="button" class="sb-grip" title="Drag to move this box (or Alt+arrow keys)" aria-label="Move box">&#8942;&#8942;</button>`
+      + `<button type="button" class="sb-del" title="Delete this box" aria-label="Delete box">&times;</button></div>`;
+    segs.forEach(sg=>{
+      if(sg.type === 'title'){
+        html += `<div class="sb-title sb-edit" contenteditable="plaintext-only" spellcheck="false" data-li="-1" data-ph="Title"`
+          + ` style="${h(sg)};${sideFmtCss(b.titleFmt, SIDE_TITLE_FMT)}">${escHtml(b.title)}</div>`;
+      } else if(sg.type === 'key'){
+        html += `<div class="sb-key" data-hex="${sg.hex}" style="background:${sg.fill};color:${sg.color};font-size:${sg.size}px">`
+          + `<span class="sb-key-name" contenteditable="plaintext-only" spellcheck="false" data-ph="${escHtml(sg.auto || '')}">${escHtml(sg.text)}</span>`
+          + `<button type="button" class="sb-key-hide" title="Hide this row" aria-label="Hide row">&times;</button></div>`;
+      } else {
+        const l = b.lines[sg.li];
+        html += `<div class="sb-line sb-edit" contenteditable="plaintext-only" spellcheck="false" data-li="${sg.li}"`
+          + ` style="${h(sg)};${sideFmtCss(l.f, SIDE_LINE_FMT)}">${escHtml(l.t)}</div>`;
+      }
+    });
+    if(b.kind === 'key'){
+      const shown = new Set(segs.map(sg => sg.hex));
+      const hiddenNow = (b.hidden || []).filter(x => !shown.has(x) && sideKeyEntries(currentSchedule).some(e => e.hex === x));
+      if(hiddenNow.length) html += `<button type="button" class="sb-unhide">Show ${hiddenNow.length} hidden row${hiddenNow.length > 1 ? 's' : ''}</button>`;
+    }
+    return html + '</div>';
+  }
+  function renderSideBoxes(force){
+    if(!sideCols.left || !sideCols.right || !sidePanel) return;
+    const L = sideBoxLayoutSafe(currentSchedule);
+    const sig = sideSignature(L);
+    if(!force && sig === sideLastSig) return;
+    sideLastSig = sig;
+    // A rebuild must not throw away the caret: whatever text was focused is focused again afterwards, at
+    // the same offset (moving from one key name to the next re-renders on the first one's blur).
+    const ae = document.activeElement;
+    let keep = null;
+    if(ae && ae.closest && ae.closest('.side-col') && (ae.classList.contains('sb-edit') || ae.classList.contains('sb-key-name'))){
+      const bx = ae.closest('.sb-box'), k = ae.closest('.sb-key');
+      keep = { i: bx.dataset.i, li: ae.dataset.li, hex: k ? k.dataset.hex : null, at: sideCaret(ae).at };
+    }
+    sidePanel.classList.toggle('has-side-boxes', L.any);
+    SIDE_SIDES.forEach(side=>{
+      const col = sideCols[side], S = L[side];
+      if(!S){ col.hidden = true; col.replaceChildren(); return; }
+      col.hidden = false;
+      col.style.setProperty('--sb-w', charsToScreenPx(S.chars) + 'px');
+      const ids = [];
+      S.segs.forEach(sg=>{ if(!ids.includes(sg.box)) ids.push(sg.box); });
+      col.innerHTML = `<div class="sb-stack">${ids.map(i => sideBoxHtml(L, S, i)).join('')}</div>`
+        + `<div class="sb-width" role="separator" aria-orientation="vertical" title="Drag to change this side's width; double-click for the default" aria-label="Side width"></div>`;
+    });
+    if(keep){
+      const sel = `.sb-box[data-i="${keep.i}"] ` + (keep.hex ? `.sb-key[data-hex="${keep.hex}"] .sb-key-name` : `.sb-edit[data-li="${keep.li}"]`);
+      const el = sidePanel.querySelector('.side-col ' + sel);
+      if(el) sideFocusAt(el, keep.at);
+    }
+    if(sideFmtTarget && !sideTargetEl()) hideSideFmt();
+    else if(sideFmtTarget) placeSideFmt();
+  }
+  // Re-derive the min-heights in place while typing, without rebuilding anything under the caret.
+  function refreshSideHeights(){
+    const L = sideBoxLayoutSafe(currentSchedule);
+    SIDE_SIDES.forEach(side=>{
+      const S = L[side];
+      if(!S) return;
+      S.segs.forEach(sg=>{
+        if(sg.type === 'key') return;
+        const el = sideCols[side].querySelector(`.sb-box[data-i="${sg.box}"] .sb-edit[data-li="${sg.li}"]`);
+        if(el) el.style.minHeight = (sg.rows * ROW_DEFAULT_PX) + 'px';
+      });
+    });
+  }
+  // One committed structural edit is ONE undo step, banked deterministically on both sides of the write
+  // (the day menu's pattern) rather than left to the 500 ms debounce. Typing still coalesces through it.
+  function sideCommit(fn){
+    pushUndoSnapshot();
+    fn();
+    renderSideBoxes(true);
+    markDirty();
+    cancelPendingUndoPush();
+    pushUndoSnapshot();
+  }
+  new MutationObserver(()=> renderSideBoxes(false)).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ---- The Side boxes menu (ruling Q7: the preview toolbar, Waterfall view only) ----
+  function closeSideMenu(){
+    if(sideMenu){ sideMenu.remove(); sideMenu = null; }
+    if(sideMenuAnchor) sideMenuAnchor.setAttribute('aria-expanded', 'false');
+    sideMenuAnchor = null;
+    document.removeEventListener('mousedown', onSideMenuOutside, true);
+    window.removeEventListener('resize', closeSideMenu);
+    window.removeEventListener('scroll', closeSideMenu, true);
+  }
+  function onSideMenuOutside(e){
+    if(sideMenuAnchor && sideMenuAnchor.contains(e.target)) return;
+    if(sideMenu && !sideMenu.contains(e.target)) closeSideMenu();
+  }
+  function addSideBox(side, kind){
+    closeSideMenu();
+    let idx = -1;
+    sideCommit(()=>{ sideBoxes.push(sideNewBox(side, kind)); idx = sideBoxes.length - 1; });
+    // The cursor lands in the new box's title, selected, so typing renames it.
+    const t = sideCols[side] && sideCols[side].querySelector(`.sb-box[data-i="${idx}"] .sb-title`);
+    if(t){ t.focus(); const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }
+  function openSideMenu(anchor){
+    closeSideMenu();
+    const pop = document.createElement('div');
+    pop.className = 'sb-menu';
+    pop.setAttribute('role', 'menu');
+    [['key','left','Color key','on the left'], ['key','right','Color key','on the right'],
+     ['text','left','Text box','on the left'], ['text','right','Text box','on the right']].forEach(([kind, side, a, b], n)=>{
+      if(n === 2){ const sep = document.createElement('div'); sep.className = 'sb-menu-sep'; pop.appendChild(sep); }
+      const it = document.createElement('button');
+      it.type = 'button';
+      it.className = 'sb-menu-item';
+      it.setAttribute('role', 'menuitem');
+      it.dataset.kind = kind; it.dataset.side = side;
+      it.setAttribute('aria-label', a + ' ' + b);
+      it.innerHTML = `<span>${a}</span><span class="sb-menu-where">${b}</span>`;
+      it.addEventListener('click', ev=>{ ev.stopPropagation(); addSideBox(side, kind); });
+      pop.appendChild(it);
+    });
+    document.body.appendChild(pop);
+    sideMenu = pop; sideMenuAnchor = anchor;
+    anchor.setAttribute('aria-expanded', 'true');
+    const r = anchor.getBoundingClientRect();
+    pop.style.top = (window.scrollY + r.bottom + 5) + 'px';
+    pop.style.left = (window.scrollX + r.left) + 'px';
+    const pr = pop.getBoundingClientRect();
+    if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
+    if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 5) + 'px';
+    // Bound on the next tick, or the click that opened the menu would close it.
+    setTimeout(()=>{
+      document.addEventListener('mousedown', onSideMenuOutside, true);
+      window.addEventListener('resize', closeSideMenu);
+      window.addEventListener('scroll', closeSideMenu, true);
+    }, 0);
+  }
+  // React renders #tb-side-boxes-btn, so it is reached by DELEGATION (HANDOFF §2b-3's law).
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('#tb-side-boxes-btn');
+    if(!b) return;
+    if(sideMenu && sideMenuAnchor === b){ closeSideMenu(); return; }
+    openSideMenu(b);
+  });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && sideMenu) closeSideMenu(); });
+
+  // ---- Editing text: titles, lines and key names ----
+  function sideEditInfo(el){
+    const box = el.closest && el.closest('.sb-box');
+    if(!box) return null;
+    const i = +box.dataset.i, b = sideBoxes[i];
+    if(!b) return null;
+    return { i, b, box, li: el.dataset.li !== undefined ? +el.dataset.li : null };
+  }
+  function sideCaret(el){
+    const s = getSelection();
+    if(!s.rangeCount || !el.contains(s.anchorNode)) return { at: 0, end: 0 };
+    const r = s.getRangeAt(0), pre = document.createRange();
+    pre.selectNodeContents(el); pre.setEnd(r.startContainer, r.startOffset);
+    const at = pre.toString().length;
+    pre.selectNodeContents(el); pre.setEnd(r.endContainer, r.endOffset);
+    return { at, end: pre.toString().length };
+  }
+  function sideFocusAt(el, at){
+    if(!el) return;
+    el.focus();
+    const s = getSelection(), r = document.createRange();
+    const tn = el.firstChild;
+    if(tn && tn.nodeType === 3){ r.setStart(tn, Math.min(at, tn.length)); }
+    else r.setStart(el, 0);
+    r.collapse(true);
+    s.removeAllRanges(); s.addRange(r);
+  }
+  function sideLineEl(i, li){
+    const b = sideBoxes[i];
+    return b && sideCols[b.side] ? sideCols[b.side].querySelector(`.sb-box[data-i="${i}"] .sb-edit[data-li="${li}"]`) : null;
+  }
+  function onSideInput(e){
+    const t = e.target;
+    if(t.classList.contains('sb-key-name')){
+      const info = sideEditInfo(t); if(!info) return;
+      const hex = t.closest('.sb-key').dataset.hex;
+      // An edit is stored against the COLOUR, so it survives renaming the phase (plan §3.1).
+      info.b.names[hex] = sideText(t.textContent, SIDE_MAX_NAME);
+      markDirty();
+      return;
+    }
+    if(!t.classList.contains('sb-edit')) return;
+    const info = sideEditInfo(t); if(!info) return;
+    const txt = t.textContent || '';
+    if(/[\r\n]/.test(txt)){ sideSplitPaste(t, info, txt); return; }
+    if(info.li === -1) info.b.title = sideText(txt, SIDE_MAX_NAME);
+    else if(info.b.lines[info.li]) info.b.lines[info.li].t = sideText(txt, SIDE_MAX_TEXT);
+    refreshSideHeights();
+    markDirty();
+  }
+  // Text carrying line breaks (a paste, or a browser that slipped one in) becomes separate lines, each
+  // taking the format of the line it was typed into.
+  function sideSplitPaste(el, info, txt){
+    const parts = String(txt).split(/\r?\n/);
+    sideCommit(()=>{
+      if(info.li === -1){
+        info.b.title = sideText(parts.shift(), SIDE_MAX_NAME);
+        if(info.b.kind === 'text') info.b.lines.splice(0, 0, ...parts.map(p => ({ t: sideText(p, SIDE_MAX_TEXT) })));
+      } else {
+        const f = info.b.lines[info.li].f;
+        const add = parts.map(p => Object.assign({ t: sideText(p, SIDE_MAX_TEXT) }, f ? { f: Object.assign({}, f) } : {}));
+        info.b.lines.splice(info.li, 1, ...add);
+        info.b.lines.length = Math.min(info.b.lines.length, SIDE_MAX_LINES);
+      }
+    });
+  }
+  function onSideKeydown(e){
+    const t = e.target;
+    if(t.classList.contains('sb-grip')){ onSideGripKey(e); return; }
+    if(t.classList.contains('sb-key-name')){
+      if(e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); t.blur(); }
+      return;
+    }
+    if(!t.classList.contains('sb-edit')) return;
+    const info = sideEditInfo(t); if(!info) return;
+    const { i, b, li } = info;
+    if(e.key === 'Escape'){ e.preventDefault(); t.blur(); return; }
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      if(li === -1){
+        // Enter in a title goes to the first line; a key's title has none, so it simply commits.
+        if(b.kind === 'text') sideFocusAt(sideLineEl(i, 0), 0); else t.blur();
+        return;
+      }
+      if(b.lines.length >= SIDE_MAX_LINES) return;
+      const { at, end } = sideCaret(t), txt = t.textContent || '';
+      const f = b.lines[li].f;
+      sideCommit(()=>{
+        b.lines[li].t = txt.slice(0, at);
+        // The new line carries the format of the line it was split from, as a word processor does.
+        b.lines.splice(li + 1, 0, Object.assign({ t: txt.slice(end) }, f ? { f: Object.assign({}, f) } : {}));
+      });
+      sideFocusAt(sideLineEl(i, li + 1), 0);
+      return;
+    }
+    if(li === -1) return;
+    const { at, end } = sideCaret(t), len = (t.textContent || '').length;
+    if(e.key === 'Backspace' && at === 0 && end === 0 && li > 0){
+      e.preventDefault();
+      const prevLen = b.lines[li - 1].t.length;
+      sideCommit(()=>{ b.lines[li - 1].t += b.lines[li].t; b.lines.splice(li, 1); });
+      sideFocusAt(sideLineEl(i, li - 1), prevLen);
+    } else if(e.key === 'Delete' && at === len && end === len && li < b.lines.length - 1){
+      e.preventDefault();
+      sideCommit(()=>{ b.lines[li].t += b.lines[li + 1].t; b.lines.splice(li + 1, 1); });
+      sideFocusAt(sideLineEl(i, li), len);
+    } else if(e.key === 'ArrowUp' && at === 0){
+      const prev = sideLineEl(i, li - 1);
+      if(prev){ e.preventDefault(); sideFocusAt(prev, (prev.textContent || '').length); }
+    } else if(e.key === 'ArrowDown' && end === len){
+      const next = sideLineEl(i, li + 1);
+      if(next){ e.preventDefault(); sideFocusAt(next, 0); }
+    }
+  }
+  function onSidePaste(e){
+    const t = e.target;
+    if(!(t.classList && (t.classList.contains('sb-edit') || t.classList.contains('sb-key-name')))) return;
+    const txt = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+    if(!/[\r\n]/.test(txt) && !t.classList.contains('sb-key-name')) return;   // a one-line paste is ordinary typing
+    e.preventDefault();
+    const one = txt.replace(/[\r\n]+/g, ' ');
+    if(t.classList.contains('sb-key-name')){ document.execCommand('insertText', false, one); return; }
+    const info = sideEditInfo(t); if(!info) return;
+    const { at, end } = sideCaret(t), cur = t.textContent || '';
+    sideSplitPaste(t, info, cur.slice(0, at) + txt + cur.slice(end));
+  }
+  function onSideFocusout(e){
+    const t = e.target;
+    if(t.classList && t.classList.contains('sb-key-name')){
+      // An emptied name goes back to the phase's own (plan §3.1): it is stored by deleting the edit.
+      const info = sideEditInfo(t);
+      if(info){
+        const hex = t.closest('.sb-key').dataset.hex;
+        const v = (info.b.names[hex] || '').trim();
+        // Typing the phase's own name back in is the same as no edit.
+        if(!v || v === t.dataset.ph) delete info.b.names[hex];
+      }
+      setTimeout(()=> renderSideBoxes(true), 0);
+      return;
+    }
+    if(!(t.classList && t.classList.contains('sb-edit'))) return;
+    const to = e.relatedTarget;
+    if(sideFmtPressing || (to && to.closest && (to.closest('.sb-fmt') || to.closest('.sb-edit')))) return;
+    hideSideFmt();
+  }
+  function onSideClick(e){
+    const t = e.target;
+    const del = t.closest('.sb-del');
+    if(del){
+      const info = sideEditInfo(del); if(!info) return;
+      hideSideFmt();
+      sideCommit(()=>{ sideBoxes.splice(info.i, 1); });
+      return;
+    }
+    const hide = t.closest('.sb-key-hide');
+    if(hide){
+      const info = sideEditInfo(hide); if(!info) return;
+      const hex = hide.closest('.sb-key').dataset.hex;
+      sideCommit(()=>{ if(!info.b.hidden.includes(hex)) info.b.hidden.push(hex); });
+      return;
+    }
+    const un = t.closest('.sb-unhide');
+    if(un){
+      const info = sideEditInfo(un); if(!info) return;
+      sideCommit(()=>{ info.b.hidden = []; });
+    }
+  }
+  SIDE_SIDES.forEach(side=>{
+    const col = sideCols[side];
+    if(!col) return;
+    col.addEventListener('input', onSideInput);
+    col.addEventListener('keydown', onSideKeydown);
+    col.addEventListener('paste', onSidePaste);
+    col.addEventListener('focusout', onSideFocusout);
+    col.addEventListener('click', onSideClick);
+    col.addEventListener('focusin', e=>{
+      const el = e.target;
+      if(!(el.classList && el.classList.contains('sb-edit'))) return;
+      const info = sideEditInfo(el); if(!info) return;
+      sideFmtTarget = { box: info.i, li: info.li };
+      showSideFmt();
+    });
+    col.addEventListener('pointerdown', e=>{
+      if(e.button !== 0) return;
+      if(e.target.closest('.sb-grip')) beginSideDrag(e);
+      else if(e.target.closest('.sb-width')) beginSideWidthDrag(e, side);
+    });
+    col.addEventListener('dblclick', e=>{
+      if(!e.target.closest('.sb-width')) return;
+      if(sideWidths[side] === undefined) return;
+      sideCommit(()=>{ delete sideWidths[side]; });
+    });
+  });
+
+  // ---- The format bar: the header's controls, for one line at a time (plan §3.2) ----
+  // Body-level and built once. ⛔ Its own root class (.sb-fmt), NOT .hdr-fmt: syncHdrFmtToolbar() writes
+  // into EVERY .hdr-fmt in the document, and the header's handlers are delegated on #table-wrap. The
+  // controls reuse the .hf-* classes for their look only.
+  function sideTargetEl(){ return sideFmtTarget ? sideLineEl(sideFmtTarget.box, sideFmtTarget.li) : null; }
+  function sideTargetFmt(){
+    const b = sideFmtTarget && sideBoxes[sideFmtTarget.box];
+    if(!b) return null;
+    if(sideFmtTarget.li === -1) return { base: SIDE_TITLE_FMT, f: b.titleFmt || {} };
+    const l = b.lines && b.lines[sideFmtTarget.li];
+    return l ? { base: SIDE_LINE_FMT, f: l.f || {} } : null;
+  }
+  function buildSideFmt(){
+    const bar = document.createElement('div');
+    bar.className = 'sb-fmt';
+    bar.setAttribute('role', 'toolbar');
+    bar.setAttribute('aria-label', 'Box line formatting');
+    bar.innerHTML = `<select class="hf-ctl hf-size" title="Text size" aria-label="Text size">
+        <option value="">Size</option>${[8,9,10,11,12,13,14,16,18,22].map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+      <button type="button" class="hf-ctl hf-btn hf-b" title="Bold" aria-label="Bold"><b>B</b></button>
+      <button type="button" class="hf-ctl hf-btn hf-i" title="Italic" aria-label="Italic"><i>I</i></button>
+      <label class="hf-ctl hf-swatch" title="Text color"><span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-color" value="#000000" aria-label="Text color"></label>
+      <label class="hf-ctl hf-swatch hf-swatch-hl" title="Highlight color"><span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-hl" value="#ffff00" aria-label="Highlight color"></label>
+      ${alignMenuHtml()}
+      <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting on this line" aria-label="Clear formatting">&#8709;</button>`;
+    bar.addEventListener('pointerdown', ()=>{ sideFmtPressing = true; }, true);
+    bar.addEventListener('mousedown', e=>{ if(e.target.closest('.hf-btn')) e.preventDefault(); });
+    bar.addEventListener('click', e=>{
+      const look = sideTargetFmt();
+      if(!look) return;
+      const eff = Object.assign({}, look.base, look.f);
+      if(e.target.closest('.hf-b')) return applySideFmt({ bold: !eff.bold });
+      if(e.target.closest('.hf-i')) return applySideFmt({ italic: !eff.italic });
+      if(e.target.closest('.hf-clear')) return applySideFmt(null);
+      const toggle = e.target.closest('.hf-al-toggle');
+      if(toggle){
+        const menu = bar.querySelector('.hf-al-menu');
+        menu.hidden = !menu.hidden;
+        toggle.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+        return;
+      }
+      const opt = e.target.closest('.hf-al-opt');
+      if(opt){
+        bar.querySelector('.hf-al-menu').hidden = true;
+        bar.querySelector('.hf-al-toggle').setAttribute('aria-expanded', 'false');
+        // Picking the alignment the line already has clears the override, as the header's menu does.
+        return applySideFmt({ align: look.f.align === opt.dataset.align ? '' : opt.dataset.align });
+      }
+    });
+    bar.addEventListener('input', e=>{
+      if(e.target.classList.contains('hf-color')) applySideFmt({ color: e.target.value }, true);
+      if(e.target.classList.contains('hf-hl')) applySideFmt({ highlight: e.target.value }, true);
+    });
+    bar.addEventListener('change', e=>{
+      if(e.target.classList.contains('hf-size')) applySideFmt({ size: e.target.value ? Number(e.target.value) : '' });
+      if(e.target.classList.contains('hf-color') || e.target.classList.contains('hf-hl')){
+        sideFmtLive = false; cancelPendingUndoPush(); pushUndoSnapshot();
+      }
+    });
+    return bar;
+  }
+  document.addEventListener('pointerup', ()=>{ setTimeout(()=>{ sideFmtPressing = false; }, 0); }, true);
+  // `live` is a colour well being dragged: state and paint only, banked as one step on its `change`.
+  function applySideFmt(patch, live){
+    const b = sideFmtTarget && sideBoxes[sideFmtTarget.box];
+    if(!b) return;
+    const isTitle = sideFmtTarget.li === -1;
+    const cur = isTitle ? (b.titleFmt || {}) : ((b.lines[sideFmtTarget.li] || {}).f || {});
+    const write = ()=>{
+      let next = patch ? Object.assign({}, cur, patch) : {};
+      Object.keys(next).forEach(k=>{ if(next[k] === '' || next[k] == null) delete next[k]; });
+      next = Object.keys(next).length ? cleanHeaderFormatEntry(next, { n: 0 }) : null;
+      if(isTitle){ if(next) b.titleFmt = next; else delete b.titleFmt; }
+      else { const l = b.lines[sideFmtTarget.li]; if(next) l.f = next; else delete l.f; }
+    };
+    if(live){
+      if(!sideFmtLive){ sideFmtLive = true; cancelPendingUndoPush(); pushUndoSnapshot(); }
+      write(); markDirty();
+    }
+    else { pushUndoSnapshot(); write(); markDirty(); cancelPendingUndoPush(); pushUndoSnapshot(); }
+    // Paint in place -- a rebuild would destroy the caret -- then let the heights follow the new size.
+    const el = sideTargetEl();
+    if(el){
+      const f = isTitle ? b.titleFmt : b.lines[sideFmtTarget.li].f;
+      el.setAttribute('style', 'min-height:' + el.style.minHeight + ';' + sideFmtCss(f, isTitle ? SIDE_TITLE_FMT : SIDE_LINE_FMT));
+    }
+    refreshSideHeights();
+    syncSideFmt();
+  }
+  function syncSideFmt(){
+    if(!sideFmtBar) return;
+    const look = sideTargetFmt();
+    if(!look) return;
+    const f = look.f, eff = Object.assign({}, look.base, f);
+    const q = s => sideFmtBar.querySelector(s);
+    q('.hf-size').value = f.size ? String(f.size) : '';
+    q('.hf-b').classList.toggle('is-on', !!eff.bold);
+    q('.hf-i').classList.toggle('is-on', !!eff.italic);
+    q('.hf-color').value = f.color || '#000000';
+    q('.hf-hl').value = f.highlight || '#ffff00';
+    const al = eff.align || 'left';
+    q('.hf-al-toggle').innerHTML = alignIcon(al) + '<span class="hf-caret">▾</span>';
+    q('.hf-al-toggle').classList.toggle('is-on', !!f.align);
+    sideFmtBar.querySelectorAll('.hf-al-opt').forEach(o=>{
+      const on = o.dataset.align === al;
+      o.classList.toggle('is-on', on);
+      o.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  // UNDER the line being edited, over the lines after it: above it, the bar hid the lines just typed --
+  // and for a box at the top of its column, the preview toolbar. It flips above only when the window
+  // has no room below. A right-side box's bar hangs from the box's RIGHT edge, so it opens over the
+  // grid rather than off the window.
+  function placeSideFmt(){
+    const el = sideTargetEl();
+    if(!el || !sideFmtBar) return;
+    const r = el.getBoundingClientRect(), br = sideFmtBar.getBoundingClientRect();
+    let top = r.bottom + 4;
+    if(top + br.height > window.innerHeight - 8) top = r.top - br.height - 4;
+    const b = sideBoxes[sideFmtTarget.box];
+    let left = (b && b.side === 'right') ? r.right - br.width : r.left;
+    if(left + br.width > window.innerWidth - 8) left = window.innerWidth - br.width - 8;
+    sideFmtBar.style.top = (window.scrollY + Math.max(8, top)) + 'px';
+    sideFmtBar.style.left = (window.scrollX + Math.max(8, left)) + 'px';
+  }
+  function showSideFmt(){
+    if(!sideFmtBar) sideFmtBar = buildSideFmt();
+    if(!sideFmtBar.isConnected) document.body.appendChild(sideFmtBar);
+    syncSideFmt();
+    placeSideFmt();
+  }
+  function hideSideFmt(){
+    if(sideFmtBar && sideFmtBar.isConnected) sideFmtBar.remove();
+    sideFmtTarget = null;
+  }
+  window.addEventListener('resize', ()=>{ if(sideFmtTarget) placeSideFmt(); });
+  window.addEventListener('scroll', ()=>{ if(sideFmtTarget) placeSideFmt(); }, true);
+  document.addEventListener('mousedown', e=>{
+    if(!sideFmtTarget) return;
+    if(e.target.closest && (e.target.closest('.sb-fmt') || e.target.closest('.side-col'))) return;
+    hideSideFmt();
+  }, true);
+
+  // ---- Moving a box: drag by its grip, up, down or across to the other side (plan §3.3) ----
+  let sideDrag = null;
+  function sideDropTarget(x, y, from){
+    const wrap = document.getElementById('table-wrap').getBoundingClientRect();
+    const side = x < wrap.left + wrap.width / 2 ? 'left' : 'right';
+    const boxes = Array.from(sideCols[side].querySelectorAll('.sb-box')).filter(el => +el.dataset.i !== from);
+    let before = null, lineY = null;
+    for(const el of boxes){
+      const r = el.getBoundingClientRect();
+      if(y < r.top + r.height / 2){ before = +el.dataset.i; lineY = r.top - 10; break; }
+      lineY = r.bottom + 10;
+    }
+    return { side, before, lineY, empty: !boxes.length, wrap };
+  }
+  function showSideDrop(t){
+    let ind = sideDrag.ind;
+    if(!ind){ ind = sideDrag.ind = document.createElement('div'); document.body.appendChild(ind); }
+    if(t.empty){
+      // An empty side has no column to point into, so the drop zone is drawn over that edge of the grid.
+      ind.className = 'sb-drop sb-drop-zone';
+      ind.textContent = 'Drop on the ' + t.side;
+      const w = Math.min(180, t.wrap.width / 3);
+      ind.style.left = (t.side === 'left' ? t.wrap.left : t.wrap.right - w) + 'px';
+      ind.style.top = t.wrap.top + 'px';
+      ind.style.width = w + 'px';
+      ind.style.height = Math.min(160, t.wrap.height) + 'px';
+    } else {
+      const cr = sideCols[t.side].querySelector('.sb-stack').getBoundingClientRect();
+      ind.className = 'sb-drop sb-drop-line';
+      ind.textContent = '';
+      ind.style.left = cr.left + 'px';
+      ind.style.top = (t.lineY - 1) + 'px';
+      ind.style.width = cr.width + 'px';
+      ind.style.height = '';
+    }
+  }
+  function beginSideDrag(e){
+    const info = sideEditInfo(e.target);
+    if(!info) return;
+    e.preventDefault();
+    hideSideFmt();
+    sideDrag = { from: info.i, x0: e.clientX, y0: e.clientY, moved: false, ind: null, target: null, el: info.box };
+    const move = ev=>{
+      if(!sideDrag.moved && Math.hypot(ev.clientX - sideDrag.x0, ev.clientY - sideDrag.y0) < 4) return;
+      sideDrag.moved = true;
+      sideDrag.el.classList.add('sb-dragging');
+      document.body.classList.add('sb-moving');
+      sideDrag.target = sideDropTarget(ev.clientX, ev.clientY, sideDrag.from);
+      showSideDrop(sideDrag.target);
+    };
+    const end = ev=>{
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', end, true);
+      window.removeEventListener('keydown', esc, true);
+      const d = sideDrag; sideDrag = null;
+      document.body.classList.remove('sb-moving');
+      if(d.ind) d.ind.remove();
+      if(d.el) d.el.classList.remove('sb-dragging');
+      if(!ev || !d.moved || !d.target) return;
+      moveSideBox(d.from, d.target.side, d.target.before);
+    };
+    const esc = ev=>{ if(ev.key === 'Escape'){ ev.preventDefault(); sideDrag.moved = false; end(null); } };
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', end, true);
+    window.addEventListener('keydown', esc, true);
+  }
+  // `before` is the store index of the box it lands above, or null for the bottom of that side.
+  function moveSideBox(from, side, before){
+    const b = sideBoxes[from];
+    if(!b) return;
+    const order = sideBoxes.filter(x => x.side === side && x !== b);
+    const atBefore = before === null ? -1 : order.indexOf(sideBoxes[before]);
+    if(b.side === side){
+      const mine = sideBoxes.filter(x => x.side === side);
+      const nowAt = mine.indexOf(b), goesAt = atBefore < 0 ? order.length : atBefore;
+      if(nowAt === goesAt) return;   // dropped where it already is: no undo step
+    }
+    sideCommit(()=>{
+      const ref = before === null ? null : sideBoxes[before];
+      sideBoxes.splice(from, 1);
+      b.side = side;
+      const at = ref ? sideBoxes.indexOf(ref) : -1;
+      if(at >= 0) sideBoxes.splice(at, 0, b); else sideBoxes.push(b);
+    });
+  }
+  // The grip's keyboard twin: Alt+Up / Alt+Down move within the side, Alt+Left / Alt+Right cross over.
+  function onSideGripKey(e){
+    if(!e.altKey) return;
+    const info = sideEditInfo(e.target); if(!info) return;
+    const { i, b } = info;
+    const mine = []; sideBoxes.forEach((x, k)=>{ if(x.side === b.side) mine.push(k); });
+    const p = mine.indexOf(i);
+    if(e.key === 'ArrowUp' && p > 0){ e.preventDefault(); moveSideBox(i, b.side, mine[p - 1]); }
+    else if(e.key === 'ArrowDown' && p < mine.length - 1){ e.preventDefault(); moveSideBox(i, b.side, p + 2 < mine.length ? mine[p + 2] : null); }
+    else if(e.key === 'ArrowLeft' && b.side === 'right'){ e.preventDefault(); moveSideBox(i, 'left', null); }
+    else if(e.key === 'ArrowRight' && b.side === 'left'){ e.preventDefault(); moveSideBox(i, 'right', null); }
+    else return;
+    const g = Array.from(document.querySelectorAll('.side-col .sb-box')).find(el => sideBoxes[+el.dataset.i] === b);
+    if(g) g.querySelector('.sb-grip').focus();
+  }
+
+  // ---- A side's width: drag its inner edge; double-click for the default (plan §3.3) ----
+  function beginSideWidthDrag(e, side){
+    e.preventDefault();
+    const col = sideCols[side];
+    const startChars = sideWidthChars(side), startPx = charsToScreenPx(startChars), x0 = e.clientX;
+    let chars = startChars;
+    document.body.classList.add('sb-resizing');
+    const move = ev=>{
+      const px = startPx + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX);
+      chars = clampChars(screenPxToChars(px), SIDE_MIN_CHARS, SIDE_MAX_CHARS);
+      // Presentation only while dragging; the store is written once, on release (installGridResizers' rule).
+      col.style.setProperty('--sb-w', charsToScreenPx(chars) + 'px');
+      if(sideFmtTarget) placeSideFmt();
+    };
+    const up = ()=>{
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      document.body.classList.remove('sb-resizing');
+      if(chars === startChars) return;
+      sideCommit(()=>{ sideWidths[side] = chars; });
+    };
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
   }
 
   // The 10 "Standard Colors" from Microsoft Office / Excel's color picker.
@@ -20618,14 +21291,24 @@ export function initLegacyApp() {
     // Decided from the SHARED metrics, not from this writer's own precise gridH, so the page
     // turns the same way here as it does in the workbook.
     const metrics = sheetGridMetrics(schedule, yearBlocks, colWidthsFor);
-    const pick = sheetPageOrientation(metrics.gridW, metrics.gridH, yearBlocks.length);
+    // ⛔ FROZEN EDIT E6 (owner-approved 20 Oct 2026, SIDE-BOXES-PLAN.md §5.4, ruling Q4): the page turns on
+    // the grid + boxes together, from the same helper exportExcel calls, so the workbook and this PDF
+    // still cannot turn differently. With no box the extent IS the grid's metrics, untouched.
+    const sideL = sideBoxLayoutSafe(schedule);
+    const sideExt = sideBoxPageExtent(sideL, metrics);
+    const pick = sheetPageOrientation(sideExt.w, sideExt.h, yearBlocks.length);
     const orientation = pick.orientation;
     const paper = PAPER[orientation];
     // The real scale uses the actual body box; the header text lives in the top margin, as
     // Excel's does, so it costs the grid nothing.
     const bodyTop = MARGIN_PT.t;
     const bodyH = paper.h - MARGIN_PT.t - MARGIN_PT.b;
-    const raw = Math.min((paper.w - MARGIN_PT.l - MARGIN_PT.r) / gridW, bodyH / gridH);
+    // ⛔ FROZEN EDIT E4 (owner-approved 20 Oct 2026, §5.3): "the grid prints smaller to make room" -- the
+    // fit is taken over the grid AND the boxes beside it. With no box sidePdf is all zeros, so fitW is
+    // gridW + 0 + 0 and fitH is max(gridH, 0): the very numbers this line divided by before.
+    const sidePdf = sideBoxPdfExtent(sideL);
+    const fitW = gridW + sidePdf.left + sidePdf.right, fitH = Math.max(gridH, sidePdf.h);
+    const raw = Math.min((paper.w - MARGIN_PT.l - MARGIN_PT.r) / fitW, bodyH / fitH);
     // Excel steps its fit-to-page scale in whole percent; matching that is what keeps the two
     // the same size rather than merely similar.
     const scale = Math.max(0.1, Math.floor(Math.min(raw, 1) * 100) / 100);
@@ -20637,7 +21320,10 @@ export function initLegacyApp() {
     // black rectangle. Excel's own export paints one too.
     page.rect(0, 0, paper.w, paper.h, '#FFFFFF');
     const availW = paper.w - MARGIN_PT.l - MARGIN_PT.r;
-    const originX = MARGIN_PT.l + Math.max(0, (availW - gridW*scale) / 2);   // centred, like Excel
+    // E4: the CONTENT (boxes + grid) is centred, like Excel; the grid starts after the left side. With
+    // no box contentX is the old originX expression and the shift adds exactly 0.
+    const contentX = MARGIN_PT.l + Math.max(0, (availW - fitW*scale) / 2);   // centred, like Excel
+    const originX = contentX + sidePdf.left*scale;
     const originY = MARGIN_PT.t;
 
     const S = v => v * scale;
@@ -20721,8 +21407,10 @@ export function initLegacyApp() {
       // ⚠️ INERT BY CONSTRUCTION with singleColumn off: hdrLeftX collapses to originX and hdrRightX
       // to originX + gridW*scale, so midX and rightEdge are the expressions they always were, and
       // the PDF byte-compare stays green.
-      const hdrLeftX  = singleColumn ? MARGIN_PT.l : originX;
-      const hdrRightX = singleColumn ? MARGIN_PT.l + availW : originX + gridW*scale;
+      // ⛔ FROZEN EDIT E5 (owner-approved 20 Oct 2026, ruling Q5): the band spans grid + boxes. With no box
+      // contentX IS originX and fitW IS gridW, so both edges are the expressions they always were.
+      const hdrLeftX  = singleColumn ? MARGIN_PT.l : contentX;
+      const hdrRightX = singleColumn ? MARGIN_PT.l + availW : contentX + fitW*scale;
       const midX = (hdrLeftX + hdrRightX) / 2;
       const rightEdge = hdrRightX;
       // The band runs from the header margin to the top margin; the grid begins immediately
@@ -20979,6 +21667,9 @@ export function initLegacyApp() {
       const x = originX + S(blockX[bi]);
       page.line(x, gridTop, x, gridBottom, FRAME, 1.2);
     }
+
+    // E6 again: the boxes, drawn last, beside the grid. Returns at once with no box -- no operator added.
+    drawSideBoxesPdf(page, sideL, { scale, contentX, gridRight: right, gridTop, reg, bold });
 
     const fonts = [
       { tag:'F1', ttf:reg,  raw:carlitoBytes['400'], deflated:carlitoDeflated['400'] },

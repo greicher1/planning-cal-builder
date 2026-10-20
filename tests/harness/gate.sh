@@ -2227,6 +2227,28 @@ sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYWN
 done
 
+# ---- sideboxes: boxes beside the waterfall (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ------------
+# A colour key and a text box on screen beside the grid (never inside #table-wrap), in the workbook (frozen
+# edits E1-E3: the grid moves two columns right for a left box) and in the waterfall PDF (E4-E6: the fit,
+# the header band and the orientation taken over grid + boxes). The leg reads both exports back, drives every
+# gesture through the hit stack, holds #table-wrap's month-view width to the pixel (it repaginates the month
+# PDF), and proves that deleting the last box gives back the very same PDF content and no `sideBoxes` key.
+# ⭐ The other half of "inert without boxes" is gates 2 and 3 above: every existing calendar's waterfall PDF
+# and Excel parts stay byte-identical to the baseline.
+rm -f "$HERE/sideboxes.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=sideboxes "$HERE/run.sh" sideboxes 900 >/dev/null 2>&1
+python3 - "$HERE/sideboxes.json" <<'PYSB' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  sideboxes produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  sideboxes threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'sideboxes: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYSB
+
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the
 # column-swap work and was mentioned in a comment above as something to run BY HAND -- so the

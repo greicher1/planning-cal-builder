@@ -213,6 +213,18 @@ export function PreviewToolbar() {
           </div>
         </div>
 
+        {/* Side boxes (owner ruling 7 + Q7, 20 Oct 2026; SIDE-BOXES-PLAN.md): adds a colour key or a
+            text box beside the waterfall. The engine opens its menu (openSideMenu) by DELEGATION,
+            exactly as it does the header mode menu below, because React owns this node. Waterfall
+            view only: legacy.css hides it while #view-month-btn is active. A <button>, never an
+            id'd input/select/textarea, so collectFieldValues() cannot sweep it into a saved file. */}
+        <Button id="tb-side-boxes-btn" className="tools-btn" type="button" size="xs" variant="default"
+                title="Add a colour key or a text box beside the waterfall"
+                aria-haspopup="true" aria-expanded="false"
+                rightSection={<span className="caret" aria-hidden="true">▾</span>}>
+          Side boxes
+        </Button>
+
         {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
             used to live INSIDE the calendar -- #hdr-mode-btn / #mv-hdr-mode-btn, emitted by the
             frozen renderers, which still emit them: they are hidden by CSS, never deleted. This is
