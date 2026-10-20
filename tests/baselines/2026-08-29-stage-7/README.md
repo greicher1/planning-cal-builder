@@ -259,6 +259,30 @@ value in `restore.json` was edited, and the result was checked equal to the gate
 calendar saved with it opens on the new name; the `episodeprep` leg's R0 and K0 hold that on both prep fixtures, which
 were minted with "Prep" and must stay so.
 
+## ✅ `restore.json`'s `form` RE-CUT — 74 keys to 76 (20 Oct 2026, the calendar range)
+
+A deliberate **save-format** change, re-cut on the owner's sign-off (picker, 20 Oct 2026: "Re-cut it"). Owner ruling 3
+adds the Show tab's Calendar range card, whose two date fields are id'd, so `collectFieldValues()` sweeps them into
+`fields.byId` and gate 5 is *supposed* to fail until this is re-cut. The `restore` leg on build `af58730a…` (commit
+`705a1d8`) reported exactly this and nothing else in gate 5.
+
+| | ids | value in the v1.0.0 file |
+|---|---|---|
+| **added (2)** | `cal-range-start` | **`""`** |
+| | `cal-range-end` | **`""`** |
+| **lost** | none | |
+| **changed** | none | |
+
+⭐ **The back-compat proof is the `""`.** `v1.0.0-saved.html` predates the range and has neither key, and it restores
+with no range, so its waterfall keeps its full calendar years. The card is React markup a restore never rebuilds, so
+that is `applyStateSnapshot()`'s explicit absent-means-default (beside `show-mode`), not the markup's. The `calrange`
+leg's R12 proves the trap: the same saved calendar with both ids removed, loaded after one with a range, opens with
+none.
+
+Inserted after `show-version`, where the two fields sit in the DOM (the card follows Show info), so the diff is those
+two lines. Unchanged by this: **`sig`, `rows`, `cells`, `gridWidthPt`, `bytes`, `hClip` 0.** Only `form` was extended,
+by a script that aborted on any other difference and checked the result equal to the leg's `form`.
+
 ## ✅ `base.xlsx` RE-CUT — the Date column carries cached values (29 Sep 2026, audit L-7)
 
 A deliberate **Excel** change, owner-approved under FIX-PLAN R3. The owner approved this re-cut
