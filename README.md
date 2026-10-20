@@ -164,6 +164,9 @@ combine the full day/off day menu with the right-click menu … would instead po
   identical: gate 10's ten print documents, gate 13's twenty written month PDFs byte for byte, the waterfall PDF and
   every Excel part, 74 ids. The 7 were contention on a loaded machine (`pilllabel (shootorder)` ×5, `launchopen` L6,
   `cspproof` failing to start Chrome). Re-run alone, all pass: 29/29, 16/16, 15/15.
+- **Merged into `main`** (branch `day-menu-merge`). `main`'s new `offweek` leg now marks its days through the menu,
+  because the popover it used is gone. Full gate on the merged build `e4339f4d`: 1,939 PASS, 2 FAIL, every frozen
+  output identical. The 2 were contention (`pilllabel (halfdays)` W0, `offweek (offweek)` R10), and both pass alone.
 
 ### Unreleased — The day menu's own section for the bar you right-click: start it, end it, recolour it (19 Oct 2026)
 
