@@ -562,6 +562,12 @@
          toolbar their nephew. -->
     <div class="view-toggle-row"></div>
     <div id="table-wrap"></div>
+    <!-- The boxes beside the waterfall (SIDE-BOXES-PLAN.md, owner ruling 7). AFTER #table-wrap, so the
+         sibling contract above holds; CSS grid places them left and right of it while a box exists.
+         Engine-drawn (app.js, "SIDE BOXES ON SCREEN"), hidden in the month view by CSS. Static, so they
+         exist when the IIFE binds to them. No ids: nothing in here is a form field. -->
+    <div class="side-col side-left" data-side="left" hidden></div>
+    <div class="side-col side-right" data-side="right" hidden></div>
   </main>
 </div>
 

@@ -172,6 +172,37 @@ calendar shows, saves and exports exactly as before.
   the pre-change build (`7054bec6`), and each of eight mutants turns it red. The PDFs were rendered and
   looked at. The custom workbook passes `check-xlsx.sh`. `npm run check` 40/40; `check-refs.py` clean.
   Full gate: see `HANDOFF.md` (top entry).
+### Unreleased — Boxes beside the waterfall: a colour key and text boxes, on screen and in Excel and the PDF (20 Oct 2026)
+
+The owner rebuilt a reference waterfall in the app: every phase, label and week count matched, but the reference also
+prints a colour key and free-text notes beside the grid, and the app could not. Owner ruling 7 (20 Oct 2026) asked
+for boxes on either side of the grid; the eight questions in `SIDE-BOXES-PLAN.md` §9 were answered by picker, all as
+recommended, with sign-off for six frozen edits to the two writers.
+- **Side boxes ▾** in the preview toolbar (Waterfall view only) adds a **colour key** or a **text box**, on the
+  **left** or the **right**. Any number of each; a side's boxes stack top to bottom, one empty row apart.
+- **Colour key:** titled "Color Key", one row per colour the waterfall shows, in the order phases first appear down
+  the grid. Phases sharing a colour share a row ("Pre Prep / Prod Prep"); Simultaneous Post's yellow when it shows;
+  the hiatus red last when a hiatus shows. Each row is filled with its colour, its name bold and centred. Names are
+  editable (stored against the colour, so renaming a phase keeps the edit) and a row can be hidden and shown again.
+- **Text box:** a title and lines of text. Enter starts a new line, and the box grows. Each line takes the header's
+  formatting: size, bold, italic, colour, highlight (the whole line) and alignment, from a bar under the line.
+- **Arranging:** drag a box by its ⋮⋮ grip up, down or across to the other side (Alt+arrow keys do the same); drag a
+  side's inner edge to change its width (double-click for the default, 20 Excel column units); × deletes a box.
+  Every change is one undo step.
+- **Excel:** each side is one column at its width beside a 2-unit spacer column; a left side moves the grid two
+  columns right. Titles and key rows are one row each; a text line is merged over as many rows as it needs.
+  Fit-to-page puts it all on one page. **Waterfall PDF:** the grid and the boxes are fitted to the page together,
+  so the grid prints smaller to make room, and the header spans both. The page turns on grid + boxes, by the same
+  rule as before, in both outputs.
+- **Not in the month view or the month PDF.** The boxes, and the button, are hidden there, and the month view's
+  layout is untouched.
+- **Saved with the calendar** as a new `sideBoxes` key, written only while a box exists: a calendar without boxes
+  saves, and exports, byte for byte as before. No new field id.
+- ⚠️ The print-fallback waterfall PDF (off by default; the rollback) does not draw boxes.
+- **Verified:** a new leg, `sideboxes` (58 checks, in the gate): the screen, the workbook and the PDF read back, every
+  gesture through the hit stack, the month view's `#table-wrap` width equal with and without boxes, deleting the
+  last box giving back the identical PDF page, a hostile file, New. Red on the pre-change build; three mutants each
+  red. Full gate: see HANDOFF.
 
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 

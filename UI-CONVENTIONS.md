@@ -1213,6 +1213,13 @@ Nothing in this document ships without all of these, every stage:
     `monthbase.py sheets`' old | new | difference contact sheets in front of the owner, and is re-cut
     only on a yes. The one exception is a compressor-only change: it is re-cut with that proof
     recorded in the baselines' README, and the owner is told. Never re-cut a red you cannot explain.
+14. **NEW — boxes beside the waterfall stay beside it** (20 Oct 2026, SIDE-BOXES-PLAN.md). `gate.sh`'s
+    `sideboxes` leg: the boxes live outside `#table-wrap` and never in the month view, whose
+    `#table-wrap` width must be identical with and without them (it repaginates the month PDF,
+    MANTINE-SEAM §5.3); no id anywhere in a side column or its body-level panels (item 9); the
+    workbook and the waterfall PDF read back with the boxes beside the grid; and deleting the last box
+    puts the save file and the PDF page back exactly. Items 2 and 3 are the other half: a calendar
+    with no box exports byte for byte as before.
 
 ---
 

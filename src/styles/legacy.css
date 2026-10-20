@@ -389,6 +389,101 @@
     .preview-panel{ min-height:0; overflow:auto; }
   }
 
+  /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------
+     Colour keys and text boxes beside the waterfall. ⛔ OUTSIDE #table-wrap: two .side-col hosts AFTER
+     it in main.preview-panel (so .view-toggle-row -> #table-wrap stays the sibling pair the contracts
+     above need), placed left and right by a grid on the panel that exists ONLY while a box exists, in
+     the Waterfall view, above the 960px stack point. Nothing here is a .sheet-* / .mv-* rule.
+
+     ⛔ HIDDEN IN THE MONTH VIEW BY THE BUTTON'S CLASS, not by a class the engine sets after a render:
+     setViewMode() and applyStateSnapshot() both set #view-month-btn.active BEFORE their render, so
+     renderMonthView() never measures a #table-wrap narrowed by a side column -- whose width
+     repaginates the month PDF (MANTINE-SEAM §5.3; the sideboxes leg holds it to the pixel). */
+  .side-col[hidden]{ display:none !important; }
+  body:has(#view-month-btn.active) .side-col{ display:none !important; }
+  body:has(#view-month-btn.active) #tb-side-boxes-btn{ display:none; }
+  .side-col{ display:flex; align-items:flex-start; min-width:0; }
+  /* The width handle sits on the INNER edge, the one beside the grid. */
+  .side-col.side-right{ flex-direction:row-reverse; }
+  .sb-stack{ width:var(--sb-w, 145px); flex:none; display:flex; flex-direction:column; gap:20px;
+    overflow-y:auto; overflow-x:hidden; }
+  .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
+  .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
+  .sb-width:hover::before, body.sb-resizing .sb-width::before{ background:var(--edit-accent); }
+  @media screen and (width > 960px){
+    body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{
+      display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:start;
+      grid-template-areas:"hint hint hint" "gap gap gap" "bar bar bar" "left main right";
+    }
+    .preview-panel.has-side-boxes > #span-hint{ grid-area:hint; }
+    .preview-panel.has-side-boxes > #gap-warning{ grid-area:gap; }
+    .preview-panel.has-side-boxes > .view-toggle-row{ grid-area:bar; }
+    .preview-panel.has-side-boxes > #table-wrap{ grid-area:main; min-width:0; }
+    .preview-panel.has-side-boxes > .side-left{ grid-area:left; }
+    .preview-panel.has-side-boxes > .side-right{ grid-area:right; }
+    /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
+       the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
+       solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
+       asserts the two computed max-heights are equal, which is what catches this copy drifting. */
+    .side-col .sb-stack{ max-height:calc(100vh - var(--header-h) - 140px); }
+  }
+  @media screen and (max-width:960px){
+    .side-col{ margin-top:14px; }
+  }
+  /* The boxes are drawn like the grid, not like the chrome, because they print: Carlito 11px, the
+     20px row pitch, a dark frame, the screen grid header's grey for the title. */
+  .sb-box{ position:relative; flex:none; border:1px solid #1E1D1B; background:#fff; color:#000;
+    font-family:'Carlito','Calibri',sans-serif; font-size:11px; line-height:1.35; }
+  .sb-box.sb-dragging{ opacity:.45; }
+  .sb-edit{ display:block; box-sizing:border-box; padding:2px 4px; outline:none; cursor:text;
+    white-space:pre-wrap; overflow-wrap:anywhere; }
+  .sb-title{ background-color:#F2F2F2; border-bottom:1px solid #1E1D1B; }
+  .sb-edit:focus, .sb-key-name:focus{ box-shadow:inset 0 0 0 2px var(--edit-accent); }
+  .sb-edit:empty::before, .sb-key-name:empty::before{ content:attr(data-ph); color:var(--text-faint); font-weight:400; font-style:italic; }
+  .sb-key{ position:relative; display:flex; align-items:center; justify-content:center; height:20px;
+    font-weight:700; overflow:hidden; }
+  .sb-key-name{ outline:none; white-space:nowrap; padding:0 3px; min-width:16px; cursor:text; }
+  /* Chrome inside the box: shown on hover or focus, never printed (the writers draw from the store). */
+  .sb-chrome{ position:absolute; z-index:1; top:0; left:0; right:0; height:20px; display:flex;
+    justify-content:space-between; align-items:center; pointer-events:none; opacity:0; }
+  .sb-box:hover .sb-chrome, .sb-box:focus-within .sb-chrome{ opacity:1; }
+  .sb-grip, .sb-del, .sb-key-hide{ pointer-events:auto; border:0; padding:0; width:18px; height:18px;
+    margin:0 1px; border-radius:var(--mantine-radius-sm); background:#F2F2F2;
+    color:var(--mantine-color-gray-7); font:12px/1 Inter, sans-serif; cursor:pointer; }
+  .sb-grip{ cursor:grab; letter-spacing:-3px; padding-right:3px; }
+  .sb-grip:hover, .sb-del:hover, .sb-key-hide:hover{ color:var(--mantine-color-black); background:var(--mantine-color-gray-2); }
+  .sb-grip:focus-visible, .sb-del:focus-visible, .sb-key-hide:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:0; }
+  .sb-key-hide{ position:absolute; right:1px; top:1px; opacity:0; background:rgba(255,255,255,.85); }
+  .sb-key:hover .sb-key-hide, .sb-key-hide:focus-visible{ opacity:1; }
+  .sb-unhide{ display:block; width:100%; border:0; border-top:1px dashed var(--mantine-color-gray-4);
+    background:#fff; color:var(--mantine-color-gray-6); font:var(--mantine-font-size-xxs) Inter, sans-serif;
+    padding:3px; cursor:pointer; }
+  .sb-unhide:hover{ color:var(--mantine-color-black); }
+  /* The format bar: the header's controls (.hf-*), on a body-level panel of its own. */
+  .sb-fmt{ position:absolute; z-index:210; display:flex; align-items:center; gap:3px; padding:4px 6px;
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-md); box-shadow:var(--mantine-shadow-md); }
+  /* The Side boxes menu, the header mode menu's look. */
+  .sb-menu{ position:absolute; z-index:200; background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-lg);
+    padding:var(--mantine-spacing-xs); box-shadow:var(--mantine-shadow-md);
+    display:flex; flex-direction:column; gap:2px; width:230px; }
+  .sb-menu-item{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%;
+    padding:7px 10px; border:0; border-radius:var(--mantine-radius-sm); background:transparent;
+    font-family:inherit; font-size:var(--mantine-font-size-sm); color:var(--mantine-color-gray-9);
+    text-align:left; cursor:pointer; }
+  .sb-menu-item:hover, .sb-menu-item:focus-visible{ background:var(--mantine-color-gray-0); outline:none; }
+  .sb-menu-where{ color:var(--mantine-color-gray-6); font-size:var(--mantine-font-size-xs); }
+  .sb-menu-sep{ height:1px; background:var(--mantine-color-gray-2); margin:3px 2px; }
+  /* Moving a box: a line where it will land, or a zone over the grid's edge for an empty side. */
+  .sb-drop{ position:fixed; z-index:220; pointer-events:none; box-sizing:border-box; }
+  .sb-drop-line{ height:3px; border-radius:2px; background:var(--edit-accent); }
+  .sb-drop-zone{ display:flex; align-items:center; justify-content:center; text-align:center;
+    border:2px dashed var(--edit-accent); border-radius:8px; background:rgba(112, 48, 160, .07);
+    color:var(--edit-accent); font:600 12px Inter, sans-serif; }
+  body.sb-moving, body.sb-moving *{ cursor:grabbing !important; user-select:none; }
+  body.sb-resizing, body.sb-resizing *{ cursor:col-resize !important; user-select:none; }
+
   /* The Mantine UI "application card": white on the grey ground, a hairline gray-3 border, md
      radius, md padding. Nothing else -- no shadow at rest, which is what keeps a column of them
      calm rather than busy. */

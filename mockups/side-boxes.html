@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side Boxes Mock-up</title>
+<!-- MOCKUP, not the app. SIDE-BOXES-PLAN.md describes what is real. The calendar is made up (dates,
+     names and lengths are synthetic). The grid is drawn by hand to show layout, not captured from the
+     build: its column widths and fills are close to the app's, not exact. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F3; --text:#1E1D1B; --muted:#726F68; --faint:#9A968C; --border:#DEDCD4; --border-strong:#CDCABF;
+  --accent:#2C3E50; --edit:#7030A0; --edit-bg:#F6EFFB; --frame:#1E1D1B; --hdr:#D9D9D9; --screen-th:#F2F2F2;
+  --grid:"Carlito","Calibri","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 60px}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:34px 0 4px}
+.lede{color:var(--muted);margin:0 0 6px;max-width:860px}
+.callouts{color:var(--muted);font-size:13px;margin:8px 0 0;padding-left:18px;max-width:900px}
+.callouts li{margin:2px 0}
+.panel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;overflow-x:auto}
+
+/* ---------- screen ---------- */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;position:relative}
+.btn{font:500 13px Inter,sans-serif;border:1px solid var(--border-strong);background:#fff;color:var(--text);border-radius:6px;padding:6px 11px;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.new{box-shadow:0 0 0 2px #E8D9F3;border-color:var(--edit)}
+.spacer{flex:1}
+.menu{position:absolute;right:0;top:36px;z-index:3;background:#fff;border:1px solid var(--border-strong);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:6px;width:236px;font-size:13px}
+.menu .mi{padding:6px 9px;border-radius:5px;display:flex;justify-content:space-between}
+.menu .mi:hover,.menu .mi.hot{background:var(--bg)}
+.menu .sep{height:1px;background:var(--border);margin:5px 2px}
+.menu .k{color:var(--faint)}
+.shell{padding:0 20px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0;align-items:start}
+.side-col{display:flex;flex-direction:column;gap:20px;position:relative;padding:0 14px}
+.side-col.left{padding-left:0} .side-col.right{padding-right:0}
+.wh{position:absolute;top:0;bottom:0;width:9px;cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.side-col.left .wh{right:2px} .side-col.right .wh{left:2px}
+.wh::before{content:"";width:3px;height:44px;border-radius:2px;background:#C9C3B6}
+.wh .tip{position:absolute;top:-22px;white-space:nowrap;font-size:11px;color:var(--edit);background:#fff;border:1px solid #E5D5F5;border-radius:4px;padding:0 5px}
+.side-col.left .wh .tip{right:-20px} .side-col.right .wh .tip{left:-20px}
+
+.sbox{font:11px/1.35 var(--grid);border:1px solid var(--frame);background:#fff;position:relative}
+.sbox .row{min-height:20px;display:flex;align-items:center;justify-content:center;padding:0 3px;text-align:center}
+.sbox .row + .row{border-top:1px solid #E7E5DE}
+.sbox .ttl{background:var(--hdr);font-weight:700;border-bottom:1px solid var(--frame)}
+.sbox .key{font-weight:700}
+.sbox .line{justify-content:flex-start;text-align:left}
+.sbox .line.focus{box-shadow:inset 0 0 0 2px var(--edit);background:#faf5ff}
+.chrome{position:absolute;top:-1px;height:21px;display:flex;align-items:center;gap:2px;color:var(--muted);font:12px Inter,sans-serif}
+.chrome.l{left:-19px} .chrome.r{right:-19px}
+.grip{cursor:grab;letter-spacing:-2px;font-size:12px}
+.x{cursor:pointer}
+.hide{position:absolute;right:3px;top:50%;transform:translateY(-50%);font:11px Inter,sans-serif;color:var(--muted);opacity:.0}
+.sbox .key:hover .hide{opacity:1}
+.fmt{position:absolute;left:0;top:-36px;z-index:2;display:flex;gap:3px;align-items:center;background:#fff;border:1px solid var(--border-strong);border-radius:7px;padding:3px 4px;box-shadow:0 3px 10px rgba(0,0,0,.08);font:12px Inter,sans-serif;white-space:nowrap}
+.fmt span{border:1px solid var(--border);border-radius:4px;padding:1px 6px;min-width:22px;text-align:center}
+.fmt .on{background:var(--edit-bg);border-color:#D7BDEA;color:var(--edit)}
+.gridbox{border:1px solid var(--border-strong);border-radius:8px;background:#fff;overflow:hidden}
+.hbar{display:flex;padding:8px 12px;border-bottom:1px solid #D9D7CE;font:11px/1.4 var(--grid);gap:10px}
+.hbar .c{flex:1;text-align:center} .hbar .t{font-size:13px;font-weight:700}
+.hbar .r{text-align:right;min-width:150px}
+table.g{border-collapse:collapse;font:11px var(--grid);table-layout:fixed}
+table.g th,table.g td{border:1px solid #D4D4D4;height:20px;padding:0 2px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.g th{background:var(--screen-th);font-weight:700}
+table.g td.d{font-weight:700}
+table.g td.n{color:#fff}
+
+/* ---------- pdf ---------- */
+.pages{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.page-cap{font-size:13px;color:var(--muted);margin:6px 0 0;max-width:640px}
+.page{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18),0 6px 24px rgba(0,0,0,.08);position:relative;overflow:hidden}
+.pg-inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.pdf-hdr{position:absolute;font:8px/1.35 var(--grid);color:#000}
+.pdf-hdr .t{font-size:11px;font-weight:700}
+.pdf{position:absolute;display:flex;align-items:flex-start;gap:14px}
+.pdf table.g th,.pdf table.g td{height:15px;border-color:transparent}
+.pdf table.g{outline:1.2px solid var(--frame)}
+.pdf table.g th{background:var(--hdr)}
+.pdf .sbox .row{min-height:15px}
+.pdf .sbox .row + .row{border-top-color:transparent}
+.guide{position:absolute;border:1px dashed #C9A9E0;pointer-events:none}
+
+/* ---------- excel ---------- */
+table.xl{border-collapse:collapse;font:11px var(--grid);table-layout:fixed}
+table.xl th{background:#F3F2F1;color:#555;font:500 10px Inter,sans-serif;border:1px solid #D4D4D4;height:18px}
+table.xl td{border:1px solid #E1E1E1;height:15px;padding:0 3px;text-align:center;white-space:nowrap;overflow:hidden}
+table.xl td.rn{background:#F3F2F1;color:#555;font:500 10px Inter,sans-serif;width:28px}
+table.xl td.sp{background:repeating-linear-gradient(135deg,#fff 0 5px,#F7F4FB 5px 7px)}
+table.xl .lbl{font:600 10px Inter,sans-serif;color:var(--edit)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.sw{display:inline-block;width:12px;height:12px;border:1px solid #bbb;vertical-align:-2px;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Side boxes beside the waterfall</h1>
+  <p class="lede">Mock-up for <b>SIDE-BOXES-PLAN.md</b> (owner ruling 7). One made-up calendar, three outputs: the
+  screen, the waterfall PDF and the Excel workbook. Purple marks are new controls or annotations, not part of the
+  output.</p>
+
+  <h2>1. On screen (waterfall view)</h2>
+  <ul class="callouts">
+    <li><b>Side boxes ▾</b> in the preview toolbar adds a box to either side (its menu is shown open below).</li>
+    <li>Left: a text box. The second line is being edited, with the header's format bar above it (bold is on).</li>
+    <li>Right: the colour key. Pre Prep and Prod Prep share a colour here, so they share one row. Hover a row for
+      its <b>×</b> (hide), if Q2 is answered that way.</li>
+    <li>⋮⋮ drags a box up, down or to the other side. The bar on each side's inner edge drags its width.</li>
+  </ul>
+  <div class="panel">
+    <div class="toolbar">
+      <span class="btn">Waterfall</span><span class="btn" style="opacity:.6">Month</span>
+      <span class="btn">Shift All</span><span class="btn">Shift From</span><span class="btn">Anchor To</span>
+      <span class="spacer"></span>
+      <span class="btn">Header: Auto</span>
+      <span class="btn new">▦ Side boxes ▾</span>
+    </div>
+    <div class="shell">
+      <div class="side-col left" id="scr-left" style="margin-top:44px"></div>
+      <div class="gridbox" id="scr-grid"></div>
+      <div class="side-col right" id="scr-right" style="margin-top:44px"></div>
+    </div>
+  </div>
+  <div class="panel" style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+    <div style="position:relative;width:250px;height:178px">
+      <span class="btn new" style="position:absolute;right:0;top:0">▦ Side boxes ▾</span>
+      <div class="menu">
+        <div class="mi hot">Color key <span class="k">on the left</span></div>
+        <div class="mi">Color key <span class="k">on the right</span></div>
+        <div class="sep"></div>
+        <div class="mi">Text box <span class="k">on the left</span></div>
+        <div class="mi">Text box <span class="k">on the right</span></div>
+      </div>
+    </div>
+    <p class="page-cap" style="max-width:520px;margin:0">The <b>Side boxes</b> menu, open. It shows only in the
+      Waterfall view (Q7). Each item adds the box at the bottom of that side and puts the cursor in its title.</p>
+  </div>
+
+  <h2>2. Waterfall PDF</h2>
+  <ul class="callouts">
+    <li>Grid and boxes are fitted to the page together (whole-percent scale, as today). The header spans both.</li>
+    <li>Without boxes this calendar prints portrait. With a box on each side it is too wide for portrait, and
+      landscape prints more than 15% larger, so the existing orientation rule turns it (Q4).</li>
+    <li>Dashed purple outlines show the grid's own extent; they are not printed.</li>
+  </ul>
+  <div class="panel">
+    <div class="pages">
+      <div><div class="page" id="pg-before"></div><p class="page-cap"><b>Today, no boxes:</b> portrait, the grid alone.</p></div>
+      <div><div class="page" id="pg-after"></div><p class="page-cap"><b>With boxes:</b> landscape, the grid printed beside them.</p></div>
+    </div>
+  </div>
+
+  <h2>3. Excel</h2>
+  <ul class="callouts">
+    <li>Each side is one column at the side's width, with an empty spacer column (hatched) between it and the grid.
+      A left side moves the grid two columns right.</li>
+    <li>Boxes start on row 1. A title or a key entry is one row; a text line is merged over as many rows as it needs
+      (the 14 pt line below takes two). One empty row between boxes.</li>
+    <li>The print area covers everything, and fit-to-page (already on) puts it on one page.</li>
+  </ul>
+  <div class="panel"><div id="xl"></div>
+    <div class="legend"><span><span class="sw" style="background:#F7F4FB"></span>spacer column</span>
+      <span><span class="sw" style="background:#D9D9D9"></span>box title (the grid header's grey)</span>
+      <span><span class="sw" style="background:#fff;border-color:#1E1D1B"></span>thin outside border per box</span></div>
+  </div>
+</div>
+
+<script>
+// ---- one made-up calendar ----
+const C = { wr:'#FFF2CC', pp:'#DAE3F3', prod:'#E2F0D9', post:'#FBE5D6', hi:'#FF0000', note:'#7030A0' };
+const W = ['1/4/27','1/11/27','1/18/27','1/25/27','2/1/27','2/8/27','2/15/27','2/22/27','3/1/27','3/8/27',
+           '3/15/27','3/22/27','3/29/27','4/5/27','4/12/27','4/19/27','4/26/27','5/3/27'];
+const ROWS = [
+  [['Writer\'s Rm wk 1',C.wr,3]], [['Writer\'s Rm wk 2',C.wr,3]], [['Writer\'s Rm wk 3',C.wr,3]],
+  [['Writer\'s Rm wk 4',C.wr,1],['Pre Prep Wk 1',C.pp,2]], [['Writer\'s Rm wk 5',C.wr,1],['Pre Prep Wk 2',C.pp,2]],
+  [['Writer\'s Rm wk 6',C.wr,1],['Pre Prep Wk 3',C.pp,2]], [['Pre Prep Wk 4',C.pp,3]],
+  [['Prod Prep wk 1',C.pp,3]], [['Prod Prep wk 2',C.pp,3]],
+  [['Prod Prep wk 3',C.pp,2],['Production wk 1',C.prod,1]], [['Prod Prep wk 4',C.pp,2],['Production wk 2',C.prod,1]],
+  'HIATUS',
+  [['Production wk 3',C.prod,3]], [['Production wk 4',C.prod,3]], [['Production wk 5',C.prod,3]],
+  [['Post wk 1',C.post,3]], [['Post wk 2',C.post,3]], [['Post wk 3',C.post,3]],
+];
+const NOTES = {0:'Writer\'s Room Opens 1/4', 9:'Principal Photography 3/8', 14:'Wrap 4/16'};
+const COLW = [60, 84, 84, 84, 128];               // pt / screen px: Date, 3 slots, Notes
+const KEY = [['Writer\'s Rm',C.wr],['Pre Prep / Prod Prep',C.pp],['Production',C.prod],['Post',C.post],['Hiatus',C.hi]];
+const TEXT = [ {t:'Locations TBC', s:'font-weight:700'},
+               {t:'Casting wk of 2/8', s:'font-weight:700', focus:true},
+               {t:'Hiatus dates tentative', s:'font-style:italic;color:#C00000'},
+               {t:'Budget lock 2/19', s:'background:#FFFF00'},
+               {t:'Big table read', s:'font-size:14px;font-weight:700;min-height:40px', rows:2} ];
+const SIDE_W = 109, GAP = 14;                       // 20 units -> 109 pt; spacer 2 units -> 14 pt
+const ink = hex => { const h=hex.slice(1); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return (0.299*r+0.587*g+0.114*b) > 160 ? '#000' : '#fff'; };
+
+function gridTable(){
+  let h = '<table class="g" style="width:'+COLW.reduce((a,b)=>a+b)+'px"><colgroup>'+COLW.map(w=>'<col style="width:'+w+'px">').join('')+'</colgroup>';
+  h += '<thead><tr><th>Date</th><th colspan="3">2027</th><th>Notes</th></tr></thead><tbody>';
+  ROWS.forEach((r,i)=>{
+    h += '<tr><td class="d">'+W[i]+'</td>';
+    if(r === 'HIATUS') h += '<td colspan="4" style="background:'+C.hi+';color:#fff">Spring Hiatus</td>';
+    else {
+      r.forEach(([t,c,s])=>{ h += '<td colspan="'+s+'" style="background:'+c+'">'+t+'</td>'; });
+      h += NOTES[i] ? '<td class="n" style="background:'+C.note+'">'+NOTES[i]+'</td>' : '<td></td>';
+    }
+    h += '</tr>';
+  });
+  return h + '</tbody></table>';
+}
+function keyBox(chromeSide){
+  return '<div class="sbox" style="width:'+SIDE_W+'px">'
+    + (chromeSide ? '<span class="chrome '+chromeSide+'"><span class="grip">⋮⋮</span></span><span class="chrome '+(chromeSide==='l'?'r':'l')+'"><span class="x">×</span></span>' : '')
+    + '<div class="row ttl">Color Key</div>'
+    + KEY.map(([n,c])=>'<div class="row key" style="background:'+c+';color:'+ink(c)+'">'+n+(chromeSide?'<span class="hide">×</span>':'')+'</div>').join('')
+    + '</div>';
+}
+function textBox(chromeSide, withFmt){
+  return '<div class="sbox" style="width:'+SIDE_W+'px">'
+    + (chromeSide ? '<span class="chrome '+chromeSide+'"><span class="grip">⋮⋮</span></span><span class="chrome '+(chromeSide==='l'?'r':'l')+'"><span class="x">×</span></span>' : '')
+    + (withFmt ? '<div class="fmt"><span>11 ▾</span><span class="on"><b>B</b></span><span><i>I</i></span><span style="text-decoration:underline">A</span><span style="background:#FFFF00">A</span><span>≡ ▾</span><span>∅</span></div>' : '')
+    + '<div class="row ttl">Notes</div>'
+    + TEXT.map(l=>'<div class="row line'+(withFmt&&l.focus?' focus':'')+'" style="'+l.s+'">'+l.t+'</div>').join('')
+    + '</div>';
+}
+
+// ---- screen ----
+document.getElementById('scr-grid').innerHTML =
+  '<div class="hbar"><div>10.20.26</div><div class="c"><div class="t">Example Show S1</div><div>Planning Calendar</div><div>Writer\'s Room Opens: 1/4/27</div></div>'
+  + '<div class="r"><div style="font-weight:600">Production Span: 5 wks</div><div>Principal Photography 3/8/27</div><div>Wrap: 4/16/27</div></div></div>'
+  + '<div style="overflow:auto">' + gridTable() + '</div>';
+document.getElementById('scr-left').innerHTML = textBox('l', true) + '<span class="wh"><span class="tip">20 units</span></span>';
+document.getElementById('scr-right').innerHTML = keyBox('r') + '<span class="wh"><span class="tip">20 units</span></span>';
+
+// ---- pdf pages ----
+function pdfPage(id, landscape, withBoxes){
+  const pw = landscape ? 792 : 612, ph = landscape ? 612 : 792, D = 0.62;   // display scale for the mock-up
+  const el = document.getElementById(id);
+  el.style.width = (pw*D)+'px'; el.style.height = (ph*D)+'px';
+  const gridW = COLW.reduce((a,b)=>a+b), gridH = 15*(ROWS.length+1);
+  const totW = withBoxes ? SIDE_W + GAP + gridW + GAP + SIDE_W : gridW;
+  const totH = withBoxes ? Math.max(gridH, 15*(1+KEY.length), 15*(1+TEXT.length+1)) : gridH;
+  const availW = pw - 36, availH = ph - 54 - 18;
+  const s = Math.max(0.1, Math.floor(Math.min(availW/totW, availH/totH, 1)*100)/100);
+  const x0 = 18 + Math.max(0, (availW - totW*s)/2);
+  let h = '<div class="pg-inner" style="width:'+pw+'px;height:'+ph+'px;transform:scale('+D+')">';
+  h += '<div class="pdf-hdr" style="left:'+x0+'px;top:22px">10.20.26</div>';
+  h += '<div class="pdf-hdr" style="left:'+x0+'px;width:'+(totW*s)+'px;top:21px;text-align:center"><div class="t">Example Show S1</div><div>Planning Calendar</div><div>Writer\'s Room Opens: 1/4/27</div></div>';
+  h += '<div class="pdf-hdr" style="left:'+x0+'px;width:'+(totW*s)+'px;top:22px;text-align:right"><div style="font-weight:700">Production Span: 5 wks</div><div>Principal Photography 3/8/27</div><div>Wrap: 4/16/27</div></div>';
+  h += '<div class="pdf" style="left:'+x0+'px;top:54px;transform:scale('+s+');transform-origin:0 0;gap:'+GAP+'px">'
+     + (withBoxes ? '<div>'+textBox(null,false)+'</div>' : '') + '<div style="position:relative">' + gridTable()
+     + (withBoxes ? '<span class="guide" style="inset:-3px"></span>' : '') + '</div>'
+     + (withBoxes ? '<div>'+keyBox(null)+'</div>' : '') + '</div>';
+  h += '<div style="position:absolute;right:10px;bottom:6px;font:10px Inter,sans-serif;color:#9A968C">'
+     + (landscape?'Letter landscape':'Letter portrait')+' · scale '+Math.round(s*100)+'%</div>';
+  el.innerHTML = h + '</div>';
+}
+pdfPage('pg-before', false, false);
+pdfPage('pg-after', true, true);
+
+// ---- excel ----
+(function(){
+  const cols = ['A','B','C','D','E','F','G','H','I'];
+  const widths = [109, 14, 60, 84, 84, 84, 128, 14, 109];
+  const nRows = ROWS.length + 1;
+  const cell = {};   // "r,c" -> html, with rowspan/colspan and skips
+  const skip = new Set();
+  const put = (r,c,html,rs,cs)=>{ cell[r+','+c] = {html, rs:rs||1, cs:cs||1};
+    for(let i=0;i<(rs||1);i++) for(let j=0;j<(cs||1);j++) if(i||j) skip.add((r+i)+','+(c+j)); };
+  // left text box in A
+  put(1,0,'<b>Notes</b>',1,1,); cell['1,0'].style='background:#D9D9D9;border:1px solid #1E1D1B';
+  let r = 2;
+  TEXT.forEach(l=>{ put(r,0,l.t,l.rows||1,1); cell[r+','+0].style=l.s.replace('min-height:40px','')+';text-align:left;border-left:1px solid #1E1D1B;border-right:1px solid #1E1D1B'; r += (l.rows||1); });
+  cell[(r-((TEXT[TEXT.length-1].rows)||1))+',0'].style += ';border-bottom:1px solid #1E1D1B';
+  // spacer B, H
+  for(let i=1;i<=nRows;i++){ put(i,1,'',1,1); cell[i+',1'].cls='sp'; put(i,7,'',1,1); cell[i+',7'].cls='sp'; }
+  // grid C..G
+  put(1,2,'<b>Date</b>'); cell['1,2'].style='background:#D9D9D9';
+  put(1,3,'<b>2027</b>',1,3); cell['1,3'].style='background:#D9D9D9';
+  put(1,6,'<b>Notes</b>'); cell['1,6'].style='background:#D9D9D9';
+  ROWS.forEach((row,i)=>{
+    const rr = i+2; put(rr,2,'<b>'+W[i].replace('/27','/27')+'</b>');
+    if(row==='HIATUS'){ put(rr,3,'Spring Hiatus',1,4); cell[rr+',3'].style='background:'+C.hi+';color:#fff'; return; }
+    let c = 3; row.forEach(([t,col,s])=>{ put(rr,c,t,1,s); cell[rr+','+c].style='background:'+col; c+=s; });
+    put(rr,6, NOTES[i]||''); if(NOTES[i]) cell[rr+',6'].style='background:'+C.note+';color:#fff';
+  });
+  // right key in I
+  put(1,8,'<b>Color Key</b>'); cell['1,8'].style='background:#D9D9D9;border:1px solid #1E1D1B';
+  KEY.forEach(([n,c],i)=>{ put(i+2,8,'<b>'+n+'</b>'); cell[(i+2)+',8'].style='background:'+c+';color:'+ink(c)+';border-left:1px solid #1E1D1B;border-right:1px solid #1E1D1B'+(i===KEY.length-1?';border-bottom:1px solid #1E1D1B':''); });
+  let h = '<table class="xl" style="width:'+(28+widths.reduce((a,b)=>a+b))+'px"><colgroup><col style="width:28px">'
+        + widths.map(w=>'<col style="width:'+w+'px">').join('') + '</colgroup><tr><th></th>'
+        + cols.map(c=>'<th>'+c+'</th>').join('') + '</tr>';
+  for(let i=1;i<=nRows+1;i++){
+    h += '<tr><td class="rn">'+i+'</td>';
+    for(let c=0;c<cols.length;c++){
+      const k = i+','+c; if(skip.has(k)) continue;
+      const x = cell[k];
+      if(!x){ h += '<td></td>'; continue; }
+      h += '<td'+(x.cls?' class="'+x.cls+'"':'')+(x.rs>1?' rowspan="'+x.rs+'"':'')+(x.cs>1?' colspan="'+x.cs+'"':'')+(x.style?' style="'+x.style+'"':'')+'>'+x.html+'</td>';
+    }
+    h += '</tr>';
+  }
+  document.getElementById('xl').innerHTML = h + '</table>';
+})();
+</script>
+</body>
+</html>

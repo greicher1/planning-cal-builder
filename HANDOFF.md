@@ -231,6 +231,61 @@
 - ⏭ **Next:** the full gate's result; then the owner's merge picker. Merging next to the side-boxes branch
   should give only textual conflicts near the writers' header rows and `hdrLeftX`. Gate 5's `restore.json` is
   untouched here; cal-range re-cut it to 76 ids.
+### 🔨 20 Oct 2026: SIDE BOXES (owner ruling 7) BUILT, gate pending (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the boxes beside the waterfall.** One of the parallel sessions started from the ruling-7 entry
+  below. Plan, mock-up ([`mockups/side-boxes.html`](mockups/side-boxes.html), a made-up calendar) and rulings in
+  `SIDE-BOXES-PLAN.md`; §11 is the as-built record.
+- **Rulings (owner, 20 Oct 2026, by picker, all eight the recommended option):** key rows in grid order, a shared
+  colour's names joined " / ", hiatus last (Q1); Hiatus red when a hiatus shows, Sim Post yellow when it shows, any
+  row hideable, Notes purple NOT included (Q2); Excel one column per side, 20 units by default, a 2-unit spacer,
+  boxes from row 1 (Q3); fit AND orientation over grid + boxes (Q4); the PDF header band over grid + boxes (Q5); a
+  line's highlight fills the whole line (Q6); added from a "Side boxes ▾" toolbar menu (Q7); **frozen edits E1–E6
+  approved** (Q8).
+- **Built** (`55cce8d` store, `9efd62a` screen + writers + leg):
+  - Store `sideBoxes` / `sideWidths`, one new snapshot key `sideBoxes: {boxes, widths}`, written ONLY while a box
+    exists, restored unconditionally (deep copy), sanitized by `cleanSideBoxes()` (an unknown `kind` or `side` is
+    dropped and counted), cleared by `resetAll()`. `SNAPSHOT_VERSION` unchanged. No new id: gate 5 stays 74.
+  - ⭐ ONE layout, `sideBoxLayout()`, read by the screen and both writers: segments in whole sheet rows, a line's rows
+    from a greedy wrap with `measureTextPx` in points (1.2 em for the first line, `SHEET_LINE_RATIO` per further
+    line). The key's rows come from the COMPUTED schedule (`sideKeyEntries()`), so they are what prints.
+  - Screen: two `.side-col` hosts after `#table-wrap` (no ids), a grid on `main.preview-panel.has-side-boxes` above
+    960 px in the Waterfall view only. ⛔ Hidden in the month view by `body:has(#view-month-btn.active)`, whose class
+    is set BEFORE the render, because `#table-wrap`'s width repaginates the month PDF (MANTINE-SEAM §5.3). The leg
+    holds it to the pixel. Each side's `max-height` copies the frozen `.sheet-scroll` expression; the leg asserts the
+    two computed values are equal.
+  - Frozen edits, each inert with no box: `exportExcel` E1 (`let cum=1 + sideLeftCols`), E2 (the gridlines loop from
+    the grid's first column), E3 (orientation from `sideBoxPageExtent()`, the print area, `writeSideBoxesXlsx()`);
+    `buildWaterfallPdf` E4 (`fitW`/`fitH`, `contentX`, `originX`), E5 (`hdrLeftX`/`hdrRightX` from `contentX`), E6
+    (orientation, `drawSideBoxesPdf()`). The two helpers are new code, not on the frozen list; the owner has not
+    ruled on freezing them.
+- **Proof so far** (build `b1accea4…`):
+  - `sideboxes` leg, 58 checks, **58/58** green; **red on the pre-change build `7054bec6…`**; three mutants each red on
+    their own check (the key written with no box F5, E1 removed X3, the month-view hide removed M1).
+  - The exported workbook passes `check-xlsx.sh`; the PDF was rendered with `pdftoppm` and looked at.
+  - `npm run check` 40/40.
+- ⏳ **Full gate: queued** (port 9173, FIFO behind the other sessions' gates). Its byte-compares are the proof that
+  every existing calendar's waterfall PDF and Excel parts are unchanged.
+- ⚠️ **Merge notes:** the header-row session edits the same two writers' header-ROW code (different lines) and makes
+  `SHEET_PAGE_MARGIN_PT.t/.hdr` getters; quick-wins appends `PHASE_COLOR_OPTIONS` (the key picks the new colours up
+  with no change); cal-range makes `currentSchedule` view-dependent (the key reads the waterfall's, which is right).
+  All of them add snapshot keys after `prepPauseOff`, so expect adjacent-line conflicts there. Shared notes:
+  `side-boxes-ports-and-touchpoints.md` in the group's notes folder.
+- ⚠️ **Found, NOT fixed (pre-existing, outside this feature; a follow-up):** the "Export shareable copy" handler is
+  a DOCUMENT-wide click listener wrapped in `reClickGuard(600, …)`, and the guard runs BEFORE its
+  `closest('#share-copy-btn')` test. So any click anywhere in the 600 ms before pressing the button swallows the
+  press, silently. Found when the leg's first share click followed other clicks; the fix is to test the target
+  before the guard. The leg waits 700 ms before each share click.
+- 📝 **Relayed owner ruling, NOT built (20 Oct 2026, via the Settings-window session):** saved side-box PRESETS belong
+  in the Settings window's Presets tab, beside the header presets (*"maybe its a tab in settings that keeps both
+  presaved headers and presaved side boxes"*). Per machine, so localStorage (`sptcal.prefs`), never the snapshot.
+  Recorded in SIDE-BOXES-PLAN §12 with its two open questions; a follow-up for after the Settings window merges.
+- **The PDF's "characters that won't print" warning** (`pdfUnprintablePlaces()`, audit L-6) now also walks the box
+  text, from the same layout the writer draws: a ★ in a box line is named "in the side box “Dates”" (leg G21).
+- ⚠️ **Traps hit while building:** a view switch is its own undo step (`viewMode` is saved), so a leg that switches
+  views and then undoes lands on the switch; the share and export buttons carry a 600 ms re-click guard, so a leg
+  pressing one twice quickly gets one result; sibling sessions took ports 8963/8964, so `preview_start` silently
+  showed another worktree's build until the port moved (9171).
 
 ### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 
