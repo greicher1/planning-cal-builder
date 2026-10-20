@@ -4,6 +4,74 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 20 Oct 2026: COLUMN REUSE IS PLANNED AND RULED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT BUILT (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+
+- ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below; the owner picked it to go first.
+  The plan's §3 has the exact rule and §9 the eight follow-up rulings (Q1–Q8, by picker).
+- **No frozen edit.** Only computeSchedule's `segCol` block changes, behind a per-calendar `colReuse` switch, so
+  the switch off runs today's code path unchanged.
+- ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
+  There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
+  phases fall back to the leftmost column (Q1).
+- Checked by hand: the rule reproduces the reference calendar's column count and left/right order in every year,
+  with no swaps, once Production's column is numbered first (Q2).
+- ⚠️ **The entry below was written in the main checkout, uncommitted, while five sibling sessions started.** Each
+  session copies it into its own branch verbatim, and so did this one, so the copies merge cleanly. Drop the main
+  checkout's uncommitted copy once a branch carrying it is merged.
+
+### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
+
+- ⏭ **RESUME HERE for this work.** The owner shared a reference waterfall, kept in the chat only (confidentiality
+  rule), and asked whether the app could build it. It was rebuilt live in the dev pane, then reset, and its crash
+  backup slot was cleared; nothing was saved. **Every phase, label and week count matched; the layout did not.**
+  Owner: *"walk me thru all the changes/features we could add, asking me questions about each before you start
+  planning"*. The rulings below came by picker. **Nothing is planned or built.** First up, by the owner's pick:
+  **column reuse**.
+- **Rulings (owner, 20 Oct 2026):**
+  1. **Column reuse.** Automatic, with a per-phase override. A phase takes the column of a phase that ENDS THE WEEK
+     IT STARTS. On a tie it takes the column of the phase it is set to "Start after". Otherwise the lowest free
+     column, otherwise a new column on the right. **Opt-in per calendar** (saved in the file), so every existing
+     calendar and export stays byte-identical. Override from the phase row AND by a grid gesture.
+  2. **Header row.** Every header cell is typed and editable: the date-column cell (shows the year by default,
+     replacing "Date"), the phase columns, and Notes. Labels are per column, and neighbours with the same text merge.
+     A Notes column stays on every year.
+  3. **Year split: unchanged.** Instead, a **calendar start/end override** (blank = full years, as today). Rows
+     outside it are cut, with a notice naming the cut phases. Applies to the waterfall, Excel and the waterfall PDF,
+     not the month view. Set in the Show tab. The owner knows it does not move year boundaries.
+     ⚠️ They asked to "add back" this override; git history has no earlier one. Full-year padding dates from the
+     first commit.
+  4. **Date format:** a calendar setting, 1/6/25 (today) or 1/6/2025.
+  5. **Colours:** append to `PHASE_COLOR_OPTIONS` (append only): bright green, strong blue, pink, a stronger
+     yellow, a stronger peach. No free picker.
+  6. **All-phase hiatus:** stays one band.
+  7. **Side boxes:** any number of boxes left or right of the grid. Each is a **colour key** (one entry per colour,
+     editable names, drawn as a bordered key) or a **titled text box** with per-line styling (the header's controls).
+     Boxes grow as you type and stack per side, drag to reorder. They are edited on screen beside the grid, never in
+     its cells, and printed in Excel and the waterfall PDF (the grid prints smaller to make room). Not in the month view.
+  8. **Phase hiatus week numbers:** a "Number weeks" checkbox per phase hiatus, off by default.
+  9. **Automatic notes:** a calendar setting choosing which kinds show.
+  10. **Header: Off** mode, with no title block in the grid, Excel or PDF.
+  11. **Seasons:** nothing to build; phases are named by hand.
+  12. **A Settings window:** a tabbed panel that slides in beside the grid and leaves the waterfall visible. It holds
+      Region & holidays, Preferences and Export App With Data, plus the new calendar settings. Tabs separate
+      *this calendar* (saved in the file) from *my preferences* (this machine).
+- **Facts found while answering, for whoever plans this:**
+  - ⭐ **A year block's column count is the number of distinct `col` values in it**, set by computeSchedule's
+    greedy placement: a phase must sit right of every earlier phase still running. Swaps preserve each week's `col`
+    multiset (`applyColSwaps`), so they reorder columns and can never remove one. Column reuse therefore has to
+    change `col` upstream in computeSchedule (not frozen). Frozen computeBlockLayout then derives fewer slots from
+    that data.
+  - The handoff rule in ruling 1 reproduced every column of the reference except one tie, which "Start after"
+    settles. Left/right order within a year still comes from first appearance; the existing Swap Column fixes it.
+  - **Frozen edits needed, each with its own sign-off and gate measurement:** 2 (the header row is hard-coded
+    `Date | year | Notes` in renderSpreadsheetView, exportExcel and buildWaterfallPdf), 4 (dates in the frozen
+    renderers and writers), 7 (both writers, and the PDF's fit-to-page), 10. **No frozen edit:** 1, 3
+    (computeSchedule's padding), 5, 8, 9 and 12. ⚠️ For 12, every moved control keeps its id (save format). Preference
+    controls stay inside `.prefs-card`. The panel must stay mounted while closed (as `#file-menu` is), because
+    `collectFieldValues()` reads the DOM.
+  - Unverified: in the dev pane two real clicks on the header's New button did nothing, while `.click()` from JS
+    opened its confirm. Possibly my click coordinates; not investigated.
+
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
