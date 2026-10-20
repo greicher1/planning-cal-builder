@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: DAY MENU STEP 5 BUILT — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`, worktree `.claude/worktrees/day-menu-step5`), NOT MERGED
+### ◐ 19 Oct 2026: DAY MENU STEP 5 BUILT AND GATED — THE HIATUS AND HOLIDAY SECTIONS (branch `day-menu-step5`, worktree `.claude/worktrees/day-menu-step5`), NOT MERGED
 
 - ⏭ **RESUME HERE for the day menu.** Queued by the session that started this one: the owner said *"keep going"* after
   step 4. It was cut from `day-menu-merge` at `45da192` (step 4 merged with `main`), not from `day-menu-step4`, so it
@@ -73,8 +73,10 @@
     | no phase-hiatus section | V8 |
     | labels without dates | V1, V9 |
 
-  - ⏳ **The full gate is pending** (queued on port 8880).
-- ⏭ **Next:** the full gate; then the owner's pickers on merging and, separately, pushing (the starting session asked
+  - ✅ **Full gate on build `7e7f2600…` at `b275ef6` (port 8880, 23:00–23:19): 1,951 PASS, 0 FAIL, GATE PASSED.**
+    Gates 1–4 green (0 clipped, the waterfall PDF and every Excel part identical), gate 5 at 74 ids, gate 10's ten
+    print documents identical, gate 13's twenty written month PDFs byte-identical, `mvmenu` 86/86.
+- ⏭ **Next:** the owner's pickers on merging and, separately, pushing (the starting session asked
   for both questions once step 5 is gated). Open from earlier steps: an `mvmenu` prep case, a real Mac Ctrl+click, and
   plan §3.8's "Edit note…" section, which no step built.
 

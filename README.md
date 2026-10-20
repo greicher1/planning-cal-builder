@@ -42,7 +42,8 @@ Step 5 of [`MONTH-CONTEXT-MENU-PLAN.md`](MONTH-CONTEXT-MENU-PLAN.md), the last o
   list's two switches are shared with the menu, so the sidebar and the menu cannot drift apart.
 - **Verified:** `mvmenu` 86/86, with nine new cases on 22 Dec (the hiatus), 25 Dec (the hiatus and Christmas Day), 3 Jul
   (a weekday holiday in the shoot) and 8 Jul (Production's own hiatus). Twelve mutants each turn their own cases red.
-  The legs that use those sidebar controls are green. The full gate is pending.
+  The legs that use those sidebar controls are green. **Full gate: 1,951 PASS, 0 FAIL**, every frozen output
+  identical.
 
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
