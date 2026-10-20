@@ -4,7 +4,22 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATED (2 contention FAILs, both green alone), NOT PUSHED
+### ✅ 19 Oct 2026: DAY MENU STEPS 2–4 ARE LIVE AT `8400b38` (verified byte-identical, `e4339f4d`)
+
+- ✅ **PUSHED AND LIVE.** Owner, by picker, after being told the merge's gate had 2 contention FAILs (both green alone):
+  *"Push and verify live"*. Local `main` was fast-forwarded to the gated merge `8400b38` first, on the earlier "Yes,
+  merge and gate it". One `git push origin main` (`6e868b1..8400b38`, 22:35) sent 14 commits: day menu steps 2–4
+  with Remove <phase>…, and the docs between them (`373194e`, the off-week session's note, included). Deploy run
+  39375696507 succeeded. The live `index.html`, fetched with a cache-buster, is **byte-identical to the gated
+  build**: sha256 `e4339f4d91ef6985…`, 1,543,479 bytes (first fetch, 22:36). `version.json` still reads 1.4.3, so
+  installed copies show no update notice. A version cut is overdue.
+- **What users now get:** a left-click on a day's number opens the day menu; the Full day/Off popover is gone and its
+  choices are the menu's shoot-day section; Add hiatus ▸; the bar's own section (Start / End / Colour… / Show in
+  Phases card, and Remove <phase>… on a custom phase); the §8.1 fix.
+- ⏭ **Next:** step 5 (the hiatus and holiday sections) is built on `day-menu-step5`, cut from the merge. Its legs and
+  gate come next; merging and pushing it are the owner's calls, asked separately.
+
+### ◐ 19 Oct 2026: DAY MENU STEPS 2–4 MERGED INTO `main` (branch `day-menu-merge`, worktree `.claude/worktrees/day-menu-merge`), GATED (2 contention FAILs, both green alone)
 
 - ⏭ **RESUME HERE.** Owner, by picker after step 4's gate: *"Yes, merge and gate it"*, and *"Push if the merge's gate
   passes"*. That second answer was a conditional approval for ONE push of `main`. When it was given, the push would
