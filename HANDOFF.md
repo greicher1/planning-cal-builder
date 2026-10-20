@@ -59,9 +59,9 @@
   in the main checkout; its modified `tests/fixtures/stintswap-reshape.sptcal` and untracked `Reshape Fixture
   2026-09-29.sptcal` (not this work's) were left alone.
 - ⏸ **Push HELD (owner, by picker: "Hold the push").** For example, to ship with the `month-notes` and
-  `labels-setup` bundles in one push. Each push still needs its own picker. `origin/main` is `5d4737d`, so local
-  `main` is 7 commits ahead: `be67ca5` (docs), `prep-skip-off`'s `9820894` and `6de29c8`, the merge `708fab6`, the
-  switch `d8737b2`, and two HANDOFF notes. No version cut.
+  `labels-setup` bundles in one push. Each push still needs its own picker. `origin/main` is `5d4737d`; local
+  `main` is ahead of it by `be67ca5` (docs), `prep-skip-off`'s `9820894` and `6de29c8`, the merge `708fab6`, the
+  switch `d8737b2`, and this entry's HANDOFF notes (`git log origin/main..main` lists them). No version cut.
 - ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
   verifies the live `index.html` against the gated build afterwards.
 
