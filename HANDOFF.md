@@ -4,6 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026: EVERYTHING BUILT TODAY, AND THREE OLDER FEATURES, MERGED ON BRANCH `merge-all` (worktree `.claude/worktrees/merge-all`), COMBINED GATE QUEUED, NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE for the merge.** Owner, 20 Oct 2026: *"everything that has been built today even on older branches
+  should be merged into main"*. Branch `merge-all` was cut from local `main` at `7c18262` (bundle A + the prep pause
+  switch) and takes, in order: bundle B `claude/labels-setup-c74155` (`9d3811e`), the quick wins
+  `claude/quick-wins-cfe240` (`34da0ca`), the calendar range `claude/cal-range-1fe2e5` (`d0dab94`), the header row
+  `claude/header-row-fe6f32` (`73af07f`), the side boxes `claude/side-boxes-129c72` (`0f47dee`), the Settings window
+  `claude/settings-window-30719d` (`753e90e`), then the older ⌘S/⌘Z-under-a-dialog `claude/distracted-wozniak-03ba74`
+  (`f0de8d4`), Number Production Days `shoot-day-nums` (`b3bdee4`), the month view's hiatus drag `hiatus-drag`
+  (`c5032f6`), and column reuse (`c7e97c6`).
+- **Not merged, by the owner's picker:** `claude/zen-lumiere-b169f2` (ruling P6, "prep always skips Off days"): today's
+  switch, off by default, supersedes it (*"Skip it"*). Also left out as already landed or not code: `file-open` (landed
+  as `file-open-alone` on 1 Oct), `claude/episode-prep-merge` (one docs commit about an older merge), `pill-label`
+  (marked "REFERENCE ONLY, do not merge"). `month-week-shoot`'s week numbers were rebuilt as Off weeks step B; its other
+  half, "Shoot Ep. N", is being rebuilt on today's code with an editable prefix (entry to follow).
+- ⚠️ **Column reuse came from a SNAPSHOT.** Its branch held only the plan; the build was uncommitted in its worktree while
+  its own gate ran. `2dd6217` was made with a temporary index (`GIT_INDEX_FILE`, `commit-tree`), so the `column-reuse`
+  branch and worktree were left exactly as they were. If its session changes anything after 16:40, merge that branch
+  again; the snapshot's content is its working tree at that moment.
+- **Decisions made resolving the merge** (each re-homes a control the Settings window's own rule demanded; nothing
+  saved moves, every id is kept):
+  - The window retired the sidebar's Settings tab, and four branches had added controls there. They go to the
+    **Calendar** tab because each is calendar data: the **Waterfall** card holds Single Column Mode, **Reuse empty
+    columns**, **Dates** and **Custom Column Headings** (the header row's own "Waterfall Layout" card is folded in, so
+    there is one Waterfall card); the **Month view** card holds Label Production by, Pause prep and **Number Production
+    Days**; **Automatic notes** is its own card (it reaches both views). The **Calendar range** card stays in the Show
+    tab, as ruling 3 says, and its two swept ids sit ahead of the window's, where its own branch put them.
+  - `applyRange()` in `syncHiatusNamesFromSidebar()` takes both new arguments: bundle B's per-week name function (an
+    all-phase row's "Number weeks", "Hiatus Week 1") and ruling 8's `numbered` flag (a phase's own hiatus, "wk 1").
+    ⚠️ **So the two "Number weeks" boxes read differently**: "Hiatus Week 1" on an all-phase hiatus, "Writer's Rm Hiatus
+    wk 1" on a phase's own. Each was ruled on its own branch. Ask the owner whether to make them match.
+  - The prep start grips (main) and the hiatus drag were added at the same spot and git interleaved them line by line
+    (histogram diff too). The region was rebuilt from each side's whole block, each checked identical to its source.
+  - `OVER_PANEL` and the shareable copy's strip list carry every branch's body-level chrome.
+- **Legs changed by the merge** (all because the window retired the Settings tab, or bundle A added edge months):
+  `settingswin` W3 anchors on `#cal-range-end` (was `#show-version`) and lists `wf-date-format` / `wf-hdr-custom`;
+  `autonotekinds` opens the window; `hdrrow` alternates sidebarTab between Show and Phases (a saved 'settings' now opens
+  as Show, so its wait never ended); `shootdays` opens the window and counts the month PDF's pages by bundle A's rule
+  (an edge month prints only when one of its days carries a note bar, `.mv-note-block[data-note-day]`; the "+" carries
+  `data-note-day` too, which a first draft counted).
+- **Proof so far** (build `1ea148e2…`, 1,659,507 bytes, at `c7e97c6`; private port 9241): `npm run check` 40/40;
+  `settingswin` 17/17, `autonotekinds` 16/16, `hdrrow` 30/30, `calrange` 18/18, `shootdays` 15/15 (offweek),
+  15/15 (dayoverrides-onhalf), 14/14 (blocks) with every PDF page's "Day N" text matching the screen, `hiatusdrag` 13/13,
+  `mvnotes` 30/30 + 14/14, `mvmenu` 89/89, `colreuse` 21 + 4 through gate.sh's own evaluator.
+- ⏳ **Combined full gate: queued** behind the other sessions' gates (port 9243, log in this session's scratchpad,
+  `gate-merged.log`). ⚠️ **Expected red: gate 10's `mvheaderlegacy`.** Bundles A and B each re-cut it; it is held at
+  bundle A's baseline in the merge and must be re-cut from this build's own capture, with the owner's sign-off.
+- ⚠️ **The main checkout's uncommitted HANDOFF change is this file's reference-waterfall entry**, which the branches
+  committed. When `main` moves to this branch, set that copy aside (it is identical to the committed text, checked with
+  `diff`) rather than letting the fast-forward refuse.
+- ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
+  merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
+
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, NOT MERGED
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
@@ -412,16 +465,29 @@
   session copies it into its own branch verbatim, and so did this one, so the copies merge cleanly. Drop the main
   checkout's uncommitted copy once a branch carrying it is merged.
 
-### 📝 20 Oct 2026: RULED, NOT YET PLANNED: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
+### ✅ 20 Oct 2026: RULED, THEN BUILT ON SIX BRANCHES AND MERGED ON `merge-all`: WHAT IT TAKES TO LAY OUT A REFERENCE WATERFALL THE APP CAN'T MATCH
 
 - ⏭ **RESUME HERE for this work.** The owner shared a reference waterfall, kept in the chat only (confidentiality
   rule), and asked whether the app could build it. It was rebuilt live in the dev pane, then reset, and its crash
   backup slot was cleared; nothing was saved. **Every phase, label and week count matched; the layout did not.**
   Owner: *"walk me thru all the changes/features we could add, asking me questions about each before you start
-  planning"*. The rulings below came by picker. **Nothing is planned or built.** First up, by the owner's pick:
-  **column reuse**.
-- ✅ **Rulings 2, 4 and 10 are built** on `claude/header-row-fe6f32` (entry above, `HEADER-ROW-PLAN.md`). This entry was
-  uncommitted in the main checkout when that branch was cut; copied in here verbatim.
+  planning"*. The rulings below came by picker. When this entry was written nothing was planned or built, and the
+  owner picked **column reuse** to go first. *(Corrected 20 Oct 2026, evening: it said "Nothing is planned or built"
+  for hours after six parallel sessions had built every ruling below. Each branch carries its own entry.)*
+- ✅ **Where each ruling went** (all merged on branch `merge-all`, the entry at the top; not in `main` until the
+  combined gate and the owner's picker):
+
+  | Ruling | Branch (plan) | State when merged |
+  |---|---|---|
+  | 1 column reuse | `column-reuse` ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)) | built but UNCOMMITTED in its worktree, its own gate queued: merged from snapshot `2dd6217` |
+  | 2, 4, 10 header row, date format, Header: Off | `claude/header-row-fe6f32` ([`HEADER-ROW-PLAN.md`](HEADER-ROW-PLAN.md)) | built, committed, frozen edits signed off; own gate queued |
+  | 3 calendar range | `claude/cal-range-1fe2e5` | built; gate 5 re-cut 74 → 76 ids signed off; own gate queued |
+  | 5, 8, 9 colours, a phase hiatus's Number weeks, Automatic notes | `claude/quick-wins-cfe240` | built, legs green; own full gate never run |
+  | 7 side boxes | `claude/side-boxes-129c72` ([`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)) | built, frozen edits E1–E6 approved; own gate pending |
+  | 12 Settings window | `claude/settings-window-30719d` | built, committed |
+  | 6, 11 | none | nothing to build |
+
+  This entry was uncommitted in the main checkout when those branches were cut, and each copied it in verbatim.
 - **Rulings (owner, 20 Oct 2026):**
   1. **Column reuse.** Automatic, with a per-phase override. A phase takes the column of a phase that ENDS THE WEEK
      IT STARTS. On a tie it takes the column of the phase it is set to "Start after". Otherwise the lowest free

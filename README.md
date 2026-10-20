@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Today's branches merged; the new settings find their place in the Settings window (20 Oct 2026)
+
+The owner asked for everything built on 20 Oct, and the finished features left on older branches, to be merged. Ten
+branches came together on `merge-all` (HANDOFF has the list and the order). Merging them is not a feature, but one
+thing changed that a user sees: four branches had put a control in the sidebar's old Settings tab, which the Settings
+window retired. Each lands where the window's rule puts calendar data, in its **Calendar** tab:
+- **Waterfall** card: Single Column Mode, **Reuse empty columns**, **Dates** (1/6/25 or 1/6/2025) and **Custom Column
+  Headings**. The header row's own "Waterfall Layout" card is folded in, so there is one Waterfall card, not two.
+- **Month view** card: Label Production by, Pause prep on days marked Off, and **Number Production Days**.
+- **Automatic notes**: its own card, since it reaches both views.
+- The **Calendar range** stays in the sidebar's Show tab, as ruled.
+
+Nothing saved moved: every control keeps its id and its own snapshot key, and none of them is swept into `fields.byId`.
+Left out on purpose: ruling P6 (prep always skipping Off days), which today's off-by-default switch replaced (owner's
+picker). Verified: `npm run check` 40/40, and the legs the merge touched green on the merged build (settingswin,
+autonotekinds, hdrrow, calrange, shootdays on three calendars, hiatusdrag, mvnotes, mvmenu, colreuse); the combined
+full gate is queued.
+
 ### Unreleased — Five stronger phase colours (owner ruling 5, 20 Oct 2026)
 
 The phase colour picker offered nine pastels. A reference calendar used stronger colours, and the owner ruled for five
