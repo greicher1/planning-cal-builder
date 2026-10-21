@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
+
+The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
+scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
+- **What changed:** the title block above the waterfall, and the Manual-mode format strip above it, now stop at the
+  calendar's last column instead of running to the edge of the preview. Zoom out and the header shrinks with the
+  calendar. At 100% this moves only calendars narrower than the window: their right-hand header lines now sit over the
+  last column, as they do in the PDF and the workbook. A calendar wider than the window keeps the header across the
+  visible width, as before, so its right-hand lines stay on screen.
+- **Its height never changes.** The header is never narrower than its lines need on one line, so nothing wraps that did
+  not wrap before. On a calendar narrower than its own header text, the header runs past the last column by just
+  what the text needs (forced to 200 px, the title block measured 199 px tall instead of 71 when squeezed). This
+  follows the owner's ruling for paper (10 Sep 2026, single column).
+- **How:** `app.js` "THE HEADER ENDS WITH THE CALENDAR" writes the grid's own width as one custom property,
+  `--wf-grid-w`, on `.preview-panel`, after every render and on the frozen column drag's live width change. `legacy.css`
+  caps `#table-wrap > .sheet-scroll > .cal-header-bar` and `.hdr-tools` at it, with `min-width: fit-content` as the
+  floor. Nothing inside `#table-wrap` is written and no frozen line changed (sanctioned pattern 1, like `--header-h`). The
+  print copy in `#print-root` cannot see it, neither writer reads the DOM, and a shareable copy drops it.
+- **Verified:** the new `hdrfit` leg, 8/8 on `colreuse` (Auto header, grid wider than the harness window at 100%) and
+  8/8 on `hdrmanualbraces` (Manual header with its strip, a narrower grid): where the header ends at six zooms from 25%
+  to 200%, its height equal to the uncapped height at each, a 200 px cap, a live column resize, the month view and
+  back, the print copy uncapped, a shareable copy without the value. By hand in the app's browser at 100%, 75%, 60%,
+  50%, 25%, 150% and 200%.
+
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view

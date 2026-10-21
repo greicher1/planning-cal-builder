@@ -4,6 +4,39 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; NOT COMMITTED YET, NOT PUSHED
+
+- **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
+  scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%
+  included (offered against "Only when zoomed", which would snap the header at the first step off 100%).
+- **Cause, measured:** `.cal-header-bar` and `.hdr-tools` are blocks inside the frozen `.sheet-scroll`, so they were as
+  wide as the scroll box, which the grid fit keeps at the panel's width at every zoom, while the grid is as wide as its
+  columns. On `colreuse` at 1800 px: header 1,310 px at every zoom, grid 1,208 at 100% and 604 at 50%. So even at 100%
+  the header ran past any calendar narrower than the window.
+- **Built** (no frozen line changed): `app.js` "THE HEADER ENDS WITH THE CALENDAR", after the grid fit, writes
+  `.sheet-grid-wrap`'s `offsetWidth` (the grid's own px at any zoom) as `--wf-grid-w` on `.preview-panel`, on every
+  `#table-wrap` childList change and on the TABLE's style attribute (the frozen column drag writes `table.style.width`
+  live). `legacy.css`, right after `body.wf-hdr-off`, caps `#table-wrap > .sheet-scroll > .cal-header-bar, … > .hdr-tools`
+  at `max-width: var(--wf-grid-w, none)` with `min-width: fit-content`. `buildSavedHtml()` drops the value from the
+  clone's panel.
+- ⛔ **`min-width: fit-content` is load-bearing.** Without it a narrow calendar squeezed the title block from 71 to 199 px
+  tall (measured with the cap forced to 320 px). With it the header is never narrower than its lines on one line (or
+  the scroll box, when they never fitted), so its HEIGHT equals the uncapped height in every case and only where the
+  centre and right sections sit can change. On a calendar narrower than its own header text the header therefore runs
+  past the last column by just what the text needs — the owner's paper ruling of 10 Sep 2026 (single column). Tell the
+  owner if they ever see that and call it a bug.
+- ⚠️ **A MutationObserver on the table, not a ResizeObserver.** The first cut used a ResizeObserver on the grid box: it
+  works in the app's browser but never fires under the harness's virtual time, so `hdrfit` H4 was red headless. Same
+  lesson as the grid fit's comment. `requestAnimationFrame` never fires there either; the leg sleeps instead.
+- ⚠️ **Two `.preview-panel` custom properties now:** `--header-h` (the grid fit's solved value) and `--wf-grid-w`. Neither
+  reaches `#print-root`, a direct child of `<body>`. Keep both off `:root`.
+- **Proof so far:** new leg `tests/harness/t/hdrfit.js`, in `gate.sh` after `calzoom`, run on `colreuse` and
+  `hdrmanualbraces`: 8/8 each. By hand in the app's browser at 25–200%, Manual mode, a live column resize, the month
+  view and back, no console error.
+- **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
+  `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
+  fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
