@@ -303,6 +303,23 @@ window.addEventListener('load', function () { (async function () {
            m5.box === false && m5.sbBox === false && same(m5.pp, BARE), { roundTrip: rt, m5: m5 });
     });
 
+    await step('H16', async function () {
+      // An ALL-PHASE hiatus row's "Number weeks" (bundle B, item 9) went live writing "Hiatus Week N"; the owner then
+      // ruled "wk" for both kinds (20 Oct 2026). A file saved by that build carries the old text as the sync's own
+      // (hiatusNameSyncedKeys matches), so it must re-read as "Hiatus wk N" on open. Built from saveA: the
+      // 20 Dec 2027 row ticked, its two bands holding what that build wrote.
+      var s = JSON.parse(saveA), W = ['2027-12-20', '2027-12-27'];
+      var row = s.fields.hiatuses.filter(function (h) { return h.start === W[0]; })[0];
+      if (!row) throw new Error('saveA has no 20 Dec 2027 hiatus row');
+      row.numbered = true;
+      s.hiatusTexts = Object.assign({}, s.hiatusTexts, { '2027-12-20': 'Hiatus Week 1', '2027-12-27': 'Hiatus Week 2' });
+      s.hiatusNameSyncedKeys = Object.assign({}, s.hiatusNameSyncedKeys, { '2027-12-20': 'Hiatus Week 1', '2027-12-27': 'Hiatus Week 2' });
+      await load(JSON.stringify(s));
+      var got = W.map(function (w) { var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="' + w + '"]:not([data-pkey])'); return td ? txt(td) : null; });
+      kase('H16', 'an all-phase numbered hiatus saved as "Hiatus Week 1/2" opens reading "Hiatus wk 1/2" (one word for both kinds, the owner\'s ruling)',
+           same(got, ['Hiatus wk 1', 'Hiatus wk 2']), { got: got });
+    });
+
     await step('H15', async function () {
       await load(saveC);
       var before = box('prePrep').checked;
