@@ -68,8 +68,8 @@ window.addEventListener('load', function () { (async function () {
     var presetText = null;
     try { var rq = new XMLHttpRequest(); rq.open('GET', '/tests/fixtures/xss-preset.spthdr', false); rq.send(null); presetText = rq.responseText; } catch (e) {}
     window.showOpenFilePicker = async function () { return [{ name: 'xss-preset.spthdr', getFile: async function () { return new File([presetText], 'xss-preset.spthdr'); } }]; };
-    var settings = null; document.querySelectorAll('.side-tab-btn').forEach(function (b) { if(b.dataset.tab === 'settings') settings = b; });
-    if(settings){ settings.click(); await T.sleep(500); }
+    await T.openSettings('presets');   // the Settings window's Presets tab since ruling 12
+    await T.sleep(300);
     var importBtn = document.querySelector('[data-hdrpreset="import"]');
     if(importBtn){ importBtn.click(); await T.sleep(1200); if(/[A-Za-z]/.test(T.modalText())) T.clickModalButton(/OK|Close/); await T.sleep(400); }
     // apply the last preset

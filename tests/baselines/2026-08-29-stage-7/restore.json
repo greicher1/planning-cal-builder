@@ -13,6 +13,8 @@
   "num-blocks": "",
   "days-per-block": "",
   "show-version": "",
+  "cal-range-start": "",
+  "cal-range-end": "",
   "union-place": "us-general",
   "custom-hol-name": "",
   "custom-hol-date": "",

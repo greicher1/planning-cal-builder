@@ -118,6 +118,28 @@ export function IconHeading(props) {
   )
 }
 
+// A note with a folded corner and two lines of text -- the Automatic notes card (owner ruling 9).
+export function IconNote(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 2.5h6l3 3v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z" />
+      <path d="M9.5 2.5v3h3" />
+      <path d="M5 9h6M5 11.5h4" opacity=".55" />
+    </svg>
+  )
+}
+
+// A grid whose top row is split into headed columns -- the waterfall's header row and date column
+// (HEADER-ROW-PLAN.md). Not IconTable (Export Excel) and not IconHeading (the title block above it).
+export function IconColumns(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+      <path d="M2 6h12M5.5 2.5v11M10 2.5v11" />
+    </svg>
+  )
+}
+
 export function IconShare(props) {
   return (
     <svg {...base} {...props}>
@@ -132,6 +154,16 @@ export function IconRows(props) {
     <svg {...base} {...props}>
       <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
       <path d="M2 6.2h12M2 9.9h12" />
+    </svg>
+  )
+}
+
+// The Calendar range card (owner ruling 3): a calendar with a bracketed span across it.
+export function IconCalendarRange(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+      <path d="M2.5 6.5h11M5.5 1.5v3M10.5 1.5v3M5 10h6M5 8.8v2.4M11 8.8v2.4" />
     </svg>
   )
 }
@@ -184,6 +216,26 @@ export function IconDownload(props) {
     <svg {...base} {...props}>
       <path d="M8 2v7.5M5 6.7 8 9.7l3-3" />
       <path d="M2.5 12.8h11" />
+    </svg>
+  )
+}
+
+// The Settings window's two scope lines (owner ruling 12): a page with a folded corner for "saved in
+// this calendar's file", a monitor for "stays on this computer". Same family: 16 viewBox, stroke 1.6.
+export function IconFile(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9.5 2H4.5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5z" />
+      <path d="M9.5 2v3h3" />
+    </svg>
+  )
+}
+
+export function IconMonitor(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2" y="2.5" width="12" height="8.5" rx="1.5" />
+      <path d="M6 14h4M8 11v3" />
     </svg>
   )
 }

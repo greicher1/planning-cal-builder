@@ -1,0 +1,294 @@
+{
+ "version": 1,
+ "customPhaseDefs": [],
+ "customPhaseCounter": 0,
+ "phaseColorOverride": {},
+ "episodeDefs": [
+  {
+   "id": "ep1",
+   "name": "Episode 101",
+   "days": 10,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep2",
+   "name": "Episode 102",
+   "days": 10,
+   "nameEdited": false,
+   "daysEdited": false
+  },
+  {
+   "id": "ep3",
+   "name": "Episode 103",
+   "days": 10,
+   "nameEdited": false,
+   "daysEdited": false
+  }
+ ],
+ "episodeCounter": 3,
+ "blockDefs": [],
+ "blockCounter": 0,
+ "blockAssignEdited": false,
+ "episodeShootOrder": [],
+ "userNotes": {},
+ "dayNotes": {},
+ "mvExtraLanes": {},
+ "dayNoteColors": {},
+ "dayOverrides": {
+  "2027-04-14": "half"
+ },
+ "headerMode": "auto",
+ "headerManual": {},
+ "headerTemplates": false,
+ "mvHeaderMode": "auto",
+ "mvHeaderManual": {},
+ "mvHeaderTemplates": false,
+ "headerFormat": {},
+ "mvHeaderFormat": {},
+ "noteColors": {},
+ "noteFontSize": {},
+ "hiatusTexts": {
+  "2027-03-22": "Spring Break (typed)"
+ },
+ "hiatusColors": {
+  "2027-03-22": "#7030A0"
+ },
+ "hiatusFontSize": {},
+ "hiatusNameSyncedKeys": {},
+ "holidayView": {},
+ "holidayOff": {},
+ "customHolidays": [],
+ "viewMode": "sheet",
+ "singleColumn": false,
+ "sidebarTab": "show",
+ "colWidths": {},
+ "colWidthsAlt": {},
+ "rowHeights": {},
+ "rowHeightsByWeek": {},
+ "cellSpans": {},
+ "gridColSwaps": {},
+ "gridStintSwaps": {},
+ "fields": {
+  "byId": {
+   "show-title": {
+    "value": "Hiatus Drag Test"
+   },
+   "season-num": {
+    "value": "1"
+   },
+   "show-mode": {
+    "value": "episodes"
+   },
+   "shoot-days-per-ep": {
+    "value": "10"
+   },
+   "num-episodes": {
+    "value": "3"
+   },
+   "num-blocks": {
+    "value": ""
+   },
+   "days-per-block": {
+    "value": ""
+   },
+   "show-version": {
+    "value": ""
+   },
+   "union-place": {
+    "value": ""
+   },
+   "name-writersRoom": {
+    "value": "Writer's Rm"
+   },
+   "start-writersRoom": {
+    "value": ""
+   },
+   "weeks-writersRoom": {
+    "value": ""
+   },
+   "snap-writersRoom": {
+    "checked": true
+   },
+   "phiatus-en-writersRoom": {
+    "checked": false
+   },
+   "phiatus-name-writersRoom": {
+    "value": ""
+   },
+   "phiatus-start-writersRoom": {
+    "value": ""
+   },
+   "phiatus-weeks-writersRoom": {
+    "value": "2"
+   },
+   "name-prePrep": {
+    "value": "Pre Prep"
+   },
+   "start-prePrep": {
+    "value": ""
+   },
+   "weeks-prePrep": {
+    "value": "4"
+   },
+   "snap-prePrep": {
+    "checked": true
+   },
+   "phiatus-en-prePrep": {
+    "checked": false
+   },
+   "phiatus-name-prePrep": {
+    "value": ""
+   },
+   "phiatus-start-prePrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prePrep": {
+    "value": "2"
+   },
+   "name-prodPrep": {
+    "value": "Prod Prep"
+   },
+   "start-prodPrep": {
+    "value": ""
+   },
+   "weeks-prodPrep": {
+    "value": ""
+   },
+   "snap-prodPrep": {
+    "checked": true
+   },
+   "phiatus-en-prodPrep": {
+    "checked": false
+   },
+   "phiatus-name-prodPrep": {
+    "value": ""
+   },
+   "phiatus-start-prodPrep": {
+    "value": ""
+   },
+   "phiatus-weeks-prodPrep": {
+    "value": "2"
+   },
+   "name-production": {
+    "value": "Production"
+   },
+   "start-production": {
+    "value": "2027-03-01"
+   },
+   "snap-production": {
+    "checked": true
+   },
+   "weeks-production": {
+    "value": "30"
+   },
+   "phiatus-en-production": {
+    "checked": false
+   },
+   "phiatus-name-production": {
+    "value": ""
+   },
+   "phiatus-start-production": {
+    "value": ""
+   },
+   "phiatus-weeks-production": {
+    "value": "2"
+   },
+   "simpost-enabled": {
+    "checked": false
+   },
+   "simpost-offset": {
+    "value": "0"
+   },
+   "simpost-count": {
+    "checked": false
+   },
+   "name-post": {
+    "value": "Post"
+   },
+   "start-post": {
+    "value": "2027-05-03"
+   },
+   "weeks-post": {
+    "value": "3"
+   },
+   "snap-post": {
+    "checked": true
+   },
+   "phiatus-en-post": {
+    "checked": true
+   },
+   "phiatus-name-post": {
+    "value": "Post Pause"
+   },
+   "phiatus-start-post": {
+    "value": "2027-05-17"
+   },
+   "phiatus-weeks-post": {
+    "value": "1"
+   },
+   "name-localization": {
+    "value": "Localization"
+   },
+   "start-localization": {
+    "value": "2027-06-07"
+   },
+   "weeks-localization": {
+    "value": "12"
+   },
+   "snap-localization": {
+    "checked": true
+   },
+   "phiatus-en-localization": {
+    "checked": false
+   },
+   "phiatus-name-localization": {
+    "value": ""
+   },
+   "phiatus-start-localization": {
+    "value": ""
+   },
+   "phiatus-weeks-localization": {
+    "value": "2"
+   }
+  },
+  "hiatuses": [
+   {
+    "start": "2027-03-22",
+    "weeks": "1",
+    "locked": false,
+    "name": "Spring Break"
+   },
+   {
+    "start": "2027-04-05",
+    "weeks": "1",
+    "locked": false,
+    "name": "Easter Week"
+   },
+   {
+    "start": "2027-04-19",
+    "weeks": "1",
+    "locked": true,
+    "name": "Studio Shutdown"
+   },
+   {
+    "start": "2027-06-14",
+    "weeks": "3",
+    "locked": false,
+    "name": "Summer Hiatus"
+   },
+   {
+    "start": "2027-08-02",
+    "weeks": "2",
+    "locked": false,
+    "name": "Overlap One"
+   },
+   {
+    "start": "2027-08-09",
+    "weeks": "1",
+    "locked": false,
+    "name": "Overlap Two"
+   }
+  ]
+ }
+}

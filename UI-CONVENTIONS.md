@@ -872,7 +872,7 @@ page, one job. Its conventions are its own, and deliberately not the app's:
 
 ---
 
-## 8. ⛔ Seven verified traps
+## 8. ⛔ Nine verified traps
 
 **Every one of these was a decision that looked right and was wrong.** They were caught by reading
 the installed Mantine source, not by reasoning about it. Each would have broken the save format or
@@ -991,6 +991,35 @@ grep assertion to `tools/check-refs.py` that the block contains no unwrapped Man
 
 **And decide explicitly whether the size increase is acceptable for the "email it around" property**
 — that is an owner question, not an engineering one.
+
+### 8.8 `Tabs` keeps inactive panels mounted through `<Activity>`, which renders them LATE (20 Oct 2026)
+
+Found building the Settings window. `@mantine/core` 9.5.2's `Tabs` defaults to `keepMounted: true`
+**and `keepMountedMode: "activity"`**: `Tabs.Panel` wraps an inactive panel's children in React's
+`<Activity mode="hidden">`. A hidden Activity renders its children at a lower priority, after the
+visible content, so they are **not in the DOM when `main.jsx`'s `flushSync` returns** and
+`initLegacyApp()` binds by id. It also unmounts their effects, so a component inside that installs a
+bridge function from `useLayoutEffect` (ProdLabelControl, HeaderPresets) never installs it.
+
+**Pass `keepMountedMode="display-none"`.** Every panel then renders in the first commit and the
+inactive ones get `display:none`, the old `.tab-hidden` contract. The `settingswin` leg's W1 finds
+every moved id in its tab on a fresh page; in Activity mode three of the four tabs would be missing.
+
+### 8.9 A Mantine `Switch` puts its OWN state back over the engine's on any re-render (20 Oct 2026)
+
+`Switch` is "uncontrolled" only from the outside. Inside it calls `useUncontrolled()` and renders
+`<input checked={state}>`, so it IS a React-controlled input. The engine writes `.checked` directly
+(`reflectSingleColumn()`, `refreshPrepUI()`, `reflectMonthTagPrefs()`), on every undo, Load and New.
+React never sees those writes, and the next time it re-renders that Switch it writes its remembered
+state back. After a Load of a file with Pause prep off, opening the Settings window showed it on.
+
+It never showed in the sidebar because those cards never re-rendered after mount. The Settings
+window re-renders on every open, close and tab change. **The fix is not to re-render the cards:** the
+four panels' contents are module-level constants (`SettingsWindow.jsx`, `CALENDAR_PANEL` …), so React
+gets the same element objects each render and skips their subtrees. ⚠️ **Any Switch, Checkbox or
+SegmentedControl whose value the engine writes must sit in a subtree that never re-renders, or take
+its value through the bridge** (`mvProdLabel` does). `settingswin` W9 holds it: undo, then re-render
+the window, and the switch must still show the engine's value. `offweek` R12 and R14 caught it first.
 
 ---
 
@@ -1151,6 +1180,18 @@ Nothing in this document ships without all of these, every stage:
       every edge × unit, custom and built-in; the held end never moving; the Weeks → Dates switch with
       one undo; floors; weekend, holiday and hiatus step-overs; out-and-back and Escape banking nothing;
       and print media.
+    - `hiatusdrag.mjs` (19 Oct 2026), the same trusted input on a hiatus band (HIATUS-DRAG-PLAN.md,
+      owner rulings 1–4). H0–H12 cover:
+      - where the move layer and the two grips appear, and that a locked or ambiguous band gets none;
+      - a week at a time by row (a Sunday drop means that row's week);
+      - an all-phase drag asking Keep or Undo, with Ctrl+Z held under the question;
+      - a phase's own hiatus never asking, and never leaving its phase;
+      - no overlap, and the floors;
+      - the band's look travelling with it;
+      - the half day staying on its date;
+      - Escape, and print media.
+      ⚠️ The crash-backup half of the hold can't be seen headless (IndexedDB never settles there), so it
+      was proved in the app pane.
 
     The PWA install gate adds `pwagate` and `pwagatelogic`.
 
@@ -1182,6 +1223,16 @@ Nothing in this document ships without all of these, every stage:
     focus off the field being edited first, so a Manual header line typed but not yet left is included
     (K14). ⌘S and ⌘P are unchanged. End to end, Save As on a linked calendar writes a new file and
     switches to it. `nofsa` gains B5: without the API, ⇧⌘S stays plain Save.
+
+    The dialog-keys fix (19 Oct 2026) adds `dlgkeys` (no state; it loads its own linked file through
+    the fake picker). Plain ⌘S, ⌘Z and ⇧⌘Z now do nothing while a dialog or the template header editor
+    is up, as ⇧⌘S, ⌘N and ⇧⌘E already did. It opens twelve questions (D1–D12), presses the three keys
+    under each, and then answers. Each key must be prevented and do nothing (no Save, no write, no undo
+    or redo, the same question still up), and the answer must still do what it says. Before the fix,
+    ⌘Z under "Remove hiatus?" made Remove do nothing, and under "Remove phase?" it left a ghost row.
+    ⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change. Kept:
+    ⌘Z inside a field, the header editor's included, is the field's own undo (X1, X2), and with no
+    dialog the three keys work as before (X3).
 
     Double-click to open (1 Oct 2026) adds `launchopen`: a `.sptcal` the OS hands the app through
     `launchQueue` loads as Load… does. It covers a cold launch (no recovery question on top, the

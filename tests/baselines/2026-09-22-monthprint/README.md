@@ -140,6 +140,36 @@ occupancy is identical and every note lands where it did. Only a half-day switch
 
 `halfdays` is `tests/fixtures/halfdays.sptcal`: 4.5-day episodes with Episode 201 at 5, 45.5 shoot days from 6/29/26.
 
+## ✅ RE-CUT 20 Oct 2026 — ALL NINE CASES: a hiatus day takes notes; and an eleventh case, `mvnotes`
+
+MONTH-NOTES-PLAN.md §4 (owner, by picker: *"Every hiatus day"*): a frozen edit removed `renderMonthView`'s
+`if(isHiatusDate(schedule, d)) continue;` from its "+" loop, so every hiatus day gets its "+" lanes. Those lanes are in
+the print document, hidden by `#print-root .mv-note-add{display:none}`. Signed off on the A/B and a before / after /
+difference sheet of `dayoverrides`' July: **"Re-cut all ten"** (picker, 20 Oct 2026).
+
+**Hidden "+" only, proven:** each new document equals its old one, character for character, once every
+`.mv-note-add` element is removed; every month still prints one sheet; and the PRINTED sheets, rendered from the print
+path's PDF on the live build (`b3cae2ac…`, built into `dist-mut/base`) and on this branch, are pixel-identical: 156
+pages, 0 differ.
+
+| case | "+" elements | elements | sheets |
+|---|---|---|---|
+| `reference` (and `blocksoff`, held to it) | 1812 → 1878 | 3806 → 3872 | 16 → 16 |
+| `dayoverrides`, `mvheader`, `dayoverrides-onhalf` | 1711 → 1803 (onhalf 1709 → 1801) | +92 each | 15 → 15 |
+| `mvheaderlegacy` | 1711 → 1803 | +92 | 15 → 15 |
+| `blocks` | 1807 → 1873 | 3795 → 3861 | 16 → 16 |
+| `month-lanecap` | 2237 → 2303 | 4250 → 4316 | 16 → 16 |
+| `hiatus-blanklabel` | 1734 → 1869 | 3728 → 3863 | 16 → 16 |
+| `halfdays` | 1853 → 1919 | 3831 → 3897 | 16 → 16 |
+
+**New case `mvnotes`** (signed off: **"Cut both"**, picker): `tests/fixtures/mvnotes.sptcal`, minted by the `mvnotes`
+leg's own Save. 17 months (December 2025, an edge month that prints because it holds notes and a custom holiday,
+through April 2027), 17 sheets, 4116 elements: No fill, tint and grey day notes, a note on a hiatus day, and two
+one-day custom pills that wrap (`.mv-pill-2l`).
+
+Cut from build `f6a7393896109030…` (worktree `month-notes-2951a8`) with Google Chrome 155.0.8059.85, from the full gate's own
+`monthprint-<case>.json` captures.
+
 ## ✅ RE-CUT 19 Oct 2026 — ALL NINE CASES: the month view numbers weeks as the waterfall does
 
 OFF-WEEK-PLAN.md step B, owner ruling Q5 ("match the waterfall"). `prodWeekLabel()` reads the number the
@@ -214,6 +244,55 @@ Chrome's own page breaking is not.
 exercised by no baseline. A change that tips a month *into* `scale` still fails here — the document
 differs, and the fit table reports the mode change — but the scale branch's own output is unproven.
 A fixture with a comment-heavy week in a six-week month would close it.
+
+## ✅ RE-CUT 20 Oct 2026 (evening): eight cases, "Shoot" before every episode bar; `mvheaderlegacy` also takes bundle B's sizes
+
+- **The ruling and the sign-off** are gate 13's (its README, the same evening): "Shoot Ep. 101" by default, by picker,
+  and **"Re-cut both"** on the contact sheets and this classification.
+- **What moved.** In each re-cut document, removing every `Shoot ` gives back the old baseline **byte for byte** (bar
+  text and the pill's `title`). Element counts, the fit table (every row height and mode, which are inline styles in
+  the document) and months → sheets are unchanged, so no month changed its fit.
+- ⚠️ **`mvheaderlegacy` carries one more change, bundle B's, and that is why it moved most.** The entry below records
+  bundle B's re-cut (its size options), but when bundle B was merged on `merge-all` its file was HELD at bundle A's
+  baseline (both bundles had re-cut it from different starting points). This cut carries both: bundle A's hidden "+"
+  on hiatus days (already in the held file), bundle B's three `<option>`s × 15 months (+45 elements, 4,348 → 4,393),
+  and the "Shoot" text. The prefix build's document minus `Shoot ` is byte-identical to the merged build's.
+
+| case | bytes before → after | `Shoot ` added | elements | months → sheets |
+|---|---|---|---|---|
+| `reference` (and `blocksoff`, held to it) | 508,414 → 508,786 | 62 | 3,872, same | 16 → 16 |
+| `dayoverrides` | 480,711 → 481,071 | 60 | 3,658, same | 15 → 15 |
+| `mvheader` | 481,731 → 482,091 | 60 | 3,658, same | 15 → 15 |
+| `mvheaderlegacy` | 526,446 → 528,156 | 60 | 4,348 → 4,393 (bundle B) | 15 → 15 |
+| `dayoverrides-onhalf` | 481,395 → 481,779 | 64 | 3,658, same | 15 → 15 |
+| `hiatus-blanklabel` | 506,425 → 506,761 | 56 | 3,863, same | 16 → 16 |
+| `halfdays` | 515,701 → 515,941 | 40 | 3,897, same | 16 → 16 |
+| `mvnotes` | 543,042 → 543,414 | 62 | 4,116, same | 17 → 17 |
+
+Held, untouched and identical: `blocks` and `month-lanecap`. Cut with `monthcmp.py cut` from the gate's own per-case
+captures (`monthprint-<case>.json` / `.pdf`) on build `a53e5344…`, branch `shoot-prefix` at `12e06ac`.
+
+## ✅ RE-CUT 20 Oct 2026: `mvheaderlegacy` only, for the month header's sizes 10, 11 and 12
+
+LABELS-SETUP-PLAN.md item 7 (owner: *"10"*). The header's size toolbar is part of a MANUAL month header's
+markup, so its new options are in the print document. Signed off by the owner by picker (*"Re-cut it"*)
+after an A/B against the v1.5.0 release and a contact sheet of the printed months.
+
+| | before (v1.5.0) | after |
+|---|---|---|
+| elements | 4,256 | **4,301**: 3 `<option>` × 15 months |
+| bytes | 506,543 | 507,893 |
+| fit table | | **identical**, every row height and mode |
+| months → sheets | 15 → 15 | 15 → 15 |
+| printed PDF | | **pixel-identical** on all 15 pages at 150 dpi (`pdftoppm`), and the same `pdftotext` |
+
+The other nine cases were captured on the same build and are identical to their baselines, untouched.
+
+⭐ **Combined with bundle A's re-cut on the merge (20 Oct 2026).** Bundle A (MONTH-NOTES-PLAN.md, "a hiatus day takes
+notes", re-cut above) re-cut this case too, so the merge of the two branches re-captured it on the merged build. It is
+exactly the union of the two signed-off changes: against bundle A's cut it adds only the 45 size `<option>`s, and
+against this cut only bundle A's 92 hidden "+" note slots. 4,393 elements, the fit table identical to both, 15 months
+→ 15 sheets, and a second capture byte-identical.
 
 ## Re-cutting
 

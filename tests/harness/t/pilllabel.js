@@ -82,8 +82,9 @@ window.addEventListener('load', function () { (async function () {
         el.childNodes.forEach(function (n) { if (n !== tagEl) text += n.textContent; });
         var week = el.closest('.mv-week');
         var weekIdx = week ? [].indexOf.call(week.parentNode.children, week) : -1;
+        // `half`: a switch day's inset (HALF-SQUARE-BARS-PLAN), which keeps a one-day bar's "Ep. N" without "Shoot".
         return { week: weekIdx, from: m ? +m[1] - 1 : -1, to: m ? +m[2] - 2 : -1, lane: r ? +r[1] : -1,
-                 text: text, tag: tagEl ? tagEl.textContent : '' };
+                 text: text, tag: tagEl ? tagEl.textContent : '', half: /margin-(left|right):\s*calc\(/.test(sty) };
       });
       res.push({ title: title, html: wrap.innerHTML, pills: pills });
       var nx = document.getElementById('mv-next');
@@ -204,7 +205,9 @@ window.addEventListener('load', function () { (async function () {
             });
             var tag;
             if (p.from === p.to) tag = '';
-            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^Ep\. /, ''); })) : '';
+            // ⚠️ An episode bar reads "Shoot Ep. 201" by default (owner, 20 Oct 2026; unitBarLabel), and the grey text
+            // names the episode bare, so the prefix comes off both words.
+            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^(Shoot )?Ep\. /, ''); })) : '';
             else tag = names.map(function (B) { return [B, blockEps[B]].filter(Boolean).join(' · '); }).join(' / ');
             if (p.from === p.to && p.tag) r.oneDayTagged.push(where + p.text + ' | ' + p.tag);
             var textOk = K ? p.text === K : /^Production Week \d+$/.test(p.text);
@@ -225,7 +228,8 @@ window.addEventListener('load', function () { (async function () {
       var K = (/^(Production Week \d+)/.exec(p.tag) || [])[1] || Kof(mi, p.week);
       var B = p.text, L = blockEps[B] || null;                  // base: Block B | Production Week K · Ep. L
       if (!L) return { text: K, tag: one ? '' : B, fallback: true };   // a block with no episodes reads as Week
-      return { text: L, tag: one ? '' : [K, B].join(' · ') };  // Ep. L | Production Week K · Block B
+      // "Shoot Ep. L" by default (owner, 20 Oct 2026), except on a switch day's one-day half bar, which keeps "Ep. L".
+      return { text: (one && p.half) ? L : 'Shoot ' + L, tag: one ? '' : [K, B].join(' · ') };  // Shoot Ep. L | Production Week K · Block B
     }
     function judgeEp(res) {
       var r = { bars: 0, wrong: [], unknownWeek: 0, fallback: [], slash: [], oneDayTagged: [] };
@@ -298,9 +302,12 @@ window.addEventListener('load', function () { (async function () {
 
     // ==== STEP 3: THE REAL CONTROL (MONTH-PILL-LABEL-PLAN §5, 16 Oct 2026) ===============================
     // Preferences ▸ "Label Production by", a SegmentedControl named mv-prod-label, driven the way a user does:
-    // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' and sidebarTab
-    // 'settings' set in its JSON, so the month box is on screen (rows are judged by layout) and no view or
-    // tab click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
+    // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' set in its JSON, so no
+    // view click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
+    // ⚠️ Since the Settings window (owner ruling 12, 20 Oct 2026) the control is in its Calendar tab and the
+    // Show switches in its Preferences tab; rows() opens the tab that holds each row before judging its
+    // layout (T.shownInSettings), and opening the window is session UI, never an undo step. The JSON still
+    // carries sidebarTab 'settings' -- a value no build writes any more -- which the engine reads as Show.
     //
     //   C   on open, the selected segment is the label the bars are drawn in: no key = Schedule by (Q7, Q10),
     //       'block' on an Episodes calendar = Episode (Q11); Block disabled exactly on an Episodes calendar.
@@ -316,7 +323,6 @@ window.addEventListener('load', function () { (async function () {
     //       is dirtied; it is ONE undo step (one Undo empties the stack and restores no-key's month view,
     //       Redo re-applies it); Save writes the key; Load of that saved text shows it again (round trip);
     //       and picking Schedule by's own label from there clears the key (Q10) and draws no key's view
-    function shown(id) { var el = document.getElementById(id); return !!el && el.getClientRects().length > 0; }
     function ctl() {
       var r = [].slice.call(document.querySelectorAll('input[name="mv-prod-label"]'));
       var on = r.filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
@@ -324,7 +330,7 @@ window.addEventListener('load', function () { (async function () {
       return { checked: on.length === 1 ? on[0] : (on.join('+') || null), n: r.length,
                ids: r.map(function (x) { return x.id; }).join(','), blockDisabled: blk ? blk.disabled : null };
     }
-    function rows() { return { week: shown('pref-mv-week'), blocks: shown('pref-mv-blocks'), episodes: shown('pref-mv-episodes') }; }
+    async function rows() { return { week: await T.shownInSettings('pref-mv-week'), blocks: await T.shownInSettings('pref-mv-blocks'), episodes: await T.shownInSettings('pref-mv-episodes') }; }
     // Plan §5.2's table: a switch is hidden while its item is the bar's text; Show Blocks only on a Blocks calendar.
     function wantRows(label) { return { week: label !== 'week', blocks: blocksCal && label !== 'block', episodes: label !== 'episode' }; }
     function statusText() { return ((document.getElementById('save-status') || {}).textContent || '').trim(); }
@@ -368,7 +374,7 @@ window.addEventListener('load', function () { (async function () {
       await openText(withCtl(kv));
       var got = null;
       try { await shows(want); } catch (e) { got = e.message; }
-      var c = ctl(), rw = rows(), wr = wantRows(want);
+      var c = ctl(), rw = await rows(), wr = wantRows(want);
       out.C[kv === undefined ? 'none' : kv] = { want: want, got: c.checked, n: c.n, ids: c.ids, blockDisabled: c.blockDisabled,
         rows: rw, rowsOk: JSON.stringify(rw) === JSON.stringify(wr), err: got };
     }
@@ -391,6 +397,7 @@ window.addEventListener('load', function () { (async function () {
       // requestAnimationFrame (its Transition), which this headless run never fires, so [role=tooltip] stays
       // absent here. floating-ui's useRole sets aria-describedby on the reference the moment it opens. The
       // text itself was checked by a real hover in the pane ("Schedule by Blocks to label by block").
+      await T.openSettings('calendar');   // the control is laid out only on its own tab
       var ref = document.querySelector('label[for="mv-prod-label-block"] span span');
       out.B.describedBefore = ref ? ref.getAttribute('aria-describedby') : 'no reference';
       if (ref) {
@@ -440,7 +447,7 @@ window.addEventListener('load', function () { (async function () {
       R.undoBefore = undoOff(); R.statusBefore = statusText();
       await pick(m);
       R.view = byKey[m] ? sameHtml(await months(), byKey[m]) : 'no reference for ' + m;
-      R.rows = JSON.stringify(rows()) === JSON.stringify(wantRows(m));
+      R.rows = JSON.stringify(await rows()) === JSON.stringify(wantRows(m));
       await T.sleep(700);
       R.statusAfter = statusText(); R.undoAfter = undoOff();
       document.getElementById('undo-btn').click();

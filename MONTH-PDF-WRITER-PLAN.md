@@ -68,7 +68,8 @@ proof that no shared primitive moved.
 
 ### 2.3 Where the month view's rules live
 
-- **Callable pure helpers:** `monthRangeForSchedule`, `pillRunsForWeek`, `segPillLabel`,
+- **Callable pure helpers:** `monthRangeForSchedule` (⚠️ since 20 Oct 2026 it answers by context, and the
+  writer calls `monthPrintRange` instead: MONTH-NOTES-PLAN.md §3), `pillRunsForWeek`, `segPillLabel`,
   `productionPillTag` (reads the Show Info fields and `prefs`), `notesForWaterfallDate` (carries
   M-13, so never re-implement it), `dayNoteList`, `simPostLabel`, `hiatusTextFor`, `textColorFor`,
   `mvHeaderLine`, `resolveHeaderTemplate`, `headerFmt`.

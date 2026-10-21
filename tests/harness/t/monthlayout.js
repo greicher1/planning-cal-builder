@@ -92,7 +92,8 @@ window.addEventListener('load', function () { (async function () {
     var ttfSrc = slice('function ttfRead(bytes){', 'return w * sizePt / t.unitsPerEm;\n  }', 'ttfRead..ttfTextWidth');
     var hiSrc = slice('const PDF_WINANSI_HI = {', '};', 'PDF_WINANSI_HI');
     var mvlSrc = slice('  const MVL_GEOMETRY = (function(){',
-      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };\n  }',
+      // ⚠️ Re-anchored 20 Oct 2026: buildMonthLayout passes the bar font's width too (MONTH-NOTES-PLAN.md §6).
+      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };\n  }',
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.
@@ -266,8 +267,10 @@ window.addEventListener('load', function () { (async function () {
       r.dow = []; re = /<div class="mv-dow">([^<]*)<\/div>/g; while((m = re.exec(raw))) r.dow.push(decode(m[1]));
       raw.split('<div class="mv-week"').slice(1).forEach(function (wk) {
         var w = {cells: [], bars: []};
-        var cre = /<div class="(mv-daycell[^"]*)"><span class="mv-daynum">(\d+)<\/span><\/div>/g;
-        while((m = cre.exec(wk))) w.cells.push({cls: ' ' + m[1] + ' ', n: parseInt(m[2], 10)});
+        // data-shoot-day: "Number Production Days" (19 Oct 2026) writes it on a shoot day's square while the switch
+        // is on, and the model reads it as `sd` (0 when absent), so this reading does too.
+        var cre = /<div class="(mv-daycell[^"]*)"(?: data-shoot-day="(\d+)")?><span class="mv-daynum">(\d+)<\/span><\/div>/g;
+        while((m = cre.exec(wk))) w.cells.push({cls: ' ' + m[1] + ' ', n: parseInt(m[3], 10), sd: m[2] ? parseInt(m[2], 10) : 0});
         var bre = /<div class="mv-bar ([^"]*)"((?:\s+[\w-]+="[^"]*")*)>([\s\S]*?)<\/div>/g;
         while((m = bre.exec(wk))){
           var cls = ' ' + m[1] + ' ';
@@ -329,7 +332,7 @@ window.addEventListener('load', function () { (async function () {
             var exp = {iso: dd.toISOString().slice(0, 10), n: dd.getUTCDate(), out: lc.cls.indexOf(' mv-out ') >= 0,
                        weekend: lc.cls.indexOf(' mv-weekend ') >= 0,
                        mark: lc.cls.indexOf(' mv-day-off ') >= 0 ? 'off' : lc.cls.indexOf(' mv-day-on ') >= 0 ? 'on' : '',
-                       half: lc.cls.indexOf(' mv-day-half ') >= 0};
+                       half: lc.cls.indexOf(' mv-day-half ') >= 0, sd: lc.sd};
             if(lc.n !== exp.n || !same(c, exp)) bad.P0.push(wWhere + ' day ' + (i + 1) + ': ' + JSON.stringify(c) + ' vs ' + JSON.stringify(exp));
           });
           if(w.items.length !== lw.bars.length) { bad.P0.push(wWhere + ': ' + w.items.length + ' bars vs ' + lw.bars.length); return; }

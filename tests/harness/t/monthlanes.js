@@ -123,10 +123,14 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return monthShown() !== lastBefore; }, 'the month view to react to the shrink', 100, 100);
     await settle('the shrunk calendar to settle');
     var afterShrink = navState();
+    // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §3, owner: "One month each side"): the view pages one month past
+    // the last phase month, so the nearest month WITH THE PHASES is one ▶ short of the end, where it used to be the
+    // end itself. update() clamps a cursor left past the end to that month, the new last phase month.
+    var edgeAfter = (await step('mv-next')) ? navState() : null;
     kase('L17a', 'a shrink below the month on screen shows the NEAREST month (the new last one), not the first',
-         monthIdx(afterShrink.month) < monthIdx(lastBefore) && afterShrink.atLast && !afterShrink.atFirst &&
-         afterShrink.month !== out.firstMonth,
-         { lastBefore: lastBefore, localizationWeeks: shrinkFrom + ' -> 1', shown: afterShrink });
+         monthIdx(afterShrink.month) < monthIdx(lastBefore) && !afterShrink.atLast && !afterShrink.atFirst &&
+         afterShrink.month !== out.firstMonth && !!edgeAfter && edgeAfter.atLast,
+         { lastBefore: lastBefore, localizationWeeks: shrinkFrom + ' -> 1', shown: afterShrink, oneMore: edgeAfter });
 
     // ---- L-17 guards: a LOADED calendar opens where it always did ---------------------------------
     // hiatus-blank ends before the month on screen, so it must open on its FIRST month. Walk to the
@@ -136,9 +140,13 @@ window.addEventListener('load', function () { (async function () {
     await loadFixture('hiatus-blank.sptcal');
     await monthView();
     var loadedEarly = navState();
+    // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §3): its first PHASE month, which is one ◀ short of the start now
+    // (the edge month before it can be paged to, and is never opened on).
+    var edgeBefore = (await step('mv-prev')) ? navState() : null;
+    await step('mv-next');
     kase('L17b', 'Load: a calendar that ends before the month on screen opens on its FIRST month (as before)',
-         loadedEarly.atFirst && monthIdx(loadedEarly.month) < monthIdx(fromMonth),
-         { from: fromMonth, shown: loadedEarly });
+         !loadedEarly.atFirst && !!edgeBefore && edgeBefore.atFirst && monthIdx(loadedEarly.month) < monthIdx(fromMonth),
+         { from: fromMonth, shown: loadedEarly, oneBack: edgeBefore });
     // Then a calendar that CONTAINS the month on screen must keep it.
     var mid = 'June 2026';
     var reachedMid = await goTo(mid);
