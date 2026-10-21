@@ -245,6 +245,33 @@ exercised by no baseline. A change that tips a month *into* `scale` still fails 
 differs, and the fit table reports the mode change — but the scale branch's own output is unproven.
 A fixture with a comment-heavy week in a six-week month would close it.
 
+## ✅ RE-CUT 20 Oct 2026 (evening): eight cases, "Shoot" before every episode bar; `mvheaderlegacy` also takes bundle B's sizes
+
+- **The ruling and the sign-off** are gate 13's (its README, the same evening): "Shoot Ep. 101" by default, by picker,
+  and **"Re-cut both"** on the contact sheets and this classification.
+- **What moved.** In each re-cut document, removing every `Shoot ` gives back the old baseline **byte for byte** (bar
+  text and the pill's `title`). Element counts, the fit table (every row height and mode, which are inline styles in
+  the document) and months → sheets are unchanged, so no month changed its fit.
+- ⚠️ **`mvheaderlegacy` carries one more change, bundle B's, and that is why it moved most.** The entry below records
+  bundle B's re-cut (its size options), but when bundle B was merged on `merge-all` its file was HELD at bundle A's
+  baseline (both bundles had re-cut it from different starting points). This cut carries both: bundle A's hidden "+"
+  on hiatus days (already in the held file), bundle B's three `<option>`s × 15 months (+45 elements, 4,348 → 4,393),
+  and the "Shoot" text. The prefix build's document minus `Shoot ` is byte-identical to the merged build's.
+
+| case | bytes before → after | `Shoot ` added | elements | months → sheets |
+|---|---|---|---|---|
+| `reference` (and `blocksoff`, held to it) | 508,414 → 508,786 | 62 | 3,872, same | 16 → 16 |
+| `dayoverrides` | 480,711 → 481,071 | 60 | 3,658, same | 15 → 15 |
+| `mvheader` | 481,731 → 482,091 | 60 | 3,658, same | 15 → 15 |
+| `mvheaderlegacy` | 526,446 → 528,156 | 60 | 4,348 → 4,393 (bundle B) | 15 → 15 |
+| `dayoverrides-onhalf` | 481,395 → 481,779 | 64 | 3,658, same | 15 → 15 |
+| `hiatus-blanklabel` | 506,425 → 506,761 | 56 | 3,863, same | 16 → 16 |
+| `halfdays` | 515,701 → 515,941 | 40 | 3,897, same | 16 → 16 |
+| `mvnotes` | 543,042 → 543,414 | 62 | 4,116, same | 17 → 17 |
+
+Held, untouched and identical: `blocks` and `month-lanecap`. Cut with `monthcmp.py cut` from the gate's own per-case
+captures (`monthprint-<case>.json` / `.pdf`) on build `a53e5344…`, branch `shoot-prefix` at `12e06ac`.
+
 ## ✅ RE-CUT 20 Oct 2026: `mvheaderlegacy` only, for the month header's sizes 10, 11 and 12
 
 LABELS-SETUP-PLAN.md item 7 (owner: *"10"*). The header's size toolbar is part of a MANUAL month header's

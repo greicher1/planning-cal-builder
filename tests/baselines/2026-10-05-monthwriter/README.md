@@ -48,6 +48,27 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 20 Oct 2026 — FOURTEEN CASES: "Shoot" before every episode bar (and nothing else)
+
+- **The ruling.** Owner, 20 Oct 2026, by picker: an episode's month bars read **"Shoot Ep. 101"** by default on every
+  calendar, old files included; a block's bars have no prefix by default; each unit's own prefix is set from its bar's
+  day menu (`unitBarLabel`, `barPrefix`). A switch day's one-day half bar keeps plain "Ep. N" (the 16 Oct ruling, kept).
+  No frozen code changed: the label is composed outside `renderMonthView`, and the writer reads the renderer's HTML.
+- **The sign-off came first.** The owner saw `monthbase.py sheets` contact sheets (old | new | difference) of
+  `reference` and `halfdays`, July 2026, and the classification below; the answer was **"Re-cut both"** (picker).
+- **What moved, classified line by line** (every content stream inflated through `monthbase.parse`, then compared):
+  every changed line is either the same text run with `(Ep. N)` become `(Shoot Ep. N)` (7 to 32 runs a calendar), or a
+  grey-text run after it whose x moved right by **23.14 pt** exactly, the width "Shoot " takes at the bar's 7.5 pt / 600.
+  No run was added, removed, truncated or re-wrapped; no y moved; no page was added or lost. Pages without an episode
+  bar are pixel-identical (`sheets`: 0 pixels).
+- **Re-cut:** `reference` (and `rz`, `rw`, `bo`, held to it, which are byte-identical to `r`), `carry-rich`,
+  `colswap-simpost-refuse`, `dayoverrides`, `dayoverrides-onhalf`, `halfdays`, `hiatus-blanklabel`, `monthnotes`,
+  `mvheader`, `mvheaderlegacy`, `mvnotes`, `notewrap`, `shootorder`, `stintswap-reshape`.
+  **Held byte-identical, no re-cut:** `blocks` (a Blocks calendar labelled by block), `monthscale`, `month-dense60`,
+  `month-lanecap` (no episode bar).
+- **Cut from** build `a53e5344…` (1,663,652 bytes), branch `shoot-prefix` at `12e06ac`, by that build's own full gate
+  (port 9247, 17:38–18:03): `/tmp/gate9247-mxa/<run>.pdf`. Google Chrome **155.0.8059.85**.
+
 ## ✅ RE-CUT 19 Oct 2026 — ALL SEVENTEEN CASES: the month view numbers weeks as the waterfall does
 
 **A deliberate change to text only** (OFF-WEEK-PLAN.md step B, owner ruling Q5: "match the waterfall").
@@ -121,23 +142,23 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | case | pages | bytes | sha256 |
 |---|---|---|---|
 | `blocks` | 16 | 80,934 | `88ee3ae6d8173c1d…` |
-| `carry-rich` | 12 | 81,465 | `385bc5b5e493d1bc…` |
-| `colswap-simpost-refuse` | 3 | 52,125 | `12af188b4b23eb37…` |
-| `dayoverrides-onhalf` | 15 | 79,120 | `57d6b9de26e16a60…` |
-| `dayoverrides` | 15 | 78,438 | `20099017fa82b252…` |
-| `halfdays` | 16 | 80,149 | `7abb70b03d0d3d35…` |
-| `hiatus-blanklabel` | 16 | 81,704 | `52f0d45810ed5df9…` |
+| `carry-rich` | 12 | 81,491 | `068617986182a36d…` |
+| `colswap-simpost-refuse` | 3 | 52,134 | `5829bef9ac42bce2…` |
+| `dayoverrides-onhalf` | 15 | 79,160 | `4da0792c3b5df960…` |
+| `dayoverrides` | 15 | 78,471 | `d3b5c97445fd74e0…` |
+| `halfdays` | 16 | 80,183 | `c8e9998473736d55…` |
+| `hiatus-blanklabel` | 16 | 81,757 | `cc978e2f6822680d…` |
 | `month-dense60` | 16 | 82,777 | `5aa97399cc7d9408…` |
 | `month-lanecap` | 16 | 82,028 | `08f8539972ab7995…` |
-| `monthnotes` | 16 | 81,887 | `515936e08bd6a5df…` |
+| `monthnotes` | 16 | 81,924 | `010f8ca51b36cb7c…` |
 | `monthscale` | 16 | 82,612 | `e77c869ce1359664…` |
-| `mvnotes` | 17 | 85,250 | `00f769160ea5dffc…` |
-| `mvheader` | 15 | 93,755 | `7e8235327b6a8d88…` |
-| `mvheaderlegacy` | 15 | 78,622 | `e82b0587823b07eb…` |
-| `notewrap` | 16 | 82,312 | `0317f22757a9c2a0…` |
-| `reference` | 16 | 81,743 | `8f2f0dfab23f047a…` |
-| `shootorder` | 16 | 81,740 | `67c4f10b0d1719ef…` |
-| `stintswap-reshape` | 25 | 102,989 | `5e9ac90a36599aa2…` |
+| `mvheader` | 15 | 93,776 | `88a100f27a0a70d3…` |
+| `mvheaderlegacy` | 15 | 78,655 | `2bb3cde2d629ac89…` |
+| `mvnotes` | 17 | 85,293 | `394792bf7fb93748…` |
+| `notewrap` | 16 | 82,362 | `b49e6a973a279b64…` |
+| `reference` | 16 | 81,786 | `1e4bbf1dc3dbcbf8…` |
+| `shootorder` | 16 | 81,785 | `c8cbd880f7ee8af5…` |
+| `stintswap-reshape` | 25 | 103,019 | `30f27f4baea849cd…` |
 
 Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture()` typed into a fresh page.
 
