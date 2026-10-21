@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; GATED, IN LOCAL `main`, NOT PUSHED (owner: goes live with the next push from any session)
+### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; GATED, **LIVE at `49cb1ef`** (verified byte-identical, `0f8adf0d`; no version cut)
 
 - ⏭ **RESUME HERE for the phase-card caret.** Owner: *"There should be a carrot that lets you hide and unhide phases
   within the phases menu. When you hide them it should show just their name (name still editable) with their color but
@@ -52,12 +52,23 @@
   PASS, 1 FAIL**: `offweek (offweek)` R10, "timed out waiting for: the loaded file’s name in the file menu", the
   recorded IndexedDB-under-load flake (v1.6.0's release gate hit the same R10). Re-run alone through gate.sh's own
   block twice: **FAIL=0 both times**, R10 green. 0 clipped; 76 ids.
-- ✅ **Local `main` fast-forwarded to this branch.** Not pushed: it ships with the next push from any session, on the
-  owner's word above. No version cut.
+- ✅ **Local `main` fast-forwarded to this branch** (`49cb1ef`).
+- ✅ **PUSHED AND LIVE.** Owner: *"push"*, then, shown that the push carries THREE features (this caret, Paste notes in
+  Settings, which had been held, and the Calendar tab merged into Preferences), by picker: *"Push all three"*. Rebuilt
+  from `49cb1ef` first: `0f8adf0d…`, the gated build, byte for byte. ONE `git push origin main` at 15:35:56
+  (`38840c2..49cb1ef`, 20 commits). Deploy run 39687655600: Build and check, Deploy to Pages, both success. At
+  15:37:02 the live `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (sha256
+  `0f8adf0d45cfd681…`, 1,668,442 bytes, `cmp`). No version cut: `version.json` stays 1.6.0, so installed copies pick it
+  up silently on their next load.
+- **Still NOT in `main` after this push** (checked 21 Oct 2026, branches with commits `main` lacks): the zoom slider
+  (`cal-zoom`, one commit, the owner holding its push); "Shoot Ep. 101" default episode names with Prefix… retired
+  (`ep-shoot-names`, gated 2,520 / 1 with gates 10/13 re-cut on sign-off, waiting on the owner's merge picker); the
+  harness's parallel gate lanes (`claude/unruffled-lumiere-060845`, test tooling only). Each must merge `main` (now
+  `49cb1ef`) before it lands.
 - ⏭ **Next:** nothing on this feature unless the owner answers the open question: whether folds should be remembered
   after reopening the app (built as session-only). The worktree can be removed on the owner's word.
 
-### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,563 / 0 WITH heading-merge AND PASTE NOTES, IN LOCAL `main`, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,563 / 0 WITH heading-merge AND PASTE NOTES, **LIVE at `49cb1ef`** (pushed with the phase-card caret, 21 Oct 2026)
 
 - ⏭ **RESUME HERE for the merged Preferences tab.** Owner, 20 Oct 2026: *"Lets combine settings under preferences
   and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the waterfall and
@@ -309,7 +320,7 @@
 - ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
   merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
 
-### 🔨 20 Oct 2026: "put paste notes into settings" — MERGED INTO LOCAL `main`, GATED 2,560 / 0, NOT PUSHED (owner: "Hold the push")
+### 🔨 20 Oct 2026: "put paste notes into settings" — MERGED INTO LOCAL `main`, GATED 2,560 / 0, **LIVE at `49cb1ef`** (held, then pushed with the phase-card caret on the owner's picker, 21 Oct 2026)
 
 - Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
   stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
