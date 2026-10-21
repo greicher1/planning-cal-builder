@@ -62,6 +62,10 @@ heading covered was a side effect of its text. Rebuilt on the owner's picker (*"
   calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). Full gate: 2,560
   PASS, 0 FAIL, with 0 clipped cells and the waterfall PDF, every Excel part, the v1.0.0 restore and the 76
   saved field ids identical to their baselines.
+- **Live since 21 Oct 2026, 03:06** (`38840c2`, pushed on the owner's picker; no version cut, so `APP_VERSION`
+  stays 1.6.0). The deployed `index.html` is byte-identical to the gated build (sha256 `8f963d1a…`). With no
+  service worker, an installed copy gets it the next time it is opened or reloaded; a window already open
+  shows no update notice.
 ### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
 
 Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
