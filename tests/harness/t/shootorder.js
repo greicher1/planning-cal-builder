@@ -23,11 +23,12 @@ window.addEventListener('load', function () { (async function () {
     });
   }
   function meta() { return ((document.getElementById('meta-production') || {}).textContent || '').trim(); }
-  // Production's pills in the month on screen: [label, grey text] per pill.
+  // Production's pills in the month on screen: [label, grey text] per pill. The label WITHOUT the "Shoot " an episode
+  // bar carries by default since 20 Oct 2026 (owner): this leg is about shooting order, and barprefix holds the prefix.
   function pills() {
     return [].map.call(document.querySelectorAll('#table-wrap .mv-pill[data-ph="production"]'), function (p) {
       var sp = p.querySelector('.mv-pill-block');
-      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim(),
+      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^Shoot /, ''),
               sp ? sp.textContent : ''];
     });
   }

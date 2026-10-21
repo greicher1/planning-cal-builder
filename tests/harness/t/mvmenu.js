@@ -1238,7 +1238,7 @@ window.addEventListener('load', function () { (async function () {
       eq(v1.sections, ['day', 'hiatus', 'out']) && v1.band.length === 1 && v1.band[0].label === BAND
         && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger]; }),
               [['band-lock', 'menuitemcheckbox', 'true', 'Lock in place', 'Stays on these dates when the calendar shifts', false],
-               ['band-num', 'menuitemcheckbox', 'false', 'Number weeks', 'Labels its weeks Hiatus Week 1, 2…', false],
+               ['band-num', 'menuitemcheckbox', 'false', 'Number weeks', 'Labels its weeks Hiatus wk 1, 2…', false],
                ['band-colour', 'menuitem', null, 'Colour…', '', false],
                ['band-show', 'menuitem', null, 'Show in Phases card', '', false],
                ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true]]),
