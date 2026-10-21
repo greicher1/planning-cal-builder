@@ -142,6 +142,24 @@
 - ⏭ **Next:** the owner's merge picker for `main` and, separately, a push picker (a version cut is the owner's call).
   Nothing here is in `main`.
 
+### 📝 21 Oct 2026: NOTES THAT SPAN SEVERAL DAYS — PLANNED, NOT RULED, NO CODE ([`SPAN-NOTES-PLAN.md`](SPAN-NOTES-PLAN.md))
+
+- **Gap-report item 21.** The owner asked whether such notes "would feel too much like phases and confuse things". The
+  answer the plan builds on: yes, if they are filled bars. Colour cannot separate a note from a phase, because the
+  default note colour is `MILESTONE_COLOR` (strong purple) and the note palette has both pastels and strong colours, as
+  phases do. So the shape has to. The first mock recommended an unfilled range line; the owner then directed *"keep the
+  bg color of the note"*, so every option now keeps the fill: pointed ends (recommended), folded corner, dark start
+  edge, italic, tag and line, and two combinations, mocked beside a pale blue phase (plan §1 D1).
+- ⏭ **Waiting on the owner: four decisions** (plan §1): D1 the look, and whether it applies to every note or only
+  spanning ones (every note re-cuts gates 10 and 13), D2 how one is made (a "Through" date in the note
+  editor recommended), D3 whether it moves with the schedule (recommended: stays on its dates, as every day note does),
+  D4 text on every week's piece or the first only. §2 lists what the plan settles unless overruled.
+- **Facts checked for it:** several notes on ONE day already work (`dayNotes[iso]` has been a list since v1.0.0). The
+  day-note sanitizer copies an entry with `Object.assign` in this build, v1.3.0 and v1.6.0, so a new `days` key would
+  survive in older builds, which should draw the note on its first day only (to be confirmed by opening the fixture in
+  `releases/v1.6.0.html`). Two frozen edits: `renderMonthView`'s notes loop (F1) and the Month view CSS block (F2). The
+  writer, editor, sanitizer and Paste notes are not frozen.
+
 ### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; GATED, **LIVE at `49cb1ef`** (verified byte-identical, `0f8adf0d`; no version cut)
 
 - ⏭ **RESUME HERE for the phase-card caret.** Owner: *"There should be a carrot that lets you hide and unhide phases
