@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); NOT IN `main`, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; NOT IN `main`, NOT PUSHED
 
 - **The ask.** Owner, with a screenshot of v1.6.0's heading panel (a "Writing" heading over Column 1 + Notes, two
   boxes both reading "Writing"): *"this is a really confusing/convaluted way to have this menu ... you have to
@@ -34,8 +34,11 @@
   keeps them (N1, re-run alone; its first run threw EX under load), typing merges (EX), splits not saved
   (S1/S2/S3/S5). `settingswin` 17/17, `sharecopy2` pass (the strip list gained `.hdrrow-ring`). Seen in the browser
   pane on `v1.6.0-saved` (Split, type, ← Merge, Merge →, Reset, ⌘Z) including the owner's exact case.
-  ⏳ **NOT run: the full gate** (another session's gate was running; two at once stall each other's Chrome).
-- ⏭ **Next:** the owner's commit picker, then the full gate alone, then a merge picker for `main`. Not pushed.
+- ✅ **Committed** as `6bc37c9` on the owner's picker (*"Commit to the branch"*, *"Run the full gate"*).
+- ✅ **Full gate PASSED: 2,560 PASS, 0 FAIL** (build `8f963d1a…` at `6bc37c9`, port 9263, 21 Oct 01:43:06–02:07:40,
+  queued until no other session's gate, mini-gate or gate-waiter was alive). `hdrrow` 35/35 inside it; 0 clipped
+  cells; the waterfall PDF and every Excel part identical to the baselines; the v1.0.0 restore identical; 76 ids.
+- ⏭ **Next:** the owner's picker to merge `heading-merge` into `main`, then a SEPARATE push picker. Not pushed.
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 

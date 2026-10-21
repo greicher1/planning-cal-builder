@@ -59,8 +59,9 @@ heading covered was a side effect of its text. Rebuilt on the owner's picker (*"
   without it (v1.6.0), and with junk). 35/35 on the build, twice. Five mutants each turn it red (splits ignored
   when drawing, splits kept from the previous file, splits kept after New, typing merging, splits not saved).
   `settingswin` 17/17 and `sharecopy2` pass. `npm run check` 40/40. Seen working in the browser on a real
-  calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). The full gate has
-  not been run yet.
+  calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). Full gate: 2,560
+  PASS, 0 FAIL, with 0 clipped cells and the waterfall PDF, every Excel part, the v1.0.0 restore and the 76
+  saved field ids identical to their baselines.
 
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
