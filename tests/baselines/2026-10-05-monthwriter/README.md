@@ -64,6 +64,18 @@ Every test before step 6 stood in for the Save dialog. So:
 - **Cut from** build `eadef87e89bcd27b…`, worktree `offweek-step-b`, by the full gate's `monthexport` runs
   (`/tmp/gate8963-mxa/`). `rz`, `rw` and `bo` were byte-identical to `r`. Google Chrome **155.0.8059.85**.
 
+## ✅ NEW CASE 20 Oct 2026 — `mvnotes` (MONTH-NOTES-PLAN.md); every other case untouched
+
+- **Signed off** on a contact sheet of its December 2025, April, May and December 2026 pages, print path beside the
+  written file: **"Cut both"** (picker, 20 Oct 2026).
+- **What it holds:** an edge month (December 2025) printed because it holds day notes and a custom holiday; No fill
+  notes drawn as text alone (their fill and border LISTED `clear`, never painted); Pink, Red and Dark grey notes; a note
+  on a hiatus day; two one-day custom pills that wrap to two lines, one cut with "…" on its second. 17 pages, 85,250
+  bytes, sha256 `00f769160ea5dffc…`.
+- **No other case moved:** the full gate's gate 13 on build `f6a7393896109030…` was byte-identical for every one of the
+  twenty runs here, so items 2, 6, 10 and 17 changed no existing calendar's written PDF.
+- **Cut from** that build's `monthexport` run (`/tmp/gate8985-mxa/nn.pdf`), Google Chrome 155.0.8059.85.
+
 ## ✅ RE-CUT 16 Oct 2026 — `halfdays` ONLY: a switch day's two bars meet half way through the square
 
 **A deliberate change to one case**, the only baselined calendar with a .5 switch day.
@@ -119,6 +131,7 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 | `month-lanecap` | 16 | 82,028 | `08f8539972ab7995…` |
 | `monthnotes` | 16 | 81,887 | `515936e08bd6a5df…` |
 | `monthscale` | 16 | 82,612 | `e77c869ce1359664…` |
+| `mvnotes` | 17 | 85,250 | `00f769160ea5dffc…` |
 | `mvheader` | 15 | 93,755 | `7e8235327b6a8d88…` |
 | `mvheaderlegacy` | 15 | 78,622 | `e82b0587823b07eb…` |
 | `notewrap` | 16 | 82,312 | `0317f22757a9c2a0…` |

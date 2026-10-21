@@ -92,7 +92,8 @@ window.addEventListener('load', function () { (async function () {
     var ttfSrc = slice('function ttfRead(bytes){', 'return w * sizePt / t.unitsPerEm;\n  }', 'ttfRead..ttfTextWidth');
     var hiSrc = slice('const PDF_WINANSI_HI = {', '};', 'PDF_WINANSI_HI');
     var mvlSrc = slice('  const MVL_GEOMETRY = (function(){',
-      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf); }) };\n  }',
+      // ⚠️ Re-anchored 20 Oct 2026: buildMonthLayout passes the bar font's width too (MONTH-NOTES-PLAN.md §6).
+      'return { geometry: MVL_GEOMETRY, months: htmls.map(function(h){ return mvlMonthLayout(h, widthOf, pillWidthOf); }) };\n  }',
       'the layout model (MVL_GEOMETRY..buildMonthLayout)');
     // The frozen screen measurement, for info.spanChanges only: what the SCREEN's own rule would say at
     // the PDF's box, which separates the width's effect from the metrics'.

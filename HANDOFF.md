@@ -4,6 +4,104 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 20 Oct 2026: OWNER REQUEST, NOT BUILT: "put paste notes into settings", AFTER THE SETTINGS WINDOW IS LIVE
+
+- Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
+  stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
+  Settings window, `src/chrome/SettingsWindow.jsx`, ruling 12) is pushed, move **Paste notes…** out of the preview
+  toolbar (`#paste-notes-btn` in `PreviewToolbar.jsx`, month view only, opened by delegation in `app.js` →
+  `openPasteNotes()`) into that Settings window.
+- ⚠️ Decide then: `openPasteNotes()` returns unless `viewMode === 'month'`, so a Settings entry must either open the
+  month view first or say it is month-view only; and the `mvnotes` leg's V-cases click `#paste-notes-btn`.
+- The bundle-B session (`labels-setup`) watches `origin/main` for `SettingsWindow.jsx` and picks this up when it lands.
+
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
+
+- ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
+  `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
+  at `be67ca5`. ⛔ The report came from recreating two real production calendars; nothing about them is in this
+  work, and every fixture is synthetic.
+- **The rulings** (all by picker, 20 Oct 2026, verbatim in the plan §1 and §8): "Ep." only before numbers, a mixed
+  list "Pilot, Ep. 102, 103"; Blocks need no episode count, old files keep dates, and an old file takes the new rule
+  on its next Show Info edit; the weekend just before, its week becoming Production Week 1; header sizes from 10;
+  France, the film agreement's 11 days, one place; hiatus Colour… and Number weeks, the box per row.
+- **What a user gets:** see the six README entries of 20 Oct 2026.
+- ⛔ **Save format, all additive, no `SNAPSHOT_VERSION` bump, no new id in `fields.byId`:**
+  - top-level `blocksEpisodesOptional: true`, written ONLY on a count-less Blocks calendar on the new rule. Its
+    ABSENCE on a count-less Blocks file is what marks a pre-change file (`blocksEpisodesLegacy`, set unconditionally
+    in `applyStateSnapshot`, cleared by `showInfoEdited()`);
+  - day word `'lead'` in `dayOverrides`, on the weekend just before the first shoot day. ⛔ Never `'on'`: a stored
+    `'on'` there was inert and must stay so (`'onhalf'`'s precedent);
+  - `fields.hiatuses[i].numbered: true`, written only when ticked;
+  - `union-place` value `eu-france`, appended.
+- **Code** (no frozen symbol but one, below): `epListLabel` / `episodeListItems` (item 3, `episodeListLabel` is
+  gone); `hasEpisodeCount`, `blockEpisodeDefs`, `showInfoEdited` (item 4); `productionLeadWeekend`, the `noLead`
+  walk, `productionInfo.leadDays`, `daySituation`'s `lead` (item 5); `headerFmtToolbarHtml`, `hdrTokenGroups` (item
+  7); `FR` in `tools/gen_holidays.py` with a per-region `verified` (item 8); `.hiatus-num`, `numberHiatusHere`,
+  `hiatusColourHere`, `openPhaseColorPop`'s `options` (item 9).
+- ⛔ **One frozen edit, owner-approved by picker ("Approve the edit"):** `_ovDays` in `renderMonthView` marks `'lead'`
+  as `'on'`, the worked-day tint. Inert on every baseline. Added to the frozen-edit table below.
+- ⭐ **Learned:**
+  1. **A view switch is its own undo step**, so a leg that acts in the month view, reads the waterfall and then
+     clicks Undo undoes the view switch. `labelsetup` undoes in the view it acted in, then redoes before switching.
+  2. **The month-view header lines carry `data-mvhid`, not `data-hid`.**
+  3. **A "Load another calendar?" question can come later than 4 s** under load; the leg answers it whenever it
+     shows, until the title is in (B4 flaked once before that).
+  4. **Légifrance answers automated reads with a 403 and then a human check.** The France provenance says what was
+     read instead.
+- **Proof so far, build `736220ac…`:** `labelsetup` 41/41 (new leg, in `gate.sh`'s generic block); `mvmenu` 87/87
+  (L3 changed, L3b new, V1/V9 updated); `npm run check` 40/40; `check-refs.py` CLEAN; `validate_holidays.py` CLEAN.
+  On `releases/v1.5.0.html`, `labelsetup` passes only its 8 controls. Twenty mutants each turn their own cases red
+  (table in the plan's §9 once the gate is in). Gate 10 alone: nine documents identical; `mvheaderlegacy` moved by
+  45 `<option>`s with a pixel-identical printed PDF, and was **re-cut on the owner's "Re-cut it"**.
+- ✅ **Full gate on bundle B alone, build `736220ac…` at `b624009` (port 8961, 15:10:57–15:30:47, alone after a
+  ~30 min queue behind two other sessions' gates): 2,080 PASS, 0 FAIL, GATE PASSED.** 0 clipped; the waterfall PDF and
+  every Excel part identical; `fields.byId` 74 ids; gate 10's ten print documents identical (`mvheaderlegacy` against
+  its re-cut); gate 13's twenty written month PDFs byte-identical, so the size options never reach the writer;
+  `labelsetup` 41, `mvmenu` 87, `regioncaveat` 13.
+- **Merged `main` in (`5e285af`)**: the prep pause switch (gap-report item 1) had landed on local `main` meanwhile. The
+  one code conflict was two conditional `captureSnapshot()` keys at the same spot (`prepPauseOff`,
+  `blocksEpisodesOptional`); both kept, `main`'s first. Merged build `c164e88b…` (1,556,617 bytes): check 40/40, refs
+  CLEAN, `labelsetup` 41/41, `mvmenu` 87/87, `regioncaveat` 13/13, `offweek` and `episodeprep` pass.
+- **Full gate on that merged build `c164e88b…` at `5e285af` (port 8961, 15:51:57–16:12:30, alone): 2,075 PASS, 3
+  FAIL.** All three are timing flakes already on record, and all three passed when re-run alone through `gate.sh`'s
+  own loops and judges (16:32:55–16:33:23, **86 PASS, 0 FAIL**): `pilllabel (shootorder)` W3 and `pilllabel (halfdays)`
+  W2 ("months 1 vs 16", the month-walk flake) and `episodeprep (episodeprep)` ("timed out waiting for the loaded file's
+  name in the file menu"). Everything else held: 0 clipped, the waterfall PDF and every Excel part identical, 74 ids,
+  gate 10's ten documents and gate 13's twenty written PDFs identical. ⚠️ Commit `cc89cab` is titled for this result
+  but holds the paragraph above it (a chained command skipped the edit); this one is the record.
+- **Merged `main` in again (`34554f1`)**: bundle A (`month-notes`, items 2, 6, 10, 15, 17) had been merged into local
+  `main` on the owner's picker meanwhile, with the push held for this bundle. `app.js`, HANDOFF, README and `mvmenu.js`
+  merged clean (`mvmenu` now 88 cases, both bundles'); `gate.sh` and the harness README kept both sides. ⭐ **Both
+  bundles had re-cut `mvheaderlegacy`'s gate-10 baseline**, each signed off, so it was re-captured on the merged build
+  and checked to be exactly the union: against bundle A's cut only the 45 size options, against bundle B's only A's
+  92 hidden "+" slots, the fit table identical to both, a second capture byte-identical. Merged build `c9f2f5a5…`:
+  check 40/40, refs CLEAN, `labelsetup` 41, `mvmenu` 88, `mvnotes` 14, `regioncaveat` 13.
+- ✅ **Full gate on the combined build `c9f2f5a5…` (item 1 + bundle A + bundle B, at `34554f1`; port 8961,
+  17:17:42–17:38:16, alone after a queue behind the `merge-all` session's gate): 2,203 PASS, 0 FAIL, GATE PASSED.**
+  0 clipped; the waterfall PDF and every Excel part identical; 74 ids; gate 10's eleven documents (with bundle A's
+  `mvnotes`) and gate 13's twenty-one written PDFs identical; `labelsetup` 41, `mvmenu` 88, `mvnotes` all green.
+- ✅ **MERGED AND PUSHED, LIVE.** Owner, by picker: *"Yes, merge into main"* and *"Push and verify live"*.
+  - ⚠️ The main checkout held another session's UNCOMMITTED HANDOFF entry ("RULED, NOT YET PLANNED: … reference
+    waterfall", 51 lines), which blocked the fast-forward. It is an older copy of an entry the `merge-all` /
+    `shoot-prefix` branch has committed, corrected (51 of its 54 lines verbatim there). Owner, by picker: *"Yes, back
+    it up and set aside"*. Saved byte-identical (and as a diff) in this session's scratchpad as
+    `main-checkout-HANDOFF.uncommitted.md`, then `git checkout -- HANDOFF.md`. The main checkout's other two unsaved
+    files (`tests/fixtures/stintswap-reshape.sptcal`, the untracked `Reshape Fixture 2026-09-29.sptcal`) were left alone.
+  - Then the owner asked to push "everything all at once". The `shoot-prefix` branch (another session's) already
+    holds bundle B at `5e285af` plus about ten more features, but its gate was red (15 FAIL early on: gate 10's month
+    documents, not yet re-cut for the "Shoot" bar prefix, and `shootorder`). Told so, the owner chose: *"ok push the
+    three bundles now"*.
+  - Local `main` fast-forwarded `7c18262..3f4b5b1`. ONE `git push origin main` at 17:48:35 (`5d4737d..3f4b5b1`, 25
+    commits: item 1, bundle A, bundle B). Deploy run 39523554222 succeeded. At 17:49:41 the live `index.html`, fetched
+    with a cache-buster, was **byte-identical to the gated build** (sha256 `c9f2f5a5353cb96e…`, 1,570,825 bytes,
+    `cmp`), rebuilt from `3f4b5b1` to the same hash (the commits after the gated `34554f1` are HANDOFF only). No version
+    cut: `version.json` stays 1.5.0, so installed copies pick it up silently on their next load.
+- ⏭ **Next:** the `shoot-prefix` / `merge-all` branch must merge `main` (now `3f4b5b1`) before it lands: it has bundle
+  B only up to `5e285af`, and bundle A through `7c18262`, so the new commits are this bundle's merge with A (the
+  combined `mvheaderlegacy` baseline) and docs. Its own month-baseline re-cut for the "Shoot" prefix will move
+  `mvheaderlegacy` again. A version cut is worth considering for the next push, so installed copies show the notice.
+
 ### 🔨 20 Oct 2026: "REUSE EMPTY COLUMNS" IS BUILT ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT MERGED (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
 - ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
@@ -179,6 +277,116 @@
   switch `d8737b2`, and this entry's HANDOFF notes (`git log origin/main..main` lists them). No version cut.
 - ⏭ **Next:** the sibling bundles merge `main` (now with this) into their branches and gate. Whoever pushes
   verifies the live `index.html` against the gated build afterwards.
+
+### ✅ 20 Oct 2026: BUNDLE A — FIVE MONTH-VIEW NOTE FEATURES (items 2, 6, 10, 15, 17) — MERGED INTO LOCAL `main` (`f54ddef`), PUSH HELD (branch `claude/month-notes-2951a8`, [`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md))
+
+- ⏭ **RESUME HERE for bundle A.** One of three sessions the owner started from the 20 Oct 2026 gap report (private;
+  nothing about the calendars behind it belongs in this repo). Siblings: `prep-switch` (item 1, lands first) and
+  `labels-setup` (items 3–5, 7–9). Worktree `.claude/worktrees/month-notes-2951a8`, cut from local `main` at `be67ca5`.
+  Owner's release rule: merge into local `main` only after a green full gate and the owner's picker; ask by picker
+  before every push.
+- **The rulings** (20 Oct 2026, by picker, verbatim in the plan §1, and Q1–Q4 in §8): item 2 all four ("Remember last
+  colour", "'No fill' plain text", "Light tints", "Greys"); item 6 "One month each side", PDFs "Only if they hold
+  something", Q1 "Your own only" (custom holidays only); item 10 "Every hiatus day"; item 15 "'Paste notes…' box", Q4
+  "Fix them first"; item 17 "Wrap to two lines", Q3 "Any one-day piece"; item 2's Q2 "No box at all".
+- **What was built** (the README's five entries have the detail):
+  - **Item 2.** `MV_NOTE_PALETTE` beside the frozen `EXCEL_STANDARD_COLORS` (untouched). No fill = `#FFFFFF00`, which
+    the frozen renderer draws as transparent with black ink with NO edit, and which `sanitizeSnapshot` accepts for a
+    day note only. One frozen CSS line clears its border. `prefs.mvNoteColor` (localStorage). The writer lists a No
+    fill bar's fill and ring as `clear` and `mvlPageOps` skips them.
+  - **Item 6.** `monthRangeForSchedule` answers by context (screen: core ± 1 month; building a PDF: `monthPrintRange`).
+    ⛔ Frozen `exportMonthPdf` reads the range BEFORE its loop sets `printingCursor`, so its two callers (the Export
+    button's print route and the writer's "Print instead") arm the one-shot `mvPrintRangeOnce`. `update()` places the
+    cursor on the nearest CORE month, because the frozen clamp would otherwise open every calendar on its empty edge.
+    `schedule.monthOnlyHolidays` (enabled custom holidays outside every phase, inside the screen range), drawn by
+    `notesForWaterfallDate` and nothing else.
+  - **Item 10.** Frozen edit: the "+" loop's `if(isHiatusDate(schedule, d)) continue;` is gone.
+  - **Item 15.** `openPasteNotes` / `parsePastedNotes` / `addPastedNotes`, engine-built, no ids; the toolbar button is
+    React's (`PreviewToolbar.jsx`, month view only, reached by delegation).
+  - **Item 17.** Frozen edits: `mvPillLanes` in the pill `place()` call, and `.mv-pill.mv-pill-2l`. The writer decides
+    its own wrap (`mvlWrapsPill`, `mvlPillLines`) with the 600 font: `buildMonthLayout(schedule, inter500, inter600)`.
+- **Proof so far:**
+  - New leg `mvnotes` (LIVE 30 cases, RESTORE 14) on the new synthetic fixture `tests/fixtures/mvnotes.sptcal`, minted by
+    its own LIVE run's real Save. `monthemit` 16/16 and `monthwriter` 12/12 + its A/B P0–P5 on that fixture.
+  - ⭐ **Item 10's A/B, gate 10:** all ten documents differ ONLY by hidden `.mv-note-add` elements (identical with them
+    masked; +66 to +135 each), sheet counts unchanged, and the printed sheets are pixel-identical to the live build's
+    (`dist-mut/base`, `b3cae2ac…`, 156 pages, 0 differ). So gate 10 needs a re-cut and gate 13 should not move.
+  - `carry-rich` and `stintswap-reshape` (custom phases and a custom holiday) byte-identical to gate 13.
+  - **Fourteen mutants** (scratch mutators, `dist-mut/<name>/`, source restored and `cmp`-checked; the rebuilt `dist`
+    hashed back to `f6a73938…`), each red:
+
+    | Mutant | Red |
+    |---|---|
+    | day notes keep the ten-colour palette | `mvnotes` P1–P5, V4, E9, M1 |
+    | the No fill CSS line removed | P2; R1 |
+    | the colour never remembered | P3, P4, V4 |
+    | no edge months on screen | E2, E3, E7 and every case paged there |
+    | the PDFs never print an edge month | E8, E9 |
+    | no month-only holidays | E3, E6, E7 |
+    | the "+" loop skips hiatus days again | H1, H2, E9, M1; `mvmenu` H4, K1, I2c, H5 |
+    | a paste banked one step per note | V5 |
+    | no pill ever wraps (screen) | W1, W3; R2 |
+    | no cursor placement in `update()` | E1 (opens on December 2025) |
+    | the writer never wraps a pill | the gate's `mvnotes month PDF` check, 2 of 3 |
+    | Add allowed with bad lines | V2 |
+    | the sanitizer drops No fill again | LIVE throws (undo of a No fill note); RESTORE E9, R1, Z |
+    | an edge holiday's click opens a waterfall note | E7 |
+
+    Two of them first came out GREEN and taught something: m08 because `T.memoryIDB()` keeps backups BY REFERENCE and
+    `captureSnapshot()` hands over the live `dayNotes`, so the leg compared the store with itself (the leg's `snap()`
+    now copies); m11 because `monthemit` compares only weeks the writer lays out as the print document does, so a
+    pill that stops wrapping drops out of its comparison (hence the new `pdftotext` check in `gate.sh`).
+  - ⚠️ **Disk.** Free space was 6.6 GB at the start and 5 GB before the gate. `/private/tmp/tc*` held 3,198 harness
+    Chrome profiles from every session (19 GB). On the owner's picker ("Harness profiles"), the 879 older than a day
+    that hold a Chrome profile were deleted (3.7 GB freed, 9 GB free after). The 1,522 `code_sign_clone` copies were
+    left alone, as before.
+- ⭐ **Learned:**
+  1. **An 8-digit hex is the cheapest "no colour" a frozen renderer can be handed.** `background:${oc}` takes
+     `#RRGGBBAA` as valid CSS, and `textColorFor` reads only the first six digits, so the frozen line paints it right
+     with no edit, and a sanitizing build degrades it to the default instead of to something invisible.
+  2. **A range read in TWO contexts by frozen code needs the context from outside.** `printingCursor` already marked
+     "building a PDF" inside both exports' loops; only `exportMonthPdf`'s first line falls outside it, hence the one-shot.
+  3. **The writer legs slice the source and call `mvlMonthLayout` themselves** (`monthexport`, `monthwriter`,
+     `monthemit`), so a new argument to the model has to be passed there too, or the built app and the slice differ.
+  4. **`monthemit` assumed every bar has a painted fill.** A No fill bar is now LISTED (`clear: true`) so its box stays
+     measurable, and the leg checks Chrome's zero-alpha fill and border against `clear` instead of against a colour.
+- **Full gate 1** on build `f6a73938…` (port 8985, 14:50–15:10, alone): **2,058 PASS, 20 FAIL.**
+  - 12 expected: gate 10's ten documents (the hidden "+") and the two missing `mvnotes` baselines (gates 10 and 13).
+    Gate 13 byte-identical on all twenty existing runs; the waterfall PDF, every Excel part, 0 clipped, 74 ids.
+  - 8 were legs that assumed the old behaviour, each fixed in the LEG and re-run green on the build:
+    `monthlayout` ×4 (its slice anchor is `buildMonthLayout`'s return line, which now passes `pillWidthOf`: 14/14 each);
+    `monthlanes` L17a/L17b ("the last/first month" read off a disabled arrow; now one arrow press short of it: 6/6);
+    `mvmenu` N1 (left-clicked a hiatus day's MIDDLE to open the menu, which now adds a note; clicks the number: 87/87);
+    `episodeprep` R5 (the walk now starts on the empty edge month; it finds the first month with a bar: 24/24).
+  - ⭐ Learned: **a leg that reads "the first/last month" from `mv-prev`/`mv-next` being disabled now means the EDGE
+    month.** Five legs page that way (`blocks`, `hiatuslabel`, `pilllabel`, `shootorder`, `weeknum`); they walk every
+    month and compare walks, so edges cost them nothing, and they stayed green.
+- ✅ **Re-cut and new cases, signed off by the owner (picker, 20 Oct 2026): "Re-cut all ten"** (gate 10, on the A/B and
+  a before / after / difference sheet of `dayoverrides`' July) **and "Cut both"** (`mvnotes` in gates 10 and 13, on a
+  contact sheet of its print path beside its written file). Cut from gate 1's own captures; both baselines' READMEs
+  record it. `blocksoff` matches the new `reference` document.
+- **Committed** (`91f95c5` code + legs, `1e0ad71` baselines, `c282f44` docs) and **merged with local `main`** at
+  `670a591` (the prep pause switch) as `19aaf0f`: only HANDOFF, README and the harness README conflicted (entries added
+  at the same spot; all kept, `main`'s first). Gate 2 on the unmerged branch was stopped before it started, since only
+  the merged build's gate counts.
+- **Full gate 3 on the merged build `3e7dc4f6…`** (1,562,459 bytes; port 8985, 15:30–15:51; bundle B's gate had just
+  ended): **2,158 PASS, 2 FAIL**, both the known contention flakes, both green re-run alone: `pilllabel (shootorder)` W1
+  "months 1 vs 18" (the month walk cut short; 29/29 through gate.sh's own evaluator) and `launchopen` L6 (16/16).
+  Everything else green: gates 1–5 (0 clipped, the waterfall PDF and every Excel part identical, 74 ids), gate 10's
+  eleven documents and gate 13's twenty-one written PDFs identical to the (re-cut and new) baselines, `mvnotes` 30 + 14,
+  the prep switch's own 25 checks.
+- ⚠️ Bundle B (`labels-setup`) also re-cut gate 10's `mvheaderlegacy` and edited `mvmenu.js`; whichever lands second
+  re-cuts that baseline from a merged-build run and re-checks `mvmenu` K1. The shared notes folder has the detail.
+- ✅ **Merged** on the owner's picker (*"Merge into main"*): local `main` fast-forwarded `670a591` → `f54ddef`. The main
+  checkout held another session's UNCOMMITTED HANDOFF note (the reference-waterfall rulings, 15:25), which the
+  fast-forward also touches: it was backed up, set aside, and re-applied byte-for-byte on top (`git apply`, checked
+  with `cmp`), still uncommitted. The checkout's modified `stintswap-reshape.sptcal` and untracked `Reshape Fixture…`
+  were not touched.
+- ⛔ **Push HELD** by the owner (*"Hold for bundle B"*): ship the prep switch, bundle A and bundle B together, after B
+  merges and a combined gate. `main` (`f54ddef`) is 15 commits ahead of `origin/main` (`5d4737d`) before this note.
+- ⏭ **Next:** bundle B (`labels-setup`) merges `main` (now with bundle A) and gates: it must re-cut gate 10's
+  `mvheaderlegacy` from the merged build (both bundles changed that document) and re-check `mvmenu` K1. Then the
+  owner's push picker; whoever pushes verifies the live `index.html` against the gated build.
 
 ### ✅ 20 Oct 2026: CUSTOM HOLIDAYS' CHECKBOXES LINE UP WITH THE HEADERS — LIVE at `5d4737d`
 
@@ -4702,6 +4910,9 @@ hour of someone's time would make the 41 minutes a non-issue and this whole poli
 | `.mv-daycell:hover` chip + tint | **21 Sep** | **inert** — same scoping, AND `:hover` has no meaning in a print rendering. Verified: `cursor` computes `auto` on `#print-root` cells |
 | hiatus bands skip Sat/Sun | 18 Sep | ⛔ **CHANGES IT, deliberately** |
 | half-day overlay on the pill | **21 Sep** | ⛔ **CHANGES IT, deliberately** — see the A/B below |
+| `'lead'` marks as `'on'` in `_ovDays` (the worked-day tint on the weekend just before the shoot, LABELS-SETUP-PLAN item 5) | **20 Oct** | **inert on every baseline** — no fixture holds a `'lead'` mark. Owner, by picker: *"Approve the edit"* |
+
+*(Rows added since this table was written are listed here too; the table's title still counts seven.)*
 
 ⚠️ **The scoping argument for rows 3 and 4 was stated wrongly everywhere and is now corrected.**
 The docs said *"`#print-root` is a SIBLING of `#table-wrap`"*. It is not — measured: `#print-root` is
@@ -6905,6 +7116,13 @@ also statute-based. Closing this needs someone with access to the TV FFS.
 `PHASE_COLOR_OPTIONS`' array order. Renaming or removing one silently breaks every calendar saved
 with it. **This is why Germany went in as two entries rather than one**: shipping `de-germany` and
 splitting it later would have required a migration.
+
+✅ **FRANCE ADDED 20 Oct 2026** (`FR`, place `eu-france`, appended; LABELS-SETUP-PLAN.md item 8): the film
+agreement's eleven days, no weekend substitution, Alsace-Moselle and the TV solidarity day as the caveat. The §2j
+regression check was rerun and held: the regenerated span minus France is byte-identical to the old span, and
+`validate_holidays.py` is CLEAN on all sixteen lists. A region may now carry its own `verified` date
+(`spec.get("verified", VERIFIED)`), which is what kept every older source line unchanged. ⚠️ Légifrance blocks
+automated reads (403, then a human check); the provenance note in the generator says what was read instead.
 
 **Still missing, in the owner's own priority order if they want more:** Hungary (Budapest — Origo /
 Korda, arguably Europe's busiest service hub), Czech Republic (Prague / Barrandov), Ireland

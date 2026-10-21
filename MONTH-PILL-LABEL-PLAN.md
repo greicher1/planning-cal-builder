@@ -433,6 +433,11 @@ The split variant was measured on the same 18 calendars, at 1600 and 961 px and 
 
 ### 7.5 ✅ Is a width remedy wanted? RULED: none (Q5)
 
+> ⚠️ **Superseded for one case, 20 Oct 2026** ([`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md) §6; owner, by picker: *"Wrap to
+> two lines"*, and Q3 *"Any one-day piece"*): a one-day piece of a CUSTOM phase whose label does not fit one line wraps
+> to two lines (`.mv-pill-2l`, two lanes) on screen and in both month PDFs. Production's pills, which this ruling was
+> about, and every other bar keep it: no width remedy.
+
 Nothing clips in either PDF. On screen, the new modes lose only grey text, where today's labels
 lose the block and the episodes. The levers that were offered, kept for the record:
 

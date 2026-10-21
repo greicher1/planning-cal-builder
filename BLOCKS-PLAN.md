@@ -55,6 +55,13 @@ problem of this feature — everything else is comparatively easy.
 This matches the request: in Blocks mode the owner enters *blocks* and *days per block*, not days per
 episode. Episode count is still entered, because episodes still need to exist to be assigned.
 
+> ✅ **SUPERSEDED BY THE OWNER, 20 Oct 2026** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 4, by
+> picker: *"Optional; old files keep dates"*). In Blocks mode the episode count is now **optional**:
+> Production is Σ block days with or without episodes, and with none the blocks are labelled by name
+> alone. A count-less Blocks file saved before the change keeps the old rule (Production waits for a
+> count) until its next Show Info edit, so it opens with its dates unmoved. The snapshot marks a new
+> count-less Blocks calendar with `blocksEpisodesOptional: true`; its absence is what identifies an old one.
+
 ⚠️ **Switching mode changes the schedule**, so it must be reversible without data loss: keep both
 `episodeDefs[].days` and the block numbers stored, and let the mode decide which is read. Switching
 back to Episodes must restore the previous dates exactly. **Never discard the other mode's inputs.**

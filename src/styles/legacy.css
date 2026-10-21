@@ -1515,6 +1515,17 @@
   }
   /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
   .mv-pill{ border-radius:9px; }
+  /* ---- FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §6: "Wrap to two lines"; ruling Q3
+     "Any one-day piece"): a one-day piece of a CUSTOM phase whose label does not fit one line. renderMonthView
+     gives it two lanes and this class (mvPillLanes), so it wraps where .mv-bar cuts, and a label that needs more
+     than two lines is cut with "…" at the end of the second (-webkit-line-clamp). word-break as a note's, so one
+     long word cannot run out of the bar; the line height, padding and border are .mv-bar's, which is what
+     mvPillLineCount measures. ⚠️ INERT on every calendar without such a pill: no other bar has the class. The
+     month-PDF writer wraps the same pills at its own width (mvlPillLines). */
+  .mv-pill.mv-pill-2l{
+    white-space:normal; word-break:break-word;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  }
   /* ---- FROZEN EDIT (owner-approved 16 Sep 2026, BLOCKS-PLAN.md §5; placed by the owner 22 Sep):
      the block tag, INSIDE Production's pill -- "smaller grey text next to production wk". It
      inherits the pill's nowrap + ellipsis, so on a pill piece too short for it the tail truncates
@@ -1617,6 +1628,14 @@
     white-space:pre-wrap; overflow:hidden; text-overflow:clip;
     line-height:1.3; padding:2px 4px; word-break:break-word; hyphens:auto;
   }
+  /* ---- FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §8 Q2: "No box at all"): a
+     No fill note is its text alone. Its fill is #FFFFFF00, transparent, which the frozen renderer writes as
+     `background:#FFFFFF00` (MV_NOTE_NOFILL), and this clears the 18% rim every bar has. The border keeps its
+     1 px WIDTH, transparent, so the note's box and its line count (mvNoteLineCount measures a 1 px border)
+     are a coloured note's exactly. Screen and #print-root alike, so the print path prints what is shown.
+     ⚠️ INERT on every calendar saved before it: no colour the app wrote before 20 Oct 2026 matches. `i`,
+     because a hand-edited file may spell the digits in lower case and sanitizeSnapshot lets either through. */
+  .mv-note-block[style*="background:#FFFFFF00" i]{ border-color:transparent; }
   .month-empty{ padding:40px; text-align:center; color:var(--text-faint); }
 
   /* Episodes live inside the Production phase row (month view only). */
@@ -2393,6 +2412,64 @@
     line-height:var(--mantine-line-height-xs); margin-top:var(--mantine-spacing-sm);
   }
 
+  /* ---- Paste notes… (MONTH-NOTES-PLAN.md §5, openPasteNotes) ----
+     ⭐ NOT FROZEN: a body-level dialog over the app, like the template header editor (.hde-overlay) whose tier
+     and scrim it shares, never markup in the grid, so nothing here can reach #print-root (and the print rule
+     `body.printing-calendar > *:not(#print-root)` hides it anyway). Matched to the app's Mantine modals. */
+  .paste-notes-overlay{
+    position:fixed; inset:0; z-index:400; display:flex; align-items:flex-start; justify-content:center;
+    padding:64px 16px 28px; overflow-y:auto; background:rgba(30,29,27,.34);
+  }
+  .paste-notes{
+    width:min(560px, 100%); box-sizing:border-box; padding:var(--mantine-spacing-lg);
+    background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-lg); box-shadow:var(--mantine-shadow-xl);
+    font-size:var(--mantine-font-size-sm); color:var(--mantine-color-black);
+  }
+  .paste-notes-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--mantine-spacing-xs); }
+  .paste-notes-title{ font-size:var(--mantine-font-size-md); font-weight:600; }
+  .paste-notes-x{
+    width:28px; height:28px; border:0; border-radius:var(--mantine-radius-md); background:none;
+    font-size:20px; line-height:1; color:var(--mantine-color-gray-6); cursor:pointer;
+  }
+  .paste-notes-x:hover{ background:var(--mantine-color-gray-0); color:var(--mantine-color-black); }
+  .paste-notes-hint{
+    margin:0 0 var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs);
+    line-height:var(--mantine-line-height-sm); color:var(--text-muted);
+  }
+  .paste-notes-text{
+    width:100%; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
+    color:var(--mantine-color-black); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
+    padding:var(--mantine-spacing-sm) var(--mantine-spacing-md); resize:vertical; line-height:1.45;
+  }
+  .paste-notes-text:focus{ outline:none; border-color:var(--mantine-primary-color-filled); }
+  .paste-notes-sum{ min-height:18px; margin:var(--mantine-spacing-sm) 0 4px; font-size:var(--mantine-font-size-xs); font-weight:600; color:var(--mantine-color-gray-7); }
+  .paste-notes-sum.is-error{ color:var(--mantine-color-red-7); }
+  .paste-notes-preview{ max-height:220px; overflow-y:auto; }
+  .paste-row{
+    display:flex; align-items:center; gap:8px; padding:3px 2px;
+    border-top:1px solid var(--mantine-color-gray-1); font-size:var(--mantine-font-size-xs); line-height:16px;
+  }
+  .paste-row:first-child{ border-top:0; }
+  .paste-row .color-swatch{ flex:none; width:12px; height:12px; cursor:default; }
+  .paste-row .color-swatch:hover{ transform:none; }
+  .paste-row-n{ flex:none; width:48px; color:var(--text-faint); }
+  .paste-row-date{ flex:none; width:84px; font-weight:600; }
+  .paste-row-text{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .paste-row.is-error .paste-row-err{ flex:1; color:var(--mantine-color-red-7); }
+  .paste-notes-foot{ display:flex; align-items:center; gap:var(--mantine-spacing-xs); margin-top:var(--mantine-spacing-md); }
+  .paste-notes-keys{ flex:1; font-size:var(--mantine-font-size-xxs); color:var(--text-faint); }
+  .paste-notes-cancel, .paste-notes-add{
+    height:30px; padding:0 14px; border-radius:var(--mantine-radius-md); font:inherit;
+    font-size:var(--mantine-font-size-xs); font-weight:600; cursor:pointer;
+  }
+  .paste-notes-cancel{ border:1px solid var(--mantine-color-gray-4); background:var(--mantine-color-white); color:var(--mantine-color-black); }
+  .paste-notes-cancel:hover{ background:var(--mantine-color-gray-0); }
+  .paste-notes-add{ border:1px solid transparent; background:var(--mantine-primary-color-filled); color:var(--mantine-color-white); }
+  .paste-notes-add:hover:not(:disabled){ background:var(--mantine-primary-color-filled-hover); }
+  .paste-notes-add:disabled{ background:var(--mantine-color-gray-2); color:var(--mantine-color-gray-5); cursor:default; }
+
   /* ---- Day-override popover (MONTH-VIEW-PLAN.md §4): RETIRED 19 Oct 2026. ----
      Day menu step 4 (MONTH-CONTEXT-MENU-PLAN.md, owner ruling L1): a left-click on a day opens the day
      menu below, and the popover's choices are its shoot-day section. Its .day-ov-* rules went with it.
@@ -2499,6 +2576,14 @@
   .color-swatch:hover{ transform:scale(1.15); }
   /* Selected ring in the chrome's primary, not the old white-outline-plus-black-shadow. */
   .color-swatch.selected{ box-shadow:0 0 0 1px var(--mantine-color-white), 0 0 0 3px var(--mantine-primary-color-filled); }
+  /* No fill (the month note palette, MONTH-NOTES-PLAN.md §2): white with the usual red stroke for "none". */
+  .color-swatch.is-nofill{
+    background:linear-gradient(to top right, #fff calc(50% - 1px), #E03131 calc(50% - 1px) calc(50% + 1px), #fff calc(50% + 1px));
+  }
+  /* The day-note editor's two swatch rows: the standard ten, then No fill, the tints and the greys. Tighter than
+     the waterfall palette's gap so ten fit the popover's width on one row. */
+  .mv-note-pop .note-color-row{ gap:5px; }
+  .mv-note-pop .note-color-row + .note-color-row{ padding-top:2px; }
   td.sheet-note-cell.has-note{cursor:text; text-align:center;}
   /* A shrunk single-line note sits on the row's centre line like every other cell; a wrapped
      one grows the row and reads better from the top. */

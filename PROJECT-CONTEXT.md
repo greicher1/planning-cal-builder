@@ -276,6 +276,18 @@ twelve, and the only one that carries one-off holidays (Scotland had a World Cup
 
 **Added 14 Sep 2026:** `AU-VIC` (13) and `LT` (16).
 
+**Added 20 Oct 2026: `FR` (11), place `eu-france`** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 8; owner:
+*"Film agreement's list"*, *"France only"*, then *"France, 11 days"* on seeing the list). The film agreement
+(Convention collective nationale de la production cinématographique, IDCC 3097) Titre II art. 42 lists the Code du
+travail's eleven (L3133-1): New Year's Day, Easter Monday, 1 May, 8 May, Ascension, Whit Monday, 14 July, 15 August,
+All Saints, 11 November, Christmas. **No weekend substitution** (Titre I art. 17), so `observance="none"`, like
+Germany and Lithuania. Its caveat: Alsace-Moselle adds Good Friday and 26 December (art. 42, L3134-13), and TV
+productions under the audiovisual agreement (IDCC 2642) work Whit Monday as the solidarity day. ⚠️ **Provenance:**
+Légifrance refused automated reads, so the text read is the official BOCC fascicule 2013/34 (a copy at focal.ch),
+checked word for word against the producers' union SPI's June 2024 consolidation and fiche-paie.fr; the generator's
+FR comment has every URL. Whit Monday as a paid crew day rests on Titre II art. 43 replacing Titre I art. 18's
+solidarity day for technicians: a reading, not a sentence in the text.
+
 \* Ontario's IATSE Local 873 treats 30 Sept as a *"Proclaimed Holiday"*, not statutory, with an
 auto-upgrade clause if Ontario legislates it.
 
@@ -313,6 +325,8 @@ the weekend entry itself.
 - Alberta general holidays — https://www.alberta.ca/general-holidays-pay
 - Manitoba general holidays — https://www.gov.mb.ca/labour/standards/
 - Nova Scotia paid holidays — https://novascotia.ca/lae/employmentrights/holidaychart.asp
+- France, film agreement IDCC 3097 (BOCC 2013/34 copy) — https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf
+- France, Code du travail (the Labour Ministry's mirror) — https://code.travail.gouv.fr/code-du-travail/l3133-1
 
 **Not verified:** DGA and Teamsters holiday lists (those claims failed verification). IATSE is
 the safe anchor because crew holidays are what actually stop a shoot day. Also unverified:

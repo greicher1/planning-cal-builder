@@ -74,7 +74,10 @@ export function ShowInfoCard() {
         {/* max={200} is the audit M-15 ceiling, mirrored from the engine's MAX_SHOW_ROWS, which is
             what actually enforces it (capCountField clamps while typing). This is the belt: Mantine
             clamps on blur too. */}
-        <NumberInput id="num-episodes" label="Number of Episodes" placeholder="e.g. 10"
+        {/* "(optional)" shows in Blocks mode only (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 4): blocks
+            schedule without an episode count there. The same :has() rule as the boxes below hides it in
+            Episodes mode, where the count still drives the total, so that label reads as it always has. */}
+        <NumberInput id="num-episodes" label={<>Number of Episodes<span className="show-mode-blocks"> (optional)</span></>} placeholder="e.g. 10"
                      min={1} max={200} step={1} allowDecimal={false} allowNegative={false} hideControls />
         {/* Hidden, never cleared, in Episodes mode (and Days per Episode likewise in Blocks mode):
             switching back must restore the previous dates exactly, so neither mode's inputs are
@@ -199,6 +202,9 @@ export function RegionCard() {
           </optgroup>
           <optgroup label="Europe">
             <option value="eu-lithuania">Lithuania</option>
+            {/* Appended (20 Oct 2026, LABELS-SETUP-PLAN.md item 8): values are save format, so only ever
+                added. One France entry, the owner's "France only"; Alsace-Moselle is its caveat. */}
+            <option value="eu-france">France</option>
           </optgroup>
         </NativeSelect>
 
