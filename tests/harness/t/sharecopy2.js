@@ -19,12 +19,12 @@ window.addEventListener('load', function () { (async function () {
     set('pref-gridlines', 'dashed');
     await T.sleep(700);
 
-    // The share control is #share-copy-btn, in the Settings window's Calendar tab since owner ruling 12
-    // (20 Oct 2026; the sidebar's Settings tab before that, and the file menu before 29 Aug 2026). The
+    // The share control is #share-copy-btn, in the Settings window's Preferences tab since owner ruling 12
+    // (20 Oct 2026; its Calendar tab until the owner merged that into Preferences the same night; the sidebar's Settings tab before that, and the file menu before 29 Aug 2026). The
     // delegated handler has a 600ms re-click guard, so leave a gap after opening it or the share click
     // is swallowed. ⭐ The copy is exported WITH THE WINDOW OPEN on purpose: its open state reaches
     // outside its host (inert, .settings-open), and buildSavedHtml() must strip all of it.
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     await T.until(function () { return !!document.getElementById('share-copy-btn'); }, 'the Export-App button', 80, 100);
     await T.sleep(900);
     var cap = T.captureDownload();

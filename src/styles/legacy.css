@@ -619,8 +619,8 @@
   .sw-title{ margin:0; flex:1; min-width:0; font-size:var(--mantine-font-size-md); font-weight:600; color:var(--mantine-color-gray-9); }
   .sw-tabs{ flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
   .sw-tablist{ flex:none; padding:0 var(--mantine-spacing-md); }
-  /* Four labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
-     the 280 px floor on one line. */
+  /* Tab labels in the sidebar's 280-440 px: tighter than Mantine's default tab padding, so they fit
+     the 280 px floor on one line. Sized for four; three since the Calendar tab merged into Preferences. */
   .sw-tab{ padding:10px 6px; font-size:var(--mantine-font-size-sm); font-weight:500; }
   /* The panel is the window's ONE scroller, padded as .side-content is so the cards sit as they did. */
   .sw-panel{
@@ -2984,8 +2984,9 @@
      Schedule-by rule above). Off the controls themselves, like the rules above, so no restore, undo
      or Load path can leave the rows out of step. Each row carries its own divider, so hiding one
      never strands another. ⛔ display:none, never unmounted: the engine writes .checked by id. */
-  /* ⚠️ body:has, not .prefs-card:has: since the Settings window (ruling 12) "Label Production by" is
-     in the Calendar tab's Month view card and the switches are in the Preferences tab's, two cards apart. */
+  /* ⚠️ body:has, not .prefs-card:has: from the Settings window (ruling 12) until its Calendar tab was
+     merged into Preferences (owner, 20 Oct 2026), "Label Production by" and the switches sat in two cards
+     on two tabs. They share the Month view card again, but body:has holds wherever either one sits. */
   body:has(input[name="mv-prod-label"][value="week"]:checked) .pref-mv-row-week,
   body:has(input[name="mv-prod-label"][value="episode"]:checked) .pref-mv-row-episodes,
   body:has(input[name="mv-prod-label"][value="block"]:checked) .pref-mv-row-blocks,

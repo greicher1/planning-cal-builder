@@ -4,6 +4,56 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the merged Preferences tab.** Owner, 20 Oct 2026: *"Lets combine settings under preferences
+  and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the waterfall and
+  month view"*.
+- **What a user sees:** Settings has three tabs, **Preferences · Region · Presets**, and opens on Preferences (it took
+  the Calendar tab's first place). In the waterfall, Preferences shows ONE **Waterfall** card (Single Column Mode,
+  Reuse empty columns, Dates, Custom Column Headings, then Grid Lines in Exports), Automatic notes and App. In the
+  month view, ONE **Month view** card (Label Production by, Pause prep, Number Production Days, then the grey-text
+  caption and its Show switches), Automatic notes and App. The tab opens on one line per view: *"Saved in this
+  calendar's file, so they travel with it — except Grid Lines in Exports, which stays on this computer"* (waterfall)
+  and *"… except the grey-text switches, which stay on this computer"* (month view).
+- **Decisions made without a picker** (say so to the owner; each is one line to change):
+  - Preferences is the FIRST tab and the default, since it holds what the default Calendar tab held.
+  - The save boundary the two tabs drew is told by that per-view opening line, not by marking rows.
+  - The per-computer rows go LAST in each card. The grey-text group was first tried right under Label Production
+    by (it answers the same question), but its caption then read as a heading over Pause prep and Number Production
+    Days, which are not grey text. Screenshots of both views were checked.
+- **Code** (no frozen code, no engine change): `Sidebar.jsx` — `CalendarWaterfallCard` + `PrefsWaterfallCard` →
+  `WaterfallCard`, `CalendarMonthCard` + `PrefsMonthCard` → `MonthViewCard`, both still `.prefs-card` and
+  `.pref-view-*`. `SettingsWindow.jsx` — `TABS` is prefs/region/presets, default `'prefs'`, `ScopeLine` takes a
+  `className`, and `TAB_ALIASES` sends a `{tab:'calendar'}` from any caller to Preferences. Comments in `bridge.js`
+  and `legacy.css` updated. ⛔ **Nothing saved moved:** every control keeps its id, its store and `.prefs-card`;
+  the Preferences panel is still ahead of Region in the DOM, as Calendar was, and contributes no swept id, so
+  `fields.byId`'s ids and order are unchanged (`settingswin` W3, W5b).
+- **Legs:** `T.openSettings('calendar')` → `'prefs'` in eight legs (autonotekinds, episodeprep, mvmenu, offweek,
+  sharecopy2, pilllabel, shootdays, settingswin), and `lib.js` maps `'calendar'` to `'prefs'` for legs on branches
+  not yet merged. `settingswin` gains W0b (the three tabs, no Calendar tab or panel, opens on Preferences) and W13
+  (Preferences by view: one card per view, the right rows in it, Automatic notes and App, one opening line naming
+  the right exception), 19 cases.
+- ⚠️ **MERGE NOTE for `claude/paste-notes-settings`** (built tonight, not merged): it adds **Paste notes…** as the
+  last row of `CalendarMonthCard`, which no longer exists. On merge, put the row in `MonthViewCard` after Number
+  Production Days and BEFORE the grey-text caption (the caption heads everything below it), and read its docs'
+  "Settings ▸ Calendar ▸ Month view" as "Settings ▸ Preferences ▸ Month view". Its `mvnotes` V1 opens the window on
+  the default tab, which is Preferences now, where the button will be.
+- **Proof:** build `364af880…` (1,663,173 bytes); `npm run check` 40/40; `check-refs.py` CLEAN.
+  - A trimmed gate (gate.sh's own blocks and evaluators for every leg that opens the Settings window or touches a
+    preference: prefs, wrapdate, the eight hdr* legs, onecol, colreuse, shootorder, pilllabel ×8, settingswin,
+    sharecopy2, hostile, dlgkeys, hdrrow, mvmenu, mvnotes ×2, labelsetup, phiatusnum, autonotekinds, calrange,
+    episodeprep ×3, offweek ×2, shootdays with its monthemit/monthwriter/monthexport runs), port 9281, BESIDE another
+    session's full gate, on the first build `5b3ee634…` (before the month card's reorder): **963 PASS, 9 FAIL**:
+    `hdrversion` no result, `hdrfile` 3, `pilllabel (carry-rich)` 5 ("months 1 vs 14", the cut-short month walk).
+  - Re-run on `364af880…`: `hdrversion` 17/17, `hdrfile` 14/14, `settingswin` 19/19, `shootorder` 9/9,
+    `pilllabel (blocks)` 35/35, `autonotekinds` 16/16, `sharecopy2` green. `pilllabel (carry-rich)` 28/29 (W3, the
+    same signature), then 29/29 twice alone; the same flake hit `releases/v1.6.0.html` once (W2) in between.
+  - Headless screenshots of the window in both views (`blocks` fixture) checked by eye.
+  - ⚠️ **No full gate yet.**
+- ⏭ **Next:** the owner's picker to merge `prefs-merge` into `main`, then a separate push picker. The full gate is
+  queued behind the other session's.
+
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the

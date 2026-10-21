@@ -29,6 +29,27 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+
+Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
+tab. this should apply to both the waterfall and month view"*.
+- **Three tabs now: Preferences, Region, Presets.** The window opens on Preferences, which took the Calendar tab's
+  place and everything in it.
+- **One card per view.** In the waterfall, Preferences shows a single **Waterfall** card: Single Column Mode, Reuse
+  empty columns, Dates, Custom Column Headings and Grid Lines in Exports. In the month view, a single **Month view**
+  card: Label Production by, Pause prep on days marked Off, Number Production Days, and the grey-text Show switches.
+  Automatic notes and Export App With Data show in both.
+- **What travels with a file is still said in one line.** Most of these settings are saved in the calendar; the tab
+  opens on a line that names the exception for the view you are in (Grid Lines in Exports, or the grey-text
+  switches), which stay on this computer as before.
+- **Nothing saved changed.** Every control keeps its id and its store, and `fields.byId` keeps the same ids in the
+  same order.
+- **Verified:** `settingswin` gains W0b (three tabs, no Calendar tab, opens on Preferences) and W13 (each
+  view shows its one card, with the right settings in it and the right opening line), 19/19. Eight legs that opened
+  the Calendar tab now open Preferences. The legs that drive the window or a preference, through the gate's own
+  checks, passed; the three that failed beside another session's gate (`hdrversion`, `hdrfile`, `pilllabel` on one
+  calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40.
+
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
 Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep

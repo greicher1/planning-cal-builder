@@ -189,7 +189,7 @@ window.addEventListener('load', function () { (async function () {
   function pauseText(){ var l = [].find.call(document.querySelectorAll('label[for="prep-pause-off"]'), function (x) { return x.textContent.trim(); }); return l ? l.textContent.trim() : ''; }
   async function clickPause(){
     if(!shownEl($('prep-row'))) await view('month');   // the card shows in the month view only, like the Prep row (P1)
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     var tr = pauseTrack(), r = tr.getBoundingClientRect();
     var top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     if(!top || !tr.contains(top)) throw new Error('the Pause prep switch is covered (' + (top && (top.className || top.tagName)) + ')');
@@ -391,14 +391,14 @@ window.addEventListener('load', function () { (async function () {
 
       // S1: "Pause prep on days marked Off" (owner, 20 Oct 2026, by picker: "Switch, default: don't skip"; then,
       // the same day, "prep pause ... in the Settings window ... under This calendar", ruling 12). It is a switch in
-      // the Settings window's Calendar tab, unticked, and the Prep row has no box any more. Its id is new and SAFE
+      // the Settings window's Preferences tab (its Calendar tab until the two merged, 20 Oct 2026), unticked, and the Prep row has no box any more. Its id is new and SAFE
       // only because the card is .prefs-card: collectFieldValues() sweeps every other id'd control into
       // fields.byId, so outside it the id would re-cut the save format's id set. The snapshot's prepPauseOff key
       // is its one store.
       var pcb = pauseBox(), sigKeys = Object.keys(T.formSignature()).sort().join();
       if(!shownEl($('prep-row'))) await view('month');
-      await T.openSettings('calendar');
-      out.pause = {present: !!pcb && T.settingsTabOf(pcb) === 'calendar', checked: pcb && pcb.checked, id: pcb ? pcb.id : null,
+      await T.openSettings('prefs');
+      out.pause = {present: !!pcb && T.settingsTabOf(pcb) === 'prefs', checked: pcb && pcb.checked, id: pcb ? pcb.id : null,
                    skipped: !!pcb && !!pcb.closest('.prefs-card') && !('prep-pause-off' in T.formSignature()),
                    oldBox: !!document.querySelector('#prep-row input[type="checkbox"]'),
                    text: pauseText(), reach: reachable(pauseTrack())};

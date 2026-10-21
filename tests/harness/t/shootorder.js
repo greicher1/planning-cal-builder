@@ -86,8 +86,8 @@ window.addEventListener('load', function () { (async function () {
       function (p) { return /^Episode\b/.test(p.textContent.trim()); }).length;
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------
-    // These rows are in the Settings window since owner ruling 12 (20 Oct 2026) -- One column and the label
-    // control in its Calendar tab, the Show switches in Preferences -- so each is judged on its own tab.
+    // These rows are in the Settings window since owner ruling 12 (20 Oct 2026) -- all in its Preferences tab
+    // since the owner merged the Calendar tab into it -- so each is judged on its own tab.
     // ⚠️ Since MONTH-PILL-LABEL-PLAN step 3 (16 Oct 2026) the Show rows are CONTEXTUAL (plan §5.2): on this Episodes
     // calendar with no label chosen the bar names the episode, so only Show Production Week is offered. The
     // label control itself is month-only like them. pilllabel holds the whole table.
