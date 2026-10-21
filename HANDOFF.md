@@ -19,10 +19,22 @@
 - **Checked so far:** `npm run check` 40/40. The pane (port 9351, `episodeprep`, February 2027): computed border
   `rgb(122, 98, 21)` = the pill's own `color`, shadow `inset 0 0 0 0.5px`, border width still 1px; a note's border
   still `rgba(0, 0, 0, 0.18)`.
-- ⏳ **Next:** gate 13 will fail on every calendar with a pill (expected). Classify the change in every written PDF
-  (only ring ops may differ; every text run and position identical), show the owner `monthbase.py sheets` contact
-  sheets, re-cut gate 13 on their sign-off with a README entry in `tests/baselines/2026-10-05-monthwriter/`, then the
-  full gate, then the merge picker and a separate push picker. Gate 10 (the print path's DOCUMENT) should not move.
+- ✅ **The written PDFs, classified (21 Oct 2026).** All 19 of gate 13's calendars exported from this build by the
+  `monthexport` leg (9/9 each, port 9352, the gate's own loop, files in the session scratchpad `outline-mxa/`), then
+  held line by line against `tests/baselines/2026-10-05-monthwriter/` by a scratch classifier on `monthbase.parse`:
+  **19/19 change only ring paint.** Same parts, same page count, same fonts and page tree; in every page's content,
+  with the ring (`… f*`) and colour (`… rg`) lines set aside, every other line identical and in order (every text run
+  and its position, every fill and clip), except whole per-slice ring re-draw groups (`q <clip> W n` / `Q`) gone:
+  pills no longer re-draw their ring over a half day's shade (2 in `carry-rich`, 5 in `dayoverrides-onhalf`, 1 each
+  in `dayoverrides`, `mvheader`, `mvheaderlegacy`), and the ring counts drop by exactly those. The classifier was shown
+  red on a real change (`monthnotes`' file held against `notewrap`'s baseline: fills, text runs). `monthbase.py
+  sheets` contact sheets of `reference`, `colswap-simpost-refuse` and `dayoverrides-onhalf`: the difference panel is
+  red on pill outlines only; notes and hiatus bands are untouched; half-day shading intact under the ring.
+- ⏳ **Waiting on the owner's sign-off** to re-cut gate 13 (shown the December 2026 Sim Post page and July 2026's
+  half days). On a yes: copy the 19 files into the baseline directory (`reference` covers `rz`, `rw`), add a RE-CUT
+  entry to its README, then ONE full gate, which also proves the cut (gate 13 passes only if the gate's own exports
+  are these bytes). Gate 10 (the print path's DOCUMENT and sheet count) should not move. Then the merge picker and a
+  separate push picker.
 
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
