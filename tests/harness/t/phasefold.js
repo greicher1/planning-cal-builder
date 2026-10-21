@@ -132,7 +132,7 @@ window.addEventListener('load', function () { (async function () {
       kase('F2', 'a hit-tested click folds Pre Prep to its colour bar and name line (everything under it hidden), the caret reads aria-expanded=false / "Show this phase’s settings"',
            folded('prePrep') && JSON.stringify(shown('prePrep')) === '["swatch","custom-phase-header"]' && before.length > 2 &&
            h < 80 && b.getAttribute('aria-expanded') === 'false' && b.title === 'Show this phase’s settings',
-           { before: before, after: shown('prePrep'), height: h, aria: b.getAttribute('aria-expanded'), title: b.title });
+           { before: before, after: shown('prePrep'), height: h, aria: b.getAttribute('aria-expanded'), caretTitle: b.title });
     });
 
     await step('F3', async function () {

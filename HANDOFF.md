@@ -27,9 +27,13 @@
 - **Proof** (build at this branch, private port 9312): new leg `phasefold` 11/11; mutant (no re-apply in
   `refreshAfterRestore`) red on F6 and F9; `phiatusnum` 17, `settingswin` 17, `loadcarry` 6, `calrange` 18, `phasecolors`
   10, `mvmenu (halfdays)` 89, `dlgkeys` 16, `labelsetup (halfdays)` 41, `colreuse` live + restore through gate.sh's own
-  judge (FAIL=0), `phasenum`, `episodeprep` both; `npm run check` 40/40. **Not yet: the full gate** (another session's
-  was running; two at once stall each other's Chrome).
-- ⏭ **Next:** the full gate on this branch, then the owner's picker to merge into `main`, then a separate push picker.
+  judge (FAIL=0), `phasenum`, `episodeprep` both; `npm run check` 40/40.
+- ✅ **Full gate on build `39600e5d…` at `b454b36`** (HARNESS_PORT 9313, 23:48:25–00:13:00, queued until no other gate
+  ran): **2,566 PASS, 0 FAIL, GATE PASSED.** 0 clipped; `fields.byId` 76 ids, unchanged; `phasefold` 11/11. Afterwards
+  one leg-only fix: F2's diagnostics carried a `title` key that overwrote the case's own title in the report (renamed
+  `caretTitle`); 11/11 again. The build is unchanged by it.
+- ⏭ **Next:** the owner's picker to merge into `main`, then a separate push picker. Owner's open question: whether
+  folds should be remembered after reopening the app (built as session-only).
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
