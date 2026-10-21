@@ -4,6 +4,37 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (evening): "SHOOT" BEFORE EPISODE BARS, AN EDITABLE PREFIX PER EPISODE OR BLOCK, AND "wk N" ON BOTH NUMBER WEEKS BOXES — branch `shoot-prefix` (worktree `.claude/worktrees/shoot-prefix`), ON TOP OF `merge-all`; BASELINES RE-CUT ON SIGN-OFF; FINAL GATE QUEUED; NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE for the merge into `main`.** `shoot-prefix` = `merge-all` + the prefix + the two Number weeks boxes on
+  "wk N" + the leg fixes the merged gate called for + the gate 10/13 re-cut. It is what goes to `main`, not `merge-all`.
+- **The prefix (owner, 20 Oct 2026):** month-week-shoot's "Shoot Ep. N" (16 Oct, never merged) rebuilt on today's code,
+  *"so long as you can remove it and rename it to something else entirely per episode/block"*. Rulings by picker:
+  **from the bar** (the day menu's Prefix…), **every calendar, old files included**, **"Shoot" before episodes only**.
+  `unitBarLabel` / `barPrefixFor` / `setBarPrefix` / `openBarPrefixPop`; `barPrefix` on `episodeDefs[]` /
+  `blockDefs[]`, written only where it departs from the default; restored field by field; `cleanBarPrefix` validates.
+  A switch day's one-day half bar keeps none (the 16 Oct ruling). No frozen code. README and CLAUDE.md's state table.
+- **Number weeks:** both boxes read **"<name> wk N"** (owner: *"It should be 'wk' not 'Week' for consistency with all
+  the other phases"*, after first asking for "Week N"). See the merge entry below.
+- **Leg fixes the merged gate called for** (each a leg that predated something it now meets, none an app fault):
+  `monthlayout` reads `data-shoot-day`; `dlgkeys` opens the Settings window's Region tab; for the prefix, `halfdays`
+  (+D2s), `halfmarks`, `labelsetup`, `mvmenu`, `pilllabel`, `pilldrag`, `episodeprep`, `shootorder` read bar text with
+  the default "Shoot " off; `phiatusnum`, `labelsetup` C1/C4 and `mvmenu` V1 read "wk". New leg `barprefix` (13 cases on
+  halfdays, 4 on blocks) with a gate block that reads the written PDF's text.
+- **Prefix build's full gate** (build `a53e5344…` at `12e06ac`, port 9247, 17:38–18:03; the lanes session's
+  fake-Chrome dry run overlapped it): **2,522 PASS, 33 FAIL**: 26 the expected gate 10/13 baselines, then `shootorder`
+  and `mvmenu` V1 (legs, fixed in `f7c2355`), and `pilllabel (blocks)` ×5 ("months 1 vs 18", the month walk cut short:
+  the known contention flake). The final gate decides those.
+- ✅ **RE-CUT, signed off by the owner by picker ("Re-cut both")** after `monthbase.py sheets` contact sheets of
+  `reference` and `halfdays` (July 2026) and a line-by-line classification: gate 13's fourteen written PDFs differ only
+  by `(Ep. N)` → `(Shoot Ep. N)` and the grey text after it moved right 23.14 pt; gate 10's eight print documents equal
+  their old baselines byte for byte once `Shoot ` is removed, `mvheaderlegacy` also taking bundle B's size options (it
+  had been held at bundle A's file in the merge). Months → sheets unchanged everywhere. `801c738`; both baseline READMEs
+  record it.
+- ⏳ **Final full gate: queued** behind the cal-range session's gate (port 9247, `gate-final.log` in this session's
+  scratchpad). Then the owner's picker for `main`, and separately for a push. A version cut is the owner's call
+  (this would be v1.6.0).
+
 ### 🔨 20 Oct 2026: EVERYTHING BUILT TODAY, AND THREE OLDER FEATURES, MERGED ON BRANCH `merge-all` (worktree `.claude/worktrees/merge-all`), COMBINED GATE QUEUED, NOT IN `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for the merge.** Owner, 20 Oct 2026: *"everything that has been built today even on older branches
