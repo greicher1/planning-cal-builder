@@ -30,7 +30,9 @@ from datetime import date, timedelta
 
 MON, TUE, WED, THU, FRI, SAT, SUN = range(7)
 
-VERIFIED = "2026-09-11"          # date every source below was last read
+VERIFIED = "2026-09-11"          # date every source below was last read, unless a region says otherwise
+# A region read on another day carries its own `verified` (France, 20 Oct 2026). Every older region uses
+# VERIFIED, so its generated lines are byte-identical to what the app already carries.
 # 2024-2031 (owner, 25 Sep 2026: "only go up to 2031"; audit M-7). The app shows a notice on the
 # Production row when shoot days fall outside the years a region's list covers.
 DEFAULT_YEARS = (2024, 2031)
@@ -406,6 +408,55 @@ REGIONS = {
         ],
     ),
 
+    # -------------------------------------------------------------------- FRANCE
+    # ✅ Owner, 20 Oct 2026 (LABELS-SETUP-PLAN.md item 8, by picker): "Film agreement's list", "France only",
+    # then "France, 11 days" once shown the list and these sources. ONE region and one place; Alsace-Moselle's
+    # two extra days are the caveat, not a second place.
+    # ⚠️ PROVENANCE, stated as it is. Légifrance refused automated reads (HTTP 403, then a human check that
+    # was not attempted). The film agreement was read in the official BOCC fascicule 2013/34 (NOR
+    # ASET1350988M), the copy at `source`, and checked word for word against the producers' union SPI's
+    # consolidation (June 2024, https://www.afar-fiction.com/IMG/pdf/ccn-production-cinema-consolidee-juin-24.pdf)
+    # and fiche-paie.fr (October 2026, https://fiche-paie.fr/convention-collective/production-cinematographique-3097).
+    # The Code du travail was read on code.travail.gouv.fr, the Labour Ministry's mirror of Légifrance.
+    #   - Titre II art. 42 lists the eleven days (« soit actuellement »), and adds Good Friday and 26 December
+    #     in Alsace-Moselle. Not worked: « rémunérés comme un jour de travail normal ». Worked: +100 %.
+    #   - Titre I art. 17 refers to Code du travail L3133-1 and L3134-13, and: a holiday « tombant en même
+    #     temps que le repos hebdomadaire ne donne pas lieu à indemnité particulière » -- no substitute day.
+    #   - Whit Monday: Titre I art. 18 makes it the branch's solidarity day « sous réserve de dispositions
+    #     spécifiques à chaque titre », and Titre II art. 43 replaces that for technicians with a pro-rata
+    #     contribution, so for crew it stays a paid holiday. A READING of the text, not a sentence in it.
+    #   - The extension arrêté of 31 Mar 2015 (NOR ETST1508472A) reserves nothing in arts. 17, 18, 42, 43.
+    #   - The audiovisual agreement (IDCC 2642, art. VII.2, read on fiche-paie.fr only) differs: Whit Monday is
+    #     the worked solidarity day there, and short contracts are paid only for a weekday holiday.
+    #   - No one-off holidays 2024-2031: adding one needs a change to L3133-1 by law.
+    "FR": dict(
+        label="France",
+        agreement="Convention collective nationale de la production cinématographique (IDCC 3097), Titre II art. 42",
+        term="in force — 19 Jan 2012, extended 31 Mar 2015",
+        source="https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf",
+        verified="2026-10-20",
+        observance="none",
+        note="The film agreement's eleven paid holidays for crew (Titre II art. 42), which are the Code du "
+             "travail's eleven (L3133-1). Only 1 May is a day off by law (L3133-4); the rest are days off by "
+             "the agreement. A holiday on a weekend is lost (Titre I art. 17), so there are no (Observed) rows.",
+        caveat="Alsace-Moselle (Bas-Rhin, Haut-Rhin, Moselle) adds Good Friday and 26 December — add them as "
+               "custom holidays for a shoot there. TV productions under the audiovisual agreement (IDCC 2642) "
+               "work Whit Monday as the solidarity day.",
+        rules=[
+            ("New Year's Day (Jour de l'an)",          ("fixed", 1, 1)),
+            ("Easter Monday (Lundi de Pâques)",        ("easter", 1)),
+            ("Labour Day (Fête du travail)",           ("fixed", 5, 1)),
+            ("Victory in Europe Day (Victoire 1945)",  ("fixed", 5, 8)),
+            ("Ascension Day (Ascension)",              ("easter", 39)),
+            ("Whit Monday (Lundi de Pentecôte)",       ("easter", 50)),
+            ("Bastille Day (Fête nationale)",          ("fixed", 7, 14)),
+            ("Assumption Day (Assomption)",            ("fixed", 8, 15)),
+            ("All Saints' Day (Toussaint)",            ("fixed", 11, 1)),
+            ("Armistice Day (Armistice 1918)",         ("fixed", 11, 11)),
+            ("Christmas Day (Noël)",                   ("fixed", 12, 25)),
+        ],
+    ),
+
     # -------------------------------------------------------------------- LITHUANIA
     "LT": dict(
         label="Lithuania",
@@ -470,6 +521,7 @@ PLACES = [
      "Local 476 does not publish its agreement. The ASA list is used as a planning placeholder — confirm before locking dates."),
     ("Florida",        "US-GEN", "IATSE Local 477 — entire state", None),
     ("Lithuania",      "LT",     "No crew collective agreement identified", None),
+    ("France",         "FR",     "Film crew: production cinématographique (IDCC 3097)", None),
     ("London",         "UK-EW",  "Bectu / Pact", None),
     ("Los Angeles",    "US-GEN", "Craft by craft — Locals 44, 80, 600, 695, 700, 705, 706, 728, 729, 800, 871, 884, 892", None),
     ("Maryland",       "US-GEN", "IATSE Local 487 — Mid-Atlantic, incl. DC and Virginia", None),
@@ -504,7 +556,7 @@ PLACES = [
 
 # The order src/legacy/app.js lists its regions in (holidays.app.js follows it).
 APP_ORDER = ["US-GEN", "US-NY", "CA-BC", "CA-ON", "CA-QC", "CA-AB", "CA-MB", "CA-NS",
-             "UK-EW", "UK-SCT", "UK-NI", "DE-BE", "DE-BB", "AU-VIC", "LT"]
+             "UK-EW", "UK-SCT", "UK-NI", "DE-BE", "DE-BB", "AU-VIC", "LT", "FR"]
 
 
 # ------------------------------------------------------------------------- build
@@ -555,7 +607,7 @@ def main():
             "label": spec["label"], "agreement": spec["agreement"], "term": spec["term"],
             "source": spec["source"], "observance": spec["observance"],
             "note": spec.get("note"), "caveat": spec.get("caveat"),
-            "verified": VERIFIED,
+            "verified": spec.get("verified", VERIFIED),
             "holidays": build_region(key, spec, y0, y1),
         }
 
@@ -585,7 +637,7 @@ def main():
     for key in APP_ORDER:
         reg = out["regions"][key]
         app_lines.append(f"    // {reg['label']} -- {reg['agreement']}")
-        app_lines.append(f"    // source: {reg['source']}  (verified {VERIFIED})")
+        app_lines.append(f"    // source: {reg['source']}  (verified {reg['verified']})")
         app_lines.append(f"    '{key}': [")
         for h in reg["holidays"]:
             nm = h["name"].replace("'", "\\'")

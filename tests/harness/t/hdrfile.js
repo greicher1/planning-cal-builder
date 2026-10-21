@@ -37,12 +37,9 @@ window.addEventListener('load', function () { (async function () {
     }, 'the row count to settle', 150, 100);
     out.health = T.appHealth();
 
-    var settingsTab = null;
-    document.querySelectorAll('.side-tab-btn').forEach(function (b) {
-      if (b.dataset.tab === 'settings') settingsTab = b;
-    });
-    if (settingsTab) settingsTab.click();
-    await T.sleep(300);
+    // The header presets are in the Settings window's Presets tab (owner ruling 12, 20 Oct 2026); it was
+    // the sidebar's Settings tab. Opened so the controls are laid out.
+    await T.openSettings('presets');
 
     var readPrefs = function () {
       try { return JSON.parse(localStorage.getItem('sptcal.prefs') || '{}'); } catch (e) { return {}; }

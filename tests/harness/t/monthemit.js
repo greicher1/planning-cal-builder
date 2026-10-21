@@ -38,7 +38,10 @@
 //       the page's foot, every week is at least its document min-height, and the page is laid out at W
 //   H0  the header: every line's box, highlight, text anchor and baseline where Chrome puts them
 //   M0  the month bar and the weekday row: boxes, the label's and every weekday's anchor and baseline
-//   D0  the frame, every week's top, every day cell's box and line, every day number's start and baseline, the ½
+//   D0  the frame, every week's top, every day cell's box and line, every day number's start and baseline, the ½,
+//       and "Day N" (the shoot-day number, 19 Oct 2026): its start, end and baseline against the cell's ::after,
+//       measured through a stand-in span carrying the pseudo's computed style (shootDayProbe). Only a calendar with
+//       "Number Production Days" on has any: info.totals.shootDays counts them, and gate.sh requires it above 0 there
 //   B0  every bar's box -- its lane, span and height -- in every week whose notes print as the document's
 //   T0  every bar's text: a pill's label and grey tag, a band's centred label, a note's lines, at start and baseline
 //   K0  what each thing is painted WITH: every fill, border, hatch, half-day shade, ink, font size, weight, letter-
@@ -126,6 +129,8 @@ window.addEventListener('load', function () { (async function () {
     var G = F.G, P = F.P, fonts = {};
     for(var fw of ['400', '500', '600', '700']) fonts[fw] = await F.loadInterPdfFont(fw);
     var noteWidthOf = function (s) { return F.mvlTextWidth(fonts['500'].font, s, G.noteFontPx); };
+    // A one-day custom pill wraps at the bar's own type, 600 (MONTH-NOTES-PLAN.md §6), as buildMonthLayout does.
+    var pillWidthOf = function (s) { return F.mvlTextWidth(fonts['600'].font, s, G.noteFontPx); };
     // Chrome's rounded ascent at a size: a text fragment's rect top is its baseline less this.
     var ascentAt = function (size) { return Math.round(fonts['400'].font.ascent * size / fonts['400'].font.unitsPerEm); };
 
@@ -162,13 +167,13 @@ window.addEventListener('load', function () { (async function () {
       track(cat + (sub ? ':' + sub : ''), isFinite(d) ? d : 1e9);
       if(!near(mine, theirs, tol)) bad[cat].push(where + ': ' + (Math.round(mine * 1000) / 1000) + ' vs Chrome ' + (Math.round(theirs * 1000) / 1000));
     }
-    var totals = {documents: 0, months: 0, weeks: 0, bars: 0, barsCompared: 0, weeksSkipped: 0, scaleMonths: 0, cuts: 0, texts: 0};
+    var totals = {documents: 0, months: 0, weeks: 0, bars: 0, barsCompared: 0, weeksSkipped: 0, scaleMonths: 0, cuts: 0, texts: 0, shootDays: 0};
     var perDoc = [];
 
     for(var dk = 0; dk < docs.length; dk++){
       var doc = docs[dk], lay = chromeLayout(doc.html);
       var months = lay.pages.map(function (pg, pi) {
-        var m = F.mvlMonthLayout(pg.inner, noteWidthOf);
+        var m = F.mvlMonthLayout(pg.inner, noteWidthOf, pillWidthOf);
         m.fit = {rows: pg.rows.slice()};
         return m;
       });
@@ -203,7 +208,7 @@ window.addEventListener('load', function () { (async function () {
     info.documents = perDoc;
     info.totals = totals;
     info.worst = worst;
-    info.kerning = kernMax;   // the widest difference Chrome's kerning made, per header line and over bar labels
+    info.kerning = kernMax;   // the widest difference Chrome's kerning made, per header line, over bar labels and "Day N"
     info.transplantedRules = transplanted;
 
     function judged(id, title, list, extra){
@@ -212,7 +217,7 @@ window.addEventListener('load', function () { (async function () {
     judged('C0', 'CONTROL: the transplanted print layout is the print path\'s own: fill months reach the page foot, no week under its min-height, the page at W', bad.C0, {months: totals.months, scaleMonths: totals.scaleMonths});
     judged('H0', 'the header: every line\'s box, highlight, text anchor and baseline where Chrome puts them', bad.H0, {worst: pick(worst, 'H0')});
     judged('M0', 'the month bar and the weekday row: boxes, and every label\'s anchor and baseline', bad.M0, {worst: pick(worst, 'M0')});
-    judged('D0', 'the frame, every week\'s top, every day cell and its line, every day number and ½', bad.D0, {worst: pick(worst, 'D0')});
+    judged('D0', 'the frame, every week\'s top, every day cell and its line, every day number, ½ and "Day N"', bad.D0, {worst: pick(worst, 'D0'), shootDays: totals.shootDays});
     judged('B0', 'every bar\'s box (lane, span, height) in every week whose notes print as the document\'s', bad.B0,
            {bars: totals.bars, compared: totals.barsCompared, weeksSkipped: totals.weeksSkipped, worst: pick(worst, 'B0')});
     judged('T0', 'every bar\'s text at its start (a band\'s at its centre) and baseline: labels, grey tags, note lines', bad.T0, {worst: pick(worst, 'T0'), cuts: totals.cuts});
@@ -305,6 +310,34 @@ window.addEventListener('load', function () { (async function () {
           return outR;
         };
         var p = {mode: mode, inner: inner, rows: [], minRows: [], weekTops: []};
+        // "Day N", the cell's ::after while "Number Production Days" is on (19 Oct 2026). A pseudo-element has no
+        // text node to measure, so it is stood in for, ONE CELL AT A TIME, by a real span carrying the pseudo's own
+        // COMPUTED style (Chrome's values, never the CSS's numbers copied here) as the cell's last child, which is
+        // exactly where a ::after box goes, with the pseudo itself switched off meanwhile. The cell lives in the
+        // absolutely placed .mv-daygrid, so the stand-in moves nothing else, and `inner` (what the model reads) was
+        // captured above, before any of this. null for a cell with no number.
+        var shootDayProbe = function (c) {
+          if(!c.hasAttribute('data-shoot-day')) return null;
+          var live = getComputedStyle(c, '::after'), snap = {};
+          ['content', 'float', 'whiteSpace', 'fontSize', 'fontWeight', 'fontStyle', 'fontFamily', 'lineHeight', 'color',
+           'opacity', 'letterSpacing'].forEach(function (k) { snap[k] = live[k]; });
+          var text = /^"(.*)"$/.exec(snap.content);
+          if(!text) return {content: snap.content};
+          var off = document.createElement('style');
+          off.textContent = '.__sdprobe-off::after{ content:none !important; }';
+          document.head.appendChild(off);
+          c.classList.add('__sdprobe-off');
+          var sp = document.createElement('span');
+          sp.textContent = text[1];
+          ['float', 'whiteSpace', 'fontSize', 'fontWeight', 'fontStyle', 'fontFamily', 'lineHeight', 'color', 'opacity',
+           'letterSpacing'].forEach(function (k) { sp.style[k] = snap[k]; });
+          c.appendChild(sp);
+          var res = {content: snap.content, text: textRects(sp)[0], box: rel(sp.getBoundingClientRect()),
+                     cs: {size: parseFloat(snap.fontSize), weight: snap.fontWeight, style: snap.fontStyle, color: snap.color,
+                          opacity: parseFloat(snap.opacity), ls: snap.letterSpacing, content: snap.content}};
+          sp.remove(); c.classList.remove('__sdprobe-off'); off.remove();
+          return res;
+        };
         var mv = page.querySelector('.month-view');
         // What Chrome PAINTS each thing with: its computed style, for K0.
         var cs = function (el, pseudo) {
@@ -338,7 +371,8 @@ window.addEventListener('load', function () { (async function () {
               var num = c.querySelector('.mv-daynum');
               return {box: rel(c.getBoundingClientRect()), borderLeft: parseFloat(getComputedStyle(c).borderLeftWidth) || 0,
                       borderColor: getComputedStyle(c).borderLeftColor,
-                      span: rel(num.getBoundingClientRect()), num: textRects(num)[0], cs: cs(c), numCs: cs(num), afterCs: cs(num, '::after')};
+                      span: rel(num.getBoundingClientRect()), num: textRects(num)[0], cs: cs(c), numCs: cs(num), afterCs: cs(num, '::after'),
+                      sd: shootDayProbe(c)};
             }),
             bars: Array.prototype.map.call(wk.querySelectorAll(':scope > .mv-bars > .mv-bar:not(.mv-note-add):not(.mv-row-expand)'), function (b) {
               var tagEl = b.querySelector('.mv-pill-block');
@@ -455,6 +489,24 @@ window.addEventListener('load', function () { (async function () {
         // lone glyph in its own ::after box, so nothing kerns it).
         if(half) judgeNear('D0', dWhere + ' ½ after its number', half.x + half.w - (num.x + num.w), cc.span.x + cc.span.w - (cc.num.x + cc.num.w), LEFT, 'half');
         totals.texts++;
+        // "Day N" (19 Oct 2026): drawn exactly where Chrome sets the cell's ::after, start and baseline, and nowhere else.
+        var sdo = list.filter(function (o) { return o.role === 'shootday' && o.wk === wi && o.d === dj; })[0];
+        if(!!d.sd !== !!sdo || !!d.sd !== !!cc.sd) bad.D0.push(dWhere + ': shoot day ' + d.sd + ', drawn ' + !!sdo + ', Chrome ' + !!cc.sd);
+        else if(sdo){
+          if(!cc.sd.text || sdo.s !== 'Day ' + d.sd || cc.sd.content !== '"Day ' + d.sd + '"') bad.D0.push(dWhere + ': "' + sdo.s + '" for Chrome\'s ' + cc.sd.content);
+          else {
+            // ⭐ KERNING IS ACCOUNTED FOR, NOT TOLERATED (the header's rule above). The float is right-aligned, so its
+            // END is the anchor and is held as it is; Chrome kerns "Day" and the PDF does not, so Chrome's text is
+            // narrower and STARTS later by exactly the difference in the two widths. `info.kerning.shootDay` records it.
+            var kd = sdo.w - cc.sd.text.w;
+            judgeNear('D0', dWhere + ' shoot day end', sdo.x + sdo.w, cc.sd.text.x + cc.sd.text.w, LEFT, 'shootday-end');
+            judgeNear('D0', dWhere + ' shoot day start, less Chrome\'s kerning', sdo.x + kd, cc.sd.text.x, LEFT, 'shootday-start');
+            judgeNear('D0', dWhere + ' shoot day baseline', sdo.y, cc.sd.text.y + A(sdo.size), BASE_TOL, 'baseline');
+            if(!('shootDay' in kernMax) || Math.abs(kd) > kernMax.shootDay) kernMax.shootDay = Math.round(Math.abs(kd) * 1e4) / 1e4;
+            totals.shootDays++;
+          }
+          totals.texts++;
+        }
       });
       // B0 + T0: compared only where the week's notes print as the document's, so its lanes are the same lanes.
       totals.bars += wk.items.length;
@@ -580,6 +632,12 @@ window.addEventListener('load', function () { (async function () {
           font(dWhere + ' ½', half, cc.afterCs);
           if(!sameC(half.c, mix(ink.c, ink.a * cc.numCs.opacity * cc.afterCs.opacity, under))) K.push(dWhere + ': ½ ' + fmtC(half.c));
         } else if(cc.afterCs.content.indexOf('½') >= 0) K.push(dWhere + ': Chrome draws a ½ the PDF does not');
+        var sdo = list.filter(function (o) { return o.role === 'shootday' && o.wk === wi && o.d === dj; })[0];
+        if(sdo && cc.sd && cc.sd.cs){
+          font(dWhere + ' shoot day', sdo, cc.sd.cs);
+          var sdInk = rgbOf(cc.sd.cs.color);
+          if(!sameC(sdo.c, mix(sdInk.c, sdInk.a * cc.sd.cs.opacity, under))) K.push(dWhere + ': shoot day ' + fmtC(sdo.c) + ' vs ' + cc.sd.cs.color + ' at ' + cc.sd.cs.opacity);
+        }
       });
       wk.items.forEach(function (it, k) {
         var cb = cw.bars[k], bWhere = wWhere + ' bar ' + (k + 1) + ' (' + it.kind + ')';
@@ -587,10 +645,18 @@ window.addEventListener('load', function () { (async function () {
         var bar = list.filter(function (o) { return o.role === 'bar' && o.wk === wi && o.i === k; })[0];
         if(!bar){ K.push(bWhere + ': not drawn'); return; }
         var fill = rgbOf(cb.cs.bg), ink = rgbOf(cb.cs.color), brd = rgbOf(cb.cs.border);
-        if(!sameC(bar.c, fill.c)) K.push(bWhere + ': fill ' + fmtC(bar.c) + ' vs ' + cb.cs.bg);
-        if(bar.r !== parseFloat(cb.cs.radius)) K.push(bWhere + ': radius ' + bar.r + ' vs ' + cb.cs.radius);
         var ring = list.filter(function (o) { return o.role === 'bar-ring' && o.wk === wi && o.i === k; })[0];
-        if(!ring || !sameC(ring.c, mix(brd.c, brd.a, fill.c))) K.push(bWhere + ': border ' + (ring ? fmtC(ring.c) : 'missing') + ' vs ' + cb.cs.border + ' over the fill');
+        // ⭐ A No fill note (MONTH-NOTES-PLAN.md §2, 20 Oct 2026): Chrome paints a zero-alpha fill and a zero-alpha
+        // border (the frozen CSS line, ruling Q2), so the writer must paint neither: both listed, both `clear`.
+        // Any other bar is opaque, and must not be clear.
+        if(fill.a === 0 || brd.a === 0){
+          if(!(fill.a === 0 && brd.a === 0 && bar.clear && ring && ring.clear)) K.push(bWhere + ': a clear bar (' + cb.cs.bg + ', border ' + cb.cs.border + ') drawn ' + (bar.clear ? 'clear' : 'painted') + (ring && ring.clear ? '' : ', its ring painted'));
+        } else {
+          if(bar.clear || (ring && ring.clear)) K.push(bWhere + ': an opaque bar drawn clear');
+          if(!sameC(bar.c, fill.c)) K.push(bWhere + ': fill ' + fmtC(bar.c) + ' vs ' + cb.cs.bg);
+          if(!ring || !sameC(ring.c, mix(brd.c, brd.a, fill.c))) K.push(bWhere + ': border ' + (ring ? fmtC(ring.c) : 'missing') + ' vs ' + cb.cs.border + ' over the fill');
+        }
+        if(bar.r !== parseFloat(cb.cs.radius)) K.push(bWhere + ': radius ' + bar.r + ' vs ' + cb.cs.radius);
         var shades = list.filter(function (o) { return o.role === 'bar-shade' && o.wk === wi && o.i === k; }).length;
         var layers = (cb.cs.bgImage.match(/linear-gradient\(/g) || []).length;
         if(shades !== layers) K.push(bWhere + ': ' + shades + ' half-day shades for ' + layers + ' layers');
@@ -728,7 +794,7 @@ window.addEventListener('load', function () { (async function () {
       // X4: the display list carries the model.
       var m = months[pi];
       var need = [m.label].concat(m.dow.map(function (d) { return d.toUpperCase(); }));
-      m.weeks.forEach(function (wk) { wk.days.forEach(function (d) { need.push(String(d.n)); }); });
+      m.weeks.forEach(function (wk) { wk.days.forEach(function (d) { need.push(String(d.n)); if(d.sd) need.push('Day ' + d.sd); }); });
       var have = texts.map(function (o) { return o.s; });
       need.forEach(function (sx) { var at = have.indexOf(sx); if(at < 0) bad.X4.push(where + ': "' + sx + '" is not drawn'); else have.splice(at, 1); });
       ['tleft', 'title', 'today', 'subtitle'].forEach(function (id) {
@@ -745,7 +811,9 @@ window.addEventListener('load', function () { (async function () {
             var wantLines = it.lines.filter(function (l) { return l !== ''; });
             if(!same(drawnLines, wantLines)) bad.X4.push(where + ' week ' + (wi + 1) + ' note ' + (k + 1) + ': ' + JSON.stringify(drawnLines) + ' for ' + JSON.stringify(wantLines));
           } else {
-            var lbl = F.mvlFlat(it.text), head = mine.filter(function (o) { return o.role === 'bar-text'; }).map(function (o) { return o.s; }).join('');
+            // A one-day custom pill that wraps (MONTH-NOTES-PLAN.md §6) draws its label as LINES, the model's breaks, so
+            // they are joined with the space each break took; every other bar draws one run.
+            var lbl = F.mvlFlat(it.text), head = mine.filter(function (o) { return o.role === 'bar-text'; }).map(function (o) { return o.s; }).join(it.lines ? ' ' : '');
             var cut = mine.some(function (o) { return o.role === 'bar-ell'; });
             if(cut ? lbl.indexOf(head) !== 0 : head !== lbl) bad.X4.push(where + ' week ' + (wi + 1) + ' bar ' + (k + 1) + ': drew "' + head + '" for "' + lbl + '"');
             var tagText = F.mvlFlat(it.tag || ''), tg = mine.filter(function (o) { return o.role === 'bar-tag'; }).map(function (o) { return o.s; }).join('');
@@ -782,7 +850,7 @@ window.addEventListener('load', function () { (async function () {
         var b = bars[o.wk + ':' + o.i];
         var padX = b.kind === 'note' ? P.note.padX : P.bar.padX;
         right = b.x + b.w - P.bar.border - padX;
-      } else if(o.role === 'daynum' || o.role === 'half'){
+      } else if(o.role === 'daynum' || o.role === 'half' || o.role === 'shootday'){
         right = G.margin + G.pagePad + P.line + (o.d + 1) * G.dayW;
       } else if(o.role === 'dow'){
         right = G.margin + G.pagePad + P.line + (o.i + 1) * G.dayW;

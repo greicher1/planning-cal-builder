@@ -196,6 +196,8 @@ PY
 #                   60-lane cap (L-16) -- and its August is in SCALE mode, the first case that exercises
 #                   exportMonthPdf's shrink-to-fit branch at all
 #   hiatus-blanklabel  ⭐ ADDED 29 Sep 2026: a deliberately emptied all-phase hiatus label prints blank (N-1)
+#   mvnotes         ⭐ ADDED 20 Oct 2026 (MONTH-NOTES-PLAN.md): an edge month that prints because it holds notes and a
+#                   custom holiday, No fill / tint / grey day notes, a note on a hiatus day, one-day custom pills that wrap
 #   halfdays        ⭐ ADDED 15 Oct 2026: episodes of 4.5 days (one of 5), so Production's bars split per episode
 #                   and STACKED on each switch day ("Stacked bars, always"). ⭐ Since 16 Oct 2026
 #                   (HALF-SQUARE-BARS-PLAN.md) the two meet half way through the square in ONE lane
@@ -206,7 +208,7 @@ for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvhea
               mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
               dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
               month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel \
-              halfdays:halfdays:halfdays; do
+              halfdays:halfdays:halfdays mvnotes:mvnotes:mvnotes; do
   MPCASE="${MPSPEC%%:*}"; MPREST="${MPSPEC#*:}"; MPSTATE="${MPREST%%:*}"; MPBCASE="${MPREST#*:}"
   [[ $MPSTATE == - ]] && MPSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$MPSTATE" HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthprint 60 >/dev/null 2>&1
@@ -1257,6 +1259,69 @@ chk(on.get('clippedH')==0 and off.get('clippedH')==0,
 sys.exit(bad)
 PY
 
+# ---- colreuse: "Reuse empty columns" (COLUMN-REUSE-PLAN.md, owner rulings 20 Oct 2026) ----------
+# A phase takes over the column of one that has just finished. One box in Settings, the grid's own
+# drag to fix a pick, and a row note only when something was moved by hand.
+#
+# ⭐ NO FROZEN EDIT. Only computeSchedule's column assignment changes, and only with the box ticked;
+# frozen computeBlockLayout derives fewer columns from `col` as data. The byte-compare above, on
+# calendars that never tick it, is the inertness proof. This leg proves the rules, on a SYNTHETIC
+# calendar (2030-2032) with one phase per rule of the plan's §3.
+# Two runs: LIVE builds it through the DOM; RESTORE opens tests/fixtures/colreuse.sptcal, cut from
+# LIVE's own snapshot.
+for CRSTATE in "" colreuse; do
+  rm -f "$HERE/colreuse.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$CRSTATE" "$HERE/run.sh" colreuse 240 >/dev/null 2>&1
+  python3 - "$HERE/colreuse.json" "colreuse (${CRSTATE:-live})" <<'PYCR' || FAIL=1
+import json,sys
+path, label = sys.argv[1:3]
+bad=0
+def chk(c,m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ')+label+': '+m)
+    if not c: bad=1
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])); sys.exit(1)
+if a.get('mode') == 'live':
+    chk(a.get('boxExists') and a.get('boxStartsOff') and a.get('boxSkippedBySweep'),
+        'the box exists, starts off, and sits inside .prefs-card so collectFieldValues() cannot sweep it')
+    chk(a.get('offSnapHasNoKeys') and a.get('offNoNotes'),
+        'OFF saves no colReuse/colFollow key and shows no row note: a calendar that never ticks it is unchanged')
+    oc=a.get('onCols') or {}
+    chk(a.get('fewerColumns'), f"ON: 2030 drops from {a.get('offCols2030')} columns to {oc.get('2030')} (2031: {oc.get('2031')}, 2032: {oc.get('2032')})")
+    chk(a.get('handoff'), 'a phase starting the week another ends takes its column, even with a phase to its right still running')
+    chk(a.get('chainTie'), 'a tie goes to the phase "Start after" names: Production follows Prep, not Build')
+    chk(a.get('lowestFree'), 'no handoff: the lowest free column')
+    chk(a.get('newColumn'), 'nothing free: a new column')
+    chk(a.get('prodLeft2031'), "Production's column is leftmost when two columns start a year together (ruled Q2)")
+    chk(a.get('customTieLeftmost'), 'a custom phase with a tie takes the leftmost (ruled Q1)')
+    chk(a.get('acrossHiatus'), 'a handoff counts across an all-phase hiatus (ruled Q5)')
+    chk(a.get('onNoNotes'), 'ON with nothing moved by hand: still no row note')
+    chk(a.get('widthsCleared2030') and a.get('widthsKept2032'),
+        'hand-dragged widths are cleared in the year whose columns changed and kept in the year that did not (ruled Q7)')
+    chk(a.get('undoBoxOff') and a.get('undoLayout') and a.get('undoWidthsBack') and a.get('redoBack'),
+        'the box is ONE undo step: undo restores the box, the columns and the widths; redo puts them back')
+    chk(a.get('selectedMix') and a.get('moved'),
+        f"dragging a block into the free column beside it moves the phase there (column {a.get('mixSlotBefore')} -> {a.get('mixSlotAfter')})")
+    chk(a.get('noteSaysMoved') and a.get('onlyOneNote'), f"...and only that phase's row gets a note: {(a.get('noteMoved') or {}).get('text')!r}")
+    chk(a.get('snapHasKeys') and a.get('notInFieldIds'), 'it saves as colReuse + colFollow, and the box is not also a swept field id')
+    chk(a.get('xlsxAgrees'), f"Excel puts each phase in the column the screen does {a.get('xlsxCols')}")
+    chk(a.get('pdfExported'), 'the waterfall PDF exports')
+    chk(a.get('staleSaysWhy') and a.get('staleBackToAuto') and a.get('reapplies'),
+        f"a move that can't apply falls back to automatic and says why ({(a.get('noteStale') or {}).get('text')!r}), then applies again once it fits")
+    chk(a.get('resetExists') and a.get('resetBack') and a.get('undoReset'), "the note's Reset clears the move, as one undo step")
+else:
+    chk(a.get('boxOn') and a.get('restoredRules'), 'a saved calendar opens with the box ticked and the same columns')
+    chk(a.get('restoredMove') and a.get('noteRestored'), 'the hand move and its note survive save and load')
+    chk(a.get('newClears'), 'New clears the box and the hand moves')
+chk(not a.get('errors'), f"0 console errors {a.get('errors')}")
+sys.exit(bad)
+PYCR
+done
+
 # ---- rowmigrate: a REAL pre-10-Sep calendar's dragged row height still lands on its week --------
 # ⛔ THE FORWARD-COMPATIBILITY HALF of moving rowHeights from row-index keys to week keys, and the
 # risky half: every calendar anyone has ever dragged a row in stores `rowHeights: {"<index>": px}`.
@@ -1541,6 +1606,10 @@ done
 # and every note's line breaks against Chrome's own breaker on the same font program.
 # filekeys guards the file actions' keyboard shortcuts (owner, 1 Oct 2026): ⌘N New, ⇧⌘S Save As and
 # ⇧⌘E Export click their buttons, on the platform's command key only, and never while a dialog is open.
+# dlgkeys guards ⌘S, ⌘Z and ⇧⌘Z under the app's dialogs (19 Oct 2026): none of them may act while a question
+# (or the template header editor) is up. Before, ⌘Z under "Remove hiatus?" made Remove do nothing, under "Remove
+# phase?" it left a ghost row, and ⌘S under the Region's "Continue?" on a file changed on disk dropped the Region
+# change. It loads its own linked file through the fake picker, so it takes no state. In-field undo stays (X1, X2).
 # launchopen guards double-click-to-open (1 Oct 2026): a .sptcal the OS hands the installed app
 # through launchQueue loads exactly as Load... does -- the unsaved-work question, recents, write-back.
 # halfdays guards half days (owner, 15 Oct 2026): an episode's or block's day count may end in .5, and the
@@ -1558,12 +1627,44 @@ done
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
+# mvnotes guards bundle A of the 20 Oct 2026 gap list (MONTH-NOTES-PLAN.md, the owner's rulings by picker): the day-note
+# editor's palette, No fill and remembered colour (P), one month each side and the custom holidays drawn there (E),
+# notes on every hiatus day (H), Paste notes… (V) and one-day custom pills that wrap (W). LIVE builds the synthetic
+# calendar through the UI and mints tests/fixtures/mvnotes.sptcal; the second run holds that file to the same facts.
+# labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
+# the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
+# Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
+# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… and Number weeks (C). Twenty
+# mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
+# phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
+# waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
+# box's hit-test and id hygiene, one undo step, the save key, a byte-identical file after untick, Load and the M-5
+# trap, New, Shift All and a band retyped in the grid (kept as typed, the owner's ruling).
+# autonotekinds (owner ruling 9, 20 Oct 2026) is the Automatic notes card: a kind switched off leaves the waterfall,
+# Excel, the waterfall PDF, the month view and the written month PDF (with a positive control, A0b, because that
+# writer wraps a note into short runs), a user's own and edited notes stay exactly as typed, one undo step, the save
+# key with the id set and userNotes unchanged, a byte-identical file once every kind is back on, Shift All, Load and
+# the M-5 trap, and New.
+# phasecolors (owner ruling 5, 20 Oct 2026) is the five colours appended to PHASE_COLOR_OPTIONS: the picker's 14 in
+# order (the old nine first: the array's order is save format), each new colour in the waterfall (black text), Excel's
+# fills, both PDFs' fill operators and the month view's bars and inks, both index stores through Save and Load, and a
+# new custom phase's default colour still cycling through the first nine only.
+# calrange guards the calendar range (owner ruling 3, 20 Oct 2026): the Show tab's start/end dates replace the
+# waterfall's full-year padding. On a synthetic calendar, every expectation derived from the same calendar with the
+# range blank: the rows kept (and their labels), the strip naming the phases cut, Excel's Date columns, the waterfall
+# PDF's text, the month view identical month by month, Single Column Mode, the shift tools, bad dates, Save/Load
+# with the M-5 trap, the shareable copy and New.
 # hdrrow guards the waterfall's header text and dates (owner rulings 2, 4 and 10, 20 Oct 2026; HEADER-ROW-PLAN.md):
 # Header: Off, the 1/6/2025 date format and custom column headings -- each inert by default (its I cases), each
 # driven through its real control and read back from the screen, the workbook and the waterfall PDF, each one undo
 # step, saved, loaded and immune to the M-5 trap. Red on the pre-change build; eight mutants, each red. Its own
 # line, mid-list, so sessions appending at the end never conflict with it.
-for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
+# settingswin guards the Settings window (owner ruling 12, 20 Oct 2026), which took over the sidebar's old Settings
+# tab: every moved id is in it once, on its tab; fields.byId gets #union-place and the two custom-holiday fields in
+# their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;
+# opening it is no undo step; a re-render never puts a Mantine Switch's stale state over the engine's (W9); it covers
+# the sidebar and moves neither the preview nor the grid box; and an old file's sidebarTab 'settings' opens on Show.
+for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
               snapoff:snapoff-sheet:60 snapoff:snapoff-onecol:60 snapoff:snapoff-friday:60 \
@@ -1578,10 +1679,12 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
-              filekeys:v1.4.2-saved:150 \
+              filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
-              mvmenu:halfdays:150; do
+              mvmenu:halfdays:150 \
+              mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
+              phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"
   [[ $AFSTATE == - ]] && AFSTATE=""
   HARNESS_PAGE="$PAGE" HARNESS_STATE="$AFSTATE" "$HERE/run.sh" "$AFLEG" "$AFSECS" >/dev/null 2>&1
@@ -1603,6 +1706,33 @@ print('  FAIL  '+label+': '+json.dumps(a)[:300]); sys.exit(1)
 PYAF
 done
 
+# ---- mvnotes' WRITTEN month PDF: the one-day custom pills wrap in the file users get (MONTH-NOTES-PLAN.md §6) ---------
+# ⭐ ADDED 20 Oct 2026. The leg's last run (the minted fixture) hands back the written PDF, mvnotes.month.pdf. Its text,
+# by pdftotext, must carry each wrapping pill's label as TWO lines, the writer's own breaks, and the Friday piece cut
+# with "…" at the end of its second line. `monthemit` cannot see this: it compares only weeks the writer lays out as the
+# print document does, and a pill that stops wrapping changes its week's lanes. Mutant m11 (the writer never wraps) is
+# green there and red here.
+python3 - "$HERE/mvnotes.month.pdf" <<'PYMN' || FAIL=1
+import subprocess, sys
+bad = 0
+def chk(c, m):
+    global bad
+    print(('  PASS  ' if c else '  FAIL  ') + m)
+    if not c: bad = 1
+try: txt = subprocess.run(['pdftotext', '-layout', sys.argv[1], '-'], capture_output=True, text=True, check=True).stdout
+except Exception as e:
+    print('  FAIL  mvnotes month PDF: unreadable: ' + str(e)); sys.exit(1)
+L = [l.strip() for l in txt.split('\n')]
+def follows(a, b): return any(L[i].startswith(a) and i + 1 < len(L) and L[i + 1].startswith(b) for i in range(len(L)))
+chk(follows('Network Table Read and', 'Studio Notes Session'),
+    'mvnotes month PDF: the one-day phase\'s name wraps to two lines ("Network Table Read and" / "Studio Notes Session")')
+chk(sum(1 for l in L if l == 'Camera Tests With Th\u2026') == 2 and sum(1 for l in L if l.startswith('Costume and Hair') and l == 'Costume and Hair') == 2,
+    'mvnotes month PDF: the Friday piece wraps and is cut with "\u2026" at the end of its second line, on both pages that show 5/1/26')
+chk(any(l.startswith('Costume and Hair Camera Tests With The Director Week 2') for l in L),
+    'mvnotes month PDF: the same phase\'s full-week piece stays one line')
+sys.exit(bad)
+PYMN
+
 # ---- monthemit (MONTH-PDF-WRITER-PLAN.md §8 step 3): the month-PDF writer's emitter + serializer --------
 # ⭐ ADDED 1 Oct 2026. The leg slices the writer out of src/legacy/app.js (owner ruling: "slice it, no hook"
 # extends to the emitter), lays every print document out in Chrome with the app's print rules, hands the emitter
@@ -1620,7 +1750,9 @@ done
 # no comparison here needs pdfcmp.py's date exemption.
 MEA="/tmp/gate${GTAG}-mea"; MEB="/tmp/gate${GTAG}-meb"
 rm -rf "$MEA" "$MEB"; mkdir -p "$MEA" "$MEB"
-for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse"; do
+# mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md) adds No fill notes (listed, never painted) and one-day custom pills that wrap.
+for MESPEC in "a::-" "b:Pacific/Kiritimati:1280,900" "sa:-:-:colswap-simpost-refuse" "sb:Pacific/Kiritimati:-:colswap-simpost-refuse" \
+              "na:-:-:mvnotes"; do
   MERUN="${MESPEC%%:*}"; MEREST="${MESPEC#*:}"; METZ="${MEREST%%:*}"; MEREST="${MEREST#*:}"
   MEWIN="${MEREST%%:*}"; MESTATE=""; [[ "$MEREST" == *:* ]] && MESTATE="${MEREST#*:}"
   [[ $METZ == - ]] && METZ=""; [[ $MEWIN == - ]] && MEWIN=""
@@ -1695,12 +1827,13 @@ PYMF
 #   win   notewrap again, in a 1280 x 800 window: ⛔ its writer file byte-identical to nw's, while the print DOCUMENT
 #         must differ -- the print path's note spans follow the window, the writer's do not, and a control that changed
 #         nothing would pass vacuously.
+#   mv    mvnotes (20 Oct 2026, MONTH-NOTES-PLAN.md): a printed edge month, No fill notes, one-day custom pills that wrap.
 #   hd/hm halfdays and halfmarks: switch days whose two Production bars meet half way through the square (16 Oct 2026,
 #         HALF-SQUARE-BARS-PLAN.md), the second with saved ½ marks inside those bars. A3 holds every inset box to Chrome.
 MWA="/tmp/gate${GTAG}-mwa"; rm -rf "$MWA"; mkdir -p "$MWA"
 for MWSPEC in "t1:-:-:-" "t1z:Pacific/Kiritimati:-:-" "ms:-:-:monthscale" "md:-:-:month-dense60" "nw:-:-:notewrap" \
               "sr:-:-:stintswap-reshape" "sp:-:-:colswap-simpost-refuse" "win:-:1280,800:notewrap" "hd:-:-:halfdays" \
-              "hm:-:-:halfmarks"; do
+              "hm:-:-:halfmarks" "mv:-:-:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWTZ="${MWREST%%:*}"; MWREST="${MWREST#*:}"
   MWWIN="${MWREST%%:*}"; MWSTATE="${MWREST#*:}"
   [[ $MWTZ == - ]] && MWTZ=""; [[ $MWWIN == - ]] && MWWIN=""; [[ $MWSTATE == - ]] && MWSTATE=""
@@ -1781,7 +1914,7 @@ for MXSPEC in "r:-:-:-" "rz:Pacific/Kiritimati:-:-" "rw:-:1280,800:-" "b:-:-:blo
               "sp:-:-:colswap-simpost-refuse" "sr:-:-:stintswap-reshape" \
               "do:-:-:dayoverrides" "mh:-:-:mvheader" "ml:-:-:mvheaderlegacy" "bo:-:-:blocksoff" "oh:-:-:dayoverrides-onhalf" \
               "lc:-:-:month-lanecap" "hb:-:-:hiatus-blanklabel" "d6:-:-:month-dense60" "mn:-:-:monthnotes" "so:-:-:shootorder" \
-              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays"; do
+              "nw:-:-:notewrap" "cr:-:-:carry-rich" "hd:-:-:halfdays" "nn:-:-:mvnotes"; do
   MXRUN="${MXSPEC%%:*}"; MXREST="${MXSPEC#*:}"; MXTZ="${MXREST%%:*}"; MXREST="${MXREST#*:}"
   MXWIN="${MXREST%%:*}"; MXSTATE="${MXREST#*:}"
   [[ $MXTZ == - ]] && MXTZ=""; [[ $MXWIN == - ]] && MXWIN=""; [[ $MXSTATE == - ]] && MXSTATE=""
@@ -1859,7 +1992,8 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
               "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
               "hb:hiatus-blanklabel:hiatus-blanklabel" "d6:month-dense60:month-dense60" "mn:monthnotes:monthnotes" \
-              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays"; do
+              "so:shootorder:shootorder" "nw:notewrap:notewrap" "cr:carry-rich:carry-rich" "hd:halfdays:halfdays" \
+              "nn:mvnotes:mvnotes"; do
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
@@ -1974,6 +2108,32 @@ for c in cases:
     print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPE
+
+# ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
+# ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
+# reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
+# where elementsFromPoint has the body-level layer or grip topmost (H0). On hiatusdrag.sptcal: a
+# week at a time by ROW (a Sunday drop is that row's week, H4); a locked hiatus offers nothing (H0);
+# an all-phase drag asks Keep or Undo, Ctrl+Z is held under the question, and Undo banks nothing (H1,
+# H2); a phase's own hiatus never asks (H9) and cannot leave its phase (H10); no overlap (H5); the
+# band's typed label and colour travel and are copied onto added weeks (H1, H6, H7); the half day
+# stays on its date (H6); floors (H8); Escape (H11); print media (H12). Run red on three mutants
+# before it was wired in. ⚠️ The crash-backup half of the hold cannot be seen here (IndexedDB never
+# settles in headless Chrome); it was proved in the app pane.
+node "$HERE/hiatusdrag.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/hiatusdrag.json" "hiatusdrag (hiatusdrag)" <<'PYHD' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYHD
 
 # ---- cspproof (4.1, audit L-4): the app runs under its Content-Security-Policy, ZERO violations ----
 # ⭐ ADDED 30 Sep 2026. A Node script, because srv.js strips the policy on ?test= pages (it injects
@@ -2232,6 +2392,163 @@ print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYWN
 done
+
+# ---- sideboxes: boxes beside the waterfall (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ------------
+# A colour key and a text box on screen beside the grid (never inside #table-wrap), in the workbook (frozen
+# edits E1-E3: the grid moves two columns right for a left box) and in the waterfall PDF (E4-E6: the fit,
+# the header band and the orientation taken over grid + boxes). The leg reads both exports back, drives every
+# gesture through the hit stack, holds #table-wrap's month-view width to the pixel (it repaginates the month
+# PDF), and proves that deleting the last box gives back the very same PDF content and no `sideBoxes` key.
+# ⭐ The other half of "inert without boxes" is gates 2 and 3 above: every existing calendar's waterfall PDF
+# and Excel parts stay byte-identical to the baseline.
+rm -f "$HERE/sideboxes.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=sideboxes "$HERE/run.sh" sideboxes 900 >/dev/null 2>&1
+python3 - "$HERE/sideboxes.json" <<'PYSB' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  sideboxes produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  sideboxes threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'sideboxes: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYSB
+
+# ---- barprefix: an episode's or block's month-bar prefix ("Shoot Ep. 101"; owner, 20 Oct 2026) ------------------
+# The default "Shoot" before every episode bar but a switch day's one-day half bar, on every calendar; none before a
+# block bar; each unit's own prefix set, blanked and reset from its bar's day menu (hit-tested), one undo step each,
+# saved on its episodeDefs / blockDefs entry only where it departs from the default, restored unconditionally, and
+# validated on Load. halfdays carries the P-cases and writes the month PDF, whose text is read here page by page;
+# blocks carries the B-cases (no default on a block, a block's prefix before its episodes when labelled by episode).
+for BPSTATE in halfdays blocks; do
+  rm -f "$HERE/barprefix.json" "$HERE/barprefix.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BPSTATE" "$HERE/run.sh" barprefix 300 >/dev/null 2>&1
+  python3 - "$HERE/barprefix.json" "$HERE/barprefix.pdf" "barprefix ($BPSTATE)" "$BPSTATE" <<'PYBP' || FAIL=1
+import json,sys,os,subprocess
+path, pdf, label, st = sys.argv[1:5]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+bad = not cases or any(c.get('pass') is not True for c in cases)
+if st == 'halfdays':
+    try:
+        txt = subprocess.run(['pdftotext', '-raw', pdf, '-'], capture_output=True, text=True, check=True).stdout
+        ok = 'Pickup Ep. 202' in txt and 'Shoot Ep. 201' in txt and 'Shoot Ep. 202' not in txt
+        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Pickup Ep. 202" and "Shoot Ep. 201", and no "Shoot Ep. 202"')
+        bad = bad or not ok
+    except Exception as e:
+        print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = True
+sys.exit(1 if bad else 0)
+PYBP
+done
+
+# ---- shootdays: "Number Production Days", "Day N" on every shoot day in the month view (19 Oct 2026) -------------
+# Off by default; calendar data (captureSnapshot's mvNumberShootDays, an ABSENT key when off); shown whatever labels the
+# bars. Its frozen edit (renderMonthView's data-shoot-day attribute, legacy.css's ::after) was approved with a gate:
+# gates 10 and 13, byte-identical with it off, are one half; this block is the other.
+#   shootdays leg   on offweek (the hand trace), dayoverrides-onhalf (half days) and blocks (all three labels): the
+#                   switch, every square against the day menu's "Shoot day N", only the attribute moving (every month
+#                   byte-identical with it taken out, every week as tall), the ::after on the date's baseline, one undo
+#                   step, Save/Load, restore unconditionally, off written as NO key, and the month PDF the app writes.
+#                   Here, that PDF's text (pdftotext -raw), page by page, against the numbers the screen showed.
+#   monthemit       on shootdays and shootdays-onhalf (minted by the leg): every "Day N" the writer draws, held to
+#                   Chrome's own print layout of the same pages (D0's start/end/baseline, K0's font and ink, X3, X4),
+#                   and at least one judged. Their files are NOT the 15 the time-zone check counts.
+#   monthwriter     on shootdays-onhalf, and monthab.py on its file against Chrome's real print (P0-P5). ⚠️ NOT on
+#                   shootdays: offweek fails P5 the same way WITH THE SETTING OFF (cell-sized "lines" unpaired in its
+#                   off weeks, August and September 2027), so that is offweek's, found 19 Oct 2026 and not yet traced.
+#   monthexport     on shootdays: the BUILT app's month PDF is byte-identical to the sliced source's (X2).
+for SDSTATE in offweek dayoverrides-onhalf blocks; do
+  rm -f "$HERE/shootdays.json" "$HERE/shootdays.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" shootdays 900 >/dev/null 2>&1
+  python3 - "$HERE/shootdays.json" "$HERE/shootdays.pdf" "shootdays ($SDSTATE)" <<'PYSD' || FAIL=1
+import json,sys,re,subprocess
+path, pdf, label = sys.argv[1], sys.argv[2], sys.argv[3]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+bad = 0
+# The checks first, even from a run that threw: a mutant that breaks restore shows its own named case (A9a) and THEN
+# the timeout it causes further on, which says far more than the timeout alone.
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+label+': '+str(c.get('what')))
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+errs = (a.get('health') or {}).get('errors') or []
+print(('  PASS  ' if not errs else '  FAIL  ')+label+f': 0 console errors {errs[:2]}')
+# The written month PDF: each page reads its month's numbers, in order, as the screen showed them. "Labor Day 9/6/27"
+# is a holiday's name, not a number: (?!/) keeps "Day 9/..." out.
+try:
+    exp = a.get('pdfExpect') or []
+    got, wrong = [], []
+    for i, m in enumerate(exp):
+        txt = subprocess.run(['pdftotext', '-raw', '-f', str(i + 1), '-l', str(i + 1), pdf, '-'], capture_output=True, text=True, check=True).stdout
+        days = [int(n) for n in re.findall(r'\bDay (\d+)\b(?!/)', txt)]
+        got.append(len(days))
+        if days != m.get('days'): wrong.append(m.get('title') + ': ' + str(days[:8]) + ' vs ' + str((m.get('days') or [])[:8]))
+    ok = bool(exp) and not wrong and sum(got) > 0
+    print(('  PASS  ' if ok else '  FAIL  ')+label+f': the written month PDF reads every month\'s "Day N" in order, as on screen ({sum(got)} on {len(exp)} pages){(" -- " + "; ".join(wrong[:3])) if wrong else ""}')
+    bad = bad or not ok
+except Exception as e:
+    print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = 1
+sys.exit(0 if a.get('pass') is True and a.get('checks') and not bad else 1)
+PYSD
+done
+for SDSTATE in shootdays shootdays-onhalf; do
+  rm -f "$HERE/monthemit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$SDSTATE" "$HERE/run.sh" monthemit 240 >/dev/null 2>&1
+  python3 - "$HERE/monthemit.json" "monthemit ($SDSTATE)" <<'PYSDE' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+info = a.get('info') or {}
+n = (info.get('totals') or {}).get('shootDays') or 0
+print(('  PASS  ' if n > 0 else '  FAIL  ')+label+f': D0 judged {n} "Day N" against Chrome (Chrome kerns them up to {(info.get("kerning") or {}).get("shootDay")} px narrower)')
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) and n > 0 else 1)
+PYSDE
+done
+rm -f "$HERE/monthwriter.json"; rm -f -- "$HERE"/monthwriter.*.pdf(N)
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays-onhalf HARNESS_PRINT_PDF=1 "$HERE/run.sh" monthwriter 300 >/dev/null 2>&1
+python3 - "$HERE/monthwriter.json" "monthwriter (shootdays-onhalf)" <<'PYSDW' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYSDW
+python3 "$HERE/monthab.py" "$HERE/monthwriter.json" "$HERE/monthwriter.print.pdf" --label "monthwriter (shootdays-onhalf)" --no-pixels || FAIL=1
+rm -f "$HERE/monthexport.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=shootdays "$HERE/run.sh" monthexport 300 >/dev/null 2>&1
+python3 - "$HERE/monthexport.json" "monthexport (shootdays)" <<'PYSDX' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if len(cases) >= 9 and all(c.get('pass') is True for c in cases) else 1)
+PYSDX
 
 # ---- the Node provers: the pure functions, fuzzed against their own source -----------------------
 # ⚠️ NEITHER OF THESE WAS EVER RUN BY THIS SCRIPT. prove-col-permutation.mjs has existed since the

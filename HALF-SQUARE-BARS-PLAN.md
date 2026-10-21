@@ -67,6 +67,9 @@ switch day to draw.
 - What a half bar shows when its text does not fit (truncate as every bar does today, or a shorter form).
   ✅ **"Cut it with …"**, the rule every bar follows. Offered and not chosen: "Number only" (*202* / *2*, a new text
   rule, screen and PDFs alike) and "No text" (like ruling 7).
+  ⚠️ *"Every bar" has one exception since 20 Oct 2026* ([`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md) §6, owner by
+  picker: *"Wrap to two lines"*): a one-day piece of a custom phase wraps to two lines first, and is cut with "…" only
+  at the end of the second. A half bar is always Production's, so this ruling stands for every half bar.
 - Whether the month view on screen and both PDFs all change together (assumed yes: they are one renderer).
   ✅ **"All three together."** Not chosen: screen only, which would have needed a print-only branch in frozen code.
 

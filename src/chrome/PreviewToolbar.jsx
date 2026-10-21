@@ -213,6 +213,18 @@ export function PreviewToolbar() {
           </div>
         </div>
 
+        {/* Side boxes (owner ruling 7 + Q7, 20 Oct 2026; SIDE-BOXES-PLAN.md): adds a colour key or a
+            text box beside the waterfall. The engine opens its menu (openSideMenu) by DELEGATION,
+            exactly as it does the header mode menu below, because React owns this node. Waterfall
+            view only: legacy.css hides it while #view-month-btn is active. A <button>, never an
+            id'd input/select/textarea, so collectFieldValues() cannot sweep it into a saved file. */}
+        <Button id="tb-side-boxes-btn" className="tools-btn" type="button" size="xs" variant="default"
+                title="Add a colour key or a text box beside the waterfall"
+                aria-haspopup="true" aria-expanded="false"
+                rightSection={<span className="caret" aria-hidden="true">▾</span>}>
+          Side boxes
+        </Button>
+
         {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
             used to live INSIDE the calendar -- #hdr-mode-btn / #mv-hdr-mode-btn, emitted by the
             frozen renderers, which still emit them: they are hidden by CSS, never deleted. This is
@@ -235,6 +247,17 @@ export function PreviewToolbar() {
           {hdr.mode === 'template' ? 'Header: Template' : hdr.mode === 'manual' ? 'Header: Manual'
             : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>
+
+        {/* Paste notes… (MONTH-NOTES-PLAN.md §5; owner, 20 Oct 2026, by picker): many month-view notes at once.
+            Month view only, read from the same bridged `view` the Header button's title uses. The engine opens
+            its box (openPasteNotes) by DELEGATION, because React owns the button and mounts it only in the month
+            view. A <button>, never an id'd input, so collectFieldValues() cannot sweep it. */}
+        {hdr.view === 'month' && (
+          <Button id="paste-notes-btn" className="tools-btn" type="button" size="xs" variant="default"
+                  title="Add many month-view notes at once: one per line, as date, text, colour">
+            Paste notes…
+          </Button>
+        )}
 
         {/* ⛔ THE BATCH-EXPAND BUTTON ("Expand N" / "Pull back N") AND THE TWO SWAP BUTTONS ("◀ Swap" /
             "Swap ▶") USED TO SIT HERE, and are gone (owner ruling 2, relayed 30 Sep 2026; built

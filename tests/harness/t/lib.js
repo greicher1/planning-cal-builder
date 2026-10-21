@@ -473,6 +473,59 @@ window.__T = (function(){
     for(var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
     return (s.match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
   }
+  // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
+  // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
+  // 'calendar' | 'region' | 'presets' | 'prefs' (Mantine derives the tab ids from #settings-tabs). Every
+  // control in it is in the DOM whether or not it is open, so a leg that only SETS values by id needs
+  // none of this; one that clicks, hit-tests or measures a control must open it first, on the right
+  // tab, and wait out the 180 ms slide.
+  async function openSettings(tab){
+    var win = document.getElementById('settings-window');
+    if(!win) throw new Error('no #settings-window');
+    // ⚠️ THE SLIDE NEVER FINISHES HEADLESS. It is a CSS transition, and this harness's Chrome produces no
+    // frames (the same reason requestAnimationFrame never fires here), so the window would sit at
+    // translateX(-100%) forever -- and, closing, `display ... allow-discrete` would keep it displayed
+    // forever. Switched off on the element, test-only; what the window shows and stores is unchanged.
+    win.style.transition = 'none';
+    if(!win.classList.contains('is-open')){
+      var b = document.querySelector('.side-settings-btn');
+      if(!b) throw new Error('no .side-settings-btn');
+      b.click();
+    }
+    if(tab){
+      var t = document.getElementById('settings-tabs-tab-' + tab);
+      if(!t) throw new Error('no Settings tab ' + tab);
+      t.click();
+    }
+    var aside = document.querySelector('.form-panel');
+    await until(function(){
+      var r = win.getBoundingClientRect(), a = aside.getBoundingClientRect();
+      return win.classList.contains('is-open') && Math.abs(r.left - a.left) < 1 && Math.abs(r.top - a.top) < 1;
+    }, 'the Settings window to open', 40, 50);
+  }
+  async function closeSettings(){
+    var win = document.getElementById('settings-window');
+    if(!win || !win.classList.contains('is-open')) return;
+    win.style.transition = 'none';   // see openSettings
+    var c = win.querySelector('.sw-close'); if(c) c.click();
+    await until(function(){ return getComputedStyle(win).display === 'none'; }, 'the Settings window to close', 40, 50);
+  }
+  // Which Settings tab holds an element ('calendar' | 'region' | 'presets' | 'prefs'), or null.
+  function settingsTabOf(el){
+    var p = el && el.closest && el.closest('#settings-window [role="tabpanel"]');
+    var m = p && /-panel-(\w+)$/.exec(p.id);
+    return m ? m[1] : null;
+  }
+  // Is a control laid out where the user would see it? For one in the Settings window, opens the tab
+  // that holds it first: only one tab is displayed at a time, and the by-view and contextual rules
+  // hide cards and rows with display:none.
+  async function shownInSettings(id){
+    var el = document.getElementById(id);
+    if(!el) return false;
+    var t = settingsTabOf(el);
+    if(t) await openSettings(t);
+    return el.getClientRects().length > 0;
+  }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
           typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
@@ -480,5 +533,6 @@ window.__T = (function(){
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
-          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages};
+          latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
+          openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings};
 })();

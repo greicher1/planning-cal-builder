@@ -80,9 +80,13 @@ menu can call it, so that the rule exists only once (§10).
 - **Calls** `openMvNoteEditor(anchor, weekKey, dayIso, 'day')`. The anchor is the day's own "+" (`.mv-note-add`).
   The editor takes the new note's lane from `anchor.style.gridRow`. Given any other element it opens nothing, without
   an error.
-- **Greyed out on a day inside an all-phase hiatus:** "A hiatus day has no note lanes". The renderer draws no "+"
+- ~~**Greyed out on a day inside an all-phase hiatus:** "A hiatus day has no note lanes". The renderer draws no "+"
   there, so there is nothing to anchor the editor on. That is how the month view behaves today; the menu does not
-  get round it.
+  get round it.~~ ✅ **SUPERSEDED 20 Oct 2026** ([`MONTH-NOTES-PLAN.md`](MONTH-NOTES-PLAN.md) §4; owner, by picker:
+  *"Every hiatus day"*). A frozen edit to `renderMonthView`'s "+" loop gives every hiatus day its "+" lanes, its
+  banded weekdays and its weekend alike, so the item finds its anchor there and is offered like on any day. Nothing
+  in the menu changed but the reason it no longer gives. The `mvmenu` leg's H4, H5, I2b and K1 were revised and I2c
+  added (Add note on 22 Dec opens the editor for 12/22/26).
 - On a day whose lanes are full there is only the full-day "+" (`.mv-note-add-full`). Check at the build whether it
   opens a new note. If it does not, grey the item out as "This day's note lanes are full".
   ✅ **Checked at step 1 (from the code):** it does. The full-day "+" has no `grid-row`, so `openMvNoteEditor` gives the
@@ -252,9 +256,15 @@ it is cheap to change.)*
   apart.
 - **A phase's own hiatus** on that day gets a section "<phase>'s hiatus" whose only item is Remove (untick
   `phiatus-en-<key>`). Lock does not apply: a phase's own hiatus always travels with its phase.
-- **Not offered: renaming or recolouring a hiatus.** `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
+- ~~**Not offered: renaming or recolouring a hiatus.**~~ `hiatusTexts` / `hiatusColors` are edited only by the waterfall's
   note editor (`openNoteEditor` on `td.sheet-hiatus-cell`). The month-view bands have no editor, no handler and no
   attributes. Building one would be its own piece of work.
+  ✅ **RECOLOURING SUPERSEDED, 20 Oct 2026** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 9, owner: *"Recolour
+  from day menu"* and *"Number the weeks"*). The section now carries **Number weeks** (the row's own new
+  `.hiatus-num` box, a `menuitemcheckbox`, Lock's shape) and **Colour…**, the phase picker's `.phase-color-pop` given
+  the waterfall band editor's ten colours. A pick writes `hiatusColors` for EVERY week of the hiatus, so the
+  waterfall and the month view change together; the default colour deletes the keys. Renaming stays the waterfall's
+  (or the row's Name field).
 - ✅ **Built at step 5 (19 Oct 2026)** as `bandSections(ctx)` in `installMonthDayMenu`:
   - The × is lifted into `confirmRemoveHiatus(row)` and `removeHiatusRow(row)`, beside `addHiatusRow`. The row's ×
     and the menu's `removeHiatusHere` both call them, as Remove <phase>… does (§3.7a). The menu does not click the ×,

@@ -189,24 +189,28 @@ window.addEventListener('load', function () { (async function () {
   }
 
   // ---- prep and its "Pause prep on days marked Off" switch (owner, 20 Oct 2026) -------------------------------
-  // The Prep row shows in the MONTH VIEW only, on the Phases tab: both must be up before the box can be hit.
-  function pauseBox(){ return document.querySelector('#prep-row .prep-pause-off-cb'); }
+  // Since owner ruling 12 (20 Oct 2026, the day it was built) the switch is in the Settings window ▸ Calendar ▸
+  // Month view, #prep-pause-off inside .prefs-card; it was an id-less box in the Prep row. That card shows in
+  // the MONTH VIEW only, like the Prep row, so both the view and the window must be up before it can be hit.
+  function pauseBox(){ return document.getElementById('prep-pause-off'); }
+  function pauseText(){ var l = [].find.call(document.querySelectorAll('label[for="prep-pause-off"]'), function (x) { return x.textContent.trim(); }); return l ? l.textContent.trim() : ''; }
   async function showPrepRow(){
     if(!document.querySelector('#table-wrap .mv-daygrid')) await view('month');
-    var b = document.querySelector('.side-tab-btn[data-tab="phases"]'); if(b) b.click();
-    await T.sleep(200);
+    await T.openSettings('calendar');
   }
-  // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
+  // ⛔ HIT-TESTED: the element on top at the centre of the switch's TRACK (the input itself is invisible) must
+  // be the track's, and THAT element gets the click -- the label it sits in toggles the switch, as for a user.
   async function clickPause(){
     await showPrepRow();
     var cb = pauseBox();
-    if(!cb) throw new Error('no Pause prep box in the Prep row');
-    cb.scrollIntoView({block: 'center'}); await T.sleep(120);
-    var r = cb.getBoundingClientRect();
+    if(!cb) throw new Error('no Pause prep switch in the Settings window');
+    var tr = cb.closest('.mantine-Switch-root').querySelector('.mantine-Switch-track');
+    var r = tr.getBoundingClientRect();
     var top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
-    if(top !== cb) throw new Error('the Pause prep box is covered (' + (top && (top.className || top.tagName)) + ')');
+    if(!top || !tr.contains(top)) throw new Error('the Pause prep switch is covered (' + (top && (top.className || top.tagName)) + ')');
     top.click();
     await settle();
+    await T.closeSettings();
   }
   // Every prep pill of the shoot's months, as {"Prep 303": "iso,iso,..."} (a pill's own text, not its grey span).
   async function prepRuns(){
@@ -505,7 +509,7 @@ window.addEventListener('load', function () { (async function () {
         T.set('prep-days', '5'); await settle();
         await showPrepRow();
         out.r12box = {present: !!pauseBox(), checked: pauseBox() && pauseBox().checked, id: pauseBox() && pauseBox().id,
-                      text: pauseBox() && (pauseBox().closest('label') || {}).textContent.trim()};
+                      text: pauseText()};
         check(out.r12box.present && out.r12box.checked === false && out.r12box.text === 'Pause prep on days marked Off',
               'R12 a file with no prepPauseOff key opens with "Pause prep on days marked Off" UNTICKED');
         var map = await prepRuns();

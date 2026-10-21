@@ -276,6 +276,18 @@ twelve, and the only one that carries one-off holidays (Scotland had a World Cup
 
 **Added 14 Sep 2026:** `AU-VIC` (13) and `LT` (16).
 
+**Added 20 Oct 2026: `FR` (11), place `eu-france`** ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md) item 8; owner:
+*"Film agreement's list"*, *"France only"*, then *"France, 11 days"* on seeing the list). The film agreement
+(Convention collective nationale de la production cinématographique, IDCC 3097) Titre II art. 42 lists the Code du
+travail's eleven (L3133-1): New Year's Day, Easter Monday, 1 May, 8 May, Ascension, Whit Monday, 14 July, 15 August,
+All Saints, 11 November, Christmas. **No weekend substitution** (Titre I art. 17), so `observance="none"`, like
+Germany and Lithuania. Its caveat: Alsace-Moselle adds Good Friday and 26 December (art. 42, L3134-13), and TV
+productions under the audiovisual agreement (IDCC 2642) work Whit Monday as the solidarity day. ⚠️ **Provenance:**
+Légifrance refused automated reads, so the text read is the official BOCC fascicule 2013/34 (a copy at focal.ch),
+checked word for word against the producers' union SPI's June 2024 consolidation and fiche-paie.fr; the generator's
+FR comment has every URL. Whit Monday as a paid crew day rests on Titre II art. 43 replacing Titre I art. 18's
+solidarity day for technicians: a reading, not a sentence in the text.
+
 \* Ontario's IATSE Local 873 treats 30 Sept as a *"Proclaimed Holiday"*, not statutory, with an
 auto-upgrade clause if Ontario legislates it.
 
@@ -313,6 +325,8 @@ the weekend entry itself.
 - Alberta general holidays — https://www.alberta.ca/general-holidays-pay
 - Manitoba general holidays — https://www.gov.mb.ca/labour/standards/
 - Nova Scotia paid holidays — https://novascotia.ca/lae/employmentrights/holidaychart.asp
+- France, film agreement IDCC 3097 (BOCC 2013/34 copy) — https://focal.ch/prodvalue/working_conditions/docs/France/France_Convention-Collective-Cinema_20120119.pdf
+- France, Code du travail (the Labour Ministry's mirror) — https://code.travail.gouv.fr/code-du-travail/l3133-1
 
 **Not verified:** DGA and Teamsters holiday lists (those claims failed verification). IATSE is
 the safe anchor because crew holidays are what actually stop a shoot day. Also unverified:
@@ -409,10 +423,15 @@ automatic" (§9a).
 
 ### Sidebar tabs
 
-Three tabs: **Show**, **Phases**, **Settings** (`setSidebarTab()`. Sections are
-`<section class="card" data-tab="...">`. The Settings tab holds **Production Region** and
-**Holidays** together — they were previously split across two tabs, which made the region
-undiscoverable.
+Two tabs: **Show** and **Phases** (`setSidebarTab()`. Sections are
+`<section class="card" data-tab="...">`), and a **Settings** button beside them. Until 20 Oct 2026
+Settings was a third tab; owner ruling 12 made it the **Settings window**
+(`src/chrome/SettingsWindow.jsx`), a tabbed panel that slides in over the sidebar and leaves the
+waterfall visible. Its tabs: **Calendar** (saved in the file: Single Column Mode, Label Production by,
+Pause prep, Export App With Data), **Region** (Production Region and Holidays, which were once split
+across two sidebar tabs, which made the region undiscoverable), **Presets** (header presets; the
+side-box presets will join them) and **Preferences** (this computer only). An old file's
+`sidebarTab: 'settings'` opens on Show. UI-CONVENTIONS §8.8 and §8.9 hold the two traps it found.
 
 ---
 
@@ -1226,8 +1245,8 @@ static `admin.html` that authors holiday rules and exports a pack is the recomme
 **not** a live API, which would break offline use and risk silently shifting dates under already-
 saved calendars. Holiday data must never auto-update into an existing calendar.
 
-**Not yet done:** non-holiday settings (export options, defaults) in the Settings tab — the owner
-asked to hold off on those.
+**Not yet done:** non-holiday settings (export options, defaults) — the owner asked to hold off on
+those. Since 20 Oct 2026 calendar-level settings go in the Settings window's Calendar tab.
 
 > **This section is no longer the live list.** [`HANDOFF.md`](HANDOFF.md) §2 is what has been asked
 > for and not yet delivered, and **§8 is the sequenced build order** across all of it — the docs
