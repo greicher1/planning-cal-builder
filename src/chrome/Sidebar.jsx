@@ -327,6 +327,22 @@ export function PreferencesCard() {
                     aria-label="Single Column Mode"
                     title="Run the whole calendar down one continuous column, from the first working week to the last, instead of a separate block per calendar year" />
           </Group>
+
+          {/* ✅ COLUMN-REUSE-PLAN.md (owner, 20 Oct 2026): ONE box and one line under it -- the owner's
+              ruling is that this stays simple. Same arrangement as #one-col-btn above: calendar data
+              carried by captureSnapshot()'s own `colReuse` key, inside .prefs-card so
+              collectFieldValues() never sweeps it into fields.byId, and UNCONTROLLED -- the engine writes
+              .checked in reflectColReuse() and listens for 'change' on the document. */}
+          <Divider my="sm" />
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <Text component="label" htmlFor="col-reuse-btn" size="sm" style={{ cursor: 'pointer' }}>
+              Reuse empty columns
+            </Text>
+            <Switch id="col-reuse-btn" size="md" aria-label="Reuse empty columns" />
+          </Group>
+          <Text size="xs" c="dimmed" mt={4}>
+            When one phase ends and the next begins, the next one moves into the freed column.
+          </Text>
         </Box>
 
         <Box className="pref-view-month">

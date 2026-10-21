@@ -4,12 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 20 Oct 2026: COLUMN REUSE IS PLANNED AND RULED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT BUILT (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+### 🔨 20 Oct 2026: "REUSE EMPTY COLUMNS" IS BUILT ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT MERGED (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
-- ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below; the owner picked it to go first.
-  The plan's §3 has the exact rule and §9 the eight follow-up rulings (Q1–Q8, by picker).
-- **No frozen edit.** Only computeSchedule's `segCol` block changes, behind a per-calendar `colReuse` switch, so
-  the switch off runs today's code path unchanged.
+- ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
+  plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
+- ⭐ **The simplification (owner, 20 Oct 2026):** *"we dont want the settings for this column reuse to be too
+  complicated/hard to understand. This goes for everything. The app needs to be easy for anyone to use"*. It
+  replaced a Column dropdown on every phase row and an "Own column" choice with:
+  - one box, **Settings ▸ Preferences ▸ Reuse empty columns** (`#col-reuse-btn`, beside Single Column Mode, inside
+    `.prefs-card`, so it is never swept into `fields.byId`);
+  - the grid's existing drag;
+  - a row note only when a phase was moved by hand.
+  The rule was forwarded to all five sibling sessions. The owner asked whether Swap Column alone could do it; it
+  cannot, because a swap never removes a column.
+- **What was built (no frozen edit):**
+  - `placeSegmentsReusingColumns()` runs INSTEAD of computeSchedule's start-order `segCol` block when `colReuse` is
+    on. Off, that block runs untouched.
+  - Stores `colReuse` / `colFollow`, both ABSENT from the snapshot until used. Restored unconditionally, sanitized,
+    reset by New.
+  - `setColReuse()`: one undo step, and it clears hand-dragged widths in the years whose columns change (ruled Q7,
+    via `yearColumnShapes()`, which calls the frozen layout read-only).
+  - `reflectColMoveNotes()`, run from update() after render() (the refreshOverrideNote() arrangement, since render()
+    owns meta-<key> and is frozen), and the note's Reset.
+  - `followRunFor()` / `finishFollowMove()`: a third swap-candidate mode, 'follow'. A whole block next to a FREE
+    column, with reuse on, makes the knob a move instead of a "no partner" refusal. It is judged by a trial
+    placement, so it can only land where it was shown.
+- ⭐ **Learned:**
+  1. **"Free" has to mean week ROWS, not raw dates.** Two snap-off phases that meet mid-week would otherwise share
+     one cell. For an all-snapped calendar the two tests agree.
+  2. **`PHASE_CHAIN` is declared ~13,000 lines below computeSchedule.** It is read only with reuse on, which no
+     calendar can be before the IIFE finishes: the load-time restore is the file's last statement. Keep it that way.
+  3. **The swap candidate cache key must include `colReuse`**, since ticking the box can leave every `col` unchanged
+     and the old refusal would stay cached.
+  4. **Pane coordinates:** with a 1024-px viewport the screenshot frame is 800×600. A coordinate click uses the
+     screenshot frame, but a ref click reports viewport pixels. One miss opened an empty note editor, which was
+     closed with Escape, nothing typed.
+- **Proof so far:**
+  - `npm run check` 40/40 on the build.
+  - New leg `colreuse`, LIVE 21 checks and RESTORE 4, green on private port 8983. Red on the pre-change build
+    `670a591`: LIVE throws (no box), RESTORE opens with the old layout and no note.
+  - Fixture `tests/fixtures/colreuse.sptcal` (synthetic, cut from LIVE's own snapshot).
+  - In the app pane, real clicks: Reset moved Mix back, and the knob ("Move Mix into the free column, after Loc")
+    moved it in, with 0 console errors. The two 404s are the update check asking the test server for
+    `dist/version.json`.
+  - ✅ **Full gate on build `4d4d4d09…` (port 8985, 18:29:38–18:50:12, alone): 2,087 PASS, 0 FAIL, GATE PASSED.**
+    0 clipped; the waterfall PDF and every Excel part identical to baseline; v1.0.0 restores identically;
+    `fields.byId` 74 ids (the box is not a swept field); every month print document and gate 13's written month
+    PDFs byte-identical; `colreuse` 21/21 LIVE and 4/4 RESTORE.
+  - ⚠️ **Queueing:** the first waiter stood down whenever ANY process command line mentioned `./gate.sh`, which
+    includes every other session's waiter, so it starved for over two hours. Match only a running gate,
+    `pgrep -f "^/bin/zsh \./gate\.sh"`, with a 3 s poll and a 2–6 s pause. It got the slot within the hour.
+- **Committed on the owner's picker** (*"commit the column-reuse work to its branch once the full gate passes.
+  Don't merge or push."*). Not merged, not pushed. `main` has moved since this branch was cut (`670a591`), so it
+  needs `main` merged in and a gate on the combined build before it can land.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).

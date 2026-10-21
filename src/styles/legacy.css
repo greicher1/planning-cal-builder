@@ -880,6 +880,11 @@
   .phase-fields input{ min-width:0; width:100%; box-sizing:border-box; }
   .phase-meta{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); margin-top:6px;
     white-space:pre-line; line-height:1.5;}
+  /* Column reuse's row note (COLUMN-REUSE-PLAN.md §4): there only when a phase was moved by hand. Quiet
+     like .phase-meta; amber when the hand move can't apply right now. */
+  .col-move-note{grid-column:2; font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6); margin-top:4px; line-height:1.5;}
+  .col-move-note.is-stale{color:var(--mantine-color-orange-8);}
+  .col-move-reset{font:inherit; color:var(--mantine-color-blue-7); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline;}
   .custom-phase-header{grid-column:2; display:flex; align-items:center; gap:6px;}
   .phase-name-input{font-weight:500; font-size:var(--mantine-font-size-md); font-family:inherit; border:1px solid transparent; border-radius:var(--mantine-radius-sm); padding:3px 5px; flex:1; background:transparent; color:var(--mantine-color-black); min-width:0;}
   .phase-name-input::placeholder{color:var(--text-faint); font-weight:400;}
