@@ -18,8 +18,14 @@
   plus `cal-range-start` / `cal-range-end`, none removed), version 1, 0 clipped.
 - **Proof so far:** the cut build differs from the gated build `a53e5344…` (rebuilt from `86ba4ef` to the same hash)
   in exactly 43 bytes, in two places: the CSP hash of the script and the version literal. `npm run check` 40/40.
-- ⏳ **Release gate on the cut build: queued.** Then the tag `v1.6.0` on the cut commit, `main` fast-forwarded to it,
-  ONE `git push origin main v1.6.0`, and the live `index.html` and `version.json` checked against `releases/v1.6.0.html`.
+- ✅ **Release gate on the cut build `7a64413c…` at `605101f`** (port 9247, 21:00:02–21:24:40, alone): **2,553 PASS, 1
+  FAIL**: `offweek (offweek)` R10, "timed out waiting for: the loaded file's name in the file menu" (10 s real), the
+  recorded IndexedDB-under-load flake (the prep-switch gate hit the same R10). Re-run alone twice on the same build
+  through the gate's own evaluator (21:46): **44 PASS, 0 FAIL both times.** Everything else held: 0 clipped, the
+  waterfall PDF and every Excel part identical, 76 ids, gate 10's eleven documents and gate 13's twenty-one written
+  PDFs identical to the re-cut baselines.
+- ⏭ Tag `v1.6.0` on the cut commit `605101f`, fast-forward `main`, ONE `git push origin main v1.6.0` (owner's picker:
+  "Cut v1.6.0, then push"), then the live `index.html` and `version.json` against `releases/v1.6.0.html`.
 
 ### 🔨 20 Oct 2026 (evening): "SHOOT" BEFORE EPISODE BARS, AN EDITABLE PREFIX PER EPISODE OR BLOCK, AND "wk N" ON BOTH NUMBER WEEKS BOXES — branch `shoot-prefix` (worktree `.claude/worktrees/shoot-prefix`), ON TOP OF `merge-all`; BASELINES RE-CUT ON SIGN-OFF; FINAL GATE QUEUED; NOT IN `main`, NOT PUSHED
 
