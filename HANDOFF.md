@@ -4,7 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20–21 Oct 2026: CALENDAR ZOOM, BOTTOM RIGHT IN BOTH VIEWS — branch `cal-zoom` (worktree `.claude/worktrees/cal-zoom`), COMMITTED (`3290d3e`), LOCAL `main` MERGED IN (`c6a533e`), NOT PUSHED; ONE FROZEN EDIT, OWNER-APPROVED
+### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, IN LOCAL `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
+  main, gate the combined build, and ask me before pushing."* The two features' own entries are below this one.
+- **How it was put together**, on `main` at `7c5d792` (the phase-card caret, live at `49cb1ef`, plus a HANDOFF commit):
+  `ep-shoot-names` (`9cb71e2`) merged first (`95be9e9`), then `cal-zoom` as its own session committed it (`db1bfea`,
+  its merge of `c6a533e`, gated there 2,585 / 0) (`7c8067f`). The zoom session was mid-merge in its own worktree when
+  this started; it was left alone and asked to commit, so its `openHeaderRowPop()` resolution (main's version, its `* z`
+  hunk dropped) is the one that landed.
+- **No code conflicts in either merge.** Docs kept both sides each time; HANDOFF's stale "not pushed" heading for the
+  Preferences-tab entry was dropped in favour of the "LIVE" one. ⚠️ **`gate.sh` conflicted once:** `ep-shoot-names`
+  replaced the `barprefix` block with `epnames` (and deleted `t/barprefix.js`), and `cal-zoom` had added its `calzoom`
+  block just above `barprefix`. Resolved as ours plus `calzoom` inserted before `epnames` (after `sideboxes`), checked
+  to be `cal-zoom`'s only `gate.sh` change. ⭐ Cross-checked by hand that nothing in the merged code still names a
+  symbol `ep-shoot-names` deleted (`openBarPrefixPop`, `setBarPrefix`, `barPrefixFor`, `barPrefixItems`, …): none.
+- **Proof, build `7ba96b19…` at `7c8067f`:** `npm run check` 40/40; `calzoom` 22, `epnames` 16 (halfdays + blocks,
+  gate.sh's own block), `phasefold` 11, `hdrrow` 35, and after the first merge `labelsetup` 41, `mvmenu` 89, `halfmarks`
+  5, `settingswin` 19, `mvnotes` 30, `phiatusnum` 18. ✅ **Full gate (HARNESS_PORT 9313, 15:56:10–16:21:17, alone):
+  2,596 PASS, 0 FAIL, GATE PASSED.** 0 clipped; 76 ids; gates 10 and 13 green on `ep-shoot-names`' re-cut baselines.
+- ⚠️ **`hdrrow` "load 10" timed out twice in this work** ("the loaded calendar (its sidebar tab)"), each time while
+  another session's full gate ran beside it; alone it passed 35/35 every time, and in both full gates. Load-related.
+- ✅ **Local `main` fast-forwarded to `land-zoom-epnames`.** NOT PUSHED: the owner asked to be asked first. The push
+  would carry the zoom slider and the episode names (which removes the live Prefix… item). No version cut yet.
+
+### 🔨 20–21 Oct 2026: CALENDAR ZOOM, BOTTOM RIGHT IN BOTH VIEWS — branch `cal-zoom` (worktree `.claude/worktrees/cal-zoom`), COMMITTED (`3290d3e`), LOCAL `main` MERGED IN (`c6a533e`, as `db1bfea`), **IN LOCAL `main` via `land-zoom-epnames`**, NOT PUSHED; ONE FROZEN EDIT, OWNER-APPROVED
 
 - **Asked:** *"Add a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view to
   zoom in or out the viewport of either the waterfall cal or the month cal"* (first said bottom left, corrected to
@@ -62,7 +86,7 @@
 - **Coordination note:** this work started in the MAIN checkout while the `phase-collapse` session was also editing
   `src/legacy/app.js` there. Both moved to worktrees; the main checkout's app.js was left exactly as at `221e759`.
 
-### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; NOT IN `main`, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **IN LOCAL `main` via `land-zoom-epnames`**, NOT PUSHED
 
 - ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
   before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
