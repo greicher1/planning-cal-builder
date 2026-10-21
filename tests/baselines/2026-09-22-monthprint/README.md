@@ -294,6 +294,38 @@ exactly the union of the two signed-off changes: against bundle A's cut it adds 
 against this cut only bundle A's 92 hidden "+" note slots. 4,393 elements, the fit table identical to both, 15 months
 → 15 sheets, and a second capture byte-identical.
 
+## ✅ RE-CUT 20 Oct 2026 (late): seven cases read "Episode N"; `blocksoff` gets its own baseline
+
+- **The ruling.** An episode's month bar reads its NAME, as typed. A new calendar names its episodes "Shoot Ep. 101" (so
+  `reference`, typed in fresh, prints exactly as before), and v1.6.0's separate "Shoot" prefix is retired. Old files keep
+  "Episode 101" (owner, by picker: *"Leave them as saved"*), so every Episodes FIXTURE here, saved by an older build, now
+  prints "Episode N" where the previous cut said "Shoot Ep. N". Signed off by the owner after the contact sheets
+  (`monthbase.py sheets`) and the classification below: *"Re-cut gates 10 and 13 for the Episode N change, giving
+  blocksoff its own baseline, then run the final gate."*
+- **What moved.** In each re-cut document, reading "Shoot Ep. N" (old) and "Episode N" (new) both as the episode gives
+  back the old baseline **byte for byte**, with the count equal. The JSON sidecars differ only in `bytes`, `docSha1` and
+  `structSha1`: element counts and the fit table are unchanged, so no month changed its fit.
+- ⚠️ **`blocksoff` has its own baseline now.** It was held to `reference`'s to prove BLOCKS-PLAN §5 condition 3 ("no change
+  at all with Blocks off"). It is an older file ("Episode N") and `reference` is typed in fresh ("Shoot Ep. N"), so the
+  bytes can no longer match. The condition is kept: a block after the gate's monthprint loop holds `blocksoff`'s capture to
+  `reference.html` byte for byte once both names are read as the episode (and the dotted date stamp as a stamp). Proven
+  to fail against another calendar's baseline.
+
+| case | bytes before → after | "Shoot Ep. N" → "Episode N" | elements | months → sheets |
+|---|---|---|---|---|
+| `dayoverrides` | 481,071 → 480,951 | 60 | 3,658, same | 15 → 15 |
+| `mvheader` | 482,091 → 481,971 | 60 | 3,658, same | 15 → 15 |
+| `mvheaderlegacy` | 528,156 → 528,036 | 60 | 4,393, same | 15 → 15 |
+| `dayoverrides-onhalf` | 481,779 → 481,651 | 64 | 3,658, same | 15 → 15 |
+| `hiatus-blanklabel` | 506,761 → 506,649 | 56 | 3,863, same | 16 → 16 |
+| `halfdays` | 515,941 → 515,861 | 40 | 3,897, same | 16 → 16 |
+| `mvnotes` | 543,414 → 543,290 | 62 | 4,116, same | 17 → 17 |
+| `blocksoff` (NEW; was held to `reference`, 508,786) | 508,662 | 62 | 3,872 | 16 → 16 |
+
+Held, untouched and identical: `reference`, `blocks` and `month-lanecap`. Cut with `monthcmp.py cut` from the gate's own
+per-case captures (`monthprint-<case>.json` / `.pdf`) on build `be984cdc…` (branch `ep-shoot-names` at `f84b378`), Google
+Chrome 155.0.8059.85; `monthcmp.py gate` passed against each new cut.
+
 ## Re-cutting
 
 Only deliberately, and record it here with a table of what moved and why — an undocumented re-cut
