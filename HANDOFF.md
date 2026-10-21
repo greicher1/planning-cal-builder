@@ -172,7 +172,13 @@
   x −131) and to hold that no Paste notes… is left outside it in the month view. LIVE 30/30 and RESTORE 14/14 on build
   `df853383…`; red on `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app pane opened the box.
   `npm run check` 40/40, `check-refs.py` CLEAN.
-- ⏭ **Next:** the full gate, then the owner's merge and push pickers.
+- **Full gate on build `df853383…` (port 8961, 22:06:40–22:31:30): 2,554 PASS, 1 FAIL**, `phiatusnum` H14 ("timed out
+  waiting for the loaded file's name in the file menu"), the load flake. Re-run alone it could not get a quiet machine
+  (a `prefs-merge` gate and the parallel-lanes experiment's several gates were running), so it was run under that load,
+  on this build and on the live `releases/v1.6.0.html`: this build 17/17 in four of five runs (H14 once), v1.6.0 H14
+  once in three. ⚠️ So H14 flakes on the live app too under load; nothing here touches it. `main`'s docs-only commits
+  merged in (`4b2df5a`); the build is unchanged.
+- ⏭ **Next:** the owner's merge and push pickers.
 
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
