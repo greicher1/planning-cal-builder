@@ -403,7 +403,7 @@ window.addEventListener('load', function () { (async function () {
                    oldBox: !!document.querySelector('#prep-row input[type="checkbox"]'),
                    text: pauseText(), reach: reachable(pauseTrack())};
       check(out.pause.present && out.pause.checked === false && out.pause.text === 'Pause prep on days marked Off' && !out.pause.oldBox,
-            'S1 Settings ▸ Calendar has an UNTICKED "Pause prep on days marked Off" switch, and the Prep row no box');
+            'S1 Settings ▸ Preferences has an UNTICKED "Pause prep on days marked Off" switch, and the Prep row no box');
       check(out.pause.skipped, 'S1 the switch is inside .prefs-card, so fields.byId never holds its id');
       check(out.pause.reach, 'S1 the Pause prep switch is hit-testable');
       await T.closeSettings();
