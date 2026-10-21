@@ -82,7 +82,7 @@ window.addEventListener('load', function () { (async function () {
         el.childNodes.forEach(function (n) { if (n !== tagEl) text += n.textContent; });
         var week = el.closest('.mv-week');
         var weekIdx = week ? [].indexOf.call(week.parentNode.children, week) : -1;
-        // `half`: a switch day's inset (HALF-SQUARE-BARS-PLAN), which keeps a one-day bar's "Ep. N" without "Shoot".
+        // `half`: a switch day's inset (HALF-SQUARE-BARS-PLAN), whose one-day bar reads the short "Ep. N".
         return { week: weekIdx, from: m ? +m[1] - 1 : -1, to: m ? +m[2] - 2 : -1, lane: r ? +r[1] : -1,
                  text: text, tag: tagEl ? tagEl.textContent : '', half: /margin-(left|right):\s*calc\(/.test(sty) };
       });
@@ -205,9 +205,9 @@ window.addEventListener('load', function () { (async function () {
             });
             var tag;
             if (p.from === p.to) tag = '';
-            // ⚠️ An episode bar reads "Shoot Ep. 201" by default (owner, 20 Oct 2026; unitBarLabel), and the grey text
-            // names the episode bare, so the prefix comes off both words.
-            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^(Shoot )?Ep\. /, ''); })) : '';
+            // ⚠️ An episode bar reads its NAME (owner, 20 Oct 2026; unitBarLabel): "Shoot Ep. 201" from this build,
+            // "Episode 201" from an older file, "Ep. 201" on a one-day half bar. The grey text names the number.
+            else if (!blocksCal) tag = names.length ? 'Ep. ' + epList(names.map(function (n) { return n.replace(/^(?:Shoot Ep\.|Episode|Ep\.) /, ''); })) : '';
             else tag = names.map(function (B) { return [B, blockEps[B]].filter(Boolean).join(' · '); }).join(' / ');
             if (p.from === p.to && p.tag) r.oneDayTagged.push(where + p.text + ' | ' + p.tag);
             var textOk = K ? p.text === K : /^Production Week \d+$/.test(p.text);
@@ -228,8 +228,9 @@ window.addEventListener('load', function () { (async function () {
       var K = (/^(Production Week \d+)/.exec(p.tag) || [])[1] || Kof(mi, p.week);
       var B = p.text, L = blockEps[B] || null;                  // base: Block B | Production Week K · Ep. L
       if (!L) return { text: K, tag: one ? '' : B, fallback: true };   // a block with no episodes reads as Week
-      // "Shoot Ep. L" by default (owner, 20 Oct 2026), except on a switch day's one-day half bar, which keeps "Ep. L".
-      return { text: (one && p.half) ? L : 'Shoot ' + L, tag: one ? '' : [K, B].join(' · ') };  // Shoot Ep. L | Production Week K · Block B
+      // A list of episodes reads as listed, "Ep. L", with no "Shoot" (owner, 20 Oct 2026: lists unchanged, and the
+      // name, not a prefix, is where "Shoot" lives now), on a half bar or a whole one alike.
+      return { text: L, tag: one ? '' : [K, B].join(' · ') };  // Ep. L | Production Week K · Block B
     }
     function judgeEp(res) {
       var r = { bars: 0, wrong: [], unknownWeek: 0, fallback: [], slash: [], oneDayTagged: [] };

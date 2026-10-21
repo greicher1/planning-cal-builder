@@ -2415,16 +2415,16 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSB
 
-# ---- barprefix: an episode's or block's month-bar prefix ("Shoot Ep. 101"; owner, 20 Oct 2026) ------------------
-# The default "Shoot" before every episode bar but a switch day's one-day half bar, on every calendar; none before a
-# block bar; each unit's own prefix set, blanked and reset from its bar's day menu (hit-tested), one undo step each,
-# saved on its episodeDefs / blockDefs entry only where it departs from the default, restored unconditionally, and
-# validated on Load. halfdays carries the P-cases and writes the month PDF, whose text is read here page by page;
-# blocks carries the B-cases (no default on a block, a block's prefix before its episodes when labelled by episode).
-for BPSTATE in halfdays blocks; do
-  rm -f "$HERE/barprefix.json" "$HERE/barprefix.pdf"
-  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BPSTATE" "$HERE/run.sh" barprefix 300 >/dev/null 2>&1
-  python3 - "$HERE/barprefix.json" "$HERE/barprefix.pdf" "barprefix ($BPSTATE)" "$BPSTATE" <<'PYBP' || FAIL=1
+# ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
+# Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
+# names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off
+# the names it stores, re-derived on every Load); prep pills and episode lists keep the number; a switch day's one-day
+# half bar keeps "Ep. N"; a v1.6.0 file's own prefix still draws as it did until its episode is renamed. halfdays
+# carries the N-cases and writes the month PDF, whose text is read here; blocks carries the B-cases.
+for ENSTATE in halfdays blocks; do
+  rm -f "$HERE/epnames.json" "$HERE/epnames.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$ENSTATE" "$HERE/run.sh" epnames 300 >/dev/null 2>&1
+  python3 - "$HERE/epnames.json" "$HERE/epnames.pdf" "epnames ($ENSTATE)" "$ENSTATE" <<'PYEN' || FAIL=1
 import json,sys,os,subprocess
 path, pdf, label, st = sys.argv[1:5]
 try: a=json.load(open(path))
@@ -2437,13 +2437,13 @@ bad = not cases or any(c.get('pass') is not True for c in cases)
 if st == 'halfdays':
     try:
         txt = subprocess.run(['pdftotext', '-raw', pdf, '-'], capture_output=True, text=True, check=True).stdout
-        ok = 'Pickup Ep. 202' in txt and 'Shoot Ep. 201' in txt and 'Shoot Ep. 202' not in txt
-        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Pickup Ep. 202" and "Shoot Ep. 201", and no "Shoot Ep. 202"')
+        ok = 'Shoot Ep. 201' in txt and 'Pilot' in txt and 'Shoot Ep. 202' not in txt and 'Episode' not in txt
+        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Shoot Ep. 201" and "Pilot", and neither "Shoot Ep. 202" nor "Episode"')
         bad = bad or not ok
     except Exception as e:
         print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = True
 sys.exit(1 if bad else 0)
-PYBP
+PYEN
 done
 
 # ---- shootdays: "Number Production Days", "Day N" on every shoot day in the month view (19 Oct 2026) -------------

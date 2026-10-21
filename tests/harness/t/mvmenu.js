@@ -202,9 +202,10 @@ window.addEventListener('load', function () { (async function () {
       'the menu for 2026-07-08 on production');
     // On a bar, step 3's section for it sits between This day and the way out (the P-cases test it), and on a
     // shoot day step 4's shoot-day section (the retired popover's Full day / Off) follows it.
-    // 'bar-prefix-0': Prefix… for the episode shot that day (owner, 20 Oct 2026; barprefix tests what it does).
-    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'bar-prefix-0', 'phase-show'], ['ov-auto', 'ov-off'], ITEMS.slice(4));
-    add('H1s', 'The sections are This day, Production\'s own (step 3), the shoot day\'s (step 4) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus, step 3\'s four plus Prefix… and Full day / Off, only End Production here greyed out on a shoot day; focus is on the first',
+    // No Prefix…: it was retired the evening it shipped, when "Shoot" moved into the episode's name (owner, 20 Oct
+    // 2026; epnames tests the names).
+    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'phase-show'], ['ov-auto', 'ov-off'], ITEMS.slice(4));
+    add('H1s', 'The sections are This day, Production\'s own (step 3), the shoot day\'s (step 4) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus, step 3\'s four and Full day / Off, only End Production here greyed out on a shoot day; focus is on the first',
       i1 && eq(i1.sections, ['day', 'phase', 'shoot', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
         && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'note',
       i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, phase, shoot, out; ' + ITEMS_BAR.join(', '));

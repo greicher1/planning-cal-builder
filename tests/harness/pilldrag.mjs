@@ -458,10 +458,10 @@ try {
   const barsOf = row => ev(`(() => { const w = document.querySelectorAll('#table-wrap .mv-body > .mv-week')[${row}];
     return Array.from(w ? w.querySelectorAll('.mv-pill[data-ph="production"]') : [])
       .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
-      .map(p => ((p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^Shoot /, ''))
+      .map(p => ((p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\\.|Episode) /, 'Ep. '))
                 + ' ' + p.style.gridColumnStart + '/' + p.style.gridColumnEnd); })()`);
-  // (Both readers here name the episode WITHOUT the "Shoot " a full bar carries by default since 20 Oct 2026 (owner):
-  // this leg is about where grips move bars, and halfdays D2s and barprefix hold the prefix.)
+  // (Both readers here name the episode "Ep. N", whether its bar reads "Shoot Ep. N" or an older file's "Episode N"
+  // (owner, 20 Oct 2026): this leg is about where grips move bars, and halfdays D2s and epnames hold the names.)
   // Which of a week row's seven days carry the 'off' mark, as a string of 0/1 (Sun first).
   const offsOf = row => ev(`(() => { const w = document.querySelectorAll('#table-wrap .mv-body > .mv-week')[${row}];
     return Array.from(w ? w.querySelectorAll(':scope > .mv-daygrid > .mv-daycell') : [])
@@ -570,7 +570,7 @@ try {
       .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
     if (ps[0]) { ps[0].scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 300)); }
     return ps.map(p => { const r = p.getBoundingClientRect();
-      const label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^Shoot /, '');
+      const label = (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\\.|Episode) /, 'Ep. ');
       return { x: r.left + Math.min(r.width / 2, 60), y: r.top + r.height / 2, l: r.left, r: r.right, t: r.top, b: r.bottom,
                gc: p.style.gridColumnStart + '/' + p.style.gridColumnEnd, lane: +p.style.gridRowStart, label }; }); })()`);
   const mon14 = await barsOn(2, 2);

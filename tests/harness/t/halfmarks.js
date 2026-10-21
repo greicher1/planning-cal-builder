@@ -98,9 +98,9 @@ window.addEventListener('load', function () { (async function () {
         }
         var list = [];
         for(var c2 = a; c2 <= b; c2++) list.push(iso(c2));
-        // The episode, without the "Shoot " a full bar carries by default (owner, 20 Oct 2026): this leg is about where
-        // shades land, and halfdays D2s holds the prefix rule.
-        bars.push({label: (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : txt(p)).trim().replace(/^Shoot /, ''), days: list,
+        // The episode as "Ep. N", whether its bar reads "Shoot Ep. N" or an older file's "Episode N" (owner, 20 Oct
+        // 2026): this leg is about where shades land, and halfdays D2s and epnames hold the names.
+        bars.push({label: (p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : txt(p)).trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '), days: list,
                    lane: +p.style.gridRowStart, inset: (/margin-left:\s*calc\(/.test(st) ? 'L' : '') + (/margin-right:\s*calc\(/.test(st) ? 'R' : ''),
                    box: [+bx0.toFixed(2), +(bx0 + bw).toFixed(2)], slices: slices});
       });

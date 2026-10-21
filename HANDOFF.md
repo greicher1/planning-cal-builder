@@ -4,6 +4,37 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
+  before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
+  you can easily change them and it doesn't mess things up"*. (They first read a recreated calendar's renamed
+  Production phase, "Shoot wk N", as an app change. It was not: the app's "Production wk N" / "Production Week N" are
+  untouched, and nothing here changes them.)
+- **Rulings by picker:** Prefix… **removed**; a renamed episode's bar reads **exactly the name** ("Pilot", not
+  "Shoot Pilot"); **old files keep "Episode 101"** ("Leave them as saved", chosen over renaming on load, knowing their
+  bars then read "Episode 101"); prep pills and episode lists **unchanged** ("Prep 101", "Ep. 201, 202").
+- **Built** (`src/legacy/app.js`, no frozen code): `defaultEpisodeName()` gives "Shoot Ep. N", or "Episode N" while
+  `episodeNamesLegacy`; that flag is NOT a saved key — `applyStateSnapshot()` reads it off the stored names
+  (`storesLegacyEpisodeNames`, any un-renamed "Episode N"), unconditionally; `resetAll()` clears it. `unitBarLabel()`:
+  a bar naming ONE episode reads `def.name`; a one-day half bar keeps the short form (16 Oct ruling); a list bar or a
+  block's or week's reads `unitLabelParts()` as before. `shortEpisodeName()` strips "Shoot Ep. " too. The day menu's
+  Prefix…, its panel, `setBarPrefix`, `BAR_PREFIX_DEFAULT` and the `.barprefix-*` CSS are gone.
+- ⚠️ **`barPrefix` stays a permanent key** (CLAUDE.md's state table): kept, validated, round-tripped, and drawn as
+  v1.6.0 drew it ("Pickup Ep. 202") until that episode is renamed, which deletes it. A block's own prefix stays for
+  good, since blocks cannot be renamed. Only files saved in the hour v1.6.0 was live can carry one.
+- ⚠️ **One v1.6.0 behaviour changed beyond the rulings' words:** a Blocks calendar labelled by episode read "Shoot Ep.
+  201, 202" in v1.6.0 and reads "Ep. 201, 202" now (a list, ruled unchanged, and "Shoot" lives in names now). Tell the
+  owner if it comes up.
+- **Legs:** new `epnames` (10 on halfdays incl. the written PDF's text in gate.sh, 5 on blocks) replaces `barprefix`.
+  Name-agnostic readers ("Shoot Ep. N" / "Episode N" → "Ep. N") in `episodeprep`, `halfmarks`, `labelsetup`,
+  `shootorder`, `pilldrag.mjs`; `pilllabel`'s model; `halfdays` D2s and `epBox` (it types its own calendar, so
+  "Shoot Ep. N"); `episodeprep`'s LIVE run names "Shoot Ep. 30N" (RESTORE's fixture keeps "Episode 30N"); `mvmenu`
+  H1s drops `bar-prefix-0`.
+- **Expected gate movement:** gates 10 and 13 change for every Episodes FIXTURE (saved by older builds, so their bars
+  now read "Episode N" where v1.6.0's baselines say "Shoot Ep. N"). `reference` (typed in by `T.buildFixture()`) and the
+  Blocks fixtures should not move. A re-cut needs the owner's sign-off (gate policy).
+
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the

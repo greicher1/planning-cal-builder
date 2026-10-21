@@ -84,9 +84,9 @@ window.addEventListener('load', function () { (async function () {
         for(var c = gc[0] - 1; c <= gc[1] - 2; c++) days.push(iso(new Date(start.getTime() + c * DAY)));
         var sp = p.querySelector('.mv-pill-block'), txt = '';
         p.childNodes.forEach(function (n) { if(n !== sp) txt += n.textContent; });
-        // A Production bar's text WITHOUT the "Shoot " it carries by default since 20 Oct 2026 (owner): this leg is about
-        // prep, and halfdays D2s and barprefix hold the prefix. A prep pill never has one.
-        return {ph: p.getAttribute('data-ph') || '', text: txt.trim().replace(/^Shoot /, ''), cols: String(p.style.gridColumn).replace(/\s+/g, ''),
+        // A Production bar's episode as "Ep. N", whether the bar reads a name this build gave ("Shoot Ep. N") or an
+        // older file's ("Episode N"; owner, 20 Oct 2026): this leg is about prep, and epnames holds the names.
+        return {ph: p.getAttribute('data-ph') || '', text: txt.trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '), cols: String(p.style.gridColumn).replace(/\s+/g, ''),
                 lane: parseInt(p.style.gridRow, 10), days: days, bg: p.style.backgroundColor};
       });
       return {start: iso(start), bars: bars};
@@ -161,7 +161,7 @@ window.addEventListener('load', function () { (async function () {
     return [].map.call(document.querySelectorAll('#episode-rows .episode-row'), function (r) { return r.querySelector('.ep-name').value; });
   }
   function rowOf(n){ return [].find.call(document.querySelectorAll('#episode-rows .episode-row'),
-    function (r) { return r.querySelector('.ep-name').value === 'Episode ' + n; }); }
+    function (r) { var v = r.querySelector('.ep-name').value; return v === 'Episode ' + n || v === 'Shoot Ep. ' + n; }); }
   // ⚠️ The Phases tab must be VISIBLE: a hidden panel measures 0x0, and every drop reads as "before".
   async function drag(n, target, side){
     tab('phases'); await T.sleep(150);
@@ -282,7 +282,9 @@ window.addEventListener('load', function () { (async function () {
     'Prep Block 2': wk('2027-03-01', '2027-03-05'),
     'Prep Block 3': wk('2027-03-04', '2027-03-12').concat(wk('2027-03-22', '2027-03-25'), ['2027-03-29']),
   });
-  var ORDER = ['Episode 302', 'Episode 301', 'Episode 304', 'Episode 303', 'Episode 306', 'Episode 305'];
+  // LIVE types its own calendar, so its episodes take this build's default names, "Shoot Ep. 30N"; RESTORE reads
+  // tests/fixtures/episodeprep.sptcal, saved by an older build, whose names stay "Episode 30N" (owner, 20 Oct 2026).
+  var ORDER = ['Shoot Ep. 302', 'Shoot Ep. 301', 'Shoot Ep. 304', 'Shoot Ep. 303', 'Shoot Ep. 306', 'Shoot Ep. 305'];
   out.want = {on: WANT_ON, shift: WANT_SHIFT, drag: WANT_DRAG, blocks: WANT_BLOCKS};
 
   try {
@@ -322,12 +324,12 @@ window.addEventListener('load', function () { (async function () {
       check(out.rowShown.month && !out.rowShown.sheet, 'L3 the Prep row shows in the month view and is hidden in the waterfall');
 
       // L4: a typed prep length goes with a dropped episode, and the "Removed" warning names it.
-      setEl(prepBox('Episode 306'), '3'); await settle();
+      setEl(prepBox('Shoot Ep. 306'), '3'); await settle();
       T.set('num-episodes', '5'); await settle();
       out.dropWarn = (($('ep-panel-warn') || {}).textContent || '').trim();
-      check(/Removed Episode 306/.test(out.dropWarn), 'L4 lowering the count past an episode with its own prep length warns "Removed Episode 306"');
+      check(/Removed Shoot Ep\. 306/.test(out.dropWarn), 'L4 lowering the count past an episode with its own prep length warns "Removed Shoot Ep. 306"');
       T.set('num-episodes', '6'); await settle();
-      check(prepBox('Episode 306') && prepBox('Episode 306').value === '', 'L4 the re-added Episode 306 has no prep length of its own');
+      check(prepBox('Shoot Ep. 306') && prepBox('Shoot Ep. 306').value === '', 'L4 the re-added Shoot Ep. 306 has no prep length of its own');
 
       // The shooting order, by three real drags.
       await drag('302', '301', 'before'); await drag('304', '303', 'before'); await drag('306', '305', 'before');
@@ -337,7 +339,7 @@ window.addEventListener('load', function () { (async function () {
 
       // L6: reachable by a real pointer.
       out.reach = {days: reachable($('prep-days')), name: reachable($('prep-name')), swatch: reachable($('swatch-episodePrep')),
-                   box: reachable(prepBox('Episode 304'))};
+                   box: reachable(prepBox('Shoot Ep. 304'))};
       check(out.reach.days && out.reach.name && out.reach.swatch && out.reach.box, 'L6 the Prep row’s name, swatch, default and list boxes are hit-testable');
 
       // L7: the default draws every episode's prep; ONE undo takes it away.
@@ -358,17 +360,17 @@ window.addEventListener('load', function () { (async function () {
       T.set('prep-days', '5'); await settle();
 
       // L9: the per-episode overrides (P2), and 0 = no prep for that one.
-      setEl(prepBox('Episode 304'), '8'); await settle();
-      setEl(prepBox('Episode 303'), '10'); await settle();
+      setEl(prepBox('Shoot Ep. 304'), '8'); await settle();
+      setEl(prepBox('Shoot Ep. 303'), '10'); await settle();
       out.edited = prepList().filter(function (x) { return x.edited; }).map(function (x) { return x.name + '=' + x.value; });
-      check(out.edited.join() === 'Episode 304=8,Episode 303=10', 'L9 the two typed lengths are marked as edited');
+      check(out.edited.join() === 'Shoot Ep. 304=8,Shoot Ep. 303=10', 'L9 the two typed lengths are marked as edited');
       out.liveMap = await prepMap();
       check(sameMap(out.liveMap, WANT_ON), 'L9 every prep run matches the hand trace (built live)');
       if(!sameMap(out.liveMap, WANT_ON)) out.liveDiff = mapDiff(out.liveMap, WANT_ON);
-      setEl(prepBox('Episode 305'), '0'); await settle();
+      setEl(prepBox('Shoot Ep. 305'), '0'); await settle();
       out.zero = await prepMap();
       check(!('Prep 305' in out.zero) && Object.keys(out.zero).length === 5, 'L9 an override of 0 gives that episode no prep');
-      setEl(prepBox('Episode 305'), ''); await settle();
+      setEl(prepBox('Shoot Ep. 305'), ''); await settle();
       check(sameMap(await prepMap(), WANT_ON), 'L9 clearing the 0 goes back to the default');
 
       // L10: no Show Info, no prep.
@@ -422,7 +424,7 @@ window.addEventListener('load', function () { (async function () {
       (snap.episodeDefs || []).forEach(function (e) { if('prepDays' in e) pd[e.name] = e.prepDays; });
       out.saved = {prepDays: (snap.fields.byId['prep-days'] || {}).value, prepName: (snap.fields.byId['prep-name'] || {}).value, perEp: pd,
                    colour: (snap.phaseColorOverride || {}).episodePrep};
-      check(out.saved.prepDays === '5' && out.saved.prepName === 'Episodic Prep' && JSON.stringify(pd) === '{"Episode 303":"10","Episode 304":"8"}'
+      check(out.saved.prepDays === '5' && out.saved.prepName === 'Episodic Prep' && JSON.stringify(pd) === '{"Shoot Ep. 303":"10","Shoot Ep. 304":"8"}'
             && out.saved.colour === undefined, 'MINT the file carries prep-days 5, prep-name, and prepDays on exactly 304 and 303');
       check(!('prepPauseOff' in snap), 'MINT the switch is unticked, so the file carries no prepPauseOff key');
 
