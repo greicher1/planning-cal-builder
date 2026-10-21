@@ -18,9 +18,14 @@
 //          model with 0 clipped cells, auto notes untouched, Excel's numFmt and real dates, the PDF's text,
 //          one undo step, Save/Load and the M-5 trap.
 //   H   -- custom column headings (ruling 2, "Opt-in switch"): the year over the Date column, identical
-//          neighbours merge, the editor (one field per column, no ids), Excel's merges and values, the PDF's
-//          text, shrink-not-widen with 0 clipped cells, Reset and Esc, off keeps the labels, Save/Load,
-//          the M-5 trap, and the PDF's unprintable-character check naming a heading.
+//          neighbours merge, the editor (one field per heading, ← Merge / Split / Merge →, a ring, no ids),
+//          Excel's merges and values, the PDF's text, shrink-not-widen with 0 clipped cells, Reset and
+//          Esc, off keeps the labels, Save/Load, the M-5 trap, and the PDF's unprintable-character check
+//          naming a heading.
+//   S   -- the editor's Split/Merge redesign (owner's picker, 20 Oct 2026): Split keeps same-text headings
+//          apart (headerRowSplits), typing never merges or splits, Merge ← / → join, each button one undo
+//          step, the workbook and the PDF follow, Save/Load, a v1.6.0 file (no key) still merges, and
+//          sanitizeSnapshot drops junk.
 //   N   -- New clears all three.
 //
 // ⛔ No dollar sign anywhere in this file (srv.js splices legs in with String.replace).
@@ -198,6 +203,25 @@ window.addEventListener('load', function () { (async function () {
     return document.querySelector('.hdrrow-pop');
   }
   function fieldVals(pop) { return Array.from(pop.querySelectorAll('input')).map(function (i) { return i.value; }); }
+  function btn(pop, act) { return pop.querySelector('.hdrrow-btn[data-act="' + act + '"]'); }
+  // Press ← Merge / Split / Merge →: the editor closes, the grid re-renders, and it opens again on the
+  // heading the button made.
+  async function press(pop, act) {
+    btn(pop, act).click();
+    await settle('the grid after ' + act);
+    await T.until(function () { var p = document.querySelector('.hdrrow-pop'); return !!p && p !== pop; }, 'the editor again after ' + act, 30, 100);
+    return document.querySelector('.hdrrow-pop');
+  }
+  function btnState(pop) {
+    return ['left', 'split', 'right'].map(function (a) { return btn(pop, a).disabled ? '-' : a; }).join(',');
+  }
+  // Is the ring over this heading cell (within a pixel)?
+  function ringOver(th) {
+    var ring = document.querySelector('.hdrrow-ring');
+    if (!ring || ring.hidden || !th) return false;
+    var a = ring.getBoundingClientRect(), b = th.getBoundingClientRect();
+    return Math.abs(a.left - b.left) <= 1 && Math.abs(a.right - b.right) <= 1 && Math.abs(a.top - b.top) <= 1;
+  }
   function typeInto(input, text) {
     input.focus();
     input.value = text;
@@ -370,32 +394,49 @@ window.addEventListener('load', function () { (async function () {
     var hUndo = heads();
     await redo();
     kase('H2', 'the switch is ONE undo step', sameArr(hUndo, H0) && sameArr(heads(), H1), { hUndo: hUndo });
-    // Edit the 2026 cell at its right-hand end: the phase column is under the pointer.
+    // The 2026 heading covers Date + Column 1: ONE field, the three buttons, a ring, no ids.
     var pop = await openHeading('2026', 0.8);
     var popIds = pop.querySelectorAll('[id]').length;
-    var labels = Array.from(pop.querySelectorAll('.hdrrow-field span')).map(function (s) { return s.textContent.trim(); });
-    var focusedIdx = Array.from(pop.querySelectorAll('input')).indexOf(document.activeElement);
-    kase('H3', 'the editor shows one field per column of the merged cell (Date column, Column 1), focuses the column under the pointer, and carries NO id',
-      sameArr(labels, ['Date column', 'Column 1']) && sameArr(fieldVals(pop), ['2026', '2026']) && focusedIdx === 1 && popIds === 0 &&
-      pop.classList.contains('note-pop'),
-      { labels: labels, focusedIdx: focusedIdx, ids: popIds });
-    typeInto(pop.querySelectorAll('input')[1], 'WRITERS');
+    kase('H3', 'the editor shows ONE field for the whole heading (focused, selected), ← Merge off at the first heading, Split and Merge → on, "Covers 2 columns", a ring over the heading, and NO id',
+      sameArr(fieldVals(pop), ['2026']) && document.activeElement === pop.querySelector('input') && btnState(pop) === '-,split,right' &&
+      /Covers 2 columns/.test(pop.textContent) && ringOver(headCell('2026')) && popIds === 0 && pop.classList.contains('note-pop') &&
+      !/Neighbouring columns/.test(pop.textContent),
+      { vals: fieldVals(pop), btns: btnState(pop), ids: popIds, text: pop.textContent.replace(/\s+/g, ' ').slice(0, 160) });
+    // Split it, then type the second piece: 2026 | WRITERS.
+    pop = await press(pop, 'split');
+    var H3s = heads();
+    var splitPop = { vals: fieldVals(pop), btns: btnState(pop), covers: /Covers 1 column(?!s)/.test(pop.textContent),
+      ring: ringOver(document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="y2026:date"]')) };
+    pop = await openHeading('2026', 0.5, 1);
+    typeInto(pop.querySelector('input'), 'WRITERS');
     await enter(pop);
     var H4 = heads();
-    // Two neighbouring 2027 columns given the SAME heading merge into one cell.
-    pop = await openHeading('2027', 0.6);
-    typeInto(pop.querySelectorAll('input')[1], 'POST');
-    typeInto(pop.querySelectorAll('input')[2], 'POST');
+    // 2027 covers Date + two phase columns: Split, type POST into the middle piece, then Merge → over the last.
+    pop = await openHeading('2027');
+    pop = await press(pop, 'split');
+    pop = await openHeading('2027', 0.5, 1);
+    typeInto(pop.querySelector('input'), 'POST');
     await enter(pop);
+    var H4b = heads();
+    pop = await openHeading('POST');
+    pop = await press(pop, 'right');
     var H5 = heads();
-    kase('H4', 'a typed heading splits the merged cell, and two neighbours typed the same merge: 2026 | WRITERS | Notes | 2027 | POST(2) | Notes',
+    var mergedPop = { vals: fieldVals(pop), btns: btnState(pop), covers: /Covers 2 columns/.test(pop.textContent), ring: ringOver(headCell('POST')) };
+    pop.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await T.sleep(100);
+    kase('H4', 'Split gives each column its own heading (the same text) and opens on the first piece; typing a piece changes only it; Merge → joins the next column and takes this heading\'s text: 2026 | WRITERS | Notes | 2027 | POST(2) | Notes',
+      sameArr(H3s, ['2026@1', '2026@1', 'Notes@1', '2027@3', 'Notes@1']) &&
+      sameArr(splitPop.vals, ['2026']) && splitPop.btns === '-,-,right' && splitPop.covers && splitPop.ring &&
       sameArr(H4, ['2026@1', 'WRITERS@1', 'Notes@1', '2027@3', 'Notes@1']) &&
-      sameArr(H5, ['2026@1', 'WRITERS@1', 'Notes@1', '2027@1', 'POST@2', 'Notes@1']) && !document.querySelector('.hdrrow-pop'),
-      { H4: H4, H5: H5 });
+      sameArr(H4b, ['2026@1', 'WRITERS@1', 'Notes@1', '2027@1', 'POST@1', '2027@1', 'Notes@1']) &&
+      sameArr(H5, ['2026@1', 'WRITERS@1', 'Notes@1', '2027@1', 'POST@2', 'Notes@1']) &&
+      sameArr(mergedPop.vals, ['POST']) && mergedPop.btns === 'left,split,right' && mergedPop.covers && mergedPop.ring &&
+      !document.querySelector('.hdrrow-pop') && !document.querySelector('.hdrrow-ring'),
+      { H3s: H3s, splitPop: splitPop, H4: H4, H4b: H4b, H5: H5, mergedPop: mergedPop });
     await undo();
     var hUndo2 = heads();
     await redo();
-    kase('H5', 'a heading commit is ONE undo step', sameArr(hUndo2, H4) && sameArr(heads(), H5), { hUndo2: hUndo2 });
+    kase('H5', 'a Merge is ONE undo step', sameArr(hUndo2, H4b) && sameArr(heads(), H5), { hUndo2: hUndo2 });
     var xh = await xlsx();
     kase('H6', 'the workbook writes the same headings: the year as a number, POST merged over its two columns, shrinkToFit on the heading cells',
       sameArr(xh.row1, [2026, 'WRITERS', 'Notes', 2027, 'POST', '', 'Notes']) && sameArr(xh.merges1, ['E1:F1']) &&
@@ -447,7 +488,7 @@ window.addEventListener('load', function () { (async function () {
     var hPlain = { heads: heads(), sw: byId('wf-hdr-custom').checked };
     await load(hSaved);
     var hBack = { heads: heads(), sw: byId('wf-hdr-custom').checked };
-    var hNoKey = JSON.parse(hSaved); delete hNoKey.headerRowCustom; delete hNoKey.headerRowLabels;
+    var hNoKey = JSON.parse(hSaved); delete hNoKey.headerRowCustom; delete hNoKey.headerRowLabels; delete hNoKey.headerRowSplits;
     await load(JSON.stringify(hNoKey));
     var hM5 = { heads: heads(), sw: byId('wf-hdr-custom').checked };
     // ...and turning the switch on there shows the DEFAULTS: the previous file's typed headings must be gone,
@@ -465,7 +506,6 @@ window.addEventListener('load', function () { (async function () {
     await load(hSaved);
     pop = await openHeading('POST');
     typeInto(pop.querySelector('input'), 'Ω Post');
-    typeInto(pop.querySelectorAll('input')[1], 'Ω Post');
     await enter(pop);
     var capW = T.captureDownload(), dialog = '';
     byId('export-wf-pdf-btn').click();
@@ -474,6 +514,76 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(300); capW.stop();
     kase('H12', 'a heading with a character the PDF font lacks is named in the unprintable-character warning ("in the column heading")',
       /column heading/.test(dialog) && cancelled, { dialog: dialog.slice(0, 200) });
+
+    // ===== S: Split and Merge (the editor redesign, owner's picker 20 Oct 2026) =========================
+    function esc(p) { p.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return T.sleep(100); }
+    function count(arr, v) { return arr.filter(function (x) { return x === v; }).length; }
+    var BASE = ['2026@2', 'Notes@1', '2027@1', 'POST@2', 'Notes@1'];
+    await load(hSaved);
+    var sBase = heads();
+    pop = await openHeading('POST');
+    pop = await press(pop, 'split');
+    await esc(pop);
+    var S1 = heads();
+    await undo();
+    var S1u = heads();
+    await redo();
+    var s1Snap = JSON.parse(await save());
+    var xs = await xlsx();
+    var ps = await pdf();
+    kase('S1', 'Split keeps two same-text headings apart on screen, in the workbook (no merge over them) and in the PDF (POST twice); one undo step; Save writes headerRowSplits',
+      sameArr(sBase, BASE) && sameArr(S1, ['2026@2', 'Notes@1', '2027@1', 'POST@1', 'POST@1', 'Notes@1']) && sameArr(S1u, BASE) && sameArr(heads(), S1) &&
+      sameArr(s1Snap.headerRowSplits, ['y2027:s1']) && s1Snap.headerRowLabels['y2027:s0'] === 'POST' && s1Snap.headerRowLabels['y2027:s1'] === 'POST' &&
+      sameArr(Object.keys(s1Snap.fields.byId).sort(), ids0) &&
+      sameArr(xs.row1, [2026, '', 'Notes', 2027, 'POST', 'POST', 'Notes']) && sameArr(xs.merges1, ['A1:B1']) &&
+      count(ps.strings, 'POST') === 2,
+      { sBase: sBase, S1: S1, S1u: S1u, splits: s1Snap.headerRowSplits, row1: xs.row1, merges1: xs.merges1, posts: count(ps.strings, 'POST') });
+    // Typing the year's heading to read POST: it stays a heading of its own -- typing never merges.
+    pop = await openHeading('2027');
+    typeInto(pop.querySelector('input'), 'POST');
+    await enter(pop);
+    var S2 = heads();
+    var s2Snap = JSON.parse(await save());
+    kase('S2', 'typing a heading to read the same as its neighbour never merges them: POST | POST | POST stay three headings, kept apart in the file',
+      sameArr(S2, ['2026@2', 'Notes@1', 'POST@1', 'POST@1', 'POST@1', 'Notes@1']) && sameArr(s2Snap.headerRowSplits, ['y2027:s0', 'y2027:s1']),
+      { S2: S2, splits: s2Snap.headerRowSplits });
+    // ← Merge from the middle one; then a word typed and Merge → in ONE step.
+    pop = await openHeading('POST', 0.5, 1);
+    pop = await press(pop, 'left');
+    var S3a = heads(), s3Btns = btnState(pop), s3Ring = ringOver(headCell('POST'));
+    typeInto(pop.querySelector('input'), 'DELIVERY');
+    pop = await press(pop, 'right');
+    var S3b = heads(), s3bBtns = btnState(pop);
+    await esc(pop);
+    await undo();
+    var S3u = heads();
+    await redo();
+    kase('S3', '← Merge joins the heading on its left and opens on the joined one (← Merge now off); a word typed before Merge → is saved with it, in ONE undo step: DELIVERY over all three',
+      sameArr(S3a, ['2026@2', 'Notes@1', 'POST@2', 'POST@1', 'Notes@1']) && s3Btns === '-,split,right' && s3Ring &&
+      sameArr(S3b, ['2026@2', 'Notes@1', 'DELIVERY@3', 'Notes@1']) && s3bBtns === '-,split,right' &&
+      sameArr(S3u, S3a) && sameArr(heads(), S3b),
+      { S3a: S3a, s3Btns: s3Btns, S3b: S3b, s3bBtns: s3bBtns, S3u: S3u });
+    // Reset puts the three columns back under the year, joined again, and leaves nothing typed in the file.
+    pop = await openHeading('DELIVERY');
+    pop.querySelector('.hdrrow-reset').click();
+    await settle('the grid after Reset');
+    var S4 = heads(), s4Snap = JSON.parse(await save());
+    kase('S4', 'Reset returns a heading\'s columns to the year and joins them again; the file then has no typed heading and no split',
+      sameArr(S4, ['2026@2', 'Notes@1', '2027@3', 'Notes@1']) && !('headerRowSplits' in s4Snap) && !('headerRowLabels' in s4Snap) &&
+      !document.querySelector('.hdrrow-pop') && !document.querySelector('.hdrrow-ring'),
+      { S4: S4, labels: s4Snap.headerRowLabels, splits: s4Snap.headerRowSplits });
+    // Load: with the key, apart; with NO key (a v1.6.0 file), merged as ever -- and never the previous
+    // file's splits (M-5); junk dropped by sanitizeSnapshot.
+    var f = JSON.parse(hSaved); delete f.headerRowSplits;
+    f.headerRowSplits = ['y2027:s1']; await load(JSON.stringify(f)); var S5b = heads();
+    delete f.headerRowSplits; await load(JSON.stringify(f)); var S5a = heads();
+    f.headerRowSplits = 'y2027:s1'; await load(JSON.stringify(f)); var S5d = heads();
+    f.headerRowSplits = [5, 'y2027:bogus', '__proto__', 'y2027:s1']; await load(JSON.stringify(f)); var S5c = heads();
+    var s5cSnap = JSON.parse(await save());
+    kase('S5', 'Load: headerRowSplits keeps POST | POST apart; a file with no key (v1.6.0) merges them as it always did, never keeping the previous file\'s split (M-5); a non-array is dropped; junk entries are dropped and the valid one kept',
+      sameArr(S5b, ['2026@2', 'Notes@1', '2027@1', 'POST@1', 'POST@1', 'Notes@1']) && sameArr(S5a, BASE) && sameArr(S5d, BASE) &&
+      sameArr(S5c, S5b) && sameArr(s5cSnap.headerRowSplits, ['y2027:s1']),
+      { S5b: S5b, S5a: S5a, S5d: S5d, S5c: S5c, splits: s5cSnap.headerRowSplits });
 
     // ===== N: New clears all three ======================================================================
     await chooseMode('Off');
@@ -484,10 +594,13 @@ window.addEventListener('load', function () { (async function () {
     T.buildFixture();
     await T.until(function () { return document.querySelectorAll('#table-wrap table.sheet-table tbody tr').length > 10; }, 'the grid after New', 200, 100);
     await settle('the calendar after New');
-    kase('N1', 'New starts with the header on, 1/6/25 and Date | year | Notes, the switch off',
-      barShown() && hdrBtn() === 'Header: Auto' && byId('wf-date-format').value === '' && byId('wf-hdr-custom').checked === false &&
-      sameArr(heads(), H0) && dates()[0] === '1/5/26',
-      { heads: heads(), btn: hdrBtn() });
+    var nHeads = heads(), nSw = byId('wf-hdr-custom').checked;
+    byId('wf-hdr-custom').click(); await settle('the grid after the switch on (after New)');
+    var nOn = heads();
+    kase('N1', 'New starts with the header on, 1/6/25 and Date | year | Notes, the switch off; on, it shows the defaults (no typed heading or split left)',
+      barShown() && hdrBtn() === 'Header: Auto' && byId('wf-date-format').value === '' && nSw === false &&
+      sameArr(nHeads, H0) && dates()[0] === '1/5/26' && sameArr(nOn, H1),
+      { heads: nHeads, nOn: nOn, btn: hdrBtn() });
   } catch (e) { out.EX = String(e && e.stack || e); kase('EX', 'the leg ran to the end', false, { error: out.EX }); }
   out.health = T.appHealth ? T.appHealth() : null;
   T.done(out);
