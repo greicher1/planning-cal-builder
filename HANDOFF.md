@@ -48,8 +48,17 @@
   - 1 was the `shootorder` leg's `episodePills` (it counted any month bar reading "Episode…" as the dormant episode-pill
     branch; this file's own Production bars now read "Episode 205"). Narrowed to pills without `data-ph="production"`:
     9/9 through the gate's own evaluator.
-- ⏭ **Next:** the owner's picker on the re-cut (gates 10 and 13, with blocksoff split off); then a final gate; then the
-  merge picker for `main` and, separately, a push picker. Nothing here is in `main`.
+- ✅ **RE-CUT, signed off by the owner by picker** (*"Re-cut gates 10 and 13 for the Episode N change, giving blocksoff its
+  own baseline, then run the final gate"*), at `2370060`: gate 10's seven documents and gate 13's thirteen written PDFs,
+  each the old cut once names are read as the episode; `blocksoff` gets its own file in both gates, and two new gate
+  blocks keep BLOCKS-PLAN §5 condition 3 by holding it to `reference`'s document and text on that reading (both proven
+  red against another calendar). Both baselines' READMEs carry the tables.
+- ✅ **Final full gate** (build `be984cdc…` at `2370060`, port 9261, 03:19:59–03:45:05, alone): **2,520 PASS, 1 FAIL**:
+  `pilllabel (blocks)` threw "timed out waiting for: save write" before its checks ran (the recorded save/IndexedDB
+  timing flake under load). Re-run alone twice through the gate's own evaluator: **35 PASS, 0 FAIL both times.** Gates
+  10 and 13 green on the new cuts, both blocksoff condition-3 checks PASS, `epnames` 10 + 5 and its PDF text check PASS.
+- ⏭ **Next:** the owner's merge picker for `main` and, separately, a push picker (a version cut is the owner's call).
+  Nothing here is in `main`.
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
