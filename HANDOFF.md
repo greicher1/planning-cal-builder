@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026: SIDE BOXES (owner ruling 7) BUILT, gate pending (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)), NOT MERGED, NOT PUSHED
+### ✅ 20 Oct 2026: SIDE BOXES (owner ruling 7) BUILT AND GATED 2,120 / 0 (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)), NOT MERGED, NOT PUSHED
 
 - ⏭ **RESUME HERE for the boxes beside the waterfall.** One of the parallel sessions started from the ruling-7 entry
   below. Plan, mock-up ([`mockups/side-boxes.html`](mockups/side-boxes.html), a made-up calendar) and rulings in
@@ -37,8 +37,12 @@
     their own check (the key written with no box F5, E1 removed X3, the month-view hide removed M1).
   - The exported workbook passes `check-xlsx.sh`; the PDF was rendered with `pdftoppm` and looked at.
   - `npm run check` 40/40.
-- ⏳ **Full gate: queued** (port 9173, FIFO behind the other sessions' gates). Its byte-compares are the proof that
-  every existing calendar's waterfall PDF and Excel parts are unchanged.
+- ✅ **Full gate on build `b1accea4…` (port 9173, 21:46:36–22:06:33, alone): 2,120 PASS, 0 FAIL, GATE PASSED.** That
+  is `main`'s 2,062 plus exactly the 58 `sideboxes` checks. 0 clipped; the **waterfall PDF identical** to the baseline
+  and **every Excel part identical** (the proof that E1–E6 are inert for every calendar without boxes); v1.0.0
+  restores identically; `fields.byId` 74 ids; gate 10's print documents and gate 13's written month PDFs identical.
+  The commits after `3ee25ee` are docs only, so the gated build is the branch's build.
+- ⏳ **Waiting on the owner's merge picker.** Never push without the owner's own push picker.
 - ⚠️ **Merge notes:** the header-row session edits the same two writers' header-ROW code (different lines) and makes
   `SHEET_PAGE_MARGIN_PT.t/.hdr` getters; quick-wins appends `PHASE_COLOR_OPTIONS` (the key picks the new colours up
   with no change); cal-range makes `currentSchedule` view-dependent (the key reads the waterfall's, which is right).

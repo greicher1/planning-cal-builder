@@ -59,7 +59,7 @@ recommended, with sign-off for six frozen edits to the two writers.
 - **Verified:** a new leg, `sideboxes` (58 checks, in the gate): the screen, the workbook and the PDF read back, every
   gesture through the hit stack, the month view's `#table-wrap` width equal with and without boxes, deleting the
   last box giving back the identical PDF page, a hostile file, New. Red on the pre-change build; three mutants each
-  red. Full gate: see HANDOFF.
+  red. Full gate: 2,120 PASS, 0 FAIL, the waterfall PDF and every Excel part identical to the baseline.
 
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
