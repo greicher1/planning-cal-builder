@@ -52,9 +52,18 @@
   `settingswin` 17/17, `autonotekinds` 16/16, `hdrrow` 30/30, `calrange` 18/18, `shootdays` 15/15 (offweek),
   15/15 (dayoverrides-onhalf), 14/14 (blocks) with every PDF page's "Day N" text matching the screen, `hiatusdrag` 13/13,
   `mvnotes` 30/30 + 14/14, `mvmenu` 89/89, `colreuse` 21 + 4 through gate.sh's own evaluator.
-- ⏳ **Combined full gate: queued** behind the other sessions' gates (port 9243, log in this session's scratchpad,
-  `gate-merged.log`). ⚠️ **Expected red: gate 10's `mvheaderlegacy`.** Bundles A and B each re-cut it; it is held at
-  bundle A's baseline in the merge and must be re-cut from this build's own capture, with the owner's sign-off.
+- **Combined full gate on `merge-all`** (build `1ea148e2…` at `b53544e`, port 9243, 16:53:04–17:17:38, alone):
+  **2,519 PASS, 7 FAIL.** None is an app fault:
+  - gate 10's `mvheaderlegacy`: EXPECTED. Bundles A and B each re-cut it; it is held at bundle A's baseline in the
+    merge and must be re-cut from the merged build's own capture, with the owner's sign-off.
+  - `monthlayout` P0 on all four calendars: a LEG that never learned Number Production Days. Its own reading of each
+    day had no `sd` (the model's shoot-day number), and its cell regex refused a square carrying `data-shoot-day`.
+    Fixed on `shoot-prefix` (`91281bf`).
+  - `dlgkeys` threw at D4: it clicked `#sidetab-settings`, which the Settings window retired. Fixed on `shoot-prefix`
+    (`2c48ba0`): it opens the window's Region tab and closes it before D8.
+  - `autonotekinds` A12 timed out waiting for the file menu's name after a Load (10 s); it passed 16/16 alone on this
+    build before the gate. To be re-run alone; the IndexedDB stall the harness README describes is the likely cause.
+  - So `merge-all` is not to be merged as it stands: `shoot-prefix` carries these leg fixes on top of it.
 - ⚠️ **The main checkout's uncommitted HANDOFF change is this file's reference-waterfall entry**, which the branches
   committed. When `main` moves to this branch, set that copy aside (it is identical to the committed text, checked with
   `diff`) rather than letting the fast-forward refuse.
