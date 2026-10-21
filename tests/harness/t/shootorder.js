@@ -83,7 +83,10 @@ window.addEventListener('load', function () { (async function () {
     // ---- 2. ruling 8: Production's pill + the episodes as grey text, in shooting order ----------
     await toMonth('July 2026');
     out.julyPills = pills();
-    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill'),
+    // The renderer's dormant episode-pill branch draws "Episode N" pills that are NOT Production's own. Production's
+    // own bars may read "Episode 205" themselves now: an episode's bar reads its name, and this older file keeps its
+    // "Episode N" names (owner, 20 Oct 2026). So only pills without data-ph="production" count.
+    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill:not([data-ph="production"])'),
       function (p) { return /^Episode\b/.test(p.textContent.trim()); }).length;
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------

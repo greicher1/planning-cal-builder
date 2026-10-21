@@ -31,9 +31,25 @@
   `shootorder`, `pilldrag.mjs`; `pilllabel`'s model; `halfdays` D2s and `epBox` (it types its own calendar, so
   "Shoot Ep. N"); `episodeprep`'s LIVE run names "Shoot Ep. 30N" (RESTORE's fixture keeps "Episode 30N"); `mvmenu`
   H1s drops `bar-prefix-0`.
-- **Expected gate movement:** gates 10 and 13 change for every Episodes FIXTURE (saved by older builds, so their bars
-  now read "Episode N" where v1.6.0's baselines say "Shoot Ep. N"). `reference` (typed in by `T.buildFixture()`) and the
-  Blocks fixtures should not move. A re-cut needs the owner's sign-off (gate policy).
+- **Full gate** (build at `f84b378`, port 9261, 23:23:47–23:48:21, queued behind two other sessions' gates): **2,530
+  PASS, 23 FAIL.** None is an app fault:
+  - 22 are gates 10 and 13 on Episodes FIXTURES (saved by older builds, so their bars now read "Episode N" where
+    v1.6.0's baselines say "Shoot Ep. N"): gate 10's eight print documents (dayoverrides, mvheader, mvheaderlegacy,
+    blocksoff, dayoverrides-onhalf, hiatus-blanklabel, halfdays, mvnotes) and gate 13's fourteen written PDFs.
+    ✅ **Classified, every one:** each gate-10 document is BYTE-IDENTICAL to its baseline once "Shoot Ep. N" (old) and
+    "Episode N" (new) are both read as the episode, with the count equal (40–64 each); each gate-13 PDF's text
+    (`pdftotext -raw`) is identical on the same substitution, counts equal (7–32), no "Shoot Ep" left. `reference`,
+    `blocks`, `month-dense60`, `month-lanecap` and `monthscale` did not move. Contact sheets (`monthbase.py sheets`)
+    for halfdays and shootorder: red only on the bar names and the grey text after them.
+  - ⚠️ **`blocksoff` can no longer be held to `reference`.** It is an older file ("Episode N"), while `reference` is typed
+    in fresh ("Shoot Ep. N"). Matching once names are read as the episode is still true (above), but a re-cut must
+    give it its own baseline in both gates (`blocksoff:blocksoff:blocksoff`, `bo:blocksoff:…`), never re-cut
+    `reference` from it.
+  - 1 was the `shootorder` leg's `episodePills` (it counted any month bar reading "Episode…" as the dormant episode-pill
+    branch; this file's own Production bars now read "Episode 205"). Narrowed to pills without `data-ph="production"`:
+    9/9 through the gate's own evaluator.
+- ⏭ **Next:** the owner's picker on the re-cut (gates 10 and 13, with blocksoff split off); then a final gate; then the
+  merge picker for `main` and, separately, a push picker. Nothing here is in `main`.
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
