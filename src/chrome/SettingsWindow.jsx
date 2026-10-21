@@ -4,11 +4,15 @@
 // presets, Export App With Data -- and it is where the new calendar-level settings go. The sidebar
 // keeps Show and Phases.
 //
-// ⭐ THE TABS ARE THE SAVE BOUNDARY. Calendar and Region are saved in the calendar's file and travel
-// with it; Preferences stays on this computer (localStorage) and never enters captureSnapshot().
-// Presets is the one tab that holds both, and its opening line says which part is which. The old
-// Preferences card mixed the two and needed a hint to say so; here the tab says it, and each tab
-// opens on one line that says it again.
+// ⭐ THE TABS USED TO BE THE SAVE BOUNDARY, AND NOW ONLY REGION'S IS. The window shipped with a Calendar
+// tab (saved in the calendar's file) beside Preferences (kept on this computer, localStorage, never in
+// captureSnapshot()). The owner merged the two, 20 Oct 2026: *"Lets combine settings under preferences
+// and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the
+// waterfall and month view"*. So Preferences holds both kinds now, like Presets always has, and each
+// tab's opening line says which part is which: Region's that it all travels with the file, Presets'
+// and Preferences' which part stays on this computer. Preferences' line is per VIEW, because what it
+// has to name differs: Grid Lines in the waterfall, the grey-text switches in the month view.
+// Nothing moved between a file and this computer -- every control keeps its id and its store.
 //
 // ⛔ WHERE IT LIVES, AND WHY. React portals this into #settings-host, a static host INSIDE
 // aside.form-panel (src/index.html), and CSS lays it over the whole sidebar (legacy.css, "The
@@ -35,8 +39,7 @@ import { Tabs, CloseButton, Text } from '@mantine/core'
 import { IconSliders, IconFile, IconMonitor } from './icons.jsx'
 import { installChrome } from './bridge.js'
 import {
-  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard,
-  CalendarWaterfallCard, CalendarMonthCard, PrefsWaterfallCard, PrefsMonthCard,
+  RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard,
 } from './Sidebar.jsx'
 
 // ⚠️ The VALUES are what a leg or the engine names (chrome.settingsWindow({ open, tab })); the labels
@@ -44,18 +47,23 @@ import {
 // the owner's too, the same day: "a tab in settings that keeps both presaved headers and presaved side
 // boxes". It holds the Headers card now; the side-box presets (ruling 7, built in a sibling session)
 // go beside it when they land.
+// Preferences is FIRST, and the tab the window opens on, because it took over the Calendar tab's place
+// and contents when the owner merged the two (20 Oct 2026): it holds the settings people reach for most.
 const TABS = [
-  { value: 'calendar', label: 'Calendar' },
+  { value: 'prefs', label: 'Preferences' },
   { value: 'region', label: 'Region' },
   { value: 'presets', label: 'Presets' },
-  { value: 'prefs', label: 'Preferences' },
 ]
+// The retired tab's value, still accepted from a caller (a leg on an older branch, a later merge that
+// names it) and sent to where its cards went, so `{ tab: 'calendar' }` opens Preferences, not nothing.
+const TAB_ALIASES = { calendar: 'prefs' }
 
 // The line each saved-or-not tab opens on. Text, not an ⓘ: it is the one fact about the tab, and a
-// hover hides it from exactly the person who needs it.
-function ScopeLine({ icon: Icon, children }) {
+// hover hides it from exactly the person who needs it. `className` takes .pref-view-sheet /
+// .pref-view-month, for a line that only holds in one view (legacy.css hides the other).
+function ScopeLine({ icon: Icon, className, children }) {
   return (
-    <div className="sw-scope">
+    <div className={'sw-scope' + (className ? ' ' + className : '')}>
       <Icon className="sw-scope-ic" />
       <Text size="xs" c="dimmed" component="span">{children}</Text>
     </div>
@@ -73,15 +81,25 @@ function ScopeLine({ icon: Icon, children }) {
 // re-renders after the first commit. ⚠️ Never build these inside SettingsWindow's render, and never
 // give a card props or context that change: either brings the stale-state write back.
 //
-// ⚠️ PANEL ORDER IS SWEEP ORDER. The Calendar tab's controls are all skipped by the sweep (.prefs-card)
-// or are buttons, and Presets' and Preferences' likewise, so only the Region tab contributes ids to
-// fields.byId -- in the order RegionCard, HolidaysCard, as before. A new card with a SWEPT id in the
-// Calendar tab would land before #union-place in every saved file.
-const CALENDAR_PANEL = (
+// ⚠️ PANEL ORDER IS SWEEP ORDER. Preferences' controls are all skipped by the sweep (.prefs-card) or
+// are buttons or id-less boxes (Automatic notes), and Presets' likewise, so only the Region tab
+// contributes ids to fields.byId -- in the order RegionCard, HolidaysCard, as before. Preferences
+// sitting AHEAD of Region in the DOM (it took the Calendar tab's place) is safe for exactly that
+// reason: a new card with a SWEPT id here would land before #union-place in every saved file.
+//
+// Preferences = the old Calendar tab's cards and the old Preferences tab's, merged by view (owner, 20 Oct
+// 2026; see Sidebar.jsx, WaterfallCard / MonthViewCard). Most of what is here is saved with the calendar,
+// so the opening line says that and names the exception, view by view.
+const PREFS_PANEL = (
   <>
-    <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
-    <CalendarWaterfallCard />
-    <CalendarMonthCard />
+    <ScopeLine icon={IconFile} className="pref-view-sheet">
+      Saved in this calendar’s file, so they travel with it — except Grid Lines in Exports, which stays on this computer.
+    </ScopeLine>
+    <ScopeLine icon={IconFile} className="pref-view-month">
+      Saved in this calendar’s file, so they travel with it — except the grey-text switches, which stay on this computer.
+    </ScopeLine>
+    <WaterfallCard />
+    <MonthViewCard />
     {/* Automatic notes (ruling 9) reach both views, so it is no .pref-view-* card. No id in it. */}
     <AutoNotesCard />
     <AppCard />
@@ -103,17 +121,10 @@ const PRESETS_PANEL = (
     <HeadersCard />
   </>
 )
-const PREFS_PANEL = (
-  <>
-    <ScopeLine icon={IconMonitor}>These stay on this computer. Send someone a calendar and they keep their own.</ScopeLine>
-    <PrefsWaterfallCard />
-    <PrefsMonthCard />
-  </>
-)
 
 export function SettingsWindow() {
   const [open, setOpen] = useState(false)
-  const [tab, setTab] = useState('calendar')
+  const [tab, setTab] = useState('prefs')
   const rootRef = useRef(null)
   // Where focus was when the window opened, so closing puts it back.
   const returnFocus = useRef(null)
@@ -124,7 +135,8 @@ export function SettingsWindow() {
     installChrome({
       settingsWindow: (next) => {
         if (!next) return
-        if (typeof next.tab === 'string' && TABS.some((t) => t.value === next.tab)) setTab(next.tab)
+        const want = typeof next.tab === 'string' ? (TAB_ALIASES[next.tab] || next.tab) : null
+        if (want && TABS.some((t) => t.value === want)) setTab(want)
         if (typeof next.open === 'boolean') setOpen(next.open)
       },
     })
@@ -210,7 +222,7 @@ export function SettingsWindow() {
           their bridge functions. display-none mode renders every panel in the first commit and
           hides the inactive ones with display:none, the sidebar's old `.tab-hidden` contract.
           ⚠️ An explicit id, so the tab and panel ids Mantine derives from it are stable
-          (settings-tabs-tab-calendar, …). They are on buttons and divs, which nothing sweeps. */}
+          (settings-tabs-tab-prefs, …). They are on buttons and divs, which nothing sweeps. */}
       <Tabs id="settings-tabs" className="sw-tabs" value={tab}
             onChange={(v) => { if (v) setTab(v) }}
             keepMounted keepMountedMode="display-none">
@@ -220,10 +232,9 @@ export function SettingsWindow() {
           ))}
         </Tabs.List>
 
-        <Tabs.Panel value="calendar" className="sw-panel">{CALENDAR_PANEL}</Tabs.Panel>
+        <Tabs.Panel value="prefs" className="sw-panel">{PREFS_PANEL}</Tabs.Panel>
         <Tabs.Panel value="region" className="sw-panel">{REGION_PANEL}</Tabs.Panel>
         <Tabs.Panel value="presets" className="sw-panel">{PRESETS_PANEL}</Tabs.Panel>
-        <Tabs.Panel value="prefs" className="sw-panel">{PREFS_PANEL}</Tabs.Panel>
       </Tabs>
     </div>
   )

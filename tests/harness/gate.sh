@@ -1658,7 +1658,8 @@ done
 # Header: Off, the 1/6/2025 date format and custom column headings -- each inert by default (its I cases), each
 # driven through its real control and read back from the screen, the workbook and the waterfall PDF, each one undo
 # step, saved, loaded and immune to the M-5 trap. Red on the pre-change build; eight mutants, each red. Its own
-# line, mid-list, so sessions appending at the end never conflict with it.
+# line, mid-list, so sessions appending at the end never conflict with it. Since 20 Oct 2026 it also drives the
+# heading editor's Split / ← Merge / Merge → buttons and the `headerRowSplits` key (cases S1-S5).
 # settingswin guards the Settings window (owner ruling 12, 20 Oct 2026), which took over the sidebar's old Settings
 # tab: every moved id is in it once, on its tab; fields.byId gets #union-place and the two custom-holiday fields in
 # their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;

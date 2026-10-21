@@ -87,6 +87,13 @@ because the default must stay byte-identical; flagged for a later call.
   `.note-pop` pattern): one text field, Enter commits, Esc cancels, *Reset* returns the default. One
   undo step per commit. A merged heading edits its first column; the panel says which columns it
   covers. Nothing is injected into the cell.
+  - *(As first built it showed one field PER COLUMN of a merged heading, and a heading split when two
+    fields were typed differently. ⛔ **Superseded 20 Oct 2026**: the owner found that convoluted, *"Why
+    would that be intuitive? we need a better way"*, and picked "Split/Merge buttons". Now ONE field edits
+    the whole heading and only **Split**, **← Merge** and **Merge →** change what it covers; typing never
+    does. A split between same-text neighbours is the new key `headerRowSplits` (an array of the
+    right-hand column keys, absent = v1.6.0's merging). `headerRowRuns()` is the only reader, so no
+    frozen body changed. README, "Column headings: one box per heading".)*
 - **Too long a heading shrinks to fit, as a phase label does; it never widens a column** (the width
   model is untouched by headings). Screen: the label's scale from the width model's own measure
   (bold, `chars × EXCEL_MDW`), floor 0.6, then clip. PDF: the same scale on its 8.25 pt heading.

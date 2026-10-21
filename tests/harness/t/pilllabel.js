@@ -304,8 +304,9 @@ window.addEventListener('load', function () { (async function () {
     // Preferences ▸ "Label Production by", a SegmentedControl named mv-prod-label, driven the way a user does:
     // a click on a segment's LABEL. Every calendar here is opened with viewMode 'month' set in its JSON, so no
     // view click adds an undo step of its own -- each undo assertion starts from an EMPTY stack.
-    // ⚠️ Since the Settings window (owner ruling 12, 20 Oct 2026) the control is in its Calendar tab and the
-    // Show switches in its Preferences tab; rows() opens the tab that holds each row before judging its
+    // ⚠️ Since the Settings window (owner ruling 12, 20 Oct 2026) the control and the Show switches are in its
+    // Preferences tab's Month view card (the control was in a Calendar tab until the owner merged the two, the
+    // same night); rows() opens the tab that holds each row before judging its
     // layout (T.shownInSettings), and opening the window is session UI, never an undo step. The JSON still
     // carries sidebarTab 'settings' -- a value no build writes any more -- which the engine reads as Show.
     //
@@ -397,7 +398,7 @@ window.addEventListener('load', function () { (async function () {
       // requestAnimationFrame (its Transition), which this headless run never fires, so [role=tooltip] stays
       // absent here. floating-ui's useRole sets aria-describedby on the reference the moment it opens. The
       // text itself was checked by a real hover in the pane ("Schedule by Blocks to label by block").
-      await T.openSettings('calendar');   // the control is laid out only on its own tab
+      await T.openSettings('prefs');   // the control is laid out only on its own tab
       var ref = document.querySelector('label[for="mv-prod-label-block"] span span');
       out.B.describedBefore = ref ? ref.getAttribute('aria-describedby') : 'no reference';
       if (ref) {

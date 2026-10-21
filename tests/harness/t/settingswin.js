@@ -5,10 +5,13 @@
 //   HARNESS_PAGE=/dist/index.html ./run.sh settingswin 240
 //
 // The window is a Mantine Tabs panel portalled into #settings-host, inside aside.form-panel, laid over the
-// sidebar by CSS. Its tabs: Calendar, Region, Presets, Preferences. What this leg holds it to:
+// sidebar by CSS. Its tabs: Preferences, Region, Presets. (It shipped with a Calendar tab too; the owner merged
+// that into Preferences, 20 Oct 2026: "Delete the calendar tab. this should apply to both the waterfall and month
+// view".) What this leg holds it to:
 //
 //   W0  at boot it is mounted and CLOSED (display:none); the rail is two tabs plus a Settings button that is
-//       not a tab
+//       not a tab; the window's tabs are Preferences, Region, Presets, in that order, with no Calendar tab, and
+//       it opens on Preferences
 //   W1  every moved id is in the page exactly once, inside the window, on its tab
 //   W1b the header presets are in the Presets tab, inside .prefs-card
 //   W2  no sidebar card names the retired Settings tab: one merged in with data-tab="settings" would be
@@ -31,6 +34,11 @@
 //   W11 open: aria-expanded, `inert` on what it covers, focus on the selected tab. Escape from inside closes it
 //       and puts focus back on the button; an Escape elsewhere does not close it
 //   W12 a file saved with the old Settings tab up (sidebarTab 'settings') opens on Show, the window closed
+//   W13 the merged Preferences tab, BY VIEW: in the waterfall it shows ONE Waterfall card holding the old Calendar
+//       tab's waterfall settings and Grid Lines, Automatic notes and App, no Month view card, and the opening line
+//       that names Grid Lines; in the month view ONE Month view card holding Label Production by, the grey-text
+//       switches, Pause prep and Number Production Days, Automatic notes and App, no Waterfall card, and the line
+//       that names the grey-text switches. Exactly one opening line shows in each view
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
@@ -100,13 +108,18 @@ window.addEventListener('load', function () { (async function () {
     region: ['union-place', 'union-resolves', 'union-locals', 'union-caveat', 'holiday-vis', 'holiday-vis-empty', 'holiday-vis-list',
              'custom-hol-name', 'custom-hol-date', 'custom-hol-add', 'custom-hol-err', 'holiday-reset-btn'],
     // wf-date-format / wf-hdr-custom: the header row's Dates and Custom Column Headings (rulings 2, 4), folded into
-    // the Waterfall card when the branches merged (20 Oct 2026).
-    calendar: ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off', 'share-copy-btn',
-               'wf-date-format', 'wf-hdr-custom'],
-    prefs: ['pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
+    // the Waterfall card when the branches merged (20 Oct 2026). The first eight were the Calendar tab's until the
+    // owner merged it into Preferences, the same night.
+    prefs: ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off', 'share-copy-btn',
+            'wf-date-format', 'wf-hdr-custom', 'col-reuse-btn', 'pref-mv-shootdays',
+            'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes']
   };
+  // The merged cards, by view: what each one holds (W13).
+  var WF_CARD = ['one-col-btn', 'col-reuse-btn', 'wf-date-format', 'wf-hdr-custom', 'pref-gridlines'];
+  var MV_CARD = ['mv-prod-label-week', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes', 'prep-pause-off', 'pref-mv-shootdays'];
   var SWEPT = ['union-place', 'custom-hol-name', 'custom-hol-date'];
   var NEVER_IN_BYID = ['one-col-btn', 'mv-prod-label-week', 'mv-prod-label-episode', 'mv-prod-label-block', 'prep-pause-off',
+                       'col-reuse-btn', 'pref-mv-shootdays',
                        'wf-date-format', 'wf-hdr-custom',
                        'pref-gridlines', 'pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'];
 
@@ -119,12 +132,19 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- W0 -- W3: what is where ------------------------------------------------------------------------
     var rail = [].map.call(document.querySelectorAll('.side-tabs-track .side-tab-btn'), function (b) { return b.dataset.tab; });
-    out.w0 = {display: win && getComputedStyle(win).display, open: win && isOpen(), rail: rail,
+    var swTabs = [].map.call(document.querySelectorAll('#settings-window [role="tab"]'), function (b) {
+      return b.id.replace('settings-tabs-tab-', '') + ':' + b.textContent.trim() + (b.getAttribute('aria-selected') === 'true' ? '*' : '');
+    });
+    out.w0 = {display: win && getComputedStyle(win).display, open: win && isOpen(), rail: rail, swTabs: swTabs,
+              calendarPanel: !!el('settings-tabs-panel-calendar'),
               btnInTablist: !!(btn && btn.closest('[role="tablist"]')), btnTab: btn && btn.getAttribute('data-tab'),
               expanded: btn && btn.getAttribute('aria-expanded'), inside: !!(win && aside.contains(win))};
     add('W0', 'At boot the window is mounted inside the sidebar and CLOSED (display:none); the rail is Show and Phases, and Settings is a button outside the tablist',
       out.w0.display === 'none' && out.w0.open === false && eq(rail, ['show', 'phases']) && !out.w0.btnInTablist && out.w0.btnTab === null
         && out.w0.expanded === 'false' && out.w0.inside, out.w0, 'display none, closed, rail show+phases');
+    add('W0b', 'The window\'s tabs are Preferences, Region, Presets -- no Calendar tab, no Calendar panel -- and it opens on Preferences',
+      eq(swTabs, ['prefs:Preferences*', 'region:Region', 'presets:Presets']) && !out.w0.calendarPanel,
+      {tabs: swTabs, calendarPanel: out.w0.calendarPanel}, ['prefs:Preferences*', 'region:Region', 'presets:Presets']);
 
     var where = {}, ok1 = true;
     Object.keys(MOVED).forEach(function (t) { MOVED[t].forEach(function (id) {
@@ -132,7 +152,7 @@ window.addEventListener('load', function () { (async function () {
       where[id] = n + ':' + got;
       if(n !== 1 || got !== t) ok1 = false;
     }); });
-    add('W1', 'Every control that left the Settings tab is in the page exactly once, inside the window, on its tab (Region, Calendar, Preferences)',
+    add('W1', 'Every control that left the Settings tab is in the page exactly once, inside the window, on its tab (Region, Preferences)',
       ok1, where, 'each 1:<its tab>');
     var hp = document.querySelector('.hdr-presets');
     add('W1b', 'The header presets are in the Presets tab, inside .prefs-card',
@@ -179,11 +199,11 @@ window.addEventListener('load', function () { (async function () {
     hitClick(rowNamed(hName).querySelector('.hv-en'), 'the Enable box');
     await answer(/Recompute/, 'Continue');
     await settle();
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     hitClick(track('one-col-btn'), 'Single Column Mode');
     await settle();
     await view('month');
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     hitClick(document.querySelector('label[for="mv-prod-label-week"]'), 'Label Production by: Week');
     await settle();
     hitClick(track('prep-pause-off'), 'Pause prep');
@@ -248,7 +268,7 @@ window.addEventListener('load', function () { (async function () {
     var u8 = undoOff(), s8 = statusText();
     await T.openSettings('region');
     await T.openSettings('presets');
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     await T.closeSettings();
     await T.sleep(800);
     out.w8 = {undoBefore: u8, undoAfter: undoOff(), statusBefore: s8, statusAfter: statusText()};
@@ -257,18 +277,18 @@ window.addEventListener('load', function () { (async function () {
 
     // ---- W9: the stale-switch trap ----------------------------------------------------------------------------
     // After the Load the engine wrote every switch; re-render the window and they must still say so.
-    await T.openSettings('prefs'); await T.openSettings('calendar'); await T.closeSettings(); await T.openSettings('calendar');
+    await T.openSettings('presets'); await T.openSettings('prefs'); await T.closeSettings(); await T.openSettings('prefs');
     var a9 = {onecol: el('one-col-btn').checked, pause: el('prep-pause-off').checked, mvEps: el('pref-mv-episodes').checked};
     // And after an undo: switch Single Column Mode off by a click, undo (the engine writes it back ON), re-render.
     await view('sheet');
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     hitClick(track('one-col-btn'), 'Single Column Mode');
     await settle();
     var offNow = el('one-col-btn').checked;
     el('undo-btn').click();
     await settle();
     var undone = el('one-col-btn').checked;
-    await T.openSettings('region'); await T.openSettings('calendar'); await T.closeSettings(); await T.openSettings('calendar');
+    await T.openSettings('region'); await T.openSettings('prefs'); await T.closeSettings(); await T.openSettings('prefs');
     out.w9 = {afterLoad: a9, clickedOff: offNow, undone: undone, afterRerender: el('one-col-btn').checked};
     add('W9', '⛔ After a Load and after an undo, re-rendering the window (tabs, close, open) leaves every switch showing the engine\'s value, never the one Mantine remembered',
       a9.onecol === true && a9.pause === true && a9.mvEps === false && offNow === false && undone === true && out.w9.afterRerender === true,
@@ -278,7 +298,7 @@ window.addEventListener('load', function () { (async function () {
     await T.closeSettings();
     var scroller = document.getElementById('sheet-scroll-container') || document.querySelector('#table-wrap .sheet-scroll');
     var p0 = rectOf(document.querySelector('.preview-panel')), g0 = scroller ? rectOf(scroller) : null;
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     var w10 = rectOf(win), a10 = rectOf(aside), p1 = rectOf(document.querySelector('.preview-panel')), g1 = scroller ? rectOf(scroller) : null;
     await T.closeSettings();
     // The Phases tab, so the sidebar has something to scroll (Show info is shorter than the window).
@@ -328,6 +348,40 @@ window.addEventListener('load', function () { (async function () {
     out.w12.resavedTab = resaved.sidebarTab;
     add('W12', 'A file saved with the old Settings tab up (sidebarTab "settings") opens on Show with the window closed, and saves back as Show',
       out.w12.tab === 'show' && out.w12.open === false && out.w12.place === 'us-new-york' && out.w12.resavedTab === 'show', out.w12, 'show, closed');
+
+    // ---- W13: the merged Preferences tab, by view ----------------------------------------------------------------
+    // What a user sees on the tab: the cards laid out (display:none hides the other view's), by heading, and which
+    // of the given ids sit in the one card with that heading.
+    function shown(e){ return !!e && e.getClientRects().length > 0; }
+    function prefsLooks(){
+      var panel = el('settings-tabs-panel-prefs');
+      var cards = [].filter.call(panel.querySelectorAll('section.card'), shown);
+      var heads = cards.map(function (c) { return (c.querySelector('h2') || c).textContent.trim(); });
+      var scope = [].filter.call(panel.querySelectorAll('.sw-scope'), shown).map(function (e) { return e.textContent.trim(); });
+      function holds(head, ids){
+        var c = cards.filter(function (c) { return (c.querySelector('h2') || c).textContent.trim() === head; });
+        return c.length === 1 && ids.every(function (id) { return c[0].contains(el(id)); });
+      }
+      return {heads: heads, scope: scope, wf: holds('Waterfall', WF_CARD), mv: holds('Month view', MV_CARD)};
+    }
+    await view('sheet');
+    await T.openSettings('prefs');
+    var l13s = prefsLooks(), gridShown = shown(el('pref-gridlines')), oneShown = shown(el('one-col-btn'));
+    await view('month');
+    await T.openSettings('prefs');
+    var l13m = prefsLooks();
+    // Which grey-text rows are offered depends on the label (the contextual rule); at least one always shows.
+    var mvRows = ['pref-mv-week', 'pref-mv-blocks', 'pref-mv-episodes'].filter(function (id) { return shown(el(id)); });
+    var l13mShown = {label: shown(el('mv-prod-label-week')), pause: shown(el('prep-pause-off')), days: shown(el('pref-mv-shootdays')), rows: mvRows};
+    await T.closeSettings();
+    out.w13 = {sheet: l13s, gridShown: gridShown, oneShown: oneShown, month: l13m, monthShown: l13mShown};
+    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines), Automatic notes, App and a line naming Grid Lines; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes, App and a line naming the grey-text switches',
+      eq(l13s.heads, ['Waterfall', 'Automatic notes', 'App']) && l13s.wf && gridShown && oneShown
+        && l13s.scope.length === 1 && /Grid Lines in Exports, which stays on this computer/.test(l13s.scope[0])
+        && eq(l13m.heads, ['Month view', 'Automatic notes', 'App']) && l13m.mv
+        && l13m.scope.length === 1 && /grey-text switches, which stay on this computer/.test(l13m.scope[0])
+        && l13mShown.label && l13mShown.pause && l13mShown.days && mvRows.length >= 1,
+      out.w13, 'one card per view, its own line');
   } catch (e) { out.EX = String(e && e.stack || e); add('EX', 'the leg ran to the end', false, out.EX, 'no exception'); }
   out.errors = (window.__ERR || []).slice(0, 10);
   add('E0', '0 console errors', out.errors.length === 0, out.errors, []);

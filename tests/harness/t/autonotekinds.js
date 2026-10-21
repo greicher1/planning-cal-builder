@@ -64,9 +64,10 @@ window.addEventListener('load', function () { (async function () {
   function boxes() { return KINDS.map(function (k) { var b = box(k); return b ? b.checked : null; }); }
   // ⛔ HIT-TESTED: the element on top at the box's centre must be the box, and THAT element gets the click.
   async function clickBox(kind) {
-    // The card lives in the Settings window's Calendar tab since ruling 12 merged (it was the sidebar's
-    // Settings tab): open it there so the box is laid out and on top.
-    await T.openSettings('calendar');
+    // The card lives in the Settings window's Preferences tab (its Calendar tab, merged into Preferences by
+    // the owner on 20 Oct 2026; the sidebar's Settings tab before ruling 12): open it there so the box is
+    // laid out and on top.
+    await T.openSettings('prefs');
     await T.sleep(150);
     var b = box(kind);
     if (!b) throw new Error('no Automatic notes box for ' + kind);
@@ -169,8 +170,8 @@ window.addEventListener('load', function () { (async function () {
       // The FORM CONTROLS collectFieldValues() would sweep. (The InfoHint's button carries a Mantine id; it is no
       // form control, as on every card.)
       var ids = sec ? Array.from(sec.querySelectorAll('input[id], select[id], textarea[id]')).map(function (e) { return e.id; }) : ['(no card)'];
-      kase('A1', 'the card: in the Settings window\'s Calendar tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
-           !!sec && T.settingsTabOf(sec) === 'calendar' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
+      kase('A1', 'the card: in the Settings window\'s Preferences tab, "Automatic notes", one ticked box per kind, and NO id on any control in it',
+           !!sec && T.settingsTabOf(sec) === 'prefs' && /Automatic notes/.test(txt(sec.querySelector('h2'))) &&
            same(labels, ['Writer’s Room Opens', 'Start Principal Photography', 'Principal Photography Wraps']) &&
            same(boxes(), [true, true, true]) && ids.length === 0 && !sec.closest('.prefs-card'),
            { labels: labels, boxes: boxes(), ids: ids });

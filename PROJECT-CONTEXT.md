@@ -1246,7 +1246,8 @@ static `admin.html` that authors holiday rules and exports a pack is the recomme
 saved calendars. Holiday data must never auto-update into an existing calendar.
 
 **Not yet done:** non-holiday settings (export options, defaults) — the owner asked to hold off on
-those. Since 20 Oct 2026 calendar-level settings go in the Settings window's Calendar tab.
+those. Since 20 Oct 2026 calendar-level settings go in the Settings window's Preferences tab (it had a
+separate Calendar tab until the owner merged the two, the same night).
 
 > **This section is no longer the live list.** [`HANDOFF.md`](HANDOFF.md) §2 is what has been asked
 > for and not yet delivered, and **§8 is the sequenced build order** across all of it — the docs

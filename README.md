@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-## Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
+### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
 to zoom in or out the viewport of either the waterfall cal or the month cal"*.
@@ -47,7 +47,7 @@ to zoom in or out the viewport of either the waterfall cal or the month cal"*.
   mixes on-screen and grid pixels; zoomed, a row drag would have saved the zoomed height into the workbook and the
   PDF. The percentage's tooltip says resizing works at 100%, and the handles come back, on their rows, at 100%.
 - **Fixed for zoom** (all non-frozen): the cell selection outline and its chip, the Swap column button and its
-  ghosts, the custom-heading popover's column pick, the day menu's "show in the waterfall" scroll, the month bars'
+  ghosts, the day menu's "show in the waterfall" scroll, the month bars'
   edge positions, the side boxes' width drag and drop line, and the app shell's grid fit (it now solves in the grid's
   own pixels). With side boxes showing, the preview's grid now keeps its rows at the top: a zoomed-out grid box used
   to push itself down by its own shortfall.
@@ -55,11 +55,83 @@ to zoom in or out the viewport of either the waterfall cal or the month cal"*.
   own pixels (`rect.width / currentCSSZoom`). Without it, a month render made while zoomed (paging to another month,
   any edit) sized note lanes for the zoomed width, and at 150–200% a long note lost its last line. It divides by 1 at
   100%, so no gate and no export can move.
-- **Verified:** the full gate with the frozen edit, 2,577 PASS / 0 FAIL (build `e0b19d78…`), the new `calzoom` leg's
-  22 checks among them (its M4, paging while zoomed, red before the edit); `npm run check` 40/40; by hand in the app's
-  browser,
-  no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
+- **Verified:** the full gate with the frozen edit, 2,577 PASS / 0 FAIL (build `e0b19d78…`), and again merged with
+  main at `c6a533e`, 2,585 PASS / 0 FAIL (build `3d798f33…`), the new `calzoom` leg's 22 checks among them (its M4, paging while zoomed, red before the edit); `npm run check` 40/40; by hand in the app's
+  browser, no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
   fixtures. Every byte-compared gate is untouched by construction: at 100% nothing is written at all.
+
+### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+
+Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
+tab. this should apply to both the waterfall and month view"*.
+- **Three tabs now: Preferences, Region, Presets.** The window opens on Preferences, which took the Calendar tab's
+  place and everything in it.
+- **One card per view.** In the waterfall, Preferences shows a single **Waterfall** card: Single Column Mode, Reuse
+  empty columns, Dates, Custom Column Headings and Grid Lines in Exports. In the month view, a single **Month view**
+  card: Label Production by, Pause prep on days marked Off, Number Production Days, Paste notes…, and the grey-text
+  Show switches. Automatic notes and Export App With Data show in both.
+- **What travels with a file is still said in one line.** Most of these settings are saved in the calendar; the tab
+  opens on a line that names the exception for the view you are in (Grid Lines in Exports, or the grey-text
+  switches), which stay on this computer as before.
+- **Nothing saved changed.** Every control keeps its id and its store, and `fields.byId` keeps the same ids in the
+  same order.
+- **Verified:** `settingswin` gains W0b (three tabs, no Calendar tab, opens on Preferences) and W13 (each
+  view shows its one card, with the right settings in it and the right opening line), 19/19. Eight legs that opened
+  the Calendar tab now open Preferences. The legs that drive the window or a preference, through the gate's own
+  checks, passed; the three that failed beside another session's gate (`hdrversion`, `hdrfile`, `pilllabel` on one
+  calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
+  gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
+
+### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+
+Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
+with the new settings tab"*). **Paste notes…** is now a row of Settings ▸ Preferences ▸ Month view (built in the
+Calendar tab's Month view card, which the entry above merged into Preferences), beside the month view's other
+calendar settings, and the month view's toolbar no longer carries it. It shows in the month view
+only, as before (the card is month-only), and opens the same box. Nothing saved changes.
+- **Code:** the button moved from `PreviewToolbar.jsx` to `CalendarMonthCard` in `Sidebar.jsx` (now `MonthViewCard`), with the same id, so
+  the engine's one delegated listener opens it unchanged.
+- **Verified:** `mvnotes` V1 now presses the button inside the Settings window, hit-tested at its centre, and holds that
+  no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
+  `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
+
+### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
+
+The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
+... you have to understand that if you change the notes collumn to something other than writing, it is THEN going
+to split the header row into 2. Why would that be intuitive? we need a better way"*. The old panel showed one box
+per column of a merged heading, and a heading split only when two of those boxes were typed differently. What a
+heading covered was a side effect of its text. Rebuilt on the owner's picker (*"Split/Merge buttons"*):
+- **One box edits the whole heading.** Typing never splits or joins anything. A heading typed to read the same
+  as the one beside it stays a separate heading.
+- **Three buttons change what a heading covers:** **Split** gives each column its own heading (each keeps the
+  text, ready to retype); **← Merge** and **Merge →** join it with the heading beside it, which takes this
+  heading's text. A button that cannot apply is greyed out (← Merge on a year's first heading, Split on a
+  one-column heading). Each saves the typed text too, as one undo step, and the panel opens again on the heading
+  it made. A line says how many columns the heading covers, and a ring marks the heading being edited, since
+  after a Split every piece reads the same.
+- **Reset** puts the heading's columns back to their original text (the year, or "Notes") and joins them to a
+  neighbour that reads the same. Enter saves, Esc cancels, a click outside saves, as before.
+- **Saved** as a new key, `headerRowSplits`: the columns that start a heading although they read the same as the
+  column before. It is written only when a split heading exists, so every other calendar saves byte for byte as
+  before. A v1.6.0 file has no key and merges same-text neighbours as it always did. An older build ignores the
+  key and merges them too. A file with no key never keeps the previous file's splits. A malformed value is dropped
+  on Load. New clears it.
+- **No frozen code changed.** The three writers already draw whatever `headerRowRuns()` returns. Only that helper
+  learned the key, so the screen, Excel and the PDF split and merge identically, and a calendar without the
+  switch on never reaches it.
+- **Verified:** `hdrrow` rewritten for the new panel and extended to 35 cases (S1–S5 are new: Split on screen, in
+  Excel and in the PDF; typing never merges; ← Merge and Merge → each one undo step; Reset; Load with the key,
+  without it (v1.6.0), and with junk). 35/35 on the build, twice. Five mutants each turn it red (splits ignored
+  when drawing, splits kept from the previous file, splits kept after New, typing merging, splits not saved).
+  `settingswin` 17/17 and `sharecopy2` pass. `npm run check` 40/40. Seen working in the browser on a real
+  calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). Full gate: 2,560
+  PASS, 0 FAIL, with 0 clipped cells and the waterfall PDF, every Excel part, the v1.0.0 restore and the 76
+  saved field ids identical to their baselines.
+- **Live since 21 Oct 2026, 03:06** (`38840c2`, pushed on the owner's picker; no version cut, so `APP_VERSION`
+  stays 1.6.0). The deployed `index.html` is byte-identical to the gated build (sha256 `8f963d1a…`). With no
+  service worker, an installed copy gets it the next time it is opened or reloaded; a window already open
+  shows no update notice.
 
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
