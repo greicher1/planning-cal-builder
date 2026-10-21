@@ -507,6 +507,100 @@ room only while the list has a custom holiday, so a list without one looks exact
   is hidden and every box is back at 135/181/226. The × still removes a holiday. `npm run check` 40/40;
   `regionlock` 14/14 (it removes custom holidays with the ×) and `wrapdate` (reads the list) pass on the build.
 
+### Unreleased — Month view: "Number Production Days" (19 Oct 2026)
+
+Owner: *"a setting that is off by default but can be turned on in settings that numbers the production days on the
+month view calendar"*, and *"it should add the numbers no matter if we are in episode mode/block mode or week mode"*.
+- **What it does.** Settings ▸ Preferences, in Month View, has a new **Number Production Days** switch, off by
+  default. With it on, every shoot day's square shows **"Day N"** at its top right, on the date's line, in the grey
+  of the bars' secondary text. This shows on screen and in both month PDFs.
+  - N is the shoot-day count the day menu already shows as "Shoot day N", so the two always agree.
+  - A half day is one numbered day and keeps its ½. A worked weekend or holiday is numbered. Off days, weekends,
+    holidays and hiatus days are not.
+  - The numbers and the switch are the same whatever Label Production by and Schedule by say.
+- **Saved with the calendar** (owner's ruling, against the per-user recommendation), like Label Production by.
+  Turning it on dirties the file and is one undo step. A new `captureSnapshot()` key, `mvNumberShootDays`, holds only
+  `true`; off is an absent key, so every calendar saved before this opens exactly as it did. `SNAPSHOT_VERSION` and
+  `fields.byId` are untouched (74 ids). An older build ignores the key.
+- **A frozen edit, owner-approved with its gate.** `renderMonthView` adds a `data-shoot-day` attribute to a shoot
+  day's existing cell, and a new `.mv-daycell[data-shoot-day]::after` rule draws it. Neither adds an element, a text
+  node or a lane, so no row can grow. With the setting off, nothing is emitted. The month-PDF writer reads the
+  attribute and draws the text where Chrome prints it.
+- **Verified:**
+  - New leg `shootdays`, 15/15 on each of three calendars. It holds every square of every month to the day menu,
+    proves each month byte-identical to the off view once the attribute is removed (every week as tall), and checks
+    Save, Load, Undo and restore. It also reads the written month PDF page by page.
+  - `monthemit` holds every "Day N" to Chrome's own print layout: within 0.028 px, baseline exact, Chrome's kerning
+    measured.
+  - `monthwriter`/`monthab.py` (P0–P5) and `monthexport` pass on the new fixtures `shootdays` and `shootdays-onhalf`.
+  - 10 of 11 mutants turn red; the eleventh is equivalent, and the reason is recorded.
+  - Contact sheets of the written PDF, off against on: only the "Day N" text differs, and months with no shoot day
+    are pixel-identical.
+  - With the setting off, a subset of `gate.sh` passed 674/0: gates 1–5, gate 10's ten print documents identical,
+    gate 13's twenty written month PDFs byte-identical, and the Preferences-card legs. The full gate has not run yet,
+    because disk space is short.
+  - `monthab.py` P4 now treats a "½" as its own token: pdftotext groups lines differently in the two files.
+  - Found, not this change's: `monthab.py` P5 fails on `offweek` with the setting off.
+
+### Unreleased — Drag a hiatus in the month view: move it by the week, or change its first or last week (19 Oct 2026)
+
+Owner, 19 Oct 2026, asking first whether hiatus periods could be dragged (they couldn't: their dates were typed in
+the sidebar only), then: *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase
+grips)"*. HIATUS-DRAG-PLAN.md has the plan, the rulings and the as-built record.
+- **Grab a hiatus band anywhere and drag it up or down to move it a week at a time.** A **start grip** sits on its
+  first week, and an **end grip** on its last, to lengthen or shorten it while the other end stays put. A row is a
+  week, so dropping anywhere in a row means that week, a Sunday included. A hiatus is never less than a week long.
+  Both kinds of hiatus work: all-phase, and a phase's own.
+- **The owner's four rulings:**
+  - **A hiatus locked in place can't be dragged.** Its band shows a not-allowed cursor and a tooltip saying to
+    untick *Lock in place*. ⚠️ Every all-phase hiatus starts locked, so on a new calendar the user unlocks one
+    first.
+  - **Production's half days, days off and worked days stay on their dates.**
+  - **Moving an all-phase hiatus asks "Move hiatus": Keep or Undo.** The question names the old and new weeks,
+    Production's new wrap, and any other phase whose end moved. A phase's own hiatus never asks. Undo, Escape mid-drag,
+    or a drag back to where it began leave nothing behind and add no undo step. Keep is one undo step.
+  - **The band's own look comes with it.** That means a colour set on the band, a label typed on the band, and its
+    text size. A lengthened hiatus copies its end week's look onto the added weeks.
+- **Limits:** a dragged all-phase hiatus stops short of overlapping another one (sitting next to it is fine). A
+  phase's own hiatus can't be dragged to where it would no longer pause its phase. A week shared by two overlapping
+  hiatuses offers no drag, because the app can't tell which one you mean. The drag reaches only the month on screen.
+- ⛔ **Nothing is saved while the question is open.** The move is already on screen, so the app holds the crash
+  backup, autosave, and the Cmd/Ctrl+S and Cmd/Ctrl+Z keys until you answer. Plain Cmd+S used to save, and Cmd+Z to
+  undo, underneath any dialog.
+- **No frozen code was edited, and the save format is unchanged** (no new key, no new id). A hiatus band carries no
+  identity in the frozen month view and lets clicks through. So the drag is body-level chrome laid over the band, and
+  each band is identified from its week and the schedule. When the band is ambiguous it gets nothing rather than a
+  guess. The print path hides the chrome, and a shareable copy strips it.
+- **Verified:**
+  - new leg `hiatusdrag.mjs` (H0–H12, trusted CDP input, in `gate.sh`) passes 13/13 on the synthetic
+    `hiatusdrag.sptcal`, after going red on three mutants;
+  - the backup hold checked in the app pane: the backup stayed on the old dates for 21 s with the question open, and
+    caught up one second after Keep;
+  - `npm run check` 40/40;
+  - the full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
+
+### Unreleased — ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog is open (19 Oct 2026)
+
+⇧⌘S, ⌘N and ⇧⌘E already did nothing while one of the app's dialogs (or the template header editor) was up. Plain ⌘S
+still clicked Save, and ⌘Z / ⇧⌘Z still ran the app's undo and redo underneath the question. Reproduced with real key
+presses, that did harm:
+- **⌘Z under "Remove hiatus?", then Remove: the hiatus was not removed.** Undo rebuilds the hiatus rows, and the
+  question's handler then removed a row that was no longer on the page.
+- **⌘Z under "Remove phase?", then Remove: a ghost row.** The phase left the calendar, but its row stayed in the
+  sidebar, where edits did nothing.
+- **⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change.** Save asked its own
+  question, and a second dialog answers the first as Cancel.
+- **⌘Z under the template header editor** put the header back in Auto with the editor still open.
+
+Now ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog or the template header editor is up. ⌘Z inside a text field, the header
+editor's included, is still the field's own undo, and with no dialog all three work as before.
+- **Verified:** a new harness leg, `dlgkeys`, 16 cases. It is red on the old engine (D1–D12) and green with the fix.
+  Three mutants each fail only the cases they should. `filekeys`, `cmdprint`, `nofsa` and `regionlock` are green, and
+  `npm run check` passes 40/40. In the app, with real keys, ⌘Z and ⌘S under "Remove hiatus?" did nothing, and Remove
+  then removed it. Full gate on build `13d1154f…` (1,510,349 bytes): **1,763 PASS, 0 FAIL, GATE PASSED** (17 min,
+  first run, after the other session's gate finished). That is the previous 1,747 plus the 16 new cases. Every frozen
+  output is identical to baseline, and `fields.byId` still holds 72 ids.
+
 ## v1.5.0 — the month view becomes an editor: the day menu, drags, half days, prep and off weeks (20 Oct 2026)
 
 Twenty-nine changes since v1.4.3, three weeks of them. All but the last three were already live before
@@ -597,41 +691,6 @@ takes a waterfall column like any phase), and give the setting to **custom phase
   off weeks, prep above Production): full gate on the merged build `2e2b0d65…`, **2,001 PASS, 0 FAIL**.
 
 ### A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
-### Unreleased — Month view: "Number Production Days" (19 Oct 2026)
-
-Owner: *"a setting that is off by default but can be turned on in settings that numbers the production days on the
-month view calendar"*, and *"it should add the numbers no matter if we are in episode mode/block mode or week mode"*.
-- **What it does.** Settings ▸ Preferences, in Month View, has a new **Number Production Days** switch, off by
-  default. With it on, every shoot day's square shows **"Day N"** at its top right, on the date's line, in the grey
-  of the bars' secondary text. This shows on screen and in both month PDFs.
-  - N is the shoot-day count the day menu already shows as "Shoot day N", so the two always agree.
-  - A half day is one numbered day and keeps its ½. A worked weekend or holiday is numbered. Off days, weekends,
-    holidays and hiatus days are not.
-  - The numbers and the switch are the same whatever Label Production by and Schedule by say.
-- **Saved with the calendar** (owner's ruling, against the per-user recommendation), like Label Production by.
-  Turning it on dirties the file and is one undo step. A new `captureSnapshot()` key, `mvNumberShootDays`, holds only
-  `true`; off is an absent key, so every calendar saved before this opens exactly as it did. `SNAPSHOT_VERSION` and
-  `fields.byId` are untouched (74 ids). An older build ignores the key.
-- **A frozen edit, owner-approved with its gate.** `renderMonthView` adds a `data-shoot-day` attribute to a shoot
-  day's existing cell, and a new `.mv-daycell[data-shoot-day]::after` rule draws it. Neither adds an element, a text
-  node or a lane, so no row can grow. With the setting off, nothing is emitted. The month-PDF writer reads the
-  attribute and draws the text where Chrome prints it.
-- **Verified:**
-  - New leg `shootdays`, 15/15 on each of three calendars. It holds every square of every month to the day menu,
-    proves each month byte-identical to the off view once the attribute is removed (every week as tall), and checks
-    Save, Load, Undo and restore. It also reads the written month PDF page by page.
-  - `monthemit` holds every "Day N" to Chrome's own print layout: within 0.028 px, baseline exact, Chrome's kerning
-    measured.
-  - `monthwriter`/`monthab.py` (P0–P5) and `monthexport` pass on the new fixtures `shootdays` and `shootdays-onhalf`.
-  - 10 of 11 mutants turn red; the eleventh is equivalent, and the reason is recorded.
-  - Contact sheets of the written PDF, off against on: only the "Day N" text differs, and months with no shoot day
-    are pixel-identical.
-  - With the setting off, a subset of `gate.sh` passed 674/0: gates 1–5, gate 10's ten print documents identical,
-    gate 13's twenty written month PDFs byte-identical, and the Preferences-card legs. The full gate has not run yet,
-    because disk space is short.
-  - `monthab.py` P4 now treats a "½" as its own token: pdftotext groups lines differently in the two files.
-  - Found, not this change's: `monthab.py` P5 fails on `offweek` with the setting off.
-
 ### Unreleased — A Production week with no shoot days reads as a Production hiatus (19 Oct 2026)
 
 Owner, asking whether days set to off should count as hiatus periods. Ruled the same day
@@ -976,64 +1035,6 @@ ruling 9b ("push") from 15 Oct 2026 for the grip at the end of an episode or blo
   with another session's server (HANDOFF).
 
 ### A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
-### Unreleased — ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog is open (19 Oct 2026)
-
-⇧⌘S, ⌘N and ⇧⌘E already did nothing while one of the app's dialogs (or the template header editor) was up. Plain ⌘S
-still clicked Save, and ⌘Z / ⇧⌘Z still ran the app's undo and redo underneath the question. Reproduced with real key
-presses, that did harm:
-- **⌘Z under "Remove hiatus?", then Remove: the hiatus was not removed.** Undo rebuilds the hiatus rows, and the
-  question's handler then removed a row that was no longer on the page.
-- **⌘Z under "Remove phase?", then Remove: a ghost row.** The phase left the calendar, but its row stayed in the
-  sidebar, where edits did nothing.
-- **⌘S under the Region's "Continue?", on a file changed on disk, dropped the Region change.** Save asked its own
-  question, and a second dialog answers the first as Cancel.
-- **⌘Z under the template header editor** put the header back in Auto with the editor still open.
-
-Now ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog or the template header editor is up. ⌘Z inside a text field, the header
-editor's included, is still the field's own undo, and with no dialog all three work as before.
-- **Verified:** a new harness leg, `dlgkeys`, 16 cases. It is red on the old engine (D1–D12) and green with the fix.
-  Three mutants each fail only the cases they should. `filekeys`, `cmdprint`, `nofsa` and `regionlock` are green, and
-  `npm run check` passes 40/40. In the app, with real keys, ⌘Z and ⌘S under "Remove hiatus?" did nothing, and Remove
-  then removed it. Full gate on build `13d1154f…` (1,510,349 bytes): **1,763 PASS, 0 FAIL, GATE PASSED** (17 min,
-  first run, after the other session's gate finished). That is the previous 1,747 plus the 16 new cases. Every frozen
-  output is identical to baseline, and `fields.byId` still holds 72 ids.
-### Unreleased — Drag a hiatus in the month view: move it by the week, or change its first or last week (19 Oct 2026)
-
-Owner, 19 Oct 2026, asking first whether hiatus periods could be dragged (they couldn't: their dates were typed in
-the sidebar only), then: *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase
-grips)"*. HIATUS-DRAG-PLAN.md has the plan, the rulings and the as-built record.
-- **Grab a hiatus band anywhere and drag it up or down to move it a week at a time.** A **start grip** sits on its
-  first week, and an **end grip** on its last, to lengthen or shorten it while the other end stays put. A row is a
-  week, so dropping anywhere in a row means that week, a Sunday included. A hiatus is never less than a week long.
-  Both kinds of hiatus work: all-phase, and a phase's own.
-- **The owner's four rulings:**
-  - **A hiatus locked in place can't be dragged.** Its band shows a not-allowed cursor and a tooltip saying to
-    untick *Lock in place*. ⚠️ Every all-phase hiatus starts locked, so on a new calendar the user unlocks one
-    first.
-  - **Production's half days, days off and worked days stay on their dates.**
-  - **Moving an all-phase hiatus asks "Move hiatus": Keep or Undo.** The question names the old and new weeks,
-    Production's new wrap, and any other phase whose end moved. A phase's own hiatus never asks. Undo, Escape mid-drag,
-    or a drag back to where it began leave nothing behind and add no undo step. Keep is one undo step.
-  - **The band's own look comes with it.** That means a colour set on the band, a label typed on the band, and its
-    text size. A lengthened hiatus copies its end week's look onto the added weeks.
-- **Limits:** a dragged all-phase hiatus stops short of overlapping another one (sitting next to it is fine). A
-  phase's own hiatus can't be dragged to where it would no longer pause its phase. A week shared by two overlapping
-  hiatuses offers no drag, because the app can't tell which one you mean. The drag reaches only the month on screen.
-- ⛔ **Nothing is saved while the question is open.** The move is already on screen, so the app holds the crash
-  backup, autosave, and the Cmd/Ctrl+S and Cmd/Ctrl+Z keys until you answer. Plain Cmd+S used to save, and Cmd+Z to
-  undo, underneath any dialog.
-- **No frozen code was edited, and the save format is unchanged** (no new key, no new id). A hiatus band carries no
-  identity in the frozen month view and lets clicks through. So the drag is body-level chrome laid over the band, and
-  each band is identified from its week and the schedule. When the band is ambiguous it gets nothing rather than a
-  guess. The print path hides the chrome, and a shareable copy strips it.
-- **Verified:**
-  - new leg `hiatusdrag.mjs` (H0–H12, trusted CDP input, in `gate.sh`) passes 13/13 on the synthetic
-    `hiatusdrag.sptcal`, after going red on three mutants;
-  - the backup hold checked in the app pane: the backup stayed on the old dates for 21 s with the question open, and
-    caught up one second after Keep;
-  - `npm run check` 40/40;
-  - the full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
-
 ### Unreleased — A phase's unit picker reads "By [Weeks ▾]", above the box it fills (16 Oct 2026)
 
 Owner: *"can there be a "By" where "Weeks" is currently written (above the 39) and then the "Weeks" is its own small
