@@ -633,7 +633,7 @@
   were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
   be re-homed into the window; `settingswin` W2 fails on any `data-tab="settings"` card.
 - ⏭ **Next:** the owner decides whether to merge into `main` (ask by picker). No push.
-### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS IN LOCAL `main` (`b266dbf`), NOT PUSHED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS LIVE IN v1.6.0 (`origin/main` `138d2e5`) ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
 - ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
   plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
@@ -693,8 +693,10 @@
     PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; `colreuse` 25/25.
   - ✅ **Landed in local `main` by fast-forward** on the owner's picker (*"Commit the HANDOFF gate note on
     column-reuse, then fast-forward local main to column-reuse. Don't push."*): `main` = `b266dbf`, the gated
-    build. **Not pushed.** ⚠️ Any branch gated against the earlier `main` (`ca55411`), such as another session's
-    `shoot-prefix`, now needs `main` merged in and a gate on the combined build before it lands or is pushed.
+    build. Not pushed from this session.
+  - ✅ **Shipped in v1.6.0.** The merge-all session cut v1.6.0 (`605101f`) on a `main` carrying this work, and pushed
+    it. Tag `v1.6.0` contains `91bef1d`; `origin/main` = `138d2e5` (v1.6.0's release gate, 2,553 PASS / 1 FAIL, the
+    `offweek` R10 load flake, green twice alone). Nothing further is pending for column reuse.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).
