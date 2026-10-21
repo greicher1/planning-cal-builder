@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,557 / 0, IN LOCAL `main`, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,563 / 0 WITH heading-merge AND PASTE NOTES, IN LOCAL `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for the merged Preferences tab.** Owner, 20 Oct 2026: *"Lets combine settings under preferences
   and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the waterfall and
@@ -55,7 +55,13 @@
 - ✅ **Merged into local `main`** on the owner's picker: *"After the full gate"*. By then local `main` had moved to
   `38840c2` (`heading-merge`, the column-heading editor, fast-forwarded in by its own session, so its entry below is
   IN `main` despite its title). `main` was merged into this branch (HANDOFF and README conflicted, both entries kept;
-  `legacy.css` merged clean), the combined build gated (below), and `main` fast-forwarded to the result. **NOT pushed**: the
+  `legacy.css` merged clean), the combined build gated (below), and `main` fast-forwarded to the result.
+  - That combined build (`c8668116…`, at `6d0567a`): **full gate 2,562 PASS, 0 FAIL** (04:35–04:59, alone). But `main`
+    had moved AGAIN, to `0e71b5a` (Paste notes, merged by its own session), so it was merged in too (next bullet).
+  - ✅ **The build that went into `main`: `951701f3…` (1,666,011 bytes) at `3b9c59b`**, this branch + heading-merge +
+    Paste notes. `npm run check` 40/40, `check-refs.py` CLEAN, `settingswin` 19/19, `mvnotes` 30/30 + 14/14, the
+    month view's window screenshotted with Paste notes in it. **Full gate 2,563 PASS, 0 FAIL** (05:27:01–05:51:54,
+    port 9281, alone). `main` fast-forwarded `0e71b5a` → this branch. **NOT pushed**: the
   push picker was answered *"No, not yet"*. ⏭ Next: a push picker, when the owner asks (a version cut is theirs).
 
 ### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; MERGED AND LIVE at `38840c2` (no version cut)

@@ -49,7 +49,7 @@ tab. this should apply to both the waterfall and month view"*.
   the Calendar tab now open Preferences. The legs that drive the window or a preference, through the gate's own
   checks, passed; the three that failed beside another session's gate (`hdrversion`, `hdrfile`, `pilllabel` on one
   calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
-  gate: 2,557 PASS, 0 FAIL.
+  gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
 
 ### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
 
