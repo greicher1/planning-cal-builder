@@ -153,8 +153,15 @@
     includes every other session's waiter, so it starved for over two hours. Match only a running gate,
     `pgrep -f "^/bin/zsh \./gate\.sh"`, with a 3 s poll and a 2–6 s pause. It got the slot within the hour.
 - **Committed on the owner's picker** (*"commit the column-reuse work to its branch once the full gate passes.
-  Don't merge or push."*). Not merged, not pushed. `main` has moved since this branch was cut (`670a591`), so it
-  needs `main` merged in and a gate on the combined build before it can land.
+  Don't merge or push."*) as `91bef1d`.
+- ✅ **Merged with `main` and gated.** On the owner's word (*"merge local main into the column-reuse branch, resolve
+  any conflicts, and run the full gate on the combined build. Don't merge into main or push."*):
+  - `main` (`ca55411`: bundles A and B, the prep pause switch) was merged in as `3cb8a9f`. The code auto-merged;
+    HANDOFF conflicted only because both sides added entries at the top, and every entry is kept, `main`'s first.
+  - **Full gate on the merged build `895f4b92…` (port 8985, 19:11:36–19:32:56, alone): 2,228 PASS, 0 FAIL, GATE
+    PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; `colreuse` 25/25.
+  - `main` is an ancestor of `column-reuse`, so landing it is a fast-forward. **Not merged into `main`, not pushed:**
+    both wait on the owner's own pickers.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).
