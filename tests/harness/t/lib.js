@@ -475,7 +475,9 @@ window.__T = (function(){
   }
   // ⭐ THE SETTINGS WINDOW (owner ruling 12, 20 Oct 2026) is what the sidebar's Settings TAB used to
   // be: Region and holidays, the preferences, the header presets, Export App With Data. Its tabs are
-  // 'calendar' | 'region' | 'presets' | 'prefs' (Mantine derives the tab ids from #settings-tabs). Every
+  // 'prefs' | 'region' | 'presets' (Mantine derives the tab ids from #settings-tabs). 'calendar' is still
+  // accepted and opens 'prefs': the Calendar tab was merged into Preferences (owner, 20 Oct 2026), and a
+  // leg written before that names it. Every
   // control in it is in the DOM whether or not it is open, so a leg that only SETS values by id needs
   // none of this; one that clicks, hit-tests or measures a control must open it first, on the right
   // tab, and wait out the 180 ms slide.
@@ -492,6 +494,7 @@ window.__T = (function(){
       if(!b) throw new Error('no .side-settings-btn');
       b.click();
     }
+    if(tab === 'calendar') tab = 'prefs';
     if(tab){
       var t = document.getElementById('settings-tabs-tab-' + tab);
       if(!t) throw new Error('no Settings tab ' + tab);
@@ -510,7 +513,7 @@ window.__T = (function(){
     var c = win.querySelector('.sw-close'); if(c) c.click();
     await until(function(){ return getComputedStyle(win).display === 'none'; }, 'the Settings window to close', 40, 50);
   }
-  // Which Settings tab holds an element ('calendar' | 'region' | 'presets' | 'prefs'), or null.
+  // Which Settings tab holds an element ('prefs' | 'region' | 'presets'), or null.
   function settingsTabOf(el){
     var p = el && el.closest && el.closest('#settings-window [role="tabpanel"]');
     var m = p && /-panel-(\w+)$/.exec(p.id);

@@ -95,7 +95,40 @@ window.addEventListener('load', function () { (async function () {
     return rec.files[0].bytes;
   }
   function overlay(){ return q('.paste-notes-overlay'); }
-  async function openPaste(){ var b = el('paste-notes-btn'); if(!b) return false; b.click(); await T.sleep(150); return !!overlay(); }
+  // Paste notes… lives in Settings ▸ Preferences ▸ Month view since 20 Oct 2026 (it was a toolbar button; it was
+  // built in the Calendar tab, which the owner merged into Preferences the same night). Open the window on its
+  // Preferences tab, press the button where a user can reach it (hit-tested at its centre), then close
+  // the window again if this opened it, so the cases after it see the sidebar as they always did.
+  async function settingsOpen(on){
+    var sw = el('settings-window'), isOpen = !!sw && sw.classList.contains('is-open');
+    if(isOpen !== on){ var sb = q('.side-settings-btn'); if(sb) sb.click(); await T.sleep(200); }
+    if(on){
+      var tab = qa('#settings-window [role="tab"]').find(function (t) { return /Preferences/.test(t.textContent); });
+      if(tab && tab.getAttribute('aria-selected') !== 'true'){ tab.click(); await T.sleep(200); }
+      // ⚠️ The window SLIDES in (a CSS transition from translateX(-100%)), and under run.sh's virtual clock the
+      // transition does not advance: measured, its button sat at x -131 for good. Finishing the transition jumps
+      // to where it ends for a user, so the hit test below sees the open window.
+      var sw2 = el('settings-window');
+      if(sw2 && sw2.getAnimations) sw2.getAnimations({subtree: true}).forEach(function (a) { try { a.finish(); } catch (e) {} });
+      await T.sleep(50);
+    }
+  }
+  // Is the button laid out (not inside a display:none card or a closed window)?
+  function pasteShown(){ var b = el('paste-notes-btn'); return !!b && b.getClientRects().length > 0; }
+  async function openPaste(){
+    var was = !!el('settings-window') && el('settings-window').classList.contains('is-open');
+    await settingsOpen(true);
+    var b = el('paste-notes-btn');
+    if(!b || !pasteShown() || !b.closest('#settings-window')){ if(!was) await settingsOpen(false); return false; }
+    b.scrollIntoView({block: 'center'}); await T.sleep(120);
+    var r = b.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    var ok = !!hit && (hit === b || b.contains(hit));
+    window.__pasteDiag = {open: el('settings-window').className, rect: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)],
+      hit: hit ? hit.tagName + '.' + String(hit.className).slice(0, 60) : null, vw: innerWidth, vh: innerHeight};
+    if(ok){ hit.click(); await T.sleep(150); }
+    if(!was) await settingsOpen(false);
+    return ok && !!overlay();
+  }
   async function typePaste(text){ var ta = q('.paste-notes-text'); if(!ta) return null; ta.value = text; ta.dispatchEvent(new Event('input', {bubbles: true})); await T.sleep(60); return pasteState(); }
   function pasteState(){
     var o = overlay(); if(!o) return null;
@@ -246,14 +279,18 @@ window.addEventListener('load', function () { (async function () {
 
       // ================= V: item 15, Paste notes… =================
       el('view-sheet-btn').click(); await settle();
-      var vSheet = !!el('paste-notes-btn');
+      await settingsOpen(true);
+      var vSheet = pasteShown();
+      await settingsOpen(false);
       el('view-month-btn').click(); await settle();
+      // In the MONTH view, where the old toolbar button used to render: no Paste notes… outside the Settings window.
+      var inToolbar = qa('#paste-notes-btn').some(function (b) { return !b.closest('#settings-window'); });
       await goTo('March 2026');
       var sig0 = T.formSignature();
       var v1 = await openPaste();
       var ids = overlay() ? qa('[id]', overlay()).length : -1;
-      add('V1', 'Paste notes… is in the toolbar in the month view only, opens its box, and nothing in the box carries an id (collectFieldValues cannot sweep it)',
-        !vSheet && v1 && ids === 0 && eq(T.formSignature(), sig0), {inWaterfall: vSheet, opened: v1, idsInBox: ids}, 'month only, no ids');
+      add('V1', 'Paste notes… is in Settings ▸ Preferences ▸ Month view (the owner moved it out of the toolbar, 20 Oct 2026), shown in the month view only, reachable there (hit-tested), opens its box, and nothing in the box carries an id (collectFieldValues cannot sweep it)',
+        !vSheet && !inToolbar && v1 && ids === 0 && eq(T.formSignature(), sig0), {inWaterfall: vSheet, inToolbar: inToolbar, opened: v1, idsInBox: ids, diag: window.__pasteDiag}, 'Settings, month only, no ids');
       var bad = await typePaste([
         '3/2/26, Table read, pale blue',
         '2026-03-03\tNetwork notes due\tpink',

@@ -48,6 +48,41 @@ should show just their name (name still editable) with their color but hide all 
   `settingswin`, `loadcarry`, `calrange`, `phasecolors`, `mvmenu (halfdays)`, `dlgkeys`, `labelsetup (halfdays)`,
   `colreuse` (both runs, through gate.sh's own judge), `phasenum`, `episodeprep` (both). `npm run check` 40/40.
 
+### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+
+Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
+tab. this should apply to both the waterfall and month view"*.
+- **Three tabs now: Preferences, Region, Presets.** The window opens on Preferences, which took the Calendar tab's
+  place and everything in it.
+- **One card per view.** In the waterfall, Preferences shows a single **Waterfall** card: Single Column Mode, Reuse
+  empty columns, Dates, Custom Column Headings and Grid Lines in Exports. In the month view, a single **Month view**
+  card: Label Production by, Pause prep on days marked Off, Number Production Days, Paste notes…, and the grey-text
+  Show switches. Automatic notes and Export App With Data show in both.
+- **What travels with a file is still said in one line.** Most of these settings are saved in the calendar; the tab
+  opens on a line that names the exception for the view you are in (Grid Lines in Exports, or the grey-text
+  switches), which stay on this computer as before.
+- **Nothing saved changed.** Every control keeps its id and its store, and `fields.byId` keeps the same ids in the
+  same order.
+- **Verified:** `settingswin` gains W0b (three tabs, no Calendar tab, opens on Preferences) and W13 (each
+  view shows its one card, with the right settings in it and the right opening line), 19/19. Eight legs that opened
+  the Calendar tab now open Preferences. The legs that drive the window or a preference, through the gate's own
+  checks, passed; the three that failed beside another session's gate (`hdrversion`, `hdrfile`, `pilllabel` on one
+  calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
+  gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
+
+### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+
+Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
+with the new settings tab"*). **Paste notes…** is now a row of Settings ▸ Preferences ▸ Month view (built in the
+Calendar tab's Month view card, which the entry above merged into Preferences), beside the month view's other
+calendar settings, and the month view's toolbar no longer carries it. It shows in the month view
+only, as before (the card is month-only), and opens the same box. Nothing saved changes.
+- **Code:** the button moved from `PreviewToolbar.jsx` to `CalendarMonthCard` in `Sidebar.jsx` (now `MonthViewCard`), with the same id, so
+  the engine's one delegated listener opens it unchanged.
+- **Verified:** `mvnotes` V1 now presses the button inside the Settings window, hit-tested at its centre, and holds that
+  no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
+  `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
+
 ### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
 
 The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
@@ -81,6 +116,10 @@ heading covered was a side effect of its text. Rebuilt on the owner's picker (*"
   calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). Full gate: 2,560
   PASS, 0 FAIL, with 0 clipped cells and the waterfall PDF, every Excel part, the v1.0.0 restore and the 76
   saved field ids identical to their baselines.
+- **Live since 21 Oct 2026, 03:06** (`38840c2`, pushed on the owner's picker; no version cut, so `APP_VERSION`
+  stays 1.6.0). The deployed `index.html` is byte-identical to the gated build (sha256 `8f963d1a…`). With no
+  service worker, an installed copy gets it the next time it is opened or reloaded; a window already open
+  shows no update notice.
 
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 

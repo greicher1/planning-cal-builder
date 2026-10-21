@@ -1040,7 +1040,7 @@ window.addEventListener('load', function () { (async function () {
     // ⭐ With the Settings window OPEN (owner ruling 12, 20 Oct 2026): it lies over the whole sidebar, so
     // revealSidebarTab() must close it or the row being shown is hidden behind it. Opening it is session
     // UI, no undo step, so P6u's single step is unchanged.
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
     var winOpen6 = document.getElementById('settings-window').classList.contains('is-open');
     a = await primeThenOpen('2026-11-04', 'bar:post');   // a title typed just before: the step must not fold it in
     choose('phase-show');
@@ -1406,7 +1406,7 @@ window.addEventListener('load', function () { (async function () {
     await toMonth('November 2026');                    // where S2 expects the calendar
 
     // ---- S2: a shareable copy exported with the menu open carries no menu ----
-    await T.openSettings('calendar');   // #share-copy-btn: the Settings window's Calendar tab (ruling 12)
+    await T.openSettings('prefs');   // #share-copy-btn: the Settings window's Preferences tab (ruling 12; Calendar until 20 Oct 2026)
     await T.until(function () { return !!document.getElementById('share-copy-btn'); }, 'the Export-App button', 80, 100);
     await T.sleep(900);
     await rclick('2026-11-04', 'num');

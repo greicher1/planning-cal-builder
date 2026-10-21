@@ -72,7 +72,7 @@ sheets shown, and any baseline re-cut signed off, before it is committed.
 
 ## 5. Item 15 — "Paste notes…"
 
-- A **Paste notes…** button in the preview toolbar, shown only in the month view. It opens a box with a textarea (no
+- A **Paste notes…** button in the preview toolbar, shown only in the month view. *(✅ MOVED 20 Oct 2026, owner: "put paste notes into settings": it is the last row of Settings ▸ Preferences ▸ Month view now (the Calendar tab it was built in merged into Preferences the same night), same id, same box.)* It opens a box with a textarea (no
   `id`, so `collectFieldValues` cannot sweep it), a live preview, and Add.
 - **One note per line:** `date, text, colour`. A tab-separated line (pasted from a spreadsheet) splits on tabs. A comma
   line splits on its first comma, and on its last comma only when what follows is a colour, so text may hold commas.

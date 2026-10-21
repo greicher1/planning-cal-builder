@@ -17,7 +17,7 @@
 // Every calendar is opened through the real Load path (T.openViaFakePicker) with viewMode 'month' and sidebarTab
 // 'settings' written into its JSON and any mvNumberShootDays removed, so the month view is on screen and the undo
 // stack starts EMPTY (no view or tab click banks a step of its own); openText then opens the Settings window on its
-// Calendar tab, where the switch lives. (A sidebarTab of 'settings' opens as Show since the window retired that tab.)
+// Preferences tab, where the switch lives (its Calendar tab until the owner merged the two, 20 Oct 2026). (A sidebarTab of 'settings' opens as Show since the window retired that tab.)
 //
 // CASES (each a check in out.checks; gate.sh prints them)
 //   A0  opened with no key: the switch is shown in Month View, unticked, inside .prefs-card and outside the
@@ -78,10 +78,10 @@ window.addEventListener('load', function () { (async function () {
     await settle('open ' + seq);
     await T.until(function () { return !!document.querySelector('#table-wrap .mv-daygrid'); }, 'month grid ' + seq, 200, 100);
     await settle('month ' + seq);
-    // The switch is in the Settings window's Calendar tab since ruling 12 merged (20 Oct 2026); it was the
+    // The switch is in the Settings window's Preferences tab (Calendar until merged into it, 20 Oct 2026); it was the
     // sidebar's Settings tab, which the JSON's sidebarTab 'settings' used to bring up and now opens as Show.
     // Opening the window is session UI, never an undo step (settingswin W8), so A0's empty stack holds.
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
   }
   async function saveNow(writes) {
     var save = $('save-file-btn'), n = writes.length;

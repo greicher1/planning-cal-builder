@@ -196,7 +196,7 @@ window.addEventListener('load', function () { (async function () {
   function pauseText(){ var l = [].find.call(document.querySelectorAll('label[for="prep-pause-off"]'), function (x) { return x.textContent.trim(); }); return l ? l.textContent.trim() : ''; }
   async function showPrepRow(){
     if(!document.querySelector('#table-wrap .mv-daygrid')) await view('month');
-    await T.openSettings('calendar');
+    await T.openSettings('prefs');
   }
   // ⛔ HIT-TESTED: the element on top at the centre of the switch's TRACK (the input itself is invisible) must
   // be the track's, and THAT element gets the click -- the label it sits in toggles the switch, as for a user.
