@@ -30,11 +30,13 @@
   red on a real change (`monthnotes`' file held against `notewrap`'s baseline: fills, text runs). `monthbase.py
   sheets` contact sheets of `reference`, `colswap-simpost-refuse` and `dayoverrides-onhalf`: the difference panel is
   red on pill outlines only; notes and hiatus bands are untouched; half-day shading intact under the ring.
-- ⏳ **Waiting on the owner's sign-off** to re-cut gate 13 (shown the December 2026 Sim Post page and July 2026's
-  half days). On a yes: copy the 19 files into the baseline directory (`reference` covers `rz`, `rw`), add a RE-CUT
-  entry to its README, then ONE full gate, which also proves the cut (gate 13 passes only if the gate's own exports
-  are these bytes). Gate 10 (the print path's DOCUMENT and sheet count) should not move. Then the merge picker and a
-  separate push picker.
+- ✅ **Gate 13 re-cut on the owner's sign-off** (*"Yes, update the gate 13 month PDF baselines to the outlined version,
+  then run the full gate."*, after seeing the December 2026 Sim Post page and July 2026's half days): all 19 files
+  copied and `cmp`-checked, the README's RE-CUT 21 Oct 2026 entry and its table rewritten (`d41f40d`). Build
+  `591820ac…` (1,684,726 bytes), rebuilt from the committed source to the same bytes before the copy.
+- ⏳ **The full gate is queued** (port 9353): a scratch wrapper waits until no other session's `gate.sh` is running
+  (zoom-compact's was, from 16:36), then runs it once. It also proves the cut. Gate 10 (the print path's DOCUMENT and
+  sheet count) should not move. Then the merge picker and a separate push picker.
 
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
