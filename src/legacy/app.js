@@ -24718,7 +24718,10 @@ export function initLegacyApp() {
     barsPadTop: 24, barsPadX: 3, barsPadBottom: 14, laneMin: 17, laneGap: 2,
     // .mv-bar{ 10px 600; padding:1px 8px; margin:0 1px; border:1px solid rgba(0,0,0,.18) }, and the
     // radius pills and hiatus bands share (.mv-pill, .mv-hiatus-bar: 9px)
-    bar: { size: 10, weight: '600', padY: 1, padX: 8, marginX: 1, border: 1, borderAlpha: 0.18, radius: 9 },
+    bar: { size: 10, weight: '600', padY: 1, padX: 8, marginX: 1, border: 1, borderAlpha: 0.18, radius: 9,
+           // .mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor }: a pill's ring in its
+           // own ink, 1 + 0.5 px (21 Oct 2026, SPAN-NOTES-PLAN.md §1 D1). A line weight, so kept at every k.
+           pillRim: 1.5 },
     // .mv-note-block{ font-weight:500; padding:2px 4px; border-radius:0 }; its 10 px and 13 px lines
     // are MVL_GEOMETRY's, the numbers the model wrapped it with
     note: { weight: '500', padY: 2, padX: 4 },
@@ -24752,7 +24755,7 @@ export function initLegacyApp() {
       barsPadTop: P.barsPadTop * k, barsPadBottom: P.barsPadBottom * k, barsPadX: P.barsPadX,
       laneMin: P.laneMin * k, laneGap: P.laneGap * k,
       bar: { size: B.size * k, weight: B.weight, padY: B.padY * k, padX: B.padX, marginX: B.marginX,
-             border: B.border, borderAlpha: B.borderAlpha, radius: B.radius * k },
+             border: B.border, borderAlpha: B.borderAlpha, radius: B.radius * k, pillRim: B.pillRim },
       note: { weight: P.note.weight, padY: P.note.padY * k, padX: P.note.padX,
               size: G.noteFontPx * k, lineH: G.noteLinePx * k },
       tag: { size: P.tag.size * k, weight: P.tag.weight, ink: P.tag.ink, gap: P.tag.gap },
@@ -25028,10 +25031,16 @@ export function initLegacyApp() {
       out.push(tag({ k: 'fill', x: s.x, y: s.y, w: s.w, h: s.h, r: 0, c: shade, role: 'bar-shade' }));
       out.push({ k: 'unclip' });
     });
-    // The 18% border lies over the fill, and in a rounded bottom corner over the shade too, so it is
+    // A pill's ring (a phase's, an episode's, Simultaneous Post's) is its own ink, 1.5 px: the 1 px border in
+    // currentColor plus the half-pixel inset shadow of the 21 Oct 2026 frozen CSS edit (SPAN-NOTES-PLAN.md §1 D1). The
+    // ink is opaque, so it covers the shade as it covers the fill, and there is nothing to mix or re-draw per slice.
+    // The padding box above stays B.border in, as the CSS border's width did not change.
+    const pillRim = (it.kind === 'pill' || it.kind === 'simpost');
+    // Anything else: the 18% border lies over the fill, and in a rounded bottom corner over the shade too, so it is
     // drawn once over the fill and again, clipped to each slice, over the shade.
-    out.push(clr(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' })));
-    slices.forEach(function(s){
+    out.push(clr(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: pillRim ? B.pillRim : B.border,
+                       c: pillRim ? ink : mvlMix(black, B.borderAlpha, fill), role: 'bar-ring' })));
+    if(!pillRim) slices.forEach(function(s){
       out.push({ k: 'clip', x: s.x, y: s.y, w: s.w, h: s.h, r: 0 });
       out.push(tag({ k: 'ring', x: x, y: y, w: w, h: h, r: r, t: B.border, c: mvlMix(black, B.borderAlpha, shade), role: 'bar-ring' }));
       out.push({ k: 'unclip' });

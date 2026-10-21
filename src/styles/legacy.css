@@ -1745,6 +1745,17 @@
   }
   /* Phases read as continuous rounded bars, the way a production wall calendar looks. */
   .mv-pill{ border-radius:9px; }
+  /* ---- FROZEN EDIT (owner-approved 21 Oct 2026 in chat, SPAN-NOTES-PLAN.md §1 D1: "go for the darker outline for
+     phases"): a phase reads as a phase because it is ringed in its own ink, which no note is. Every pill -- a phase's,
+     an episode's, Simultaneous Post's -- takes a 1.5 px ring in currentColor, the dark shade of its own hue the
+     renderer already writes as `color:` (PHASES[].textColor, PHASE_COLOR_OPTIONS[].text, SIMPOST_TEXT). Notes and
+     hiatus bands keep .mv-bar's 18% rim.
+     ⛔ LAYOUT-NEUTRAL BY CONSTRUCTION: the border stays .mv-bar's 1 px (only its colour changes) and the other half
+     pixel is an INSET box-shadow, which paints inside the padding edge and takes no space. Under box-sizing:border-box
+     a 1.5 px border would have shrunk every pill's content box by a pixel and cut more labels with "…", which is what
+     the freeze exists to stop. So the screen DOM, the print document and every line break are what they were; only
+     paint moves. The writer paints the same ring (mvlPaintBar, MVL_PAINT.bar.pillRim). */
+  .mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px currentColor; }
   /* ---- FROZEN EDIT (owner-approved 20 Oct 2026 by picker, MONTH-NOTES-PLAN.md §6: "Wrap to two lines"; ruling Q3
      "Any one-day piece"): a one-day piece of a CUSTOM phase whose label does not fit one line. renderMonthView
      gives it two lanes and this class (mvPillLanes), so it wraps where .mv-bar cuts, and a label that needs more

@@ -4,6 +4,26 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; BUILT, NOT GATED, NOT MERGED
+
+- ⏭ **RESUME HERE.** Owner, 21 Oct 2026, choosing between changing notes and changing phases (SPAN-NOTES-PLAN.md §1
+  D1, both mocked in chat): *"go for the darker outline for phases"*. README's Unreleased entry says what a user gets.
+- **How (a frozen edit, approved in that message):** `.mv-pill{ border-color:currentColor; box-shadow:inset 0 0 0 .5px
+  currentColor }` in the Month view CSS block, so every pill (phase, episode, Simultaneous Post) is ringed 1.5 px in
+  the ink the renderer already writes as its `color:`. Notes and hiatus bands keep `.mv-bar`'s 18% rim. ⛔ **Layout-
+  neutral on purpose:** under the global `box-sizing:border-box` a 1.5 px border would shrink every pill's content box
+  by a pixel and cut more labels; the inset shadow takes no space, so the DOM, the print document and every line
+  break are unchanged. The writer: `MVL_PAINT.bar.pillRim` (1.5, a line weight, kept at every shrink k) and
+  `mvlPaintBar` paints a pill's ring in its ink at that width, once (the ink is opaque, so the per-slice re-draw over a
+  half day's shade is skipped for pills). No `renderMonthView` change.
+- **Checked so far:** `npm run check` 40/40. The pane (port 9351, `episodeprep`, February 2027): computed border
+  `rgb(122, 98, 21)` = the pill's own `color`, shadow `inset 0 0 0 0.5px`, border width still 1px; a note's border
+  still `rgba(0, 0, 0, 0.18)`.
+- ⏳ **Next:** gate 13 will fail on every calendar with a pill (expected). Classify the change in every written PDF
+  (only ring ops may differ; every text run and position identical), show the owner `monthbase.py sheets` contact
+  sheets, re-cut gate 13 on their sign-off with a README entry in `tests/baselines/2026-10-05-monthwriter/`, then the
+  full gate, then the merge picker and a separate push picker. Gate 10 (the print path's DOCUMENT) should not move.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into

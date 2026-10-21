@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — phases ringed in their own darker colour in the month view (21 Oct 2026)
+
+The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
+chose to change the phases: *"go for the darker outline for phases"*.
+- **What you see:** every month-view phase bar, episode bar and Simultaneous Post bar has a 1.5 px outline in the dark
+  shade of its own colour (the colour its text is already in), on screen, in the month PDF and in the print fallback.
+  Notes and hiatus bands keep their faint edge, so a filled note can no longer pass for a phase, even a pale blue note
+  beside a pale blue phase.
+- **Nothing moves.** The border stays 1 px wide and only changes colour; the other half pixel is an inset shadow,
+  which takes no space. No bar changes size, no label is cut shorter, and no row grows. The waterfall, Excel and the
+  waterfall PDF are untouched.
+- ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
+  month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
+  so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
+- **Verified so far:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a
+  note. ⏳ The PDF comparison and the full gate are still to run.
+
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
