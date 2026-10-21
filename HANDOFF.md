@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (night): v1.6.0 CUT on `shoot-prefix` (local `main` fast-forwarded to `86ba4ef` first, on the owner's picker); RELEASE GATE QUEUED; NOT PUSHED
+
+- ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the
+  version, run the release gate on that build, tag it, then ONE push, verified live). Local `main` = `86ba4ef` (the
+  gated build `a53e5344…`), 60 commits ahead of `origin/main` (`3f4b5b1`). The main checkout's two unsaved fixture
+  files (`stintswap-reshape.sptcal`, the untracked `Reshape Fixture 2026-09-29.sptcal`) were left alone.
+- **The cut** (CLAUDE.md's steps, as v1.5.0's): `APP_VERSION` (`src/legacy/app.js`), `version.json` and
+  `package.json` = 1.6.0 together (root `index.html` untouched, `package-lock.json` untouched as at every cut);
+  README `## v1.6.0 — …` over the 26 entries since v1.5.0 (13 already live), which drop "Unreleased —";
+  `releases/v1.6.0.html` byte-identical to `dist` (sha256 `7a64413c20319341…`, 1,663,652 bytes);
+  `tests/fixtures/v1.6.0-saved.sptcal`, a real Save (`t/mintfixture.js`): 43 keys (v1.5.0's set), 76 ids (v1.5.0's 74
+  plus `cal-range-start` / `cal-range-end`, none removed), version 1, 0 clipped.
+- **Proof so far:** the cut build differs from the gated build `a53e5344…` (rebuilt from `86ba4ef` to the same hash)
+  in exactly 43 bytes, in two places: the CSP hash of the script and the version literal. `npm run check` 40/40.
+- ⏳ **Release gate on the cut build: queued.** Then the tag `v1.6.0` on the cut commit, `main` fast-forwarded to it,
+  ONE `git push origin main v1.6.0`, and the live `index.html` and `version.json` checked against `releases/v1.6.0.html`.
+
 ### 🔨 20 Oct 2026 (evening): "SHOOT" BEFORE EPISODE BARS, AN EDITABLE PREFIX PER EPISODE OR BLOCK, AND "wk N" ON BOTH NUMBER WEEKS BOXES — branch `shoot-prefix` (worktree `.claude/worktrees/shoot-prefix`), ON TOP OF `merge-all`; BASELINES RE-CUT ON SIGN-OFF; FINAL GATE QUEUED; NOT IN `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for the merge into `main`.** `shoot-prefix` = `merge-all` + the prefix + the two Number weeks boxes on

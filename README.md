@@ -29,7 +29,17 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — "Shoot" before every episode's month bar, and a prefix of your own per episode or block (20 Oct 2026)
+## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
+
+Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep
+switch, the five month-view note features of bundle A, the six label and setup changes of bundle B, and the custom
+holidays' checkbox alignment); this version is how installed copies hear about them, since `version.json` moves with
+`APP_VERSION`. New with this push: the "Shoot" bar prefix, Number Production Days, dragging a hiatus in the month
+view, Reuse empty columns, the calendar range, the waterfall's header row and date format, side boxes, a phase
+hiatus's Number weeks, five stronger colours, Automatic notes, the Settings window, and the dialog shortcuts.
+Both Number weeks boxes now read "<name> wk N" (the all-phase one was live as "Hiatus Week 1").
+
+### "Shoot" before every episode's month bar, and a prefix of your own per episode or block (20 Oct 2026)
 
 The owner asked on 16 Oct for "Shoot" before "Ep. 101" in the month view. That was built then on a branch that
 never merged, and today it was asked again, *"so long as you can remove it and rename it to something else entirely
@@ -55,7 +65,7 @@ step, Save, blank, Reset, Escape, Load and the old-file trap, bad values, the We
 `labelsetup` and `mvmenu` updated for the new text and item. Gates 10 and 13 change for every Episodes calendar and
 need the owner's re-cut sign-off.
 
-### Unreleased — Today's branches merged; the new settings find their place in the Settings window (20 Oct 2026)
+### Today's branches merged; the new settings find their place in the Settings window (20 Oct 2026)
 
 The owner asked for everything built on 20 Oct, and the finished features left on older branches, to be merged. Ten
 branches came together on `merge-all` (HANDOFF has the list and the order). Merging them is not a feature, but one
@@ -73,7 +83,7 @@ picker). Verified: `npm run check` 40/40, and the legs the merge touched green o
 autonotekinds, hdrrow, calrange, shootdays on three calendars, hiatusdrag, mvnotes, mvmenu, colreuse); the combined
 full gate is queued.
 
-### Unreleased — Five stronger phase colours (owner ruling 5, 20 Oct 2026)
+### Five stronger phase colours (owner ruling 5, 20 Oct 2026)
 
 The phase colour picker offered nine pastels. A reference calendar used stronger colours, and the owner ruled for five
 more, appended, with no free colour picker. Two candidate sets were rendered in the waterfall and the month view for
@@ -92,7 +102,7 @@ the owner, who chose the stronger one by picker.
   PDFs and the month view, read back from the files; both index stores through Save, New and Load; the default
   rotation. Red on the pre-change build (8 of 10), green after.
 
-### Unreleased — Automatic notes: choose which kinds of automatic note a calendar shows (owner ruling 9, 20 Oct 2026)
+### Automatic notes: choose which kinds of automatic note a calendar shows (owner ruling 9, 20 Oct 2026)
 
 The calendar writes three kinds of note for you: **Writer's Room Opens**, **Start Principal Photography** and
 **Principal Photography Wraps**. A reference calendar the owner shared carried only some of them, and there was no
@@ -117,7 +127,7 @@ kinds show.
   byte-identical file once every kind is back on; Shift All, Load, the older-file trap, New). Red on the build before
   it (13 of 16), green after.
 
-### Unreleased — "Number weeks" on a phase's own hiatus (owner ruling 8, 20 Oct 2026)
+### "Number weeks" on a phase's own hiatus (owner ruling 8, 20 Oct 2026)
 
 A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
 for a **Number weeks** box on each phase's hiatus, off by default, after a reference calendar numbered its hiatus weeks.
@@ -143,7 +153,7 @@ for a **Number weeks** box on each phase's hiatus, off by default, after a refer
   one undo step; the save key with the id set unchanged; unticking gives a saved file byte-identical to the one
   before the tick; Load, the older-file trap, New, Shift All, the retyped band). Red on the pre-change build (15 of
   17), green after.
-### Unreleased — Calendar range: choose where the waterfall starts and ends (20 Oct 2026)
+### Calendar range: choose where the waterfall starts and ends (20 Oct 2026)
 
 Owner ruling 3 (20 Oct 2026): the waterfall always padded to full calendar years, January of the first year to
 December of the last, and a reference calendar the owner wanted to match started on its first working week. The
@@ -180,7 +190,7 @@ owner asked for a start/end override instead of a change to the year split. Aske
   and the M-5 trap, the shareable copy, New. Red on the pre-change build; eleven mutants each turn their own cases
   red. `npm run check` 40/40.
 
-### Unreleased — The waterfall's header text and dates: Header: Off, a 1/6/2025 date format, custom column headings (20 Oct 2026)
+### The waterfall's header text and dates: Header: Off, a 1/6/2025 date format, custom column headings (20 Oct 2026)
 
 Owner rulings 2, 4 and 10 of 20 Oct 2026, from comparing a reference waterfall with the app: every phase and
 week count could be rebuilt, but not the layout. All three change frozen code (the waterfall renderer, the
@@ -218,7 +228,7 @@ calendar shows, saves and exports exactly as before.
   the pre-change build (`7054bec6`), and each of eight mutants turns it red. The PDFs were rendered and
   looked at. The custom workbook passes `check-xlsx.sh`. `npm run check` 40/40; `check-refs.py` clean.
   Full gate: see `HANDOFF.md` (top entry).
-### Unreleased — Boxes beside the waterfall: a colour key and text boxes, on screen and in Excel and the PDF (20 Oct 2026)
+### Boxes beside the waterfall: a colour key and text boxes, on screen and in Excel and the PDF (20 Oct 2026)
 
 The owner rebuilt a reference waterfall in the app: every phase, label and week count matched, but the reference also
 prints a colour key and free-text notes beside the grid, and the app could not. Owner ruling 7 (20 Oct 2026) asked
@@ -249,7 +259,7 @@ recommended, with sign-off for six frozen edits to the two writers.
   gesture through the hit stack, the month view's `#table-wrap` width equal with and without boxes, deleting the
   last box giving back the identical PDF page, a hostile file, New. Red on the pre-change build; three mutants each
   red. Full gate: see HANDOFF.
-### Unreleased — A Settings window over the sidebar, with Calendar, Region, Presets and Preferences tabs (20 Oct 2026)
+### A Settings window over the sidebar, with Calendar, Region, Presets and Preferences tabs (20 Oct 2026)
 
 Owner ruling 12: *"a tabbed panel that slides in beside the grid and leaves the waterfall visible"*, holding what
 the sidebar's Settings tab held plus the new calendar settings, with tabs that separate what is saved in the
@@ -279,7 +289,7 @@ names"*, *"Keep by view"*, Single Column Mode, Label Production by and Pause pre
   neither the preview nor the grid box; focus, `inert`, Escape; an old file's `sidebarTab: 'settings'`. Ten legs
   that drove the Settings tab now drive the window (`mvmenu` P6w: Show in Phases card closes it). Eight mutants,
   each red on its own case. Gated with every other 20 Oct branch: the final combined gate passed 2,554 of 2,555 checks, `settingswin` 17/17, the one failure a timing flake that passed three times alone.
-### Unreleased — "Reuse empty columns": a phase can take over the column of one that just finished (20 Oct 2026)
+### "Reuse empty columns": a phase can take over the column of one that just finished (20 Oct 2026)
 
 The owner shared a reference waterfall that keeps two or three steady columns across several years. The app could
 build every phase and week count of it, but not its layout. A phase that starts while another runs always went to
@@ -307,7 +317,7 @@ understand. This goes for everything."*
   real clicks on Reset and on the knob moved the phase, 0 console errors. Full gate: 2,087 PASS, 0 FAIL, with
   the waterfall PDF, every Excel part, the 74 saved ids and every month PDF identical to their baselines.
 
-### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
+### "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 
 On 19 Oct the owner asked whether Episodic and Block Prep go into days marked Off (*"they really shouldnt do that"*),
 and ruled *"Skip it, start earlier"* and, for Production's own hiatus, *"Yes, skip it too"*. That was built on a
@@ -333,7 +343,7 @@ default: don't skip"*, *"Prep card, saved"*, and for Production's own hiatus *"F
   box: in the row, unticked, no id, hit-testable, one undo) and the M-5 trap in RESTORE. Ten mutants each turn
   their own cases red. Full gate on the build: 2,062 PASS, 0 FAIL, with the waterfall PDF, every Excel part, 74
   ids and every month print document and written month PDF identical to their baselines.
-### Unreleased — A hiatus band can be recoloured and numbered from the month view (20 Oct 2026)
+### A hiatus band can be recoloured and numbered from the month view (20 Oct 2026)
 
 Owner: *"Recolour from day menu"* and *"Number the weeks"* (LABELS-SETUP-PLAN.md item 9). The day menu's hiatus
 section gains two items:
@@ -348,7 +358,7 @@ section gains two items:
 - **Verified:** `labelsetup` C0–C4 (both weeks recoloured in both views, one undo each with a title typed just
   before kept, the box round-tripped through Save and Load); `mvmenu` V1/V9 expect the two items.
 
-### Unreleased — France joins the Location list (20 Oct 2026)
+### France joins the Location list (20 Oct 2026)
 
 Owner: *"Film agreement's list"*, *"France only"*, then *"France, 11 days"* on seeing the list and its sources
 (LABELS-SETUP-PLAN.md item 8). Location ▸ Europe ▸ **France** uses the film agreement's eleven paid holidays for
@@ -363,7 +373,7 @@ that TV productions under the audiovisual agreement work Whit Monday.
   Save); `regioncaveat` A11. ⚠️ Légifrance refused automated reads, so the agreement was read in its official
   bulletin text (a copy) and checked against two consolidations; the generator records which.
 
-### Unreleased — The month header takes sizes 10, 11 and 12, and offers a fixed date (20 Oct 2026)
+### The month header takes sizes 10, 11 and 12, and offers a fixed date (20 Oct 2026)
 
 Owner: *"10"* (LABELS-SETUP-PLAN.md item 7). The month header's size list now starts at 10 (it started at 14), and
 the token list offers `{date:<today>}`, a date that never updates, and the snippet `Revised as of {date:<today>}`.
@@ -373,7 +383,7 @@ The token already worked; nothing offered it.
   150 dpi and its text is the same; the owner signed off the A/B and the baseline was re-cut. The other nine gate-10
   documents are identical.
 
-### Unreleased — A shoot can start on the weekend just before its first day (20 Oct 2026)
+### A shoot can start on the weekend just before its first day (20 Oct 2026)
 
 Owner: *"The weekend just before"* (LABELS-SETUP-PLAN.md item 5). In the month view, the Saturday and Sunday
 immediately before the first shoot day now offer **Work this day**. Marked, that day becomes shoot day 1, so the
@@ -389,7 +399,7 @@ and later weeks number one higher (the owner: *"Yes, build it so"*).
 - **Verified:** `labelsetup` L0–L7 (6.27.26 / 8.31.26 from Saturday; 8.28.26 with both days; Start Production here on
   13 Jul carries both to 11–12 Jul). `mvmenu` L3 changed deliberately (28 Jun now has a shoot-day section).
 
-### Unreleased — Blocks mode needs no episode count (20 Oct 2026)
+### Blocks mode needs no episode count (20 Oct 2026)
 
 Owner: *"Optional; old files keep dates"* (LABELS-SETUP-PLAN.md item 4). A Blocks calendar now schedules Production
 from its block days with no Number of Episodes, which reads "(optional)" in Blocks mode. With no count, the blocks
@@ -403,7 +413,7 @@ are labelled by name alone.
   it opens unscheduled, stays so after a title edit, schedules 48 days after Days per Block 15 → 16, and one undo
   puts the old rule back. BLOCKS-PLAN §3 records the new ruling.
 
-### Unreleased — "Ep." only before episode numbers (20 Oct 2026)
+### "Ep." only before episode numbers (20 Oct 2026)
 
 Owner: *"'Ep.' only before numbers"* (LABELS-SETUP-PLAN.md item 3; *"Never add Ep."* declined, because it would
 re-cut every month baseline). An episode renamed "Pilot" read "Ep. Pilot" on its month bar and in the grey text. It
@@ -412,7 +422,7 @@ Lists of numbered episodes read exactly as before.
 - **Verified:** `labelsetup` E1–E3 (bars, the day menu's header, Week mode's lists, a Blocks list). No fixture that
   renders labels has a renamed episode (surveyed), and gates 10 and 13 hold every numbered calendar byte-identical.
 
-### Unreleased — Month view: one-day custom-phase pills wrap to two lines (20 Oct 2026)
+### Month view: one-day custom-phase pills wrap to two lines (20 Oct 2026)
 
 A one-day custom phase (a table read, a scout) shows its name as a one-day pill, and a long name was cut to a few
 letters and "…". Owner, by picker: *"Wrap to two lines"*, for *"Any one-day piece"* of a custom phase (MONTH-NOTES-PLAN
@@ -429,7 +439,7 @@ Every other bar, and a one-day custom pill whose name fits, is unchanged.
   writer draws to Chrome's print layout (16/16), and `monthwriter`'s A/B finds the same text on all 17 pages of the
   writer's file and the print path's.
 
-### Unreleased — Month view: Paste notes… (20 Oct 2026)
+### Month view: Paste notes… (20 Oct 2026)
 
 Owner, by picker: *"'Paste notes…' box"*. A **Paste notes…** button in the month view's toolbar opens a box that takes
 many month-view notes at once, one per line as `date, text, colour` (MONTH-NOTES-PLAN §5).
@@ -444,7 +454,7 @@ many month-view notes at once, one per line as `date, text, colour` (MONTH-NOTES
   colour form read right, commas kept, lane null, appended after a day's own note; one undo removes all nine and one
   redo restores them; Escape and an outside press add nothing).
 
-### Unreleased — Month view: notes on every hiatus day (20 Oct 2026)
+### Month view: notes on every hiatus day (20 Oct 2026)
 
 A day inside an all-phase hiatus had no "+" to add a note on, and the day menu's Add note was greyed there ("A hiatus
 day has no note lanes"). Owner, by picker: *"Every hiatus day"*. Now the band's weekdays and the hiatus week's weekend
@@ -458,7 +468,7 @@ take notes like any day, on the lines below the band (MONTH-NOTES-PLAN §4).
 - **Verified:** `mvnotes` H1–H2 (a "+" on all seven days of the 12/21/26 hiatus week; one is hit-testable at its centre,
   and a note typed there is drawn on 12/23 below the band).
 
-### Unreleased — Month view: one month each side, and your own holidays wherever it shows them (20 Oct 2026)
+### Month view: one month each side, and your own holidays wherever it shows them (20 Oct 2026)
 
 Owner, by picker: *"One month each side"*, and for the PDFs *"Only if they hold something"* (MONTH-NOTES-PLAN §3). The
 month view now pages to the month before the first phase month and the month after the last, where notes can be
@@ -477,7 +487,7 @@ union holidays keep today's rule, inside a phase only. The waterfall, Excel and 
   the waterfall shows no month-only holiday even when it is ticked for it). `carry-rich` and `stintswap-reshape`, the
   gate-13 calendars with custom phases and holidays, are byte-identical to their baselines.
 
-### Unreleased — Month view note editor: No fill, light tints, greys, and the colour you last used (20 Oct 2026)
+### Month view note editor: No fill, light tints, greys, and the colour you last used (20 Oct 2026)
 
 Owner, by picker, all four: *"Remember last colour"*, *"'No fill' plain text"*, *"Light tints"* (pink, lavender, peach,
 pale blue), *"Greys"* (light, mid, dark) (MONTH-NOTES-PLAN §2). A day note's editor now shows two rows of swatches: the
@@ -494,7 +504,7 @@ colour.
   waterfall note's ten; the saved file keeps `#FFFFFF00` and carries no preference; restored, it still draws without a
   box).
 
-### Unreleased — Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
+### Custom holidays' checkboxes line up with the column headers (20 Oct 2026)
 
 In Settings ▸ Holidays, a custom holiday's Enable, W'fall note and Month note boxes sat 22 px left of
 the headers and of the built-in holidays' boxes, so they looked like the wrong column (owner screenshot).
@@ -509,7 +519,7 @@ room only while the list has a custom holiday, so a list without one looks exact
   is hidden and every box is back at 135/181/226. The × still removes a holiday. `npm run check` 40/40;
   `regionlock` 14/14 (it removes custom holidays with the ×) and `wrapdate` (reads the list) pass on the build.
 
-### Unreleased — Month view: "Number Production Days" (19 Oct 2026)
+### Month view: "Number Production Days" (19 Oct 2026)
 
 Owner: *"a setting that is off by default but can be turned on in settings that numbers the production days on the
 month view calendar"*, and *"it should add the numbers no matter if we are in episode mode/block mode or week mode"*.
@@ -544,7 +554,7 @@ month view calendar"*, and *"it should add the numbers no matter if we are in ep
   - `monthab.py` P4 now treats a "½" as its own token: pdftotext groups lines differently in the two files.
   - Found, not this change's: `monthab.py` P5 fails on `offweek` with the setting off.
 
-### Unreleased — Drag a hiatus in the month view: move it by the week, or change its first or last week (19 Oct 2026)
+### Drag a hiatus in the month view: move it by the week, or change its first or last week (19 Oct 2026)
 
 Owner, 19 Oct 2026, asking first whether hiatus periods could be dragged (they couldn't: their dates were typed in
 the sidebar only), then: *"plan month-view hiatus drag grips (whole-week move and edges, same pattern as the phase
@@ -581,7 +591,7 @@ grips)"*. HIATUS-DRAG-PLAN.md has the plan, the rulings and the as-built record.
   - `npm run check` 40/40;
   - the full gate on build `3d54c122…` (`dist/index.html`): **1,758 PASS, 2 FAIL** (18 min, 19 Oct 2026, overlapping another session's gate). The 2 FAILs were `loadfail` R and AS, which run on a fast-forwarded clock and touch no hiatus-drag path (`persistHold` is 0 unless a drag is live). Re-run alone on the same build, `loadfail` passed **6/6**, R and AS included. Every frozen output is identical: the waterfall PDF, the Excel parts, the grid signature, `fields.byId` (72 ids), gate 10's print document, and gate 13's twenty written month PDFs (byte-identical). `hiatusdrag` passed 13/13 inside the gate.
 
-### Unreleased — ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog is open (19 Oct 2026)
+### ⌘S, ⌘Z and ⇧⌘Z do nothing while a dialog is open (19 Oct 2026)
 
 ⇧⌘S, ⌘N and ⇧⌘E already did nothing while one of the app's dialogs (or the template header editor) was up. Plain ⌘S
 still clicked Save, and ⌘Z / ⇧⌘Z still ran the app's undo and redo underneath the question. Reproduced with real key
