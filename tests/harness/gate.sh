@@ -1664,6 +1664,11 @@ done
 # their old order and nothing else from it; each moved calendar setting saves, resets on New and restores on Load;
 # opening it is no undo step; a re-render never puts a Mantine Switch's stale state over the engine's (W9); it covers
 # the sidebar and moves neither the preview nor the grid box; and an old file's sidebarTab 'settings' opens on Show.
+# phasefold guards the caret on every phase card (owner, 20 Oct 2026): a hit-tested click folds a card to its colour
+# bar and name line, the name still editable; the fold is session UI (the calendar is not marked changed, the grid is
+# unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
+# folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
+# Its own line, mid-list, so sessions appending at the end never conflict with it.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1679,6 +1684,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
+              phasefold:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \

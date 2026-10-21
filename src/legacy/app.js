@@ -5985,6 +5985,51 @@ export function initLegacyApp() {
   }, true);
 
   // ---------- UI: phase rows ----------
+  // ⭐ THE CARET ON EVERY PHASE CARD (owner, 20 Oct 2026): "a carrot that lets you hide and unhide
+  // phases within the phases menu. When you hide them it should show just their name (name still
+  // editable) with their color but hide all the settings underneath". A sidebar fold, nothing more:
+  // the phase still schedules and prints exactly as before.
+  //   - ⛔ NOT STATE. Which cards are folded is session UI, like the sidebar's scroll position: it is
+  //     never in captureSnapshot(), so it cannot travel in a file and a click never banks an undo
+  //     step. The caret is a <button> with NO id, so collectFieldValues() never sees it either.
+  //   - Keyed by phase key, read off the card's #swatch-<key> (built-in rows carry no data-key), so
+  //     it survives undo and redo, which REBUILD every custom row (applyStateSnapshot) and re-key it:
+  //     refreshAfterRestore() puts the folds back. A Load, a recovery or New is a different calendar
+  //     and clears them, beside their monthCursorRecheck.
+  //   - Folding is pure CSS off .is-collapsed (legacy.css, "Phase card caret"): every child but the
+  //     colour bar and the name line hides. Hidden, never cleared, so nothing reads a different value.
+  const collapsedPhaseKeys = new Set();
+  const PHASE_COLLAPSE_BTN = '<button type="button" class="phase-collapse-btn" aria-expanded="true" title="Hide this phase’s settings" aria-label="Hide this phase’s settings"></button>';
+  function phaseRowKey(row){
+    const sw = row && row.querySelector(':scope > .swatch');
+    return (sw && sw.id.startsWith('swatch-')) ? sw.id.slice(7) : null;
+  }
+  function reflectPhaseCollapse(){
+    document.querySelectorAll('#phase-rows > .phase-row, #custom-phase-rows > .phase-row').forEach(row=>{
+      const on = collapsedPhaseKeys.has(phaseRowKey(row));
+      if(row.classList.contains('is-collapsed') !== on) row.classList.toggle('is-collapsed', on);
+      const btn = row.querySelector('.phase-collapse-btn');
+      const want = on ? 'false' : 'true';
+      if(btn && btn.getAttribute('aria-expanded') !== want){
+        const tip = on ? 'Show this phase’s settings' : 'Hide this phase’s settings';
+        btn.setAttribute('aria-expanded', want);
+        btn.title = tip;
+        btn.setAttribute('aria-label', tip);
+      }
+    });
+  }
+  function setPhaseCollapsed(key, on){
+    if(!key) return;
+    if(on) collapsedPhaseKeys.add(key); else collapsedPhaseKeys.delete(key);
+    reflectPhaseCollapse();
+  }
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest && e.target.closest('.phase-collapse-btn');
+    if(!btn) return;
+    const key = phaseRowKey(btn.closest('.phase-row'));
+    setPhaseCollapsed(key, !collapsedPhaseKeys.has(key));
+  });
+
   function buildPhaseRows(){
     const wrap = document.getElementById('phase-rows');
     wrap.innerHTML = '';
@@ -6029,6 +6074,7 @@ export function initLegacyApp() {
       row.innerHTML = `
         <div class="swatch clickable" id="swatch-${p.key}" style="background:${swColor};" title="Click to set this phase's color"></div>
         <div class="custom-phase-header">
+          ${PHASE_COLLAPSE_BTN}
           <input type="text" class="phase-name-input" id="name-${p.key}" value="${p.label}" placeholder="${p.label}">
         </div>
         <div class="phase-fields">
@@ -6103,6 +6149,7 @@ export function initLegacyApp() {
     row.innerHTML = `
         <div class="swatch clickable" id="swatch-${PREP_KEY}" style="background:${PHASE_COLOR_OPTIONS[autoPhaseColorIndex(PREP_DEF)].color};" title="Click to set the prep color"></div>
         <div class="custom-phase-header">
+          ${PHASE_COLLAPSE_BTN}
           <input type="text" class="phase-name-input" id="prep-name" value="${autoPrepName()}" placeholder="${autoPrepName()}" aria-label="Prep name">
         </div>
         <div class="prep-caption">Working days before each episode’s first shoot day. Month view and its PDF only.</div>
@@ -6593,6 +6640,7 @@ export function initLegacyApp() {
     row.innerHTML = `
       <div class="swatch clickable" id="swatch-${key}" style="background:${opt.color};" title="Click to set this phase's color"></div>
       <div class="custom-phase-header">
+        ${PHASE_COLLAPSE_BTN}
         <input type="text" class="phase-name-input" id="name-${key}" placeholder="Phase name">
         <button class="icon-btn remove-custom-phase" title="Remove">&times;</button>
       </div>
@@ -9588,6 +9636,7 @@ export function initLegacyApp() {
       pushUndoSnapshot();
       revealSidebarTab('phases');
       pushUndoSnapshot();
+      setPhaseCollapsed(key, false);   // a folded card would show only its name
       if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
     }
 
@@ -9850,6 +9899,7 @@ export function initLegacyApp() {
       pushUndoSnapshot();
       addCustomPhaseRow();
       const key = customPhaseDefs[customPhaseDefs.length - 1].key;
+      collapsedPhaseKeys.delete(key);   // a new phase opens unfolded (see #add-phase-btn)
       const field = id=> document.getElementById(id + '-' + key);
       if(len === 'day'){
         field('unit').value = 'dates';
@@ -19723,11 +19773,18 @@ export function initLegacyApp() {
     });
   });
   document.getElementById('add-hiatus').addEventListener('click', ()=>{ addHiatusRow('', 2); update(); });
-  document.getElementById('add-phase-btn').addEventListener('click', ()=>{ addCustomPhaseRow(); update(); });
+  document.getElementById('add-phase-btn').addEventListener('click', ()=>{
+    addCustomPhaseRow();
+    // A new phase opens unfolded, even on a key an undone phase was folded under (an undo can lower
+    // customPhaseCounter, so the next Add mints that key again).
+    collapsedPhaseKeys.delete(customPhaseDefs[customPhaseDefs.length - 1].key);
+    update();
+  });
   // The actual reset. New is its only caller since Reset All went (owner ruling 3, 30 Sep 2026):
   // newFile() does its own prompting, clears the file link, and then calls this.
   function resetAll(){
     monthCursorRecheck = true;   // a different (empty) calendar: see update() (L-17)
+    collapsedPhaseKeys.clear(); reflectPhaseCollapse();   // every phase card unfolded
     hideLegacyNotice();
     phaseColorOverride = {};
     PHASES.forEach(p=>{
@@ -21500,6 +21557,7 @@ export function initLegacyApp() {
     el.textContent = JSON.stringify(b.state).replace(/</g, '\\u003c');
     restoreSavedState();
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
+    collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // recovered work is a fresh baseline, not something to undo "past"
@@ -21793,6 +21851,7 @@ export function initLegacyApp() {
       return false;
     }
     monthCursorRecheck = true;   // a different calendar: see update() (L-17)
+    collapsedPhaseKeys.clear();  // ...so every phase card unfolds (refreshAfterRestore reflects it)
     refreshAfterRestore();
     suppressDirty = false;
     resetUndoHistory(); // opening a different file starts a fresh undo history
@@ -26042,6 +26101,7 @@ export function initLegacyApp() {
     if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; }
     setSidebarTab(sidebarTab);
     syncRegionTracking();
+    reflectPhaseCollapse();   // the folds onto the rebuilt custom rows (undo, redo), or none after a Load
     refreshEpisodesUI();
     refreshSimPostUI();
     // The legacy headerOverrides migration's second half (applyStateSnapshot step 4b, audit N-8):

@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — a caret folds each phase card down to its name (20 Oct 2026)
+
+Owner: *"There should be a carrot that lets you hide and unhide phases within the phases menu. When you hide them it
+should show just their name (name still editable) with their color but hide all the settings underneath."*
+- **Every card in the Phases tab** (the six built-ins, Prep and each custom phase) has a caret before its name. Click it
+  and the card folds to its colour bar and name line; the name stays editable, and a custom phase keeps its ×. Click
+  again to unfold. Folding Production folds its episode list and Simultaneous Post with it.
+- **It only tidies the sidebar.** A folded phase is scheduled, drawn and exported exactly as before. Folding is not a
+  change to the calendar: no undo step, no "Unsaved changes", nothing in the saved file (a Save is byte-identical).
+- **What it remembers:** the folds hold through undo and redo, which rebuild the custom phase rows. Loading a calendar,
+  recovering one or New starts with every card unfolded, and so does reopening the app. The month view's
+  *Show in Phases card* unfolds the card it points to.
+- **Code:** `collapsedPhaseKeys` / `reflectPhaseCollapse` / `setPhaseCollapsed` in `app.js`; the caret is a `<button>`
+  with no id, so `fields.byId` cannot change. CSS `.phase-collapse-btn` and `.phase-row.is-collapsed`. No frozen code.
+- **Verified:** new leg `phasefold`, 11 cases, in `gate.sh`'s AFSPEC list. A mutant that skips re-applying the folds
+  after a restore turns F6 (undo/redo) and F9 (Load) red. The neighbouring legs all pass on this build: `phiatusnum`,
+  `settingswin`, `loadcarry`, `calrange`, `phasecolors`, `mvmenu (halfdays)`, `dlgkeys`, `labelsetup (halfdays)`,
+  `colreuse` (both runs, through gate.sh's own judge), `phasenum`, `episodeprep` (both). `npm run check` 40/40.
+
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
 Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep

@@ -4,6 +4,33 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; NOT MERGED, NOT PUSHED
+
+- ⏭ **RESUME HERE for the phase-card caret.** Owner: *"There should be a carrot that lets you hide and unhide phases
+  within the phases menu. When you hide them it should show just their name (name still editable) with their color but
+  hide all the settings underneath."* README's Unreleased entry says what a user gets.
+- **Decided without asking** (recorded so it can be overruled): folds are **session UI**, never in `captureSnapshot()`,
+  never an undo step, not remembered across a Load, New, recovery or reopening the app. They DO hold through undo and
+  redo. The caret sits LEFT of the name, away from a custom phase's destructive ×. The Prep row gets one too.
+- **How:** `collapsedPhaseKeys` (a Set of phase keys, read off each card's `#swatch-<key>` because the built-in rows carry
+  no `data-key`). `reflectPhaseCollapse()` runs from `refreshAfterRestore()`, which is what puts a fold back on a custom
+  row that undo/redo REBUILT and re-keyed. The three "different calendar" sites (`resetAll`, backup recovery, the Load
+  path) clear the Set beside their `monthCursorRecheck = true`. The two user Add paths (`#add-phase-btn`,
+  `addPhaseHere`) delete the new key, because an undo can lower `customPhaseCounter` and the next Add mints the key of
+  a phase that was folded. `showPhaseRow()` (Show in Phases card) unfolds. The caret is a `<button>` with NO id.
+- ⚠️ **The fold rule needs `!important`**: `#ep-panel` and the sim-post rows are shown by inline `style.display`. It is
+  safe against Mantine's layer (CLAUDE.md's `!important` note) because it is scoped to `.phase-row.is-collapsed`.
+- ⚠️ **Learned: two other sessions were editing the MAIN checkout's `app.js` at the same time** ("Zoom slider", which
+  then moved to `.claude/worktrees/cal-zoom`, and "Consolidate Calendar into Preferences"). This work started there,
+  was backed out hunk by hunk (theirs left untouched) and redone here. Check `git diff` in the main checkout for
+  foreign hunks before editing it.
+- **Proof** (build at this branch, private port 9312): new leg `phasefold` 11/11; mutant (no re-apply in
+  `refreshAfterRestore`) red on F6 and F9; `phiatusnum` 17, `settingswin` 17, `loadcarry` 6, `calrange` 18, `phasecolors`
+  10, `mvmenu (halfdays)` 89, `dlgkeys` 16, `labelsetup (halfdays)` 41, `colreuse` live + restore through gate.sh's own
+  judge (FAIL=0), `phasenum`, `episodeprep` both; `npm run check` 40/40. **Not yet: the full gate** (another session's
+  was running; two at once stall each other's Chrome).
+- ⏭ **Next:** the full gate on this branch, then the owner's picker to merge into `main`, then a separate push picker.
+
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the

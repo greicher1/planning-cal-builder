@@ -1077,6 +1077,30 @@
      §12. When a rule hides text so a pseudo-element can replace it, nothing more specific may
      set font-size on the same element. */
   .custom-phase-header .icon-btn{width:24px; height:24px; flex:none;}
+  /* Phase card caret (owner, 20 Oct 2026; app.js "THE CARET ON EVERY PHASE CARD"): folds a card down
+     to its colour bar and name line, the name still editable. Reads as Mantine's ActionIcon
+     variant="subtle": no border until hovered, so the name stays the line's subject. The chevron is
+     drawn geometry, like the remove ×, so it centres exactly and paints currentColor. Down while the
+     card is open, right while it is folded. The negative margin pulls it into the card's padding so
+     the name moves as little as possible. */
+  .phase-collapse-btn{
+    width:24px; height:24px; flex:none; padding:0; margin-left:-6px;
+    border:0; border-radius:var(--mantine-radius-default); background:transparent;
+    color:var(--mantine-color-gray-6); cursor:pointer; font-family:inherit;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:background-color 100ms ease, color 100ms ease;
+  }
+  .phase-collapse-btn:hover{ background:var(--mantine-color-gray-1); color:var(--mantine-color-black); }
+  .phase-collapse-btn:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:1px; }
+  .phase-collapse-btn::before{
+    content:""; width:14px; height:14px; background:currentColor; transition:transform 150ms ease;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .phase-collapse-btn[aria-expanded="false"]::before{ transform:rotate(-90deg); }
+  /* The fold itself. !important because the engine shows and hides some of these children with an
+     inline style.display (#ep-panel, the sim-post rows), which would otherwise beat this rule. */
+  .phase-row.is-collapsed > :not(.swatch):not(.custom-phase-header){ display:none !important; }
   .color-select{font-family:inherit; font-size:11px; border:1px solid var(--border-strong); border-radius:6px; padding:2px 4px; background:#fff; color:var(--text-muted); flex:none; max-width:100px;}
 
   /* ============================================================================================
