@@ -48,6 +48,23 @@ one way, phases another) changes notes already in saved calendars, on screen and
 get re-cut with the owner's sign-off. Spanning notes only leaves every existing calendar byte for byte as it is, but
 notes then have two looks.
 
+⭐ **Or change the phases instead.** Owner, 21 Oct 2026: *"alternatively come up with ways we could better make the
+phases stand out"*. Then notes keep exactly today's look, and a spanning note is simply a wider one. Mocked in chat the
+same day, notes unchanged, phases with:
+
+1. **Darker outline:** each phase ringed in its own darker text colour (its `textColor`). The writer already paints a
+   ring; only its colour and width change. The phase option this plan would pick.
+2. **Dark start cap:** a solid cap in that darker colour where each phase run begins.
+3. **Raised edge:** a darker bottom edge, so a phase reads as a bar sitting on the day.
+4. **Week chip:** "wk 3" moves into a small dark tag at the bar's end. It changes how a label fits, so more labels
+   would be cut with "…". The most work in the writer.
+5. **Rule under the phases:** a line across each week under the last phase lane, schedule above and notes below.
+   Drawn in the gap between lanes, so no height.
+
+This route changes **every** calendar's month view and both month PDFs (gates 10 and 13 re-cut on sign-off, a frozen
+edit to the pill rules), and leaves notes untouched. The waterfall stays as it is either way (the owner's 29 Aug 2026
+freeze on its look). The two routes can be combined, but one cue is easier to learn than two.
+
 Cost in the month PDF writer (not frozen): pointed ends and the folded corner need a polygon fill, a new op in the
 writer's display list (a few lines of PDF path). The dark edge and tag-and-line are rectangles it already paints.
 Italic is the text op's existing `skew`. On screen every option is CSS on the existing box (`clip-path` for the points),

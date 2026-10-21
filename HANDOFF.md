@@ -159,7 +159,10 @@
   default note colour is `MILESTONE_COLOR` (strong purple) and the note palette has both pastels and strong colours, as
   phases do. So the shape has to. The first mock recommended an unfilled range line; the owner then directed *"keep the
   bg color of the note"*, so every option now keeps the fill: pointed ends (recommended), folded corner, dark start
-  edge, italic, tag and line, and two combinations, mocked beside a pale blue phase (plan §1 D1).
+  edge, italic, tag and line, and two combinations, mocked beside a pale blue phase (plan §1 D1). The owner then asked
+  for the other route too, *"ways we could better make the phases stand out"*: darker outline (the plan's phase pick),
+  dark start cap, raised edge, week chip, rule under the phases, mocked with notes unchanged. That route changes every
+  calendar's month view and month PDFs.
 - ⏭ **Waiting on the owner: four decisions** (plan §1): D1 the look, and whether it applies to every note or only
   spanning ones (every note re-cuts gates 10 and 13), D2 how one is made (a "Through" date in the note
   editor recommended), D3 whether it moves with the schedule (recommended: stays on its dates, as every day note does),
