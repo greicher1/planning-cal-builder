@@ -248,16 +248,9 @@ export function PreviewToolbar() {
             : hdr.mode === 'off' ? 'Header: Off' : 'Header: Auto'}
         </Button>
 
-        {/* Paste notes… (MONTH-NOTES-PLAN.md §5; owner, 20 Oct 2026, by picker): many month-view notes at once.
-            Month view only, read from the same bridged `view` the Header button's title uses. The engine opens
-            its box (openPasteNotes) by DELEGATION, because React owns the button and mounts it only in the month
-            view. A <button>, never an id'd input, so collectFieldValues() cannot sweep it. */}
-        {hdr.view === 'month' && (
-          <Button id="paste-notes-btn" className="tools-btn" type="button" size="xs" variant="default"
-                  title="Add many month-view notes at once: one per line, as date, text, colour">
-            Paste notes…
-          </Button>
-        )}
+        {/* Paste notes… lived here (MONTH-NOTES-PLAN.md §5) until the owner moved it into the Settings
+            window's Calendar tab, Month view card (20 Oct 2026, "put paste notes into settings"). Same id,
+            same engine listener: see CalendarMonthCard in Sidebar.jsx. */}
 
         {/* ⛔ THE BATCH-EXPAND BUTTON ("Expand N" / "Pull back N") AND THE TWO SWAP BUTTONS ("◀ Swap" /
             "Swap ▶") USED TO SIT HERE, and are gone (owner ruling 2, relayed 30 Sep 2026; built

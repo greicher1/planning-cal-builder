@@ -26082,8 +26082,9 @@ export function initLegacyApp() {
     ta.focus();
     refresh();
   }
-  // The toolbar's Paste notes… button is React's (PreviewToolbar.jsx, month view only), so it is reached by
-  // delegation, as the Header button is.
+  // The Paste notes… button is React's -- Settings ▸ Calendar ▸ Month view since 20 Oct 2026 (CalendarMonthCard in
+  // Sidebar.jsx; it was in the preview toolbar until the owner moved it), month view only -- so it is reached by
+  // delegation on its id, as the Header button is.
   document.addEventListener('click', function(e){
     if(e.target.closest && e.target.closest('#paste-notes-btn')) openPasteNotes();
   });

@@ -493,6 +493,22 @@ export function MonthViewCard() {
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
 
+        {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
+            here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
+            rest of the stuff pushes with the new settings tab"). Month view only, which this card already
+            is (.pref-view-month), so it shows exactly where openPasteNotes() works. It is the last of the
+            card's calendar rows, ABOVE the grey-text caption: that caption reads as a heading for every row
+            after it (the 20 Oct merge of the Calendar tab into Preferences). ⛔ The id is the engine's
+            contract: one document-level click listener in app.js opens the box by `#paste-notes-btn`, so the
+            button needs no wiring here. A <button>, never an input, so collectFieldValues() cannot sweep it. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
+          <Button id="paste-notes-btn" type="button" size="xs" variant="default"
+                  title="Add many month-view notes at once: one per line, as date, text, colour">
+            Paste notes…
+          </Button>
+        </SettingRow>
+
         {/* Ruling 10 (owner, 22 Sep 2026): what the month view's Production bars carry as grey
             text -- the Production Week, the block, and the episodes being shot. PER-USER: the owner
             chose this knowing two people printing one calendar can get different month PDFs.

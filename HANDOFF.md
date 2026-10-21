@@ -34,11 +34,11 @@
   not yet merged. `settingswin` gains W0b (the three tabs, no Calendar tab or panel, opens on Preferences) and W13
   (Preferences by view: one card per view, the right rows in it, Automatic notes and App, one opening line naming
   the right exception), 19 cases.
-- ⚠️ **MERGE NOTE for `claude/paste-notes-settings`** (built tonight, not merged): it adds **Paste notes…** as the
-  last row of `CalendarMonthCard`, which no longer exists. On merge, put the row in `MonthViewCard` after Number
-  Production Days and BEFORE the grey-text caption (the caption heads everything below it), and read its docs'
-  "Settings ▸ Calendar ▸ Month view" as "Settings ▸ Preferences ▸ Month view". Its `mvnotes` V1 opens the window on
-  the default tab, which is Preferences now, where the button will be.
+- ✅ **Paste notes merged in** (`claude/paste-notes-settings` landed in local `main` while this was gating, as the last
+  row of `CalendarMonthCard`). Resolved: the row sits in `MonthViewCard` after Number Production Days and BEFORE the
+  grey-text caption (the caption heads everything below it). `mvnotes`' `settingsOpen()` picked the tab by
+  `/Calendar/`, which now matches nothing and would leave the window on whatever tab was last open; it picks
+  `/Preferences/`. Its README, harness-README and MONTH-NOTES-PLAN wording says Preferences.
 - **Proof:** build `364af880…` (1,663,173 bytes); `npm run check` 40/40; `check-refs.py` CLEAN.
   - A trimmed gate (gate.sh's own blocks and evaluators for every leg that opens the Settings window or touches a
     preference: prefs, wrapdate, the eight hdr* legs, onecol, colreuse, shootorder, pilllabel ×8, settingswin,
@@ -58,7 +58,7 @@
   `legacy.css` merged clean), the combined build gated (below), and `main` fast-forwarded to the result. **NOT pushed**: the
   push picker was answered *"No, not yet"*. ⏭ Next: a push picker, when the owner asks (a version cut is theirs).
 
-### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; NOT IN `main`, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; MERGED AND LIVE at `38840c2` (no version cut)
 
 - **The ask.** Owner, with a screenshot of v1.6.0's heading panel (a "Writing" heading over Column 1 + Notes, two
   boxes both reading "Writing"): *"this is a really confusing/convaluted way to have this menu ... you have to
@@ -92,7 +92,16 @@
 - ✅ **Full gate PASSED: 2,560 PASS, 0 FAIL** (build `8f963d1a…` at `6bc37c9`, port 9263, 21 Oct 01:43:06–02:07:40,
   queued until no other session's gate, mini-gate or gate-waiter was alive). `hdrrow` 35/35 inside it; 0 clipped
   cells; the waterfall PDF and every Excel part identical to the baselines; the v1.0.0 restore identical; 76 ids.
-- ⏭ **Next:** the owner's picker to merge `heading-merge` into `main`, then a SEPARATE push picker. Not pushed.
+- ✅ **MERGED AND LIVE.** Owner, by picker: *"Merge into main"* and *"Push and deploy"*. `main` merged into the branch
+  first (`38840c2`; main had one HANDOFF-only commit, `221e759`), rebuilt to the same `8f963d1a…`, then local `main`
+  fast-forwarded and ONE `git push origin main` at 03:04:48 on 21 Oct (`138d2e5..38840c2`). Everything else in that
+  push was docs (checked: vs `origin/main`, the only `src`/`tests` changes are this one). Deploy run 39581905288:
+  Build and check, Deploy to Pages, both success. At 03:06:10 the live `index.html`, fetched with a cache-buster,
+  was **byte-identical** to the build (sha256 `8f963d1a…`, `cmp`). **No version cut**: `APP_VERSION` and
+  `version.json` stay 1.6.0, so open windows show no update notice; with no service worker, the next launch or
+  reload gets it.
+- ⏭ **Next:** nothing pending for this. The next version cut's notes should carry the README entry (it is still
+  "Unreleased —"). The worktree `.claude/worktrees/heading-merge` can be removed on the owner's word.
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
@@ -241,7 +250,7 @@
 - ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
   merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
 
-### ⏳ 20 Oct 2026: OWNER REQUEST, NOT BUILT: "put paste notes into settings", AFTER THE SETTINGS WINDOW IS LIVE
+### 🔨 20 Oct 2026: "put paste notes into settings" — MERGED INTO LOCAL `main`, GATED 2,560 / 0, NOT PUSHED (owner: "Hold the push")
 
 - Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
   stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
@@ -250,7 +259,30 @@
   `openPasteNotes()`) into that Settings window.
 - ⚠️ Decide then: `openPasteNotes()` returns unless `viewMode === 'month'`, so a Settings entry must either open the
   month view first or say it is month-view only; and the `mvnotes` leg's V-cases click `#paste-notes-btn`.
-- The bundle-B session (`labels-setup`) watches `origin/main` for `SettingsWindow.jsx` and picks this up when it lands.
+- The bundle-B session (`labels-setup`) watched `origin/main` for `SettingsWindow.jsx`; it landed with v1.6.0 at
+  `138d2e5` (21:48).
+- **Built:** **Paste notes…** is the last row of Settings ▸ Calendar ▸ Month view (`CalendarMonthCard`, after Number
+  Production Days), and the preview toolbar no longer carries it. Same id `#paste-notes-btn`, so `app.js`'s one
+  document-level listener opens the box unchanged. The card is `.pref-view-month`, which answers the open question
+  above: it shows in the month view only, exactly where `openPasteNotes()` works. Inside `.prefs-card`, a `<button>`,
+  so nothing is swept into `fields.byId`.
+- **Proof:** `mvnotes` V1 rewritten to press the button inside the Settings window (hit-tested; the window's slide-in
+  transition is finished first, because under run.sh's virtual clock it never advances and the button stays at
+  x −131) and to hold that no Paste notes… is left outside it in the month view. LIVE 30/30 and RESTORE 14/14 on build
+  `df853383…`; red on `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app pane opened the box.
+  `npm run check` 40/40, `check-refs.py` CLEAN.
+- **Full gate on build `df853383…` (port 8961, 22:06:40–22:31:30): 2,554 PASS, 1 FAIL**, `phiatusnum` H14 ("timed out
+  waiting for the loaded file's name in the file menu"), the load flake. Re-run alone it could not get a quiet machine
+  (a `prefs-merge` gate and the parallel-lanes experiment's several gates were running), so it was run under that load,
+  on this build and on the live `releases/v1.6.0.html`: this build 17/17 in four of five runs (H14 once), v1.6.0 H14
+  once in three. ⚠️ So H14 flakes on the live app too under load; nothing here touches it. `main`'s docs-only commits
+  merged in (`4b2df5a`); the build is unchanged.
+- Owner, by picker: *"Yes, merge into main"*, *"Hold the push"*. Before the fast-forward, another session PUSHED a code
+  change ("Column headings: one box per heading, with Split and Merge buttons", live at `38840c2`), so `main` was merged
+  in (`c3e41f6`; README conflict only) and the combined build `3a0f6250…` re-gated: **2,560 PASS, 0 FAIL, GATE PASSED**
+  (port 8961, 04:10:14–04:34:59, alone). `main`'s next commits were docs plus `phiatusnum` H16, merged in with the build
+  unchanged; the updated `phiatusnum` passes 18/18 on it (H14's load flake once first).
+- ✅ **Merged into local `main` (fast-forward). NOT PUSHED**, on the owner's "Hold the push". A later push carries it.
 
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
@@ -339,10 +371,11 @@
   combined `mvheaderlegacy` baseline) and docs. Its own month-baseline re-cut for the "Shoot" prefix will move
   `mvheaderlegacy` again. A version cut is worth considering for the next push, so installed copies show the notice.
 
-### 🔨 20 Oct 2026: RULINGS 5, 8, 9 (THE THREE SMALL ONES) — BUILDING ON BRANCH `claude/quick-wins-cfe240` (worktree `.claude/worktrees/quick-wins-cfe240`), NOT MERGED, NOT PUSHED
+### ✅ 20 Oct 2026: RULINGS 5, 8, 9 (THE THREE SMALL ONES) — LIVE IN v1.6.0 (merged by `merge-all` at `34da0ca`, from branch `claude/quick-wins-cfe240` at `2012bc6`), OWN GATE 2,105 / 0
 
-- ⏭ **RESUME HERE for more phase colours, numbered phase-hiatus weeks and the automatic-note picker.** A side
-  session of the column-reuse session, cut from local `main` at `670a591` (build `7054bec6…`). One commit and one
+- ✅ **Done; nothing left on the branch.** *(Corrected 21 Oct 2026: this entry said "building, not merged" after
+  `merge-all` had taken the branch and v1.6.0 had shipped it.)* A side session of the column-reuse session, cut from
+  local `main` at `670a591` (build `7054bec6…`). One commit and one
   harness leg per ruling. No frozen code. Five sibling branches build the other rulings (column reuse, header row and
   date format, side boxes, the Settings window, the calendar range) in `src/legacy/app.js` at the same time.
 - **Owner's picker, 20 Oct 2026 (this session):** colours *"Set A, stronger"*; a band retyped in the grid *"No, keep
@@ -365,7 +398,7 @@
     computeSchedule is untouched, which also keeps this out of column reuse's diff.
   - The retyped-band ruling is that ownership rule, unchanged. Production's off weeks are not numbered.
   - **Proof:** leg `tests/harness/t/phiatusnum.js` in gate.sh's AFSPEC list, 17/17 on the build; on the pre-change
-    build (`dist-prefix/`, the in-place method) 15 of 17 red. Not yet: the full gate.
+    build (`dist-prefix/`, the in-place method) 15 of 17 red. Full gate below.
 - ✅ **Ruling 9, the automatic-note picker: built and committed.**
   - **The kinds** are exactly the three computeSchedule writes: `writersRoomOpens`, `principalStart`, `principalWrap`
     (checked 20 Oct 2026: no other `addNote` call; custom phases are never auto-noted). ⛔ These words are SAVE FORMAT
@@ -386,7 +419,7 @@
     a leg that looks for the full note text there passes vacuously. The first draft of A7 was green on the OLD build
     for exactly that reason; A0b is now a positive control and A7 matches the fragments.
   - **Proof:** leg `tests/harness/t/autonotekinds.js` in the AFSPEC list, 16/16 on the build; on the build before it
-    (`dist-pre9/`, `a5984ff1…`) 13 of 16 red. Not yet: the full gate.
+    (`dist-pre9/`, `a5984ff1…`) 13 of 16 red. Full gate below.
 - ✅ **Ruling 5, five colours: built and committed.** Appended to `PHASE_COLOR_OPTIONS` as indices 9–13: Bright
   green `#92D050`/`#1E4620`, Strong blue `#5B9BD5`/`#0B2545`, Pink `#FF66CC`/`#5C0A3E`, Yellow `#FFFF00`/`#5C5200`,
   Peach `#F4B084`/`#6B2E0C` (fill/month-view ink). Black waterfall text reads on all five (WCAG 7.1–19.6:1); each ink
@@ -398,7 +431,22 @@
     two. No `SNAPSHOT_VERSION` bump: `sanitizeSnapshot` already turns an index an older build lacks into its fallback.
   - **Proof:** leg `tests/harness/t/phasecolors.js`, 10/10 on the build; 8 of 10 red on the pre-change build
     (`dist-pre5/`, `ff6e3f60…`); the rotate-over-14 mutant turns exactly C8 red.
-- ⏳ **Next on this branch: the full gate, then the owner's merge question.**
+- ✅ **The branch's own full gate, on `2012bc6` (build `8e6b2369…`, port 8971, 20 Oct 19:58–20:18, alone): 2,105
+  PASS, 0 FAIL** — the prep-pause gate's 2,062 plus exactly the 43 new checks. 0 clipped; the waterfall PDF and every
+  Excel part identical; 74 `fields.byId` ids; gate 10's print documents and gate 13's written month PDFs
+  byte-identical. It ran AFTER `merge-all` had taken `2012bc6`, which is why the merge-all table above says "own full
+  gate never run".
+- **What happened on the branch after that, and why none of it is in `main` but H16:** on the owner's picker ("Yes,
+  merge and gate") the branch merged `main` at `1edde34` (`b5a1dca`) and, on a second picker (*"make it wk for both
+  all phase hiatus and per phase hiatus"*), switched bundle B's all-phase "Hiatus Week N" to "wk" (`3c02751`). Its
+  merged build `4b5d47ca` gated **2,272 PASS, 0 FAIL** (21 Oct 00:41–01:02). Meanwhile `shoot-prefix` had made the
+  same "wk" change in `main` (`094dab6`) and v1.6.0 shipped it, so the branch's tip duplicates `main` and was not
+  merged. Its one addition, `phiatusnum` **H16** (a file saved with an all-phase "Hiatus Week 1/2" opens as "Hiatus
+  wk 1/2"), passes 18/18 on v1.6.0's own build `7a64413c` and came across alone, with this correction, on the
+  owner's picker (*"Yes, commit the leftovers"*). The branch and its worktree can be archived.
+- ⚠️ **Learned: budget for the gate queue.** This branch's two gates each waited behind other sessions' gates: the
+  detached waiter queued at 15:57 and started at 19:58, then queued at 21:54 and started at 00:41. When several
+  branches finish together, a merging session's combined gate can make a branch's own gate moot before it runs.
 ### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — LIVE IN v1.6.0 (merged by `merge-all` at `d0dab94`, from branch `claude/cal-range-1fe2e5` at `224eef0`)
 
 - ⏭ **RESUME HERE for the calendar range.** One of the parallel sessions building the 20 Oct rulings (entry below,
