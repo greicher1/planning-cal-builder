@@ -102,7 +102,7 @@
   combined `mvheaderlegacy` baseline) and docs. Its own month-baseline re-cut for the "Shoot" prefix will move
   `mvheaderlegacy` again. A version cut is worth considering for the next push, so installed copies show the notice.
 
-### 🔨 20 Oct 2026: "REUSE EMPTY COLUMNS" IS BUILT ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT MERGED (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS IN LOCAL `main` (`b266dbf`), NOT PUSHED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
 - ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
   plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
@@ -160,8 +160,10 @@
     HANDOFF conflicted only because both sides added entries at the top, and every entry is kept, `main`'s first.
   - **Full gate on the merged build `895f4b92…` (port 8985, 19:11:36–19:32:56, alone): 2,228 PASS, 0 FAIL, GATE
     PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; `colreuse` 25/25.
-  - `main` is an ancestor of `column-reuse`, so landing it is a fast-forward. **Not merged into `main`, not pushed:**
-    both wait on the owner's own pickers.
+  - ✅ **Landed in local `main` by fast-forward** on the owner's picker (*"Commit the HANDOFF gate note on
+    column-reuse, then fast-forward local main to column-reuse. Don't push."*): `main` = `b266dbf`, the gated
+    build. **Not pushed.** ⚠️ Any branch gated against the earlier `main` (`ca55411`), such as another session's
+    `shoot-prefix`, now needs `main` merged in and a gate on the combined build before it lands or is pushed.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).
