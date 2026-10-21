@@ -32,7 +32,16 @@
   ran): **2,566 PASS, 0 FAIL, GATE PASSED.** 0 clipped; `fields.byId` 76 ids, unchanged; `phasefold` 11/11. Afterwards
   one leg-only fix: F2's diagnostics carried a `title` key that overwrote the case's own title in the report (renamed
   `caretTitle`); 11/11 again. The build is unchanged by it.
-- ⏭ **Next:** the owner's picker to merge into `main`, then a separate push picker. Owner's open question: whether
+- **Owner, by picker:** *"Fast-forward main"* and *"Don't push yet"*. The fast-forward was refused: in the minutes
+  before it, the `heading-merge` session had moved `main` to `38840c2` and pushed it. `main` was merged into this
+  branch instead (`69a5319`): no code conflicts, the two docs' newest entries both kept. Merged build `235a581d…`:
+  check 40/40, `phasefold` 11, `hdrrow` 35, `phiatusnum` 17, `settingswin` 17, `mvmenu (halfdays)` 89.
+- ✅ **Full gate on the merged build `235a581d…` at `69a5319`** (HARNESS_PORT 9313, 03:45:10–04:10:08, alone; the
+  zoom-slider session's gate queued after it by agreement): **2,571 PASS, 0 FAIL, GATE PASSED.**
+- ⚠️ **Asked the owner before moving `main`:** other sessions push `main` when they ship, so once this is in `main` it
+  goes live with the next push from ANY session. Local `main` has since gained `f494641` and `a67f723` (docs and a
+  `phiatusnum` case, no app code), so landing this needs one more merge of `main`; the gated build stands.
+- ⏭ **Next:** the owner's answer to that; then merge `main` in again and fast-forward. Owner's open question: whether
   folds should be remembered after reopening the app (built as session-only).
 
 ### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; NOT IN `main`, NOT PUSHED
