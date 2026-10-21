@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (night): v1.6.0 CUT on `shoot-prefix` (local `main` fast-forwarded to `86ba4ef` first, on the owner's picker); RELEASE GATE QUEUED; NOT PUSHED
+### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the
   version, run the release gate on that build, tag it, then ONE push, verified live). Local `main` = `86ba4ef` (the
@@ -24,8 +24,15 @@
   through the gate's own evaluator (21:46): **44 PASS, 0 FAIL both times.** Everything else held: 0 clipped, the
   waterfall PDF and every Excel part identical, 76 ids, gate 10's eleven documents and gate 13's twenty-one written
   PDFs identical to the re-cut baselines.
-- ⏭ Tag `v1.6.0` on the cut commit `605101f`, fast-forward `main`, ONE `git push origin main v1.6.0` (owner's picker:
-  "Cut v1.6.0, then push"), then the live `index.html` and `version.json` against `releases/v1.6.0.html`.
+- ✅ **PUSHED AND LIVE.** Tag `v1.6.0` (annotated) on the cut commit `605101f`; local `main` fast-forwarded to `138d2e5`;
+  ONE `git push origin main v1.6.0` at 21:46:45 (`3f4b5b1..138d2e5`, plus the tag), on the owner's picker *"Cut v1.6.0,
+  then push"*. Deploy run 39545901254: Build and check, Deploy to Pages, both success. At 21:47:53 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to `releases/v1.6.0.html`** (sha256
+  `7a64413c20319341…`, 1,663,652 bytes, `cmp`), and the live `version.json` read 1.6.0, so every open window shows the
+  update notice.
+- ⏭ **Next:** the owner's request recorded below (Paste notes into the Settings window) is unblocked now that the
+  window is live; the `labels-setup` session said it would pick it up. Worktrees `merge-all` and `shoot-prefix`, and
+  the branches merged tonight, can be cleaned up on the owner's word.
 
 ### 🔨 20 Oct 2026 (evening): "SHOOT" BEFORE EPISODE BARS, AN EDITABLE PREFIX PER EPISODE OR BLOCK, AND "wk N" ON BOTH NUMBER WEEKS BOXES — branch `shoot-prefix` (worktree `.claude/worktrees/shoot-prefix`), ON TOP OF `merge-all`; BASELINES RE-CUT ON SIGN-OFF; FINAL GATE QUEUED; NOT IN `main`, NOT PUSHED
 
