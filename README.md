@@ -29,6 +29,18 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+
+Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
+with the new settings tab"*). **Paste notes…** is now the last row of Settings ▸ Calendar ▸ Month view, beside the
+month view's other calendar settings, and the month view's toolbar no longer carries it. It shows in the month view
+only, as before (the card is month-only), and opens the same box. Nothing saved changes.
+- **Code:** the button moved from `PreviewToolbar.jsx` to `CalendarMonthCard` in `Sidebar.jsx`, with the same id, so
+  the engine's one delegated listener opens it unchanged.
+- **Verified:** `mvnotes` V1 now presses the button inside the Settings window, hit-tested at its centre, and holds that
+  no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
+  `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
+
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
 Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep

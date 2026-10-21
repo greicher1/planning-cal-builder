@@ -457,6 +457,20 @@ export function CalendarMonthCard() {
                   aria-label="Number Production Days"
                   title="Write “Day 1”, “Day 2” … on each shoot day in the month view — on screen and in the month PDF. Saved with the calendar" />
         </SettingRow>
+
+        {/* Paste notes… (MONTH-NOTES-PLAN.md §5). It was a button in the preview toolbar; the owner moved it
+            here once the Settings window shipped (20 Oct 2026: "put paste notes into settings", "after the
+            rest of the stuff pushes with the new settings tab"). Month view only, which this card already
+            is (.pref-view-month), so it shows exactly where openPasteNotes() works. ⛔ The id is the engine's
+            contract: one document-level click listener in app.js opens the box by `#paste-notes-btn`, so the
+            button needs no wiring here. A <button>, never an input, so collectFieldValues() cannot sweep it. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="paste-notes-btn" label="Paste notes">
+          <Button id="paste-notes-btn" type="button" size="xs" variant="default"
+                  title="Add many month-view notes at once: one per line, as date, text, colour">
+            Paste notes…
+          </Button>
+        </SettingRow>
       </div>
     </section>
   )

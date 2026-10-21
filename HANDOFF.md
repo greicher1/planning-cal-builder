@@ -151,7 +151,7 @@
 - ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
   merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
 
-### ⏳ 20 Oct 2026: OWNER REQUEST, NOT BUILT: "put paste notes into settings", AFTER THE SETTINGS WINDOW IS LIVE
+### 🔨 20 Oct 2026: "put paste notes into settings" — BUILT on branch `claude/paste-notes-settings` (from `main` at `669fbdd`, v1.6.0 live), NOT MERGED
 
 - Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
   stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
@@ -160,7 +160,19 @@
   `openPasteNotes()`) into that Settings window.
 - ⚠️ Decide then: `openPasteNotes()` returns unless `viewMode === 'month'`, so a Settings entry must either open the
   month view first or say it is month-view only; and the `mvnotes` leg's V-cases click `#paste-notes-btn`.
-- The bundle-B session (`labels-setup`) watches `origin/main` for `SettingsWindow.jsx` and picks this up when it lands.
+- The bundle-B session (`labels-setup`) watched `origin/main` for `SettingsWindow.jsx`; it landed with v1.6.0 at
+  `138d2e5` (21:48).
+- **Built:** **Paste notes…** is the last row of Settings ▸ Calendar ▸ Month view (`CalendarMonthCard`, after Number
+  Production Days), and the preview toolbar no longer carries it. Same id `#paste-notes-btn`, so `app.js`'s one
+  document-level listener opens the box unchanged. The card is `.pref-view-month`, which answers the open question
+  above: it shows in the month view only, exactly where `openPasteNotes()` works. Inside `.prefs-card`, a `<button>`,
+  so nothing is swept into `fields.byId`.
+- **Proof:** `mvnotes` V1 rewritten to press the button inside the Settings window (hit-tested; the window's slide-in
+  transition is finished first, because under run.sh's virtual clock it never advances and the button stays at
+  x −131) and to hold that no Paste notes… is left outside it in the month view. LIVE 30/30 and RESTORE 14/14 on build
+  `df853383…`; red on `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app pane opened the box.
+  `npm run check` 40/40, `check-refs.py` CLEAN.
+- ⏭ **Next:** the full gate, then the owner's merge and push pickers.
 
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
