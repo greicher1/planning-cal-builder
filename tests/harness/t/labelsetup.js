@@ -492,11 +492,12 @@ window.addEventListener('load', function () { (async function () {
     await redo();
     await toSheet();
     var c1 = [sheetHiatus('2026-12-21'), sheetHiatus('2026-12-28')];
-    add('C1', '⭐ Number weeks, from the day menu on 22 Dec, ticks the row\'s box and labels its bands "Hiatus Week 1" and "Hiatus Week 2" in the month view and the waterfall',
-      numbered && c0[0].text === 'Hiatus' && c1[0].text === 'Hiatus Week 1' && c1[1].text === 'Hiatus Week 2'
+    // "wk N", as a phase's own weeks read (owner, 20 Oct 2026: "It should be 'wk' not 'Week' for consistency with all the other phases").
+    add('C1', '⭐ Number weeks, from the day menu on 22 Dec, ticks the row\'s box and labels its bands "Hiatus wk 1" and "Hiatus wk 2" in the month view and the waterfall',
+      numbered && c0[0].text === 'Hiatus' && c1[0].text === 'Hiatus wk 1' && c1[1].text === 'Hiatus wk 2'
         && document.querySelector('#hiatus-list .hiatus-entry .hiatus-num').checked
-        && eq(c1month.map(function (b) { return b[0]; }), ['Hiatus Week 1', 'Hiatus Week 2']),
-      {items: c1m, before: c0, after: c1, month: c1month}, 'Hiatus Week 1, Hiatus Week 2');
+        && eq(c1month.map(function (b) { return b[0]; }), ['Hiatus wk 1', 'Hiatus wk 2']),
+      {items: c1m, before: c0, after: c1, month: c1month}, 'Hiatus wk 1, Hiatus wk 2');
     add('C1u', 'One undo (in the month view) puts both bands back to "Hiatus" and unticks the box, keeping the title typed just before; redo ticks it again',
       eq(c1umonth.map(function (b) { return b[0]; }), ['Hiatus', 'Hiatus']) && !c1ubox && c1utitle === 'C Typed 1', {month: c1umonth, box: c1ubox, title: c1utitle}, 'Hiatus, unticked, title kept');
     // C2: Colour… paints every week of the hiatus, in both views.
@@ -548,11 +549,11 @@ window.addEventListener('load', function () { (async function () {
     await openText(JSON.stringify(jC4), 'c4.sptcal', 'C4 Reopened');
     await toSheet();
     var c4b = [sheetHiatus('2026-12-21').text, sheetHiatus('2026-12-28').text];
-    add('C4', 'Named "Winter Break": "Winter Break Week 1/2"; the sidebar box unticked reads "Winter Break", ticked again numbered; Save writes numbered: true on that row only, and the reopened file reads the same',
-      eq(c4n, ['Winter Break Week 1', 'Winter Break Week 2']) && eq(c4off, ['Winter Break', 'Winter Break']) && eq(c4a, c4n)
+    add('C4', 'Named "Winter Break": "Winter Break wk 1/2"; the sidebar box unticked reads "Winter Break", ticked again numbered; Save writes numbered: true on that row only, and the reopened file reads the same',
+      eq(c4n, ['Winter Break wk 1', 'Winter Break wk 2']) && eq(c4off, ['Winter Break', 'Winter Break']) && eq(c4a, c4n)
         && !!sC4 && sC4.fields.hiatuses[0].numbered === true && !('numbered' in sC4.fields.hiatuses[1])
         && eq(c4b, c4a) && document.querySelector('#hiatus-list .hiatus-entry .hiatus-num').checked,
-      {named: c4n, unticked: c4off, ticked: c4a, saved: sC4 && sC4.fields.hiatuses.slice(0, 2), reopened: c4b}, 'Winter Break Week 1/2');
+      {named: c4n, unticked: c4off, ticked: c4a, saved: sC4 && sC4.fields.hiatuses.slice(0, 2), reopened: c4b}, 'Winter Break wk 1/2');
 
     out.health = T.appHealth();
     add('X0', 'No uncaught page errors', !(out.health.errors || []).length, out.health.errors, '[]');

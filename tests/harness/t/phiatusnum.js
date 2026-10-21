@@ -2,7 +2,7 @@
 //
 //   HARNESS_PAGE=/dist/index.html ./run.sh phiatusnum 300
 //
-// Ticked, the band reads "<hiatus name> Week 1", "Week 2", ... in the waterfall, Excel, both PDFs and the month view.
+// Ticked, the band reads "<hiatus name> wk 1", "wk 2", ... in the waterfall, Excel, both PDFs and the month view.
 // The engine writes those labels through syncHiatusNamesFromSidebar() into hiatusTexts, the channel the sidebar
 // Name already uses, because frozen renderMonthView builds its own band label and reads only hiatusTexts over it.
 // The box carries no id (gate 5's fields.byId set must not move); its store is the snapshot's
@@ -28,7 +28,7 @@ window.addEventListener('load', function () { (async function () {
   function txt(e) { return ((e || {}).textContent || '').replace(/\s+/g, ' ').trim(); }
   function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
   var PP = ['2027-03-15', '2027-03-22', '2027-03-29'], SB = ['2027-03-08', '2027-03-15'];
-  var NUM = ['Pre Prep Hiatus Week 1', 'Pre Prep Hiatus Week 2', 'Pre Prep Hiatus Week 3'];
+  var NUM = ['Pre Prep Hiatus wk 1', 'Pre Prep Hiatus wk 2', 'Pre Prep Hiatus wk 3'];
   var BARE = ['Pre Prep Hiatus', 'Pre Prep Hiatus', 'Pre Prep Hiatus'];
   async function settle() {
     await T.sleep(700);                                  // past the 500 ms undo debounce
@@ -153,7 +153,7 @@ window.addEventListener('load', function () { (async function () {
 
     await step('H2', async function () {
       await clickBox('prePrep');
-      kase('H2', 'ticked (a hit-tested click): the waterfall reads Pre Prep Hiatus Week 1, Week 2, Week 3; Set Build\'s band is untouched',
+      kase('H2', 'ticked (a hit-tested click): the waterfall reads Pre Prep Hiatus wk 1, wk 2, wk 3; Set Build\'s band is untouched',
            box('prePrep').checked && same(bands('prePrep', PP), NUM) && same(bands('custom1', SB), ['Set Build Hiatus', 'Set Build Hiatus']),
            { pp: bands('prePrep', PP), sb: bands('custom1', SB) });
     });
@@ -169,7 +169,7 @@ window.addEventListener('load', function () { (async function () {
         var v = c.value; if (v && typeof v === 'object' && v.richText) v = v.richText.map(function (r) { return r.text; }).join('');
         if (typeof v === 'string' && /Hiatus/.test(v)) cells.push(v.trim());
       }); }); });
-      kase('H3', 'Excel: one cell each for Pre Prep Hiatus Week 1-3, no bare "Pre Prep Hiatus", Set Build\'s two bare',
+      kase('H3', 'Excel: one cell each for Pre Prep Hiatus wk 1-3, no bare "Pre Prep Hiatus", Set Build\'s two bare',
            count(cells, NUM[0]) === 1 && count(cells, NUM[1]) === 1 && count(cells, NUM[2]) === 1 &&
            count(cells, 'Pre Prep Hiatus') === 0 && count(cells, 'Set Build Hiatus') === 2, { cells: cells });
     });
@@ -177,7 +177,7 @@ window.addEventListener('load', function () { (async function () {
     await step('H4', async function () {
       var pb = await T.captureExport('export-wf-pdf-btn', 'the waterfall PDF blob');
       var runs = (await pdfRuns(new Uint8Array(await pb.arrayBuffer()))).filter(function (r) { return /Hiatus/.test(r); });
-      kase('H4', 'the waterfall PDF: one text run each for Pre Prep Hiatus Week 1-3, none bare',
+      kase('H4', 'the waterfall PDF: one text run each for Pre Prep Hiatus wk 1-3, none bare',
            count(runs, NUM[0]) === 1 && count(runs, NUM[1]) === 1 && count(runs, NUM[2]) === 1 &&
            count(runs, 'Pre Prep Hiatus') === 0 && count(runs, 'Set Build Hiatus') === 2, { runs: runs });
     });
@@ -185,7 +185,7 @@ window.addEventListener('load', function () { (async function () {
     await step('H5', async function () {
       await toMonth('March 2027');
       var mv = Array.from(document.querySelectorAll('#table-wrap .mv-hiatus-bar')).map(txt).filter(function (t) { return /^Pre Prep/.test(t); });
-      kase('H5', 'the month view (March 2027): Pre Prep\'s bands read Week 1, Week 2, Week 3 (it numbered nothing before)',
+      kase('H5', 'the month view (March 2027): Pre Prep\'s bands read wk 1, wk 2, wk 3 (it numbered nothing before)',
            same(mv, NUM), { bands: mv });
     });
 
@@ -200,7 +200,7 @@ window.addEventListener('load', function () { (async function () {
       var mf = rec.files.filter(function (f) { return f.closed; })[0];
       var runs = (await pdfRuns(mf.bytes)).filter(function (r) { return /^Pre Prep Hiatus/.test(r); });
       // Week 3 (Mon 3/29 - Fri 4/2) sits in the row both the March and the April pages draw.
-      kase('H6', 'the written month PDF: Pre Prep\'s bands are Week 1, Week 2, Week 3 (Week 3 on the March AND April pages), none bare',
+      kase('H6', 'the written month PDF: Pre Prep\'s bands are wk 1, wk 2, wk 3 (wk 3 on the March AND April pages), none bare',
            count(runs, NUM[0]) === 1 && count(runs, NUM[1]) === 1 && count(runs, NUM[2]) >= 1 && runs.every(function (r) { return NUM.indexOf(r) >= 0; }),
            { runs: runs });
       await view('sheet');
@@ -241,8 +241,8 @@ window.addEventListener('load', function () { (async function () {
       var named = bands('prePrep', PP);
       T.set('phiatus-name-prePrep', ''); await settle();
       var cleared = bands('prePrep', PP);
-      kase('H10', 'a typed hiatus Name is numbered too ("Break Week 1-3"), and clearing it goes back to "Pre Prep Hiatus Week N"',
-           same(named, ['Break Week 1', 'Break Week 2', 'Break Week 3']) && same(cleared, NUM), { named: named, cleared: cleared });
+      kase('H10', 'a typed hiatus Name is numbered too ("Break wk 1-3"), and clearing it goes back to "Pre Prep Hiatus wk N"',
+           same(named, ['Break wk 1', 'Break wk 2', 'Break wk 3']) && same(cleared, NUM), { named: named, cleared: cleared });
     });
 
     await step('H11', async function () {
@@ -274,7 +274,7 @@ window.addEventListener('load', function () { (async function () {
       $('shift-fwd-btn').click(); await settle();
       var moved = bands('prePrep', ['2027-03-22', '2027-03-29', '2027-04-05']);
       $('undo-btn').click(); await settle();
-      kase('H12', 'Shift All one week later: the numbered band moves with its phase, still Week 1-3; undo puts it back',
+      kase('H12', 'Shift All one week later: the numbered band moves with its phase, still wk 1-3; undo puts it back',
            same(before, NUM) && same(moved, NUM) && same(bands('prePrep', PP), NUM), { before: before, moved: moved });
     });
 
@@ -288,8 +288,8 @@ window.addEventListener('load', function () { (async function () {
       await settle();
       var key2 = JSON.parse(await save()).phaseHiatusNumbered;
       $('undo-btn').click(); await settle();
-      kase('H13', 'a custom phase\'s own hiatus numbers too (Set Build Hiatus Week 1, Week 2); removing the phase drops its key from the file',
-           same(sb, ['Set Build Hiatus Week 1', 'Set Build Hiatus Week 2']) && same(key1, { prePrep: true, custom1: true }) && same(key2, { prePrep: true }),
+      kase('H13', 'a custom phase\'s own hiatus numbers too (Set Build Hiatus wk 1, wk 2); removing the phase drops its key from the file',
+           same(sb, ['Set Build Hiatus wk 1', 'Set Build Hiatus wk 2']) && same(key1, { prePrep: true, custom1: true }) && same(key2, { prePrep: true }),
            { sb: sb, key1: key1, key2: key2 });
     });
 

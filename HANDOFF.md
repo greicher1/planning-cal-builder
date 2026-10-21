@@ -32,11 +32,13 @@
     Days**; **Automatic notes** is its own card (it reaches both views). The **Calendar range** card stays in the Show
     tab, as ruling 3 says, and its two swept ids sit ahead of the window's, where its own branch put them.
   - `applyRange()` in `syncHiatusNamesFromSidebar()` takes both new arguments: bundle B's per-week name function (an
-    all-phase row's "Number weeks", "Hiatus Week 1") and ruling 8's `numbered` flag (a phase's own hiatus, "wk 1").
-    ✅ **The two "Number weeks" boxes read the same way now**: "<name> Week N", on an all-phase hiatus ("Hiatus Week 1")
-    and on a phase's own ("Writer's Rm Hiatus Week 1"). Ruling 8 had been built as "wk 1"; the owner, shown the two
-    side by side: *"Make both Number weeks boxes read the same way: '<name> Week N'"*. Changed on `shoot-prefix`
-    (`applyRange`'s one label line), with `phiatusnum`'s expectations.
+    all-phase row's "Number weeks", built as "Hiatus Week 1") and ruling 8's `numbered` flag (a phase's own hiatus, "wk 1").
+    ✅ **The two "Number weeks" boxes read the same way now: "<name> wk N"**, on an all-phase hiatus ("Hiatus wk 1") and
+    on a phase's own ("Writer's Rm Hiatus wk 1"). Shown the two side by side, the owner first said *"Make both Number
+    weeks boxes read the same way: '<name> Week N'"*, then, minutes later: *"It should be 'wk' not 'Week' for
+    consistency with all the other phases"*. ⛔ So: "wk", as "Production wk 1" reads. Changed on `shoot-prefix`
+    (`applyRange`'s label line and item 9's name function, the row's tooltip, the day menu's note); `phiatusnum` and
+    `labelsetup` C1/C4 expect "wk".
   - The prep start grips (main) and the hiatus drag were added at the same spot and git interleaved them line by line
     (histogram diff too). The region was rebuilt from each side's whole block, each checked identical to its source.
   - `OVER_PANEL` and the shareable copy's strip list carry every branch's body-level chrome.

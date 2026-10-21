@@ -122,10 +122,10 @@ kinds show.
 A phase's own hiatus could only print the same label in every week ("Pre Prep Hiatus" three times). The owner ruled
 for a **Number weeks** box on each phase's hiatus, off by default, after a reference calendar numbered its hiatus weeks.
 - **The box** sits under the hiatus's Start date and Weeks, on every phase that has a hiatus (built-in and custom).
-  Ticked, the band reads **"Pre Prep Hiatus Week 1", "Week 2", "Week 3"**, counting the hiatus's own weeks, in the
-  waterfall, Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break
-  Week 1"). *(Built as "wk 1"; changed the same day to match the all-phase hiatus's "Hiatus Week 1", owner: "Make both
-  Number weeks boxes read the same way".)*
+  Ticked, the band reads **"Pre Prep Hiatus wk 1", "wk 2", "wk 3"**, counting the hiatus's own weeks, in the waterfall,
+  Excel, the waterfall PDF, the month view and the month PDF. A typed hiatus Name is numbered too ("Break wk 1").
+  *(Briefly "Week 1" the same evening, to match the all-phase box; then the owner settled both on "wk": "It should be
+  'wk' not 'Week' for consistency with all the other phases".)*
 - **A band you retyped by clicking it in the grid keeps exactly what you typed** (owner's picker, 20 Oct 2026), ticked
   or not; its neighbours are numbered. Reset hiatus bands puts it back into the numbering.
 - **Unticked, nothing changes**, and every calendar ever saved opens unticked.
@@ -339,8 +339,9 @@ section gains two items:
   hiatus, in the waterfall and the month view together, because it writes the waterfall's own `hiatusColors`
   store. The default red clears it. One undo step. (MONTH-CONTEXT-MENU-PLAN §3.10 had this as "not offered".)
 - **Number weeks**, also a new box on each hiatus row beside Lock in place (the owner's pick: per row). Off unless
-  ticked, so every existing calendar prints as it did. Ticked, the bands read "Hiatus Week 1", "Hiatus Week 2" …,
-  or "<name> Week N" for a named hiatus, in the waterfall, Excel, both PDFs and the month view. A band renamed by
+  ticked, so every existing calendar prints as it did. Ticked, the bands read "Hiatus wk 1", "Hiatus wk 2" …,
+  or "<name> wk N" for a named hiatus, in the waterfall, Excel, both PDFs and the month view (built as "Week N";
+  changed 20 Oct 2026 to "wk", as every phase's weeks read: owner, after the merge). A band renamed by
   hand keeps its own text. Saved as `numbered: true` on that row only; no new id.
 - **Verified:** `labelsetup` C0–C4 (both weeks recoloured in both views, one undo each with a title typed just
   before kept, the box round-tripped through Save and Load); `mvmenu` V1/V9 expect the two items.

@@ -146,7 +146,8 @@ format). Alsace-Moselle: considered, and presented with the list (the owner said
   together. The default colour deletes the keys, as the waterfall editor does. One undo step. This
   supersedes MONTH-CONTEXT-MENU-PLAN §3.10's "not offered".
 - **Number weeks**, off unless ticked, so existing calendars print unchanged. Ticked, a hiatus of N weeks
-  labels its bands "<name> Week 1" … "<name> Week N" ("Hiatus Week 1" with no name), written through
+  labels its bands "<name> wk 1" … "<name> wk N" ("Hiatus wk 1" with no name; built as "Week N", changed to "wk" by
+  the owner on 20 Oct 2026 after the merge, "for consistency with all the other phases"), written through
   `syncHiatusNamesFromSidebar()` into `hiatusTexts`, which every view and both exports already read. A
   band renamed by hand is never overwritten (the sync's ownership rule). Where the tick lives: §8 Q4.
 

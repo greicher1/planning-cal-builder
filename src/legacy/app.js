@@ -6932,7 +6932,7 @@ export function initLegacyApp() {
     const weeksVal = (prefillWeeks === undefined || prefillWeeks === null) ? 2 : prefillWeeks;
     // "Number weeks" (owner, 20 Oct 2026, LABELS-SETUP-PLAN.md item 9: "Number the weeks", per row by
     // picker): OFF unless ticked, so every existing calendar prints as it did. Ticked, the row's bands read
-    // "<name> Week 1" … through syncHiatusNamesFromSidebar(). A class, never an id: hiatus rows are saved as
+    // "<name> wk 1" … through syncHiatusNamesFromSidebar(). A class, never an id: hiatus rows are saved as
     // fields.hiatuses (collectFieldValues), so fields.byId and gate 5's id set are untouched.
     row.innerHTML = `
       <label>Name <input type="text" class="hiatus-name" placeholder="Hiatus" value="${escAttr(prefillName)}"></label>
@@ -6940,7 +6940,7 @@ export function initLegacyApp() {
       <label>Weeks <input type="number" class="hiatus-weeks" min="1" step="1" value="${escAttr(String(weeksVal))}"></label>
       <button class="icon-btn remove-hiatus" title="Remove">&times;</button>
       <label class="hiatus-lock" title="Keep this hiatus on these dates when the calendar is shifted"><input type="checkbox" class="hiatus-locked"${locked?' checked':''}>Lock in place</label>
-      <label class="hiatus-lock hiatus-numbered" title="Label each week of this hiatus: Hiatus Week 1, Hiatus Week 2…"><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}>Number weeks</label>
+      <label class="hiatus-lock hiatus-numbered" title="Label each week of this hiatus: Hiatus wk 1, Hiatus wk 2…"><input type="checkbox" class="hiatus-num"${prefillNumbered===true?' checked':''}>Number weeks</label>
       <div class="snap-note"></div>
     `;
     // Both halves are shared with the month day menu's "Remove hiatus…" (confirmRemoveHiatus,
@@ -9687,7 +9687,7 @@ export function initLegacyApp() {
            run: ()=> lockHiatusHere(row)},
           // Item 9 (owner, 20 Oct 2026): the row's own "Number weeks" box, and a colour for its bands.
           {id: 'band-num-' + j, check: true, checked: numbered, text: 'Number weeks',
-           note: 'Labels its weeks ' + name + ' Week 1, 2…', run: ()=> numberHiatusHere(row)},
+           note: 'Labels its weeks ' + name + ' wk 1, 2…', run: ()=> numberHiatusHere(row)},
           {id: 'band-colour-' + j, icon: 'palette', text: 'Colour…', run: ()=> hiatusColourHere(ctx, row)},
           {id: 'band-show-' + j, icon: 'sidebar', text: 'Show in Phases card', run: ()=> showHiatusRow(row)},
           {id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true, run: ()=> removeHiatusHere(row)},
@@ -10294,12 +10294,14 @@ export function initLegacyApp() {
     // has hand-edited the band since we last claimed it.
     // `name0` is the band's label, or a function of the week's index (0-based) for an all-phase row whose
     // "Number weeks" is ticked (LABELS-SETUP item 9). `numbered` (a phase's own hiatus only, ruling 8)
-    // appends " Week N" to each week's label, N counting the hiatus's own weeks from its Monday-snapped
+    // appends " wk N" to each week's label, N counting the hiatus's own weeks from its Monday-snapped
     // start: the weeks its Weeks box asks for. The two never meet: item 9 leaves phases' own hiatuses
     // unnumbered, and ruling 8 passes a plain string.
-    // ⭐ BOTH READ "<name> Week N" (owner, 20 Oct 2026, by button: "Make both Number weeks boxes read the
-    // same way"). Ruling 8 was built as "wk N" on its own branch and item 9 as "Week N"; the merge showed
-    // the two side by side, and the owner chose item 9's.
+    // ⭐ BOTH READ "<name> wk N" (owner, 20 Oct 2026): "It should be 'wk' not 'Week' for consistency with
+    // all the other phases" -- a phase's weeks read "Production wk 1". Item 9 was built as "Week N" on its own
+    // branch and ruling 8 as "wk N"; the merge put them side by side, the owner first chose "Week N" for both,
+    // then "wk N" for both the same evening. ⚠️ Never "Week": that is the MONTH view's word for a Production
+    // week ("Production Week 3"), not the waterfall's.
     const applyRange = (name0, startStr, weeksStr, makeKey, numbered) => {
       // ⛔ Capped at MAX_WEEKS BEFORE the loop (audit M-15/L-25). This runs from update() ahead of
       // computeSchedule, so the 600-week guard that refuses a typo'd calendar comes too late to stop
@@ -10316,7 +10318,7 @@ export function initLegacyApp() {
         const owned = (key in hiatusTexts) ? (hiatusNameSyncedKeys[key] === hiatusTexts[key]) : true;
         if(!owned) continue; // hand-edited since we last claimed it -- never touch, never claim
         if(name){
-          const label = numbered ? name + ' Week ' + (i + 1) : name;
+          const label = numbered ? name + ' wk ' + (i + 1) : name;
           if(hiatusTexts[key] !== label) hiatusTexts[key] = label;
           hiatusNameSyncedKeys[key] = label;
         } else if(key in hiatusTexts){
@@ -10330,12 +10332,12 @@ export function initLegacyApp() {
       const name = ((row.querySelector('.hiatus-name')||{}).value || '').trim();
       const startStr = (row.querySelector('.hiatus-start')||{}).value;
       const weeksStr = (row.querySelector('.hiatus-weeks')||{}).value;
-      // ⭐ NUMBERED (owner, 20 Oct 2026, item 9): "Hiatus Week 1", "Hiatus Week 2" … on every band of the
+      // ⭐ NUMBERED (owner, 20 Oct 2026, item 9): "Hiatus wk 1", "Hiatus wk 2" … on every band of the
       // row, the default label standing in for a blank name. Written into hiatusTexts like a name, so the
       // waterfall, Excel, both PDFs and the month view all print it with no frozen edit, and a band renamed
       // by hand keeps its text (the ownership rule above). Unticked, the row is exactly what it was.
       const numbered = !!(row.querySelector('.hiatus-num') || {}).checked;
-      applyRange(numbered ? (i => (name || HIATUS_DEFAULT_LABEL) + ' Week ' + (i + 1)) : name, startStr, weeksStr, wk => wk);
+      applyRange(numbered ? (i => (name || HIATUS_DEFAULT_LABEL) + ' wk ' + (i + 1)) : name, startStr, weeksStr, wk => wk);
     });
     // Per-phase hiatus: only while its own toggle is on, matching readState()'s own gate --
     // an unchecked phase's start/weeks fields still hold values but describe nothing active.
