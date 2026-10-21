@@ -35,6 +35,42 @@
 - ⏭ **Next:** the owner's picker to merge into `main`, then a separate push picker. Owner's open question: whether
   folds should be remembered after reopening the app (built as session-only).
 
+### 🔨 20 Oct 2026 (late night): THE COLUMN-HEADING EDITOR REBUILT AS ONE BOX + SPLIT / MERGE BUTTONS — branch `heading-merge` (worktree `.claude/worktrees/heading-merge`, cut from local `main` at `d7c6d99`); FULL GATE GREEN; NOT IN `main`, NOT PUSHED
+
+- **The ask.** Owner, with a screenshot of v1.6.0's heading panel (a "Writing" heading over Column 1 + Notes, two
+  boxes both reading "Writing"): *"this is a really confusing/convaluted way to have this menu ... you have to
+  understand that if you change the notes collumn to something other than writing, it is THEN going to split the
+  header row into 2. Why would that be intuitive? we need a better way"*. Offered two designs by picker; chose
+  **"Split/Merge buttons"** over "Column strip" (a picture of the year's columns with clickable gaps). An
+  on-grid drag of a heading's edge was ruled out before asking: the column-width handles (`.grid-resize.is-col`,
+  frozen `installGridResizers`) already own every column border, header row included.
+- **What it does now.** Click a heading → ONE box for the whole heading, then **← Merge · Split · Merge →**, a
+  line "Covers N columns · Reset", and a ring (`.hdrrow-ring`, body-level, never a class on the `<th>`) over the
+  heading being edited. ⛔ **Typing never splits or joins**: only the buttons change what a heading covers. Split
+  gives each column its own heading with the SAME text and opens on the first piece; Merge takes THIS heading's
+  text; each button saves the typed text in the same undo step and re-opens on the heading it made. Reset = the
+  columns' defaults, rejoined to a neighbour that reads the same (only where a reset column is involved).
+- **The model.** Identical neighbours still merge (v1.6.0's rule), EXCEPT where the new key **`headerRowSplits`**
+  lists the right-hand column. `{key: true}` in memory, a sorted ARRAY of column keys in the file, written only
+  when non-empty, restored unconditionally, dropped/filtered by `sanitizeSnapshot`, cleared by New, stripped
+  nowhere else (labels are keyed by column, not week, so the shift tools never touch either). An edit rewrites
+  the edited year's keys whole from (groups, texts) — `headerRowEdit()` then `commitHeaderRowEdit()` — so a split
+  exists ONLY between two same-text headings and the file stays canonical.
+- **No frozen body changed.** `headerRowRuns()` is not on the frozen list and is what all three writers' custom-
+  heading path already draws; it gained one condition. Default calendars never reach it (`headerRowCustom` off),
+  so every baseline is untouched by construction.
+- **Proof:** `npm run check` 40/40. `hdrrow` **35/35, twice**, on the build (private port 9263): H3–H5, H12
+  rewritten for the one-box panel, S1–S5 new, N1 now proves New leaves no split. **Five mutants, each red:** runs
+  ignore splits (EX: the second piece never appears), restore keeps the previous file's splits (S1/S3/S4/S5), New
+  keeps them (N1, re-run alone; its first run threw EX under load), typing merges (EX), splits not saved
+  (S1/S2/S3/S5). `settingswin` 17/17, `sharecopy2` pass (the strip list gained `.hdrrow-ring`). Seen in the browser
+  pane on `v1.6.0-saved` (Split, type, ← Merge, Merge →, Reset, ⌘Z) including the owner's exact case.
+- ✅ **Committed** as `6bc37c9` on the owner's picker (*"Commit to the branch"*, *"Run the full gate"*).
+- ✅ **Full gate PASSED: 2,560 PASS, 0 FAIL** (build `8f963d1a…` at `6bc37c9`, port 9263, 21 Oct 01:43:06–02:07:40,
+  queued until no other session's gate, mini-gate or gate-waiter was alive). `hdrrow` 35/35 inside it; 0 clipped
+  cells; the waterfall PDF and every Excel part identical to the baselines; the v1.0.0 restore identical; 76 ids.
+- ⏭ **Next:** the owner's picker to merge `heading-merge` into `main`, then a SEPARATE push picker. Not pushed.
+
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the

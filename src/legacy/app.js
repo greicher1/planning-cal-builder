@@ -3115,8 +3115,13 @@ export function initLegacyApp() {
   // ⚠️ Keyed by COLUMN, not by phase (the ruling: "labels are per column"): a stint swap moves the
   // phases under a heading and leaves the heading where it is. Single Column Mode's one block is the
   // first year's, so its columns read that year's labels.
+  // ⭐ `headerRowSplits` (20 Oct 2026, the editor's Split, owner's picker "Split/Merge buttons"): the
+  // columns that START a heading although their text matches the column before them -- {key: true}
+  // in memory, a sorted array of keys in the file, written only when non-empty. A file without it reads
+  // exactly as v1.6.0 did (identical neighbours merge); the key only ever keeps two of them apart.
   let headerRowCustom = false;
   let headerRowLabels = {};
+  let headerRowSplits = {};
   const HDR_ROW_KEY = /^y\d{4}:(?:date|notes|s\d{1,3})$/;
   const HDR_ROW_MAX = 200;   // characters; a heading is one line, and Excel caps a cell at 32,767
   function headerRowDefault(block, key){ return /:notes$/.test(key) ? 'Notes' : String(block.year); }
@@ -3124,15 +3129,16 @@ export function initLegacyApp() {
     return Object.prototype.hasOwnProperty.call(headerRowLabels, key) ? headerRowLabels[key]
       : headerRowDefault(block, key);
   }
-  // One year block's headings as RUNS of identical neighbouring text: {text, start, span, keys, chars}.
-  // `cols` is sheetColumnWidths()' flat list for the block -- the same list all three writers already
-  // walk -- so a run's columns and widths are the ones the screen, Excel and the PDF draw.
+  // One year block's headings as RUNS of identical neighbouring text, unless a Split keeps two apart:
+  // {text, start, span, keys, chars}. `cols` is sheetColumnWidths()' flat list for the block -- the same
+  // list all three writers already walk -- so a run's columns and widths are the ones the screen, Excel
+  // and the PDF draw.
   function headerRowRuns(block, cols){
     const runs = [];
     cols.forEach((c, i)=>{
       const text = headerRowLabel(block, c.key);
       const last = runs[runs.length - 1];
-      if(last && last.text === text){ last.span++; last.keys.push(c.key); last.chars += c.chars; }
+      if(last && last.text === text && headerRowSplits[c.key] !== true){ last.span++; last.keys.push(c.key); last.chars += c.chars; }
       else runs.push({ text, start: i, span: 1, keys: [c.key], chars: c.chars });
     });
     return runs;
@@ -18887,17 +18893,27 @@ export function initLegacyApp() {
   // shareable copy's strip list all cover it). ⛔ NO id on anything in it: collectFieldValues() sweeps
   // every input[id] in the document, and this panel is outside every skipped class (UI-CONVENTIONS
   // §10 item 9).
-  // A heading is PER COLUMN, so the panel shows one field per column of the clicked cell -- a merged
-  // cell is several columns that happen to read the same, and typing a different word into one of them
-  // is how it splits. The field under the pointer takes focus. Enter or a click outside saves, as one
-  // undo step; Esc cancels; Reset returns these columns to their defaults (the year, or "Notes").
-  let activeHdrRowPop = null;   // { pop, th, place, fields: [{key, input, def}] }
+  // ⭐ REDESIGNED 20 Oct 2026. Owner, on the first editor: *"this is a really confusing/convaluted way to
+  // have this menu ... Why would that be intuitive? we need a better way"*. It showed one field per column
+  // of a merged heading, and a heading split only when two of those fields were typed differently: the
+  // columns a heading covered were a side effect of its text. Now (owner's picker, "Split/Merge buttons")
+  // the two are independent. ONE field edits the whole heading, and only the buttons change what it
+  // covers: Split gives each column its own heading (the same text, kept apart by headerRowSplits), and
+  // ← Merge / Merge → join it with the heading beside it, which takes this heading's text. Typing never
+  // splits or joins anything: a heading typed to read the same as its neighbour stays apart from it.
+  // Enter or a click outside saves the text; each button saves it too, in the same undo step, and opens
+  // the editor again on the heading it made. Esc cancels; Reset returns the heading's columns to their
+  // defaults (the year, or "Notes"), where they rejoin a neighbour that reads the same.
+  // A ring over the heading being edited (.hdrrow-ring, body-level, never a class on the cell) says
+  // which one it is: after a Split every piece reads the same.
+  let activeHdrRowPop = null;   // { pop, ring, th, place, block, runs, ri, input }
   function closeHeaderRowPop(){
     if(!activeHdrRowPop) return;
-    const { pop, place } = activeHdrRowPop;
+    const { pop, ring, place } = activeHdrRowPop;
     window.removeEventListener('scroll', place, true);
     window.removeEventListener('resize', place);
     pop.remove();
+    ring.remove();
     activeHdrRowPop = null;
   }
   // One line, no control characters (a pasted tab or newline included), capped -- the same shape
@@ -18905,62 +18921,114 @@ export function initLegacyApp() {
   function cleanHeadingText(v){
     return stripXmlIllegal(v, ' ').replace(/[\r\n\t]+/g, ' ').trim().slice(0, HDR_ROW_MAX);
   }
-  function commitHeaderRowPop(toDefaults){
-    if(!activeHdrRowPop) return;
-    const { fields } = activeHdrRowPop;
-    closeHeaderRowPop();
-    const next = Object.assign({}, headerRowLabels);
-    fields.forEach(f=>{
-      const v = toDefaults ? f.def : cleanHeadingText(f.input.value);
-      // A heading typed back to its default is no longer a typed heading: it follows the year again.
-      if(v === f.def) delete next[f.key]; else next[f.key] = v;
-    });
-    if(JSON.stringify(next) === JSON.stringify(headerRowLabels)) return;
-    asOneHeaderStep(()=>{
-      headerRowLabels = next;
-      render(currentSchedule);
-      markDirty();
-    });
+  // The edit, as the block's headings AFTER it: `groups` (each heading's column keys, in order) and
+  // `texts`. `how` is 'text', 'split', 'left', 'right' or 'reset'. Returns the groups, the texts and the
+  // first column key of the heading the editor should open on next (null: close it).
+  function headerRowEdit(how, block, runs, ri, text){
+    let groups = runs.map(r => r.keys.slice()), texts = runs.map(r => r.text);
+    let next = null;
+    if(how === 'split'){
+      const own = groups[ri];
+      groups.splice(ri, 1, ...own.map(k => [k]));
+      texts.splice(ri, 1, ...own.map(()=> text));
+      next = own[0];
+    } else if(how === 'left' && ri > 0){
+      groups.splice(ri - 1, 2, groups[ri - 1].concat(groups[ri]));
+      texts.splice(ri - 1, 2, text);
+      next = groups[ri - 1][0];
+    } else if(how === 'right' && ri < runs.length - 1){
+      groups.splice(ri, 2, groups[ri].concat(groups[ri + 1]));
+      texts.splice(ri, 2, text);
+      next = groups[ri][0];
+    } else if(how === 'reset'){
+      // Each column back to its own default, then joined to any neighbour that reads the same -- but
+      // only where the join touches a reset column, so headings the user kept apart elsewhere stay so.
+      const own = new Set(groups[ri]);
+      const g = [], t = [];
+      groups.forEach((keys, i)=>{
+        if(i !== ri){ g.push(keys); t.push(texts[i]); return; }
+        keys.forEach(k=>{ g.push([k]); t.push(headerRowDefault(block, k)); });
+      });
+      groups = [g[0]]; texts = [t[0]];
+      for(let i = 1; i < g.length; i++){
+        const last = groups.length - 1;
+        const touches = groups[last].some(k => own.has(k)) || g[i].some(k => own.has(k));
+        if(touches && texts[last] === t[i]) groups[last] = groups[last].concat(g[i]);
+        else { groups.push(g[i]); texts.push(t[i]); }
+      }
+    } else {
+      texts[ri] = text;
+    }
+    return { groups, texts, next };
   }
-  function headingColumnName(key){
-    if(/:date$/.test(key)) return 'Date column';
-    if(/:notes$/.test(key)) return 'Notes column';
-    const m = key.match(/:s(\d+)$/);
-    return m ? 'Column ' + (+m[1] + 1) : key;
-  }
-  function openHeaderRowPop(th, clientX){
+  // Write the block's headings back as the two stores: a column's text only where it is not its default,
+  // and a split only where two neighbouring headings read the same (anywhere else it would be inert).
+  // The block's own keys are rewritten whole; every other block's are left exactly as they were.
+  function commitHeaderRowEdit(how){
+    const a = activeHdrRowPop;
+    if(!a) return null;
+    const { block, runs, ri } = a;
+    const text = cleanHeadingText(a.input.value);
     closeHeaderRowPop();
-    if(!currentSchedule || !currentSchedule.weeks) return;
-    // Re-derive the run from the model rather than trusting the markup: the same blocks and column
-    // list the renderer used, found by the run's first column key.
-    const yearBlocks = computeYearBlocks(currentSchedule.weeks);
-    const widths = sheetColumnWidths(currentSchedule, yearBlocks, computeBlockLayout(currentSchedule, yearBlocks));
-    let block = null, run = null;
-    yearBlocks.forEach((b, bi)=>{
-      headerRowRuns(b, widths[bi].cols).forEach(r=>{ if(r.keys[0] === th.dataset.hcol){ block = b; run = r; } });
+    const { groups, texts, next } = headerRowEdit(how, block, runs, ri, text);
+    const labels = Object.assign({}, headerRowLabels), splits = Object.assign({}, headerRowSplits);
+    groups.forEach((keys, gi)=>{
+      keys.forEach((k, i)=>{
+        // A heading typed back to its default is no longer a typed heading: it follows the year again.
+        if(texts[gi] === headerRowDefault(block, k)) delete labels[k]; else labels[k] = texts[gi];
+        if(i === 0 && gi > 0 && texts[gi] === texts[gi - 1]) splits[k] = true; else delete splits[k];
+      });
     });
-    if(!run) return;
-    // Which column of the run is under the pointer: walk the run's <col> widths from the cell's left.
-    let at = 0;
-    {
-      let x = th.getBoundingClientRect().left;
-      run.keys.forEach((k, i)=>{
-        const col = document.querySelector('#table-wrap col[data-ckey="' + k + '"]');
-        const w = col ? (parseFloat(col.style.width) || 0) : 0;
-        if(clientX >= x) at = i;
-        x += w;
+    if(JSON.stringify(labels) !== JSON.stringify(headerRowLabels) || JSON.stringify(splits) !== JSON.stringify(headerRowSplits)){
+      asOneHeaderStep(()=>{
+        headerRowLabels = labels;
+        headerRowSplits = splits;
+        render(currentSchedule);
+        markDirty();
       });
     }
+    return next;
+  }
+  function openHeaderRowPop(th){
+    closeHeaderRowPop();
+    if(!currentSchedule || !currentSchedule.weeks) return;
+    // Re-derive the heading from the model rather than trusting the markup: the same blocks and column
+    // list the renderer used, found by the heading's first column key.
+    const yearBlocks = computeYearBlocks(currentSchedule.weeks);
+    const widths = sheetColumnWidths(currentSchedule, yearBlocks, computeBlockLayout(currentSchedule, yearBlocks));
+    let block = null, runs = null, ri = -1;
+    yearBlocks.forEach((b, bi)=>{
+      const rs = headerRowRuns(b, widths[bi].cols);
+      rs.forEach((r, i)=>{ if(r.keys[0] === th.dataset.hcol){ block = b; runs = rs; ri = i; } });
+    });
+    if(!runs) return;
+    const run = runs[ri], n = run.keys.length;
     const pop = document.createElement('div');
     pop.className = 'note-pop hdrrow-pop';
     pop.innerHTML = `<div class="note-pop-title">${escHtml('Heading · ' + block.year)}</div>
-      <div class="hdrrow-fields">${run.keys.map(k=>`<label class="hdrrow-field"><span>${escHtml(headingColumnName(k))}</span>
-        <input type="text" maxlength="${HDR_ROW_MAX}" spellcheck="false" value="${escHtml(headerRowLabel(block, k))}"></label>`).join('')}</div>
-      <div class="hdrrow-actions"><button type="button" class="hdrrow-reset">Reset</button></div>
-      <div class="note-pop-hint">${run.keys.length > 1 ? 'Neighbouring columns with the same heading merge. ' : ''}Enter to save · Esc to cancel</div>`;
+      <input type="text" class="hdrrow-input" aria-label="Heading" maxlength="${HDR_ROW_MAX}" spellcheck="false" value="${escHtml(run.text)}">
+      <div class="hdrrow-btns">
+        <button type="button" class="hdrrow-btn" data-act="left"${ri > 0 ? '' : ' disabled'} title="Join this heading with the one on its left">← Merge</button>
+        <button type="button" class="hdrrow-btn" data-act="split"${n > 1 ? '' : ' disabled'} title="Give each column under this heading its own heading">Split</button>
+        <button type="button" class="hdrrow-btn" data-act="right"${ri < runs.length - 1 ? '' : ' disabled'} title="Join this heading with the one on its right">Merge →</button>
+      </div>
+      <div class="hdrrow-meta"><span class="hdrrow-covers">Covers ${n} column${n === 1 ? '' : 's'}</span><button type="button" class="hdrrow-reset" title="Put these columns back to their original heading">Reset</button></div>
+      <div class="note-pop-hint">Enter to save · Esc to cancel</div>`;
+    const ring = document.createElement('div');
+    ring.className = 'hdrrow-ring';
+    document.body.appendChild(ring);
     document.body.appendChild(pop);
     const place = ()=>{
       const r = th.getBoundingClientRect();
+      // The ring is clipped to the grid's scroll box, so a heading scrolled sideways out of view takes
+      // its ring with it instead of leaving it floating over the sidebar.
+      const box = th.closest('.sheet-scroll');
+      const c = box ? box.getBoundingClientRect() : r;
+      const left = Math.max(r.left, c.left), right = Math.min(r.right, c.right);
+      const top = Math.max(r.top, c.top), bottom = Math.min(r.bottom, c.bottom);
+      ring.hidden = !(right > left && bottom > top);
+      Object.assign(ring.style, { left: (window.scrollX + left) + 'px', top: (window.scrollY + top) + 'px',
+        width: Math.max(0, right - left) + 'px', height: Math.max(0, bottom - top) + 'px' });
       pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
       pop.style.left = (window.scrollX + r.left) + 'px';
       const pr = pop.getBoundingClientRect();
@@ -18971,33 +19039,42 @@ export function initLegacyApp() {
     place();
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
-    const inputs = [...pop.querySelectorAll('input')];
-    activeHdrRowPop = { pop, th, place,
-      fields: run.keys.map((k, i)=>({ key: k, input: inputs[i], def: headerRowDefault(block, k) })) };
-    pop.querySelector('.hdrrow-reset').addEventListener('click', e=>{ e.stopPropagation(); commitHeaderRowPop(true); });
-    const focus = inputs[at] || inputs[0];
-    focus.focus();
-    focus.select();
+    const input = pop.querySelector('.hdrrow-input');
+    activeHdrRowPop = { pop, ring, th, place, block, runs, ri, input };
+    // ⛔ stopPropagation on every button: the document's click-outside handler runs after this one, and
+    // by then the editor may be open again on a NEW heading whose panel does not contain this button.
+    pop.querySelectorAll('.hdrrow-btn').forEach(b=>{
+      b.addEventListener('click', e=>{
+        e.stopPropagation();
+        const key = commitHeaderRowEdit(b.dataset.act);
+        const fresh = key && document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + key + '"]');
+        if(fresh) openHeaderRowPop(fresh);
+      });
+    });
+    pop.querySelector('.hdrrow-reset').addEventListener('click', e=>{ e.stopPropagation(); commitHeaderRowEdit('reset'); });
+    input.focus();
+    input.select();
   }
   document.getElementById('table-wrap').addEventListener('click', e=>{
     const th = e.target && e.target.closest ? e.target.closest('th.hdrrow-cell[data-hcol]') : null;
     if(!th) return;
     e.stopPropagation();
     if(activeHdrRowPop && activeHdrRowPop.th === th) return;   // already editing this heading
-    if(activeHdrRowPop) commitHeaderRowPop();                  // re-renders; find the fresh cell
+    if(activeHdrRowPop) commitHeaderRowEdit('text');           // re-renders; find the fresh cell
     const fresh = th.isConnected ? th
       : document.querySelector('#table-wrap th.hdrrow-cell[data-hcol="' + th.dataset.hcol + '"]');
-    if(fresh) openHeaderRowPop(fresh, e.clientX);
+    if(fresh) openHeaderRowPop(fresh);
   });
   document.addEventListener('click', e=>{
     if(!activeHdrRowPop) return;
     if(activeHdrRowPop.pop.contains(e.target) || activeHdrRowPop.th.contains(e.target)) return;
-    commitHeaderRowPop();
+    commitHeaderRowEdit('text');
   });
   document.addEventListener('keydown', e=>{
     if(!activeHdrRowPop) return;
     if(e.key === 'Escape'){ e.preventDefault(); closeHeaderRowPop(); return; }
-    if(e.key === 'Enter'){ e.preventDefault(); commitHeaderRowPop(); }
+    // Enter on a focused button is that button's own click, not a save of the text.
+    if(e.key === 'Enter' && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); commitHeaderRowEdit('text'); }
   });
   // ⛔ A render that rebuilds the grid under an open editor (an undo, a Load, the switch turned off)
   // leaves it anchored to a detached cell. Observed, not hooked: nothing in render() is edited
@@ -19821,7 +19898,7 @@ export function initLegacyApp() {
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
     dateFormat = ''; reflectDateFormat();
-    headerRowCustom = false; headerRowLabels = {}; reflectHeaderRowCustom();
+    headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {}; reflectHeaderRowCustom();
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
     mvNumberShootDays = false; reflectMvNumberShootDays();
@@ -20021,10 +20098,12 @@ export function initLegacyApp() {
     // .day-menu / .day-menu-ring added 19 Oct 2026 with the month view's day menu
     // (MONTH-CONTEXT-MENU-PLAN.md): body-level, and a Shift+Cmd+E pressed with it open exports it.
     // .paste-notes-overlay added 20 Oct 2026 with Paste notes… (MONTH-NOTES-PLAN.md §5)
+    // .hdrrow-ring added 20 Oct 2026 with the heading editor's Split/Merge redesign: the ring over the
+    // heading being edited, body-level beside its .note-pop panel (which the first entry already strips).
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield').forEach(el=>el.remove());
     // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
     // format bar, the Side boxes menu and the drag indicator are all body-level.
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
@@ -20446,6 +20525,10 @@ export function initLegacyApp() {
       // calendar that never uses them saves byte for byte as before.
       ...(headerRowCustom ? {headerRowCustom: true} : {}),
       ...(Object.keys(headerRowLabels).length ? {headerRowLabels} : {}),
+      // 20 Oct 2026, the heading editor's Split: the columns that start a heading although they read the
+      // same as the column before. ⛔ PERMANENT key; a sorted array, written only when non-empty, so a
+      // calendar that never splits a heading saves byte for byte as before.
+      ...(Object.keys(headerRowSplits).length ? {headerRowSplits: Object.keys(headerRowSplits).sort()} : {}),
       // 20 Oct 2026 (SIDE-BOXES-PLAN.md, owner ruling 7): the boxes beside the waterfall. ⛔ PERMANENT key.
       // Written ONLY while a box exists, so a calendar with none saves byte for byte as before.
       ...(sideBoxes.length ? {sideBoxes: {boxes: sideBoxes, widths: sideWidths}} : {}),
@@ -26489,6 +26572,11 @@ export function initLegacyApp() {
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
     if('headerRowCustom' in s && typeof s.headerRowCustom !== 'boolean'){ bad.n++; delete s.headerRowCustom; }
+    // The headings a Split keeps apart: column keys only, in an array; anything else is dropped.
+    if('headerRowSplits' in s){
+      if(!Array.isArray(s.headerRowSplits)){ bad.n++; delete s.headerRowSplits; }
+      else s.headerRowSplits = s.headerRowSplits.filter(k=>{ if(typeof k === 'string' && HDR_ROW_KEY.test(k)) return true; bad.n++; return false; });
+    }
     // Side boxes (SIDE-BOXES-PLAN.md §7): every string, format, colour key and width checked here, and
     // an empty set dropped -- the app never writes one, and absent already means "no boxes".
     if('sideBoxes' in s){
@@ -26824,6 +26912,9 @@ export function initLegacyApp() {
     headerRowCustom = snap.headerRowCustom === true;
     headerRowLabels = (snap.headerRowLabels && typeof snap.headerRowLabels === 'object')
       ? Object.assign({}, snap.headerRowLabels) : {};
+    // ...and the splits: no key = none, never the previous file's (a v1.6.0 file merges as it always did).
+    headerRowSplits = {};
+    if(Array.isArray(snap.headerRowSplits)) snap.headerRowSplits.forEach(k=>{ if(typeof k === 'string') headerRowSplits[k] = true; });
     reflectHeaderRowCustom();
     // ⛔ UNCONDITIONAL, for the same reason: a file with no key is NOT CHOSEN (follow Schedule by) --
     // never whatever the previously open file chose.

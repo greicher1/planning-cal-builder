@@ -2602,19 +2602,35 @@
   /* Custom column headings (owner ruling 2, 20 Oct 2026; HEADER-ROW-PLAN.md §4). The heading cells
      keep every frozen th rule -- fill, type, padding, the sticky row -- and only gain the click-to-edit
      cursor and a hover ring, scoped to #table-wrap so the print fallback in #print-root never sees
-     either. The editor is a .note-pop: one labelled field per column of the clicked cell. */
+     either. The editor is a .note-pop: one field for the whole heading, then ← Merge / Split / Merge →
+     (the Split/Merge redesign, 20 Oct 2026), and .hdrrow-ring, a body-level ring over the heading being
+     edited -- the same accent as the hover ring, never a class on the cell. */
   #table-wrap th.hdrrow-cell{ cursor:text; }
   #table-wrap th.hdrrow-cell:hover{ box-shadow: inset 0 2px 0 var(--text), 0 1px 0 #C6C6C6, inset 0 0 0 2px rgba(112,48,160,.55); }
-  .hdrrow-fields{ display:flex; flex-direction:column; gap:var(--mantine-spacing-xs); }
-  .hdrrow-field{ display:flex; align-items:center; gap:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-7); }
-  .hdrrow-field span{ flex:0 0 84px; }
-  .hdrrow-field input{
-    flex:1; min-width:0; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
+  .hdrrow-ring{
+    position:absolute; z-index:59; pointer-events:none; border-radius:1px;
+    box-shadow:inset 0 0 0 2px var(--edit-accent);
+  }
+  .hdrrow-input{
+    width:100%; box-sizing:border-box; font-family:inherit; font-size:var(--mantine-font-size-sm);
     color:var(--mantine-color-black); background:var(--mantine-color-white);
     border:1px solid var(--mantine-color-gray-4); border-radius:var(--mantine-radius-md);
     padding:4px var(--mantine-spacing-sm);
   }
-  .hdrrow-actions{ margin-top:var(--mantine-spacing-sm); }
+  .hdrrow-btns{ display:flex; gap:var(--mantine-spacing-xs); margin-top:var(--mantine-spacing-sm); }
+  .hdrrow-btn{
+    flex:1 1 0; min-width:0; white-space:nowrap;
+    font-family:inherit; font-size:var(--mantine-font-size-xs); font-weight:500;
+    color:var(--mantine-color-gray-9); background:var(--mantine-color-white);
+    border:1px solid var(--mantine-color-gray-3); border-radius:var(--mantine-radius-sm);
+    padding:5px 4px; cursor:pointer;
+  }
+  .hdrrow-btn:hover:not(:disabled){ background:var(--mantine-color-gray-0); }
+  .hdrrow-btn:disabled{ color:var(--mantine-color-gray-5); background:var(--mantine-color-gray-0); cursor:default; }
+  .hdrrow-meta{
+    display:flex; align-items:baseline; justify-content:space-between; gap:var(--mantine-spacing-sm);
+    margin-top:var(--mantine-spacing-sm); font-size:var(--mantine-font-size-xs); color:var(--mantine-color-gray-6);
+  }
   .hdrrow-reset{
     font:inherit; font-size:var(--mantine-font-size-xs); color:var(--mantine-primary-color-filled);
     background:none; border:0; padding:0; cursor:pointer;
