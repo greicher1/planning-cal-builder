@@ -196,7 +196,7 @@
 - ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
   merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
 
-### 🔨 20 Oct 2026: "put paste notes into settings" — BUILT on branch `claude/paste-notes-settings` (from `main` at `669fbdd`, v1.6.0 live), NOT MERGED
+### 🔨 20 Oct 2026: "put paste notes into settings" — MERGED INTO LOCAL `main`, GATED 2,560 / 0, NOT PUSHED (owner: "Hold the push")
 
 - Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
   stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
@@ -223,7 +223,12 @@
   on this build and on the live `releases/v1.6.0.html`: this build 17/17 in four of five runs (H14 once), v1.6.0 H14
   once in three. ⚠️ So H14 flakes on the live app too under load; nothing here touches it. `main`'s docs-only commits
   merged in (`4b2df5a`); the build is unchanged.
-- ⏭ **Next:** the owner's merge and push pickers.
+- Owner, by picker: *"Yes, merge into main"*, *"Hold the push"*. Before the fast-forward, another session PUSHED a code
+  change ("Column headings: one box per heading, with Split and Merge buttons", live at `38840c2`), so `main` was merged
+  in (`c3e41f6`; README conflict only) and the combined build `3a0f6250…` re-gated: **2,560 PASS, 0 FAIL, GATE PASSED**
+  (port 8961, 04:10:14–04:34:59, alone). `main`'s next commits were docs plus `phiatusnum` H16, merged in with the build
+  unchanged; the updated `phiatusnum` passes 18/18 on it (H14's load flake once first).
+- ✅ **Merged into local `main` (fast-forward). NOT PUSHED**, on the owner's "Hold the push". A later push carries it.
 
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
