@@ -186,9 +186,12 @@ PY
 #   mvheader        the month header in Template mode, all four slots
 #   mvheaderlegacy  a Manual header saved before templates existed -- braces must print literally
 #   blocks          block shooting ON: the step-4 block tag (BLOCKS-PLAN §5), a frozen edit
-#   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all, held to the
-#                   REFERENCE baseline -- BLOCKS-PLAN §5 condition 3 ("no change at all with Blocks
-#                   off") as byte identity against a baseline cut before Blocks existed
+#   blocksoff       ⭐ the SAME calendar switched to Episodes, dormant blocks and all -- BLOCKS-PLAN §5
+#                   condition 3 ("no change at all with Blocks off"). It was held to the REFERENCE baseline
+#                   until 20 Oct 2026 (late), when an episode's bar began reading its NAME: this fixture,
+#                   saved by an older build, reads "Episode N" and reference (typed in fresh) "Shoot Ep. N".
+#                   So it has its own baseline now, and the block after this loop still holds it to
+#                   reference's, byte for byte, once both names are read as the episode
 #   dayoverrides-onhalf  ⭐ ADDED 29 Sep 2026 (batch-3 step 0): 'onhalf' marks -- a weekend or holiday
 #                   worked as a half day -- which bdfec60's frozen renderMonthView edit draws. A NEW
 #                   case, not a re-cut; cut before 3.6 edits the same function
@@ -205,7 +208,7 @@ PY
 # Each spec is <label>:<fixture, or - for T.buildFixture()>:<baseline case>.
 MPBASE="$HERE/../baselines/2026-09-22-monthprint"
 for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvheader:mvheader:mvheader \
-              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:reference \
+              mvheaderlegacy:mvheaderlegacy:mvheaderlegacy blocks:blocks:blocks blocksoff:blocksoff:blocksoff \
               dayoverrides-onhalf:dayoverrides-onhalf:dayoverrides-onhalf \
               month-lanecap:month-lanecap:month-lanecap hiatus-blanklabel:hiatus-blanklabel:hiatus-blanklabel \
               halfdays:halfdays:halfdays mvnotes:mvnotes:mvnotes; do
@@ -217,6 +220,19 @@ for MPSPEC in reference:-:reference dayoverrides:dayoverrides:dayoverrides mvhea
   MPLABEL="$MPCASE"; [[ $MPBCASE != $MPCASE ]] && MPLABEL="$MPCASE (vs the $MPBCASE baseline)"
   python3 "$HERE/monthcmp.py" gate "$HERE/monthprint.json" "$HERE/monthprint.print.pdf" "$MPBASE" "$MPBCASE" "$MPLABEL" || FAIL=1
 done
+# ⭐ BLOCKS-PLAN §5 condition 3, kept when blocksoff took its own baseline (20 Oct 2026): Blocks switched off prints
+# exactly the reference calendar, once each document's episode names ("Episode N" in this older file, "Shoot Ep. N" in
+# reference, typed in fresh) are read as the episode, and the dotted date stamp as a stamp.
+python3 - "$HERE/monthprint-blocksoff.json" "$MPBASE/reference.html" <<'PYBO' || FAIL=1
+import json,re,sys
+try: new=json.load(open(sys.argv[1]))['printHtml']; ref=open(sys.argv[2]).read()
+except Exception as e:
+    print('  FAIL  monthprint blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
+norm=lambda s: re.sub(r'\b\d{1,2}\.\d{1,2}\.\d{2}\b','STAMP',re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s))
+ok=norm(new)==norm(ref) and len(re.findall(r'Episode \d+',new))>0
+print(('  PASS  ' if ok else '  FAIL  ')+'monthprint blocksoff: ⭐ identical to reference\'s baseline once episode names are read as the episode (Blocks off changes nothing)')
+sys.exit(0 if ok else 1)
+PYBO
 
 # ---- colswap: the grid COLUMN-ORDER reconciler, end to end through a real restore path ----------
 # Driven by HARNESS_STATE, which substitutes a fixture into the page's own <script id="saved-state">
@@ -1990,11 +2006,12 @@ PYMXC
 #                                       Re-cut with that output in the baselines' README, and tell the owner.
 #   "THE CONTENT MOVED"                 each part that differs, named (page and month, font, page tree). Never re-cut
 #                                       without the owner's sign-off on `monthbase.py sheets`' contact sheets.
-# rz and rw (UTC+14, a 1280 px window) and blocksoff (Blocks switched to Episodes) have no baseline of their own: they
-# are held to reference's, as gate 10 holds blocksoff.
+# rz and rw (UTC+14, a 1280 px window) have no baseline of their own: they are held to reference's. blocksoff (Blocks
+# switched to Episodes) has its own since 20 Oct 2026 (its older file reads "Episode N", reference "Shoot Ep. N"); the
+# block after this loop still holds its text to reference's once both names are read as the episode.
 MWBASE="$HERE/../baselines/2026-10-05-monthwriter"
 for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:reference:reference, a 1280 px window" \
-              "b:blocks:blocks" "bo:reference:blocksoff, held to reference" "ms:monthscale:monthscale" \
+              "b:blocks:blocks" "bo:blocksoff:blocksoff" "ms:monthscale:monthscale" \
               "sp:colswap-simpost-refuse:colswap-simpost-refuse" "sr:stintswap-reshape:stintswap-reshape" \
               "do:dayoverrides:dayoverrides" "mh:mvheader:mvheader" "ml:mvheaderlegacy:mvheaderlegacy" \
               "oh:dayoverrides-onhalf:dayoverrides-onhalf" "lc:month-lanecap:month-lanecap" \
@@ -2004,6 +2021,18 @@ for MWSPEC in "r:reference:reference" "rz:reference:reference, UTC+14" "rw:refer
   MWRUN="${MWSPEC%%:*}"; MWREST="${MWSPEC#*:}"; MWCASE="${MWREST%%:*}"; MWLABEL="${MWREST#*:}"
   python3 "$HERE/monthbase.py" check "$MXA/$MWRUN.pdf" "$MWBASE/$MWCASE.pdf" --label "gate 13 month PDF ($MWLABEL)" || FAIL=1
 done
+# ⭐ The written PDF's half of the same condition: blocksoff's text is reference's, page by page, once both names are read
+# as the episode. (Bytes cannot match: "Episode 201" and "Shoot Ep. 201" set different glyphs and widths.)
+python3 - "$MXA/bo.pdf" "$MWBASE/reference.pdf" <<'PYBO13' || FAIL=1
+import re,subprocess,sys
+try: a,b=[subprocess.run(['pdftotext','-raw',f,'-'],capture_output=True,text=True,check=True).stdout for f in sys.argv[1:3]]
+except Exception as e:
+    print('  FAIL  gate 13 blocksoff vs reference: could not read: '+str(e)); sys.exit(1)
+norm=lambda s: re.sub(r'(?:Shoot Ep\.|Episode) (\d+)',r'EP\1',s)
+ok=norm(a)==norm(b) and 'Episode ' in a
+print(('  PASS  ' if ok else '  FAIL  ')+'gate 13 month PDF (blocksoff): ⭐ its text is reference\'s once episode names are read as the episode')
+sys.exit(0 if ok else 1)
+PYBO13
 
 # ---- real-time legs (rtleg.mjs): the ones run.sh's virtual clock cannot run -----------------------
 # ⭐ ADDED 30 Sep 2026 (batch 4). Same t/<leg>.js, same #R result, same judge as the AFSPEC loop
@@ -2422,16 +2451,16 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSB
 
-# ---- barprefix: an episode's or block's month-bar prefix ("Shoot Ep. 101"; owner, 20 Oct 2026) ------------------
-# The default "Shoot" before every episode bar but a switch day's one-day half bar, on every calendar; none before a
-# block bar; each unit's own prefix set, blanked and reset from its bar's day menu (hit-tested), one undo step each,
-# saved on its episodeDefs / blockDefs entry only where it departs from the default, restored unconditionally, and
-# validated on Load. halfdays carries the P-cases and writes the month PDF, whose text is read here page by page;
-# blocks carries the B-cases (no default on a block, a block's prefix before its episodes when labelled by episode).
-for BPSTATE in halfdays blocks; do
-  rm -f "$HERE/barprefix.json" "$HERE/barprefix.pdf"
-  HARNESS_PAGE="$PAGE" HARNESS_STATE="$BPSTATE" "$HERE/run.sh" barprefix 300 >/dev/null 2>&1
-  python3 - "$HERE/barprefix.json" "$HERE/barprefix.pdf" "barprefix ($BPSTATE)" "$BPSTATE" <<'PYBP' || FAIL=1
+# ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
+# Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
+# names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off
+# the names it stores, re-derived on every Load); prep pills and episode lists keep the number; a switch day's one-day
+# half bar keeps "Ep. N"; a v1.6.0 file's own prefix still draws as it did until its episode is renamed. halfdays
+# carries the N-cases and writes the month PDF, whose text is read here; blocks carries the B-cases.
+for ENSTATE in halfdays blocks; do
+  rm -f "$HERE/epnames.json" "$HERE/epnames.pdf"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$ENSTATE" "$HERE/run.sh" epnames 300 >/dev/null 2>&1
+  python3 - "$HERE/epnames.json" "$HERE/epnames.pdf" "epnames ($ENSTATE)" "$ENSTATE" <<'PYEN' || FAIL=1
 import json,sys,os,subprocess
 path, pdf, label, st = sys.argv[1:5]
 try: a=json.load(open(path))
@@ -2444,13 +2473,13 @@ bad = not cases or any(c.get('pass') is not True for c in cases)
 if st == 'halfdays':
     try:
         txt = subprocess.run(['pdftotext', '-raw', pdf, '-'], capture_output=True, text=True, check=True).stdout
-        ok = 'Pickup Ep. 202' in txt and 'Shoot Ep. 201' in txt and 'Shoot Ep. 202' not in txt
-        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Pickup Ep. 202" and "Shoot Ep. 201", and no "Shoot Ep. 202"')
+        ok = 'Shoot Ep. 201' in txt and 'Pilot' in txt and 'Shoot Ep. 202' not in txt and 'Episode' not in txt
+        print(('  PASS  ' if ok else '  FAIL  ')+label+': the written month PDF reads "Shoot Ep. 201" and "Pilot", and neither "Shoot Ep. 202" nor "Episode"')
         bad = bad or not ok
     except Exception as e:
         print('  FAIL  '+label+': the month PDF could not be read: '+str(e)); bad = True
 sys.exit(1 if bad else 0)
-PYBP
+PYEN
 done
 
 # ---- shootdays: "Number Production Days", "Day N" on every shoot day in the month view (19 Oct 2026) -------------

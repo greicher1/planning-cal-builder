@@ -4,6 +4,62 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
+  before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
+  you can easily change them and it doesn't mess things up"*. (They first read a recreated calendar's renamed
+  Production phase, "Shoot wk N", as an app change. It was not: the app's "Production wk N" / "Production Week N" are
+  untouched, and nothing here changes them.)
+- **Rulings by picker:** Prefix… **removed**; a renamed episode's bar reads **exactly the name** ("Pilot", not
+  "Shoot Pilot"); **old files keep "Episode 101"** ("Leave them as saved", chosen over renaming on load, knowing their
+  bars then read "Episode 101"); prep pills and episode lists **unchanged** ("Prep 101", "Ep. 201, 202").
+- **Built** (`src/legacy/app.js`, no frozen code): `defaultEpisodeName()` gives "Shoot Ep. N", or "Episode N" while
+  `episodeNamesLegacy`; that flag is NOT a saved key — `applyStateSnapshot()` reads it off the stored names
+  (`storesLegacyEpisodeNames`, any un-renamed "Episode N"), unconditionally; `resetAll()` clears it. `unitBarLabel()`:
+  a bar naming ONE episode reads `def.name`; a one-day half bar keeps the short form (16 Oct ruling); a list bar or a
+  block's or week's reads `unitLabelParts()` as before. `shortEpisodeName()` strips "Shoot Ep. " too. The day menu's
+  Prefix…, its panel, `setBarPrefix`, `BAR_PREFIX_DEFAULT` and the `.barprefix-*` CSS are gone.
+- ⚠️ **`barPrefix` stays a permanent key** (CLAUDE.md's state table): kept, validated, round-tripped, and drawn as
+  v1.6.0 drew it ("Pickup Ep. 202") until that episode is renamed, which deletes it. A block's own prefix stays for
+  good, since blocks cannot be renamed. Only files saved in the hour v1.6.0 was live can carry one.
+- ⚠️ **One v1.6.0 behaviour changed beyond the rulings' words:** a Blocks calendar labelled by episode read "Shoot Ep.
+  201, 202" in v1.6.0 and reads "Ep. 201, 202" now (a list, ruled unchanged, and "Shoot" lives in names now). Tell the
+  owner if it comes up.
+- **Legs:** new `epnames` (10 on halfdays incl. the written PDF's text in gate.sh, 5 on blocks) replaces `barprefix`.
+  Name-agnostic readers ("Shoot Ep. N" / "Episode N" → "Ep. N") in `episodeprep`, `halfmarks`, `labelsetup`,
+  `shootorder`, `pilldrag.mjs`; `pilllabel`'s model; `halfdays` D2s and `epBox` (it types its own calendar, so
+  "Shoot Ep. N"); `episodeprep`'s LIVE run names "Shoot Ep. 30N" (RESTORE's fixture keeps "Episode 30N"); `mvmenu`
+  H1s drops `bar-prefix-0`.
+- **Full gate** (build at `f84b378`, port 9261, 23:23:47–23:48:21, queued behind two other sessions' gates): **2,530
+  PASS, 23 FAIL.** None is an app fault:
+  - 22 are gates 10 and 13 on Episodes FIXTURES (saved by older builds, so their bars now read "Episode N" where
+    v1.6.0's baselines say "Shoot Ep. N"): gate 10's eight print documents (dayoverrides, mvheader, mvheaderlegacy,
+    blocksoff, dayoverrides-onhalf, hiatus-blanklabel, halfdays, mvnotes) and gate 13's fourteen written PDFs.
+    ✅ **Classified, every one:** each gate-10 document is BYTE-IDENTICAL to its baseline once "Shoot Ep. N" (old) and
+    "Episode N" (new) are both read as the episode, with the count equal (40–64 each); each gate-13 PDF's text
+    (`pdftotext -raw`) is identical on the same substitution, counts equal (7–32), no "Shoot Ep" left. `reference`,
+    `blocks`, `month-dense60`, `month-lanecap` and `monthscale` did not move. Contact sheets (`monthbase.py sheets`)
+    for halfdays and shootorder: red only on the bar names and the grey text after them.
+  - ⚠️ **`blocksoff` can no longer be held to `reference`.** It is an older file ("Episode N"), while `reference` is typed
+    in fresh ("Shoot Ep. N"). Matching once names are read as the episode is still true (above), but a re-cut must
+    give it its own baseline in both gates (`blocksoff:blocksoff:blocksoff`, `bo:blocksoff:…`), never re-cut
+    `reference` from it.
+  - 1 was the `shootorder` leg's `episodePills` (it counted any month bar reading "Episode…" as the dormant episode-pill
+    branch; this file's own Production bars now read "Episode 205"). Narrowed to pills without `data-ph="production"`:
+    9/9 through the gate's own evaluator.
+- ✅ **RE-CUT, signed off by the owner by picker** (*"Re-cut gates 10 and 13 for the Episode N change, giving blocksoff its
+  own baseline, then run the final gate"*), at `2370060`: gate 10's seven documents and gate 13's thirteen written PDFs,
+  each the old cut once names are read as the episode; `blocksoff` gets its own file in both gates, and two new gate
+  blocks keep BLOCKS-PLAN §5 condition 3 by holding it to `reference`'s document and text on that reading (both proven
+  red against another calendar). Both baselines' READMEs carry the tables.
+- ✅ **Final full gate** (build `be984cdc…` at `2370060`, port 9261, 03:19:59–03:45:05, alone): **2,520 PASS, 1 FAIL**:
+  `pilllabel (blocks)` threw "timed out waiting for: save write" before its checks ran (the recorded save/IndexedDB
+  timing flake under load). Re-run alone twice through the gate's own evaluator: **35 PASS, 0 FAIL both times.** Gates
+  10 and 13 green on the new cuts, both blocksoff condition-3 checks PASS, `epnames` 10 + 5 and its PDF text check PASS.
+- ⏭ **Next:** the owner's merge picker for `main` and, separately, a push picker (a version cut is the owner's call).
+  Nothing here is in `main`.
+
 ### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; GATED, **LIVE at `49cb1ef`** (verified byte-identical, `0f8adf0d`; no version cut)
 
 - ⏭ **RESUME HERE for the phase-card caret.** Owner: *"There should be a carrot that lets you hide and unhide phases

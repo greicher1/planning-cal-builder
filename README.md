@@ -29,6 +29,31 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
+
+The owner, the evening v1.6.0 shipped its "Shoot" prefix: *"I just wanted the word Shoot before 'Shoot Ep. 101' -
+but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that you can easily change
+them and it doesn't mess things up"*. Four rulings by picker:
+- **New episodes are named "Shoot Ep. 101", "Shoot Ep. 102"…** in the episode list, and **a bar reads its episode's
+  name exactly as typed.** Rename one "Pilot" and its bars read "Pilot". A new calendar's bars look exactly as they
+  did in v1.6.0.
+- **Prefix… is removed** from the month view's day menu. The name is the one thing to edit.
+- **Calendars saved before this keep "Episode 101"** ("Leave them as saved"): their bars read "Episode 101", and an
+  episode added to one is "Episode 111". Nothing in the file format changed; the app reads which style a calendar
+  uses from the names it stores, on every Load, undo and crash recovery.
+- **Prep bars and episode lists are unchanged:** "Prep 101", and "Ep. 201, 202" in grey text and on a Blocks
+  calendar labelled by episode (which read "Shoot Ep. 201, 202" in v1.6.0). A switch day's one-day half bar still
+  reads "Ep. 101" (the 16 Oct ruling: the full name would not fit the half bar in print).
+- **A v1.6.0 file with its own prefix** (set from Prefix… in the hour it was live) still draws it as v1.6.0 did,
+  "Pickup Ep. 202", until that episode is renamed, which drops it. The `barPrefix` key is kept and still validated.
+  A block's own prefix still draws too; blocks cannot be renamed, so it stays.
+
+Verified: new leg `epnames` replaces `barprefix`: 10 cases on halfdays (an old file's names and half bars, no
+Prefix…, a rename on every bar and in the save, an old file keeping its style, a calendar this build names, Load after
+Load, a v1.6.0 prefix kept and dropped by a rename, bad values, the written PDF's text) and 5 on blocks. `halfdays`
+D2s, `episodeprep` (its live run), `labelsetup`, `halfmarks`, `pilllabel`, `mvmenu`, `shootorder` and `pilldrag`
+updated for the names.
+
 ### Unreleased — a caret folds each phase card down to its name (20 Oct 2026)
 
 Owner: *"There should be a carrot that lets you hide and unhide phases within the phases menu. When you hide them it

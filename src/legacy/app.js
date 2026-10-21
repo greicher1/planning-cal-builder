@@ -6430,10 +6430,26 @@ export function initLegacyApp() {
   let blockDefs = [];
   let blockCounter = 0;
   // ⛔ CALENDAR DATA, both stores: an episode's or block's own month-bar prefix, `barPrefix` on its entry
-  // (owner, 20 Oct 2026; unitBarLabel). ABSENT = the default ("Shoot" before an episode bar, none before a
-  // block's), so every calendar saved before it opens with no key and reads the default. A PERMANENT key.
-  const BAR_PREFIX_DEFAULT = 'Shoot';
+  // (owner, 20 Oct 2026; v1.6.0 only). A PERMANENT key, though nothing writes it any more: the same evening
+  // the owner moved "Shoot" into the episode's NAME (episodeNamesLegacy, below) and retired the day menu's
+  // Prefix… that set it. A v1.6.0 file that carries one keeps it, round-trips it, and its bar still reads
+  // the way v1.6.0 drew it (unitBarLabel) until that episode is renamed, which clears it.
   const BAR_PREFIX_MAX = 24;
+  // ⭐ AN EPISODE'S DEFAULT NAME IS ITS MONTH-BAR TEXT (owner, 20 Oct 2026, by picker): "Shoot Ep. 101",
+  // "Shoot Ep. 102"..., so renaming one in the episode list changes exactly what its bar says, with no
+  // second control. It replaced v1.6.0's separate "Shoot" prefix ("so that you can easily change them and it
+  // doesn't mess things up"). Rulings: Prefix… is removed; a typed name is the bar's text as typed;
+  // prep pills and episode LISTS still read the number ("Prep 101", "Ep. 201, 202"; shortEpisodeName).
+  // ⛔ OLD FILES KEEP "Episode 101" (the owner's pick, "Leave them as saved"): a calendar whose stored
+  // names follow the old default keeps naming episodes that way, so an episode added to it is "Episode 111"
+  // beside "Episode 110", and its bars read those names. Not a saved key: applyStateSnapshot() reads it off
+  // the names themselves (an un-renamed "Episode N" can only have been written by an older build), so no
+  // file format moved, and every load, undo and crash recovery re-derives it from the state it restores.
+  const EPISODE_NAME_PREFIX = 'Shoot Ep. ', EPISODE_NAME_PREFIX_LEGACY = 'Episode ';
+  let episodeNamesLegacy = false;
+  function storesLegacyEpisodeNames(defs){
+    return Array.isArray(defs) && defs.some(e=> e && !e.nameEdited && /^Episode \d+$/.test(String(e.name || '')));
+  }
   // false = the episode split is the automatic front-loaded one (ruling 1) and is recomputed
   // whenever the episode or block count changes. true = someone moved an episode by hand, and the
   // assignment is theirs: it is only ever reconciled (new episodes appended, gone ones dropped),
@@ -9534,7 +9550,6 @@ export function initLegacyApp() {
         }
       }
       items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
-      if(key === 'production') barPrefixItems(ctx).forEach(it=> items.push(it));
       items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
       // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
       // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
@@ -9583,33 +9598,6 @@ export function initLegacyApp() {
     // The swatch's own picker, under the bar the menu was opened on. Opening it changes nothing; a pick
     // is one undo step. Its click-away listeners attach after a tick, so the click that chose the item
     // cannot close it.
-    // Prefix… (owner, 20 Oct 2026, "From the bar"): the word before an episode's or block's name on its
-    // bars, "Shoot" by default before an episode (unitBarLabel). One item per unit shot on the day, so a
-    // switch day offers both, each naming its unit and saying what its bars now carry. Labelled by
-    // Production Week there is no bar per unit to carry one, so it is greyed out with that reason.
-    function barPrefixItems(ctx){
-      const U = productionUnits(currentSchedule || {});
-      const units = (U && U.byDay.get(ctx.iso)) || [];
-      if(!units.length) return [];
-      if(!productionSplits(U))
-        return [{id: 'bar-prefix', icon: 'note', text: 'Prefix…', disabled: true,
-          why: 'Production’s bars are labelled by week. Label them by episode or block to give each its own'}];
-      return units.map((u, j)=>{
-        const L = unitLabelParts(U.kind, u, '');
-        const name = (U.kind === 'block' ? L.parts.block : L.parts.episode) || 'this unit';
-        const cur = barPrefixFor(U.kind, u, L.bar);
-        return {id: 'bar-prefix-' + j, icon: 'note', text: 'Prefix…',
-          note: (cur ? '“' + cur + '”' : 'None') + ' before ' + name,
-          run: ()=> openBarPrefixPop(barPrefixAnchor(ctx), U.kind, u, L.bar, name)};
-      });
-    }
-    // The bar if it is still on screen, else the day's square.
-    function barPrefixAnchor(ctx){
-      if(ctx.pill && ctx.pill.isConnected) return ctx.pill;
-      return Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
-        c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; }) || null;
-    }
-
     function phaseColourHere(ctx, key){
       const anchor = (ctx.pill && document.body.contains(ctx.pill)) ? ctx.pill : document.getElementById('swatch-' + key);
       if(!anchor) return;
@@ -11769,7 +11757,8 @@ export function initLegacyApp() {
     return String(s * 100 + index + 1);
   }
   function defaultEpisodeName(index){
-    return 'Episode ' + episodeNumberFor(document.getElementById('season-num').value, index);
+    return (episodeNamesLegacy ? EPISODE_NAME_PREFIX_LEGACY : EPISODE_NAME_PREFIX)
+      + episodeNumberFor(document.getElementById('season-num').value, index);
   }
   function defaultEpisodeDays(){
     const v = dayCountVal(document.getElementById('shoot-days-per-ep').value);
@@ -11897,11 +11886,12 @@ export function initLegacyApp() {
     blockDefs.forEach(b=> b.episodes.sort((a, c)=> pos.get(a) - pos.get(c)));
   }
 
-  // "Episode 201" -> "201": the number is what a UPM reads on a board. A name someone typed that
-  // does not follow the pattern ("Pilot") is shown whole.
+  // "Shoot Ep. 201" (or an older file's "Episode 201") -> "201": the number is what a UPM reads on a
+  // board, so prep pills and episode lists keep reading it (owner, 20 Oct 2026). A name someone typed
+  // that does not follow either pattern ("Pilot") is shown whole.
   function shortEpisodeName(e){
     const nm = (e && e.name) || '';
-    return nm.replace(/^Episode\s+/i, '') || nm;
+    return nm.replace(/^(?:Episode|Shoot\s+Ep\.)\s+/i, '') || nm;
   }
 
   // The episode ids in shooting order (ruling 9). A hand order is RECONCILED on read, never
@@ -12337,118 +12327,34 @@ export function initLegacyApp() {
     return {parts, bar};
   }
   // `run` is the run being named (segPillLabel's, from takeProdRun), for the half-day rule below.
-  // ⭐ THE BAR PREFIX (owner, 20 Oct 2026; first asked 16 Oct: "Can it say 'Shoot' before Ep. 101"). Three
-  // rulings by picker: an episode bar reads "Shoot Ep. 101" by DEFAULT, on every calendar, old files
-  // included; a block bar has no prefix by default but can be given one; and each episode's or block's
-  // prefix is changed or removed from its own bar in the month view (the day menu's Prefix…). The prefix
-  // belongs to the bar's UNIT -- `barPrefix` on its episodeDefs / blockDefs entry, ABSENT = the default for
-  // what the bar reads (barPrefixFor) -- so the grey text never carries it, and dayFacts names the unit bare.
-  // ⛔ A switch day's ONE-DAY HALF BAR takes none (16 Oct ruling, kept): measured then, "Shoot " adds 30.8 px
-  // at the bar's 10px/600, and both month PDFs give that half bar 50 px, so it would print "Shoot E…" and
-  // lose the episode it exists to name. A full one-day bar has about 100 px in print and keeps it.
+  // ⭐ AN EPISODE'S BAR READS ITS NAME, AS TYPED (owner, 20 Oct 2026, by picker; episodeNamesLegacy). A new
+  // calendar names its episodes "Shoot Ep. 101", so its bars read exactly what v1.6.0's "Shoot" prefix
+  // drew; rename one to "Pilot" and its bar reads "Pilot". An older file's "Episode 101" reads "Episode 101"
+  // (the owner's "Leave them as saved"). This replaced the bar prefix (v1.6.0, the same day): first asked
+  // 16 Oct, "Can it say 'Shoot' before Ep. 101", then "I also want the default names to literally be
+  // 'Shoot Ep. 101' ... so that you can easily change them and it doesn't mess things up".
+  // Only a bar that names ONE episode reads a name. A block's bar, a week's, and a Blocks calendar's
+  // bar labelled by its episodes ("Ep. 201, 202", ruled "unchanged") read unitLabelParts()'s text.
+  // ⛔ A switch day's ONE-DAY HALF BAR reads the short form, "Ep. 101" (16 Oct ruling, kept): measured then,
+  // "Shoot " adds 30.8 px at the bar's 10px/600, and both month PDFs give that half bar 50 px, so the full
+  // name would print "Shoot E…" and lose the episode it exists to name. A full one-day bar has about 100 px.
+  // ⚠️ A v1.6.0 file can carry an episode's or block's own `barPrefix` (that build's day menu set it). Its
+  // bar keeps v1.6.0's text, the prefix and then the short form, so the file opens looking as it was saved;
+  // renaming the episode clears it (the episode list's input handler). Nothing writes one any more.
   function unitBarLabel(kind, unit, weekLabel, run){
     const L = unitLabelParts(kind, unit, weekLabel);
     const text = L.parts[L.bar];
     const halfDay = !!run && run.startCol === run.endCol && !!(run.halfStart || run.halfEnd);
-    const pre = halfDay ? '' : barPrefixFor(kind, unit, L.bar);
-    return pre ? pre + ' ' + text : text;
+    if(halfDay) return text;
+    const def = unitDefOf(kind, unit);
+    if(def && typeof def.barPrefix === 'string') return def.barPrefix ? def.barPrefix + ' ' + text : text;
+    if(kind === 'episode' && L.bar === 'episode' && def && def.name) return def.name;
+    return text;
   }
   // The unit's own entry, or null.
   function unitDefOf(kind, unit){
     return kind === 'block' ? (blockDefs[unit.i] || null) : (episodeDefs.find(x=> x.id === unit.id) || null);
   }
-  // What the bar's prefix is when its unit has none of its own: "Shoot" on a bar that reads as episodes,
-  // nothing on one that reads as a block or a week.
-  function barPrefixDefault(bar){ return bar === 'episode' ? BAR_PREFIX_DEFAULT : ''; }
-  function barPrefixFor(kind, unit, bar){
-    const def = unitDefOf(kind, unit);
-    return (def && typeof def.barPrefix === 'string') ? def.barPrefix : barPrefixDefault(bar);
-  }
-  // One undo step, the file dirtied. Stored only where it departs from the default, so a calendar that
-  // never edits one saves byte for byte as before: typing the default back deletes the key. Blank is a
-  // real choice on an episode ("no prefix"), so it is stored there; on a block it IS the default.
-  // render(), not update(): a label moves no date.
-  function setBarPrefix(kind, unit, bar, text){
-    const def = unitDefOf(kind, unit);
-    if(!def) return;
-    const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, BAR_PREFIX_MAX);
-    const next = clean === barPrefixDefault(bar) ? undefined : clean;
-    const prev = (typeof def.barPrefix === 'string') ? def.barPrefix : undefined;
-    if(next === prev) return;
-    pushUndoSnapshot();
-    if(next === undefined) delete def.barPrefix; else def.barPrefix = next;
-    render(currentSchedule);
-    markDirty();
-    pushUndoSnapshot();
-  }
-
-  // The editor the day menu's Prefix… opens: a panel ANCHORED beside the bar and appended to <body>, never
-  // written into the month view (the .note-pop pattern and class, so the overlay family's look, OVER_PANEL
-  // and the shareable copy's strip list all cover it). ⛔ NO id on anything in it: collectFieldValues()
-  // sweeps every input[id] in the document. Enter or a click outside saves; Escape cancels; Reset puts the
-  // default back. A render that rebuilds the month under it closes it (observed, sanctioned pattern 3).
-  let activeBarPrefixPop = null;
-  function closeBarPrefixPop(){
-    const a = activeBarPrefixPop;
-    if(!a) return;
-    activeBarPrefixPop = null;
-    window.removeEventListener('scroll', a.place, true);
-    window.removeEventListener('resize', a.place);
-    a.pop.remove();
-  }
-  function commitBarPrefixPop(toDefault){
-    const a = activeBarPrefixPop;
-    if(!a) return;
-    const text = toDefault ? barPrefixDefault(a.bar) : a.input.value;
-    closeBarPrefixPop();
-    setBarPrefix(a.kind, a.unit, a.bar, text);
-  }
-  function openBarPrefixPop(anchor, kind, unit, bar, unitName){
-    closeBarPrefixPop();
-    if(!anchor || !unitDefOf(kind, unit)) return;
-    const dflt = barPrefixDefault(bar);
-    const pop = document.createElement('div');
-    pop.className = 'note-pop barprefix-pop';
-    pop.innerHTML = `<div class="note-pop-title">${escHtml('Prefix · ' + unitName)}</div>
-      <input type="text" class="barprefix-input" maxlength="${BAR_PREFIX_MAX}" spellcheck="false" placeholder="No prefix"
-        value="${escHtml(barPrefixFor(kind, unit, bar))}">
-      <div class="barprefix-actions"><button type="button" class="barprefix-reset">${dflt ? 'Reset to “' + escHtml(dflt) + '”' : 'Reset'}</button></div>
-      <div class="note-pop-hint">The word before ${escHtml(unitName)} on its bars. Leave it blank for none. Enter to save · Esc to cancel</div>`;
-    document.body.appendChild(pop);
-    const place = ()=>{
-      const r = anchor.getBoundingClientRect();
-      pop.style.top = (window.scrollY + r.bottom + 4) + 'px';
-      pop.style.left = (window.scrollX + r.left) + 'px';
-      const pr = pop.getBoundingClientRect();
-      if(pr.right > window.innerWidth - 8) pop.style.left = (window.scrollX + window.innerWidth - pr.width - 8) + 'px';
-      if(pr.bottom > window.innerHeight - 8) pop.style.top = (window.scrollY + r.top - pr.height - 4) + 'px';
-      if(parseFloat(pop.style.top) < window.scrollY + 8) pop.style.top = (window.scrollY + 8) + 'px';
-    };
-    place();
-    window.addEventListener('scroll', place, true);
-    window.addEventListener('resize', place);
-    const input = pop.querySelector('input');
-    activeBarPrefixPop = {pop, anchor, place, input, kind, unit, bar};
-    pop.querySelector('.barprefix-reset').addEventListener('click', e=>{ e.stopPropagation(); commitBarPrefixPop(true); });
-    input.focus();
-    input.select();
-  }
-  // ⛔ CAPTURE phase for the outside click: the day menu's own item click opens this panel, and that same
-  // click must not then count as "outside" and save it shut. The menu closes before its item runs, so the
-  // click that opened the panel has already finished bubbling by the time `activeBarPrefixPop` is set.
-  document.addEventListener('mousedown', e=>{
-    const a = activeBarPrefixPop;
-    if(!a || a.pop.contains(e.target)) return;
-    commitBarPrefixPop();
-  }, true);
-  document.addEventListener('keydown', e=>{
-    if(!activeBarPrefixPop) return;
-    if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeBarPrefixPop(); return; }
-    if(e.key === 'Enter'){ e.preventDefault(); commitBarPrefixPop(); }
-  }, true);
-  new MutationObserver(()=>{
-    if(activeBarPrefixPop && !activeBarPrefixPop.anchor.isConnected) closeBarPrefixPop();
-  }).observe(document.getElementById('table-wrap'), { childList: true, subtree: true });
   function unitGreyLabel(kind, unit, weekLabel){
     const L = unitLabelParts(kind, unit, weekLabel);
     const show = {week: mvShowWeek(), block: mvShowBlocks(), episode: mvShowEpisodes()};
@@ -19310,7 +19216,9 @@ export function initLegacyApp() {
       const def = episodeDefs.find(x=>x.id === row.dataset.id);
       if(!def) return;
       // Typing in a field marks it user-owned so autofill stops managing it.
-      if(e.target.classList.contains('ep-name')){ def.name = e.target.value; def.nameEdited = true; }
+      // A rename also drops a v1.6.0 file's own bar prefix (unitBarLabel): the name is the bar's whole text
+      // now (owner, 20 Oct 2026), so what is typed here is what the bar shows.
+      if(e.target.classList.contains('ep-name')){ def.name = e.target.value; def.nameEdited = true; delete def.barPrefix; }
       if(e.target.classList.contains('ep-days')){ def.days = e.target.value; def.daysEdited = true; }
       // Episode day-counts sum into Production's shoot-day total, so this changes the whole
       // schedule -- recompute rather than just re-rendering.
@@ -19925,6 +19833,7 @@ export function initLegacyApp() {
     document.getElementById('show-version').value = '';
     ['cal-range-start', 'cal-range-end'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
     episodeDefs = []; episodeCounter = 0;
+    episodeNamesLegacy = false;   // a blank calendar names its episodes "Shoot Ep. 101"
     // Back to Episodes, the mode every calendar starts in -- and the block list with it.
     const modeEl = document.getElementById('show-mode'); if(modeEl) modeEl.value = 'episodes';
     ['num-blocks', 'days-per-block'].forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
@@ -26463,8 +26372,8 @@ export function initLegacyApp() {
       if(d !== o.prepDays) bad.n++;
       if(d === '') delete o.prepDays; else o.prepDays = d;
     };
-    // An episode's or block's bar prefix (unitBarLabel): a string the app could have written, or dropped,
-    // which reads as the default. Blank is kept: on an episode it means "no prefix".
+    // A v1.6.0 file's own bar prefix on an episode or block (unitBarLabel): a string that build could have
+    // written, or dropped, which reads as no prefix kept. Blank is kept: on an episode it meant "no prefix".
     const cleanBarPrefix = o=>{
       if(!('barPrefix' in o)) return;
       if(typeof o.barPrefix === 'string' && o.barPrefix.length <= BAR_PREFIX_MAX && !/[\u0000-\u001f]/.test(o.barPrefix)) return;
@@ -26609,11 +26518,15 @@ export function initLegacyApp() {
         name: e.name || '', days: (e.days===undefined?'':e.days),
         nameEdited: !!e.nameEdited, daysEdited: !!e.daysEdited,
         ...(hasPrepOverride(e) ? {prepDays: e.prepDays} : {}),
-        // Its own month-bar prefix (unitBarLabel), only when the file has one: absent is the default.
+        // A v1.6.0 file's own month-bar prefix (unitBarLabel), only when the file has one. Nothing writes
+        // one any more, but a file that carries it keeps it, and its bar reads as it was saved.
         ...(typeof e.barPrefix === 'string' ? {barPrefix: e.barPrefix} : {})
       }));
       if(typeof snap.episodeCounter === 'number') episodeCounter = snap.episodeCounter;
     }
+    // Which default name this calendar's episodes take (episodeNamesLegacy), read off the names it
+    // stores. ⛔ UNCONDITIONAL, so an undo or Load never inherits the previous calendar's style.
+    episodeNamesLegacy = storesLegacyEpisodeNames(snap.episodeDefs);
     // ⛔ UNCONDITIONAL (audit M-2, FIX-PLAN.md 1.1, 25 Sep 2026). This block was gated on
     // `snap.customPhaseDefs.length`, so a file with NO custom phases skipped it and the previously
     // open calendar's custom rows stayed -- with their names, dates and colours -- and were scheduled
@@ -26724,7 +26637,7 @@ export function initLegacyApp() {
       episodes: (b && Array.isArray(b.episodes)) ? b.episodes.filter(x=> typeof x === 'string') : [],
       // The per-block prep length (P4), under the same rule as the episodes' map above.
       ...(hasPrepOverride(b) ? {prepDays: b.prepDays} : {}),
-      // Its own month-bar prefix, under the same rule.
+      // A v1.6.0 file's own month-bar prefix, under the same rule.
       ...((b && typeof b.barPrefix === 'string') ? {barPrefix: b.barPrefix} : {}),
     })) : [];
     // Never below the highest id already in use, so the next block cannot collide with a saved one.

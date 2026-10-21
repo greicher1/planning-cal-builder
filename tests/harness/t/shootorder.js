@@ -19,16 +19,17 @@ window.addEventListener('load', function () { (async function () {
   var T = window.__T, out = {};
   function order() {
     return [].map.call(document.querySelectorAll('#episode-rows .episode-row'), function (r) {
-      return r.querySelector('.ep-name').value.replace(/^Episode /, '');
+      return r.querySelector('.ep-name').value.replace(/^(?:Episode|Shoot Ep\.) /, '');
     });
   }
   function meta() { return ((document.getElementById('meta-production') || {}).textContent || '').trim(); }
-  // Production's pills in the month on screen: [label, grey text] per pill. The label WITHOUT the "Shoot " an episode
-  // bar carries by default since 20 Oct 2026 (owner): this leg is about shooting order, and barprefix holds the prefix.
+  // Production's pills in the month on screen: [label, grey text] per pill. The label's episode as "Ep. N", whether the
+  // bar reads "Shoot Ep. N" or an older file's "Episode N" (owner, 20 Oct 2026): this leg is about shooting order, and
+  // epnames holds the names.
   function pills() {
     return [].map.call(document.querySelectorAll('#table-wrap .mv-pill[data-ph="production"]'), function (p) {
       var sp = p.querySelector('.mv-pill-block');
-      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^Shoot /, ''),
+      return [(p.firstChild && p.firstChild.nodeType === 3 ? p.firstChild.textContent : p.textContent).trim().replace(/^(?:Shoot Ep\.|Episode) /, 'Ep. '),
               sp ? sp.textContent : ''];
     });
   }
@@ -82,7 +83,10 @@ window.addEventListener('load', function () { (async function () {
     // ---- 2. ruling 8: Production's pill + the episodes as grey text, in shooting order ----------
     await toMonth('July 2026');
     out.julyPills = pills();
-    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill'),
+    // The renderer's dormant episode-pill branch draws "Episode N" pills that are NOT Production's own. Production's
+    // own bars may read "Episode 205" themselves now: an episode's bar reads its name, and this older file keeps its
+    // "Episode N" names (owner, 20 Oct 2026). So only pills without data-ph="production" count.
+    out.episodePills = [].filter.call(document.querySelectorAll('#table-wrap .mv-pill:not([data-ph="production"])'),
       function (p) { return /^Episode\b/.test(p.textContent.trim()); }).length;
 
     // ---- 3. ruling 10: preferences are NOT calendar data ----------------------------------------

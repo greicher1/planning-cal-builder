@@ -184,8 +184,9 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
 
 **Held to another case's file**, with none of their own:
 - the reference under UTC+14, and in a 1280 px window, are held to `reference`;
-- **`blocksoff`** is held to `reference`, as gate 10 holds it. It is the Blocks calendar switched to Episodes, and it
-  is byte-identical to a calendar that never had blocks.
+- ~~**`blocksoff`** is held to `reference`, as gate 10 holds it.~~ **Until 20 Oct 2026 (late).** It has its own file now,
+  `blocksoff.pdf` (re-cut entry above): an older file's episodes read "Episode N" and reference's "Shoot Ep. N". It is
+  still held to `reference`'s TEXT once both names are read as the episode.
 
 ## The rule (owner rulings, 2 Oct 2026, picker)
 
@@ -197,6 +198,41 @@ Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture
     move this way: they travel pre-compressed inside the build.
   - **"THE CONTENT MOVED":** each part that differs is named by its role: the page and month, a font's `/Widths`,
     the page tree. It gives the first differing line, and the text runs added and removed.
+
+## ✅ RE-CUT 20 Oct 2026 (late): thirteen cases read "Episode N"; `blocksoff` gets its own baseline
+
+The ruling and the owner's sign-off are gate 10's (its README, the same night): an episode's bar reads its NAME; a new
+calendar names episodes "Shoot Ep. 101", so `reference` and every calendar typed in fresh print exactly as before; old
+files keep "Episode 101", so every Episodes FIXTURE here now prints "Episode N" where the last cut said "Shoot Ep. N".
+Contact sheets (`monthbase.py sheets`, halfdays and shootorder) were put in front of the owner: red only on the bar names
+and the grey text after them, which moves left because "Episode 201" is narrower than "Shoot Ep. 201". `check` said
+**THE CONTENT MOVED** for each. Classified: each file's `pdftotext -raw` text equals the old baseline's once "Shoot Ep. N"
+and "Episode N" are both read as the episode, with the counts below equal and no "Shoot Ep" left.
+
+⚠️ **`blocksoff` has its own baseline now** (`bo:blocksoff:blocksoff`): it was held to `reference.pdf`, and an older file's
+"Episode N" cannot set the same bytes as "Shoot Ep. N". Its text is still held to `reference.pdf`'s, page by page, once
+both names are read as the episode (a block after the gate-13 loop, proven to fail against another calendar).
+
+| case | bytes before → after | "Shoot Ep. N" → "Episode N" (pdftotext) |
+|---|---|---|
+| `colswap-simpost-refuse` | 52,134 → 52,135 | 7 |
+| `stintswap-reshape` | 103,019 → 103,011 | 26 |
+| `dayoverrides` | 78,471 → 78,468 | 30 |
+| `mvheader` | 93,776 → 93,764 | 30 |
+| `mvheaderlegacy` | 78,655 → 78,650 | 30 |
+| `dayoverrides-onhalf` | 79,160 → 79,155 | 32 |
+| `hiatus-blanklabel` | 81,757 → 81,744 | 28 |
+| `monthnotes` | 81,924 → 81,922 | 31 |
+| `shootorder` | 81,785 → 81,779 | 31 |
+| `notewrap` | 82,362 → 82,347 | 28 |
+| `carry-rich` | 81,491 → 81,490 | 27 |
+| `halfdays` | 80,183 → 80,182 | 20 |
+| `mvnotes` | 85,293 → 85,287 | 31 |
+| `blocksoff` (NEW; was held to `reference`) | 81,780 | 31 |
+
+Held, untouched and byte-identical: `reference` (and `rz`, `rw`), `blocks`, `monthscale`, `month-lanecap`,
+`month-dense60`. Copied from `/tmp/gate9261-mxa/` (build `be984cdc…`, branch `ep-shoot-names` at `f84b378`, Google Chrome
+155.0.8059.85); `monthbase.py check` byte-identical against each new file.
 
 ## Re-cutting
 
@@ -221,7 +257,7 @@ Copy each run to its case:
 ```
 r→reference  b→blocks  ms→monthscale  sp→colswap-simpost-refuse  sr→stintswap-reshape  do→dayoverrides
 mh→mvheader  ml→mvheaderlegacy  oh→dayoverrides-onhalf  lc→month-lanecap  hb→hiatus-blanklabel
-d6→month-dense60  mn→monthnotes  so→shootorder  nw→notewrap  cr→carry-rich
+d6→month-dense60  mn→monthnotes  so→shootorder  nw→notewrap  cr→carry-rich  hd→halfdays  nn→mvnotes  bo→blocksoff
 ```
 
 Then run `python3 tests/harness/monthbase.py table tests/baselines/<dir>` for the table above. A new case needs a run
