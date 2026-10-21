@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), NOT MERGED, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,557 / 0, IN LOCAL `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE for the merged Preferences tab.** Owner, 20 Oct 2026: *"Lets combine settings under preferences
   and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the waterfall and
@@ -50,9 +50,10 @@
     `pilllabel (blocks)` 35/35, `autonotekinds` 16/16, `sharecopy2` green. `pilllabel (carry-rich)` 28/29 (W3, the
     same signature), then 29/29 twice alone; the same flake hit `releases/v1.6.0.html` once (W2) in between.
   - Headless screenshots of the window in both views (`blocks` fixture) checked by eye.
-  - ⚠️ **No full gate yet.**
-- ⏭ **Next:** the owner's picker to merge `prefs-merge` into `main`, then a separate push picker. The full gate is
-  queued behind the other session's.
+  - ✅ **Full gate on `364af880…`** (at `cd5b170`, port 9281, 22:58:42–23:23:37, alone, after the other session's gate
+    ended): **2,557 PASS, 0 FAIL. GATE PASSED.**
+- ✅ **Merged into local `main`** (fast-forward) on the owner's picker: *"After the full gate"*. **NOT pushed**: the
+  push picker was answered *"No, not yet"*. ⏭ Next: a push picker, when the owner asks (a version cut is theirs).
 
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 

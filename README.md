@@ -48,7 +48,8 @@ tab. this should apply to both the waterfall and month view"*.
   view shows its one card, with the right settings in it and the right opening line), 19/19. Eight legs that opened
   the Calendar tab now open Preferences. The legs that drive the window or a preference, through the gate's own
   checks, passed; the three that failed beside another session's gate (`hdrversion`, `hdrfile`, `pilllabel` on one
-  calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40.
+  calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
+  gate: 2,557 PASS, 0 FAIL.
 
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
