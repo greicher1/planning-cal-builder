@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, GATED 2,080 / 0 ALONE AND 2,203 / 0 COMBINED WITH `main` (item 1 + bundle A), NOT YET IN `main`
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
   `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
@@ -70,8 +70,26 @@
   17:17:42–17:38:16, alone after a queue behind the `merge-all` session's gate): 2,203 PASS, 0 FAIL, GATE PASSED.**
   0 clipped; the waterfall PDF and every Excel part identical; 74 ids; gate 10's eleven documents (with bundle A's
   `mvnotes`) and gate 13's twenty-one written PDFs identical; `labelsetup` 41, `mvmenu` 88, `mvnotes` all green.
-- ⏭ **Next:** the owner's merge picker (fast-forward local `main` to this branch: `main` is its ancestor), then the
-  push picker, which would ship item 1, bundle A and bundle B together.
+- ✅ **MERGED AND PUSHED, LIVE.** Owner, by picker: *"Yes, merge into main"* and *"Push and verify live"*.
+  - ⚠️ The main checkout held another session's UNCOMMITTED HANDOFF entry ("RULED, NOT YET PLANNED: … reference
+    waterfall", 51 lines), which blocked the fast-forward. It is an older copy of an entry the `merge-all` /
+    `shoot-prefix` branch has committed, corrected (51 of its 54 lines verbatim there). Owner, by picker: *"Yes, back
+    it up and set aside"*. Saved byte-identical (and as a diff) in this session's scratchpad as
+    `main-checkout-HANDOFF.uncommitted.md`, then `git checkout -- HANDOFF.md`. The main checkout's other two unsaved
+    files (`tests/fixtures/stintswap-reshape.sptcal`, the untracked `Reshape Fixture 2026-09-29.sptcal`) were left alone.
+  - Then the owner asked to push "everything all at once". The `shoot-prefix` branch (another session's) already
+    holds bundle B at `5e285af` plus about ten more features, but its gate was red (15 FAIL early on: gate 10's month
+    documents, not yet re-cut for the "Shoot" bar prefix, and `shootorder`). Told so, the owner chose: *"ok push the
+    three bundles now"*.
+  - Local `main` fast-forwarded `7c18262..3f4b5b1`. ONE `git push origin main` at 17:48:35 (`5d4737d..3f4b5b1`, 25
+    commits: item 1, bundle A, bundle B). Deploy run 39523554222 succeeded. At 17:49:41 the live `index.html`, fetched
+    with a cache-buster, was **byte-identical to the gated build** (sha256 `c9f2f5a5353cb96e…`, 1,570,825 bytes,
+    `cmp`), rebuilt from `3f4b5b1` to the same hash (the commits after the gated `34554f1` are HANDOFF only). No version
+    cut: `version.json` stays 1.5.0, so installed copies pick it up silently on their next load.
+- ⏭ **Next:** the `shoot-prefix` / `merge-all` branch must merge `main` (now `3f4b5b1`) before it lands: it has bundle
+  B only up to `5e285af`, and bundle A through `7c18262`, so the new commits are this bundle's merge with A (the
+  combined `mvheaderlegacy` baseline) and docs. Its own month-baseline re-cut for the "Shoot" prefix will move
+  `mvheaderlegacy` again. A version cut is worth considering for the next push, so installed copies show the notice.
 ### ✅ 20 Oct 2026: "PAUSE PREP ON DAYS MARKED OFF" — `prep-skip-off` MERGED WITH A SWITCH, OFF BY DEFAULT (branch `claude/prep-skip-switch-7e4b7d`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`), gap-report item 1, GATED 2,062 / 0, MERGED INTO LOCAL `main` (`48c2788`), NOT PUSHED
 
 - ⏭ **RESUME HERE for prep and Off days.** Bundle 0 of the 20 Oct gap report (the report is a private doc; its
