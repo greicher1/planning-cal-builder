@@ -183,6 +183,8 @@ owner asked for a start/end override instead of a change to the year split. Aske
 - **The shift tools move it like an unlocked hiatus.** Shift All and Anchor To move both dates; Shift From moves a
   date only if it is on or after the phase shifted from; Rebuild From leaves it.
 - **Single Column Mode honours it too.** A blank date keeps that layout's own first or last working week.
+- **An end past the last week of work adds no empty rows**: the waterfall already drops trailing weeks with nothing
+  in them, as it does with the full-year padding, and Excel and the PDF do the same.
 - **Dates that cannot make a range say so.** An end before the start is ringed and the range is left out. A
   start after the calendar's last week (or an end before its first) leaves no row: the waterfall says to check
   the dates, both are ringed, and the month view still draws. A year typed far away names itself in the "too
@@ -199,8 +201,10 @@ owner asked for a start/end override instead of a change to the year split. Aske
   calendar with the range blank: the rows kept and their labels, the strip's words, Excel's Date columns, the
   waterfall PDF's text, the month view identical month by month (13 months, cut Simultaneous Post and Writer's
   Room weeks included), Single Column Mode, Shift All / Shift From and undo, the three bad-date cases, Save / Load
-  and the M-5 trap, the shareable copy, New. Red on the pre-change build; eleven mutants each turn their own cases
-  red. `npm run check` 40/40.
+  and the M-5 trap, the shareable copy, New, and the card hidden in the month view. Red on the pre-change build;
+  twelve mutants each turn their own cases red. `npm run check` 40/40. Full gate on the branch: 2,080 PASS, 0 FAIL,
+  with the waterfall PDF, every Excel part and every month PDF identical to their baselines, and gate 5 at 76 ids
+  (re-cut for the two new ids on the owner's sign-off).
 
 ### The waterfall's header text and dates: Header: Off, a 1/6/2025 date format, custom column headings (20 Oct 2026)
 
@@ -239,7 +243,9 @@ calendar shows, saves and exports exactly as before.
   the PDF's content stream for each feature. It passed 30/30 on three runs with 0 console errors. It is red on
   the pre-change build (`7054bec6`), and each of eight mutants turns it red. The PDFs were rendered and
   looked at. The custom workbook passes `check-xlsx.sh`. `npm run check` 40/40; `check-refs.py` clean.
-  Full gate: see `HANDOFF.md` (top entry).
+  Full gate on the branch: 2,092 PASS, 0 FAIL, with the waterfall PDF, every Excel part, the restored v1.0.0
+  calendar, the 74 saved field ids and both month PDFs identical to their baselines.
+
 ### Boxes beside the waterfall: a colour key and text boxes, on screen and in Excel and the PDF (20 Oct 2026)
 
 The owner rebuilt a reference waterfall in the app: every phase, label and week count matched, but the reference also
@@ -270,7 +276,8 @@ recommended, with sign-off for six frozen edits to the two writers.
 - **Verified:** a new leg, `sideboxes` (58 checks, in the gate): the screen, the workbook and the PDF read back, every
   gesture through the hit stack, the month view's `#table-wrap` width equal with and without boxes, deleting the
   last box giving back the identical PDF page, a hostile file, New. Red on the pre-change build; three mutants each
-  red. Full gate: see HANDOFF.
+  red. Full gate on the branch: 2,120 PASS, 0 FAIL, the waterfall PDF and every Excel part identical to the baseline.
+
 ### A Settings window over the sidebar, with Calendar, Region, Presets and Preferences tabs (20 Oct 2026)
 
 Owner ruling 12: *"a tabbed panel that slides in beside the grid and leaves the waterfall visible"*, holding what

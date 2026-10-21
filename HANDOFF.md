@@ -321,7 +321,7 @@
   - **Proof:** leg `tests/harness/t/phasecolors.js`, 10/10 on the build; 8 of 10 red on the pre-change build
     (`dist-pre5/`, `ff6e3f60…`); the rotate-over-14 mutant turns exactly C8 red.
 - ⏳ **Next on this branch: the full gate, then the owner's merge question.**
-### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — BUILT (branch `claude/cal-range-1fe2e5`, worktree `.claude/worktrees/cal-range-1fe2e5`), NOT MERGED, NOT PUSHED
+### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — LIVE IN v1.6.0 (merged by `merge-all` at `d0dab94`, from branch `claude/cal-range-1fe2e5` at `224eef0`)
 
 - ⏭ **RESUME HERE for the calendar range.** One of the parallel sessions building the 20 Oct rulings (entry below,
   copied in from the main checkout, where it is uncommitted). This one owns ruling 3. Shared notes for the group:
@@ -378,9 +378,24 @@
   padding (`padStart` … `overallEnd`) and the swap call site (`cut` / `wf` / the `schedule` literal, whose keys are
   now spelled out). `segCol` and the placement loop are untouched. Column reuse changes `col` upstream of the cut,
   so the two compose: the cut only slices weeks.
-- ⏭ **Next:** the full gate on build `9da4794b…` at `224eef0` (queued 15:55 behind two other sessions' gates, port 8969, log in
-  this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
-### 🔨 20 Oct 2026: RULINGS 2, 4 AND 10 BUILT — HEADER: OFF, A 1/6/2025 DATE FORMAT, CUSTOM COLUMN HEADINGS (branch `claude/header-row-fe6f32`, worktree `.claude/worktrees/header-row-fe6f32`, [`HEADER-ROW-PLAN.md`](HEADER-ROW-PLAN.md)), NOT MERGED, NOT PUSHED
+- **Full gates run by this session** (port 8969), all green in the end:
+  - The branch alone, build `9da4794b…` at `e983ebb`: first 2,075 PASS / 5 FAIL, all five `pilllabel (halfdays)` "months
+    1 vs 16" (the recorded month-walk flake; green alone with the gate's own judging), then **2,080 PASS / 0 FAIL**
+    (18:05–18:29). Every frozen output identical, `fields.byId` 76 ids.
+  - Merged with bundles A and B (owner, picker: "Merge main in, gate, ask again"), build `f5eaa8ba…` at `66082c1`:
+    **2,221 PASS / 0 FAIL**.
+  - Merged again with column reuse, build `f03d74aa…` at `df8fb1b`: **2,246 PASS / 0 FAIL**. One code conflict, the
+    `schedule` literal (the cut's spelled-out keys and column reuse's `colMoves` line), both kept.
+  - Those two merges stayed on `claude/cal-range-1fe2e5`: `merge-all` had already taken the feature at `224eef0`, so the
+    feature in `main` is that commit. Its code and its leg are identical to what these gates ran.
+- ⭐ **Found while checking the merge with column reuse, and it is frozen behaviour, not the range:** an END date past the
+  last week of work adds no empty rows. Frozen `sheetRowCount()` drops trailing rows that are empty in EVERY year
+  block, which is also why the full-year padding never prints a run of empty December rows. On `colreuse.sptcal` with a
+  range ending 8/27/31, the 2031 block stopped at 6/30/31, its last row with anything in it. The screen, Excel and both
+  PDFs share `sheetRowCount`, so they agree. Leading empty rows (a start before the work) are kept. Changing it would
+  be a frozen edit; not raised as one.
+- ⏭ **Next:** nothing for this ruling. It shipped in v1.6.0.
+### ✅ 20 Oct 2026: RULINGS 2, 4 AND 10 — HEADER: OFF, A 1/6/2025 DATE FORMAT, CUSTOM COLUMN HEADINGS — LIVE IN v1.6.0 (branch `claude/header-row-fe6f32` at `f50e613`, merged by `merge-all` as `73af07f`; [`HEADER-ROW-PLAN.md`](HEADER-ROW-PLAN.md))
 
 - ⏭ **RESUME HERE for the waterfall's header text and dates.** One of six parallel sessions building the 20 Oct
   rulings (entry below). This one owns rulings 2 (header row), 4 (date format) and 10 (Header: Off).
@@ -433,7 +448,11 @@
     ignoring Off (O4), the margin not reclaimed (O4), the switch not reflected on Load, New keeping the format (N1).
   - The custom and Off PDFs were rendered with `pdftoppm` and looked at. The custom workbook passes
     `check-xlsx.sh` (`numFmtId 164 = m/d/yyyy`). `npm run check` 40/40; `check-refs.py` clean.
-  - **Full gate: queued on port 8965 behind other sessions' gates.** Result to be written here.
+  - ✅ **Full gate on build `d5a73954…` at `f50e613` (port 8965, 20:40:00–20:59:58, alone): 2,092 PASS, 0 FAIL,
+    GATE PASSED.** That is the prep switch's 2,062 plus the 30 `hdrrow` cases. With no re-cut: 0 clipped, the
+    waterfall PDF and every Excel part identical to baseline, `base`'s headers/sig/cols identical, v1.0.0
+    restores identically, `fields.byId` 74 ids, gate 10's print documents and gate 13's written month PDFs
+    identical. So all three features are inert by default, as signed off.
 - ⚠️ **Learned:**
   - Excel's default date cells (built-in format 14) follow the reader's system short date, so US Windows already
     shows 1/6/2025. This is unverified on Windows. It was left alone because it is the default; it is a later
@@ -444,10 +463,15 @@
   - `t/lib.js` still says *"No dollar sign anywhere in this file or in a test (see srv.js)"*, but that warning is
     out of date. Since 25 Sep 2026 `srv.js` injects legs with a FUNCTION replacement, which reads no `$`
     patterns. `hdrrow` avoids `$` anyway. The comment in `lib.js` was left as it is: it is not this branch's file.
-- ⏭ **Next:** the full gate's result; then the owner's merge picker. Merging next to the side-boxes branch
+- ✅ **Merged and live.** `merge-all` took this branch at `f50e613` (merge `73af07f`), re-homed the Waterfall Layout
+  card into the Settings window's Calendar ▸ Waterfall card, and adjusted `hdrrow`'s Load to alternate Show and Phases.
+  It shipped in v1.6.0 (live at `138d2e5`). The branch's later docs-only commit `338e599` (this gate result) reached
+  local `main` by the owner's merge picker (*"Merge into main"*, 20 Oct 2026): merging `main` in changed only README
+  and HANDOFF, so the combined code is `main`'s, byte for byte, and was not re-gated. Merging next to the side-boxes branch
   should give only textual conflicts near the writers' header rows and `hdrLeftX`. Gate 5's `restore.json` is
   untouched here; cal-range re-cut it to 76 ids.
-### 🔨 20 Oct 2026: SIDE BOXES (owner ruling 7) BUILT, gate pending (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md)), NOT MERGED, NOT PUSHED
+
+### ✅ 20 Oct 2026: SIDE BOXES (owner ruling 7) — GATED 2,120 / 0 ON THE BRANCH, MERGED BY `merge-all` (`0f47dee`), LIVE IN v1.6.0 (branch `claude/side-boxes-129c72`, worktree `.claude/worktrees/side-boxes-129c72`, [`SIDE-BOXES-PLAN.md`](SIDE-BOXES-PLAN.md))
 
 - ⏭ **RESUME HERE for the boxes beside the waterfall.** One of the parallel sessions started from the ruling-7 entry
   below. Plan, mock-up ([`mockups/side-boxes.html`](mockups/side-boxes.html), a made-up calendar) and rulings in
@@ -480,8 +504,18 @@
     their own check (the key written with no box F5, E1 removed X3, the month-view hide removed M1).
   - The exported workbook passes `check-xlsx.sh`; the PDF was rendered with `pdftoppm` and looked at.
   - `npm run check` 40/40.
-- ⏳ **Full gate: queued** (port 9173, FIFO behind the other sessions' gates). Its byte-compares are the proof that
-  every existing calendar's waterfall PDF and Excel parts are unchanged.
+- ✅ **Full gate on build `b1accea4…` (port 9173, 21:46:36–22:06:33, alone): 2,120 PASS, 0 FAIL, GATE PASSED.** That
+  is `main`'s 2,062 plus exactly the 58 `sideboxes` checks. 0 clipped; the **waterfall PDF identical** to the baseline
+  and **every Excel part identical** (the proof that E1–E6 are inert for every calendar without boxes); v1.0.0
+  restores identically; `fields.byId` 74 ids; gate 10's print documents and gate 13's written month PDFs identical.
+  The commits after `3ee25ee` are docs only, so the gated build is the branch's build.
+- ✅ **Merged and live.** While this branch's gate waited in the queue, `merge-all` took the branch at `c63c21f` (merge
+  `0f47dee`, on the owner's *"everything that has been built today even on older branches should be merged into
+  main"*) and it shipped in v1.6.0 (live at `138d2e5`), whose release gate carries the `sideboxes` leg. The gate above
+  ran on the branch's own build `b1accea4…`, whose code is what `merge-all` took. Only the docs that record this
+  gate (`13d2e11`) and this correction came after; merging `main` in changed nothing but README and HANDOFF.
+- ⏭ **Open:** side-box presets in the Settings window's Presets tab (relayed ruling below, SIDE-BOXES-PLAN §12), and
+  the shareable-copy click guard (below). Both are follow-ups, not built.
 - ⚠️ **Merge notes:** the header-row session edits the same two writers' header-ROW code (different lines) and makes
   `SHEET_PAGE_MARGIN_PT.t/.hdr` getters; quick-wins appends `PHASE_COLOR_OPTIONS` (the key picks the new colours up
   with no change); cal-range makes `currentSchedule` view-dependent (the key reads the waterfall's, which is right).
@@ -575,7 +609,7 @@
   were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
   be re-homed into the window; `settingswin` W2 fails on any `data-tab="settings"` card.
 - ⏭ **Next:** the owner decides whether to merge into `main` (ask by picker). No push.
-### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS IN LOCAL `main` (`b266dbf`), NOT PUSHED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS LIVE IN v1.6.0 (`origin/main` `138d2e5`) ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
 - ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
   plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
@@ -635,8 +669,10 @@
     PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; `colreuse` 25/25.
   - ✅ **Landed in local `main` by fast-forward** on the owner's picker (*"Commit the HANDOFF gate note on
     column-reuse, then fast-forward local main to column-reuse. Don't push."*): `main` = `b266dbf`, the gated
-    build. **Not pushed.** ⚠️ Any branch gated against the earlier `main` (`ca55411`), such as another session's
-    `shoot-prefix`, now needs `main` merged in and a gate on the combined build before it lands or is pushed.
+    build. Not pushed from this session.
+  - ✅ **Shipped in v1.6.0.** The merge-all session cut v1.6.0 (`605101f`) on a `main` carrying this work, and pushed
+    it. Tag `v1.6.0` contains `91bef1d`; `origin/main` = `138d2e5` (v1.6.0's release gate, 2,553 PASS / 1 FAIL, the
+    `offweek` R10 load flake, green twice alone). Nothing further is pending for column reuse.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).
