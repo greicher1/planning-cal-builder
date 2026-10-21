@@ -4,6 +4,55 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 20–21 Oct 2026: CALENDAR ZOOM, BOTTOM RIGHT IN BOTH VIEWS — branch `cal-zoom` (worktree `.claude/worktrees/cal-zoom`, off `main` `221e759`), COMMIT APPROVED ON THE BRANCH, NOT MERGED, PUSH HELD ("Not yet", by picker); ONE FROZEN EDIT, OWNER-APPROVED
+
+- **Asked:** *"Add a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view to
+  zoom in or out the viewport of either the waterfall cal or the month cal"* (first said bottom left, corrected to
+  bottom right).
+- **Built** (README "Unreleased — calendar zoom"): `src/chrome/ZoomControl.jsx` (− slider + and the %, left of the
+  help button, z 60 like it, in `#react-root` so both print paths hide it and `buildSavedHtml()` empties it), the
+  bridge's `calZoom`, Mantine's `Slider.layer.css` (placed by byte offset after SegmentedControl), and app.js
+  "CALENDAR ZOOM" right after `setViewMode()`: `calZoom = {sheet, month}`, `applyCalZoom()` (called by setViewMode and
+  applyStateSnapshot BEFORE their render, at boot, and by a childList observer on `#table-wrap` after every render),
+  `setCalZoom()` fed by a `sptcal-zoom` DOM event. `prefs.calZoom` stores only non-100% values.
+- **How it zooms, measured in Chrome 152's standardised zoom:** CSS `zoom` on `#table-wrap` (and `.side-col`).
+  `getBoundingClientRect()` and `clientX` are then SCREEN px while inline px, `offsetWidth` and computed values are
+  the grid's own. The month view is pinned with `width: calc(100% * z)` so its day columns keep their CSS width. Only
+  while a calendar shows (`calendarShown()`): the empty state and error messages stay at 100%.
+- ⛔ **What zoom breaks in FROZEN code, and how each is held:**
+  - the waterfall's resize handles and drags (installGridResizers, the frozen pointerdown: a row drag takes
+    `tr.getBoundingClientRect().height` and would SAVE the zoomed height) → hidden while zoomed
+    (`body.cal-zoomed #table-wrap .grid-resize-layer{display:none}`), re-installed by a render on the way back to 100%;
+  - `mvNoteBoxWidth()` measures the day column on screen, so a MONTH render made while zoomed (paging a month, any
+    edit) sizes note lanes for the zoomed width: measured on `mvnotes`, 2 notes lose a line at 150–200%, extra lanes at
+    50%. ✅ **FIXED by a frozen edit the owner approved by picker (21 Oct 2026, "Yes, apply it"):**
+    `colW = cell.getBoundingClientRect().width / (cell.currentCSSZoom || 1)`, commented in place. Measured first on a
+    scratch build: lanes identical to 100% at 25/50/125/150/200% after paging, no cut note. Division by 1 at 100%, so
+    gates 10 and 13 cannot move. `calzoom` M4 holds it (red before the edit). Also makes the month's print path (the
+    rollback) blind to the zoom. The re-render on the way back to 100% stays, for the waterfall's handles.
+- **Non-frozen geometry fixed for zoom** (an Explore audit listed every site): `selGeom` carries `z`; `tdBox`,
+  `ownSlotBox`, the marquee and three `headerBottom`s divide or multiply by it; `openHeaderRowPop`,
+  `showWeekInWaterfall`, `colEdgeX`, `beginSideWidthDrag`, `sideDropTarget`; the app shell grid fit solves `want / z`
+  and observes `#table-wrap`'s style. `gridZoom(el)` reads `el.currentCSSZoom`.
+- **Found and fixed on the way:** `.preview-panel.has-side-boxes` is a grid whose rows stretched (align-content
+  normal) when the grid box was shorter than the panel, pushing it down by its own shortfall; the fit then measured
+  that lower top and stayed there. Now `align-content:start`. At 100% the fit leaves no free height, so nothing moves.
+- ⚠️ **Rendering at any zoom but 100% lays text out at the zoomed size.** A note that only just fits at 100% can need
+  one more line at another zoom (seen once, headless Chrome 155, at 50%). By hand in the app's browser: no extra
+  clipped cell at any zoom on a 267-cell waterfall, and no extra cut note on mvnotes, monthnotes or notewrap.
+- **Proof so far:** leg `tests/harness/t/calzoom.js` (fixture `mvnotes`), 21/21, wired into `gate.sh` after
+  `sideboxes`; `npm run check` 40/40. ✅ **Full gate on build `ad4d54ee239573e7…` (port 9433, 21 Oct 02:09–02:34, alone): 2,576 PASS,
+  0 FAIL**, the 21 `calzoom` checks among them; every byte-compared gate (waterfall PDF, Excel parts, gates 10 and 13)
+  identical, as it must be with nothing written at 100%. That build did NOT have the frozen edit. ✅ **With it, full
+  gate on build `e0b19d78…` (port 9433, 21 Oct 05:01–05:26, alone): 2,577 PASS, 0 FAIL**, `calzoom` 22/22 (M4, paging
+  while zoomed, among them). This is the committed state of `cal-zoom`.
+- ⚠️ **Before any push, merge `main` in and re-gate.** `cal-zoom` branches from `221e759`; `origin/main` has since
+  moved to `38840c2` (heading-merge: "Column headings: one box per heading, with Split and Merge"), which touches
+  `src/legacy/app.js`, `legacy.css` and `gate.sh`. This branch edits `openHeaderRowPop()`'s column pick (`* z`), so
+  expect that hunk to need re-applying by hand if heading-merge rewrote the function.
+- **Coordination note:** this work started in the MAIN checkout while the `phase-collapse` session was also editing
+  `src/legacy/app.js` there. Both moved to worktrees; the main checkout's app.js was left exactly as at `221e759`.
+
 ### ✅ 20 Oct 2026 (night): v1.6.0 IS LIVE at `138d2e5` (verified byte-identical, `7a64413c`). Cut on `shoot-prefix`, release gate 2,553 / 1 (the flake green twice alone)
 
 - ⏭ **RESUME HERE for the release.** Owner, by picker: *"Fast-forward main"* and *"Cut v1.6.0, then push"* (bump the
@@ -5633,6 +5682,7 @@ hour of someone's time would make the 41 minutes a non-issue and this whole poli
 | hiatus bands skip Sat/Sun | 18 Sep | ⛔ **CHANGES IT, deliberately** |
 | half-day overlay on the pill | **21 Sep** | ⛔ **CHANGES IT, deliberately** — see the A/B below |
 | `'lead'` marks as `'on'` in `_ovDays` (the worked-day tint on the weekend just before the shoot, LABELS-SETUP-PLAN item 5) | **20 Oct** | **inert on every baseline** — no fixture holds a `'lead'` mark. Owner, by picker: *"Approve the edit"* |
+| `mvNoteBoxWidth()` reads the day column in its own px (`/ cell.currentCSSZoom`), for the calendar zoom | **21 Oct** | **inert at 100%** — divides by 1; zoomed, the print path (the rollback) stops seeing the zoom. Owner, by picker: *"Yes, apply it"* |
 
 *(Rows added since this table was written are listed here too; the table's title still counts seven.)*
 

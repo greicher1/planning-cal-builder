@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+## Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
+
+The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
+to zoom in or out the viewport of either the waterfall cal or the month cal"*.
+- **The control:** a small pill just left of the **?** button: **−**, a slider, **+**, and the percentage. The
+  slider runs 25% to 200% with 100% in the middle, the way a spreadsheet's does; − and + step by tens; clicking the
+  percentage puts it back to 100%. It shows only while there is a calendar on screen.
+- **A magnification, nothing else.** CSS `zoom` on `#table-wrap` (and on the side boxes beside it), never inside it:
+  the frozen renderers draw exactly what they draw at 100%, and you see that larger or smaller. The waterfall's grid
+  box still fills the preview at every zoom, so zooming out shows more weeks and columns. The month view keeps its
+  100% width, so its day columns and note lanes do not reflow; zoomed in, the preview scrolls sideways.
+- **One zoom per view**, remembered on this computer (`sptcal.prefs`, `calZoom`), like the other preferences. It is
+  not calendar data: not in the saved file, not an undo step, never marks the calendar unsaved, and a shareable copy
+  opens at its own computer's zoom.
+- **While the waterfall is zoomed, its column and row resize handles are hidden.** Those handles are frozen code that
+  mixes on-screen and grid pixels; zoomed, a row drag would have saved the zoomed height into the workbook and the
+  PDF. The percentage's tooltip says resizing works at 100%, and the handles come back, on their rows, at 100%.
+- **Fixed for zoom** (all non-frozen): the cell selection outline and its chip, the Swap column button and its
+  ghosts, the custom-heading popover's column pick, the day menu's "show in the waterfall" scroll, the month bars'
+  edge positions, the side boxes' width drag and drop line, and the app shell's grid fit (it now solves in the grid's
+  own pixels). With side boxes showing, the preview's grid now keeps its rows at the top: a zoomed-out grid box used
+  to push itself down by its own shortfall.
+- ⛔ **One frozen edit, owner-approved by picker (21 Oct 2026):** `mvNoteBoxWidth()` now reads the day column in its
+  own pixels (`rect.width / currentCSSZoom`). Without it, a month render made while zoomed (paging to another month,
+  any edit) sized note lanes for the zoomed width, and at 150–200% a long note lost its last line. It divides by 1 at
+  100%, so no gate and no export can move.
+- **Verified:** the full gate with the frozen edit, 2,577 PASS / 0 FAIL (build `e0b19d78…`), the new `calzoom` leg's
+  22 checks among them (its M4, paging while zoomed, red before the edit); `npm run check` 40/40; by hand in the app's
+  browser,
+  no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
+  fixtures. Every byte-compared gate is untouched by construction: at 100% nothing is written at all.
+
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
 Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep

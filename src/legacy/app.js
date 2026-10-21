@@ -838,10 +838,15 @@ export function initLegacyApp() {
 
   // Geometry for one pass, read from FROZEN spanHandleGeometry() rather than re-derived, so there
   // is no second copy of the column-boundary walk to drift. colX is .sheet-grid-wrap-relative.
+  // ⚠️ `z` is the calendar zoom (see "CALENDAR ZOOM"): wrapRect and every td rect are SCREEN px,
+  // while colX and anything written to an overlay's style are the grid's own px. Divide a rect delta
+  // by z to place something inside the grid; multiply a colX by z to compare it with the pointer.
+  // colX is grid px because the table sits at the wrap's own left edge (frozen spanHandleGeometry adds
+  // that screen-px offset, and it is 0).
   function selGeom(){
     const geo = spanHandleGeometry();
     if(!geo) return null;
-    return { colX: geo.colX, wrapRect: geo.wrap.getBoundingClientRect() };
+    return { colX: geo.colX, wrapRect: geo.wrap.getBoundingClientRect(), z: gridZoom(geo.wrap) };
   }
   // The td's own starting flat colgroup index -- the same accumulate-colSpan walk applyCellFitLive
   // does. One <tr> holds every year block side by side, so a flat index is the only unambiguous
@@ -868,8 +873,8 @@ export function initLegacyApp() {
     if(x0 === undefined || x1 === undefined) return null;
     const r = td.getBoundingClientRect();
     return { wrapLeft: x0, wrapWidth: Math.max(1, x1 - x0),
-             wrapTop: r.top - g.wrapRect.top, wrapHeight: r.height,
-             left: g.wrapRect.left + x0, right: g.wrapRect.left + x1,
+             wrapTop: (r.top - g.wrapRect.top) / g.z, wrapHeight: r.height / g.z,
+             left: g.wrapRect.left + x0 * g.z, right: g.wrapRect.left + x1 * g.z,
              top: r.top, bottom: r.bottom };
   }
 
@@ -883,8 +888,8 @@ export function initLegacyApp() {
   function tdBox(td, g){
     if(!g) return null;
     const r = td.getBoundingClientRect();
-    return { wrapLeft: r.left - g.wrapRect.left, wrapTop: r.top - g.wrapRect.top,
-             wrapWidth: Math.max(1, r.width), wrapHeight: Math.max(1, r.height) };
+    return { wrapLeft: (r.left - g.wrapRect.left) / g.z, wrapTop: (r.top - g.wrapRect.top) / g.z,
+             wrapWidth: Math.max(1, r.width / g.z), wrapHeight: Math.max(1, r.height / g.z) };
   }
 
   // The overlay lives as a SIBLING of .grid-resize-layer inside .sheet-grid-wrap: that inherits the
@@ -1002,10 +1007,10 @@ export function initLegacyApp() {
     if(marquee){
       const m = document.createElement('div');
       m.className = 'grid-sel-marquee';
-      m.style.left = (marquee.l - g.wrapRect.left) + 'px';
-      m.style.top = (marquee.t - g.wrapRect.top) + 'px';
-      m.style.width = (marquee.r - marquee.l) + 'px';
-      m.style.height = (marquee.b - marquee.t) + 'px';
+      m.style.left = (marquee.l - g.wrapRect.left) / g.z + 'px';
+      m.style.top = (marquee.t - g.wrapRect.top) / g.z + 'px';
+      m.style.width = (marquee.r - marquee.l) / g.z + 'px';
+      m.style.height = (marquee.b - marquee.t) / g.z + 'px';
       layer.appendChild(m);
     }
     // ...and not while a column-order message is up. That message is transient and is usually ABOUT
@@ -1053,7 +1058,7 @@ export function initLegacyApp() {
         const cw = chip.offsetWidth, ch = chip.offsetHeight;
         const lw = layer.clientWidth, lh = layer.clientHeight;
         const thead = document.querySelector('#table-wrap table.sheet-table thead');
-        const headerBottom = thead ? thead.getBoundingClientRect().bottom - g.wrapRect.top : 0;
+        const headerBottom = thead ? (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z : 0;
         let top = cap.top - ch - 5;
         if(top < headerBottom + 2) top = Math.min(lh - ch, cap.bot + 5);
         chip.style.left = Math.max(0, Math.min(cap.left, lw - cw)) + 'px';
@@ -5561,7 +5566,7 @@ export function initLegacyApp() {
     // clamp it below the header -- and drop it entirely once the run is out of sight.
     let headerBottom = 0;
     const thead = document.querySelector('#table-wrap table.sheet-table thead');
-    if(thead) headerBottom = thead.getBoundingClientRect().bottom - g.wrapRect.top;
+    if(thead) headerBottom = (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z;
     drawStintButton(g, headerBottom);          // the layer was just cleared; the hover state was not
 
     eligible.forEach(run=>{
@@ -5944,7 +5949,7 @@ export function initLegacyApp() {
     if(!document.querySelector('#table-wrap table.sheet-table colgroup col[data-ckey="y' + stintHover.year + ':s1"]')) return;
     if(headerBottom === undefined){
       const thead = document.querySelector('#table-wrap table.sheet-table thead');
-      headerBottom = thead ? thead.getBoundingClientRect().bottom - g.wrapRect.top : 0;
+      headerBottom = thead ? (thead.getBoundingClientRect().bottom - g.wrapRect.top) / g.z : 0;
     }
     // Anchor to the TOPMOST VISIBLE cell, not the first week: scrolled under the sticky header the
     // button would be unreachable and hovering would appear to do nothing -- the failure the knob
@@ -7337,9 +7342,10 @@ export function initLegacyApp() {
     // tracks are (width - padding) / 7, not the day cells' width / 7 (.mv-bars pads 3px a side).
     function colEdgeX(pill, col){
       const bars = pill.parentNode;
-      const r = bars.getBoundingClientRect(), cs = getComputedStyle(bars);
-      const l = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
-      const rt = (parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const r = bars.getBoundingClientRect(), cs = getComputedStyle(bars), z = gridZoom(bars);
+      // The computed padding and border are the layer's own px; the rect is screen px (calendar zoom).
+      const l = ((parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0)) * z;
+      const rt = ((parseFloat(cs.borderRightWidth) || 0) + (parseFloat(cs.paddingRight) || 0)) * z;
       return r.left + l + (col + 1) * (r.width - l - rt) / 7;
     }
 
@@ -9888,18 +9894,21 @@ export function initLegacyApp() {
       if(!cell) return;
       // The box's own scrollport, inside its border and scrollbars. Centred vertically, which also keeps
       // the row clear of the frozen sticky header row.
+      // Rects are screen px; the client* sizes and the scroll offsets are the box's own, so they are
+      // scaled by the calendar zoom (z is 1 at 100%).
+      const z = gridZoom(box);
       const b = box.getBoundingClientRect();
-      const L = b.left + box.clientLeft, T = b.top + box.clientTop;
-      const R = L + box.clientWidth, B = T + box.clientHeight;
+      const L = b.left + box.clientLeft * z, T = b.top + box.clientTop * z;
+      const R = L + box.clientWidth * z, B = T + box.clientHeight * z;
       const c = cell.getBoundingClientRect();
-      box.scrollTop += (c.top + c.height / 2) - (T + B) / 2;
+      box.scrollTop += ((c.top + c.height / 2) - (T + B) / 2) / z;
       // The year blocks sit side by side, so the week's row runs from its block's date column to the
       // note cell. The least scroll that shows all of it; a block wider than the box shows from its date.
       let date = cell;
       while(date && !(date.classList && date.classList.contains('sheet-date'))) date = date.previousElementSibling;
       const from = (date || cell).getBoundingClientRect().left;
-      if(c.right - from > R - L || from < L) box.scrollLeft += from - L;
-      else if(c.right > R) box.scrollLeft += c.right - R;
+      if(c.right - from > R - L || from < L) box.scrollLeft += (from - L) / z;
+      else if(c.right > R) box.scrollLeft += (c.right - R) / z;
     }
 
     // ---- The panel ----
@@ -10973,7 +10982,12 @@ export function initLegacyApp() {
   function mvNoteBoxWidth(){
     let colW = 0;
     const cell = document.querySelector('#table-wrap .mv-daycell');
-    if(cell) colW = cell.getBoundingClientRect().width;
+    // ⛔ FROZEN EDIT (owner-approved 21 Oct 2026 by picker, "CALENDAR ZOOM"): the day column in ITS OWN px.
+    // With the calendar zoomed, a rect is SCREEN px (z times the column), and the hidden measurer that
+    // wraps each note is not zoomed, so a month render made while zoomed sized every note's lanes for the
+    // zoomed width: at 150-200% a long note lost its last line. currentCSSZoom is 1 at 100%, so this
+    // divides by 1 on every path the gates take; the fallback below already reads the box's own px.
+    if(cell) colW = cell.getBoundingClientRect().width / (cell.currentCSSZoom || 1);
     if(!colW || colW < 20){
       const tw = document.getElementById('table-wrap');
       const w = (tw && tw.clientWidth) ? tw.clientWidth : 980;
@@ -14945,10 +14959,11 @@ export function initLegacyApp() {
     const side = x < wrap.left + wrap.width / 2 ? 'left' : 'right';
     const boxes = Array.from(sideCols[side].querySelectorAll('.sb-box')).filter(el => +el.dataset.i !== from);
     let before = null, lineY = null;
+    const gap = 10 * gridZoom(sideCols[side]);   // half the 20px gap, at the calendar zoom
     for(const el of boxes){
       const r = el.getBoundingClientRect();
-      if(y < r.top + r.height / 2){ before = +el.dataset.i; lineY = r.top - 10; break; }
-      lineY = r.bottom + 10;
+      if(y < r.top + r.height / 2){ before = +el.dataset.i; lineY = r.top - gap; break; }
+      lineY = r.bottom + gap;
     }
     return { side, before, lineY, empty: !boxes.length, wrap };
   }
@@ -15044,10 +15059,12 @@ export function initLegacyApp() {
     e.preventDefault();
     const col = sideCols[side];
     const startChars = sideWidthChars(side), startPx = charsToScreenPx(startChars), x0 = e.clientX;
+    // The pointer travels in screen px, the width is the column's own px (calendar zoom).
+    const z = gridZoom(col);
     let chars = startChars;
     document.body.classList.add('sb-resizing');
     const move = ev=>{
-      const px = startPx + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX);
+      const px = startPx + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX) / z;
       chars = clampChars(screenPxToChars(px), SIDE_MIN_CHARS, SIDE_MAX_CHARS);
       // Presentation only while dragging; the store is written once, on release (installGridResizers' rule).
       col.style.setProperty('--sb-w', charsToScreenPx(chars) + 'px');
@@ -18893,10 +18910,12 @@ export function initLegacyApp() {
     // Which column of the run is under the pointer: walk the run's <col> widths from the cell's left.
     let at = 0;
     {
+      // The rect and the pointer are screen px, a <col>'s width is the grid's own (calendar zoom).
+      const z = gridZoom(th);
       let x = th.getBoundingClientRect().left;
       run.keys.forEach((k, i)=>{
         const col = document.querySelector('#table-wrap col[data-ckey="' + k + '"]');
-        const w = col ? (parseFloat(col.style.width) || 0) : 0;
+        const w = col ? (parseFloat(col.style.width) || 0) * z : 0;
         if(clientX >= x) at = i;
         x += w;
       });
@@ -19169,8 +19188,130 @@ export function initLegacyApp() {
       if(b) b.classList.toggle('active', m===mode);
     });
     refreshEpisodesUI();
+    // The new view's zoom BEFORE its render, so the render measures the box it will be drawn in.
+    applyCalZoom();
     update();
   }
+
+  // ⭐ CALENDAR ZOOM (owner, 20 Oct 2026: "a zoom in/zoom out slider in the bottom right corner of
+  // both the waterfall view and month view"). The control is React (src/chrome/ZoomControl.jsx), the
+  // value lives here, one per view, because setViewMode() and a Load have to put the right one on
+  // BEFORE the frozen render runs.
+  //
+  // ⛔ A MAGNIFICATION AND NOTHING ELSE. CSS `zoom` goes on #table-wrap itself (and on the side boxes
+  // beside it), never on anything inside it: the frozen renderers write exactly what they write at
+  // 100%, and the screen shows that, larger or smaller. Nothing reflows:
+  //   * the waterfall's table has explicit widths, so it is the 100% table scaled; its scroll box
+  //     fills the panel at every zoom (the grid fit divides by the zoom, see "THE APP SHELL'S GRID FIT");
+  //   * the month view is PINNED to the width it has at 100% (`width: calc(100% * z)`), so its day
+  //     columns keep their CSS width and every note keeps its line count. Zoomed in it scrolls
+  //     sideways, as a zoomed-in page does.
+  // Neither writer reads the DOM, so the Excel file and both PDFs cannot see the zoom. The month's
+  // print path (the rollback) measures the live day column through mvNoteBoxWidth(), which reads it in
+  // its own px (below), so the print path cannot see the zoom either.
+  //
+  // ⚠️ WHAT ZOOM BREAKS, measured (Chrome's standardised zoom): inside a zoomed box,
+  // getBoundingClientRect() and clientX are in screen px while inline px and offsetWidth are not.
+  // Frozen code that mixes the two is wrong at any zoom but 100%:
+  //   * the waterfall's resize handles (installGridResizers and the drag after it). A row drag
+  //     would SAVE the zoomed height into rowHeights, so the handles are hidden while zoomed
+  //     (body.cal-zoomed, legacy.css) and re-installed on the way back to 100%;
+  //   * mvNoteBoxWidth() read the day column's ON-SCREEN width, so a month render made while zoomed
+  //     (paging a month, any edit) sized note lanes for the zoomed width. Fixed IN it, by a one-line
+  //     frozen edit the owner approved (21 Oct 2026): it divides by the zoom, which is 1 at 100%.
+  // The chrome's own overlays inside the grid (the selection, the swap knobs) divide by the zoom.
+  //
+  // A PREFERENCE, not calendar data: prefs.calZoom = {sheet, month}, only where not 100%, and never
+  // in captureSnapshot(). A copy opened elsewhere opens at that machine's zoom.
+  const CAL_ZOOM_MIN = 0.25, CAL_ZOOM_MAX = 2;
+  const calZoom = { sheet: 1, month: 1 };
+  {
+    const saved = prefs.calZoom;
+    if(saved && typeof saved === 'object'){
+      ['sheet','month'].forEach(v=>{ const n = Number(saved[v]); if(Number.isFinite(n) && n > 0) calZoom[v] = clampCalZoom(n); });
+    }
+  }
+  function clampCalZoom(z){ return Math.min(CAL_ZOOM_MAX, Math.max(CAL_ZOOM_MIN, Math.round(z * 100) / 100)); }
+  function calZoomView(){ return viewMode === 'month' ? 'month' : 'sheet'; }
+  // What the grid's own coordinates are scaled by right now. Read off the element, so it is right
+  // whichever view drew it.
+  function gridZoom(el){
+    const z = el && el.currentCSSZoom;
+    return (typeof z === 'number' && z > 0) ? z : 1;
+  }
+  // Only while there is a calendar to zoom. The empty state and an error message are read at 100%,
+  // where the control (hidden with no calendar) cannot be needed to put them back. Called before a
+  // render, this sees the view being left, which is fine: the observer below re-applies after it.
+  function calendarShown(){
+    const tw = document.getElementById('table-wrap');
+    return !!(tw && tw.querySelector(':scope > .sheet-scroll, .mv-body'));
+  }
+  function applyCalZoom(){
+    const shown = calendarShown();
+    const z = shown ? calZoom[calZoomView()] : 1;
+    const on = z !== 1;
+    // Written only when it changes: a style write is a mutation the grid fit observes.
+    const put = (el, prop, val)=>{
+      if(val){ if(el.style.getPropertyValue(prop) !== val) el.style.setProperty(prop, val); }
+      else if(el.style.getPropertyValue(prop)) el.style.removeProperty(prop);
+    };
+    const tw = document.getElementById('table-wrap');
+    if(tw){
+      put(tw, 'zoom', on ? String(z) : '');
+      put(tw, 'width', on && calZoomView() === 'month' ? 'calc(100% * ' + z + ')' : '');
+      if(tw.getAttribute('style') === '') tw.removeAttribute('style');
+    }
+    document.querySelectorAll('.side-col').forEach(el=> put(el, 'zoom', on ? String(z) : ''));
+    document.body.classList.toggle('cal-zoomed', on);
+    if(typeof chrome === 'object' && chrome && typeof chrome.calZoom === 'function'){
+      chrome.calZoom({ view: calZoomView(), zoom: calZoom[calZoomView()], visible: shown });
+    }
+  }
+  let _calZoomTimer = 0;
+  function setCalZoom(next){
+    const v = calZoomView();
+    const z = clampCalZoom(Number(next));
+    if(!Number.isFinite(z)) return;
+    const prev = calZoom[v];
+    if(z === prev){ applyCalZoom(); return; }
+    // The month view scrolls in the panel, outside the zoom, so hold the corner the user is looking
+    // at still. The waterfall's scroll box is inside the zoom: its offsets already stay put.
+    const panel = document.querySelector('main.preview-panel');
+    const tw = document.getElementById('table-wrap');
+    let keep = null;
+    if(v === 'month' && panel && tw){
+      const pr = panel.getBoundingClientRect(), tr = tw.getBoundingClientRect();
+      keep = { x0: tr.left - pr.left + panel.scrollLeft, y0: tr.top - pr.top + panel.scrollTop,
+               left: panel.scrollLeft, top: panel.scrollTop };
+    }
+    calZoom[v] = z;
+    applyCalZoom();
+    if(keep){
+      const r = z / prev;
+      if(keep.top > keep.y0) panel.scrollTop = keep.y0 + (keep.top - keep.y0) * r;
+      if(keep.left > keep.x0) panel.scrollLeft = keep.x0 + (keep.left - keep.x0) * r;
+    }
+    if(v === 'sheet') redrawGridOverlay(null);
+    // Settled, not per slider step: the stored value, and the re-render at 100% that puts the
+    // waterfall's resize handles back where a zoomed render (installGridResizers) placed them wrong.
+    clearTimeout(_calZoomTimer);
+    _calZoomTimer = setTimeout(()=>{
+      _calZoomTimer = 0;
+      const store = {};
+      ['sheet','month'].forEach(k=>{ if(calZoom[k] !== 1) store[k] = calZoom[k]; });
+      if(Object.keys(store).length) prefs.calZoom = store; else delete prefs.calZoom;
+      savePrefs();
+      if(calZoom[calZoomView()] === 1 && currentSchedule) render(currentSchedule);
+    }, 150);
+  }
+  // The control speaks through one DOM event (ZoomControl.jsx), the way DatePop hands a date back.
+  document.addEventListener('sptcal-zoom', e=>{
+    const d = e && e.detail;
+    if(d && d.zoom != null) setCalZoom(d.zoom);
+  });
+  // Every render may add or remove the calendar. Observing mutates nothing; the re-apply writes only
+  // #table-wrap's own style, never a child, so it cannot feed this observer (childList only).
+  new MutationObserver(applyCalZoom).observe(document.getElementById('table-wrap'), { childList: true });
 
   // Episodes panel wiring. Delegated from the phase-rows container because the panel lives
   // inside the Production row, which is rebuilt by buildPhaseRows().
@@ -19984,6 +20125,10 @@ export function initLegacyApp() {
     // cursor:cell and grid-selecting carries user-select:none -- baked into an exported copy either
     // would be a permanent, page-wide state in someone else's file.
     if(clone.body) clone.body.classList.remove('grid-cell-hover', 'grid-selecting', 'grid-resizing', 'row', 'span');
+    // The calendar zoom is this machine's preference ("CALENDAR ZOOM"): the copy's own engine puts on
+    // ITS machine's zoom when it boots, so none of the sender's travels in the file.
+    if(clone.body) clone.body.classList.remove('cal-zoomed');
+    { const ctw = clone.querySelector('#table-wrap'); if(ctw) ctw.removeAttribute('style'); }
     // The Settings window's open state reaches OUTSIDE its host (SettingsWindow.jsx): .settings-open on
     // the sidebar, `inert` on everything the window covers, and the button's aria-expanded. Emptying
     // #settings-host below removes the window but not those, so a copy exported with the window up
@@ -26829,6 +26974,8 @@ export function initLegacyApp() {
         if(b) b.classList.toggle('active', m===viewMode);
       });
     }
+    // That view's zoom, before refreshAfterRestore()'s render (a preference, never in the snapshot).
+    applyCalZoom();
   }
 
   // Keep --header-h in sync with the real sticky header height so the sidebar sits flush
@@ -26903,11 +27050,14 @@ export function initLegacyApp() {
       // The grid box's top in the panel's CONTENT coordinates, so a panel that is scrolled (it was
       // overflowing a moment ago) still yields the right answer.
       const top = sr.top - (pr.top + panel.clientTop) + panel.scrollTop;
+      // The calendar zoom ("CALENDAR ZOOM") is on #table-wrap, so the grid box is drawn at z times its
+      // own px: the rects here are screen px, the max-height and the variable are the box's own.
+      const z = gridZoom(scroll);
       // Anything under the grid box inside the preview, so the whole column fits, not just the box.
-      const below = (wrap.getBoundingClientRect().bottom - sr.bottom) + px(getComputedStyle(wrap).marginBottom);
+      const below = (wrap.getBoundingClientRect().bottom - sr.bottom) + px(getComputedStyle(wrap).marginBottom) * z;
       // Floored: a fractional overshoot is still an overflow, and would bring a 1px scrollbar.
       const want = Math.max(MIN_GRID_PX,
-        Math.floor(panel.clientHeight - px(getComputedStyle(panel).paddingBottom) - top - below));
+        Math.floor(panel.clientHeight - px(getComputedStyle(panel).paddingBottom) - top - below)) / z;
       if(Math.abs(curMax - want) < 0.5) return;
       panel.style.setProperty('--header-h', (curVar + (curMax - want)) + 'px');
     };
@@ -26926,9 +27076,9 @@ export function initLegacyApp() {
         if(bar) ro.observe(bar);
       } catch(e){}
     }
-    // childList only: render() replaces #table-wrap's children wholesale. Observing mutates
-    // nothing (CLAUDE.md, sanctioned pattern 3).
-    new MutationObserver(fit).observe(wrap, { childList: true });
+    // childList: render() replaces #table-wrap's children wholesale. And its style attribute, which
+    // is where the calendar zoom goes. Observing mutates nothing (CLAUDE.md, sanctioned pattern 3).
+    new MutationObserver(fit).observe(wrap, { childList: true, attributes: true, attributeFilter: ['style'] });
     // The named triggers again, as DOM MUTATIONS. A ResizeObserver delivers only at a rendering
     // opportunity, which a hidden or backgrounded page never gets -- found exactly that way: with
     // the browser pane hidden, showing a strip left the preview overflowing by the strip's 46px
@@ -26944,6 +27094,8 @@ export function initLegacyApp() {
     if(shell.addEventListener) shell.addEventListener('change', fit);
   })();
 
+  // The calendar zoom this machine remembers, before the first render ("CALENDAR ZOOM").
+  applyCalZoom();
   restoreSavedState();
   refreshAfterRestore();
 

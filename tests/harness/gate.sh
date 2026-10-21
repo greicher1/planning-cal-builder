@@ -2415,6 +2415,26 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSB
 
+# ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
+# CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
+# no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place
+# beside the help button, the grid fit at four zooms, the frozen resize handles hidden while zoomed and back on
+# their rows at 100%, the selection and swap overlays on their cells, the month view as a pure magnification
+# (columns and note lanes unchanged), and that a zoom never dirties the file, adds an undo step or travels in a copy.
+rm -f "$HERE/calzoom.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=mvnotes "$HERE/run.sh" calzoom 300 >/dev/null 2>&1
+python3 - "$HERE/calzoom.json" <<'PYCZ' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  calzoom produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  calzoom threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'calzoom: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYCZ
+
 # ---- barprefix: an episode's or block's month-bar prefix ("Shoot Ep. 101"; owner, 20 Oct 2026) ------------------
 # The default "Shoot" before every episode bar but a switch day's one-day half bar, on every calendar; none before a
 # block bar; each unit's own prefix set, blanked and reset from its bar's day menu (hit-tested), one undo step each,

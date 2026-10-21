@@ -109,6 +109,11 @@ export const chrome = {
   // (revealSidebarTab). Whether it is open is session UI: never in captureSnapshot(), never an undo
   // step, and a Load or an undo leaves it as it is.
   settingsWindow: noop,
+  // { view: 'sheet'|'month', zoom, visible } — the calendar zoom control (ZoomControl.jsx), bottom
+  // right in both views. The engine holds one zoom per view and applies it; this is only what the
+  // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.
+  // A per-machine preference: never in captureSnapshot(), never an undo step.
+  calZoom: noop,
 }
 
 export function installChrome(impl) {

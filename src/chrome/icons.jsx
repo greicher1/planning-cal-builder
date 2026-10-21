@@ -239,3 +239,20 @@ export function IconMonitor(props) {
     </svg>
   )
 }
+
+// The calendar zoom's two steps (ZoomControl.jsx). Centred on 8,8 like the rest of the family.
+export function IconMinus(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 8h9" />
+    </svg>
+  )
+}
+
+export function IconPlus(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 8h9M8 3.5v9" />
+    </svg>
+  )
+}
