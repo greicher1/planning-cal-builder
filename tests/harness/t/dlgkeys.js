@@ -210,7 +210,9 @@ window.addEventListener('load', function () { (async function () {
       async function () { return { pass: region() === r1, observed: { from: r0, want: r1, now: region() } }; });
 
     // ---- D4-D7: the holiday questions -----------------------------------------------------------------
-    document.getElementById('sidetab-settings').click();
+    // The holidays are in the Settings window's Region tab since ruling 12 merged (20 Oct 2026); this clicked the
+    // sidebar's Settings tab, which the window retired.
+    await T.openSettings('region');
     await T.sleep(400);
     var en = document.querySelector('#holiday-vis .hv-en:checked'), hid = en && en.dataset.hid;
     function enBox() { return document.querySelector('#holiday-vis .hv-en[data-hid="' + hid + '"]'); }
@@ -237,6 +239,7 @@ window.addEventListener('load', function () { (async function () {
       async function (mark) { var b = enBox(); return { pass: !!b && b.checked === false && title() === mark, observed: { stillOff: b && !b.checked, title: title() } }; });
 
     // ---- D8, D9: New's and Load's questions -----------------------------------------------------------
+    await T.closeSettings();                              // back to the sidebar, as the leg was before the window
     await T.sleep(800);                                   // clear the file actions' re-click guard
     await probe('D8', 'New’s question -- the keys do nothing, and Cancel leaves the calendar as it was',
       async function () { document.getElementById('new-file-btn').click(); },
