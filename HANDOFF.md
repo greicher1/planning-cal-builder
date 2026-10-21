@@ -40,7 +40,20 @@
   - ⚠️ **A queue-check trap, learned here:** a first attempt at this gate started BESIDE the cal-range session's
     gate, because its free-slot check identified gates by cwd through `lsof`, and an `lsof` that comes back empty
     under load read as "free". Stopped after 3 minutes and re-queued on `pgrep -f "zsh \./gate\.sh"` alone.
-- ⏭ Then the owner's picker for `main`, and separately for a push. A version cut is the owner's call (v1.6.0).
+- ✅ Solo re-run of `monthexport (reference, 1280,800)`, three times (20:18–20:19, nothing else running): **9/9 each,
+  X6 included.** A flake.
+- **Merged `main` in** (`1edde34`: bundles A and B and the prep switch, LIVE at `3f4b5b1` since 17:48, pushed from the
+  `labels-setup` session on the owner's picker; then column reuse, fast-forwarded from its own session, not pushed).
+  Seven files conflicted. Every code conflict was the same overlap resolved on both sides, and main adds NO code
+  beyond this branch (`git diff HEAD -- src tests` after taking this side: two docs notes only), so the gated build
+  stands. Column reuse's real commit `91bef1d` equals snapshot `2dd6217` in code (docs differ). ⭐ Cross-check: this
+  branch's re-cut `mvheaderlegacy`, minus "Shoot ", is byte-identical to the A+B baseline the `labels-setup` session
+  cut independently. Docs: `main`'s LIVE/merged versions of bundle B's and column reuse's entries, plus its new
+  ⏳ owner request (Paste notes into the Settings window, after this lands); the harness README's table had four
+  stale copies of the `t/mvmenu.js` row from the union merges, collapsed to the fullest.
+- ⏭ **Next:** the owner's picker to fast-forward `main` to this branch, then a separate push picker (a version cut,
+  v1.6.0, is the owner's call). The next push now carries everything here EXCEPT the prep switch and bundles A and B,
+  which are live; column reuse is in local `main` and goes with it.
 
 ### 🔨 20 Oct 2026: EVERYTHING BUILT TODAY, AND THREE OLDER FEATURES, MERGED ON BRANCH `merge-all` (worktree `.claude/worktrees/merge-all`), COMBINED GATE QUEUED, NOT IN `main`, NOT PUSHED
 
@@ -108,7 +121,18 @@
 - ⏭ **Next:** the combined gate; the re-cut picker; the editable "Shoot" prefix (rulings below) on top; then the owner's
   merge picker for `main` and, separately, a push picker. Each sibling session's own gate still runs on its own branch.
 
-### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), branch `claude/labels-setup-c74155`, NOT MERGED
+### ⏳ 20 Oct 2026: OWNER REQUEST, NOT BUILT: "put paste notes into settings", AFTER THE SETTINGS WINDOW IS LIVE
+
+- Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
+  stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
+  Settings window, `src/chrome/SettingsWindow.jsx`, ruling 12) is pushed, move **Paste notes…** out of the preview
+  toolbar (`#paste-notes-btn` in `PreviewToolbar.jsx`, month view only, opened by delegation in `app.js` →
+  `openPasteNotes()`) into that Settings window.
+- ⚠️ Decide then: `openPasteNotes()` returns unless `viewMode === 'month'`, so a Settings entry must either open the
+  month view first or say it is month-view only; and the `mvnotes` leg's V-cases click `#paste-notes-btn`.
+- The bundle-B session (`labels-setup`) watches `origin/main` for `SettingsWindow.jsx` and picks this up when it lands.
+
+### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
   `prep-switch` (item 1) and `month-notes` (items 2, 6, 10, 15, 17) are in their own worktrees. Cut from local `main`
@@ -147,8 +171,54 @@
   On `releases/v1.5.0.html`, `labelsetup` passes only its 8 controls. Twenty mutants each turn their own cases red
   (table in the plan's §9 once the gate is in). Gate 10 alone: nine documents identical; `mvheaderlegacy` moved by
   45 `<option>`s with a pixel-identical printed PDF, and was **re-cut on the owner's "Re-cut it"**.
-- ⏭ **Next:** the full gate (queued behind two other sessions' gates), then the owner's merge picker, then the push
-  picker. Merge `main` first if a sibling has landed.
+- ✅ **Full gate on bundle B alone, build `736220ac…` at `b624009` (port 8961, 15:10:57–15:30:47, alone after a
+  ~30 min queue behind two other sessions' gates): 2,080 PASS, 0 FAIL, GATE PASSED.** 0 clipped; the waterfall PDF and
+  every Excel part identical; `fields.byId` 74 ids; gate 10's ten print documents identical (`mvheaderlegacy` against
+  its re-cut); gate 13's twenty written month PDFs byte-identical, so the size options never reach the writer;
+  `labelsetup` 41, `mvmenu` 87, `regioncaveat` 13.
+- **Merged `main` in (`5e285af`)**: the prep pause switch (gap-report item 1) had landed on local `main` meanwhile. The
+  one code conflict was two conditional `captureSnapshot()` keys at the same spot (`prepPauseOff`,
+  `blocksEpisodesOptional`); both kept, `main`'s first. Merged build `c164e88b…` (1,556,617 bytes): check 40/40, refs
+  CLEAN, `labelsetup` 41/41, `mvmenu` 87/87, `regioncaveat` 13/13, `offweek` and `episodeprep` pass.
+- **Full gate on that merged build `c164e88b…` at `5e285af` (port 8961, 15:51:57–16:12:30, alone): 2,075 PASS, 3
+  FAIL.** All three are timing flakes already on record, and all three passed when re-run alone through `gate.sh`'s
+  own loops and judges (16:32:55–16:33:23, **86 PASS, 0 FAIL**): `pilllabel (shootorder)` W3 and `pilllabel (halfdays)`
+  W2 ("months 1 vs 16", the month-walk flake) and `episodeprep (episodeprep)` ("timed out waiting for the loaded file's
+  name in the file menu"). Everything else held: 0 clipped, the waterfall PDF and every Excel part identical, 74 ids,
+  gate 10's ten documents and gate 13's twenty written PDFs identical. ⚠️ Commit `cc89cab` is titled for this result
+  but holds the paragraph above it (a chained command skipped the edit); this one is the record.
+- **Merged `main` in again (`34554f1`)**: bundle A (`month-notes`, items 2, 6, 10, 15, 17) had been merged into local
+  `main` on the owner's picker meanwhile, with the push held for this bundle. `app.js`, HANDOFF, README and `mvmenu.js`
+  merged clean (`mvmenu` now 88 cases, both bundles'); `gate.sh` and the harness README kept both sides. ⭐ **Both
+  bundles had re-cut `mvheaderlegacy`'s gate-10 baseline**, each signed off, so it was re-captured on the merged build
+  and checked to be exactly the union: against bundle A's cut only the 45 size options, against bundle B's only A's
+  92 hidden "+" slots, the fit table identical to both, a second capture byte-identical. Merged build `c9f2f5a5…`:
+  check 40/40, refs CLEAN, `labelsetup` 41, `mvmenu` 88, `mvnotes` 14, `regioncaveat` 13.
+- ✅ **Full gate on the combined build `c9f2f5a5…` (item 1 + bundle A + bundle B, at `34554f1`; port 8961,
+  17:17:42–17:38:16, alone after a queue behind the `merge-all` session's gate): 2,203 PASS, 0 FAIL, GATE PASSED.**
+  0 clipped; the waterfall PDF and every Excel part identical; 74 ids; gate 10's eleven documents (with bundle A's
+  `mvnotes`) and gate 13's twenty-one written PDFs identical; `labelsetup` 41, `mvmenu` 88, `mvnotes` all green.
+- ✅ **MERGED AND PUSHED, LIVE.** Owner, by picker: *"Yes, merge into main"* and *"Push and verify live"*.
+  - ⚠️ The main checkout held another session's UNCOMMITTED HANDOFF entry ("RULED, NOT YET PLANNED: … reference
+    waterfall", 51 lines), which blocked the fast-forward. It is an older copy of an entry the `merge-all` /
+    `shoot-prefix` branch has committed, corrected (51 of its 54 lines verbatim there). Owner, by picker: *"Yes, back
+    it up and set aside"*. Saved byte-identical (and as a diff) in this session's scratchpad as
+    `main-checkout-HANDOFF.uncommitted.md`, then `git checkout -- HANDOFF.md`. The main checkout's other two unsaved
+    files (`tests/fixtures/stintswap-reshape.sptcal`, the untracked `Reshape Fixture 2026-09-29.sptcal`) were left alone.
+  - Then the owner asked to push "everything all at once". The `shoot-prefix` branch (another session's) already
+    holds bundle B at `5e285af` plus about ten more features, but its gate was red (15 FAIL early on: gate 10's month
+    documents, not yet re-cut for the "Shoot" bar prefix, and `shootorder`). Told so, the owner chose: *"ok push the
+    three bundles now"*.
+  - Local `main` fast-forwarded `7c18262..3f4b5b1`. ONE `git push origin main` at 17:48:35 (`5d4737d..3f4b5b1`, 25
+    commits: item 1, bundle A, bundle B). Deploy run 39523554222 succeeded. At 17:49:41 the live `index.html`, fetched
+    with a cache-buster, was **byte-identical to the gated build** (sha256 `c9f2f5a5353cb96e…`, 1,570,825 bytes,
+    `cmp`), rebuilt from `3f4b5b1` to the same hash (the commits after the gated `34554f1` are HANDOFF only). No version
+    cut: `version.json` stays 1.5.0, so installed copies pick it up silently on their next load.
+- ⏭ **Next:** the `shoot-prefix` / `merge-all` branch must merge `main` (now `3f4b5b1`) before it lands: it has bundle
+  B only up to `5e285af`, and bundle A through `7c18262`, so the new commits are this bundle's merge with A (the
+  combined `mvheaderlegacy` baseline) and docs. Its own month-baseline re-cut for the "Shoot" prefix will move
+  `mvheaderlegacy` again. A version cut is worth considering for the next push, so installed copies show the notice.
+
 ### 🔨 20 Oct 2026: RULINGS 5, 8, 9 (THE THREE SMALL ONES) — BUILDING ON BRANCH `claude/quick-wins-cfe240` (worktree `.claude/worktrees/quick-wins-cfe240`), NOT MERGED, NOT PUSHED
 
 - ⏭ **RESUME HERE for more phase colours, numbered phase-hiatus weeks and the automatic-note picker.** A side
@@ -458,12 +528,12 @@
   with the calendar."* Build `455ea88e…` (1,569,073 bytes): `npm run check` 40/40, `settingswin` 17/17. ⚠️ The
   owner removed the Preferences card's visible descriptions on 9 Sep 2026 (*"theyre not necessary"*), so no
   per-setting description lines were added; each control keeps its hover title.
-- GATE_RESULT_PLACEHOLDER
+- ✅ **Gated in the combined build** (`shoot-prefix`, final gate 2,554 PASS / 1 FAIL, the flake re-run green three times alone): `settingswin` 17/17.
 - ⚠️ **Left for after the merges:** the dead `.prep-pause-off` selectors in `legacy.css` (the phase-fields toggle rule)
   were left alone to keep this diff off a rule a sibling may edit. Sibling settings put in the old Settings tab must
   be re-homed into the window; `settingswin` W2 fails on any `data-tab="settings"` card.
 - ⏭ **Next:** the owner decides whether to merge into `main` (ask by picker). No push.
-### 🔨 20 Oct 2026: "REUSE EMPTY COLUMNS" IS BUILT ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md)), NOT MERGED (branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
+### ✅ 20 Oct 2026: "REUSE EMPTY COLUMNS" IS IN LOCAL `main` (`b266dbf`), NOT PUSHED ([`COLUMN-REUSE-PLAN.md`](COLUMN-REUSE-PLAN.md); branch `column-reuse`, worktree `.claude/worktrees/column-reuse`)
 
 - ⏭ **RESUME HERE for column reuse.** This is ruling 1 of the entry below, and the owner picked it to go first. The
   plan's §3 has the exact rule and §9 the rulings: Q1–Q8 by picker, then the owner's simplification.
@@ -506,7 +576,25 @@
   - In the app pane, real clicks: Reset moved Mix back, and the knob ("Move Mix into the free column, after Loc")
     moved it in, with 0 console errors. The two 404s are the update check asking the test server for
     `dist/version.json`.
-  - Full gate: queued behind two other sessions' gates (entry to follow).
+  - ✅ **Full gate on build `4d4d4d09…` (port 8985, 18:29:38–18:50:12, alone): 2,087 PASS, 0 FAIL, GATE PASSED.**
+    0 clipped; the waterfall PDF and every Excel part identical to baseline; v1.0.0 restores identically;
+    `fields.byId` 74 ids (the box is not a swept field); every month print document and gate 13's written month
+    PDFs byte-identical; `colreuse` 21/21 LIVE and 4/4 RESTORE.
+  - ⚠️ **Queueing:** the first waiter stood down whenever ANY process command line mentioned `./gate.sh`, which
+    includes every other session's waiter, so it starved for over two hours. Match only a running gate,
+    `pgrep -f "^/bin/zsh \./gate\.sh"`, with a 3 s poll and a 2–6 s pause. It got the slot within the hour.
+- **Committed on the owner's picker** (*"commit the column-reuse work to its branch once the full gate passes.
+  Don't merge or push."*) as `91bef1d`.
+- ✅ **Merged with `main` and gated.** On the owner's word (*"merge local main into the column-reuse branch, resolve
+  any conflicts, and run the full gate on the combined build. Don't merge into main or push."*):
+  - `main` (`ca55411`: bundles A and B, the prep pause switch) was merged in as `3cb8a9f`. The code auto-merged;
+    HANDOFF conflicted only because both sides added entries at the top, and every entry is kept, `main`'s first.
+  - **Full gate on the merged build `895f4b92…` (port 8985, 19:11:36–19:32:56, alone): 2,228 PASS, 0 FAIL, GATE
+    PASSED.** 0 clipped; the waterfall PDF and every Excel part identical; 74 ids; `colreuse` 25/25.
+  - ✅ **Landed in local `main` by fast-forward** on the owner's picker (*"Commit the HANDOFF gate note on
+    column-reuse, then fast-forward local main to column-reuse. Don't push."*): `main` = `b266dbf`, the gated
+    build. **Not pushed.** ⚠️ Any branch gated against the earlier `main` (`ca55411`), such as another session's
+    `shoot-prefix`, now needs `main` merged in and a gate on the combined build before it lands or is pushed.
 - ⚠️ **A correction the owner has seen.** Ruling 1's tie-break was put to them as "the existing Start after link".
   There is no stored link: "↳ Start after" is a one-shot button over the built-ins' fixed `PHASE_CHAIN`. So custom
   phases fall back to the leftmost column (Q1).

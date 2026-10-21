@@ -278,7 +278,7 @@ names"*, *"Keep by view"*, Single Column Mode, Label Production by and Pause pre
   no undo step for opening; the stale-switch trap after a Load and after an undo; it covers the sidebar and moves
   neither the preview nor the grid box; focus, `inert`, Escape; an old file's `sidebarTab: 'settings'`. Ten legs
   that drove the Settings tab now drive the window (`mvmenu` P6w: Show in Phases card closes it). Eight mutants,
-  each red on its own case. GATE_RESULT_PLACEHOLDER
+  each red on its own case. Gated with every other 20 Oct branch: the final combined gate passed 2,554 of 2,555 checks, `settingswin` 17/17, the one failure a timing flake that passed three times alone.
 ### Unreleased — "Reuse empty columns": a phase can take over the column of one that just finished (20 Oct 2026)
 
 The owner shared a reference waterfall that keeps two or three steady columns across several years. The app could
@@ -287,7 +287,8 @@ that phase's right, so a column freed on the left was never reused, and 2–3 ex
 Column couldn't fix it: a swap trades two columns' places and never removes one. Ruled by picker (COLUMN-REUSE-PLAN.md
 §9), then simplified by the owner: *"we dont want the settings for this column reuse to be too complicated/hard to
 understand. This goes for everything."*
-- **One box, Settings ▸ Preferences ▸ Reuse empty columns**, with one line under it. Ticked, a phase that starts the
+- **One box, Settings ▸ Calendar ▸ Waterfall ▸ Reuse empty columns**, with one line under it (built in the
+  Preferences card; it moved to the Settings window's Calendar tab when the branches merged, as calendar data). Ticked, a phase that starts the
   week another ends moves into that column, even across an all-phase hiatus. On a tie it follows the built-in phase
   its "Start after" button names, and otherwise the leftmost. With no handoff it takes the lowest free column, or a
   new one. When two columns start a year together, Production's goes on the left.
@@ -303,7 +304,8 @@ understand. This goes for everything."*
 - **Verified:** new leg `colreuse`, on a synthetic 2030–2032 calendar with one phase per rule. LIVE has 21 gate checks:
   every rule, the drag, the note, Reset, the width rule, undo/redo, the save format, and Excel's columns against the
   screen. RESTORE (4 checks) opens `tests/fixtures/colreuse.sptcal`. It is red on the pre-change build. By hand in the app pane,
-  real clicks on Reset and on the knob moved the phase, 0 console errors. Full gate: see HANDOFF.
+  real clicks on Reset and on the knob moved the phase, 0 console errors. Full gate: 2,087 PASS, 0 FAIL, with
+  the waterfall PDF, every Excel part, the 74 saved ids and every month PDF identical to their baselines.
 
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 

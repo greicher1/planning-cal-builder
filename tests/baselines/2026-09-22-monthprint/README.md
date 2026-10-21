@@ -288,6 +288,12 @@ after an A/B against the v1.5.0 release and a contact sheet of the printed month
 
 The other nine cases were captured on the same build and are identical to their baselines, untouched.
 
+⭐ **Combined with bundle A's re-cut on the merge (20 Oct 2026).** Bundle A (MONTH-NOTES-PLAN.md, "a hiatus day takes
+notes", re-cut above) re-cut this case too, so the merge of the two branches re-captured it on the merged build. It is
+exactly the union of the two signed-off changes: against bundle A's cut it adds only the 45 size `<option>`s, and
+against this cut only bundle A's 92 hidden "+" note slots. 4,393 elements, the fit table identical to both, 15 months
+→ 15 sheets, and a second capture byte-identical.
+
 ## Re-cutting
 
 Only deliberately, and record it here with a table of what moved and why — an undocumented re-cut
