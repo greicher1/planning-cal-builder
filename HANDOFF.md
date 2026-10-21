@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; NOT MERGED, NOT PUSHED
+### 🔨 20 Oct 2026 (late): PHASE CARDS FOLD TO THEIR NAME — branch `phase-collapse` (worktree `.claude/worktrees/phase-collapse`), cut from local `main` at `221e759`; GATED, IN LOCAL `main`, NOT PUSHED (owner: goes live with the next push from any session)
 
 - ⏭ **RESUME HERE for the phase-card caret.** Owner: *"There should be a carrot that lets you hide and unhide phases
   within the phases menu. When you hide them it should show just their name (name still editable) with their color but
@@ -41,8 +41,21 @@
 - ⚠️ **Asked the owner before moving `main`:** other sessions push `main` when they ship, so once this is in `main` it
   goes live with the next push from ANY session. Local `main` has since gained `f494641` and `a67f723` (docs and a
   `phiatusnum` case, no app code), so landing this needs one more merge of `main`; the gated build stands.
-- ⏭ **Next:** the owner's answer to that; then merge `main` in again and fast-forward. Owner's open question: whether
-  folds should be remembered after reopening the app (built as session-only).
+- **Owner:** *"Fine: merge main in again, fast-forward main, and let it go live with the next push from any session."*
+  By then `main` had moved to `c6a533e` WITH app code (Paste notes in Settings, and the Calendar tab merged into
+  Preferences), so it was merged in (`564fbdd`): no code conflicts. The three docs' conflicts kept both sides; HANDOFF
+  had picked up a stale one-line copy of heading-merge's pre-live heading, removed. The branch then differed from `main`
+  by exactly this feature (7 files, +404 / −1). Build `0f8adf0d…`: check 40/40, `phasefold` 11, `settingswin` 19,
+  `mvnotes` 30, `phiatusnum` 18, `mvmenu (halfdays)` 89, `hdrrow` 35 (one load timeout first, at load average 13.7;
+  35/35 twice alone).
+- ✅ **Full gate on the combined build `0f8adf0d…` at `564fbdd`** (HARNESS_PORT 9313, 15:02:01–15:26:46): **2,572
+  PASS, 1 FAIL**: `offweek (offweek)` R10, "timed out waiting for: the loaded file’s name in the file menu", the
+  recorded IndexedDB-under-load flake (v1.6.0's release gate hit the same R10). Re-run alone through gate.sh's own
+  block twice: **FAIL=0 both times**, R10 green. 0 clipped; 76 ids.
+- ✅ **Local `main` fast-forwarded to this branch.** Not pushed: it ships with the next push from any session, on the
+  owner's word above. No version cut.
+- ⏭ **Next:** nothing on this feature unless the owner answers the open question: whether folds should be remembered
+  after reopening the app (built as session-only). The worktree can be removed on the owner's word.
 
 ### 🔨 20 Oct 2026 (late night): THE SETTINGS WINDOW'S CALENDAR TAB MERGED INTO PREFERENCES — branch `prefs-merge` (worktree `.claude/worktrees/prefs-merge`, from `main` at `221e759`), GATED 2,563 / 0 WITH heading-merge AND PASTE NOTES, IN LOCAL `main`, NOT PUSHED
 
