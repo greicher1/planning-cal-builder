@@ -66,6 +66,10 @@ import '@mantine/core/styles/Tooltip.layer.css'
 // byte-offset reading as the rest: its first class sits after Tooltip's and before Stack's in
 // styles.layer.css. It shares FloatingIndicator (imported above) for the sliding segment.
 import '@mantine/core/styles/SegmentedControl.layer.css'
+// The calendar zoom's track (ZoomControl.jsx, 20 Oct 2026). By the same byte-offset reading: Slider's
+// first class (m_dd36362e, 213234) sits after SegmentedControl's (203615) and before Stack's (222981).
+// It has no !important declaration, so the print-colour fence above is unaffected.
+import '@mantine/core/styles/Slider.layer.css'
 import '@mantine/core/styles/Stack.layer.css'
 // ⛔ AFTER Stack, and that position is DERIVED, NOT ALPHABETICAL. These share one @layer, so
 // order decides the cascade -- sorting this list once put UnstyledButton after Button and
@@ -89,6 +93,7 @@ import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
+import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
 
@@ -148,6 +153,8 @@ function Chrome() {
       <DatePop />
       <SelectPop />
       <Dialogs />
+      {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
+      <ZoomControl />
     </>
   )
 }

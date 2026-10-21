@@ -566,7 +566,7 @@ over a modal.
 | Tier | Members |
 |---:|---|
 | **50** | The month view's edge handles (`.phase-edge-handle`): Production's (15 Oct 2026) and, since 16 Oct 2026, every other phase's start and end (`installPhaseEdgeHandles`, a second pool with the same class). Body-level, over the month grid, below every popover so one opened over a pill covers them |
-| **100** | app header, sidebar tab strip, help FAB |
+| **100** | app header, sidebar tab strip, help FAB, and the calendar zoom pill beside it (`.cal-zoom`, 20 Oct 2026; both are `z-index:60` in practice) |
 | **200** | help modal **and its backdrop** |
 | **300** | every popover and menu, and the shift readout. Also `.phase-edge-shield`, for the length of one edge drag only: it is appended last, so DOM order puts it on top |
 

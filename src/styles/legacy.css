@@ -414,6 +414,12 @@
     body:not(:has(#view-month-btn.active)) .preview-panel.has-side-boxes{
       display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:start;
       grid-template-areas:"hint hint hint" "gap gap gap" "bar bar bar" "left main right";
+      /* ⛔ The rows sit at the TOP. The default (normal = stretch) hands any free height to every auto
+         row, so a grid box shorter than the panel pushed itself down by its own shortfall; the grid fit
+         then measured that lower top and filled to the bottom from there, and stayed. Found with the
+         calendar zoom (owner, 20 Oct 2026), where zooming out makes the box shorter at once. At 100%
+         the fit leaves no free height, so nothing moves. */
+      align-content:start;
     }
     .preview-panel.has-side-boxes > #span-hint{ grid-area:hint; }
     .preview-panel.has-side-boxes > #gap-warning{ grid-area:gap; }
@@ -2933,6 +2939,29 @@
   }
   #help-fab:hover{ background:var(--accent-hover); transform:translateY(-1px); }
   #help-fab:active{ transform:translateY(0); }
+
+  /* ---------- Calendar zoom (owner, 20 Oct 2026; src/chrome/ZoomControl.jsx, app.js "CALENDAR ZOOM") ----------
+     A pill just left of the help button, its centre on the button's centre (22 + 46/2 = 45px up; the
+     pill is 32 tall, so 29px), 10px clear of it. Fixed, so it stays in the corner while the month view
+     scrolls under it. The zoom itself is CSS `zoom` on #table-wrap, written by the engine. */
+  .cal-zoom{
+    position:fixed; right:78px; bottom:29px; z-index:60;
+    display:flex; align-items:center; gap:2px; height:32px; padding:0 4px;
+    background:var(--panel); border:1px solid var(--border-strong); border-radius:999px;
+    box-shadow:0 2px 8px rgba(0,0,0,.14);
+  }
+  .cal-zoom .cal-zoom-slider{ width:110px; margin:0 6px; }
+  .cal-zoom .cal-zoom-pct{
+    min-width:42px; padding:3px 6px; border-radius:6px; text-align:center;
+    font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
+  }
+  .cal-zoom .cal-zoom-pct:hover{ background:var(--bg); }
+  /* ⛔ While zoomed, the waterfall's resize handles are hidden. Frozen installGridResizers places them,
+     and the frozen drag sizes them, by mixing screen px with the grid's own px, which agree only at
+     100%: zoomed, a row drag would SAVE the zoomed height into rowHeights, and so into the workbook
+     and the PDF. Paint only (MANTINE-SEAM §3.3): the overlay layer goes, no cell's box changes. The
+     engine re-installs them on the way back to 100%. */
+  body.cal-zoomed #table-wrap .grid-resize-layer{ display:none; }
 
   #help-overlay{
     display:none; position:fixed; inset:0; z-index:70;
