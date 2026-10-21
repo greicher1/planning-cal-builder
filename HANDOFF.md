@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, IN LOCAL `main`, NOT PUSHED
+### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
   main, gate the combined build, and ask me before pushing."* The two features' own entries are below this one.
@@ -25,10 +25,20 @@
   2,596 PASS, 0 FAIL, GATE PASSED.** 0 clipped; 76 ids; gates 10 and 13 green on `ep-shoot-names`' re-cut baselines.
 - ⚠️ **`hdrrow` "load 10" timed out twice in this work** ("the loaded calendar (its sidebar tab)"), each time while
   another session's full gate ran beside it; alone it passed 35/35 every time, and in both full gates. Load-related.
-- ✅ **Local `main` fast-forwarded to `land-zoom-epnames`.** NOT PUSHED: the owner asked to be asked first. The push
-  would carry the zoom slider and the episode names (which removes the live Prefix… item). No version cut yet.
+- ✅ **Local `main` fast-forwarded to `land-zoom-epnames`.** First blocked by the "Multiple day notes design" session's
+  UNCOMMITTED HANDOFF entry in the main checkout (git refused, nothing changed). Asked, that session committed it as
+  `f209759` (SPAN-NOTES-PLAN.md + its entry, docs only); merged here as `70d7485`, `src/` byte-identical to the gated
+  `7c8067f`, then `main` fast-forwarded. ⚠️ That session will edit the main checkout again if the owner rules on its
+  plan: check `git status` there before any fast-forward.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push now, no version cut"* (shown that it removes the live Prefix… item).
+  Rebuilt from `70d7485` first: `7ba96b19…`, the gated build, byte for byte. ONE `git push origin main` at 16:24:11
+  (`49cb1ef..70d7485`, 12 commits). Deploy run 39693188148: Build and check, Deploy to Pages, both success. At 16:25:18
+  the live `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (sha256
+  `7ba96b197d81c06b…`, 1,684,581 bytes, `cmp`); `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⏭ **Next:** nothing on either feature. The worktrees `cal-zoom`, `ep-shoot-names` and `phase-collapse` can be removed
+  on the owner's word. A version cut (v1.7.0) is the owner's call whenever they want the update notice shown.
 
-### 🔨 20–21 Oct 2026: CALENDAR ZOOM, BOTTOM RIGHT IN BOTH VIEWS — branch `cal-zoom` (worktree `.claude/worktrees/cal-zoom`), COMMITTED (`3290d3e`), LOCAL `main` MERGED IN (`c6a533e`, as `db1bfea`), **IN LOCAL `main` via `land-zoom-epnames`**, NOT PUSHED; ONE FROZEN EDIT, OWNER-APPROVED
+### 🔨 20–21 Oct 2026: CALENDAR ZOOM, BOTTOM RIGHT IN BOTH VIEWS — branch `cal-zoom` (worktree `.claude/worktrees/cal-zoom`), COMMITTED (`3290d3e`), LOCAL `main` MERGED IN (`c6a533e`, as `db1bfea`), **LIVE at `70d7485`** via `land-zoom-epnames`; ONE FROZEN EDIT, OWNER-APPROVED
 
 - **Asked:** *"Add a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view to
   zoom in or out the viewport of either the waterfall cal or the month cal"* (first said bottom left, corrected to
@@ -86,7 +96,7 @@
 - **Coordination note:** this work started in the MAIN checkout while the `phase-collapse` session was also editing
   `src/legacy/app.js` there. Both moved to worktrees; the main checkout's app.js was left exactly as at `221e759`.
 
-### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **IN LOCAL `main` via `land-zoom-epnames`**, NOT PUSHED
+### 🔨 20 Oct 2026 (late night): AN EPISODE'S NAME IS ITS MONTH BAR — "Shoot Ep. 101" BY DEFAULT, PREFIX… RETIRED — branch `ep-shoot-names` (worktree `.claude/worktrees/ep-shoot-names`), from `main` at `d7c6d99`; **LIVE at `70d7485`** via `land-zoom-epnames`
 
 - ⏭ **RESUME HERE for episode names.** Owner, the evening v1.6.0's prefix went live: *"I just wanted the word Shoot
   before 'Shoot Ep. 101' - but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that
