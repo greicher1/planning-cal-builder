@@ -4,6 +4,17 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ⏳ 20 Oct 2026: OWNER REQUEST, NOT BUILT: "put paste notes into settings", AFTER THE SETTINGS WINDOW IS LIVE
+
+- Owner, after the bundle-B push: *"put paste notes into settings"*, then *"but you can do this after the rest of the
+  stuff pushes with the new settins tab"*. So: once the `merge-all` / `shoot-prefix` branch (which carries the new
+  Settings window, `src/chrome/SettingsWindow.jsx`, ruling 12) is pushed, move **Paste notes…** out of the preview
+  toolbar (`#paste-notes-btn` in `PreviewToolbar.jsx`, month view only, opened by delegation in `app.js` →
+  `openPasteNotes()`) into that Settings window.
+- ⚠️ Decide then: `openPasteNotes()` returns unless `viewMode === 'month'`, so a Settings entry must either open the
+  month view first or say it is month-view only; and the `mvnotes` leg's V-cases click `#paste-notes-btn`.
+- The bundle-B session (`labels-setup`) watches `origin/main` for `SettingsWindow.jsx` and picks this up when it lands.
+
 ### 🔨 20 Oct 2026: BUNDLE B BUILT — SIX LABEL AND SETUP CHANGES ([`LABELS-SETUP-PLAN.md`](LABELS-SETUP-PLAN.md)), with item 1 and bundle A, GATED 2,203 / 0, **LIVE at `3f4b5b1`** (verified byte-identical, `c9f2f5a5`)
 
 - ⏭ **RESUME HERE for bundle B.** One of three bundles from the 20 Oct gap report (items 3, 4, 5, 7, 8, 9); siblings
