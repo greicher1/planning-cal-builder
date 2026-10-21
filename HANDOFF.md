@@ -31,9 +31,16 @@
   their old baselines byte for byte once `Shoot ` is removed, `mvheaderlegacy` also taking bundle B's size options (it
   had been held at bundle A's file in the merge). Months → sheets unchanged everywhere. `801c738`; both baseline READMEs
   record it.
-- ⏳ **Final full gate: queued** behind the cal-range session's gate (port 9247, `gate-final.log` in this session's
-  scratchpad). Then the owner's picker for `main`, and separately for a push. A version cut is the owner's call
-  (this would be v1.6.0).
+- **Final full gate** on the re-cut baselines (build `a53e5344…` at `5e1c798`, port 9247, 19:33:05–19:58:09, alone):
+  **2,554 PASS, 1 FAIL**. `shootorder`, `mvmenu` V1, `pilllabel (blocks)`, `autonotekinds` A12 and `dlgkeys` all green;
+  gates 1–5 (0 clipped, waterfall PDF and Excel identical, 76 ids), gate 10's eleven documents and gate 13's twenty-one
+  written PDFs identical to the re-cut baselines. The one FAIL: `monthexport (reference, 1280,800)` X6 (the
+  unsettable-characters warning). It passed in the 17:38 gate on the SAME build, and in every other monthexport run of
+  this gate (twenty calendars, UTC+14, real time). Re-run alone, three times: result below.
+  - ⚠️ **A queue-check trap, learned here:** a first attempt at this gate started BESIDE the cal-range session's
+    gate, because its free-slot check identified gates by cwd through `lsof`, and an `lsof` that comes back empty
+    under load read as "free". Stopped after 3 minutes and re-queued on `pgrep -f "zsh \./gate\.sh"` alone.
+- ⏭ Then the owner's picker for `main`, and separately for a push. A version cut is the owner's call (v1.6.0).
 
 ### 🔨 20 Oct 2026: EVERYTHING BUILT TODAY, AND THREE OLDER FEATURES, MERGED ON BRANCH `merge-all` (worktree `.claude/worktrees/merge-all`), COMBINED GATE QUEUED, NOT IN `main`, NOT PUSHED
 
