@@ -171,6 +171,8 @@ owner asked for a start/end override instead of a change to the year split. Aske
 - **The shift tools move it like an unlocked hiatus.** Shift All and Anchor To move both dates; Shift From moves a
   date only if it is on or after the phase shifted from; Rebuild From leaves it.
 - **Single Column Mode honours it too.** A blank date keeps that layout's own first or last working week.
+- **An end past the last week of work adds no empty rows**: the waterfall already drops trailing weeks with nothing
+  in them, as it does with the full-year padding, and Excel and the PDF do the same.
 - **Dates that cannot make a range say so.** An end before the start is ringed and the range is left out. A
   start after the calendar's last week (or an end before its first) leaves no row: the waterfall says to check
   the dates, both are ringed, and the month view still draws. A year typed far away names itself in the "too
@@ -187,8 +189,10 @@ owner asked for a start/end override instead of a change to the year split. Aske
   calendar with the range blank: the rows kept and their labels, the strip's words, Excel's Date columns, the
   waterfall PDF's text, the month view identical month by month (13 months, cut Simultaneous Post and Writer's
   Room weeks included), Single Column Mode, Shift All / Shift From and undo, the three bad-date cases, Save / Load
-  and the M-5 trap, the shareable copy, New. Red on the pre-change build; eleven mutants each turn their own cases
-  red. `npm run check` 40/40.
+  and the M-5 trap, the shareable copy, New, and the card hidden in the month view. Red on the pre-change build;
+  twelve mutants each turn their own cases red. `npm run check` 40/40. Full gate on the branch: 2,080 PASS, 0 FAIL,
+  with the waterfall PDF, every Excel part and every month PDF identical to their baselines, and gate 5 at 76 ids
+  (re-cut for the two new ids on the owner's sign-off).
 
 ### The waterfall's header text and dates: Header: Off, a 1/6/2025 date format, custom column headings (20 Oct 2026)
 

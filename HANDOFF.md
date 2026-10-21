@@ -309,7 +309,7 @@
   - **Proof:** leg `tests/harness/t/phasecolors.js`, 10/10 on the build; 8 of 10 red on the pre-change build
     (`dist-pre5/`, `ff6e3f60…`); the rotate-over-14 mutant turns exactly C8 red.
 - ⏳ **Next on this branch: the full gate, then the owner's merge question.**
-### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — BUILT (branch `claude/cal-range-1fe2e5`, worktree `.claude/worktrees/cal-range-1fe2e5`), NOT MERGED, NOT PUSHED
+### ✅ 20 Oct 2026: RULING 3, THE CALENDAR RANGE — LIVE IN v1.6.0 (merged by `merge-all` at `d0dab94`, from branch `claude/cal-range-1fe2e5` at `224eef0`)
 
 - ⏭ **RESUME HERE for the calendar range.** One of the parallel sessions building the 20 Oct rulings (entry below,
   copied in from the main checkout, where it is uncommitted). This one owns ruling 3. Shared notes for the group:
@@ -366,8 +366,23 @@
   padding (`padStart` … `overallEnd`) and the swap call site (`cut` / `wf` / the `schedule` literal, whose keys are
   now spelled out). `segCol` and the placement loop are untouched. Column reuse changes `col` upstream of the cut,
   so the two compose: the cut only slices weeks.
-- ⏭ **Next:** the full gate on build `9da4794b…` at `224eef0` (queued 15:55 behind two other sessions' gates, port 8969, log in
-  this session's scratchpad `gate.log`), then the merge picker. Never merge or push without it.
+- **Full gates run by this session** (port 8969), all green in the end:
+  - The branch alone, build `9da4794b…` at `e983ebb`: first 2,075 PASS / 5 FAIL, all five `pilllabel (halfdays)` "months
+    1 vs 16" (the recorded month-walk flake; green alone with the gate's own judging), then **2,080 PASS / 0 FAIL**
+    (18:05–18:29). Every frozen output identical, `fields.byId` 76 ids.
+  - Merged with bundles A and B (owner, picker: "Merge main in, gate, ask again"), build `f5eaa8ba…` at `66082c1`:
+    **2,221 PASS / 0 FAIL**.
+  - Merged again with column reuse, build `f03d74aa…` at `df8fb1b`: **2,246 PASS / 0 FAIL**. One code conflict, the
+    `schedule` literal (the cut's spelled-out keys and column reuse's `colMoves` line), both kept.
+  - Those two merges stayed on `claude/cal-range-1fe2e5`: `merge-all` had already taken the feature at `224eef0`, so the
+    feature in `main` is that commit. Its code and its leg are identical to what these gates ran.
+- ⭐ **Found while checking the merge with column reuse, and it is frozen behaviour, not the range:** an END date past the
+  last week of work adds no empty rows. Frozen `sheetRowCount()` drops trailing rows that are empty in EVERY year
+  block, which is also why the full-year padding never prints a run of empty December rows. On `colreuse.sptcal` with a
+  range ending 8/27/31, the 2031 block stopped at 6/30/31, its last row with anything in it. The screen, Excel and both
+  PDFs share `sheetRowCount`, so they agree. Leading empty rows (a start before the work) are kept. Changing it would
+  be a frozen edit; not raised as one.
+- ⏭ **Next:** nothing for this ruling. It shipped in v1.6.0.
 ### 🔨 20 Oct 2026: RULINGS 2, 4 AND 10 BUILT — HEADER: OFF, A 1/6/2025 DATE FORMAT, CUSTOM COLUMN HEADINGS (branch `claude/header-row-fe6f32`, worktree `.claude/worktrees/header-row-fe6f32`, [`HEADER-ROW-PLAN.md`](HEADER-ROW-PLAN.md)), NOT MERGED, NOT PUSHED
 
 - ⏭ **RESUME HERE for the waterfall's header text and dates.** One of six parallel sessions building the 20 Oct
