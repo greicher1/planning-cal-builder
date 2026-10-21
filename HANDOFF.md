@@ -4,6 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; NOT MERGED, NOT PUSHED
+
+- **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
+  `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
+- **Built** (no frozen code): `applyCalZoom()` writes `--cal-zoom` on each `.side-col` instead of `zoom` (absent at
+  100%). legacy.css's side-box cap, the copy of the frozen `.sheet-scroll` max-height, becomes
+  `calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1))`. ⚠️ **Why the multiply:** the grid fit solves
+  `--header-h` so the grid box's max-height is `want / z` in the ZOOMED box's own px; an unzoomed copy of that
+  expression is off by the zoom (measured on the old build: cap 1714 px at 50%, 429 px at 200%, against a grid box of
+  857). `sideDropTarget`'s gap and `beginSideWidthDrag` drop their `gridZoom()` factor.
+- ⚠️ **S7 still compares the two computed max-heights for equality.** That only holds at 100%. The new S12 is the
+  zoomed version: it compares the cap with the grid box's max-height times its zoom.
+- **Proof:** `sideboxes` 59/59 with the new S12 (50% and 200%: grid zoomed, boxes at 100% size, cap equal to the grid
+  box's screen height, no panel scroll), S12 red on a build of `da1142a`; `calzoom` 22/22; `npm run check` 40/40; by
+  hand in the app's browser at 25/50/100/150/200%, and a width drag at 200% (40 px of pointer = 40 px of width).
+- ⏭ **Next:** the full gate (queued behind the "Viewport overlap sizing" session's gate in `zoom-compact`), then the
+  owner's merge and push pickers. `zoom-compact` changes the zoom pill, the help button and the panel's bottom margin
+  (legacy.css near the app shell block): no overlap with this branch.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
@@ -49,7 +68,7 @@
   "CALENDAR ZOOM" right after `setViewMode()`: `calZoom = {sheet, month}`, `applyCalZoom()` (called by setViewMode and
   applyStateSnapshot BEFORE their render, at boot, and by a childList observer on `#table-wrap` after every render),
   `setCalZoom()` fed by a `sptcal-zoom` DOM event. `prefs.calZoom` stores only non-100% values.
-- **How it zooms, measured in Chrome 152's standardised zoom:** CSS `zoom` on `#table-wrap` (and `.side-col`).
+- **How it zooms, measured in Chrome 152's standardised zoom:** CSS `zoom` on `#table-wrap` (and `.side-col` until 21 Oct 2026: the side boxes no longer zoom, see the entry above).
   `getBoundingClientRect()` and `clientX` are then SCREEN px while inline px, `offsetWidth` and computed values are
   the grid's own. The month view is pinned with `width: calc(100% * z)` so its day columns keep their CSS width. Only
   while a calendar shows (`calendarShown()`): the empty state and error messages stay at 100%.
@@ -66,7 +85,7 @@
     rollback) blind to the zoom. The re-render on the way back to 100% stays, for the waterfall's handles.
 - **Non-frozen geometry fixed for zoom** (an Explore audit listed every site): `selGeom` carries `z`; `tdBox`,
   `ownSlotBox`, the marquee and three `headerBottom`s divide or multiply by it; `showWeekInWaterfall`, `colEdgeX`,
-  `beginSideWidthDrag`, `sideDropTarget`; the app shell grid fit solves `want / z`
+  `beginSideWidthDrag`, `sideDropTarget` (both back to plain screen px since the side boxes stopped zooming); the app shell grid fit solves `want / z`
   and observes `#table-wrap`'s style. `gridZoom(el)` reads `el.currentCSSZoom`.
 - **Found and fixed on the way:** `.preview-panel.has-side-boxes` is a grid whose rows stretched (align-content
   normal) when the grid box was shorter than the panel, pushing it down by its own shortfall; the fit then measured

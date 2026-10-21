@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the zoom slider no longer resizes the side boxes (21 Oct 2026)
+
+The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
+used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
+the grid.
+- **Now only the grid zooms.** The boxes keep their 100% size at every zoom: width, row heights, text size, and the
+  grip, × and width handle around them.
+- **Their height cap still matches the grid box on screen.** The cap is a copy of the frozen `.sheet-scroll`
+  max-height, and the grid fit solves that value in the zoomed grid's own pixels, so the copy now multiplies by the
+  zoom (`--cal-zoom`, set on `.side-col` by `applyCalZoom()`, absent at 100%). At 100% the expression is unchanged.
+- The width drag and the drop line no longer scale by the zoom, since the boxes are never zoomed.
+- No frozen code, no saved-file change, nothing the exports read.
+- **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
+  size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
+  after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
+  moved the edge exactly with the pointer.
+
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view

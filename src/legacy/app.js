@@ -14921,7 +14921,7 @@ export function initLegacyApp() {
     const side = x < wrap.left + wrap.width / 2 ? 'left' : 'right';
     const boxes = Array.from(sideCols[side].querySelectorAll('.sb-box')).filter(el => +el.dataset.i !== from);
     let before = null, lineY = null;
-    const gap = 10 * gridZoom(sideCols[side]);   // half the 20px gap, at the calendar zoom
+    const gap = 10;   // half the 20px gap (the side boxes are never zoomed)
     for(const el of boxes){
       const r = el.getBoundingClientRect();
       if(y < r.top + r.height / 2){ before = +el.dataset.i; lineY = r.top - gap; break; }
@@ -15021,12 +15021,10 @@ export function initLegacyApp() {
     e.preventDefault();
     const col = sideCols[side];
     const startChars = sideWidthChars(side), startPx = charsToScreenPx(startChars), x0 = e.clientX;
-    // The pointer travels in screen px, the width is the column's own px (calendar zoom).
-    const z = gridZoom(col);
     let chars = startChars;
     document.body.classList.add('sb-resizing');
     const move = ev=>{
-      const px = startPx + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX) / z;
+      const px = startPx + (side === 'left' ? ev.clientX - x0 : x0 - ev.clientX);
       chars = clampChars(screenPxToChars(px), SIDE_MIN_CHARS, SIDE_MAX_CHARS);
       // Presentation only while dragging; the store is written once, on release (installGridResizers' rule).
       col.style.setProperty('--sb-w', charsToScreenPx(chars) + 'px');
@@ -19229,9 +19227,9 @@ export function initLegacyApp() {
   // value lives here, one per view, because setViewMode() and a Load have to put the right one on
   // BEFORE the frozen render runs.
   //
-  // ⛔ A MAGNIFICATION AND NOTHING ELSE. CSS `zoom` goes on #table-wrap itself (and on the side boxes
-  // beside it), never on anything inside it: the frozen renderers write exactly what they write at
-  // 100%, and the screen shows that, larger or smaller. Nothing reflows:
+  // ⛔ A MAGNIFICATION AND NOTHING ELSE. CSS `zoom` goes on #table-wrap itself, never on anything
+  // inside it: the frozen renderers write exactly what they write at 100%, and the screen shows that,
+  // larger or smaller. Nothing reflows:
   //   * the waterfall's table has explicit widths, so it is the 100% table scaled; its scroll box
   //     fills the panel at every zoom (the grid fit divides by the zoom, see "THE APP SHELL'S GRID FIT");
   //   * the month view is PINNED to the width it has at 100% (`width: calc(100% * z)`), so its day
@@ -19292,7 +19290,10 @@ export function initLegacyApp() {
       put(tw, 'width', on && calZoomView() === 'month' ? 'calc(100% * ' + z + ')' : '');
       if(tw.getAttribute('style') === '') tw.removeAttribute('style');
     }
-    document.querySelectorAll('.side-col').forEach(el=> put(el, 'zoom', on ? String(z) : ''));
+    // The side boxes are NOT zoomed (owner, 21 Oct 2026: "the side boxes should not change size with
+    // the viewport slider"). They read the zoom for one thing: their stack is capped at the grid box's
+    // height, and the grid fit solves that height in the zoomed box's own px (legacy.css, Side boxes).
+    document.querySelectorAll('.side-col').forEach(el=> put(el, '--cal-zoom', on ? String(z) : ''));
     document.body.classList.toggle('cal-zoomed', on);
     if(typeof chrome === 'object' && chrome && typeof chrome.calZoom === 'function'){
       chrome.calZoom({ view: calZoomView(), zoom: calZoom[calZoomView()], visible: shown });
