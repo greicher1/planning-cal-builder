@@ -29,6 +29,39 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
+
+The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
+... you have to understand that if you change the notes collumn to something other than writing, it is THEN going
+to split the header row into 2. Why would that be intuitive? we need a better way"*. The old panel showed one box
+per column of a merged heading, and a heading split only when two of those boxes were typed differently. What a
+heading covered was a side effect of its text. Rebuilt on the owner's picker (*"Split/Merge buttons"*):
+- **One box edits the whole heading.** Typing never splits or joins anything. A heading typed to read the same
+  as the one beside it stays a separate heading.
+- **Three buttons change what a heading covers:** **Split** gives each column its own heading (each keeps the
+  text, ready to retype); **← Merge** and **Merge →** join it with the heading beside it, which takes this
+  heading's text. A button that cannot apply is greyed out (← Merge on a year's first heading, Split on a
+  one-column heading). Each saves the typed text too, as one undo step, and the panel opens again on the heading
+  it made. A line says how many columns the heading covers, and a ring marks the heading being edited, since
+  after a Split every piece reads the same.
+- **Reset** puts the heading's columns back to their original text (the year, or "Notes") and joins them to a
+  neighbour that reads the same. Enter saves, Esc cancels, a click outside saves, as before.
+- **Saved** as a new key, `headerRowSplits`: the columns that start a heading although they read the same as the
+  column before. It is written only when a split heading exists, so every other calendar saves byte for byte as
+  before. A v1.6.0 file has no key and merges same-text neighbours as it always did. An older build ignores the
+  key and merges them too. A file with no key never keeps the previous file's splits. A malformed value is dropped
+  on Load. New clears it.
+- **No frozen code changed.** The three writers already draw whatever `headerRowRuns()` returns. Only that helper
+  learned the key, so the screen, Excel and the PDF split and merge identically, and a calendar without the
+  switch on never reaches it.
+- **Verified:** `hdrrow` rewritten for the new panel and extended to 35 cases (S1–S5 are new: Split on screen, in
+  Excel and in the PDF; typing never merges; ← Merge and Merge → each one undo step; Reset; Load with the key,
+  without it (v1.6.0), and with junk). 35/35 on the build, twice. Five mutants each turn it red (splits ignored
+  when drawing, splits kept from the previous file, splits kept after New, typing merging, splits not saved).
+  `settingswin` 17/17 and `sharecopy2` pass. `npm run check` 40/40. Seen working in the browser on a real
+  calendar, including the owner's case ("Writing" over column 1 and Notes, split into two). The full gate has
+  not been run yet.
+
 ## v1.6.0 — the waterfall's layout tools, the Settings window, and month-view notes and labels (20 Oct 2026)
 
 Twenty-six changes since v1.5.0, all from 19–20 Oct 2026. Thirteen were already live before this cut (the prep
