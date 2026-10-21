@@ -66,7 +66,8 @@ calendar shows, saves and exports exactly as before.
   the PDF's content stream for each feature. It passed 30/30 on three runs with 0 console errors. It is red on
   the pre-change build (`7054bec6`), and each of eight mutants turns it red. The PDFs were rendered and
   looked at. The custom workbook passes `check-xlsx.sh`. `npm run check` 40/40; `check-refs.py` clean.
-  Full gate: see `HANDOFF.md` (top entry).
+  Full gate: 2,092 PASS, 0 FAIL, with the waterfall PDF, every Excel part, the restored v1.0.0 calendar, the 74
+  saved field ids and both month PDFs identical to their baselines.
 
 ### Unreleased — "Pause prep on days marked Off": a switch in the Prep card, off by default (20 Oct 2026)
 

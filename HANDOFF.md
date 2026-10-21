@@ -57,7 +57,11 @@
     ignoring Off (O4), the margin not reclaimed (O4), the switch not reflected on Load, New keeping the format (N1).
   - The custom and Off PDFs were rendered with `pdftoppm` and looked at. The custom workbook passes
     `check-xlsx.sh` (`numFmtId 164 = m/d/yyyy`). `npm run check` 40/40; `check-refs.py` clean.
-  - **Full gate: queued on port 8965 behind other sessions' gates.** Result to be written here.
+  - ✅ **Full gate on build `d5a73954…` at `f50e613` (port 8965, 20:40:00–20:59:58, alone): 2,092 PASS, 0 FAIL,
+    GATE PASSED.** That is the prep switch's 2,062 plus the 30 `hdrrow` cases. With no re-cut: 0 clipped, the
+    waterfall PDF and every Excel part identical to baseline, `base`'s headers/sig/cols identical, v1.0.0
+    restores identically, `fields.byId` 74 ids, gate 10's print documents and gate 13's written month PDFs
+    identical. So all three features are inert by default, as signed off.
 - ⚠️ **Learned:**
   - Excel's default date cells (built-in format 14) follow the reader's system short date, so US Windows already
     shows 1/6/2025. This is unverified on Windows. It was left alone because it is the default; it is a later
@@ -68,7 +72,7 @@
   - `t/lib.js` still says *"No dollar sign anywhere in this file or in a test (see srv.js)"*, but that warning is
     out of date. Since 25 Sep 2026 `srv.js` injects legs with a FUNCTION replacement, which reads no `$`
     patterns. `hdrrow` avoids `$` anyway. The comment in `lib.js` was left as it is: it is not this branch's file.
-- ⏭ **Next:** the full gate's result; then the owner's merge picker. Merging next to the side-boxes branch
+- ⏭ **Next:** the owner's merge picker. Merging next to the side-boxes branch
   should give only textual conflicts near the writers' header rows and `hdrLeftX`. Gate 5's `restore.json` is
   untouched here; cal-range re-cut it to 76 ids.
 
