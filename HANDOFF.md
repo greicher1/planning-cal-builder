@@ -44,17 +44,37 @@
   and tagged (`origin/main` = `cfd18e9`), so they landed on top of it, unreleased.
 - **Not pushed.** A push needs its own picker. The feature board's three cards are moved to `merged`.
 
-### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR — MERGED INTO LOCAL `main` at `555acc0` (build `c7b70156`, byte-identical to the gated build); GATED 2,695 / 3 (the 3 fixed in the leg, 14/14); NOT PUSHED — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
+### ✅ 21–22 Oct 2026: v1.8.0 IS LIVE at `cfd18e9` (verified byte-identical, `82a85b67`): THE TEXT STYLE BAR, released with the month view's phase outline — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
 
-- ⏭ **RESUME HERE: the push.** Owner, 22 Oct 2026, after trying the branch build on localhost: *"merge text-style-bar
+- ✅ **v1.8.0 IS LIVE (22 Oct 2026).** Owner, by picker, when asked about the push: *"Cut v1.8.0, then push"*.
+  - **The cut** (`cfd18e9`): `APP_VERSION`, `version.json` and `package.json` = 1.8.0; README `## v1.8.0` over the
+    four entries since v1.7.0 (header-zoom and the side-box zoom fix, both already live; this bar and the month view's
+    phase outline, new); `releases/v1.8.0.html` = dist (`82a85b67…`, 1,711,456 bytes, `cmp`);
+    `tests/fixtures/v1.8.0-saved.sptcal`, a real Save from the cut build (43 keys, 76 ids, the same fields as v1.7.0's
+    synthetic one). `npm run check` 40/40. The root `index.html` untouched.
+  - **Release gate on `82a85b67…`** (port 9595, 12:42:13–15:21:15): **2,626 PASS, 4 FAIL**, and all four were legs
+    that wrote NO RESULT at all (`hdrversion`, `hdrtemplate`, `hdrpreset`, `pdfdialog`), not a failed check. It took
+    2 h 39 min where this branch's gate alone took 25 min that morning; the land-ready entry above records load
+    averages of 65–85 that afternoon (a Time Machine backup), the likely cause, not checked for this run. Every byte
+    comparison held: the waterfall PDF and every Excel part identical, 76 ids, gate 10's printed month documents,
+    gate 13's written month PDFs (22/22), 0 clipped cells anywhere, `textstyle` 51/51.
+  - **The four re-run alone** through `gate.sh`'s own judges on the same build (15:48:40–15:49:04): **72 PASS,
+    0 FAIL** (`hdrversion` 17, `hdrtemplate` 25, `hdrpreset` 19, `pdfdialog` 11).
+  - ✅ **PUSHED AND LIVE.** Tag `v1.8.0` (annotated) on `cfd18e9`; ONE `git push origin HEAD:main v1.8.0` from the
+    worktree at 15:49:43 (`17136a7..cfd18e9`, plus the tag); deploy run 39867726799 succeeded. At 15:50:38 the live
+    `version.json` read 1.8.0 and the live `index.html` (with a cache-buster) was **byte-identical to
+    `releases/v1.8.0.html`** (sha256 `82a85b67…`, `cmp`). Local `main` was then fast-forwarded to `cfd18e9`; the main
+    checkout's two fixture items were left as they were. (Local `main` has since moved on: the land-ready entry above.)
+  - ⏭ **Next:** nothing is owed on this feature. Installed copies will offer the 1.8.0 update. The owner's own check:
+    style some text in the installed app, then open the workbook and the PDF. The worktree can go on the owner's word
+    (its preview server on port 9601 still serves the local link).
+- **Before the cut:** Owner, 22 Oct 2026, after trying the branch build on localhost: *"merge text-style-bar
   into local main (no push), check the build there is the gated one, then ask me separately about pushing."* Done:
   main's one new commit (`8814000`, HANDOFF only) merged into the branch (`555acc0`; no src or test file changed), then
   local `main` FAST-FORWARDED to it, so `main` = `555acc0` = the branch. ✅ A clean scratch build of `main`'s tree
-  (`git archive main`) is **byte-identical to the gated build** (`c7b70156…`, `cmp`); `npm run check` 40/40.
-  `origin/main` is still `17136a7`: nothing pushed. The main checkout's two pre-existing fixture items
-  (`stintswap-reshape.sptcal` modified, "Reshape Fixture 2026-09-29.sptcal" untracked) were left as they were.
-  ⏭ **Next: the owner's push picker** (a version cut is a separate call; `version.json` is unchanged, so a push would
-  reach installed users silently, as the last few did).
+  (`git archive main`) is **byte-identical to the gated build** (`c7b70156…`, `cmp`); `npm run check` 40/40. The main
+  checkout's two pre-existing fixture items (`stintswap-reshape.sptcal` modified, "Reshape Fixture 2026-09-29.sptcal"
+  untracked) were left as they were.
 - **Earlier:** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
   /Length stream reads and convert the other five legs to match), rebuild, and run the full gate. Don't merge into main
   or push."* Done as `e12b10b` (main at `1f4ae2c`: v1.7.0 paper size + Export PDF dialog, header-zoom, phase outline,
@@ -183,7 +203,7 @@
   branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, **LIVE at `17136a7`** (verified byte-identical, `7a8473cd`; no version cut)
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, **LIVE at `17136a7`** (verified byte-identical, `7a8473cd`; no version cut then, versioned in v1.8.0 at `cfd18e9`)
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
   `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
@@ -239,7 +259,7 @@
   ⚠️ `sidebox-free-pos` (another side-box branch) will meet this change in `applyCalZoom()` / `.side-col` CSS when it
   merges: the side boxes are no longer zoomed, and their cap multiplies by `--cal-zoom`.
 
-### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; BUILT, NOT GATED, NOT MERGED
+### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; GATED, MERGED, **LIVE in v1.8.0 at `cfd18e9`**
 
 - ⏭ **RESUME HERE.** Owner, 21 Oct 2026, choosing between changing notes and changing phases (SPAN-NOTES-PLAN.md §1
   D1, both mocked in chat): *"go for the darker outline for phases"*. README's Unreleased entry says what a user gets.
@@ -301,8 +321,11 @@
   in as `d322e4e` (no code; the rebuild is still `3fc04ff4…`), then local `main` fast-forwarded to this branch. It
   holds `origin/main` (`34c873f`) too. **NOT PUSHED:** a push needs its own picker, and month-order (its third gate
   green on `b6a6af9`) must now merge `main`, which carries this frozen CSS edit and gate 13's re-cut baselines.
+- ✅ **LIVE in v1.8.0 at `cfd18e9`** (22 Oct 2026): pushed with the text style bar on the owner's picker *"Cut v1.8.0,
+  then push"*, verified byte-identical (`82a85b67`); the text style bar's entry has the release gate. Month-order has
+  since merged `main` (the land-ready entry at the top).
 
-### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); since merged into local `main`, and versioned in v1.8.0 (`cfd18e9`)
 
 - **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
   scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%

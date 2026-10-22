@@ -95,7 +95,8 @@ Four changes since v1.7.0, from 21–22 Oct 2026. Two were already live before t
 where the calendar ends, and the zoom slider no longer resizes the side boxes); this version is how installed copies
 hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **text style bar** (highlight
 any text in the waterfall, Excel-style, and set its size, bold, italic, colour and alignment) and **phases ringed in
-their own darker colour** in the month view and both month PDFs.
+their own darker colour** in the month view and both month PDFs. Release gate on the cut build (`82a85b67`): 2,626
+PASS with every byte comparison identical; the four legs that wrote no result under load passed alone, 72/72.
 
 ### the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
 
@@ -117,7 +118,7 @@ rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
 - **Saved** as `textStyles` (absent when nothing is styled), drawn the same on screen, in Excel and in the waterfall
   PDF (frozen edits F1–F4, each running today's exact code when no style is set). Shifts move a style with what it
   styles.
-- **Verified:** new leg `textstyle` 46/46 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
+- **Verified:** new leg `textstyle` 51/51 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
   new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
   `sideboxes` 58/58; `npm run check` 40/40. Merged with main (v1.7.0 and the 21 Oct features) as `e12b10b`: full gate
   on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
