@@ -85,7 +85,7 @@
 - ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
   The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
 
-### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, `main` (v1.7.0) merged in as `21c5444`); first full gate 2,619 / 3 (gates 10 and 13 green; the 3 explained below); second gate on the merged branch QUEUED; not merged into `main`, not pushed
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, `main` (v1.7.0) merged in as `21c5444`, live `origin/main` (header-zoom, `34c873f`) as `b6a6af9`); gates 2,619 / 3 and 2,648 / 1, every FAIL green alone; THIRD gate (on `b6a6af9`) QUEUED; not merged into `main`, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
   view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
@@ -142,9 +142,14 @@
 - **Merged `main` (v1.7.0, 18 commits incl. paper size) into the branch** as `21c5444`: code auto-merged; README and
   CLAUDE.md conflicted only where both added an entry/row (both kept). On the merged build: `npm run check` 40/40,
   `stintexport` and `hdrversion` green with the gate's own checks, `mvorder` 20/20.
-- ⏭ **Next:** the second full gate (queued, scratchpad `waitgate.sh`, port 8790); on green, ask the owner about
-  merging into `main` and, separately, about pushing. On the tracker as `month-reorder` and `month-drag-preview`
-  (building).
+- ✅ **Second full gate** (on `21c5444`, 03:35–04:02): **2,648 PASS, 1 FAIL**: `winansi` "timed out waiting for:
+  ExcelJS" (its CDN load), 7/7 alone. Gates 10 and 13 green again.
+- **Then `origin/main` had moved** (header-zoom pushed, `34c873f`), so it was merged in as `b6a6af9` (README: both
+  top entries kept). `npm run check` 40/40, `mvorder` 20/20. ⚠️ Local `main` is BEHIND `origin/main` (11 commits) and
+  ahead by this session's HANDOFF commits; it must merge `origin/main` before its next push.
+- ⏭ **Next:** the third gate (queued, port 8790); on green, ask the owner about landing `month-order` (it now holds
+  live `origin/main`, so `origin/main` can take it as a fast-forward of the branch) and, separately, about pushing.
+  On the tracker as `month-reorder` and `month-drag-preview`.
 
 ### ✅ 22 Oct 2026: v1.7.0 IS LIVE at `703d9d4` (verified byte-identical, `7063a638`): PAPER SIZE + EXPORT PDF DIALOG, built on branch `paper-size` (`d51c2c7`)
 
