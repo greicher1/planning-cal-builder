@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone), not committed
+### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
 
 - **Asked** (screenshot of the purple count chip and the dark swap-mode chip stacked over a Shoot block): *"can we
   remove or at least simplify (maybe combine into one?) this double pop up"*. A first build merged them into one short
@@ -49,7 +49,13 @@
 - ⚠️ **The main checkout carries someone else's UNCOMMITTED edit to `tests/fixtures/stintswap-reshape.sptcal`** (plus
   an untracked `Reshape Fixture 2026-09-29.sptcal`), present before this session. It was left alone. A gate run from
   the main checkout would load that changed fixture into `stintreshape`.
-- ⏭ **Next:** commit/push only on the owner's word. On the tracker as `one-selection-hint`.
+- **Merged for the push** with `origin/main` only, NOT local `main`: local `main` (`9677900`) carries another
+  session's unpushed `3f974af` (Region in Show info, its gate still queued) and PAPER-SIZE-PLAN docs, and lacks
+  `6ac6e9a`. Conflicts were the two top entries in HANDOFF and README (both kept). Against `origin/main` the `src/` diff
+  is exactly this change. Merged build `0ef46d8d…`: `npm run check` 40/40, the eight overlay legs plus `sideboxes` and
+  `hdrcontrols` (the toolbar session's own legs): 146 PASS, 0 FAIL. Not a second full gate.
+- ⚠️ **Local `main` is NOT updated by this push.** Whoever lands `3f974af` must merge `origin/main` first.
+- ⏭ **Next:** push `03ebcd1`+ as `HEAD:main` from the worktree, then verify live. On the tracker as `one-selection-hint`.
 
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 
