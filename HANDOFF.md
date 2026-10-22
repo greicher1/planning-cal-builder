@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### ✅ 22 Oct 2026: MONTH REORDER + DRAG PREVIEW AND THE HARNESS CLEANUP LANDED IN LOCAL `main`, ON TOP OF v1.8.0; GATED; NOT PUSHED (branch `land-ready-1022`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`)
+### ✅ 22 Oct 2026: MONTH REORDER + DRAG PREVIEW AND THE HARNESS CLEANUP ARE LIVE at `ff128dd` (verified byte-identical, `e1604211`), on top of v1.8.0, NO VERSION CUT (branch `land-ready-1022`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`)
 
 - Owner, 22 Oct 2026: *"any features that are done and ready please merge into main"*. Ready meant gated green on its
   branch and not yet in `main` (the feature board's `ready` cards, checked against git). Four branches qualified:
@@ -42,7 +42,16 @@
 - **The owner's order:** asked whether to wait for the combined gate, the owner chose *"Wait for the gate"*. Asked
   later whether these should land after v1.8.0 or into it, *"Now, into v1.8.0"*. But v1.8.0 had already been pushed
   and tagged (`origin/main` = `cfd18e9`), so they landed on top of it, unreleased.
-- **Not pushed.** A push needs its own picker. The feature board's three cards are moved to `merged`.
+- ✅ **PUSHED AND LIVE.** Asked by picker first, the owner chose *"Not yet"*. Then, in their own words: *"push both
+  to main and gate only if you havent yet"* ("both" = the two features named as waiting in local `main`). No new gate:
+  since `05d41e0` only HANDOFF and README had changed on `main` (the text-style-bar session's v1.8.0 write-up,
+  `ff128dd`), and a clean build of `main`'s tree (`git archive main`) was byte-identical to the landed build
+  `e1604211…` (1,724,932 bytes), which the gate above covers. One `git push origin main` at 16:30:54
+  (`cfd18e9..ff128dd`, 21 commits, no tag). Deploy run 39872287725 succeeded at 16:32:21. At 16:32:26 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical** to that build (`cmp`).
+- ⚠️ **No version cut** (none was asked): `version.json` still reads 1.8.0, so installed copies pick this up on their
+  next load WITHOUT an update notice. The next cut (v1.8.1 or v1.9.0) is how they hear about it.
+- The feature board's three cards (`month-reorder`, `month-drag-preview`, `harness-disk`) are moved to `live`.
 
 ### ✅ 21–22 Oct 2026: v1.8.0 IS LIVE at `cfd18e9` (verified byte-identical, `82a85b67`): THE TEXT STYLE BAR, released with the month view's phase outline — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
 
