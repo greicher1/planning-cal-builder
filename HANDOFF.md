@@ -4,6 +4,46 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 22 Oct 2026: MONTH REORDER + DRAG PREVIEW AND THE HARNESS CLEANUP LANDED IN LOCAL `main`, ON TOP OF v1.8.0; GATED; NOT PUSHED (branch `land-ready-1022`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`)
+
+- Owner, 22 Oct 2026: *"any features that are done and ready please merge into main"*. Ready meant gated green on its
+  branch and not yet in `main` (the feature board's `ready` cards, checked against git). Four branches qualified:
+  - `month-order` (drag bars and notes up and down in the month view, and see what you drag), gated 2,666 / 0 at `b6a6af9`.
+  - `claude/cool-brattain-388fa6` (the harness deletes its Chrome profiles and stops the bundle clone), 2,619 / 6, none
+    from the change.
+  - `sidebox-free-pos` and `sidebox-noexport` (side boxes anywhere; Hide from Exports). ⚠️ **Left to their own
+    session:** while this merge was being resolved (09:43), the `sidebox-free-pos` session merged `sidebox-noexport`
+    into its branch itself (`b25029d`, with land-five's three fixes). This merge was abandoned (a copy of its diff is
+    in this session's scratchpad), so the two did not collide. Its gate and landing are that session's.
+- **Merges on `land-ready-1022`** (from `main` `1f4ae2c`): `month-order` as `ce21902` (README only conflicted: both
+  sides added entries); the harness branch as `4010a82` (HANDOFF and README; the harness branch carried a STALE copy of
+  the month-order heading, "FULL GATE QUEUED", which was dropped for `main`'s current one); `main` again twice as it
+  moved: the text style bar (`7d3f0e6`, no conflicts) and the v1.8.0 cut (README: this branch's two entries moved
+  above `## v1.8.0`, as Unreleased). Also `d5404af`: a line number in the toolbar-center entry, which `check-refs.py`
+  flagged on `main` itself.
+- **Gates on the combined build** (port 8953):
+  - Build `e670a248…` (before the text style bar): 2,666 PASS, 1 FAIL (`monthexport` X5, a soft-hyphen note; green
+    alone twice, 9/9). Then `main` moved.
+  - Build `c61b7f40…` (with the text style bar), first run 11:02, STOPPED at 12:32: the machine reached a load average
+    of 65–85 (a Time Machine backup, Finder and FSEvents over a large file deletion), and every timed CDP leg hit its
+    deadline (`pilldrag`, `phaseedge`, `mvorder`); the PASS count had not moved in 40 minutes.
+  - ✅ **Same build, re-run 15:21–15:48 once the load was under 12: 2,717 PASS, 1 FAIL.** 0 clipped; the waterfall PDF
+    and every Excel part identical; 76 ids; gate 10's 11 print documents and gate 13's 22 written PDFs identical;
+    `mvorder` 20, `pilldrag` 30, `phaseedge` 23 all PASS. The FAIL: `offweek` R8, a Load that took over 10 s. Alone
+    through gate.sh's own evaluator: LIVE 6/6, RESTORE 44/44. (A second alone run overlapped the text-style-bar
+    session's next gate, started 15:48:40, and timed out the same way in R12.) The "Gate performance optimization"
+    session also reported a second gate of its beside this one, 15:25:38–15:26:51, stopped by it; nothing failed then.
+  - **The landed build `e1604211…` differs from the gated `c61b7f40…` in 43 bytes, two places: the version literal
+    (`1.7.0` → `1.8.0`) and that script's CSP hash** (byte diff), the v1.8.0 cut's own change. `npm run check` 40/40,
+    `check-refs.py` CLEAN.
+- ⚠️ **Learned: the gate needs a quiet machine, not just no second gate.** Timed legs (the CDP scripts' 300–480 s
+  deadlines, `offweek`'s 10 s Load wait) fail under system load from things outside the harness. The waiter used here
+  also waits for a 1-minute load under 12 (`sysctl -n vm.loadavg`).
+- **The owner's order:** asked whether to wait for the combined gate, the owner chose *"Wait for the gate"*. Asked
+  later whether these should land after v1.8.0 or into it, *"Now, into v1.8.0"*. But v1.8.0 had already been pushed
+  and tagged (`origin/main` = `cfd18e9`), so they landed on top of it, unreleased.
+- **Not pushed.** A push needs its own picker. The feature board's three cards are moved to `merged`.
+
 ### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR — MERGED INTO LOCAL `main` at `555acc0` (build `c7b70156`, byte-identical to the gated build); GATED 2,695 / 3 (the 3 fixed in the leg, 14/14); NOT PUSHED — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
 
 - ⏭ **RESUME HERE: the push.** Owner, 22 Oct 2026, after trying the branch build on localhost: *"merge text-style-bar
