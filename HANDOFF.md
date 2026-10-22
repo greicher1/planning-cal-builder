@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); NOT COMMITTED, NOT PUSHED
+### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
 - **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the
   viewport"*, then mid-turn *"or add a little more space at the bottom of the app to give it room?"* Measured at
@@ -27,7 +27,18 @@
   contention flakes already on record (other sessions' harness runs were going beside it): `pilllabel (month-dense60)`
   C1 + C3 (its `'block'` case showed the previous file's label) and `monthexport (blocks)` X6 (the timed dialog case).
   **Both legs re-run alone on the same build: green** (pilllabel's C, all four labels, want = got, rows OK; monthexport
-  9/9 cases). `calzoom` 24/24 with Z5 and W1b; 0 clipped; 76 ids; gates 10 and 13 byte-identical. Not committed.
+  9/9 cases). `calzoom` 24/24 with Z5 and W1b; 0 clipped; 76 ids; gates 10 and 13 byte-identical.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push to the live site"*. Committed as `6efa291`, merged with local `main`
+  (`fa8b55c`, two TEXT-STYLE-BAR-PLAN docs commits; HANDOFF conflicted only on both top entries, kept both) as
+  `ec8c788`, rebuilt: `f62b9bc8…`, the gated build byte for byte; `main` fast-forwarded. ONE `git push origin main` at
+  17:05:38 (`70d7485..ec8c788`, 7 commits, the other 5 docs only). Deploy run 39697565639: Build and check, Deploy to
+  Pages, both success. At 17:06:42 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  gated build** (sha256 `f62b9bc8b854e08d…`, `cmp`); `version.json` still 1.6.0, so installed copies pick it up
+  silently.
+- ⚠️ **For the `header-zoom` session ("Header ends where the calendar ends", building, uncommitted when this landed):**
+  this changed `.preview-panel`'s bottom (margin, not padding, above 960px) and moved `#help-fab` / `.cal-zoom`. Merge
+  `main` before gating.
+- ⏭ **Next:** nothing. The worktree `.claude/worktrees/zoom-compact` can be removed on the owner's word.
 
 ### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
 
