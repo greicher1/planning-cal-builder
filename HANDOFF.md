@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; NOT COMMITTED YET, NOT PUSHED
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED 2,612 / 0, NOT MERGED TO `main`, NOT PUSHED
 
 - **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
   scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%
@@ -30,9 +30,12 @@
   lesson as the grid fit's comment. `requestAnimationFrame` never fires there either; the leg sleeps instead.
 - ⚠️ **Two `.preview-panel` custom properties now:** `--header-h` (the grid fit's solved value) and `--wf-grid-w`. Neither
   reaches `#print-root`, a direct child of `<body>`. Keep both off `:root`.
-- **Proof so far:** new leg `tests/harness/t/hdrfit.js`, in `gate.sh` after `calzoom`, run on `colreuse` and
+- **Proof:** new leg `tests/harness/t/hdrfit.js`, in `gate.sh` after `calzoom`, run on `colreuse` and
   `hdrmanualbraces`: 8/8 each. By hand in the app's browser at 25–200%, Manual mode, a live column resize, the month
-  view and back, no console error.
+  view and back, no console error. Fence (gate 7, by hand): 0 of 511 entries differ from the live build `7ba96b19`.
+  `npm run check` 40/40. ✅ **Full gate on build `e7db3fde…` (port 9473, 17:27:24–17:52:41, alone, queued behind the
+  `zoom-compact` and `sidebox-zoom` gates): 2,612 PASS, 0 FAIL, GATE PASSED**, the 16 `hdrfit` checks among them. This
+  is commit `3785258` on `da1142a`, BEFORE `main` moved on (zoom strip `ec8c788`, toolbar tint `b332e5c`, both live).
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
