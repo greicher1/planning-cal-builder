@@ -26,7 +26,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.6.0';
+  const APP_VERSION = '1.7.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -946,10 +946,9 @@ export function initLegacyApp() {
     const byKey = new Map(resolved.map(r => [r.key, r]));
     const effective = r => byKey.get(r.key) || r;
     // canExpand, not a re-typed copy of it. Three sites used to inline this test and they have to
-    // agree exactly: the count in the chip, the solid/dashed rect, and what the apply actually
+    // agree exactly: the chip's verb, the solid/dashed rect, and what the apply actually
     // touches. An inline copy is how one of them kept counting inert overrides.
     const grantable = resolved.filter(canExpand);
-    const clampedOut = resolved.filter(r => r.clamped && !r.maxL && !r.maxR).length;
     const allFilled = grantable.length > 0 && grantable.every(r => r.curL === r.maxL && r.curR === r.maxR);
     let expandable = 0;
     // ONE outline per contiguous run (owner decision E3) -- not one per cell, and not one bounding
@@ -991,8 +990,8 @@ export function initLegacyApp() {
       d.style.width = run.w + 'px';
       d.style.height = Math.max(1, run.bo - run.t) + 'px';
       layer.appendChild(d);
-      // A mixed run keeps its solid outline and marks the cells with no room inside it, so the chip's
-      // "(2 has no room)" still points at something visible.
+      // A mixed run keeps its solid outline and marks the cells with no room inside it, so the user
+      // can see which cells a double-click will leave alone.
       if(!allInert) run.items.forEach((it, i)=>{
         if(ons[i]) return;
         const m = document.createElement('div');
@@ -1014,25 +1013,22 @@ export function initLegacyApp() {
       layer.appendChild(m);
     }
     // ...and not while a column-order message is up. That message is transient and is usually ABOUT
-    // the weeks beside the selection, so a second chip stacked over them defeats it. The count is
-    // still on the toolbar button throughout, so nothing is actually withheld. (The drag itself hides
-    // this chip in CSS, via body.grid-swapping.)
-    if(rows.length && !swapFlash){
+    // the weeks beside the selection, so a second chip stacked over them defeats it. (The drag itself
+    // hides this chip in CSS, via body.grid-swapping.)
+    // ⭐ ONLY the double-click hint, and only when a double-click would do something (owner, 21 Oct
+    // 2026: "remove the chip entirely, except say 'Double click to expand cells' when you highlight
+    // phase blocks"; by picker, "pull back" when they are already expanded and nothing when there is
+    // no room). It used to be "31 cells (11 has no room) · double-click to expand · Alt+←/→ to swap",
+    // under drawSwapLayer's mode line ("All 42 weeks of Shoot in 2026 — Alt+→ trades the whole block
+    // with Post S1 · nothing re-flows"). Both are gone; what a swap would do is on the knob's tooltip,
+    // and a refused one says why when Alt+←/→ is pressed (flashSwapMsg).
+    // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand" once
+    // contradicted the toolbar button reading "Pull back" at the selection's limit; that button is
+    // gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
+    if(rows.length && expandable && !swapFlash){
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
-      const inert = rows.length - expandable;
-      // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand"
-      // once contradicted the toolbar button reading "Pull back" at the selection's limit; that
-      // button is gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
-      // ⭐ Ruling 2 also asked the chip to name the SWAP keys, which only the Help mentioned. Shown
-      // whenever swapSeed() finds a phase cell, the exact rule that showed the Swap buttons (a
-      // refused direction is explained when pressed, as it was then).
-      chip.textContent = (expandable
-        ? expandable + (expandable === 1 ? ' cell' : ' cells')
-          + (inert ? ' (' + inert + (clampedOut ? ' shares a column' : ' has no room') + ')' : '')
-          + ' · double-click to ' + (allFilled ? 'pull back' : 'expand')
-        : rows.length + ' selected · no room to expand')
-        + (swapSeed() ? ' · Alt+←/→ to swap' : '');
+      chip.textContent = 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
       layer.appendChild(chip);
       // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
       //   * below, it always covered the next week's phase labels -- the chip was reporting on the
@@ -1063,8 +1059,6 @@ export function initLegacyApp() {
         if(top < headerBottom + 2) top = Math.min(lh - ch, cap.bot + 5);
         chip.style.left = Math.max(0, Math.min(cap.left, lw - cw)) + 'px';
         chip.style.top = Math.max(0, top) + 'px';
-        chip.dataset.top = String(top);
-        chip.dataset.h = String(ch);
       }
     }
     // Feature 2's knobs, ghosts and chip. Drawn from here because this is the SINGLE repaint entry
@@ -3095,6 +3089,10 @@ export function initLegacyApp() {
   // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
   const WEEK_DATE_FORMATS = ['m/d/yyyy'];
   let dateFormat = '';
+  // The paper ('' = Letter) and an orientation picked in the Export PDF dialog ('' = follow the rule):
+  // calendar data, explained beside SHEET_PAPERS. Declared up here only so boot code can read them.
+  let paperSize = '';
+  let pageOrientation = '';
   // The date column's text. Read by three FROZEN call sites -- renderSpreadsheetView's date cell,
   // sheetColumnWidths' date measurement (so a longer date widens its column THROUGH the width model) and
   // buildWaterfallPdf's date cell -- and fmtShort() itself while the setting is the default, so those
@@ -5219,20 +5217,6 @@ export function initLegacyApp() {
     return run.ok ? Object.assign(run, canSwapRun(run)) : run;
   }
 
-  // "Writer's Rm would widen to 2 columns in 34 weeks" -- the phase, the new width, the extent.
-  // Deliberately not a bare count: "34 weeks re-flow" told the owner a number but not what it meant,
-  // and the whole promise of a block swap is that blocks keep their shape.
-  function reshapeText(list, tense){
-    if(!list || !list.length) return '';
-    return list.map(r=>{
-      const to = r.to[r.to.length - 1], from = r.from.length ? r.from[0] : null;
-      const verb = (from !== null && to > from) ? 'widen' : (from !== null && to < from) ? 'narrow' : 'change';
-      return phaseLabelFor(r.key) + (tense === 'past' ? ' ' + verb + 'ed' : ' would ' + verb)
-        + ' to ' + to + (to === 1 ? ' column' : ' columns')
-        + ' in ' + r.weeks + (r.weeks === 1 ? ' week' : ' weeks');
-    }).join('; ');
-  }
-
   function finishStintMove(cand){
     // Re-derive from the selection, as finishSwapMove does: the cached candidate can be a beat stale.
     const run = stintRunFor(cand.year, cand.phaseKey, cand.dir);
@@ -5241,18 +5225,12 @@ export function initLegacyApp() {
     const verdict = commitStintSwap(run);
     if(!verdict.ok){ flashSwapMsg(swapWhy(Object.assign({}, run, verdict))); return false; }
     if(pre) playSwapSettle(run, pre);
-    // Name everything that moved. With one partner the settle shows it; with several, or with
-    // collateral, or under reduced motion, the chip has to say it -- a block that moved because it
-    // shared a column must never move unannounced.
-    const n = (verdict.collateral || []).length;
-    const others = run.members.filter(k => k !== run.phaseKey).map(phaseLabelFor);
-    const at = { weeks: run.weeks, phaseKey: run.phaseKey, place: swapFlashSide(run, verdict.collateral) };
-    const head = 'Swapped the ' + run.year + ' block of ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + joinNames(others) + '.';
-    const rs = reshapeText(verdict.reshaped, 'past');
-    if(rs) flashSwapMsg(head + ' ⚠ ' + rs + '.', 0, at);
-    else if(n) flashSwapMsg(head + ' ' + n + (n === 1 ? ' week' : ' weeks') + ' changed shape to fit.', 0, at);
-    else if(others.length > 1 || swapReducedMotion()) flashSwapMsg(head, 0, at);
-    else flashSwapMsg('');
+    // ⛔ NO MESSAGE AFTER A SWAP THAT WORKED, not even one that reshaped a block or carried other
+    // blocks with it (owner, 21 Oct 2026, by picker: "Never"). It used to name everything that moved
+    // ("Swapped the 2026 block of Writer's Rm ↔ Post and Localization. ⚠ …"). What is left to show it:
+    // the settle animation, the knob's tooltip before the press, and the amber outlines on the weeks
+    // a reshaping swap changes (drawSwapLayer). The '' clears a refusal still on screen.
+    flashSwapMsg('');
     return true;
   }
 
@@ -5306,40 +5284,8 @@ export function initLegacyApp() {
     if(!v || !v.ok){ flashSwapMsg(v ? swapWhy(v) : SWAP_WHY['no-partner']); return false; }
     colFollow = Object.assign({}, colFollow, { [v.phaseKey]: v.follows });
     update();                                             // ends in markDirty(): one undo step
-    flashSwapMsg('Moved ' + phaseLabelFor(v.phaseKey) + ' into ' + phaseLabelFor(v.follows)
-      + '’s column. Its row in Phases has a Reset.', 0, { weeks: v.weeks, phaseKey: v.phaseKey });
+    flashSwapMsg('');                                     // no message after a move that worked (owner, 21 Oct 2026)
     return true;
-  }
-
-  // The mode line the chip shows before commit (COLUMN-ORDER-PLAN.md §2.2), built from the eligible
-  // candidates so it names exactly what each direction would do -- and, for a block swap, every
-  // partner it would trade with.
-  function swapModeText(eligible){
-    const mode = swapSelectionMode();
-    // The KEYS, not the old toolbar buttons' labels ("◀ Swap" / "Swap ▶"), which went with owner
-    // ruling 2: a mode line naming a button that no longer exists would send the user looking for it.
-    const arrow = c => c.dir < 0 ? 'Alt+←' : 'Alt+→';
-    const reflow = c => { const n = (c.collateral || []).length;
-      return n ? n + (n === 1 ? ' week re-flows' : ' weeks re-flow') : 'nothing re-flows'; };
-    if(mode.mode === 'stint'){
-      let warn = false;
-      const text = 'All ' + mode.count + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' in ' + mode.year + ' — '
-        + eligible.map(c => {
-            if(c.mode === 'follow') return arrow(c) + ' moves it into the free column, after ' + phaseLabelFor(c.follows);
-            const rs = reshapeText(c.reshaped);
-            if(rs) warn = true;
-            return arrow(c) + ' trades the whole block with ' + joinNames(c.partners.map(phaseLabelFor))
-              + (c.movers.length > 1 ? ' (' + joinNames(c.movers.filter(k => k !== mode.phaseKey).map(phaseLabelFor)) + ' moves with it)' : '')
-              + ' · ' + (rs ? '⚠ ' + rs : reflow(c));
-          }).join(' · ');
-      return { text, warn };
-    }
-    const c = eligible[0];
-    const head = mode.total
-      ? mode.selected + ' of ' + mode.total + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' selected'
-      : 'Cells from ' + (mode.stints || 1) + ' blocks selected';
-    return { text: head + ' — Swap moves the ' + c.weeks.length + '-week run at ' + swapRunDates(c.weeks) + ' only · '
-      + eligible.map(x => arrow(x) + ': ' + reflow(x)).join(' · '), warn:false };
   }
 
   // ---------- Column order: the gesture and the indicators (F2-d) ----------
@@ -5479,36 +5425,20 @@ export function initLegacyApp() {
              leftLabel: lab(L, -1), rightLabel: lab(R, 1) };
   }
 
-  // Transient narration: a confirmation after a move, or the reason a move was refused. Held in a
-  // var and drawn by the layer below rather than injected, so the next render cannot orphan it.
+  // Transient narration: the reason a move was refused, and nothing else. A move that worked says
+  // nothing (owner, 21 Oct 2026, by picker: "Never"), so its confirmations, and the run-anchoring
+  // they needed (swapFlashAt, swapFlashSide), are gone. Held in a var and drawn by the layer below
+  // rather than injected, so the next render cannot orphan it.
   let swapFlash = '';
-  // Optional { weeks, phaseKey, place } -- WHICH run the message is about, and which side of it to
-  // sit on. Carried as data rather than as a captured box because the commit re-renders the table
-  // and every box goes stale; the draw resolves it from the live DOM by week + phase key.
-  let swapFlashAt = null;
   let _swapFlashTimer = 0;
-  function flashSwapMsg(text, ms, at){
+  function flashSwapMsg(text, ms){
     if(_swapFlashTimer) clearTimeout(_swapFlashTimer);
     swapFlash = text || '';
-    swapFlashAt = swapFlash ? (at || null) : null;
     if(!swapFlash){ redrawGridOverlay(null); return; }
     _swapFlashTimer = setTimeout(()=>{
-      _swapFlashTimer = 0; swapFlash = ''; swapFlashAt = null; redrawGridOverlay(null);
+      _swapFlashTimer = 0; swapFlash = ''; redrawGridOverlay(null);
     }, ms || 4200);
     redrawGridOverlay(null);
-  }
-  // Which side of the run a message should sit on: the side the COLLATERAL is not on. A chip that
-  // says "2 other weeks changed width" while covering those two weeks is worse than no chip.
-  function swapFlashSide(run, collateral){
-    const rowOf = iso => {
-      const td = allPhaseTds().find(t => t.dataset.week === iso);
-      return td && td.parentElement ? +td.parentElement.dataset.row : null;
-    };
-    const runRows = run.weeks.map(rowOf).filter(n => n !== null);
-    const colRows = (collateral || []).map(rowOf).filter(n => n !== null);
-    if(!runRows.length) return 'above';
-    return (colRows.length && Math.min.apply(null, colRows) < Math.min.apply(null, runRows))
-      ? 'below' : 'above';
   }
 
   // A SECOND layer, and the z-index is the whole reason. .grid-sel-layer must stay at z-index 1 so
@@ -5564,8 +5494,7 @@ export function initLegacyApp() {
 
     const seed = swapSeed();
     const flash = swapFlash;
-    const cands = [swapCandFor(-1), swapCandFor(1)].filter(Boolean);
-    const eligible = cands.filter(c => c.ok);
+    const eligible = [swapCandFor(-1), swapCandFor(1)].filter(c => c && c.ok);
 
     // The sticky header floats over the top of the scroll pane, and this layer paints ABOVE it. A
     // knob for a run scrolled up under the header would sit on top of "Date | 2026 | Notes", so
@@ -5641,8 +5570,9 @@ export function initLegacyApp() {
     // 2 Sep 2026: "keep offering it, warn harder"). A block swap can reshape a block when the year has
     // three or more phase columns, and the toolbar buttons commit without any drag at all -- so a
     // preview that only appeared during a knob drag was no warning for the primary path. Drawn only
-    // when exactly ONE direction is eligible and reshapes: with two, the chip names both and an amber
-    // wash could not say which one it belonged to.
+    // when exactly ONE direction is eligible and reshapes: with two, an amber wash could not say which
+    // one it belonged to. ⭐ Since 21 Oct 2026 this is the ONLY warning before a reshaping swap: the
+    // chip that said it in words is gone (owner: no chip except the double-click hint and refusals).
     if(!swapDrag && selLayer){
       const warned = eligible.filter(c => c.mode === 'stint' && (c.reshaped || []).length);
       if(warned.length === 1){
@@ -5660,51 +5590,26 @@ export function initLegacyApp() {
       }
     }
 
-    // One chip, and only when it says something the user needs. A passive "no phase beside it"
-    // on every single-column selection would be noise, so those reasons are reserved for the
-    // moment the user actually presses a button or completes a drag (flashSwapMsg).
-    let msg = flash;
-    if(!msg && !eligible.length && cands.length){
-      const interesting = cands.find(c => !c.ok && c.reason && c.reason !== 'no-partner'
-        && c.reason !== 'width-mismatch' && c.reason !== 'partial');
-      if(interesting) msg = swapWhy(interesting);
-    }
-    // The MODE, stated before commit (COLUMN-ORDER-PLAN.md §2.2): whether Swap trades the whole block
-    // or only a run of weeks, with whom, and what else re-flows. A block swap with several partners
-    // names every one of them -- the second half of E1 -- so nothing moves unannounced.
-    let info = false, warn = false;
-    if(!msg && eligible.length){ const m = swapModeText(eligible); msg = m.text; info = !!msg; warn = m.warn; }
-    if(!msg || !seed) return;
+    // ONLY why a swap could not happen, after Alt+←/→, a knob click or a drop (owner, 21 Oct 2026:
+    // "only if can't do a swap does it tell you why with a chip"). redrawGridOverlay hides the
+    // selection's hint while it is up, so there is never more than one chip over the grid. This chip
+    // used to carry two passive lines as well: the swap's mode line ("All 42 weeks of Shoot in 2026 —
+    // Alt+→ trades the whole block with Post S1 · nothing re-flows"; the knob's tooltip still names
+    // the swap) and the reason a direction was refused, which now waits for the press like every
+    // other refusal already did. The confirmations after a swap that worked are gone too.
+    if(!flash || !seed) return;
     const chip = document.createElement('div');
-    chip.className = 'grid-swap-chip' + (flash ? ' is-flash' : warn ? ' is-warn' : info ? ' is-info' : '');
+    chip.className = 'grid-swap-chip is-flash';
     chip.setAttribute('role', 'status');
-    chip.textContent = msg;
+    chip.textContent = flash;
     layer.appendChild(chip);
-    // Anchored to the whole RUN the message is about when there is one, otherwise to the seed cell.
-    let box = null, place = 'above';
-    if(flash && swapFlashAt){
-      const bs = swapRunBoxes(swapFlashAt.weeks, swapFlashAt.phaseKey, g);
-      if(bs.length){
-        const u = swapUnion(bs);
-        box = { wrapLeft:u.l, wrapTop:u.t, wrapWidth:u.r - u.l, wrapHeight:u.bo - u.t };
-      }
-      place = swapFlashAt.place || 'above';
-    }
-    if(!box){
-      const anchorTd = swapTdFor(seed.weekIso, seed.phaseKey);
-      box = anchorTd && tdBox(anchorTd, g);
-    }
+    // Anchored to the seed cell, the one the swap was asked of.
+    const anchorTd = swapTdFor(seed.weekIso, seed.phaseKey);
+    const box = anchorTd && tdBox(anchorTd, g);
     if(box){
       const cw = chip.offsetWidth, ch = chip.offsetHeight;
       const lw = layer.clientWidth, lh = layer.clientHeight;
-      // STACKED above Feature 1's count chip, never over it. The two say different things (how many
-      // cells can expand / why a column will not move) and both can be live at once, so they queue
-      // upwards instead of fighting for one slot. Read off the sibling's recorded box rather than
-      // recomputed, so the two placements cannot disagree.
-      const count = selLayer && selLayer.querySelector('.grid-sel-chip');
-      const ceiling = count && count.dataset.top !== undefined && place === 'above'
-        ? Math.min(box.wrapTop, +count.dataset.top) : box.wrapTop;
-      let top = place === 'below' ? box.wrapTop + box.wrapHeight + 5 : ceiling - ch - 5;
+      let top = box.wrapTop - ch - 5;
       if(top < headerBottom + 2) top = Math.min(lh - ch, box.wrapTop + box.wrapHeight + 5);
       chip.style.left = Math.max(0, Math.min(box.wrapLeft, lw - cw)) + 'px';
       chip.style.top = Math.max(0, Math.min(top, Math.max(0, lh - ch))) + 'px';
@@ -5782,16 +5687,10 @@ export function initLegacyApp() {
     const verdict = commitSwapRun(run);
     if(!verdict.ok){ flashSwapMsg(swapWhy(Object.assign({}, run, verdict))); return false; }
     if(pre) playSwapSettle(run, pre);
-    // A completed move must never be silent. Collateral is the case that genuinely needs narrating;
-    // under reduced motion there is no settle to see, so confirm every move.
-    const n = (verdict.collateral || []).length;
-    const at = { weeks: run.weeks, phaseKey: run.phaseKey,
-                 place: swapFlashSide(run, verdict.collateral) };
-    if(n) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + phaseLabelFor(run.partnerKey)
-        + '. ' + n + (n === 1 ? ' other week' : ' other weeks') + ' changed width to fit.', 0, at);
-    else if(swapReducedMotion()) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey)
-        + ' ↔ ' + phaseLabelFor(run.partnerKey) + ' (' + swapRunDates(run.weeks) + ')', 0, at);
-    else flashSwapMsg('');
+    // ⛔ Silent once it worked, collateral and reduced motion included (owner, 21 Oct 2026, by picker:
+    // "Never"). It used to say "Swapped Post ↔ Prod Prep. 2 other weeks changed width to fit." The
+    // '' clears a refusal still on screen.
+    flashSwapMsg('');
     return true;
   }
 
@@ -5891,9 +5790,9 @@ export function initLegacyApp() {
   // ⛔ THE TOOLBAR'S "◀ Swap" / "Swap ▶" BUTTONS ARE GONE (owner ruling 2, relayed 30 Sep 2026; built
   // after v1.4.1), and their delegated listener with them. Alt+Left / Alt+Right below call the same
   // doSwapMove(), so a REFUSAL is still explained, by flashSwapMsg() on the grid's own chip, and the
-  // knob still takes a click or a drag. The selection's count chip now ends with "Alt+←/→ to swap"
-  // whenever the Swap buttons would have shown (a phase cell is selected), because until now only
-  // the Help mentioned the keys.
+  // knob still takes a click or a drag. The selection's chip named the keys from then until 21 Oct
+  // 2026, when the owner cut it to the double-click hint alone; the keys are in the Help again, and a
+  // refusal is now the only chip a swap ever shows.
 
   // Keyboard. Alt+Arrow rather than a bare arrow: the arrows belong to the page, and Alt is free.
   document.addEventListener('keydown', e=>{
@@ -13297,7 +13196,9 @@ export function initLegacyApp() {
         // Pin US Letter. With paperSize omitted Excel falls back to the DEFAULT PRINTER's
         // paper, so the same workbook silently reflowed to A4 for anyone whose machine
         // defaults to it -- a different page shape from the one the layout was fitted to.
-        paperSize: 1,
+        // ⛔ FROZEN EDIT P2 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md): the CHOSEN paper, still pinned
+        // for the same reason. sheetPaperCode() is 1 while the paper is Letter, the number this always wrote.
+        paperSize: sheetPaperCode(),
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 1,
@@ -13732,8 +13633,10 @@ export function initLegacyApp() {
       // together, from the ONE helper the PDF writer calls too, so the two outputs cannot turn
       // differently. With no box sideBoxPageExtent() hands back the grid's own metrics untouched.
       const sideExt = sideBoxPageExtent(sideL, metrics);
+      // ⛔ FROZEN EDIT P4 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md §5a, ruling D1): an orientation picked
+      // in the Export PDF dialog. chosenOrientation() hands the rule's answer back untouched when none is.
       ws.pageSetup.orientation =
-        sheetPageOrientation(sideExt.w, sideExt.h, blockCount).orientation;
+        chosenOrientation(sheetPageOrientation(sideExt.w, sideExt.h, blockCount).orientation);
       // Pin the print area to the used range. Left unset, Excel infers it, and any cell that
       // has ever been touched outside the grid drags a blank second page into the print job
       // -- which also defeats fitToHeight:1, since the "sheet" it fits is then the wrong size.
@@ -13826,9 +13729,8 @@ export function initLegacyApp() {
     const sel = document.getElementById('pref-gridlines');
     if(sel) sel.value = prefs.gridlines || 'none';
   }
-  document.addEventListener('change', e=>{
-    if(!e.target || e.target.id !== 'pref-gridlines') return;
-    const v = e.target.value;
+  // Also called by the Export PDF dialog (askPdfPageSetup), which shows the same preference.
+  function setGridlinesPref(v){
     // Choosing the default REMOVES the key rather than storing 'none': a store that only ever holds
     // real choices is one a later migration can read without guessing which entries were meaningful.
     if(v && v !== 'none') prefs.gridlines = v; else delete prefs.gridlines;
@@ -13836,6 +13738,10 @@ export function initLegacyApp() {
     SHEET_GRIDLINES = v || 'none';
     // No render: nothing on screen depends on this, and both writers read SHEET_GRIDLINES when the
     // user actually exports.
+  }
+  document.addEventListener('change', e=>{
+    if(!e.target || e.target.id !== 'pref-gridlines') return;
+    setGridlinesPref(e.target.value);
   });
 
   // ✅ RULING 10 (owner, 22 Sep 2026): the month view's grey pill text -- blocks, episodes -- can be
@@ -13894,6 +13800,7 @@ export function initLegacyApp() {
     reflectGridlines();
     reflectMonthTagPrefs();
     reflectDateFormat();
+    reflectPaperSize();
     reflectHeaderRowCustom();
     reflectMvNumberShootDays();
   }
@@ -13909,6 +13816,7 @@ export function initLegacyApp() {
   reflectGridlines();
   reflectMonthTagPrefs();
   reflectDateFormat();
+  reflectPaperSize();
   reflectHeaderRowCustom();
   reflectMvNumberShootDays();
   (function(){
@@ -15444,7 +15352,43 @@ export function initLegacyApp() {
   // 0.25in top itself. While headerOff is false each getter returns exactly the number it replaced.
   const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, get t(){ return headerOff ? 18 : 54; }, b: 18,
                                  get hdr(){ return headerOff ? 0 : 21.6; }, ftr: 0 };
-  const SHEET_PAPER_PT = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
+  // ⛔ THE PAPER (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md, rulings R1-R4): Letter, Legal or Tabloid, for the
+  // waterfall PDF and the workbook. The month PDF stays Letter (R4), and so do both print rollbacks.
+  //  - ⛔ CALENDAR DATA (R2, "With the calendar"): captureSnapshot()'s `paperSize`, 'legal' | 'tabloid'.
+  //    LETTER IS AN ABSENT KEY ('' here), so a calendar left on Letter saves byte for byte as before.
+  //    The key and its two values are permanent from the first file saved with them.
+  //  - `xl` is Excel's paper number (ECMA-376 pageSetup@paperSize). Tabloid is 3, NOT Ledger's 4: 4 is the
+  //    same sheet already turned, and orientation is set on its own.
+  //  - `paperProbe` lets the Export PDF dialog ask the frozen page-turn rule about a paper that is not
+  //    chosen yet (pageFitFor). It is set and cleared inside ONE synchronous call, so no render can see it.
+  const SHEET_PAPERS = {
+    letter:  { w: 612, h: 792,  xl: 1, label: 'Letter',  size: '8.5 × 11' },
+    legal:   { w: 612, h: 1008, xl: 5, label: 'Legal',   size: '8.5 × 14' },
+    tabloid: { w: 792, h: 1224, xl: 3, label: 'Tabloid', size: '11 × 17' }
+  };
+  // (`paperSize` itself is declared beside `dateFormat`, near the top of the IIFE: the sidebar's boot code
+  // reflects it long before this line runs, and a `let` read there would throw from the temporal dead zone.)
+  let paperProbe = null;
+  function sheetPaper(){ return SHEET_PAPERS[paperProbe || paperSize || 'letter'] || SHEET_PAPERS.letter; }
+  // Read by frozen exportExcel's pageSetup (FROZEN EDIT P2): 1 while the paper is Letter, as it always wrote.
+  function sheetPaperCode(){ return sheetPaper().xl; }
+  // ⛔ FROZEN EDIT P1, a DECLARATION change only (sanctioned pattern 1, the move Header: Off made on
+  // SHEET_PAGE_MARGIN_PT just above): the two orientations are getters over the chosen paper. buildWaterfallPdf's
+  // page box and fit, sheetPageOrientation and Single Column's fill all read this one object, so the PDF and the
+  // workbook still turn the page the same way, and Single Column follows the paper (R3). While the paper is
+  // Letter each getter returns exactly the {612, 792} / {792, 612} it replaced.
+  const SHEET_PAPER_PT = {
+    get portrait(){ const p = sheetPaper(); return { w: p.w, h: p.h }; },
+    get landscape(){ const p = sheetPaper(); return { w: p.h, h: p.w }; }
+  };
+  // ⛔ THE CHOSEN ORIENTATION (the Export PDF dialog, ruling D1 "With the calendar"): captureSnapshot()'s
+  // `pageOrientation`, 'portrait' | 'landscape', written ONLY when it differs from what sheetPageOrientation
+  // recommends; exporting with the recommended one selected clears it, so a calendar never overridden keeps
+  // following the rule as it grows. An ABSENT key ('' here) is "follow the rule".
+  // ⛔ FROZEN EDIT P4: both writers pass the rule's answer through this, buildWaterfallPdf and exportExcel
+  // alike, so they still cannot turn differently. With nothing chosen it returns the rule's answer untouched.
+  const PAGE_ORIENTATIONS = ['portrait', 'landscape'];
+  function chosenOrientation(auto){ return PAGE_ORIENTATIONS.includes(pageOrientation) ? pageOrientation : auto; }
 
   function sheetGridMetrics(schedule, yearBlocks, colWidthsFor){
     const rows = sheetRowCount(schedule, yearBlocks);
@@ -18793,6 +18737,32 @@ export function initLegacyApp() {
     if(e.target && e.target.id === 'wf-date-format') setDateFormat(e.target.value);
   });
 
+  // ---------- The paper (PAPER-SIZE-PLAN.md, rulings R1-R4) ----------
+  // Shaped like setDateFormat(): the select (#wf-paper, Settings ▸ Preferences ▸ Waterfall) REFLECTS
+  // `paperSize` and never holds it, and a change is CALENDAR DATA -- one undo step, the file dirtied.
+  // render(), not update(): nothing scheduled moves, but Single Column's widths follow the paper (R3), so
+  // the screen can change. An unknown value is Letter.
+  const PAPER_SIZES = ['legal', 'tabloid'];   // the saved values; Letter is the absent key
+  function reflectPaperSize(){
+    const sel = document.getElementById('wf-paper');
+    if(sel && sel.value !== paperSize) sel.value = paperSize;
+  }
+  function setPaperSize(next){
+    next = PAPER_SIZES.includes(next) ? next : '';
+    if(next === paperSize){ reflectPaperSize(); return; }
+    asOneHeaderStep(()=>{
+      paperSize = next;
+      render(currentSchedule);
+      markDirty();
+    });
+    reflectPaperSize();
+  }
+  // ⛔ Delegated, as #wf-date-format: React renders the select. It sits in .prefs-card, so the sweep
+  // never takes it into fields.byId and the paper travels as its own snapshot key only.
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.id === 'wf-paper') setPaperSize(e.target.value);
+  });
+
   // ---------- Custom column headings: the switch and the editor (HEADER-ROW-PLAN.md §4) ----------
   // The switch (#wf-hdr-custom, the Waterfall Layout card) has the same contract as the date select:
   // it reflects `headerRowCustom`, a change is one undo step and dirties the file, and it is caught by
@@ -19964,6 +19934,7 @@ export function initLegacyApp() {
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
     dateFormat = ''; reflectDateFormat();
+    paperSize = ''; pageOrientation = ''; reflectPaperSize();   // Letter, the rule's orientation
     headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {}; reflectHeaderRowCustom();
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
@@ -20089,6 +20060,9 @@ export function initLegacyApp() {
       // someone else's file. ⚠️ Any new control in the Preferences card is covered automatically;
       // any preference control placed OUTSIDE that card is not.
       if(el.closest('.prefs-card')) return;
+      // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
+      // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
+      if(el.closest('.export-pdf-dlg')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -20217,6 +20191,9 @@ export function initLegacyApp() {
     // #table-wrap is drawn.
     clone.querySelectorAll('.side-col').forEach(el=>{ el.replaceChildren(); el.hidden = true; el.removeAttribute('style'); });
     { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.classList.remove('has-side-boxes'); }
+    // The header's cap ("THE HEADER ENDS WITH THE CALENDAR") is the sender's grid width; the copy's own
+    // engine measures its own on its first render.
+    { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.style.removeProperty('--wf-grid-w'); }
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -20591,6 +20568,11 @@ export function initLegacyApp() {
       // 20 Oct 2026, owner ruling 4 (HEADER-ROW-PLAN.md §3): the waterfall's date format. ⛔ PERMANENT key
       // and value ('m/d/yyyy'); the default, 1/6/25, is an ABSENT key.
       ...(dateFormat ? {dateFormat} : {}),
+      // 21 Oct 2026 (PAPER-SIZE-PLAN.md, rulings R2 and D1): the paper and an orientation picked in the Export
+      // PDF dialog. ⛔ PERMANENT keys and values. Letter, and "follow the rule", are ABSENT keys, so a calendar
+      // that never changes them saves byte for byte as before.
+      ...(paperSize ? {paperSize} : {}),
+      ...(pageOrientation ? {pageOrientation} : {}),
       // 20 Oct 2026, owner ruling 2 (HEADER-ROW-PLAN.md §4): Custom column headings and the typed
       // headings. ⛔ PERMANENT keys. Off is an ABSENT key, and no typed heading is an absent map, so a
       // calendar that never uses them saves byte for byte as before.
@@ -22857,6 +22839,10 @@ export function initLegacyApp() {
   document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
     if(WF_PDF_MODE === 'direct'){
+      // The Export PDF dialog (PAPER-SIZE-PLAN.md §5a): the paper, the orientation and the grid lines,
+      // confirmed or changed. FIRST, so the character check below names what the chosen page will print.
+      // Only the direct writer: the print rollback is pinned to Letter and turns the page its own way.
+      if(!(await askPdfPageSetup())) return;
       // Audit L-6: name what would print as "?" before writing it. Only the direct writer is
       // bound to WinAnsi; the print fallback renders the DOM with the browser's own font fallback.
       if(!(await confirmPdfPrintable())) return;
@@ -22864,6 +22850,66 @@ export function initLegacyApp() {
     }
     else exportWaterfallPdf();
   }));
+
+  // ---------- The Export PDF dialog (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md §5a, rulings D1-D3) ----------
+  // What the frozen page-turn rule says about one paper, for this calendar: the orientation it picks and how
+  // large each orientation prints. Sanctioned pattern 2 -- ASK the frozen code, never re-derive it: this is
+  // the chain both writers run (computeYearBlocks -> computeBlockLayout -> sheetColumnWidths ->
+  // sheetGridMetrics -> sideBoxPageExtent -> sheetPageOrientation), with SHEET_PAPER_PT pointed at `key`.
+  // ⛔ SYNCHRONOUS ON PURPOSE. paperProbe changes what SHEET_PAPER_PT returns, and Single Column's on-screen
+  // widths read it (R3), so the probe must never be held across an await, where a render could see it. Every
+  // link in this chain is synchronous, and `finally` clears it. (buildWaterfallPdf would give the EXACT scale,
+  // but it awaits.) The pdfdialog leg's P-mutant leaves the probe set, and the screen moves.
+  // The sizes are the rule's own fit numbers, capped at 100% and floored to whole percent as the writer does;
+  // "about", because the rule measures rows flat at 20 px and the PDF measures each row.
+  function pageFitFor(key){
+    const schedule = currentSchedule;
+    const pct = f => Math.max(1, Math.floor(Math.min(f, 1) * 100 + 1e-9));
+    paperProbe = key;
+    try {
+      const yearBlocks = computeYearBlocks(schedule.weeks);
+      const layout = computeBlockLayout(schedule, yearBlocks);
+      const widths = sheetColumnWidths(schedule, yearBlocks, layout);
+      const metrics = sheetGridMetrics(schedule, yearBlocks, widths);
+      const ext = sideBoxPageExtent(sideBoxLayoutSafe(schedule), metrics);
+      const r = sheetPageOrientation(ext.w, ext.h, yearBlocks.length);
+      return { recommended: r.orientation, portrait: pct(r.portrait), landscape: pct(r.landscape) };
+    } finally { paperProbe = null; }
+  }
+  // Open the dialog and apply its answer. Resolves false for Cancel, which changes nothing at all.
+  // ⛔ Export at the dialog's defaults changes nothing either -- no undo step, no dirty file, no write to the
+  // preference store -- so a calendar exported without touching it comes out exactly as before the dialog
+  // existed. Every gate leg that exports a PDF goes through here at the defaults, which is the proof.
+  async function askPdfPageSetup(){
+    const fits = {};
+    Object.keys(SHEET_PAPERS).forEach(k=>{ fits[k] = pageFitFor(k); });
+    const choice = await chrome.pdfExportDialog({
+      paper: paperSize || 'letter',
+      orientation: pageOrientation,
+      gridlines: SHEET_GRIDLINES,
+      papers: Object.keys(SHEET_PAPERS).map(k=>({ value: k, label: SHEET_PAPERS[k].label, size: SHEET_PAPERS[k].size })),
+      fits
+    });
+    if(!choice) return false;
+    const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
+    const paper = PAPER_SIZES.includes(key) ? key : '';
+    // D1: kept only when it differs from what the rule recommends ON THE CHOSEN PAPER, so picking the
+    // recommended one clears it and the calendar goes back to following the rule.
+    const orient = (PAGE_ORIENTATIONS.includes(choice.orientation) && choice.orientation !== fits[key].recommended)
+      ? choice.orientation : '';
+    if(paper !== paperSize || orient !== pageOrientation){
+      asOneHeaderStep(()=>{
+        paperSize = paper;
+        pageOrientation = orient;
+        render(currentSchedule);   // Single Column's widths follow the paper (R3)
+        markDirty();
+      });
+      reflectPaperSize();
+    }
+    const grid = choice.gridlines || 'none';
+    if(grid !== SHEET_GRIDLINES){ setGridlinesPref(grid); reflectGridlines(); }
+    return true;
+  }
 
   // ⛔ AUDIT L-6: characters the waterfall PDF cannot draw are NAMED BEFORE it is written. The direct
   // writer embeds Carlito subsetted to exactly what WinAnsiEncoding can address -- printable ASCII,
@@ -23625,7 +23671,9 @@ export function initLegacyApp() {
     const sideL = sideBoxLayoutSafe(schedule);
     const sideExt = sideBoxPageExtent(sideL, metrics);
     const pick = sheetPageOrientation(sideExt.w, sideExt.h, yearBlocks.length);
-    const orientation = pick.orientation;
+    // ⛔ FROZEN EDIT P4 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md §5a, ruling D1): an orientation picked in
+    // the Export PDF dialog, through the same helper exportExcel uses. Untouched when none is picked.
+    const orientation = chosenOrientation(pick.orientation);
     const paper = PAPER[orientation];
     // The real scale uses the actual body box; the header text lives in the top margin, as
     // Excel's does, so it costs the grid nothing.
@@ -26643,6 +26691,8 @@ export function initLegacyApp() {
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
+    if('paperSize' in s && !PAPER_SIZES.includes(s.paperSize)){ bad.n++; delete s.paperSize; }
+    if('pageOrientation' in s && !PAGE_ORIENTATIONS.includes(s.pageOrientation)){ bad.n++; delete s.pageOrientation; }
     if('headerRowCustom' in s && typeof s.headerRowCustom !== 'boolean'){ bad.n++; delete s.headerRowCustom; }
     // The headings a Split keeps apart: column keys only, in an array; anything else is dropped.
     if('headerRowSplits' in s){
@@ -26984,6 +27034,10 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL: a file with no key prints 1/6/25 -- never the previously open file's format.
     dateFormat = WEEK_DATE_FORMATS.includes(snap.dateFormat) ? snap.dateFormat : '';
     reflectDateFormat();
+    // ⛔ UNCONDITIONAL, both: no key = Letter and the rule's orientation, never the previous file's.
+    paperSize = PAPER_SIZES.includes(snap.paperSize) ? snap.paperSize : '';
+    pageOrientation = PAGE_ORIENTATIONS.includes(snap.pageOrientation) ? snap.pageOrientation : '';
+    reflectPaperSize();
     // ⛔ UNCONDITIONAL, both: no key = Date | year | Notes and no typed headings, never the previous file's.
     headerRowCustom = snap.headerRowCustom === true;
     headerRowLabels = (snap.headerRowLabels && typeof snap.headerRowLabels === 'object')
@@ -27174,6 +27228,59 @@ export function initLegacyApp() {
     });
     window.addEventListener('resize', fit);
     if(shell.addEventListener) shell.addEventListener('change', fit);
+  })();
+
+  // ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, with a screenshot of a zoomed-out
+  // waterfall: "header should scale with the length of the cal when you adjust the window zoom";
+  // ruled by picker the same day, "At every zoom", so 100% too).
+  //
+  // The title block (.cal-header-bar) and the Manual-mode format strip (.hdr-tools) are blocks inside
+  // the frozen .sheet-scroll, so they were as wide as the scroll box -- the visible width -- while the
+  // grid under them is as wide as its columns. Zoomed out, the scroll box still fills the panel (the
+  // grid fit divides by the zoom) and the grid shrinks, so the header ran on far past the calendar; at
+  // 100% it did the same on any calendar narrower than the window. Paper never has: both PDFs and the
+  // workbook put the header across the grid's width.
+  //
+  // So the header is capped at the grid's width (legacy.css, same heading): min(visible width, grid
+  // width). A calendar wider than the view keeps its header across the visible width, as before, so
+  // the right-hand lines stay on screen at the start of the scroll.
+  //
+  // ⛔ Nothing inside #table-wrap is written (CLAUDE.md, sanctioned pattern 1, like --header-h above):
+  // the grid's width goes into ONE custom property on .preview-panel, which the live grid inherits.
+  // #print-root (the print-fallback PDF) is a direct child of <body> and cannot inherit it, and the
+  // rule is scoped to `#table-wrap > .sheet-scroll` besides. Neither writer reads the DOM.
+  // offsetWidth is the grid's OWN px at any calendar zoom, the px the header is laid out in, so the
+  // zoom needs no arithmetic here.
+  (function(){
+    const panel = document.querySelector('main.preview-panel');
+    const wrap = document.getElementById('table-wrap');
+    if(!panel || !wrap) return;
+    // A column drag at 100% resizes the table live, with no render: the frozen drag writes the table's
+    // own style.width on every move (installGridResizers). So the table's style attribute is observed
+    // as well as #table-wrap's children, re-pointed at each render's new table. A MutationObserver, not
+    // a ResizeObserver: a mutation record arrives whether or not the page gets a rendering opportunity
+    // (the grid fit above learned that), and the harness's virtual time never gives it one.
+    let observed = null;
+    const tableMo = new MutationObserver(()=> sync());
+    function sync(){
+      const grid = wrap.querySelector(':scope > .sheet-scroll > .sheet-grid-wrap');
+      const table = grid ? grid.querySelector(':scope > table.sheet-table') : null;
+      if(table !== observed){
+        tableMo.disconnect();
+        if(table) tableMo.observe(table, { attributes: true, attributeFilter: ['style'] });
+        observed = table;
+      }
+      // 0 is a grid that is not laid out (a print hides the app): keep the last width rather than
+      // collapse the header. No grid at all (the month view, the empty state): nothing reads it.
+      const w = grid ? grid.offsetWidth : 0;
+      if(grid && !w) return;
+      const val = w ? w + 'px' : '';
+      if(panel.style.getPropertyValue('--wf-grid-w') === val) return;
+      if(val) panel.style.setProperty('--wf-grid-w', val); else panel.style.removeProperty('--wf-grid-w');
+    }
+    sync();
+    // childList: render() replaces #table-wrap's children wholesale. Observing mutates nothing.
+    new MutationObserver(sync).observe(wrap, { childList: true });
   })();
 
   // The calendar zoom this machine remembers, before the first render ("CALENDAR ZOOM").

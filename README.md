@@ -47,7 +47,71 @@ the grid.
   moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
   when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
 
-### Unreleased — the Production Region in Show info too (21 Oct 2026)
+### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
+
+The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
+scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
+- **What changed:** the title block above the waterfall, and the Manual-mode format strip above it, now stop at the
+  calendar's last column instead of running to the edge of the preview. Zoom out and the header shrinks with the
+  calendar. At 100% this moves only calendars narrower than the window: their right-hand header lines now sit over the
+  last column, as they do in the PDF and the workbook. A calendar wider than the window keeps the header across the
+  visible width, as before, so its right-hand lines stay on screen.
+- **Its height never changes.** The header is never narrower than its lines need on one line, so nothing wraps that did
+  not wrap before. On a calendar narrower than its own header text, the header runs past the last column by just
+  what the text needs (forced to 200 px, the title block measured 199 px tall instead of 71 when squeezed). This
+  follows the owner's ruling for paper (10 Sep 2026, single column).
+- **How:** `app.js` "THE HEADER ENDS WITH THE CALENDAR" writes the grid's own width as one custom property,
+  `--wf-grid-w`, on `.preview-panel`, after every render and on the frozen column drag's live width change. `legacy.css`
+  caps `#table-wrap > .sheet-scroll > .cal-header-bar` and `.hdr-tools` at it, with `min-width: fit-content` as the
+  floor. Nothing inside `#table-wrap` is written and no frozen line changed (sanctioned pattern 1, like `--header-h`). The
+  print copy in `#print-root` cannot see it, neither writer reads the DOM, and a shareable copy drops it.
+- **Verified:** the new `hdrfit` leg, 8/8 on `colreuse` (Auto header, grid wider than the harness window at 100%) and
+  8/8 on `hdrmanualbraces` (Manual header with its strip, a narrower grid): where the header ends at six zooms from 25%
+  to 200%, its height equal to the uncapped height at each, a 200 px cap, a live column resize, the month view and
+  back, the print copy uncapped, a shareable copy without the value. By hand in the app's browser at 100%, 75%, 60%,
+  50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
+  0 FAIL on the branch alone (build `e7db3fde…`); merged with v1.7.0 (build `710fafbe…`), 2,628 PASS / 2 FAIL, both
+  re-run green alone (`onecol` 17/0, `epnames` 16/0) and pushed on the owner's word.
+
+## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
+
+Twelve changes since v1.6.0, from 20–21 Oct 2026. Eleven were already live before this cut (the column headings'
+Split and Merge buttons, Paste notes in Settings, the one Preferences tab, folding a phase card, episode names on their
+month bars, the calendar zoom and its strip under the calendar, the shifting tools' colour and then their navy outline,
+the simpler pop-ups over a waterfall selection, and the Production Region in Show info); this version is how
+installed copies hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **paper**
+(Letter, Legal or Tabloid) and the **Export PDF dialog**.
+
+### choose the paper; Export PDF asks first (21 Oct 2026)
+
+The owner: *"what happens if we are going to print the waterfall to a legal sized piece of paper? Do we need to add a
+setting to select your paper type?"*, then *"we also now need a popup dialogue when you click export pdf that asks you
+to both confirm (or change) your paper type and your grid lines. It should also have a selector for portrait or
+landscape but one is listed as (recommended)"*. Planned and ruled in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md).
+- **Paper: Letter, Legal or Tabloid** (11 × 17), in Settings ▸ Preferences ▸ Waterfall. The waterfall PDF and the
+  Excel file are laid out for it, so a long or wide calendar prints larger on bigger paper (up to about 30% on Legal).
+  It is saved with the calendar (`paperSize`; Letter is no key at all). The month PDF stays Letter for now (R4).
+- **Export PDF in the waterfall now opens a dialog** with the paper, Portrait / Landscape and the grid lines. The
+  orientation the exports would pick is marked **Recommended**, and a line under it gives how large each prints the
+  calendar ("about", by the same rule). Cancel and Escape change nothing; Export applies all three and goes on to the
+  PDF. An orientation other than the recommended one is saved with the calendar (`pageOrientation`) and Export to
+  Excel follows it too; choosing the recommended one again clears it. Grid lines stay a per-computer preference.
+- **Single Column follows the paper** (R3): it widens its columns to fill the page, so on Legal they are narrower on
+  screen and the column prints larger.
+- ⛔ **Frozen edits, all inert on Letter with no orientation chosen:** P1, `SHEET_PAPER_PT`'s two orientations become
+  getters over the chosen paper (the declaration only, the Header: Off move); P2, `exportExcel`'s `paperSize`; P4, both
+  writers pass the rule's orientation through `chosenOrientation()`. The print rollbacks stay Letter.
+- ⚠️ **Learned:** Legal almost never turns a calendar's page. It only lengthens the side that was not limiting, so the
+  rule's answer is the same as on Letter; Tabloid can. And on Letter the dialog's size reads about 3 points low (87%
+  against a PDF drawn at 90%), because the rule reserves the header band and the PDF does not.
+- Help's Exporting section describes the dialog and the paper, and no longer says the month export opens the print
+  dialog (it has written the file itself since 2 Oct 2026).
+- **Verified:** new legs `papersize` 12/12 and `pdfdialog` 11/11, in `gate.sh`, both red on the pre-change build;
+  nine mutants each red. **Full gate 2,630 PASS, 0 FAIL** on build `22b16c43…`: the waterfall PDF (through the dialog at
+  its defaults), every Excel part, `fields.byId` (76 ids) and both month PDFs identical to their baselines.
+  `npm run check` 40/40.
+
+### the Production Region in Show info too (21 Oct 2026)
 
 The owner: *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
 exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
@@ -63,9 +127,57 @@ exist as a duplicate setting in the settings tab where it already appears, but n
   M6/M8; the copy bypassing the question: M6/M7). Gate 5 by hand: `fields.byId` 76 keys and values identical to the
   baseline, the restored grid identical. `regionlock` 14/14, `regioncaveat` 13/13, `settingswin` 19/19,
   `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
-  40/40; a 2× screenshot of the card. Full gate not run.
+  40/40; a 2× screenshot of the card. **Full gate:** 2,595 pass / 3 fail, all three green on a clean copy of the same
+  build (two read a fixture left edited in the checkout, one was contention). Live at `24f1537`, merged with the
+  toolbar outline and one-chip, byte-identical to its build.
 
-### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+### no pop-ups over a waterfall selection but the double-click hint and a refused swap's reason (21 Oct 2026)
+
+The owner, with a screenshot of two pop-ups stacked over selected cells: *"can we remove or at least simplify (maybe
+combine into one?) this double pop up"*, then, after a one-chip version: *"remove the chip entirely, except say
+'Double click to expand cells' when you highlight phase blocks. then only if can't do a swap does it tell you why with a
+chip"*. Selecting phase cells used to draw a purple chip (*"31 cells (11 has no room) · double-click to expand ·
+Alt+←/→ to swap"*) and, above it, a dark one (*"All 42 weeks of Shoot in 2026 — Alt+→ trades the whole block with Post
+S1 · nothing re-flows"*).
+- **Highlighting phase cells** shows *"Double click to expand cells"*, or *"Double click to pull back cells"* when they
+  are already expanded (owner's pick), and nothing at all when there is no room to expand.
+- **A swap that cannot happen** shows why, in the teal chip, when you press Alt+←/→, click the knob or drop it: as
+  before, but now it is the only message a swap ever shows.
+- **A swap that works shows nothing afterwards** (owner's pick, "Never"), including the notes that other weeks widened
+  ("2 other weeks changed width to fit"), that a block reshaped, or that several blocks moved together.
+- **Before a swap**, what it would do is still on the knob's tooltip ("Swap the 2026 block of Prod Prep with Post"), and
+  a swap that would reshape a block still outlines the weeks it changes in amber. That outline is now the only warning,
+  since the amber chip that said it in words is gone.
+- The Help's three sentences about the label and the after-swap report are updated to match.
+- Chrome only (`redrawGridOverlay`, `drawSwapLayer` and the three finish functions in `app.js`; `swapModeText`,
+  `reshapeText` and `swapFlashSide` deleted; the chip CSS; the Help in `src/index.html`). Nothing in the grid, its cells
+  or the exports changes.
+- **Verified:** the eight legs that read either chip pass, each now asserting the new rule: no chip after a working swap
+  (`colswapmove`, `colswapmid`, `stintmulti`, `stintreshape`), no mode text before one (`stintbtn`, `stintchain`,
+  `stintreshape`, `noswapbtns`), the refusal still shown (`colswapmove`), and the hint's three states (`noswapbtns` S1,
+  S4 and the new S5, `colswapstale`). `npm run check` 40/40. Headless screenshots of a highlighted block and of a
+  refused swap show one chip each. Full gate (build `96b4b311…`): 2,565 PASS, 16 FAIL, all 16 from one `monthemit`
+  run under UTC+14 that wrote no result while other sessions' gates ran (the month PDF, untouched here); that block
+  re-run alone passed every check.
+
+### the shifting tools take a navy outline instead of the fill (21 Oct 2026)
+
+The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since
+the blue color is the same as the selected button color on the left side bar"*. It was: that light navy is the
+selected sidebar tab's ground, so four buttons resting in it read as switched on.
+- Shown four mockups (real screenshots of the app with each style), the owner picked **"option A (navy outline
+  only)"**: ← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From are white with a navy border and
+  navy text. Hover, and a tool whose popover is open, take the faintest navy wash. Side Boxes, the Header button
+  and undo/redo are unchanged.
+- UI-CONVENTIONS §3b gains the rule: a row of resting controls never wears the accent fill, because in this app
+  it means selected; set a group apart by its border and ink.
+- Chrome only (`legacy.css`); nothing in the grid, its cells or the exports changes.
+- **Verified:** in the app's browser with a sample calendar at 1650 px, the resting, hover and open states by
+  computed colour (none of the four matches the selected tab's fill), and Anchor To's popover opening and closing;
+  `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot matching the
+  mockup the owner picked. No full gate (chrome-only; the owner's call for the fill, the same here).
+
+### the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
 shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
@@ -78,7 +190,7 @@ dont need to move them"*); the row's spacing is unchanged.
 - **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
   1650 px. Full gate not yet run.
 
-### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
+### the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
 more space at the bottom of the app to give it room?"* Measured at 1440×900, the pill and the 46 px **?** button
@@ -96,7 +208,7 @@ both sat entirely on the waterfall's grid box, over its last rows and its horizo
   the contention flakes on record (`pilllabel` C1/C3, `monthexport` X6), both legs green re-run alone; gates 10 and 13
   byte-identical, 0 clipped.
 
-### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
+### calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
 to zoom in or out the viewport of either the waterfall cal or the month cal"*.
@@ -127,7 +239,7 @@ to zoom in or out the viewport of either the waterfall cal or the month cal"*.
   browser, no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
   fixtures. Every byte-compared gate is untouched by construction: at 100% nothing is written at all.
 
-### Unreleased — An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
+### An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
 
 The owner, the evening v1.6.0 shipped its "Shoot" prefix: *"I just wanted the word Shoot before 'Shoot Ep. 101' -
 but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that you can easily change
@@ -152,7 +264,7 @@ Load, a v1.6.0 prefix kept and dropped by a rename, bad values, the written PDF'
 D2s, `episodeprep` (its live run), `labelsetup`, `halfmarks`, `pilllabel`, `mvmenu`, `shootorder` and `pilldrag`
 updated for the names.
 
-### Unreleased — a caret folds each phase card down to its name (20 Oct 2026)
+### a caret folds each phase card down to its name (20 Oct 2026)
 
 Owner: *"There should be a carrot that lets you hide and unhide phases within the phases menu. When you hide them it
 should show just their name (name still editable) with their color but hide all the settings underneath."*
@@ -171,7 +283,7 @@ should show just their name (name still editable) with their color but hide all 
   `settingswin`, `loadcarry`, `calrange`, `phasecolors`, `mvmenu (halfdays)`, `dlgkeys`, `labelsetup (halfdays)`,
   `colreuse` (both runs, through gate.sh's own judge), `phasenum`, `episodeprep` (both). `npm run check` 40/40.
 
-### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+### Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
 
 Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
 tab. this should apply to both the waterfall and month view"*.
@@ -193,7 +305,7 @@ tab. this should apply to both the waterfall and month view"*.
   calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
   gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
 
-### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+### Paste notes… moves into Settings (20 Oct 2026)
 
 Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
 with the new settings tab"*). **Paste notes…** is now a row of Settings ▸ Preferences ▸ Month view (built in the
@@ -206,7 +318,7 @@ only, as before (the card is month-only), and opens the same box. Nothing saved 
   no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
   `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
 
-### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
+### Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
 
 The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
 ... you have to understand that if you change the notes collumn to something other than writing, it is THEN going
@@ -1287,7 +1399,6 @@ second field's caption, so a phase row reads **Start date | By [Weeks ▾]**, wi
 - **Verified** in the app: a unit switch shows the right box (Dates fills in the end date), 4.5 in a Days box still
   rings "Whole days only", and at a 1280 px window the 333 px sidebar fits both columns side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilldrag` 20/20 and all 244 `pilllabel` checks green. `npm run check` 40/40.
 
-
 ### "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
 
 Step 3 of MONTH-PILL-LABEL-PLAN.md. The engine (step 2) shipped at `54ffe15` with nothing to drive it; this adds the
@@ -2210,7 +2321,6 @@ Headline changes:
 - Recents asking for readwrite;
 - the install gate's after-deploy checks (HANDOFF §2l).
 
-
 ### Docs: a threat model, and the custom-domain plan (audit batch 5)
 
 Paper only; the app is unchanged.
@@ -2654,7 +2764,6 @@ doesn't show it in Chrome. HANDOFF §3 B's "opening is unaffected" was wrong and
   kept the typed name and date.
 - Regression: `holidays2031`, `monthnotes`, `monthlanes`, `hostile` and `wrapdate` all pass.
 
-
 ### A weeks or days count that isn't a whole number says so (audit L-12)
 
 **What changed:** Every duration is read as a whole number, so 2.5 weeks became 2, "1e3" became 1,
@@ -2840,7 +2949,6 @@ Headline changes:
 
 ⚠️ **Checked by hand, owed by the owner:** Save as PDF in a UK-locale Chrome offers no Paper size
 (L-3), and the 3.2 and 3.3 before/after workbooks open in Excel.app with no repair prompt.
-
 
 ### The workbook's dates show up in previews: the Date column carries cached values (audit L-7)
 
@@ -5480,7 +5588,6 @@ names its target (41 usable entries), 40 of 41 show live values, it is scrollabl
 own scroll** and still closes on an outside one, and the browse view is read-only. Byte-compare
 re-run: waterfall PDF and every Excel part still identical to the baseline.
 
-
 ### Unreleased — the Excel header has a 255-character cliff, so now the app says how close you are
 
 Step 6 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the last.
@@ -5521,7 +5628,6 @@ minting; and a Template line may legitimately render braces (an unknown token, a
 mistake in different clothes: asserting the absence of a character rather than the absence of the
 thing that matters.
 
-
 ### Unreleased — presets as files, so a header can be sent to someone
 
 Step 5 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
@@ -5557,7 +5663,6 @@ file that is not JSON are both refused with the list unchanged, a file carrying 
 `evilKey` format entry imports as `{c1, l2}` / `{c1:{bold}}` with both dropped, the imported preset
 applies like any other, and it still never reaches a saved calendar. Byte-compare re-run: waterfall
 PDF and every Excel part still identical to the baseline.
-
 
 ### Unreleased — header presets: save an arrangement once, apply it to any calendar
 
@@ -5607,7 +5712,6 @@ shareable copy while the applied header is present in it, rename keeps the id, a
 preset leaves `{"version":1}` behind. `fields.byId` unchanged at 55. Byte-compare re-run: waterfall
 PDF and every Excel part still identical to the baseline.
 
-
 ### Unreleased — the Default template, and a menu that tells you which tokens exist
 
 Step 3 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
@@ -5647,7 +5751,6 @@ recording** — the palette insert was first asserted against `c4`, which the De
 line; and a synthetic `focusin` sets `hdrFmtTarget` but creates no selection, so Chrome supplies a
 caret at position 0 and the token landed at the start. Both are artefacts of driving the DOM, not
 app behaviour; the leg now places a real caret and targets a line with content.
-
 
 ### Unreleased — header lines can be templates now, and there are three modes rather than two
 
@@ -5747,7 +5850,6 @@ preset library (Step 4), `.spthdr` files (Step 5), the Excel budget meter (Step 
 currently seeds from the resolved auto values rather than the default template, which is honest but
 means the seeded lines carry no tokens until Step 3 lands.
 
-
 ### Unreleased — gate 5 had not run since the baseline was cut, and the stall everyone blamed was never the problem
 
 Local, not pushed at time of writing. No app code changed: this is entirely the test harness and the
@@ -5815,7 +5917,6 @@ opens the legacy `.html` fixture. `CLAUDE.md` names that as the outstanding insu
 The picker path is provably drivable now, so it is a short leg rather than a project. The IndexedDB
 stall itself is still real and still unfixed — it now costs only the recents list and the crash
 backup in headless, neither of which any leg asserts.
-
 
 ### Unreleased — a version number typed once in Show Info, and the header slot that was waiting for it
 
@@ -5925,7 +6026,6 @@ first, before any edit, is what makes that a measured fact rather than an assump
 **Not a version cut.** `APP_VERSION`, `version.json` and `package.json` all stay at `1.2.0`. This is
 one of six steps, and bumping `version.json` raises the *"a new version is available"* strip on every
 installed PWA — for one optional text field. That mechanism only works while it stays credible.
-
 
 ### Unreleased — renamed to SPT Calendar Builder, and the header's Principal Photography date was wrong
 
@@ -7438,7 +7538,6 @@ byte-identical, every Excel part identical, a real v1.0.0 saved calendar restori
 rows / 154 cells / 324 pt grid, the same 56 field ids, 0 console errors. New: `t/fence.js` asserts
 positively that computed styles inside the frozen container did not move, which no test covered
 before.
-
 
 ### Unreleased — 29 Aug 2026 — The chrome's design system, settled before it is built
 
