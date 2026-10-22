@@ -52,6 +52,14 @@
   That gate (16 FAIL by 01:17, all missing results or wrong-build PDFs) was stopped and discarded, and passes in that
   window prove nothing either. Re-run on 9629, checked free with `lsof`. **Pick a port nobody else uses for every gate.**
   ⚠️ In zsh, `kill $LIST` does NOT word-split a variable: it killed nothing. Loop over the pids.
+- ⛔ **`hdrversion` went red on 22 Oct for EVERY build, from the date alone — a harness bug, fixed here.** The re-run gate
+  on 9629 (01:19–01:44) was 2,621 PASS, 2 FAIL, both `hdrversion` (the PDF's left column read as None; "Compressed
+  input was truncated" / "incorrect header check" rejections). The live build `24f1537` and the very build that passed
+  it the day before (`e24bceac`, same hash) failed identically. Cause: the leg found each PDF stream's end by trimming
+  every newline/CR/space before `endstream`, but a zlib stream ends in its Adler-32 checksum, whose last byte is one of
+  those about 1 time in 85, and the page's text holds today's date. Fixed in `hdrversion`, `prefs` and `stintexport`
+  (the same trim): read exactly the stream's `/Length`, as the writer declares it. `hdrversion` 17/17 on the same
+  build, `stintexport` 6/6, `prefs` 13/13. Any session gating before this lands will see the same 2 FAIL today.
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
