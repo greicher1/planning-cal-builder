@@ -34,7 +34,16 @@
   origin main` at 17:24:20 (`ec8c788..b332e5c`). Deploy run 39699488118: success. At 17:25:14 the live `index.html`,
   fetched with a cache-buster, was **byte-identical to the local build** (sha256 `999bd95e23a33a0b…`, `cmp`);
   `version.json` still 1.6.0, so installed copies pick it up silently.
-- ⏭ **Next:** nothing. The worktree `.claude/worktrees/toolbar-center` can be removed on the owner's word.
+- ⚠️ **OWNER, right after it went live:** *"now it looks like those buttons are all selected since the blue color is the
+  same as the selected button color on the left side bar. come up with a few mockups"*. True: navy-1 is the app's
+  SELECTED ground (`.side-tab-btn.active`), so a resting fill of it reads as "on". Four mockups shown as real 2×
+  screenshots (each a copy of the build plus one `<style>`, fixture `carry-rich`, 1650 px; the page and shots are in
+  that session's scratchpad, not the repo): **A** navy outline (white fill, navy-6 border and text, navy-0 hover);
+  **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
+  **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
+  accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
+- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
+  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
