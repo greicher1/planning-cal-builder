@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; NOT MERGED, NOT PUSHED
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, NOT MERGED, NOT PUSHED
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
   `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
@@ -19,8 +19,13 @@
 - **Proof:** `sideboxes` 59/59 with the new S12 (50% and 200%: grid zoomed, boxes at 100% size, cap equal to the grid
   box's screen height, no panel scroll), S12 red on a build of `da1142a`; `calzoom` 22/22; `npm run check` 40/40; by
   hand in the app's browser at 25/50/100/150/200%, and a width drag at 200% (40 px of pointer = 40 px of width).
-- ⏭ **Next:** the full gate (queued behind the "Viewport overlap sizing" session's gate in `zoom-compact`), then the
-  owner's merge and push pickers. `zoom-compact` changes the zoom pill, the help button and the panel's bottom margin
+- ✅ **Full gate** (build `b5cbd910…` at `894238c`, HARNESS_PORT 9357, 17:01:30–17:26:34, alone, after `zoom-compact`'s
+  gate finished): **2,593 PASS, 4 FAIL, none from this change**: `pilllabel (blocks)` W3 and X2 and `pilllabel
+  (carry-rich)` X2 ("months 1 vs 18": the month view compared before its months had drawn), and `monthexport
+  (mvheaderlegacy)` X4 (the click's activation ran out). All month view, where the side boxes are hidden. Re-run alone
+  through gate.sh's own evaluators: **35/0, 29/0 and 9/0.** S12 PASS in the gate; 0 clipped; every byte-compared gate
+  green.
+- ⏭ **Next:** the owner's merge and push pickers. `zoom-compact` changes the zoom pill, the help button and the panel's bottom margin
   (legacy.css near the app shell block): no overlap with this branch.
 
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)

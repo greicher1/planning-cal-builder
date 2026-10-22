@@ -44,7 +44,8 @@ the grid.
 - **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
   size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
   after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
-  moved the edge exactly with the pointer.
+  moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
+  when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
 
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
