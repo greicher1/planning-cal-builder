@@ -49,8 +49,12 @@
   screenshots, wide and narrow. ⚠️ **Trap: headless Chrome here fires NO `scroll` event for a scrollTop set by
   script** (a probe waited 650 ms and heard none), so R6/R7 dispatch the event by hand. The preview pane could not
   be used (all five dev-server slots held by other chats; `file://` refused).
-- ⏭ **Next:** the full gate (queued behind `zoom-compact`'s and, if it starts, `sidebox-zoom`'s), then the owner's
-  merge and push pickers.
+- ⏭ **Next:** the full gate, then the owner's merge and push pickers.
+- ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
+  session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
+  (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
+  `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a script whose name has no "gate.sh", with
+  a random 45–90 s pause before starting so two queues don't start together.
 
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
