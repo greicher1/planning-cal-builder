@@ -57,8 +57,15 @@
   entry kept beside this one; two EMPTY duplicate headings in origin's HANDOFF, a stale "WEAR THE NAVY TINT" and a
   second Region heading with no body, merge debris, dropped). No baseline changed upstream. Build `3fc04ff4…`
   (1,690,407 bytes): `npm run check` 40/40, `hdrversion` 17/17 alone with the new harness.
-- ⏳ **Its full gate is queued** (port 9353, the real-gate check). On green: fast-forward local `main` to this branch
-  if `main` has not moved again (otherwise merge it once more), and ask separately before any push.
+- ✅ **Full gate on the final merged build `3fc04ff4…` at `abc6ed2`** (port 9353, 05:26–05:53, 22 Oct, alone): **2,628
+  PASS, 2 FAIL**, both the contention flakes on record: `onecol` ("timed out waiting for the .xlsx blob"; header-zoom's
+  gate hit the same) and `pilllabel (halfdays)` X2 ("months 1 vs 18", the cut-short month walk). **Both green re-run
+  alone through gate.sh's own blocks:** `onecol` 17/0, `pilllabel (halfdays)` 29/0. Gate 13 22/22 byte-identical;
+  gate 10's printed document identical; 0 clipped; 76 ids.
+- ✅ **Landed in local `main`.** `main` had moved by one docs-only commit (`c2f4e2b`, month-order's gate note), merged
+  in as `d322e4e` (no code; the rebuild is still `3fc04ff4…`), then local `main` fast-forwarded to this branch. It
+  holds `origin/main` (`34c873f`) too. **NOT PUSHED:** a push needs its own picker, and month-order (its third gate
+  green on `b6a6af9`) must now merge `main`, which carries this frozen CSS edit and gate 13's re-cut baselines.
 
 ### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
 
