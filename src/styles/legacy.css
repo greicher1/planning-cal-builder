@@ -1209,6 +1209,17 @@
     background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
     padding-right:28px;
   }
+  /* The Show info card's copy of the Production Region (Sidebar.jsx, owner 21 Oct 2026). A plain select,
+     because a NativeSelect mints an id the save sweep would pick up, so it draws NativeSelect's own
+     look by hand, to sit under the card's Season and Schedule by selects: Mantine's ComboboxChevron path
+     (the up/down one, not the tool popovers' down arrow) at its xs size (14px) in gray-6, centred in
+     the 28px right section an xs input reserves (1px border + 6px + 7px = 14px from the edge). */
+  select.region-mirror{
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 15 15' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Cpath d='M4.93179 5.43179C4.75605 5.60753 4.75605 5.89245 4.93179 6.06819C5.10753 6.24392 5.39245 6.24392 5.56819 6.06819L7.49999 4.13638L9.43179 6.06819C9.60753 6.24392 9.89245 6.24392 10.0682 6.06819C10.2439 5.89245 10.2439 5.60753 10.0682 5.43179L7.81819 3.18179C7.73379 3.0974 7.61933 3.04999 7.49999 3.04999C7.38064 3.04999 7.26618 3.0974 7.18179 3.18179L4.93179 5.43179ZM10.0682 9.56819C10.2439 9.39245 10.2439 9.10753 10.0682 8.93179C9.89245 8.75606 9.60753 8.75606 9.43179 8.93179L7.49999 10.8636L5.56819 8.93179C5.39245 8.75606 5.10753 8.75606 4.93179 8.93179C4.75605 9.10753 4.75605 9.39245 4.93179 9.56819L7.18179 11.8182C7.35753 11.9939 7.64245 11.9939 7.81819 11.8182L10.0682 9.56819Z' fill='%23726F68' fill-rule='evenodd' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center; background-size:14px 14px;
+    padding-right:28px;
+  }
   /* Number inputs joined the one family (29 Aug 2026): the mono face kept digits aligned down a
      column, but the owner flagged the mixed faces inside phase blocks as the thing that read
      broken, and consistency won. */
@@ -1487,21 +1498,25 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
-  /* The four SHIFTING tools wear the app's accent tint (owner, 21 Oct 2026: "right now all the buttons
-     look exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
-     Header button and undo/redo. It is UI-CONVENTIONS §3b's primary-action tint, which suits the
-     toolbar's most-used controls. Tokens, never hex. The tint is on each part of Shift All, not on its
-     group, so a hover there composites exactly as it does on the other three. These rules are
-     unlayered, so they outrank Mantine's layered Button colours without !important; that is also why
-     the hover and open states are spelled out here, since Mantine's own hover is layered too. */
-  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-2); }
+  /* The four SHIFTING tools wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
+     exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
+     Header button and undo/redo: white, a navy-6 border, navy-6 text and caret.
+     ⛔ NOT the light accent FILL. That went live first and the owner saw at once that the four buttons
+     ("it looks like those buttons are all selected"): navy-1 is the selected sidebar tab's ground (.side-tab-btn.active),
+     so a resting control filled with it reads as switched on. In this app a light accent fill means
+     selected; colour a resting control by its border and ink (UI-CONVENTIONS §3b). Owner's pick of four
+     mockups, "option A (navy outline only)". Hover and an open popover take navy-0, the faintest wash.
+     Tokens, never hex. These rules are unlayered, so they outrank Mantine's layered Button colours
+     without !important; that is also why the hover and open states are spelled out here, since
+     Mantine's own hover is layered too. */
+  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-6); }
   .shift-btn, .tools-wrap > .tools-btn{
-    background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
   }
   .shift-btn + .shift-btn{ border-left-color:var(--mantine-color-navy-2); }
   .shift-btn:hover, .shift-main[aria-expanded="true"],
   .tools-wrap > .tools-btn:hover, .tools-wrap > .tools-btn[aria-expanded="true"]{
-    background:var(--mantine-primary-color-light-hover); color:var(--mantine-primary-color-light-color);
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-7);
   }
   .tools-wrap > .tools-btn .caret{ color:inherit; }
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
@@ -2289,12 +2304,10 @@
   .grid-swap-chip{ position:absolute; max-width:340px; white-space:normal; pointer-events:none;
     font:11px/1.35 'Inter',system-ui,sans-serif; padding:3px 8px; border-radius:10px;
     background:rgba(45,45,48,.94); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.28); }
+  /* The swap layer's chip is only ever why a swap was refused, after a press or a drop (owner, 21 Oct
+     2026; drawSwapLayer). Its amber .is-warn went with the reshape warning it carried in words: the
+     amber outlines (.grid-swap-collateral) are now that warning. */
   .grid-swap-chip.is-flash{ background:#0E7C8C; }
-  /* A block swap that would RESHAPE a block. Amber, matching .grid-swap-collateral's rects, because
-     it is describing exactly those weeks -- and distinct from the neutral dark chip, which is the
-     point: the promise of a block swap is that blocks keep their shape, so the exception has to look
-     like one. Owner ruling 2 Sep 2026: keep offering the swap, warn harder. */
-  .grid-swap-chip.is-warn{ background:#8A5A12; }
   /* The frozen render replaces the table synchronously, so the real cells teleport. These two ghosts
      carry the eye across in each phase's own colour; --dx is the measured delta and --lift arcs them
      past each other in opposite directions. */
@@ -2309,9 +2322,9 @@
      nothing about either layer -- hide rather than let them go stale. */
   body.grid-resizing .grid-swap-layer{ display:none; }
   body.grid-swapping{ user-select:none; cursor:grabbing; }
-  /* Feature 1's count chip is drawn just above the selection, which is exactly where the amber
+  /* The selection's chip is drawn just above the selection, which is exactly where the amber
      collateral rects appear -- and those are the one thing the user has to be able to read BEFORE
-     letting go. Once the knob is grabbed, the batch-expand count is noise: hide it for the gesture.
+     letting go. Once the knob is grabbed, the drag's own ghosts say what will move: hide it for the gesture.
      Done in CSS rather than JS so there is only one place either chip's visibility is decided. */
   body.grid-swapping .grid-sel-chip{ display:none; }
   /* The "Swap Column" hover button (COLUMN-ORDER-PLAN.md §2.2). On the swap layer, never in the cell;

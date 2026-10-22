@@ -12,6 +12,15 @@ it is a plan, not a record of work done.
 > own gestures instead. Double-click (or Enter) on a selected cell expands or pulls back, Alt+←/→
 > swaps its column, and the knob takes a click or a drag. The selection's count chip names them
 > ("double-click to expand · Alt+←/→ to swap"). HANDOFF.md, the header-controls build, has the record.
+>
+> ⛔ **21 Oct 2026 (owner): NO CHIP OVER A SELECTION but the double-click hint and a refused swap's
+> reason.** *"remove the chip entirely, except say 'Double click to expand cells' when you highlight
+> phase blocks. then only if can't do a swap does it tell you why with a chip"*, and by picker: "Double
+> click to pull back cells" when already expanded, nothing when there is no room, and **no message
+> after a swap that works, "Never"**. So this plan's MODE LINE (§2.2) is gone, and E1's "nothing moves
+> unannounced" is now carried by the knob's label/tooltip before the press and the amber collateral
+> outlines; the reshape warning in words and every after-swap confirmation are gone. A refused
+> direction says why when pressed (`flashSwapMsg`).
 
 > ✅ **D1 GRANTED (owner, 1 Sep 2026) — Feature 2 is authorised.** Grid **column order** may be
 > user-overridable; a phase's column may vary per week. That is the 29 Aug appearance convention's

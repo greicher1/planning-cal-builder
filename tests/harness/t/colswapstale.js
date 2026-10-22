@@ -86,15 +86,17 @@ window.addEventListener('load', function () { (async function () {
       return !!document.querySelector('.grid-swap-layer .grid-swap-knob[data-dir="-1"]');
     }, 'the swap knob despite the stale claims', 120, 100);
     out.knobOffered = true;
-    // No passive chip about a hand-set width -- that message was the bug.
-    var chip0 = document.querySelector('.grid-swap-chip');
-    out.noWidthComplaint = !(chip0 && /hand/i.test(chip0.textContent || ''));
+    // No passive chip about a hand-set width -- that message was the bug. Both chips are read; since
+    // 21 Oct 2026 neither ever says anything passively about a swap.
+    out.noWidthComplaint = !Array.prototype.some.call(document.querySelectorAll('.grid-swap-chip, .grid-sel-chip'),
+      function (c) { return /hand/i.test(c.textContent || ''); });
     // ...and the SAME defect in Feature 1's count chip: an inert claim used to make the cell read as
     // actionable and offer "double-click to pull back" with nothing to pull. Post 11/16 is the seed
-    // and carries no claim, so the honest answer for it is "no room to expand".
+    // and carries no claim, so the honest answer for it is NO hint at all (since 21 Oct 2026 the hint
+    // shows only when a double-click would do something).
     var selChip = document.querySelector('.grid-sel-chip');
     out.selChipText = selChip ? selChip.textContent : '';
-    out.selChipHonest = !/pull back/.test(out.selChipText);
+    out.selChipHonest = !selChip;
 
     // 4. And it actually swaps.
     T.altSwap(-1);   // Alt+Left: the Swap buttons went with owner ruling 2
