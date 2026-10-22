@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — choose the paper; Export PDF asks first (21 Oct 2026)
+
+The owner: *"what happens if we are going to print the waterfall to a legal sized piece of paper? Do we need to add a
+setting to select your paper type?"*, then *"we also now need a popup dialogue when you click export pdf that asks you
+to both confirm (or change) your paper type and your grid lines. It should also have a selector for portrait or
+landscape but one is listed as (recommended)"*. Planned and ruled in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md).
+- **Paper: Letter, Legal or Tabloid** (11 × 17), in Settings ▸ Preferences ▸ Waterfall. The waterfall PDF and the
+  Excel file are laid out for it, so a long or wide calendar prints larger on bigger paper (up to about 30% on Legal).
+  It is saved with the calendar (`paperSize`; Letter is no key at all). The month PDF stays Letter for now (R4).
+- **Export PDF in the waterfall now opens a dialog** with the paper, Portrait / Landscape and the grid lines. The
+  orientation the exports would pick is marked **Recommended**, and a line under it gives how large each prints the
+  calendar ("about", by the same rule). Cancel and Escape change nothing; Export applies all three and goes on to the
+  PDF. An orientation other than the recommended one is saved with the calendar (`pageOrientation`) and Export to
+  Excel follows it too; choosing the recommended one again clears it. Grid lines stay a per-computer preference.
+- **Single Column follows the paper** (R3): it widens its columns to fill the page, so on Legal they are narrower on
+  screen and the column prints larger.
+- ⛔ **Frozen edits, all inert on Letter with no orientation chosen:** P1, `SHEET_PAPER_PT`'s two orientations become
+  getters over the chosen paper (the declaration only, the Header: Off move); P2, `exportExcel`'s `paperSize`; P4, both
+  writers pass the rule's orientation through `chosenOrientation()`. The print rollbacks stay Letter.
+- ⚠️ **Learned:** Legal almost never turns a calendar's page. It only lengthens the side that was not limiting, so the
+  rule's answer is the same as on Letter; Tabloid can. And on Letter the dialog's size reads about 3 points low (87%
+  against a PDF drawn at 90%), because the rule reserves the header band and the PDF does not.
+- Help's Exporting section describes the dialog and the paper, and no longer says the month export opens the print
+  dialog (it has written the file itself since 2 Oct 2026).
+- **Verified:** new legs `papersize` 12/12 and `pdfdialog` 11/11, in `gate.sh`, both red on the pre-change build;
+  nine mutants each red. **Full gate 2,630 PASS, 0 FAIL** on build `22b16c43…`: the waterfall PDF (through the dialog at
+  its defaults), every Excel part, `fields.byId` (76 ids) and both month PDFs identical to their baselines.
+  `npm run check` 40/40.
+
 ### Unreleased — the Production Region in Show info too (21 Oct 2026)
 
 The owner: *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also

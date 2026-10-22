@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 21 Oct 2026 (late): PAPER SIZE — PLANNED in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md) and RULED; nothing built
+### 🔨 21 Oct 2026 (late): PAPER SIZE + EXPORT PDF DIALOG — BUILT on branch `paper-size` (worktree `.claude/worktrees/paper-size`, from `main` at `9677900`); ✅ FULL GATE PASSED; not merged, not pushed
 
 - **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
   print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
@@ -32,9 +32,54 @@
 - ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
   only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
   for the PDF only.
-- ⏭ **Next:** on the owner's go-ahead, build in the plan's §8 order on a branch.
-  Letter, and the dialog's defaults, must stay byte-identical in the full gate. On the tracker as `paper-size`
-  (planned).
+- **Built** (owner: *"Yes, build the paper setting and the Export PDF dialog per PAPER-SIZE-PLAN.md, on a branch, and
+  run the full gate."*):
+  - `app.js`, beside `SHEET_PAGE_MARGIN_PT`: `SHEET_PAPERS` (Letter / Legal / Tabloid, with Excel codes 1 / 5 / 3),
+    `sheetPaper()`, `sheetPaperCode()`, `paperProbe`, and `SHEET_PAPER_PT` made two getters (P1). P2 is in `exportExcel`'s
+    pageSetup. P4, `chosenOrientation()`, is one expression in each writer.
+  - ⛔ **`paperSize` and `pageOrientation` are declared beside `dateFormat`, near the TOP of the IIFE**, not beside
+    `SHEET_PAPERS`. The sidebar's boot code (`reflectPaperSize()` beside `reflectDateFormat()`) runs long before that
+    line, and a `let` read there throws from the temporal dead zone and kills the rest of the engine (the
+    `pushHeaderPresets` lesson at the IIFE's end).
+  - State: `setPaperSize()` / `reflectPaperSize()` (the `setDateFormat` shape, one undo step), snapshot keys written
+    only when not the default, `sanitizeSnapshot` drops unknown values, restore is unconditional, New clears.
+  - The dialog: `src/chrome/ExportPdfDialog.jsx`, mounted beside `<Dialogs />`, through `chrome.pdfExportDialog`. If
+    the chrome fails to mount, the bridge default exports with what is already chosen. Engine:
+    `askPdfPageSetup()` runs in the Export PDF handler before `confirmPdfPrintable()`, and `pageFitFor(key)` asks
+    the frozen rule under the probe for all three papers before the dialog opens. React gets the answers as data and
+    never calls back. `collectFieldValues()` skips `.export-pdf-dlg`. `setGridlinesPref()` was factored out of the
+    gridlines listener.
+  - The harness: `t/lib.js` answers the dialog at its defaults in every leg (a MutationObserver clicks its Export).
+    `T.pdfDialog('manual')` hands it back to a leg, and `cspproof.mjs` answers it itself.
+  - Help's Exporting section is updated, including the stale month sentence.
+- **Proof so far** (build `22b16c43…`):
+  - new leg `papersize`: 12/12;
+  - new leg `pdfdialog`: 11/11;
+  - both legs are registered in `gate.sh`, and both are red on the pre-change build (`9677900`);
+  - nine mutants, each red (Excel code 1; getters ignore the paper; PDF or Excel ignores the orientation; restore
+    skipped; recommendation from Letter; probe left set; Cancel applies; the sweep takes the dialog), and the
+    source was restored and `shasum`-checked;
+  - `base`'s PDF through the dialog at its defaults is identical to gate 2's baseline apart from the date stamp;
+  - `npm run check` 40/40;
+  - in the pane: the dialog, live recommendation and sizes, Cancel, the Settings select, undo.
+- ⚠️ **Learned while building:**
+  - **Legal practically never turns a page.** It lengthens only the side that was not limiting, so the rule's answer
+    matches Letter's. Tabloid can turn one, inside a narrow band. The plan's "a calendar built to flip on Legal"
+    became a four-year landscape calendar.
+  - **On Letter the dialog's size reads about 3 points low** (87% against a PDF drawn at 90%): the rule leaves out the
+    header band.
+  - **A leg cannot Save straight after an undo back to the saved state:** Save is disabled there.
+- ✅ **Full gate on build `22b16c43…` (1,692,743 bytes; HARNESS_PORT 9473, 19:47:14–20:12:43, alone, after another
+  session's gate): 2,630 PASS, 0 FAIL, GATE PASSED.**
+  - 0 clipped cells;
+  - the waterfall PDF identical to the baseline (date stamp only), with every PDF there having gone through the dialog
+    at its defaults;
+  - every Excel part identical;
+  - `fields.byId` 76 ids;
+  - gate 10's print documents and gate 13's written month PDFs byte-identical;
+  - `papersize` 12/12, `pdfdialog` 11/11, `cspproof` W1, `winansi` W0–W5, `exportrefused` E2.
+- ⏭ **Next:** the owner's commit and merge picker, then a separate push picker. On the tracker as `paper-size`
+  (ready).
 
 ### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
 

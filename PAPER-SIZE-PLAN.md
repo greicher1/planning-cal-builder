@@ -12,6 +12,11 @@ your grid lines. It should also have a selector for portrait or landscape but on
 based on the logic we already have to maximize the size of the calendar on the page"*. That is §5a. ✅ **Its
 rulings D1–D3 in §6 were made by picker the same evening, each (a), the recommended option.**
 
+**🔨 BUILT 21 Oct 2026, ✅ full gate 2,630 PASS / 0 FAIL,** on branch `paper-size` (worktree `.claude/worktrees/paper-size`), on the owner's *"Yes, build
+the paper setting and the Export PDF dialog per PAPER-SIZE-PLAN.md, on a branch, and run the full gate."* Where the
+build departed from this plan, or measured something the plan guessed at, it says so in *(As built: …)* notes below.
+HANDOFF has the proof.
+
 This plan makes **frozen edits** (CLAUDE.md's symbol list), and the change is **inert by default**. A calendar left on
 Letter saves, renders and exports byte for byte as it does today, so every existing baseline (waterfall PDF,
 every Excel part, the clipped-cell count, `fields.byId`, both month PDFs) must stay green without a re-cut.
@@ -248,6 +253,11 @@ The options as they were put:
     - the workbook's `xl/worksheets/sheet1.xml` carries `paperSize="5"` or `"3"`;
     - the PDF and the workbook turn the same way on four calendars: one, two and three year blocks, and one
       built to flip on Legal;
+      *(As built: one, two, three and FOUR year blocks, the four-year one landscape, plus side boxes, Header: Off and
+      Single Column. "Built to flip on Legal" turned out to be close to impossible, worked out from the rule itself:
+      Legal only lengthens the side that was not limiting, portrait's height or landscape's width, so the rule's
+      answer is the same as on Letter for any calendar whose rows fit 53 to a block. Tabloid can flip, but only
+      inside a band a few characters of column width wide, so no fixture holds it reliably.)*
     - the PDF's scale is the expected whole percent;
     - 0 cells are clipped;
     - Header: Off and side boxes each work on Legal;
@@ -265,6 +275,9 @@ The options as they were put:
   - **Defaults:** it opens on the calendar's paper, its orientation (D1) and the grid-lines preference.
   - **The recommendation:** for each paper, on the four calendars above, its recommended orientation is the one
     the PDF comes out in, and its sizes are within 5 points of the PDF's own scale.
+    *(As built: on the leg's own calendar, measured. On Letter the dialog reads 87% and the PDF draws the grid at 90%,
+    because the rule's printable height leaves out the 21.6 pt header band and the PDF's does not. On Legal and
+    Tabloid the two agree. That gap is why the sizes say "about".)*
   - **Cancel** changes nothing: no dirty flag, no undo step, the preference untouched.
   - **Export with changes** writes the paper key, the orientation per D1 and the preference, as one undo step,
     and the PDF and the workbook both follow. Exporting with the recommended orientation selected clears the
