@@ -128,6 +128,10 @@ try {
   kase('X1', 'Export to Excel writes a workbook', !!x1 && /spreadsheetml/.test(x1.type) && x1.head.slice(0, 2) === 'PK' && x1.size > 5000, { x1 });
   await sleep(800);
   await ev(`document.getElementById('export-wf-pdf-btn').click(), 1`);
+  // The Export PDF dialog (PAPER-SIZE-PLAN.md §5a) comes first: answer it at its defaults, as a user pressing
+  // Export would. This script does not load t/lib.js, whose observer answers it for the in-page legs.
+  await until(`!!document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]')`, 'the Export PDF dialog', 10000).catch(() => {});
+  await ev(`(function(){ var b = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]'); if(b) b.click(); return 1; })()`);
   await until(`window.__dl.length >= 2`, 'the waterfall PDF', 20000).catch(() => {});
   const w1 = await lastDownload(false);
   kase('W1', 'Export PDF writes the waterfall PDF', !!w1 && w1.head === '%PDF-', { w1 });
