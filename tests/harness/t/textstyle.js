@@ -70,7 +70,9 @@ window.addEventListener('load', function () { (async function () {
     $('save-file-btn').click();
     await T.until(function () { return written.length > n; }, 'the Save write', 100, 100);
     await T.sleep(300);
-    return written[written.length - 1];
+    // After a Load, Save writes back to the LOADED handle, whose fake (openViaFakePicker) records {file, text}.
+    var w = written[written.length - 1];
+    return typeof w === 'string' ? w : w.text;
   }
   var loads = 0;
   function menuLabel(){ return (($('file-menu-label') || {}).textContent || '').trim(); }
@@ -237,6 +239,37 @@ window.addEventListener('load', function () { (async function () {
     check(look(inner(noteTd())).i !== 'italic' && look(dateIn(qa('#table-wrap tbody tr')[1])).i !== 'italic', 'F5 a file without textStyles opens with nothing styled (restored unconditionally)');
     await load(savedText);
     check(look(inner(noteTd())).i === 'italic' && look(inner(phaseIn(qa('#table-wrap tbody tr')[1]))).c === 'rgb(255, 0, 0)', 'F6 the saved file opens with its styles');
+    // A hand-edited file: an unknown kind, a bad key, a date at 20 (outside D1's 6-12), a highlight and a size on a
+    // note (the bar writes neither) -- each dropped, the good entries kept, nothing thrown.
+    // The earliest styled date is row 1's (S0); G2's unbolded date is a week later.
+    var bad = JSON.parse(savedText), goodDate = Object.keys(bad.textStyles.date).sort()[0];
+    bad.textStyles.bogus = {'2027-01-04': {bold: true}};
+    bad.textStyles.date['not a key!'] = {italic: true};
+    bad.textStyles.date[goodDate] = {italic: true, size: 20};
+    bad.textStyles.note['2027-10-11'] = Object.assign({}, bad.textStyles.note['2027-10-11'], {highlight: '#00ff00', size: 9});
+    await load(JSON.stringify(bad));
+    var badDate = dateIn(qa('#table-wrap tbody tr')[1]);
+    check(look(badDate).i === 'italic' && look(badDate).fs === '11px' && look(inner(noteTd())).i === 'italic' && look(inner(noteTd())).fs === '12px',
+      'F7 a hand-edited file: bad kinds, keys and sizes are dropped, its good styles kept (' + look(badDate).fs + ')');
+    var warned = ((T.appHealth() || {}).errors || []).filter(function(e){ return /were not in a form the app writes/.test(e); });
+    check(warned.length === 1 && /SPTCal: 5 value/.test(warned[0]), 'F7b the sanitizer counts exactly the 5 bad values, once (' + warned.join(' | ').slice(0, 120) + ')');
+    var resaved = JSON.parse(await save());
+    check(!resaved.textStyles.bogus && !resaved.textStyles.date['not a key!'] && !resaved.textStyles.date[goodDate].size
+      && !resaved.textStyles.note['2027-10-11'].highlight && !resaved.textStyles.note['2027-10-11'].size,
+      'F8 and saving it again writes only what the app writes');
+    await load(savedText);
+
+    // ---- T: the shift tools carry each style with what it styles ---------------------------------------
+    var tRow = qa('#table-wrap tbody tr')[1];
+    var tDate = dateIn(tRow).textContent.trim(), tPhase = inner(phaseIn(tRow)).textContent.trim();
+    $('shift-fwd-btn').click(); await T.sleep(900);
+    var dAfter = qa('#table-wrap td.sheet-date').filter(function(t){ return t.textContent.trim() === tDate; })[0];
+    var pAfter = qa('#table-wrap td.sheet-phase-cell').filter(function(t){ return inner(t).textContent.trim() === tPhase; })[0];
+    out.shift = {date: tDate, phase: tPhase, dateRow: dAfter && dAfter.parentElement.dataset.row, phaseRow: pAfter && pAfter.parentElement.dataset.row};
+    check(dAfter && look(dAfter).i === 'italic' && pAfter && look(inner(pAfter)).i === 'italic' && look(inner(pAfter)).c === 'rgb(255, 0, 0)',
+      'T1 Shift All a week later: the date\'s style stays on its date, the phase week\'s goes with its phase (' + tPhase + ')');
+    check(look(inner(noteTd())).i === 'italic' && look(inner(bandTd())).i === 'italic', 'T2 the note\'s and the band\'s styles travel with them');
+    $('undo-btn').click(); await settle();
 
     // ---- D: D5 --------------------------------------------------------------------------------------
     await click(noteTd());
@@ -283,7 +316,8 @@ window.addEventListener('load', function () { (async function () {
   out.checks = checks;
   out.fails = fails;
   out.health = T.appHealth ? T.appHealth() : null;
-  var errs = ((out.health || {}).errors || []);
+  // The sanitizer's warning for F7's deliberately bad file is expected (F7b holds its count); anything else is not.
+  var errs = ((out.health || {}).errors || []).filter(function(e){ return !/were not in a form the app writes/.test(e); });
   check(!errs.length, 'Z no console error or warning (' + errs.slice(0, 2).join(' | ') + ')');
   out.pass = fails.length === 0 && !out.EX;
   T.done(out);
