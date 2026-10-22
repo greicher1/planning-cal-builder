@@ -47,6 +47,24 @@ the grid.
   moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
   when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
 
+### Unreleased — the Production Region in Show info too (21 Oct 2026)
+
+The owner: *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
+exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
+- **Show info** gains a **Production Region** select right under Version. **Settings ▸ Region** keeps its own, and
+  the two always show the same place: picking in either changes both, and so do Load, undo and crash recovery.
+- A pick in Show info goes through the Settings select's own handler, so with notes to misplace it asks the same
+  "Recompute the schedule?" question, and both selects keep the old Region until you answer Continue.
+- ⛔ **The save format is unchanged.** The new select has no `id` (a Mantine NativeSelect would mint one, which the
+  save sweep would bake into every file), so `fields.byId` still holds only `union-place`. It is a plain select
+  drawn with NativeSelect's look; `reflectRegionUI()` writes its value, and a delegated change listener forwards
+  it to `#union-place`. Help's "Schedule effect" paragraph names both places.
+- **Verified:** new leg `regionmirror` 9/9 on the build, in `gate.sh`; two mutants each red (no write-back: M3/M5/
+  M6/M8; the copy bypassing the question: M6/M7). Gate 5 by hand: `fields.byId` 76 keys and values identical to the
+  baseline, the restored grid identical. `regionlock` 14/14, `regioncaveat` 13/13, `settingswin` 19/19,
+  `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
+  40/40; a 2× screenshot of the card. Full gate not run.
+
 ### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the

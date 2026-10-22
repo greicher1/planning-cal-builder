@@ -931,6 +931,12 @@ textarea, the hiatus rows, the episode rows, and 5–6 `SegmentedControl` radios
 `collectFieldValues()`'s skip test — and ship that guard **in the same change** as the component
 swap.
 
+**A third way, for a second copy of a saved control** (21 Oct 2026, the Production Region in Show
+info): a plain `<select>` with no id at all, inside `Input.Wrapper labelElement="div"` for the label
+and with an `aria-label`, drawing NativeSelect's chevron by hand (`select.region-mirror` in
+`legacy.css`). The id'd original stays the only control the save reads; the engine forwards the
+copy's change to it and writes its value back (`reflectRegionUI()`). Leg `regionmirror`.
+
 ### 8.4 `Popover` portals by default, defeating the `.tools-menu` escape
 
 `withinPortal: true` is in `Popover`'s defaultProps. The four tool popovers' **eight** id'd controls

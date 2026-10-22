@@ -29,7 +29,53 @@
   tint and "Side Boxes" from `toolbar-center`, docs). Code merged clean; HANDOFF and README kept both sides. On the
   merged build: `sideboxes` 59/59 (S12 still holds with the panel's new 44px bottom margin, since the cap copies the
   frozen expression rather than a number), `calzoom` 24/24, `npm run check` 40/40.
-- ⏭ **Next:** the owner's merge and push pickers.
+- **Owner, by picker:** *"Merge once gate passes"* and *"Push, no version cut"*.
+- ✅ **Gate of the branch merged with `e4500ab`** (build `eed49205…` at `90847a1`, HARNESS_PORT 9357, 17:52:53–18:18:04,
+  alone): **2,592 PASS, 1 FAIL**, `winansi produced no result` (a stall); re-run alone through gate.sh's evaluator,
+  7/7.
+- ⚠️ **`main` moved again before the merge:** `6ac6e9a` (toolbar outline, pushed) and `3f974af` (Region in Show info,
+  UNPUSHED, its own gate queued, "push on pass"). Pushing `main` from here would have shipped `3f974af` ungated, so
+  the order is: Region pushes first, this lands on top. Merged `b390b83` into this branch so its next gate covers
+  the exact code that will go live: `sideboxes` 59/59, `calzoom` 24/24, `regionmirror` 9/9, `npm run check` 40/40.
+- ⏭ **Next:** that gate (queued), then, once `origin/main` holds `3f974af`, merge whatever docs landed with it,
+  fast-forward `main`, push once, verify live.
+
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
+
+- **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
+  exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
+- **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
+  `#union-place`. ⛔ **`#union-place` is still THE Region** (its id is the save key, and the "Continue?" handler is
+  bound to it). The new one is `select.region-mirror`: a PLAIN `<select>` with NO id inside `Input.Wrapper
+  labelElement="div"` (label only) with `aria-label`. ⛔ Never make it a NativeSelect: Mantine mints an id when given
+  none (UI-CONVENTIONS §8.3), and `collectFieldValues()` would sweep a re-rolled second Region key into every file
+  and the undo stack. Both selects share one option list, `REGION_OPTIONS` in `Sidebar.jsx` (values are save format:
+  append only).
+- **How they stay in step (app.js):** a delegated `change` listener (in the IIFE that binds `#union-place`) copies
+  the mirror's value to `#union-place` and dispatches a bubbling `change` on it, so the question, its hold and Cancel
+  run exactly as from Settings. `reflectRegionUI()` writes `#union-place`'s value back to every `.region-mirror`;
+  every path that sets the Region ends there (a pick, the hold, Cancel, `syncRegionTracking()` from
+  `refreshAfterRestore()`, Reset All's block). A new path that sets `#union-place` without reaching
+  `reflectRegionUI()` would leave the copy stale; `regionmirror` M3/M5/M8 catch that.
+- **Look:** `legacy.css` `select.region-mirror` draws Mantine's own ComboboxChevron path (up/down, 14px, gray-6,
+  centred in the 28px right section), checked against Season and Schedule by in a 2× screenshot. The toolbar
+  popovers' `.tools-menu select` (a down arrow) is a different look and was left alone. Help's "Schedule effect"
+  paragraph now says Show info first, Settings ▸ Region second.
+- **Proof:** new leg **`regionmirror`** M0–M8, 9/9 on the build, added to `gate.sh`'s audit loop on its own line;
+  mutants: no write-back → M3/M5/M6/M8 red, the copy bypassing the question → M6/M7 red; source restored and
+  `cmp`-checked. Gate 5 by hand: `restore`'s `fields.byId` 76 keys and values identical to the baseline, grid and
+  bytes identical. `regionlock` 14, `regioncaveat` 13, `settingswin` 19, `sharecopy2`, `hostile (xss-mixed)` 13,
+  `noresetall` 5, `dlgkeys` 16, `wrapdate` all green; `npm run check` 40/40 (build `7d525ad4…`). Full gate NOT run.
+  The in-app browser could not be used (all five server slots held by other chats); the screenshot is headless.
+- ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
+  the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
+  owner-approved.
+- **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
+  fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
+  push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
+- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
+  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
+  `region-in-show-info`.
 
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
 
@@ -61,7 +107,16 @@
   origin main` at 17:24:20 (`ec8c788..b332e5c`). Deploy run 39699488118: success. At 17:25:14 the live `index.html`,
   fetched with a cache-buster, was **byte-identical to the local build** (sha256 `999bd95e23a33a0b…`, `cmp`);
   `version.json` still 1.6.0, so installed copies pick it up silently.
-- ⏭ **Next:** nothing. The worktree `.claude/worktrees/toolbar-center` can be removed on the owner's word.
+- ⚠️ **OWNER, right after it went live:** *"now it looks like those buttons are all selected since the blue color is the
+  same as the selected button color on the left side bar. come up with a few mockups"*. True: navy-1 is the app's
+  SELECTED ground (`.side-tab-btn.active`), so a resting fill of it reads as "on". Four mockups shown as real 2×
+  screenshots (each a copy of the build plus one `<style>`, fixture `carry-rich`, 1650 px; the page and shots are in
+  that session's scratchpad, not the repo): **A** navy outline (white fill, navy-6 border and text, navy-0 hover);
+  **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
+  **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
+  accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
+- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
+  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
