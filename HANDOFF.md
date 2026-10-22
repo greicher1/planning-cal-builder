@@ -60,6 +60,12 @@
   those about 1 time in 85, and the page's text holds today's date. Fixed in `hdrversion`, `prefs` and `stintexport`
   (the same trim): read exactly the stream's `/Length`, as the writer declares it. `hdrversion` 17/17 on the same
   build, `stintexport` 6/6, `prefs` 13/13. Any session gating before this lands will see the same 2 FAIL today.
+- ✅ **Final gate before v1.7.0 landed: build `fe4462ca…`, port 9629, 22 Oct 02:11:10–02:37:10, alone: 2,623 PASS, 0 FAIL**
+  (the fixed `hdrversion` among them). But `origin/main` had moved during it to `703d9d4` (v1.7.0: paper size and the
+  Export PDF dialog, which also carries this branch's harness fix as `58e6b6a`), so nothing was pushed. Merged as
+  `063bb57` (docs only; README's Region "Unreleased" heading dropped for v1.7.0's own): the branch now differs from
+  `origin/main` by exactly this change (4 files, +239). Build `710fafbe…`, check 40/40, full gate started on 9629.
+  **Owner, by picker, 22 Oct: "Push on a green gate"** — for this build, if `origin/main` is still `703d9d4`.
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
