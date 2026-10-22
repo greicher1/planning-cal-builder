@@ -26,7 +26,7 @@ export function initLegacyApp() {
   // They are one action, not two: version.json alone makes every user see an update that
   // isn't there, and APP_VERSION alone makes a real update invisible. The release-cut step in
   // README's changelog rules lists them together for exactly this reason.
-  const APP_VERSION = '1.6.0';
+  const APP_VERSION = '1.7.0';
 
   // ---------- Embedded Carlito ----------
   // The two <script type="text/plain"> blocks above hold Carlito, subset and zlib-compressed,
@@ -3089,6 +3089,10 @@ export function initLegacyApp() {
   // that never picks it saves byte for byte as before. ⛔ The key and the value 'm/d/yyyy' are permanent.
   const WEEK_DATE_FORMATS = ['m/d/yyyy'];
   let dateFormat = '';
+  // The paper ('' = Letter) and an orientation picked in the Export PDF dialog ('' = follow the rule):
+  // calendar data, explained beside SHEET_PAPERS. Declared up here only so boot code can read them.
+  let paperSize = '';
+  let pageOrientation = '';
   // The date column's text. Read by three FROZEN call sites -- renderSpreadsheetView's date cell,
   // sheetColumnWidths' date measurement (so a longer date widens its column THROUGH the width model) and
   // buildWaterfallPdf's date cell -- and fmtShort() itself while the setting is the default, so those
@@ -13192,7 +13196,9 @@ export function initLegacyApp() {
         // Pin US Letter. With paperSize omitted Excel falls back to the DEFAULT PRINTER's
         // paper, so the same workbook silently reflowed to A4 for anyone whose machine
         // defaults to it -- a different page shape from the one the layout was fitted to.
-        paperSize: 1,
+        // ⛔ FROZEN EDIT P2 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md): the CHOSEN paper, still pinned
+        // for the same reason. sheetPaperCode() is 1 while the paper is Letter, the number this always wrote.
+        paperSize: sheetPaperCode(),
         fitToPage: true,
         fitToWidth: 1,
         fitToHeight: 1,
@@ -13627,8 +13633,10 @@ export function initLegacyApp() {
       // together, from the ONE helper the PDF writer calls too, so the two outputs cannot turn
       // differently. With no box sideBoxPageExtent() hands back the grid's own metrics untouched.
       const sideExt = sideBoxPageExtent(sideL, metrics);
+      // ⛔ FROZEN EDIT P4 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md §5a, ruling D1): an orientation picked
+      // in the Export PDF dialog. chosenOrientation() hands the rule's answer back untouched when none is.
       ws.pageSetup.orientation =
-        sheetPageOrientation(sideExt.w, sideExt.h, blockCount).orientation;
+        chosenOrientation(sheetPageOrientation(sideExt.w, sideExt.h, blockCount).orientation);
       // Pin the print area to the used range. Left unset, Excel infers it, and any cell that
       // has ever been touched outside the grid drags a blank second page into the print job
       // -- which also defeats fitToHeight:1, since the "sheet" it fits is then the wrong size.
@@ -13721,9 +13729,8 @@ export function initLegacyApp() {
     const sel = document.getElementById('pref-gridlines');
     if(sel) sel.value = prefs.gridlines || 'none';
   }
-  document.addEventListener('change', e=>{
-    if(!e.target || e.target.id !== 'pref-gridlines') return;
-    const v = e.target.value;
+  // Also called by the Export PDF dialog (askPdfPageSetup), which shows the same preference.
+  function setGridlinesPref(v){
     // Choosing the default REMOVES the key rather than storing 'none': a store that only ever holds
     // real choices is one a later migration can read without guessing which entries were meaningful.
     if(v && v !== 'none') prefs.gridlines = v; else delete prefs.gridlines;
@@ -13731,6 +13738,10 @@ export function initLegacyApp() {
     SHEET_GRIDLINES = v || 'none';
     // No render: nothing on screen depends on this, and both writers read SHEET_GRIDLINES when the
     // user actually exports.
+  }
+  document.addEventListener('change', e=>{
+    if(!e.target || e.target.id !== 'pref-gridlines') return;
+    setGridlinesPref(e.target.value);
   });
 
   // ✅ RULING 10 (owner, 22 Sep 2026): the month view's grey pill text -- blocks, episodes -- can be
@@ -13789,6 +13800,7 @@ export function initLegacyApp() {
     reflectGridlines();
     reflectMonthTagPrefs();
     reflectDateFormat();
+    reflectPaperSize();
     reflectHeaderRowCustom();
     reflectMvNumberShootDays();
   }
@@ -13804,6 +13816,7 @@ export function initLegacyApp() {
   reflectGridlines();
   reflectMonthTagPrefs();
   reflectDateFormat();
+  reflectPaperSize();
   reflectHeaderRowCustom();
   reflectMvNumberShootDays();
   (function(){
@@ -15341,7 +15354,43 @@ export function initLegacyApp() {
   // 0.25in top itself. While headerOff is false each getter returns exactly the number it replaced.
   const SHEET_PAGE_MARGIN_PT = { l: 18, r: 18, get t(){ return headerOff ? 18 : 54; }, b: 18,
                                  get hdr(){ return headerOff ? 0 : 21.6; }, ftr: 0 };
-  const SHEET_PAPER_PT = { portrait: { w: 612, h: 792 }, landscape: { w: 792, h: 612 } };
+  // ⛔ THE PAPER (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md, rulings R1-R4): Letter, Legal or Tabloid, for the
+  // waterfall PDF and the workbook. The month PDF stays Letter (R4), and so do both print rollbacks.
+  //  - ⛔ CALENDAR DATA (R2, "With the calendar"): captureSnapshot()'s `paperSize`, 'legal' | 'tabloid'.
+  //    LETTER IS AN ABSENT KEY ('' here), so a calendar left on Letter saves byte for byte as before.
+  //    The key and its two values are permanent from the first file saved with them.
+  //  - `xl` is Excel's paper number (ECMA-376 pageSetup@paperSize). Tabloid is 3, NOT Ledger's 4: 4 is the
+  //    same sheet already turned, and orientation is set on its own.
+  //  - `paperProbe` lets the Export PDF dialog ask the frozen page-turn rule about a paper that is not
+  //    chosen yet (pageFitFor). It is set and cleared inside ONE synchronous call, so no render can see it.
+  const SHEET_PAPERS = {
+    letter:  { w: 612, h: 792,  xl: 1, label: 'Letter',  size: '8.5 × 11' },
+    legal:   { w: 612, h: 1008, xl: 5, label: 'Legal',   size: '8.5 × 14' },
+    tabloid: { w: 792, h: 1224, xl: 3, label: 'Tabloid', size: '11 × 17' }
+  };
+  // (`paperSize` itself is declared beside `dateFormat`, near the top of the IIFE: the sidebar's boot code
+  // reflects it long before this line runs, and a `let` read there would throw from the temporal dead zone.)
+  let paperProbe = null;
+  function sheetPaper(){ return SHEET_PAPERS[paperProbe || paperSize || 'letter'] || SHEET_PAPERS.letter; }
+  // Read by frozen exportExcel's pageSetup (FROZEN EDIT P2): 1 while the paper is Letter, as it always wrote.
+  function sheetPaperCode(){ return sheetPaper().xl; }
+  // ⛔ FROZEN EDIT P1, a DECLARATION change only (sanctioned pattern 1, the move Header: Off made on
+  // SHEET_PAGE_MARGIN_PT just above): the two orientations are getters over the chosen paper. buildWaterfallPdf's
+  // page box and fit, sheetPageOrientation and Single Column's fill all read this one object, so the PDF and the
+  // workbook still turn the page the same way, and Single Column follows the paper (R3). While the paper is
+  // Letter each getter returns exactly the {612, 792} / {792, 612} it replaced.
+  const SHEET_PAPER_PT = {
+    get portrait(){ const p = sheetPaper(); return { w: p.w, h: p.h }; },
+    get landscape(){ const p = sheetPaper(); return { w: p.h, h: p.w }; }
+  };
+  // ⛔ THE CHOSEN ORIENTATION (the Export PDF dialog, ruling D1 "With the calendar"): captureSnapshot()'s
+  // `pageOrientation`, 'portrait' | 'landscape', written ONLY when it differs from what sheetPageOrientation
+  // recommends; exporting with the recommended one selected clears it, so a calendar never overridden keeps
+  // following the rule as it grows. An ABSENT key ('' here) is "follow the rule".
+  // ⛔ FROZEN EDIT P4: both writers pass the rule's answer through this, buildWaterfallPdf and exportExcel
+  // alike, so they still cannot turn differently. With nothing chosen it returns the rule's answer untouched.
+  const PAGE_ORIENTATIONS = ['portrait', 'landscape'];
+  function chosenOrientation(auto){ return PAGE_ORIENTATIONS.includes(pageOrientation) ? pageOrientation : auto; }
 
   function sheetGridMetrics(schedule, yearBlocks, colWidthsFor){
     const rows = sheetRowCount(schedule, yearBlocks);
@@ -18690,6 +18739,32 @@ export function initLegacyApp() {
     if(e.target && e.target.id === 'wf-date-format') setDateFormat(e.target.value);
   });
 
+  // ---------- The paper (PAPER-SIZE-PLAN.md, rulings R1-R4) ----------
+  // Shaped like setDateFormat(): the select (#wf-paper, Settings ▸ Preferences ▸ Waterfall) REFLECTS
+  // `paperSize` and never holds it, and a change is CALENDAR DATA -- one undo step, the file dirtied.
+  // render(), not update(): nothing scheduled moves, but Single Column's widths follow the paper (R3), so
+  // the screen can change. An unknown value is Letter.
+  const PAPER_SIZES = ['legal', 'tabloid'];   // the saved values; Letter is the absent key
+  function reflectPaperSize(){
+    const sel = document.getElementById('wf-paper');
+    if(sel && sel.value !== paperSize) sel.value = paperSize;
+  }
+  function setPaperSize(next){
+    next = PAPER_SIZES.includes(next) ? next : '';
+    if(next === paperSize){ reflectPaperSize(); return; }
+    asOneHeaderStep(()=>{
+      paperSize = next;
+      render(currentSchedule);
+      markDirty();
+    });
+    reflectPaperSize();
+  }
+  // ⛔ Delegated, as #wf-date-format: React renders the select. It sits in .prefs-card, so the sweep
+  // never takes it into fields.byId and the paper travels as its own snapshot key only.
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.id === 'wf-paper') setPaperSize(e.target.value);
+  });
+
   // ---------- Custom column headings: the switch and the editor (HEADER-ROW-PLAN.md §4) ----------
   // The switch (#wf-hdr-custom, the Waterfall Layout card) has the same contract as the date select:
   // it reflects `headerRowCustom`, a change is one undo step and dirties the file, and it is caught by
@@ -19858,6 +19933,7 @@ export function initLegacyApp() {
     addDefaultHiatuses();
     singleColumn = false; reflectSingleColumn();
     dateFormat = ''; reflectDateFormat();
+    paperSize = ''; pageOrientation = ''; reflectPaperSize();   // Letter, the rule's orientation
     headerRowCustom = false; headerRowLabels = {}; headerRowSplits = {}; reflectHeaderRowCustom();
     mvProdLabel = null;
     sideBoxes = []; sideWidths = {};   // the side columns follow on the render after New
@@ -19983,6 +20059,9 @@ export function initLegacyApp() {
       // someone else's file. ⚠️ Any new control in the Preferences card is covered automatically;
       // any preference control placed OUTSIDE that card is not.
       if(el.closest('.prefs-card')) return;
+      // ⛔ The Export PDF dialog (ExportPdfDialog.jsx) is transient UI over the page, and Mantine mints an id
+      // for each of its radios. A crash backup or an undo push taken while it is open must not carry them.
+      if(el.closest('.export-pdf-dlg')) return;
       if(el.type === 'checkbox' || el.type === 'radio') byId[el.id] = {checked: el.checked};
       else byId[el.id] = {value: el.value};
     });
@@ -20485,6 +20564,11 @@ export function initLegacyApp() {
       // 20 Oct 2026, owner ruling 4 (HEADER-ROW-PLAN.md §3): the waterfall's date format. ⛔ PERMANENT key
       // and value ('m/d/yyyy'); the default, 1/6/25, is an ABSENT key.
       ...(dateFormat ? {dateFormat} : {}),
+      // 21 Oct 2026 (PAPER-SIZE-PLAN.md, rulings R2 and D1): the paper and an orientation picked in the Export
+      // PDF dialog. ⛔ PERMANENT keys and values. Letter, and "follow the rule", are ABSENT keys, so a calendar
+      // that never changes them saves byte for byte as before.
+      ...(paperSize ? {paperSize} : {}),
+      ...(pageOrientation ? {pageOrientation} : {}),
       // 20 Oct 2026, owner ruling 2 (HEADER-ROW-PLAN.md §4): Custom column headings and the typed
       // headings. ⛔ PERMANENT keys. Off is an ABSENT key, and no typed heading is an absent map, so a
       // calendar that never uses them saves byte for byte as before.
@@ -22751,6 +22835,10 @@ export function initLegacyApp() {
   document.getElementById('export-wf-pdf-btn').addEventListener('click', reClickGuard(600, async ()=>{
     if(explainNothingToExport()) return;
     if(WF_PDF_MODE === 'direct'){
+      // The Export PDF dialog (PAPER-SIZE-PLAN.md §5a): the paper, the orientation and the grid lines,
+      // confirmed or changed. FIRST, so the character check below names what the chosen page will print.
+      // Only the direct writer: the print rollback is pinned to Letter and turns the page its own way.
+      if(!(await askPdfPageSetup())) return;
       // Audit L-6: name what would print as "?" before writing it. Only the direct writer is
       // bound to WinAnsi; the print fallback renders the DOM with the browser's own font fallback.
       if(!(await confirmPdfPrintable())) return;
@@ -22758,6 +22846,66 @@ export function initLegacyApp() {
     }
     else exportWaterfallPdf();
   }));
+
+  // ---------- The Export PDF dialog (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md §5a, rulings D1-D3) ----------
+  // What the frozen page-turn rule says about one paper, for this calendar: the orientation it picks and how
+  // large each orientation prints. Sanctioned pattern 2 -- ASK the frozen code, never re-derive it: this is
+  // the chain both writers run (computeYearBlocks -> computeBlockLayout -> sheetColumnWidths ->
+  // sheetGridMetrics -> sideBoxPageExtent -> sheetPageOrientation), with SHEET_PAPER_PT pointed at `key`.
+  // ⛔ SYNCHRONOUS ON PURPOSE. paperProbe changes what SHEET_PAPER_PT returns, and Single Column's on-screen
+  // widths read it (R3), so the probe must never be held across an await, where a render could see it. Every
+  // link in this chain is synchronous, and `finally` clears it. (buildWaterfallPdf would give the EXACT scale,
+  // but it awaits.) The pdfdialog leg's P-mutant leaves the probe set, and the screen moves.
+  // The sizes are the rule's own fit numbers, capped at 100% and floored to whole percent as the writer does;
+  // "about", because the rule measures rows flat at 20 px and the PDF measures each row.
+  function pageFitFor(key){
+    const schedule = currentSchedule;
+    const pct = f => Math.max(1, Math.floor(Math.min(f, 1) * 100 + 1e-9));
+    paperProbe = key;
+    try {
+      const yearBlocks = computeYearBlocks(schedule.weeks);
+      const layout = computeBlockLayout(schedule, yearBlocks);
+      const widths = sheetColumnWidths(schedule, yearBlocks, layout);
+      const metrics = sheetGridMetrics(schedule, yearBlocks, widths);
+      const ext = sideBoxPageExtent(sideBoxLayoutSafe(schedule), metrics);
+      const r = sheetPageOrientation(ext.w, ext.h, yearBlocks.length);
+      return { recommended: r.orientation, portrait: pct(r.portrait), landscape: pct(r.landscape) };
+    } finally { paperProbe = null; }
+  }
+  // Open the dialog and apply its answer. Resolves false for Cancel, which changes nothing at all.
+  // ⛔ Export at the dialog's defaults changes nothing either -- no undo step, no dirty file, no write to the
+  // preference store -- so a calendar exported without touching it comes out exactly as before the dialog
+  // existed. Every gate leg that exports a PDF goes through here at the defaults, which is the proof.
+  async function askPdfPageSetup(){
+    const fits = {};
+    Object.keys(SHEET_PAPERS).forEach(k=>{ fits[k] = pageFitFor(k); });
+    const choice = await chrome.pdfExportDialog({
+      paper: paperSize || 'letter',
+      orientation: pageOrientation,
+      gridlines: SHEET_GRIDLINES,
+      papers: Object.keys(SHEET_PAPERS).map(k=>({ value: k, label: SHEET_PAPERS[k].label, size: SHEET_PAPERS[k].size })),
+      fits
+    });
+    if(!choice) return false;
+    const key = SHEET_PAPERS[choice.paper] ? choice.paper : 'letter';
+    const paper = PAPER_SIZES.includes(key) ? key : '';
+    // D1: kept only when it differs from what the rule recommends ON THE CHOSEN PAPER, so picking the
+    // recommended one clears it and the calendar goes back to following the rule.
+    const orient = (PAGE_ORIENTATIONS.includes(choice.orientation) && choice.orientation !== fits[key].recommended)
+      ? choice.orientation : '';
+    if(paper !== paperSize || orient !== pageOrientation){
+      asOneHeaderStep(()=>{
+        paperSize = paper;
+        pageOrientation = orient;
+        render(currentSchedule);   // Single Column's widths follow the paper (R3)
+        markDirty();
+      });
+      reflectPaperSize();
+    }
+    const grid = choice.gridlines || 'none';
+    if(grid !== SHEET_GRIDLINES){ setGridlinesPref(grid); reflectGridlines(); }
+    return true;
+  }
 
   // ⛔ AUDIT L-6: characters the waterfall PDF cannot draw are NAMED BEFORE it is written. The direct
   // writer embeds Carlito subsetted to exactly what WinAnsiEncoding can address -- printable ASCII,
@@ -23519,7 +23667,9 @@ export function initLegacyApp() {
     const sideL = sideBoxLayoutSafe(schedule);
     const sideExt = sideBoxPageExtent(sideL, metrics);
     const pick = sheetPageOrientation(sideExt.w, sideExt.h, yearBlocks.length);
-    const orientation = pick.orientation;
+    // ⛔ FROZEN EDIT P4 (owner-approved 21 Oct 2026, PAPER-SIZE-PLAN.md §5a, ruling D1): an orientation picked in
+    // the Export PDF dialog, through the same helper exportExcel uses. Untouched when none is picked.
+    const orientation = chosenOrientation(pick.orientation);
     const paper = PAPER[orientation];
     // The real scale uses the actual body box; the header text lives in the top margin, as
     // Excel's does, so it costs the grid nothing.
@@ -26546,6 +26696,8 @@ export function initLegacyApp() {
     setMap('autoNotesOff', v => v === true ? true : undefined, SNAP_ID);
     if('headerOff' in s && typeof s.headerOff !== 'boolean'){ bad.n++; delete s.headerOff; }
     if('dateFormat' in s && !WEEK_DATE_FORMATS.includes(s.dateFormat)){ bad.n++; delete s.dateFormat; }
+    if('paperSize' in s && !PAPER_SIZES.includes(s.paperSize)){ bad.n++; delete s.paperSize; }
+    if('pageOrientation' in s && !PAGE_ORIENTATIONS.includes(s.pageOrientation)){ bad.n++; delete s.pageOrientation; }
     if('headerRowCustom' in s && typeof s.headerRowCustom !== 'boolean'){ bad.n++; delete s.headerRowCustom; }
     // The headings a Split keeps apart: column keys only, in an array; anything else is dropped.
     if('headerRowSplits' in s){
@@ -26887,6 +27039,10 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL: a file with no key prints 1/6/25 -- never the previously open file's format.
     dateFormat = WEEK_DATE_FORMATS.includes(snap.dateFormat) ? snap.dateFormat : '';
     reflectDateFormat();
+    // ⛔ UNCONDITIONAL, both: no key = Letter and the rule's orientation, never the previous file's.
+    paperSize = PAPER_SIZES.includes(snap.paperSize) ? snap.paperSize : '';
+    pageOrientation = PAGE_ORIENTATIONS.includes(snap.pageOrientation) ? snap.pageOrientation : '';
+    reflectPaperSize();
     // ⛔ UNCONDITIONAL, both: no key = Date | year | Notes and no typed headings, never the previous file's.
     headerRowCustom = snap.headerRowCustom === true;
     headerRowLabels = (snap.headerRowLabels && typeof snap.headerRowLabels === 'object')

@@ -93,6 +93,7 @@ import { SettingsWindow } from './chrome/SettingsWindow.jsx'
 import { DatePop } from './chrome/DatePop.jsx'
 import { SelectPop } from './chrome/SelectPop.jsx'
 import { Dialogs } from './chrome/Dialogs.jsx'
+import { ExportPdfDialog } from './chrome/ExportPdfDialog.jsx'
 import { ZoomControl } from './chrome/ZoomControl.jsx'
 import { APP_ICON } from './chrome/appIcon.js'
 import { initLegacyApp } from './legacy/app.js'
@@ -153,6 +154,8 @@ function Chrome() {
       <DatePop />
       <SelectPop />
       <Dialogs />
+      {/* The Export PDF dialog (PAPER-SIZE-PLAN.md §5a). Inline in #react-root for Dialogs' reason. */}
+      <ExportPdfDialog />
       {/* The calendar zoom, bottom right beside the help button. In #react-root for DatePop's reason. */}
       <ZoomControl />
     </>
