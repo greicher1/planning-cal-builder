@@ -134,7 +134,7 @@
   branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, MERGED INTO LOCAL main, PUSH BLOCKED (permission)
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, **LIVE at `17136a7`** (verified byte-identical, `7a8473cd`; no version cut)
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
   `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
@@ -177,15 +177,18 @@
   went live, so the branch was merged with `origin/main` `34c873f` instead (`058d52d`, build `7a8473cd…`: tree =
   origin/main + this fix's three files). On that build, through gate.sh's own evaluators: `hdrversion` 17/17,
   `launchopen` 16/16, `hdrfit` 8/8 on both fixtures, `sideboxes` 59/59, `calzoom` 24/24, `npm run check` 40/40.
-- ⛔ **The push was BLOCKED by this session's auto-mode permission check** ("Production Deploy"), 22 Oct, even with
-  the owner's picker answer. Nothing went out. The push is `git push origin sidebox-zoom:main` (a fast-forward of
-  `34c873f` carrying only this branch's commits), for the owner to run or allow. ⚠️ It must NOT be a push of local
-  `main`: that also carries the phase-outline work, whose push the owner has not approved here.
+- ✅ **PUSHED AND LIVE.** The first push was blocked by the session's auto-mode check ("Production Deploy"); the owner
+  then asked in chat: *"Push sidebox-zoom to main now (git push origin sidebox-zoom:main), no version cut, then verify
+  the live file matches the build."* ONE `git push origin sidebox-zoom:main` at 09:38:12 on 22 Oct (`34c873f..17136a7`,
+  this branch's commits only: local `main`'s unpushed phase-outline work did NOT go). Deploy run 39815630935: Build
+  and check, Deploy to Pages, both success. At 09:46:05 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to the build** (sha256 `7a8473cdf095a49e…`, 1,690,267 bytes, `cmp`); `version.json` still 1.7.0,
+  so installed copies pick it up silently.
 - ✅ **Merged into local `main`** (owner: "Merge once gate passes"), on top of the phase-outline merge `de83170`; code
   merged clean, docs kept both sides.
-- ⏭ **Next:** the push above, then verify the live file is byte-identical to `7a8473cd…` (sidebox-zoom's build).
-  ⚠️ `sidebox-free-pos` (another side-box branch, gating 22 Oct) will meet this change in `applyCalZoom()` /
-  `.side-col` CSS when it merges.
+- ⏭ **Next:** nothing on this fix. The worktree `.claude/worktrees/sidebox-zoom` can be removed on the owner's word.
+  ⚠️ `sidebox-free-pos` (another side-box branch) will meet this change in `applyCalZoom()` / `.side-col` CSS when it
+  merges: the side boxes are no longer zoomed, and their cap multiplies by `--cal-zoom`.
 
 ### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; BUILT, NOT GATED, NOT MERGED
 
