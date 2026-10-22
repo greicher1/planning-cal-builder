@@ -109,14 +109,24 @@
   2,615 PASS, 8 FAIL, every byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13): that is
   F1–F4's acceptance, unstyled calendars untouched. The 8 FAILs, by leg: `hdrtemplate` (it single-clicked a Template
   header line, which now opens its editor on a DOUBLE-click; leg updated), `offweek` R1 (it compared a band's tooltip
-  word for word, now "Double-click to rename…"; leg updated), and `hdrversion` (2), `hdrfile` (3), `mvmenu` (1), being
-  re-run alone and against `main`'s build to classify.
+  word for word, now "Double-click to rename…"; leg updated), `mvmenu` X (it opened a waterfall band with a single
+  click, an opener the first sweep missed; leg updated), `hdrfile` (3: a fixed 900 ms wait after Import, so a late
+  import fails "fresh id" and then both refusal counts; untouched code) and `hdrversion` (2).
+  - **Re-checked alone through the gate's own evaluators** (06:47, between other sessions' gates): `hdrtemplate` 25/25,
+    `offweek` 50/50, `mvmenu (halfdays)` 89/89, `hdrfile` 14/14 (so the gate's three were the timing flake), and
+    `hdrversion` 15/17 — **failing identically on `main`'s live build** (`f62b9bc8`, scratch build of `e06ccc9`).
+  - ⭐ **`hdrversion`'s cause, and a harness fix for eight legs:** the PDF writers frame every stream as
+    `stream\n<data>\nendstream`, but eight legs (calrange, hdrrow, hdrtemplate, hdrversion, onecol, prefs, stintexport,
+    textstyle) stripped EVERY trailing 10/13/32 byte before inflating, which chops real compressed data whose last byte
+    is one of those (~1 stream in 85; content-dependent, so date-dependent: today's "10.22.26" header did it). Now
+    exactly one EOL is stripped (`c8fd87a`). ⚠️ **Every branch cut from `main` before this fix will fail `hdrversion`'s
+    two PDF checks today**; it is the leg, not the app.
 - ⚠️ **Gate queues on this machine (learned the hard way, 21 Oct):** a queue loop that runs INLINE in a Bash wrapper and
   waits on `pgrep -f 'gate\.sh'` matches its OWN wrapper (`zsh -c "… ./gate.sh …"`) and every other waiting wrapper, so
   it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
   that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
   script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
-- **Not done:** classifying the three other legs (above), mutants, the owner's look at it in
+- **Not done:** the eight fixed legs re-run (queued for the next gap between other sessions' gates), mutants, the owner's look at it in
   the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
   branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
