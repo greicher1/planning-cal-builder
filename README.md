@@ -55,7 +55,9 @@ purpose of reordering them top to bottom or for changing a phases timing"*. Plan
 - **Verified:** new CDP leg `mvorder` 20/20 on the build, in `gate.sh` (the order on screen, in the saved file and in
   the written month PDF; Back to date order; out-and-back and Escape bank nothing; notes on top, among themselves,
   following an auto-note; a click still edits; a hostile file). A mutant without E1 and E2 turns 9 cases red.
-  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13 unchanged. Full gate: queued (see HANDOFF).
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13 unchanged. Full gate on the branch with v1.7.0 merged in
+  (`21c5444`): 2,648 PASS, 1 FAIL (`winansi`, ExcelJS's CDN load timed out at 03:35; 7/7 alone). Gate 10 (every
+  month print document) and gate 13 (every written month PDF, byte for byte) green: E1 and E2 are inert without an order.
 
 ## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
 
