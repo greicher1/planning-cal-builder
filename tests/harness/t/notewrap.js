@@ -58,7 +58,7 @@ window.addEventListener('load', function () { (async function () {
   async function editCell(sel, text) {
     var td = document.querySelector(sel);
     if (!td) throw new Error('no cell ' + sel);
-    td.click();
+    T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
     await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the editor for ' + sel, 50, 100);
     var ta = document.querySelector('.note-editor textarea');
     ta.value = text;

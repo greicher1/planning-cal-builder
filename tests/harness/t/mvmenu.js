@@ -1448,7 +1448,7 @@ window.addEventListener('load', function () { (async function () {
     await settle();
     var band = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="2026-07-20"]');
     if(band){
-      band.click();
+      T.openCell(band);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md): a click highlights the band
       await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the hiatus band editor', 50, 100);
       var bta = document.querySelector('.note-editor textarea');
       bta.value = '';

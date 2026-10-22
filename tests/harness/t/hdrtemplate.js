@@ -127,15 +127,17 @@ window.addEventListener('load', function () { (async function () {
     out.tplSpacerInstead = !!document.querySelector('#table-wrap .hdr-fmt-spacer');
     out.tplLockedHere = out.tplReadOnly && !out.tplHasEditableCls &&
                         out.tplToolbarGone && out.tplSpacerInstead;
-    // ...and the read-only line still LEADS SOMEWHERE: clicking it opens the editor at that line,
+    // ...and the read-only line still LEADS SOMEWHERE: DOUBLE-clicking it opens the editor at that line,
     // because a header that looks clickable and does nothing is worse than one that does not.
+    // ⭐ A double-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md): a single click now picks the line for the
+    // text style bar (owner ruling D3), and D5's rule is that a double-click edits.
     out.tplCursor = getComputedStyle(lineEl('c1')).cursor;
     (function(){ var o = document.querySelector('.hde-overlay'); if(o) o.remove(); })();
-    lineEl('c2').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    lineEl('c2').dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
     out.tplIsTemplate = tpl.label === 'Header: Template';
 
     await T.until(function () { return !!document.querySelector('.hde-overlay'); },
-                  'a header click to open the editor', 60, 100);
+                  'a header double-click to open the editor', 60, 100);
     var ov = document.querySelector('.hde-overlay');
     out.clickOpensEditor = !!ov;
     // ⭐ AT THE LINE YOU CLICKED, not always at c1 -- the click carried an intent and it survives.
@@ -297,7 +299,13 @@ window.addEventListener('load', function () { (async function () {
     while ((m = re.exec(latin))) {
       var st = m.index + m[0].length, en = latin.indexOf('endstream', st);
       if (en < 0) continue;
-      while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
+      // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in its
+      // Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85 (main's 58e6b6a, from
+      // header-zoom's 6547512; hdrversion went red on the date 10.22.26 alone). The writer frames every stream as
+      // `/Length N` ... `stream\n` + N bytes.
+      var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+      if (dictLen) en = st + (+dictLen[1]);
+      else while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
       try {
         var ds = new DecompressionStream('deflate');
         var w = ds.writable.getWriter(); w.write(bytes.subarray(st, en)); w.close();

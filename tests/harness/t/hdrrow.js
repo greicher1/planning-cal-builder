@@ -119,7 +119,13 @@ window.addEventListener('load', function () { (async function () {
     while ((m = re.exec(latin))) {
       var s0 = m.index + m[0].length, en = latin.indexOf('endstream', s0);
       if (en < 0) continue;
-      while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
+      // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in its
+      // Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85 (main's 58e6b6a, from
+      // header-zoom's 6547512; hdrversion went red on the date 10.22.26 alone). The writer frames every stream as
+      // `/Length N` ... `stream\n` + N bytes.
+      var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+      if (dictLen) en = s0 + (+dictLen[1]);
+      else while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
       try {
         var ds = new DecompressionStream('deflate'); var w = ds.writable.getWriter();
         w.write(bytes.subarray(s0, en)); w.close();
@@ -198,7 +204,8 @@ window.addEventListener('load', function () { (async function () {
     th.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     var r = th.getBoundingClientRect();
     var x = Math.round(r.left + r.width * (frac === undefined ? 0.5 : frac)), y = Math.round(r.top + r.height / 2);
-    th.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+    // A DOUBLE-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md D5): a click highlights the heading.
+    th.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, detail: 2, clientX: x, clientY: y }));
     await T.until(function () { return !!document.querySelector('.hdrrow-pop'); }, 'the heading editor', 30, 100);
     return document.querySelector('.hdrrow-pop');
   }

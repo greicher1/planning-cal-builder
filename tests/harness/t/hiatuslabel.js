@@ -64,7 +64,7 @@ window.addEventListener('load', function () { (async function () {
   async function blankLabel(week) {
     var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-week="' + week + '"]');
     if (!td) throw new Error('no hiatus cell for ' + week);
-    td.click();
+    T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
     await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the hiatus editor for ' + week, 50, 100);
     var ta = document.querySelector('.note-editor textarea');
     ta.value = '';

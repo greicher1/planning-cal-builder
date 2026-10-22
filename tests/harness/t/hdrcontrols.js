@@ -25,15 +25,16 @@
 //
 //   T0  the toolbar holds the Header button after Rebuild From, reading "Header: Manual ▾" (the file's
 //       mode); the three originals are still in the page, hidden
-//   T1  Manual: the strip above the header is the editor-toolbar look (grey fill, bottom rule,
-//       a "Header" label) and spans the row
+//   T1  Manual: the strip above the header is RETIRED (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md): it is
+//       in the page but hidden, and the text style bar under the toolbar carries the editor-toolbar look
+//       (grey fill, a "Text" label) and spans the toolbar row
 //   T2  the button opens the mode menu UNDER IT (aria-expanded true), a second click closes it; a
 //       click on the hidden original opens the same menu under the toolbar button, not at 0,0; the
 //       menu holds no id (UI-CONVENTIONS §10 gate 9)
 //   T3  Auto (chosen from the toolbar menu): the label follows, and NOTHING sits above the header
 //   T4  Template: the label follows, and still nothing above the header
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
-//       the month strip has the same look; Auto from the toolbar clears it and nothing sits above
+//       the month strip is retired the same way (hidden); Auto from the toolbar leaves nothing above
 //       the month header; back in the Waterfall the label is the waterfall's again
 //   N0  the app header ends with a divider and "Reset Notes" (Waterfall) / "Reset Month Notes"
 //       (Month), and each tooltip says what it clears
@@ -128,10 +129,10 @@ window.addEventListener('load', function () { (async function () {
       'Header: Manual ▾, .is-manual; both originals present and display:none');
 
     // ---- T1 ------------------------------------------------------------------------------------
-    var s1 = strip('#table-wrap .hdr-tools .hdr-fmt'), g0 = gray0();
-    add('T1', 'Manual: the strip above the header has the editor-toolbar look (grey fill, a bottom rule, a "Header" label) and spans the row',
-      !!s1 && s1.shown && s1.bg === g0 && /1px solid/.test(s1.rule) && /Header/.test(s1.label) && s1.spans,
-      {strip: s1, gray0: g0}, 'gray-0 fill, 1px solid bottom rule, ::before "Header", full width');
+    var s1 = strip('#table-wrap .hdr-tools .hdr-fmt'), g0 = gray0(), sb = strip('.view-toggle-row .style-bar-host .style-bar');
+    add('T1', 'Manual: the strip above the header is retired (in the page, hidden); the text style bar under the toolbar has the editor-toolbar look and spans the row',
+      !!s1 && !s1.shown && !!sb && sb.shown && sb.bg === g0 && /Text/.test(sb.label) && sb.spans,
+      {strip: s1, styleBar: sb, gray0: g0}, 'strip hidden; bar: gray-0 fill, ::before "Text", full width');
 
     // ---- T2 ------------------------------------------------------------------------------------
     b0.click();
@@ -186,10 +187,10 @@ window.addEventListener('load', function () { (async function () {
     t5.gap = gapAbove('#table-wrap .month-view', '#table-wrap .mv-header');
     await view('sheet');
     t5.backLabel = tbLabel();
-    add('T5', 'Month view: the button follows the month header (Manual), with the same strip; Auto clears it; the Waterfall keeps its own mode',
-      t5.label === 'Header: Manual ▾' && t5.mvOrigHidden && !!t5.strip && t5.strip.shown && t5.strip.bg === g0 && /Header/.test(t5.strip.label)
+    add('T5', 'Month view: the button follows the month header (Manual); its strip is retired (hidden); Auto leaves nothing above; the Waterfall keeps its own mode',
+      t5.label === 'Header: Manual ▾' && t5.mvOrigHidden && !!t5.strip && !t5.strip.shown
         && t5.autoLabel === 'Header: Auto ▾' && t5.mvTools === 0 && t5.gap !== null && t5.gap <= 0.5 && t5.backLabel === 'Header: Template ▾',
-      t5, 'Manual ▾ + strip; Auto ▾ with 0 px above the month header; back to Template ▾');
+      t5, 'Manual ▾ + hidden strip; Auto ▾ with 0 px above the month header; back to Template ▾');
 
     // ---- N0 ------------------------------------------------------------------------------------
     var bar = document.querySelector('.app-toolbar');
