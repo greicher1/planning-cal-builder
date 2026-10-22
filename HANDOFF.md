@@ -29,6 +29,50 @@
   **Both legs re-run alone on the same build: green** (pilllabel's C, all four labels, want = got, rows OK; monthexport
   9/9 cases). `calzoom` 24/24 with Z5 and W1b; 0 clipped; 76 ids; gates 10 and 13 byte-identical. Not committed.
 
+### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
+
+- **Asked:** the header's styling bar moved *"above and outside the viewport of the calendar … permanently there"*,
+  under the Waterfall / Month toggle and the shift buttons, able to *"individually style any and all text throughout
+  the entire waterfall calendar"*, with a determination of the cost of letting users change the size of any text
+  (*"I'm the most worried about the impacts of this change"*).
+- ⭐ **The determination (plan §4), measured with a read-only probe on the build, fixture `carry-rich`:** a waterfall
+  row leaves 15 px for text (20 px minus padding and rule), and a line is 1.35 × the size, so **11 px fits, 12 px just
+  fits, and at 13 px and up every row holding the text grows on screen or the text is cut** (47 of 50 rows grew with
+  phase labels at 13; at 16, 48 of 90 labels lost letters; at 22, all 50 dates). A grown screen row no longer matches
+  Excel and the PDF, which draw stored heights. **Bold and italic alone cut nothing** (bold is 6–7 % wider, absorbed by
+  `COL_PAD_CHARS`). Bigger grid text must widen a whole year's phase columns and grow a row shared by every year block,
+  and the PDF and Excel then print the whole page smaller (estimated: one phase's labels at 16 px takes `carry-rich`'s
+  page scale from 0.89 to about 0.74).
+- ⚠️ **Found on the way, not changed:** the note editor's Size list offers 14 and 16, and a size above 12 in a standard
+  row is already cut today. `carry-rich`'s hiatus band at 13 has 18 px of text in a 15 px box (cut by 3 px).
+- ⭐ **OWNER RULINGS, picker, 21 Oct 2026** (verbatim in plan §1):
+  - **D1: "6–12, grid never moves"** — grid text sizes 6–12, so no style ever changes the grid's size; bold, italic,
+    colour and alignment for every kind; header lines and side boxes keep their sizes. Larger grid text could come
+    later (D1 C) without a file-format change.
+  - **D2, in the owner's own words:** *"You can higlight any any all text in the spreadsheet (header is seperate) and
+    style all that text based on selections from the styling menu. just like excel"*. So Excel's highlight (click,
+    drag, Shift-click, ⌘-click, ⌘A) over every kind of grid cell; no kind-wide styles. Plan §2a. ⛔ `gridSel` keeps its
+    phase-only meaning (fill-across, swap and move read it); the other kinds go in a separate set.
+  - **D3: "Every mode"** — header lines are styled from the bar in Auto, Manual and Template, replacing the styling
+    half of the 10 Sep 2026 Template ruling (Template text is still edited only in the header editor).
+  - **D5 (raised by D2), the owner's words:** *"double-click (or Enter, or typing) opens a note or hiatus band's
+    editor; a single click highlights it, like Excel."* Settled in the plan with it: ⛔ **Enter opens an editor only
+    when the active cell is a note or band** — Enter on phase cells is `batchFill` and stays so; a typed key is ADDED at
+    the end of the note, never replacing it; custom column headings follow the same rule; tooltips and Help say
+    "Double-click to edit".
+  - **D4: "Style the month header"** — in the month view the bar stays and styles the month header's lines; the
+    month header's in-calendar strip retires too. Month notes stay the separate "Note styles" request.
+- **Facts the build will need:** the header's strip is emitted INSIDE `#table-wrap` by frozen `renderSpreadsheetView`,
+  Manual mode only, with handlers delegated on `#table-wrap`; the side boxes have a second copy (`buildSideFmt`,
+  body-level). `cellTextFit`'s auto path ignores `basePx` (it always starts at 11), so a chosen size is only honoured
+  through `manual: true`, which clips. `wrapLineCount` measures regular weight only (frozen edit F4 for bold notes).
+  The new bar must be class-only (no Mantine Select: generated ids reach `fields.byId`) and sit inside
+  `.view-toggle-row`, keeping `.view-toggle-row` → `#table-wrap` the sibling pair.
+- ⏭ **Next:** nothing waits on the owner. Plan step 2 (the bar for header and side-box lines, no frozen edit) can
+  start once "Header ends where the calendar ends" (branch `header-zoom`, building, uncommitted)
+  lands, since both change the header strip. On the tracker as `text-style-bar`, planned. Plan size: L, about three
+  sessions.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
