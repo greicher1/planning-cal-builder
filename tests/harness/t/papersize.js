@@ -51,10 +51,15 @@ window.addEventListener('load', function () { (async function () {
     while ((m = re.exec(latin))) {
       var s0 = m.index + m[0].length, en = latin.indexOf('endstream', s0);
       if (en < 0) continue;
-      while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
+      // ⚠️ By the stream's own /Length, NEVER by trimming whitespace off its end: compressed bytes can end in
+      // 0x0A / 0x0D / 0x20, and trimming them truncated a stream whenever the day's header date made them do so
+      // (found 22 Oct 2026, the first run after midnight: Tabloid's content stream read as "truncated").
+      var dictAt = latin.lastIndexOf('<<', m.index), lm = latin.slice(dictAt, m.index).match(/\/Length (\d+)/);
+      if (lm) en = s0 + parseInt(lm[1], 10);
+      else while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
       try {
         var ds = new DecompressionStream('deflate'); var w = ds.writable.getWriter();
-        w.write(bytes.subarray(s0, en)); w.close();
+        w.write(bytes.subarray(s0, en)).catch(function () {}); w.close().catch(function () {});
         var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), sTxt = '';
         for (var j = 0; j < u.length; j += 8192) sTxt += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
         if (/\bTf\b/.test(sTxt) && /\bTj\b/.test(sTxt)) { content = sTxt; break; }
