@@ -4,62 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — PLANNED in [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) and RULED; build starting on branch `month-order`
+### 🧹 21 Oct 2026 (late): DISK CLEANUP — 1.4 GB free → 23 GB, on the owner's *"delete extra files that we dont need"*
 
-- **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
-  view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
-  either for the purpose of reordering them top to bottom or for changing a phases timing"*.
-- **Found while mapping (frozen `renderMonthView`):** the order is fixed: all-phase hiatus bands, then phases BY START
-  DATE (`laneSegs`), then Sim Post, then notes (waterfall lines, then the day's own in array order), each first-fit
-  (`takeLane`). ⭐ The month-PDF writer re-packs in DOCUMENT order (`mvlPackLanes`), so it follows any change to the
-  placement order with no writer edit. ⚠️ A bar can't be its own reorder handle: dragging it already moves its dates
-  (one row = a week). ⚠️ A day note's stored `lane` (written by the "+" it was added from) is never read by the
-  renderer; the comment "a note can be added on the exact line it will occupy" overstates it.
-- ✅ **Ruled by picker, 21 Oct 2026:** R1 a ⋮⋮ grip on hover reorders a bar (the body still moves dates); R2 a note
-  CAN go above the bars (bars crossing its day drop a line that week); R3 the calendar redraws live under the moving
-  copy; R4 the frozen edits approved with the gate (gates 10 and 13 byte-identical on every baseline, plus a new
-  `mvorder` leg proving the writer stacks in the user's order).
-- **Two frozen edits, both "the rule lives outside":** E1 `laneSegs` from `mvLaneOrder(segs)`; E2 the notes loop asks
-  `mvDayNoteBlocks()` for `'top'` (before the hiatus bands) and `'below'`. Three new save keys, none bumping
-  `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
-  without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
-- ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
-- ⏭ **Next:** build in the plan's §8 order on `month-order`. On the tracker as `month-reorder` and
-  `month-drag-preview` (planned).
+- **Removed:** 2,010 headless-Chrome profiles in `/tmp/tc<port>-<leg>` (15.5 GB), every port except a gate running
+  (9627) or queued (9391), and none touched in the last hour. Also 36 worktrees in `.claude/worktrees` (7.0 GB): each
+  one clean (`git status` empty but its `node_modules` link), its HEAD already in `origin/main`, no process with its cwd
+  inside, and not one the app made (`claude/…` names, which the app tracks and its Settings ▸ Storage cleans). Every
+  `node_modules` LINK was unlinked first, so the main checkout's `node_modules` was never followed. The branches were
+  all kept, so `git worktree add <path> <branch>` brings any of them back.
+- **Kept, deliberately:**
+  - the 14 worktrees in use;
+  - the 8 whose branch is not live yet;
+  - the 4 with uncommitted changes, among them `month-baselines`, which holds the never-committed
+    `wf-pdf-header-clearance` work (on the tracker);
+  - `half-day-episodes`, whose `.claude/halfday-sheets/` holds month-sheet screenshots;
+  - the app's own worktrees.
+- ⚠️ **It will fill again:** each full gate leaves about 110 profiles (about 0.9 GB). The fix is the tracker's
+  `harness-disk` card: `run.sh` removing its own profile.
 
-### 📝 21 Oct 2026 (late): PAPER SIZE — PLANNED in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md) and RULED; nothing built
-
-- **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
-  print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
-- **Answer given:** every output is laid out for Letter (`SHEET_PAPER_PT`, `exportExcel`'s `paperSize: 1`, the month
-  writer's `MVL_GEOMETRY`, both print rollbacks). On Legal it prints whole and the same size, with blank paper. A print
-  dialog cannot fix that, because the orientation, the fit and Single Column's widths are decided from the paper before
-  any dialog opens. It needs a setting.
-- ⚠️ **Learned while mapping:** Single Column's fill (`sheetColumnWidths`) reads `SHEET_PAPER_PT.portrait`, so the paper
-  shapes **on-screen** column widths in that mode. That is why R2 now recommends saving the paper with the calendar,
-  which reverses the first answer's lean towards keeping it on each computer.
-- ⚠️ **Also found:** Help's *Exporting* paragraph still says the month export opens the print dialog (stale since
-  2 Oct 2026, `MV_PDF_MODE = 'direct'`).
-- ✅ **Ruled by picker, 21 Oct 2026:** R1 Legal and Tabloid (no A4); R2 saved with the calendar (`paperSize`, absent =
-  Letter); R3 Single Column follows the paper; R4 the month PDF stays Letter for now.
-- **Second ask, the same evening:** an **Export PDF dialog** (waterfall only) that confirms or changes the paper and the
-  grid lines, plus a Portrait/Landscape choice with one marked *Recommended* by the existing rule. Planned in §5a. The
-  paper setting stays in Settings ▸ Preferences ("the regular setting tab"). The orientation choice is frozen edit P4:
-  one helper, `chosenOrientation()`, in both writers.
-- ⚠️ **Learned:** about 25 gate legs click `#export-wf-pdf-btn` (twenty through `T.captureExport` in `t/lib.js`,
-  the rest directly), and a dialog would stall every one of them. The plan teaches `captureExport` to press Export at
-  the defaults rather than adding a skip switch, so the whole gate proves that the defaults give today's PDF.
-- ⚠️ **The dialog's sizes come from frozen `sheetPageOrientation()`, which is synchronous,** under a paper probe that
-  is set and cleared in one call. They do not come from `buildWaterfallPdf` (which awaits), because a probe held across
-  an await could leak into a Single Column render.
-- ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
-  only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
-  for the PDF only.
-- ⏭ **Next:** on the owner's go-ahead, build in the plan's §8 order on a branch.
-  Letter, and the dialog's defaults, must stay byte-identical in the full gate. On the tracker as `paper-size`
-  (planned).
-
-### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout from `b5ca7cf`, committed `3f974af`; GATED (2,595 / 3, all 3 green on a clean copy of the same build); merged with `origin/main` as `24f1537` (branch `region-show-info`); **LIVE at `24f1537`** (verified byte-identical, `a289341c`; no version cut)
 
 - **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
   exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
@@ -92,11 +55,258 @@
 - **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
   fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
   push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
-- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
-  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
-  `region-in-show-info`.
+- **Full gate** on build `7d525ad4…` (HARNESS_PORT 9627, 20:14–20:39): **2,595 PASS, 3 FAIL**, none of them this
+  change, each re-run green in a clean worktree of `b390b83` (whose build is byte-identical, `7d525ad4`):
+  `stintreshape` (timed out) and gate 13 `stintswap-reshape` (116,764 bytes against 103,011) both read
+  `tests/fixtures/stintswap-reshape.sptcal`, which has UNCOMMITTED edits from someone else in the main checkout;
+  with the committed fixture, stintreshape passes and gate 13 is byte-identical. `pwagate` C1 (Copy link) was
+  contention: 13/13 alone. ⚠️ The gate ran while another session merged `paper-size` into the main checkout's
+  `main` (20:16), which edited `gate.sh` and `t/lib.js` under the running script.
+- ⚠️ **Local `main` is NOT what goes live.** It now carries `paper-size` (merged by another session, not approved for
+  release) on top of `b390b83`, and meanwhile `origin/main` moved to `db73cf6` (the toolbar outline and one-chip,
+  pushed by their sessions). So the push is `region-show-info`: `b390b83` + `origin/main`, docs conflicts only
+  (README and HANDOFF top entries; both kept, and the superseded "navy tint" heading dropped).
+- **Owner, by picker:** *"Push my 2 commits only (Recommended)"*. That could not be a fast-forward any more, so the
+  merge was shown to the owner before it went.
+- **The merge, checked before it went** (`24f1537`, build `a289341c…`): `npm run check` 40/40; `regionmirror` 9/9,
+  `regionlock` 14/14, `settingswin` 19/19; for the two features that went live meanwhile: `noswapbtns` 7/7,
+  `hdrcontrols` 12/12, `colswapmove` 11/11 (gate.sh's own evaluator), `colswapmid`, `colswapstale`, `stintbtn`,
+  `stintmulti`, `stintchain`, `stintreshape` pass; gate 5 by hand: `fields.byId` 76 keys identical, grid identical,
+  0 clipped. No second full gate.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push the merge (Recommended)"*. ONE `git push origin
+  region-show-info:main` at 20:49:13 (`db73cf6..24f1537`, fast-forward). Deploy run 39718940598: success. At 20:50:08
+  the live `index.html`, fetched with a cache-buster, was **byte-identical to the merged build** (sha256
+  `a289341ca2c8f2fb…`, `cmp`); `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⛔ **FOR WHOEVER PUSHES LOCAL `main` NEXT (the `paper-size` session):** local `main` does NOT contain `24f1537` or
+  `db73cf6`. It holds `b390b83` (this change, unmerged with what went live) plus `paper-size` and plan docs. Merge
+  `origin/main` into it before pushing, or the push is refused (non-fast-forward); never force it, which would take
+  the Region change, the toolbar outline and one-chip off the live site. Expect docs-only conflicts (README and
+  HANDOFF top entries).
+- ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
+  The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
 
-### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
+
+- **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+  view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
+  either for the purpose of reordering them top to bottom or for changing a phases timing"*.
+- **Found while mapping (frozen `renderMonthView`):** the order is fixed: all-phase hiatus bands, then phases BY START
+  DATE (`laneSegs`), then Sim Post, then notes (waterfall lines, then the day's own in array order), each first-fit
+  (`takeLane`). ⭐ The month-PDF writer re-packs in DOCUMENT order (`mvlPackLanes`), so it follows any change to the
+  placement order with no writer edit. ⚠️ A bar can't be its own reorder handle: dragging it already moves its dates
+  (one row = a week). ⚠️ A day note's stored `lane` (written by the "+" it was added from) is never read by the
+  renderer; the comment "a note can be added on the exact line it will occupy" overstates it.
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 a ⋮⋮ grip on hover reorders a bar (the body still moves dates); R2 a note
+  CAN go above the bars (bars crossing its day drop a line that week); R3 the calendar redraws live under the moving
+  copy; R4 the frozen edits approved with the gate (gates 10 and 13 byte-identical on every baseline, plus a new
+  `mvorder` leg proving the writer stacks in the user's order).
+- **Two frozen edits, both "the rule lives outside":** E1 `laneSegs` from `mvLaneOrder(segs)`; E2 the notes loop asks
+  `mvDayNoteBlocks()` for `'top'` (before the hiatus bands) and `'below'`. Three new save keys, none bumping
+  `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
+  without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
+- ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
+- **Built (7 commits on `month-order`):** `mvPhaseOrder` + E1 + "Back to date order" in the bar's menu; the reorder grip
+  (`installMonthOrderDrag`) and the moving copy (`mvDragGhost`, body-level, computed style + `currentCSSZoom` copied,
+  stripped from shareable copies); note places + E2 (`mvDayNoteBlocks`, two passes); the note drag
+  (`installMonthNoteDrag`: the note is its own handle past 4 px, the click after a drag is swallowed, not while the
+  editor is open); the copy on the phase body drag and the hiatus band move; Help paragraph; README entry;
+  CLAUDE.md state rows.
+- ⚠️ **The grip's place, ruled twice the same evening:** built first at the bar's RIGHT end (at the left it sat on the
+  label's first letter, "Ṗrod Prep"), then moved back by the owner: *"Move the reorder grip to the left end, beside the
+  start grip, even though it covers the first letter of the label while hovering."* It is at the left now (`e73eff5`),
+  on the bar's own fill. ⚠️ **D6 is dropped** (recorded in the plan): start/end grips are a resize and keep stepping
+  with their edge (`pilldrag`/`phaseedge` read them mid-gesture).
+- ⭐ **Learned:** (1) a drag's out-and-back needs `<=` on the midline test: back at the start, the copy's middle is
+  EXACTLY the middle of the neighbour that took its old slot, and `<` landed it one place off (mvorder O7 caught it).
+  (2) `vite build --outDir X` is relative to `src/` (Vite's root), so a mutant build lands in `src/X` and `git add
+  src` sweeps it in (happened once, amended out). (3) A day note's stored `lane` is never read by the renderer;
+  Help's "a note stays on the line you added it to" overstates it. (4) With a note ON TOP, the month-PDF writer
+  re-wraps that note at its own width BEFORE the bars, so a bar's PDF lane can differ from the screen's; monthlayout
+  L1 ("non-notes keep their lane") holds only where no note is on top. No baseline has one.
+- **Proof so far (build `dist` of `c2f7c65`):** `npm run check` 40/40; new CDP leg **`mvorder` 20/20**, in `gate.sh`
+  (screen, saved file AND the written month PDF's text positions; out-and-back and Escape bank nothing; a place
+  follows its auto-note when Production is dragged; a click still edits; a hostile file incl. a `__proto__` key).
+  Mutant without E1+E2: O2, O3, O5, O7, O8, N1, N3, N4, N6 red. `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag`
+  13/13 (pilldrag's first run hit "timed out waiting for the engine" while another Chrome ran; green alone).
+- ⛔ **DISK IS FULL (0.9 GB free of 1.8 TB):** `/tmp` holds **2,138 leftover harness Chrome profiles, 16 GB** (every leg
+  leaves `/tmp/tc<port>-<leg>`; one full gate leaves ~114 of them, ~886 MB), and `.claude/worktrees` holds 70 worktrees,
+  14 GB. This session's gate waiter (scratchpad `waitgate.sh`, port 8790) starts only when no other gate runs AND
+  2 GB is free. Clearing the profiles is the owner's call (asked in chat); they are recreated by every run.
+- ⏭ **Next:** the full gate (gates 10 and 13 must stay byte-identical); then ask the owner about merging. On the
+  tracker as `month-reorder` and `month-drag-preview` (building).
+
+### ✅ 22 Oct 2026: v1.7.0 IS LIVE at `703d9d4` (verified byte-identical, `7063a638`): PAPER SIZE + EXPORT PDF DIALOG, built on branch `paper-size` (`d51c2c7`)
+
+- **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
+  print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
+- **Answer given:** every output is laid out for Letter (`SHEET_PAPER_PT`, `exportExcel`'s `paperSize: 1`, the month
+  writer's `MVL_GEOMETRY`, both print rollbacks). On Legal it prints whole and the same size, with blank paper. A print
+  dialog cannot fix that, because the orientation, the fit and Single Column's widths are decided from the paper before
+  any dialog opens. It needs a setting.
+- ⚠️ **Learned while mapping:** Single Column's fill (`sheetColumnWidths`) reads `SHEET_PAPER_PT.portrait`, so the paper
+  shapes **on-screen** column widths in that mode. That is why R2 now recommends saving the paper with the calendar,
+  which reverses the first answer's lean towards keeping it on each computer.
+- ⚠️ **Also found:** Help's *Exporting* paragraph still says the month export opens the print dialog (stale since
+  2 Oct 2026, `MV_PDF_MODE = 'direct'`).
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 Legal and Tabloid (no A4); R2 saved with the calendar (`paperSize`, absent =
+  Letter); R3 Single Column follows the paper; R4 the month PDF stays Letter for now.
+- **Second ask, the same evening:** an **Export PDF dialog** (waterfall only) that confirms or changes the paper and the
+  grid lines, plus a Portrait/Landscape choice with one marked *Recommended* by the existing rule. Planned in §5a. The
+  paper setting stays in Settings ▸ Preferences ("the regular setting tab"). The orientation choice is frozen edit P4:
+  one helper, `chosenOrientation()`, in both writers.
+- ⚠️ **Learned:** about 25 gate legs click `#export-wf-pdf-btn` (twenty through `T.captureExport` in `t/lib.js`,
+  the rest directly), and a dialog would stall every one of them. The plan teaches `captureExport` to press Export at
+  the defaults rather than adding a skip switch, so the whole gate proves that the defaults give today's PDF.
+- ⚠️ **The dialog's sizes come from frozen `sheetPageOrientation()`, which is synchronous,** under a paper probe that
+  is set and cleared in one call. They do not come from `buildWaterfallPdf` (which awaits), because a probe held across
+  an await could leak into a Single Column render.
+- ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
+  only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
+  for the PDF only.
+- **Built** (owner: *"Yes, build the paper setting and the Export PDF dialog per PAPER-SIZE-PLAN.md, on a branch, and
+  run the full gate."*):
+  - `app.js`, beside `SHEET_PAGE_MARGIN_PT`: `SHEET_PAPERS` (Letter / Legal / Tabloid, with Excel codes 1 / 5 / 3),
+    `sheetPaper()`, `sheetPaperCode()`, `paperProbe`, and `SHEET_PAPER_PT` made two getters (P1). P2 is in `exportExcel`'s
+    pageSetup. P4, `chosenOrientation()`, is one expression in each writer.
+  - ⛔ **`paperSize` and `pageOrientation` are declared beside `dateFormat`, near the TOP of the IIFE**, not beside
+    `SHEET_PAPERS`. The sidebar's boot code (`reflectPaperSize()` beside `reflectDateFormat()`) runs long before that
+    line, and a `let` read there throws from the temporal dead zone and kills the rest of the engine (the
+    `pushHeaderPresets` lesson at the IIFE's end).
+  - State: `setPaperSize()` / `reflectPaperSize()` (the `setDateFormat` shape, one undo step), snapshot keys written
+    only when not the default, `sanitizeSnapshot` drops unknown values, restore is unconditional, New clears.
+  - The dialog: `src/chrome/ExportPdfDialog.jsx`, mounted beside `<Dialogs />`, through `chrome.pdfExportDialog`. If
+    the chrome fails to mount, the bridge default exports with what is already chosen. Engine:
+    `askPdfPageSetup()` runs in the Export PDF handler before `confirmPdfPrintable()`, and `pageFitFor(key)` asks
+    the frozen rule under the probe for all three papers before the dialog opens. React gets the answers as data and
+    never calls back. `collectFieldValues()` skips `.export-pdf-dlg`. `setGridlinesPref()` was factored out of the
+    gridlines listener.
+  - The harness: `t/lib.js` answers the dialog at its defaults in every leg (a MutationObserver clicks its Export).
+    `T.pdfDialog('manual')` hands it back to a leg, and `cspproof.mjs` answers it itself.
+  - Help's Exporting section is updated, including the stale month sentence.
+- **Proof so far** (build `22b16c43…`):
+  - new leg `papersize`: 12/12;
+  - new leg `pdfdialog`: 11/11;
+  - both legs are registered in `gate.sh`, and both are red on the pre-change build (`9677900`);
+  - nine mutants, each red (Excel code 1; getters ignore the paper; PDF or Excel ignores the orientation; restore
+    skipped; recommendation from Letter; probe left set; Cancel applies; the sweep takes the dialog), and the
+    source was restored and `shasum`-checked;
+  - `base`'s PDF through the dialog at its defaults is identical to gate 2's baseline apart from the date stamp;
+  - `npm run check` 40/40;
+  - in the pane: the dialog, live recommendation and sizes, Cancel, the Settings select, undo.
+- ⚠️ **Learned while building:**
+  - **Legal practically never turns a page.** It lengthens only the side that was not limiting, so the rule's answer
+    matches Letter's. Tabloid can turn one, inside a narrow band. The plan's "a calendar built to flip on Legal"
+    became a four-year landscape calendar.
+  - **On Letter the dialog's size reads about 3 points low** (87% against a PDF drawn at 90%): the rule leaves out the
+    header band.
+  - **A leg cannot Save straight after an undo back to the saved state:** Save is disabled there.
+- ✅ **Full gate on build `22b16c43…` (1,692,743 bytes; HARNESS_PORT 9473, 19:47:14–20:12:43, alone, after another
+  session's gate): 2,630 PASS, 0 FAIL, GATE PASSED.**
+  - 0 clipped cells;
+  - the waterfall PDF identical to the baseline (date stamp only), with every PDF there having gone through the dialog
+    at its defaults;
+  - every Excel part identical;
+  - `fields.byId` 76 ids;
+  - gate 10's print documents and gate 13's written month PDFs byte-identical;
+  - `papersize` 12/12, `pdfdialog` 11/11, `cspproof` W1, `winansi` W0–W5, `exportrefused` E2.
+- **Owner, by picker:** *"Commit on branch"*, *"Merge into main"*, *"Push with a v1.7.0 cut"*. Committed `d51c2c7`,
+  merged into local `main` as `6ca9993` (⚠️ in the MAIN checkout, while the Region session's gate was running there: it
+  changed `gate.sh` and `t/lib.js` under that script. Never merge into a checkout with a gate running in it).
+- **The v1.7.0 cut** (`02f88b7`, then re-cut on the merge with `origin/main`):
+  - `APP_VERSION`, `version.json` and `package.json` = 1.7.0;
+  - README `## v1.7.0` over the twelve entries since v1.6.0 (eleven already live);
+  - `releases/v1.7.0.html` = dist;
+  - `tests/fixtures/v1.7.0-saved.sptcal`, a real Save: 43 keys, 76 ids, version 1, 0 clipped.
+
+  The first release gate (cut build `6b8dfbde…`, 20:40–01:02) ended 2,560 / 9: four `monthexport` calendars that
+  wrote nothing, their four gate-13 compares, and `pilldrag`'s 480 s deadline. All nine re-ran green alone.
+- ⚠️ **`origin/main` had moved** (the Region push `24f1537`, which carried two code changes local `main` never had: the
+  navy outline and the one-chip pop-ups). So the release merged `origin/main` (`aec3e3d`; only README and HANDOFF
+  conflicted, both resolved keeping every entry). The release build is now `7063a638…` (1,689,392 bytes), which
+  `releases/v1.7.0.html` matches. The fixture came out byte-identical. `npm run check` 40/40.
+- ⛔ **LEARNED, three harness traps, all hit tonight:**
+  - **A port is never reserved.** `header-zoom`'s gate picked 9473, this session's port, while it was idle, and
+    from 01:02 each session's `run.sh` (`pkill -f "srv.js <port> "`) killed the other's server. Symptoms: *"NO RESULT
+    BLOCK -- the page never reached the injected script"* after about 1 s, and legs quietly testing the OTHER
+    worktree's build. Check `lsof` right before every run, not once. (That session was told.)
+  - **A PDF stream must be read by its `/Length`.** `papersize` and `pdfdialog` trimmed whitespace off a stream's end
+    (the pattern `prefs.js`, `hdrrow.js` and other legs still use). Compressed bytes can end in a space or newline, so
+    after midnight the new header date made Tabloid's content stream read as truncated. Fixed in both legs
+    (`28cdf6e`). The other legs carry the same latent, date-dependent failure.
+  - **A leg that writes nothing leaves the LAST run's files behind.** `gate.sh` does not delete `base.json` / `.pdf` /
+    `.xlsx` before `run.sh base`, so a dead run compares yesterday's files: a false FAIL on the date stamp, or a
+    false PASS on everything else.
+- ✅ **Release gate on `7063a638…`** (port 9817, 01:44:43–02:10:25, alone): **2,626 PASS, 4 FAIL.**
+  - Held: the waterfall PDF and every Excel part identical, 76 ids, 0 clipped, all 21 written month PDFs
+    byte-identical, `papersize` 12/12, `pdfdialog` 11/11.
+  - The four failures: two in `hdrversion`, the same stream-trimming bug on today's date (header-zoom's fix
+    `6547512`, taken as files in `58e6b6a`); `pilllabel (halfdays)` W3, the recorded flake; `phiatusnum` H3, ExcelJS
+    from the CDN timing out at 30 s.
+  - Re-run alone through `gate.sh`'s own judges, on the same build: **64 PASS, 0 FAIL** (hdrversion's PDF line now
+    `['10.22.26', 'v3']`).
+- ✅ **PUSHED AND LIVE.** Tag `v1.7.0` (annotated) on `703d9d4`; ONE `git push origin HEAD:main v1.7.0` from the
+  worktree at 02:12:05 (`24f1537..703d9d4`, plus the tag), on the owner's picker *"Push with a v1.7.0 cut"*. At 02:12:46
+  the live `version.json` read 1.7.0, and the live `index.html` (with a cache-buster) was **byte-identical to
+  `releases/v1.7.0.html`** (sha256 `7063a638…`, 1,689,392 bytes, `cmp`). Local `main` was then fast-forwarded to
+  `703d9d4`; the main checkout's two fixture files someone else left changed were untouched.
+- ⏭ **Next:** the owner's own check from the plan: print a Legal PDF from Preview, and open the workbook in Excel
+  (Page Setup should say Legal, fit to one page). The tracker card `paper-size` is now live. Worktree
+  `.claude/worktrees/paper-size` can go on the owner's word.
+
+### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
+
+- **Asked** (screenshot of the purple count chip and the dark swap-mode chip stacked over a Shoot block): *"can we
+  remove or at least simplify (maybe combine into one?) this double pop up"*. A first build merged them into one short
+  chip (picker: "One short chip"); the owner then replaced that ruling:
+  *"remove the chip entirely, except say "Double click to expand cells" when you highlight phae blocks. then only if
+  can't do a swap does it tell you why with a chip"*.
+- **Ruled by picker, same evening:** after a swap that WORKS, a chip appears **"Never"** (not even for collateral,
+  reshape or extra partners); the hint says **"Double click to pull back cells"** when the cells are already expanded,
+  and **nothing** when there is no room.
+- ⛔ **This overrides two older rulings, and the owner chose it knowing so:** COLUMN-ORDER-PLAN E1's "a block that
+  moved because it shared a column must never move unannounced" (now carried only by the knob's label/tooltip before
+  the press: "Swap the 2026 block of Writer's Rm with Post and Localization") and 2 Sep 2026's "warn harder" for a
+  reshaping block swap (now only the amber `.grid-swap-collateral` outlines, which still draw on selection; the picker
+  option said so). Do not bring the words back without asking.
+- **Built** (chrome only; nothing frozen):
+  - `redrawGridOverlay`: the chip is `'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells'`, drawn only
+    when `expandable` (and not during a flash). The count, "(N has no room)", "No room to expand" and the swap keys are
+    gone; `clampedOut` and the chip's `dataset.top/h` (read only by the old stacking) went with them.
+  - `drawSwapLayer` draws its chip ONLY for a flash, anchored to the seed cell. The passive refusal line and the mode
+    line are gone. `finishSwapMove` / `finishStintMove` / `finishFollowMove` end in `flashSwapMsg('')` (clears a
+    refusal still up) instead of their confirmations, reduced motion included.
+  - **Deleted as dead:** `swapModeText`, `reshapeText`, `swapFlashSide`, `swapFlashAt` and `flashSwapMsg`'s `at`
+    argument; `.grid-swap-chip.is-warn`. `swapRunDates` stays (knob labels).
+  - Help (`src/index.html`): the label "says which of the two it will do, and there is no label when none of them has
+    room"; "(the label beside the highlight reminds you)" and "and reported afterwards" removed.
+- **Tests** (all assert the new rule, none just loosened): `colswapmove` `confirmSilent`, `colswapmid` `chipSilent`,
+  `stintmulti` `flashSilentA` (+ no swap text in the chip, A and B), `stintreshape` `noWordsBefore` + `flashSilent`
+  (the 28 amber rects still asserted), `stintbtn` (hint text exact; partial mode read off the KNOB's aria-label, "Swap
+  Prod Prep with Post (11/16/26–12/7/26)"), `stintchain` (knob + no chip text), `colswapstale` (no hint at all on a
+  no-room seed), `noswapbtns` S1 (no chip on a no-room Post cell), S4 (exact hint), **new S5** (pull-back hint after the
+  expand). gate.sh's messages for those checks are rewritten to match.
+- **Proof so far:** the eight legs, extracted from `gate.sh`, all PASS on build `96b4b311…` (port 9361);
+  `noswapbtns` 7/7 with S5; headless screenshots (1100×800, `colswap-gesture`): a highlighted block showing only
+  "Double click to expand cells", and a refused Alt+→ on Post showing only "Swap needs a phase in the column beside
+  it…". ⚠️ The browser pane could not be used: its 5-servers-per-folder cap was held by other chats.
+- ✅ **Full gate on build `96b4b311…` (HARNESS_PORT 9383, 18:18–18:55, queued behind two other sessions' gates):
+  2,565 PASS, 16 FAIL, all 16 from ONE cause:** `monthemit`'s UTC+14 run (`Pacific/Kiritimati, 1280,900`) "produced no
+  result", so its 14 byte-identity comparisons and the file-count check failed with it. Month PDF writer, untouched
+  here. **That block (gate.sh's MEA/MEB loop, all five runs + the file checks) re-run alone on the same build: FAIL=0**,
+  with another session's gate running beside it. Add `monthemit` (UTC+14 run) to the contention-flake list beside
+  `pilllabel` C1/C3 and `monthexport` X6. Everything else green, gates 10 and 13 included.
+- ⚠️ **The main checkout carries someone else's UNCOMMITTED edit to `tests/fixtures/stintswap-reshape.sptcal`** (plus
+  an untracked `Reshape Fixture 2026-09-29.sptcal`), present before this session. It was left alone. A gate run from
+  the main checkout would load that changed fixture into `stintreshape`.
+- **Merged for the push** with `origin/main` only, NOT local `main`: local `main` (`9677900`) carries another
+  session's unpushed `3f974af` (Region in Show info, its gate still queued) and PAPER-SIZE-PLAN docs, and lacks
+  `6ac6e9a`. Conflicts were the two top entries in HANDOFF and README (both kept). Against `origin/main` the `src/` diff
+  is exactly this change. Merged build `0ef46d8d…`: `npm run check` 40/40, the eight overlay legs plus `sideboxes` and
+  `hdrcontrols` (the toolbar session's own legs): 146 PASS, 0 FAIL. Not a second full gate.
+- ⚠️ **Local `main` is NOT updated by this push.** Whoever lands `3f974af` must merge `origin/main` first.
+- ⏭ **Next:** push `03ebcd1`+ as `HEAD:main` from the worktree, then verify live. On the tracker as `one-selection-hint`.
+
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
   edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
@@ -134,8 +344,26 @@
   **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
   **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
   accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
-- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
-  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
+- **Owner:** *"Build option A (navy outline only), then ask me before pushing."* **Built** (`legacy.css`, the same
+  selectors as the tint): `.shift-group` and `.tools-wrap > .tools-btn` take a navy-6 border; `.shift-btn` and the
+  three buttons a white fill and navy-6 ink (the caret inherits it); the dividers inside Shift All stay navy-2; hover
+  and `[aria-expanded="true"]` take navy-0 on navy-7. The comment there says why the fill must not come back.
+  UI-CONVENTIONS §3b gains the rule as its first bullet.
+- **Proof so far:** in the app's browser, `carry-rich` at 1650 px: computed resting colours (white / `#2C3E50` border,
+  ink and caret; the selected tab is `#D3DAE1`, matched by none of the four), hover on Anchor To and Anchor To open
+  (both `#EAEEF2` on `#1C2833`), its popover opening and closing with Escape; no console errors but the local
+  server's missing `dist/version.json` (expected on localhost). `npm run check` 40/40; `hdrcontrols` 12/12;
+  `sideboxes` 58/58 (⚠️ its first run hung 28 min behind two other sessions' full gates, the known Chrome
+  contention; killed, re-run alone on port 9607 it took 6 s). A 2× headless screenshot is
+  the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
+- **Owner, by picker:** *"Commit it"*, *"Push now"*.
+- ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
+  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  refuses a fast-forward over a dirty file it would change. So the push went from this branch
+  (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
+  checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
+- ⏭ **Next:** nothing once it is verified live. The worktree `.claude/worktrees/toolbar-center` can be removed on the
+  owner's word.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
@@ -6074,7 +6302,6 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ---
 
-
 ### Where things are
 
 **LIVE at `a9ec081`** (22 Sep 2026), verified byte-identical to its gated build (`e9d46ea6…`) and
@@ -7911,7 +8138,6 @@ file greps normally. The source is the dangerous one.
 ⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
 spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
 regenerating rather than trusting if `index.html` has moved.
-
 
 ### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
 

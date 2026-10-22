@@ -140,11 +140,11 @@ window.addEventListener('load', function () { (async function () {
     // which is the sanctioned magnitude-1 collateral.
     out.aboveKeptSlot = ABOVE.every(function (w) { return /^prodPrep@0\//.test(out.after[w]); });
     out.aboveWidened  = ABOVE.every(function (w) { return out.after[w] === 'prodPrep@0/cs2'; });
-    // ...and the user is TOLD, with the right count. Silent collateral is the failure mode the
-    // disclosure exists to prevent.
+    // ⛔ ...and NOTHING is said about it (owner, 21 Oct 2026, by picker: "Never"). It used to say
+    // "2 other weeks changed width to fit."; the amber preview before the drop is what remains.
     var chip1 = document.querySelector('.grid-swap-layer .grid-swap-chip');
     out.confirmText = chip1 ? chip1.textContent : '';
-    out.confirmReportsCollateral = /2 other weeks changed width/.test(out.confirmText);
+    out.confirmSilent = !chip1;
 
     // 5. The affordance FOLLOWS the move: Post now sits at slot 0 with nothing to its left, so the
     //    leftward knob must be gone and a rightward one must have appeared. A stale knob would offer
@@ -178,7 +178,7 @@ window.addEventListener('load', function () { (async function () {
     out.PASS = out.naturalOrder && out.aboveNarrowBefore && out.labelNamesBoth && out.labelNamesRun &&
                out.noRightKnob && out.btnVisible && out.rightNoOp && out.chipShown && out.chipExplains &&
                out.wholeRunMoved && out.aboveKeptSlot && out.aboveWidened &&
-               out.confirmReportsCollateral && out.knobFollowed && out.reverseRestoredExactly &&
+               out.confirmSilent && out.knobFollowed && out.reverseRestoredExactly &&
                out.errors.length === 0 &&
                !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {
