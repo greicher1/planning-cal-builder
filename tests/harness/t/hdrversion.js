@@ -112,11 +112,17 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
-        // DecompressionStream refuses the newline every stream carries before `endstream`.
-        while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+        // The stream's own /Length says where its bytes end. ⚠️ It used to trim newlines and spaces off
+        // the end instead (DecompressionStream refuses the newline every stream carries before
+        // `endstream`), which also ate a compressed byte that HAPPENED to be 0x0A, 0x0D or 0x20 -- so the
+        // leg failed on every build on 22 Oct 2026, the one date whose content stream ends in such a byte.
+        var dict = latin.slice(latin.lastIndexOf(' obj', m.index), m.index), len = dict.match(/\/Length (\d+)/);
+        if (len && start + (+len[1]) <= end) end = start + (+len[1]);
+        else while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
         try {
           var ds = new DecompressionStream('deflate');
-          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
+          // Their rejections are caught here, or a font stream's refusal reaches the console check.
+          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)).catch(function () {}); w.close().catch(function () {});
           var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), s = '';
           for (var j = 0; j < u.length; j += 8192) s += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
           if (/\bTf\b/.test(s) && /\bTj\b/.test(s)) { content = s; break; }
