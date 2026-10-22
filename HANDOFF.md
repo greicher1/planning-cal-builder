@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d` (legs green, full gate NOT re-run); NOT IN `main`, NOT PUSHED
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (an `offweek` load timeout that `main` shares under load); NOT IN `main`, NOT PUSHED
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -75,10 +75,17 @@
   6 → 18, room for the tab under a zoomed-out box; `.sb-stack` keeps noexport's 20 px bottom padding. ⚠️ With free
   positions a hidden box's neighbours close up in PRINT only if they stack; a box with a `row` keeps it.
 - **Proof on `b25029d` (build `6f42d61d…`):** `sideboxes` 74/74, `sbnoexport` 28/28, `calzoom` 24/24,
-  `npm run check` 40/40. ⚠️ **The full gate has NOT been run on this merge**; the 2,662 / 0 above is the build
-  before it. Run it before any push.
-- ⏭ **Next:** the full gate on `b25029d`, then the owner's merge and push pickers. `sidebox-noexport` is now inside
-  this branch, so landing this lands both.
+  `npm run check` 40/40.
+- **Full gate on `3b15a9c` (build `6f42d61d…`, 22 Oct 10:36:47–11:02:29): 2,688 PASS, 1 FAIL.** Every baseline
+  byte-identical (waterfall PDF, Excel parts, gate 13), 0 clipped, 76 ids, `sbnoexport` and `sideboxes` green. The
+  one FAIL: `offweek` (offweek state) R10 *"timed out waiting for: the loaded file's name in the file menu"*. Re-run
+  while another session's gate ran: the same timeout at R11, and current `main`'s build (`2a10aba`, without this
+  branch) timed out the same way at R13. A load stall under contention (HANDOFF already records `hdrrow`'s "load
+  10" the same way), not this change. A solo re-run is queued for when no gate runs.
+- ⚠️ **`main` moved again: the text style bar (`2a10aba`, ~1,000 lines of `app.js`) is in local `main` and NOT in
+  this branch.** Landing this branch needs that merged in and the full gate run once more.
+- ⏭ **Next:** the solo `offweek` result; then, on the owner's word, merge `main` in, gate, and the merge and push
+  pickers. `sidebox-noexport` is inside this branch, so landing this lands both.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
