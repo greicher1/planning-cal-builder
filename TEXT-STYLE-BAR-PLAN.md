@@ -6,7 +6,7 @@ outside the viewport of the calendar and is permanently there … This menu shou
 and all text throughout the entire waterfall calendar"*, with a determination of *"the cost/impact of allowing a user
 to edit the text size of any and all text as I'm the most worried about the impacts of this change."*
 
-**D1, D2 and D3 ruled by the owner (picker, 21 Oct 2026); D4 and D5 open. No code written.** §1 holds the owner's
+**All five decisions ruled by the owner (21 Oct 2026). No code written.** §1 holds the owner's
 decisions, §2 the choices this plan makes unless the owner overrules them, §3 what exists today, **§4 the font-size
 determination**, and §5 onwards how it would be built.
 
@@ -66,14 +66,32 @@ edited only in the header editor, *"This means also remove the styling menu view
   One rule for every text. This **replaces the styling half of the 10 Sep ruling**, so it needs the owner's word.
 - **Keep it Manual-only.** In Auto and Template the bar says *"Switch the header to Manual to style it"*.
 
-### D4 · In the month view (⏳ open)
+### D4 · In the month view
+
+✅ **RULED, owner's picker, 21 Oct 2026: "Style the month header (Recommended)"**, the first option below. The month
+header's in-calendar strip retires the same way the waterfall's does; month notes stay a separate request.
 
 - **The bar stays, and styles the month header lines only (recommended):** what the month header's own strip does
   today, moved out of the calendar the same way. Month notes are a separate request already on the tracker
   ("Note styles", gap-report item 20).
 - **Waterfall only:** the bar hides in the month view and the month header keeps its in-calendar strip.
 
-### D5 · How a note opens once a click highlights (⏳ open, raised by D2)
+### D5 · How a note opens once a click highlights (raised by D2)
+
+✅ **RULED, owner, 21 Oct 2026:** *"double-click (or Enter, or typing) opens a note or hiatus band's editor; a single
+click highlights it, like Excel."* (The first option below.)
+
+What that means in detail, settled here unless the owner says otherwise:
+- **Enter opens the editor only when the highlight's active cell is a note or a band.** Enter on a phase selection
+  already fills it across the empty columns beside it (`batchFill`), and keeps doing exactly that.
+- **Typing opens the editor and the typed character goes in at the END of the note's text.** Excel replaces the cell;
+  here a stray key must never wipe a note, so it adds. Only printable keys, and never with ⌘ or Ctrl held (⌘S, ⌘Z and
+  the other shortcuts are untouched).
+- **With several cells highlighted, double-click, Enter or typing opens the active cell** (the last one clicked) only.
+- **A custom column heading follows the same rule**, being a grid cell: highlighted on a click, edited on a
+  double-click, Enter or typing.
+- Every editor's tooltip changes from "Click to edit this note" to "Double-click to edit this note", and the same for
+  bands and headings; the Help's paragraphs on notes say it too.
 
 Today a single click on a note or a hiatus band opens its editor. In Excel a click highlights and a **double-click**
 edits, and D2 makes a click highlight.
@@ -122,8 +140,8 @@ edits, and D2 makes a click highlight.
   in a separate set beside it, so none of those actions can ever receive a date or a note. The chip that names the
   phase selection's keys stays as it is.
 - **What stays as it is:** a phase cell's double-click still fills across; a drag that starts on a highlighted phase
-  run still moves it; the resize handles still own their bands; a Manual header line still takes the caret. A custom
-  column heading's editor, which opens on a click today, follows whatever D5 rules for notes.
+  run still moves it; the resize handles still own their bands; a Manual header line still takes the caret. Notes,
+  bands and custom column headings open on a double-click, Enter or typing (D5).
 
 ## 3. What exists today
 
@@ -256,32 +274,35 @@ Each is written so that **with no style set it runs exactly today's code**, whic
 - **The highlight (§2a):** a second selection set beside `gridSel`, drawn by the same overlay layer
   (`redrawGridOverlay`, chrome, not frozen) and hit-tested from the same geometry helpers (zoom-aware since the
   calendar zoom). Pointer handlers on `#table-wrap` are added, never replaced, and stand aside for the resize handles,
-  the span grips and a move, as the marquee does today. If D5 is "double-click edits", the note and band editors'
-  open moves from click to double-click / Enter / typing; the editors themselves are unchanged.
+  the span grips and a move, as the marquee does today. Per D5, the note, band and heading editors open on a
+  double-click, Enter or typing instead of a click; the editors themselves are unchanged.
 - **Store, sanitizer, snapshot, resets, shift re-key, undo** (§5).
 
 ## 8. Proof
 
 - **New leg `textstyle`** on a synthetic fixture minted by its own Save: every kind styled each way, one cell at a time
   and through a swept, Shift-extended and ⌘-built highlight that mixes kinds and crosses year blocks; a mixed
-  highlight's half-lit controls; fill-across, swap and move still receiving only phase cells; the screen's computed styles; the workbook's cell fonts; the PDF's text and font tags; clipped cells 0;
+  highlight's half-lit controls; fill-across, swap and move still receiving only phase cells; a click on a note, band or
+  heading highlighting without opening it, and a double-click, Enter and typing each opening it (the typed key added at
+  the end, ⌘ shortcuts untouched), while Enter on phase cells still fills across; the screen's computed styles; the workbook's cell fonts; the PDF's text and font tags; clipped cells 0;
   the bar has no id and is absent from a shareable copy; `fields.byId` unchanged; one undo step each; Save and Load; a
   shift carries a phase week's style with its phase and leaves a date's on its date; Reset notes clears note styles;
   bad entries dropped and counted; the file opens in `releases/v1.6.0.html`.
 - **The grid fit:** the bar showing, the grid still ends at the panel's bottom at the usual window sizes and zooms.
 - **Byte gates:** waterfall PDF, every Excel part, gates 10 and 13 unchanged on every existing fixture.
 - **Mutants**, each expected red: a writer ignoring a style; the cap missing on a one-line text (a row stretches); a
-  style written as an empty object; a phase style left behind by a shift; an id on a bar control.
+  style written as an empty object; a phase style left behind by a shift; an id on a bar control; a typed key replacing
+  a note's text; Enter opening an editor over a phase selection.
 - The full gate, then the owner's picker to merge, and a separate one to push.
 
 ## 9. Steps
 
 0. After "Header ends where the calendar ends" (`header-zoom`) lands, since both change the header strip.
-1. ✅ D1, D2, D3 recorded (§1). ⏳ D4 and D5 before step 4.
-2. **The bar, for what is already stylable:** header lines (every mode, D3) and side-box lines, the two old bars
-   retired. No frozen edit, and on its own already "the bar, permanently there".
+1. ✅ All five rulings recorded (§1).
+2. **The bar, for what is already stylable:** header lines in both views (every mode, D3; the month header, D4) and
+   side-box lines, the old bars retired. No frozen edit, and on its own already "the bar, permanently there".
 3. The store and the save format (§5); nothing drawn yet.
-4. The highlight over every kind of grid text (§2a, §7), and D5's way of opening a note.
+4. The highlight over every kind of grid text (§2a, §7), and D5's way of opening a note, a band and a heading.
 5. F1, with the fence and clipped-cell numbers shown to the owner.
 6. F2, F3 and F4.
 7. The leg, the mutants, the full gate.

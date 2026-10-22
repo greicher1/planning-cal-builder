@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, D1–D3 RULED, D4–D5 OPEN, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
+### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
 
 - **Asked:** the header's styling bar moved *"above and outside the viewport of the calendar … permanently there"*,
   under the Waterfall / Month toggle and the shift buttons, able to *"individually style any and all text throughout
@@ -30,16 +30,21 @@
     phase-only meaning (fill-across, swap and move read it); the other kinds go in a separate set.
   - **D3: "Every mode"** — header lines are styled from the bar in Auto, Manual and Template, replacing the styling
     half of the 10 Sep 2026 Template ruling (Template text is still edited only in the header editor).
-- ⏳ **Open:** D4 the month view (recommended: the bar styles the month header lines there), and **D5, raised by D2:**
-  once a click highlights, how does a note open? Recommended: double-click / Enter / typing, as in Excel.
+  - **D5 (raised by D2), the owner's words:** *"double-click (or Enter, or typing) opens a note or hiatus band's
+    editor; a single click highlights it, like Excel."* Settled in the plan with it: ⛔ **Enter opens an editor only
+    when the active cell is a note or band** — Enter on phase cells is `batchFill` and stays so; a typed key is ADDED at
+    the end of the note, never replacing it; custom column headings follow the same rule; tooltips and Help say
+    "Double-click to edit".
+  - **D4: "Style the month header"** — in the month view the bar stays and styles the month header's lines; the
+    month header's in-calendar strip retires too. Month notes stay the separate "Note styles" request.
 - **Facts the build will need:** the header's strip is emitted INSIDE `#table-wrap` by frozen `renderSpreadsheetView`,
   Manual mode only, with handlers delegated on `#table-wrap`; the side boxes have a second copy (`buildSideFmt`,
   body-level). `cellTextFit`'s auto path ignores `basePx` (it always starts at 11), so a chosen size is only honoured
   through `manual: true`, which clips. `wrapLineCount` measures regular weight only (frozen edit F4 for bold notes).
   The new bar must be class-only (no Mantine Select: generated ids reach `fields.byId`) and sit inside
   `.view-toggle-row`, keeping `.view-toggle-row` → `#table-wrap` the sibling pair.
-- ⏭ **Next:** D4 and D5 from the owner. Plan step 2 (the bar for header and side-box lines, no frozen edit) needs
-  neither and can start once "Header ends where the calendar ends" (branch `header-zoom`, building, uncommitted)
+- ⏭ **Next:** nothing waits on the owner. Plan step 2 (the bar for header and side-box lines, no frozen edit) can
+  start once "Header ends where the calendar ends" (branch `header-zoom`, building, uncommitted)
   lands, since both change the header strip. On the tracker as `text-style-bar`, planned. Plan size: L, about three
   sessions.
 
