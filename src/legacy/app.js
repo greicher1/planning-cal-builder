@@ -7266,7 +7266,10 @@ export function initLegacyApp() {
         .filter(([k, v])=> k !== d.key && Array.from(v.cols).some(c=> me.cols.has(c)))
         .sort((a, b)=> a[1].top - b[1].top);
       if(!others.length) return null;
-      const above = others.filter(([, v])=> (v.top + v.bottom) / 2 < mid).length;
+      // `<=`, not `<`: a copy brought back to where it was pressed has its middle EXACTLY on the middle of the
+      // neighbour that took its old place, and that neighbour must count as above it, or out-and-back lands one
+      // place off (caught by the mvorder leg's O7).
+      const above = others.filter(([, v])=> (v.top + v.bottom) / 2 <= mid).length;
       const order = effectiveOrder().filter(k=> k !== d.key);
       const at = above === 0 ? order.indexOf(others[0][0]) : order.indexOf(others[above - 1][0]) + 1;
       if(at < 0) return null;
@@ -7333,6 +7336,7 @@ export function initLegacyApp() {
     // button-released-off-window check in mousemove, so there is one exit and it cannot be missed.
     const endDrag = ()=>{
       if(!drag) return;
+      if(drag.ghost) drag.ghost.remove();
       const moved = drag.applied;
       const bound = drag.boundOverrides;
       const draggedKey = drag.key;
@@ -7386,7 +7390,7 @@ export function initLegacyApp() {
       // at the press, so an edited auto-note's date follows the pill (autoNoteBaseline). The notes
       // themselves stay in their weeks: a body-drag has never carried notes, unlike Shift All.
       drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0,
-              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline()};
+              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline(), pillEl: pill, ghost: null};
       // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
       // NUMBER, live on every increment, because update() re-derives them from these pins. For any
       // other phase the shoot does not move and the binding is the identity. Pinned here, before the
@@ -7405,6 +7409,13 @@ export function initLegacyApp() {
       // following the pointer with the button up, and -- worse since the debounce is now cancelled
       // on every step -- the gesture's undo step would never be banked at all.
       if(!(e.buttons & 1)){ endDrag(); return; }
+      // ⭐ THE MOVING COPY (MONTH-ORDER-PLAN.md §3.3; owner, 21 Oct 2026: "we actually need to see the phases/notes
+      // visibly dragged ... for changing a phases timing"). The pressed piece, lifted, follows the pointer both
+      // ways, as the drag reads both; the live redraw below stays where it lands (ruling R3). Made at the first
+      // few pixels of travel, so a plain click shows none, and always before the first redraw destroys the pill.
+      const gx = e.clientX - drag.x0, gy = e.clientY - drag.y0;
+      if(!drag.ghost && (Math.abs(gx) >= 3 || Math.abs(gy) >= 3) && drag.pillEl.isConnected) drag.ghost = mvDragGhost(drag.pillEl);
+      if(drag.ghost) drag.ghost.moveBy(gx, gy);
       // A month row IS a week, so vertical movement is worth 7 days and horizontal 1. No step
       // quantisation: one column of travel is one day.
       const days = Math.round((e.clientX - drag.x0) / drag.dayW)
@@ -9216,6 +9227,11 @@ export function initLegacyApp() {
       // until this gesture is settled (ruling 3; per-phase too, which costs nothing and asks nothing).
       pushUndoSnapshot();
       holdPersistence();
+      // ⭐ THE MOVING COPY (MONTH-ORDER-PLAN.md §3.3, plan D5): a moved band, lifted, follows the pointer up and
+      // down (a hiatus moves by whole weeks, which are rows), while the live redraw shows where it lands. Made
+      // before anything redraws, from the band under the layer. Its first and last week grips are a resize, and
+      // keep stepping with the band's edge, as the phase edge grips do.
+      if(kind === 'move'){ d.ghost = mvDragGhost(band); d.y0 = e.clientY; }
       drag = d;
       hide(el);
       shield = document.createElement('div');
@@ -9226,6 +9242,7 @@ export function initLegacyApp() {
     async function endDrag(){
       const d = drag;
       drag = null;
+      if(d && d.ghost) d.ghost.remove();
       if(shield){ shield.remove(); shield = null; }
       hide();
       if(!d) return;
@@ -9253,6 +9270,7 @@ export function initLegacyApp() {
       if(!drag) return;
       // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
       if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.ghost) drag.ghost.moveBy(0, e.clientY - drag.y0);
       if(drag.broken) return;
       const T = dayAtPoint(e.clientX, e.clientY);
       if(!T) return;
@@ -26429,7 +26447,7 @@ export function initLegacyApp() {
           return {isNote, top: isNote && isTopNote(b), mid: (r.top + r.bottom) / 2};
         })
         .sort((a, b)=> a.mid - b.mid);
-      const p = items.filter(it=> it.mid < mid).length;
+      const p = items.filter(it=> it.mid <= mid).length;     // `<=`: the out-and-back tie, as the phase grip's
       const before = items.slice(0, p);
       const hasBar = items.some(it=> !it.isNote);
       // Above every bar in the column is the top group. A column with no bar has nothing to be above, so the
