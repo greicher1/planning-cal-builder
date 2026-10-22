@@ -232,7 +232,7 @@ window.addEventListener('load', function () { (async function () {
     check(kinds === (sm ? 'date,heading,hiatus,note,phase,simpost' : 'date,heading,hiatus,note,phase'), 'F1 Save writes textStyles with one map per kind used (' + kinds + ')');
     check(!('textStyles' in snap0), 'F2 a calendar with nothing styled saves no textStyles key at all');
     var ids0 = Object.keys(snap0.fields.byId).sort().join(','), ids1 = Object.keys(snap.fields.byId).sort().join(',');
-    check(ids0 === ids1, 'F3 fields.byId has exactly the ids it had (' + Object.keys(snap.fields.byId).length + ')');
+    check(ids0 === ids1, 'F3 styling adds no fields.byId id (' + Object.keys(snap.fields.byId).length + ' before and after; B1 holds the bar itself)');
     check(snap.noteFontSize && snap.noteFontSize['2027-10-11'] === 12 && !(snap.textStyles.note['2027-10-11'] || {}).size, 'F4 a note\'s size lives in noteFontSize, never in its text style');
     var bare = JSON.parse(savedText); delete bare.textStyles;
     await load(JSON.stringify(bare));

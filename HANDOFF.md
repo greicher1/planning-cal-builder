@@ -88,6 +88,13 @@
   lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
   T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
   `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
+- **Mutants, all ten caught** (scratch copy, rebuilt per mutant, `textstyle` run on each): the Excel writer ignoring
+  styles (X1–X3 red); the PDF writer ignoring a note's (P1, P3); no line-height cap at 12 px (S3: a row grows); a phase
+  week's style left behind by a shift (T1); the sanitizer letting a size of 20 through (F7, F7b, F8); an id on the
+  bar's select (B1; F3 compares two saves, so it guards ids that appear only after styling); restore only when the
+  key is present (F5); a click opening the note again (D1 and eight more); typing replacing the note (D4); a plain
+  press keeping the phase selection (G9). ⚠️ M5's first run timed out on a Load under three other sessions' runs; alone
+  it was red where expected.
 - **Older builds:** a styled calendar opened in `releases/v1.6.0.html` (scratch probe through the real Load path):
   everything loads, the styles are ignored, no error or warning. No `SNAPSHOT_VERSION` bump needed, as planned.
 - ⚠️ **Learned while building:**
