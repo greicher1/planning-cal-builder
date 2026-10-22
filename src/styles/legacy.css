@@ -3435,9 +3435,9 @@
 /* ---- The month view's reorder grip and moving copy (MONTH-ORDER-PLAN.md, 21 Oct 2026) -------------
    Body-level chrome on the edge grips' terms (above): nothing inside #table-wrap, no `.mv-*` rule, and
    nothing the print path can reach (it hides every direct child of <body> but #print-root). The grip sits
-   inside a bar's right end, left of the end grip, on the bar's own fill in its own text colour (both set
-   by installMonthOrderDrag): six dots, the sidebar rows' "drag me" mark, so it reads as "move this up or
-   down" rather than as an edge. */
+   inside a bar's left end, right of the start grip, on the bar's own fill in its own text colour (both set
+   by installMonthOrderDrag), so it covers the label's first letter cleanly while hovered: six dots, the
+   sidebar rows' "drag me" mark, so it reads as "move this up or down" rather than as an edge. */
 .mv-order-grip{
   position:fixed; z-index:50; width:12px; box-sizing:border-box;
   display:flex; align-items:center; justify-content:center;

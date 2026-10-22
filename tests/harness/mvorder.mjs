@@ -15,7 +15,7 @@
 // The phase order (rulings R1, R3; frozen edit E1):
 //   O0  setup: March 2026, the week of 3/22 in date order: Writer's Rm, Pre Prep, Prod Prep
 //   O1  hovering Prod Prep's bar shows ONE grip: a child of <body>, never in #table-wrap, topmost where it sits, inside
-//       the bar's right end (left of the end grip's 10 px)
+//       the bar's left end, right of the start grip's 10 px (owner, 21 Oct 2026: "Move the reorder grip to the left end")
 //   O2  ⭐ its grip dragged to the top: mid-drag a moving copy (body-level, none in #table-wrap) and the order already
 //       redrawn; after release Prod Prep, Writer's Rm, Pre Prep, in that week AND the week of 3/16 (one order for the
 //       whole calendar, D1); no copy or shield left
@@ -198,8 +198,8 @@ try {
   const r0 = await row(WK);
   kase('O0', 'setup: the week of 3/22 in date order (Writer\'s Rm, Pre Prep, Prod Prep)', JSON.stringify(lanesOf(r0, PH3)) === '[0,1,2]', { lanes: lanesOf(r0, PH3) });
   const g1 = await gripOf(WK, 'prodPrep');
-  kase('O1', 'hovering Prod Prep\'s bar shows ONE grip, body-level, topmost, inside the bar\'s right end',
-    !!g1.grip && g1.grip.n === 1 && g1.grip.body && g1.grip.top && g1.grip.r <= g1.bar.r - 10 + 0.5 && g1.grip.l > g1.bar.l + g1.bar.w / 2
+  kase('O1', 'hovering Prod Prep\'s bar shows ONE grip, body-level, topmost, inside the bar\'s left end beside the start grip',
+    !!g1.grip && g1.grip.n === 1 && g1.grip.body && g1.grip.top && g1.grip.l >= g1.bar.l + 10 && g1.grip.l <= g1.bar.l + 12
       && (await chrome0()).inWrap === 0, { grip: g1.grip, bar: g1.bar });
   const mid2 = await gesture(g1.grip.x, g1.grip.y, 0, -(g1.bar.h + 2) * 2.2, async () => ({ c: await chrome0(), r: await row(WK) }));
   const r2 = await row(WK), r2b = await row(WK - 1), c2 = await chrome0();

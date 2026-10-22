@@ -57,10 +57,11 @@ and `mvlPackLanes` re-packs every week in DOCUMENT order, which is placement ord
 ### 3.1 Phase order (R1)
 
 - Hover any phase bar that carries `data-ph` (phases, Production's episode bars, prep bars) and a **⋮⋮ grip** appears
-  inside its **right** end, just left of the end grip's 10 px, on the bar's own fill. Sim Post and hiatus bands get
-  none. ⚠️ **Built at the right, not beside the start grip as the R1 sketch showed:** at the left it sat on the
-  label's first letter ("Ṗrod Prep", 2× screenshot), and a label starts at the left, so the right end is where a bar
-  has room. Bars under 46 px get no grip rather than one over the end grip.
+  inside its **left** end, just right of the start grip's 10 px, on the bar's own fill, so it covers the label's
+  first letter while hovered. ⚠️ It was first built at the right end to spare that letter; the owner moved it back
+  the same evening: *"Move the reorder grip to the left end, beside the start grip, even though it covers the first
+  letter of the label while hovering."* Sim Post and hiatus bands get none. Bars under 46 px get no grip rather than
+  one over the start grip.
 - Drag the grip **up or down**. A copy of the bar lifts and follows the pointer vertically (§3.3). As it passes the
   middle of another phase's bar in that week, the order changes and the calendar redraws live: the real bar is
   always where it will land.

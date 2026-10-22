@@ -7167,9 +7167,11 @@ export function initLegacyApp() {
 
   // ---------- Reorder a phase up or down in the month view (MONTH-ORDER-PLAN.md §3.1, ruling R1) ----------
   // ⛔ A GRIP, NOT THE BAR: pressing a bar and dragging already moves its dates (installMonthPillDrag below; one
-  // row = a week), so the reorder has its own handle, shown on hover inside the bar's RIGHT end, just left of the
-  // end grip's 10 px. (The ruling's sketch put it by the start grip; built there it sat on the label's first
-  // letter, and a label starts at the left, so the right end is where a bar has room.) ZERO FROZEN EDITS here: body-level chrome, as the edge grips. What it writes is
+  // row = a week), so the reorder has its own handle, shown on hover inside the bar's LEFT end, just right of the
+  // start grip's 10 px (ruling R1's sketch). It covers the label's first letter while the pointer is on the bar:
+  // built first at the right end to spare it, then moved back by the owner, 21 Oct 2026 ("Move the reorder grip to
+  // the left end, beside the start grip, even though it covers the first letter of the label while hovering").
+  // ZERO FROZEN EDITS here: body-level chrome, as the edge grips. What it writes is
   // mvPhaseOrder, the ONE calendar-wide order frozen edit E1 reads (plan D1), so the bar takes its new place in
   // every week, and the calendar redraws live as the order changes (ruling R3).
   // WHAT A DROP MEANS: in the row being dragged in, the phases sharing a day with the dragged one, top to bottom.
@@ -7195,17 +7197,17 @@ export function initLegacyApp() {
     function hide(){ shownFor = null; if(grip) grip.hidden = true; }
     function showFor(pill){
       const v = visibleRect(pill), g = gripEl();
-      // Too narrow for an end grip, this one and some of the label: no grip rather than one over the end grip.
+      // Too narrow for a start grip, this one and some of the label: no grip rather than one over the start grip.
       if(!v || v.full.width < MIN_BAR_W){ hide(); return; }
-      const x = v.full.right - EDGE_W - 1 - GRIP_W;
+      const x = v.full.left + EDGE_W + 1;
       if(x < v.left - 1 || x + GRIP_W > v.right + 1){ hide(); return; }
       shownFor = pill;
       g._pill = pill;
       g.style.left = x + 'px';
       g.style.top = v.top + 'px';
       g.style.height = (v.bottom - v.top) + 'px';
-      // The bar's own text colour on its own fill: the dots read on any phase colour, and whatever of the label
-      // runs under the grip (an ellipsis, most often) is covered rather than overprinted.
+      // The bar's own text colour on its own fill: the dots read on any phase colour, and the label's first letter
+      // under the grip is covered rather than overprinted (dots over a "P" read as "Ṗ").
       const cs = getComputedStyle(pill);
       g.style.color = cs.color;
       g.style.background = cs.backgroundColor;

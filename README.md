@@ -35,7 +35,8 @@ The owner: *"we need the ability to drag and reorder how phases and notes are so
 view"*, then *"we actually need to see the phases/notes visibly dragged animation when we drag either for the
 purpose of reordering them top to bottom or for changing a phases timing"*. Planned and ruled in
 [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) (R1–R4, by picker).
-- **Phase order.** Hover a phase bar in the month view and a six-dot grip appears inside its right end. Drag it up
+- **Phase order.** Hover a phase bar in the month view and a six-dot grip appears inside its left end, beside the start
+  grip (it covers the label's first letter while you hover; the owner's call). Drag it up
   or down: the phase takes that place in every week where it overlaps another, on screen and in the month PDF.
   Dragging the bar's middle still moves its dates. The bar's right-click menu gets **Back to date order**.
 - **Note order.** Drag a note itself up or down within its day: among that day's notes, or above the bars to the
