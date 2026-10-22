@@ -82,7 +82,9 @@ exist as a duplicate setting in the settings tab where it already appears, but n
   M6/M8; the copy bypassing the question: M6/M7). Gate 5 by hand: `fields.byId` 76 keys and values identical to the
   baseline, the restored grid identical. `regionlock` 14/14, `regioncaveat` 13/13, `settingswin` 19/19,
   `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
-  40/40; a 2× screenshot of the card. Full gate not run.
+  40/40; a 2× screenshot of the card. **Full gate:** 2,595 pass / 3 fail, all three green on a clean copy of the same
+  build (two read a fixture left edited in the checkout, one was contention). Live at `24f1537`, merged with the
+  toolbar outline and one-chip, byte-identical to its build.
 
 ### the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 

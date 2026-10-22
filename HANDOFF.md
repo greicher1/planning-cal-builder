@@ -22,6 +22,69 @@
 - ⚠️ **It will fill again:** each full gate leaves about 110 profiles (about 0.9 GB). The fix is the tracker's
   `harness-disk` card: `run.sh` removing its own profile.
 
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout from `b5ca7cf`, committed `3f974af`; GATED (2,595 / 3, all 3 green on a clean copy of the same build); merged with `origin/main` as `24f1537` (branch `region-show-info`); **LIVE at `24f1537`** (verified byte-identical, `a289341c`; no version cut)
+
+- **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
+  exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
+- **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
+  `#union-place`. ⛔ **`#union-place` is still THE Region** (its id is the save key, and the "Continue?" handler is
+  bound to it). The new one is `select.region-mirror`: a PLAIN `<select>` with NO id inside `Input.Wrapper
+  labelElement="div"` (label only) with `aria-label`. ⛔ Never make it a NativeSelect: Mantine mints an id when given
+  none (UI-CONVENTIONS §8.3), and `collectFieldValues()` would sweep a re-rolled second Region key into every file
+  and the undo stack. Both selects share one option list, `REGION_OPTIONS` in `Sidebar.jsx` (values are save format:
+  append only).
+- **How they stay in step (app.js):** a delegated `change` listener (in the IIFE that binds `#union-place`) copies
+  the mirror's value to `#union-place` and dispatches a bubbling `change` on it, so the question, its hold and Cancel
+  run exactly as from Settings. `reflectRegionUI()` writes `#union-place`'s value back to every `.region-mirror`;
+  every path that sets the Region ends there (a pick, the hold, Cancel, `syncRegionTracking()` from
+  `refreshAfterRestore()`, Reset All's block). A new path that sets `#union-place` without reaching
+  `reflectRegionUI()` would leave the copy stale; `regionmirror` M3/M5/M8 catch that.
+- **Look:** `legacy.css` `select.region-mirror` draws Mantine's own ComboboxChevron path (up/down, 14px, gray-6,
+  centred in the 28px right section), checked against Season and Schedule by in a 2× screenshot. The toolbar
+  popovers' `.tools-menu select` (a down arrow) is a different look and was left alone. Help's "Schedule effect"
+  paragraph now says Show info first, Settings ▸ Region second.
+- **Proof:** new leg **`regionmirror`** M0–M8, 9/9 on the build, added to `gate.sh`'s audit loop on its own line;
+  mutants: no write-back → M3/M5/M6/M8 red, the copy bypassing the question → M6/M7 red; source restored and
+  `cmp`-checked. Gate 5 by hand: `restore`'s `fields.byId` 76 keys and values identical to the baseline, grid and
+  bytes identical. `regionlock` 14, `regioncaveat` 13, `settingswin` 19, `sharecopy2`, `hostile (xss-mixed)` 13,
+  `noresetall` 5, `dlgkeys` 16, `wrapdate` all green; `npm run check` 40/40 (build `7d525ad4…`). Full gate NOT run.
+  The in-app browser could not be used (all five server slots held by other chats); the screenshot is headless.
+- ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
+  the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
+  owner-approved.
+- **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
+  fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
+  push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
+- **Full gate** on build `7d525ad4…` (HARNESS_PORT 9627, 20:14–20:39): **2,595 PASS, 3 FAIL**, none of them this
+  change, each re-run green in a clean worktree of `b390b83` (whose build is byte-identical, `7d525ad4`):
+  `stintreshape` (timed out) and gate 13 `stintswap-reshape` (116,764 bytes against 103,011) both read
+  `tests/fixtures/stintswap-reshape.sptcal`, which has UNCOMMITTED edits from someone else in the main checkout;
+  with the committed fixture, stintreshape passes and gate 13 is byte-identical. `pwagate` C1 (Copy link) was
+  contention: 13/13 alone. ⚠️ The gate ran while another session merged `paper-size` into the main checkout's
+  `main` (20:16), which edited `gate.sh` and `t/lib.js` under the running script.
+- ⚠️ **Local `main` is NOT what goes live.** It now carries `paper-size` (merged by another session, not approved for
+  release) on top of `b390b83`, and meanwhile `origin/main` moved to `db73cf6` (the toolbar outline and one-chip,
+  pushed by their sessions). So the push is `region-show-info`: `b390b83` + `origin/main`, docs conflicts only
+  (README and HANDOFF top entries; both kept, and the superseded "navy tint" heading dropped).
+- **Owner, by picker:** *"Push my 2 commits only (Recommended)"*. That could not be a fast-forward any more, so the
+  merge was shown to the owner before it went.
+- **The merge, checked before it went** (`24f1537`, build `a289341c…`): `npm run check` 40/40; `regionmirror` 9/9,
+  `regionlock` 14/14, `settingswin` 19/19; for the two features that went live meanwhile: `noswapbtns` 7/7,
+  `hdrcontrols` 12/12, `colswapmove` 11/11 (gate.sh's own evaluator), `colswapmid`, `colswapstale`, `stintbtn`,
+  `stintmulti`, `stintchain`, `stintreshape` pass; gate 5 by hand: `fields.byId` 76 keys identical, grid identical,
+  0 clipped. No second full gate.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push the merge (Recommended)"*. ONE `git push origin
+  region-show-info:main` at 20:49:13 (`db73cf6..24f1537`, fast-forward). Deploy run 39718940598: success. At 20:50:08
+  the live `index.html`, fetched with a cache-buster, was **byte-identical to the merged build** (sha256
+  `a289341ca2c8f2fb…`, `cmp`); `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⛔ **FOR WHOEVER PUSHES LOCAL `main` NEXT (the `paper-size` session):** local `main` does NOT contain `24f1537` or
+  `db73cf6`. It holds `b390b83` (this change, unmerged with what went live) plus `paper-size` and plan docs. Merge
+  `origin/main` into it before pushing, or the push is refused (non-fast-forward); never force it, which would take
+  the Region change, the toolbar outline and one-chip off the live site. Expect docs-only conflicts (README and
+  HANDOFF top entries).
+- ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
+  The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
+
 ### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
@@ -148,43 +211,6 @@
   - `papersize` 12/12, `pdfdialog` 11/11, `cspproof` W1, `winansi` W0–W5, `exportrefused` E2.
 - ⏭ **Next:** the owner's commit and merge picker, then a separate push picker. On the tracker as `paper-size`
   (ready).
-
-### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
-
-- **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
-  exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
-- **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
-  `#union-place`. ⛔ **`#union-place` is still THE Region** (its id is the save key, and the "Continue?" handler is
-  bound to it). The new one is `select.region-mirror`: a PLAIN `<select>` with NO id inside `Input.Wrapper
-  labelElement="div"` (label only) with `aria-label`. ⛔ Never make it a NativeSelect: Mantine mints an id when given
-  none (UI-CONVENTIONS §8.3), and `collectFieldValues()` would sweep a re-rolled second Region key into every file
-  and the undo stack. Both selects share one option list, `REGION_OPTIONS` in `Sidebar.jsx` (values are save format:
-  append only).
-- **How they stay in step (app.js):** a delegated `change` listener (in the IIFE that binds `#union-place`) copies
-  the mirror's value to `#union-place` and dispatches a bubbling `change` on it, so the question, its hold and Cancel
-  run exactly as from Settings. `reflectRegionUI()` writes `#union-place`'s value back to every `.region-mirror`;
-  every path that sets the Region ends there (a pick, the hold, Cancel, `syncRegionTracking()` from
-  `refreshAfterRestore()`, Reset All's block). A new path that sets `#union-place` without reaching
-  `reflectRegionUI()` would leave the copy stale; `regionmirror` M3/M5/M8 catch that.
-- **Look:** `legacy.css` `select.region-mirror` draws Mantine's own ComboboxChevron path (up/down, 14px, gray-6,
-  centred in the 28px right section), checked against Season and Schedule by in a 2× screenshot. The toolbar
-  popovers' `.tools-menu select` (a down arrow) is a different look and was left alone. Help's "Schedule effect"
-  paragraph now says Show info first, Settings ▸ Region second.
-- **Proof:** new leg **`regionmirror`** M0–M8, 9/9 on the build, added to `gate.sh`'s audit loop on its own line;
-  mutants: no write-back → M3/M5/M6/M8 red, the copy bypassing the question → M6/M7 red; source restored and
-  `cmp`-checked. Gate 5 by hand: `restore`'s `fields.byId` 76 keys and values identical to the baseline, grid and
-  bytes identical. `regionlock` 14, `regioncaveat` 13, `settingswin` 19, `sharecopy2`, `hostile (xss-mixed)` 13,
-  `noresetall` 5, `dlgkeys` 16, `wrapdate` all green; `npm run check` 40/40 (build `7d525ad4…`). Full gate NOT run.
-  The in-app browser could not be used (all five server slots held by other chats); the screenshot is headless.
-- ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
-  the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
-  owner-approved.
-- **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
-  fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
-  push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
-- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
-  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
-  `region-in-show-info`.
 
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
 
@@ -6164,7 +6190,6 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ---
 
-
 ### Where things are
 
 **LIVE at `a9ec081`** (22 Sep 2026), verified byte-identical to its gated build (`e9d46ea6…`) and
@@ -8001,7 +8026,6 @@ file greps normally. The source is the dangerous one.
 ⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
 spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
 regenerating rather than trusting if `index.html` has moved.
-
 
 ### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
 
