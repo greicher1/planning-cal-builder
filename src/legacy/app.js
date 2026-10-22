@@ -26360,6 +26360,212 @@ export function initLegacyApp() {
     e.stopPropagation();
     openMvNoteEditor(hit, hit.dataset.noteWeek, hit.dataset.noteDay, hit.dataset.noteKind || 'day');
   });
+
+  // ---------- Drag a note up or down in its day (MONTH-ORDER-PLAN.md §3.2, ruling R2) ----------
+  // A note has no drag of its own (a click edits it), so the note itself is the handle: press and move more than
+  // a few pixels and it lifts (the moving copy, mvDragGhost); a press that does not move is the click it always
+  // was. The copy moves up and down in the note's own day. As its middle passes another item in that day's
+  // column, the day's notes are re-arranged and the calendar redraws live (ruling R3):
+  //  - above every bar in the column is the 'top' group (a bar crossing the day drops a line that week);
+  //  - anywhere else is 'below', among that group's notes.
+  // What it writes is the place mvDayNoteBlocks() reads (an own note's `top` and array order, a waterfall line's
+  // mvWfNotePlace), never the text, the colour or the day. ZERO FROZEN EDITS here; E2 is what draws the result.
+  // ⚠️ Not while the note editor is open: a press then is the editor's (commit, or open another), as it was.
+  (function installMonthNoteDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const SLOP = 4;                     // px of travel before a press becomes a drag rather than a click
+    let press = null, drag = null, swallowClick = false;
+    const sched = ()=> currentSchedule || {};
+    // The note's element in the CURRENT grid (each redraw replaces it), found by what it is, not by node.
+    function noteEl(id){
+      const els = wrap.querySelectorAll('.mv-note-block[data-note-day="' + id.iso + '"][data-note-kind="' + id.kind + '"]');
+      for(const el of els){
+        if(id.kind === 'day' ? el.getAttribute('data-note-index') === String(id.index) : el.textContent === id.text) return el;
+      }
+      return null;
+    }
+    const sameId = (b, id)=> b.kind === id.kind && (b.kind === 'day' ? b.index === id.index : b.text === id.text);
+    wrap.addEventListener('mousedown', e=>{
+      if(viewMode !== 'month' || e.button !== 0 || isMacCtrlClick(e) || activeMvNote) return;
+      const el = e.target.closest && e.target.closest('.mv-note-block.mv-note-click');
+      if(!el || !wrap.contains(el)) return;
+      const iso = el.getAttribute('data-note-day'), kind = el.getAttribute('data-note-kind');
+      if(!iso || (kind !== 'day' && kind !== 'wf')) return;
+      const id = kind === 'day' ? {kind, iso, index: parseInt(el.getAttribute('data-note-index'), 10)}
+                                : {kind, iso, text: el.textContent};
+      if(kind === 'day' && !Number.isInteger(id.index)) return;
+      press = {el, id, x0: e.clientX, y0: e.clientY};
+    });
+    function begin(){
+      const p = press;
+      press = null;
+      const r = p.el.getBoundingClientRect();
+      const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), p.el.closest('.mv-week'));
+      const col = mvBarColumns(p.el)[0];
+      if(wi < 0 || col == null) return;
+      // Flush what came before into its own step (the body drag's rule), then lift the note.
+      pushUndoSnapshot();
+      const shield = document.createElement('div');
+      shield.className = 'mv-drag-shield';
+      document.body.appendChild(shield);
+      const sel = window.getSelection && window.getSelection();
+      if(sel) sel.removeAllRanges();
+      const list = dayNotes[p.id.iso];
+      drag = {id: p.id, wi, col, y0: p.y0, top0: r.top, h: r.height, ghost: mvDragGhost(p.el), shield,
+              wasList: list, wasListJson: JSON.stringify(list === undefined ? null : list),
+              wasPlace: mvWfNotePlace, wasPlaceJson: JSON.stringify(mvWfNotePlace), redrawn: false};
+    }
+    // Where the copy's middle says the note goes: {group, k}, k its place among that group's notes.
+    function target(mid){
+      const d = drag;
+      const week = wrap.querySelectorAll('.mv-week')[d.wi];
+      if(!week) return null;
+      const me = noteEl(d.id);
+      const items = Array.from(week.querySelectorAll('.mv-bar:not(.mv-note-add)'))
+        .filter(b=> b !== me && mvBarColumns(b).indexOf(d.col) >= 0)
+        .map(b=>{
+          const r = b.getBoundingClientRect(), isNote = b.classList.contains('mv-note-block');
+          return {isNote, top: isNote && isTopNote(b), mid: (r.top + r.bottom) / 2};
+        })
+        .sort((a, b)=> a.mid - b.mid);
+      const p = items.filter(it=> it.mid < mid).length;
+      const before = items.slice(0, p);
+      const hasBar = items.some(it=> !it.isNote);
+      // Above every bar in the column is the top group. A column with no bar has nothing to be above, so the
+      // note keeps its group there and only moves among that group's notes.
+      const group = hasBar ? (before.some(it=> !it.isNote) ? 'below' : 'top') : currentGroup(d.id);
+      return {group, k: before.filter(it=> it.isNote && (it.top === (group === 'top'))).length};
+    }
+    function isTopNote(el){
+      const iso = el.getAttribute('data-note-day');
+      if(el.getAttribute('data-note-kind') === 'day'){
+        const e = dayNoteList(iso)[parseInt(el.getAttribute('data-note-index'), 10)];
+        return !!(e && e.top === true);
+      }
+      const p = mvWfPlaceOf(el.textContent);
+      return !!(p && p.top === true);
+    }
+    function currentGroup(id){
+      return mvDayNoteBlocks(sched(), parseDateUTC(id.iso), 'top').some(b=> sameId(b, id)) ? 'top' : 'below';
+    }
+    // Re-arrange the day's notes so the dragged one is k-th in `group`, and write what that means: the own
+    // notes' array order and `top`, and every waterfall line's {top, at} on this day. Returns false, writing
+    // nothing, when the day would draw exactly as it does.
+    function arrange(t){
+      const d = drag, day = parseDateUTC(d.id.iso);
+      const seq = {top: mvDayNoteBlocks(sched(), day, 'top'), below: mvDayNoteBlocks(sched(), day, 'below')};
+      // A block's identity that survives the re-arrangement: an own note by its index BEFORE it, a line by its text.
+      const tag = b=> b.kind === 'day' ? 'd' + b.index : 'w' + b.text;
+      const sigOf = q=> q.top.map(tag).join('\u0001') + '\u0002' + q.below.map(tag).join('\u0001');
+      const sig0 = sigOf(seq);
+      let moving = null;
+      ['top', 'below'].forEach(g=>{
+        seq[g] = seq[g].filter(b=>{ if(sameId(b, d.id)){ moving = b; return false; } return true; });
+      });
+      if(!moving) return false;
+      const into = seq[t.group];
+      into.splice(Math.min(t.k, into.length), 0, moving);
+      if(sigOf(seq) === sig0) return false;
+      const list = [], wasIndex = [], place = Object.assign({}, mvWfNotePlace);
+      let movedTo = null;
+      ['top', 'below'].forEach(g=>{
+        let own = 0;
+        seq[g].forEach(b=>{
+          if(b.kind === 'day'){
+            const e = Object.assign({}, b.entry);
+            if(g === 'top') e.top = true; else delete e.top;
+            if(b === moving) movedTo = list.length;
+            wasIndex.push(b.index);
+            list.push(e);
+            own++;
+            return;
+          }
+          const key = mvWfNoteKey(b.text);
+          if(MV_UNSAFE_KEY.test(key)) return;
+          const v = {};
+          if(g === 'top') v.top = true;
+          if(own > 0) v.at = own;
+          if(Object.keys(v).length) place[key] = v; else delete place[key];
+        });
+      });
+      const keepList = dayNotes[d.id.iso], keepPlace = mvWfNotePlace;
+      if(list.length) dayNotes[d.id.iso] = list;
+      mvWfNotePlace = place;
+      // What the day now DRAWS, named as before. Two waterfall lines with the same `at` keep their natural order
+      // (mvDayNoteBlocks), so a drop that only swaps two of them is one this store cannot say: put it back.
+      const now = {top: mvDayNoteBlocks(sched(), day, 'top'), below: mvDayNoteBlocks(sched(), day, 'below')};
+      const drawn = ['top', 'below'].map(g=> now[g].map(b=> b.kind === 'day' ? 'd' + wasIndex[b.index] : 'w' + b.text).join('\u0001')).join('\u0002');
+      if(drawn === sig0){
+        if(keepList === undefined) delete dayNotes[d.id.iso]; else dayNotes[d.id.iso] = keepList;
+        mvWfNotePlace = keepPlace;
+        return false;
+      }
+      if(d.id.kind === 'day' && movedTo != null) d.id = Object.assign({}, d.id, {index: movedTo});
+      return true;
+    }
+    window.addEventListener('mousemove', e=>{
+      if(press && !drag){
+        if(!(e.buttons & 1)){ press = null; return; }
+        if(Math.abs(e.clientY - press.y0) < SLOP && Math.abs(e.clientX - press.x0) < SLOP) return;
+        begin();
+        if(!drag) return;
+      }
+      if(!drag) return;
+      if(!(e.buttons & 1)){ end(); return; }
+      const dy = e.clientY - drag.y0;
+      drag.ghost.moveBy(0, dy);
+      const t = target(drag.top0 + dy + drag.h / 2);
+      if(t && arrange(t)){
+        drag.redrawn = true;
+        render(currentSchedule);
+        markDirty();
+        // ⛔ markDirty() armed the undo debounce. Kill it: the gesture banks its own ONE step, in end().
+        cancelPendingUndoPush();
+      }
+    });
+    window.addEventListener('mouseup', ()=>{
+      press = null;
+      if(drag){ end(); swallowClick = true; setTimeout(()=>{ swallowClick = false; }, 0); }
+    });
+    // The click that ends a drag is not an edit.
+    window.addEventListener('click', e=>{
+      if(!swallowClick) return;
+      swallowClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+    // Escape puts back exactly what was there and banks nothing (MONTH-9's rule).
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      restore();
+      end();
+    }, true);
+    function restore(){
+      const d = drag;
+      if(d.wasList === undefined) delete dayNotes[d.id.iso]; else dayNotes[d.id.iso] = d.wasList;
+      mvWfNotePlace = d.wasPlace;
+    }
+    function end(){
+      const d = drag;
+      if(!d) return;
+      const now = dayNotes[d.id.iso];
+      const same = JSON.stringify(now === undefined ? null : now) === d.wasListJson && JSON.stringify(mvWfNotePlace) === d.wasPlaceJson;
+      if(same) restore();
+      drag = null;
+      d.ghost.remove();
+      d.shield.remove();
+      if(same){
+        // Out and back, or Escape: exactly what was there (the very objects), and no step.
+        if(d.redrawn){ render(currentSchedule); cancelPendingUndoPush(); }
+        return;
+      }
+      // ⛔ THE TRAILING PUSH IS THE STEP, as every month drag's.
+      pushUndoSnapshot();
+      markDirty();
+    }
+  })();
   // Clicking anywhere else commits, matching the waterfall editor's behaviour.
   document.addEventListener('click', e=>{
     if(!activeMvNote) return;
