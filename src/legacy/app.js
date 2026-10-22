@@ -13075,21 +13075,11 @@ export function initLegacyApp() {
       const sel = (pinnedDate === dIso) ? ' selected' : '';
       return `<option value="${dIso}"${sel}>${nm} ${fmtShort(addDays(weekStart, i))}</option>`;
     }).join('') : '';
-    // Font size for THIS note. Deliberately a class and no id: collectFieldValues() sweeps every
-    // input[id]/select[id]/textarea[id] in the document into the saved file and the undo stack,
-    // so a transient editor control with an id would be baked into saves and add phantom undo
-    // steps. .note-day-select next door follows the same rule.
-    const NOTE_SIZES = [6, 7, 8, 9, 10, 11, 12, 14, 16];
-    // Hiatus bands get the size control too -- they are editable text in the same grid, and a
-    // band squeezed by a short row needs the same escape hatch a note does. (The DAY picker
-    // stays notes-only: a hiatus key is "week|phase", which is not a parseable date.)
-    const curSize = isHiatus ? hiatusFontSizeFor(weekKey) : noteFontSizeFor(weekKey);
-    const sizeRow = `<div class="note-size-row">
-      <label>Size <select class="note-size-select">
-        <option value=""${curSize === undefined ? ' selected' : ''}>Auto</option>
-        ${NOTE_SIZES.map(s=>`<option value="${s}"${curSize === s ? ' selected' : ''}>${s}</option>`).join('')}
-      </select></label>
-    </div>`;
+    // ⛔ NO SIZE ROW since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md §2): the text style bar is the one place a
+    // note's or a band's size is set, writing the same noteFontSize / hiatusFontSize this editor did. Its list
+    // was 6-16, and 13 and up cut the text in a standard row (plan §4.1); the bar's is 6-12 (owner ruling D1).
+    // A note already saved at 14 or 16 keeps that size and the bar shows it. pendingSize / sizeTouched stay
+    // in activeNoteEditor below, never touched now, so a commit writes no size.
     const dayRow = isHiatus ? '' : `<div class="note-day-row">
       <label>Day <select class="note-day-select">
         <option value=""${pinnedDate?'':' selected'}>Mon (default)</option>
@@ -13108,7 +13098,6 @@ export function initLegacyApp() {
       <div class="note-editor">
       <textarea rows="2" placeholder="${isHiatus?'Hiatus label':'Note text (multi-line OK)'}">${textVal.replace(/</g,'&lt;')}</textarea>
       ${dayRow}
-      ${sizeRow}
       <div class="note-color-row" title="Highlight color">${swatches}</div>
       </div>
       <div class="note-pop-hint">Tab or Ctrl/Cmd&#8209;Enter to save \u00b7 Esc to cancel</div>`;
@@ -13163,18 +13152,6 @@ export function initLegacyApp() {
 
     activeNoteEditor = {td, pop, place, weekKey, textarea, autoNotes, isHiatus, pendingColor: null,
                         pendingSize: undefined, sizeTouched: false, defaultLabel: hiatusDefaultLabel};
-    const sizeSel = pop.querySelector('.note-size-select');
-    if(sizeSel){
-      sizeSel.addEventListener('mousedown', e=>e.stopPropagation());
-      sizeSel.addEventListener('click', e=>e.stopPropagation());
-      sizeSel.addEventListener('change', e=>{
-        e.stopPropagation();
-        if(!activeNoteEditor || activeNoteEditor.td !== td) return;
-        activeNoteEditor.pendingSize = sizeSel.value ? +sizeSel.value : undefined;
-        activeNoteEditor.sizeTouched = true;
-        textarea.focus();
-      });
-    }
 
     // Swatch clicks: preview immediately on the cell, store as pending until commit.
     pop.querySelectorAll('.color-swatch').forEach(sw=>{
@@ -16512,19 +16489,21 @@ export function initLegacyApp() {
     L.body.textContent = ''; L.head.textContent = '';
     const z = gridZoom(L.wrap) || 1;
     const wr = L.wrap.getBoundingClientRect(), hr = L.head.getBoundingClientRect();
-    textSel.forEach(k=>{
-      const c = idx.get(k);
-      const r = c.getBoundingClientRect();
-      const isHead = c.tagName === 'TH';
-      const o = isHead ? hr : wr;
+    // Every rect READ first, then every box WRITTEN: reading a rect after appending a box forces a layout
+    // per cell, which Cmd+A over a few hundred cells turns into seconds.
+    const boxes = [...textSel].map(k=>{ const c = idx.get(k); return { k, head: c.tagName === 'TH', r: c.getBoundingClientRect() }; });
+    const fragBody = document.createDocumentFragment(), fragHead = document.createDocumentFragment();
+    boxes.forEach(({k, head, r})=>{
+      const o = head ? hr : wr;
       const d = document.createElement('div');
       d.className = 'text-sel-cell' + (k === textSelActive ? ' is-active' : '');
       d.style.left = (r.left - o.left) / z + 'px';
       d.style.top = (r.top - o.top) / z + 'px';
       d.style.width = Math.max(1, r.width / z) + 'px';
       d.style.height = Math.max(1, r.height / z) + 'px';
-      (isHead ? L.head : L.body).appendChild(d);
+      (head ? fragHead : fragBody).appendChild(d);
     });
+    L.body.appendChild(fragBody); L.head.appendChild(fragHead);
     if(marquee){
       const m = document.createElement('div');
       m.className = 'text-sel-marquee';

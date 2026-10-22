@@ -208,12 +208,14 @@ window.addEventListener('load', function () { (async function () {
     l1 = q('.sb-line[data-li="1"]', sideBoxEls('right')[1]);
     l1.textContent = 'and runs six weeks'; l1.dispatchEvent(new InputEvent('input', {bubbles: true}));
     // The format bar, on the left box's bold first line: B turns it off, 16 makes it two rows tall.
+    // ⭐ Since 21 Oct 2026 that bar is the TEXT STYLE BAR under the toolbar (TEXT-STYLE-BAR-PLAN.md): the box's
+    // floating .sb-fmt retired, and focusing a line arms the permanent bar instead, through applySideFmt.
     var lb = q('.sb-line[data-li="0"]', sideBoxEls('left')[0]);
     lb.focus(); lb.dispatchEvent(new FocusEvent('focusin', {bubbles: true}));
-    await T.until(function () { return !!q('.sb-fmt'); }, 'the format bar', 30, 100);
-    var bar = q('.sb-fmt'), bBtn = bar && q('.hf-b', bar);
-    check(bar && qa('[id]', bar).length === 0 && bBtn.classList.contains('is-on') && hits(bBtn),
-          'G8 focusing a line shows the format bar: no ids, Bold lit for a bold line, on top');
+    await T.until(function () { return !!q('.style-bar.has-target'); }, 'the text style bar to arm', 30, 100);
+    var bar = q('.style-bar'), bBtn = bar && q('.hf-b', bar);
+    check(bar && !q('.sb-fmt') && qa('[id]', bar).length === 0 && bBtn.classList.contains('is-on') && hits(bBtn),
+          'G8 focusing a line arms the text style bar (no floating bar): no ids, Bold lit for a bold line, on top');
     bBtn.click();
     check(getComputedStyle(lb).fontWeight === '400' && !bBtn.classList.contains('is-on'), 'G9 Bold turns the line\'s bold off, in place');
     var sz = q('.hf-size', bar); sz.value = '16'; sz.dispatchEvent(new Event('change', {bubbles: true}));

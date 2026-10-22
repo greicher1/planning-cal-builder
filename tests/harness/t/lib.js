@@ -70,10 +70,17 @@ window.__T = (function(){
     return n;
   }
   // A free-text note typed by the user: the path that must stay pixel-identical.
+  // A waterfall note, band or custom heading opens on a DOUBLE-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md
+  // D5: "a single click highlights it, like Excel"). Dispatched on the cell itself, at its centre.
+  function openCell(el){
+    var r=el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2,
+      clientX:Math.round(r.left+r.width/2),clientY:Math.round(r.top+r.height/2)}));
+  }
   async function typeUserNote(weekIso, text){
     var td=document.querySelector('td.sheet-note-cell[data-week="'+weekIso+'"]');
     if(!td) throw new Error('no note cell for '+weekIso);
-    td.click();
+    openCell(td);
     await sleep(300);
     var ta=document.querySelector('.note-editor textarea');
     if(!ta) throw new Error('note editor did not open');
@@ -531,7 +538,7 @@ window.__T = (function(){
   }
   function done(o){ scrubSurrogates(); document.getElementById('R').textContent=JSON.stringify(o); }
   return {set:set,sleep:sleep,buildFixture:buildFixture,showHolidaysInSheet:showHolidaysInSheet,
-          typeUserNote:typeUserNote,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
+          typeUserNote:typeUserNote,openCell:openCell,addHiatus:addHiatus,openViaFakePicker:openViaFakePicker,
           formSignature:formSignature,appHealth:appHealth,until:until,appReady:appReady,
           clippedCells:clippedCells,gridWidthPt:gridWidthPt,colList:colList,
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,

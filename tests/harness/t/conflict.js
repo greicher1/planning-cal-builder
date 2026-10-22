@@ -60,7 +60,7 @@ window.addEventListener('load', function () { (async function () {
     T.set('show-title', 'SHOW A (mine 3)'); await T.sleep(700);
     if(!document.querySelector('#table-wrap td.sheet-note-cell')){ document.getElementById('view-sheet-btn').click(); await T.sleep(800); }
     var cell = document.querySelector('#table-wrap td.sheet-note-cell[data-week="2026-08-10"]') || document.querySelector('#table-wrap td.sheet-note-cell');
-    cell.click(); await T.sleep(400);
+    T.openCell(cell); await T.sleep(400);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
     var ta = document.querySelector('.note-editor textarea');
     if(ta){ ta.value = 'Half-typed note'; ta.dispatchEvent(new Event('input', {bubbles: true})); }
     await T.sleep(10.5 * 60 * 1000);

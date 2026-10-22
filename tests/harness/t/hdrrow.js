@@ -198,7 +198,8 @@ window.addEventListener('load', function () { (async function () {
     th.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     var r = th.getBoundingClientRect();
     var x = Math.round(r.left + r.width * (frac === undefined ? 0.5 : frac)), y = Math.round(r.top + r.height / 2);
-    th.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+    // A DOUBLE-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md D5): a click highlights the heading.
+    th.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, detail: 2, clientX: x, clientY: y }));
     await T.until(function () { return !!document.querySelector('.hdrrow-pop'); }, 'the heading editor', 30, 100);
     return document.querySelector('.hdrrow-pop');
   }

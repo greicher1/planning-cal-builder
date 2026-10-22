@@ -2471,6 +2471,27 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
 
+# ---- textstyle: the text style bar (TEXT-STYLE-BAR-PLAN.md; owner rulings D1-D5 + F1-F4, 21 Oct 2026) -----------
+# One bar under the toolbar styles any waterfall text: Excel's highlight over the grid (click, sweep, Cmd/Shift-click,
+# Cmd+A), header lines in any mode or view, side-box lines. Sizes 6-12 in the grid (D1), so no row may grow and nothing
+# new may be cut. The leg holds the bar's place and empty state, every kind styled on screen, in the workbook (read back
+# by ExcelJS) and in the PDF (bold program, slant, colour), one undo step per press, the save key (absent when nothing
+# is styled, no new fields.byId id), restore-unconditionally, and D5: a click opens nothing, double-click / Enter /
+# typing open a note (typing ADDS at the end). The byte gates above are the proof that an unstyled calendar is untouched.
+rm -f "$HERE/textstyle.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=carry-rich "$HERE/run.sh" textstyle 400 >/dev/null 2>&1
+python3 - "$HERE/textstyle.json" <<'PYTS' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  textstyle produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  textstyle threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'textstyle: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYTS
+
 # ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
 # Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
 # names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off

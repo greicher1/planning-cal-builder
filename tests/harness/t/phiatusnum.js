@@ -248,7 +248,7 @@ window.addEventListener('load', function () { (async function () {
     await step('H11', async function () {
       // Retype the middle band through the real band editor.
       var td = document.querySelector('#table-wrap td.sheet-hiatus-cell[data-pkey="prePrep"][data-week="' + PP[1] + '"]');
-      td.click();
+      T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
       await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the band editor', 50, 100);
       var ta = document.querySelector('.note-editor textarea');
       ta.value = 'Lock-off';
