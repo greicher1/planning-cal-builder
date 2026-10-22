@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; NOT IN `main`, NOT PUSHED
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d` (legs green, full gate NOT re-run); NOT IN `main`, NOT PUSHED
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -64,9 +64,21 @@
   `main` has not moved since (`1f4ae2c`), so merging this branch into it is a fast-forward.
 - ⚠️ **A push of local `main` after that also ships what `main` already holds and `origin/main` (`34c873f`) does not:
   `sidebox-zoom` and `phase-outline` (its gate 13 re-cut included).** This gate ran on exactly that combination.
-- ⏭ **Next:** the owner's merge and push pickers. ⚠️ The "Hide side
-  boxes from export" session edits the same SIDE BOXES block; it was told what changed here, and that a new per-box
-  key must go into `sideBoxesSnapshot()` too.
+- **22 Oct 2026, owner: *"Merge sidebox-noexport into sidebox-free-pos, apply the three fixes the header-zoom session
+  found, and run the tests. Don't merge into main or push."*** Done as `b25029d`. The merge is SILENT and wrong
+  without three things, all found by the header-zoom session's test merge (branch `land-five`, `f245d26` +
+  `1b6c6d6`, stood down): (1) `sideBoxesSnapshot()` now writes `noExport` (last, only `true`); without it every
+  save and undo drops "Hide from Exports" (mutant: `sbnoexport` times out on its undo step). (2) Every SCREEN caller
+  of the layout passes `SIDE_SCREEN` (`positionSideBoxes`, `addSideBox`, `sideDropPlan` twice, `onSideGripKey`);
+  the writers keep the bare call, which is the PRINTED layout. (3) `sbnoexport` T6 now checks the tabs add no scroll
+  of their own (land-five's rewrite), since a column is as long as the grid by design. Also `SIDE_SCREEN_GAP_PX`
+  6 → 18, room for the tab under a zoomed-out box; `.sb-stack` keeps noexport's 20 px bottom padding. ⚠️ With free
+  positions a hidden box's neighbours close up in PRINT only if they stack; a box with a `row` keeps it.
+- **Proof on `b25029d` (build `6f42d61d…`):** `sideboxes` 74/74, `sbnoexport` 28/28, `calzoom` 24/24,
+  `npm run check` 40/40. ⚠️ **The full gate has NOT been run on this merge**; the 2,662 / 0 above is the build
+  before it. Run it before any push.
+- ⏭ **Next:** the full gate on `b25029d`, then the owner's merge and push pickers. `sidebox-noexport` is now inside
+  this branch, so landing this lands both.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
