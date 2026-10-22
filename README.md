@@ -29,6 +29,35 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — no pop-ups over a waterfall selection but the double-click hint and a refused swap's reason (21 Oct 2026)
+
+The owner, with a screenshot of two pop-ups stacked over selected cells: *"can we remove or at least simplify (maybe
+combine into one?) this double pop up"*, then, after a one-chip version: *"remove the chip entirely, except say
+'Double click to expand cells' when you highlight phase blocks. then only if can't do a swap does it tell you why with a
+chip"*. Selecting phase cells used to draw a purple chip (*"31 cells (11 has no room) · double-click to expand ·
+Alt+←/→ to swap"*) and, above it, a dark one (*"All 42 weeks of Shoot in 2026 — Alt+→ trades the whole block with Post
+S1 · nothing re-flows"*).
+- **Highlighting phase cells** shows *"Double click to expand cells"*, or *"Double click to pull back cells"* when they
+  are already expanded (owner's pick), and nothing at all when there is no room to expand.
+- **A swap that cannot happen** shows why, in the teal chip, when you press Alt+←/→, click the knob or drop it: as
+  before, but now it is the only message a swap ever shows.
+- **A swap that works shows nothing afterwards** (owner's pick, "Never"), including the notes that other weeks widened
+  ("2 other weeks changed width to fit"), that a block reshaped, or that several blocks moved together.
+- **Before a swap**, what it would do is still on the knob's tooltip ("Swap the 2026 block of Prod Prep with Post"), and
+  a swap that would reshape a block still outlines the weeks it changes in amber. That outline is now the only warning,
+  since the amber chip that said it in words is gone.
+- The Help's three sentences about the label and the after-swap report are updated to match.
+- Chrome only (`redrawGridOverlay`, `drawSwapLayer` and the three finish functions in `app.js`; `swapModeText`,
+  `reshapeText` and `swapFlashSide` deleted; the chip CSS; the Help in `src/index.html`). Nothing in the grid, its cells
+  or the exports changes.
+- **Verified:** the eight legs that read either chip pass, each now asserting the new rule: no chip after a working swap
+  (`colswapmove`, `colswapmid`, `stintmulti`, `stintreshape`), no mode text before one (`stintbtn`, `stintchain`,
+  `stintreshape`, `noswapbtns`), the refusal still shown (`colswapmove`), and the hint's three states (`noswapbtns` S1,
+  S4 and the new S5, `colswapstale`). `npm run check` 40/40. Headless screenshots of a highlighted block and of a
+  refused swap show one chip each. Full gate (build `96b4b311…`): 2,565 PASS, 16 FAIL, all 16 from one `monthemit`
+  run under UTC+14 that wrote no result while other sessions' gates ran (the month PDF, untouched here); that block
+  re-run alone passed every check.
+
 ### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little

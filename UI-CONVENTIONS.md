@@ -1202,9 +1202,10 @@ Nothing in this document ships without all of these, every stage:
       anchors the mode menu; the Manual-only editor strip; nothing above the header in Auto or
       Template; the view-split notes reset in the app header; "Reset hiatus bands" in the sidebar;
       one undo step each. `sharecopy2` also requires the new React host empty in a shareable copy.
-    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's count chip
-      ends with "Alt+←/→ to swap" and shows whole on a narrow grid; Alt+arrows and double-click
-      still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
+    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's only chip
+      over a selection is the double-click hint (owner, 21 Oct 2026): "Double click to expand cells",
+      "…pull back cells" once expanded, none where there is no room, never any swap text; Alt+arrows
+      and double-click still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
 
     The month-PDF writer's step 1 (1 Oct 2026, `MONTH-PDF-WRITER-PLAN.md` §8) adds `interfonts`.
     It reads the four static Inter programs with the frozen `ttf*` functions, and requires every

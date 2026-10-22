@@ -4,6 +4,53 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone), not committed
+
+- **Asked** (screenshot of the purple count chip and the dark swap-mode chip stacked over a Shoot block): *"can we
+  remove or at least simplify (maybe combine into one?) this double pop up"*. A first build merged them into one short
+  chip (picker: "One short chip"); the owner then replaced that ruling:
+  *"remove the chip entirely, except say "Double click to expand cells" when you highlight phae blocks. then only if
+  can't do a swap does it tell you why with a chip"*.
+- **Ruled by picker, same evening:** after a swap that WORKS, a chip appears **"Never"** (not even for collateral,
+  reshape or extra partners); the hint says **"Double click to pull back cells"** when the cells are already expanded,
+  and **nothing** when there is no room.
+- ⛔ **This overrides two older rulings, and the owner chose it knowing so:** COLUMN-ORDER-PLAN E1's "a block that
+  moved because it shared a column must never move unannounced" (now carried only by the knob's label/tooltip before
+  the press: "Swap the 2026 block of Writer's Rm with Post and Localization") and 2 Sep 2026's "warn harder" for a
+  reshaping block swap (now only the amber `.grid-swap-collateral` outlines, which still draw on selection; the picker
+  option said so). Do not bring the words back without asking.
+- **Built** (chrome only; nothing frozen):
+  - `redrawGridOverlay`: the chip is `'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells'`, drawn only
+    when `expandable` (and not during a flash). The count, "(N has no room)", "No room to expand" and the swap keys are
+    gone; `clampedOut` and the chip's `dataset.top/h` (read only by the old stacking) went with them.
+  - `drawSwapLayer` draws its chip ONLY for a flash, anchored to the seed cell. The passive refusal line and the mode
+    line are gone. `finishSwapMove` / `finishStintMove` / `finishFollowMove` end in `flashSwapMsg('')` (clears a
+    refusal still up) instead of their confirmations, reduced motion included.
+  - **Deleted as dead:** `swapModeText`, `reshapeText`, `swapFlashSide`, `swapFlashAt` and `flashSwapMsg`'s `at`
+    argument; `.grid-swap-chip.is-warn`. `swapRunDates` stays (knob labels).
+  - Help (`src/index.html`): the label "says which of the two it will do, and there is no label when none of them has
+    room"; "(the label beside the highlight reminds you)" and "and reported afterwards" removed.
+- **Tests** (all assert the new rule, none just loosened): `colswapmove` `confirmSilent`, `colswapmid` `chipSilent`,
+  `stintmulti` `flashSilentA` (+ no swap text in the chip, A and B), `stintreshape` `noWordsBefore` + `flashSilent`
+  (the 28 amber rects still asserted), `stintbtn` (hint text exact; partial mode read off the KNOB's aria-label, "Swap
+  Prod Prep with Post (11/16/26–12/7/26)"), `stintchain` (knob + no chip text), `colswapstale` (no hint at all on a
+  no-room seed), `noswapbtns` S1 (no chip on a no-room Post cell), S4 (exact hint), **new S5** (pull-back hint after the
+  expand). gate.sh's messages for those checks are rewritten to match.
+- **Proof so far:** the eight legs, extracted from `gate.sh`, all PASS on build `96b4b311…` (port 9361);
+  `noswapbtns` 7/7 with S5; headless screenshots (1100×800, `colswap-gesture`): a highlighted block showing only
+  "Double click to expand cells", and a refused Alt+→ on Post showing only "Swap needs a phase in the column beside
+  it…". ⚠️ The browser pane could not be used: its 5-servers-per-folder cap was held by other chats.
+- ✅ **Full gate on build `96b4b311…` (HARNESS_PORT 9383, 18:18–18:55, queued behind two other sessions' gates):
+  2,565 PASS, 16 FAIL, all 16 from ONE cause:** `monthemit`'s UTC+14 run (`Pacific/Kiritimati, 1280,900`) "produced no
+  result", so its 14 byte-identity comparisons and the file-count check failed with it. Month PDF writer, untouched
+  here. **That block (gate.sh's MEA/MEB loop, all five runs + the file checks) re-run alone on the same build: FAIL=0**,
+  with another session's gate running beside it. Add `monthemit` (UTC+14 run) to the contention-flake list beside
+  `pilllabel` C1/C3 and `monthexport` X6. Everything else green, gates 10 and 13 included.
+- ⚠️ **The main checkout carries someone else's UNCOMMITTED edit to `tests/fixtures/stintswap-reshape.sptcal`** (plus
+  an untracked `Reshape Fixture 2026-09-29.sptcal`), present before this session. It was left alone. A gate run from
+  the main checkout would load that changed fixture into `stintreshape`.
+- ⏭ **Next:** commit/push only on the owner's word. On the tracker as `one-selection-hint`.
+
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
 - **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the
