@@ -4,9 +4,18 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR IS BUILT, AND MERGED WITH TODAY'S `main` — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`), merge `e12b10b`, build `c7b70156`; GATED 2,695 / 3 (the 3 fixed in the leg, 14/14); NOT IN `main`, NOT PUSHED
+### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR — MERGED INTO LOCAL `main` at `555acc0` (build `c7b70156`, byte-identical to the gated build); GATED 2,695 / 3 (the 3 fixed in the leg, 14/14); NOT PUSHED — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
 
-- ⏭ **RESUME HERE.** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
+- ⏭ **RESUME HERE: the push.** Owner, 22 Oct 2026, after trying the branch build on localhost: *"merge text-style-bar
+  into local main (no push), check the build there is the gated one, then ask me separately about pushing."* Done:
+  main's one new commit (`8814000`, HANDOFF only) merged into the branch (`555acc0`; no src or test file changed), then
+  local `main` FAST-FORWARDED to it, so `main` = `555acc0` = the branch. ✅ A clean scratch build of `main`'s tree
+  (`git archive main`) is **byte-identical to the gated build** (`c7b70156…`, `cmp`); `npm run check` 40/40.
+  `origin/main` is still `17136a7`: nothing pushed. The main checkout's two pre-existing fixture items
+  (`stintswap-reshape.sptcal` modified, "Reshape Fixture 2026-09-29.sptcal" untracked) were left as they were.
+  ⏭ **Next: the owner's push picker** (a version cut is a separate call; `version.json` is unchanged, so a push would
+  reach installed users silently, as the last few did).
+- **Earlier:** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
   /Length stream reads and convert the other five legs to match), rebuild, and run the full gate. Don't merge into main
   or push."* Done as `e12b10b` (main at `1f4ae2c`: v1.7.0 paper size + Export PDF dialog, header-zoom, phase outline,
   one-chip, toolbar-center, sidebox-zoom, Production Region in Show info). Conflicts: CLAUDE.md (both state rows:
