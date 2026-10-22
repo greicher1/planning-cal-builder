@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — PLANNED in [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) and RULED; build starting on branch `month-order`
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `7650870`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
   view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
@@ -24,8 +24,33 @@
   `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
   without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
 - ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
-- ⏭ **Next:** build in the plan's §8 order on `month-order`. On the tracker as `month-reorder` and
-  `month-drag-preview` (planned).
+- **Built (7 commits on `month-order`):** `mvPhaseOrder` + E1 + "Back to date order" in the bar's menu; the reorder grip
+  (`installMonthOrderDrag`) and the moving copy (`mvDragGhost`, body-level, computed style + `currentCSSZoom` copied,
+  stripped from shareable copies); note places + E2 (`mvDayNoteBlocks`, two passes); the note drag
+  (`installMonthNoteDrag`: the note is its own handle past 4 px, the click after a drag is swallowed, not while the
+  editor is open); the copy on the phase body drag and the hiatus band move; Help paragraph; README entry;
+  CLAUDE.md state rows.
+- ⚠️ **Two departures from the plan, recorded in it:** the grip is at the bar's RIGHT end (at the left it sat on the
+  label's first letter, "Ṗrod Prep"), and D6 is dropped: start/end grips are a resize and keep stepping with their
+  edge (`pilldrag`/`phaseedge` read them mid-gesture). The owner has not seen either yet.
+- ⭐ **Learned:** (1) a drag's out-and-back needs `<=` on the midline test: back at the start, the copy's middle is
+  EXACTLY the middle of the neighbour that took its old slot, and `<` landed it one place off (mvorder O7 caught it).
+  (2) `vite build --outDir X` is relative to `src/` (Vite's root), so a mutant build lands in `src/X` and `git add
+  src` sweeps it in (happened once, amended out). (3) A day note's stored `lane` is never read by the renderer;
+  Help's "a note stays on the line you added it to" overstates it. (4) With a note ON TOP, the month-PDF writer
+  re-wraps that note at its own width BEFORE the bars, so a bar's PDF lane can differ from the screen's; monthlayout
+  L1 ("non-notes keep their lane") holds only where no note is on top. No baseline has one.
+- **Proof so far (build `dist` of `c2f7c65`):** `npm run check` 40/40; new CDP leg **`mvorder` 20/20**, in `gate.sh`
+  (screen, saved file AND the written month PDF's text positions; out-and-back and Escape bank nothing; a place
+  follows its auto-note when Production is dragged; a click still edits; a hostile file incl. a `__proto__` key).
+  Mutant without E1+E2: O2, O3, O5, O7, O8, N1, N3, N4, N6 red. `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag`
+  13/13 (pilldrag's first run hit "timed out waiting for the engine" while another Chrome ran; green alone).
+- ⛔ **DISK IS FULL (0.9 GB free of 1.8 TB):** `/tmp` holds **2,138 leftover harness Chrome profiles, 16 GB** (every leg
+  leaves `/tmp/tc<port>-<leg>`; one full gate leaves ~114 of them, ~886 MB), and `.claude/worktrees` holds 70 worktrees,
+  14 GB. This session's gate waiter (scratchpad `waitgate.sh`, port 8790) starts only when no other gate runs AND
+  2 GB is free. Clearing the profiles is the owner's call (asked in chat); they are recreated by every run.
+- ⏭ **Next:** the full gate (gates 10 and 13 must stay byte-identical); then ask the owner about merging. On the
+  tracker as `month-reorder` and `month-drag-preview` (building).
 
 ### 📝 21 Oct 2026 (late): PAPER SIZE — PLANNED in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md) and RULED; nothing built
 
