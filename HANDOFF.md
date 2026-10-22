@@ -37,6 +37,10 @@
   UNPUSHED, its own gate queued, "push on pass"). Pushing `main` from here would have shipped `3f974af` ungated, so
   the order is: Region pushes first, this lands on top. Merged `b390b83` into this branch so its next gate covers
   the exact code that will go live: `sideboxes` 59/59, `calzoom` 24/24, `regionmirror` 9/9, `npm run check` 40/40.
+- ⚠️ **Learned, queuing a gate behind others:** `pgrep -f 'gate\.sh'` matches the waiting loop's OWN wrapper (the
+  Bash tool runs it as `zsh -c "… ./gate.sh …"`) and every other session's, so it waits forever (pointed out by the
+  "Calendar text styling bar" session). Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh
+  [^ ]*gate\.sh( |$)'`, with a random pause, from a script file whose name does not contain "gate.sh".
 - ⏭ **Next:** that gate (queued), then, once `origin/main` holds `3f974af`, merge whatever docs landed with it,
   fast-forward `main`, push once, verify live.
 
