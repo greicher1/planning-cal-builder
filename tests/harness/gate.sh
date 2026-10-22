@@ -944,7 +944,7 @@ chk(a.get('tplIsTemplate'), f"hdrtemplate: the third mode reads 'Header: Templat
 chk(a.get('tplLockedHere'),
     f"hdrtemplate: ⭐ Template mode is READ-ONLY on the calendar and the styling bar is gone -- owner, 10 Sep (contenteditable={a.get('tplEditableAttr')!r}, toolbar gone={a.get('tplToolbarGone')}, spacer={a.get('tplSpacerInstead')})")
 chk(a.get('clickOpensEditor') and a.get('clickSelectsThatLine'),
-    f"hdrtemplate: ...and clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
+    f"hdrtemplate: ...and double-clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
 chk(a.get('resolvesOnScreen'), f"hdrtemplate: tokens resolve on screen ({a.get('c4Resolved')!r})")
 chk(a.get('unknownSurvives'), f"hdrtemplate: an unknown token and an escape survive as typed ({a.get('c2Resolved')!r})")
 chk(a.get('groupsWork'),

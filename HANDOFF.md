@@ -105,7 +105,18 @@
   - A text that matches its kind's default bold is stored as nothing, so dates and headings stay at their CSS 600
     when "bold" (drawn with the same bold face).
   - ExcelJS reports a merged range's other cells with the master's style: count masters only.
-- **Not done:** the full gate (queued behind other sessions' gates on port 9595), mutants, the owner's look at it in
+- **Full gate, build `84684945…` (port 9595, ended 06:19:48 on 22 Oct after queuing behind four other sessions):
+  2,615 PASS, 8 FAIL, every byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13): that is
+  F1–F4's acceptance, unstyled calendars untouched. The 8 FAILs, by leg: `hdrtemplate` (it single-clicked a Template
+  header line, which now opens its editor on a DOUBLE-click; leg updated), `offweek` R1 (it compared a band's tooltip
+  word for word, now "Double-click to rename…"; leg updated), and `hdrversion` (2), `hdrfile` (3), `mvmenu` (1), being
+  re-run alone and against `main`'s build to classify.
+- ⚠️ **Gate queues on this machine (learned the hard way, 21 Oct):** a queue loop that runs INLINE in a Bash wrapper and
+  waits on `pgrep -f 'gate\.sh'` matches its OWN wrapper (`zsh -c "… ./gate.sh …"`) and every other waiting wrapper, so
+  it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
+  that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
+  script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
+- **Not done:** classifying the three other legs (above), mutants, the owner's look at it in
   the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
   branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
