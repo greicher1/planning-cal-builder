@@ -29,6 +29,32 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the test harness cleans up after itself (21 Oct 2026)
+
+Test tooling only: nothing in `src/`, the grid, the exports or the save format changed. The disk had gone down to
+1.4 GB free with **2,010 headless-Chrome profiles in `/tmp` (15.5 GB)**, because every harness run left its
+`/tmp/tc<port>-<leg>` behind (about 8 MB; one full `gate.sh` left about 110).
+- **`run.sh` deletes its profile on every exit**: a pass, a FAIL, the wall-clock cap, Ctrl-C or a killed `gate.sh`
+  (a zsh `EXIT` trap, with HUP/INT/TERM turned into exits so the trap runs). It also stops the server on every exit,
+  which an interrupted run used to leave listening.
+- **The six CDP scripts do the same** (`cspproof`, `hiatusdrag`, `phaseedge`, `pilldrag`, `printpaper`, `rtleg`)
+  through one new module, `tests/harness/chrome-profile.mjs`: `process.on('exit')` plus signal handlers. Before
+  this, a signal ended node with Chrome still running.
+- **Two smaller leaks go with the profile.** The `$TMPDIR/com.google.Chrome.*` directory that holds Chrome's
+  SingletonSocket (the profile only links to it; 19,679 had piled up) is deleted with it. And every launch now passes
+  `--disable-features=MacAppCodeSignClone`: Chrome on macOS clones its whole app bundle at launch and deletes the clone
+  only on a clean exit, which a hard-killed Chrome never has, so each run left one (456 on 21 Oct, 1,430 on 19 Oct).
+  Measured on interleaved launches: one new clone per launch without the switch, none with it.
+- The kill and the wait now use an anchored pattern (`user-data-dir=<profile>( |$)`), so leg `colswap`'s cleanup can
+  never match leg `colswapgate`'s Chrome.
+- **No leg relied on a profile surviving**: every launcher already deleted its profile before it started, and nothing
+  in `gate.sh`, `parse.js` or the legs reads one.
+- **Verified:** `base` and `colswap` through `run.sh`, and `cspproof.mjs` (15/15) and `printpaper.mjs` (4/4), on a
+  private port, each leaving no profile, no socket directory, no Chrome process and no server. The same for `run.sh`
+  stopped by SIGTERM (`hdrtemplate` with Chrome still running, `prefs` during its parse; exit 143 both), and for a fake
+  Chrome that never dumps (the wall-clock cap). The node module also on a normal exit, a thrown error and SIGTERM.
+  Full gate: see `HANDOFF.md`.
+
 ### Unreleased — choose the paper; Export PDF asks first (21 Oct 2026)
 
 The owner: *"what happens if we are going to print the waterfall to a legal sized piece of paper? Do we need to add a

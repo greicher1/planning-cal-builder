@@ -4,6 +4,49 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧹 21–22 Oct 2026: THE HARNESS CLEANS UP AFTER ITSELF (`harness-disk`) — branch `claude/cool-brattain-388fa6` (worktree `.claude/worktrees/cool-brattain-388fa6`), from `main` at `6ca9993`; test tooling only; FULL GATE QUEUED; not merged, not pushed
+
+- **Asked** (by the session that ran the 21 Oct disk cleanup, for the owner's *"delete extra files that we dont
+  need"*): make the harness stop filling the disk. Every leg left `/tmp/tc<port>-<leg>` (about 8 MB), one full gate
+  about 110 of them, and 2,010 (15.5 GB) had piled up with 1.4 GB free.
+- **Built:**
+  - `run.sh`: a zsh `EXIT` trap (`cleanup`), with HUP/INT/TERM turned into exits so it runs. It kills the profile's
+    Chrome, waits until no process of that profile is left, then deletes the socket directory and the profile and
+    stops the server. A pass, a FAIL, the wall-clock cap, Ctrl-C and a killed `gate.sh` all go through it; only a
+    SIGKILL of `run.sh` escapes, and the next run of that leg still clears the profile first, as before.
+  - `tests/harness/chrome-profile.mjs`, the node copy for the six CDP scripts (`cspproof`, `hiatusdrag`,
+    `phaseedge`, `pilldrag`, `printpaper`, `rtleg`): `removeProfileOnExit(PROFILE)` plus `NO_BUNDLE_CLONE` in the spawn
+    args. ⛔ **A new CDP script must call it** (the harness README's file table says so too).
+  - Every launch passes `--disable-features=MacAppCodeSignClone`, and every kill/wait uses the anchored pattern
+    `user-data-dir=<profile>( |$)` (the old `pkill` prefix would match `colswapgate` from `colswap`).
+- **Checked: no leg relies on a profile surviving.** Every launcher already deleted its profile before it started
+  (`run.sh`'s `rm -rf "$PROFILE"`, each script's `fs.rmSync(PROFILE)`), and nothing in `gate.sh`, `parse.js`,
+  `srv.js` or `t/*.js` reads a profile or its IndexedDB.
+- ⭐ **Learned, two more leaks of the same kind:**
+  1. **`$TMPDIR/com.google.Chrome.XXXXXX/`** holds Chrome's `SingletonSocket` and a `SingletonCookie` link; the
+     profile holds only a symlink to it, so deleting the profile alone orphans it. **19,679** had piled up (about
+     18 MB, but 62,917 entries in `$TMPDIR`: a bare `ls $TMPDIR/com.google.Chrome.*` fails "argument list too long").
+     The cleanup reads the symlink first and deletes that directory only while it holds nothing but those two names.
+  2. **The `code_sign_clone` copies (HANDOFF 19 Oct) come from the harness**, one per launch: Chrome on macOS clones
+     its whole bundle into `$TMPDIR/../X/com.google.Chrome.code_sign_clone/` at launch and removes it only on a clean
+     exit. SIGKILL leaves it, and so does SIGTERM (tested). `--disable-features=MacAppCodeSignClone` stops it being
+     made: on interleaved launches, every one without it added a clone and every one with it added none (the only
+     exception ran while another session's Chrome started). 456 were there on 21 Oct.
+- **Verified (21 Oct, private port 8771):** `base` and `colswap` through `run.sh`; `run.sh` stopped by SIGTERM with
+  Chrome alive (`hdrtemplate`) and during its parse (`prefs`), both exit 143; a fake Chrome that never dumps (the
+  wall-clock cap, exit 1); `cspproof.mjs` 15/15 and `printpaper.mjs` 4/4; the node module on a normal exit, a throw
+  and SIGTERM. Each left no profile, no socket directory, no Chrome process and no server, in 3–6 s.
+- ⚠️ **Not done, deliberately:**
+  - **What is already on disk stays** (other sessions' `/tmp/tc*`, about 19,700 socket directories, 456+ clones):
+    clearing it is the owner's call, as before. ⛔ Never delete the clone the owner's own Chrome uses (`ps` shows it
+    as the long-lived Chrome started without `--headless`).
+  - **Other worktrees keep leaking until they have this `run.sh`**: each session runs the harness from its own
+    worktree, so a branch cut before this merge still runs the old one.
+  - `tools/make-icon.py` and `tools/probe-file-handling.mjs` launch Chrome too, outside `tests/harness`. Both already
+    delete their profile on a normal run; neither passes the no-clone switch. Rarely run.
+- ⏭ **Next:** the full gate, queued behind `month-order` and `phase-outline` (`HARNESS_PORT=8771`); then ask the owner
+  about merging. On the tracker as `harness-disk`.
+
 ### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month

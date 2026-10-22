@@ -91,7 +91,7 @@ node pdf-info.js base.pdf base.txt  # page box, text/rect counts, grid extent, e
 Environment: `HARNESS_PORT` (default 8231; ⛔ **any other session on this machine must pick its own** —
 a non-default port also namespaces the Chrome profile as `/tmp/tc<port>-<test>` and `gate.sh`'s Excel
 diff dirs as `/tmp/gate<port>-xa|xb`, since 29 Sep 2026; the default keeps `/tmp/tc-<test>`, so two
-sessions both on the default still kill each other's Chrome), `CHROME` (default the standard macOS path),
+sessions both on the default still kill each other's Chrome; ⭐ since 21 Oct 2026 the profile is **deleted when the run ends**, on every exit: see `chrome-profile.mjs` below), `CHROME` (default the standard macOS path),
 `HARNESS_STATE=<fixture>` (start from `tests/fixtures/<fixture>.sptcal` via the inline `?state=`
 path), `HARNESS_PRINT_PDF=1` (Chrome also **prints** the page to `<name>.print.pdf` when it dumps
 it — the real print pipeline, used by `monthprint`), `HARNESS_WINDOW=<w>,<h>` (the window, default
@@ -181,6 +181,7 @@ timing flake.
 | `printpaper.mjs` | the month PDF printed at Letter and at A4-with-CSS-size-preferred over CDP (`Page.printToPDF`), because `run.sh` cannot choose a paper (audit L-3). The CDP template the other scripts copy |
 | `pilldrag.mjs` | MONTH-9: a month pill dragged out and back in ONE gesture keeps Snap to Mon. Trusted `Input.dispatchMouseEvent`, which the pane's point-to-point drag and a `dispatchEvent` drag can't give. Also Production's edge grips (E0-E14). E14 (half days) was rewritten 16 Oct 2026 for the one-lane switch day: the two bars are read left to right, and 202's end grip sits in the middle of Monday, on its own bar's right edge |
 | `cspproof.mjs` | 4.1: the app under its Content-Security-Policy, ZERO violations, with a recorder installed in every frame before any page script. It covers Excel, both PDFs, the month view, Save/Load, the update check, a shareable copy (framed and `file://`) and the install gate, plus a positive control run last |
+| `chrome-profile.mjs` | what a headless Chrome leaves on disk, removed on EVERY exit of a CDP script (21 Oct 2026, the `harness-disk` fix). `removeProfileOnExit(PROFILE)` registers it on `process.on('exit')` and on SIGHUP/SIGINT/SIGTERM; `NO_BUNDLE_CLONE` goes in the spawn args. It kills the profile's Chrome by an ANCHORED pattern (`user-data-dir=<profile>( |$)`), then deletes the profile and the `$TMPDIR/com.google.Chrome.*` directory its SingletonSocket symlink points to. `run.sh` does the same in zsh (its EXIT trap), so keep the two alike. ⛔ **A new CDP script must call it**, or every run leaves about 8 MB in `/tmp` again (2,010 profiles, 15.5 GB, had piled up by 21 Oct 2026). Nothing reads a profile across runs: every launcher already deleted its profile before starting |
 | `prove-col-permutation.mjs` | the column-swap invariance theorem, fuzzed against the real `computeBlockLayout`. ⚠️ **Was never run by `gate.sh` until 8 Sep 2026** — it was named in a comment as something to run by hand, so the theorem the swap feature rests on was unguarded in practice. It runs now |
 
 ## Traps this harness has already fallen into
