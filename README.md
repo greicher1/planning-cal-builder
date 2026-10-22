@@ -45,7 +45,12 @@ app"*. By picker: per box, and the button *"should just say "Hide from Exports""
 - **Verified:** new leg `sbnoexport` 28/28 on the build (the tab, hiding and undo, the workbook and the PDF read
   back without the box, every box hidden equal to no box, the file shape, a hostile value), red on the pre-change
   build and red on a mutant whose screen drops `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2×
-  screenshot of both states. SIDE-BOXES-PLAN.md §14.
+  screenshot of both states. Full gate 2,619 / 7: every baseline byte-identical; `filekeys` (5) green alone
+  (contention); `hdrversion` (2) a bug in that leg, fixed here. SIDE-BOXES-PLAN.md §14.
+- **Test fix, `hdrversion`:** its PDF reader trimmed trailing spaces and newlines off a compressed stream, and a
+  stream's last byte is its checksum's, which follows the header's date. On 22 Oct 2026 that byte was a space, so
+  the leg failed on every build. It now cuts the stream at its own `/Length`. Six other legs still trim the same
+  way (HANDOFF).
 
 ### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
 

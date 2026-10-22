@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (late): "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`; committed on the branch, NOT merged, NOT pushed; full gate queued
+### 🔨 21–22 Oct 2026: "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`; GATED (2,619 / 7, all 7 explained, green alone); committed on the branch, NOT merged, NOT pushed
 
 - **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
   app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
@@ -19,14 +19,31 @@
   plan. Git will NOT flag them, but after a merge each must get the screen layout (`SIDE_SCREEN`, or `screen: true`
   in the opts), or a hidden box vanishes from the screen and its drag breaks. `sideBoxLayout` gains `opts` on both
   branches: merge the two into one. `sbnoexport` H1/N1 go red on exactly this. `sidebox-zoom` touches neither.
-- **Proof so far:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
+- **Proof:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
   `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2× headless screenshot (the in-app browser had no free
-  server slot). ⏳ The full gate is queued behind four other sessions' gates (HARNESS_PORT 9391, log in this
-  session's scratchpad); this entry must be updated with its result.
+  server slot). ✅ **Full gate on build `ffbe9371…` (HARNESS_PORT 9391, 22 Oct 04:30–04:56): 2,619 PASS, 7 FAIL.**
+  The waterfall PDF, every Excel part, the restore and all month-print documents byte-identical to the baselines;
+  0 clipped; 76 ids; `sideboxes` + `sbnoexport` 86/86. The 7: `filekeys (v1.4.2-saved)` K10/K11/K13/K14/E0, green
+  16/16 alone on the same build (contention, as recorded before); and `hdrversion` (the left-column check and E0),
+  which is **a bug in that leg, red on every build on 22 Oct 2026** — see the next bullet. 17/17 after the fix.
+- ⛔ **`hdrversion`'s PDF reader trimmed every trailing space/CR/LF off a compressed stream** before inflating it.
+  A deflate stream's last byte is its Adler-32 checksum's, which depends on the page's text, the header's date
+  included. Today the content stream with "v3" ends in 0x20 (measured with a probe: `[215,158,1,32]`, then the
+  writer's `\n`), so the trim cut a real byte: "Compressed input was truncated", no content, and the writer's
+  unawaited promises rejected into the console. Fixed on this branch: the reader cuts at the stream's own
+  `/Length` and catches the writer's promises. ⚠️ **Six more legs carry the same trim and are NOT fixed:**
+  `calrange`, `hdrrow`, `hdrtemplate`, `onecol`, `prefs`, `stintexport` (grep `=== 32)) en`). Each fails on any day
+  whose date makes one of its PDFs end in 0x0A/0x0D/0x20 (about 3 in 256 per PDF). Until this merges, every
+  session's gate run on 22 Oct 2026 will show `hdrversion` red.
+- ⚠️ **Gate queues:** a wait loop must count only REAL gates (`ps -axww -o command= | grep -cE
+  '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`) and live in a script whose name lacks "gate.sh"; `pgrep -f gate\.sh` matches
+  its own wrapper and never starts (another session's, found 21 Oct). And when checking whether your own queue is
+  alive, never `grep -v grep`: the wrapper's command line contains "grep", so it hides the very process you are
+  looking for (this session concluded its live queue had died, and briefly queued a second gate).
 - ⚠️ CLAUDE.md's State model row for `sideBoxes` does not mention `noExport`. Left for the owner (owner-approved
   lines).
-- ⏭ **Next:** the full gate's result, then the owner's picker on merging into `main` and, separately, pushing. On
-  the tracker as `side-box-screen-only`.
+- ⏭ **Next:** the owner's picker on merging into `main` and, separately, pushing. Then, if wanted, the same reader
+  fix in the six legs above. On the tracker as `side-box-screen-only`.
 
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 

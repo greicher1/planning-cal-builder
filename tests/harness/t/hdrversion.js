@@ -112,11 +112,20 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
-        // DecompressionStream refuses the newline every stream carries before `endstream`.
-        while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+        // DecompressionStream refuses the newline every stream carries before `endstream`, so the
+        // data is cut at the stream's own /Length. ⛔ Never by trimming whitespace off the end: the
+        // data's last byte is its Adler-32 checksum's, which depends on the page's text (today's
+        // date included) and can itself be a space or a newline. Trimming cut a real byte on 22 Oct
+        // 2026 (the content stream with "v3" ended in 0x20), and this leg went red on every build
+        // for the day. With no /Length, the one LF the writer puts before `endstream` is dropped.
+        var dict = latin.slice(latin.lastIndexOf('<<', m.index), m.index), len = dict.match(/\/Length (\d+)/);
+        if (len && start + +len[1] <= end) end = start + +len[1];
+        else if (bytes[end - 1] === 10) end--;
         try {
           var ds = new DecompressionStream('deflate');
-          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
+          // The writer's own promises reject too when a stream is not deflate (a font program);
+          // caught, or each lands in the console as an unhandled rejection and fails E0.
+          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)).catch(function () {}); w.close().catch(function () {});
           var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), s = '';
           for (var j = 0; j < u.length; j += 8192) s += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
           if (/\bTf\b/.test(s) && /\bTj\b/.test(s)) { content = s; break; }
