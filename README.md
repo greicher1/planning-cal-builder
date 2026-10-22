@@ -29,70 +29,6 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
-
-The owner asked for the header's styling bar to sit permanently above the calendar and style *"any and all text
-throughout the entire waterfall calendar"*, and for the cost of letting users change text size (TEXT-STYLE-BAR-PLAN.md;
-rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
-- **A Text bar under the toolbar**, always there: size, bold, italic, text colour, alignment, clear (and highlight
-  for header and side-box lines). It replaces the header's in-calendar strip and the side boxes' floating bar, and
-  writes through their own code, so header and box styles are stored as before.
-- **Highlight any text in the grid, as in Excel** (D2): click, drag, Shift-click, ⌘-click, ⌘A, Escape. Dates, column
-  headings, phase weeks, Sim Post, hiatus bands and notes, in any mix. The header is picked on its own, in every
-  header mode (D3) and in the month view too (D4).
-- **Sizes 6 to 12 in the grid** (D1, "grid never moves"): measured, a row holds 11–12 px text and anything larger
-  grows rows or is cut, and widens columns so the printed page shrinks. So no style ever changes a column, a row or
-  the print scale. The note editor's own Size row (which offered 14 and 16) is gone; a note saved at those keeps it.
-- **A click now highlights a note or band; double-click, Enter or typing opens it** (D5; typing adds at the end).
-  Bands inside one phase's column open on double-click too (owner's picker), and so do custom column headings and
-  Template header lines.
-- **Saved** as `textStyles` (absent when nothing is styled), drawn the same on screen, in Excel and in the waterfall
-  PDF (frozen edits F1–F4, each running today's exact code when no style is set). Shifts move a style with what it
-  styles.
-- **Verified:** new leg `textstyle` 46/46 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
-  new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
-  `sideboxes` 58/58; `npm run check` 40/40. Merged with main (v1.7.0 and the 21 Oct features) as `e12b10b`: full gate
-  on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
-  racing its own import, fixed in the leg (it now waits for the import), 14/14 twice.
-
-### Unreleased — the zoom slider no longer resizes the side boxes (21 Oct 2026)
-
-The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
-used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
-the grid.
-- **Now only the grid zooms.** The boxes keep their 100% size at every zoom: width, row heights, text size, and the
-  grip, × and width handle around them.
-- **Their height cap still matches the grid box on screen.** The cap is a copy of the frozen `.sheet-scroll`
-  max-height, and the grid fit solves that value in the zoomed grid's own pixels, so the copy now multiplies by the
-  zoom (`--cal-zoom`, set on `.side-col` by `applyCalZoom()`, absent at 100%). At 100% the expression is unchanged.
-- The width drag and the drop line no longer scale by the zoom, since the boxes are never zoomed.
-- No frozen code, no saved-file change, nothing the exports read.
-- **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
-  size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
-  after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
-  moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
-  when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
-
-### Unreleased — phases ringed in their own darker colour in the month view (21 Oct 2026)
-
-The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
-chose to change the phases: *"go for the darker outline for phases"*.
-- **What you see:** every month-view phase bar, episode bar and Simultaneous Post bar has a 1.5 px outline in the dark
-  shade of its own colour (the colour its text is already in), on screen, in the month PDF and in the print fallback.
-  Notes and hiatus bands keep their faint edge, so a filled note can no longer pass for a phase, even a pale blue note
-  beside a pale blue phase.
-- **Nothing moves.** The border stays 1 px wide and only changes colour; the other half pixel is an inset shadow,
-  which takes no space. No bar changes size, no label is cut shorter, and no row grows. The waterfall, Excel and the
-  waterfall PDF are untouched.
-- ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
-  month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
-  so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
-- **Verified:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a note.
-  All nineteen of gate 13's month PDFs classified line by line: only ring paint changed (every text run, position,
-  fill, clip, font and page identical), plus the per-slice ring re-draws a pill no longer needs over a half day's
-  shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
-  0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
-
 ### Unreleased — drag bars and notes up and down in the month view, and see what you drag (21 Oct 2026)
 
 The owner: *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
@@ -123,32 +59,6 @@ purpose of reordering them top to bottom or for changing a phases timing"*. Plan
   (`21c5444`): 2,648 PASS, 1 FAIL (`winansi`, ExcelJS's CDN load timed out at 03:35; 7/7 alone). Gate 10 (every
   month print document) and gate 13 (every written month PDF, byte for byte) green: E1 and E2 are inert without an order.
 
-### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
-
-The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
-scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
-- **What changed:** the title block above the waterfall, and the Manual-mode format strip above it, now stop at the
-  calendar's last column instead of running to the edge of the preview. Zoom out and the header shrinks with the
-  calendar. At 100% this moves only calendars narrower than the window: their right-hand header lines now sit over the
-  last column, as they do in the PDF and the workbook. A calendar wider than the window keeps the header across the
-  visible width, as before, so its right-hand lines stay on screen.
-- **Its height never changes.** The header is never narrower than its lines need on one line, so nothing wraps that did
-  not wrap before. On a calendar narrower than its own header text, the header runs past the last column by just
-  what the text needs (forced to 200 px, the title block measured 199 px tall instead of 71 when squeezed). This
-  follows the owner's ruling for paper (10 Sep 2026, single column).
-- **How:** `app.js` "THE HEADER ENDS WITH THE CALENDAR" writes the grid's own width as one custom property,
-  `--wf-grid-w`, on `.preview-panel`, after every render and on the frozen column drag's live width change. `legacy.css`
-  caps `#table-wrap > .sheet-scroll > .cal-header-bar` and `.hdr-tools` at it, with `min-width: fit-content` as the
-  floor. Nothing inside `#table-wrap` is written and no frozen line changed (sanctioned pattern 1, like `--header-h`). The
-  print copy in `#print-root` cannot see it, neither writer reads the DOM, and a shareable copy drops it.
-- **Verified:** the new `hdrfit` leg, 8/8 on `colreuse` (Auto header, grid wider than the harness window at 100%) and
-  8/8 on `hdrmanualbraces` (Manual header with its strip, a narrower grid): where the header ends at six zooms from 25%
-  to 200%, its height equal to the uncapped height at each, a 200 px cap, a live column resize, the month view and
-  back, the print copy uncapped, a shareable copy without the value. By hand in the app's browser at 100%, 75%, 60%,
-  50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
-  0 FAIL on the branch alone (build `e7db3fde…`); merged with v1.7.0 (build `710fafbe…`), 2,628 PASS / 2 FAIL, both
-  re-run green alone (`onecol` 17/0, `epnames` 16/0) and pushed on the owner's word.
-
 ### Unreleased — the test harness cleans up after itself (21 Oct 2026)
 
 Test tooling only: nothing in `src/`, the grid, the exports or the save format changed. The disk had gone down to
@@ -178,6 +88,104 @@ Test tooling only: nothing in `src/`, the grid, the exports or the save format c
   from the legs' PDF reader, which strips trailing newline bytes that can be the stream's own checksum, so a date in
   the header can trip it; it fails the same with `main`'s `run.sh`, and local `main` already reads those five legs'
   streams by `/Length` (`28cdf6e`, `58e6b6a`), which this branch predates (`HANDOFF.md`, 22 Oct).
+
+## v1.8.0 — style any text in the waterfall, and phases ringed in the month view (22 Oct 2026)
+
+Four changes since v1.7.0, from 21–22 Oct 2026. Two were already live before this cut (the waterfall's header ends
+where the calendar ends, and the zoom slider no longer resizes the side boxes); this version is how installed copies
+hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **text style bar** (highlight
+any text in the waterfall, Excel-style, and set its size, bold, italic, colour and alignment) and **phases ringed in
+their own darker colour** in the month view and both month PDFs.
+
+### the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
+
+The owner asked for the header's styling bar to sit permanently above the calendar and style *"any and all text
+throughout the entire waterfall calendar"*, and for the cost of letting users change text size (TEXT-STYLE-BAR-PLAN.md;
+rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
+- **A Text bar under the toolbar**, always there: size, bold, italic, text colour, alignment, clear (and highlight
+  for header and side-box lines). It replaces the header's in-calendar strip and the side boxes' floating bar, and
+  writes through their own code, so header and box styles are stored as before.
+- **Highlight any text in the grid, as in Excel** (D2): click, drag, Shift-click, ⌘-click, ⌘A, Escape. Dates, column
+  headings, phase weeks, Sim Post, hiatus bands and notes, in any mix. The header is picked on its own, in every
+  header mode (D3) and in the month view too (D4).
+- **Sizes 6 to 12 in the grid** (D1, "grid never moves"): measured, a row holds 11–12 px text and anything larger
+  grows rows or is cut, and widens columns so the printed page shrinks. So no style ever changes a column, a row or
+  the print scale. The note editor's own Size row (which offered 14 and 16) is gone; a note saved at those keeps it.
+- **A click now highlights a note or band; double-click, Enter or typing opens it** (D5; typing adds at the end).
+  Bands inside one phase's column open on double-click too (owner's picker), and so do custom column headings and
+  Template header lines.
+- **Saved** as `textStyles` (absent when nothing is styled), drawn the same on screen, in Excel and in the waterfall
+  PDF (frozen edits F1–F4, each running today's exact code when no style is set). Shifts move a style with what it
+  styles.
+- **Verified:** new leg `textstyle` 46/46 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
+  new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
+  `sideboxes` 58/58; `npm run check` 40/40. Merged with main (v1.7.0 and the 21 Oct features) as `e12b10b`: full gate
+  on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
+  racing its own import, fixed in the leg (it now waits for the import), 14/14 twice.
+
+### the zoom slider no longer resizes the side boxes (21 Oct 2026)
+
+The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
+used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
+the grid.
+- **Now only the grid zooms.** The boxes keep their 100% size at every zoom: width, row heights, text size, and the
+  grip, × and width handle around them.
+- **Their height cap still matches the grid box on screen.** The cap is a copy of the frozen `.sheet-scroll`
+  max-height, and the grid fit solves that value in the zoomed grid's own pixels, so the copy now multiplies by the
+  zoom (`--cal-zoom`, set on `.side-col` by `applyCalZoom()`, absent at 100%). At 100% the expression is unchanged.
+- The width drag and the drop line no longer scale by the zoom, since the boxes are never zoomed.
+- No frozen code, no saved-file change, nothing the exports read.
+- **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
+  size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
+  after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
+  moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
+  when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
+
+### phases ringed in their own darker colour in the month view (21 Oct 2026)
+
+The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
+chose to change the phases: *"go for the darker outline for phases"*.
+- **What you see:** every month-view phase bar, episode bar and Simultaneous Post bar has a 1.5 px outline in the dark
+  shade of its own colour (the colour its text is already in), on screen, in the month PDF and in the print fallback.
+  Notes and hiatus bands keep their faint edge, so a filled note can no longer pass for a phase, even a pale blue note
+  beside a pale blue phase.
+- **Nothing moves.** The border stays 1 px wide and only changes colour; the other half pixel is an inset shadow,
+  which takes no space. No bar changes size, no label is cut shorter, and no row grows. The waterfall, Excel and the
+  waterfall PDF are untouched.
+- ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
+  month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
+  so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
+- **Verified:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a note.
+  All nineteen of gate 13's month PDFs classified line by line: only ring paint changed (every text run, position,
+  fill, clip, font and page identical), plus the per-slice ring re-draws a pill no longer needs over a half day's
+  shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
+  0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
+
+### the waterfall's header ends where the calendar ends (21 Oct 2026)
+
+The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
+scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
+- **What changed:** the title block above the waterfall, and the Manual-mode format strip above it, now stop at the
+  calendar's last column instead of running to the edge of the preview. Zoom out and the header shrinks with the
+  calendar. At 100% this moves only calendars narrower than the window: their right-hand header lines now sit over the
+  last column, as they do in the PDF and the workbook. A calendar wider than the window keeps the header across the
+  visible width, as before, so its right-hand lines stay on screen.
+- **Its height never changes.** The header is never narrower than its lines need on one line, so nothing wraps that did
+  not wrap before. On a calendar narrower than its own header text, the header runs past the last column by just
+  what the text needs (forced to 200 px, the title block measured 199 px tall instead of 71 when squeezed). This
+  follows the owner's ruling for paper (10 Sep 2026, single column).
+- **How:** `app.js` "THE HEADER ENDS WITH THE CALENDAR" writes the grid's own width as one custom property,
+  `--wf-grid-w`, on `.preview-panel`, after every render and on the frozen column drag's live width change. `legacy.css`
+  caps `#table-wrap > .sheet-scroll > .cal-header-bar` and `.hdr-tools` at it, with `min-width: fit-content` as the
+  floor. Nothing inside `#table-wrap` is written and no frozen line changed (sanctioned pattern 1, like `--header-h`). The
+  print copy in `#print-root` cannot see it, neither writer reads the DOM, and a shareable copy drops it.
+- **Verified:** the new `hdrfit` leg, 8/8 on `colreuse` (Auto header, grid wider than the harness window at 100%) and
+  8/8 on `hdrmanualbraces` (Manual header with its strip, a narrower grid): where the header ends at six zooms from 25%
+  to 200%, its height equal to the uncapped height at each, a 200 px cap, a live column resize, the month view and
+  back, the print copy uncapped, a shareable copy without the value. By hand in the app's browser at 100%, 75%, 60%,
+  50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
+  0 FAIL on the branch alone (build `e7db3fde…`); merged with v1.7.0 (build `710fafbe…`), 2,628 PASS / 2 FAIL, both
+  re-run green alone (`onecol` 17/0, `epnames` 16/0) and pushed on the owner's word.
 
 ## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
 
