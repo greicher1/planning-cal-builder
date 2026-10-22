@@ -16554,6 +16554,15 @@ export function initLegacyApp() {
     const cell = hitTextCell(e.clientX, e.clientY);
     if(!cell) return;
     const startKey = textCellKey(cell);
+    // ONE selection on screen, as in Excel. A plain press that starts OFF a phase cell retires the phase
+    // selection (gridSel), whose own handler only ever reacts to presses ON phase cells -- so before this, a
+    // click on a date left the purple phase selection, its count chip and the swap knob showing beside the new
+    // highlight (seen on the first screenshot of the bar, 21 Oct 2026). A ⌘- or Shift-press keeps it: that
+    // is adding to what is selected. A press on a phase cell is gridSel's own business, untouched.
+    const onPhase = cell.tagName === 'TD' && cell.classList.contains('sheet-phase-cell') && hasSpanContract(cell);
+    if(!onPhase && !e.shiftKey && !(e.metaKey || e.ctrlKey) && (gridSel.size || gridSelAnchor)){
+      gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null);
+    }
     // Native text selection would paint over a sweep; suppressed for this gesture only, and never inside an
     // editable header line or a form field (gridSel's killSel, widened to every grid cell).
     const killSel = ev=>{
