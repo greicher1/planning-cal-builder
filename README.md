@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
+
+The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in
+predetermined locking positions … this should reflect in the pdf writer and the excel writer"*.
+- **Drag a box by its ⋮⋮ grip to any height** on the left or the right. A dashed outline shows where it will land
+  while it moves, and the box lands on the row nearest its top. Let go in the upper half of another box and it takes
+  that box's place, which moves down under it; in the lower half it goes under that box. A box never overlaps
+  another: one that would (the box above grew while typing) is drawn lower and comes back up when there is room.
+  Near the top or bottom of the grid's box the grid scrolls, so a box can be carried to any week.
+- **A new box still locks in under the others:** the first at the top corner, each next one under the lowest on
+  its side, one empty row down.
+- **On screen a box now sits level with the grid's own row** (row 0 is the column-heading row, as in print) and the
+  side columns scroll with the grid, so a box placed beside March prints beside March. Before, the boxes started at
+  the top of the header block and scrolled on their own. Each line is as tall as the grid rows it takes in print.
+- **Excel and the waterfall PDF put each box on its row.** They already drew from the one side-box layout, so
+  neither writer changed: no frozen code, E1–E6 untouched. A box on row 10 is on row 11 of the workbook, and in the
+  PDF its first line shares a baseline with that row's date.
+- **Keyboard:** Alt+Up / Alt+Down move a box one row, or swap it with the box it is against; Alt+Left / Alt+Right
+  cross to the other side on the same row.
+- **Save format:** a box may carry `row`, a whole sheet row (0–1000), written only once that box has been placed.
+  Without one a box stacks under the box before it, exactly as before, so every older calendar draws and exports
+  unchanged. A bad `row` is dropped and counted by the sanitizer. `SNAPSHOT_VERSION` unchanged: an older build
+  ignores `row` and stacks the boxes.
+- **Fixed on the way:** after an undo that restored side boxes, the redo could vanish a moment later. Undo compares
+  snapshots as text, and a restored box's keys came back in a different order from the live one's. Boxes are now
+  written in one key order (`sideBoxesSnapshot()`).
+- **Verified:** the `sideboxes` leg, 72/72 with 14 new checks (group R and F14), red on the pre-change build
+  `7ba96b19…`: drop on row 10 (outline shown, level with the row), the workbook's row 11 and its merges, the PDF
+  baseline, scrolling both ways, undo and redo, level at 50% and 200% zoom, a drop onto another box, a new box under
+  the lowest, Alt+Down swap and step, a hostile row dropped. `npm run check` 40/40. The PDF rendered and looked at;
+  headless screenshots of the wide and narrow layouts. Full gate: see HANDOFF.
+
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view

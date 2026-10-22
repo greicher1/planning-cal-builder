@@ -1270,7 +1270,8 @@ Nothing in this document ships without all of these, every stage:
     MANTINE-SEAM §5.3); no id anywhere in a side column or its body-level panels (item 9); the
     workbook and the waterfall PDF read back with the boxes beside the grid; and deleting the last box
     puts the save file and the PDF page back exactly. Items 2 and 3 are the other half: a calendar
-    with no box exports byte for byte as before.
+    with no box exports byte for byte as before. Since 21 Oct 2026 a box sits on any row: drawn level
+    with the grid's row at any zoom and scrolling with it, on the same row in the workbook and the PDF.
 
 ---
 

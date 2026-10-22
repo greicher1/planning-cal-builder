@@ -391,3 +391,24 @@ presaved headers and presaved side boxes"*. Not part of ruling 7 as briefed, so 
 - A preset would hold the `sideBoxes` shape (§7) and pass `cleanSideBoxes()` on the way in, as header presets pass
   `cleanHeaderFormatMap()`. Open questions for the owner: what a preset holds (the whole arrangement, or one box), and
   whether applying one replaces the calendar's boxes or adds to them.
+
+## 13. Free positions, built 21 Oct 2026 (branch `sidebox-free-pos`)
+
+Owner, 21 Oct 2026: *"position the side boxes anywhere along either side, not just in predetermined locking
+positions"*, with a new box still locking in under the others (the first at the top corner), and the result in
+both writers. This replaces §3.3's "stack top to bottom" for any box that has been moved.
+
+- **Save format:** an optional `row` per box (§7's shape gains one key), a whole sheet row 0–1000, 0 being the grid's
+  heading row (the workbook's row 1). A box without one stacks one empty row under the box before it on its side,
+  which is §3.3 exactly, so no older file changes. Sanitized in `cleanSideBoxes()` (a bad row is dropped and counted).
+- **Layout:** `sideBoxLayout()` places each box where it wants to be, then top to bottom pushes any box that would
+  overlap the one above it (or sit closer than one empty row) down. The writers read the same layout, so §5 holds
+  unchanged and §6's frozen edits were not touched.
+- **Screen:** a box is drawn level with the grid's sheet row (read off the table's rows), the side columns scroll with
+  the grid, and each line is as tall as the grid rows it takes. §4.1's "each side column scrolls on its own" is
+  replaced by "scrolls with the grid".
+- **Moving:** drag by the grip (a dashed outline shows the landing rows), or Alt+Up/Down (a row, or a swap with the
+  neighbour it is against) and Alt+Left/Right (the other side, same row). A box dropped in another's upper half takes
+  its place; in its lower half it goes under it. A move writes every box on the sides it touches to the row it is drawn
+  on, so nothing it did not touch moves.
+- **Proof:** the `sideboxes` leg's group R and F14 (HANDOFF's entry of the same date).

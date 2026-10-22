@@ -4,6 +4,54 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, NOT MERGED, NOT PUSHED
+
+- **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
+  locking positions. When you add a new box, it should have the same locking feature where it goes above or below
+  existing boxes (and for a first box, default pos can still be the top corner) but it should let you reposition the
+  boxes to any place up and down on the left or right of the calendar. this should reflect in the pdf writer and the
+  excel writer"*. Not ruled further; the choices below were made here and are the owner's to overturn.
+- **Model:** a box may carry `row` (whole sheet row, 0 = the grid's heading row = the workbook's row 1). Without one it
+  stacks one empty row under the box before it in the list, i.e. exactly the old layout, so every older calendar
+  draws, saves and exports byte for byte as before. `sideBoxLayout()` places boxes in two passes (where each WANTS to
+  be, then top to bottom pushing any overlap down, one empty row minimum); a box pushed down by a growing box above
+  keeps its stored row and comes back. ⭐ **Both writers read that one layout, so neither changed**: no frozen code,
+  E1–E6 untouched, exactly what the plan's single-layout rule was for.
+- **Moving** (`sideDropPlan` / `moveSideBox`): the box lands where its top is let go, on the nearest row. Let go
+  inside another box's upper half, it takes that box's row and that box is pushed under it; lower half, it goes under
+  it. ⛔ **A move writes every box on the side(s) it touches to the row it is DRAWN on** (materialises them). Without
+  that, a stacked box chains off its list neighbour and a move would shuffle boxes it never touched, and a tie
+  resolved for the dragged box during the drag would flip after it (ties then go to list order). So a box pushed by a
+  drop stays pushed when the dropped box later leaves. A drop that changes nothing on screen is no undo step.
+- **New box:** no row (it stacks) on a side whose boxes all stack; otherwise the row one empty row under the lowest.
+  The first is at the top corner either way.
+- **On screen, level with the grid's rows.** `sideGridRows()` READS the frozen table's `tr[data-row]` rects;
+  `sideRowMap()` turns a row into the side stack's own px (wide: level with the grid with both scrolled to the top;
+  narrow, under 960 px: from the column's top). Boxes are absolutely positioned in `.sb-stack`, a `.sb-sizer` gives it
+  at least the grid's scroll length, and `syncSideScroll()` keeps the columns and the grid scrolled together (a side
+  taller than the grid may scroll on past the grid's end). Line heights are the grid's real rows: ⚠️ **on screen a
+  grid row is ~20.84 px, not 20** (the heading 21.34), so the old `rows × 20px` drifted a row every ~25 rows.
+  Re-placed on every grid render (the `#table-wrap` observer now also watches its `style`, for the zoom), on resize,
+  and by a ResizeObserver on the `.sheet-scroll`'s children (a wrapping header bar moves every row).
+- **Measured in screen px and divided by each element's own zoom**, so it holds today (both zoomed alike) AND after
+  the `sidebox-zoom` branch (side boxes unzoomed). ⚠️ **Merge note for `sidebox-zoom`:** textual conflicts in
+  `sideDropTarget` (rewritten here; take this side) and `beginSideWidthDrag` (take theirs). Conceptually, once their
+  boxes stop zooming, a box's TOP still lands on its row at any zoom (positions are screen px), but its height stays
+  100%, so at 50% a box covers twice its rows and can overlap the box below on screen. Print is unaffected. Worth the
+  owner's eye when both are in.
+- **Undo fix found by the leg (F8):** undo restores boxes through `cleanSideBoxes()`, whose key order differs from a
+  live box that gained `row` (or `titleFmt`) later; undo compares snapshots as TEXT, so the next debounced push saw a
+  "change" and wiped the redo. `captureSnapshot()` now writes boxes through `sideBoxesSnapshot()` in the sanitizer's
+  order. The `titleFmt` half of this was latent since v1.6.0.
+- **Proof so far:** `sideboxes` leg 72/72 (new group R, R1–R13, and F14; S5/G10/G11 now measure against the grid's
+  rows), **red on the pre-change build `7ba96b19…`** (S5, R1, and the row-10 drop never lands). Build `3e2aa826…`;
+  `npm run check` 40/40. PDF rendered (box on row 10 beside 3/9/26, first line's baseline = 3/16/26's). Headless
+  screenshots, wide and narrow. ⚠️ **Trap: headless Chrome here fires NO `scroll` event for a scrollTop set by
+  script** (a probe waited 650 ms and heard none), so R6/R7 dispatch the event by hand. The preview pane could not
+  be used (all five dev-server slots held by other chats; `file://` refused).
+- ⏭ **Next:** the full gate (queued behind `zoom-compact`'s and, if it starts, `sidebox-zoom`'s), then the owner's
+  merge and push pickers.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
