@@ -29,7 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
+## v1.8.0 — style any text in the waterfall, and phases ringed in the month view (22 Oct 2026)
+
+Four changes since v1.7.0, from 21–22 Oct 2026. Two were already live before this cut (the waterfall's header ends
+where the calendar ends, and the zoom slider no longer resizes the side boxes); this version is how installed copies
+hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **text style bar** (highlight
+any text in the waterfall, Excel-style, and set its size, bold, italic, colour and alignment) and **phases ringed in
+their own darker colour** in the month view and both month PDFs.
+
+### the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
 
 The owner asked for the header's styling bar to sit permanently above the calendar and style *"any and all text
 throughout the entire waterfall calendar"*, and for the cost of letting users change text size (TEXT-STYLE-BAR-PLAN.md;
@@ -55,7 +63,7 @@ rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
   on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
   racing its own import, fixed in the leg (it now waits for the import), 14/14 twice.
 
-### Unreleased — the zoom slider no longer resizes the side boxes (21 Oct 2026)
+### the zoom slider no longer resizes the side boxes (21 Oct 2026)
 
 The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
 used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
@@ -73,7 +81,7 @@ the grid.
   moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
   when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
 
-### Unreleased — phases ringed in their own darker colour in the month view (21 Oct 2026)
+### phases ringed in their own darker colour in the month view (21 Oct 2026)
 
 The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
 chose to change the phases: *"go for the darker outline for phases"*.
@@ -93,7 +101,7 @@ chose to change the phases: *"go for the darker outline for phases"*.
   shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
   0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
 
-### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
+### the waterfall's header ends where the calendar ends (21 Oct 2026)
 
 The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
 scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
