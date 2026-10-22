@@ -51,6 +51,65 @@
   the main checkout would load that changed fixture into `stintreshape`.
 - ⏭ **Next:** commit/push only on the owner's word. On the tracker as `one-selection-hint`.
 
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
+
+- **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
+  edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
+  mid-turn: *"ok maybe we dont need to move them. we just need to maybe put these controls in a different color?
+  right now all the buttons look exactly the same"*.
+- **Centring was built, then reverted** at that word. For the record, it worked as: `.preview-tools` `flex:1 1 auto`,
+  the four tools in a `.shift-tools` wrapper with `margin-inline:auto` and `padding-inline:16px` (the 16 px floor
+  being the owner's 30 Sep 2026 separation). Measured first: at 1440 px the two gaps were already 32 / 26 px, and at
+  the owner's ~1650 px about 240 / 26, since `space-between` gives all the slack to the left. Nothing in the engine
+  depends on the toolbar's nesting (click-away is `closest('.tools-wrap')` / `closest('.shift-group')`); `hdrcontrols`
+  T0 only asks that the Header button stays inside `.preview-tools`.
+- **Built** (`legacy.css`, after `.tools-btn[aria-expanded]`): `.shift-btn` and `.tools-wrap > .tools-btn` take
+  `--mantine-primary-color-light` (resolves to navy-1 `#D3DAE1`, the active Show tab's ground) on
+  `-light-color`, with a navy-2 hairline on `.shift-group` and the three buttons; hover and `[aria-expanded]` take
+  `-light-hover`. ⚠️ The tint is on each part of Shift All, NOT on `.shift-group`, so hover composites the same on all
+  four. ⚠️ The rules are unlayered, so they beat Mantine's layered Button colours, which also means Mantine's own hover
+  is beaten: the hover rule has to be spelled out. `.tools-wrap > .tools-btn` matches exactly the three popover tools;
+  Side Boxes and the Header button are `.tools-btn` too but not inside a `.tools-wrap`. The label: `PreviewToolbar.jsx`
+  "Side Boxes" (the only user-facing copy of it; Help never names the button).
+- **Proof so far:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 (`HARNESS_PAGE=/dist/index.html`);
+  a 2× headless screenshot at 1650 px. Full gate not run.
+- **Owner, by picker:** *"Keep this tint"*, *"Commit it"*, and of the full gate *"do we really need a full gate just to
+  change the color of some buttons?"*. Answered: no, the gate rule covers the grid, the exports and the save path,
+  and these rules match only four toolbar buttons, which both print paths hide and the shareable copy empties.
+  Then *"Push now"*, without the gate.
+- ✅ **PUSHED AND LIVE.** `main` fast-forwarded to `b332e5c` (it carried `e06ccc9`, a HANDOFF-only commit). ONE `git push
+  origin main` at 17:24:20 (`ec8c788..b332e5c`). Deploy run 39699488118: success. At 17:25:14 the live `index.html`,
+  fetched with a cache-buster, was **byte-identical to the local build** (sha256 `999bd95e23a33a0b…`, `cmp`);
+  `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⚠️ **OWNER, right after it went live:** *"now it looks like those buttons are all selected since the blue color is the
+  same as the selected button color on the left side bar. come up with a few mockups"*. True: navy-1 is the app's
+  SELECTED ground (`.side-tab-btn.active`), so a resting fill of it reads as "on". Four mockups shown as real 2×
+  screenshots (each a copy of the build plus one `<style>`, fixture `carry-rich`, 1650 px; the page and shots are in
+  that session's scratchpad, not the repo): **A** navy outline (white fill, navy-6 border and text, navy-0 hover);
+  **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
+  **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
+  accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
+- **Owner:** *"Build option A (navy outline only), then ask me before pushing."* **Built** (`legacy.css`, the same
+  selectors as the tint): `.shift-group` and `.tools-wrap > .tools-btn` take a navy-6 border; `.shift-btn` and the
+  three buttons a white fill and navy-6 ink (the caret inherits it); the dividers inside Shift All stay navy-2; hover
+  and `[aria-expanded="true"]` take navy-0 on navy-7. The comment there says why the fill must not come back.
+  UI-CONVENTIONS §3b gains the rule as its first bullet.
+- **Proof so far:** in the app's browser, `carry-rich` at 1650 px: computed resting colours (white / `#2C3E50` border,
+  ink and caret; the selected tab is `#D3DAE1`, matched by none of the four), hover on Anchor To and Anchor To open
+  (both `#EAEEF2` on `#1C2833`), its popover opening and closing with Escape; no console errors but the local
+  server's missing `dist/version.json` (expected on localhost). `npm run check` 40/40; `hdrcontrols` 12/12;
+  `sideboxes` 58/58 (⚠️ its first run hung 28 min behind two other sessions' full gates, the known Chrome
+  contention; killed, re-run alone on port 9607 it took 6 s). A 2× headless screenshot is
+  the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
+- **Owner, by picker:** *"Commit it"*, *"Push now"*.
+- ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
+  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  refuses a fast-forward over a dirty file it would change. So the push went from this branch
+  (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
+  checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
+- ⏭ **Next:** nothing once it is verified live. The worktree `.claude/worktrees/toolbar-center` can be removed on the
+  owner's word.
+
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
 - **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the

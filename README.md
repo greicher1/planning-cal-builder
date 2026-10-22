@@ -58,6 +58,36 @@ S1 · nothing re-flows"*).
   run under UTC+14 that wrote no result while other sessions' gates ran (the month PDF, untouched here); that block
   re-run alone passed every check.
 
+### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
+
+The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since
+the blue color is the same as the selected button color on the left side bar"*. It was: that light navy is the
+selected sidebar tab's ground, so four buttons resting in it read as switched on.
+- Shown four mockups (real screenshots of the app with each style), the owner picked **"option A (navy outline
+  only)"**: ← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From are white with a navy border and
+  navy text. Hover, and a tool whose popover is open, take the faintest navy wash. Side Boxes, the Header button
+  and undo/redo are unchanged.
+- UI-CONVENTIONS §3b gains the rule: a row of resting controls never wears the accent fill, because in this app
+  it means selected; set a group apart by its border and ink.
+- Chrome only (`legacy.css`); nothing in the grid, its cells or the exports changes.
+- **Verified:** in the app's browser with a sample calendar at 1650 px, the resting, hover and open states by
+  computed colour (none of the four matches the selected tab's fill), and Anchor To's popover opening and closing;
+  `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot matching the
+  mockup the owner picked. No full gate (chrome-only; the owner's call for the fill, the same here).
+
+### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+
+The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
+shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
+dont need to move them"*); the row's spacing is unchanged.
+- **← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From** wear the app's navy accent tint (the
+  active Show tab's ground, UI-CONVENTIONS §3b's primary-action tint) with a navy hairline, so the four read as one
+  family. Side Boxes, the Header button and undo/redo stay white. Hover and the open state step one shade darker.
+- The Side boxes button reads **Side Boxes**, like its Title Case neighbours.
+- Chrome only (`legacy.css`, `PreviewToolbar.jsx`'s label); nothing in the grid, its cells or the exports changes.
+- **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
+  1650 px. Full gate not yet run.
+
 ### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
