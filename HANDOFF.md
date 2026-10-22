@@ -4,6 +4,29 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — PLANNED in [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) and RULED; build starting on branch `month-order`
+
+- **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+  view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
+  either for the purpose of reordering them top to bottom or for changing a phases timing"*.
+- **Found while mapping (frozen `renderMonthView`):** the order is fixed: all-phase hiatus bands, then phases BY START
+  DATE (`laneSegs`), then Sim Post, then notes (waterfall lines, then the day's own in array order), each first-fit
+  (`takeLane`). ⭐ The month-PDF writer re-packs in DOCUMENT order (`mvlPackLanes`), so it follows any change to the
+  placement order with no writer edit. ⚠️ A bar can't be its own reorder handle: dragging it already moves its dates
+  (one row = a week). ⚠️ A day note's stored `lane` (written by the "+" it was added from) is never read by the
+  renderer; the comment "a note can be added on the exact line it will occupy" overstates it.
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 a ⋮⋮ grip on hover reorders a bar (the body still moves dates); R2 a note
+  CAN go above the bars (bars crossing its day drop a line that week); R3 the calendar redraws live under the moving
+  copy; R4 the frozen edits approved with the gate (gates 10 and 13 byte-identical on every baseline, plus a new
+  `mvorder` leg proving the writer stacks in the user's order).
+- **Two frozen edits, both "the rule lives outside":** E1 `laneSegs` from `mvLaneOrder(segs)`; E2 the notes loop asks
+  `mvDayNoteBlocks()` for `'top'` (before the hiatus bands) and `'below'`. Three new save keys, none bumping
+  `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
+  without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
+- ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
+- ⏭ **Next:** build in the plan's §8 order on `month-order`. On the tracker as `month-reorder` and
+  `month-drag-preview` (planned).
+
 ### 📝 21 Oct 2026 (late): PAPER SIZE — PLANNED in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md) and RULED; nothing built
 
 - **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
