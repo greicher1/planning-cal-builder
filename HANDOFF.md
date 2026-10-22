@@ -40,7 +40,65 @@
   `main` before gating.
 - ⏭ **Next:** nothing. The worktree `.claude/worktrees/zoom-compact` can be removed on the owner's word.
 
-### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
+### 🔨 21 Oct 2026: THE TEXT STYLE BAR IS BUILT — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`, from `main` at `e06ccc9`), COMMITTED, `textstyle` 46/46, FULL GATE QUEUED, NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner, 21 Oct 2026: *"ok start building"*, after ruling D1–D5 (the entry below) and, by picker the
+  same day, two more: a band inside one phase's column **"Double-click edits"** (its 1 Sep fill-across double-click
+  goes), and the frozen edits **"Yes, F1–F4 as planned"** (acceptance: every byte gate unchanged on existing
+  calendars, the fence unchanged, 0 clipped cells with every kind at 12 px and bold).
+- **What exists** (app.js "THE TEXT STYLE BAR", just before the header template editor; legacy.css "The text style
+  bar"; PreviewToolbar.jsx's empty `.style-bar-host`):
+  - **The bar**, built once by the engine into a host React renders last inside `.view-toggle-row` (so
+    `.view-toggle-row` → `#table-wrap` stays the sibling pair): Size, B, I, text colour, highlight (header and box lines
+    only), alignment, clear. Class-only controls (no id: `collectFieldValues`). Greyed with "Highlight any text in
+    the calendar to style it" when nothing is picked. **It names nothing** (the owner's 31 Aug removal of the strip's
+    readout). 34 px tall at 1600×1200.
+  - **Targets:** `'grid'` (the highlight), `'hdr'` (`hdrFmtTarget`, set by focus in Manual and by a CLICK in any mode
+    and either view: D3, D4) and `'side'` (`sideFmtTarget`). Header and box styles go through their OWN code
+    (`applyHdrFmt` / new `clearHdrFmt`, `applySideFmt`), so they are stored exactly as before. The in-calendar header
+    strip is hidden by CSS (`#table-wrap .hdr-fmt`); the boxes' floating `.sb-fmt` is never shown (`showSideFmt`
+    arms the bar instead).
+  - **The highlight** (`textSel`, keys `'<kind>:<key>'` = the store's own): click, sweep, ⌘-click, Shift-click
+    rectangle, ⌘A (only while a highlight exists), Escape. Overlay `.text-sel-layer` beside `.grid-sel-layer`, plus a
+    STICKY `.text-sel-head` strip for the sticky heading row. ⛔ Separate from `gridSel`, which keeps its phase-only
+    meaning (fill-across, swap, move); a plain press OFF a phase cell retires `gridSel`, so one selection shows.
+  - **D5:** the note opener no longer opens on click (a click on the cell being edited keeps editing); a capture
+    `dblclick` opens notes and bands (`openNoteCellEditor`, the old switch-cells logic), Enter opens the active
+    note/band (never over phase cells), typing ADDS the key at the end. The batch fill's dblclick skips bands.
+    Custom headings and Template header lines open their editors on dblclick. Tooltips and Help say double-click.
+  - **Save format:** `textStyles` (see CLAUDE.md's state table), absent when empty, sanitized
+    (`cleanTextStyles`), restored unconditionally, cleared by New / Reset notes (notes) / Reset hiatus bands (bands),
+    moved by `shiftCalendar` (notes `isPinnedWeek`, bands and phase weeks `hiatusKeyStays`, Sim Post with
+    Production). A note's style goes with its text.
+  - **Frozen edits, each inert with no style:** F1 `renderSpreadsheetView` (styles appended; a one-line size caps its
+    line-height so a row cannot stretch; titles say "Double-click"), F2 `exportExcel` (`xlTextStyle`), F3
+    `buildWaterfallPdf` (`drawStyled`: Carlito Bold/Regular, the header's 0.21 slant, colour, left/right inset;
+    `wrapLines` bold-aware), F4 `wrapLineCount` / `cellTextFit` (bold measure; the auto scan starts at the chosen
+    size and never floors above it — `top = basePx/11` is exactly 1 for every older caller).
+  - **The note editor's Size row is gone** (plan §2): the bar sets size, 6–12; a note saved at 14/16 keeps it.
+- **Proof so far:** `npm run check` 40/40. **`textstyle` 46/46** (fixture `carry-rich`, Sim Post switched on): the
+  bar's place and empty state; click / sweep (22 cells) / ⌘-click / Shift-click / ⌘A (210) / Escape; one selection;
+  one of every kind styled at once — bold, italic, red, left, 12 px on screen, **no row changed height, nothing new
+  cut**; one undo step per press; the workbook (ExcelJS read-back: masters only italic, 6 of 6); the PDF (`/F2`, the
+  0.21 slant, `1.0000 0.0000 0.0000 rg`); the save key and no new `fields.byId` id (100); a file without the key opens
+  unstyled; D5 (click opens nothing; dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
+  Wired into `gate.sh` after `calzoom`. Legs that opened editors with a click now double-click (`T.openCell` in
+  lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
+  T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
+  `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
+- ⚠️ **Learned while building:**
+  - On `carry-rich`, rows after the first measure **20.84 px on screen, not 20**, in the live build too, before any
+    styling (pre-existing; a check must compare against the unstyled baseline, never against 20).
+  - The app **renders once more shortly after `appReady()`**: a probe that captures cells straight away holds
+    detached nodes (the first screenshot's ⌘-clicks "missed"). Re-query after each action, or settle ~3 s first.
+  - A text that matches its kind's default bold is stored as nothing, so dates and headings stay at their CSS 600
+    when "bold" (drawn with the same bold face).
+  - ExcelJS reports a merged range's other cells with the master's style: count masters only.
+- **Not done:** the full gate (queued behind other sessions' gates on port 9595), mutants, the owner's look at it in
+  the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
+  branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
+
+### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED AND RULED (built: the entry above) ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
 
 - **Asked:** the header's styling bar moved *"above and outside the viewport of the calendar … permanently there"*,
   under the Waterfall / Month toggle and the shift buttons, able to *"individually style any and all text throughout

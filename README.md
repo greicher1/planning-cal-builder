@@ -29,6 +29,30 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
+
+The owner asked for the header's styling bar to sit permanently above the calendar and style *"any and all text
+throughout the entire waterfall calendar"*, and for the cost of letting users change text size (TEXT-STYLE-BAR-PLAN.md;
+rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
+- **A Text bar under the toolbar**, always there: size, bold, italic, text colour, alignment, clear (and highlight
+  for header and side-box lines). It replaces the header's in-calendar strip and the side boxes' floating bar, and
+  writes through their own code, so header and box styles are stored as before.
+- **Highlight any text in the grid, as in Excel** (D2): click, drag, Shift-click, ⌘-click, ⌘A, Escape. Dates, column
+  headings, phase weeks, Sim Post, hiatus bands and notes, in any mix. The header is picked on its own, in every
+  header mode (D3) and in the month view too (D4).
+- **Sizes 6 to 12 in the grid** (D1, "grid never moves"): measured, a row holds 11–12 px text and anything larger
+  grows rows or is cut, and widens columns so the printed page shrinks. So no style ever changes a column, a row or
+  the print scale. The note editor's own Size row (which offered 14 and 16) is gone; a note saved at those keeps it.
+- **A click now highlights a note or band; double-click, Enter or typing opens it** (D5; typing adds at the end).
+  Bands inside one phase's column open on double-click too (owner's picker), and so do custom column headings and
+  Template header lines.
+- **Saved** as `textStyles` (absent when nothing is styled), drawn the same on screen, in Excel and in the waterfall
+  PDF (frozen edits F1–F4, each running today's exact code when no style is set). Shifts move a style with what it
+  styles.
+- **Verified:** new leg `textstyle` 46/46 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
+  new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
+  `sideboxes` 58/58; `npm run check` 40/40. The full gate is queued.
+
 ### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
