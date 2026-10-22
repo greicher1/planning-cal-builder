@@ -43,6 +43,15 @@
   diverged. **Owner, by picker, 21 Oct 2026: "After Region pushes"** (wait for that session to reconcile and push, then
   merge that `main` into `header-zoom` once, one full gate, land) **and "Push on a green gate"** — approval for THIS
   change's push only, once its final gate passes, then verify the live file byte for byte. Not a standing approval.
+- **Region went live at 20:49 (`origin/main` `24f1537`), but local `main` had moved on to the unpushed Paper-size merge
+  (`6ca9993`)**, which the push approval does not cover. So `origin/main` was merged into `header-zoom` instead
+  (`6e0df9e`, docs conflicts only; build `fe4462ca…`, check 40/40), to be pushed as `header-zoom:main`, a fast-forward on
+  GitHub carrying only this change. Local `main` is left alone: whoever pushes Paper-size merges `origin/main` first.
+- ⚠️ **Port collision, 22 Oct 01:02–01:16:** the paper-size session ran legs on HARNESS_PORT 9473 while this gate did,
+  and each `run.sh` starts with `pkill -f "srv.js 9473 "`, so the two killed each other's server (it told this session).
+  That gate (16 FAIL by 01:17, all missing results or wrong-build PDFs) was stopped and discarded, and passes in that
+  window prove nothing either. Re-run on 9629, checked free with `lsof`. **Pick a port nobody else uses for every gate.**
+  ⚠️ In zsh, `kill $LIST` does NOT word-split a variable: it killed nothing. Loop over the pids.
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
