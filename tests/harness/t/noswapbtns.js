@@ -5,19 +5,20 @@
 //
 // Double-click on a selected cell expands it (or pulls it back), and Alt+Left / Alt+Right swaps its
 // column; both existed before, and the buttons only duplicated them. What was missing is saying so
-// ON THE GRID: only the Help mentioned the keys. So the selection's count chip now ends with
-// "Alt+←/→ to swap" whenever the selection is a phase cell -- exactly when the Swap buttons used to
-// show -- and a refused swap still explains itself in the grid's own chip (flashSwapMsg).
+// ON THE GRID: only the Help mentioned the keys, so for a while the selection's chip named them.
+// Since 21 Oct 2026 (owner, 21 Oct 2026: no chip except "Double click to expand cells" and a refused swap's reason) the chip is only the double-click hint, shown only when a
+// double-click would do something, and a refused swap still explains itself when pressed (flashSwapMsg).
 //
 // The fixture is colswap-gesture (see colswapmove.js): Post's whole 4-week run 11/16-12/7 sits beside
 // Prod Prep, and Prod Prep runs alone, one column wide, at 11/2 and 11/9. Selection uses the real
 // meta-click path at real coordinates (hitCell walks elementsFromPoint), as colswapmove does.
 //
 //   S0  no #batch-expand-btn, #colswap-left-btn or #colswap-right-btn anywhere in the page
-//   S1  a selected Post cell: the grid chip ends with "Alt+←/→ to swap"
+//   S1  a selected Post cell, which has no room to expand: NO chip at all, and no swap text
 //   S2  Alt+Left moves the whole 4-week run (the path the ◀ Swap button duplicated)
 //   S3  Alt+Right moves it back to the natural order
 //   S4  a selected lone Prod Prep cell: double-click expands it across the empty column
+//   S5  that cell, now expanded and still highlighted: the hint says "Double click to pull back cells"
 //   E0  0 console errors
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [];
@@ -76,9 +77,12 @@ window.addEventListener('load', function () { (async function () {
     await metaSelect(post);
     await T.until(function () { return !!document.querySelector('.grid-swap-layer .grid-swap-knob[data-dir="-1"]'); }, 'the leftward swap knob', 120, 100);
     await T.sleep(200);
-    var chip1 = chipText(), inside1 = chipInside();
-    add('S1', 'a selected Post cell: the grid chip ends with "Alt+←/→ to swap", and the whole chip shows (inside its layer)',
-      natural && /Alt\+←\/→ to swap/.test(chip1) && inside1, {chip: chip1, natural: natural, inside: inside1}, '... · Alt+←/→ to swap, unclipped');
+    // The knob is up, so the swap verdicts have landed: nothing is still on its way to the chip.
+    var chip1 = chipText();
+    var swapChips1 = document.querySelectorAll('.grid-swap-layer .grid-swap-chip').length;
+    add('S1', 'a selected Post cell with no room to expand: no chip at all -- not the swap keys, not "no room" (owner, 21 Oct 2026)',
+      natural && chip1 === '' && swapChips1 === 0,
+      {chip: chip1, natural: natural, swapChips: swapChips1}, 'no .grid-sel-chip, no .grid-swap-chip');
 
     altArrow(-1);
     await T.until(function () { return rowOf('2026-11-16') === 'post@0/cs1 prodPrep@1/cs1'; }, 'the Alt+Left swap to land', 120, 100);
@@ -100,17 +104,23 @@ window.addEventListener('load', function () { (async function () {
     if(!pp) throw new Error('no Prod Prep cell at 2026-11-02');
     var ppBefore = rowOf('2026-11-02');
     var c = await metaSelect(pp);
-    // The swap-back above confirmed itself in the grid's chip (it re-flowed two weeks), and the count
-    // chip is held back while that message is up (about 4 s): wait for it rather than for a duration.
-    await T.until(function () { return !!chipText(); }, 'the count chip', 100, 100);
+    // The hint is drawn on the next overlay repaint after the selection: wait for it, not a duration.
+    await T.until(function () { return !!chipText(); }, 'the double-click hint', 100, 100);
     var chip4 = chipText(), inside4 = chipInside();
     pp = cell('2026-11-02', 'prodPrep');
     pp.dispatchEvent(new MouseEvent('dblclick', {bubbles: true, cancelable: true, composed: true, clientX: c.x, clientY: c.y, button: 0, detail: 2}));
     await T.until(function () { return rowOf('2026-11-02') !== ppBefore; }, 'the double-click expand to land', 80, 100);
     await T.sleep(250);
     add('S4', 'a selected lone Prod Prep cell: double-click expands it across the empty column',
-      ppBefore === 'prodPrep@0/cs1' && rowOf('2026-11-02') === 'prodPrep@0/cs2' && /double-click to expand/.test(chip4) && inside4,
-      {before: ppBefore, after: rowOf('2026-11-02'), chip: chip4, inside: inside4}, 'cs1 -> cs2; the chip unclipped');
+      ppBefore === 'prodPrep@0/cs1' && rowOf('2026-11-02') === 'prodPrep@0/cs2' && chip4 === 'Double click to expand cells' && inside4,
+      {before: ppBefore, after: rowOf('2026-11-02'), chip: chip4, inside: inside4}, 'cs1 -> cs2; "Double click to expand cells", unclipped');
+
+    // S5: the same cell, still highlighted and now at its limit: the hint offers the other half
+    // (owner, by picker, 21 Oct 2026: "Double click to pull back cells" when already expanded).
+    await T.until(function () { return /pull back/.test(chipText()); }, 'the pull-back hint', 60, 100);
+    var chip5 = chipText();
+    add('S5', 'the expanded cell, still highlighted: the hint says "Double click to pull back cells"',
+      chip5 === 'Double click to pull back cells', {chip: chip5}, 'Double click to pull back cells');
 
     var errs = T.appHealth().errors;
     add('E0', '0 console errors', errs.length === 0, {errors: errs.slice(0, 5)}, 'none');

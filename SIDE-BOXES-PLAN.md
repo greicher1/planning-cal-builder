@@ -427,4 +427,5 @@ app"*. **Ruled by picker:** per box, not one switch for all, and *"button should
   box vanished). `sideboxes` 58/58 unchanged; `npm run check` 40/40; a 2× headless screenshot of both states.
   Full gate on build `ffbe9371…` (22 Oct 2026): 2,619 PASS, 7 FAIL, every baseline byte-identical; the 7 were
   `filekeys` (contention, 16/16 alone) and `hdrversion` (a date-dependent bug in that leg's PDF reader, fixed on
-  this branch, 17/17 after; HANDOFF).
+  the live branch the same night; HANDOFF). The v1.7.0 Export PDF dialog's `pageFitFor()` calls the layout with no
+  opts, so its recommendation measures the printed page, hidden boxes left out.

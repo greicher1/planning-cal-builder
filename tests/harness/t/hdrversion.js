@@ -112,20 +112,16 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
-        // DecompressionStream refuses the newline every stream carries before `endstream`, so the
-        // data is cut at the stream's own /Length. ⛔ Never by trimming whitespace off the end: the
-        // data's last byte is its Adler-32 checksum's, which depends on the page's text (today's
-        // date included) and can itself be a space or a newline. Trimming cut a real byte on 22 Oct
-        // 2026 (the content stream with "v3" ended in 0x20), and this leg went red on every build
-        // for the day. With no /Length, the one LF the writer puts before `endstream` is dropped.
-        var dict = latin.slice(latin.lastIndexOf('<<', m.index), m.index), len = dict.match(/\/Length (\d+)/);
-        if (len && start + +len[1] <= end) end = start + +len[1];
-        else if (bytes[end - 1] === 10) end--;
+        // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in
+        // its Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85, and trimming it
+        // left the data "truncated" (22 Oct 2026: hdrversion went red on the date 10.22.26 alone, on a build that
+        // had passed it the day before). The writer frames every stream as `/Length N` ... `stream\n` + N bytes.
+        var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+        if (dictLen) end = start + (+dictLen[1]);
+        else while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
         try {
           var ds = new DecompressionStream('deflate');
-          // The writer's own promises reject too when a stream is not deflate (a font program);
-          // caught, or each lands in the console as an unhandled rejection and fails E0.
-          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)).catch(function () {}); w.close().catch(function () {});
+          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
           var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), s = '';
           for (var j = 0; j < u.length; j += 8192) s += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
           if (/\bTf\b/.test(s) && /\bTj\b/.test(s)) { content = s; break; }
