@@ -13962,7 +13962,12 @@ export function initLegacyApp() {
   // the box before it on its side -- the stack every box was before this, so a calendar saved earlier
   // opens, draws and exports exactly as it did, and its file only gains rows once a box is moved.
   // Boxes never overlap: one that would (the box above grew) is drawn lower, keeping its stored row.
-  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, row?, titleFmt?, names?, hidden?, lines? }]
+  //
+  // "Hide from Exports" (owner, 21 Oct 2026: "be able to hide side boxes from the export but still keep them
+  // on the screen"): a box's `noExport: true` keeps it beside the grid on screen and out of the workbook and
+  // the waterfall PDF, which lay the other boxes out as if it were not there. Per box (owner's picker). Written
+  // ONLY as true -- a box that prints has no such key, so a calendar that never used it saves as before.
+  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, row?, titleFmt?, names?, hidden?, lines?, noExport? }]
   let sideWidths = {};    // { left?: chars, right?: chars } -- dragged widths only; absent = SIDE_DEFAULT_CHARS
   const SIDE_SIDES = ['left', 'right'];
   const SIDE_KINDS = ['key', 'text'];
@@ -13974,7 +13979,9 @@ export function initLegacyApp() {
   // capped well past MAX_WEEKS' 600 so a typo'd file cannot ask for a page millions of rows tall.
   const SIDE_GAP_ROWS = 1, SIDE_MAX_ROW = 1000;
   // On screen, the least room between two boxes when the zoom has squeezed their rows together.
-  const SIDE_SCREEN_GAP_PX = 6;
+  // 18: room for a box's "Hide from Exports" tab, which hangs 18 px under it. At 100% the empty row
+  // leaves ~18.8 px, so nothing moves there.
+  const SIDE_SCREEN_GAP_PX = 18;
   const SIDE_TITLE_DEFAULT = { key: 'Color Key', text: 'Notes' };
   // What an unformatted title looks like, and an unformatted line. A title is a line with these
   // defaults under its own format (plan §3.2).
@@ -14049,6 +14056,9 @@ export function initLegacyApp() {
         });
         if(!o.lines.length) o.lines.push({ t: '' });   // a text box always has a line to type in
       }
+      // Last, where a live toggle appends it. Only `true` is kept; `false` is the absent key's meaning.
+      if(b.noExport === true) o.noExport = true;
+      else if(b.noExport !== undefined && b.noExport !== false) bad.n++;
       out.boxes.push(o);
     });
     if(v.widths !== undefined){
@@ -14074,6 +14084,9 @@ export function initLegacyApp() {
       if(b.titleFmt !== undefined) o.titleFmt = b.titleFmt;
       if(b.kind === 'key'){ o.names = b.names; o.hidden = b.hidden; }
       else o.lines = b.lines;
+      // Last, as cleanSideBoxes() writes it, and only as true (Hide from Exports). ⚠️ A NEW per-box key
+      // must be added here too, or every save and undo step silently drops it.
+      if(b.noExport === true) o.noExport = true;
       return o;
     });
   }
@@ -14177,16 +14190,25 @@ export function initLegacyApp() {
   //
   // `opts` is for the drag (sideDropPlan): `boxes` lays out a working copy instead of the store, and
   // `lead: {box, side, row}` puts one box on that side and row, ahead of any box that wants the same row.
-  // The writers never pass it.
+  // The writers never pass it. A drag is a screen thing: its plans pass `screen: true` with them.
+  //
+  // ⛔ TWO AUDIENCES since "Hide from Exports" (21 Oct 2026). With no `opts` this is the PRINTED layout: a
+  // `noExport` box is left out, and the boxes under it close up as if it had never been added (those that
+  // stack; a box with a `row` keeps it). That is
+  // what the frozen writers get, because they call sideBoxLayoutSafe(schedule) with nothing else -- so not
+  // one frozen line changed (CLAUDE.md, sanctioned pattern 1). The screen passes SIDE_SCREEN and gets every
+  // box. A box's segments keep its index into sideBoxes either way. ⚠️ A new SCREEN caller must pass
+  // SIDE_SCREEN, or a hidden box vanishes from the screen too.
   function sideBoxLayout(schedule, opts){
     const boxes = (opts && opts.boxes) || sideBoxes, lead = (opts && opts.lead) || null;
+    const shown = b => !!(opts && opts.screen) || !b.noExport;
     const rowPt = sideRowPtFn(schedule);
     const entries = boxes.some(b => b.kind === 'key') ? sideKeyEntries(schedule) : [];
     const out = { any: false, rowPt, maxRows: rowPt.maxRows, left: null, right: null };
     const sideOf = i => (lead && lead.box === i) ? lead.side : boxes[i].side;
     SIDE_SIDES.forEach(side=>{
       const mine = [];
-      boxes.forEach((b, i)=>{ if(sideOf(i) === side) mine.push(i); });
+      boxes.forEach((b, i)=>{ if(sideOf(i) === side && shown(b)) mine.push(i); });
       if(!mine.length) return;
       const chars = sideWidthChars(side);
       let segs = [];
@@ -14249,9 +14271,12 @@ export function initLegacyApp() {
   }
   // ⛔ What the frozen writers call. A box must never be able to stop an export: on any error the
   // writers get "no boxes" -- which is also exactly what they got before this feature existed.
-  function sideBoxLayoutSafe(schedule){
-    if(!sideBoxes.length) return { any: false, left: null, right: null, rows: 0 };
-    try { return sideBoxLayout(schedule); }
+  // Every box hidden from exports is the same "no boxes", the very object a calendar without one gets, so
+  // both writers' bytes are those of a calendar that never had a box (leg `sbnoexport` N2, N3).
+  const SIDE_SCREEN = Object.freeze({ screen: true });
+  function sideBoxLayoutSafe(schedule, opts){
+    if(!sideBoxes.some(b => (opts && opts.screen) || !b.noExport)) return { any: false, left: null, right: null, rows: 0 };
+    try { return sideBoxLayout(schedule, opts); }
     catch(err){ console.error(err); return { any: false, left: null, right: null }; }
   }
   // Width in points (= the grid's column units through charsToScreenPx, which IS points in the PDF) of
@@ -14407,7 +14432,7 @@ export function initLegacyApp() {
     const b = sideBoxes[i];
     const segs = S.segs.filter(sg => sg.box === i);
     const h = sg => 'min-height:' + (sg.rows * ROW_DEFAULT_PX) + 'px';
-    let html = `<div class="sb-box" data-i="${i}" data-kind="${b.kind}">`
+    let html = `<div class="sb-box${b.noExport ? ' sb-noexport' : ''}" data-i="${i}" data-kind="${b.kind}">`
       + `<div class="sb-chrome"><button type="button" class="sb-grip" title="Drag to move this box (or Alt+arrow keys)" aria-label="Move box">&#8942;&#8942;</button>`
       + `<button type="button" class="sb-del" title="Delete this box" aria-label="Delete box">&times;</button></div>`;
     segs.forEach(sg=>{
@@ -14429,11 +14454,18 @@ export function initLegacyApp() {
       const hiddenNow = (b.hidden || []).filter(x => !shown.has(x) && sideKeyEntries(currentSchedule).some(e => e.hex === x));
       if(hiddenNow.length) html += `<button type="button" class="sb-unhide">Show ${hiddenNow.length} hidden row${hiddenNow.length > 1 ? 's' : ''}</button>`;
     }
+    // "Hide from Exports" (owner's wording, 21 Oct 2026): a tab hanging under the box, in the empty row
+    // every box keeps below it, so it covers nothing. It shows on hover, and stays shown -- pressed -- while
+    // the box is hidden, which is how the screen says this box will not print. The label never changes;
+    // aria-pressed carries the state. No id (collectFieldValues).
+    html += `<button type="button" class="sb-noexp" aria-pressed="${b.noExport ? 'true' : 'false'}" title="${b.noExport
+      ? 'This box shows here but is left out of Excel and the PDF. Click to export it again.'
+      : 'Keep this box on screen but leave it out of Excel and the PDF'}">Hide from Exports</button>`;
     return html + '</div>';
   }
   function renderSideBoxes(force){
     if(!sideCols.left || !sideCols.right || !sidePanel) return;
-    const L = sideBoxLayoutSafe(currentSchedule);
+    const L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
     const sig = sideSignature(L);
     // Unchanged boxes still follow the grid: a render can move its rows (a taller header, a dragged row).
     if(!force && sig === sideLastSig){ positionSideBoxes(L); return; }
@@ -14546,7 +14578,7 @@ export function initLegacyApp() {
   // scroll length to at least the grid's, so the two can scroll together to the end.
   function positionSideBoxes(L){
     if(!sideCols.left || !sideCols.right) return;
-    if(!L) L = sideBoxLayoutSafe(currentSchedule);
+    if(!L) L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
     const G = sideGridRows();
     SIDE_SIDES.forEach(side=>{
       const S = L[side];
@@ -14671,7 +14703,7 @@ export function initLegacyApp() {
       // On a side whose boxes all still stack that is what stacking does, so it gets no row; once a box
       // there has been moved, it is given the row under the lowest.
       if(sideBoxes.some(x => x.side === side && Number.isInteger(x.row))){
-        const S = sideBoxLayoutSafe(currentSchedule)[side];
+        const S = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN)[side];
         if(S) b.row = Math.min(SIDE_MAX_ROW, S.rows + SIDE_GAP_ROWS);
       }
       sideBoxes.push(b); idx = sideBoxes.length - 1;
@@ -14877,6 +14909,13 @@ export function initLegacyApp() {
       sideCommit(()=>{ sideBoxes.splice(info.i, 1); });
       return;
     }
+    const nx = t.closest('.sb-noexp');
+    if(nx){
+      const info = sideEditInfo(nx); if(!info) return;
+      // Off is the ABSENT key, never false (the store's comment).
+      sideCommit(()=>{ if(info.b.noExport) delete info.b.noExport; else info.b.noExport = true; });
+      return;
+    }
     const hide = t.closest('.sb-key-hide');
     if(hide){
       const info = sideEditInfo(hide); if(!info) return;
@@ -15074,7 +15113,7 @@ export function initLegacyApp() {
   // `from` laid out on `side` at `row`. A calendar whose boxes still stack (no rows yet) gets its rows
   // here, from where they are drawn, so the first move cannot shuffle the boxes it did not touch.
   function sideDropPlan(from, side, row){
-    const now = sideBoxLayoutSafe(currentSchedule);
+    const now = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
     const boxes = sideBoxes.map(b => Object.assign({}, b));
     SIDE_SIDES.forEach(s=>{ if(now[s]) now[s].extents.forEach(ex=>{ boxes[ex.box].row = ex.row0; }); });
     row = Math.max(0, Math.min(SIDE_MAX_ROW, row));
@@ -15082,7 +15121,7 @@ export function initLegacyApp() {
     if(T) for(const ex of T.extents){
       if(ex.box !== from && row > ex.row0 && row <= ex.row1 && row < (ex.row0 + ex.row1 + 1) / 2){ row = ex.row0; break; }
     }
-    const L = sideBoxLayout(currentSchedule, { boxes, lead: { box: from, side, row } });
+    const L = sideBoxLayout(currentSchedule, { screen: true, boxes, lead: { box: from, side, row } });
     return { L, now, row };
   }
   // Where the dragged box's top (screen y) would land on `side`: the row whose top is nearest it.
@@ -15201,7 +15240,7 @@ export function initLegacyApp() {
     if(!e.altKey) return;
     const info = sideEditInfo(e.target); if(!info) return;
     const { i, b } = info;
-    const S = sideBoxLayoutSafe(currentSchedule)[b.side];
+    const S = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN)[b.side];
     const k = S ? S.extents.findIndex(ex => ex.box === i) : -1;
     if(k < 0) return;
     const me = S.extents[k], above = S.extents[k - 1], below = S.extents[k + 1];

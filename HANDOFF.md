@@ -189,6 +189,48 @@
   holds `origin/main` (`34c873f`) too. **NOT PUSHED:** a push needs its own picker, and month-order (its third gate
   green on `b6a6af9`) must now merge `main`, which carries this frozen CSS edit and gate 13's re-cut baselines.
 
+### 🔨 21–22 Oct 2026: "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`, then live `origin/main` (`34c873f`, v1.7.0 + header-zoom) merged in; first build GATED (2,619 / 7, all 7 explained); NOT merged into `main`, NOT pushed
+
+- **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+  app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
+- **Built:** a **Hide from Exports** tab under each box (shown on hover/focus; stays shown and filled while on; the
+  box's frame turns dashed grey). A hidden box stays on screen and is left out of the workbook and the waterfall
+  PDF, the other boxes closing up. Saved as the box's `noExport: true`, only ever `true`. SIDE-BOXES-PLAN.md §14
+  has the detail; README has the changelog entry.
+- ⭐ **No frozen line changed** (sanctioned pattern 1): the writers' `sideBoxLayoutSafe(schedule)` now means the
+  PRINTED layout; the screen's two callers pass `SIDE_SCREEN`.
+- ⛔ **MERGE HAZARD with `sidebox-free-pos`** (building, not merged): it adds four screen-side
+  `sideBoxLayoutSafe(currentSchedule)` calls and a `sideBoxLayout(currentSchedule, {boxes, lead})` for the drop
+  plan. Git will NOT flag them, but after a merge each must get the screen layout (`SIDE_SCREEN`, or `screen: true`
+  in the opts), or a hidden box vanishes from the screen and its drag breaks. `sideBoxLayout` gains `opts` on both
+  branches: merge the two into one. `sbnoexport` H1/N1 go red on exactly this. `sidebox-zoom` touches neither.
+- **Proof:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
+  `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2× headless screenshot (the in-app browser had no free
+  server slot). ✅ **Full gate on build `ffbe9371…` (HARNESS_PORT 9391, 22 Oct 04:30–04:56): 2,619 PASS, 7 FAIL.**
+  The waterfall PDF, every Excel part, the restore and all month-print documents byte-identical to the baselines;
+  0 clipped; 76 ids; `sideboxes` + `sbnoexport` 86/86. The 7: `filekeys (v1.4.2-saved)` K10/K11/K13/K14/E0, green
+  16/16 alone on the same build (contention, as recorded before); and `hdrversion` (the left-column check and E0),
+  which is **a bug in that leg, red on every build on 22 Oct 2026** — see the next bullet. 17/17 after the fix.
+- ⛔ **`hdrversion`'s PDF reader trimmed every trailing space/CR/LF off a compressed stream** before inflating it.
+  A deflate stream's last byte is its Adler-32 checksum's, which depends on the page's text, the header's date
+  included. On 22 Oct the content stream with "v3" ends in 0x20 (a probe read `[215,158,1,32]`, then the writer's
+  `\n`), so the trim cut a real byte. This session fixed it (`cd46aa5`) and found the live branch had fixed it the
+  same night (`6547512` / `58e6b6a`, read by `/Length`, also in `prefs`, `stintexport`, `papersize`, `pdfdialog`);
+  the merge took the live version. ⚠️ **Four legs still trim with no `/Length` read:** `calrange`, `hdrrow`,
+  `hdrtemplate`, `onecol` (grep `=== 32)) en`). Each can go red on a day whose date ends one of its PDFs' streams
+  in 0x0A/0x0D/0x20.
+- **The v1.7.0 merge brought one new caller, `pageFitFor()`** (the Export PDF dialog's recommended orientation and
+  fit): it calls `sideBoxLayoutSafe(schedule)` with no opts, so it measures the PRINTED page, hidden boxes left
+  out. That is right: the dialog describes the page the PDF will print.
+- ⚠️ **Gate queues:** a wait loop must count only REAL gates (`ps -axww -o command= | grep -cE
+  '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`) and live in a script whose name lacks "gate.sh"; `pgrep -f gate\.sh` matches
+  its own wrapper and never starts (another session's, found 21 Oct). And when checking whether your own queue is
+  alive, never `grep -v grep`: the wrapper's command line contains "grep", so it hides the very process you are
+  looking for (this session concluded its live queue had died, and briefly queued a second gate).
+- ⚠️ CLAUDE.md's State model row for `sideBoxes` does not mention `noExport`. Left for the owner (owner-approved
+  lines).
+- ⏭ **Next:** the gate on the merged build, then the owner's picker on merging into `main` and, separately,
+  pushing. Then, if wanted, the `/Length` reader in the four legs above. On the tracker as `side-box-screen-only`.
 ### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
 
 - **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should

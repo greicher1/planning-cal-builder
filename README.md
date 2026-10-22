@@ -101,6 +101,27 @@ chose to change the phases: *"go for the darker outline for phases"*.
   shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
   0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
 
+### Unreleased — Hide from Exports, per side box (21 Oct 2026)
+
+The owner: *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+app"*. By picker: per box, and the button *"should just say "Hide from Exports""*.
+- Hover a colour key or text box beside the waterfall and a **Hide from Exports** tab shows under it. Click it and
+  the box stays on screen, with a dashed frame and the tab staying filled, but Excel and the waterfall PDF leave
+  it out: the other boxes close up, and with every box hidden the exports are those of a calendar with no box.
+  Click again to export it again. One undo step each way. Saved with the calendar.
+- **No frozen line changed.** The writers' own `sideBoxLayoutSafe(schedule)` call now means the printed layout,
+  and the screen asks for every box (`SIDE_SCREEN`). The PDF's unprintable-character warning reads the printed
+  layout too, so it no longer asks about text in a hidden box.
+- **File:** a box's `noExport: true`, written only as true; absent means the box prints, so a calendar that never
+  uses it saves as before. Older builds ignore the key and print the box. `SNAPSHOT_VERSION` unchanged.
+- **Verified:** new leg `sbnoexport` 28/28 on the build (the tab, hiding and undo, the workbook and the PDF read
+  back without the box, every box hidden equal to no box, the file shape, a hostile value), red on the pre-change
+  build and red on a mutant whose screen drops `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2×
+  screenshot of both states. Full gate 2,619 / 7: every baseline byte-identical; `filekeys` (5) green alone
+  (contention); `hdrversion` (2) a bug in that leg. SIDE-BOXES-PLAN.md §14.
+- The gate's two `hdrversion` failures were a bug in that leg (its PDF reader trimmed a stream's last byte when
+  the date made it a space); the live branch fixed it the same night, and the merge took that fix.
+
 ### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
 
 The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should

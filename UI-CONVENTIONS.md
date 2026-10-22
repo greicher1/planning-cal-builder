@@ -1289,6 +1289,12 @@ Nothing in this document ships without all of these, every stage:
     puts the save file and the PDF page back exactly. Items 2 and 3 are the other half: a calendar
     with no box exports byte for byte as before. Since 21 Oct 2026 a box sits on any row: drawn level
     with the grid's row at any zoom and scrolling with it, on the same row in the workbook and the PDF.
+15. **NEW — a box hidden from exports stays on screen and leaves both writers** (21 Oct 2026,
+    SIDE-BOXES-PLAN.md §14). `gate.sh`'s `sbnoexport` leg: the "Hide from Exports" tab carries no id
+    and covers nothing; the hidden box stays drawn; the workbook and the waterfall PDF read back
+    without it; every box hidden gives the PDF content and the grid of a calendar with no box; and
+    `noExport` is only ever written as `true`. ⛔ It is also what catches a new screen-side caller of
+    `sideBoxLayoutSafe()` that forgets `SIDE_SCREEN` (H1/N1 go red: the hidden box vanishes).
 
 ---
 

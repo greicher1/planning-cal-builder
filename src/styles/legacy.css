@@ -415,7 +415,10 @@
   /* Each box is placed on its own rows (app.js, positionSideBoxes: level with the grid's rows, which is
      where it prints), so the column is a positioned box, not a flow; the sizer gives it its length. */
   .sb-stack{ width:var(--sb-w, 145px); flex:none; position:relative;
-    overflow-y:auto; overflow-x:hidden; }
+    overflow-y:auto; overflow-x:hidden;
+    /* Room under the last box for its "Hide from Exports" tab (.sb-noexp), which hangs into the empty row
+       below a box. Without it the tab, hidden or not, would make every stack scroll by its own height. */
+    box-sizing:border-box; padding-bottom:20px; }
   .sb-sizer{ width:1px; pointer-events:none; }
   .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
   .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
@@ -478,6 +481,27 @@
     background:#fff; color:var(--mantine-color-gray-6); font:var(--mantine-font-size-xxs) Inter, sans-serif;
     padding:3px; cursor:pointer; }
   .sb-unhide:hover{ color:var(--mantine-color-black); }
+  /* "Hide from Exports" (owner, 21 Oct 2026): a tab under the box's bottom edge, in the empty row below
+     it, so it covers no text at any box width. Shown on hover or focus; while the box is hidden it stays
+     shown and pressed (the light accent fill is this app's "on"), and the box's frame turns dashed grey --
+     together, the screen's word that the box will not print. visibility, not opacity, at rest: the tab sits
+     in empty space, where an invisible but clickable control would be a trap. */
+  .sb-noexp{ position:absolute; z-index:1; top:calc(100% + 1px); left:-1px; max-width:calc(100% + 2px);
+    height:17px; box-sizing:border-box; padding:0 6px; border:1px solid var(--mantine-color-gray-4);
+    border-top:0; border-radius:0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+    background:var(--mantine-color-white); color:var(--mantine-color-gray-7);
+    font:500 10px/15px Inter, sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    cursor:pointer; visibility:hidden; }
+  .sb-box:hover > .sb-noexp, .sb-box:focus-within > .sb-noexp, .sb-noexp[aria-pressed="true"]{ visibility:visible; }
+  .sb-noexp:hover{ color:var(--mantine-color-black); background:var(--mantine-color-gray-0); }
+  .sb-noexp:focus-visible{ outline:2px solid var(--mantine-primary-color-filled); outline-offset:0; }
+  .sb-noexp[aria-pressed="true"]{ background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+    border-color:var(--mantine-color-gray-5); }
+  .sb-noexp[aria-pressed="true"]:hover{ background:var(--mantine-primary-color-light-hover); }
+  /* No check mark: at the default 20-unit width (109px) the words alone (100px) just fit, and a mark cut
+     them to "Hide from Expo…". The owner asked for the button to "just say" its words. */
+  .sb-box.sb-noexport{ border-style:dashed; border-color:var(--mantine-color-gray-6); }
+  .sb-box.sb-noexport > .sb-title{ border-bottom-style:dashed; border-bottom-color:var(--mantine-color-gray-6); }
   /* The format bar: the header's controls (.hf-*), on a body-level panel of its own. */
   .sb-fmt{ position:absolute; z-index:210; display:flex; align-items:center; gap:3px; padding:4px 6px;
     background:var(--mantine-color-white); border:1px solid var(--mantine-color-gray-3);

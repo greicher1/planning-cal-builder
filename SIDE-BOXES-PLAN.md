@@ -412,3 +412,42 @@ both writers. This replaces §3.3's "stack top to bottom" for any box that has b
   its place; in its lower half it goes under it. A move writes every box on the sides it touches to the row it is drawn
   on, so nothing it did not touch moves.
 - **Proof:** the `sideboxes` leg's group R and F14 (HANDOFF's entry of the same date).
+
+## 14. Hide from Exports (21 Oct 2026)
+
+*(§13 is the free-position work on branch `sidebox-free-pos`; the two met there on 22 Oct 2026. With free
+positions, a hidden box leaves the printed layout and the boxes under it close up only if they stack; a box that
+has a `row` keeps it.)*
+
+**Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+app"*. **Ruled by picker:** per box, not one switch for all, and *"button should just say "Hide from Exports""*.
+
+- **On screen:** a **Hide from Exports** tab hangs under each box's bottom edge, in the empty row every box keeps
+  below it, so it covers no text at any width. It shows on hover or focus. Clicked, the box stays where it is, its
+  frame turns dashed grey, and the tab stays shown with the light navy fill (this app's "on"), still reading Hide
+  from Exports; clicking it again undoes it. One undo step each way. Hidden at rest with `visibility`, not
+  `opacity`, so no invisible control sits in empty space. `.sb-stack` gained `padding-bottom:20px` so the last
+  box's tab never makes the stack scroll. A check mark on the pressed tab was tried and dropped: at the default
+  20-unit width (109 px) the words alone take 100 px, and the mark cut them to "Hide from Expo…".
+- **In print:** the workbook and the waterfall PDF lay the remaining boxes out as if the hidden one had never been
+  added (the boxes under it close up; a side whose boxes are all hidden has no column, so the grid moves back).
+  Every box hidden is exactly a calendar with no box: the leg proves the PDF content and the workbook grid equal.
+- ⭐ **No frozen line changed** (CLAUDE.md, sanctioned pattern 1). The frozen writers call
+  `sideBoxLayoutSafe(schedule)` with nothing else, so that call now MEANS the printed layout; the screen's two
+  callers (`renderSideBoxes`, `refreshSideHeights`) pass `SIDE_SCREEN` and get every box. `pdfUnprintablePlaces`
+  also reads the printed layout, so a character the PDF cannot set, typed in a hidden box, raises no warning.
+  ⛔ **A new screen-side caller must pass `SIDE_SCREEN`**, or a hidden box disappears from the screen too. The
+  `sidebox-free-pos` branch adds four such callers (and a `sideBoxLayout(…, {boxes, lead})` for the drop plan)
+  written before this existed: whichever of the two merges second must give each the screen layout (merge the
+  `opts`: `{boxes, lead, screen: true}`), and run `sbnoexport`, whose H1/N1 go red on exactly that mistake.
+- **File:** a box's `noExport: true`, written ONLY as true (off is the absent key, never `false`), last among the
+  box's keys. `cleanSideBoxes()` keeps `true`, drops `false` silently and drops and counts anything else.
+  `SNAPSHOT_VERSION` unchanged: an older build ignores the key and prints the box, which is the safe direction.
+- **Proof:** leg `sbnoexport` (`tests/harness/t/sbnoexport.js`, in `gate.sh` after `sideboxes`), 28 checks in
+  T (the tab), H (hiding), X (workbook), P (PDF), N (all hidden = no box), F (file). Green on the build; red on the
+  pre-change build (no tab: T1, then a throw); red on a mutant whose screen calls drop `SIDE_SCREEN` (H1, H2: the
+  box vanished). `sideboxes` 58/58 unchanged; `npm run check` 40/40; a 2× headless screenshot of both states.
+  Full gate on build `ffbe9371…` (22 Oct 2026): 2,619 PASS, 7 FAIL, every baseline byte-identical; the 7 were
+  `filekeys` (contention, 16/16 alone) and `hdrversion` (a date-dependent bug in that leg's PDF reader, fixed on
+  the live branch the same night; HANDOFF). The v1.7.0 Export PDF dialog's `pageFitFor()` calls the layout with no
+  opts, so its recommendation measures the printed page, hidden boxes left out.
