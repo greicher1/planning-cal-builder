@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR IS BUILT, AND MERGED WITH TODAY'S `main` — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`), merge `e12b10b`, build `c7b70156`; FULL GATE RUNNING; NOT IN `main`, NOT PUSHED
+### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR IS BUILT, AND MERGED WITH TODAY'S `main` — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`), merge `e12b10b`, build `c7b70156`; GATED 2,695 / 3 (the 3 fixed in the leg, 14/14); NOT IN `main`, NOT PUSHED
 
 - ⏭ **RESUME HERE.** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
   /Length stream reads and convert the other five legs to match), rebuild, and run the full gate. Don't merge into main
@@ -22,7 +22,18 @@
   ⚠️ **G9 waited for the phase selection's chip, which main's one-chip ruling now shows only when the cells can
   expand** ("Double click to expand cells"), and the leg's two cells had no room. G9 now judges the selection by its
   OUTLINE (`.grid-sel-cell`, drawn for any phase selection), `9053a77`: **`textstyle` 51/51** on the merged build.
-- The full gate on `c7b70156` started ~09:43 (port 9595); its result goes here.
+- ✅ **Full gate on the merged build `c7b70156…` (port 9595, 09:43–10:08:49, alone): 2,695 PASS, 3 FAIL, every
+  byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13). The 3 were `hdrfile`'s "fresh id"
+  and its two refusal counts.
+  - ⚠️ **CORRECTION: not a flake, as this entry called it below after last night's gate.** Alone on the merged build it
+    failed the same 3 twice running, while `main`'s build (`1f4ae2c`, scratch) passed twice under the same load. The
+    leg read the preset list after a FIXED `T.sleep(900)`; under the harness's virtual clock that sleep can expire
+    before the import's off-thread file read lands, so it saw the old list (count 1, freshId false) and the import
+    landing a moment later made both refusal counts one too many. The import itself completes on both builds. Why this
+    build loses the race and main's does not was NOT found (it depends on what else the page has pending).
+  - **Fixed in the leg (`4686ed3`):** it waits for the preset count to move (`T.until`), the harness's own "wait for the
+    thing" rule. Merged build: **14/14 twice**; `main`'s build with the fixed leg: passes. So the gate's three are
+    accounted for, and nothing else failed.
 
 - **Asked:** Owner, 21 Oct 2026: *"ok start building"*, after ruling D1–D5 (the entry below) and, by picker the
   same day, two more: a band inside one phase's column **"Double-click edits"** (its 1 Sep fill-across double-click

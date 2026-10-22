@@ -51,7 +51,9 @@ rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
   styles.
 - **Verified:** new leg `textstyle` 46/46 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
   new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
-  `sideboxes` 58/58; `npm run check` 40/40. The full gate is queued.
+  `sideboxes` 58/58; `npm run check` 40/40. Merged with main (v1.7.0 and the 21 Oct features) as `e12b10b`: full gate
+  on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
+  racing its own import, fixed in the leg (it now waits for the import), 14/14 twice.
 
 ### Unreleased — the zoom slider no longer resizes the side boxes (21 Oct 2026)
 
