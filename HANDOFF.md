@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, NOT MERGED, NOT PUSHED
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; NOT IN `main`, NOT PUSHED
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -33,23 +33,34 @@
   grid row is ~20.84 px, not 20** (the heading 21.34), so the old `rows × 20px` drifted a row every ~25 rows.
   Re-placed on every grid render (the `#table-wrap` observer now also watches its `style`, for the zoom), on resize,
   and by a ResizeObserver on the `.sheet-scroll`'s children (a wrapping header bar moves every row).
-- **Measured in screen px and divided by each element's own zoom**, so it holds today (both zoomed alike) AND after
-  the `sidebox-zoom` branch (side boxes unzoomed). ⚠️ **Merge note for `sidebox-zoom`:** textual conflicts in
-  `sideDropTarget` (rewritten here; take this side) and `beginSideWidthDrag` (take theirs). Conceptually, once their
-  boxes stop zooming, a box's TOP still lands on its row at any zoom (positions are screen px), but its height stays
-  100%, so at 50% a box covers twice its rows and can overlap the box below on screen. Print is unaffected. Worth the
-  owner's eye when both are in.
+- **Measured in screen px and divided by each element's own zoom.** `sidebox-zoom` (in local `main` since the night
+  of 21 Oct) stopped zooming the side boxes, so a box's TOP lands on its row at any zoom while its size stays 100%.
+  Merged in as `7fae3d4`: the one code conflict was `sideDropTarget` (this side taken); `beginSideWidthDrag` came
+  from `main`. Three things made to fit it: line heights use the rows **as laid out at 100%** (`sideRows100`: a
+  grid laid out at 200% has 20.00 px rows, not 20.84); **zoomed out, a box the box above reaches past sits just
+  under it** (screen only, `SIDE_SCREEN_GAP_PX`; leg R14), since at 50% a box is twice as tall as its rows; and a
+  column's length comes from the grid's scroll length, observed, not from its own height cap, which the grid fit
+  moves after this runs (found as a stuck 591 px column at 50%). `sidebox-zoom`'s S12 now measures the boxes, not
+  the column, whose length follows the grid's by design.
 - **Undo fix found by the leg (F8):** undo restores boxes through `cleanSideBoxes()`, whose key order differs from a
   live box that gained `row` (or `titleFmt`) later; undo compares snapshots as TEXT, so the next debounced push saw a
   "change" and wiped the redo. `captureSnapshot()` now writes boxes through `sideBoxesSnapshot()` in the sanitizer's
   order. The `titleFmt` half of this was latent since v1.6.0.
-- **Proof so far:** `sideboxes` leg 72/72 (new group R, R1–R13, and F14; S5/G10/G11 now measure against the grid's
+- **First full gate (branch before the merge, build `3e2aa826…`, 22 Oct 07:17–07:42): 2,608 PASS, 2 FAIL**, both in
+  `hdrversion`, which failed identically on the LIVE build `7ba96b19` that day: its PDF reader trimmed whitespace
+  bytes off a compressed stream, and 22 Oct's date made the stream end in one (`main` fixed the same three legs as
+  `58e6b6a`; this branch's own fix `b80e326` was reverted for it). Everything else green: waterfall PDF and every
+  Excel part identical, 0 clipped, 76 ids, `sideboxes` 72/72.
+- **Proof before the merge:** `sideboxes` leg 72/72 (new group R, R1–R13, and F14; S5/G10/G11 now measure against the grid's
   rows), **red on the pre-change build `7ba96b19…`** (S5, R1, and the row-10 drop never lands). Build `3e2aa826…`;
   `npm run check` 40/40. PDF rendered (box on row 10 beside 3/9/26, first line's baseline = 3/16/26's). Headless
   screenshots, wide and narrow. ⚠️ **Trap: headless Chrome here fires NO `scroll` event for a scrollTop set by
   script** (a probe waited 650 ms and heard none), so R6/R7 dispatch the event by hand. The preview pane could not
   be used (all five dev-server slots held by other chats; `file://` refused).
-- ⏭ **Next:** the full gate, then the owner's merge and push pickers.
+- **After the merge:** `sideboxes` 74/74 (R14 added), `calzoom` 24/24, `npm run check` 40/40, build `6d0c2224…`.
+- ⏭ **Next:** the full gate on the merged build (queued), then the owner's merge and push pickers. ⚠️ The "Hide side
+  boxes from export" session edits the same SIDE BOXES block; it was told what changed here, and that a new per-box
+  key must go into `sideBoxesSnapshot()` too.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
