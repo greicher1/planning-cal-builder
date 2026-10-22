@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `7650870`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
   view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
@@ -30,9 +30,11 @@
   (`installMonthNoteDrag`: the note is its own handle past 4 px, the click after a drag is swallowed, not while the
   editor is open); the copy on the phase body drag and the hiatus band move; Help paragraph; README entry;
   CLAUDE.md state rows.
-- ⚠️ **Two departures from the plan, recorded in it:** the grip is at the bar's RIGHT end (at the left it sat on the
-  label's first letter, "Ṗrod Prep"), and D6 is dropped: start/end grips are a resize and keep stepping with their
-  edge (`pilldrag`/`phaseedge` read them mid-gesture). The owner has not seen either yet.
+- ⚠️ **The grip's place, ruled twice the same evening:** built first at the bar's RIGHT end (at the left it sat on the
+  label's first letter, "Ṗrod Prep"), then moved back by the owner: *"Move the reorder grip to the left end, beside the
+  start grip, even though it covers the first letter of the label while hovering."* It is at the left now (`e73eff5`),
+  on the bar's own fill. ⚠️ **D6 is dropped** (recorded in the plan): start/end grips are a resize and keep stepping
+  with their edge (`pilldrag`/`phaseedge` read them mid-gesture).
 - ⭐ **Learned:** (1) a drag's out-and-back needs `<=` on the midline test: back at the start, the copy's middle is
   EXACTLY the middle of the neighbour that took its old slot, and `<` landed it one place off (mvorder O7 caught it).
   (2) `vite build --outDir X` is relative to `src/` (Vite's root), so a mutant build lands in `src/X` and `git add
