@@ -6650,6 +6650,7 @@ export function initLegacyApp() {
     const k = row.dataset.key;
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
     delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
+    mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
     row.remove();
     update();
     return true;
@@ -9399,6 +9400,7 @@ export function initLegacyApp() {
       sidebar: 'M4 5h16v14H4zM9 5v14',
       check: 'M5 12.5l4.5 4.5L19 7.5',
       trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+      order: 'M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -9557,6 +9559,14 @@ export function initLegacyApp() {
       }
       items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
       items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
+      // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set. Greyed out when the
+      // order set happens to BE date order (dragged back), rather than banking an empty step.
+      if(mvPhaseOrder.length){
+        const segs = (currentSchedule && currentSchedule.segments) || [];
+        const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
+        items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
+          disabled: same, why: 'The bars are already in date order', run: resetMvPhaseOrder});
+      }
       // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
       // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
       // such item.
@@ -9626,6 +9636,14 @@ export function initLegacyApp() {
       if(!now) return;
       pushUndoSnapshot();
       removeCustomPhaseRow(now);
+      pushUndoSnapshot();
+    }
+
+    // One undo step, as every item that changes the calendar.
+    function resetMvPhaseOrder(){
+      pushUndoSnapshot();
+      mvPhaseOrder = [];
+      update();
       pushUndoSnapshot();
     }
 
@@ -11087,7 +11105,11 @@ export function initLegacyApp() {
     const weekCount = Math.ceil((lead + daysInMonth)/7);
     // Stable lane order: phases keep the same vertical position all month (earliest start on
     // top), so the eye can track a bar across weeks instead of it hopping rows.
-    const laneSegs = segs.slice().sort((a,b)=> a.start - b.start);
+    // ⛔ FROZEN EDIT E1 (owner-approved 21 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §6):
+    // the order comes from mvLaneOrder(), outside the frozen code, so a phase dragged up or down by its grip keeps
+    // that place in every week. With no order set (every calendar ever saved) it returns this line's old
+    // expression, `segs.slice().sort((a,b)=> a.start - b.start)`, so gates 10 and 13 stay byte-identical.
+    const laneSegs = mvLaneOrder(segs);
     const epSpans = episodeSpans(schedule);
     // ⛔ FROZEN EDIT, approved 16 Sep 2026 against MONTH-VIEW-PLAN.md §6.5 -- day-override marks.
     // Built to be provably height-neutral: it adds a CLASS to an existing .mv-daycell and nothing
@@ -13805,6 +13827,38 @@ export function initLegacyApp() {
   //    Schedule by or mvProdLabel, and its switch is never hidden by them (Sidebar.jsx).
   // ⛔ The key is permanent from the first file saved with it, and its only value is `true`.
   let mvNumberShootDays = false;
+
+  // ---------- The month view's top-to-bottom order (MONTH-ORDER-PLAN.md) ----------
+  // Owner, 21 Oct 2026: "we need the ability to drag and reorder how phases and notes are sorted up and down on
+  // the month view". Frozen renderMonthView places each week's items first-fit (takeLane), phases by start date;
+  // this changes only WHICH phase it places first (frozen edit E1, owner-approved by picker as R4). The month-PDF
+  // writer re-packs in document order (mvlPackLanes), so it follows with no edit of its own.
+  //  - ONE ORDER FOR THE WHOLE CALENDAR (plan D1): a phase sits at the same height in every week where it
+  //    overlaps another, which is what the frozen "stable lane order" comment exists to keep.
+  //  - ⛔ CALENDAR DATA: captureSnapshot()'s `mvPhaseOrder`, phase keys top to bottom. [] = date order, written
+  //    as an ABSENT key, so a calendar that never reorders saves, draws and prints byte for byte as before.
+  let mvPhaseOrder = [];
+  // E1's rule, outside the frozen code (the mvShootDayNumberer pattern). With no order it is exactly the
+  // expression renderMonthView had: by start date. With one, the named phases go in its order, and a phase it
+  // does not name (added after the reorder) goes right after the named phase that comes before it by date, or on
+  // top when none does (plan D7) -- near where date order would have put it, never at a random end.
+  function mvLaneOrder(segs){
+    const byDate = segs.slice().sort((a,b)=> a.start - b.start);
+    if(!mvPhaseOrder.length) return byDate;
+    const rank = new Map();
+    mvPhaseOrder.forEach((k, i)=>{ if(!rank.has(k)) rank.set(k, i); });
+    const after = new Map();          // a named phase's key, or '' for the top -> the unnamed phases after it
+    let prev = '';
+    byDate.forEach(s=>{
+      if(rank.has(s.key)){ prev = s.key; return; }
+      if(!after.has(prev)) after.set(prev, []);
+      after.get(prev).push(s);
+    });
+    const out = (after.get('') || []).slice();
+    byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
+      .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
+    return out;
+  }
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
   // ---------- Gridlines preference ----------
@@ -19943,6 +19997,7 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     colReuse = false; colFollow = {}; reflectColReuse();
+    mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -20606,6 +20661,9 @@ export function initLegacyApp() {
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
       ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
+      // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
+      // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
+      ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -26655,6 +26713,18 @@ export function initLegacyApp() {
       if(sb && sb.boxes.length) s.sideBoxes = sb; else delete s.sideBoxes;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    // The month view's phase order (MONTH-ORDER-PLAN.md §5): phase keys only, in an array, at most one entry per
+    // key. A key this build has no phase for is KEPT (mvLaneOrder simply never meets it), so a round trip loses nothing.
+    if('mvPhaseOrder' in s){
+      if(!Array.isArray(s.mvPhaseOrder)){ bad.n++; delete s.mvPhaseOrder; }
+      else {
+        const seen = new Set();
+        s.mvPhaseOrder = s.mvPhaseOrder.filter(k=>{
+          if(typeof k === 'string' && SNAP_ID.test(k) && !seen.has(k) && seen.size < 500){ seen.add(k); return true; }
+          bad.n++; return false;
+        });
+      }
+    }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -27016,6 +27086,9 @@ export function initLegacyApp() {
     // open file had.
     mvNumberShootDays = snap.mvNumberShootDays === true;
     reflectMvNumberShootDays();
+    // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
+    // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
+    mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];
     // ⛔ UNCONDITIONAL, both (COLUMN-REUSE-PLAN.md §5): a file with no key places phases the old way and
     // has no hand moves -- never the previously open calendar's.
     colReuse = snap.colReuse === true;
