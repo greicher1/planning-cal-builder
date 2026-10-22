@@ -4,6 +4,59 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, MERGED INTO LOCAL main, PUSH BLOCKED (permission)
+
+- **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
+  `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
+- **Built** (no frozen code): `applyCalZoom()` writes `--cal-zoom` on each `.side-col` instead of `zoom` (absent at
+  100%). legacy.css's side-box cap, the copy of the frozen `.sheet-scroll` max-height, becomes
+  `calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1))`. ⚠️ **Why the multiply:** the grid fit solves
+  `--header-h` so the grid box's max-height is `want / z` in the ZOOMED box's own px; an unzoomed copy of that
+  expression is off by the zoom (measured on the old build: cap 1714 px at 50%, 429 px at 200%, against a grid box of
+  857). `sideDropTarget`'s gap and `beginSideWidthDrag` drop their `gridZoom()` factor.
+- ⚠️ **S7 still compares the two computed max-heights for equality.** That only holds at 100%. The new S12 is the
+  zoomed version: it compares the cap with the grid box's max-height times its zoom.
+- **Proof:** `sideboxes` 59/59 with the new S12 (50% and 200%: grid zoomed, boxes at 100% size, cap equal to the grid
+  box's screen height, no panel scroll), S12 red on a build of `da1142a`; `calzoom` 22/22; `npm run check` 40/40; by
+  hand in the app's browser at 25/50/100/150/200%, and a width drag at 200% (40 px of pointer = 40 px of width).
+- ✅ **Full gate** (build `b5cbd910…` at `894238c`, HARNESS_PORT 9357, 17:01:30–17:26:34, alone, after `zoom-compact`'s
+  gate finished): **2,593 PASS, 4 FAIL, none from this change**: `pilllabel (blocks)` W3 and X2 and `pilllabel
+  (carry-rich)` X2 ("months 1 vs 18": the month view compared before its months had drawn), and `monthexport
+  (mvheaderlegacy)` X4 (the click's activation ran out). All month view, where the side boxes are hidden. Re-run alone
+  through gate.sh's own evaluators: **35/0, 29/0 and 9/0.** S12 PASS in the gate; 0 clipped; every byte-compared gate
+  green.
+- **Local `main` merged in** (`e4500ab`: the zoom pill's 44px bottom strip from `zoom-compact`, the shifting tools'
+  tint and "Side Boxes" from `toolbar-center`, docs). Code merged clean; HANDOFF and README kept both sides. On the
+  merged build: `sideboxes` 59/59 (S12 still holds with the panel's new 44px bottom margin, since the cap copies the
+  frozen expression rather than a number), `calzoom` 24/24, `npm run check` 40/40.
+- **Owner, by picker:** *"Merge once gate passes"* and *"Push, no version cut"*.
+- ✅ **Gate of the branch merged with `e4500ab`** (build `eed49205…` at `90847a1`, HARNESS_PORT 9357, 17:52:53–18:18:04,
+  alone): **2,592 PASS, 1 FAIL**, `winansi produced no result` (a stall); re-run alone through gate.sh's evaluator,
+  7/7.
+- ⚠️ **`main` moved again before the merge:** `6ac6e9a` (toolbar outline, pushed) and `3f974af` (Region in Show info,
+  UNPUSHED, its own gate queued, "push on pass"). Pushing `main` from here would have shipped `3f974af` ungated, so
+  the order is: Region pushes first, this lands on top. Merged `b390b83` into this branch so its next gate covers
+  the exact code that will go live: `sideboxes` 59/59, `calzoom` 24/24, `regionmirror` 9/9, `npm run check` 40/40.
+- ⚠️ **Learned, queuing a gate behind others:** `pgrep -f 'gate\.sh'` matches the waiting loop's OWN wrapper (the
+  Bash tool runs it as `zsh -c "… ./gate.sh …"`) and every other session's, so it waits forever (pointed out by the
+  "Calendar text styling bar" session). Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh
+  [^ ]*gate\.sh( |$)'`, with a random pause, from a script file whose name does not contain "gate.sh".
+- ✅ **Final gate** (build `fce9a65f…` at `4ef1151`, the branch merged with local main `b390b83`, HARNESS_PORT 9357,
+  06:49:47–07:15:43 on 22 Oct, alone): **2,591 PASS, 3 FAIL**: `hdrversion` ×2 (the old harness's PDF reader,
+  fixed on origin by `58e6b6a`) and `launchopen` EX harness. Overnight v1.7.0, header-zoom and the Region change all
+  went live, so the branch was merged with `origin/main` `34c873f` instead (`058d52d`, build `7a8473cd…`: tree =
+  origin/main + this fix's three files). On that build, through gate.sh's own evaluators: `hdrversion` 17/17,
+  `launchopen` 16/16, `hdrfit` 8/8 on both fixtures, `sideboxes` 59/59, `calzoom` 24/24, `npm run check` 40/40.
+- ⛔ **The push was BLOCKED by this session's auto-mode permission check** ("Production Deploy"), 22 Oct, even with
+  the owner's picker answer. Nothing went out. The push is `git push origin sidebox-zoom:main` (a fast-forward of
+  `34c873f` carrying only this branch's commits), for the owner to run or allow. ⚠️ It must NOT be a push of local
+  `main`: that also carries the phase-outline work, whose push the owner has not approved here.
+- ✅ **Merged into local `main`** (owner: "Merge once gate passes"), on top of the phase-outline merge `de83170`; code
+  merged clean, docs kept both sides.
+- ⏭ **Next:** the push above, then verify the live file is byte-identical to `7a8473cd…` (sidebox-zoom's build).
+  ⚠️ `sidebox-free-pos` (another side-box branch, gating 22 Oct) will meet this change in `applyCalZoom()` /
+  `.side-col` CSS when it merges.
+
 ### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; BUILT, NOT GATED, NOT MERGED
 
 - ⏭ **RESUME HERE.** Owner, 21 Oct 2026, choosing between changing notes and changing phases (SPAN-NOTES-PLAN.md §1
@@ -643,7 +696,7 @@
   "CALENDAR ZOOM" right after `setViewMode()`: `calZoom = {sheet, month}`, `applyCalZoom()` (called by setViewMode and
   applyStateSnapshot BEFORE their render, at boot, and by a childList observer on `#table-wrap` after every render),
   `setCalZoom()` fed by a `sptcal-zoom` DOM event. `prefs.calZoom` stores only non-100% values.
-- **How it zooms, measured in Chrome 152's standardised zoom:** CSS `zoom` on `#table-wrap` (and `.side-col`).
+- **How it zooms, measured in Chrome 152's standardised zoom:** CSS `zoom` on `#table-wrap` (and `.side-col` until 21 Oct 2026: the side boxes no longer zoom, see the entry above).
   `getBoundingClientRect()` and `clientX` are then SCREEN px while inline px, `offsetWidth` and computed values are
   the grid's own. The month view is pinned with `width: calc(100% * z)` so its day columns keep their CSS width. Only
   while a calendar shows (`calendarShown()`): the empty state and error messages stay at 100%.
@@ -660,7 +713,7 @@
     rollback) blind to the zoom. The re-render on the way back to 100% stays, for the waterfall's handles.
 - **Non-frozen geometry fixed for zoom** (an Explore audit listed every site): `selGeom` carries `z`; `tdBox`,
   `ownSlotBox`, the marquee and three `headerBottom`s divide or multiply by it; `showWeekInWaterfall`, `colEdgeX`,
-  `beginSideWidthDrag`, `sideDropTarget`; the app shell grid fit solves `want / z`
+  `beginSideWidthDrag`, `sideDropTarget` (both back to plain screen px since the side boxes stopped zooming); the app shell grid fit solves `want / z`
   and observes `#table-wrap`'s style. `gridZoom(el)` reads `el.currentCSSZoom`.
 - **Found and fixed on the way:** `.preview-panel.has-side-boxes` is a grid whose rows stretched (align-content
   normal) when the grid box was shorter than the panel, pushing it down by its own shortfall; the fit then measured

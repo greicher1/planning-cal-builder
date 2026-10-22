@@ -437,8 +437,11 @@
     /* As tall as the grid box may be, and no taller, so the window still never scrolls. ⚠️ A COPY of
        the frozen `.sheet-scroll{max-height:...}` expression: it reads the SAME --header-h, the panel's
        solved value (app.js, "THE APP SHELL'S GRID FIT"), so the two bottoms line up. The sideboxes leg
-       asserts the two computed max-heights are equal, which is what catches this copy drifting. */
-    .side-col .sb-stack{ max-height:calc(100vh - var(--header-h) - 140px); }
+       asserts the two computed max-heights are equal, which is what catches this copy drifting.
+       ⚠️ TIMES THE CALENDAR ZOOM: the grid box is zoomed and the side boxes are not (owner, 21 Oct
+       2026), so the fit solves this value in the zoomed box's own px. --cal-zoom is set on .side-col by
+       applyCalZoom(), and absent (1) at 100%. */
+    .side-col .sb-stack{ max-height:calc((100vh - var(--header-h) - 140px) * var(--cal-zoom, 1)); }
   }
   @media screen and (max-width:960px){
     .side-col{ margin-top:14px; }
