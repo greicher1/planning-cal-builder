@@ -79,7 +79,7 @@ window.addEventListener('load', function () { (async function () {
       if (end < 0) continue;
       // DecompressionStream, unlike zlib.inflateSync, refuses trailing bytes after the deflate end --
       // and every stream here ends with a newline before `endstream`. Trim it.
-      while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+      if (end > start && bytes[end - 1] === 10) end--; else if (end > start && bytes[end - 1] === 13) end--;  // exactly ONE EOL: the writer frames data as "stream\n...\nendstream". Stripping every trailing 10/13/32 chopped real data ending in one of those bytes (~1 stream in 85; content- and so date-dependent: hdrversion failed on 22 Oct 2026, on main's build too).
       try { var s = await inflate(bytes.subarray(start, end)); if (/\bTf\b/.test(s) && /\bTj\b/.test(s)) { content = s; break; } } catch (e) { out.inflateErr = String(e && e.message || e); }
     }
     out.pdfHasContent = !!content;

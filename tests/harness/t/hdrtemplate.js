@@ -299,7 +299,7 @@ window.addEventListener('load', function () { (async function () {
     while ((m = re.exec(latin))) {
       var st = m.index + m[0].length, en = latin.indexOf('endstream', st);
       if (en < 0) continue;
-      while (en > st && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
+      if (en > st && bytes[en - 1] === 10) en--; else if (en > st && bytes[en - 1] === 13) en--;  // exactly ONE EOL: the writer frames data as "stream\n...\nendstream". Stripping every trailing 10/13/32 chopped real data ending in one of those bytes (~1 stream in 85; content- and so date-dependent: hdrversion failed on 22 Oct 2026, on main's build too).
       try {
         var ds = new DecompressionStream('deflate');
         var w = ds.writable.getWriter(); w.write(bytes.subarray(st, en)); w.close();

@@ -113,7 +113,7 @@ window.addEventListener('load', function () { (async function () {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
         // DecompressionStream refuses the newline every stream carries before `endstream`.
-        while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+        if (end > start && bytes[end - 1] === 10) end--; else if (end > start && bytes[end - 1] === 13) end--;  // exactly ONE EOL: the writer frames data as "stream\n...\nendstream". Stripping every trailing 10/13/32 chopped real data ending in one of those bytes (~1 stream in 85; content- and so date-dependent: hdrversion failed on 22 Oct 2026, on main's build too).
         try {
           var ds = new DecompressionStream('deflate');
           var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
