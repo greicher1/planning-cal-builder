@@ -2451,6 +2451,26 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYSB
 
+# ---- sbnoexport: "Hide from Exports" on a side box (owner, 21 Oct 2026) -----------------------------------------
+# A box hidden from exports stays on screen and leaves both writers. No frozen line changed: the writers' own
+# sideBoxLayoutSafe(schedule) call now means the PRINTED layout, and the screen asks for SIDE_SCREEN. The leg
+# reads the workbook and the PDF back with one box hidden, proves every box hidden gives the no-box PDF content
+# and grid, and holds the file shape (noExport only ever `true`). ⚠️ It is also the check that a NEW screen-side
+# caller of sideBoxLayoutSafe passes SIDE_SCREEN: miss it and a hidden box vanishes from the screen (H1, N1).
+rm -f "$HERE/sbnoexport.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=sideboxes "$HERE/run.sh" sbnoexport 900 >/dev/null 2>&1
+python3 - "$HERE/sbnoexport.json" <<'PYSN' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  sbnoexport produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  sbnoexport threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'sbnoexport: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYSN
+
 # ---- calzoom: the calendar zoom, bottom right in both views (owner, 20 Oct 2026) ------------------------------
 # CSS `zoom` on #table-wrap, one value per view, a per-machine preference. 100% writes nothing at all (no style,
 # no class), which is why every byte-compared gate above is untouched by it. The leg holds the control's place

@@ -29,6 +29,24 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Hide from Exports, per side box (21 Oct 2026)
+
+The owner: *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+app"*. By picker: per box, and the button *"should just say "Hide from Exports""*.
+- Hover a colour key or text box beside the waterfall and a **Hide from Exports** tab shows under it. Click it and
+  the box stays on screen, with a dashed frame and the tab staying filled, but Excel and the waterfall PDF leave
+  it out: the other boxes close up, and with every box hidden the exports are those of a calendar with no box.
+  Click again to export it again. One undo step each way. Saved with the calendar.
+- **No frozen line changed.** The writers' own `sideBoxLayoutSafe(schedule)` call now means the printed layout,
+  and the screen asks for every box (`SIDE_SCREEN`). The PDF's unprintable-character warning reads the printed
+  layout too, so it no longer asks about text in a hidden box.
+- **File:** a box's `noExport: true`, written only as true; absent means the box prints, so a calendar that never
+  uses it saves as before. Older builds ignore the key and print the box. `SNAPSHOT_VERSION` unchanged.
+- **Verified:** new leg `sbnoexport` 28/28 on the build (the tab, hiding and undo, the workbook and the PDF read
+  back without the box, every box hidden equal to no box, the file shape, a hostile value), red on the pre-change
+  build and red on a mutant whose screen drops `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2×
+  screenshot of both states. SIDE-BOXES-PLAN.md §14.
+
 ### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
 
 The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since

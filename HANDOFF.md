@@ -4,6 +4,30 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026 (late): "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`; committed on the branch, NOT merged, NOT pushed; full gate queued
+
+- **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+  app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
+- **Built:** a **Hide from Exports** tab under each box (shown on hover/focus; stays shown and filled while on; the
+  box's frame turns dashed grey). A hidden box stays on screen and is left out of the workbook and the waterfall
+  PDF, the other boxes closing up. Saved as the box's `noExport: true`, only ever `true`. SIDE-BOXES-PLAN.md §14
+  has the detail; README has the changelog entry.
+- ⭐ **No frozen line changed** (sanctioned pattern 1): the writers' `sideBoxLayoutSafe(schedule)` now means the
+  PRINTED layout; the screen's two callers pass `SIDE_SCREEN`.
+- ⛔ **MERGE HAZARD with `sidebox-free-pos`** (building, not merged): it adds four screen-side
+  `sideBoxLayoutSafe(currentSchedule)` calls and a `sideBoxLayout(currentSchedule, {boxes, lead})` for the drop
+  plan. Git will NOT flag them, but after a merge each must get the screen layout (`SIDE_SCREEN`, or `screen: true`
+  in the opts), or a hidden box vanishes from the screen and its drag breaks. `sideBoxLayout` gains `opts` on both
+  branches: merge the two into one. `sbnoexport` H1/N1 go red on exactly this. `sidebox-zoom` touches neither.
+- **Proof so far:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
+  `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2× headless screenshot (the in-app browser had no free
+  server slot). ⏳ The full gate is queued behind four other sessions' gates (HARNESS_PORT 9391, log in this
+  session's scratchpad); this entry must be updated with its result.
+- ⚠️ CLAUDE.md's State model row for `sideBoxes` does not mention `noExport`. Left for the owner (owner-approved
+  lines).
+- ⏭ **Next:** the full gate's result, then the owner's picker on merging into `main` and, separately, pushing. On
+  the tracker as `side-box-screen-only`.
+
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right

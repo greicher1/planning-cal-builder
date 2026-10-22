@@ -14046,7 +14046,12 @@ export function initLegacyApp() {
   // ⛔ No control in here carries an id: collectFieldValues() sweeps input[id]/select[id]/textarea[id]
   // into every saved file and the undo stack. The editable text is contenteditable, the format bar's
   // native controls are class-only.
-  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, titleFmt?, names?, hidden?, lines? }]
+  //
+  // "Hide from Exports" (owner, 21 Oct 2026: "be able to hide side boxes from the export but still keep them
+  // on the screen"): a box's `noExport: true` keeps it beside the grid on screen and out of the workbook and
+  // the waterfall PDF, which lay the other boxes out as if it were not there. Per box (owner's picker). Written
+  // ONLY as true -- a box that prints has no such key, so a calendar that never used it saves as before.
+  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, titleFmt?, names?, hidden?, lines?, noExport? }]
   let sideWidths = {};    // { left?: chars, right?: chars } -- dragged widths only; absent = SIDE_DEFAULT_CHARS
   const SIDE_SIDES = ['left', 'right'];
   const SIDE_KINDS = ['key', 'text'];
@@ -14123,6 +14128,9 @@ export function initLegacyApp() {
         });
         if(!o.lines.length) o.lines.push({ t: '' });   // a text box always has a line to type in
       }
+      // Last, where a live toggle appends it. Only `true` is kept; `false` is the absent key's meaning.
+      if(b.noExport === true) o.noExport = true;
+      else if(b.noExport !== undefined && b.noExport !== false) bad.n++;
       out.boxes.push(o);
     });
     if(v.widths !== undefined){
@@ -14226,13 +14234,21 @@ export function initLegacyApp() {
   // place a box differently -- the lesson of the column model (PROJECT-CONTEXT §9a). Per side: segments
   // (`title` | `key` | `line`), each a run of whole sheet rows; boxes stack from row 0 with one empty row
   // between them (ruling Q3). null for a side with no box.
-  function sideBoxLayout(schedule){
+  //
+  // ⛔ TWO AUDIENCES since "Hide from Exports" (21 Oct 2026). With no `opts` this is the PRINTED layout: a
+  // `noExport` box is left out, and the boxes under it close up as if it had never been added. That is
+  // what the frozen writers get, because they call sideBoxLayoutSafe(schedule) with nothing else -- so not
+  // one frozen line changed (CLAUDE.md, sanctioned pattern 1). The screen passes SIDE_SCREEN and gets every
+  // box. A box's segments keep its index into sideBoxes either way. ⚠️ A new SCREEN caller must pass
+  // SIDE_SCREEN, or a hidden box vanishes from the screen too.
+  function sideBoxLayout(schedule, opts){
+    const shown = b => !!(opts && opts.screen) || !b.noExport;
     const rowPt = sideRowPtFn(schedule);
     const entries = sideBoxes.some(b => b.kind === 'key') ? sideKeyEntries(schedule) : [];
     const out = { any: false, rowPt, maxRows: rowPt.maxRows, left: null, right: null };
     SIDE_SIDES.forEach(side=>{
       const mine = [];
-      sideBoxes.forEach((b, i)=>{ if(b.side === side) mine.push(i); });
+      sideBoxes.forEach((b, i)=>{ if(b.side === side && shown(b)) mine.push(i); });
       if(!mine.length) return;
       const chars = sideWidthChars(side);
       const segs = [], extents = [];
@@ -14270,9 +14286,12 @@ export function initLegacyApp() {
   }
   // ⛔ What the frozen writers call. A box must never be able to stop an export: on any error the
   // writers get "no boxes" -- which is also exactly what they got before this feature existed.
-  function sideBoxLayoutSafe(schedule){
-    if(!sideBoxes.length) return { any: false, left: null, right: null, rows: 0 };
-    try { return sideBoxLayout(schedule); }
+  // Every box hidden from exports is the same "no boxes", the very object a calendar without one gets, so
+  // both writers' bytes are those of a calendar that never had a box (leg `sbnoexport` N2, N3).
+  const SIDE_SCREEN = Object.freeze({ screen: true });
+  function sideBoxLayoutSafe(schedule, opts){
+    if(!sideBoxes.some(b => (opts && opts.screen) || !b.noExport)) return { any: false, left: null, right: null, rows: 0 };
+    try { return sideBoxLayout(schedule, opts); }
     catch(err){ console.error(err); return { any: false, left: null, right: null }; }
   }
   // Width in points (= the grid's column units through charsToScreenPx, which IS points in the PDF) of
@@ -14428,7 +14447,7 @@ export function initLegacyApp() {
     const b = sideBoxes[i];
     const segs = S.segs.filter(sg => sg.box === i);
     const h = sg => 'min-height:' + (sg.rows * ROW_DEFAULT_PX) + 'px';
-    let html = `<div class="sb-box" data-i="${i}" data-kind="${b.kind}">`
+    let html = `<div class="sb-box${b.noExport ? ' sb-noexport' : ''}" data-i="${i}" data-kind="${b.kind}">`
       + `<div class="sb-chrome"><button type="button" class="sb-grip" title="Drag to move this box (or Alt+arrow keys)" aria-label="Move box">&#8942;&#8942;</button>`
       + `<button type="button" class="sb-del" title="Delete this box" aria-label="Delete box">&times;</button></div>`;
     segs.forEach(sg=>{
@@ -14450,11 +14469,18 @@ export function initLegacyApp() {
       const hiddenNow = (b.hidden || []).filter(x => !shown.has(x) && sideKeyEntries(currentSchedule).some(e => e.hex === x));
       if(hiddenNow.length) html += `<button type="button" class="sb-unhide">Show ${hiddenNow.length} hidden row${hiddenNow.length > 1 ? 's' : ''}</button>`;
     }
+    // "Hide from Exports" (owner's wording, 21 Oct 2026): a tab hanging under the box, in the empty row
+    // every box keeps below it, so it covers nothing. It shows on hover, and stays shown -- pressed -- while
+    // the box is hidden, which is how the screen says this box will not print. The label never changes;
+    // aria-pressed carries the state. No id (collectFieldValues).
+    html += `<button type="button" class="sb-noexp" aria-pressed="${b.noExport ? 'true' : 'false'}" title="${b.noExport
+      ? 'This box shows here but is left out of Excel and the PDF. Click to export it again.'
+      : 'Keep this box on screen but leave it out of Excel and the PDF'}">Hide from Exports</button>`;
     return html + '</div>';
   }
   function renderSideBoxes(force){
     if(!sideCols.left || !sideCols.right || !sidePanel) return;
-    const L = sideBoxLayoutSafe(currentSchedule);
+    const L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
     const sig = sideSignature(L);
     if(!force && sig === sideLastSig) return;
     sideLastSig = sig;
@@ -14487,7 +14513,7 @@ export function initLegacyApp() {
   }
   // Re-derive the min-heights in place while typing, without rebuilding anything under the caret.
   function refreshSideHeights(){
-    const L = sideBoxLayoutSafe(currentSchedule);
+    const L = sideBoxLayoutSafe(currentSchedule, SIDE_SCREEN);
     SIDE_SIDES.forEach(side=>{
       const S = L[side];
       if(!S) return;
@@ -14726,6 +14752,13 @@ export function initLegacyApp() {
       const info = sideEditInfo(del); if(!info) return;
       hideSideFmt();
       sideCommit(()=>{ sideBoxes.splice(info.i, 1); });
+      return;
+    }
+    const nx = t.closest('.sb-noexp');
+    if(nx){
+      const info = sideEditInfo(nx); if(!info) return;
+      // Off is the ABSENT key, never false (the store's comment).
+      sideCommit(()=>{ if(info.b.noExport) delete info.b.noExport; else info.b.noExport = true; });
       return;
     }
     const hide = t.closest('.sb-key-hide');
