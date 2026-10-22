@@ -85,7 +85,7 @@
 - ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
   The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
 
-### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, `main` (v1.7.0) merged in as `21c5444`); first full gate 2,619 / 3 (gates 10 and 13 green; the 3 explained below); second gate on the merged branch QUEUED; not merged into `main`, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
   view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
@@ -132,8 +132,19 @@
   leaves `/tmp/tc<port>-<leg>`; one full gate leaves ~114 of them, ~886 MB), and `.claude/worktrees` holds 70 worktrees,
   14 GB. This session's gate waiter (scratchpad `waitgate.sh`, port 8790) starts only when no other gate runs AND
   2 GB is free. Clearing the profiles is the owner's call (asked in chat); they are recreated by every run.
-- ⏭ **Next:** the full gate (gates 10 and 13 must stay byte-identical); then ask the owner about merging. On the
-  tracker as `month-reorder` and `month-drag-preview` (building).
+- ✅ **First full gate** (on `e73eff5`, port 8790, 22 Oct 02:38–03:05, after the owner freed the disk): **2,619 PASS,
+  3 FAIL.** Gate 10 (every month print document identical) and gate 13 (every written month PDF byte-identical) all
+  green, which is R4's acceptance measure for E1 and E2; `mvorder` 20/20, the drag legs green. The three FAILs:
+  `stintexport` "timed out waiting for the .xlsx blob" (green alone: contention), and two `hdrversion` checks (the
+  after-PDF "Compressed input was truncated"). ⭐ That was the OLD harness: `main`'s `58e6b6a` reads PDF streams by
+  /Length instead of trimming whitespace, which broke on 22 Oct's date. hdrversion passed on `main`'s own build and
+  failed on the branch until `main` was merged in.
+- **Merged `main` (v1.7.0, 18 commits incl. paper size) into the branch** as `21c5444`: code auto-merged; README and
+  CLAUDE.md conflicted only where both added an entry/row (both kept). On the merged build: `npm run check` 40/40,
+  `stintexport` and `hdrversion` green with the gate's own checks, `mvorder` 20/20.
+- ⏭ **Next:** the second full gate (queued, scratchpad `waitgate.sh`, port 8790); on green, ask the owner about
+  merging into `main` and, separately, about pushing. On the tracker as `month-reorder` and `month-drag-preview`
+  (building).
 
 ### ✅ 22 Oct 2026: v1.7.0 IS LIVE at `703d9d4` (verified byte-identical, `7063a638`): PAPER SIZE + EXPORT PDF DIALOG, built on branch `paper-size` (`d51c2c7`)
 
