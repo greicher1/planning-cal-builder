@@ -946,10 +946,9 @@ export function initLegacyApp() {
     const byKey = new Map(resolved.map(r => [r.key, r]));
     const effective = r => byKey.get(r.key) || r;
     // canExpand, not a re-typed copy of it. Three sites used to inline this test and they have to
-    // agree exactly: the count in the chip, the solid/dashed rect, and what the apply actually
+    // agree exactly: the chip's verb, the solid/dashed rect, and what the apply actually
     // touches. An inline copy is how one of them kept counting inert overrides.
     const grantable = resolved.filter(canExpand);
-    const clampedOut = resolved.filter(r => r.clamped && !r.maxL && !r.maxR).length;
     const allFilled = grantable.length > 0 && grantable.every(r => r.curL === r.maxL && r.curR === r.maxR);
     let expandable = 0;
     // ONE outline per contiguous run (owner decision E3) -- not one per cell, and not one bounding
@@ -991,8 +990,8 @@ export function initLegacyApp() {
       d.style.width = run.w + 'px';
       d.style.height = Math.max(1, run.bo - run.t) + 'px';
       layer.appendChild(d);
-      // A mixed run keeps its solid outline and marks the cells with no room inside it, so the chip's
-      // "(2 has no room)" still points at something visible.
+      // A mixed run keeps its solid outline and marks the cells with no room inside it, so the user
+      // can see which cells a double-click will leave alone.
       if(!allInert) run.items.forEach((it, i)=>{
         if(ons[i]) return;
         const m = document.createElement('div');
@@ -1014,25 +1013,22 @@ export function initLegacyApp() {
       layer.appendChild(m);
     }
     // ...and not while a column-order message is up. That message is transient and is usually ABOUT
-    // the weeks beside the selection, so a second chip stacked over them defeats it. The count is
-    // still on the toolbar button throughout, so nothing is actually withheld. (The drag itself hides
-    // this chip in CSS, via body.grid-swapping.)
-    if(rows.length && !swapFlash){
+    // the weeks beside the selection, so a second chip stacked over them defeats it. (The drag itself
+    // hides this chip in CSS, via body.grid-swapping.)
+    // ⭐ ONLY the double-click hint, and only when a double-click would do something (owner, 21 Oct
+    // 2026: "remove the chip entirely, except say 'Double click to expand cells' when you highlight
+    // phase blocks"; by picker, "pull back" when they are already expanded and nothing when there is
+    // no room). It used to be "31 cells (11 has no room) · double-click to expand · Alt+←/→ to swap",
+    // under drawSwapLayer's mode line ("All 42 weeks of Shoot in 2026 — Alt+→ trades the whole block
+    // with Post S1 · nothing re-flows"). Both are gone; what a swap would do is on the knob's tooltip,
+    // and a refused one says why when Alt+←/→ is pressed (flashSwapMsg).
+    // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand" once
+    // contradicted the toolbar button reading "Pull back" at the selection's limit; that button is
+    // gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
+    if(rows.length && expandable && !swapFlash){
       const chip = document.createElement('div');
       chip.className = 'grid-sel-chip';
-      const inert = rows.length - expandable;
-      // The verb comes from the same allFilled value the batch apply reads. Hard-coding "expand"
-      // once contradicted the toolbar button reading "Pull back" at the selection's limit; that
-      // button is gone (owner ruling 2), and this chip is now the ONE place that names the gesture.
-      // ⭐ Ruling 2 also asked the chip to name the SWAP keys, which only the Help mentioned. Shown
-      // whenever swapSeed() finds a phase cell, the exact rule that showed the Swap buttons (a
-      // refused direction is explained when pressed, as it was then).
-      chip.textContent = (expandable
-        ? expandable + (expandable === 1 ? ' cell' : ' cells')
-          + (inert ? ' (' + inert + (clampedOut ? ' shares a column' : ' has no room') + ')' : '')
-          + ' · double-click to ' + (allFilled ? 'pull back' : 'expand')
-        : rows.length + ' selected · no room to expand')
-        + (swapSeed() ? ' · Alt+←/→ to swap' : '');
+      chip.textContent = 'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells';
       layer.appendChild(chip);
       // ABOVE the selection, not below it. Two reasons, and the second is why this changed:
       //   * below, it always covered the next week's phase labels -- the chip was reporting on the
@@ -1063,8 +1059,6 @@ export function initLegacyApp() {
         if(top < headerBottom + 2) top = Math.min(lh - ch, cap.bot + 5);
         chip.style.left = Math.max(0, Math.min(cap.left, lw - cw)) + 'px';
         chip.style.top = Math.max(0, top) + 'px';
-        chip.dataset.top = String(top);
-        chip.dataset.h = String(ch);
       }
     }
     // Feature 2's knobs, ghosts and chip. Drawn from here because this is the SINGLE repaint entry
@@ -5219,20 +5213,6 @@ export function initLegacyApp() {
     return run.ok ? Object.assign(run, canSwapRun(run)) : run;
   }
 
-  // "Writer's Rm would widen to 2 columns in 34 weeks" -- the phase, the new width, the extent.
-  // Deliberately not a bare count: "34 weeks re-flow" told the owner a number but not what it meant,
-  // and the whole promise of a block swap is that blocks keep their shape.
-  function reshapeText(list, tense){
-    if(!list || !list.length) return '';
-    return list.map(r=>{
-      const to = r.to[r.to.length - 1], from = r.from.length ? r.from[0] : null;
-      const verb = (from !== null && to > from) ? 'widen' : (from !== null && to < from) ? 'narrow' : 'change';
-      return phaseLabelFor(r.key) + (tense === 'past' ? ' ' + verb + 'ed' : ' would ' + verb)
-        + ' to ' + to + (to === 1 ? ' column' : ' columns')
-        + ' in ' + r.weeks + (r.weeks === 1 ? ' week' : ' weeks');
-    }).join('; ');
-  }
-
   function finishStintMove(cand){
     // Re-derive from the selection, as finishSwapMove does: the cached candidate can be a beat stale.
     const run = stintRunFor(cand.year, cand.phaseKey, cand.dir);
@@ -5241,18 +5221,12 @@ export function initLegacyApp() {
     const verdict = commitStintSwap(run);
     if(!verdict.ok){ flashSwapMsg(swapWhy(Object.assign({}, run, verdict))); return false; }
     if(pre) playSwapSettle(run, pre);
-    // Name everything that moved. With one partner the settle shows it; with several, or with
-    // collateral, or under reduced motion, the chip has to say it -- a block that moved because it
-    // shared a column must never move unannounced.
-    const n = (verdict.collateral || []).length;
-    const others = run.members.filter(k => k !== run.phaseKey).map(phaseLabelFor);
-    const at = { weeks: run.weeks, phaseKey: run.phaseKey, place: swapFlashSide(run, verdict.collateral) };
-    const head = 'Swapped the ' + run.year + ' block of ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + joinNames(others) + '.';
-    const rs = reshapeText(verdict.reshaped, 'past');
-    if(rs) flashSwapMsg(head + ' ⚠ ' + rs + '.', 0, at);
-    else if(n) flashSwapMsg(head + ' ' + n + (n === 1 ? ' week' : ' weeks') + ' changed shape to fit.', 0, at);
-    else if(others.length > 1 || swapReducedMotion()) flashSwapMsg(head, 0, at);
-    else flashSwapMsg('');
+    // ⛔ NO MESSAGE AFTER A SWAP THAT WORKED, not even one that reshaped a block or carried other
+    // blocks with it (owner, 21 Oct 2026, by picker: "Never"). It used to name everything that moved
+    // ("Swapped the 2026 block of Writer's Rm ↔ Post and Localization. ⚠ …"). What is left to show it:
+    // the settle animation, the knob's tooltip before the press, and the amber outlines on the weeks
+    // a reshaping swap changes (drawSwapLayer). The '' clears a refusal still on screen.
+    flashSwapMsg('');
     return true;
   }
 
@@ -5306,40 +5280,8 @@ export function initLegacyApp() {
     if(!v || !v.ok){ flashSwapMsg(v ? swapWhy(v) : SWAP_WHY['no-partner']); return false; }
     colFollow = Object.assign({}, colFollow, { [v.phaseKey]: v.follows });
     update();                                             // ends in markDirty(): one undo step
-    flashSwapMsg('Moved ' + phaseLabelFor(v.phaseKey) + ' into ' + phaseLabelFor(v.follows)
-      + '’s column. Its row in Phases has a Reset.', 0, { weeks: v.weeks, phaseKey: v.phaseKey });
+    flashSwapMsg('');                                     // no message after a move that worked (owner, 21 Oct 2026)
     return true;
-  }
-
-  // The mode line the chip shows before commit (COLUMN-ORDER-PLAN.md §2.2), built from the eligible
-  // candidates so it names exactly what each direction would do -- and, for a block swap, every
-  // partner it would trade with.
-  function swapModeText(eligible){
-    const mode = swapSelectionMode();
-    // The KEYS, not the old toolbar buttons' labels ("◀ Swap" / "Swap ▶"), which went with owner
-    // ruling 2: a mode line naming a button that no longer exists would send the user looking for it.
-    const arrow = c => c.dir < 0 ? 'Alt+←' : 'Alt+→';
-    const reflow = c => { const n = (c.collateral || []).length;
-      return n ? n + (n === 1 ? ' week re-flows' : ' weeks re-flow') : 'nothing re-flows'; };
-    if(mode.mode === 'stint'){
-      let warn = false;
-      const text = 'All ' + mode.count + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' in ' + mode.year + ' — '
-        + eligible.map(c => {
-            if(c.mode === 'follow') return arrow(c) + ' moves it into the free column, after ' + phaseLabelFor(c.follows);
-            const rs = reshapeText(c.reshaped);
-            if(rs) warn = true;
-            return arrow(c) + ' trades the whole block with ' + joinNames(c.partners.map(phaseLabelFor))
-              + (c.movers.length > 1 ? ' (' + joinNames(c.movers.filter(k => k !== mode.phaseKey).map(phaseLabelFor)) + ' moves with it)' : '')
-              + ' · ' + (rs ? '⚠ ' + rs : reflow(c));
-          }).join(' · ');
-      return { text, warn };
-    }
-    const c = eligible[0];
-    const head = mode.total
-      ? mode.selected + ' of ' + mode.total + ' weeks of ' + phaseLabelFor(mode.phaseKey) + ' selected'
-      : 'Cells from ' + (mode.stints || 1) + ' blocks selected';
-    return { text: head + ' — Swap moves the ' + c.weeks.length + '-week run at ' + swapRunDates(c.weeks) + ' only · '
-      + eligible.map(x => arrow(x) + ': ' + reflow(x)).join(' · '), warn:false };
   }
 
   // ---------- Column order: the gesture and the indicators (F2-d) ----------
@@ -5479,36 +5421,20 @@ export function initLegacyApp() {
              leftLabel: lab(L, -1), rightLabel: lab(R, 1) };
   }
 
-  // Transient narration: a confirmation after a move, or the reason a move was refused. Held in a
-  // var and drawn by the layer below rather than injected, so the next render cannot orphan it.
+  // Transient narration: the reason a move was refused, and nothing else. A move that worked says
+  // nothing (owner, 21 Oct 2026, by picker: "Never"), so its confirmations, and the run-anchoring
+  // they needed (swapFlashAt, swapFlashSide), are gone. Held in a var and drawn by the layer below
+  // rather than injected, so the next render cannot orphan it.
   let swapFlash = '';
-  // Optional { weeks, phaseKey, place } -- WHICH run the message is about, and which side of it to
-  // sit on. Carried as data rather than as a captured box because the commit re-renders the table
-  // and every box goes stale; the draw resolves it from the live DOM by week + phase key.
-  let swapFlashAt = null;
   let _swapFlashTimer = 0;
-  function flashSwapMsg(text, ms, at){
+  function flashSwapMsg(text, ms){
     if(_swapFlashTimer) clearTimeout(_swapFlashTimer);
     swapFlash = text || '';
-    swapFlashAt = swapFlash ? (at || null) : null;
     if(!swapFlash){ redrawGridOverlay(null); return; }
     _swapFlashTimer = setTimeout(()=>{
-      _swapFlashTimer = 0; swapFlash = ''; swapFlashAt = null; redrawGridOverlay(null);
+      _swapFlashTimer = 0; swapFlash = ''; redrawGridOverlay(null);
     }, ms || 4200);
     redrawGridOverlay(null);
-  }
-  // Which side of the run a message should sit on: the side the COLLATERAL is not on. A chip that
-  // says "2 other weeks changed width" while covering those two weeks is worse than no chip.
-  function swapFlashSide(run, collateral){
-    const rowOf = iso => {
-      const td = allPhaseTds().find(t => t.dataset.week === iso);
-      return td && td.parentElement ? +td.parentElement.dataset.row : null;
-    };
-    const runRows = run.weeks.map(rowOf).filter(n => n !== null);
-    const colRows = (collateral || []).map(rowOf).filter(n => n !== null);
-    if(!runRows.length) return 'above';
-    return (colRows.length && Math.min.apply(null, colRows) < Math.min.apply(null, runRows))
-      ? 'below' : 'above';
   }
 
   // A SECOND layer, and the z-index is the whole reason. .grid-sel-layer must stay at z-index 1 so
@@ -5564,8 +5490,7 @@ export function initLegacyApp() {
 
     const seed = swapSeed();
     const flash = swapFlash;
-    const cands = [swapCandFor(-1), swapCandFor(1)].filter(Boolean);
-    const eligible = cands.filter(c => c.ok);
+    const eligible = [swapCandFor(-1), swapCandFor(1)].filter(c => c && c.ok);
 
     // The sticky header floats over the top of the scroll pane, and this layer paints ABOVE it. A
     // knob for a run scrolled up under the header would sit on top of "Date | 2026 | Notes", so
@@ -5641,8 +5566,9 @@ export function initLegacyApp() {
     // 2 Sep 2026: "keep offering it, warn harder"). A block swap can reshape a block when the year has
     // three or more phase columns, and the toolbar buttons commit without any drag at all -- so a
     // preview that only appeared during a knob drag was no warning for the primary path. Drawn only
-    // when exactly ONE direction is eligible and reshapes: with two, the chip names both and an amber
-    // wash could not say which one it belonged to.
+    // when exactly ONE direction is eligible and reshapes: with two, an amber wash could not say which
+    // one it belonged to. ⭐ Since 21 Oct 2026 this is the ONLY warning before a reshaping swap: the
+    // chip that said it in words is gone (owner: no chip except the double-click hint and refusals).
     if(!swapDrag && selLayer){
       const warned = eligible.filter(c => c.mode === 'stint' && (c.reshaped || []).length);
       if(warned.length === 1){
@@ -5660,51 +5586,26 @@ export function initLegacyApp() {
       }
     }
 
-    // One chip, and only when it says something the user needs. A passive "no phase beside it"
-    // on every single-column selection would be noise, so those reasons are reserved for the
-    // moment the user actually presses a button or completes a drag (flashSwapMsg).
-    let msg = flash;
-    if(!msg && !eligible.length && cands.length){
-      const interesting = cands.find(c => !c.ok && c.reason && c.reason !== 'no-partner'
-        && c.reason !== 'width-mismatch' && c.reason !== 'partial');
-      if(interesting) msg = swapWhy(interesting);
-    }
-    // The MODE, stated before commit (COLUMN-ORDER-PLAN.md §2.2): whether Swap trades the whole block
-    // or only a run of weeks, with whom, and what else re-flows. A block swap with several partners
-    // names every one of them -- the second half of E1 -- so nothing moves unannounced.
-    let info = false, warn = false;
-    if(!msg && eligible.length){ const m = swapModeText(eligible); msg = m.text; info = !!msg; warn = m.warn; }
-    if(!msg || !seed) return;
+    // ONLY why a swap could not happen, after Alt+←/→, a knob click or a drop (owner, 21 Oct 2026:
+    // "only if can't do a swap does it tell you why with a chip"). redrawGridOverlay hides the
+    // selection's hint while it is up, so there is never more than one chip over the grid. This chip
+    // used to carry two passive lines as well: the swap's mode line ("All 42 weeks of Shoot in 2026 —
+    // Alt+→ trades the whole block with Post S1 · nothing re-flows"; the knob's tooltip still names
+    // the swap) and the reason a direction was refused, which now waits for the press like every
+    // other refusal already did. The confirmations after a swap that worked are gone too.
+    if(!flash || !seed) return;
     const chip = document.createElement('div');
-    chip.className = 'grid-swap-chip' + (flash ? ' is-flash' : warn ? ' is-warn' : info ? ' is-info' : '');
+    chip.className = 'grid-swap-chip is-flash';
     chip.setAttribute('role', 'status');
-    chip.textContent = msg;
+    chip.textContent = flash;
     layer.appendChild(chip);
-    // Anchored to the whole RUN the message is about when there is one, otherwise to the seed cell.
-    let box = null, place = 'above';
-    if(flash && swapFlashAt){
-      const bs = swapRunBoxes(swapFlashAt.weeks, swapFlashAt.phaseKey, g);
-      if(bs.length){
-        const u = swapUnion(bs);
-        box = { wrapLeft:u.l, wrapTop:u.t, wrapWidth:u.r - u.l, wrapHeight:u.bo - u.t };
-      }
-      place = swapFlashAt.place || 'above';
-    }
-    if(!box){
-      const anchorTd = swapTdFor(seed.weekIso, seed.phaseKey);
-      box = anchorTd && tdBox(anchorTd, g);
-    }
+    // Anchored to the seed cell, the one the swap was asked of.
+    const anchorTd = swapTdFor(seed.weekIso, seed.phaseKey);
+    const box = anchorTd && tdBox(anchorTd, g);
     if(box){
       const cw = chip.offsetWidth, ch = chip.offsetHeight;
       const lw = layer.clientWidth, lh = layer.clientHeight;
-      // STACKED above Feature 1's count chip, never over it. The two say different things (how many
-      // cells can expand / why a column will not move) and both can be live at once, so they queue
-      // upwards instead of fighting for one slot. Read off the sibling's recorded box rather than
-      // recomputed, so the two placements cannot disagree.
-      const count = selLayer && selLayer.querySelector('.grid-sel-chip');
-      const ceiling = count && count.dataset.top !== undefined && place === 'above'
-        ? Math.min(box.wrapTop, +count.dataset.top) : box.wrapTop;
-      let top = place === 'below' ? box.wrapTop + box.wrapHeight + 5 : ceiling - ch - 5;
+      let top = box.wrapTop - ch - 5;
       if(top < headerBottom + 2) top = Math.min(lh - ch, box.wrapTop + box.wrapHeight + 5);
       chip.style.left = Math.max(0, Math.min(box.wrapLeft, lw - cw)) + 'px';
       chip.style.top = Math.max(0, Math.min(top, Math.max(0, lh - ch))) + 'px';
@@ -5782,16 +5683,10 @@ export function initLegacyApp() {
     const verdict = commitSwapRun(run);
     if(!verdict.ok){ flashSwapMsg(swapWhy(Object.assign({}, run, verdict))); return false; }
     if(pre) playSwapSettle(run, pre);
-    // A completed move must never be silent. Collateral is the case that genuinely needs narrating;
-    // under reduced motion there is no settle to see, so confirm every move.
-    const n = (verdict.collateral || []).length;
-    const at = { weeks: run.weeks, phaseKey: run.phaseKey,
-                 place: swapFlashSide(run, verdict.collateral) };
-    if(n) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey) + ' ↔ ' + phaseLabelFor(run.partnerKey)
-        + '. ' + n + (n === 1 ? ' other week' : ' other weeks') + ' changed width to fit.', 0, at);
-    else if(swapReducedMotion()) flashSwapMsg('Swapped ' + phaseLabelFor(run.phaseKey)
-        + ' ↔ ' + phaseLabelFor(run.partnerKey) + ' (' + swapRunDates(run.weeks) + ')', 0, at);
-    else flashSwapMsg('');
+    // ⛔ Silent once it worked, collateral and reduced motion included (owner, 21 Oct 2026, by picker:
+    // "Never"). It used to say "Swapped Post ↔ Prod Prep. 2 other weeks changed width to fit." The
+    // '' clears a refusal still on screen.
+    flashSwapMsg('');
     return true;
   }
 
@@ -5891,9 +5786,9 @@ export function initLegacyApp() {
   // ⛔ THE TOOLBAR'S "◀ Swap" / "Swap ▶" BUTTONS ARE GONE (owner ruling 2, relayed 30 Sep 2026; built
   // after v1.4.1), and their delegated listener with them. Alt+Left / Alt+Right below call the same
   // doSwapMove(), so a REFUSAL is still explained, by flashSwapMsg() on the grid's own chip, and the
-  // knob still takes a click or a drag. The selection's count chip now ends with "Alt+←/→ to swap"
-  // whenever the Swap buttons would have shown (a phase cell is selected), because until now only
-  // the Help mentioned the keys.
+  // knob still takes a click or a drag. The selection's chip named the keys from then until 21 Oct
+  // 2026, when the owner cut it to the double-click hint alone; the keys are in the Help again, and a
+  // refusal is now the only chip a swap ever shows.
 
   // Keyboard. Alt+Arrow rather than a bare arrow: the arrows belong to the page, and Alt is free.
   document.addEventListener('keydown', e=>{

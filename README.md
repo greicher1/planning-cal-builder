@@ -47,6 +47,52 @@ exist as a duplicate setting in the settings tab where it already appears, but n
   `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
   40/40; a 2× screenshot of the card. Full gate not run.
 
+### Unreleased — no pop-ups over a waterfall selection but the double-click hint and a refused swap's reason (21 Oct 2026)
+
+The owner, with a screenshot of two pop-ups stacked over selected cells: *"can we remove or at least simplify (maybe
+combine into one?) this double pop up"*, then, after a one-chip version: *"remove the chip entirely, except say
+'Double click to expand cells' when you highlight phase blocks. then only if can't do a swap does it tell you why with a
+chip"*. Selecting phase cells used to draw a purple chip (*"31 cells (11 has no room) · double-click to expand ·
+Alt+←/→ to swap"*) and, above it, a dark one (*"All 42 weeks of Shoot in 2026 — Alt+→ trades the whole block with Post
+S1 · nothing re-flows"*).
+- **Highlighting phase cells** shows *"Double click to expand cells"*, or *"Double click to pull back cells"* when they
+  are already expanded (owner's pick), and nothing at all when there is no room to expand.
+- **A swap that cannot happen** shows why, in the teal chip, when you press Alt+←/→, click the knob or drop it: as
+  before, but now it is the only message a swap ever shows.
+- **A swap that works shows nothing afterwards** (owner's pick, "Never"), including the notes that other weeks widened
+  ("2 other weeks changed width to fit"), that a block reshaped, or that several blocks moved together.
+- **Before a swap**, what it would do is still on the knob's tooltip ("Swap the 2026 block of Prod Prep with Post"), and
+  a swap that would reshape a block still outlines the weeks it changes in amber. That outline is now the only warning,
+  since the amber chip that said it in words is gone.
+- The Help's three sentences about the label and the after-swap report are updated to match.
+- Chrome only (`redrawGridOverlay`, `drawSwapLayer` and the three finish functions in `app.js`; `swapModeText`,
+  `reshapeText` and `swapFlashSide` deleted; the chip CSS; the Help in `src/index.html`). Nothing in the grid, its cells
+  or the exports changes.
+- **Verified:** the eight legs that read either chip pass, each now asserting the new rule: no chip after a working swap
+  (`colswapmove`, `colswapmid`, `stintmulti`, `stintreshape`), no mode text before one (`stintbtn`, `stintchain`,
+  `stintreshape`, `noswapbtns`), the refusal still shown (`colswapmove`), and the hint's three states (`noswapbtns` S1,
+  S4 and the new S5, `colswapstale`). `npm run check` 40/40. Headless screenshots of a highlighted block and of a
+  refused swap show one chip each. Full gate (build `96b4b311…`): 2,565 PASS, 16 FAIL, all 16 from one `monthemit`
+  run under UTC+14 that wrote no result while other sessions' gates ran (the month PDF, untouched here); that block
+  re-run alone passed every check.
+
+### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
+
+The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since
+the blue color is the same as the selected button color on the left side bar"*. It was: that light navy is the
+selected sidebar tab's ground, so four buttons resting in it read as switched on.
+- Shown four mockups (real screenshots of the app with each style), the owner picked **"option A (navy outline
+  only)"**: ← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From are white with a navy border and
+  navy text. Hover, and a tool whose popover is open, take the faintest navy wash. Side Boxes, the Header button
+  and undo/redo are unchanged.
+- UI-CONVENTIONS §3b gains the rule: a row of resting controls never wears the accent fill, because in this app
+  it means selected; set a group apart by its border and ink.
+- Chrome only (`legacy.css`); nothing in the grid, its cells or the exports changes.
+- **Verified:** in the app's browser with a sample calendar at 1650 px, the resting, hover and open states by
+  computed colour (none of the four matches the selected tab's fill), and Anchor To's popover opening and closing;
+  `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot matching the
+  mockup the owner picked. No full gate (chrome-only; the owner's call for the fill, the same here).
+
 ### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
@@ -1269,7 +1315,6 @@ second field's caption, so a phase row reads **Start date | By [Weeks ▾]**, wi
 - **Verified** in the app: a unit switch shows the right box (Dates fills in the end date), 4.5 in a Days box still
   rings "Whole days only", and at a 1280 px window the 333 px sidebar fits both columns side by side. Full gate on build `87028001…` (1,510,331 bytes, on `d8a488d`): **1,747 PASS, 0 FAIL, GATE PASSED** (16 min, first run, after the other session's gate finished). Every frozen output identical, `fields.byId` at 72 ids, gate 10's ten print documents identical, gate 13's twenty written month PDFs byte-identical; `customunits`, `builtindates`, `phaseedge` 13/13, `wholenum`, `sharecopy2`, `pilldrag` 20/20 and all 244 `pilllabel` checks green. `npm run check` 40/40.
 
-
 ### "Label Production by" in Preferences: the month bars' label can be chosen (16 Oct 2026)
 
 Step 3 of MONTH-PILL-LABEL-PLAN.md. The engine (step 2) shipped at `54ffe15` with nothing to drive it; this adds the
@@ -2192,7 +2237,6 @@ Headline changes:
 - Recents asking for readwrite;
 - the install gate's after-deploy checks (HANDOFF §2l).
 
-
 ### Docs: a threat model, and the custom-domain plan (audit batch 5)
 
 Paper only; the app is unchanged.
@@ -2636,7 +2680,6 @@ doesn't show it in Chrome. HANDOFF §3 B's "opening is unaffected" was wrong and
   kept the typed name and date.
 - Regression: `holidays2031`, `monthnotes`, `monthlanes`, `hostile` and `wrapdate` all pass.
 
-
 ### A weeks or days count that isn't a whole number says so (audit L-12)
 
 **What changed:** Every duration is read as a whole number, so 2.5 weeks became 2, "1e3" became 1,
@@ -2822,7 +2865,6 @@ Headline changes:
 
 ⚠️ **Checked by hand, owed by the owner:** Save as PDF in a UK-locale Chrome offers no Paper size
 (L-3), and the 3.2 and 3.3 before/after workbooks open in Excel.app with no repair prompt.
-
 
 ### The workbook's dates show up in previews: the Date column carries cached values (audit L-7)
 
@@ -5462,7 +5504,6 @@ names its target (41 usable entries), 40 of 41 show live values, it is scrollabl
 own scroll** and still closes on an outside one, and the browse view is read-only. Byte-compare
 re-run: waterfall PDF and every Excel part still identical to the baseline.
 
-
 ### Unreleased — the Excel header has a 255-character cliff, so now the app says how close you are
 
 Step 6 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md), and the last.
@@ -5503,7 +5544,6 @@ minting; and a Template line may legitimately render braces (an unknown token, a
 mistake in different clothes: asserting the absence of a character rather than the absence of the
 thing that matters.
 
-
 ### Unreleased — presets as files, so a header can be sent to someone
 
 Step 5 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
@@ -5539,7 +5579,6 @@ file that is not JSON are both refused with the list unchanged, a file carrying 
 `evilKey` format entry imports as `{c1, l2}` / `{c1:{bold}}` with both dropped, the imported preset
 applies like any other, and it still never reaches a saved calendar. Byte-compare re-run: waterfall
 PDF and every Excel part still identical to the baseline.
-
 
 ### Unreleased — header presets: save an arrangement once, apply it to any calendar
 
@@ -5589,7 +5628,6 @@ shareable copy while the applied header is present in it, rename keeps the id, a
 preset leaves `{"version":1}` behind. `fields.byId` unchanged at 55. Byte-compare re-run: waterfall
 PDF and every Excel part still identical to the baseline.
 
-
 ### Unreleased — the Default template, and a menu that tells you which tokens exist
 
 Step 3 of the six in [`HEADER-PRESETS-PLAN.md`](HEADER-PRESETS-PLAN.md). Local, not pushed at time of
@@ -5629,7 +5667,6 @@ recording** — the palette insert was first asserted against `c4`, which the De
 line; and a synthetic `focusin` sets `hdrFmtTarget` but creates no selection, so Chrome supplies a
 caret at position 0 and the token landed at the start. Both are artefacts of driving the DOM, not
 app behaviour; the leg now places a real caret and targets a line with content.
-
 
 ### Unreleased — header lines can be templates now, and there are three modes rather than two
 
@@ -5729,7 +5766,6 @@ preset library (Step 4), `.spthdr` files (Step 5), the Excel budget meter (Step 
 currently seeds from the resolved auto values rather than the default template, which is honest but
 means the seeded lines carry no tokens until Step 3 lands.
 
-
 ### Unreleased — gate 5 had not run since the baseline was cut, and the stall everyone blamed was never the problem
 
 Local, not pushed at time of writing. No app code changed: this is entirely the test harness and the
@@ -5797,7 +5833,6 @@ opens the legacy `.html` fixture. `CLAUDE.md` names that as the outstanding insu
 The picker path is provably drivable now, so it is a short leg rather than a project. The IndexedDB
 stall itself is still real and still unfixed — it now costs only the recents list and the crash
 backup in headless, neither of which any leg asserts.
-
 
 ### Unreleased — a version number typed once in Show Info, and the header slot that was waiting for it
 
@@ -5907,7 +5942,6 @@ first, before any edit, is what makes that a measured fact rather than an assump
 **Not a version cut.** `APP_VERSION`, `version.json` and `package.json` all stay at `1.2.0`. This is
 one of six steps, and bumping `version.json` raises the *"a new version is available"* strip on every
 installed PWA — for one optional text field. That mechanism only works while it stays credible.
-
 
 ### Unreleased — renamed to SPT Calendar Builder, and the header's Principal Photography date was wrong
 
@@ -7420,7 +7454,6 @@ byte-identical, every Excel part identical, a real v1.0.0 saved calendar restori
 rows / 154 cells / 324 pt grid, the same 56 field ids, 0 console errors. New: `t/fence.js` asserts
 positively that computed styles inside the frozen container did not move, which no test covered
 before.
-
 
 ### Unreleased — 29 Aug 2026 — The chrome's design system, settled before it is built
 

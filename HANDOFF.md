@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout, from `main` at `b5ca7cf`; COMMITTED `3f974af`; GATED (2,595 / 3, all 3 green on a clean copy of the same build); merged with `origin/main` on branch `region-show-info` (worktree in that session's scratchpad) for the push
 
 - **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
   exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
@@ -37,11 +37,76 @@
 - **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
   fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
   push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
-- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
-  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
-  `region-in-show-info`.
+- **Full gate** on build `7d525ad4…` (HARNESS_PORT 9627, 20:14–20:39): **2,595 PASS, 3 FAIL**, none of them this
+  change, each re-run green in a clean worktree of `b390b83` (whose build is byte-identical, `7d525ad4`):
+  `stintreshape` (timed out) and gate 13 `stintswap-reshape` (116,764 bytes against 103,011) both read
+  `tests/fixtures/stintswap-reshape.sptcal`, which has UNCOMMITTED edits from someone else in the main checkout;
+  with the committed fixture, stintreshape passes and gate 13 is byte-identical. `pwagate` C1 (Copy link) was
+  contention: 13/13 alone. ⚠️ The gate ran while another session merged `paper-size` into the main checkout's
+  `main` (20:16), which edited `gate.sh` and `t/lib.js` under the running script.
+- ⚠️ **Local `main` is NOT what goes live.** It now carries `paper-size` (merged by another session, not approved for
+  release) on top of `b390b83`, and meanwhile `origin/main` moved to `db73cf6` (the toolbar outline and one-chip,
+  pushed by their sessions). So the push is `region-show-info`: `b390b83` + `origin/main`, docs conflicts only
+  (README and HANDOFF top entries; both kept, and the superseded "navy tint" heading dropped).
+- **Owner, by picker:** *"Push my 2 commits only (Recommended)"*. That could not be a fast-forward any more, so the
+  merge is shown to the owner before it goes.
+- ⏭ **Next:** the owner's go-ahead for the merged push; then verify the live URL. Local `main` is left to the
+  paper-size session (it must merge `origin/main` before its own push). On the tracker as `region-in-show-info`.
 
-### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
+### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
+
+- **Asked** (screenshot of the purple count chip and the dark swap-mode chip stacked over a Shoot block): *"can we
+  remove or at least simplify (maybe combine into one?) this double pop up"*. A first build merged them into one short
+  chip (picker: "One short chip"); the owner then replaced that ruling:
+  *"remove the chip entirely, except say "Double click to expand cells" when you highlight phae blocks. then only if
+  can't do a swap does it tell you why with a chip"*.
+- **Ruled by picker, same evening:** after a swap that WORKS, a chip appears **"Never"** (not even for collateral,
+  reshape or extra partners); the hint says **"Double click to pull back cells"** when the cells are already expanded,
+  and **nothing** when there is no room.
+- ⛔ **This overrides two older rulings, and the owner chose it knowing so:** COLUMN-ORDER-PLAN E1's "a block that
+  moved because it shared a column must never move unannounced" (now carried only by the knob's label/tooltip before
+  the press: "Swap the 2026 block of Writer's Rm with Post and Localization") and 2 Sep 2026's "warn harder" for a
+  reshaping block swap (now only the amber `.grid-swap-collateral` outlines, which still draw on selection; the picker
+  option said so). Do not bring the words back without asking.
+- **Built** (chrome only; nothing frozen):
+  - `redrawGridOverlay`: the chip is `'Double click to ' + (allFilled ? 'pull back' : 'expand') + ' cells'`, drawn only
+    when `expandable` (and not during a flash). The count, "(N has no room)", "No room to expand" and the swap keys are
+    gone; `clampedOut` and the chip's `dataset.top/h` (read only by the old stacking) went with them.
+  - `drawSwapLayer` draws its chip ONLY for a flash, anchored to the seed cell. The passive refusal line and the mode
+    line are gone. `finishSwapMove` / `finishStintMove` / `finishFollowMove` end in `flashSwapMsg('')` (clears a
+    refusal still up) instead of their confirmations, reduced motion included.
+  - **Deleted as dead:** `swapModeText`, `reshapeText`, `swapFlashSide`, `swapFlashAt` and `flashSwapMsg`'s `at`
+    argument; `.grid-swap-chip.is-warn`. `swapRunDates` stays (knob labels).
+  - Help (`src/index.html`): the label "says which of the two it will do, and there is no label when none of them has
+    room"; "(the label beside the highlight reminds you)" and "and reported afterwards" removed.
+- **Tests** (all assert the new rule, none just loosened): `colswapmove` `confirmSilent`, `colswapmid` `chipSilent`,
+  `stintmulti` `flashSilentA` (+ no swap text in the chip, A and B), `stintreshape` `noWordsBefore` + `flashSilent`
+  (the 28 amber rects still asserted), `stintbtn` (hint text exact; partial mode read off the KNOB's aria-label, "Swap
+  Prod Prep with Post (11/16/26–12/7/26)"), `stintchain` (knob + no chip text), `colswapstale` (no hint at all on a
+  no-room seed), `noswapbtns` S1 (no chip on a no-room Post cell), S4 (exact hint), **new S5** (pull-back hint after the
+  expand). gate.sh's messages for those checks are rewritten to match.
+- **Proof so far:** the eight legs, extracted from `gate.sh`, all PASS on build `96b4b311…` (port 9361);
+  `noswapbtns` 7/7 with S5; headless screenshots (1100×800, `colswap-gesture`): a highlighted block showing only
+  "Double click to expand cells", and a refused Alt+→ on Post showing only "Swap needs a phase in the column beside
+  it…". ⚠️ The browser pane could not be used: its 5-servers-per-folder cap was held by other chats.
+- ✅ **Full gate on build `96b4b311…` (HARNESS_PORT 9383, 18:18–18:55, queued behind two other sessions' gates):
+  2,565 PASS, 16 FAIL, all 16 from ONE cause:** `monthemit`'s UTC+14 run (`Pacific/Kiritimati, 1280,900`) "produced no
+  result", so its 14 byte-identity comparisons and the file-count check failed with it. Month PDF writer, untouched
+  here. **That block (gate.sh's MEA/MEB loop, all five runs + the file checks) re-run alone on the same build: FAIL=0**,
+  with another session's gate running beside it. Add `monthemit` (UTC+14 run) to the contention-flake list beside
+  `pilllabel` C1/C3 and `monthexport` X6. Everything else green, gates 10 and 13 included.
+- ⚠️ **The main checkout carries someone else's UNCOMMITTED edit to `tests/fixtures/stintswap-reshape.sptcal`** (plus
+  an untracked `Reshape Fixture 2026-09-29.sptcal`), present before this session. It was left alone. A gate run from
+  the main checkout would load that changed fixture into `stintreshape`.
+- **Merged for the push** with `origin/main` only, NOT local `main`: local `main` (`9677900`) carries another
+  session's unpushed `3f974af` (Region in Show info, its gate still queued) and PAPER-SIZE-PLAN docs, and lacks
+  `6ac6e9a`. Conflicts were the two top entries in HANDOFF and README (both kept). Against `origin/main` the `src/` diff
+  is exactly this change. Merged build `0ef46d8d…`: `npm run check` 40/40, the eight overlay legs plus `sideboxes` and
+  `hdrcontrols` (the toolbar session's own legs): 146 PASS, 0 FAIL. Not a second full gate.
+- ⚠️ **Local `main` is NOT updated by this push.** Whoever lands `3f974af` must merge `origin/main` first.
+- ⏭ **Next:** push `03ebcd1`+ as `HEAD:main` from the worktree, then verify live. On the tracker as `one-selection-hint`.
+
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
   edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
@@ -79,8 +144,26 @@
   **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
   **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
   accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
-- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
-  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
+- **Owner:** *"Build option A (navy outline only), then ask me before pushing."* **Built** (`legacy.css`, the same
+  selectors as the tint): `.shift-group` and `.tools-wrap > .tools-btn` take a navy-6 border; `.shift-btn` and the
+  three buttons a white fill and navy-6 ink (the caret inherits it); the dividers inside Shift All stay navy-2; hover
+  and `[aria-expanded="true"]` take navy-0 on navy-7. The comment there says why the fill must not come back.
+  UI-CONVENTIONS §3b gains the rule as its first bullet.
+- **Proof so far:** in the app's browser, `carry-rich` at 1650 px: computed resting colours (white / `#2C3E50` border,
+  ink and caret; the selected tab is `#D3DAE1`, matched by none of the four), hover on Anchor To and Anchor To open
+  (both `#EAEEF2` on `#1C2833`), its popover opening and closing with Escape; no console errors but the local
+  server's missing `dist/version.json` (expected on localhost). `npm run check` 40/40; `hdrcontrols` 12/12;
+  `sideboxes` 58/58 (⚠️ its first run hung 28 min behind two other sessions' full gates, the known Chrome
+  contention; killed, re-run alone on port 9607 it took 6 s). A 2× headless screenshot is
+  the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
+- **Owner, by picker:** *"Commit it"*, *"Push now"*.
+- ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
+  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  refuses a fast-forward over a dirty file it would change. So the push went from this branch
+  (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
+  checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
+- ⏭ **Next:** nothing once it is verified live. The worktree `.claude/worktrees/toolbar-center` can be removed on the
+  owner's word.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
@@ -6019,7 +6102,6 @@ Redirecting to a file first and parsing it in a separate step works every time. 
 
 ---
 
-
 ### Where things are
 
 **LIVE at `a9ec081`** (22 Sep 2026), verified byte-identical to its gated build (`e9d46ea6…`) and
@@ -7856,7 +7938,6 @@ file greps normally. The source is the dangerous one.
 ⚠️ **`.portmap/` is gitignored and is NOT the source of truth** — it is the verified per-surface port
 spec produced 29 Aug 2026 by mapping every chrome surface against the real file, and it is worth
 regenerating rather than trusting if `index.html` has moved.
-
 
 ### 2b-2. Mantine UI redesign of the surrounding chrome — **decided; design pass DONE**
 
