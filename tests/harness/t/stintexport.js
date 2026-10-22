@@ -78,12 +78,8 @@ window.addEventListener('load', function () { (async function () {
       var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
       if (end < 0) continue;
       // DecompressionStream, unlike zlib.inflateSync, refuses trailing bytes after the deflate end --
-      // and every stream here ends with a newline before `endstream`. The stream's own /Length says where
-      // its bytes end; trimming newlines and spaces instead also eats a compressed byte that happens to be
-      // 0x0A, 0x0D or 0x20 (hdrversion's PDF hit that on 22 Oct 2026). Trimming stays only as a fallback.
-      var dict = latin.slice(latin.lastIndexOf(' obj', m.index), m.index), len = dict.match(/\/Length (\d+)/);
-      if (len && start + (+len[1]) <= end) end = start + (+len[1]);
-      else while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+      // and every stream here ends with a newline before `endstream`. Trim it.
+      while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
       try { var s = await inflate(bytes.subarray(start, end)); if (/\bTf\b/.test(s) && /\bTj\b/.test(s)) { content = s; break; } } catch (e) { out.inflateErr = String(e && e.message || e); }
     }
     out.pdfHasContent = !!content;

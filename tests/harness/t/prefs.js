@@ -40,15 +40,11 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
-        // The stream's own /Length says where its bytes end. Trimming newlines and spaces instead (as this
-        // did) also eats a compressed byte that happens to be 0x0A, 0x0D or 0x20: hdrversion's PDF hit that
-        // on 22 Oct 2026, on every build. Trimming stays only for a stream without a plain /Length.
-        var dict = latin.slice(latin.lastIndexOf(' obj', m.index), m.index), len = dict.match(/\/Length (\d+)/);
-        if (len && start + (+len[1]) <= end) end = start + (+len[1]);
-        else while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+        // DecompressionStream refuses the newline every stream carries before `endstream`.
+        while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
         try {
           var ds = new DecompressionStream('deflate');
-          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)).catch(function () {}); w.close().catch(function () {});
+          var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
           var u = new Uint8Array(await new Response(ds.readable).arrayBuffer()), t = '';
           for (var j = 0; j < u.length; j += 8192) t += String.fromCharCode.apply(null, u.subarray(j, j + 8192));
           if (/\bTf\b/.test(t) && /\bTj\b/.test(t)) return t;
