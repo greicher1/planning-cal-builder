@@ -123,6 +123,36 @@ scale with the length of the cal when you adjust the window zoom"*. Ruled by pic
   0 FAIL on the branch alone (build `e7db3fde…`); merged with v1.7.0 (build `710fafbe…`), 2,628 PASS / 2 FAIL, both
   re-run green alone (`onecol` 17/0, `epnames` 16/0) and pushed on the owner's word.
 
+### Unreleased — the test harness cleans up after itself (21 Oct 2026)
+
+Test tooling only: nothing in `src/`, the grid, the exports or the save format changed. The disk had gone down to
+1.4 GB free with **2,010 headless-Chrome profiles in `/tmp` (15.5 GB)**, because every harness run left its
+`/tmp/tc<port>-<leg>` behind (about 8 MB; one full `gate.sh` left about 110).
+- **`run.sh` deletes its profile on every exit**: a pass, a FAIL, the wall-clock cap, Ctrl-C or a killed `gate.sh`
+  (a zsh `EXIT` trap, with HUP/INT/TERM turned into exits so the trap runs). It also stops the server on every exit,
+  which an interrupted run used to leave listening.
+- **The six CDP scripts do the same** (`cspproof`, `hiatusdrag`, `phaseedge`, `pilldrag`, `printpaper`, `rtleg`)
+  through one new module, `tests/harness/chrome-profile.mjs`: `process.on('exit')` plus signal handlers. Before
+  this, a signal ended node with Chrome still running.
+- **Two smaller leaks go with the profile.** The `$TMPDIR/com.google.Chrome.*` directory that holds Chrome's
+  SingletonSocket (the profile only links to it; 19,679 had piled up) is deleted with it. And every launch now passes
+  `--disable-features=MacAppCodeSignClone`: Chrome on macOS clones its whole app bundle at launch and deletes the clone
+  only on a clean exit, which a hard-killed Chrome never has, so each run left one (456 on 21 Oct, 1,430 on 19 Oct).
+  Measured on interleaved launches: one new clone per launch without the switch, none with it.
+- The kill and the wait now use an anchored pattern (`user-data-dir=<profile>( |$)`), so leg `colswap`'s cleanup can
+  never match leg `colswapgate`'s Chrome.
+- **No leg relied on a profile surviving**: every launcher already deleted its profile before it started, and nothing
+  in `gate.sh`, `parse.js` or the legs reads one.
+- **Verified:** `base` and `colswap` through `run.sh`, and `cspproof.mjs` (15/15) and `printpaper.mjs` (4/4), on a
+  private port, each leaving no profile, no socket directory, no Chrome process and no server. The same for `run.sh`
+  stopped by SIGTERM (`hdrtemplate` with Chrome still running, `prefs` during its parse; exit 143 both), and for a fake
+  Chrome that never dumps (the wall-clock cap). The node module also on a normal exit, a thrown error and SIGTERM.
+  **Full gate: 2,619 PASS, 6 FAIL, none from this change**, every baseline identical. It left no profile for its port
+  (0 before, 0 after) and no new bundle clone (587 before and after). One FAIL was contention (green alone). Five come
+  from the legs' PDF reader, which strips trailing newline bytes that can be the stream's own checksum, so a date in
+  the header can trip it; it fails the same with `main`'s `run.sh`, and local `main` already reads those five legs'
+  streams by `/Length` (`28cdf6e`, `58e6b6a`), which this branch predates (`HANDOFF.md`, 22 Oct).
+
 ## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
 
 Twelve changes since v1.6.0, from 20–21 Oct 2026. Eleven were already live before this cut (the column headings'

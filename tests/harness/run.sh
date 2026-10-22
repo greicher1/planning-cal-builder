@@ -4,8 +4,8 @@
 #   ./run.sh <test-name> [seconds]        e.g.  ./run.sh base 45
 #
 # Starts the server, runs headless Chrome against index.html?test=<name>, kills Chrome, parses the
-# result, stops the server. Output lands beside this script as <test-name>.json (plus .xlsx/.pdf
-# when the test captured an export).
+# result, stops the server and deletes Chrome's profile. Output lands beside this script as
+# <test-name>.json (plus .xlsx/.pdf when the test captured an export).
 #
 # ** Chrome is backgrounded and hard-killed on purpose. ** `--dump-dom` writes the DOM to stdout
 # ** and then does not always exit: observed 29 Aug 2026 with the file already on disk, Chrome
@@ -51,6 +51,40 @@ CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 [[ -x "$CHROME" ]] || { echo "no Chrome at: $CHROME (set CHROME=...)"; exit 1; }
 [[ -f "$HERE/t/$T.js" ]] || { echo "no such test: $HERE/t/$T.js"; exit 1; }
 
+# ⛔ NOTHING STAYS BEHIND (21 Oct 2026). Every run used to leave its profile in /tmp (about 8 MB),
+# so one full gate.sh left about 110 of them and 2,010 had piled up (15.5 GB) when the disk was down
+# to 1.4 GB free. Two smaller leaks rode along: the directory Chrome makes in $TMPDIR for its
+# SingletonSocket (the profile holds only a symlink to it; 19,679 had piled up), and a clone of the
+# whole Chrome.app bundle that Chrome on macOS makes in $TMPDIR/../X at launch and deletes only on a
+# clean exit, which a hard-killed Chrome never has (456 then, 1,430 on 19 Oct). The feature switch
+# below stops the clone being made: measured, a launch without it leaves one and a launch with it
+# none. So the profile and the socket directory go on EVERY exit: a pass, a FAIL, the wall-clock
+# cap, Ctrl-C or a killed gate.sh. Only a SIGKILL of this script escapes, and the next run of the
+# same leg clears that profile before it starts, as it always has.
+# The pattern ends at the argument, so leg colswap never matches leg colswapgate's Chrome.
+PROFILE_RE="user-data-dir=$PROFILE( |\$)"
+CPID=""; SPID=""
+cleanup() {
+  [[ -n $CPID ]] && kill -9 $CPID 2>/dev/null
+  pkill -9 -f "$PROFILE_RE" 2>/dev/null
+  # Wait for every Chrome process of this profile to be gone, so none can write into it mid-delete.
+  local i sock; local -a held rest
+  for i in {1..20}; do pgrep -f "$PROFILE_RE" >/dev/null || break; sleep 0.25; done
+  sock=$(readlink "$PROFILE/SingletonSocket" 2>/dev/null)
+  # Chrome made that directory for the socket (and a SingletonCookie symlink beside it); delete it
+  # only while it holds nothing else. (DN): dotfiles too, and no match is no error.
+  if [[ -n $sock ]]; then
+    held=( "${sock:h}"/*(DN:t) ); rest=( ${held:#Singleton(Socket|Cookie)} )
+    (( ${#held} && ! ${#rest} )) && rm -rf -- "${sock:h}"
+  fi
+  rm -rf -- "$PROFILE"
+  [[ -n $SPID ]] && kill $SPID 2>/dev/null
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 # A stale server on this port silently serves the OLD index.html and the run looks like a
 # regression that isn't one. Always clear it first.
 pkill -f "srv.js $PORT " 2>/dev/null
@@ -58,7 +92,7 @@ sleep 0.5
 node "$HERE/srv.js" "$PORT" "$ROOT" "$HERE/t" > /dev/null 2>&1 &
 SPID=$!
 sleep 1.5
-curl -sf -o /dev/null "http://localhost:$PORT$PAGE" || { echo "server did not start on $PORT"; kill $SPID 2>/dev/null; exit 1; }
+curl -sf -o /dev/null "http://localhost:$PORT$PAGE" || { echo "server did not start on $PORT"; exit 1; }
 
 # Clear this test's previous output BEFORE running. Otherwise a run that dies without writing a
 # result leaves the last run's <name>.json sitting there, and reading it looks like a pass.
@@ -76,7 +110,7 @@ rm -rf "$PROFILE"
 # HARNESS_WINDOW=<w>,<h> changes the window (default 1600,1200): monthemit's determinism control runs the same
 # leg at another size and requires the same bytes. HARNESS_QUERY=<k=v&...> is appended to the page's query, for a
 # leg that reads its own parameters (monthemit's `src=`, which the step-3 mutant runs use).
-"$CHROME" --headless=new --disable-gpu --no-sandbox \
+"$CHROME" --headless=new --disable-gpu --no-sandbox --disable-features=MacAppCodeSignClone \
   --user-data-dir="$PROFILE" --window-size="${HARNESS_WINDOW:-1600,1200}" \
   --virtual-time-budget=$((SECS * 1000)) "${PDF_FLAGS[@]}" \
   --dump-dom "http://localhost:$PORT$PAGE?test=$T$STATE_Q${HARNESS_QUERY:+&$HARNESS_QUERY}" > "$OUT" 2>/dev/null &
@@ -123,7 +157,7 @@ while (( SECONDS - T0 < CAP )); do
   if (( steady >= 2 )) && { (( ! ${#PDF_FLAGS} )) || (( psteady >= 2 )); }; then WHY="dumped"; break; fi
 done
 kill -9 $CPID 2>/dev/null
-pkill -9 -f "user-data-dir=$PROFILE" 2>/dev/null
+pkill -9 -f "$PROFILE_RE" 2>/dev/null
 # stderr, so stdout stays exactly parse.js's output.
 if [[ $WHY == cap ]]; then
   print -u2 -r -- "run.sh: $T: no complete dump after ${CAP}s wall-clock -- Chrome killed (virtual budget ${SECS}s)"
@@ -134,5 +168,4 @@ sleep 1
 
 node "$HERE/parse.js" "$HERE/$T.html" "$HERE/$T"
 RC=$?
-kill $SPID 2>/dev/null
-exit $RC
+exit $RC   # cleanup (the EXIT trap) stops the server and deletes the profile
