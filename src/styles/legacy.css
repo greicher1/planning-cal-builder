@@ -2445,6 +2445,20 @@
      otherwise show the line-format strip for lines nobody can see. The month view's header is
      .mv-header and is untouched. */
   body.wf-hdr-off .cal-header-bar, body.wf-hdr-off .hdr-tools{ display:none; }
+  /* ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, "At every zoom"; app.js, same heading).
+     The title block and the Manual-mode format strip stop at the grid's last column instead of running
+     to the edge of the scroll box. --wf-grid-w is the grid's own width, written on .preview-panel by the
+     engine; without it (before the first render, the print copy) the cap is off. Width only: the
+     header's padding, fonts and lines are untouched, and a calendar wider than the view keeps the
+     header across the visible width.
+     ⛔ min-width:fit-content is the floor, and it is what keeps the HEIGHT unchanged: the header is never
+     narrower than its lines need on one line (or than the scroll box, when they never fitted), so no
+     line wraps that did not wrap before. Measured: a 320px grid squeezed the title block from 71px to
+     199px tall. So on a calendar narrower than its own header text, the header runs past the last
+     column by just what the text needs -- the owner's own ruling for paper (10 Sep 2026, single column:
+     "the header should look/work exactly the same as it always does"). */
+  #table-wrap > .sheet-scroll > .cal-header-bar,
+  #table-wrap > .sheet-scroll > .hdr-tools{ max-width:var(--wf-grid-w, none); min-width:fit-content; }
 
   /* ---------- Alignment dropdown ---------- */
   .hf-align-wrap{ position:relative; display:inline-flex; }

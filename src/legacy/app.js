@@ -20541,6 +20541,9 @@ export function initLegacyApp() {
     // #table-wrap is drawn.
     clone.querySelectorAll('.side-col').forEach(el=>{ el.replaceChildren(); el.hidden = true; el.removeAttribute('style'); });
     { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.classList.remove('has-side-boxes'); }
+    // The header's cap ("THE HEADER ENDS WITH THE CALENDAR") is the sender's grid width; the copy's own
+    // engine measures its own on its first render.
+    { const pp = clone.querySelector('main.preview-panel'); if(pp) pp.style.removeProperty('--wf-grid-w'); }
     // 5. Write the state in. Escape '<' as \u003c: a literal script-closing tag in any user text
     //    would otherwise terminate the state script element early and corrupt the whole file.
     //    JSON.parse treats \u003c identically to '<', so restore is unaffected.
@@ -27827,6 +27830,59 @@ export function initLegacyApp() {
     });
     window.addEventListener('resize', fit);
     if(shell.addEventListener) shell.addEventListener('change', fit);
+  })();
+
+  // ⭐ THE HEADER ENDS WITH THE CALENDAR (owner, 21 Oct 2026, with a screenshot of a zoomed-out
+  // waterfall: "header should scale with the length of the cal when you adjust the window zoom";
+  // ruled by picker the same day, "At every zoom", so 100% too).
+  //
+  // The title block (.cal-header-bar) and the Manual-mode format strip (.hdr-tools) are blocks inside
+  // the frozen .sheet-scroll, so they were as wide as the scroll box -- the visible width -- while the
+  // grid under them is as wide as its columns. Zoomed out, the scroll box still fills the panel (the
+  // grid fit divides by the zoom) and the grid shrinks, so the header ran on far past the calendar; at
+  // 100% it did the same on any calendar narrower than the window. Paper never has: both PDFs and the
+  // workbook put the header across the grid's width.
+  //
+  // So the header is capped at the grid's width (legacy.css, same heading): min(visible width, grid
+  // width). A calendar wider than the view keeps its header across the visible width, as before, so
+  // the right-hand lines stay on screen at the start of the scroll.
+  //
+  // ⛔ Nothing inside #table-wrap is written (CLAUDE.md, sanctioned pattern 1, like --header-h above):
+  // the grid's width goes into ONE custom property on .preview-panel, which the live grid inherits.
+  // #print-root (the print-fallback PDF) is a direct child of <body> and cannot inherit it, and the
+  // rule is scoped to `#table-wrap > .sheet-scroll` besides. Neither writer reads the DOM.
+  // offsetWidth is the grid's OWN px at any calendar zoom, the px the header is laid out in, so the
+  // zoom needs no arithmetic here.
+  (function(){
+    const panel = document.querySelector('main.preview-panel');
+    const wrap = document.getElementById('table-wrap');
+    if(!panel || !wrap) return;
+    // A column drag at 100% resizes the table live, with no render: the frozen drag writes the table's
+    // own style.width on every move (installGridResizers). So the table's style attribute is observed
+    // as well as #table-wrap's children, re-pointed at each render's new table. A MutationObserver, not
+    // a ResizeObserver: a mutation record arrives whether or not the page gets a rendering opportunity
+    // (the grid fit above learned that), and the harness's virtual time never gives it one.
+    let observed = null;
+    const tableMo = new MutationObserver(()=> sync());
+    function sync(){
+      const grid = wrap.querySelector(':scope > .sheet-scroll > .sheet-grid-wrap');
+      const table = grid ? grid.querySelector(':scope > table.sheet-table') : null;
+      if(table !== observed){
+        tableMo.disconnect();
+        if(table) tableMo.observe(table, { attributes: true, attributeFilter: ['style'] });
+        observed = table;
+      }
+      // 0 is a grid that is not laid out (a print hides the app): keep the last width rather than
+      // collapse the header. No grid at all (the month view, the empty state): nothing reads it.
+      const w = grid ? grid.offsetWidth : 0;
+      if(grid && !w) return;
+      const val = w ? w + 'px' : '';
+      if(panel.style.getPropertyValue('--wf-grid-w') === val) return;
+      if(val) panel.style.setProperty('--wf-grid-w', val); else panel.style.removeProperty('--wf-grid-w');
+    }
+    sync();
+    // childList: render() replaces #table-wrap's children wholesale. Observing mutates nothing.
+    new MutationObserver(sync).observe(wrap, { childList: true });
   })();
 
   // The calendar zoom this machine remembers, before the first render ("CALENDAR ZOOM").
