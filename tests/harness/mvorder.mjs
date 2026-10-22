@@ -330,14 +330,18 @@ try {
   // N6: edit a note that is on top.
   await load('mvorder-notes', 'March 2026');
   n = await box(NOTE('2026-03-04', 'day', 0));
-  await mouse('mouseMoved', n.x, n.y, 0);
-  await mouse('mousePressed', n.x, n.y, 1); await sleep(60);
-  await mouse('mouseReleased', n.x, n.y, 0); await sleep(500);
-  await ev(`(() => { const t = Array.from(document.querySelectorAll('.mv-note-pop textarea')).find(x => x.offsetParent !== null); t.focus(); t.select(); return true; })()`);
-  await send('Input.insertText', { text: 'Table read moved' });
-  await key('Tab', 'Tab', 9); await sleep(600);
-  const d6 = await dayOrder(0, 3);
-  kase('N6', 'editing a note that is on top keeps it on top', d6[0].k === 'note:Table read moved' && d6[0].lane === 0, { day: d6.map(b => b.k + '@' + b.lane) });
+  // ⚠️ Without E2 the note on top is not drawn at all (the 21 Oct mutant): a missing note is a red case, not a crash.
+  if (!n) kase('N6', 'editing a note that is on top keeps it on top', false, { missing: 'the note on top is not drawn' });
+  else {
+    await mouse('mouseMoved', n.x, n.y, 0);
+    await mouse('mousePressed', n.x, n.y, 1); await sleep(60);
+    await mouse('mouseReleased', n.x, n.y, 0); await sleep(500);
+    await ev(`(() => { const t = Array.from(document.querySelectorAll('.mv-note-pop textarea')).find(x => x.offsetParent !== null); t.focus(); t.select(); return true; })()`);
+    await send('Input.insertText', { text: 'Table read moved' });
+    await key('Tab', 'Tab', 9); await sleep(600);
+    const d6 = await dayOrder(0, 3);
+    kase('N6', 'editing a note that is on top keeps it on top', d6[0].k === 'note:Table read moved' && d6[0].lane === 0, { day: d6.map(b => b.k + '@' + b.lane) });
+  }
   // N7: Escape mid note-drag.
   await load('mvorder', 'March 2026');
   n = await box(NOTE('2026-03-04', 'day', 1));
