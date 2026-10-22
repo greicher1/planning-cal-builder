@@ -92,10 +92,12 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return !!document.querySelector('.grid-swap-knob[data-dir="1"]'); }, 'the rightward knob', 120, 100);
     out.knobLabel = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label') || '';
     out.noLeftKnob = !document.querySelector('.grid-swap-knob[data-dir="-1"]');
-    var info = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
+    // The BLOCK mode and the partner are stated by the knob's label and tooltip (knobSaysBlock), and
+    // by nothing else: owner, 21 Oct 2026: no chip except "Double click to expand cells" and a refused swap's reason. The chip is only the hint.
+    var info = document.querySelector('.grid-sel-layer .grid-sel-chip');
     out.modeText = info ? info.textContent : '';
-    out.modeSaysBlock = /All 6 weeks of Prod Prep in 2026/.test(out.modeText) &&
-                        /trades the whole block with Post/.test(out.modeText) && /nothing re-flows/.test(out.modeText);
+    out.swapChipsBlock = document.querySelectorAll('.grid-swap-layer .grid-swap-chip').length;
+    out.modeSaysBlock = out.modeText === 'Double click to expand cells' && out.swapChipsBlock === 0;
     out.knobSaysBlock = /block of Prod Prep with Post/.test(out.knobLabel);
 
     // 5. Commit with Alt+Right (the toolbar's Swap ▶ went with owner ruling 2). ALL SIX weeks move
@@ -142,13 +144,16 @@ window.addEventListener('load', function () { (async function () {
       body: document.body.className, btn: !!btn(),
       c1: c1, hit: (document.elementsFromPoint(c1.x, c1.y) || []).slice(0, 4).map(function (e) { return e.tagName + '.' + e.className; })
     };
+    // 5 weeks are selected but only the 4 overlap weeks move: the knob's label names THOSE, by date.
+    // (Since 21 Oct 2026 the knob is the only thing that states the mode; the chip is only the hint.)
     await T.until(function () {
-      var ch = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info');
-      return ch && /5 of 6 weeks/.test(ch.textContent);
-    }, 'the per-week mode line', 120, 100);
-    out.partialText = document.querySelector('.grid-swap-layer .grid-swap-chip.is-info').textContent;
-    out.partialSaysWeek = /5 of 6 weeks of Prod Prep selected/.test(out.partialText) &&
-                          /moves the 4-week run at 11\/16/.test(out.partialText) && /2 weeks re-flow/.test(out.partialText);
+      var k = document.querySelector('.grid-swap-knob[data-dir="1"]');
+      return k && /\(11\/16\/26–12\/7\/26\)/.test(k.getAttribute('aria-label') || '');
+    }, 'the per-week knob', 120, 100);
+    out.partialText = document.querySelector('.grid-swap-knob[data-dir="1"]').getAttribute('aria-label');
+    out.partialChip = (document.querySelector('.grid-sel-layer .grid-sel-chip') || {}).textContent || '';
+    out.partialSaysWeek = /^Swap Prod Prep with Post \(11\/16\/26–12\/7\/26\)$/.test(out.partialText) &&
+                          !/swap/i.test(out.partialChip);
     out.partialOutlines = document.querySelectorAll('.grid-sel-layer .grid-sel-cell').length;   // 11/2 | 11/16-12/7: TWO (E3)
 
     // 8. Nothing to swap with: with Post gone the block has one phase column and the button must not
