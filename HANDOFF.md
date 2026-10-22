@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; NOT IN `main`, NOT PUSHED
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; NOT IN `main`, NOT PUSHED
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -58,7 +58,13 @@
   script** (a probe waited 650 ms and heard none), so R6/R7 dispatch the event by hand. The preview pane could not
   be used (all five dev-server slots held by other chats; `file://` refused).
 - **After the merge:** `sideboxes` 74/74 (R14 added), `calzoom` 24/24, `npm run check` 40/40, build `6d0c2224…`.
-- ⏭ **Next:** the full gate on the merged build (queued), then the owner's merge and push pickers. ⚠️ The "Hide side
+- ✅ **Full gate on the merged build `6d0c2224…` (port 9563, 22 Oct 08:12:56–08:38:47, alone): 2,662 PASS, 0 FAIL,
+  GATE PASSED.** 0 clipped; waterfall PDF and every Excel part identical to the baselines; 76 ids; gate 13's written
+  month PDFs byte-identical; `sideboxes` 74/74. Everything after `7fae3d4` is docs, so this is the branch's build.
+  `main` has not moved since (`1f4ae2c`), so merging this branch into it is a fast-forward.
+- ⚠️ **A push of local `main` after that also ships what `main` already holds and `origin/main` (`34c873f`) does not:
+  `sidebox-zoom` and `phase-outline` (its gate 13 re-cut included).** This gate ran on exactly that combination.
+- ⏭ **Next:** the owner's merge and push pickers. ⚠️ The "Hide side
   boxes from export" session edits the same SIDE BOXES block; it was told what changed here, and that a new per-box
   key must go into `sideBoxesSnapshot()` too.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
