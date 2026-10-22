@@ -11563,6 +11563,53 @@ export function initLegacyApp() {
         return lane;
       };
       const noteBoxW = mvNoteBoxWidth();
+      // ⛔ FROZEN EDIT E2 (owner-approved 21 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §6;
+      // ruling R2, "A note can go on top"). The notes loop, unchanged in what it places, now asks mvDayNoteBlocks()
+      // (outside the frozen code) for each day's notes in order, and runs as two passes: 'top', HERE, before the
+      // hiatus bands, so first-fit gives a note dragged above the bars the top lane of its day (a bar crossing that
+      // day drops a line for this week, as the ruling says); and 'below' at the end, where the loop always ran.
+      // Every block is placed with exactly the class, style, title, text and data-note-* attributes it had. With no
+      // place stored (every calendar ever saved) 'top' places nothing and 'below' is the old loop's order -- the
+      // waterfall's lines, then the day's own in array order, `ni` its index in that list -- so gates 10 and 13
+      // stay byte-identical. The month-PDF writer re-packs in document order, so it stacks them the same way.
+      const placeNotes = group=>{
+        for(let i=0;i<7;i++){
+          const d = addDays(weekStart, i);
+          const dIso = isoOf(d);
+          const wkKey = isoOf(mondayOf(d));
+          const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
+          mvDayNoteBlocks(schedule, d, group).forEach(b=>{
+            if(b.kind === 'wf'){
+              const n = b.text;
+              // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
+              // that many lanes so it prints as one solid block instead of spilling over its neighbour.
+              const span = mvNoteLineCount(n, noteBoxW);
+              place(i, i, 'mv-bar mv-note-block mv-note-click',
+                `background:${wfColor}; color:${textColorFor(wfColor)};`,
+                escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
+                `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`,
+                span);
+              return;
+            }
+            // This day's own notes: month-view only, each independently editable with its own colour.
+            // A note is ONE block that can be up to 3 lines tall (its own real line breaks plus any
+            // wrapping) -- the whole thing shares one highlight rather than splitting into separate
+            // notes. The index ties a block back to its entry for editing.
+            const entry = b.entry, ni = b.index;
+            const oc = entry.color || MILESTONE_COLOR;
+            const text = String(entry.text || '');
+            if(!text.trim()) return;
+            const span = mvNoteLineCount(text, noteBoxW);
+            place(i, i, 'mv-bar mv-note-block mv-note-click',
+              `background:${oc}; color:${textColorFor(oc)};`,
+              escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
+              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
+              span);
+          });
+          // An "add note" affordance on free lines (added below for every day).
+        }
+      };
+      placeNotes('top');
 
       // Hiatus first: a full-width stop-work band across the days it covers. Spillover days
       // (the greyed-out neighbours from the previous/next month that fill the first and last
@@ -11736,40 +11783,8 @@ export function initLegacyApp() {
       }
 
       // Notes last, so they sit under the phase pills.
-      for(let i=0;i<7;i++){
-        const d = addDays(weekStart, i);
-        const dIso = isoOf(d);
-        const wkKey = isoOf(mondayOf(d));
-        const wfNotes = notesForWaterfallDate(schedule, d);
-        const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
-        wfNotes.forEach(n=>{
-          // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
-          // that many lanes so it prints as one solid block instead of spilling over its neighbour.
-          const span = mvNoteLineCount(n, noteBoxW);
-          place(i, i, 'mv-bar mv-note-block mv-note-click',
-            `background:${wfColor}; color:${textColorFor(wfColor)};`,
-            escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
-            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`,
-            span);
-        });
-        // This day's own notes: month-view only, each independently editable with its own colour.
-        // A note is ONE block that can be up to 3 lines tall (its own real line breaks plus any
-        // wrapping) -- the whole thing shares one highlight rather than splitting into separate
-        // notes. The index ties a block back to its entry for editing.
-        const ownList = dayNoteList(dIso);
-        ownList.forEach((entry, ni)=>{
-          const oc = entry.color || MILESTONE_COLOR;
-          const text = String(entry.text || '');
-          if(!text.trim()) return;
-          const span = mvNoteLineCount(text, noteBoxW);
-          place(i, i, 'mv-bar mv-note-block mv-note-click',
-            `background:${oc}; color:${textColorFor(oc)};`,
-            escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
-            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
-            span);
-        });
-        // An "add note" affordance on free lines (added below for every day).
-      }
+      // ⛔ FROZEN EDIT E2 (see placeNotes above): the old loop, as the 'below' pass.
+      placeNotes('below');
 
       // How tall is this week? At least MV_MIN_LANES, and more if the content needs it --
       // content is never hidden. Manual expansion is what's capped: it can lift the row up to
@@ -14071,6 +14086,49 @@ export function initLegacyApp() {
     const out = (after.get('') || []).slice();
     byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
       .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
+    return out;
+  }
+
+  // Where a NOTE sits on its day (MONTH-ORDER-PLAN.md §3.2, ruling R2: "A note can go on top"). Two groups: 'top',
+  // placed before every bar in its week row (frozen edit E2), so a bar crossing that day drops a line that week;
+  // and 'below', where every note always sat. A NOTE'S PLACE TRAVELS WITH THE NOTE (plan D3):
+  //  - a day's own note is dated and never moves, so its place is in its own dayNotes entry: `top: true`, and its
+  //    order is the array's. ⛔ Written only as `true`.
+  //  - a waterfall line (an auto-note, or a line of a waterfall edit) moves when its phase moves, so its place is
+  //    keyed by its TEXT WITHOUT ITS DATE (mvWfNoteKey): "Start Principal Photography" stays on top when the shoot
+  //    is dragged a day. `at` is how many of its group's own notes come before it (absent = 0, first: where it
+  //    always sat). Editing the text drops the place: the line goes back to its default spot, never a wrong one.
+  //    Two lines on one day keep their natural order between themselves.
+  //  - ⛔ CALENDAR DATA: captureSnapshot()'s `mvWfNotePlace`, written only while it holds something.
+  let mvWfNotePlace = {};
+  const MV_UNSAFE_KEY = /^(__proto__|constructor|prototype)$/;
+  function mvWfNoteKey(text){ return String(text || '').replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '').trim(); }
+  function mvWfPlaceOf(text){
+    const k = mvWfNoteKey(text);
+    return Object.prototype.hasOwnProperty.call(mvWfNotePlace, k) ? mvWfNotePlace[k] : null;
+  }
+  // E2's rule, outside the frozen code: one day's notes for one group, in the order renderMonthView places them.
+  // An own note keeps `index`, its place in the day's full list, which is what data-note-index names to the editor.
+  // With no place stored anywhere this is the old loop exactly: 'top' is empty, and 'below' is the waterfall's
+  // lines, then the day's own notes in array order.
+  function mvDayNoteBlocks(schedule, d, group){
+    const top = group === 'top';
+    const own = [];
+    dayNoteList(isoOf(d)).forEach((entry, index)=>{
+      if(((entry && entry.top) === true) === top) own.push({kind: 'day', entry, index});
+    });
+    // Nothing is on top anywhere: skip the waterfall lookup (it runs for every day of every printed month).
+    if(top && !Object.keys(mvWfNotePlace).length) return own;
+    const wf = notesForWaterfallDate(schedule, d).map(text=>{
+      const p = mvWfPlaceOf(text);
+      return {kind: 'wf', text, top: !!(p && p.top === true), at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
+    }).filter(b=> b.top === top);
+    if(!wf.length) return own;
+    const out = [];
+    for(let k = 0; k <= own.length; k++){
+      wf.forEach(b=>{ if(Math.min(b.at, own.length) === k) out.push(b); });
+      if(k < own.length) out.push(own[k]);
+    }
     return out;
   }
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
@@ -18364,6 +18422,7 @@ export function initLegacyApp() {
     if(activeMvNote) closeMvNoteEditor();
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     dayNoteColors = {}; mvExtraLanes = {};
+    mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
     render(currentSchedule);
     markDirty();
   }
@@ -20212,6 +20271,7 @@ export function initLegacyApp() {
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     colReuse = false; colFollow = {}; reflectColReuse();
     mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
+    mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -20880,6 +20940,9 @@ export function initLegacyApp() {
       // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
       // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
       ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
+      // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
+      // written only while it holds something.
+      ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -26083,6 +26146,8 @@ export function initLegacyApp() {
       if(text){
         const entry = {text, lane:(lane!=null?lane:null), color:pendingColor || (idx>=0 ? list[idx].color : null) || null};
         if(entry.color && entry.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) entry.color = null;
+        // A note dragged above the bars stays there when its text is edited (MONTH-ORDER-PLAN.md §3.2).
+        if(idx >= 0 && list[idx] && list[idx].top === true) entry.top = true;
         if(idx >= 0) list[idx] = entry; else list.push(entry);
       } else if(idx >= 0){
         list.splice(idx, 1);   // deleting all text removes the note (and its colour with it)
@@ -26865,6 +26930,8 @@ export function initLegacyApp() {
         // eight-digit value the month note palette writes. Nothing else new reaches the style attribute.
         if(o.color != null && !isHexColor(o.color) && !isMvNoFill(o.color)){ bad.n++; o.color = null; }
         if(o.lane != null && !Number.isInteger(o.lane)){ bad.n++; o.lane = null; }
+        // Above the bars (MONTH-ORDER-PLAN.md §5): only `true` is ever written.
+        if('top' in o && o.top !== true){ bad.n++; delete o.top; }
         return o;
       };
       if(Array.isArray(v)) return v.map(one).filter(Boolean);
@@ -26929,6 +26996,16 @@ export function initLegacyApp() {
       if(sb && sb.boxes.length) s.sideBoxes = sb; else delete s.sideBoxes;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
+    // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`.
+    setMap('mvWfNotePlace', v=>{
+      if(!isPlainObj(v)) return undefined;
+      const o = {};
+      if(v.top === true) o.top = true;
+      if(Number.isInteger(v.at) && v.at > 0 && v.at <= 100) o.at = v.at;
+      return Object.keys(o).length ? o : undefined;
+    }, /^(?!(?:__proto__|constructor|prototype)$)[^\u0000-\u001f]{1,200}$/);
+    if(isPlainObj(s.mvWfNotePlace) && Object.keys(s.mvWfNotePlace).length > 2000){ bad.n++; delete s.mvWfNotePlace; }
     // The month view's phase order (MONTH-ORDER-PLAN.md §5): phase keys only, in an array, at most one entry per
     // key. A key this build has no phase for is KEPT (mvLaneOrder simply never meets it), so a round trip loses nothing.
     if('mvPhaseOrder' in s){
@@ -27305,6 +27382,17 @@ export function initLegacyApp() {
     // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
     // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
     mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];
+    // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
+    // object should carry can never reach the store's prototype.
+    mvWfNotePlace = {};
+    if(isPlainObj(snap.mvWfNotePlace)) Object.keys(snap.mvWfNotePlace).forEach(k=>{
+      const v = snap.mvWfNotePlace[k];
+      if(MV_UNSAFE_KEY.test(k) || !isPlainObj(v)) return;
+      const o = {};
+      if(v.top === true) o.top = true;
+      if(Number.isInteger(v.at) && v.at > 0) o.at = v.at;
+      if(Object.keys(o).length) mvWfNotePlace[k] = o;
+    });
     // ⛔ UNCONDITIONAL, both (COLUMN-REUSE-PLAN.md §5): a file with no key places phases the old way and
     // has no hand moves -- never the previously open calendar's.
     colReuse = snap.colReuse === true;
