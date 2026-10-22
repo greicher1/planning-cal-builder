@@ -61,11 +61,13 @@
   then fails with "Compressed input was truncated", the content stream is never found, and the loop goes on to
   inflate font streams, whose rejected `write()` promises surface as console errors (the E0 FAILs). The header's
   date is in the content stream, so on 22 Oct 2026 ("10.22.26") `main`'s Tabloid page and `hdrversion`'s PDF tripped
-  it, while the `month-order` build (different bytes) passed the same day. Sixteen legs share the loop
-  (`grep -l "\[[a-z]* *- *1\] === 10 ||" t/*.js`): `autonotekinds`, `calrange`, `hdrrow`, `hdrtemplate`, `hdrversion`,
-  `hiatuslabel`, `notewrap`, `onecol`, `papersize`, `pdfdialog`, `phasecolors`, `phiatusnum`, `prefs`, `prodspan`,
-  `stintexport`, `winansi`. **Fix:** cut at the stream's `/Length`, or drop exactly one `\n`. Not done here: proposed
-  as its own session.
+  it, while the `month-order` build (different bytes) passed the same day. ✅ **Already fixed on local `main` for
+  all five** (found when checking the merge): `28cdf6e` (`papersize`, `pdfdialog`) and `58e6b6a` (`hdrversion`,
+  `prefs`, `stintexport`) read each stream by its `/Length`. This branch predates them, so its gate still ran the old
+  readers; merging brings the fix. ⚠️ **Eleven legs on `main` still trim without `/Length`:** `autonotekinds`,
+  `calrange`, `hdrrow`, `hdrtemplate`, `hiatuslabel`, `notewrap`, `onecol`, `phasecolors`, `phiatusnum`, `prodspan`,
+  `winansi` (`grep -l "\[[a-z]* *- *1\] === 10 ||" t/*.js`, minus those that also match `/Length`). Proposed as its
+  own session.
 - ⏭ **Next:** the owner's call on merging `claude/cool-brattain-388fa6` into `main` (asked by picker), then on the push.
   On the tracker as `harness-disk`.
 

@@ -56,7 +56,8 @@ Test tooling only: nothing in `src/`, the grid, the exports or the save format c
   **Full gate: 2,619 PASS, 6 FAIL, none from this change**, every baseline identical. It left no profile for its port
   (0 before, 0 after) and no new bundle clone (587 before and after). One FAIL was contention (green alone). Five come
   from the legs' PDF reader, which strips trailing newline bytes that can be the stream's own checksum, so a date in
-  the header can trip it; it fails the same with `main`'s `run.sh` (`HANDOFF.md`, 22 Oct).
+  the header can trip it; it fails the same with `main`'s `run.sh`, and local `main` already reads those five legs'
+  streams by `/Length` (`28cdf6e`, `58e6b6a`), which this branch predates (`HANDOFF.md`, 22 Oct).
 
 ### Unreleased — choose the paper; Export PDF asks first (21 Oct 2026)
 
