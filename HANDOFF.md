@@ -86,8 +86,11 @@
   this merge; the sample is too small to say the merge made it more likely. Not fixed here (it is not this work).
 - ⚠️ **`main` moved again: the text style bar (`2a10aba`, ~1,000 lines of `app.js`) is in local `main` and NOT in
   this branch.** Landing this branch needs that merged in and the full gate run once more.
-- ⏭ **Next:** on the owner's word, merge `main` in, gate, and the merge and push pickers. Expect `offweek` to need a
-  re-run alone if it flakes. `sidebox-noexport` is inside this branch, so landing this lands both.
+- ⚠️ **22 Oct, later: `main` moved again, to `05d41e0`** (v1.8.0 is LIVE at `cfd18e9`: the text style bar and the
+  phase outline; local `main` adds month-order and the harness profile cleanup, from the "Prep-skip switch" session,
+  which left side boxes alone). This branch has none of it: ~1,650 lines of `src/` to take in.
+- ⏭ **Next:** on the owner's word, merge `main` (`05d41e0` or later) in, gate, and the merge and push pickers. Expect
+  `offweek` to need a re-run alone if it flakes. `sidebox-noexport` is inside this branch, so landing this lands both.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
