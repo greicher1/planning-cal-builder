@@ -2485,6 +2485,28 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
 
+# ---- hdrfit: the waterfall's header ends with the calendar (owner, 21 Oct 2026, "At every zoom") ----------------
+# The title block and the Manual-mode format strip are capped at the grid's own width (--wf-grid-w on .preview-panel),
+# floored at what their lines need on one line. colreuse is an Auto header over a grid a little wider than the
+# harness window at 100%; hdrmanualbraces a Manual header (the strip up) over a narrower one. The leg holds where the
+# header ends at six zooms, that its height never changes, a live column resize, the month view, the print copy (which
+# cannot see the cap) and a shareable copy (which carries none). Chrome only: nothing a writer reads.
+for HFSTATE in colreuse hdrmanualbraces; do
+  rm -f "$HERE/hdrfit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$HFSTATE" "$HERE/run.sh" hdrfit 300 >/dev/null 2>&1
+  python3 - "$HERE/hdrfit.json" "$HFSTATE" <<'PYHF' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrfit ('+sys.argv[2]+') produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  hdrfit ('+sys.argv[2]+') threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'hdrfit ('+sys.argv[2]+'): '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYHF
+done
+
 # ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
 # Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar
 # names its episodes "Shoot Ep. N" and a bar reads its episode's name as typed; an old file keeps "Episode N" (read off

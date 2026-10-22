@@ -49,6 +49,79 @@
 - ⏳ **The combined build's full gate is queued** (port 9353, the real-gate check). On green: fast-forward local `main`
   to this branch (it then holds `origin/main` too), and ask separately before any push.
 
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
+
+- **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
+  scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%
+  included (offered against "Only when zoomed", which would snap the header at the first step off 100%).
+- **Cause, measured:** `.cal-header-bar` and `.hdr-tools` are blocks inside the frozen `.sheet-scroll`, so they were as
+  wide as the scroll box, which the grid fit keeps at the panel's width at every zoom, while the grid is as wide as its
+  columns. On `colreuse` at 1800 px: header 1,310 px at every zoom, grid 1,208 at 100% and 604 at 50%. So even at 100%
+  the header ran past any calendar narrower than the window.
+- **Built** (no frozen line changed): `app.js` "THE HEADER ENDS WITH THE CALENDAR", after the grid fit, writes
+  `.sheet-grid-wrap`'s `offsetWidth` (the grid's own px at any zoom) as `--wf-grid-w` on `.preview-panel`, on every
+  `#table-wrap` childList change and on the TABLE's style attribute (the frozen column drag writes `table.style.width`
+  live). `legacy.css`, right after `body.wf-hdr-off`, caps `#table-wrap > .sheet-scroll > .cal-header-bar, … > .hdr-tools`
+  at `max-width: var(--wf-grid-w, none)` with `min-width: fit-content`. `buildSavedHtml()` drops the value from the
+  clone's panel.
+- ⛔ **`min-width: fit-content` is load-bearing.** Without it a narrow calendar squeezed the title block from 71 to 199 px
+  tall (measured with the cap forced to 320 px). With it the header is never narrower than its lines on one line (or
+  the scroll box, when they never fitted), so its HEIGHT equals the uncapped height in every case and only where the
+  centre and right sections sit can change. On a calendar narrower than its own header text the header therefore runs
+  past the last column by just what the text needs — the owner's paper ruling of 10 Sep 2026 (single column). Tell the
+  owner if they ever see that and call it a bug.
+- ⚠️ **A MutationObserver on the table, not a ResizeObserver.** The first cut used a ResizeObserver on the grid box: it
+  works in the app's browser but never fires under the harness's virtual time, so `hdrfit` H4 was red headless. Same
+  lesson as the grid fit's comment. `requestAnimationFrame` never fires there either; the leg sleeps instead.
+- ⚠️ **Two `.preview-panel` custom properties now:** `--header-h` (the grid fit's solved value) and `--wf-grid-w`. Neither
+  reaches `#print-root`, a direct child of `<body>`. Keep both off `:root`.
+- **Proof:** new leg `tests/harness/t/hdrfit.js`, in `gate.sh` after `calzoom`, run on `colreuse` and
+  `hdrmanualbraces`: 8/8 each. By hand in the app's browser at 25–200%, Manual mode, a live column resize, the month
+  view and back, no console error. Fence (gate 7, by hand): 0 of 511 entries differ from the live build `7ba96b19`.
+  `npm run check` 40/40. ✅ **Full gate on build `e7db3fde…` (port 9473, 17:27:24–17:52:41, alone, queued behind the
+  `zoom-compact` and `sidebox-zoom` gates): 2,612 PASS, 0 FAIL, GATE PASSED**, the 16 `hdrfit` checks among them. This
+  is commit `3785258` on `da1142a`, BEFORE `main` moved on (zoom strip `ec8c788`, toolbar tint `b332e5c`, both live).
+- ✅ **Merged with `main` at `b5ca7cf` (`5fbc0d9`, docs conflicts only) and gated again: build `e24bceac…`, port 9473,
+  19:21:28–19:46:54, alone: 2,614 PASS, 0 FAIL, GATE PASSED.**
+- ⏭ **RESUME HERE for landing.** By then local `main` had an unpushed code commit (`3f974af`, the Production Region in
+  Show info, its session gating to push) and `origin/main` had two pushes local `main` lacked (`6ac6e9a`, `db73cf6`):
+  diverged. **Owner, by picker, 21 Oct 2026: "After Region pushes"** (wait for that session to reconcile and push, then
+  merge that `main` into `header-zoom` once, one full gate, land) **and "Push on a green gate"** — approval for THIS
+  change's push only, once its final gate passes, then verify the live file byte for byte. Not a standing approval.
+- **Region went live at 20:49 (`origin/main` `24f1537`), but local `main` had moved on to the unpushed Paper-size merge
+  (`6ca9993`)**, which the push approval does not cover. So `origin/main` was merged into `header-zoom` instead
+  (`6e0df9e`, docs conflicts only; build `fe4462ca…`, check 40/40), to be pushed as `header-zoom:main`, a fast-forward on
+  GitHub carrying only this change. Local `main` is left alone: whoever pushes Paper-size merges `origin/main` first.
+- ⚠️ **Port collision, 22 Oct 01:02–01:16:** the paper-size session ran legs on HARNESS_PORT 9473 while this gate did,
+  and each `run.sh` starts with `pkill -f "srv.js 9473 "`, so the two killed each other's server (it told this session).
+  That gate (16 FAIL by 01:17, all missing results or wrong-build PDFs) was stopped and discarded, and passes in that
+  window prove nothing either. Re-run on 9629, checked free with `lsof`. **Pick a port nobody else uses for every gate.**
+  ⚠️ In zsh, `kill $LIST` does NOT word-split a variable: it killed nothing. Loop over the pids.
+- ⛔ **`hdrversion` went red on 22 Oct for EVERY build, from the date alone — a harness bug, fixed here.** The re-run gate
+  on 9629 (01:19–01:44) was 2,621 PASS, 2 FAIL, both `hdrversion` (the PDF's left column read as None; "Compressed
+  input was truncated" / "incorrect header check" rejections). The live build `24f1537` and the very build that passed
+  it the day before (`e24bceac`, same hash) failed identically. Cause: the leg found each PDF stream's end by trimming
+  every newline/CR/space before `endstream`, but a zlib stream ends in its Adler-32 checksum, whose last byte is one of
+  those about 1 time in 85, and the page's text holds today's date. Fixed in `hdrversion`, `prefs` and `stintexport`
+  (the same trim): read exactly the stream's `/Length`, as the writer declares it. `hdrversion` 17/17 on the same
+  build, `stintexport` 6/6, `prefs` 13/13. Any session gating before this lands will see the same 2 FAIL today.
+- ✅ **Final gate before v1.7.0 landed: build `fe4462ca…`, port 9629, 22 Oct 02:11:10–02:37:10, alone: 2,623 PASS, 0 FAIL**
+  (the fixed `hdrversion` among them). But `origin/main` had moved during it to `703d9d4` (v1.7.0: paper size and the
+  Export PDF dialog, which also carries this branch's harness fix as `58e6b6a`), so nothing was pushed. Merged as
+  `063bb57` (docs only; README's Region "Unreleased" heading dropped for v1.7.0's own): the branch now differs from
+  `origin/main` by exactly this change (4 files, +239). Build `710fafbe…`, check 40/40, full gate started on 9629.
+  **Owner, by picker, 22 Oct: "Push on a green gate"** — for this build, if `origin/main` is still `703d9d4`.
+- **Gate on `710fafbe…` (port 9629, 22 Oct 03:06:41–03:33:56): 2,628 PASS, 2 FAIL** — `onecol` threw (timed out waiting
+  for the .xlsx blob, 20 s real) and `epnames` (halfdays) N5 (a Load-order check). Neither touches the header. Re-run
+  alone on the same build: `onecol` 17/0, `epnames` 11/0 (halfdays) and 5/0 (blocks). Timing flakes under load, the
+  same kind HANDOFF records for `hdrrow` "load 10". **Owner, by picker: "Push now"** (offered against re-running the
+  gate). Pushed as `header-zoom:main`, a fast-forward from `703d9d4`.
+- ⚠️ **Local `main` was not touched** and still lacks everything since `6ca9993` that went to `origin/main` by other
+  routes, this change included. The next session to land on local `main` merges `origin/main` first.
+- **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
+  `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
+  fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
+
 ### 🧹 21 Oct 2026 (late): DISK CLEANUP — 1.4 GB free → 23 GB, on the owner's *"delete extra files that we dont need"*
 
 - **Removed:** 2,010 headless-Chrome profiles in `/tmp/tc<port>-<leg>` (15.5 GB), every port except a gate running
@@ -502,7 +575,7 @@
   The new bar must be class-only (no Mantine Select: generated ids reach `fields.byId`) and sit inside
   `.view-toggle-row`, keeping `.view-toggle-row` → `#table-wrap` the sibling pair.
 - ⏭ **Next:** nothing waits on the owner. Plan step 2 (the bar for header and side-box lines, no frozen edit) can
-  start once "Header ends where the calendar ends" (branch `header-zoom`, building, uncommitted)
+  start once "Header ends where the calendar ends" (branch `header-zoom`; committed and gated 21 Oct, see its entry at the top)
   lands, since both change the header strip. On the tracker as `text-style-bar`, planned. Plan size: L, about three
   sessions.
 
