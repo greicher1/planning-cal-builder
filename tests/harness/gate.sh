@@ -2435,6 +2435,8 @@ done
 # the header band and the orientation taken over grid + boxes). The leg reads both exports back, drives every
 # gesture through the hit stack, holds #table-wrap's month-view width to the pixel (it repaginates the month
 # PDF), and proves that deleting the last box gives back the very same PDF content and no `sideBoxes` key.
+# Since 21 Oct 2026 (group R) a box sits on any row: drawn level with the grid's row, at any zoom, scrolling
+# with the grid; dragged to row 10 it is on row 11 of the workbook and beside row 11's date in the PDF.
 # ⭐ The other half of "inert without boxes" is gates 2 and 3 above: every existing calendar's waterfall PDF
 # and Excel parts stay byte-identical to the baseline.
 rm -f "$HERE/sideboxes.json"

@@ -14046,7 +14046,15 @@ export function initLegacyApp() {
   // ⛔ No control in here carries an id: collectFieldValues() sweeps input[id]/select[id]/textarea[id]
   // into every saved file and the undo stack. The editable text is contenteditable, the format bar's
   // native controls are class-only.
-  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, titleFmt?, names?, hidden?, lines? }]
+  //
+  // ⭐ WHERE A BOX SITS (owner, 21 Oct 2026: "position the side boxes anywhere along either side"). A box
+  // with `row` starts on that sheet row (0 = the grid's heading row, the workbook's row 1), and every
+  // output puts it there: it is a row of the ONE layout below, which the screen, exportExcel and
+  // buildWaterfallPdf all read, so neither writer changed. A box WITHOUT `row` sits one empty row under
+  // the box before it on its side -- the stack every box was before this, so a calendar saved earlier
+  // opens, draws and exports exactly as it did, and its file only gains rows once a box is moved.
+  // Boxes never overlap: one that would (the box above grew) is drawn lower, keeping its stored row.
+  let sideBoxes = [];     // [{ side:'left'|'right', kind:'key'|'text', title, row?, titleFmt?, names?, hidden?, lines? }]
   let sideWidths = {};    // { left?: chars, right?: chars } -- dragged widths only; absent = SIDE_DEFAULT_CHARS
   const SIDE_SIDES = ['left', 'right'];
   const SIDE_KINDS = ['key', 'text'];
@@ -14054,6 +14062,9 @@ export function initLegacyApp() {
   // ~2 in by default, a 2-unit spacer beside the grid).
   const SIDE_DEFAULT_CHARS = 20, SIDE_MIN_CHARS = 8, SIDE_MAX_CHARS = 60, SIDE_GAP_CHARS = 2;
   const SIDE_MAX_BOXES = 40, SIDE_MAX_LINES = 200, SIDE_MAX_TEXT = 2000, SIDE_MAX_NAME = 200;
+  // One empty row between boxes on a side, always (ruling Q3); a stored `row` is a whole sheet row,
+  // capped well past MAX_WEEKS' 600 so a typo'd file cannot ask for a page millions of rows tall.
+  const SIDE_GAP_ROWS = 1, SIDE_MAX_ROW = 1000;
   const SIDE_TITLE_DEFAULT = { key: 'Color Key', text: 'Notes' };
   // What an unformatted title looks like, and an unformatted line. A title is a line with these
   // defaults under its own format (plan §3.2).
@@ -14091,6 +14102,11 @@ export function initLegacyApp() {
       const o = { side: b.side, kind: b.kind,
                   title: (typeof b.title === 'string') ? sideText(b.title, SIDE_MAX_NAME) : SIDE_TITLE_DEFAULT[b.kind] };
       if(b.title !== undefined && typeof b.title !== 'string') bad.n++;
+      // A bad row is dropped and counted; the box then stacks under the one before it, as it would have
+      // before rows existed.
+      if(b.row !== undefined){
+        if(Number.isInteger(b.row) && b.row >= 0 && b.row <= SIDE_MAX_ROW) o.row = b.row; else bad.n++;
+      }
       if(b.titleFmt !== undefined){ const f = cleanHeaderFormatEntry(b.titleFmt, bad); if(f) o.titleFmt = f; }
       if(b.kind === 'key'){
         o.names = {};
@@ -14134,6 +14150,22 @@ export function initLegacyApp() {
       else bad.n++;
     }
     return out;
+  }
+
+  // The store as captureSnapshot() writes it: each box's keys in ONE order, the order cleanSideBoxes()
+  // gives a restored box. ⛔ The undo stack compares snapshots as TEXT. A box whose keys arrived in
+  // another order -- a `row` given by a move, a title formatted after the box was made -- read as a
+  // change right after an undo had restored it in the sanitizer's order, so the next debounced push
+  // banked that "change" and wiped the redo (found 21 Oct 2026 by the sideboxes leg's F8).
+  function sideBoxesSnapshot(){
+    return sideBoxes.map(b=>{
+      const o = { side: b.side, kind: b.kind, title: b.title };
+      if(b.row !== undefined) o.row = b.row;
+      if(b.titleFmt !== undefined) o.titleFmt = b.titleFmt;
+      if(b.kind === 'key'){ o.names = b.names; o.hidden = b.hidden; }
+      else o.lines = b.lines;
+      return o;
+    });
   }
 
   function sideWidthChars(side){
@@ -14224,23 +14256,34 @@ export function initLegacyApp() {
 
   // ⭐ THE ONE LAYOUT. The screen, exportExcel and buildWaterfallPdf all read this, so the three cannot
   // place a box differently -- the lesson of the column model (PROJECT-CONTEXT §9a). Per side: segments
-  // (`title` | `key` | `line`), each a run of whole sheet rows; boxes stack from row 0 with one empty row
-  // between them (ruling Q3). null for a side with no box.
-  function sideBoxLayout(schedule){
+  // (`title` | `key` | `line`), each a run of whole sheet rows, and each box's extent. null for a side
+  // with no box.
+  //
+  // Where each box goes, in two passes. First where it WANTS to be: its `row`, or -- with none -- one
+  // empty row under the box before it in the list (ruling Q3's stack, which is every calendar saved
+  // before 21 Oct 2026). Then top to bottom, a box that would overlap the one above it, or sit closer
+  // than the empty row, goes down until it doesn't. Its stored row is untouched, so a box pushed down by
+  // one that grew while typing comes back up when it shrinks.
+  //
+  // `opts` is for the drag (sideDropPlan): `boxes` lays out a working copy instead of the store, and
+  // `lead: {box, side, row}` puts one box on that side and row, ahead of any box that wants the same row.
+  // The writers never pass it.
+  function sideBoxLayout(schedule, opts){
+    const boxes = (opts && opts.boxes) || sideBoxes, lead = (opts && opts.lead) || null;
     const rowPt = sideRowPtFn(schedule);
-    const entries = sideBoxes.some(b => b.kind === 'key') ? sideKeyEntries(schedule) : [];
+    const entries = boxes.some(b => b.kind === 'key') ? sideKeyEntries(schedule) : [];
     const out = { any: false, rowPt, maxRows: rowPt.maxRows, left: null, right: null };
+    const sideOf = i => (lead && lead.box === i) ? lead.side : boxes[i].side;
     SIDE_SIDES.forEach(side=>{
       const mine = [];
-      sideBoxes.forEach((b, i)=>{ if(b.side === side) mine.push(i); });
+      boxes.forEach((b, i)=>{ if(sideOf(i) === side) mine.push(i); });
       if(!mine.length) return;
       const chars = sideWidthChars(side);
-      const segs = [], extents = [];
-      let row = 0;
-      mine.forEach((i, n)=>{
-        const b = sideBoxes[i];
-        if(n) row++;
-        const row0 = row;
+      let segs = [];
+      // Box i's segments from row0 down; returns the row after its last.
+      const place = (i, row0)=>{
+        const b = boxes[i];
+        let row = row0;
         const text = (type, str, f, base, fill, li)=>{
           const fm = Object.assign({}, base, f || {});
           const size = fm.size || 11, bold = !!fm.bold;
@@ -14261,9 +14304,35 @@ export function initLegacyApp() {
         } else {
           b.lines.forEach((l, li)=> text('line', l.t, l.f, SIDE_LINE_FMT, null, li));
         }
-        extents.push({ box: i, row0, row1: row - 1 });
+        return row;
+      };
+      // Pass 1: where each box wants to be. A box's height depends on the rows it starts on (a dragged
+      // grid row is taller), so a stacked box is measured where it wants to sit.
+      const want = [];
+      let prevEnd = null;
+      mine.forEach((i, n)=>{
+        const isLead = !!(lead && lead.box === i);
+        const r = isLead ? lead.row : Number.isInteger(boxes[i].row) ? boxes[i].row
+                : (prevEnd === null ? 0 : prevEnd + SIDE_GAP_ROWS);
+        want.push({ i, r, n, lead: isLead });
+        const next = mine[n + 1];
+        if(next !== undefined && !(lead && lead.box === next) && !Number.isInteger(boxes[next].row)){
+          const keep = segs; segs = [];
+          prevEnd = place(i, r);
+          segs = keep;
+        }
       });
-      out[side] = { chars, segs, extents, rows: row };
+      // Pass 2: top to bottom, never overlapping. Ties go to the box being placed, then to list order.
+      want.sort((a, b)=> (a.r - b.r) || (b.lead - a.lead) || (a.n - b.n));
+      const extents = [];
+      let floor = 0;
+      want.forEach(w=>{
+        const row0 = Math.max(w.r, floor);
+        const end = place(w.i, row0);
+        extents.push({ box: w.i, row0, row1: end - 1 });
+        floor = end + SIDE_GAP_ROWS;
+      });
+      out[side] = { chars, segs, extents, rows: extents[extents.length - 1].row1 + 1 };
       out.any = true;
     });
     return out;
@@ -14456,7 +14525,8 @@ export function initLegacyApp() {
     if(!sideCols.left || !sideCols.right || !sidePanel) return;
     const L = sideBoxLayoutSafe(currentSchedule);
     const sig = sideSignature(L);
-    if(!force && sig === sideLastSig) return;
+    // Unchanged boxes still follow the grid: a render can move its rows (a taller header, a dragged row).
+    if(!force && sig === sideLastSig){ positionSideBoxes(L); return; }
     sideLastSig = sig;
     // A rebuild must not throw away the caret: whatever text was focused is focused again afterwards, at
     // the same offset (moving from one key name to the next re-renders on the first one's blur).
@@ -14467,16 +14537,23 @@ export function initLegacyApp() {
       keep = { i: bx.dataset.i, li: ae.dataset.li, hex: k ? k.dataset.hex : null, at: sideCaret(ae).at };
     }
     sidePanel.classList.toggle('has-side-boxes', L.any);
+    const scrolled = {};
     SIDE_SIDES.forEach(side=>{
       const col = sideCols[side], S = L[side];
+      const old = col.querySelector('.sb-stack');
+      scrolled[side] = old ? old.scrollTop : 0;
       if(!S){ col.hidden = true; col.replaceChildren(); return; }
       col.hidden = false;
       col.style.setProperty('--sb-w', charsToScreenPx(S.chars) + 'px');
-      const ids = [];
-      S.segs.forEach(sg=>{ if(!ids.includes(sg.box)) ids.push(sg.box); });
-      col.innerHTML = `<div class="sb-stack">${ids.map(i => sideBoxHtml(L, S, i)).join('')}</div>`
+      // Top to bottom (the layout's extents are in that order), so the tab order reads down the side.
+      const ids = S.extents.map(ex => ex.box);
+      col.innerHTML = `<div class="sb-stack">${ids.map(i => sideBoxHtml(L, S, i)).join('')}<div class="sb-sizer"></div></div>`
         + `<div class="sb-width" role="separator" aria-orientation="vertical" title="Drag to change this side's width; double-click for the default" aria-label="Side width"></div>`;
     });
+    positionSideBoxes(L);
+    // A rebuild starts each column scrolled to the top; put it back where it was, then level with the grid.
+    SIDE_SIDES.forEach(side=>{ const st = L[side] && sideCols[side].querySelector('.sb-stack'); if(st) st.scrollTop = scrolled[side]; });
+    syncSideScroll(null);
     if(keep){
       const sel = `.sb-box[data-i="${keep.i}"] ` + (keep.hex ? `.sb-key[data-hex="${keep.hex}"] .sb-key-name` : `.sb-edit[data-li="${keep.li}"]`);
       const el = sidePanel.querySelector('.side-col ' + sel);
@@ -14485,19 +14562,133 @@ export function initLegacyApp() {
     if(sideFmtTarget && !sideTargetEl()) hideSideFmt();
     else if(sideFmtTarget) placeSideFmt();
   }
-  // Re-derive the min-heights in place while typing, without rebuilding anything under the caret.
-  function refreshSideHeights(){
-    const L = sideBoxLayoutSafe(currentSchedule);
+  // Re-derive the heights and places in place while typing, without rebuilding anything under the
+  // caret: a line that takes another row can push the box under it down.
+  function refreshSideHeights(){ positionSideBoxes(null); }
+
+  // ---- Where the boxes are drawn: level with the grid's own rows (owner, 21 Oct 2026) ----
+  // A box on row r prints beside the grid's sheet row r, so on screen it is drawn beside that row too:
+  // otherwise a box moved "next to March" would print next to May. The rows are READ off the frozen
+  // table (each body <tr> carries data-row; reading never edits it), and a row past the grid's last
+  // continues at the default height, as both writers print it (sideRowPtFn).
+  //
+  // Measured in SCREEN px (getBoundingClientRect), the one unit both the zoomed #table-wrap and the
+  // side columns agree on: a length becomes a side column's own px by dividing by ITS zoom, and a
+  // height of rows becomes the grid's own px by dividing by the grid's. Today both carry the same
+  // calendar zoom, so the two are the same number.
+  function sideGridRows(){
+    const tw = document.getElementById('table-wrap');
+    const scroll = tw && tw.querySelector(':scope > .sheet-scroll');
+    const table = scroll && scroll.querySelector('table.sheet-table');
+    if(!table || !table.getClientRects().length) return null;
+    const z = gridZoom(tw), t0 = table.getBoundingClientRect().top;
+    const tops = [0];
+    let bottom = table.tHead ? table.tHead.getBoundingClientRect().bottom - t0 : ROW_DEFAULT_PX * z;
+    table.querySelectorAll(':scope > tbody > tr[data-row]').forEach(tr=>{
+      const r = tr.getBoundingClientRect();
+      tops.push(r.top - t0); bottom = r.bottom - t0;
+    });
+    const n = tops.length, pitch = ROW_DEFAULT_PX * z;
+    return {
+      scroll, table, z,
+      // Row r's top below the table's top (the heading row's top), in screen px; scroll does not move it.
+      rel: r => r < n ? tops[r] : bottom + (r - n) * pitch,
+      // The table's top on screen as of now, and as it would be with the grid scrolled to the top.
+      top: ()=> table.getBoundingClientRect().top,
+      top0: ()=> table.getBoundingClientRect().top + scroll.scrollTop * z,
+    };
+  }
+  // WIDE is the side columns beside the grid (the panel's grid layout, above 960 px). Below that they
+  // stack under it, where nothing lines up with the grid and row 0 is simply the column's top.
+  function sideWide(){
+    return !!sidePanel && sidePanel.classList.contains('has-side-boxes') && getComputedStyle(sidePanel).display === 'grid';
+  }
+  // One side's row map, everything read once: `css(r)` is row r's top in the stack's own px, from its
+  // content top (what a box's `top` is), and `screen(r)` where that is on screen as scrolled now. A side
+  // with no column (an empty side, mid-drag) maps straight onto the grid's rows.
+  function sideRowMap(side, G){
+    const col = sideCols[side];
+    const stack = col && !col.hidden ? col.querySelector('.sb-stack') : null;
+    const wide = sideWide();
+    if(!stack || !stack.getClientRects().length){
+      const t = G ? G.top() : 0;
+      return { stack: null, zs: 1, css: r => G ? G.rel(r) : r * ROW_DEFAULT_PX,
+               screen: r => G ? t + G.rel(r) : r * ROW_DEFAULT_PX };
+    }
+    const zs = gridZoom(col), sr = stack.getBoundingClientRect(), st = stack.scrollTop;
+    // Wide: the stack's content top sits where the grid's table top sits with both scrolled to the top
+    // (syncSideScroll keeps them scrolled together). Narrow: row 0 is the stack's own top.
+    const base = (G && wide) ? (G.top0() - sr.top) / zs : 0;
+    const css = r => base + (G ? G.rel(r) : r * ROW_DEFAULT_PX * zs) / zs;
+    return { stack, zs, css, screen: r => sr.top + (css(r) - st) * zs };
+  }
+  // Puts every drawn box on its rows, every line at the height of the rows it takes, and the column's
+  // scroll length to at least the grid's, so the two can scroll together to the end.
+  function positionSideBoxes(L){
+    if(!sideCols.left || !sideCols.right) return;
+    if(!L) L = sideBoxLayoutSafe(currentSchedule);
+    const G = sideGridRows();
     SIDE_SIDES.forEach(side=>{
       const S = L[side];
       if(!S) return;
-      S.segs.forEach(sg=>{
-        if(sg.type === 'key') return;
-        const el = sideCols[side].querySelector(`.sb-box[data-i="${sg.box}"] .sb-edit[data-li="${sg.li}"]`);
-        if(el) el.style.minHeight = (sg.rows * ROW_DEFAULT_PX) + 'px';
+      const M = sideRowMap(side, G);
+      if(!M.stack) return;   // hidden (the month view): placed again when it shows
+      const zg = G ? G.z : 1;
+      const tall = (row, rows)=> G ? (G.rel(row + rows) - G.rel(row)) / zg : rows * ROW_DEFAULT_PX;
+      S.extents.forEach(ex=>{
+        const el = M.stack.querySelector(`:scope > .sb-box[data-i="${ex.box}"]`);
+        if(el) el.style.top = M.css(ex.row0) + 'px';
       });
+      S.segs.forEach(sg=>{
+        const box = M.stack.querySelector(`:scope > .sb-box[data-i="${sg.box}"]`);
+        if(!box) return;
+        if(sg.type === 'key'){
+          const el = box.querySelector(`.sb-key[data-hex="${sg.hex}"]`);
+          if(el) el.style.height = tall(sg.row, 1) + 'px';
+        } else {
+          const el = box.querySelector(`.sb-edit[data-li="${sg.li}"]`);
+          if(el) el.style.minHeight = tall(sg.row, sg.rows) + 'px';
+        }
+      });
+      let h = M.css(S.rows) + 2;   // + the box's frame
+      if(G && sideWide()){
+        const cap = parseFloat(getComputedStyle(M.stack).maxHeight);
+        if(Number.isFinite(cap)) h = Math.max(h, cap + (G.scroll.scrollHeight - G.scroll.clientHeight) * zg / M.zs);
+      }
+      const sizer = M.stack.querySelector(':scope > .sb-sizer');
+      if(sizer) sizer.style.height = Math.ceil(h) + 'px';
     });
   }
+  // The side columns scroll WITH the grid, so a box stays beside its rows (wide only). `src` is the
+  // element that scrolled, or null to bring the columns level with the grid. A side taller than the
+  // grid may go on scrolling past the grid's end; the grid simply stays at its end.
+  function syncSideScroll(src){
+    if(!sideWide()) return;
+    const tw = document.getElementById('table-wrap');
+    const g = tw && tw.querySelector(':scope > .sheet-scroll');
+    if(!g) return;
+    const zg = gridZoom(tw), gMax = g.scrollHeight - g.clientHeight;
+    SIDE_SIDES.forEach(side=>{
+      const col = sideCols[side], st = !col.hidden && col.querySelector('.sb-stack');
+      if(!st) return;
+      const zs = gridZoom(col);
+      if(src === st){
+        const want = st.scrollTop * zs / zg;
+        if(Math.abs(g.scrollTop - want) > 0.5) g.scrollTop = want;
+      } else if(src === g || src === null){
+        const want = g.scrollTop * zg / zs;
+        if((g.scrollTop < gMax - 1 || st.scrollTop < want) && Math.abs(st.scrollTop - want) > 0.5) st.scrollTop = want;
+      }
+    });
+  }
+  // 'scroll' does not bubble, so one capturing listener hears the grid's box and both columns.
+  document.addEventListener('scroll', e=>{
+    const t = e.target;
+    if(!t || !t.classList) return;
+    if(t.classList.contains('sb-stack') && t.closest('.side-col')) syncSideScroll(t);
+    else if(t.classList.contains('sheet-scroll') && t.parentElement && t.parentElement.id === 'table-wrap') syncSideScroll(t);
+  }, true);
+  window.addEventListener('resize', ()=>{ if(sideBoxes.length) positionSideBoxes(null); });
   // One committed structural edit is ONE undo step, banked deterministically on both sides of the write
   // (the day menu's pattern) rather than left to the 500 ms debounce. Typing still coalesces through it.
   function sideCommit(fn){
@@ -14508,7 +14699,22 @@ export function initLegacyApp() {
     cancelPendingUndoPush();
     pushUndoSnapshot();
   }
-  new MutationObserver(()=> renderSideBoxes(false)).observe(document.getElementById('table-wrap'), { childList: true });
+  // A new grid (childList) or a new calendar zoom on #table-wrap (its style) can move the rows the boxes
+  // sit beside; observing changes nothing (sanctioned pattern 3).
+  new MutationObserver(recs=>{
+    if(recs.some(r => r.type === 'childList')) watchSideGrid();
+    renderSideBoxes(false);
+  }).observe(document.getElementById('table-wrap'), { childList: true, attributes: true, attributeFilter: ['style'] });
+  // The header bar above the grid's rows can change height without a re-render (a narrower window wraps
+  // it), which moves every row; so can the table itself. Re-observed after each render, which replaces them.
+  let sideGridRO = null;
+  function watchSideGrid(){
+    if(typeof ResizeObserver !== 'function') return;
+    if(!sideGridRO) sideGridRO = new ResizeObserver(()=>{ if(sideBoxes.length) positionSideBoxes(null); });
+    sideGridRO.disconnect();
+    const tw = document.getElementById('table-wrap');
+    if(tw) tw.querySelectorAll(':scope > .sheet-scroll > *').forEach(el => sideGridRO.observe(el));
+  }
 
   // ---- The Side boxes menu (ruling Q7: the preview toolbar, Waterfall view only) ----
   function closeSideMenu(){
@@ -14526,7 +14732,17 @@ export function initLegacyApp() {
   function addSideBox(side, kind){
     closeSideMenu();
     let idx = -1;
-    sideCommit(()=>{ sideBoxes.push(sideNewBox(side, kind)); idx = sideBoxes.length - 1; });
+    sideCommit(()=>{
+      const b = sideNewBox(side, kind);
+      // A new box goes UNDER the boxes already on its side, one empty row down; the first, at the top.
+      // On a side whose boxes all still stack that is what stacking does, so it gets no row; once a box
+      // there has been moved, it is given the row under the lowest.
+      if(sideBoxes.some(x => x.side === side && Number.isInteger(x.row))){
+        const S = sideBoxLayoutSafe(currentSchedule)[side];
+        if(S) b.row = Math.min(SIDE_MAX_ROW, S.rows + SIDE_GAP_ROWS);
+      }
+      sideBoxes.push(b); idx = sideBoxes.length - 1;
+    });
     // The cursor lands in the new box's title, selected, so typing renames it.
     const t = sideCols[side] && sideCols[side].querySelector(`.sb-box[data-i="${idx}"] .sb-title`);
     if(t){ t.focus(); const r = document.createRange(); r.selectNodeContents(t); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
@@ -14914,41 +15130,60 @@ export function initLegacyApp() {
     hideSideFmt();
   }, true);
 
-  // ---- Moving a box: drag by its grip, up, down or across to the other side (plan §3.3) ----
+  // ---- Moving a box: drag by its grip, to any row on either side (plan §3.3; owner, 21 Oct 2026) ----
+  // The box goes where its TOP is let go, on the row nearest it, and a dashed outline shows where it will
+  // land while it moves -- beside the grid's rows, which is where it prints. Dropped onto another box:
+  // in that box's upper half it takes that box's place and the box moves down under it; in its lower
+  // half it goes under that box. Any box it would then overlap moves down too. Nothing else moves: every
+  // box keeps the row it is drawn on now (sideDropPlan), so a drag never rearranges the boxes it missed.
   let sideDrag = null;
-  function sideDropTarget(x, y, from){
+  // What a move would leave: a working copy of the boxes, each on the row it is drawn on now, with box
+  // `from` laid out on `side` at `row`. A calendar whose boxes still stack (no rows yet) gets its rows
+  // here, from where they are drawn, so the first move cannot shuffle the boxes it did not touch.
+  function sideDropPlan(from, side, row){
+    const now = sideBoxLayoutSafe(currentSchedule);
+    const boxes = sideBoxes.map(b => Object.assign({}, b));
+    SIDE_SIDES.forEach(s=>{ if(now[s]) now[s].extents.forEach(ex=>{ boxes[ex.box].row = ex.row0; }); });
+    row = Math.max(0, Math.min(SIDE_MAX_ROW, row));
+    const T = now[side];
+    if(T) for(const ex of T.extents){
+      if(ex.box !== from && row > ex.row0 && row <= ex.row1 && row < (ex.row0 + ex.row1 + 1) / 2){ row = ex.row0; break; }
+    }
+    const L = sideBoxLayout(currentSchedule, { boxes, lead: { box: from, side, row } });
+    return { L, now, row };
+  }
+  // Where the dragged box's top (screen y) would land on `side`: the row whose top is nearest it.
+  function sideDropTarget(x, topY, from){
     const wrap = document.getElementById('table-wrap').getBoundingClientRect();
     const side = x < wrap.left + wrap.width / 2 ? 'left' : 'right';
-    const boxes = Array.from(sideCols[side].querySelectorAll('.sb-box')).filter(el => +el.dataset.i !== from);
-    let before = null, lineY = null;
-    const gap = 10 * gridZoom(sideCols[side]);   // half the 20px gap, at the calendar zoom
-    for(const el of boxes){
-      const r = el.getBoundingClientRect();
-      if(y < r.top + r.height / 2){ before = +el.dataset.i; lineY = r.top - gap; break; }
-      lineY = r.bottom + gap;
+    const M = sideRowMap(side, sideGridRows());
+    let row = 0, best = Infinity;
+    for(let r = 0; r <= SIDE_MAX_ROW; r++){
+      const d = Math.abs(M.screen(r) - topY);
+      if(d < best){ best = d; row = r; } else if(M.screen(r) > topY) break;
     }
-    return { side, before, lineY, empty: !boxes.length, wrap };
+    const plan = sideDropPlan(from, side, row);
+    const ex = plan.L[side].extents.find(e => e.box === from);
+    return { side, row: plan.row, plan, wrap, empty: !M.stack, y0: M.screen(ex.row0), y1: M.screen(ex.row1 + 1) };
   }
   function showSideDrop(t){
     let ind = sideDrag.ind;
     if(!ind){ ind = sideDrag.ind = document.createElement('div'); document.body.appendChild(ind); }
+    ind.style.top = t.y0 + 'px';
+    ind.style.height = Math.max(8, t.y1 - t.y0) + 'px';
     if(t.empty){
-      // An empty side has no column to point into, so the drop zone is drawn over that edge of the grid.
+      // An empty side has no column to land in yet, so the outline is drawn over that edge of the grid.
       ind.className = 'sb-drop sb-drop-zone';
       ind.textContent = 'Drop on the ' + t.side;
       const w = Math.min(180, t.wrap.width / 3);
       ind.style.left = (t.side === 'left' ? t.wrap.left : t.wrap.right - w) + 'px';
-      ind.style.top = t.wrap.top + 'px';
       ind.style.width = w + 'px';
-      ind.style.height = Math.min(160, t.wrap.height) + 'px';
     } else {
       const cr = sideCols[t.side].querySelector('.sb-stack').getBoundingClientRect();
-      ind.className = 'sb-drop sb-drop-line';
+      ind.className = 'sb-drop sb-drop-ghost';
       ind.textContent = '';
       ind.style.left = cr.left + 'px';
-      ind.style.top = (t.lineY - 1) + 'px';
       ind.style.width = cr.width + 'px';
-      ind.style.height = '';
     }
   }
   function beginSideDrag(e){
@@ -14956,61 +15191,99 @@ export function initLegacyApp() {
     if(!info) return;
     e.preventDefault();
     hideSideFmt();
-    sideDrag = { from: info.i, x0: e.clientX, y0: e.clientY, moved: false, ind: null, target: null, el: info.box };
+    const br = info.box.getBoundingClientRect();
+    sideDrag = { from: info.i, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, dy: e.clientY - br.top,
+                 moved: false, ind: null, target: null, el: info.box, raf: 0 };
+    const aim = ()=>{
+      sideDrag.target = sideDropTarget(sideDrag.x, sideDrag.y - sideDrag.dy, sideDrag.from);
+      showSideDrop(sideDrag.target);
+    };
+    // Near the top or bottom of the grid's box, the grid (and the columns with it) scrolls, so a box can
+    // be carried to a row that is not in view. Past the grid's end, the side's own column scrolls on.
+    const tick = ()=>{
+      sideDrag.raf = 0;
+      const G = sideWide() && sideGridRows();
+      if(!G) return;
+      const r = G.scroll.getBoundingClientRect(), edge = 36;
+      const v = sideDrag.y < r.top + edge ? -Math.ceil((r.top + edge - sideDrag.y) / 3)
+              : sideDrag.y > r.bottom - edge ? Math.ceil((sideDrag.y - (r.bottom - edge)) / 3) : 0;
+      if(!v) return;
+      const before = G.scroll.scrollTop;
+      G.scroll.scrollTop = before + v / G.z;
+      if(G.scroll.scrollTop === before && v > 0){
+        const st = sideCols[sideDrag.target ? sideDrag.target.side : 'left'].querySelector('.sb-stack');
+        if(st) st.scrollTop += v;
+      }
+      aim();
+      sideDrag.raf = requestAnimationFrame(tick);
+    };
     const move = ev=>{
+      sideDrag.x = ev.clientX; sideDrag.y = ev.clientY;
       if(!sideDrag.moved && Math.hypot(ev.clientX - sideDrag.x0, ev.clientY - sideDrag.y0) < 4) return;
       sideDrag.moved = true;
       sideDrag.el.classList.add('sb-dragging');
       document.body.classList.add('sb-moving');
-      sideDrag.target = sideDropTarget(ev.clientX, ev.clientY, sideDrag.from);
-      showSideDrop(sideDrag.target);
+      aim();
+      if(!sideDrag.raf) sideDrag.raf = requestAnimationFrame(tick);
     };
     const end = ev=>{
       window.removeEventListener('pointermove', move, true);
       window.removeEventListener('pointerup', end, true);
       window.removeEventListener('keydown', esc, true);
       const d = sideDrag; sideDrag = null;
+      if(d.raf) cancelAnimationFrame(d.raf);
       document.body.classList.remove('sb-moving');
       if(d.ind) d.ind.remove();
       if(d.el) d.el.classList.remove('sb-dragging');
       if(!ev || !d.moved || !d.target) return;
-      moveSideBox(d.from, d.target.side, d.target.before);
+      moveSideBox(d.from, d.target.side, d.target.row);
     };
     const esc = ev=>{ if(ev.key === 'Escape'){ ev.preventDefault(); sideDrag.moved = false; end(null); } };
     window.addEventListener('pointermove', move, true);
     window.addEventListener('pointerup', end, true);
     window.addEventListener('keydown', esc, true);
   }
-  // `before` is the store index of the box it lands above, or null for the bottom of that side.
-  function moveSideBox(from, side, before){
+  // Box `from` to `side`, its top on `row` (sideDropPlan's rules). Every box on the side(s) involved then
+  // HAS a row: the one it is drawn on. A drop that changes nothing on screen is no undo step.
+  function moveSideBox(from, side, row){
     const b = sideBoxes[from];
     if(!b) return;
-    const order = sideBoxes.filter(x => x.side === side && x !== b);
-    const atBefore = before === null ? -1 : order.indexOf(sideBoxes[before]);
-    if(b.side === side){
-      const mine = sideBoxes.filter(x => x.side === side);
-      const nowAt = mine.indexOf(b), goesAt = atBefore < 0 ? order.length : atBefore;
-      if(nowAt === goesAt) return;   // dropped where it already is: no undo step
-    }
+    const plan = sideDropPlan(from, side, row);
+    const at = (L, i)=>{
+      for(const s of SIDE_SIDES){ const ex = L[s] && L[s].extents.find(e => e.box === i); if(ex) return s + ':' + ex.row0; }
+      return '';
+    };
+    if(sideBoxes.every((x, i) => at(plan.L, i) === at(plan.now, i))) return;
+    const touched = [b.side, side];
     sideCommit(()=>{
-      const ref = before === null ? null : sideBoxes[before];
-      sideBoxes.splice(from, 1);
       b.side = side;
-      const at = ref ? sideBoxes.indexOf(ref) : -1;
-      if(at >= 0) sideBoxes.splice(at, 0, b); else sideBoxes.push(b);
+      touched.forEach(s=>{
+        if(plan.L[s]) plan.L[s].extents.forEach(ex=>{ sideBoxes[ex.box].row = Math.min(SIDE_MAX_ROW, ex.row0); });
+      });
     });
   }
-  // The grip's keyboard twin: Alt+Up / Alt+Down move within the side, Alt+Left / Alt+Right cross over.
+  // The grip's keyboard twin. Alt+Up / Alt+Down move the box a row; against the box above or below, it
+  // trades places with it instead. Alt+Left / Alt+Right cross to the other side on the same row.
   function onSideGripKey(e){
     if(!e.altKey) return;
     const info = sideEditInfo(e.target); if(!info) return;
     const { i, b } = info;
-    const mine = []; sideBoxes.forEach((x, k)=>{ if(x.side === b.side) mine.push(k); });
-    const p = mine.indexOf(i);
-    if(e.key === 'ArrowUp' && p > 0){ e.preventDefault(); moveSideBox(i, b.side, mine[p - 1]); }
-    else if(e.key === 'ArrowDown' && p < mine.length - 1){ e.preventDefault(); moveSideBox(i, b.side, p + 2 < mine.length ? mine[p + 2] : null); }
-    else if(e.key === 'ArrowLeft' && b.side === 'right'){ e.preventDefault(); moveSideBox(i, 'left', null); }
-    else if(e.key === 'ArrowRight' && b.side === 'left'){ e.preventDefault(); moveSideBox(i, 'right', null); }
+    const S = sideBoxLayoutSafe(currentSchedule)[b.side];
+    const k = S ? S.extents.findIndex(ex => ex.box === i) : -1;
+    if(k < 0) return;
+    const me = S.extents[k], above = S.extents[k - 1], below = S.extents[k + 1];
+    if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      const floor = above ? above.row1 + 1 + SIDE_GAP_ROWS : 0;
+      if(me.row0 - 1 >= floor) moveSideBox(i, b.side, me.row0 - 1);
+      else if(above) moveSideBox(i, b.side, above.row0);
+    } else if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      if(!below || me.row1 + 2 + SIDE_GAP_ROWS <= below.row0) moveSideBox(i, b.side, me.row0 + 1);
+      else moveSideBox(below.box, b.side, me.row0);
+    }
+    else if(e.key === 'ArrowLeft' && b.side === 'right'){ e.preventDefault(); moveSideBox(i, 'left', me.row0); }
+    else if(e.key === 'ArrowRight' && b.side === 'left'){ e.preventDefault(); moveSideBox(i, 'right', me.row0); }
     else return;
     const g = Array.from(document.querySelectorAll('.side-col .sb-box')).find(el => sideBoxes[+el.dataset.i] === b);
     if(g) g.querySelector('.sb-grip').focus();
@@ -20583,7 +20856,9 @@ export function initLegacyApp() {
       ...(Object.keys(headerRowSplits).length ? {headerRowSplits: Object.keys(headerRowSplits).sort()} : {}),
       // 20 Oct 2026 (SIDE-BOXES-PLAN.md, owner ruling 7): the boxes beside the waterfall. ⛔ PERMANENT key.
       // Written ONLY while a box exists, so a calendar with none saves byte for byte as before.
-      ...(sideBoxes.length ? {sideBoxes: {boxes: sideBoxes, widths: sideWidths}} : {}),
+      // 21 Oct 2026: each box's `row` (optional) -- where it sits on its side. Boxes are written through
+      // sideBoxesSnapshot(), in ONE key order (see there): the undo stack compares snapshots as text.
+      ...(sideBoxes.length ? {sideBoxes: {boxes: sideBoxesSnapshot(), widths: sideWidths}} : {}),
       // 19 Oct 2026: number Production's shoot days in the month view ("Day 12"). ⛔ PERMANENT key,
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.

@@ -405,8 +405,11 @@
   .side-col{ display:flex; align-items:flex-start; min-width:0; }
   /* The width handle sits on the INNER edge, the one beside the grid. */
   .side-col.side-right{ flex-direction:row-reverse; }
-  .sb-stack{ width:var(--sb-w, 145px); flex:none; display:flex; flex-direction:column; gap:20px;
+  /* Each box is placed on its own rows (app.js, positionSideBoxes: level with the grid's rows, which is
+     where it prints), so the column is a positioned box, not a flow; the sizer gives it its length. */
+  .sb-stack{ width:var(--sb-w, 145px); flex:none; position:relative;
     overflow-y:auto; overflow-x:hidden; }
+  .sb-sizer{ width:1px; pointer-events:none; }
   .sb-width{ flex:none; width:14px; align-self:stretch; min-height:40px; cursor:col-resize; position:relative; }
   .sb-width::before{ content:''; position:absolute; top:0; bottom:0; left:6px; width:2px; border-radius:1px; }
   .sb-width:hover::before, body.sb-resizing .sb-width::before{ background:var(--edit-accent); }
@@ -438,7 +441,7 @@
   }
   /* The boxes are drawn like the grid, not like the chrome, because they print: Carlito 11px, the
      20px row pitch, a dark frame, the screen grid header's grey for the title. */
-  .sb-box{ position:relative; flex:none; border:1px solid #1E1D1B; background:#fff; color:#000;
+  .sb-box{ position:absolute; left:0; right:0; top:0; border:1px solid #1E1D1B; background:#fff; color:#000;
     font-family:'Carlito','Calibri',sans-serif; font-size:11px; line-height:1.35; }
   .sb-box.sb-dragging{ opacity:.45; }
   .sb-edit{ display:block; box-sizing:border-box; padding:2px 4px; outline:none; cursor:text;
@@ -481,9 +484,10 @@
   .sb-menu-item:hover, .sb-menu-item:focus-visible{ background:var(--mantine-color-gray-0); outline:none; }
   .sb-menu-where{ color:var(--mantine-color-gray-6); font-size:var(--mantine-font-size-xs); }
   .sb-menu-sep{ height:1px; background:var(--mantine-color-gray-2); margin:3px 2px; }
-  /* Moving a box: a line where it will land, or a zone over the grid's edge for an empty side. */
+  /* Moving a box: an outline where it will land, beside the grid's rows, or the same over the grid's
+     edge for a side with no box yet. */
   .sb-drop{ position:fixed; z-index:220; pointer-events:none; box-sizing:border-box; }
-  .sb-drop-line{ height:3px; border-radius:2px; background:var(--edit-accent); }
+  .sb-drop-ghost{ border:2px dashed var(--edit-accent); border-radius:2px; background:rgba(112, 48, 160, .07); }
   .sb-drop-zone{ display:flex; align-items:center; justify-content:center; text-align:center;
     border:2px dashed var(--edit-accent); border-radius:8px; background:rgba(112, 48, 160, .07);
     color:var(--edit-accent); font:600 12px Inter, sans-serif; }

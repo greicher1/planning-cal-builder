@@ -15,6 +15,11 @@
 // P  the waterfall PDF (E4-E6): the box text present and drawn beside the grid, the italic line sheared,
 //    the header band starting at the box's edge (ruling Q5).
 // M  the month view: no side column, no button, and #table-wrap exactly as wide as with no box at all.
+// R  anywhere up and down (owner, 21 Oct 2026): a box is drawn level with the grid's row it sits on and
+//    scrolls with the grid; dragged to row 10 it lands there (an outline shows where while it moves), and
+//    the workbook and the PDF put it on that row; undo puts it back; it stays beside its row at any zoom; a
+//    box dropped onto another takes its place and pushes it down; a new box goes under the lowest; Alt+Down
+//    swaps or steps a row.
 // G  the gestures, each through the hit stack: the menu, adding a box (one undo step), typing and Enter,
 //    the format bar, hiding and renaming a key row, the width handle, dragging a box across, Alt+arrow.
 // F  the file: the key's shape in a real shareable copy, no new field id, deleting the last box puts the
@@ -84,6 +89,24 @@ window.addEventListener('load', function () { (async function () {
   function stampless(c){ return c.replace(/\(\d{1,2}\.\d{1,2}\.\d{2}\) Tj/g, '(STAMP) Tj'); }
   function sideBoxEls(side){ return qa('.side-col[data-side="' + side + '"] .sb-box'); }
   function keyNames(){ return qa('.side-col .sb-box[data-kind="key"] .sb-key-name').map(txt); }
+  // The grid's sheet row r on screen: 0 is the heading row (the table's top), r >= 1 the body row data-row r-1.
+  function rowTop(r){
+    if(!r) return q('#table-wrap table.sheet-table').getBoundingClientRect().top;
+    return q('#table-wrap tbody tr[data-row="' + (r - 1) + '"]').getBoundingClientRect().top;
+  }
+  function rowsTall(r, k){ return rowTop(r + k) - rowTop(r); }
+  function topOf(el){ return el.getBoundingClientRect().top; }
+  function level(el, r){ return Math.abs(topOf(el) - rowTop(r)) < 1.5; }
+  // Drag a box by its grip so that its TOP is let go at screen y `top` (x stays in its own column, or `x`).
+  async function dragBoxTo(box, top, x){
+    var g = q('.sb-grip', box), gp = mid(g), dy = gp.y - topOf(box), to = {x: x === undefined ? gp.x : x, y: Math.round(top + dy)};
+    ptr('pointerdown', g, gp, 1); ptr('pointermove', document.body, {x: gp.x, y: gp.y + 8}, 1);
+    ptr('pointermove', document.body, to, 1);
+    var ghost = q('.sb-drop'), gr = ghost && ghost.getBoundingClientRect();
+    ptr('pointerup', document.body, to, 0);
+    await T.sleep(150);
+    return gr ? {top: gr.top, height: gr.height, cls: ghost.className} : null;
+  }
 
   try {
     await T.until(function () { return qa('.side-col .sb-box').length >= 2; }, 'the side boxes to draw', 200, 100);
@@ -98,9 +121,14 @@ window.addEventListener('load', function () { (async function () {
           'S3 the key: grid order, the shared blue joined, the hiatus red last (' + out.keys.join(' | ') + ')');
     var hex = qa('.side-col .sb-key').map(function (k) { return k.dataset.hex; });
     check(hex.join(',') === '#FFF2CC,#DAE3F3,#E2F0D9,#FBE5D6,#FF0000', 'S4 each key row is filled with its colour (' + hex + ')');
-    out.lineHeights = qa('.side-col[data-side="left"] .sb-edit').map(function (e) { return e.style.minHeight; });
-    check(out.lineHeights.join(',') === '20px,20px,60px,20px,20px,40px',
-          'S5 every line takes its PRINT rows at 20 px: the three-line wrap 3, the 14 pt line 2 (' + out.lineHeights + ')');
+    // Each line is as tall as the grid rows beside it that it takes in print: title row 0, then 1, 2-4 (the
+    // three-line wrap), 5, 6, 7-8 (the 14 pt line). On screen a grid row is ~20.8 px, not 20, so a box
+    // drawn at 20 px a row would drift off the rows it prints beside.
+    out.lineHeights = qa('.side-col[data-side="left"] .sb-edit').map(function (e) { return parseFloat(e.style.minHeight); });
+    var spans = [[0, 1], [1, 1], [2, 3], [5, 1], [6, 1], [7, 2]];
+    out.lineWant = spans.map(function (s) { return Math.round(rowsTall(s[0], s[1]) * 100) / 100; });
+    check(out.lineHeights.length === 6 && out.lineHeights.every(function (h, i) { return Math.abs(h - out.lineWant[i]) < 0.05; }),
+          'S5 every line takes its PRINT rows, each as tall as the grid rows beside it (' + out.lineHeights.map(Math.round) + ' / ' + out.lineWant.map(Math.round) + ')');
     out.idsInSide = qa('.side-col [id]').length;
     check(out.idsInSide === 0, 'S6 no id anywhere in the side columns (collectFieldValues sweeps ids)');
     var sm = getComputedStyle(q('.side-col .sb-stack')).maxHeight, gm = getComputedStyle(q('#table-wrap .sheet-scroll')).maxHeight;
@@ -165,6 +193,55 @@ window.addEventListener('load', function () { (async function () {
     check(colsShown === 0 && !btnShown, 'M1 the month view shows no side column and no Side boxes button');
     $('view-sheet-btn').click(); await settle();
 
+    // ---- R: anywhere up and down -----------------------------------------------------------------------
+    var bl = sideBoxEls('left')[0], br = sideBoxEls('right')[0];
+    out.r1 = {left: topOf(bl), right: topOf(br), row0: rowTop(0)};
+    check(level(bl, 0) && level(br, 0), 'R1 a box on row 0 sits level with the grid\'s heading row, on both sides (' + JSON.stringify(out.r1) + ')');
+    out.r2 = await dragBoxTo(bl, rowTop(10));
+    await T.until(function () { var b = sideBoxEls('left')[0]; return b && level(b, 10); }, 'the box to land on row 10', 50, 100);
+    bl = sideBoxEls('left')[0];
+    check(out.r2 && /sb-drop-ghost/.test(out.r2.cls) && Math.abs(out.r2.top - rowTop(10)) < 1.5,
+          'R2 while it moves, a dashed outline shows where it will land, level with row 10 (' + JSON.stringify(out.r2) + ')');
+    check(level(bl, 10) && level(sideBoxEls('right')[0], 0), 'R3 let go, the box sits level with the grid\'s row 10; the other side is untouched');
+    var xr = new ExcelJS.Workbook(); await xr.xlsx.load(await (await exportAgain('export-btn', 'the workbook, box on row 10')).arrayBuffer());
+    var wr = xr.worksheets[0], vr = function (a) { var v = wr.getCell(a).value; return v && v.formula ? '=' + v.formula : v; };
+    out.r4 = {A1: vr('A1'), A11: vr('A11'), A12: vr('A12'), C1: vr('C1'), merges: wr.model.merges.filter(function (m) { return /^A\d/.test(m); })};
+    check(out.r4.A1 === null && out.r4.A11 === 'Notes' && out.r4.A12 === 'Locations TBC' && out.r4.C1 === 'Date' &&
+          out.r4.merges.indexOf('A13:A15') >= 0 && out.r4.merges.indexOf('A18:A19') >= 0,
+          'R4 the workbook puts the box on row 11 (sheet row 10), its merges moved with it, the grid unmoved (' + JSON.stringify(out.r4) + ')');
+    var prb = await exportAgain('export-wf-pdf-btn', 'the PDF, box on row 10');
+    out.pdfs = {row10: T.b64(await prb.arrayBuffer())};
+    var pr = await pdfContent(prb);
+    var dCell = q('#table-wrap tbody tr[data-row="10"] td.sheet-date'), dTxt = txt(dCell);
+    var pdx = Math.min.apply(null, pr.runs.filter(function (r) { return r[0] === 'Date'; }).map(function (r) { return r[1]; }));
+    var dRun = pr.runs.filter(function (r) { return r[0] === dTxt; }).sort(function (a, b) { return Math.abs(a[1] - pdx) - Math.abs(b[1] - pdx); })[0];
+    var lRun = pr.runs.filter(function (r) { return r[0] === 'Locations TBC'; })[0];
+    out.r5 = {date: dTxt, dateY: dRun && dRun[2], lineY: lRun && lRun[2], lineX: lRun && lRun[1], gridX: pdx};
+    check(dRun && lRun && Math.abs(dRun[2] - lRun[2]) < 1.5 && lRun[1] < pdx,
+          'R5 the PDF draws the box\'s first line beside the grid\'s row 11 (' + JSON.stringify(out.r5) + ')');
+    var gs = q('#table-wrap > .sheet-scroll'), ls = q('.side-left .sb-stack');
+    out.r6 = {scrollable: gs.scrollHeight > gs.clientHeight + 150};
+    // ⚠️ Headless Chrome here fires no 'scroll' event for a scrollTop set by script (a probe waited 650 ms
+    // and heard none), so each scroll below is announced by hand: what is tested is the app's answer to it.
+    gs.scrollTop = 120; gs.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    out.r6.grid = gs.scrollTop; out.r6.side = ls.scrollTop;
+    check(out.r6.scrollable && out.r6.grid > 100 && Math.abs(out.r6.side - out.r6.grid) < 1 && level(sideBoxEls('left')[0], 10),
+          'R6 the side columns scroll with the grid, so the box stays beside its row (' + JSON.stringify(out.r6) + ')');
+    ls.scrollTop = 0; ls.dispatchEvent(new Event('scroll')); await T.sleep(150);
+    check(gs.scrollTop < 1, 'R7 scrolling a side column scrolls the grid with it (' + gs.scrollTop + ')');
+    $('undo-btn').click(); await T.until(function () { return level(sideBoxEls('left')[0], 0); }, 'undo the move', 50, 100);
+    $('redo-btn').click(); await T.until(function () { return level(sideBoxEls('left')[0], 10); }, 'redo the move', 50, 100);
+    check(level(sideBoxEls('left')[0], 10), 'R8 one undo puts the box back at the top, one redo on row 10');
+    // The calendar zoom magnifies the grid and the side columns together; a box stays beside its row.
+    var zl = {};
+    for(var zi = 0, zz = [0.5, 2, 1]; zi < zz.length; zi++){
+      document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: zz[zi]}})); await settle();
+      zl[zz[zi]] = Math.round((topOf(sideBoxEls('left')[0]) - rowTop(10)) * 100) / 100;
+    }
+    out.rzoom = zl;
+    check(Math.abs(zl[0.5]) < 1.5 && Math.abs(zl[2]) < 1.5 && Math.abs(zl[1]) < 1.5,
+          'R9 at 50% and at 200% zoom the box stays level with its row (' + JSON.stringify(zl) + ')');
+
     // ---- G: the gestures -----------------------------------------------------------------------------------
     var sb = $('tb-side-boxes-btn');
     check(sb && hits(sb), 'G1 the Side boxes button is on top at its centre');
@@ -216,10 +293,11 @@ window.addEventListener('load', function () { (async function () {
           'G8 focusing a line shows the format bar: no ids, Bold lit for a bold line, on top');
     bBtn.click();
     check(getComputedStyle(lb).fontWeight === '400' && !bBtn.classList.contains('is-on'), 'G9 Bold turns the line\'s bold off, in place');
+    var h1 = parseFloat(lb.style.minHeight);
     var sz = q('.hf-size', bar); sz.value = '16'; sz.dispatchEvent(new Event('change', {bubbles: true}));
-    check(lb.style.minHeight === '40px' && getComputedStyle(lb).fontSize === '16px', 'G10 size 16 takes two print rows (' + lb.style.minHeight + ')');
+    check(Math.abs(parseFloat(lb.style.minHeight) / h1 - 2) < 0.05 && getComputedStyle(lb).fontSize === '16px', 'G10 size 16 takes two print rows (' + h1 + ' -> ' + lb.style.minHeight + ')');
     q('.hf-clear', bar).click();
-    check(lb.style.minHeight === '20px' && getComputedStyle(lb).fontWeight === '400', 'G11 clear returns the line to the plain default');
+    check(parseFloat(lb.style.minHeight) === h1 && getComputedStyle(lb).fontWeight === '400', 'G11 clear returns the line to the plain default');
     document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));
     // Hide a key row (Post), then bring it back.
     var post = q('.sb-key[data-hex="#FBE5D6"] .sb-key-hide');
@@ -264,6 +342,37 @@ window.addEventListener('load', function () { (async function () {
     q('.sb-grip', moved).dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true}));
     await T.until(function () { return sideBoxEls('left').length === 1; }, 'Alt+Left', 30, 100);
     check(sideBoxEls('left').length === 1 && /Locations/.test(txt(sideBoxEls('left')[0])), 'G20 Alt+Left on the grip moves it back to the left');
+    // Dropped onto the upper half of another box, a box takes its place and that box moves down under it.
+    var rk = q('.side-right .sb-box[data-kind="key"]'), rd = sideBoxEls('right').find(function (b) { return txt(q('.sb-title', b)) === 'Dates'; });
+    var keyTop = topOf(rk), rowH = rowsTall(1, 1);
+    await dragBoxTo(rd, keyTop + rowH);
+    await T.until(function () { return sideBoxEls('right')[0].dataset.kind === 'text'; }, 'Dates to take the key\'s place', 30, 100);
+    rk = q('.side-right .sb-box[data-kind="key"]'); rd = sideBoxEls('right')[0];
+    out.r9 = {keyWas: keyTop, dates: topOf(rd), datesBottom: rd.getBoundingClientRect().bottom, key: topOf(rk)};
+    check(Math.abs(out.r9.dates - keyTop) < 1.5 && out.r9.key > out.r9.datesBottom + rowH * 0.6 && out.r9.key < out.r9.datesBottom + rowH * 1.6,
+          'R10 a box let go in the upper half of another takes its place; that one moves under it, one empty row down (' + JSON.stringify(out.r9) + ')');
+    // A new box on a side whose boxes have rows goes under the lowest of them.
+    $('tb-side-boxes-btn').click();
+    await T.until(function () { return qa('.sb-menu .sb-menu-item').length === 4; }, 'the Side boxes menu again', 50, 100);
+    qa('.sb-menu .sb-menu-item').find(function (b) { return b.dataset.kind === 'text' && b.dataset.side === 'right'; }).click();
+    await T.until(function () { return sideBoxEls('right').length === 3; }, 'a third box on the right', 50, 100);
+    var rn = sideBoxEls('right')[2], lowest = q('.side-right .sb-box[data-kind="key"]').getBoundingClientRect().bottom;
+    out.r10 = {newTop: topOf(rn), keyBottom: lowest, title: txt(q('.sb-title', rn))};
+    check(out.r10.title === 'Notes' && out.r10.newTop > lowest + rowH * 0.6 && out.r10.newTop < lowest + rowH * 1.6,
+          'R11 a new box goes under the lowest box on its side, one empty row down (' + JSON.stringify(out.r10) + ')');
+    document.activeElement && document.activeElement.blur && document.activeElement.blur();
+    $('undo-btn').click(); await T.until(function () { return sideBoxEls('right').length === 2; }, 'undo the new box', 50, 100);
+    // Alt+Down against the box below trades places with it; with room below, it steps down one row.
+    var rdTop = topOf(sideBoxEls('right')[0]);
+    q('.sb-grip', sideBoxEls('right')[0]).dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true}));
+    await T.until(function () { return sideBoxEls('right')[0].dataset.kind === 'key'; }, 'Alt+Down to swap', 30, 100);
+    check(Math.abs(topOf(sideBoxEls('right')[0]) - rdTop) < 1.5 && sideBoxEls('right')[1].dataset.kind === 'text',
+          'R12 Alt+Down against the box below swaps the two, the upper starting where the first did');
+    var low = sideBoxEls('right')[1], lowTop = topOf(low);
+    q('.sb-grip', low).dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true}));
+    await T.until(function () { return topOf(sideBoxEls('right')[1]) > lowTop + 5; }, 'Alt+Down to step', 30, 100);
+    out.r12 = {was: lowTop, now: topOf(sideBoxEls('right')[1])};
+    check(Math.abs(out.r12.now - out.r12.was - rowH) < 2, 'R13 Alt+Down with room below moves the box one row (' + JSON.stringify(out.r12) + ')');
 
     // ---- F: the file ---------------------------------------------------------------------------------------
     var c1 = await savedCopy(), sbk = c1.snap && c1.snap.sideBoxes;
@@ -308,8 +417,8 @@ window.addEventListener('load', function () { (async function () {
     hostile.sideBoxes = {boxes: [
       {side: 'left', kind: 'chart', title: 'from a future build'},
       {side: 'middle', kind: 'text', title: 'nowhere'},
-      {side: 'left', kind: 'text', title: '<img src=x onerror="window.__PWN=1">', lines: [{t: 'a\nb', f: {size: 'huge', color: 'red'}}, 7]},
-      {side: 'right', kind: 'key', title: 'Key', names: {'#e2f0d9': 'Lower', 'nope': 'x'}, hidden: ['#zzzzzz']}],
+      {side: 'left', kind: 'text', title: '<img src=x onerror="window.__PWN=1">', row: 4, lines: [{t: 'a\nb', f: {size: 'huge', color: 'red'}}, 7]},
+      {side: 'right', kind: 'key', title: 'Key', row: -2, names: {'#e2f0d9': 'Lower', 'nope': 'x'}, hidden: ['#zzzzzz']}],
       widths: {left: 999, right: 30}};
     var answered = false, poll = setInterval(function () {
       var b = [].find.call(document.querySelectorAll('button'), function (x) { return /^(Load|Discard|Don.t save)/.test((x.textContent || '').trim()) && x.offsetParent !== null; });
@@ -328,6 +437,7 @@ window.addEventListener('load', function () { (async function () {
           'F9 a hostile file: unknown kinds and sides dropped, markup shown as text, a line break flattened (' + JSON.stringify(out.hostile.boxes) + ')');
     check(Math.round(out.hostile.leftW) === 109 && Math.round(out.hostile.rightW) === 161 && out.hostile.keys.indexOf('Lower') >= 0,
           'F10 an out-of-range width is dropped, a good one kept, a lower-case colour key normalised (' + Math.round(out.hostile.leftW) + ', ' + Math.round(out.hostile.rightW) + ')');
+    check(level(hl, 4) && level(q('.side-right .sb-box'), 0), 'F14 a good row is kept (the text box on row 4), a negative one dropped (the key back on row 0)');
     // New clears every box.
     var poll2 = setInterval(function () { T.clickModalButton('Start new'); }, 50);
     $('new-file-btn').click();
@@ -342,10 +452,10 @@ window.addEventListener('load', function () { (async function () {
   out.health = T.appHealth ? T.appHealth() : null;
   // The hostile file (F9) is MEANT to raise the sanitizer's one warning, naming the eight values it planted:
   // the unknown kind, the unknown side, the non-object line, the bad size and colour, the bad key name, the
-  // bad hidden colour, the out-of-range width. Anything else in the console fails the leg.
+  // bad hidden colour, the out-of-range width, the negative row. Anything else in the console fails the leg.
   var errs = ((out.health || {}).errors || []);
-  var expected = errs.filter(function (e) { return /SPTCal: 8 value\(s\) in this calendar were not in a form the app writes/.test(e); });
-  check(expected.length === 1, 'F12 the hostile file raised the sanitizer\'s warning once, for exactly the 8 planted values');
+  var expected = errs.filter(function (e) { return /SPTCal: 9 value\(s\) in this calendar were not in a form the app writes/.test(e); });
+  check(expected.length === 1, 'F12 the hostile file raised the sanitizer\'s warning once, for exactly the 9 planted values');
   out.unexpectedErrors = errs.filter(function (e) { return expected.indexOf(e) < 0; });
   check(!out.unexpectedErrors.length, 'F13 no other console error or warning (' + out.unexpectedErrors.slice(0, 2).join(' | ') + ')');
   out.pass = fails.length === 0 && !out.EX;
