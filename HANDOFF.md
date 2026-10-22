@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS GET A NAVY OUTLINE; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; the tint + label **LIVE at `b332e5c`**; the outline (option A) COMMITTED, PUSH APPROVED (owner, by picker)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
   edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
@@ -42,8 +42,26 @@
   **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
   **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
   accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
-- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
-  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
+- **Owner:** *"Build option A (navy outline only), then ask me before pushing."* **Built** (`legacy.css`, the same
+  selectors as the tint): `.shift-group` and `.tools-wrap > .tools-btn` take a navy-6 border; `.shift-btn` and the
+  three buttons a white fill and navy-6 ink (the caret inherits it); the dividers inside Shift All stay navy-2; hover
+  and `[aria-expanded="true"]` take navy-0 on navy-7. The comment there says why the fill must not come back.
+  UI-CONVENTIONS §3b gains the rule as its first bullet.
+- **Proof so far:** in the app's browser, `carry-rich` at 1650 px: computed resting colours (white / `#2C3E50` border,
+  ink and caret; the selected tab is `#D3DAE1`, matched by none of the four), hover on Anchor To and Anchor To open
+  (both `#EAEEF2` on `#1C2833`), its popover opening and closing with Escape; no console errors but the local
+  server's missing `dist/version.json` (expected on localhost). `npm run check` 40/40; `hdrcontrols` 12/12;
+  `sideboxes` 58/58 (⚠️ its first run hung 28 min behind two other sessions' full gates, the known Chrome
+  contention; killed, re-run alone on port 9607 it took 6 s). A 2× headless screenshot is
+  the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
+- **Owner, by picker:** *"Commit it"*, *"Push now"*.
+- ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
+  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  refuses a fast-forward over a dirty file it would change. So the push went from this branch
+  (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
+  checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
+- ⏭ **Next:** nothing once it is verified live. The worktree `.claude/worktrees/toolbar-center` can be removed on the
+  owner's word.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 

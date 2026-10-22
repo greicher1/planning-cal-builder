@@ -29,6 +29,23 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
+
+The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since
+the blue color is the same as the selected button color on the left side bar"*. It was: that light navy is the
+selected sidebar tab's ground, so four buttons resting in it read as switched on.
+- Shown four mockups (real screenshots of the app with each style), the owner picked **"option A (navy outline
+  only)"**: ← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From are white with a navy border and
+  navy text. Hover, and a tool whose popover is open, take the faintest navy wash. Side Boxes, the Header button
+  and undo/redo are unchanged.
+- UI-CONVENTIONS §3b gains the rule: a row of resting controls never wears the accent fill, because in this app
+  it means selected; set a group apart by its border and ink.
+- Chrome only (`legacy.css`); nothing in the grid, its cells or the exports changes.
+- **Verified:** in the app's browser with a sample calendar at 1650 px, the resting, hover and open states by
+  computed colour (none of the four matches the selected tab's fill), and Anchor To's popover opening and closing;
+  `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot matching the
+  mockup the owner picked. No full gate (chrome-only; the owner's call for the fill, the same here).
+
 ### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the

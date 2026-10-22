@@ -1487,21 +1487,25 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
-  /* The four SHIFTING tools wear the app's accent tint (owner, 21 Oct 2026: "right now all the buttons
-     look exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
-     Header button and undo/redo. It is UI-CONVENTIONS §3b's primary-action tint, which suits the
-     toolbar's most-used controls. Tokens, never hex. The tint is on each part of Shift All, not on its
-     group, so a hover there composites exactly as it does on the other three. These rules are
-     unlayered, so they outrank Mantine's layered Button colours without !important; that is also why
-     the hover and open states are spelled out here, since Mantine's own hover is layered too. */
-  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-2); }
+  /* The four SHIFTING tools wear a NAVY OUTLINE (owner, 21 Oct 2026: "right now all the buttons look
+     exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
+     Header button and undo/redo: white, a navy-6 border, navy-6 text and caret.
+     ⛔ NOT the light accent FILL. That went live first and the owner saw at once that the four buttons
+     ("it looks like those buttons are all selected"): navy-1 is the selected sidebar tab's ground (.side-tab-btn.active),
+     so a resting control filled with it reads as switched on. In this app a light accent fill means
+     selected; colour a resting control by its border and ink (UI-CONVENTIONS §3b). Owner's pick of four
+     mockups, "option A (navy outline only)". Hover and an open popover take navy-0, the faintest wash.
+     Tokens, never hex. These rules are unlayered, so they outrank Mantine's layered Button colours
+     without !important; that is also why the hover and open states are spelled out here, since
+     Mantine's own hover is layered too. */
+  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-6); }
   .shift-btn, .tools-wrap > .tools-btn{
-    background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+    background:var(--mantine-color-white); color:var(--mantine-color-navy-6);
   }
   .shift-btn + .shift-btn{ border-left-color:var(--mantine-color-navy-2); }
   .shift-btn:hover, .shift-main[aria-expanded="true"],
   .tools-wrap > .tools-btn:hover, .tools-wrap > .tools-btn[aria-expanded="true"]{
-    background:var(--mantine-primary-color-light-hover); color:var(--mantine-primary-color-light-color);
+    background:var(--mantine-color-navy-0); color:var(--mantine-color-navy-7);
   }
   .tools-wrap > .tools-btn .caret{ color:inherit; }
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read

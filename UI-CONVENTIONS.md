@@ -326,12 +326,18 @@ explicit override on icon buttons, not a token.
 the active Settings tab: *"can we make primary buttons this same bg color?"*). This was already the
 app's answer in two places before it was written down — `.side-tab-btn.active` and
 `button.secondary.add-hiatus-btn`, whose comment calls it *"a deliberate echo of the active tab so
-the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third. The preview toolbar's four
-shifting tools (`.shift-btn`, `.tools-wrap > .tools-btn`) are the fourth (owner, 21 Oct 2026: *"right now all
-the buttons look exactly the same"*): the toolbar's most-used controls, set apart from Side Boxes and the Header
-button.
+the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third.
 
-Three rules go with it:
+Four rules go with it:
+
+- ⛔ **A row of RESTING controls never wears the tint, because the tint also means SELECTED.** It is the
+  active sidebar tab's ground, so a control filled with it at rest reads as switched on. Learned 21 Oct
+  2026: the preview toolbar's four shifting tools went live in the tint and the owner saw at once that
+  *"it looks like those buttons are all selected"*. The tint suits a single action button that stands
+  alone in a panel (the three above), not a row of tools beside other buttons. To set a group of
+  toolbar controls apart, colour the **border and ink** and keep the white fill: the shifting tools
+  (`.shift-btn`, `.tools-wrap > .tools-btn`) take a navy-6 outline and navy-6 text, with `navy-0` on
+  hover and while their popover is open (owner's pick of four mockups, "option A").
 
 - ⛔ **Reach for the tokens, never the hex.** `#D3DAE1` in a rule is a copy that stops tracking the
   theme, and the failure is invisible: the two grounds simply drift apart.
