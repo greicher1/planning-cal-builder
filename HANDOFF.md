@@ -632,7 +632,7 @@
   the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
 - **Owner, by picker:** *"Commit it"*, *"Push now"*.
 - ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
-  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  `src/styles/legacy.css` among them (its hunk and this one are far apart in the file, so no conflict), and git
   refuses a fast-forward over a dirty file it would change. So the push went from this branch
   (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
   checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
