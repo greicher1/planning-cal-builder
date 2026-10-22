@@ -29,7 +29,15 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — choose the paper; Export PDF asks first (21 Oct 2026)
+## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
+
+Ten changes since v1.6.0, from 20–21 Oct 2026. Eight were already live before this cut (the column headings' Split and
+Merge buttons, Paste notes in Settings, the one Preferences tab, folding a phase card, episode names on their month
+bars, the calendar zoom and its strip under the calendar, and the shifting tools' colour); this version is how
+installed copies hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **paper**
+(Letter, Legal or Tabloid) and the **Export PDF dialog**, and the **Production Region in Show info**.
+
+### choose the paper; Export PDF asks first (21 Oct 2026)
 
 The owner: *"what happens if we are going to print the waterfall to a legal sized piece of paper? Do we need to add a
 setting to select your paper type?"*, then *"we also now need a popup dialogue when you click export pdf that asks you
@@ -58,7 +66,7 @@ landscape but one is listed as (recommended)"*. Planned and ruled in [`PAPER-SIZ
   its defaults), every Excel part, `fields.byId` (76 ids) and both month PDFs identical to their baselines.
   `npm run check` 40/40.
 
-### Unreleased — the Production Region in Show info too (21 Oct 2026)
+### the Production Region in Show info too (21 Oct 2026)
 
 The owner: *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
 exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
@@ -76,7 +84,7 @@ exist as a duplicate setting in the settings tab where it already appears, but n
   `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
   40/40; a 2× screenshot of the card. Full gate not run.
 
-### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+### the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
 shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
@@ -89,7 +97,7 @@ dont need to move them"*); the row's spacing is unchanged.
 - **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
   1650 px. Full gate not yet run.
 
-### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
+### the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
 more space at the bottom of the app to give it room?"* Measured at 1440×900, the pill and the 46 px **?** button
@@ -107,7 +115,7 @@ both sat entirely on the waterfall's grid box, over its last rows and its horizo
   the contention flakes on record (`pilllabel` C1/C3, `monthexport` X6), both legs green re-run alone; gates 10 and 13
   byte-identical, 0 clipped.
 
-### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
+### calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
 to zoom in or out the viewport of either the waterfall cal or the month cal"*.
@@ -138,7 +146,7 @@ to zoom in or out the viewport of either the waterfall cal or the month cal"*.
   browser, no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
   fixtures. Every byte-compared gate is untouched by construction: at 100% nothing is written at all.
 
-### Unreleased — An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
+### An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
 
 The owner, the evening v1.6.0 shipped its "Shoot" prefix: *"I just wanted the word Shoot before 'Shoot Ep. 101' -
 but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that you can easily change
@@ -163,7 +171,7 @@ Load, a v1.6.0 prefix kept and dropped by a rename, bad values, the written PDF'
 D2s, `episodeprep` (its live run), `labelsetup`, `halfmarks`, `pilllabel`, `mvmenu`, `shootorder` and `pilldrag`
 updated for the names.
 
-### Unreleased — a caret folds each phase card down to its name (20 Oct 2026)
+### a caret folds each phase card down to its name (20 Oct 2026)
 
 Owner: *"There should be a carrot that lets you hide and unhide phases within the phases menu. When you hide them it
 should show just their name (name still editable) with their color but hide all the settings underneath."*
@@ -182,7 +190,7 @@ should show just their name (name still editable) with their color but hide all 
   `settingswin`, `loadcarry`, `calrange`, `phasecolors`, `mvmenu (halfdays)`, `dlgkeys`, `labelsetup (halfdays)`,
   `colreuse` (both runs, through gate.sh's own judge), `phasenum`, `episodeprep` (both). `npm run check` 40/40.
 
-### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+### Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
 
 Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
 tab. this should apply to both the waterfall and month view"*.
@@ -204,7 +212,7 @@ tab. this should apply to both the waterfall and month view"*.
   calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
   gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
 
-### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+### Paste notes… moves into Settings (20 Oct 2026)
 
 Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
 with the new settings tab"*). **Paste notes…** is now a row of Settings ▸ Preferences ▸ Month view (built in the
@@ -217,7 +225,7 @@ only, as before (the card is month-only), and opens the same box. Nothing saved 
   no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
   `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
 
-### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
+### Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
 
 The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
 ... you have to understand that if you change the notes collumn to something other than writing, it is THEN going
