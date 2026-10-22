@@ -126,7 +126,17 @@
   it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
   that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
   script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
-- **Not done:** the eight fixed legs re-run (queued for the next gap between other sessions' gates), mutants, the owner's look at it in
+- ✅ **The eight fixed legs, re-run alone through the gate's evaluators (07:16, port 9595): 182 PASS, 0 FAIL** —
+  calrange 18, hdrrow 35, hdrtemplate 25, hdrversion 17, onecol 17, prefs 13, stintexport 6 (its lines read
+  "export: …"), textstyle 51. So every one of the full gate's 8 failures is accounted for, and the byte gates were
+  identical throughout.
+- ⚠️ **`main` moved 52 commits while this branch gated** (v1.7.0 cut; header-zoom LIVE at `34c873f`; phase-outline in
+  local main). 13 files changed on both sides (app.js, legacy.css, PreviewToolbar.jsx, index.html, gate.sh, lib.js,
+  the docs, and hdrversion/prefs/stintexport). ⭐ `main` already fixed the PDF-stream bug in hdrversion, prefs and
+  stintexport, better (by `/Length`, `58e6b6a`, from header-zoom): on the merge take main's three and convert this
+  branch's other five (calrange, hdrrow, hdrtemplate, onecol, textstyle) to the same `/Length` read.
+- **Not done:** merging `main` into this branch (the header strip this branch hides is the one header-zoom capped:
+  expect a legacy.css conflict there) and a full gate on the merged build, mutants, the owner's look at it in
   the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
   branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
