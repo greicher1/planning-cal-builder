@@ -19,8 +19,22 @@
   2 Oct 2026, `MV_PDF_MODE = 'direct'`).
 - ✅ **Ruled by picker, 21 Oct 2026:** R1 Legal and Tabloid (no A4); R2 saved with the calendar (`paperSize`, absent =
   Letter); R3 Single Column follows the paper; R4 the month PDF stays Letter for now.
-- ⏭ **Next:** on the owner's go-ahead, build it in the plan's §8 order on a branch. Letter must stay byte-identical in
-  the full gate. On the tracker as `paper-size` (planned).
+- **Second ask, the same evening:** an **Export PDF dialog** (waterfall only) that confirms or changes the paper and the
+  grid lines, plus a Portrait/Landscape choice with one marked *Recommended* by the existing rule. Planned in §5a. The
+  paper setting stays in Settings ▸ Preferences ("the regular setting tab"). The orientation choice is frozen edit P4:
+  one helper, `chosenOrientation()`, in both writers.
+- ⚠️ **Learned:** about 25 gate legs click `#export-wf-pdf-btn` (twenty through `T.captureExport` in `t/lib.js`,
+  the rest directly), and a dialog would stall every one of them. The plan teaches `captureExport` to press Export at
+  the defaults rather than adding a skip switch, so the whole gate proves that the defaults give today's PDF.
+- ⚠️ **The dialog's sizes come from frozen `sheetPageOrientation()`, which is synchronous,** under a paper probe that
+  is set and cleared in one call. They do not come from `buildWaterfallPdf` (which awaits), because a probe held across
+  an await could leak into a Single Column render.
+- ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
+  only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
+  for the PDF only.
+- ⏭ **Next:** on the owner's go-ahead, build in the plan's §8 order on a branch.
+  Letter, and the dialog's defaults, must stay byte-identical in the full gate. On the tracker as `paper-size`
+  (planned).
 
 ### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
 
