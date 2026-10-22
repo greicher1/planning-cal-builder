@@ -34,9 +34,17 @@
   then run the full gate."*, after seeing the December 2026 Sim Post page and July 2026's half days): all 19 files
   copied and `cmp`-checked, the README's RE-CUT 21 Oct 2026 entry and its table rewritten (`d41f40d`). Build
   `591820ac…` (1,684,726 bytes), rebuilt from the committed source to the same bytes before the copy.
-- ⏳ **The full gate is queued** (port 9353): a scratch wrapper waits until no other session's `gate.sh` is running
-  (zoom-compact's was, from 16:36), then runs it once. It also proves the cut. Gate 10 (the print path's DOCUMENT and
-  sheet count) should not move. Then the merge picker and a separate push picker.
+- ✅ **Full gate on build `591820ac…` at `54ca5c1`** (HARNESS_PORT 9353, 18:56:16–19:21:13, alone): **2,596 PASS, 0
+  FAIL, GATE PASSED.** Gate 13: all 22 written PDFs byte-identical to the re-cut baselines (so the cut is proved);
+  gate 10: the printed document identical to baseline, one sheet per month; 0 clipped; `fields.byId` 76 ids.
+- ⚠️ **Learned: a gate queue must count only REAL gates.** The first queue used `pgrep -f 'gate\.sh'`, which also
+  matches other sessions' WAITING wrappers (`/bin/zsh -c "… ./gate.sh …"`), two of them stuck for good, so it waited
+  1.5 hours for nothing (the "Calendar text styling bar" session spotted it). Count processes whose command line
+  STARTS with zsh then gate.sh: `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`.
+- ⏳ **Not merged.** Local `main` moved meanwhile (`9677900`: zoom strip, navy shifting tools, Region in Show info,
+  two plans) and `origin/main` has one-chip (`db73cf6`) that local `main` lacks. A trial merge conflicts only in
+  HANDOFF.md and README.md (newest entries at the top). Landing it means merging both in, a rebuild and a full gate on
+  the combined build, then the merge picker; the push is a separate picker.
 
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 

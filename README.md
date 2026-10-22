@@ -43,8 +43,11 @@ chose to change the phases: *"go for the darker outline for phases"*.
 - ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
   month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
   so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
-- **Verified so far:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a
-  note. ⏳ The PDF comparison and the full gate are still to run.
+- **Verified:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a note.
+  All nineteen of gate 13's month PDFs classified line by line: only ring paint changed (every text run, position,
+  fill, clip, font and page identical), plus the per-slice ring re-draws a pill no longer needs over a half day's
+  shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
+  0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
 
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
