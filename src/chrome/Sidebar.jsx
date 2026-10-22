@@ -383,8 +383,9 @@ export function WaterfallCard() {
         <InfoHint label="Waterfall" width={320}>
           How the waterfall reads, on screen and in Excel and the PDF. With Custom Column Headings on,
           the year moves over the Date column and you click any heading to type your own; neighbouring
-          columns with the same heading merge. Grid Lines in Exports draws the cell borders in Excel
-          and the PDF only; the grid on screen is unchanged.
+          columns with the same heading merge. Paper is the sheet the PDF and the Excel file are laid
+          out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
+          cell borders in Excel and the PDF only; the grid on screen is unchanged.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -443,6 +444,21 @@ export function WaterfallCard() {
         <SettingRow htmlFor="wf-hdr-custom" label="Custom Column Headings">
           <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
                   title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
+        </SettingRow>
+        {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`
+            snapshot key, so it sits with the calendar settings above Grid Lines, not after it. The same
+            .prefs-card rule as #wf-date-format: the sweep skips the id, and the engine owns the value.
+            ⛔ UNCONTROLLED: reflectPaperSize() writes .value and a delegated 'change' sets it.
+            The option values are the save format: '' (Letter, an absent key), 'legal', 'tabloid'.
+            The Export PDF dialog shows and changes the same value. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="wf-paper" label="Paper">
+          <NativeSelect id="wf-paper" size="xs" w={150} aria-label="Paper"
+                        title="The paper the waterfall PDF and the Excel file are laid out for">
+            <option value="">Letter (8.5 × 11)</option>
+            <option value="legal">Legal (8.5 × 14)</option>
+            <option value="tabloid">Tabloid (11 × 17)</option>
+          </NativeSelect>
         </SettingRow>
         {/* ⚠️ THE ONE ROW IN THIS CARD THAT IS A PREFERENCE, kept on this computer (localStorage) and never
             saved in the calendar -- which is why it is last, and why the Preferences tab's opening line

@@ -68,6 +68,26 @@
 
 ### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout, from `main` at `b5ca7cf`; COMMITTED `3f974af`; GATED (2,595 / 3, all 3 green on a clean copy of the same build); merged with `origin/main` on branch `region-show-info` (worktree in that session's scratchpad) for the push
 
+### 🧹 21 Oct 2026 (late): DISK CLEANUP — 1.4 GB free → 23 GB, on the owner's *"delete extra files that we dont need"*
+
+- **Removed:** 2,010 headless-Chrome profiles in `/tmp/tc<port>-<leg>` (15.5 GB), every port except a gate running
+  (9627) or queued (9391), and none touched in the last hour. Also 36 worktrees in `.claude/worktrees` (7.0 GB): each
+  one clean (`git status` empty but its `node_modules` link), its HEAD already in `origin/main`, no process with its cwd
+  inside, and not one the app made (`claude/…` names, which the app tracks and its Settings ▸ Storage cleans). Every
+  `node_modules` LINK was unlinked first, so the main checkout's `node_modules` was never followed. The branches were
+  all kept, so `git worktree add <path> <branch>` brings any of them back.
+- **Kept, deliberately:**
+  - the 14 worktrees in use;
+  - the 8 whose branch is not live yet;
+  - the 4 with uncommitted changes, among them `month-baselines`, which holds the never-committed
+    `wf-pdf-header-clearance` work (on the tracker);
+  - `half-day-episodes`, whose `.claude/halfday-sheets/` holds month-sheet screenshots;
+  - the app's own worktrees.
+- ⚠️ **It will fill again:** each full gate leaves about 110 profiles (about 0.9 GB). The fix is the tracker's
+  `harness-disk` card: `run.sh` removing its own profile.
+
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout from `b5ca7cf`, committed `3f974af`; GATED (2,595 / 3, all 3 green on a clean copy of the same build); merged with `origin/main` as `24f1537` (branch `region-show-info`); **LIVE at `24f1537`** (verified byte-identical, `a289341c`; no version cut)
+
 - **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
   exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
 - **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
@@ -111,9 +131,185 @@
   pushed by their sessions). So the push is `region-show-info`: `b390b83` + `origin/main`, docs conflicts only
   (README and HANDOFF top entries; both kept, and the superseded "navy tint" heading dropped).
 - **Owner, by picker:** *"Push my 2 commits only (Recommended)"*. That could not be a fast-forward any more, so the
-  merge is shown to the owner before it goes.
-- ⏭ **Next:** the owner's go-ahead for the merged push; then verify the live URL. Local `main` is left to the
-  paper-size session (it must merge `origin/main` before its own push). On the tracker as `region-in-show-info`.
+  merge was shown to the owner before it went.
+- **The merge, checked before it went** (`24f1537`, build `a289341c…`): `npm run check` 40/40; `regionmirror` 9/9,
+  `regionlock` 14/14, `settingswin` 19/19; for the two features that went live meanwhile: `noswapbtns` 7/7,
+  `hdrcontrols` 12/12, `colswapmove` 11/11 (gate.sh's own evaluator), `colswapmid`, `colswapstale`, `stintbtn`,
+  `stintmulti`, `stintchain`, `stintreshape` pass; gate 5 by hand: `fields.byId` 76 keys identical, grid identical,
+  0 clipped. No second full gate.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push the merge (Recommended)"*. ONE `git push origin
+  region-show-info:main` at 20:49:13 (`db73cf6..24f1537`, fast-forward). Deploy run 39718940598: success. At 20:50:08
+  the live `index.html`, fetched with a cache-buster, was **byte-identical to the merged build** (sha256
+  `a289341ca2c8f2fb…`, `cmp`); `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⛔ **FOR WHOEVER PUSHES LOCAL `main` NEXT (the `paper-size` session):** local `main` does NOT contain `24f1537` or
+  `db73cf6`. It holds `b390b83` (this change, unmerged with what went live) plus `paper-size` and plan docs. Merge
+  `origin/main` into it before pushing, or the push is refused (non-fast-forward); never force it, which would take
+  the Region change, the toolbar outline and one-chip off the live site. Expect docs-only conflicts (README and
+  HANDOFF top entries).
+- ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
+  The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
+
+### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
+
+- **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+  view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
+  either for the purpose of reordering them top to bottom or for changing a phases timing"*.
+- **Found while mapping (frozen `renderMonthView`):** the order is fixed: all-phase hiatus bands, then phases BY START
+  DATE (`laneSegs`), then Sim Post, then notes (waterfall lines, then the day's own in array order), each first-fit
+  (`takeLane`). ⭐ The month-PDF writer re-packs in DOCUMENT order (`mvlPackLanes`), so it follows any change to the
+  placement order with no writer edit. ⚠️ A bar can't be its own reorder handle: dragging it already moves its dates
+  (one row = a week). ⚠️ A day note's stored `lane` (written by the "+" it was added from) is never read by the
+  renderer; the comment "a note can be added on the exact line it will occupy" overstates it.
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 a ⋮⋮ grip on hover reorders a bar (the body still moves dates); R2 a note
+  CAN go above the bars (bars crossing its day drop a line that week); R3 the calendar redraws live under the moving
+  copy; R4 the frozen edits approved with the gate (gates 10 and 13 byte-identical on every baseline, plus a new
+  `mvorder` leg proving the writer stacks in the user's order).
+- **Two frozen edits, both "the rule lives outside":** E1 `laneSegs` from `mvLaneOrder(segs)`; E2 the notes loop asks
+  `mvDayNoteBlocks()` for `'top'` (before the hiatus bands) and `'below'`. Three new save keys, none bumping
+  `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
+  without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
+- ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
+- **Built (7 commits on `month-order`):** `mvPhaseOrder` + E1 + "Back to date order" in the bar's menu; the reorder grip
+  (`installMonthOrderDrag`) and the moving copy (`mvDragGhost`, body-level, computed style + `currentCSSZoom` copied,
+  stripped from shareable copies); note places + E2 (`mvDayNoteBlocks`, two passes); the note drag
+  (`installMonthNoteDrag`: the note is its own handle past 4 px, the click after a drag is swallowed, not while the
+  editor is open); the copy on the phase body drag and the hiatus band move; Help paragraph; README entry;
+  CLAUDE.md state rows.
+- ⚠️ **The grip's place, ruled twice the same evening:** built first at the bar's RIGHT end (at the left it sat on the
+  label's first letter, "Ṗrod Prep"), then moved back by the owner: *"Move the reorder grip to the left end, beside the
+  start grip, even though it covers the first letter of the label while hovering."* It is at the left now (`e73eff5`),
+  on the bar's own fill. ⚠️ **D6 is dropped** (recorded in the plan): start/end grips are a resize and keep stepping
+  with their edge (`pilldrag`/`phaseedge` read them mid-gesture).
+- ⭐ **Learned:** (1) a drag's out-and-back needs `<=` on the midline test: back at the start, the copy's middle is
+  EXACTLY the middle of the neighbour that took its old slot, and `<` landed it one place off (mvorder O7 caught it).
+  (2) `vite build --outDir X` is relative to `src/` (Vite's root), so a mutant build lands in `src/X` and `git add
+  src` sweeps it in (happened once, amended out). (3) A day note's stored `lane` is never read by the renderer;
+  Help's "a note stays on the line you added it to" overstates it. (4) With a note ON TOP, the month-PDF writer
+  re-wraps that note at its own width BEFORE the bars, so a bar's PDF lane can differ from the screen's; monthlayout
+  L1 ("non-notes keep their lane") holds only where no note is on top. No baseline has one.
+- **Proof so far (build `dist` of `c2f7c65`):** `npm run check` 40/40; new CDP leg **`mvorder` 20/20**, in `gate.sh`
+  (screen, saved file AND the written month PDF's text positions; out-and-back and Escape bank nothing; a place
+  follows its auto-note when Production is dragged; a click still edits; a hostile file incl. a `__proto__` key).
+  Mutant without E1+E2: O2, O3, O5, O7, O8, N1, N3, N4, N6 red. `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag`
+  13/13 (pilldrag's first run hit "timed out waiting for the engine" while another Chrome ran; green alone).
+- ⛔ **DISK IS FULL (0.9 GB free of 1.8 TB):** `/tmp` holds **2,138 leftover harness Chrome profiles, 16 GB** (every leg
+  leaves `/tmp/tc<port>-<leg>`; one full gate leaves ~114 of them, ~886 MB), and `.claude/worktrees` holds 70 worktrees,
+  14 GB. This session's gate waiter (scratchpad `waitgate.sh`, port 8790) starts only when no other gate runs AND
+  2 GB is free. Clearing the profiles is the owner's call (asked in chat); they are recreated by every run.
+- ⏭ **Next:** the full gate (gates 10 and 13 must stay byte-identical); then ask the owner about merging. On the
+  tracker as `month-reorder` and `month-drag-preview` (building).
+
+### 🔨 21 Oct 2026 (late): PAPER SIZE + EXPORT PDF DIALOG — BUILT on branch `paper-size` (`d51c2c7`), ✅ FULL GATE PASSED, MERGED into `main`; v1.7.0 cut and push approved
+
+- **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
+  print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
+- **Answer given:** every output is laid out for Letter (`SHEET_PAPER_PT`, `exportExcel`'s `paperSize: 1`, the month
+  writer's `MVL_GEOMETRY`, both print rollbacks). On Legal it prints whole and the same size, with blank paper. A print
+  dialog cannot fix that, because the orientation, the fit and Single Column's widths are decided from the paper before
+  any dialog opens. It needs a setting.
+- ⚠️ **Learned while mapping:** Single Column's fill (`sheetColumnWidths`) reads `SHEET_PAPER_PT.portrait`, so the paper
+  shapes **on-screen** column widths in that mode. That is why R2 now recommends saving the paper with the calendar,
+  which reverses the first answer's lean towards keeping it on each computer.
+- ⚠️ **Also found:** Help's *Exporting* paragraph still says the month export opens the print dialog (stale since
+  2 Oct 2026, `MV_PDF_MODE = 'direct'`).
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 Legal and Tabloid (no A4); R2 saved with the calendar (`paperSize`, absent =
+  Letter); R3 Single Column follows the paper; R4 the month PDF stays Letter for now.
+- **Second ask, the same evening:** an **Export PDF dialog** (waterfall only) that confirms or changes the paper and the
+  grid lines, plus a Portrait/Landscape choice with one marked *Recommended* by the existing rule. Planned in §5a. The
+  paper setting stays in Settings ▸ Preferences ("the regular setting tab"). The orientation choice is frozen edit P4:
+  one helper, `chosenOrientation()`, in both writers.
+- ⚠️ **Learned:** about 25 gate legs click `#export-wf-pdf-btn` (twenty through `T.captureExport` in `t/lib.js`,
+  the rest directly), and a dialog would stall every one of them. The plan teaches `captureExport` to press Export at
+  the defaults rather than adding a skip switch, so the whole gate proves that the defaults give today's PDF.
+- ⚠️ **The dialog's sizes come from frozen `sheetPageOrientation()`, which is synchronous,** under a paper probe that
+  is set and cleared in one call. They do not come from `buildWaterfallPdf` (which awaits), because a probe held across
+  an await could leak into a Single Column render.
+- ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
+  only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
+  for the PDF only.
+- **Built** (owner: *"Yes, build the paper setting and the Export PDF dialog per PAPER-SIZE-PLAN.md, on a branch, and
+  run the full gate."*):
+  - `app.js`, beside `SHEET_PAGE_MARGIN_PT`: `SHEET_PAPERS` (Letter / Legal / Tabloid, with Excel codes 1 / 5 / 3),
+    `sheetPaper()`, `sheetPaperCode()`, `paperProbe`, and `SHEET_PAPER_PT` made two getters (P1). P2 is in `exportExcel`'s
+    pageSetup. P4, `chosenOrientation()`, is one expression in each writer.
+  - ⛔ **`paperSize` and `pageOrientation` are declared beside `dateFormat`, near the TOP of the IIFE**, not beside
+    `SHEET_PAPERS`. The sidebar's boot code (`reflectPaperSize()` beside `reflectDateFormat()`) runs long before that
+    line, and a `let` read there throws from the temporal dead zone and kills the rest of the engine (the
+    `pushHeaderPresets` lesson at the IIFE's end).
+  - State: `setPaperSize()` / `reflectPaperSize()` (the `setDateFormat` shape, one undo step), snapshot keys written
+    only when not the default, `sanitizeSnapshot` drops unknown values, restore is unconditional, New clears.
+  - The dialog: `src/chrome/ExportPdfDialog.jsx`, mounted beside `<Dialogs />`, through `chrome.pdfExportDialog`. If
+    the chrome fails to mount, the bridge default exports with what is already chosen. Engine:
+    `askPdfPageSetup()` runs in the Export PDF handler before `confirmPdfPrintable()`, and `pageFitFor(key)` asks
+    the frozen rule under the probe for all three papers before the dialog opens. React gets the answers as data and
+    never calls back. `collectFieldValues()` skips `.export-pdf-dlg`. `setGridlinesPref()` was factored out of the
+    gridlines listener.
+  - The harness: `t/lib.js` answers the dialog at its defaults in every leg (a MutationObserver clicks its Export).
+    `T.pdfDialog('manual')` hands it back to a leg, and `cspproof.mjs` answers it itself.
+  - Help's Exporting section is updated, including the stale month sentence.
+- **Proof so far** (build `22b16c43…`):
+  - new leg `papersize`: 12/12;
+  - new leg `pdfdialog`: 11/11;
+  - both legs are registered in `gate.sh`, and both are red on the pre-change build (`9677900`);
+  - nine mutants, each red (Excel code 1; getters ignore the paper; PDF or Excel ignores the orientation; restore
+    skipped; recommendation from Letter; probe left set; Cancel applies; the sweep takes the dialog), and the
+    source was restored and `shasum`-checked;
+  - `base`'s PDF through the dialog at its defaults is identical to gate 2's baseline apart from the date stamp;
+  - `npm run check` 40/40;
+  - in the pane: the dialog, live recommendation and sizes, Cancel, the Settings select, undo.
+- ⚠️ **Learned while building:**
+  - **Legal practically never turns a page.** It lengthens only the side that was not limiting, so the rule's answer
+    matches Letter's. Tabloid can turn one, inside a narrow band. The plan's "a calendar built to flip on Legal"
+    became a four-year landscape calendar.
+  - **On Letter the dialog's size reads about 3 points low** (87% against a PDF drawn at 90%): the rule leaves out the
+    header band.
+  - **A leg cannot Save straight after an undo back to the saved state:** Save is disabled there.
+- ✅ **Full gate on build `22b16c43…` (1,692,743 bytes; HARNESS_PORT 9473, 19:47:14–20:12:43, alone, after another
+  session's gate): 2,630 PASS, 0 FAIL, GATE PASSED.**
+  - 0 clipped cells;
+  - the waterfall PDF identical to the baseline (date stamp only), with every PDF there having gone through the dialog
+    at its defaults;
+  - every Excel part identical;
+  - `fields.byId` 76 ids;
+  - gate 10's print documents and gate 13's written month PDFs byte-identical;
+  - `papersize` 12/12, `pdfdialog` 11/11, `cspproof` W1, `winansi` W0–W5, `exportrefused` E2.
+- **Owner, by picker:** *"Commit on branch"*, *"Merge into main"*, *"Push with a v1.7.0 cut"*. Committed `d51c2c7`,
+  merged into local `main` as `6ca9993` (⚠️ in the MAIN checkout, while the Region session's gate was running there: it
+  changed `gate.sh` and `t/lib.js` under that script. Never merge into a checkout with a gate running in it).
+- **The v1.7.0 cut** (`02f88b7`, then re-cut on the merge with `origin/main`):
+  - `APP_VERSION`, `version.json` and `package.json` = 1.7.0;
+  - README `## v1.7.0` over the twelve entries since v1.6.0 (eleven already live);
+  - `releases/v1.7.0.html` = dist;
+  - `tests/fixtures/v1.7.0-saved.sptcal`, a real Save: 43 keys, 76 ids, version 1, 0 clipped.
+
+  The first release gate (cut build `6b8dfbde…`, 20:40–01:02) ended 2,560 / 9: four `monthexport` calendars that
+  wrote nothing, their four gate-13 compares, and `pilldrag`'s 480 s deadline. All nine re-ran green alone.
+- ⚠️ **`origin/main` had moved** (the Region push `24f1537`, which carried two code changes local `main` never had: the
+  navy outline and the one-chip pop-ups). So the release merged `origin/main` (`aec3e3d`; only README and HANDOFF
+  conflicted, both resolved keeping every entry). The release build is now `7063a638…` (1,689,392 bytes), which
+  `releases/v1.7.0.html` matches. The fixture came out byte-identical. `npm run check` 40/40.
+- ⛔ **LEARNED, three harness traps, all hit tonight:**
+  - **A port is never reserved.** `header-zoom`'s gate picked 9473, this session's port, while it was idle, and
+    from 01:02 each session's `run.sh` (`pkill -f "srv.js <port> "`) killed the other's server. Symptoms: *"NO RESULT
+    BLOCK -- the page never reached the injected script"* after about 1 s, and legs quietly testing the OTHER
+    worktree's build. Check `lsof` right before every run, not once. (That session was told.)
+  - **A PDF stream must be read by its `/Length`.** `papersize` and `pdfdialog` trimmed whitespace off a stream's end
+    (the pattern `prefs.js`, `hdrrow.js` and other legs still use). Compressed bytes can end in a space or newline, so
+    after midnight the new header date made Tabloid's content stream read as truncated. Fixed in both legs
+    (`28cdf6e`). The other legs carry the same latent, date-dependent failure.
+  - **A leg that writes nothing leaves the LAST run's files behind.** `gate.sh` does not delete `base.json` / `.pdf` /
+    `.xlsx` before `run.sh base`, so a dead run compares yesterday's files: a false FAIL on the date stamp, or a
+    false PASS on everything else.
+- ✅ **Release gate on `7063a638…`** (port 9817, 01:44:43–02:10:25, alone): **2,626 PASS, 4 FAIL.**
+  - Held: the waterfall PDF and every Excel part identical, 76 ids, 0 clipped, all 21 written month PDFs
+    byte-identical, `papersize` 12/12, `pdfdialog` 11/11.
+  - The four failures: two in `hdrversion`, the same stream-trimming bug on today's date (header-zoom's fix
+    `6547512`, taken as files in `58e6b6a`); `pilllabel (halfdays)` W3, the recorded flake; `phiatusnum` H3, ExcelJS
+    from the CDN timing out at 30 s.
+  - Re-run alone through `gate.sh`'s own judges, on the same build: **64 PASS, 0 FAIL** (hdrversion's PDF line now
+    `['10.22.26', 'v3']`).
+- ⏭ **Next:** ONE push of this branch to `main` with the tag `v1.7.0`, then the live check (`index.html` byte-identical
+  to `releases/v1.7.0.html`, `version.json` 1.7.0).
 
 ### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
 

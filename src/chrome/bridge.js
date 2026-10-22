@@ -114,6 +114,15 @@ export const chrome = {
   // control shows. Its input goes back as a DOM event, 'sptcal-zoom', the way DatePop hands back a date.
   // A per-machine preference: never in captureSnapshot(), never an undo step.
   calZoom: noop,
+  // ({ paper, orientation, gridlines, papers, fits }) → Promise<{ paper, orientation, gridlines } | null> —
+  // the Export PDF dialog (src/chrome/ExportPdfDialog.jsx, PAPER-SIZE-PLAN.md §5a). The default, for a
+  // chrome that failed to mount, EXPORTS WITH WHAT IS ALREADY CHOSEN rather than cancelling: the PDF comes
+  // out exactly as it did before the dialog existed, and nothing about the calendar changes.
+  pdfExportDialog: (opts) => Promise.resolve({
+    paper: opts.paper,
+    orientation: opts.orientation || ((opts.fits || {})[opts.paper] || {}).recommended || '',
+    gridlines: opts.gridlines,
+  }),
 }
 
 export function installChrome(impl) {

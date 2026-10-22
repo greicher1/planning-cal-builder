@@ -54,7 +54,45 @@ scale with the length of the cal when you adjust the window zoom"*. Ruled by pic
   50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
   0 FAIL (build `e7db3fde…`).
 
-### Unreleased — the Production Region in Show info too (21 Oct 2026)
+## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
+
+Twelve changes since v1.6.0, from 20–21 Oct 2026. Eleven were already live before this cut (the column headings'
+Split and Merge buttons, Paste notes in Settings, the one Preferences tab, folding a phase card, episode names on their
+month bars, the calendar zoom and its strip under the calendar, the shifting tools' colour and then their navy outline,
+the simpler pop-ups over a waterfall selection, and the Production Region in Show info); this version is how
+installed copies hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **paper**
+(Letter, Legal or Tabloid) and the **Export PDF dialog**.
+
+### choose the paper; Export PDF asks first (21 Oct 2026)
+
+The owner: *"what happens if we are going to print the waterfall to a legal sized piece of paper? Do we need to add a
+setting to select your paper type?"*, then *"we also now need a popup dialogue when you click export pdf that asks you
+to both confirm (or change) your paper type and your grid lines. It should also have a selector for portrait or
+landscape but one is listed as (recommended)"*. Planned and ruled in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md).
+- **Paper: Letter, Legal or Tabloid** (11 × 17), in Settings ▸ Preferences ▸ Waterfall. The waterfall PDF and the
+  Excel file are laid out for it, so a long or wide calendar prints larger on bigger paper (up to about 30% on Legal).
+  It is saved with the calendar (`paperSize`; Letter is no key at all). The month PDF stays Letter for now (R4).
+- **Export PDF in the waterfall now opens a dialog** with the paper, Portrait / Landscape and the grid lines. The
+  orientation the exports would pick is marked **Recommended**, and a line under it gives how large each prints the
+  calendar ("about", by the same rule). Cancel and Escape change nothing; Export applies all three and goes on to the
+  PDF. An orientation other than the recommended one is saved with the calendar (`pageOrientation`) and Export to
+  Excel follows it too; choosing the recommended one again clears it. Grid lines stay a per-computer preference.
+- **Single Column follows the paper** (R3): it widens its columns to fill the page, so on Legal they are narrower on
+  screen and the column prints larger.
+- ⛔ **Frozen edits, all inert on Letter with no orientation chosen:** P1, `SHEET_PAPER_PT`'s two orientations become
+  getters over the chosen paper (the declaration only, the Header: Off move); P2, `exportExcel`'s `paperSize`; P4, both
+  writers pass the rule's orientation through `chosenOrientation()`. The print rollbacks stay Letter.
+- ⚠️ **Learned:** Legal almost never turns a calendar's page. It only lengthens the side that was not limiting, so the
+  rule's answer is the same as on Letter; Tabloid can. And on Letter the dialog's size reads about 3 points low (87%
+  against a PDF drawn at 90%), because the rule reserves the header band and the PDF does not.
+- Help's Exporting section describes the dialog and the paper, and no longer says the month export opens the print
+  dialog (it has written the file itself since 2 Oct 2026).
+- **Verified:** new legs `papersize` 12/12 and `pdfdialog` 11/11, in `gate.sh`, both red on the pre-change build;
+  nine mutants each red. **Full gate 2,630 PASS, 0 FAIL** on build `22b16c43…`: the waterfall PDF (through the dialog at
+  its defaults), every Excel part, `fields.byId` (76 ids) and both month PDFs identical to their baselines.
+  `npm run check` 40/40.
+
+### the Production Region in Show info too (21 Oct 2026)
 
 The owner: *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
 exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
@@ -70,9 +108,11 @@ exist as a duplicate setting in the settings tab where it already appears, but n
   M6/M8; the copy bypassing the question: M6/M7). Gate 5 by hand: `fields.byId` 76 keys and values identical to the
   baseline, the restored grid identical. `regionlock` 14/14, `regioncaveat` 13/13, `settingswin` 19/19,
   `sharecopy2`, `hostile (xss-mixed)` 13/13, `noresetall` 5/5, `dlgkeys` 16/16, `wrapdate` all OK; `npm run check`
-  40/40; a 2× screenshot of the card. Full gate not run.
+  40/40; a 2× screenshot of the card. **Full gate:** 2,595 pass / 3 fail, all three green on a clean copy of the same
+  build (two read a fixture left edited in the checkout, one was contention). Live at `24f1537`, merged with the
+  toolbar outline and one-chip, byte-identical to its build.
 
-### Unreleased — no pop-ups over a waterfall selection but the double-click hint and a refused swap's reason (21 Oct 2026)
+### no pop-ups over a waterfall selection but the double-click hint and a refused swap's reason (21 Oct 2026)
 
 The owner, with a screenshot of two pop-ups stacked over selected cells: *"can we remove or at least simplify (maybe
 combine into one?) this double pop up"*, then, after a one-chip version: *"remove the chip entirely, except say
@@ -101,7 +141,7 @@ S1 · nothing re-flows"*).
   run under UTC+14 that wrote no result while other sessions' gates ran (the month PDF, untouched here); that block
   re-run alone passed every check.
 
-### Unreleased — the shifting tools take a navy outline instead of the fill (21 Oct 2026)
+### the shifting tools take a navy outline instead of the fill (21 Oct 2026)
 
 The navy fill below went live and the owner saw at once that *"it looks like those buttons are all selected since
 the blue color is the same as the selected button color on the left side bar"*. It was: that light navy is the
@@ -118,7 +158,7 @@ selected sidebar tab's ground, so four buttons resting in it read as switched on
   `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot matching the
   mockup the owner picked. No full gate (chrome-only; the owner's call for the fill, the same here).
 
-### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+### the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
 
 The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
 shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
@@ -131,7 +171,7 @@ dont need to move them"*); the row's spacing is unchanged.
 - **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
   1650 px. Full gate not yet run.
 
-### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
+### the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
 more space at the bottom of the app to give it room?"* Measured at 1440×900, the pill and the 46 px **?** button
@@ -149,7 +189,7 @@ both sat entirely on the waterfall's grid box, over its last rows and its horizo
   the contention flakes on record (`pilllabel` C1/C3, `monthexport` X6), both legs green re-run alone; gates 10 and 13
   byte-identical, 0 clipped.
 
-### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
+### calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
 to zoom in or out the viewport of either the waterfall cal or the month cal"*.
@@ -180,7 +220,7 @@ to zoom in or out the viewport of either the waterfall cal or the month cal"*.
   browser, no extra clipped cell at any zoom from 25% to 200% on a 267-cell waterfall, and no extra cut note in the month
   fixtures. Every byte-compared gate is untouched by construction: at 100% nothing is written at all.
 
-### Unreleased — An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
+### An episode's name is its month bar: new episodes are "Shoot Ep. 101", and Prefix… is gone (20 Oct 2026)
 
 The owner, the evening v1.6.0 shipped its "Shoot" prefix: *"I just wanted the word Shoot before 'Shoot Ep. 101' -
 but I also want the default names to literally be 'Shoot Ep. 101,' 'Shoot Ep. 102' so that you can easily change
@@ -205,7 +245,7 @@ Load, a v1.6.0 prefix kept and dropped by a rename, bad values, the written PDF'
 D2s, `episodeprep` (its live run), `labelsetup`, `halfmarks`, `pilllabel`, `mvmenu`, `shootorder` and `pilldrag`
 updated for the names.
 
-### Unreleased — a caret folds each phase card down to its name (20 Oct 2026)
+### a caret folds each phase card down to its name (20 Oct 2026)
 
 Owner: *"There should be a carrot that lets you hide and unhide phases within the phases menu. When you hide them it
 should show just their name (name still editable) with their color but hide all the settings underneath."*
@@ -224,7 +264,7 @@ should show just their name (name still editable) with their color but hide all 
   `settingswin`, `loadcarry`, `calrange`, `phasecolors`, `mvmenu (halfdays)`, `dlgkeys`, `labelsetup (halfdays)`,
   `colreuse` (both runs, through gate.sh's own judge), `phasenum`, `episodeprep` (both). `npm run check` 40/40.
 
-### Unreleased — Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
+### Settings has one Preferences tab: the Calendar tab is merged into it (20 Oct 2026)
 
 Owner: *"Lets combine settings under preferences and Calendar to be just under "Preferences". Delete the calendar
 tab. this should apply to both the waterfall and month view"*.
@@ -246,7 +286,7 @@ tab. this should apply to both the waterfall and month view"*.
   calendar) passed alone, and the `pilllabel` flake also appears on v1.6.0 itself. `npm run check` 40/40. Full
   gate: 2,557 PASS, 0 FAIL; merged with the column-heading editor and Paste notes, 2,563 PASS, 0 FAIL.
 
-### Unreleased — Paste notes… moves into Settings (20 Oct 2026)
+### Paste notes… moves into Settings (20 Oct 2026)
 
 Owner: *"put paste notes into settings"*, once the Settings window had shipped (*"after the rest of the stuff pushes
 with the new settings tab"*). **Paste notes…** is now a row of Settings ▸ Preferences ▸ Month view (built in the
@@ -259,7 +299,7 @@ only, as before (the card is month-only), and opens the same box. Nothing saved 
   no Paste notes… is left outside it in the month view: LIVE 30/30, RESTORE 14/14 on this build, and red on
   `releases/v1.6.0.html` (V1, then V2–V3). A real click in the app opened the box. `npm run check` 40/40.
 
-### Unreleased — Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
+### Column headings: one box per heading, with Split and Merge buttons (20 Oct 2026)
 
 The owner, on the heading editor shipped in v1.6.0: *"this is a really confusing/convaluted way to have this menu
 ... you have to understand that if you change the notes collumn to something other than writing, it is THEN going

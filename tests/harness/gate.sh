@@ -1685,6 +1685,13 @@ done
 # unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
 # folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
 # Its own line, mid-list, so sessions appending at the end never conflict with it.
+# papersize guards the paper the waterfall PDF and the workbook are laid out for (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md,
+# rulings R1-R4): the Paper select in Settings ▸ Preferences ▸ Waterfall, inert on Letter (no key, a Letter page box,
+# Excel paper 1), Legal and Tabloid read back from the PDF's page box and Excel's paper number (5, 3), the PDF and the
+# workbook turning the same way on one to four year blocks, side boxes, Header: Off and Single Column (which follows
+# the paper, R3), Save/Load with the M-5 trap, one undo step, New. pdfdialog guards the Export PDF dialog (§5a,
+# rulings D1-D3), driven by hand: it is the one leg that takes the dialog over from t/lib.js, which answers it at its
+# defaults in every other leg -- so every PDF this gate compares went through it. Own lines, mid-list.
 # regionmirror guards the Production Region's second select (owner, 21 Oct 2026), under Version in Show info: the
 # id-less select.region-mirror, right after #show-version, offering #union-place's exact options; a pick there goes
 # through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
@@ -1706,6 +1713,8 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
               regionmirror:-:150 \
+              papersize:-:500 \
+              pdfdialog:-:500 \
               phasefold:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
