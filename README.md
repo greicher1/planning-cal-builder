@@ -45,6 +45,9 @@ predetermined locking positions … this should reflect in the pdf writer and th
   the top of the header block and scrolled on their own. Each line is as tall as the grid rows it takes in print.
   Under the zoom slider the boxes keep their size (the entry below): each box's top stays level with its row, and
   zoomed out, a box that would cover the one under it sits just under it instead (on screen only).
+- **With Hide from Exports** (the entry below, merged into this branch 22 Oct 2026): a hidden box leaves the
+  printed layout; the boxes under it close up in print only if they still stack, and a box you have placed keeps
+  its row. A saved calendar keeps each box's "Hide from Exports" (the snapshot writes `noExport`).
 - **Excel and the waterfall PDF put each box on its row.** They already drew from the one side-box layout, so
   neither writer changed: no frozen code, E1–E6 untouched. A box on row 10 is on row 11 of the workbook, and in the
   PDF its first line shares a baseline with that row's date.
