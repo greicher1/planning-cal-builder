@@ -54,6 +54,37 @@ scale with the length of the cal when you adjust the window zoom"*. Ruled by pic
   50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
   0 FAIL (build `e7db3fde…`).
 
+### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+
+The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
+shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
+dont need to move them"*); the row's spacing is unchanged.
+- **← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From** wear the app's navy accent tint (the
+  active Show tab's ground, UI-CONVENTIONS §3b's primary-action tint) with a navy hairline, so the four read as one
+  family. Side Boxes, the Header button and undo/redo stay white. Hover and the open state step one shade darker.
+- The Side boxes button reads **Side Boxes**, like its Title Case neighbours.
+- Chrome only (`legacy.css`, `PreviewToolbar.jsx`'s label); nothing in the grid, its cells or the exports changes.
+- **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
+  1650 px. Full gate not yet run.
+
+### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
+
+The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little
+more space at the bottom of the app to give it room?"* Measured at 1440×900, the pill and the 46 px **?** button
+both sat entirely on the waterfall's grid box, over its last rows and its horizontal scrollbar.
+- **Both:** the pill is compact (26 px tall, 183 px wide; it was 32 and 229) and, with the **?** button shrunk to
+  28 px to match (owner's pick), both sit in a 44 px strip under the preview, 8 px clear of it. The grid ends 24 px
+  higher than before, about one row.
+- **A margin under the panel, not padding inside it**, so the month view, which scrolls inside the panel, cannot
+  scroll under them either. The waterfall's grid fit already measures the panel, so the grid follows with no code
+  change. Narrow windows (960 px and below) get the 44 px as padding, so the end of the page clears them.
+- Chrome only (`legacy.css`, `ZoomControl.jsx`'s icon size); nothing in the grid, its cells or the exports changes.
+- **Verified:** `calzoom` gains Z5 and W1b (the month view's scroll box and the waterfall's grid box each end 8 px
+  above both controls), 24/24; `npm run check` 40/40; by hand in the app's browser at 1440×900 and 1024×768 (both
+  views, zoomed and at 100%) and stacked at 900×700. Full gate (build `f62b9bc8…`): 2,595 PASS, 3 FAIL, all three
+  the contention flakes on record (`pilllabel` C1/C3, `monthexport` X6), both legs green re-run alone; gates 10 and 13
+  byte-identical, 0 clipped.
+
 ### Unreleased — calendar zoom, bottom right in both views (20 Oct 2026)
 
 The owner asked for *"a zoom in/zoom out slider in the bottom right corner of both the waterfall view and month view
