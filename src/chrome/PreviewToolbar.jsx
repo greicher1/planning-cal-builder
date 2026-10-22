@@ -222,7 +222,7 @@ export function PreviewToolbar() {
                 title="Add a colour key or a text box beside the waterfall"
                 aria-haspopup="true" aria-expanded="false"
                 rightSection={<span className="caret" aria-hidden="true">▾</span>}>
-          Side boxes
+          Side Boxes
         </Button>
 
         {/* The header's MODE button (owner ruling 1, relayed 30 Sep 2026; built after v1.4.1). It
