@@ -48,6 +48,31 @@ Every test before step 6 stood in for the Save dialog. So:
     overwritten before it could be read, so the cause is not known. The same case passed in every run on a healthy
     machine. It is recorded, not explained (HANDOFF).
 
+## ✅ RE-CUT 21 Oct 2026 — ALL NINETEEN CASES: phases ringed in their own darker colour (ring paint only)
+
+- **The ruling.** Owner, 21 Oct 2026, in chat (SPAN-NOTES-PLAN.md §1 D1, shown both routes mocked): *"go for the
+  darker outline for phases"*. A frozen CSS edit, approved in that message: `.mv-pill{ border-color:currentColor;
+  box-shadow:inset 0 0 0 .5px currentColor }`, so every pill (a phase's, an episode's, Simultaneous Post's) is ringed
+  1.5 px in its own ink, with no layout change. The writer paints the same ring (`MVL_PAINT.bar.pillRim`,
+  `mvlPaintBar`). Notes and hiatus bands keep the 18% rim.
+- **The sign-off came first.** The owner saw `monthbase.py sheets` contact sheets (old | new | difference) of
+  `colswap-simpost-refuse` (December 2026: episodes, Post, Simultaneous Post, a note, the hiatus) and
+  `dayoverrides-onhalf` (July 2026: half days), and the classification below; the answer was *"Yes, update the gate
+  13 month PDF baselines to the outlined version, then run the full gate."*
+- **What moved, classified line by line** (every content stream inflated through `monthbase.parse`, then compared):
+  in all nineteen, every part but the pages' contents is identical (fonts, page tree, page count). In each page's
+  content, with the ring lines (`… f*`) and colour lines (`… rg`) set aside, every other line is identical and in
+  order: every text run and its position, every fill, every clip. The one other change is whole per-slice ring
+  re-draw groups (`q <clip> W n` / `Q`) gone, because a pill's ring is opaque and no longer re-drawn over a half
+  day's shade: 2 in `carry-rich`, 5 in `dayoverrides-onhalf`, 1 each in `dayoverrides`, `mvheader` and
+  `mvheaderlegacy`, and the ring counts drop by exactly those. The classifier was shown red on a real change first.
+  In the sheets the difference is red on pill outlines only.
+- **Re-cut:** all nineteen (`reference` also holds `rz` and `rw`).
+- **Cut from** build `591820ac444ca2ac…` (1,684,726 bytes), branch `phase-outline` at `c4f6114`, rebuilt from the
+  committed source to the same bytes before the copy. The files are the `monthexport` leg's, run case by case through
+  gate.sh's own loop on port 9352 (all 9/9). The full gate that follows proves the cut: gate 13 passes only if the
+  gate's own exports are these bytes. Google Chrome **155.0.8059.85**.
+
 ## ✅ RE-CUT 20 Oct 2026 — FOURTEEN CASES: "Shoot" before every episode bar (and nothing else)
 
 - **The ruling.** Owner, 20 Oct 2026, by picker: an episode's month bars read **"Shoot Ep. 101"** by default on every
@@ -141,24 +166,25 @@ week. No frozen code changed: the bars are cut in the non-frozen `pillRunsForWee
 
 | case | pages | bytes | sha256 |
 |---|---|---|---|
-| `blocks` | 16 | 80,934 | `88ee3ae6d8173c1d…` |
-| `carry-rich` | 12 | 81,491 | `068617986182a36d…` |
-| `colswap-simpost-refuse` | 3 | 52,134 | `5829bef9ac42bce2…` |
-| `dayoverrides-onhalf` | 15 | 79,160 | `4da0792c3b5df960…` |
-| `dayoverrides` | 15 | 78,471 | `d3b5c97445fd74e0…` |
-| `halfdays` | 16 | 80,183 | `c8e9998473736d55…` |
-| `hiatus-blanklabel` | 16 | 81,757 | `cc978e2f6822680d…` |
-| `month-dense60` | 16 | 82,777 | `5aa97399cc7d9408…` |
-| `month-lanecap` | 16 | 82,028 | `08f8539972ab7995…` |
-| `monthnotes` | 16 | 81,924 | `010f8ca51b36cb7c…` |
-| `monthscale` | 16 | 82,612 | `e77c869ce1359664…` |
-| `mvheader` | 15 | 93,776 | `88a100f27a0a70d3…` |
-| `mvheaderlegacy` | 15 | 78,655 | `2bb3cde2d629ac89…` |
-| `mvnotes` | 17 | 85,293 | `394792bf7fb93748…` |
-| `notewrap` | 16 | 82,362 | `b49e6a973a279b64…` |
-| `reference` | 16 | 81,786 | `1e4bbf1dc3dbcbf8…` |
-| `shootorder` | 16 | 81,785 | `c8cbd880f7ee8af5…` |
-| `stintswap-reshape` | 25 | 103,019 | `30f27f4baea849cd…` |
+| `blocks` | 16 | 80,924 | `c30d64051e08f7c0…` |
+| `blocksoff` | 16 | 81,797 | `334b7201d00cbc0a…` |
+| `carry-rich` | 12 | 81,364 | `fd6eb0c3f17a0560…` |
+| `colswap-simpost-refuse` | 3 | 52,093 | `e7c61351f91249b2…` |
+| `dayoverrides-onhalf` | 15 | 79,062 | `d8412a2ff8c423fc…` |
+| `dayoverrides` | 15 | 78,483 | `823760508bb58e5a…` |
+| `halfdays` | 16 | 80,175 | `0d7fe82c12ab1c8c…` |
+| `hiatus-blanklabel` | 16 | 81,771 | `7f1d74d966aef221…` |
+| `month-dense60` | 16 | 82,774 | `7eaffbd744e68abd…` |
+| `month-lanecap` | 16 | 82,027 | `9826805849c0d083…` |
+| `monthnotes` | 16 | 81,914 | `a08f307d213e9ae6…` |
+| `monthscale` | 16 | 82,604 | `1ac8beccb6def66a…` |
+| `mvheader` | 15 | 93,711 | `3b27269ca9927293…` |
+| `mvheaderlegacy` | 15 | 78,664 | `040e7fa35a7c88b1…` |
+| `mvnotes` | 17 | 85,263 | `548db8b44109b249…` |
+| `notewrap` | 16 | 82,381 | `c6859e3548abb580…` |
+| `reference` | 16 | 81,805 | `bc2f28cdedd335fd…` |
+| `shootorder` | 16 | 81,796 | `57d295b56f8d85e7…` |
+| `stintswap-reshape` | 25 | 102,988 | `ac8edffe491e1932…` |
 
 Loaded with `HARNESS_STATE=<case>`, except `reference`, which is `T.buildFixture()` typed into a fresh page.
 

@@ -29,6 +29,28 @@ window.__T = (function(){
     nativeSet(e, v); ['input','change'].forEach(function(t){e.dispatchEvent(new Event(t,{bubbles:true}));});
   }
   function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+  // ⭐ THE EXPORT PDF DIALOG (PAPER-SIZE-PLAN.md §5a, 21 Oct 2026) is ANSWERED AT ITS DEFAULTS the moment it
+  // opens, in every leg that has not taken it over with T.pdfDialog('manual'). Since the dialog exists, every
+  // waterfall-PDF export -- about twenty legs through captureExport, more that click the button themselves --
+  // stops on it, and a leg that read "whatever modal is up" after the click would have read the dialog
+  // instead of the character warning it waits for.
+  //  - It CLICKS the dialog's own Export, so the real path runs: the engine's askPdfPageSetup() applies the
+  //    defaults, which must change nothing. That makes every PDF the gate byte-compares the proof that
+  //    "Export at the defaults = the PDF from before the dialog existed". A switch that skipped the dialog
+  //    inside the app would have hidden exactly that.
+  //  - modalText() leaves the dialog out while in this mode, for the moment between its opening and the click.
+  //  - t/pdfdialog.js takes it over ('manual') to drive it the way a user does.
+  var pdfDialogMode = 'auto', pdfDialogAnswered = 0;
+  function answerPdfDialog(){
+    if(pdfDialogMode !== 'auto') return;
+    var b = document.querySelector('.export-pdf-dlg [data-pdfdlg="export"]');
+    if(b && !b.__tAnswered){ b.__tAnswered = true; pdfDialogAnswered++; b.click(); }
+  }
+  new MutationObserver(answerPdfDialog).observe(document.documentElement, {childList: true, subtree: true});
+  function pdfDialog(mode){
+    if(mode === 'auto' || mode === 'manual') pdfDialogMode = mode;
+    return { mode: pdfDialogMode, answered: pdfDialogAnswered };
+  }
   // Alt+Left / Alt+Right on the document: the column swap's keyboard path. The toolbar's
   // ◀ Swap / Swap ▶ buttons only duplicated it, and they went with owner ruling 2 (30 Sep 2026),
   // so the swap legs press the keys. The engine's handler needs a live selection in the
@@ -406,6 +428,7 @@ window.__T = (function(){
   // modal -- which made one audit result claim "no dialog" when the app had shown one.
   function modalText(){
     return Array.from(document.querySelectorAll('.mantine-Modal-content'))
+      .filter(function(d){ return pdfDialogMode !== 'auto' || !d.closest('.export-pdf-dlg'); })
       .map(function(d){ return (d.innerText || d.textContent || '').replace(/\s+/g, ' ').trim(); })
       .filter(Boolean).join(' || ');
   }
@@ -544,5 +567,6 @@ window.__T = (function(){
           gridSignature:gridSignature,captureDownload:captureDownload,captureExport:captureExport,b64:b64,done:done,
           memoryIDB:memoryIDB,modalText:modalText,clickModalButton:clickModalButton,scrubSurrogates:scrubSurrogates,
           latestBackup:latestBackup,altSwap:altSwap,monthPrintPath:monthPrintPath,fakeSavePicker:fakeSavePicker,pdfPages:pdfPages,
-          openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings};
+          openSettings:openSettings,closeSettings:closeSettings,settingsTabOf:settingsTabOf,shownInSettings:shownInSettings,
+          pdfDialog:pdfDialog};
 })();

@@ -328,7 +328,16 @@ app's answer in two places before it was written down — `.side-tab-btn.active`
 `button.secondary.add-hiatus-btn`, whose comment calls it *"a deliberate echo of the active tab so
 the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third.
 
-Three rules go with it:
+Four rules go with it:
+
+- ⛔ **A row of RESTING controls never wears the tint, because the tint also means SELECTED.** It is the
+  active sidebar tab's ground, so a control filled with it at rest reads as switched on. Learned 21 Oct
+  2026: the preview toolbar's four shifting tools went live in the tint and the owner saw at once that
+  *"it looks like those buttons are all selected"*. The tint suits a single action button that stands
+  alone in a panel (the three above), not a row of tools beside other buttons. To set a group of
+  toolbar controls apart, colour the **border and ink** and keep the white fill: the shifting tools
+  (`.shift-btn`, `.tools-wrap > .tools-btn`) take a navy-6 outline and navy-6 text, with `navy-0` on
+  hover and while their popover is open (owner's pick of four mockups, "option A").
 
 - ⛔ **Reach for the tokens, never the hex.** `#D3DAE1` in a rule is a copy that stops tracking the
   theme, and the failure is invisible: the two grounds simply drift apart.
@@ -929,6 +938,12 @@ textarea, the hiatus rows, the episode rows, and 5–6 `SegmentedControl` radios
 `collectFieldValues()`'s skip test — and ship that guard **in the same change** as the component
 swap.
 
+**A third way, for a second copy of a saved control** (21 Oct 2026, the Production Region in Show
+info): a plain `<select>` with no id at all, inside `Input.Wrapper labelElement="div"` for the label
+and with an `aria-label`, drawing NativeSelect's chevron by hand (`select.region-mirror` in
+`legacy.css`). The id'd original stays the only control the save reads; the engine forwards the
+copy's change to it and writes its value back (`reflectRegionUI()`). Leg `regionmirror`.
+
 ### 8.4 `Popover` portals by default, defeating the `.tools-menu` escape
 
 `withinPortal: true` is in `Popover`'s defaultProps. The four tool popovers' **eight** id'd controls
@@ -1203,9 +1218,10 @@ Nothing in this document ships without all of these, every stage:
       anchors the mode menu; the Manual-only editor strip; nothing above the header in Auto or
       Template; the view-split notes reset in the app header; "Reset hiatus bands" in the sidebar;
       one undo step each. `sharecopy2` also requires the new React host empty in a shareable copy.
-    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's count chip
-      ends with "Alt+←/→ to swap" and shows whole on a narrow grid; Alt+arrows and double-click
-      still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
+    - `noswapbtns` (`colswap-gesture`): the Expand and Swap buttons are gone; the grid's only chip
+      over a selection is the double-click hint (owner, 21 Oct 2026): "Double click to expand cells",
+      "…pull back cells" once expanded, none where there is no room, never any swap text; Alt+arrows
+      and double-click still do both jobs. The eight swap legs press Alt+arrows now (`T.altSwap`).
 
     The month-PDF writer's step 1 (1 Oct 2026, `MONTH-PDF-WRITER-PLAN.md` §8) adds `interfonts`.
     It reads the four static Inter programs with the frozen `ttf*` functions, and requires every

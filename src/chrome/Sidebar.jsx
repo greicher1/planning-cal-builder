@@ -18,7 +18,7 @@
 // correctly, and while passing every id-based assertion. So: no `value` prop anywhere below, only
 // `defaultValue`. See UI-CONVENTIONS.md §2c.
 import { useState, useLayoutEffect } from 'react'
-import { TextInput, NativeSelect, NumberInput, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
+import { TextInput, NativeSelect, NumberInput, Input, Button, Text, Group, Stack, Box, Switch, Divider, SegmentedControl, Tooltip } from '@mantine/core'
 import { IconTv, IconMapPin, IconCalendarDot, IconCalendarRange, IconShare, IconHeading, IconNote, IconRows, IconCalendarPlain } from './icons.jsx'
 import { InfoHint } from './InfoHint.jsx'
 import { installChrome } from './bridge.js'
@@ -106,6 +106,20 @@ export function ShowInfoCard() {
             Auto/Template/Manual gets explained; do not try to fix it with 9px of copy here. */}
         <TextInput id="show-version" label="Version" placeholder="e.g. 3"
                    description={'Shows as “v3” in the header’s bottom-left.'} />
+        {/* The Production Region, a SECOND time (owner, 21 Oct 2026: "below the version number box
+            in the Show Info tab ... now it appears in both places"). The Settings window's Region
+            tab keeps #union-place, which stays the one real control.
+            ⛔ A PLAIN <select> WITH NO id, never a NativeSelect: Mantine mints an id when given none
+            (UI-CONVENTIONS §8.3), and collectFieldValues() would then sweep a second, re-rolled copy
+            of the Region into every saved file and the undo stack. With no id this is invisible to
+            the save format; Input.Wrapper only draws the label (a div, so it points at nothing).
+            The engine owns it both ways: a change here is forwarded to #union-place as a change
+            event, so the "Continue?" question and its hold run unchanged, and reflectRegionUI(),
+            which every path that sets the Region ends in, writes the value back here. legacy.css
+            gives it NativeSelect's chevron (select.region-mirror). */}
+        <Input.Wrapper label="Production Region" labelElement="div">
+          <select className="region-mirror" aria-label="Production Region" defaultValue="">{REGION_OPTIONS}</select>
+        </Input.Wrapper>
       </Stack>
       {/* Written by showInfoStatus() and shown/hidden by it. */}
       <div className="show-info-note" id="show-info-note" style={{ display: 'none' }}></div>
@@ -170,6 +184,68 @@ export function HiatusResetButton() {
   )
 }
 
+// The Region's places, shared by its TWO selects (owner, 21 Oct 2026: "below the version number box in
+// the Show Info tab ... now it appears in both places"): the real one, #union-place in the Settings
+// window's Region tab, and the Show info card's copy (select.region-mirror). One list, so the two can
+// never offer different places.
+// ⚠️ The option set stays STATIC so a restored save can set any value directly; that is the same
+// contract the three old selects had, and the reason none of them were ever repopulated per country.
+// ⛔ VALUES ARE SAVE FORMAT (fields.byId['union-place']): append only, never rename or remove one.
+const REGION_OPTIONS = (
+  <>
+    <option value="">None</option>
+    <optgroup label="United States">
+      <option value="us-atlanta">Atlanta, GA</option>
+      <option value="us-chicago">Chicago, IL</option>
+      <option value="us-florida">Florida — statewide</option>
+      <option value="us-los-angeles">Los Angeles, CA</option>
+      <option value="us-maryland">Maryland / DC</option>
+      <option value="us-miami">Miami, FL</option>
+      <option value="us-new-mexico">New Mexico</option>
+      <option value="us-new-orleans">New Orleans, LA</option>
+      <option value="us-new-york">New York, NY</option>
+      <option value="us-oahu">Oahu, HI</option>
+      <option value="us-pittsburgh">Pittsburgh, PA</option>
+      <option value="us-puerto-rico">Puerto Rico</option>
+      <option value="us-san-francisco">San Francisco, CA</option>
+      <option value="us-general">Elsewhere in the U.S. — Area Standards</option>
+    </optgroup>
+    <optgroup label="Canada">
+      <option value="ca-montreal">Montreal, QC</option>
+      <option value="ca-toronto">Toronto, ON</option>
+      <option value="ca-vancouver">Vancouver, BC</option>
+      <option value="ca-alberta">Alberta — province-wide</option>
+      <option value="ca-bc">British Columbia — province-wide</option>
+      <option value="ca-manitoba">Manitoba — province-wide</option>
+      <option value="ca-nova-scotia">Nova Scotia — province-wide</option>
+      <option value="ca-ontario">Ontario — province-wide</option>
+      <option value="ca-quebec">Quebec — province-wide</option>
+    </optgroup>
+    <optgroup label="United Kingdom">
+      <option value="uk-london">London</option>
+      <option value="uk-wales">Wales</option>
+      <option value="uk-scotland">Scotland</option>
+      <option value="uk-belfast">Belfast</option>
+    </optgroup>
+    {/* Germany is federal and the Länder genuinely differ, so it is NOT one entry. The pair
+        below is the trap this whole control exists to avoid: Studio Babelsberg is in Potsdam,
+        which is Brandenburg, so a "Berlin shoot" staging there is on the other list. */}
+    <optgroup label="Germany">
+      <option value="de-berlin">Berlin</option>
+      <option value="de-brandenburg">Brandenburg — incl. Studio Babelsberg</option>
+    </optgroup>
+    <optgroup label="Australia">
+      <option value="au-melbourne">Melbourne, VIC</option>
+    </optgroup>
+    <optgroup label="Europe">
+      <option value="eu-lithuania">Lithuania</option>
+      {/* Appended (20 Oct 2026, LABELS-SETUP-PLAN.md item 8): values are save format, so only ever
+          added. One France entry, the owner's "France only"; Alsace-Moselle is its caveat. */}
+      <option value="eu-france">France</option>
+    </optgroup>
+  </>
+)
+
 export function RegionCard() {
   return (
     <section className="card">
@@ -190,61 +266,9 @@ export function RegionCard() {
         {/* ONE control. The user picks WHERE THEY SHOOT; the agreement resolves behind it and is
             never selected directly -- which is the right way round, because a UPM knows the city
             and should not have to know that Florida is an Area Standards market.
-            ⚠️ The option set stays STATIC so a restored save can set any value directly; that is
-            the same contract the three old selects had, and the reason none of them were ever
-            repopulated per country. */}
-        <NativeSelect id="union-place" label="Location">
-          <option value="">None</option>
-          <optgroup label="United States">
-            <option value="us-atlanta">Atlanta, GA</option>
-            <option value="us-chicago">Chicago, IL</option>
-            <option value="us-florida">Florida — statewide</option>
-            <option value="us-los-angeles">Los Angeles, CA</option>
-            <option value="us-maryland">Maryland / DC</option>
-            <option value="us-miami">Miami, FL</option>
-            <option value="us-new-mexico">New Mexico</option>
-            <option value="us-new-orleans">New Orleans, LA</option>
-            <option value="us-new-york">New York, NY</option>
-            <option value="us-oahu">Oahu, HI</option>
-            <option value="us-pittsburgh">Pittsburgh, PA</option>
-            <option value="us-puerto-rico">Puerto Rico</option>
-            <option value="us-san-francisco">San Francisco, CA</option>
-            <option value="us-general">Elsewhere in the U.S. — Area Standards</option>
-          </optgroup>
-          <optgroup label="Canada">
-            <option value="ca-montreal">Montreal, QC</option>
-            <option value="ca-toronto">Toronto, ON</option>
-            <option value="ca-vancouver">Vancouver, BC</option>
-            <option value="ca-alberta">Alberta — province-wide</option>
-            <option value="ca-bc">British Columbia — province-wide</option>
-            <option value="ca-manitoba">Manitoba — province-wide</option>
-            <option value="ca-nova-scotia">Nova Scotia — province-wide</option>
-            <option value="ca-ontario">Ontario — province-wide</option>
-            <option value="ca-quebec">Quebec — province-wide</option>
-          </optgroup>
-          <optgroup label="United Kingdom">
-            <option value="uk-london">London</option>
-            <option value="uk-wales">Wales</option>
-            <option value="uk-scotland">Scotland</option>
-            <option value="uk-belfast">Belfast</option>
-          </optgroup>
-          {/* Germany is federal and the Länder genuinely differ, so it is NOT one entry. The pair
-              below is the trap this whole control exists to avoid: Studio Babelsberg is in Potsdam,
-              which is Brandenburg, so a "Berlin shoot" staging there is on the other list. */}
-          <optgroup label="Germany">
-            <option value="de-berlin">Berlin</option>
-            <option value="de-brandenburg">Brandenburg — incl. Studio Babelsberg</option>
-          </optgroup>
-          <optgroup label="Australia">
-            <option value="au-melbourne">Melbourne, VIC</option>
-          </optgroup>
-          <optgroup label="Europe">
-            <option value="eu-lithuania">Lithuania</option>
-            {/* Appended (20 Oct 2026, LABELS-SETUP-PLAN.md item 8): values are save format, so only ever
-                added. One France entry, the owner's "France only"; Alsace-Moselle is its caveat. */}
-            <option value="eu-france">France</option>
-          </optgroup>
-        </NativeSelect>
+            ⛔ THIS is the Region: the id is in fields.byId, and the engine's change handler (the
+            "Continue?" question) is bound here. The Show info card's copy only forwards to it. */}
+        <NativeSelect id="union-place" label="Location">{REGION_OPTIONS}</NativeSelect>
 
         {/* What the city name hides. Written by reflectRegionUI(), so they stay plain elements. */}
         <Box>
@@ -359,8 +383,9 @@ export function WaterfallCard() {
         <InfoHint label="Waterfall" width={320}>
           How the waterfall reads, on screen and in Excel and the PDF. With Custom Column Headings on,
           the year moves over the Date column and you click any heading to type your own; neighbouring
-          columns with the same heading merge. Grid Lines in Exports draws the cell borders in Excel
-          and the PDF only; the grid on screen is unchanged.
+          columns with the same heading merge. Paper is the sheet the PDF and the Excel file are laid
+          out for: bigger paper prints a long or wide calendar larger. Grid Lines in Exports draws the
+          cell borders in Excel and the PDF only; the grid on screen is unchanged.
         </InfoHint>
       </h2>
       <div className="side-block">
@@ -419,6 +444,21 @@ export function WaterfallCard() {
         <SettingRow htmlFor="wf-hdr-custom" label="Custom Column Headings">
           <Switch id="wf-hdr-custom" size="md" aria-label="Custom Column Headings"
                   title="Type the waterfall's column headings: the year moves over the Date column, and clicking a heading edits it" />
+        </SettingRow>
+        {/* The paper (PAPER-SIZE-PLAN.md, owner rulings R1-R4, 21 Oct 2026): CALENDAR DATA, the `paperSize`
+            snapshot key, so it sits with the calendar settings above Grid Lines, not after it. The same
+            .prefs-card rule as #wf-date-format: the sweep skips the id, and the engine owns the value.
+            ⛔ UNCONTROLLED: reflectPaperSize() writes .value and a delegated 'change' sets it.
+            The option values are the save format: '' (Letter, an absent key), 'legal', 'tabloid'.
+            The Export PDF dialog shows and changes the same value. */}
+        <Divider my="sm" />
+        <SettingRow htmlFor="wf-paper" label="Paper">
+          <NativeSelect id="wf-paper" size="xs" w={150} aria-label="Paper"
+                        title="The paper the waterfall PDF and the Excel file are laid out for">
+            <option value="">Letter (8.5 × 11)</option>
+            <option value="legal">Legal (8.5 × 14)</option>
+            <option value="tabloid">Tabloid (11 × 17)</option>
+          </NativeSelect>
         </SettingRow>
         {/* ⚠️ THE ONE ROW IN THIS CARD THAT IS A PREFERENCE, kept on this computer (localStorage) and never
             saved in the calendar -- which is why it is last, and why the Preferences tab's opening line

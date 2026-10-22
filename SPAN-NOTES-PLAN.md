@@ -48,6 +48,11 @@ one way, phases another) changes notes already in saved calendars, on screen and
 get re-cut with the owner's sign-off. Spanning notes only leaves every existing calendar byte for byte as it is, but
 notes then have two looks.
 
+✅ **RULED, 21 Oct 2026 (in chat): *"go for the darker outline for phases"*.** D1 is the phase route below, option 1.
+Notes keep today's look, so a spanning note is a wider day note, and the note-route options above are not built. The
+outline is built on its own branch (`phase-outline`), ahead of the rest of this plan: it changes every calendar, and
+it needs nothing else here. D2–D4 are still open.
+
 ⭐ **Or change the phases instead.** Owner, 21 Oct 2026: *"alternatively come up with ways we could better make the
 phases stand out"*. Then notes keep exactly today's look, and a spanning note is simply a wider one. Mocked in chat the
 same day, notes unchanged, phases with:
@@ -140,10 +145,9 @@ It splits into one piece per week row (each row is its own grid), as phases do.
   handler and `relocateNoteAnchor` open the one note. A piece that continues gets `mv-span-open-l` / `-r`. Its line
   count comes from `mvNoteLineCount` at the piece's width. **A note without `days` takes exactly today's path**, so
   every existing calendar renders the same bytes.
-- **F2, the Month view CSS block.** The look D1 picks, on the existing `.mv-note-block` box (with pointed ends: a
-  `clip-path` whose tips the open classes flatten). Fill and ink stay the renderer's inline `background` / `color`.
-  Nothing may add height: a spanning note takes the lanes a day note with the same text and width would. The same
-  rules apply under `#print-root`. If D1 applies to every note, this rule reaches every existing note too (§1).
+- **F2, the Month view CSS block.** ✅ *Superseded by the D1 ruling:* a spanning note looks like a day note, so it needs
+  no rule of its own; the open classes only mark a continued piece for the writer and the tests. (The ruling's own
+  frozen CSS edit, the phases' outline, is built separately on `phase-outline`.)
 
 The print path (`exportMonthPdf`) is the DOM, so F1 and F2 reach it with no further edit.
 
@@ -152,8 +156,7 @@ The print path (`exportMonthPdf`) is the DOM, so F1 and F2 reach it with no furt
 - **The editor** (`openMvNoteEditor`, `writeActiveMvNote`): the *Through* control; `days` written only above 1.
 - **The month PDF writer** (not frozen; gate 13 holds it byte for byte): `mvlParseItem` reads the `mv-note-span` and
   open classes; the note's lines are wrapped at the piece's width (today `noteBoxW` is one day's); `mvlPaintBar` paints
-  D1's shape (for pointed ends, a polygon fill and ring, a new display-list op). If D1 applies to spanning notes only,
-  a calendar without one takes none of these branches.
+  it as any note (D1 ruled). A calendar without a spanning note takes none of these branches.
 - **Paste notes** (`parsePastedNotes`, `addPastedNotes`): the range form, with its own errors (end before start,
   longer than six weeks, outside the months the calendar shows).
 - **Shift tools:** nothing (D3 A). With D3 B, every mover re-keys `dayNotes`.

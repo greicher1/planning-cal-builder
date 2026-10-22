@@ -330,8 +330,8 @@ chk(a.get('rightNoOp') and a.get('chipExplains'),
     f"move: the unavailable direction moves nothing and says why -- {str(a.get('chipText'))[:80]}")
 chk(a.get('wholeRunMoved'), f"move: one gesture moved the whole 4-week run {a.get('movedWeeks')}/4")
 chk(a.get('aboveKeptSlot'), "move: unselected weeks kept their phase and slot")
-chk(a.get('aboveWidened') and a.get('confirmReportsCollateral'),
-    f"move: magnitude-1 collateral applied AND reported -- {str(a.get('confirmText'))[:80]}")
+chk(a.get('aboveWidened') and a.get('confirmSilent'),
+    f"move: magnitude-1 collateral applied, and NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('confirmText'))[:80]!r}")
 chk(a.get('knobFollowed'), "move: the affordance followed the move")
 chk(a.get('reverseRestoredExactly'), f"move: moving back deleted the pair {a.get('afterReverse')}")
 chk(not a.get('errors'), f"move: 0 console errors {a.get('errors')}")
@@ -368,8 +368,8 @@ chk(a.get('labelNamesOverlap'), f"mid: the run is the shared stretch -- {a.get('
 chk(a.get('wholeOverlapMoved'), f"mid: one gesture moved all 6 shared weeks ({a.get('movedWeeks')}/6)")
 chk(a.get('wrTailWidened') and a.get('ppTailWidened'),
     "mid: both 6-week tails kept their slot and widened by exactly one column")
-chk(a.get('chipReportsTwelve'),
-    f"mid: 12 collateral weeks allowed AND reported -- {str(a.get('chipText'))[:80]}")
+chk(a.get('chipSilent'),
+    f"mid: 12 collateral weeks allowed, and NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('chipText'))[:80]!r}")
 chk(not a.get('errors'), f"mid: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
 chk(not hv.get('h'), f"mid: 0 horizontally clipped cells {hv.get('h')}")
@@ -577,12 +577,12 @@ chk(a.get('btnOnFirstWeek') and a.get('btnInsideCell'), "btn: anchored to the bl
 chk(a.get('btnSurvivedTravel'), "btn: survives the pointer travelling across the block toward it")
 chk(a.get('btnFollowsPhase') and a.get('btnGoneOffPhase'), "btn: re-anchors on another phase, gone off the phases")
 chk(a.get('outlines')==1, f"btn: the whole block is drawn as ONE outline ({a.get('outlines')})")
-chk(a.get('modeSaysBlock') and a.get('knobSaysBlock'), f"btn: the chip states the BLOCK mode and the partner before commit -- {str(a.get('modeText'))[:90]}")
+chk(a.get('modeSaysBlock') and a.get('knobSaysBlock'), f"btn: the knob states the BLOCK mode and the partner before commit; the chip is only the hint -- {str(a.get('modeText'))[:90]}")
 chk(a.get('noLeftKnob'), "btn: no knob offered where there is no partner")
 chk(a.get('wholeBlockMoved') and a.get('noCellWidened'), "btn: all six weeks moved and NOT ONE changed width")
 chk(a.get('knobFollowed'), "btn: the affordance followed the move")
 chk(a.get('reverseRestoredExactly'), "btn: swapping back deleted the entry and restored the natural layout exactly")
-chk(a.get('partialSaysWeek') and a.get('partialOutlines')==2, f"btn: a partial selection resolves to the per-week mode and says so, drawn as two outlines across the gap (E3) -- {str(a.get('partialText'))[:90]}")
+chk(a.get('partialSaysWeek') and a.get('partialOutlines')==2, f"btn: a partial selection resolves to the per-week mode and the knob says so, drawn as two outlines across the gap (E3) -- {str(a.get('partialText'))[:90]}")
 chk(a.get('noBtnSingleColumn'), "btn: no button on a block with one phase column")
 chk(not a.get('errors'), f"btn: 0 console errors {a.get('errors')}")
 hv=a.get('clipped') or {}
@@ -611,7 +611,7 @@ if 'EX' in a:
 chk(a.get('naturalOrder'), "multi: pre-state is the natural order, every cell one column wide")
 chk(a.get('namesBothA'), f"multi: from the long side, BOTH partners named before commit -- {str(a.get('knobA'))[:90]}")
 chk(a.get('groupMovedA'), f"multi: all three blocks traded, nothing lost, nothing wider {a.get('afterA')}")
-chk(a.get('flashNamesAllA'), f"multi: the confirmation names every block that moved -- {str(a.get('flashA'))[:90]}")
+chk(a.get('flashSilentA'), f"multi: NO message after the group swap (owner, 21 Oct 2026) -- {str(a.get('flashA'))[:90]!r}")
 chk(a.get('reversedA'), "multi: swapping back restored the natural layout exactly")
 chk(a.get('namesCompanionB') and a.get('noRightKnobB'), f"multi: from the short side, the companion is named -- {str(a.get('knobB'))[:90]}")
 chk(a.get('groupMovedB') and a.get('reversedB'), "multi: the same swap from the short side lands and reverses exactly")
@@ -709,12 +709,11 @@ if 'EX' in a:
     print('  FAIL  stintreshape threw: '+str(a['EX'])); sys.exit(1)
 chk(a.get('threeColumns') and a.get('narrowBefore'),
     f"reshape: three phase columns, Writer's Rm held to one for all 31 weeks {a.get('before')}")
-chk(a.get('warnNamesIt'),
-    f"reshape: the warning NAMES the phase, the new width and the extent -- {str(a.get('chipText'))[:110]}")
-chk(a.get('warnIsAmber'), f"reshape: the chip is the amber warning, not the neutral one ({a.get('chipClass')})")
+chk(a.get('noWordsBefore'),
+    f"reshape: no chip says anything about the swap before commit (owner, 21 Oct 2026) -- {str(a.get('chipText'))[:110]!r}")
 chk(a.get('amberMatchesCount'), f"reshape: one amber rectangle per affected week before commit ({a.get('amberRects')}/28)")
 chk(a.get('swapped') and a.get('widened'), f"reshape: the swap lands and the widening is real {a.get('after')}")
-chk(a.get('flashNamesIt'), f"reshape: the confirmation says the same thing -- {str(a.get('flash'))[:110]}")
+chk(a.get('flashSilent'), f"reshape: NO message after the swap (owner, 21 Oct 2026) -- {str(a.get('flash'))[:110]!r}")
 chk(a.get('nothingLost'), "reshape: reshaping is not cell loss -- every week of both blocks survives")
 chk(a.get('reversedExactly'), f"reshape: reversing restores the year exactly {a.get('afterReverse')}")
 chk(not a.get('errors'), f"reshape: 0 console errors {a.get('errors')}")
@@ -1686,6 +1685,18 @@ done
 # unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
 # folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
 # Its own line, mid-list, so sessions appending at the end never conflict with it.
+# papersize guards the paper the waterfall PDF and the workbook are laid out for (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md,
+# rulings R1-R4): the Paper select in Settings ▸ Preferences ▸ Waterfall, inert on Letter (no key, a Letter page box,
+# Excel paper 1), Legal and Tabloid read back from the PDF's page box and Excel's paper number (5, 3), the PDF and the
+# workbook turning the same way on one to four year blocks, side boxes, Header: Off and Single Column (which follows
+# the paper, R3), Save/Load with the M-5 trap, one undo step, New. pdfdialog guards the Export PDF dialog (§5a,
+# rulings D1-D3), driven by hand: it is the one leg that takes the dialog over from t/lib.js, which answers it at its
+# defaults in every other leg -- so every PDF this gate compares went through it. Own lines, mid-list.
+# regionmirror guards the Production Region's second select (owner, 21 Oct 2026), under Version in Show info: the
+# id-less select.region-mirror, right after #show-version, offering #union-place's exact options; a pick there goes
+# through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
+# both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
+# write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1701,6 +1712,9 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
+              regionmirror:-:150 \
+              papersize:-:500 \
+              pdfdialog:-:500 \
               phasefold:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
@@ -2471,6 +2485,27 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYCZ
 
+# ---- hdrfit: the waterfall's header ends with the calendar (owner, 21 Oct 2026, "At every zoom") ----------------
+# The title block and the Manual-mode format strip are capped at the grid's own width (--wf-grid-w on .preview-panel),
+# floored at what their lines need on one line. colreuse is an Auto header over a grid a little wider than the
+# harness window at 100%; hdrmanualbraces a Manual header (the strip up) over a narrower one. The leg holds where the
+# header ends at six zooms, that its height never changes, a live column resize, the month view, the print copy (which
+# cannot see the cap) and a shareable copy (which carries none). Chrome only: nothing a writer reads.
+for HFSTATE in colreuse hdrmanualbraces; do
+  rm -f "$HERE/hdrfit.json"
+  HARNESS_PAGE="$PAGE" HARNESS_STATE="$HFSTATE" "$HERE/run.sh" hdrfit 300 >/dev/null 2>&1
+  python3 - "$HERE/hdrfit.json" "$HFSTATE" <<'PYHF' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  hdrfit ('+sys.argv[2]+') produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  hdrfit ('+sys.argv[2]+') threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'hdrfit ('+sys.argv[2]+'): '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYHF
+done
 # ---- textstyle: the text style bar (TEXT-STYLE-BAR-PLAN.md; owner rulings D1-D5 + F1-F4, 21 Oct 2026) -----------
 # One bar under the toolbar styles any waterfall text: Excel's highlight over the grid (click, sweep, Cmd/Shift-click,
 # Cmd+A), header lines in any mode or view, side-box lines. Sizes 6-12 in the grid (D1), so no row may grow and nothing

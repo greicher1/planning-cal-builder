@@ -112,6 +112,32 @@ window.addEventListener('load', function () { (async function () {
     check(Math.round(q('.side-left .sb-stack').getBoundingClientRect().width) === 109, 'S10 the default width, 20 column units = 109 px');
     out.clippedWithBoxes = T.clippedCells().h.length;
     check(out.clippedWithBoxes === 0, 'S11 0 horizontally clipped grid cells with a box on each side (' + out.clippedWithBoxes + ')');
+    // S12 the calendar zoom leaves the boxes alone (owner, 21 Oct 2026: "the side boxes should not change size
+    // with the viewport slider"): same screen size at 50% and 200% as at 100%, and still capped at the grid
+    // box's ON-SCREEN height, which the fit solves in the zoomed box's own px. Red before: they were zoomed.
+    var sbSizes = function () {
+      return qa('.side-col .sb-stack, .side-col .sb-edit, .side-col .sb-key').map(function (e) {
+        var r = e.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height);
+      }).join(',');
+    };
+    var sizes100 = sbSizes();
+    out.zoomSides = {};
+    for(var zi = 0, zs = [0.5, 2]; zi < zs.length; zi++){
+      document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: zs[zi]}}));
+      await T.sleep(400);
+      var zsc = q('#table-wrap .sheet-scroll'), zst = q('.side-col .sb-stack');
+      out.zoomSides[zs[zi]] = {grid: zsc.currentCSSZoom, side: q('.side-col').currentCSSZoom, same: sbSizes() === sizes100,
+        cap: Math.round(parseFloat(getComputedStyle(zst).maxHeight)), gridCap: Math.round(parseFloat(getComputedStyle(zsc).maxHeight) * zsc.currentCSSZoom),
+        scroll: panel.scrollHeight - panel.clientHeight};
+    }
+    document.dispatchEvent(new CustomEvent('sptcal-zoom', {detail: {zoom: 1}}));
+    await T.sleep(400); await settle();
+    check([0.5, 2].every(function (z) {
+      var o = out.zoomSides[z];
+      return o.grid === z && o.side === 1 && o.same && Math.abs(o.cap - o.gridCap) <= 1 && o.scroll <= 1;
+    }) && sbSizes() === sizes100,
+          'S12 at 50% and 200% the grid zooms and the side boxes keep their size, capped at the grid box\'s screen height ('
+          + JSON.stringify(out.zoomSides) + ')');
 
     // ---- X: the workbook ---------------------------------------------------------------------------------
     var xb = await T.captureExport('export-btn', 'the workbook');
