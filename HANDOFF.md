@@ -46,8 +46,19 @@
   outline) as `28529c4`. Code merged cleanly; HANDOFF and README conflicted only at the top: both sides kept, and the
   toolbar-center entry keeps origin's newer heading ("GET A NAVY OUTLINE", replacing local main's "WEAR THE NAVY
   TINT"). Combined build `c1922006…` (1,683,544 bytes): `npm run check` 40/40.
-- ⏳ **The combined build's full gate is queued** (port 9353, the real-gate check). On green: fast-forward local `main`
-  to this branch (it then holds `origin/main` too), and ask separately before any push.
+- **The combined build's gate** (`c1922006…`, 04:03–04:29, 22 Oct): **2,605 PASS, 2 FAIL**, both `hdrversion` (the
+  waterfall PDF after a version is typed: "Compressed input was truncated"), reproducible alone. NOT this change and
+  NOT the app: the OLD harness read PDF streams by trimming whitespace, which breaks on some days' bytes; upstream fixed
+  it (`6547512`, `58e6b6a`, "read PDF streams by /Length") after the main I had merged. Newest `main` and `origin/main`
+  each pass it alone. Gate 13 22/22, gate 10 identical, 0 clipped, 76 ids on that run.
+- **Merged again** (main and origin/main had moved: v1.7.0 live with paper size and the Export PDF dialog, header-zoom
+  live, month-order HANDOFF notes): `main` as `46e92de` (HANDOFF and README rebuilt as main's files plus this entry,
+  because main had rewritten entries this branch still held in older form), then `origin/main` as `abc6ed2` (header-zoom's
+  entry kept beside this one; two EMPTY duplicate headings in origin's HANDOFF, a stale "WEAR THE NAVY TINT" and a
+  second Region heading with no body, merge debris, dropped). No baseline changed upstream. Build `3fc04ff4…`
+  (1,690,407 bytes): `npm run check` 40/40, `hdrversion` 17/17 alone with the new harness.
+- ⏳ **Its full gate is queued** (port 9353, the real-gate check). On green: fast-forward local `main` to this branch
+  if `main` has not moved again (otherwise merge it once more), and ask separately before any push.
 
 ### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
 
