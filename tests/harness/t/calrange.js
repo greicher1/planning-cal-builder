@@ -90,7 +90,13 @@ window.addEventListener('load', function () { (async function () {
     while ((m = re.exec(latin))) {
       var s0 = m.index + m[0].length, en = latin.indexOf('endstream', s0);
       if (en < 0) continue;
-      if (en > s0 && bytes[en - 1] === 10) en--; else if (en > s0 && bytes[en - 1] === 13) en--;  // exactly ONE EOL: the writer frames data as "stream\n...\nendstream". Stripping every trailing 10/13/32 chopped real data ending in one of those bytes (~1 stream in 85; content- and so date-dependent: hdrversion failed on 22 Oct 2026, on main's build too).
+      // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in its
+      // Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85 (main's 58e6b6a, from
+      // header-zoom's 6547512; hdrversion went red on the date 10.22.26 alone). The writer frames every stream as
+      // `/Length N` ... `stream\n` + N bytes.
+      var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+      if (dictLen) en = s0 + (+dictLen[1]);
+      else while (en > s0 && (bytes[en - 1] === 10 || bytes[en - 1] === 13 || bytes[en - 1] === 32)) en--;
       try {
         // The writer's own promises reject too on a stream that is not deflate (a font): caught, or each one
         // is an unhandled rejection that H0 counts as a console error.
