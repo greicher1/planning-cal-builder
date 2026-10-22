@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED 2,612 / 0, NOT MERGED TO `main`, NOT PUSHED
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
 
 - **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
   scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%
@@ -66,6 +66,13 @@
   `063bb57` (docs only; README's Region "Unreleased" heading dropped for v1.7.0's own): the branch now differs from
   `origin/main` by exactly this change (4 files, +239). Build `710fafbe…`, check 40/40, full gate started on 9629.
   **Owner, by picker, 22 Oct: "Push on a green gate"** — for this build, if `origin/main` is still `703d9d4`.
+- **Gate on `710fafbe…` (port 9629, 22 Oct 03:06:41–03:33:56): 2,628 PASS, 2 FAIL** — `onecol` threw (timed out waiting
+  for the .xlsx blob, 20 s real) and `epnames` (halfdays) N5 (a Load-order check). Neither touches the header. Re-run
+  alone on the same build: `onecol` 17/0, `epnames` 11/0 (halfdays) and 5/0 (blocks). Timing flakes under load, the
+  same kind HANDOFF records for `hdrrow` "load 10". **Owner, by picker: "Push now"** (offered against re-running the
+  gate). Pushed as `header-zoom:main`, a fast-forward from `703d9d4`.
+- ⚠️ **Local `main` was not touched** and still lacks everything since `6ca9993` that went to `origin/main` by other
+  routes, this change included. The next session to land on local `main` merges `origin/main` first.
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.

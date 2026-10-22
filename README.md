@@ -52,7 +52,8 @@ scale with the length of the cal when you adjust the window zoom"*. Ruled by pic
   to 200%, its height equal to the uncapped height at each, a 200 px cap, a live column resize, the month view and
   back, the print copy uncapped, a shareable copy without the value. By hand in the app's browser at 100%, 75%, 60%,
   50%, 25%, 150% and 200%. The frozen grid's computed styles (fence) are unchanged, 0 of 511. Full gate 2,612 PASS /
-  0 FAIL (build `e7db3fde…`).
+  0 FAIL on the branch alone (build `e7db3fde…`); merged with v1.7.0 (build `710fafbe…`), 2,628 PASS / 2 FAIL, both
+  re-run green alone (`onecol` 17/0, `epnames` 16/0) and pushed on the owner's word.
 
 ## v1.7.0 — choose the paper, and Export PDF asks first (21 Oct 2026)
 
