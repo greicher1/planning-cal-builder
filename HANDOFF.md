@@ -135,7 +135,7 @@
 - ⏭ **Next:** the full gate (gates 10 and 13 must stay byte-identical); then ask the owner about merging. On the
   tracker as `month-reorder` and `month-drag-preview` (building).
 
-### 🔨 21 Oct 2026 (late): PAPER SIZE + EXPORT PDF DIALOG — BUILT on branch `paper-size` (`d51c2c7`), ✅ FULL GATE PASSED, MERGED into `main`; v1.7.0 cut and push approved
+### ✅ 22 Oct 2026: v1.7.0 IS LIVE at `703d9d4` (verified byte-identical, `7063a638`): PAPER SIZE + EXPORT PDF DIALOG, built on branch `paper-size` (`d51c2c7`)
 
 - **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
   print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
@@ -244,8 +244,14 @@
     from the CDN timing out at 30 s.
   - Re-run alone through `gate.sh`'s own judges, on the same build: **64 PASS, 0 FAIL** (hdrversion's PDF line now
     `['10.22.26', 'v3']`).
-- ⏭ **Next:** ONE push of this branch to `main` with the tag `v1.7.0`, then the live check (`index.html` byte-identical
-  to `releases/v1.7.0.html`, `version.json` 1.7.0).
+- ✅ **PUSHED AND LIVE.** Tag `v1.7.0` (annotated) on `703d9d4`; ONE `git push origin HEAD:main v1.7.0` from the
+  worktree at 02:12:05 (`24f1537..703d9d4`, plus the tag), on the owner's picker *"Push with a v1.7.0 cut"*. At 02:12:46
+  the live `version.json` read 1.7.0, and the live `index.html` (with a cache-buster) was **byte-identical to
+  `releases/v1.7.0.html`** (sha256 `7063a638…`, 1,689,392 bytes, `cmp`). Local `main` was then fast-forwarded to
+  `703d9d4`; the main checkout's two fixture files someone else left changed were untouched.
+- ⏭ **Next:** the owner's own check from the plan: print a Legal PDF from Preview, and open the workbook in Excel
+  (Page Setup should say Legal, fit to one page). The tracker card `paper-size` is now live. Worktree
+  `.claude/worktrees/paper-size` can go on the owner's word.
 
 ### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
 
