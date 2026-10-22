@@ -154,14 +154,16 @@ window.addEventListener('load', function () { (async function () {
     check(all > swept * 3, 'G7 Cmd+A over a highlight takes in the whole grid (' + all + ')');
     key('Escape'); await settle();
     check(hiCount() === 0 && !armed(), 'G8 Escape clears the highlight and the bar disarms');
-    // One selection on screen: Cmd-clicks on phase cells also build the phase selection (its chip, the swap
-    // knob); a plain click on a date then retires it, so the two never show at once.
+    // One selection on screen: Cmd-clicks on phase cells also build the phase selection (its outline, and its
+    // "Double click to expand cells" chip when they have room); a plain click on a date then retires it, so the two
+    // never show at once. ⚠️ Judged on the OUTLINE (.grid-sel-cell), which draws for any phase selection: since the
+    // one-chip ruling (main, 21 Oct 2026) the chip shows only when the cells can expand, so it is not a precondition.
     await click(phaseIn(qa('#table-wrap tbody tr')[12]), {metaKey: true});
     await click(phaseIn(qa('#table-wrap tbody tr')[13]), {metaKey: true});
-    var chipBefore = !!q('#table-wrap .grid-sel-chip');
+    var selBefore = qa('#table-wrap .grid-sel-cell').length;
     await click(dateIn(qa('#table-wrap tbody tr')[2]));
-    check(chipBefore && !q('#table-wrap .grid-sel-chip') && !q('#table-wrap .grid-sel-cell') && hiCount() === 1,
-      'G9 a plain click on a date retires the phase selection (its chip and outline) and leaves one highlight');
+    check(selBefore > 0 && !q('#table-wrap .grid-sel-chip') && !q('#table-wrap .grid-sel-cell') && hiCount() === 1,
+      'G9 a plain click on a date retires the phase selection (its outline, and any chip) and leaves one highlight (' + selBefore + ' outline(s) before)');
     key('Escape'); await settle();
 
     // ---- S: one of every kind, styled at once ---------------------------------------------------------
