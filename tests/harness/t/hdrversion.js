@@ -112,8 +112,13 @@ window.addEventListener('load', function () { (async function () {
       while ((m = re.exec(latin))) {
         var start = m.index + m[0].length, end = latin.indexOf('endstream', start);
         if (end < 0) continue;
-        // DecompressionStream refuses the newline every stream carries before `endstream`.
-        while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
+        // ⛔ By the stream's own /Length, never by trimming whitespace before `endstream`: a zlib stream ends in
+        // its Adler-32 checksum, whose last byte is a newline, CR or space about 1 time in 85, and trimming it
+        // left the data "truncated" (22 Oct 2026: hdrversion went red on the date 10.22.26 alone, on a build that
+        // had passed it the day before). The writer frames every stream as `/Length N` ... `stream\n` + N bytes.
+        var dictLen = /\/Length (\d+)/.exec(latin.slice(latin.lastIndexOf('<<', m.index), m.index));
+        if (dictLen) end = start + (+dictLen[1]);
+        else while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13 || bytes[end - 1] === 32)) end--;
         try {
           var ds = new DecompressionStream('deflate');
           var w = ds.writable.getWriter(); w.write(bytes.subarray(start, end)); w.close();
