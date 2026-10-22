@@ -271,6 +271,14 @@ export function PreviewToolbar() {
           </Tooltip>
         </Group>
       </div>
+
+      {/* The text style bar's host (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026): a full-width second line
+          of this row, under the toggle and the tools, outside the calendar. EMPTY here and filled once by the
+          engine (app.js, "THE TEXT STYLE BAR"), which owns every control in it -- React renders this node once
+          and never gives it children, so a re-render (undo/redo) cannot touch what the engine put inside.
+          ⛔ Inside .view-toggle-row on purpose: a sibling between that row and #table-wrap would break the pair
+          the contracts above need. ⛔ No id on anything in it (collectFieldValues). */}
+      <div className="style-bar-host"></div>
     </>
   )
 }

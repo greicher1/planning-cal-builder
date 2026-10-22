@@ -246,15 +246,19 @@ export function initLegacyApp() {
   // How many lines `text` needs in `availPx` of width (11pt measurement basis). Greedy word
   // wrap, with explicit newlines as hard breaks. Each WORD is measured once rather than every
   // running prefix, so the memo stays small and the scan below stays cheap.
-  function wrapLineCount(text, availPx){
-    const spaceW = measureTextPx(' ', false);
+  // ⛔ FROZEN EDIT F4 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): `bold` measures the words in
+  // the weight they are drawn in, so a bold note wraps where its bold words actually break. Absent or false
+  // measures regular weight, exactly as before (the cache key is the same 'r|' either way).
+  function wrapLineCount(text, availPx, bold){
+    bold = !!bold;
+    const spaceW = measureTextPx(' ', bold);
     let total = 0;
     String(text).split('\n').forEach(para=>{
       const words = para.split(/\s+/).filter(Boolean);
       if(!words.length){ total += 1; return; }   // a blank line still occupies one
       let lineW = 0, lines = 1;
       words.forEach(w=>{
-        const ww = measureTextPx(w, false);
+        const ww = measureTextPx(w, bold);
         const cand = lineW ? lineW + spaceW + ww : ww;
         // `lineW === 0` lets a single over-long word own its line instead of looping forever
         if(cand <= availPx || lineW === 0) lineW = cand;
@@ -295,7 +299,8 @@ export function initLegacyApp() {
       : 1;
     // lines the text needs at font size px: at px the glyphs are px/11 of measured size, which
     // is the same as the available width shrinking by 11/px.
-    const needAt = px => wrapLineCount(noteText, availBasis * (11 / px));
+    // ⛔ FROZEN EDIT F4 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): opts.bold measures in bold.
+    const needAt = px => wrapLineCount(noteText, availBasis * (11 / px), opts.bold);
 
     if(opts.manual){
       const need = needAt(basePx), fits = budgetAt(basePx);
@@ -303,14 +308,19 @@ export function initLegacyApp() {
       // Excel export needs the honest number to size its row.
       return { scale: basePx / 11, lines: need, wrap: need > 1, clipped: need > fits };
     }
-    for(let s = 1; s >= NOTE_SHRINK_FLOOR - 1e-9; s -= 0.02){
+    // ⛔ FROZEN EDIT F4, the same sign-off: the automatic scan starts at the size the cell WANTS (a styled
+    // phase label's chosen size), not always at 11, and never floors above it -- a 6 px choice is not raised
+    // to the 6.6 px floor. Every caller before the text style bar passes basePx 11 whenever manual is false, so
+    // top is 1 and floor NOTE_SHRINK_FLOOR: the loop and the fallback below run exactly as they did.
+    const top = basePx / 11, floor = Math.min(NOTE_SHRINK_FLOOR, top);
+    for(let s = top; s >= floor - 1e-9; s -= 0.02){
       const px = 11 * s, need = needAt(px);
       if(need <= budgetAt(px)) return { scale: s, lines: need, wrap: need > 1, clipped: false };
     }
     // Floored and still over budget: wrap anyway rather than lose text. On an auto-height row
     // that grows the row, which is the long-standing behaviour; on a pinned row it clips.
-    const px = 11 * NOTE_SHRINK_FLOOR, need = needAt(px);
-    return { scale: NOTE_SHRINK_FLOOR, lines: need, wrap: true,
+    const px = 11 * floor, need = needAt(px);
+    return { scale: floor, lines: need, wrap: true,
              clipped: need > budgetAt(px) };
   }
 
@@ -1326,6 +1336,10 @@ export function initLegacyApp() {
     // so e.target misses the cell for much of its width.
     const td = hitCell(e.clientX, e.clientY);
     if(!td) return;
+    // ⛔ A hiatus band's double-click opens its editor now (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md D5:
+    // "Double-click edits"), so it is not a batch apply even when the band is selected. The text style bar's
+    // dblclick listener (later in this file, also capture) opens it and stops the frozen single-cell fill.
+    if(td.classList.contains('sheet-hiatus-cell')) return;
     if(!gridSel.size) return;                // no selection: the existing single-cell handler runs
     if(!gridSel.has(SEL_KEY(td))){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); return; }
     e.preventDefault();
@@ -12575,14 +12589,24 @@ export function initLegacyApp() {
         runs.forEach((run, ri)=>{
           const edge = ((isFirst && ri === 0) ? ' sheet-blockstart' : '') + ((isLast && ri === runs.length - 1) ? ' sheet-blockend' : '');
           const sc = headerRowFit(run.text, run.chars);
+          // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled heading appends its style; a chosen
+          // size shrinks with the fit (11·sc is what fits, so min(size, 11·sc) does too). The title says
+          // double-click (D5). Unstyled, the style attribute is exactly what it was.
+          const hts = textStyleOf('heading', run.keys[0]);
+          const hpx = hts && hts.size ? Math.min(hts.size, 11 * sc) : 11 * sc;
+          const hcss = hts ? ((Math.abs(hpx - 11) > 0.01 ? textSizeCss(hpx, ROW_DEFAULT_PX) : '') + textStyleCss(hts)) : '';
           headerHtml += `<th${run.span > 1 ? ` colspan="${run.span}"` : ''} class="hdrrow-cell${edge}" data-hcol="${run.keys[0]}"`
-            + ` title="Click to edit this heading"${sc < 1 ? ` style="font-size:${(11 * sc).toFixed(2)}px"` : ''}>${escHtml(run.text)}</th>`;
+            + ` title="Double-click to edit this heading"${hts ? (hcss ? ` style="${hcss.trim()}"` : '') : (sc < 1 ? ` style="font-size:${(11 * sc).toFixed(2)}px"` : '')}>${escHtml(run.text)}</th>`;
         });
         return;
       }
-      headerHtml += `<th class="${isFirst?'sheet-blockstart':''}">Date</th>`;
-      headerHtml += `<th colspan="${mc}">${b.year}</th>`;
-      headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}">Notes</th>`;
+      // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): each default heading appends its style, keyed
+      // by its first column (headingColKey's rule). thTs() is '' unstyled, so these render what they did.
+      const thTs = k => { const f = textStyleOf('heading', k); if(!f) return '';
+        return ` style="${((f.size ? textSizeCss(f.size, ROW_DEFAULT_PX) : '') + textStyleCss(f)).trim()}"`; };
+      headerHtml += `<th class="${isFirst?'sheet-blockstart':''}"${thTs('y' + b.year + ':date')}>Date</th>`;
+      headerHtml += `<th colspan="${mc}"${thTs('y' + b.year + ':s0')}>${b.year}</th>`;
+      headerHtml += `<th colspan="${notesColspan}" class="${isLast?'sheet-blockend':''}"${thTs('y' + b.year + ':notes')}>Notes</th>`;
     });
 
     // <colgroup> + table-layout:fixed is what gives columns an identity at all. Without it the
@@ -12619,7 +12643,10 @@ export function initLegacyApp() {
         const w = schedule.weeks[idx];
         // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4, HEADER-ROW-PLAN.md §3): the date format.
         // fmtWeekDate() is fmtShort() unless the calendar chose 1/6/2025.
-        bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}">${fmtWeekDate(w.date)}</td>`;
+        // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled date appends its style ('' unstyled).
+        const dts = textStyleOf('date', w.date.toISOString().slice(0,10));
+        const dcss = dts ? ((dts.size ? textSizeCss(dts.size, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(dts)).trim() : '';
+        bodyHtml += `<td class="sheet-date ${isFirst?'sheet-blockstart':''}"${dcss ? ` style="${dcss}"` : ''}>${fmtWeekDate(w.date)}</td>`;
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
           const hKey = w.date.toISOString().slice(0,10);
@@ -12632,14 +12659,16 @@ export function initLegacyApp() {
           let hAvail = 0;
           colWidthsFor[bi].cols.forEach((c, ci)=>{ if(ci > 0) hAvail += c.chars; });
           const hSize = hiatusFontSizeFor(hKey);
-          const hFit = cellTextFit(hTxt, hAvail, {
+          // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled band is measured in its weight.
+          const hts = textStyleOf('hiatus', hKey);
+          const hFit = cellTextFit(hTxt, hAvail, Object.assign({
             basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-          });
+          }, hts && hts.bold ? { bold: true } : {}));
           const hPx = 11 * hFit.scale;
           const hFitCss = `white-space:${hFit.wrap ? 'pre-wrap' : 'pre'};`
             + (Math.abs(hPx - 11) > 0.01 ? ` font-size:${hPx.toFixed(2)}px;` : '')
             + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
-          bodyHtml += `<td class="sheet-hiatus-cell" title="Click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
+          bodyHtml += `<td class="sheet-hiatus-cell" title="Double-click to rename or recolor this hiatus" data-week="${hKey}" data-default-label="${HIATUS_DEFAULT_LABEL}" data-notelines="${hFit.lines}" colspan="${mc+notesColspan}" style="background:${hCol}; color:${textColorFor(hCol)}; cursor:text; ${hFit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(hts)}"><div class="cell-body" style="${hFitCss}">${escHi(hTxt)}</div></td>`;
         } else {
           // Lay out the phase area: stable slots, lone phases span empty slots, and
           // Simultaneous Post occupies the leftmost free slot (see computePhaseRowLayout).
@@ -12670,9 +12699,16 @@ export function initLegacyApp() {
             slotCursor += cell.colspan;
             // No rowPx: a phase label is always one line -- a wrapped one would break the
             // fixed-height colour band that makes the waterfall readable.
-            const lf = cellTextFit(cell.label || '', availChars, {});
+            // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a styled phase week or Sim Post shrinks to
+            // fit from its chosen size, in its weight (textFitOpts), and appends its style. Unstyled, the two
+            // lines below compute exactly what they did.
+            const lts = cell.kind === 'phase' ? (cell.own !== undefined && cell.cell ? textStyleOf('phase', wIso + '|' + cell.cell.key) : null)
+                      : cell.kind === 'simpost' ? textStyleOf('simpost', wIso) : null;
+            const lf = cellTextFit(cell.label || '', availChars, lts ? textFitOpts(lts) : {});
             // Never wrap here: rows are a fixed height and a wrapped label would break the band.
-            const lfCss = lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '';
+            const lfCss = lts
+              ? (Math.abs(11 * lf.scale - 11) > 0.01 ? textSizeCss(11 * lf.scale, rowHeights[r] || ROW_DEFAULT_PX) : '') + textStyleCss(lts)
+              : (lf.scale < 1 ? ` font-size:${(11 * lf.scale).toFixed(2)}px;` : '');
             if(cell.kind==='phase'){
               const escAttr = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
               const tip = cell.label.length > 18 ? ` title="${escAttr(cell.label)}"` : '';
@@ -12693,9 +12729,11 @@ export function initLegacyApp() {
               // the row's line budget and a per-band size -- rather than the one-line fit the
               // phase labels beside it use.
               const phSize = hiatusFontSizeFor(phKey);
-              const phFit = cellTextFit(cell.label || '', availChars, {
+              // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
+              const phts = textStyleOf('hiatus', phKey);
+              const phFit = cellTextFit(cell.label || '', availChars, Object.assign({
                 basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-              });
+              }, phts && phts.bold ? { bold: true } : {}));
               const phPx = 11 * phFit.scale;
               const phCss = `white-space:${phFit.wrap ? 'pre-wrap' : 'pre'};`
                 + (Math.abs(phPx - 11) > 0.01 ? ` font-size:${phPx.toFixed(2)}px;` : '')
@@ -12710,7 +12748,7 @@ export function initLegacyApp() {
                 + ` data-rmax="${segStart + cell.colspan - 1 + emptyRight[segIdx]}"`
                 + ` data-a="${segStart}" data-b="${segStart + cell.colspan - 1}"`
                 + ` data-nphases="${cell.nPhases || 1}"`;
-              bodyHtml += `<td${cs} class="sheet-hiatus-cell sheet-phase-cell" title="Click to rename or recolor this hiatus" data-week="${cell.weekIso}" data-pkey="${escAttr(cell.phaseKey)}"${spH} data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
+              bodyHtml += `<td${cs} class="sheet-hiatus-cell sheet-phase-cell" title="Double-click to rename or recolor this hiatus" data-week="${cell.weekIso}" data-pkey="${escAttr(cell.phaseKey)}"${spH} data-default-label="${escAttr(cell.defaultLabel)}" data-notelines="${phFit.lines}" style="background:${cell.color}; color:${cell.textColor}; cursor:text; ${phFit.wrap?'vertical-align:top;':''}${textStyleCss(phts)}"><div class="cell-body" style="${phCss}">${escHi(cell.label)}</div></td>`;
             } else if(cell.kind==='simpost'){
               bodyHtml += `<td${cs} style="background:${SIMPOST_COLOR}; color:${GRID_TEXT_COLOR};${lfCss}">${escHtml(cell.label)}</td>`;
             } else {
@@ -12726,9 +12764,11 @@ export function initLegacyApp() {
             // The row's height buys a line budget; the note wraps into it and only shrinks
             // when even that is not enough. A size the user picked for this note wins outright.
             const nSize = noteFontSizeFor(weekDateKey);
-            const fit = cellTextFit(noteText, colWidthsFor[bi].notes, {
+            // ⛔ FROZEN EDIT F1 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): measured in its weight, style appended below.
+            const nts = textStyleOf('note', weekDateKey);
+            const fit = cellTextFit(noteText, colWidthsFor[bi].notes, Object.assign({
               basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-            });
+            }, nts && nts.bold ? { bold: true } : {}));
             const fitPx = 11 * fit.scale;
             // pre keeps a single line single (and lets text-overflow put an ellipsis on it);
             // pre-wrap is only for a note that is genuinely using more than one line.
@@ -12737,9 +12777,9 @@ export function initLegacyApp() {
               // Every row caps its text now, not just a hand-dragged one: they all start at the
               // default height, so they all get the same line budget.
               + ` max-height:${Math.max(0, (rowHeights[r] || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX)}px;`;
-            bodyHtml += `<td class="sheet-note-cell has-note" title="Click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
+            bodyHtml += `<td class="sheet-note-cell has-note" title="Double-click to edit this note" data-week="${weekDateKey}" data-notefit="${fit.scale.toFixed(4)}" data-notelines="${fit.lines}" style="background:${nc}; color:${textColorFor(nc)}; ${fit.wrap?'vertical-align:top;':''} ${isLast?'border-right:2px solid var(--text);':''}${textStyleCss(nts)}"><div class="cell-body" style="${fitCss}">${esc(noteText)}</div></td>`;
           } else {
-            bodyHtml += `<td class="sheet-note-cell" title="Click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
+            bodyHtml += `<td class="sheet-note-cell" title="Double-click to add a note" data-week="${weekDateKey}" ${isLast?'style="border-right:2px solid var(--text);"':''}><span class="note-add-hint">+</span></td>`;
           }
         }
       });
@@ -12904,7 +12944,10 @@ export function initLegacyApp() {
   // click where the editing actually lives, with the line you pointed at already selected.
   // ⛔ Scoped to `.cal-header-bar .hdr-line[data-hid]`: the month-view header's lines carry
   // data-mvhid and have their own click handler below, which must keep them.
-  document.getElementById('table-wrap').addEventListener('click', e=>{
+  // ⭐ A DOUBLE-click since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md): a click now picks the line for the text
+  // style bar, which styles header lines in every mode (owner ruling D3), and a click that opened a modal
+  // editor over the bar would leave no way to reach it. Double-click to edit is D5's rule for every grid text.
+  document.getElementById('table-wrap').addEventListener('dblclick', e=>{
     if(headerMode !== 'manual' || !headerTemplates) return;
     if(hdrEditor) return;                    // already open -- do not stack a second one
     const line = e.target && e.target.closest
@@ -12916,7 +12959,7 @@ export function initLegacyApp() {
   // The month's twin of the handler above: in Template mode the lines are not editable in place, so
   // clicking one opens the editor with that slot selected. Without this the month header would be
   // the one Template surface with no way into its own editor except the mode menu.
-  document.getElementById('table-wrap').addEventListener('click', e=>{
+  document.getElementById('table-wrap').addEventListener('dblclick', e=>{   // a double-click: see the twin above
     if(mvHeaderMode !== 'manual' || !mvHeaderTemplates) return;
     if(hdrEditor) return;                    // already open -- do not stack a second one
     const line = e.target && e.target.closest
@@ -12970,33 +13013,20 @@ export function initLegacyApp() {
     if(viewMode !== 'sheet') return;
     const td = e.target.closest('td.sheet-note-cell, td.sheet-hiatus-cell');
     if(!td) return; // click wasn't on an editable cell
-    // A multi-cell selection gesture that ended on this cell suppresses only the EDITOR-OPENING
-    // behaviour. The click then continues to bubble, so the document outside-click listener still
-    // COMMITS an editor that was already open, and closeAllPops still runs.
-    // ⛔ Do NOT do this with a capture-phase stopPropagation instead. The note editor commits on
+    // A multi-cell selection gesture that ended on this cell: nothing to do but retire the flag.
+    // ⛔ Do NOT swallow the click with a capture-phase stopPropagation. The note editor commits on
     // outside click via a document BUBBLE listener, and render() DISCARDS an editor whose td has
     // gone without committing it -- so swallowing the click silently destroys uncommitted note and
     // hiatus text. Reproduced: click a hiatus band, type a new name, Cmd-click a phase cell, batch
     // fill -> the typed name is gone, no error, no undo entry.
     if(suppressGridClick){ suppressGridClick = false; return; }
-    e.stopPropagation();
-    if(activeNoteEditor && activeNoteEditor.td === td) return; // already editing this cell
-    if(activeNoteEditor){
-      // Switching cells: fully commit the open editor (this re-renders), then re-locate
-      // the clicked cell in the fresh DOM by its week key + kind and open it. Also matched on
-      // data-pkey when present, or two phases hiatused the same week would collide on a bare
-      // data-week match and the wrong one could reopen (owner, 1 Sep 2026).
-      const targetWeek = td.dataset.week;
-      const targetPkey = td.dataset.pkey;
-      const targetSel = td.classList.contains('sheet-hiatus-cell') ? 'td.sheet-hiatus-cell' : 'td.sheet-note-cell';
-      commitActiveNoteEditor();
-      const fresh = document.querySelector(
-        `${targetSel}[data-week="${targetWeek}"]${targetPkey ? `[data-pkey="${targetPkey}"]` : ''}`
-      );
-      if(fresh) openNoteEditor(fresh);
-      return;
-    }
-    openNoteEditor(td);
+    // ⭐ A CLICK NO LONGER OPENS THE EDITOR (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md D5: "double-click (or
+    // Enter, or typing) opens a note or hiatus band's editor; a single click highlights it, like Excel"). The
+    // text style bar's gesture highlights the cell, and its dblclick / keydown listeners open it
+    // (openNoteCellEditor, which kept this listener's switch-cells logic). What stays here: a click on the
+    // cell being EDITED keeps editing -- stopped, so the outside-click commit below does not close it. Any other
+    // click bubbles on and commits an open editor, as a click outside always has.
+    if(activeNoteEditor && activeNoteEditor.td === td) e.stopPropagation();
   });
 
   function openNoteEditor(td){
@@ -13241,8 +13271,9 @@ export function initLegacyApp() {
         if(pendingSize === undefined || pendingSize === 11) delete noteFontSize[weekKey];
         else noteFontSize[weekKey] = pendingSize;
       }
-      // A cell with no note has no highlight and no size; drop both with it.
-      if(!effectiveNoteText(weekKey, autoNotes)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; }
+      // A cell with no note has no highlight and no size; drop both with it -- and its text style, the same
+      // rule (TEXT-STYLE-BAR-PLAN.md §2a: a note's style goes with its text).
+      if(!effectiveNoteText(weekKey, autoNotes)){ delete noteColors[weekKey]; delete noteFontSize[weekKey]; delete textStyle.note[weekKey]; }
     }
     closeNoteEditorPop();
     activeNoteEditor = null;
@@ -13472,6 +13503,20 @@ export function initLegacyApp() {
       cell.alignment = {horizontal:'center', vertical:'middle'};
       if(opts && opts.numFmt) cell.numFmt = opts.numFmt;
     }
+    // ⛔ FROZEN EDIT F2 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): one grid text's style onto its cell, AFTER the
+    // writer's own font and alignment, so it wins as the screen's appended CSS does. `size` is the size the
+    // screen drew (each kind's own fit decides it), or undefined to keep the writer's. Nothing at all happens
+    // for an unstyled text, so every unstyled workbook is byte for byte what it was.
+    function xlTextStyle(cell, f, size){
+      if(!f) return;
+      const font = Object.assign({}, cell.font);
+      if(size !== undefined) font.size = size;
+      if(f.bold !== undefined) font.bold = !!f.bold;
+      if(f.italic) font.italic = true;
+      if(f.color) font.color = { argb: 'FF' + f.color.replace('#', '').toUpperCase() };
+      cell.font = font;
+      if(f.align) cell.alignment = Object.assign({}, cell.alignment, { horizontal: f.align });
+    }
 
     for(let b=0; b<blockCount; b++){
       const maxConcurrent = blockMaxConcurrent[b];
@@ -13510,6 +13555,9 @@ export function initLegacyApp() {
           if(run.text) hc.value = run.text === String(yearLabel) ? yearLabel : run.text;
           baseStyle(hc, {font:{bold:true}});
           hc.alignment = {horizontal:'center', vertical:'middle', shrinkToFit:true};
+          // F2: its style; a chosen size stays under Excel's own shrinkToFit, as the screen's does under the fit.
+          const hcts = textStyleOf('heading', run.keys[0]);
+          xlTextStyle(hc, hcts, hcts && hcts.size ? hcts.size : undefined);
           for(let c=c0;c<=c1;c++){
             const cc = ws.getRow(1).getCell(c);
             setFill(cc, HEADER_FILL);
@@ -13519,17 +13567,22 @@ export function initLegacyApp() {
       } else {
       const hDate = ws.getRow(1).getCell(dateCol);
       hDate.value = 'Date'; baseStyle(hDate, {font:{bold:true}}); setFill(hDate, HEADER_FILL);
+      // F2: the three default headings' styles, keyed by their first column (the screen's thTs()).
+      const xlHead = (cell, k) => { const f = textStyleOf('heading', k); xlTextStyle(cell, f, f && f.size ? f.size : undefined); };
+      xlHead(hDate, 'y' + yearLabel + ':date');
       hDate.border = {top:thin, left:thin};
 
       if(labelColEnd>labelColStart) ws.mergeCells(1, labelColStart, 1, labelColEnd);
       const hYear = ws.getRow(1).getCell(labelColStart);
       hYear.value = yearLabel; baseStyle(hYear, {font:{bold:true}}); setFill(hYear, HEADER_FILL);
+      xlHead(hYear, 'y' + yearLabel + ':s0');
       hYear.border = {top:thin};
       for(let c=labelColStart+1;c<=labelColEnd;c++){ const cc=ws.getRow(1).getCell(c); setFill(cc,HEADER_FILL); cc.border={top:thin}; }
 
       // Notes header over the single Notes column.
       const hNotes = ws.getRow(1).getCell(notesCol);
       hNotes.value = 'Notes'; baseStyle(hNotes, {font:{bold:true}}); setFill(hNotes, HEADER_FILL);
+      xlHead(hNotes, 'y' + yearLabel + ':notes');
       hNotes.border = {top:thin, right:thin};
       }
 
@@ -13547,6 +13600,9 @@ export function initLegacyApp() {
         // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4): the date format. 'mm-dd-yy' (built-in
         // format 14) unless the calendar chose 1/6/2025. The cells stay real dates either way.
         baseStyle(dCell, {font:{bold:true}, numFmt:weekDateNumFmt()});
+        // F2: the date's style.
+        const dts = textStyleOf('date', week.date.toISOString().slice(0,10));
+        xlTextStyle(dCell, dts, dts && dts.size ? dts.size : undefined);
         // ⛔ FROZEN EDIT (owner-approved, FIX-PLAN R3 / audit L-7, 29 Sep 2026): each formula carries
         // its CACHED result. Written bare, a formula has no <v>, and every app that shows the stored
         // value instead of recalculating -- Quick Look, phone and web previewers -- showed a blank Date
@@ -13578,9 +13634,11 @@ export function initLegacyApp() {
           for(let k=0;k<maxConcurrent;k++) hAvail += (widths.labels[k] || 0);
           hAvail += widths.notes;
           const hSize = hiatusFontSizeFor(hKey);
-          const hFit = cellTextFit(hTxt, hAvail, {
+          // F2: measured in its weight, as the screen's (F1).
+          const hts = textStyleOf('hiatus', hKey);
+          const hFit = cellTextFit(hTxt, hAvail, Object.assign({
             basePx: hSize || 11, manual: hSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-          });
+          }, hts && hts.bold ? { bold: true } : {}));
           baseStyle(hCell, {font:{color:{argb:'FF'+textColorFor(hCol).replace('#','')},
                                   size: Math.round(11 * hFit.scale * 100) / 100}});
           // NOTE: Excel never autofits a MERGED cell, so a wrapped band in a row with no pinned
@@ -13588,6 +13646,7 @@ export function initLegacyApp() {
           // the line budget is derived from anyway) is what makes the two agree.
           hCell.alignment = {horizontal:'center', vertical:'middle',
                              wrapText: hFit.lines > 1 || hTxt.indexOf('\n') >= 0, indent:0};
+          xlTextStyle(hCell, hts);
           setFill(hCell, hCol);
           hCell.border = isLastRow ? {bottom:thin} : {};
           // the rightmost cell of a merged range needs its own border set for the edge to render
@@ -13609,12 +13668,17 @@ export function initLegacyApp() {
             // same summed span, so a narrowed phase column reads identically in both.
             let availChars = 0;
             for(let k=0;k<item.colspan;k++) availChars += (widths.labels[slot + k] || 0);
-            const lf = cellTextFit(item.label || '', availChars, {});
+            // F2: a styled phase week or Sim Post fits from its chosen size in its weight (the screen's F1).
+            const wIsoX = week.date.toISOString().slice(0,10);
+            const lts = item.kind === 'phase' ? (item.own !== undefined && item.cell ? textStyleOf('phase', wIsoX + '|' + item.cell.key) : null)
+                      : item.kind === 'simpost' ? textStyleOf('simpost', wIsoX) : null;
+            const lf = cellTextFit(item.label || '', availChars, lts ? textFitOpts(lts) : {});
             const lfSize = Math.round(11 * lf.scale * 100) / 100;
             if(item.kind === 'phase'){
               // Explicit, though it is also ExcelJS's default: leaving it implicit is what let
               // the screen and the PDF drift into the phase palette's own textColor.
               baseStyle(cell, {font:{size:lfSize, color:{argb:'FF'+GRID_TEXT_COLOR.replace('#','')}}});
+              xlTextStyle(cell, lts);
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'phaseHiatus'){
@@ -13625,17 +13689,20 @@ export function initLegacyApp() {
               // never be found by the export.
               const phKey = item.weekIso + '|' + item.phaseKey;
               const phSize = hiatusFontSizeFor(phKey);
-              const phFit = cellTextFit(item.label || '', availChars, {
+              const phts = textStyleOf('hiatus', phKey);   // F2
+              const phFit = cellTextFit(item.label || '', availChars, Object.assign({
                 basePx: phSize || 11, manual: phSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-              });
+              }, phts && phts.bold ? { bold: true } : {}));
               baseStyle(cell, {font:{color:{argb:'FF'+textColorFor(item.color).replace('#','')},
                                      size: Math.round(11 * phFit.scale * 100) / 100}});
               cell.alignment = {horizontal:'center', vertical:'middle',
                                 wrapText: phFit.lines > 1, indent:0};
+              xlTextStyle(cell, phts);
               cell.value = item.label;
               setFill(cell, item.color);
             } else if(item.kind === 'simpost'){
               baseStyle(cell, {font:{size:lfSize, color:{argb:'FF'+GRID_TEXT_COLOR.replace('#','')}}});
+              xlTextStyle(cell, lts);
               cell.value = item.label;
               setFill(cell, SIMPOST_COLOR);
             } else {
@@ -13662,9 +13729,10 @@ export function initLegacyApp() {
             // rather than leaning on Excel's own shrinkToFit, whose algorithm is not ours --
             // an explicit size is what makes the two agree.
             const nSize = noteFontSizeFor(nKey);
-            const fit = cellTextFit(noteText, widths.notes, {
+            const nts = textStyleOf('note', nKey);   // F2
+            const fit = cellTextFit(noteText, widths.notes, Object.assign({
               basePx: nSize || 11, manual: nSize !== undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX
-            });
+            }, nts && nts.bold ? { bold: true } : {}));
             // An un-pinned row must be tall enough for the lines the note actually uses:
             // Excel autofits a wrapped cell only when no explicit height is set, and that is
             // the case here, so nothing to do -- but a pinned row is capped on both sides.
@@ -13680,6 +13748,7 @@ export function initLegacyApp() {
             // together in the workbook while the screen showed two lines.
             nCell.alignment = {horizontal:'center', vertical:'middle',
                                wrapText: fit.lines > 1 || noteText.indexOf('\n') >= 0, indent:0};
+            xlTextStyle(nCell, nts);
           } else {
             baseStyle(nCell);
           }
@@ -13997,6 +14066,82 @@ export function initLegacyApp() {
   // a per-phase band by "week|phaseKey". Kept separate from noteFontSize so the two cannot
   // collide on a bare week key.
   let hiatusFontSize = {};
+  // ---------- Text styles: what the styling bar has set on grid text (TEXT-STYLE-BAR-PLAN.md §5) ----------
+  // One map per KIND of grid text, keyed exactly as that kind's own stores already are, so the shift
+  // tools can move each with the predicate its neighbours use:
+  //   date     week ISO                    (a date never moves)
+  //   heading  its first column's key       ('y2027:s0', the headerRowLabels shape; no date in it)
+  //   phase    'week|phaseKey'              (travels with its phase, as cellSpans does)
+  //   simpost  week ISO                    (travels with Production, which Sim Post runs inside)
+  //   hiatus   week ISO or 'week|phaseKey' (the hiatusColors shapes and rule)
+  //   note     week ISO                    (the noteColors rule)
+  // A value is the header's format shape -- {size, bold, italic, color, align}, cleanHeaderFormatEntry's --
+  // without highlight (a grid cell already has a fill). ⛔ A NOTE'S OR A BAND'S SIZE IS NOT IN HERE: it stays
+  // in noteFontSize / hiatusFontSize, permanent keys the note editor has always written, so the editor's old
+  // files and the bar can never disagree about one note's size.
+  // ⛔ CALENDAR DATA, saved as the key `textStyles` and ABSENT while nothing is styled, so every calendar
+  // without a style saves byte for byte what it did before this existed (the sideBoxes shape).
+  // ⛔ Owner ruling D1 (21 Oct 2026, "6–12, grid never moves"): the bar offers 6 to 12 for grid text, the
+  // sizes a standard row holds, so no style ever changes a column, a row or the printed page. The sanitizer
+  // drops any other size, so a hand-edited file cannot get round it either.
+  const TEXT_STYLE_KINDS = ['date', 'heading', 'phase', 'simpost', 'hiatus', 'note'];
+  const TEXT_STYLE_SIZES = [6, 7, 8, 9, 10, 11, 12];
+  function emptyTextStyle(){ const o = {}; TEXT_STYLE_KINDS.forEach(k=>{ o[k] = {}; }); return o; }
+  let textStyle = emptyTextStyle();
+  // The style one grid text carries, or null. What the renderer and both writers read (§6 F1–F3).
+  function textStyleOf(kind, key){
+    const m = textStyle[kind];
+    return (m && key != null && Object.prototype.hasOwnProperty.call(m, key)) ? m[key] : null;
+  }
+  function textStyleHasAny(){ return TEXT_STYLE_KINDS.some(k => Object.keys(textStyle[k]).length > 0); }
+  // §6 F1: the CSS one grid text's style adds, APPENDED after the cell's own inline style so it wins (the
+  // 31 Aug 2026 hline() precedent). '' for no style, so an unstyled calendar's markup is byte for byte what it
+  // was. Size is separate (textSizeCss), because each kind's size path differs. Bold is 700 or 400: the two
+  // Carlito weights embedded for the PDF writer, so the screen draws what prints.
+  function textStyleCss(f){
+    if(!f) return '';
+    let css = '';
+    if(f.bold !== undefined) css += ` font-weight:${f.bold ? 700 : 400};`;
+    if(f.italic) css += ' font-style:italic;';
+    if(f.color) css += ` color:${f.color};`;
+    if(f.align) css += ` text-align:${f.align};`;
+    return css;
+  }
+  // A size on ONE-LINE text (dates, headings, phase labels, Sim Post), with its line box held inside the row.
+  // A line is SHEET_LINE_RATIO × the size, so 12 px wants 16.2 px where a standard row leaves 15; the glyphs
+  // themselves need 1.22 em (14.6 px), so capping the line-height keeps every glyph and stops the row
+  // stretching on screen -- which would be the screen no longer matching Excel and the PDF (plan §4.1).
+  function textSizeCss(px, rowPx){
+    let css = ` font-size:${px.toFixed(2)}px;`;
+    const room = (rowPx || ROW_DEFAULT_PX) - ROW_TEXT_PAD_PX;
+    if(px * SHEET_LINE_RATIO > room) css += ` line-height:${room}px;`;
+    return css;
+  }
+  // cellTextFit's options for a styled one-line text: shrink to fit from the chosen size, measured in its weight
+  // (F4). With no size and no bold this is cellTextFit's own default, so it fits exactly as before.
+  function textFitOpts(f){ return { basePx: (f && f.size) || 11, bold: !!(f && f.bold) }; }
+  // Only the kinds that hold a style, each entry copied, so the snapshot never shares an object with the
+  // live store (undo would otherwise see later edits in an older step).
+  function textStyleSnapshot(){
+    const out = {};
+    TEXT_STYLE_KINDS.forEach(k=>{
+      const keys = Object.keys(textStyle[k]);
+      if(!keys.length) return;
+      out[k] = {};
+      keys.forEach(key=>{ out[k][key] = Object.assign({}, textStyle[k][key]); });
+    });
+    return out;
+  }
+  // A sanitized snapshot's value back into the store; anything missing is an empty kind.
+  function textStyleFromSnapshot(v){
+    const out = emptyTextStyle();
+    if(!isPlainObj(v)) return out;
+    TEXT_STYLE_KINDS.forEach(k=>{
+      if(!isPlainObj(v[k])) return;
+      Object.keys(v[k]).forEach(key=>{ if(isPlainObj(v[k][key])) out[k][key] = Object.assign({}, v[k][key]); });
+    });
+    return out;
+  }
   let hiatusTexts = {};  // hiatus band label override (default 'Holiday Hiatus')
   let hiatusColors = {}; // hiatus band fill override (default HIATUS_COLOR red)
   // Tracks, per week ISO key, the hiatusTexts value syncHiatusNamesFromSidebar() last wrote there --
@@ -14716,7 +14861,7 @@ export function initLegacyApp() {
     }
     if(!(t.classList && t.classList.contains('sb-edit'))) return;
     const to = e.relatedTarget;
-    if(sideFmtPressing || (to && to.closest && (to.closest('.sb-fmt') || to.closest('.sb-edit')))) return;
+    if(sideFmtPressing || (to && to.closest && (to.closest('.sb-fmt') || to.closest('.style-bar') || to.closest('.sb-edit')))) return;
     hideSideFmt();
   }
   function onSideClick(e){
@@ -14861,6 +15006,7 @@ export function initLegacyApp() {
     syncSideFmt();
   }
   function syncSideFmt(){
+    syncStyleBar();
     if(!sideFmtBar) return;
     const look = sideTargetFmt();
     if(!look) return;
@@ -14897,6 +15043,10 @@ export function initLegacyApp() {
     sideFmtBar.style.left = (window.scrollX + Math.max(8, left)) + 'px';
   }
   function showSideFmt(){
+    // ⛔ The floating bar retired with the text style bar (TEXT-STYLE-BAR-PLAN.md, 21 Oct 2026): the bar under
+    // the toolbar styles a box's line through applySideFmt, the code below it. Kept for a page without the
+    // bar's host, which the build never is.
+    if(styleBar){ setStyleTarget('side'); return; }
     if(!sideFmtBar) sideFmtBar = buildSideFmt();
     if(!sideFmtBar.isConnected) document.body.appendChild(sideFmtBar);
     syncSideFmt();
@@ -14905,12 +15055,13 @@ export function initLegacyApp() {
   function hideSideFmt(){
     if(sideFmtBar && sideFmtBar.isConnected) sideFmtBar.remove();
     sideFmtTarget = null;
+    if(styleTarget === 'side'){ styleTarget = null; syncStyleBar(); }
   }
   window.addEventListener('resize', ()=>{ if(sideFmtTarget) placeSideFmt(); });
   window.addEventListener('scroll', ()=>{ if(sideFmtTarget) placeSideFmt(); }, true);
   document.addEventListener('mousedown', e=>{
     if(!sideFmtTarget) return;
-    if(e.target.closest && (e.target.closest('.sb-fmt') || e.target.closest('.side-col'))) return;
+    if(e.target.closest && (e.target.closest('.sb-fmt') || e.target.closest('.style-bar') || e.target.closest('.side-col'))) return;
     hideSideFmt();
   }, true);
 
@@ -16041,6 +16192,7 @@ export function initLegacyApp() {
         b.setAttribute('aria-checked', on ? 'true' : 'false');
       });
     });
+    syncStyleBar();   // the text style bar shows the same line (TEXT-STYLE-BAR-PLAN.md)
   }
   // Apply to state, then paint the live element directly. Deliberately NOT a full update():
   // re-rendering would destroy the contenteditable mid-edit and throw away the caret, and the
@@ -16062,10 +16214,21 @@ export function initLegacyApp() {
     markDirty();
   }
 
+  // Clear the target line's format. One function since the text style bar (TEXT-STYLE-BAR-PLAN.md) clears
+  // a header line too; it was inline in the strip's click handler below.
+  function clearHdrFmt(){
+    if(hdrFmtTarget) delete hdrFmtStore(hdrFmtTarget.mv)[hdrFmtTarget.id];
+    const sel = hdrFmtTarget ? (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`) : null;
+    const el = sel ? document.querySelector('#table-wrap ' + sel) : null;
+    if(el) el.setAttribute('style', hdrLineBaseCss(hdrFmtTarget.id, hdrFmtTarget.mv));
+    syncHdrFmtToolbar(); markDirty();
+  }
+
   document.getElementById('table-wrap').addEventListener('focusin', e=>{
     const line = hdrLineFromEvent(e.target);
     if(line && line.el.classList.contains('hdr-editable')){
       hdrFmtTarget = { id: line.id, mv: line.mv };
+      setStyleTarget('hdr');
       syncHdrFmtToolbar();
     }
   });
@@ -16097,14 +16260,7 @@ export function initLegacyApp() {
     const look = hdrFmtTarget ? hdrLiveLook(hdrFmtTarget.id, hdrFmtTarget.mv) : { bold:false, italic:false };
     if(e.target.closest('.hf-b'))     return applyHdrFmt({ bold: !look.bold });
     if(e.target.closest('.hf-i'))     return applyHdrFmt({ italic: !look.italic });
-    if(e.target.closest('.hf-clear')) {
-      if(hdrFmtTarget) delete hdrFmtStore(hdrFmtTarget.mv)[hdrFmtTarget.id];
-      const sel = hdrFmtTarget ? (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`) : null;
-      const el = sel ? document.querySelector('#table-wrap ' + sel) : null;
-      if(el) el.setAttribute('style', hdrLineBaseCss(hdrFmtTarget.id, hdrFmtTarget.mv));
-      syncHdrFmtToolbar(); markDirty();
-      return;
-    }
+    if(e.target.closest('.hf-clear')) return clearHdrFmt();
     const toggle = e.target.closest('.hf-al-toggle');
     if(toggle){
       const menu = bar.querySelector('.hf-al-menu');
@@ -16218,6 +16374,565 @@ export function initLegacyApp() {
       ${(!mv && headerTemplates) ? '<button type="button" class="hf-ctl hf-btn hf-insert" title="Insert live data into this line" aria-label="Insert token">Insert &#9662;</button>' : ''}
     </div>`;
   }
+
+  // ---------- THE TEXT STYLE BAR (TEXT-STYLE-BAR-PLAN.md; owner rulings D1–D5, 21 Oct 2026) ----------
+  // One bar, always on screen under the preview toolbar, that styles ANY text in the waterfall: what is
+  // highlighted in the grid (Excel's highlight, ruling D2), a header line in either view and in every header
+  // mode (D3, D4), or a side box's line. It does the jobs of the header's in-calendar strip and of the side
+  // boxes' floating bar, which both retire (legacy.css), and it does them THROUGH THEIR OWN CODE --
+  // applyHdrFmt / clearHdrFmt and applySideFmt -- so header and box styles are stored exactly as before.
+  //
+  // ⛔ NO CONTROL IN HERE HAS AN id. collectFieldValues() sweeps every input[id]/select[id]/textarea[id] in
+  // the document into saved files and the undo stack; the bar is outside .prefs-card and .tools-menu, where
+  // the class exclusions reach. Classes only, like the two bars it replaces. (And no Mantine Select: its
+  // generated ids would land in fields.byId, PreviewToolbar.jsx's lead comment.)
+  //
+  // ⛔ THE HOST IS INSIDE .view-toggle-row (PreviewToolbar.jsx renders it, empty, last), so
+  // .view-toggle-row -> #table-wrap stays the sibling pair the contracts need. A new sibling between them
+  // would break it.
+  //
+  // ⭐ It names nothing. The owner had the header strip's readout of the selected line removed (31 Aug
+  // 2026): the highlight on the grid, or the caret, already says what is picked. Only the empty state
+  // speaks ("Highlight any text to style it", legacy.css), as the header strip's does.
+  let styleTarget = null;      // 'grid' | 'hdr' | 'side' | null
+  let styleBar = null;
+  let styleBarLive = false;    // a colour well being dragged on grid text: banked as ONE undo step on change
+  // Sizes each target offers. Header and boxes keep their own lists (headerFmtToolbarHtml, buildSideFmt);
+  // grid text gets 6–12 (owner ruling D1: "6–12, grid never moves").
+  const STYLE_BAR_SIZES = {
+    grid: TEXT_STYLE_SIZES,
+    hdr: [8, 9, 10, 11, 12, 13, 14, 16, 18, 22],
+    hdrMonth: [10, 11, 12, 14, 16, 18, 20, 22, 26, 30],
+    side: [8, 9, 10, 11, 12, 13, 14, 16, 18, 22],
+  };
+
+  // ---- The highlight (ruling D2: "just like excel"; plan §2a) ----
+  // Every grid text in it, as '<kind>:<key>' -- the text style store's own kind and key, so the highlight
+  // and the store can never disagree about which text a key names.
+  // ⛔ SESSION UI, like gridSel: never saved, never in an undo step. ⛔ AND SEPARATE FROM gridSel, on purpose:
+  // gridSel (phase cells only) is what fill-across, the column swap and moving a run read, and none of them
+  // may ever receive a date or a note. A gesture that starts on a phase cell builds both, the same way.
+  let textSel = new Set();
+  let textSelAnchor = null;    // the key a Shift-click extends from
+  let textSelActive = null;    // the key Enter or typing opens (D5): the last cell clicked
+  function splitTextKey(k){ const i = k.indexOf(':'); return [k.slice(0, i), k.slice(i + 1)]; }
+  // The week a row of one year block shows: the first data-week after that block's date cell. A row's
+  // cells carry it (phase cells, bands, the note cell) except the date cell itself and Sim Post.
+  function blockRowWeek(td){
+    let d = td;
+    while(d && !(d.classList && d.classList.contains('sheet-date'))) d = d.previousElementSibling;
+    if(!d) return null;
+    for(let c = d.nextElementSibling; c && !c.classList.contains('sheet-date'); c = c.nextElementSibling){
+      if(c.dataset && c.dataset.week) return splitWeekKey(c.dataset.week).iso;
+    }
+    return null;
+  }
+  // A heading's first column, from the colgroup -- the same key for a default heading and a custom one.
+  function headingColKey(th){
+    const tr = th.parentElement, table = th.closest('table');
+    if(!tr || !table) return null;
+    let ci = 0;
+    for(const c of tr.cells){ if(c === th) break; ci += c.colSpan || 1; }
+    const col = table.querySelectorAll('colgroup col')[ci];
+    return (col && col.dataset.ckey && HDR_ROW_KEY.test(col.dataset.ckey)) ? col.dataset.ckey : null;
+  }
+  // Sim Post's cell has no class and no data: frozen renderSpreadsheetView writes only its fill and ink.
+  function isSimPostTd(td){
+    const st = (td.getAttribute('style') || '').toUpperCase();
+    return !td.className && st.startsWith('BACKGROUND:' + SIMPOST_COLOR.toUpperCase());
+  }
+  // The '<kind>:<key>' of a grid cell, or null for one with no text of its own (an empty slot, a padding row).
+  function textCellKey(cell){
+    if(!cell || !cell.closest || !cell.closest('#table-wrap table.sheet-table')) return null;
+    if(cell.tagName === 'TH'){ const ck = headingColKey(cell); return ck ? 'heading:' + ck : null; }
+    if(cell.tagName !== 'TD' || cell.classList.contains('sheet-empty')) return null;
+    const wk = cell.dataset.week;
+    if(cell.classList.contains('sheet-date')){ const w = blockRowWeek(cell); return w ? 'date:' + w : null; }
+    if(cell.classList.contains('sheet-note-cell')) return wk ? 'note:' + wk : null;
+    if(cell.classList.contains('sheet-hiatus-cell')) return wk ? 'hiatus:' + (cell.dataset.pkey ? wk + '|' + cell.dataset.pkey : wk) : null;
+    if(cell.classList.contains('sheet-phase-cell')) return (wk && cell.dataset.pkey) ? 'phase:' + wk + '|' + cell.dataset.pkey : null;
+    if(isSimPostTd(cell)){ const w = blockRowWeek(cell); return w ? 'simpost:' + w : null; }
+    return null;
+  }
+  // Every keyed text cell in the live grid. ⛔ #table-wrap only: both print paths render a second grid into
+  // #print-root, with the same keys (allPhaseTds' reason).
+  function textCellIndex(){
+    const out = new Map();
+    const table = document.querySelector('#table-wrap table.sheet-table');
+    if(!table) return out;
+    table.querySelectorAll('thead th, tbody td').forEach(c=>{ const k = textCellKey(c); if(k && !out.has(k)) out.set(k, c); });
+    return out;
+  }
+  // Does this cell show text? (An empty note cell shows only its "+" hint, which is not text.)
+  function textCellHasText(cell, kind){
+    if(kind === 'note') return cell.classList.contains('has-note');
+    return !!(cell.textContent || '').trim();
+  }
+  // The keys the bar would style: highlighted AND showing text. ("Only text is styled", plan §2a.)
+  function textSelTargets(){
+    const idx = textCellIndex();
+    return [...textSel].filter(k=>{ const c = idx.get(k); return !!c && textCellHasText(c, splitTextKey(k)[0]); });
+  }
+
+  // The cell under a point. Walks the hit stack past the resize handles (they cover ~29% of a cell, hitCell's
+  // reason), and stops at any body-level panel or the swap controls, as hitCell does.
+  function hitTextCell(x, y){
+    for(const el of document.elementsFromPoint(x, y)){
+      if(el.closest && el.closest(OVER_PANEL)) return null;
+      if(el.classList && (el.classList.contains('grid-swap-knob') || el.classList.contains('grid-stint-btn'))) return null;
+      const cell = el.closest && el.closest('#table-wrap table.sheet-table td, #table-wrap table.sheet-table th');
+      if(cell) return cell;
+      if(el.id === 'table-wrap') return null;
+    }
+    return null;
+  }
+
+  // ---- Drawing the highlight ----
+  // Body cells on a layer like .grid-sel-layer (a sibling inside .sheet-grid-wrap: the grid's own coordinate
+  // space, scrolled and clipped with it, absent from both print paths). Headings on a STICKY strip at the
+  // wrap's top, because the heading row is sticky (frozen `.sheet-table th`) and a box on the scrolling layer
+  // would slide away from it. Both pointer-events:none, so nothing here can take a click.
+  function ensureTextSelLayers(){
+    const wrap = document.querySelector('#table-wrap .sheet-grid-wrap');
+    if(!wrap) return null;
+    let body = wrap.querySelector(':scope > .text-sel-layer');
+    if(!body){ body = document.createElement('div'); body.className = 'text-sel-layer'; wrap.appendChild(body); }
+    let head = wrap.querySelector(':scope > .text-sel-head');
+    if(!head){ head = document.createElement('div'); head.className = 'text-sel-head'; wrap.insertBefore(head, wrap.firstChild); }
+    return { wrap, body, head };
+  }
+  function redrawTextSel(marquee){
+    const idx = textCellIndex();
+    // Prune against the live grid, gridSel's one cleanup rule: a render that retired a cell drops its key.
+    textSel = new Set([...textSel].filter(k => idx.has(k)));
+    if(textSelAnchor && !idx.has(textSelAnchor)) textSelAnchor = null;
+    if(textSelActive && !idx.has(textSelActive)) textSelActive = null;
+    const L = ensureTextSelLayers();
+    if(!L){ if(styleTarget === 'grid' && !textSel.size) setStyleTarget(null); return; }
+    L.body.textContent = ''; L.head.textContent = '';
+    const z = gridZoom(L.wrap) || 1;
+    const wr = L.wrap.getBoundingClientRect(), hr = L.head.getBoundingClientRect();
+    textSel.forEach(k=>{
+      const c = idx.get(k);
+      const r = c.getBoundingClientRect();
+      const isHead = c.tagName === 'TH';
+      const o = isHead ? hr : wr;
+      const d = document.createElement('div');
+      d.className = 'text-sel-cell' + (k === textSelActive ? ' is-active' : '');
+      d.style.left = (r.left - o.left) / z + 'px';
+      d.style.top = (r.top - o.top) / z + 'px';
+      d.style.width = Math.max(1, r.width / z) + 'px';
+      d.style.height = Math.max(1, r.height / z) + 'px';
+      (isHead ? L.head : L.body).appendChild(d);
+    });
+    if(marquee){
+      const m = document.createElement('div');
+      m.className = 'text-sel-marquee';
+      m.style.left = (marquee.l - wr.left) / z + 'px';
+      m.style.top = (marquee.t - wr.top) / z + 'px';
+      m.style.width = (marquee.r - marquee.l) / z + 'px';
+      m.style.height = (marquee.b - marquee.t) / z + 'px';
+      L.body.appendChild(m);
+    }
+    if(styleTarget === 'grid' && !textSel.size) setStyleTarget(null); else syncStyleBar();
+  }
+  function clearTextSel(){
+    if(!textSel.size && !textSelAnchor && !textSelActive) return;
+    textSel.clear(); textSelAnchor = null; textSelActive = null;
+    const L = ensureTextSelLayers();
+    if(L){ L.body.textContent = ''; L.head.textContent = ''; }
+  }
+  // Every render replaces .sheet-grid-wrap, so redraw after it (childList only -- the layers are written
+  // inside the wrap, a descendant, so this cannot observe its own paint; the gridSel observer's rule).
+  new MutationObserver(()=>{
+    if(viewMode !== 'sheet'){ if(textSel.size){ clearTextSel(); if(styleTarget === 'grid') setStyleTarget(null); } return; }
+    if(textSel.size) redrawTextSel(null);
+  }).observe(document.getElementById('table-wrap'), { childList: true });
+  let _textSelFrame = 0;
+  window.addEventListener('resize', ()=>{
+    if(_textSelFrame || !textSel.size) return;
+    _textSelFrame = requestAnimationFrame(()=>{ _textSelFrame = 0; redrawTextSel(null); });
+  });
+
+  // Cells whose box meets a screen rectangle. Membership by the cell's whole box (Excel's rule for a merged
+  // cell: touch any part of it and it is in).
+  function textCellsInRect(rect){
+    const out = [];
+    textCellIndex().forEach((c, k)=>{
+      const b = c.getBoundingClientRect();
+      if(b.right > rect.l && b.left < rect.r && b.bottom > rect.t && b.top < rect.b) out.push(k);
+    });
+    return out;
+  }
+  function textCellRect(c){ const b = c.getBoundingClientRect(); return { l:b.left, r:b.right, t:b.top, b:b.bottom }; }
+
+  // ---- The gesture: click, drag, Shift-click, ⌘-click (D2) ----
+  // Capture phase, registered after gridSel's: on a phase cell both run, and both build their own set from
+  // the same pointer. ⛔ No preventDefault, for gridSel's reason (it would suppress click and dblclick).
+  document.addEventListener('pointerdown', e=>{
+    if(e.button !== 0 || viewMode !== 'sheet' || e.pointerType === 'touch') return;
+    if(e.target.closest && e.target.closest('.grid-resize, .grid-sel-layer, .grid-swap-layer')) return;
+    const cell = hitTextCell(e.clientX, e.clientY);
+    if(!cell) return;
+    const startKey = textCellKey(cell);
+    // Native text selection would paint over a sweep; suppressed for this gesture only, and never inside an
+    // editable header line or a form field (gridSel's killSel, widened to every grid cell).
+    const killSel = ev=>{
+      const n = ev.target && ev.target.nodeType === 3 ? ev.target.parentElement : ev.target;
+      if(!n || !n.closest || n.closest('.hdr-line, [contenteditable], input, textarea')) return;
+      if(n.closest('#table-wrap table.sheet-table')) ev.preventDefault();
+    };
+    document.addEventListener('selectstart', killSel, true);
+    const x0 = e.clientX, y0 = e.clientY;
+    const shiftKey = e.shiftKey, metaKey = e.metaKey || e.ctrlKey;
+    const base = (shiftKey || metaKey) ? new Set(textSel) : new Set();
+    let sweeping = false;
+    const onMove = ev=>{
+      if(ev.buttons === 0){ onUp(ev); return; }
+      if(!sweeping){
+        // gridSel's thresholds, so one press never sweeps in one set and clicks in the other.
+        const dist = Math.hypot(ev.clientX - x0, ev.clientY - y0);
+        if(dist < 10) return;
+        if(dist < 24 && hitTextCell(ev.clientX, ev.clientY) === cell) return;
+        sweeping = true;
+      }
+      const rect = { l:Math.min(x0, ev.clientX), r:Math.max(x0, ev.clientX), t:Math.min(y0, ev.clientY), b:Math.max(y0, ev.clientY) };
+      textSel = new Set(base);
+      textCellsInRect(rect).forEach(k => textSel.add(k));
+      textSelAnchor = startKey; textSelActive = startKey;
+      redrawTextSel(rect);
+    };
+    const onUp = ()=>{
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('selectstart', killSel, true);
+      if(!sweeping){
+        if(shiftKey && textSelAnchor){
+          const a = textCellIndex().get(textSelAnchor);
+          if(a){
+            const ra = textCellRect(a), rb = textCellRect(cell);
+            const rect = { l:Math.min(ra.l, rb.l) + 1, r:Math.max(ra.r, rb.r) - 1, t:Math.min(ra.t, rb.t) + 1, b:Math.max(ra.b, rb.b) - 1 };
+            textSel = new Set(base);
+            textCellsInRect(rect).forEach(k => textSel.add(k));
+          }
+          if(startKey) textSelActive = startKey;
+        } else if(metaKey){
+          if(startKey){
+            if(textSel.has(startKey)) textSel.delete(startKey); else textSel.add(startKey);
+            textSelAnchor = textSelActive = startKey;
+          }
+        } else {
+          textSel = new Set(startKey ? [startKey] : []);
+          textSelAnchor = textSelActive = startKey;
+        }
+      }
+      if(textSel.size) setStyleTarget('grid');
+      redrawTextSel(null);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }, true);
+
+  // ---- D5: a double-click, Enter or typing opens a note's or a band's editor ----
+  // Owner, 21 Oct 2026: "double-click (or Enter, or typing) opens a note or hiatus band's editor; a single
+  // click highlights it, like Excel." And for a band inside one phase's column, which double-click used to
+  // fill across (1 Sep 2026), the owner's picker the same day: "Double-click edits".
+  // Opens the cell's editor, committing any other one first (that re-renders, so the cell is found again in
+  // the fresh grid by its week and kind). The switching logic the old click opener had, unchanged.
+  function openNoteCellEditor(td){
+    if(activeNoteEditor && activeNoteEditor.td === td) return activeNoteEditor;
+    if(activeNoteEditor){
+      const targetWeek = td.dataset.week, targetPkey = td.dataset.pkey;
+      const targetSel = td.classList.contains('sheet-hiatus-cell') ? 'td.sheet-hiatus-cell' : 'td.sheet-note-cell';
+      commitActiveNoteEditor();
+      const fresh = document.querySelector(`#table-wrap ${targetSel}[data-week="${targetWeek}"]${targetPkey ? `[data-pkey="${targetPkey}"]` : ''}`);
+      if(fresh) openNoteEditor(fresh);
+      return activeNoteEditor;
+    }
+    openNoteEditor(td);
+    return activeNoteEditor;
+  }
+  const NOTE_TD = 'td.sheet-note-cell, td.sheet-hiatus-cell';
+  // Capture, so it runs before frozen dblclick fill-across (a document BUBBLE listener) and can stop it for a
+  // band. The batch fill's capture listener (registered earlier) skips bands for the same reason.
+  document.addEventListener('dblclick', e=>{
+    if(viewMode !== 'sheet') return;
+    if(e.target.closest && e.target.closest('.grid-resize')) return;   // a handle's dblclick is autofit
+    let td = e.target.closest ? e.target.closest('#table-wrap ' + NOTE_TD.split(', ').join(', #table-wrap ')) : null;
+    if(!td){ const c = hitTextCell(e.clientX, e.clientY); td = c && c.matches && c.matches(NOTE_TD) ? c : null; }
+    if(!td) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openNoteCellEditor(td);
+  }, true);
+  // Enter and typing, once something is highlighted. Capture, so Enter on a note never also reaches the
+  // batch fill's Enter. Only with focus on <body> (the gridSel keyboard rule: a focused control owns its
+  // keys) and never with ⌘, Ctrl or Alt held, which belong to the shortcuts and the column swap.
+  document.addEventListener('keydown', e=>{
+    if(viewMode !== 'sheet' || !textSel.size || activeNoteEditor) return;
+    const a = document.activeElement;
+    if(a && a !== document.body) return;
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    if(e.key === 'Escape'){ clearTextSel(); setStyleTarget(null); return; }
+    const active = textSelActive;
+    if(!active) return;
+    const [kind] = splitTextKey(active);
+    if(kind !== 'note' && kind !== 'hiatus') return;
+    const typed = e.key.length === 1 ? e.key : null;
+    if(e.key !== 'Enter' && !typed) return;
+    if(e.key === 'Enter' && e.shiftKey) return;
+    const td = textCellIndex().get(active);
+    if(!td) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const ed = openNoteCellEditor(td);
+    // Typing ADDS the key at the end (plan §1 D5): Excel replaces the cell, but a stray key must never wipe
+    // a note. The editor opened with its text selected; this puts the caret at the end instead.
+    if(typed && ed && ed.textarea){
+      const ta = ed.textarea;
+      ta.value += typed;
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }, true);
+  // ⌘A over a live highlight takes in the whole grid -- only while something is highlighted, so ⌘A anywhere
+  // else in the app still selects text as it always has.
+  document.addEventListener('keydown', e=>{
+    if(viewMode !== 'sheet' || !textSel.size || !(e.metaKey || e.ctrlKey) || e.altKey || e.key.toLowerCase() !== 'a') return;
+    const a = document.activeElement;
+    if(a && a !== document.body) return;
+    e.preventDefault();
+    textSel = new Set(textCellIndex().keys());
+    redrawTextSel(null);
+  });
+
+  // ---- Header lines as a target (D3: every mode; D4: the month header too) ----
+  // A Manual line takes the caret, and the strip's own focusin sets hdrFmtTarget (above). An Auto or Template
+  // line is not editable, so a click picks it. ⛔ The ring is a class on the line, an outline (no layout), and
+  // re-applied after every render; #print-root renders its own lines and a shareable copy empties #table-wrap,
+  // so it can never print.
+  function markHdrTarget(){
+    document.querySelectorAll('#table-wrap .hdr-line.is-style-target').forEach(el => el.classList.remove('is-style-target'));
+    if(styleTarget !== 'hdr' || !hdrFmtTarget) return;
+    const el = document.querySelector('#table-wrap ' + (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`));
+    if(el && !el.isContentEditable) el.classList.add('is-style-target');
+  }
+  document.getElementById('table-wrap').addEventListener('click', e=>{
+    const line = hdrLineFromEvent(e.target);
+    if(!line) return;
+    if((line.mv && viewMode !== 'month') || (!line.mv && viewMode !== 'sheet')) return;
+    hdrFmtTarget = { id: line.id, mv: line.mv };
+    setStyleTarget('hdr');
+  });
+  // The target line must still be on screen, in the view showing.
+  function hdrTargetLive(){
+    if(!hdrFmtTarget) return false;
+    if(hdrFmtTarget.mv !== (viewMode === 'month')) return false;
+    return !!document.querySelector('#table-wrap ' + (hdrFmtTarget.mv ? `[data-mvhid="${hdrFmtTarget.id}"]` : `[data-hid="${hdrFmtTarget.id}"]`));
+  }
+  new MutationObserver(()=>{
+    if(styleTarget === 'hdr' && !hdrTargetLive()) setStyleTarget(null);
+    else { markHdrTarget(); syncStyleBar(); }
+  }).observe(document.getElementById('table-wrap'), { childList: true });
+
+  // ---- The target, and the bar ----
+  function setStyleTarget(kind){
+    if(kind !== 'grid' && textSel.size) clearTextSel();
+    if(kind !== 'side' && sideFmtTarget) sideFmtTarget = null;
+    styleTarget = kind;
+    markHdrTarget();
+    syncStyleBar();
+  }
+  // What the target looks like now, as the controls must show it. Grid text reads its own style over each
+  // kind's default look (dates and headings are bold, everything centred); a mixed highlight reports which
+  // looks are mixed, so the bar can half-light them.
+  const TEXT_DEFAULT_BOLD = { date: true, heading: true };
+  function textEffective(kind, key){
+    const f = textStyleOf(kind, key) || {};
+    const size = (kind === 'note') ? noteFontSizeFor(key) : (kind === 'hiatus') ? hiatusFontSizeFor(key) : f.size;
+    return {
+      size: size,
+      bold: f.bold !== undefined ? f.bold : !!TEXT_DEFAULT_BOLD[kind],
+      italic: !!f.italic,
+      color: f.color || '',
+      align: f.align || 'center',
+      styled: !!(textStyleOf(kind, key) || size !== undefined),
+    };
+  }
+  function styleBarLook(){
+    if(styleTarget === 'hdr' && hdrTargetLive()){
+      const f = headerFmt(hdrFmtTarget.id, hdrFmtTarget.mv), look = hdrLiveLook(hdrFmtTarget.id, hdrFmtTarget.mv);
+      return { sizes: hdrFmtTarget.mv ? STYLE_BAR_SIZES.hdrMonth : STYLE_BAR_SIZES.hdr, highlight: true,
+               size: f.size, bold: look.bold, italic: look.italic, color: f.color || '', hl: f.highlight || '',
+               align: f.align || headerDefaultAlign(hdrFmtTarget.id, hdrFmtTarget.mv), alignSet: !!f.align, mixed: {} };
+    }
+    if(styleTarget === 'side' && sideFmtTarget){
+      const t = sideTargetFmt();
+      if(!t) return null;
+      const eff = Object.assign({}, t.base, t.f);
+      return { sizes: STYLE_BAR_SIZES.side, highlight: true, size: t.f.size, bold: !!eff.bold, italic: !!eff.italic,
+               color: t.f.color || '', hl: t.f.highlight || '', align: eff.align || 'left', alignSet: !!t.f.align, mixed: {} };
+    }
+    if(styleTarget === 'grid'){
+      const keys = textSelTargets();
+      if(!keys.length) return null;
+      const looks = keys.map(k => textEffective(...splitTextKey(k)));
+      const same = p => looks.every(l => l[p] === looks[0][p]);
+      const mixed = { size: !same('size'), bold: !same('bold'), italic: !same('italic'), color: !same('color'), align: !same('align') };
+      return { sizes: STYLE_BAR_SIZES.grid, highlight: false,
+               size: mixed.size ? undefined : looks[0].size, bold: looks.every(l => l.bold), italic: looks.every(l => l.italic),
+               color: mixed.color ? '' : looks[0].color, hl: '', align: mixed.align ? '' : looks[0].align,
+               alignSet: looks.some(l => l.align !== 'center'), mixed };
+    }
+    return null;
+  }
+  function buildStyleBar(){
+    const bar = document.createElement('div');
+    bar.className = 'style-bar';
+    bar.setAttribute('role', 'toolbar');
+    bar.setAttribute('aria-label', 'Text style');
+    bar.innerHTML = `<select class="hf-ctl hf-size" title="Text size" aria-label="Text size"><option value="">Size</option></select>
+      <button type="button" class="hf-ctl hf-btn hf-b" title="Bold" aria-label="Bold"><b>B</b></button>
+      <button type="button" class="hf-ctl hf-btn hf-i" title="Italic" aria-label="Italic"><i>I</i></button>
+      <label class="hf-ctl hf-swatch" title="Text color"><span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-color" value="#000000" aria-label="Text color"></label>
+      <label class="hf-ctl hf-swatch hf-swatch-hl" title="Highlight color"><span class="hf-swatch-ink">A</span>
+        <input type="color" class="hf-hl" value="#ffff00" aria-label="Highlight color"></label>
+      ${alignMenuHtml()}
+      <button type="button" class="hf-ctl hf-btn hf-clear" title="Clear formatting" aria-label="Clear formatting">&#8709;</button>`;
+    // A press on the bar must not end a side box's edit (onSideFocusout, the outside-mousedown hide).
+    bar.addEventListener('pointerdown', ()=>{ sideFmtPressing = true; }, true);
+    // Buttons keep the caret where it is (a Manual header line, a box line); the select and the colour wells
+    // need their own default behaviour, the header strip's rule.
+    bar.addEventListener('mousedown', e=>{ if(e.target.closest('.hf-btn')) e.preventDefault(); });
+    bar.addEventListener('click', e=>{
+      const look = styleBarLook();
+      if(!look) return;
+      if(e.target.closest('.hf-b')) return styleBarApply({ bold: !look.bold });
+      if(e.target.closest('.hf-i')) return styleBarApply({ italic: !look.italic });
+      if(e.target.closest('.hf-clear')) return styleBarClear();
+      const toggle = e.target.closest('.hf-al-toggle');
+      if(toggle){
+        const menu = bar.querySelector('.hf-al-menu');
+        menu.hidden = !menu.hidden;
+        toggle.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+        return;
+      }
+      const opt = e.target.closest('.hf-al-opt');
+      if(opt){
+        bar.querySelector('.hf-al-menu').hidden = true;
+        bar.querySelector('.hf-al-toggle').setAttribute('aria-expanded', 'false');
+        // Picking the alignment a text already has returns it to its default, as both old bars did.
+        return styleBarApply({ align: (look.alignSet && look.align === opt.dataset.align) ? '' : opt.dataset.align });
+      }
+    });
+    bar.addEventListener('input', e=>{
+      if(e.target.classList.contains('hf-color')) styleBarApply({ color: e.target.value }, true);
+      if(e.target.classList.contains('hf-hl')) styleBarApply({ highlight: e.target.value }, true);
+    });
+    bar.addEventListener('change', e=>{
+      if(e.target.classList.contains('hf-size')) return styleBarApply({ size: e.target.value ? Number(e.target.value) : '' });
+      if(e.target.classList.contains('hf-color') || e.target.classList.contains('hf-hl')){
+        // The drag is over: bank it. The side boxes do this inside applySideFmt's own live mode.
+        if(styleTarget === 'side'){ sideFmtLive = false; cancelPendingUndoPush(); pushUndoSnapshot(); }
+        if(styleTarget === 'grid' && styleBarLive){ styleBarLive = false; cancelPendingUndoPush(); pushUndoSnapshot(); }
+      }
+    });
+    return bar;
+  }
+  function syncStyleBar(){
+    if(!styleBar) return;
+    const look = styleBarLook();
+    styleBar.classList.toggle('has-target', !!look);
+    const q = s => styleBar.querySelector(s);
+    const sel = q('.hf-size');
+    const sizes = look ? look.sizes.slice() : STYLE_BAR_SIZES.grid.slice();
+    // A size the list does not offer (a note sized 14 in the note editor before the bar) still shows.
+    if(look && look.size && !sizes.includes(look.size)) sizes.push(look.size);
+    sizes.sort((a, b) => a - b);
+    const want = '<option value="">Size</option>' + sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+    if(sel.dataset.opts !== want){ sel.innerHTML = want; sel.dataset.opts = want; }
+    sel.value = (look && look.size) ? String(look.size) : '';
+    const m = (look && look.mixed) || {};
+    q('.hf-b').classList.toggle('is-on', !!(look && look.bold));
+    q('.hf-b').classList.toggle('is-mixed', !!m.bold);
+    q('.hf-i').classList.toggle('is-on', !!(look && look.italic));
+    q('.hf-i').classList.toggle('is-mixed', !!m.italic);
+    q('.hf-color').value = (look && look.color) || '#000000';
+    q('.hf-swatch-hl').hidden = !(look && look.highlight);
+    q('.hf-hl').value = (look && look.hl) || '#ffff00';
+    const al = (look && look.align) || 'center';
+    const toggle = q('.hf-al-toggle');
+    toggle.innerHTML = alignIcon(al) + '<span class="hf-caret">▾</span>';
+    toggle.classList.toggle('is-on', !!(look && look.alignSet));
+    toggle.classList.toggle('is-mixed', !!m.align);
+    styleBar.querySelectorAll('.hf-al-opt').forEach(o=>{
+      const on = !!look && !m.align && o.dataset.align === al;
+      o.classList.toggle('is-on', on);
+      o.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  function styleBarApply(patch, live){
+    if(styleTarget === 'hdr' && hdrTargetLive()){ applyHdrFmt(patch); markHdrTarget(); return; }
+    if(styleTarget === 'side' && sideFmtTarget){ applySideFmt(patch, live); return; }
+    if(styleTarget === 'grid') applyGridTextStyle(patch, live);
+  }
+  function styleBarClear(){
+    if(styleTarget === 'hdr' && hdrTargetLive()){ clearHdrFmt(); markHdrTarget(); return; }
+    if(styleTarget === 'side' && sideFmtTarget){ applySideFmt(null); return; }
+    if(styleTarget === 'grid') applyGridTextStyle(null);
+  }
+  // Grid text: write each highlighted text's style (patch === null clears it, size included), then ONE render
+  // and ONE undo step -- batchFill's shape (a flush push, the writes, a trailing push). A colour well being
+  // dragged writes and renders on each move and is banked once, on its change (styleBarLive).
+  function applyGridTextStyle(patch, live){
+    const keys = textSelTargets();
+    if(!keys.length) return;
+    if(live){ if(!styleBarLive){ styleBarLive = true; cancelPendingUndoPush(); pushUndoSnapshot(); } }
+    else pushUndoSnapshot();
+    keys.forEach(k=>{
+      const [kind, key] = splitTextKey(k);
+      const sizeStore = kind === 'note' ? noteFontSize : kind === 'hiatus' ? hiatusFontSize : null;
+      if(patch === null){
+        delete textStyle[kind][key];
+        if(sizeStore) delete sizeStore[key];
+        return;
+      }
+      const rest = Object.assign({}, patch);
+      // A note's or a band's size lives in its own store (§5), where 11, the default, is stored as nothing.
+      if(sizeStore && 'size' in rest){
+        if(rest.size === '' || rest.size == null || rest.size === 11) delete sizeStore[key]; else sizeStore[key] = rest.size;
+        delete rest.size;
+      }
+      if('size' in rest && rest.size === 11) rest.size = '';
+      // A bold that matches the kind's own look is no override (dates and headings are bold already).
+      if('bold' in rest && rest.bold === !!TEXT_DEFAULT_BOLD[kind]) rest.bold = '';
+      if('italic' in rest && rest.italic === false) rest.italic = '';
+      if('align' in rest && rest.align === 'center') rest.align = '';
+      if(!Object.keys(rest).length) return;
+      const cur = Object.assign({}, textStyle[kind][key] || {}, rest);
+      Object.keys(cur).forEach(p=>{ if(cur[p] === '' || cur[p] == null) delete cur[p]; });
+      if(Object.keys(cur).length) textStyle[kind][key] = cur; else delete textStyle[kind][key];
+    });
+    render(currentSchedule);
+    if(!live){ pushUndoSnapshot(); }
+    markDirty();
+    if(!live) cancelPendingUndoPush();
+    syncStyleBar();
+  }
+  if(document.querySelector('.style-bar-host')){
+    styleBar = buildStyleBar();
+    document.querySelector('.style-bar-host').appendChild(styleBar);
+    syncStyleBar();
+  }
+  // The bar's alignment menu closes on any press elsewhere, as the strip's does (registered on document).
+  document.addEventListener('click', e=>{
+    if(!styleBar || (e.target.closest && e.target.closest('.style-bar .hf-align-wrap'))) return;
+    const menu = styleBar.querySelector('.hf-al-menu');
+    if(menu && !menu.hidden){ menu.hidden = true; styleBar.querySelector('.hf-al-toggle').setAttribute('aria-expanded', 'false'); }
+  });
 
   // ---------- The header template EDITOR (owner request, 9 Sep 2026) ----------
   //
@@ -18089,6 +18804,7 @@ export function initLegacyApp() {
     if(activeNoteEditor){ closeNoteEditorPop(); activeNoteEditor = null; }
     Object.keys(userNotes).forEach(k=>delete userNotes[k]);
     noteColors = {}; noteFontSize = {};
+    textStyle.note = {};     // their text styles too, as their colours and sizes (TEXT-STYLE-BAR-PLAN.md §2)
     render(currentSchedule);
     markDirty();
   }
@@ -18106,6 +18822,7 @@ export function initLegacyApp() {
   // Break" row read "Hiatus"). update() runs that sync first. It also ends in markDirty().
   function resetHiatusBands(){
     hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {}; hiatusFontSize = {};
+    textStyle.hiatus = {};
     update();
   }
   document.addEventListener('click', e=>{
@@ -18978,7 +19695,10 @@ export function initLegacyApp() {
     input.focus();
     input.select();
   }
-  document.getElementById('table-wrap').addEventListener('click', e=>{
+  // A DOUBLE-click since 21 Oct 2026: a click highlights the heading for the text style bar (TEXT-STYLE-BAR-
+  // PLAN.md §1 D5, "a custom column heading follows the same rule" as a note). A click on the heading being
+  // edited still keeps editing (the outside-click commit below ignores it).
+  document.getElementById('table-wrap').addEventListener('dblclick', e=>{
     const th = e.target && e.target.closest ? e.target.closest('th.hdrrow-cell[data-hcol]') : null;
     if(!th) return;
     e.stopPropagation();
@@ -19994,6 +20714,7 @@ export function initLegacyApp() {
     dayOverrides = {};
     noteColors = {}; noteFontSize = {}; hiatusTexts = {}; hiatusNameSyncedKeys = {}; hiatusColors = {};
     hiatusFontSize = {}; holidayView = {};
+    textStyle = emptyTextStyle();
     holidayOff = {}; customHolidays = [];
     // Hand-dragged column widths, row heights, cell spans and column ORDER are layout, not notes,
     // so "Reset Notes & Hiatus" deliberately leaves them alone -- only a full Reset All clears
@@ -20584,6 +21305,10 @@ export function initLegacyApp() {
       // 20 Oct 2026 (SIDE-BOXES-PLAN.md, owner ruling 7): the boxes beside the waterfall. ⛔ PERMANENT key.
       // Written ONLY while a box exists, so a calendar with none saves byte for byte as before.
       ...(sideBoxes.length ? {sideBoxes: {boxes: sideBoxes, widths: sideWidths}} : {}),
+      // 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md §5): the styling bar's text styles, one map per kind, only the
+      // kinds that hold one. ⛔ PERMANENT key and kind words. ABSENT while nothing is styled, so a calendar
+      // without a style saves byte for byte as before.
+      ...(textStyleHasAny() ? {textStyles: textStyleSnapshot()} : {}),
       // 19 Oct 2026: number Production's shoot days in the month view ("Day 12"). ⛔ PERMANENT key,
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
@@ -21218,6 +21943,13 @@ export function initLegacyApp() {
     hiatusNameSyncedKeys = shiftKeyedMap(hiatusNameSyncedKeys, days, hiatusKeyStays);
     hiatusColors = shiftKeyedMap(hiatusColors, days, hiatusKeyStays);
     hiatusFontSize = shiftKeyedMap(hiatusFontSize, days, hiatusKeyStays);
+    // Text styles go where what they style goes (TEXT-STYLE-BAR-PLAN.md §2): a note's with its note, a band's
+    // with its band, a phase week's with its phase, Sim Post's with Production (it only runs inside the
+    // shoot). Dates and headings carry no movable week, so they stay.
+    textStyle.note = shiftKeyedMap(textStyle.note, days, isPinnedWeek);
+    textStyle.hiatus = shiftKeyedMap(textStyle.hiatus, days, hiatusKeyStays);
+    textStyle.phase = shiftKeyedMap(textStyle.phase, days, hiatusKeyStays);
+    textStyle.simpost = shiftKeyedMap(textStyle.simpost, days, () => stayingPhases.has('production'));
     // A hand-set cell span is keyed '<week>|<phase key>' and belongs to its phase, so it makes
     // the same journey a per-phase hiatus band does: it moves when its phase moves, stays when
     // the phase stays put on a ripple.
@@ -23665,16 +24397,19 @@ export function initLegacyApp() {
     // ⚠️ The screen budgets lines in screen px and the PDF row holds rowPx x 0.75 pt; the two agree only
     // at 20 px (MANTINE-SEAM §5.8, a disagreement §5.13 says to preserve). In a dragged-tall row the
     // last budgeted line can therefore clip here while it shows on screen.
-    const wrapLines = (text, chars, px)=>{
+    // ⛔ FROZEN EDIT F3 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): `isBold` breaks a bold text where its bold words
+    // break (F4's rule for the screen). Absent, it measures regular weight as before.
+    const wrapLines = (text, chars, px, isBold)=>{
+      isBold = !!isBold;
       const availPx = Math.max(1, chars * EXCEL_MDW) * (11 / px);
-      const spaceW = measureTextPx(' ', false);
+      const spaceW = measureTextPx(' ', isBold);
       const out = [];
       String(text).split('\n').forEach(para=>{
         const words = para.split(/\s+/).filter(Boolean);
         if(!words.length){ out.push(''); return; }   // a blank line still occupies one
         let line = '', lineW = 0;
         words.forEach(w=>{
-          const ww = measureTextPx(w, false);
+          const ww = measureTextPx(w, isBold);
           const cand = lineW ? lineW + spaceW + ww : ww;
           if(cand <= availPx || lineW === 0){ line = lineW ? line + ' ' + w : w; lineW = cand; }
           else { out.push(line); line = w; lineW = ww; }
@@ -23689,6 +24424,22 @@ export function initLegacyApp() {
       lines.forEach((ln, i)=>{
         const w = ttfTextWidth(ttf, ln, size);
         page.text(ln, cx - w/2, baselineIn(cellTop, 0, lines.length, size, i), tag, size, colour);
+      });
+    };
+    // ⛔ FROZEN EDIT F3 (owner sign-off, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md §6): a STYLED grid text's lines -- its weight (the
+    // embedded Carlito Bold or Regular), colour, slant (the header's 0.21 shear) and alignment, inset by the
+    // cell's own padding when not centred. Only a styled text comes here; every unstyled one keeps its
+    // drawLines / drawWrapped call, so an unstyled calendar's PDF is byte for byte what it was. `top` is the
+    // wrapped case (drawWrapped's top alignment); otherwise centred in the cell's height as drawLines is.
+    const drawStyled = (lines, x0, w, cellTop, cellH, size, colour, f, defBold, top)=>{
+      const isB = f.bold !== undefined ? !!f.bold : defBold;
+      const tag = isB ? 'F2' : 'F1', ttf = isB ? bold : reg;
+      const ink = f.color || colour, skew = f.italic ? 0.21 : 0;
+      const pad = S(EXCEL_CELL_PAD * SHEET_ZOOM / 2);
+      lines.forEach((ln, i)=>{
+        const tw = ttfTextWidth(ttf, ln, size);
+        const x = f.align === 'left' ? x0 + pad : f.align === 'right' ? x0 + w - pad - tw : x0 + w/2 - tw/2;
+        page.text(ln, x, baselineIn(cellTop, top ? 0 : cellH, lines.length, size, i), tag, size, ink, skew);
       });
     };
 
@@ -23799,10 +24550,13 @@ export function initLegacyApp() {
       const cols = blockCols[bi];
       let x = originX + S(blockX[bi]);
       page.rect(x, hy, S(cols.reduce((a,c)=>a+c.w,0)), hh, HEADER_FILL_PDF);
-      const put = (label, w)=>{
+      const put = (label, w, key)=>{
         const size = S(HDR_ROW_PT*0.55);
         page.clipPush(x, hy, w, hh);
-        drawLines(label, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
+        // F3: a styled heading at its size (in proportion to the row's own 11) and look.
+        const f = key ? textStyleOf('heading', key) : null;
+        if(f) drawStyled([label], x, w, hy, hh, size * ((f.size || 11) / 11), '#000000', f, true, false);
+        else drawLines(label, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
         page.clipPop();
         x += w;
       };
@@ -23816,20 +24570,24 @@ export function initLegacyApp() {
         headerRowRuns(b, colWidthsFor[bi].cols).forEach(run=>{
           const w = S(cols.slice(run.start, run.start + run.span).reduce((a,c)=>a+c.w,0));
           if(run.text){
-            const size0 = S(HDR_ROW_PT*0.55), tw = ttfTextWidth(bold, run.text, size0);
+            // F3: a styled heading starts from its size and measures in its weight, then shrinks as any does.
+            const hf = textStyleOf('heading', run.keys[0]);
+            const hb = hf && hf.bold === false ? reg : bold;
+            const size0 = S(HDR_ROW_PT*0.55) * (hf && hf.size ? hf.size / 11 : 1), tw = ttfTextWidth(hb, run.text, size0);
             const room = Math.max(1, w - S(EXCEL_CELL_PAD * SHEET_ZOOM));
             const size = tw > room ? size0 * Math.max(NOTE_SHRINK_FLOOR, room / tw) : size0;
             page.clipPush(x, hy, w, hh);
-            drawLines(run.text, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
+            if(hf) drawStyled([run.text], x, w, hy, hh, size, '#000000', hf, true, false);
+            else drawLines(run.text, x + w/2, hy, hh, size, '#000000', 'F2', bold, w);
             page.clipPop();
           }
           x += w;
         });
         return;
       }
-      put('Date', S(cols[0].w));
-      put(String(b.year), S(cols.slice(1,-1).reduce((a,c)=>a+c.w,0)));
-      put('Notes', S(cols[cols.length-1].w));
+      put('Date', S(cols[0].w), 'y' + b.year + ':date');
+      put(String(b.year), S(cols.slice(1,-1).reduce((a,c)=>a+c.w,0)), 'y' + b.year + ':s0');
+      put('Notes', S(cols[cols.length-1].w), 'y' + b.year + ':notes');
     });
     page.line(originX, hy+hh, originX + S(gridW), hy+hh, HDR_RULE, 0.75);
 
@@ -23857,7 +24615,10 @@ export function initLegacyApp() {
         const dsize = S(11);
         page.clipPush(bx, ry, dw, rh);
         // ⛔ FROZEN EDIT (owner-approved 20 Oct 2026, ruling 4): the date format; fmtShort() by default.
-        drawLines(fmtWeekDate(w.date), bx + dw/2, ry, rh, dsize, '#000000', 'F2', bold, dw);
+        // F3: a styled date at its size and look.
+        const dts = textStyleOf('date', w.date.toISOString().slice(0,10));
+        if(dts) drawStyled([fmtWeekDate(w.date)], bx, dw, ry, rh, S(dts.size || 11), '#000000', dts, true, false);
+        else drawLines(fmtWeekDate(w.date), bx + dw/2, ry, rh, dsize, '#000000', 'F2', bold, dw);
         page.clipPop();
 
         if(w.cells.length && w.cells[0].type==='hiatus'){
@@ -23866,11 +24627,14 @@ export function initLegacyApp() {
           const bandW = S(cols.slice(1).reduce((a,c)=>a+c.w,0));
           let av = 0; cols.forEach((c,ci)=>{ if(ci>0) av += c.chars; });
           const hs = hiatusFontSizeFor(hKey);
-          const fit = cellTextFit(hTxt, av, { basePx: hs||11, manual: hs!==undefined,
-                                              rowPx: rowHeights[r] || ROW_DEFAULT_PX });
+          const hts = textStyleOf('hiatus', hKey);   // F3
+          const fit = cellTextFit(hTxt, av, Object.assign({ basePx: hs||11, manual: hs!==undefined,
+                                              rowPx: rowHeights[r] || ROW_DEFAULT_PX }, hts && hts.bold ? { bold: true } : {}));
           page.rect(bx + dw, ry, bandW, rh, hCol);
           page.clipPush(bx + dw, ry, bandW, rh);
-          if(fit.wrap) drawWrapped(wrapLines(hTxt, av, 11*fit.scale), bx + dw + bandW/2, ry, S(11*fit.scale),
+          if(hts) drawStyled(fit.wrap ? wrapLines(hTxt, av, 11*fit.scale, hts.bold) : String(hTxt).split('\n'),
+                             bx + dw, bandW, ry, rh, S(11*fit.scale), textColorFor(hCol), hts, false, fit.wrap);
+          else if(fit.wrap) drawWrapped(wrapLines(hTxt, av, 11*fit.scale), bx + dw + bandW/2, ry, S(11*fit.scale),
                                    textColorFor(hCol), 'F1', reg);
           else drawLines(hTxt, bx + dw + bandW/2, ry, rh, S(11*fit.scale),
                     textColorFor(hCol), 'F1', reg, bandW);
@@ -23907,17 +24671,27 @@ export function initLegacyApp() {
             // contrast rule. Phase and Simultaneous Post labels are black like everything else.
             const ink  = cell.kind === 'phaseHiatus' ? textColorFor(cell.color) : GRID_TEXT_COLOR;
             page.rect(cx, ry, cw, rh, fill);
-            let fit;
+            let fit, cts = null;
+            const wIsoP = w.date.toISOString().slice(0,10);
             if(cell.kind === 'phaseHiatus'){
               const k = cell.weekIso + '|' + cell.phaseKey;
               const ps = hiatusFontSizeFor(k);
-              fit = cellTextFit(cell.label||'', av, { basePx: ps||11, manual: ps!==undefined,
-                                                      rowPx: rowHeights[r] || ROW_DEFAULT_PX });
+              cts = textStyleOf('hiatus', k);   // F3
+              fit = cellTextFit(cell.label||'', av, Object.assign({ basePx: ps||11, manual: ps!==undefined,
+                                                      rowPx: rowHeights[r] || ROW_DEFAULT_PX }, cts && cts.bold ? { bold: true } : {}));
             } else {
-              fit = cellTextFit(cell.label||'', av, {});
+              // F3: a styled phase week or Sim Post fits from its size in its weight (the screen's F1).
+              cts = cell.kind === 'phase' ? (cell.own !== undefined && cell.cell ? textStyleOf('phase', wIsoP + '|' + cell.cell.key) : null)
+                  : textStyleOf('simpost', wIsoP);
+              fit = cellTextFit(cell.label||'', av, cts ? textFitOpts(cts) : {});
             }
             page.clipPush(cx, ry, cw, rh);
-            if(cell.kind === 'phaseHiatus' && fit.wrap)
+            if(cts){
+              const wrapped = cell.kind === 'phaseHiatus' && fit.wrap;
+              drawStyled(wrapped ? wrapLines(cell.label||'', av, 11*fit.scale, cts.bold) : String(cell.label||'').split('\n'),
+                         cx, cw, ry, rh, S(11*fit.scale), ink, cts, false, wrapped);
+            }
+            else if(cell.kind === 'phaseHiatus' && fit.wrap)
               drawWrapped(wrapLines(cell.label||'', av, 11*fit.scale), cx + cw/2, ry, S(11*fit.scale), ink, 'F1', reg);
             else drawLines(cell.label||'', cx + cw/2, ry, rh, S(11*fit.scale), ink, 'F1', reg, cw);
             page.clipPop();
@@ -23932,11 +24706,15 @@ export function initLegacyApp() {
         const nTxt = effectiveNoteText(wk, autoNotesForView(notesByIdx[b.startIdx+r], 'sheet'));
         if(nTxt){
           const nCol = noteColorFor(wk), ns = noteFontSizeFor(wk);
+          const nts = textStyleOf('note', wk);   // F3
           const fit = cellTextFit(nTxt, colWidthsFor[bi].notes,
-                                  { basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX });
+                                  Object.assign({ basePx: ns||11, manual: ns!==undefined, rowPx: rowHeights[r] || ROW_DEFAULT_PX },
+                                                nts && nts.bold ? { bold: true } : {}));
           page.rect(nx, ry, nw, rh, nCol);
           page.clipPush(nx, ry, nw, rh);
-          if(fit.wrap) drawWrapped(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale), nx + nw/2, ry,
+          if(nts) drawStyled(fit.wrap ? wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale, nts.bold) : String(nTxt).split('\n'),
+                             nx, nw, ry, rh, S(11*fit.scale), textColorFor(nCol), nts, false, fit.wrap);
+          else if(fit.wrap) drawWrapped(wrapLines(nTxt, colWidthsFor[bi].notes, 11*fit.scale), nx + nw/2, ry,
                                    S(11*fit.scale), textColorFor(nCol), 'F1', reg);
           else drawLines(nTxt, nx + nw/2, ry, rh, S(11*fit.scale), textColorFor(nCol), 'F1', reg, nw);
           page.clipPop();
@@ -26369,6 +27147,34 @@ export function initLegacyApp() {
     });
     return Object.keys(out).length ? out : null;
   }
+  // One grid text's style (TEXT-STYLE-BAR-PLAN.md §5): the header's entry, less what the bar never writes
+  // for grid text -- a highlight (a cell already has a fill), a size outside 6–12 (owner ruling D1), and any
+  // size at all on a note or a band, whose size lives in noteFontSize / hiatusFontSize.
+  function cleanTextStyleEntry(kind, f, bad){
+    const out = cleanHeaderFormatEntry(f, bad);
+    if(!out) return null;
+    if('highlight' in out){ bad.n++; delete out.highlight; }
+    if('size' in out && (kind === 'note' || kind === 'hiatus' || !TEXT_STYLE_SIZES.includes(out.size))){
+      bad.n++; delete out.size;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+  // The whole `textStyles` value: { kind: { key: entry } }. Returns null when nothing survives.
+  function cleanTextStyles(v, bad){
+    if(!isPlainObj(v)){ bad.n++; return null; }
+    const out = {};
+    Object.keys(v).forEach(kind=>{
+      if(!TEXT_STYLE_KINDS.includes(kind) || !isPlainObj(v[kind])){ bad.n++; return; }
+      const m = {};
+      Object.keys(v[kind]).forEach(k=>{
+        if(!SNAP_KEY.test(k)){ bad.n++; return; }
+        const f = cleanTextStyleEntry(kind, v[kind][k], bad);
+        if(f) m[k] = f;
+      });
+      if(Object.keys(m).length) out[kind] = m;
+    });
+    return Object.keys(out).length ? out : null;
+  }
   // A whole { lineId: format } map, cleaned entry by entry -- for presets, which never pass
   // through sanitizeSnapshot on their way into headerFormat / mvHeaderFormat.
   function cleanHeaderFormatMap(m, bad){
@@ -26636,6 +27442,12 @@ export function initLegacyApp() {
       const sb = cleanSideBoxes(s.sideBoxes, bad);
       if(sb && sb.boxes.length) s.sideBoxes = sb; else delete s.sideBoxes;
     }
+    // Text styles (TEXT-STYLE-BAR-PLAN.md §5): a known kind, a store-shaped key, an entry the bar could have
+    // written -- and an emptied result dropped, since absent already means "nothing styled".
+    if('textStyles' in s){
+      const ts = cleanTextStyles(s.textStyles, bad);
+      if(ts) s.textStyles = ts; else delete s.textStyles;
+    }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
@@ -26902,6 +27714,9 @@ export function initLegacyApp() {
     // incoming file had a manual month header, so an Auto file inherited the last file's colours.
     headerFormat = snap.headerFormat ? Object.assign({}, snap.headerFormat) : {};
     mvHeaderFormat = snap.mvHeaderFormat ? Object.assign({}, snap.mvHeaderFormat) : {};
+    // Unconditionally (CLAUDE.md "Restore unconditionally"): a file with no `textStyles` key has nothing
+    // styled, never the previous calendar's styles.
+    textStyle = textStyleFromSnapshot(snap.textStyles);
     // ⚠️ `=== true`, AND OUTSIDE THE BRANCHES BELOW, both deliberately. `if(snap.headerTemplates)`
     // would leave the PREVIOUS file's mode in place when the new snapshot has no such key -- the
     // exact failure CLAUDE.md's "restore unconditionally" rule exists for, and the one that made

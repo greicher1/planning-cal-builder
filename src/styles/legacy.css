@@ -2524,6 +2524,49 @@
     flex:none;
   }
 
+  /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
+     One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
+     header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
+  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools. */
+  .view-toggle-row > .style-bar-host{ flex:1 1 100%; min-width:0; }
+  .style-bar{
+    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
+    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-sm);
+  }
+  .style-bar::before{
+    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  }
+  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  .style-bar:not(.has-target)::after{
+    content:'Highlight any text in the calendar to style it'; flex:none;
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
+  }
+  .style-bar .hf-swatch[hidden]{ display:none; }
+  /* A highlight that is part one look and part another: outlined in the accent, not filled. */
+  .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }
+  /* The in-calendar header strips retire: the bar above does their job (TEXT-STYLE-BAR-PLAN.md §2). Scoped to
+     #table-wrap, so the header editor's own copy of the controls is untouched. .hdr-tools collapses to
+     nothing, as it always has outside Manual mode. */
+  #table-wrap .hdr-fmt{ display:none; }
+  /* A header line picked for the bar in Auto or Template mode, where there is no caret to show it. An outline
+     takes no room, so the header never moves. */
+  #table-wrap .hdr-line.is-style-target{ outline:2px solid var(--edit-accent); outline-offset:1px; border-radius:2px; }
+  /* The highlight over the grid (D2): the gridSel layer's place and rules -- a sibling inside .sheet-grid-wrap,
+     z-index 1 under the sticky heading row, clipped, no pointer events. Headings get a STICKY strip of their
+     own at the wrap's top, so their boxes stay on the heading row while the body scrolls under it; z-index 3
+     puts them over that row (z 2). Both hidden while a resize drag moves the grid live, as gridSel's is. */
+  .text-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .text-sel-head{ position:sticky; top:0; height:0; z-index:3; pointer-events:none; }
+  .text-sel-cell{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.75);
+    background:rgba(112,48,160,.10); }
+  .text-sel-cell.is-active{ border-width:2px; }
+  .text-sel-marquee{ position:absolute; border:1px dashed rgba(112,48,160,.7); background:rgba(112,48,160,.05); }
+  body.grid-resizing .text-sel-layer, body.grid-resizing .text-sel-head{ display:none; }
+
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
      min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift
      the layout for people who never use them. Hidden until they hold text OR the header is in
