@@ -1487,6 +1487,23 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* The four SHIFTING tools wear the app's accent tint (owner, 21 Oct 2026: "right now all the buttons
+     look exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
+     Header button and undo/redo. It is UI-CONVENTIONS §3b's primary-action tint, which suits the
+     toolbar's most-used controls. Tokens, never hex. The tint is on each part of Shift All, not on its
+     group, so a hover there composites exactly as it does on the other three. These rules are
+     unlayered, so they outrank Mantine's layered Button colours without !important; that is also why
+     the hover and open states are spelled out here, since Mantine's own hover is layered too. */
+  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-2); }
+  .shift-btn, .tools-wrap > .tools-btn{
+    background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+  }
+  .shift-btn + .shift-btn{ border-left-color:var(--mantine-color-navy-2); }
+  .shift-btn:hover, .shift-main[aria-expanded="true"],
+  .tools-wrap > .tools-btn:hover, .tools-wrap > .tools-btn[aria-expanded="true"]{
+    background:var(--mantine-primary-color-light-hover); color:var(--mantine-primary-color-light-color);
+  }
+  .tools-wrap > .tools-btn .caret{ color:inherit; }
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
      as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
      outranks Mantine's layered Button background without !important. */

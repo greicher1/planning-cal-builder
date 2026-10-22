@@ -29,6 +29,19 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the shifting tools get their own colour; "Side Boxes" (21 Oct 2026)
+
+The owner, of the preview toolbar: *"right now all the buttons look exactly the same"*. They first asked for the
+shifting tools to be centred between the Month button and Side boxes, then dropped that for a colour (*"maybe we
+dont need to move them"*); the row's spacing is unchanged.
+- **← 1 wk / Shift All / 1 wk →, Shift From, Anchor To and Rebuild From** wear the app's navy accent tint (the
+  active Show tab's ground, UI-CONVENTIONS §3b's primary-action tint) with a navy hairline, so the four read as one
+  family. Side Boxes, the Header button and undo/redo stay white. Hover and the open state step one shade darker.
+- The Side boxes button reads **Side Boxes**, like its Title Case neighbours.
+- Chrome only (`legacy.css`, `PreviewToolbar.jsx`'s label); nothing in the grid, its cells or the exports changes.
+- **Verified:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 on the build; a 2× screenshot at
+  1650 px. Full gate not yet run.
+
 ### Unreleased — the zoom control and the ? button get their own strip under the calendar (21 Oct 2026)
 
 The owner, of the zoom pill: *"can we make this smaller so it doesnt overlap the viewport"*, then *"or add a little

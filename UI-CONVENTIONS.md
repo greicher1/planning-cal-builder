@@ -326,7 +326,10 @@ explicit override on icon buttons, not a token.
 the active Settings tab: *"can we make primary buttons this same bg color?"*). This was already the
 app's answer in two places before it was written down — `.side-tab-btn.active` and
 `button.secondary.add-hiatus-btn`, whose comment calls it *"a deliberate echo of the active tab so
-the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third.
+the accent reads as one system"*. `.hdr-preset-btn.is-primary` is the third. The preview toolbar's four
+shifting tools (`.shift-btn`, `.tools-wrap > .tools-btn`) are the fourth (owner, 21 Oct 2026: *"right now all
+the buttons look exactly the same"*): the toolbar's most-used controls, set apart from Side Boxes and the Header
+button.
 
 Three rules go with it:
 

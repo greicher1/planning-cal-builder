@@ -4,6 +4,34 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; COMMITTED, PUSH APPROVED WITHOUT A FULL GATE (owner, by picker)
+
+- **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
+  edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
+  mid-turn: *"ok maybe we dont need to move them. we just need to maybe put these controls in a different color?
+  right now all the buttons look exactly the same"*.
+- **Centring was built, then reverted** at that word. For the record, it worked as: `.preview-tools` `flex:1 1 auto`,
+  the four tools in a `.shift-tools` wrapper with `margin-inline:auto` and `padding-inline:16px` (the 16 px floor
+  being the owner's 30 Sep 2026 separation). Measured first: at 1440 px the two gaps were already 32 / 26 px, and at
+  the owner's ~1650 px about 240 / 26, since `space-between` gives all the slack to the left. Nothing in the engine
+  depends on the toolbar's nesting (click-away is `closest('.tools-wrap')` / `closest('.shift-group')`); `hdrcontrols`
+  T0 only asks that the Header button stays inside `.preview-tools`.
+- **Built** (`legacy.css`, after `.tools-btn[aria-expanded]`): `.shift-btn` and `.tools-wrap > .tools-btn` take
+  `--mantine-primary-color-light` (resolves to navy-1 `#D3DAE1`, the active Show tab's ground) on
+  `-light-color`, with a navy-2 hairline on `.shift-group` and the three buttons; hover and `[aria-expanded]` take
+  `-light-hover`. ⚠️ The tint is on each part of Shift All, NOT on `.shift-group`, so hover composites the same on all
+  four. ⚠️ The rules are unlayered, so they beat Mantine's layered Button colours, which also means Mantine's own hover
+  is beaten: the hover rule has to be spelled out. `.tools-wrap > .tools-btn` matches exactly the three popover tools;
+  Side Boxes and the Header button are `.tools-btn` too but not inside a `.tools-wrap`. The label: `PreviewToolbar.jsx`
+  "Side Boxes" (the only user-facing copy of it; Help never names the button).
+- **Proof so far:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 (`HARNESS_PAGE=/dist/index.html`);
+  a 2× headless screenshot at 1650 px. Full gate not run.
+- **Owner, by picker:** *"Keep this tint"*, *"Commit it"*, and of the full gate *"do we really need a full gate just to
+  change the color of some buttons?"*. Answered: no, the gate rule covers the grid, the exports and the save path,
+  and these rules match only four toolbar buttons, which both print paths hide and the shareable copy empties.
+  Then *"Push now"*, without the gate.
+- ⏭ **Next:** nothing. The worktree `.claude/worktrees/toolbar-center` can be removed on the owner's word.
+
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
 
 - **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the
