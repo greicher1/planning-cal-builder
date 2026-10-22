@@ -8,7 +8,8 @@
 // what the month checks need; its waterfall is a full two-year grid. Red on the pre-change build (no control).
 //
 // Z  the control: bottom right, left of the help button and clear of it, on top where it is pressed, no id
-//    anywhere in it, 100% writes nothing at all (no style on #table-wrap, no body class).
+//    anywhere in it, 100% writes nothing at all (no style on #table-wrap, no body class), and both it and the
+//    help button in the bottom strip, below the preview's scroll box (Z5, W1b; owner, 21 Oct 2026).
 // W  the waterfall: a step through the hit stack, the grid box ending at the panel's bottom at every zoom with
 //    the panel never scrolling, the frozen resize handles hidden while zoomed and back ON their rows and
 //    columns at 100%, the selection outline on its cell and the swap button in the same grid place at 150%.
@@ -53,6 +54,13 @@ window.addEventListener('load', function () { (async function () {
     return {bottom: r.bottom, floor: floor, fits: s.scrollHeight <= s.clientHeight + 1,
             panelScrolls: pp.scrollHeight > pp.clientHeight + 1};
   }
+  // The bottom strip (owner, 21 Oct 2026: the control covered the grid's last rows and its scrollbar). The
+  // control and the help button sit BELOW the box, 8px clear, so nothing drawn in it passes under them.
+  function clearOfStrip(el){
+    var b = el.getBoundingClientRect().bottom, c = q('.cal-zoom').getBoundingClientRect(), f = $('help-fab').getBoundingClientRect();
+    out.strip = [b, c.top, f.top].map(Math.round);
+    return b <= Math.min(c.top, f.top) - 8 + 0.5;
+  }
   function handlesOnRows(){
     var wrap = q('.sheet-grid-wrap'), wr = wrap.getBoundingClientRect();
     var rows = Array.from(q('table.sheet-table').tBodies[0].rows), hs = qa('.grid-resize.is-row', wrap), bad = 0;
@@ -77,6 +85,8 @@ window.addEventListener('load', function () { (async function () {
     check(pct() === '100%' && hits(q('.cal-zoom-slider')) && hits(q('.cal-zoom [aria-label="Zoom out"]')) && hits(q('.cal-zoom [aria-label="Zoom in"]')),
           'Z2 it reads 100% and its slider and both buttons are on top where they are pressed');
     check(!qa('[id]', ctl).length, 'Z3 no id anywhere in it (collectFieldValues sweeps every input[id] into the file)');
+    // The month view scrolls in .preview-panel itself, so the panel is the box that must end above them.
+    check(clearOfStrip(q('main.preview-panel')), 'Z5 the bottom strip: the month view\'s scroll box ends 8px above the control and the help button (' + out.strip + ')');
     check(!$('table-wrap').hasAttribute('style') && !document.body.classList.contains('cal-zoomed') && !prefs().calZoom,
           'Z4 at 100% nothing is written: no style on #table-wrap, no body class, no preference');
 
@@ -119,6 +129,7 @@ window.addEventListener('load', function () { (async function () {
     await T.until(function () { return q('#table-wrap table.sheet-table') && view() === 'sheet'; }, 'the waterfall', 100, 100);
     await T.sleep(300);
     check(pct() === '100%' && !$('table-wrap').hasAttribute('style'), 'W1 the waterfall keeps its own zoom: 100% while the month is at 125%');
+    check(clearOfStrip($('sheet-scroll-container')), 'W1b the bottom strip: the grid box ends 8px above the control and the help button (' + out.strip + ')');
     await press(q('.cal-zoom [aria-label="Zoom out"]'));
     check(pct() === '90%' && $('table-wrap').style.zoom === '0.9' && document.body.classList.contains('cal-zoomed'),
           'W2 Zoom out, pressed through the hit stack, steps to 90%');

@@ -794,6 +794,7 @@ page scrolls, exactly as before.
 | the sidebar | fills `.layout` (`align-self:stretch`, `max-height:none`, `min-height:0`) and keeps its own `overflow-y:auto`. Its `calc(100vh - var(--header-h))` knew the header but **not the notice strips**, so with a strip showing it ran past the window and its last rows could not be reached |
 | the month view | `.preview-panel{overflow:auto}` — the view has no scroll box of its own, and it is not scaled or restyled |
 | the waterfall | fitted so the panel never scrolls in that view and the grid box is the **one** vertical scroller — below |
+| the bottom strip | *(21 Oct 2026, owner: the zoom pill covered the grid's last rows.)* `.preview-panel{padding-bottom:0; margin-bottom:44px}`: the fixed **?** button (28 px, `bottom:8px`) and the zoom pill (26 px, centred on it) sit in the 44 px under the panel, 8 px clear of it. ⛔ A **margin**, not padding: padding is inside the panel's scroll box, so the month view would still scroll under them. The grid fit needs no change, since it measures the panel. Below 960 px it is `padding-bottom:44px`, so the end of the page clears them. `calzoom` Z5 and W1b hold it |
 
 ⛔ **Nothing was wrapped or re-parented.** Both print paths hide the app with
 `body.printing-* > *:not(#print-root)` child combinators and `header.app-header` must stay a direct

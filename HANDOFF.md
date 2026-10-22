@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); NOT COMMITTED, NOT PUSHED
+
+- **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the
+  viewport"*, then mid-turn *"or add a little more space at the bottom of the app to give it room?"* Measured at
+  1440×900: the grid box ran to 20px above the window bottom, and the pill (839–871) and the 46px **?** (832–878)
+  sat wholly on it, over the last rows AND the horizontal scrollbar.
+- **Ruled by picker:** *"Both in the strip"*: the **?** button shrinks with the pill rather than staying 46px over
+  the grid's corner.
+- **Built** (`legacy.css` only, plus 12px icons in `ZoomControl.jsx`): `#help-fab` 28px at `right:28px;
+  bottom:8px` (its right edge on the grid's); `.cal-zoom` 26px tall, centred on it, `right:64px`, slider 80px, 11px
+  percentage. Shell (> 960px): `.preview-panel{padding-bottom:0; margin-bottom:44px}`. ⛔ **Margin, not padding:**
+  the month view scrolls INSIDE the panel, so padding would still let it pass under the controls; a margin ends the
+  scroller. The grid fit (app.js) measures `panel.clientHeight`, so the waterfall follows with no JS change. Stacked
+  (≤ 960px): `padding-bottom:44px` in the base rule, so the page's end clears them. UI-CONVENTIONS §7's app-shell
+  table has a "bottom strip" row.
+- ⚠️ **In headless Chrome the panel ends 93px up, not 44px:** the harness's own `PRE#R` result element sits in
+  `<body>`'s flex column under `.layout` (49px). A harness artifact, not the app; the app's browser measures 44.
+- **Proof so far:** `calzoom` 24/24 with the new Z5 (month view's scroll box 8px above both controls) and W1b (the
+  grid box likewise); `npm run check` 40/40; by hand at 1440×900, 1024×768 (both views, 90% and 100%) and stacked
+  900×700. ✅ **Full gate on build `f62b9bc8…` (HARNESS_PORT 9343, 16:36–17:01): 2,595 PASS, 3 FAIL**, all three the
+  contention flakes already on record (other sessions' harness runs were going beside it): `pilllabel (month-dense60)`
+  C1 + C3 (its `'block'` case showed the previous file's label) and `monthexport (blocks)` X6 (the timed dialog case).
+  **Both legs re-run alone on the same build: green** (pilllabel's C, all four labels, want = got, rows OK; monthexport
+  9/9 cases). `calzoom` 24/24 with Z5 and W1b; 0 clipped; 76 ids; gates 10 and 13 byte-identical. Not committed.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into
