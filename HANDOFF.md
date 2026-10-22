@@ -34,7 +34,12 @@
 - ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
   the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
   owner-approved.
-- ⏭ **Next:** the owner's picker on committing and pushing. On the tracker as `region-in-show-info`.
+- **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
+  fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
+  push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
+- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
+  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
+  `region-in-show-info`.
 
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
 
