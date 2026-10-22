@@ -7102,6 +7102,219 @@ export function initLegacyApp() {
   // (installProductionEdgeHandles) read a pill's dates through it as well, and a second copy of this
   // arithmetic is exactly the drift the cross-check above exists to catch.
 
+  // ---------- The moving copy (MONTH-ORDER-PLAN.md §3.3) ----------
+  // Owner, 21 Oct 2026: "we actually need to see the phases/notes visibly dragged animation when we drag either for
+  // the purpose of reordering them top to bottom or for changing a phases timing". Every month drag redraws the
+  // grid under the pointer (update() replaces every bar), so nothing in the hand moved with it: a bar jumped a
+  // day at a time, or sat still until the order changed. This is a COPY of what was pressed, following the
+  // pointer, while the live calendar underneath shows where it lands (ruling R3: "Update live").
+  // ⛔ BODY-LEVEL CHROME, NEVER INSIDE #table-wrap, AND NO `.mv-*` CLASS, on the edge grips' terms. Its look is
+  // copied from the element's COMPUTED style at the press, because the redraw destroys the element and the frozen
+  // rules are not to be borrowed. The box is getBoundingClientRect()'s (calendar zoom included); the inner box
+  // carries the element's own zoom (currentCSSZoom) at its unzoomed size, so text and padding match the screen.
+  const MV_GHOST_PROPS = ['background-color', 'background-image', 'background-size', 'background-position',
+    'background-repeat', 'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+    'letter-spacing', 'text-align', 'white-space', 'overflow', 'text-overflow', 'word-break', 'display',
+    '-webkit-box-orient', '-webkit-line-clamp', 'vertical-align', 'margin-left',
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+    'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+    'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+    'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius'];
+  function mvDragGhost(el){
+    const r = el.getBoundingClientRect();
+    const z = el.currentCSSZoom || 1;
+    const copy = (from, to)=>{
+      const cs = getComputedStyle(from);
+      MV_GHOST_PROPS.forEach(p=> to.style.setProperty(p, cs.getPropertyValue(p)));
+    };
+    const outer = document.createElement('div');
+    outer.className = 'mv-drag-ghost';
+    outer.style.left = r.left + 'px';
+    outer.style.top = r.top + 'px';
+    const inner = document.createElement('div');
+    inner.innerHTML = el.innerHTML;
+    copy(el, inner);
+    inner.style.margin = '0';
+    inner.style.boxSizing = 'border-box';
+    inner.style.width = (r.width / z) + 'px';
+    inner.style.height = (r.height / z) + 'px';
+    if(z !== 1) inner.style.zoom = String(z);
+    // Descendants (a Blocks calendar's grey tag): their look copied too, their classes and attributes dropped,
+    // so nothing in the copy can match a rule, a test's selector or a click handler meant for the real bar.
+    const src = el.querySelectorAll('*'), dst = inner.querySelectorAll('*');
+    for(let i = 0; i < dst.length && i < src.length; i++){
+      Array.from(dst[i].attributes).forEach(a=> dst[i].removeAttribute(a.name));
+      copy(src[i], dst[i]);
+    }
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+    return {
+      // A translation from where it was pressed; the copy never changes size.
+      moveBy(dx, dy){ outer.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; },
+      remove(){ outer.remove(); }
+    };
+  }
+
+  // The columns a month bar covers in its row, 0..6, read off its grid-column (frozen renderMonthView writes
+  // `grid-column:<from+1> / <to+2>`). [] when it has none.
+  function mvBarColumns(el){
+    const m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(el.getAttribute('style') || '');
+    const out = [];
+    if(m) for(let c = +m[1] - 1; c <= +m[2] - 2; c++) out.push(c);
+    return out;
+  }
+
+  // ---------- Reorder a phase up or down in the month view (MONTH-ORDER-PLAN.md §3.1, ruling R1) ----------
+  // ⛔ A GRIP, NOT THE BAR: pressing a bar and dragging already moves its dates (installMonthPillDrag below; one
+  // row = a week), so the reorder has its own handle, shown on hover inside the bar's RIGHT end, just left of the
+  // end grip's 10 px. (The ruling's sketch put it by the start grip; built there it sat on the label's first
+  // letter, and a label starts at the left, so the right end is where a bar has room.) ZERO FROZEN EDITS here: body-level chrome, as the edge grips. What it writes is
+  // mvPhaseOrder, the ONE calendar-wide order frozen edit E1 reads (plan D1), so the bar takes its new place in
+  // every week, and the calendar redraws live as the order changes (ruling R3).
+  // WHAT A DROP MEANS: in the row being dragged in, the phases sharing a day with the dragged one, top to bottom.
+  // The copy's middle passing another's middle moves the dragged phase right before it (or right after the one it
+  // now sits below) in the whole calendar's order. A phase that shares no day with it in that row cannot stack
+  // against it there, so it is never offered (plan §7).
+  (function installMonthOrderDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const GRIP_W = 12, EDGE_W = 10, MIN_BAR_W = 46;
+    let grip = null, shownFor = null, drag = null;
+    const effectiveOrder = ()=> mvLaneOrder((currentSchedule && currentSchedule.segments) || []).map(s=> s.key);
+    function gripEl(){
+      if(grip) return grip;
+      grip = document.createElement('div');
+      grip.className = 'mv-order-grip';
+      grip.hidden = true;
+      grip.title = 'Drag up or down to change the order';
+      grip.addEventListener('mousedown', begin);
+      document.body.appendChild(grip);
+      return grip;
+    }
+    function hide(){ shownFor = null; if(grip) grip.hidden = true; }
+    function showFor(pill){
+      const v = visibleRect(pill), g = gripEl();
+      // Too narrow for an end grip, this one and some of the label: no grip rather than one over the end grip.
+      if(!v || v.full.width < MIN_BAR_W){ hide(); return; }
+      const x = v.full.right - EDGE_W - 1 - GRIP_W;
+      if(x < v.left - 1 || x + GRIP_W > v.right + 1){ hide(); return; }
+      shownFor = pill;
+      g._pill = pill;
+      g.style.left = x + 'px';
+      g.style.top = v.top + 'px';
+      g.style.height = (v.bottom - v.top) + 'px';
+      // The bar's own text colour on its own fill: the dots read on any phase colour, and whatever of the label
+      // runs under the grip (an ellipsis, most often) is covered rather than overprinted.
+      const cs = getComputedStyle(pill);
+      g.style.color = cs.color;
+      g.style.background = cs.backgroundColor;
+      g.hidden = false;
+    }
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(grip && t === grip) return;
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hide(); return; }
+      // Resting on an edge grip keeps this one: the grips sit side by side on the same bar.
+      let pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      if(!pill && t && t.classList && t.classList.contains('phase-edge-handle')) pill = t._pill || null;
+      if(!pill || !wrap.contains(pill)){ hide(); return; }
+      if(pill !== shownFor) showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hide(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hide(); });
+    // Every render replaces every bar (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hide(); }).observe(wrap, {childList: true, subtree: true});
+
+    function begin(e){
+      if(e.button !== 0 || isMacCtrlClick(e) || viewMode !== 'month') return;
+      const pill = grip && grip._pill;
+      if(!pill || !wrap.contains(pill)) return;
+      const key = pill.getAttribute('data-ph');
+      const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), pill.closest('.mv-week'));
+      if(!key || wi < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // Flush what came before into its own step, as the body drag does, so a date typed a moment ago cannot
+      // fold into this reorder's one undo step.
+      pushUndoSnapshot();
+      const r = pill.getBoundingClientRect();
+      const shield = document.createElement('div');
+      shield.className = 'mv-drag-shield';
+      document.body.appendChild(shield);
+      drag = {key, wi, y0: e.clientY, top0: r.top, h: r.height, was: mvPhaseOrder.slice(), order0: effectiveOrder(),
+              ghost: mvDragGhost(pill), shield};
+      hide();
+    }
+    function targetOrder(mid){
+      const d = drag;
+      const week = wrap.querySelectorAll('.mv-week')[d.wi];
+      if(!week) return null;
+      // Each phase in this row: the columns it covers and its topmost bar's box (it may have several pieces).
+      const info = new Map();
+      week.querySelectorAll('.mv-pill[data-ph]').forEach(p=>{
+        const k = p.getAttribute('data-ph'), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
+        const cur = info.get(k);
+        if(!cur){ info.set(k, {cols: new Set(cols), top: r.top, bottom: r.bottom}); return; }
+        cols.forEach(c=> cur.cols.add(c));
+        if(r.top < cur.top){ cur.top = r.top; cur.bottom = r.bottom; }
+      });
+      const me = info.get(d.key);
+      if(!me) return null;
+      const others = Array.from(info.entries())
+        .filter(([k, v])=> k !== d.key && Array.from(v.cols).some(c=> me.cols.has(c)))
+        .sort((a, b)=> a[1].top - b[1].top);
+      if(!others.length) return null;
+      const above = others.filter(([, v])=> (v.top + v.bottom) / 2 < mid).length;
+      const order = effectiveOrder().filter(k=> k !== d.key);
+      const at = above === 0 ? order.indexOf(others[0][0]) : order.indexOf(others[above - 1][0]) + 1;
+      if(at < 0) return null;
+      order.splice(at, 0, d.key);
+      return order;
+    }
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never reaches us: end on the next move with the button up.
+      if(!(e.buttons & 1)){ end(); return; }
+      const dy = e.clientY - drag.y0;
+      drag.ghost.moveBy(0, dy);
+      const next = targetOrder(drag.top0 + dy + drag.h / 2);
+      if(next && next.join('|') !== effectiveOrder().join('|')){
+        mvPhaseOrder = next;
+        drag.redrawn = true;
+        update();
+        // ⛔ update() re-armed the undo debounce. Kill it: the gesture banks its own ONE step, in end().
+        cancelPendingUndoPush();
+      }
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) end(); });
+    // Escape puts back exactly what was there and banks nothing (MONTH-9's rule, as every month grip).
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      mvPhaseOrder = drag.order0.slice();
+      end();
+    }, true);
+    function end(){
+      const d = drag;
+      if(!d) return;
+      drag = null;
+      d.ghost.remove();
+      d.shield.remove();
+      if(effectiveOrder().join('|') === d.order0.join('|')){
+        // Out and back, or Escape: the order exactly as it was, an absent one included, and no step. A press that
+        // never moved anything returns here having touched nothing, so it does not even mark the calendar dirty.
+        mvPhaseOrder = d.was;
+        if(d.redrawn){ update(); cancelPendingUndoPush(); }
+        return;
+      }
+      // ⛔ THE TRAILING PUSH IS THE STEP, as the body drag's.
+      pushUndoSnapshot();
+      markDirty();
+    }
+  })();
+
   // ---------- Body-drag: move a whole phase by dragging its pill in the month view ----------
   // ⭐ The CHEAPEST of the three drag gestures (MONTH-VIEW-PLAN.md §6.1): moving a phase is
   // `start-<key> += n days` -- one stored field, duration untouched. The only frozen change it
@@ -9418,7 +9631,8 @@ export function initLegacyApp() {
       const t = e.target;
       if(!t || !t.closest) return null;
       const body = wrap.querySelector('.mv-body');
-      const handle = t.closest('.phase-edge-handle');
+      // The reorder grip (MONTH-ORDER-PLAN.md) is laid over a bar like an edge handle, and names its bar the same way.
+      const handle = t.closest('.phase-edge-handle, .mv-order-grip');
       if(!body || !(handle || body.contains(t))) return null;
       const r = body.getBoundingClientRect();
       if(!(e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom)) return null;
@@ -20224,7 +20438,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield').forEach(el=>el.remove());
+    // .mv-order-grip / .mv-drag-ghost / .mv-drag-shield added 21 Oct 2026 with the month view's reorder grip and
+    // moving copy (MONTH-ORDER-PLAN.md): body-level chrome over the month grid, on the edge grips' terms.
     // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
     // format bar, the Side boxes menu and the drag indicator are all body-level.
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export

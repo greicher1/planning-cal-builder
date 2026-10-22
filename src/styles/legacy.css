@@ -3431,3 +3431,30 @@
 .hiatus-grip:hover::before{ opacity:.9; }
 .hiatus-drag-shield{ position:fixed; inset:0; z-index:300; cursor:ns-resize; }
 .hiatus-drag-shield.is-move{ cursor:grabbing; }
+
+/* ---- The month view's reorder grip and moving copy (MONTH-ORDER-PLAN.md, 21 Oct 2026) -------------
+   Body-level chrome on the edge grips' terms (above): nothing inside #table-wrap, no `.mv-*` rule, and
+   nothing the print path can reach (it hides every direct child of <body> but #print-root). The grip sits
+   inside a bar's right end, left of the end grip, on the bar's own fill in its own text colour (both set
+   by installMonthOrderDrag): six dots, the sidebar rows' "drag me" mark, so it reads as "move this up or
+   down" rather than as an edge. */
+.mv-order-grip{
+  position:fixed; z-index:50; width:12px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; user-select:none; border-radius:3px;
+}
+.mv-order-grip[hidden]{ display:none; }
+.mv-order-grip::before{
+  content:''; width:7px; height:11px; opacity:.6;
+  background-image:radial-gradient(circle, currentColor 1.15px, transparent 1.45px);
+  background-size:3.5px 3.67px; background-position:0 0;
+}
+.mv-order-grip:hover::before{ opacity:.95; }
+/* The copy in the hand: lifted (a soft shadow, a touch see-through) so it never passes for the bar it
+   came from, which the live redraw keeps drawing where it will land. pointer-events:none, so it never
+   hides from hit-testing what is under it. Above the shield, which owns the cursor. */
+.mv-drag-ghost{
+  position:fixed; z-index:301; pointer-events:none; opacity:.9;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
+}
+.mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }
