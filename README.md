@@ -53,7 +53,10 @@ Test tooling only: nothing in `src/`, the grid, the exports or the save format c
   private port, each leaving no profile, no socket directory, no Chrome process and no server. The same for `run.sh`
   stopped by SIGTERM (`hdrtemplate` with Chrome still running, `prefs` during its parse; exit 143 both), and for a fake
   Chrome that never dumps (the wall-clock cap). The node module also on a normal exit, a thrown error and SIGTERM.
-  Full gate: see `HANDOFF.md`.
+  **Full gate: 2,619 PASS, 6 FAIL, none from this change**, every baseline identical. It left no profile for its port
+  (0 before, 0 after) and no new bundle clone (587 before and after). One FAIL was contention (green alone). Five come
+  from the legs' PDF reader, which strips trailing newline bytes that can be the stream's own checksum, so a date in
+  the header can trip it; it fails the same with `main`'s `run.sh` (`HANDOFF.md`, 22 Oct).
 
 ### Unreleased — choose the paper; Export PDF asks first (21 Oct 2026)
 

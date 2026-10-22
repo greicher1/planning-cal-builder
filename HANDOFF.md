@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🧹 21–22 Oct 2026: THE HARNESS CLEANS UP AFTER ITSELF (`harness-disk`) — branch `claude/cool-brattain-388fa6` (worktree `.claude/worktrees/cool-brattain-388fa6`), from `main` at `6ca9993`; test tooling only; FULL GATE QUEUED; not merged, not pushed
+### 🧹 21–22 Oct 2026: THE HARNESS CLEANS UP AFTER ITSELF (`harness-disk`) — branch `claude/cool-brattain-388fa6` (worktree `.claude/worktrees/cool-brattain-388fa6`), from `main` at `6ca9993`; test tooling only; FULL GATE 2,619 PASS / 6 FAIL, none from this change (below); not merged, not pushed
 
 - **Asked** (by the session that ran the 21 Oct disk cleanup, for the owner's *"delete extra files that we dont
   need"*): make the harness stop filling the disk. Every leg left `/tmp/tc<port>-<leg>` (about 8 MB), one full gate
@@ -44,8 +44,30 @@
     worktree, so a branch cut before this merge still runs the old one.
   - `tools/make-icon.py` and `tools/probe-file-handling.mjs` launch Chrome too, outside `tests/harness`. Both already
     delete their profile on a normal run; neither passes the no-clone switch. Rarely run.
-- ⏭ **Next:** the full gate, queued behind `month-order` and `phase-outline` (`HARNESS_PORT=8771`); then ask the owner
-  about merging. On the tracker as `harness-disk`.
+- **Full gate (22 Oct, 07:46–08:12, `HARNESS_PORT=8771`, build of `6ca9993`'s `src/`, queued behind the `paper-size`,
+  `month-order` and `phase-outline` gates): 2,619 PASS, 6 FAIL. Every baseline held** (the waterfall PDF, every Excel
+  part, `fields.byId`, gate 10, gate 13's written month PDFs byte for byte). **What it left:** `/tmp/tc8771-*` 0 before,
+  0 after; the `code_sign_clone` folder 587 before, 587 after, across 110+ launches. Another session's single legs
+  on port 9563 ran beside it; the gate check (`/bin/zsh ./gate.sh`) cannot see those.
+  - `stintexport` "timed out waiting for the .xlsx blob": contention (it ran while port 9563's legs did). Alone, with
+    the gate's own check: 6/6.
+  - `hdrversion` (2), `papersize` P3, `pdfdialog` D3 + E0: **a bug in the LEGS' PDF reader, not in the app or this
+    change.** Shown on `papersize`: 11/12 alone with this `run.sh` AND with `main`'s; 12/12 once its reader trims only
+    the writer's single `\n`. See Learned 3.
+- ⭐ **Learned 3: the legs' in-page PDF reader trims real bytes, so a gate can go red on a date.** The writer frames
+  every stream as `<data>\nendstream` (`app.js`, four `put('\nendstream\n')`). The readers instead strip EVERY trailing
+  0x0A / 0x0D (most also 0x20) before inflating. The last four bytes of a zlib stream are its Adler-32 checksum, so
+  when the last byte happens to be one of those (about 1 in 85 for three values), the reader cuts it off. The inflate
+  then fails with "Compressed input was truncated", the content stream is never found, and the loop goes on to
+  inflate font streams, whose rejected `write()` promises surface as console errors (the E0 FAILs). The header's
+  date is in the content stream, so on 22 Oct 2026 ("10.22.26") `main`'s Tabloid page and `hdrversion`'s PDF tripped
+  it, while the `month-order` build (different bytes) passed the same day. Sixteen legs share the loop
+  (`grep -l "\[[a-z]* *- *1\] === 10 ||" t/*.js`): `autonotekinds`, `calrange`, `hdrrow`, `hdrtemplate`, `hdrversion`,
+  `hiatuslabel`, `notewrap`, `onecol`, `papersize`, `pdfdialog`, `phasecolors`, `phiatusnum`, `prefs`, `prodspan`,
+  `stintexport`, `winansi`. **Fix:** cut at the stream's `/Length`, or drop exactly one `\n`. Not done here: proposed
+  as its own session.
+- ⏭ **Next:** the owner's call on merging `claude/cool-brattain-388fa6` into `main` (asked by picker), then on the push.
+  On the tracker as `harness-disk`.
 
 ### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
