@@ -209,8 +209,43 @@
   - `fields.byId` 76 ids;
   - gate 10's print documents and gate 13's written month PDFs byte-identical;
   - `papersize` 12/12, `pdfdialog` 11/11, `cspproof` W1, `winansi` W0–W5, `exportrefused` E2.
-- ⏭ **Next:** the owner's commit and merge picker, then a separate push picker. On the tracker as `paper-size`
-  (ready).
+- **Owner, by picker:** *"Commit on branch"*, *"Merge into main"*, *"Push with a v1.7.0 cut"*. Committed `d51c2c7`,
+  merged into local `main` as `6ca9993` (⚠️ in the MAIN checkout, while the Region session's gate was running there: it
+  changed `gate.sh` and `t/lib.js` under that script. Never merge into a checkout with a gate running in it).
+- **The v1.7.0 cut** (`02f88b7`, then re-cut on the merge with `origin/main`):
+  - `APP_VERSION`, `version.json` and `package.json` = 1.7.0;
+  - README `## v1.7.0` over the twelve entries since v1.6.0 (eleven already live);
+  - `releases/v1.7.0.html` = dist;
+  - `tests/fixtures/v1.7.0-saved.sptcal`, a real Save: 43 keys, 76 ids, version 1, 0 clipped.
+
+  The first release gate (cut build `6b8dfbde…`, 20:40–01:02) ended 2,560 / 9: four `monthexport` calendars that
+  wrote nothing, their four gate-13 compares, and `pilldrag`'s 480 s deadline. All nine re-ran green alone.
+- ⚠️ **`origin/main` had moved** (the Region push `24f1537`, which carried two code changes local `main` never had: the
+  navy outline and the one-chip pop-ups). So the release merged `origin/main` (`aec3e3d`; only README and HANDOFF
+  conflicted, both resolved keeping every entry). The release build is now `7063a638…` (1,689,392 bytes), which
+  `releases/v1.7.0.html` matches. The fixture came out byte-identical. `npm run check` 40/40.
+- ⛔ **LEARNED, three harness traps, all hit tonight:**
+  - **A port is never reserved.** `header-zoom`'s gate picked 9473, this session's port, while it was idle, and
+    from 01:02 each session's `run.sh` (`pkill -f "srv.js <port> "`) killed the other's server. Symptoms: *"NO RESULT
+    BLOCK -- the page never reached the injected script"* after about 1 s, and legs quietly testing the OTHER
+    worktree's build. Check `lsof` right before every run, not once. (That session was told.)
+  - **A PDF stream must be read by its `/Length`.** `papersize` and `pdfdialog` trimmed whitespace off a stream's end
+    (the pattern `prefs.js`, `hdrrow.js` and other legs still use). Compressed bytes can end in a space or newline, so
+    after midnight the new header date made Tabloid's content stream read as truncated. Fixed in both legs
+    (`28cdf6e`). The other legs carry the same latent, date-dependent failure.
+  - **A leg that writes nothing leaves the LAST run's files behind.** `gate.sh` does not delete `base.json` / `.pdf` /
+    `.xlsx` before `run.sh base`, so a dead run compares yesterday's files: a false FAIL on the date stamp, or a
+    false PASS on everything else.
+- ✅ **Release gate on `7063a638…`** (port 9817, 01:44:43–02:10:25, alone): **2,626 PASS, 4 FAIL.**
+  - Held: the waterfall PDF and every Excel part identical, 76 ids, 0 clipped, all 21 written month PDFs
+    byte-identical, `papersize` 12/12, `pdfdialog` 11/11.
+  - The four failures: two in `hdrversion`, the same stream-trimming bug on today's date (header-zoom's fix
+    `6547512`, taken as files in `58e6b6a`); `pilllabel (halfdays)` W3, the recorded flake; `phiatusnum` H3, ExcelJS
+    from the CDN timing out at 30 s.
+  - Re-run alone through `gate.sh`'s own judges, on the same build: **64 PASS, 0 FAIL** (hdrversion's PDF line now
+    `['10.22.26', 'v3']`).
+- ⏭ **Next:** ONE push of this branch to `main` with the tag `v1.7.0`, then the live check (`index.html` byte-identical
+  to `releases/v1.7.0.html`, `version.json` 1.7.0).
 
 ### 🔨 21 Oct 2026 (evening): NO POP-UPS OVER A WATERFALL SELECTION BUT THE DOUBLE-CLICK HINT AND A REFUSED SWAP'S REASON — branch `one-chip` (worktree `.claude/worktrees/one-chip`), from `main` at `e06ccc9`; GATED (2,565 / 16, all 16 one contention flake, green alone); COMMITTED `9519808`, merged with `origin/main` (`6ac6e9a`, the toolbar outline) as `03ebcd1`, PUSH APPROVED (owner, by picker)
 
