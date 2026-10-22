@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, NOT MERGED, NOT PUSHED
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, MERGED INTO LOCAL main, PUSH BLOCKED (permission)
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
   `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
@@ -41,8 +41,21 @@
   Bash tool runs it as `zsh -c "… ./gate.sh …"`) and every other session's, so it waits forever (pointed out by the
   "Calendar text styling bar" session). Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh
   [^ ]*gate\.sh( |$)'`, with a random pause, from a script file whose name does not contain "gate.sh".
-- ⏭ **Next:** that gate (queued), then, once `origin/main` holds `3f974af`, merge whatever docs landed with it,
-  fast-forward `main`, push once, verify live.
+- ✅ **Final gate** (build `fce9a65f…` at `4ef1151`, the branch merged with local main `b390b83`, HARNESS_PORT 9357,
+  06:49:47–07:15:43 on 22 Oct, alone): **2,591 PASS, 3 FAIL**: `hdrversion` ×2 (the old harness's PDF reader,
+  fixed on origin by `58e6b6a`) and `launchopen` EX harness. Overnight v1.7.0, header-zoom and the Region change all
+  went live, so the branch was merged with `origin/main` `34c873f` instead (`058d52d`, build `7a8473cd…`: tree =
+  origin/main + this fix's three files). On that build, through gate.sh's own evaluators: `hdrversion` 17/17,
+  `launchopen` 16/16, `hdrfit` 8/8 on both fixtures, `sideboxes` 59/59, `calzoom` 24/24, `npm run check` 40/40.
+- ⛔ **The push was BLOCKED by this session's auto-mode permission check** ("Production Deploy"), 22 Oct, even with
+  the owner's picker answer. Nothing went out. The push is `git push origin sidebox-zoom:main` (a fast-forward of
+  `34c873f` carrying only this branch's commits), for the owner to run or allow. ⚠️ It must NOT be a push of local
+  `main`: that also carries the phase-outline work, whose push the owner has not approved here.
+- ✅ **Merged into local `main`** (owner: "Merge once gate passes"), on top of the phase-outline merge `de83170`; code
+  merged clean, docs kept both sides.
+- ⏭ **Next:** the push above, then verify the live file is byte-identical to `7a8473cd…` (sidebox-zoom's build).
+  ⚠️ `sidebox-free-pos` (another side-box branch, gating 22 Oct) will meet this change in `applyCalZoom()` /
+  `.side-col` CSS when it merges.
 
 ### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
 
