@@ -4,6 +4,24 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🧹 21 Oct 2026 (late): DISK CLEANUP — 1.4 GB free → 23 GB, on the owner's *"delete extra files that we dont need"*
+
+- **Removed:** 2,010 headless-Chrome profiles in `/tmp/tc<port>-<leg>` (15.5 GB), every port except a gate running
+  (9627) or queued (9391), and none touched in the last hour. Also 36 worktrees in `.claude/worktrees` (7.0 GB): each
+  one clean (`git status` empty but its `node_modules` link), its HEAD already in `origin/main`, no process with its cwd
+  inside, and not one the app made (`claude/…` names, which the app tracks and its Settings ▸ Storage cleans). Every
+  `node_modules` LINK was unlinked first, so the main checkout's `node_modules` was never followed. The branches were
+  all kept, so `git worktree add <path> <branch>` brings any of them back.
+- **Kept, deliberately:**
+  - the 14 worktrees in use;
+  - the 8 whose branch is not live yet;
+  - the 4 with uncommitted changes, among them `month-baselines`, which holds the never-committed
+    `wf-pdf-header-clearance` work (on the tracker);
+  - `half-day-episodes`, whose `.claude/halfday-sheets/` holds month-sheet screenshots;
+  - the app's own worktrees.
+- ⚠️ **It will fill again:** each full gate leaves about 110 profiles (about 0.9 GB). The fix is the tracker's
+  `harness-disk` card: `run.sh` removing its own profile.
+
 ### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, tip `e73eff5`); `mvorder` 20/20; FULL GATE QUEUED (waiting for disk space); not merged, not pushed
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
