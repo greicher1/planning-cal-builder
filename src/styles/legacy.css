@@ -2531,6 +2531,7 @@
   .view-toggle-row > .style-bar-host{ flex:1 1 100%; min-width:0; }
   .style-bar{
     display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
+    min-width:0;
     background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
     border-radius:var(--mantine-radius-sm);
   }
@@ -2541,8 +2542,11 @@
   }
   /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
   .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
+     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
+     below it. */
   .style-bar:not(.has-target)::after{
-    content:'Highlight any text in the calendar to style it'; flex:none;
+    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
     font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
   }
   .style-bar .hf-swatch[hidden]{ display:none; }

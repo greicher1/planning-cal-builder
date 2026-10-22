@@ -76,16 +76,20 @@
     `wrapLines` bold-aware), F4 `wrapLineCount` / `cellTextFit` (bold measure; the auto scan starts at the chosen
     size and never floors above it — `top = basePx/11` is exactly 1 for every older caller).
   - **The note editor's Size row is gone** (plan §2): the bar sets size, 6–12; a note saved at 14/16 keeps it.
-- **Proof so far:** `npm run check` 40/40. **`textstyle` 46/46** (fixture `carry-rich`, Sim Post switched on): the
+- **Proof so far:** `npm run check` 40/40. **`textstyle` 51/51** (fixture `carry-rich`, Sim Post switched on): the
   bar's place and empty state; click / sweep (22 cells) / ⌘-click / Shift-click / ⌘A (210) / Escape; one selection;
   one of every kind styled at once — bold, italic, red, left, 12 px on screen, **no row changed height, nothing new
   cut**; one undo step per press; the workbook (ExcelJS read-back: masters only italic, 6 of 6); the PDF (`/F2`, the
   0.21 slant, `1.0000 0.0000 0.0000 rg`); the save key and no new `fields.byId` id (100); a file without the key opens
-  unstyled; D5 (click opens nothing; dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
+  unstyled; a hand-edited file's bad kinds, keys and sizes dropped (exactly 5 counted) and not re-saved; Shift All
+  carries a phase week's, a note's and a band's styles and leaves a date's on its date; D5 (click opens nothing;
+  dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
   Wired into `gate.sh` after `calzoom`. Legs that opened editors with a click now double-click (`T.openCell` in
   lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
   T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
   `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
+- **Older builds:** a styled calendar opened in `releases/v1.6.0.html` (scratch probe through the real Load path):
+  everything loads, the styles are ignored, no error or warning. No `SNAPSHOT_VERSION` bump needed, as planned.
 - ⚠️ **Learned while building:**
   - On `carry-rich`, rows after the first measure **20.84 px on screen, not 20**, in the live build too, before any
     styling (pre-existing; a check must compare against the unstyled baseline, never against 20).
