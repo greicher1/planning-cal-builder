@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; COMMITTED, PUSH APPROVED WITHOUT A FULL GATE (owner, by picker)
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
   edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
@@ -30,6 +30,10 @@
   change the color of some buttons?"*. Answered: no, the gate rule covers the grid, the exports and the save path,
   and these rules match only four toolbar buttons, which both print paths hide and the shareable copy empties.
   Then *"Push now"*, without the gate.
+- ✅ **PUSHED AND LIVE.** `main` fast-forwarded to `b332e5c` (it carried `e06ccc9`, a HANDOFF-only commit). ONE `git push
+  origin main` at 17:24:20 (`ec8c788..b332e5c`). Deploy run 39699488118: success. At 17:25:14 the live `index.html`,
+  fetched with a cache-buster, was **byte-identical to the local build** (sha256 `999bd95e23a33a0b…`, `cmp`);
+  `version.json` still 1.6.0, so installed copies pick it up silently.
 - ⏭ **Next:** nothing. The worktree `.claude/worktrees/toolbar-center` can be removed on the owner's word.
 
 ### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
