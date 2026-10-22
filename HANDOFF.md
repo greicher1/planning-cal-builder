@@ -36,6 +36,13 @@
   `npm run check` 40/40. ✅ **Full gate on build `e7db3fde…` (port 9473, 17:27:24–17:52:41, alone, queued behind the
   `zoom-compact` and `sidebox-zoom` gates): 2,612 PASS, 0 FAIL, GATE PASSED**, the 16 `hdrfit` checks among them. This
   is commit `3785258` on `da1142a`, BEFORE `main` moved on (zoom strip `ec8c788`, toolbar tint `b332e5c`, both live).
+- ✅ **Merged with `main` at `b5ca7cf` (`5fbc0d9`, docs conflicts only) and gated again: build `e24bceac…`, port 9473,
+  19:21:28–19:46:54, alone: 2,614 PASS, 0 FAIL, GATE PASSED.**
+- ⏭ **RESUME HERE for landing.** By then local `main` had an unpushed code commit (`3f974af`, the Production Region in
+  Show info, its session gating to push) and `origin/main` had two pushes local `main` lacked (`6ac6e9a`, `db73cf6`):
+  diverged. **Owner, by picker, 21 Oct 2026: "After Region pushes"** (wait for that session to reconcile and push, then
+  merge that `main` into `header-zoom` once, one full gate, land) **and "Push on a green gate"** — approval for THIS
+  change's push only, once its final gate passes, then verify the live file byte for byte. Not a standing approval.
 - **Coordination:** `sidebox-zoom` (editing `applyCalZoom` and the side-box CSS) and `zoom-compact` (zoom pill CSS,
   `calzoom.js`) were live in their own worktrees while this was built. This change sits in its own blocks (after the grid
   fit; after `body.wf-hdr-off`; a new leg; a new `gate.sh` block after `calzoom`), so it should merge cleanly with both.
