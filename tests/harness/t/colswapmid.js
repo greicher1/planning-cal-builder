@@ -109,8 +109,10 @@ window.addEventListener('load', function () { (async function () {
     //    column and keep their own slot -- they do not swap, they just stop being held narrow.
     out.wrTailWidened = WR_TAIL.every(function (w) { return out.after[w] === 'writersRoom@0/cs2'; });
     out.ppTailWidened = PP_TAIL.every(function (w) { return out.after[w] === 'prePrep@1/cs2'; });
+    // ⛔ ...and nothing is said about them (owner, 21 Oct 2026, by picker: "Never"). It used to say
+    // "12 other weeks changed width to fit."
     out.chipText = (document.querySelector('.grid-swap-chip') || {}).textContent || '';
-    out.chipReportsTwelve = /12 other weeks changed width/.test(out.chipText);
+    out.chipSilent = !document.querySelector('.grid-swap-chip');
 
     // 6. Still a working grid: two phase columns, nothing clipped, no errors.
     out.errors = (window.__ERR || []).slice(0, 6);
@@ -121,7 +123,7 @@ window.addEventListener('load', function () { (async function () {
 
     out.PASS = out.naturalOrder && out.tailsNarrowBefore && out.neitherSideWhole &&
                out.labelNamesOverlap && out.wholeOverlapMoved &&
-               out.wrTailWidened && out.ppTailWidened && out.chipReportsTwelve &&
+               out.wrTailWidened && out.ppTailWidened && out.chipSilent &&
                out.errors.length === 0 &&
                !(out.clipped && out.clipped.h && out.clipped.h.length);
   } catch (e) {
