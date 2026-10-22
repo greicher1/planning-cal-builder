@@ -4,6 +4,125 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21–22 Oct 2026: THE TEXT STYLE BAR IS BUILT, AND MERGED WITH TODAY'S `main` — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`), merge `e12b10b`, build `c7b70156`; FULL GATE RUNNING; NOT IN `main`, NOT PUSHED
+
+- ⏭ **RESUME HERE.** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
+  /Length stream reads and convert the other five legs to match), rebuild, and run the full gate. Don't merge into main
+  or push."* Done as `e12b10b` (main at `1f4ae2c`: v1.7.0 paper size + Export PDF dialog, header-zoom, phase outline,
+  one-chip, toolbar-center, sidebox-zoom, Production Region in Show info). Conflicts: CLAUDE.md (both state rows:
+  `textStyle`, then main's `paperSize`), README (this entry first, then main's), gate.sh (main's `hdrfit` block, then
+  `textstyle`), and hdrversion/prefs/stintexport (main's `/Length` read taken whole). Then `3c7a702`: calrange, hdrrow,
+  hdrtemplate, onecol and textstyle converted to that same `/Length` read, replacing this branch's interim one-EOL strip
+  (`c8fd87a`), so all eight legs read a stream one way. Auto-merged and checked by hand: app.js (all F1–F4 marks and the
+  bar's section present; OVER_PANEL unchanged), legacy.css (header-zoom caps `.hdr-tools`, the CONTAINER, so hiding the
+  `.hdr-fmt` strip inside it moves nothing `hdrfit` measures), PreviewToolbar.jsx (host still last), lib.js (main's
+  Export PDF dialog auto-answer and `openCell` both in), sideboxes.js, index.html, UI-CONVENTIONS.
+- **After the merge:** `npm run check` 40/40; build `c7b70156…`. Quick run alone through the gate's evaluators
+  (09:40, port 9595): `hdrfit` (both states), `sideboxes`, `hdrcontrols`, `noswapbtns` all PASS; `textstyle` 50/51:
+  ⚠️ **G9 waited for the phase selection's chip, which main's one-chip ruling now shows only when the cells can
+  expand** ("Double click to expand cells"), and the leg's two cells had no room. G9 now judges the selection by its
+  OUTLINE (`.grid-sel-cell`, drawn for any phase selection), `9053a77`: **`textstyle` 51/51** on the merged build.
+- The full gate on `c7b70156` started ~09:43 (port 9595); its result goes here.
+
+- **Asked:** Owner, 21 Oct 2026: *"ok start building"*, after ruling D1–D5 (the entry below) and, by picker the
+  same day, two more: a band inside one phase's column **"Double-click edits"** (its 1 Sep fill-across double-click
+  goes), and the frozen edits **"Yes, F1–F4 as planned"** (acceptance: every byte gate unchanged on existing
+  calendars, the fence unchanged, 0 clipped cells with every kind at 12 px and bold).
+- **What exists** (app.js "THE TEXT STYLE BAR", just before the header template editor; legacy.css "The text style
+  bar"; PreviewToolbar.jsx's empty `.style-bar-host`):
+  - **The bar**, built once by the engine into a host React renders last inside `.view-toggle-row` (so
+    `.view-toggle-row` → `#table-wrap` stays the sibling pair): Size, B, I, text colour, highlight (header and box lines
+    only), alignment, clear. Class-only controls (no id: `collectFieldValues`). Greyed with "Highlight any text in
+    the calendar to style it" when nothing is picked. **It names nothing** (the owner's 31 Aug removal of the strip's
+    readout). 34 px tall at 1600×1200.
+  - **Targets:** `'grid'` (the highlight), `'hdr'` (`hdrFmtTarget`, set by focus in Manual and by a CLICK in any mode
+    and either view: D3, D4) and `'side'` (`sideFmtTarget`). Header and box styles go through their OWN code
+    (`applyHdrFmt` / new `clearHdrFmt`, `applySideFmt`), so they are stored exactly as before. The in-calendar header
+    strip is hidden by CSS (`#table-wrap .hdr-fmt`); the boxes' floating `.sb-fmt` is never shown (`showSideFmt`
+    arms the bar instead).
+  - **The highlight** (`textSel`, keys `'<kind>:<key>'` = the store's own): click, sweep, ⌘-click, Shift-click
+    rectangle, ⌘A (only while a highlight exists), Escape. Overlay `.text-sel-layer` beside `.grid-sel-layer`, plus a
+    STICKY `.text-sel-head` strip for the sticky heading row. ⛔ Separate from `gridSel`, which keeps its phase-only
+    meaning (fill-across, swap, move); a plain press OFF a phase cell retires `gridSel`, so one selection shows.
+  - **D5:** the note opener no longer opens on click (a click on the cell being edited keeps editing); a capture
+    `dblclick` opens notes and bands (`openNoteCellEditor`, the old switch-cells logic), Enter opens the active
+    note/band (never over phase cells), typing ADDS the key at the end. The batch fill's dblclick skips bands.
+    Custom headings and Template header lines open their editors on dblclick. Tooltips and Help say double-click.
+  - **Save format:** `textStyles` (see CLAUDE.md's state table), absent when empty, sanitized
+    (`cleanTextStyles`), restored unconditionally, cleared by New / Reset notes (notes) / Reset hiatus bands (bands),
+    moved by `shiftCalendar` (notes `isPinnedWeek`, bands and phase weeks `hiatusKeyStays`, Sim Post with
+    Production). A note's style goes with its text.
+  - **Frozen edits, each inert with no style:** F1 `renderSpreadsheetView` (styles appended; a one-line size caps its
+    line-height so a row cannot stretch; titles say "Double-click"), F2 `exportExcel` (`xlTextStyle`), F3
+    `buildWaterfallPdf` (`drawStyled`: Carlito Bold/Regular, the header's 0.21 slant, colour, left/right inset;
+    `wrapLines` bold-aware), F4 `wrapLineCount` / `cellTextFit` (bold measure; the auto scan starts at the chosen
+    size and never floors above it — `top = basePx/11` is exactly 1 for every older caller).
+  - **The note editor's Size row is gone** (plan §2): the bar sets size, 6–12; a note saved at 14/16 keeps it.
+- **Proof so far:** `npm run check` 40/40. **`textstyle` 51/51** (fixture `carry-rich`, Sim Post switched on): the
+  bar's place and empty state; click / sweep (22 cells) / ⌘-click / Shift-click / ⌘A (210) / Escape; one selection;
+  one of every kind styled at once — bold, italic, red, left, 12 px on screen, **no row changed height, nothing new
+  cut**; one undo step per press; the workbook (ExcelJS read-back: masters only italic, 6 of 6); the PDF (`/F2`, the
+  0.21 slant, `1.0000 0.0000 0.0000 rg`); the save key and no new `fields.byId` id (100); a file without the key opens
+  unstyled; a hand-edited file's bad kinds, keys and sizes dropped (exactly 5 counted) and not re-saved; Shift All
+  carries a phase week's, a note's and a band's styles and leaves a date's on its date; D5 (click opens nothing;
+  dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
+  Wired into `gate.sh` after `calzoom`. Legs that opened editors with a click now double-click (`T.openCell` in
+  lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
+  T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
+  `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
+- **Mutants, all ten caught** (scratch copy, rebuilt per mutant, `textstyle` run on each): the Excel writer ignoring
+  styles (X1–X3 red); the PDF writer ignoring a note's (P1, P3); no line-height cap at 12 px (S3: a row grows); a phase
+  week's style left behind by a shift (T1); the sanitizer letting a size of 20 through (F7, F7b, F8); an id on the
+  bar's select (B1; F3 compares two saves, so it guards ids that appear only after styling); restore only when the
+  key is present (F5); a click opening the note again (D1 and eight more); typing replacing the note (D4); a plain
+  press keeping the phase selection (G9). ⚠️ M5's first run timed out on a Load under three other sessions' runs; alone
+  it was red where expected.
+- **Older builds:** a styled calendar opened in `releases/v1.6.0.html` (scratch probe through the real Load path):
+  everything loads, the styles are ignored, no error or warning. No `SNAPSHOT_VERSION` bump needed, as planned.
+- ⚠️ **Learned while building:**
+  - On `carry-rich`, rows after the first measure **20.84 px on screen, not 20**, in the live build too, before any
+    styling (pre-existing; a check must compare against the unstyled baseline, never against 20).
+  - The app **renders once more shortly after `appReady()`**: a probe that captures cells straight away holds
+    detached nodes (the first screenshot's ⌘-clicks "missed"). Re-query after each action, or settle ~3 s first.
+  - A text that matches its kind's default bold is stored as nothing, so dates and headings stay at their CSS 600
+    when "bold" (drawn with the same bold face).
+  - ExcelJS reports a merged range's other cells with the master's style: count masters only.
+- **Full gate, build `84684945…` (port 9595, ended 06:19:48 on 22 Oct after queuing behind four other sessions):
+  2,615 PASS, 8 FAIL, every byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13): that is
+  F1–F4's acceptance, unstyled calendars untouched. The 8 FAILs, by leg: `hdrtemplate` (it single-clicked a Template
+  header line, which now opens its editor on a DOUBLE-click; leg updated), `offweek` R1 (it compared a band's tooltip
+  word for word, now "Double-click to rename…"; leg updated), `mvmenu` X (it opened a waterfall band with a single
+  click, an opener the first sweep missed; leg updated), `hdrfile` (3: a fixed 900 ms wait after Import, so a late
+  import fails "fresh id" and then both refusal counts; untouched code) and `hdrversion` (2).
+  - **Re-checked alone through the gate's own evaluators** (06:47, between other sessions' gates): `hdrtemplate` 25/25,
+    `offweek` 50/50, `mvmenu (halfdays)` 89/89, `hdrfile` 14/14 (so the gate's three were the timing flake), and
+    `hdrversion` 15/17 — **failing identically on `main`'s live build** (`f62b9bc8`, scratch build of `e06ccc9`).
+  - ⭐ **`hdrversion`'s cause, and a harness fix for eight legs:** the PDF writers frame every stream as
+    `stream\n<data>\nendstream`, but eight legs (calrange, hdrrow, hdrtemplate, hdrversion, onecol, prefs, stintexport,
+    textstyle) stripped EVERY trailing 10/13/32 byte before inflating, which chops real compressed data whose last byte
+    is one of those (~1 stream in 85; content-dependent, so date-dependent: today's "10.22.26" header did it). Now
+    exactly one EOL is stripped (`c8fd87a`). ⚠️ **Every branch cut from `main` before this fix will fail `hdrversion`'s
+    two PDF checks today**; it is the leg, not the app.
+- ⚠️ **Gate queues on this machine (learned the hard way, 21 Oct):** a queue loop that runs INLINE in a Bash wrapper and
+  waits on `pgrep -f 'gate\.sh'` matches its OWN wrapper (`zsh -c "… ./gate.sh …"`) and every other waiting wrapper, so
+  it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
+  that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
+  script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
+- ✅ **The eight fixed legs, re-run alone through the gate's evaluators (07:16, port 9595): 182 PASS, 0 FAIL** —
+  calrange 18, hdrrow 35, hdrtemplate 25, hdrversion 17, onecol 17, prefs 13, stintexport 6 (its lines read
+  "export: …"), textstyle 51. So every one of the full gate's 8 failures is accounted for, and the byte gates were
+  identical throughout.
+- ⚠️ **`main` moved 52 commits while this branch gated** (v1.7.0 cut; header-zoom LIVE at `34c873f`; phase-outline in
+  local main). 13 files changed on both sides (app.js, legacy.css, PreviewToolbar.jsx, index.html, gate.sh, lib.js,
+  the docs, and hdrversion/prefs/stintexport). ⭐ `main` already fixed the PDF-stream bug in hdrversion, prefs and
+  stintexport, better (by `/Length`, `58e6b6a`, from header-zoom): on the merge take main's three and convert this
+  branch's other five (calrange, hdrrow, hdrtemplate, onecol, textstyle) to the same `/Length` read.
+- **Not done:** merging `main` into this branch (the header strip this branch hides is the one header-zoom capped:
+  expect a legacy.css conflict there) and a full gate on the merged build, mutants, the owner's look at it in
+  the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
+  branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
+
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, MERGED INTO LOCAL main, PUSH BLOCKED (permission)
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
@@ -606,106 +725,6 @@
   this changed `.preview-panel`'s bottom (margin, not padding, above 960px) and moved `#help-fab` / `.cal-zoom`. Merge
   `main` before gating.
 - ⏭ **Next:** nothing. The worktree `.claude/worktrees/zoom-compact` can be removed on the owner's word.
-
-### 🔨 21 Oct 2026: THE TEXT STYLE BAR IS BUILT — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`, from `main` at `e06ccc9`), COMMITTED, `textstyle` 46/46, FULL GATE QUEUED, NOT IN `main`, NOT PUSHED
-
-- ⏭ **RESUME HERE.** Owner, 21 Oct 2026: *"ok start building"*, after ruling D1–D5 (the entry below) and, by picker the
-  same day, two more: a band inside one phase's column **"Double-click edits"** (its 1 Sep fill-across double-click
-  goes), and the frozen edits **"Yes, F1–F4 as planned"** (acceptance: every byte gate unchanged on existing
-  calendars, the fence unchanged, 0 clipped cells with every kind at 12 px and bold).
-- **What exists** (app.js "THE TEXT STYLE BAR", just before the header template editor; legacy.css "The text style
-  bar"; PreviewToolbar.jsx's empty `.style-bar-host`):
-  - **The bar**, built once by the engine into a host React renders last inside `.view-toggle-row` (so
-    `.view-toggle-row` → `#table-wrap` stays the sibling pair): Size, B, I, text colour, highlight (header and box lines
-    only), alignment, clear. Class-only controls (no id: `collectFieldValues`). Greyed with "Highlight any text in
-    the calendar to style it" when nothing is picked. **It names nothing** (the owner's 31 Aug removal of the strip's
-    readout). 34 px tall at 1600×1200.
-  - **Targets:** `'grid'` (the highlight), `'hdr'` (`hdrFmtTarget`, set by focus in Manual and by a CLICK in any mode
-    and either view: D3, D4) and `'side'` (`sideFmtTarget`). Header and box styles go through their OWN code
-    (`applyHdrFmt` / new `clearHdrFmt`, `applySideFmt`), so they are stored exactly as before. The in-calendar header
-    strip is hidden by CSS (`#table-wrap .hdr-fmt`); the boxes' floating `.sb-fmt` is never shown (`showSideFmt`
-    arms the bar instead).
-  - **The highlight** (`textSel`, keys `'<kind>:<key>'` = the store's own): click, sweep, ⌘-click, Shift-click
-    rectangle, ⌘A (only while a highlight exists), Escape. Overlay `.text-sel-layer` beside `.grid-sel-layer`, plus a
-    STICKY `.text-sel-head` strip for the sticky heading row. ⛔ Separate from `gridSel`, which keeps its phase-only
-    meaning (fill-across, swap, move); a plain press OFF a phase cell retires `gridSel`, so one selection shows.
-  - **D5:** the note opener no longer opens on click (a click on the cell being edited keeps editing); a capture
-    `dblclick` opens notes and bands (`openNoteCellEditor`, the old switch-cells logic), Enter opens the active
-    note/band (never over phase cells), typing ADDS the key at the end. The batch fill's dblclick skips bands.
-    Custom headings and Template header lines open their editors on dblclick. Tooltips and Help say double-click.
-  - **Save format:** `textStyles` (see CLAUDE.md's state table), absent when empty, sanitized
-    (`cleanTextStyles`), restored unconditionally, cleared by New / Reset notes (notes) / Reset hiatus bands (bands),
-    moved by `shiftCalendar` (notes `isPinnedWeek`, bands and phase weeks `hiatusKeyStays`, Sim Post with
-    Production). A note's style goes with its text.
-  - **Frozen edits, each inert with no style:** F1 `renderSpreadsheetView` (styles appended; a one-line size caps its
-    line-height so a row cannot stretch; titles say "Double-click"), F2 `exportExcel` (`xlTextStyle`), F3
-    `buildWaterfallPdf` (`drawStyled`: Carlito Bold/Regular, the header's 0.21 slant, colour, left/right inset;
-    `wrapLines` bold-aware), F4 `wrapLineCount` / `cellTextFit` (bold measure; the auto scan starts at the chosen
-    size and never floors above it — `top = basePx/11` is exactly 1 for every older caller).
-  - **The note editor's Size row is gone** (plan §2): the bar sets size, 6–12; a note saved at 14/16 keeps it.
-- **Proof so far:** `npm run check` 40/40. **`textstyle` 51/51** (fixture `carry-rich`, Sim Post switched on): the
-  bar's place and empty state; click / sweep (22 cells) / ⌘-click / Shift-click / ⌘A (210) / Escape; one selection;
-  one of every kind styled at once — bold, italic, red, left, 12 px on screen, **no row changed height, nothing new
-  cut**; one undo step per press; the workbook (ExcelJS read-back: masters only italic, 6 of 6); the PDF (`/F2`, the
-  0.21 slant, `1.0000 0.0000 0.0000 rg`); the save key and no new `fields.byId` id (100); a file without the key opens
-  unstyled; a hand-edited file's bad kinds, keys and sizes dropped (exactly 5 counted) and not re-saved; Shift All
-  carries a phase week's, a note's and a band's styles and leaves a date's on its date; D5 (click opens nothing;
-  dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
-  Wired into `gate.sh` after `calzoom`. Legs that opened editors with a click now double-click (`T.openCell` in
-  lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
-  T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
-  `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
-- **Mutants, all ten caught** (scratch copy, rebuilt per mutant, `textstyle` run on each): the Excel writer ignoring
-  styles (X1–X3 red); the PDF writer ignoring a note's (P1, P3); no line-height cap at 12 px (S3: a row grows); a phase
-  week's style left behind by a shift (T1); the sanitizer letting a size of 20 through (F7, F7b, F8); an id on the
-  bar's select (B1; F3 compares two saves, so it guards ids that appear only after styling); restore only when the
-  key is present (F5); a click opening the note again (D1 and eight more); typing replacing the note (D4); a plain
-  press keeping the phase selection (G9). ⚠️ M5's first run timed out on a Load under three other sessions' runs; alone
-  it was red where expected.
-- **Older builds:** a styled calendar opened in `releases/v1.6.0.html` (scratch probe through the real Load path):
-  everything loads, the styles are ignored, no error or warning. No `SNAPSHOT_VERSION` bump needed, as planned.
-- ⚠️ **Learned while building:**
-  - On `carry-rich`, rows after the first measure **20.84 px on screen, not 20**, in the live build too, before any
-    styling (pre-existing; a check must compare against the unstyled baseline, never against 20).
-  - The app **renders once more shortly after `appReady()`**: a probe that captures cells straight away holds
-    detached nodes (the first screenshot's ⌘-clicks "missed"). Re-query after each action, or settle ~3 s first.
-  - A text that matches its kind's default bold is stored as nothing, so dates and headings stay at their CSS 600
-    when "bold" (drawn with the same bold face).
-  - ExcelJS reports a merged range's other cells with the master's style: count masters only.
-- **Full gate, build `84684945…` (port 9595, ended 06:19:48 on 22 Oct after queuing behind four other sessions):
-  2,615 PASS, 8 FAIL, every byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13): that is
-  F1–F4's acceptance, unstyled calendars untouched. The 8 FAILs, by leg: `hdrtemplate` (it single-clicked a Template
-  header line, which now opens its editor on a DOUBLE-click; leg updated), `offweek` R1 (it compared a band's tooltip
-  word for word, now "Double-click to rename…"; leg updated), `mvmenu` X (it opened a waterfall band with a single
-  click, an opener the first sweep missed; leg updated), `hdrfile` (3: a fixed 900 ms wait after Import, so a late
-  import fails "fresh id" and then both refusal counts; untouched code) and `hdrversion` (2).
-  - **Re-checked alone through the gate's own evaluators** (06:47, between other sessions' gates): `hdrtemplate` 25/25,
-    `offweek` 50/50, `mvmenu (halfdays)` 89/89, `hdrfile` 14/14 (so the gate's three were the timing flake), and
-    `hdrversion` 15/17 — **failing identically on `main`'s live build** (`f62b9bc8`, scratch build of `e06ccc9`).
-  - ⭐ **`hdrversion`'s cause, and a harness fix for eight legs:** the PDF writers frame every stream as
-    `stream\n<data>\nendstream`, but eight legs (calrange, hdrrow, hdrtemplate, hdrversion, onecol, prefs, stintexport,
-    textstyle) stripped EVERY trailing 10/13/32 byte before inflating, which chops real compressed data whose last byte
-    is one of those (~1 stream in 85; content-dependent, so date-dependent: today's "10.22.26" header did it). Now
-    exactly one EOL is stripped (`c8fd87a`). ⚠️ **Every branch cut from `main` before this fix will fail `hdrversion`'s
-    two PDF checks today**; it is the leg, not the app.
-- ⚠️ **Gate queues on this machine (learned the hard way, 21 Oct):** a queue loop that runs INLINE in a Bash wrapper and
-  waits on `pgrep -f 'gate\.sh'` matches its OWN wrapper (`zsh -c "… ./gate.sh …"`) and every other waiting wrapper, so
-  it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
-  that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
-  script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
-- ✅ **The eight fixed legs, re-run alone through the gate's evaluators (07:16, port 9595): 182 PASS, 0 FAIL** —
-  calrange 18, hdrrow 35, hdrtemplate 25, hdrversion 17, onecol 17, prefs 13, stintexport 6 (its lines read
-  "export: …"), textstyle 51. So every one of the full gate's 8 failures is accounted for, and the byte gates were
-  identical throughout.
-- ⚠️ **`main` moved 52 commits while this branch gated** (v1.7.0 cut; header-zoom LIVE at `34c873f`; phase-outline in
-  local main). 13 files changed on both sides (app.js, legacy.css, PreviewToolbar.jsx, index.html, gate.sh, lib.js,
-  the docs, and hdrversion/prefs/stintexport). ⭐ `main` already fixed the PDF-stream bug in hdrversion, prefs and
-  stintexport, better (by `/Length`, `58e6b6a`, from header-zoom): on the merge take main's three and convert this
-  branch's other five (calrange, hdrrow, hdrtemplate, onecol, textstyle) to the same `/Length` read.
-- **Not done:** merging `main` into this branch (the header strip this branch hides is the one header-zoom capped:
-  expect a legacy.css conflict there) and a full gate on the merged build, mutants, the owner's look at it in
-  the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
-  branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
 
 ### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED AND RULED (built: the entry above) ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
 
