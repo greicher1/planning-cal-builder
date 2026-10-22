@@ -41,10 +41,13 @@
   matches other sessions' WAITING wrappers (`/bin/zsh -c "… ./gate.sh …"`), two of them stuck for good, so it waited
   1.5 hours for nothing (the "Calendar text styling bar" session spotted it). Count processes whose command line
   STARTS with zsh then gate.sh: `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`.
-- ⏳ **Not merged.** Local `main` moved meanwhile (`9677900`: zoom strip, navy shifting tools, Region in Show info,
-  two plans) and `origin/main` has one-chip (`db73cf6`) that local `main` lacks. A trial merge conflicts only in
-  HANDOFF.md and README.md (newest entries at the top). Landing it means merging both in, a rebuild and a full gate on
-  the combined build, then the merge picker; the push is a separate picker.
+- **Owner, by picker:** *"Merge in, re-gate"*. Merged local `main` (`73943df`, with Region in Show info, the zoom strip,
+  the paper-size and month-order plans) as `0bf3252`, then `origin/main` (`db73cf6`, one-chip and the toolbar's navy
+  outline) as `28529c4`. Code merged cleanly; HANDOFF and README conflicted only at the top: both sides kept, and the
+  toolbar-center entry keeps origin's newer heading ("GET A NAVY OUTLINE", replacing local main's "WEAR THE NAVY
+  TINT"). Combined build `c1922006…` (1,683,544 bytes): `npm run check` 40/40.
+- ⏳ **The combined build's full gate is queued** (port 9353, the real-gate check). On green: fast-forward local `main`
+  to this branch (it then holds `origin/main` too), and ask separately before any push.
 
 ### 📝 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — PLANNED in [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) and RULED; build starting on branch `month-order`
 
