@@ -6549,6 +6549,7 @@ export function initLegacyApp() {
     const k = row.dataset.key;
     customPhaseDefs = customPhaseDefs.filter(cp=>cp.key!==k);
     delete phaseHiatusNumbered[k];   // its hiatus's "Number weeks" goes with the row
+    mvPhaseOrder = mvPhaseOrder.filter(x=> x !== k);   // ...and its place in the month view's order (plan D8)
     row.remove();
     update();
     return true;
@@ -7000,6 +7001,224 @@ export function initLegacyApp() {
   // (installProductionEdgeHandles) read a pill's dates through it as well, and a second copy of this
   // arithmetic is exactly the drift the cross-check above exists to catch.
 
+  // ---------- The moving copy (MONTH-ORDER-PLAN.md §3.3) ----------
+  // Owner, 21 Oct 2026: "we actually need to see the phases/notes visibly dragged animation when we drag either for
+  // the purpose of reordering them top to bottom or for changing a phases timing". Every month drag redraws the
+  // grid under the pointer (update() replaces every bar), so nothing in the hand moved with it: a bar jumped a
+  // day at a time, or sat still until the order changed. This is a COPY of what was pressed, following the
+  // pointer, while the live calendar underneath shows where it lands (ruling R3: "Update live").
+  // ⛔ BODY-LEVEL CHROME, NEVER INSIDE #table-wrap, AND NO `.mv-*` CLASS, on the edge grips' terms. Its look is
+  // copied from the element's COMPUTED style at the press, because the redraw destroys the element and the frozen
+  // rules are not to be borrowed. The box is getBoundingClientRect()'s (calendar zoom included); the inner box
+  // carries the element's own zoom (currentCSSZoom) at its unzoomed size, so text and padding match the screen.
+  const MV_GHOST_PROPS = ['background-color', 'background-image', 'background-size', 'background-position',
+    'background-repeat', 'color', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+    'letter-spacing', 'text-align', 'white-space', 'overflow', 'text-overflow', 'word-break', 'display',
+    '-webkit-box-orient', '-webkit-line-clamp', 'vertical-align', 'margin-left',
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+    'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+    'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+    'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius'];
+  function mvDragGhost(el){
+    const r = el.getBoundingClientRect();
+    const z = el.currentCSSZoom || 1;
+    const copy = (from, to)=>{
+      const cs = getComputedStyle(from);
+      MV_GHOST_PROPS.forEach(p=> to.style.setProperty(p, cs.getPropertyValue(p)));
+    };
+    const outer = document.createElement('div');
+    outer.className = 'mv-drag-ghost';
+    outer.style.left = r.left + 'px';
+    outer.style.top = r.top + 'px';
+    const inner = document.createElement('div');
+    inner.innerHTML = el.innerHTML;
+    copy(el, inner);
+    inner.style.margin = '0';
+    inner.style.boxSizing = 'border-box';
+    inner.style.width = (r.width / z) + 'px';
+    inner.style.height = (r.height / z) + 'px';
+    if(z !== 1) inner.style.zoom = String(z);
+    // Descendants (a Blocks calendar's grey tag): their look copied too, their classes and attributes dropped,
+    // so nothing in the copy can match a rule, a test's selector or a click handler meant for the real bar.
+    const src = el.querySelectorAll('*'), dst = inner.querySelectorAll('*');
+    for(let i = 0; i < dst.length && i < src.length; i++){
+      Array.from(dst[i].attributes).forEach(a=> dst[i].removeAttribute(a.name));
+      copy(src[i], dst[i]);
+    }
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+    return {
+      // A translation from where it was pressed; the copy never changes size.
+      moveBy(dx, dy){ outer.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; },
+      remove(){ outer.remove(); }
+    };
+  }
+
+  // The columns a month bar covers in its row, 0..6, read off its grid-column (frozen renderMonthView writes
+  // `grid-column:<from+1> / <to+2>`). [] when it has none.
+  function mvBarColumns(el){
+    const m = /grid-column:\s*(\d+)\s*\/\s*(\d+)/.exec(el.getAttribute('style') || '');
+    const out = [];
+    if(m) for(let c = +m[1] - 1; c <= +m[2] - 2; c++) out.push(c);
+    return out;
+  }
+
+  // ---------- Reorder a phase up or down in the month view (MONTH-ORDER-PLAN.md §3.1, ruling R1) ----------
+  // ⛔ A GRIP, NOT THE BAR: pressing a bar and dragging already moves its dates (installMonthPillDrag below; one
+  // row = a week), so the reorder has its own handle, shown on hover inside the bar's LEFT end, just right of the
+  // start grip's 10 px (ruling R1's sketch). It covers the label's first letter while the pointer is on the bar:
+  // built first at the right end to spare it, then moved back by the owner, 21 Oct 2026 ("Move the reorder grip to
+  // the left end, beside the start grip, even though it covers the first letter of the label while hovering").
+  // ZERO FROZEN EDITS here: body-level chrome, as the edge grips. What it writes is
+  // mvPhaseOrder, the ONE calendar-wide order frozen edit E1 reads (plan D1), so the bar takes its new place in
+  // every week, and the calendar redraws live as the order changes (ruling R3).
+  // WHAT A DROP MEANS: in the row being dragged in, the phases sharing a day with the dragged one, top to bottom.
+  // The copy's middle passing another's middle moves the dragged phase right before it (or right after the one it
+  // now sits below) in the whole calendar's order. A phase that shares no day with it in that row cannot stack
+  // against it there, so it is never offered (plan §7).
+  (function installMonthOrderDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const GRIP_W = 12, EDGE_W = 10, MIN_BAR_W = 46;
+    let grip = null, shownFor = null, drag = null;
+    const effectiveOrder = ()=> mvLaneOrder((currentSchedule && currentSchedule.segments) || []).map(s=> s.key);
+    function gripEl(){
+      if(grip) return grip;
+      grip = document.createElement('div');
+      grip.className = 'mv-order-grip';
+      grip.hidden = true;
+      grip.title = 'Drag up or down to change the order';
+      grip.addEventListener('mousedown', begin);
+      document.body.appendChild(grip);
+      return grip;
+    }
+    function hide(){ shownFor = null; if(grip) grip.hidden = true; }
+    function showFor(pill){
+      const v = visibleRect(pill), g = gripEl();
+      // Too narrow for a start grip, this one and some of the label: no grip rather than one over the start grip.
+      if(!v || v.full.width < MIN_BAR_W){ hide(); return; }
+      const x = v.full.left + EDGE_W + 1;
+      if(x < v.left - 1 || x + GRIP_W > v.right + 1){ hide(); return; }
+      shownFor = pill;
+      g._pill = pill;
+      g.style.left = x + 'px';
+      g.style.top = v.top + 'px';
+      g.style.height = (v.bottom - v.top) + 'px';
+      // The bar's own text colour on its own fill: the dots read on any phase colour, and the label's first letter
+      // under the grip is covered rather than overprinted (dots over a "P" read as "Ṗ").
+      const cs = getComputedStyle(pill);
+      g.style.color = cs.color;
+      g.style.background = cs.backgroundColor;
+      g.hidden = false;
+    }
+    document.addEventListener('mousemove', e=>{
+      if(drag) return;
+      const t = e.target;
+      if(grip && t === grip) return;
+      if(viewMode !== 'month' || document.body.classList.contains('grid-swapping')){ hide(); return; }
+      // Resting on an edge grip keeps this one: the grips sit side by side on the same bar.
+      let pill = t && t.closest && t.closest('.mv-pill[data-ph]');
+      if(!pill && t && t.classList && t.classList.contains('phase-edge-handle')) pill = t._pill || null;
+      if(!pill || !wrap.contains(pill)){ hide(); return; }
+      if(pill !== shownFor) showFor(pill);
+    }, {passive: true});
+    window.addEventListener('scroll', ()=>{ if(!drag) hide(); }, true);
+    window.addEventListener('resize', ()=>{ if(!drag) hide(); });
+    // Every render replaces every bar (CLAUDE.md, sanctioned pattern 3: observing mutates nothing).
+    new MutationObserver(()=>{ if(!drag) hide(); }).observe(wrap, {childList: true, subtree: true});
+
+    function begin(e){
+      if(e.button !== 0 || isMacCtrlClick(e) || viewMode !== 'month') return;
+      const pill = grip && grip._pill;
+      if(!pill || !wrap.contains(pill)) return;
+      const key = pill.getAttribute('data-ph');
+      const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), pill.closest('.mv-week'));
+      if(!key || wi < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // Flush what came before into its own step, as the body drag does, so a date typed a moment ago cannot
+      // fold into this reorder's one undo step.
+      pushUndoSnapshot();
+      const r = pill.getBoundingClientRect();
+      const shield = document.createElement('div');
+      shield.className = 'mv-drag-shield';
+      document.body.appendChild(shield);
+      drag = {key, wi, y0: e.clientY, top0: r.top, h: r.height, was: mvPhaseOrder.slice(), order0: effectiveOrder(),
+              ghost: mvDragGhost(pill), shield};
+      hide();
+    }
+    function targetOrder(mid){
+      const d = drag;
+      const week = wrap.querySelectorAll('.mv-week')[d.wi];
+      if(!week) return null;
+      // Each phase in this row: the columns it covers and its topmost bar's box (it may have several pieces).
+      const info = new Map();
+      week.querySelectorAll('.mv-pill[data-ph]').forEach(p=>{
+        const k = p.getAttribute('data-ph'), r = p.getBoundingClientRect(), cols = mvBarColumns(p);
+        const cur = info.get(k);
+        if(!cur){ info.set(k, {cols: new Set(cols), top: r.top, bottom: r.bottom}); return; }
+        cols.forEach(c=> cur.cols.add(c));
+        if(r.top < cur.top){ cur.top = r.top; cur.bottom = r.bottom; }
+      });
+      const me = info.get(d.key);
+      if(!me) return null;
+      const others = Array.from(info.entries())
+        .filter(([k, v])=> k !== d.key && Array.from(v.cols).some(c=> me.cols.has(c)))
+        .sort((a, b)=> a[1].top - b[1].top);
+      if(!others.length) return null;
+      // `<=`, not `<`: a copy brought back to where it was pressed has its middle EXACTLY on the middle of the
+      // neighbour that took its old place, and that neighbour must count as above it, or out-and-back lands one
+      // place off (caught by the mvorder leg's O7).
+      const above = others.filter(([, v])=> (v.top + v.bottom) / 2 <= mid).length;
+      const order = effectiveOrder().filter(k=> k !== d.key);
+      const at = above === 0 ? order.indexOf(others[0][0]) : order.indexOf(others[above - 1][0]) + 1;
+      if(at < 0) return null;
+      order.splice(at, 0, d.key);
+      return order;
+    }
+    window.addEventListener('mousemove', e=>{
+      if(!drag) return;
+      // A release outside the window never reaches us: end on the next move with the button up.
+      if(!(e.buttons & 1)){ end(); return; }
+      const dy = e.clientY - drag.y0;
+      drag.ghost.moveBy(0, dy);
+      const next = targetOrder(drag.top0 + dy + drag.h / 2);
+      if(next && next.join('|') !== effectiveOrder().join('|')){
+        mvPhaseOrder = next;
+        drag.redrawn = true;
+        update();
+        // ⛔ update() re-armed the undo debounce. Kill it: the gesture banks its own ONE step, in end().
+        cancelPendingUndoPush();
+      }
+    });
+    window.addEventListener('mouseup', ()=>{ if(drag) end(); });
+    // Escape puts back exactly what was there and banks nothing (MONTH-9's rule, as every month grip).
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      mvPhaseOrder = drag.order0.slice();
+      end();
+    }, true);
+    function end(){
+      const d = drag;
+      if(!d) return;
+      drag = null;
+      d.ghost.remove();
+      d.shield.remove();
+      if(effectiveOrder().join('|') === d.order0.join('|')){
+        // Out and back, or Escape: the order exactly as it was, an absent one included, and no step. A press that
+        // never moved anything returns here having touched nothing, so it does not even mark the calendar dirty.
+        mvPhaseOrder = d.was;
+        if(d.redrawn){ update(); cancelPendingUndoPush(); }
+        return;
+      }
+      // ⛔ THE TRAILING PUSH IS THE STEP, as the body drag's.
+      pushUndoSnapshot();
+      markDirty();
+    }
+  })();
+
   // ---------- Body-drag: move a whole phase by dragging its pill in the month view ----------
   // ⭐ The CHEAPEST of the three drag gestures (MONTH-VIEW-PLAN.md §6.1): moving a phase is
   // `start-<key> += n days` -- one stored field, duration untouched. The only frozen change it
@@ -7018,6 +7237,7 @@ export function initLegacyApp() {
     // button-released-off-window check in mousemove, so there is one exit and it cannot be missed.
     const endDrag = ()=>{
       if(!drag) return;
+      if(drag.ghost) drag.ghost.remove();
       const moved = drag.applied;
       const bound = drag.boundOverrides;
       const draggedKey = drag.key;
@@ -7071,7 +7291,7 @@ export function initLegacyApp() {
       // at the press, so an edited auto-note's date follows the pill (autoNoteBaseline). The notes
       // themselves stay in their weeks: a body-drag has never carried notes, unlike Shift All.
       drag = {key, startEl, snapEl, base, x0: e.clientX, y0: e.clientY, dayW, weekH, applied: 0,
-              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline()};
+              snapWas: !!(snapEl && snapEl.checked), notesBase: autoNoteBaseline(), pillEl: pill, ghost: null};
       // ⛔ A MOVER (owner ruling R2): Production's day overrides travel with the pill BY SHOOT-DAY
       // NUMBER, live on every increment, because update() re-derives them from these pins. For any
       // other phase the shoot does not move and the binding is the identity. Pinned here, before the
@@ -7090,6 +7310,13 @@ export function initLegacyApp() {
       // following the pointer with the button up, and -- worse since the debounce is now cancelled
       // on every step -- the gesture's undo step would never be banked at all.
       if(!(e.buttons & 1)){ endDrag(); return; }
+      // ⭐ THE MOVING COPY (MONTH-ORDER-PLAN.md §3.3; owner, 21 Oct 2026: "we actually need to see the phases/notes
+      // visibly dragged ... for changing a phases timing"). The pressed piece, lifted, follows the pointer both
+      // ways, as the drag reads both; the live redraw below stays where it lands (ruling R3). Made at the first
+      // few pixels of travel, so a plain click shows none, and always before the first redraw destroys the pill.
+      const gx = e.clientX - drag.x0, gy = e.clientY - drag.y0;
+      if(!drag.ghost && (Math.abs(gx) >= 3 || Math.abs(gy) >= 3) && drag.pillEl.isConnected) drag.ghost = mvDragGhost(drag.pillEl);
+      if(drag.ghost) drag.ghost.moveBy(gx, gy);
       // A month row IS a week, so vertical movement is worth 7 days and horizontal 1. No step
       // quantisation: one column of travel is one day.
       const days = Math.round((e.clientX - drag.x0) / drag.dayW)
@@ -8901,6 +9128,11 @@ export function initLegacyApp() {
       // until this gesture is settled (ruling 3; per-phase too, which costs nothing and asks nothing).
       pushUndoSnapshot();
       holdPersistence();
+      // ⭐ THE MOVING COPY (MONTH-ORDER-PLAN.md §3.3, plan D5): a moved band, lifted, follows the pointer up and
+      // down (a hiatus moves by whole weeks, which are rows), while the live redraw shows where it lands. Made
+      // before anything redraws, from the band under the layer. Its first and last week grips are a resize, and
+      // keep stepping with the band's edge, as the phase edge grips do.
+      if(kind === 'move'){ d.ghost = mvDragGhost(band); d.y0 = e.clientY; }
       drag = d;
       hide(el);
       shield = document.createElement('div');
@@ -8911,6 +9143,7 @@ export function initLegacyApp() {
     async function endDrag(){
       const d = drag;
       drag = null;
+      if(d && d.ghost) d.ghost.remove();
       if(shield){ shield.remove(); shield = null; }
       hide();
       if(!d) return;
@@ -8938,6 +9171,7 @@ export function initLegacyApp() {
       if(!drag) return;
       // A release outside the window never arrives as mouseup (body-drag's trap, same fix).
       if(!(e.buttons & 1)){ endDrag(); return; }
+      if(drag.ghost) drag.ghost.moveBy(0, e.clientY - drag.y0);
       if(drag.broken) return;
       const T = dayAtPoint(e.clientX, e.clientY);
       if(!T) return;
@@ -9298,6 +9532,7 @@ export function initLegacyApp() {
       sidebar: 'M4 5h16v14H4zM9 5v14',
       check: 'M5 12.5l4.5 4.5L19 7.5',
       trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+      order: 'M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -9315,7 +9550,8 @@ export function initLegacyApp() {
       const t = e.target;
       if(!t || !t.closest) return null;
       const body = wrap.querySelector('.mv-body');
-      const handle = t.closest('.phase-edge-handle');
+      // The reorder grip (MONTH-ORDER-PLAN.md) is laid over a bar like an edge handle, and names its bar the same way.
+      const handle = t.closest('.phase-edge-handle, .mv-order-grip');
       if(!body || !(handle || body.contains(t))) return null;
       const r = body.getBoundingClientRect();
       if(!(e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom)) return null;
@@ -9456,6 +9692,14 @@ export function initLegacyApp() {
       }
       items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
       items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
+      // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set. Greyed out when the
+      // order set happens to BE date order (dragged back), rather than banking an empty step.
+      if(mvPhaseOrder.length){
+        const segs = (currentSchedule && currentSchedule.segments) || [];
+        const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
+        items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
+          disabled: same, why: 'The bars are already in date order', run: resetMvPhaseOrder});
+      }
       // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
       // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
       // such item.
@@ -9525,6 +9769,14 @@ export function initLegacyApp() {
       if(!now) return;
       pushUndoSnapshot();
       removeCustomPhaseRow(now);
+      pushUndoSnapshot();
+    }
+
+    // One undo step, as every item that changes the calendar.
+    function resetMvPhaseOrder(){
+      pushUndoSnapshot();
+      mvPhaseOrder = [];
+      update();
       pushUndoSnapshot();
     }
 
@@ -10986,7 +11238,11 @@ export function initLegacyApp() {
     const weekCount = Math.ceil((lead + daysInMonth)/7);
     // Stable lane order: phases keep the same vertical position all month (earliest start on
     // top), so the eye can track a bar across weeks instead of it hopping rows.
-    const laneSegs = segs.slice().sort((a,b)=> a.start - b.start);
+    // ⛔ FROZEN EDIT E1 (owner-approved 21 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §6):
+    // the order comes from mvLaneOrder(), outside the frozen code, so a phase dragged up or down by its grip keeps
+    // that place in every week. With no order set (every calendar ever saved) it returns this line's old
+    // expression, `segs.slice().sort((a,b)=> a.start - b.start)`, so gates 10 and 13 stay byte-identical.
+    const laneSegs = mvLaneOrder(segs);
     const epSpans = episodeSpans(schedule);
     // ⛔ FROZEN EDIT, approved 16 Sep 2026 against MONTH-VIEW-PLAN.md §6.5 -- day-override marks.
     // Built to be provably height-neutral: it adds a CLASS to an existing .mv-daycell and nothing
@@ -11226,6 +11482,53 @@ export function initLegacyApp() {
         return lane;
       };
       const noteBoxW = mvNoteBoxWidth();
+      // ⛔ FROZEN EDIT E2 (owner-approved 21 Oct 2026 by picker, "Approve with that gate", MONTH-ORDER-PLAN.md §6;
+      // ruling R2, "A note can go on top"). The notes loop, unchanged in what it places, now asks mvDayNoteBlocks()
+      // (outside the frozen code) for each day's notes in order, and runs as two passes: 'top', HERE, before the
+      // hiatus bands, so first-fit gives a note dragged above the bars the top lane of its day (a bar crossing that
+      // day drops a line for this week, as the ruling says); and 'below' at the end, where the loop always ran.
+      // Every block is placed with exactly the class, style, title, text and data-note-* attributes it had. With no
+      // place stored (every calendar ever saved) 'top' places nothing and 'below' is the old loop's order -- the
+      // waterfall's lines, then the day's own in array order, `ni` its index in that list -- so gates 10 and 13
+      // stay byte-identical. The month-PDF writer re-packs in document order, so it stacks them the same way.
+      const placeNotes = group=>{
+        for(let i=0;i<7;i++){
+          const d = addDays(weekStart, i);
+          const dIso = isoOf(d);
+          const wkKey = isoOf(mondayOf(d));
+          const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
+          mvDayNoteBlocks(schedule, d, group).forEach(b=>{
+            if(b.kind === 'wf'){
+              const n = b.text;
+              // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
+              // that many lanes so it prints as one solid block instead of spilling over its neighbour.
+              const span = mvNoteLineCount(n, noteBoxW);
+              place(i, i, 'mv-bar mv-note-block mv-note-click',
+                `background:${wfColor}; color:${textColorFor(wfColor)};`,
+                escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
+                `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`,
+                span);
+              return;
+            }
+            // This day's own notes: month-view only, each independently editable with its own colour.
+            // A note is ONE block that can be up to 3 lines tall (its own real line breaks plus any
+            // wrapping) -- the whole thing shares one highlight rather than splitting into separate
+            // notes. The index ties a block back to its entry for editing.
+            const entry = b.entry, ni = b.index;
+            const oc = entry.color || MILESTONE_COLOR;
+            const text = String(entry.text || '');
+            if(!text.trim()) return;
+            const span = mvNoteLineCount(text, noteBoxW);
+            place(i, i, 'mv-bar mv-note-block mv-note-click',
+              `background:${oc}; color:${textColorFor(oc)};`,
+              escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
+              `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
+              span);
+          });
+          // An "add note" affordance on free lines (added below for every day).
+        }
+      };
+      placeNotes('top');
 
       // Hiatus first: a full-width stop-work band across the days it covers. Spillover days
       // (the greyed-out neighbours from the previous/next month that fill the first and last
@@ -11399,40 +11702,8 @@ export function initLegacyApp() {
       }
 
       // Notes last, so they sit under the phase pills.
-      for(let i=0;i<7;i++){
-        const d = addDays(weekStart, i);
-        const dIso = isoOf(d);
-        const wkKey = isoOf(mondayOf(d));
-        const wfNotes = notesForWaterfallDate(schedule, d);
-        const wfColor = noteColors[wkKey] || MILESTONE_COLOR;
-        wfNotes.forEach(n=>{
-          // A single auto/waterfall note. It may be long enough to wrap onto 2-3 lines -- give it
-          // that many lanes so it prints as one solid block instead of spilling over its neighbour.
-          const span = mvNoteLineCount(n, noteBoxW);
-          place(i, i, 'mv-bar mv-note-block mv-note-click',
-            `background:${wfColor}; color:${textColorFor(wfColor)};`,
-            escHtml(n) + ' \u2014 click to edit (also updates the Waterfall)', escHtml(n),
-            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="wf"`,
-            span);
-        });
-        // This day's own notes: month-view only, each independently editable with its own colour.
-        // A note is ONE block that can be up to 3 lines tall (its own real line breaks plus any
-        // wrapping) -- the whole thing shares one highlight rather than splitting into separate
-        // notes. The index ties a block back to its entry for editing.
-        const ownList = dayNoteList(dIso);
-        ownList.forEach((entry, ni)=>{
-          const oc = entry.color || MILESTONE_COLOR;
-          const text = String(entry.text || '');
-          if(!text.trim()) return;
-          const span = mvNoteLineCount(text, noteBoxW);
-          place(i, i, 'mv-bar mv-note-block mv-note-click',
-            `background:${oc}; color:${textColorFor(oc)};`,
-            escHtml(text) + ' \u2014 click to edit (month view only)', escHtml(text),
-            `data-note-week="${wkKey}" data-note-day="${dIso}" data-note-kind="day" data-note-index="${ni}"`,
-            span);
-        });
-        // An "add note" affordance on free lines (added below for every day).
-      }
+      // ⛔ FROZEN EDIT E2 (see placeNotes above): the old loop, as the 'below' pass.
+      placeNotes('below');
 
       // How tall is this week? At least MV_MIN_LANES, and more if the content needs it --
       // content is never hidden. Manual expansion is what's capped: it can lift the row up to
@@ -13708,6 +13979,81 @@ export function initLegacyApp() {
   //    Schedule by or mvProdLabel, and its switch is never hidden by them (Sidebar.jsx).
   // ⛔ The key is permanent from the first file saved with it, and its only value is `true`.
   let mvNumberShootDays = false;
+
+  // ---------- The month view's top-to-bottom order (MONTH-ORDER-PLAN.md) ----------
+  // Owner, 21 Oct 2026: "we need the ability to drag and reorder how phases and notes are sorted up and down on
+  // the month view". Frozen renderMonthView places each week's items first-fit (takeLane), phases by start date;
+  // this changes only WHICH phase it places first (frozen edit E1, owner-approved by picker as R4). The month-PDF
+  // writer re-packs in document order (mvlPackLanes), so it follows with no edit of its own.
+  //  - ONE ORDER FOR THE WHOLE CALENDAR (plan D1): a phase sits at the same height in every week where it
+  //    overlaps another, which is what the frozen "stable lane order" comment exists to keep.
+  //  - ⛔ CALENDAR DATA: captureSnapshot()'s `mvPhaseOrder`, phase keys top to bottom. [] = date order, written
+  //    as an ABSENT key, so a calendar that never reorders saves, draws and prints byte for byte as before.
+  let mvPhaseOrder = [];
+  // E1's rule, outside the frozen code (the mvShootDayNumberer pattern). With no order it is exactly the
+  // expression renderMonthView had: by start date. With one, the named phases go in its order, and a phase it
+  // does not name (added after the reorder) goes right after the named phase that comes before it by date, or on
+  // top when none does (plan D7) -- near where date order would have put it, never at a random end.
+  function mvLaneOrder(segs){
+    const byDate = segs.slice().sort((a,b)=> a.start - b.start);
+    if(!mvPhaseOrder.length) return byDate;
+    const rank = new Map();
+    mvPhaseOrder.forEach((k, i)=>{ if(!rank.has(k)) rank.set(k, i); });
+    const after = new Map();          // a named phase's key, or '' for the top -> the unnamed phases after it
+    let prev = '';
+    byDate.forEach(s=>{
+      if(rank.has(s.key)){ prev = s.key; return; }
+      if(!after.has(prev)) after.set(prev, []);
+      after.get(prev).push(s);
+    });
+    const out = (after.get('') || []).slice();
+    byDate.filter(s=> rank.has(s.key)).sort((a,b)=> rank.get(a.key) - rank.get(b.key))
+      .forEach(s=>{ out.push(s); (after.get(s.key) || []).forEach(u=> out.push(u)); });
+    return out;
+  }
+
+  // Where a NOTE sits on its day (MONTH-ORDER-PLAN.md §3.2, ruling R2: "A note can go on top"). Two groups: 'top',
+  // placed before every bar in its week row (frozen edit E2), so a bar crossing that day drops a line that week;
+  // and 'below', where every note always sat. A NOTE'S PLACE TRAVELS WITH THE NOTE (plan D3):
+  //  - a day's own note is dated and never moves, so its place is in its own dayNotes entry: `top: true`, and its
+  //    order is the array's. ⛔ Written only as `true`.
+  //  - a waterfall line (an auto-note, or a line of a waterfall edit) moves when its phase moves, so its place is
+  //    keyed by its TEXT WITHOUT ITS DATE (mvWfNoteKey): "Start Principal Photography" stays on top when the shoot
+  //    is dragged a day. `at` is how many of its group's own notes come before it (absent = 0, first: where it
+  //    always sat). Editing the text drops the place: the line goes back to its default spot, never a wrong one.
+  //    Two lines on one day keep their natural order between themselves.
+  //  - ⛔ CALENDAR DATA: captureSnapshot()'s `mvWfNotePlace`, written only while it holds something.
+  let mvWfNotePlace = {};
+  const MV_UNSAFE_KEY = /^(__proto__|constructor|prototype)$/;
+  function mvWfNoteKey(text){ return String(text || '').replace(/\s*\d{1,2}\/\d{1,2}\/\d{2}\s*$/, '').trim(); }
+  function mvWfPlaceOf(text){
+    const k = mvWfNoteKey(text);
+    return Object.prototype.hasOwnProperty.call(mvWfNotePlace, k) ? mvWfNotePlace[k] : null;
+  }
+  // E2's rule, outside the frozen code: one day's notes for one group, in the order renderMonthView places them.
+  // An own note keeps `index`, its place in the day's full list, which is what data-note-index names to the editor.
+  // With no place stored anywhere this is the old loop exactly: 'top' is empty, and 'below' is the waterfall's
+  // lines, then the day's own notes in array order.
+  function mvDayNoteBlocks(schedule, d, group){
+    const top = group === 'top';
+    const own = [];
+    dayNoteList(isoOf(d)).forEach((entry, index)=>{
+      if(((entry && entry.top) === true) === top) own.push({kind: 'day', entry, index});
+    });
+    // Nothing is on top anywhere: skip the waterfall lookup (it runs for every day of every printed month).
+    if(top && !Object.keys(mvWfNotePlace).length) return own;
+    const wf = notesForWaterfallDate(schedule, d).map(text=>{
+      const p = mvWfPlaceOf(text);
+      return {kind: 'wf', text, top: !!(p && p.top === true), at: (p && Number.isInteger(p.at) && p.at > 0) ? p.at : 0};
+    }).filter(b=> b.top === top);
+    if(!wf.length) return own;
+    const out = [];
+    for(let k = 0; k <= own.length; k++){
+      wf.forEach(b=>{ if(Math.min(b.at, own.length) === k) out.push(b); });
+      if(k < own.length) out.push(own[k]);
+    }
+    return out;
+  }
   // Which settings tab is showing in the sidebar. Purely a UI grouping; persisted so a saved
   // file re-opens on the same tab.
   // ---------- Gridlines preference ----------
@@ -18038,6 +18384,7 @@ export function initLegacyApp() {
     if(activeMvNote) closeMvNoteEditor();
     Object.keys(dayNotes).forEach(k=>delete dayNotes[k]);
     dayNoteColors = {}; mvExtraLanes = {};
+    mvWfNotePlace = {};   // where the waterfall's lines sat in the month view is month-view state too (MONTH-ORDER-PLAN.md)
     render(currentSchedule);
     markDirty();
   }
@@ -19914,6 +20261,8 @@ export function initLegacyApp() {
     { const el = document.getElementById('prep-name'); if(el) el.value = PREP_DEF.label; }
     prepPauseOff = false;   // the box follows on the update() after New (refreshPrepUI)
     colReuse = false; colFollow = {}; reflectColReuse();
+    mvPhaseOrder = [];      // the month view back in date order (MONTH-ORDER-PLAN.md)
+    mvWfNotePlace = {};     // ...and every waterfall line back in its old spot
     reflectPrepSwatch();
     // Clear every per-phase hiatus (both built-in and custom rows about to be removed).
     document.querySelectorAll('.phiatus-en').forEach(cb=>{ cb.checked = false; });
@@ -20144,7 +20493,9 @@ export function initLegacyApp() {
     // .hiatus-drag-layer / .hiatus-grip / .hiatus-drag-shield added 19 Oct 2026 with the hiatus drag
     // (HIATUS-DRAG-PLAN.md): the same body-level chrome, over a hiatus band. The copy's own engine
     // makes fresh ones when it boots, so a kept set would be a second, dead one.
-    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield').forEach(el=>el.remove());
+    clone.querySelectorAll('.note-pop, .mv-note-pop, .day-ov-pop, .phase-color-pop, .date-pop, .select-pop, .hdr-mode-pop, .hdr-token-pop, .hde-overlay, .phase-edge-handle, .phase-edge-shield, .day-menu, .day-menu-ring, .hdrrow-ring, .paste-notes-overlay, .sb-fmt, .sb-menu, .sb-drop, .hiatus-drag-layer, .hiatus-grip, .hiatus-drag-shield, .mv-order-grip, .mv-drag-ghost, .mv-drag-shield').forEach(el=>el.remove());
+    // .mv-order-grip / .mv-drag-ghost / .mv-drag-shield added 21 Oct 2026 with the month view's reorder grip and
+    // moving copy (MONTH-ORDER-PLAN.md): body-level chrome over the month grid, on the edge grips' terms.
     // .sb-fmt / .sb-menu / .sb-drop added 20 Oct 2026 with the side boxes (SIDE-BOXES-PLAN.md): the
     // format bar, the Side boxes menu and the drag indicator are all body-level.
     // ⛔ The two notice strips must be RE-HIDDEN, not removed (HANDOFF §2h, a v1.2.0-era export
@@ -20589,6 +20940,12 @@ export function initLegacyApp() {
       // whose one value is `true`. OFF IS AN ABSENT KEY, never false (owner's picker, "Saved in the
       // calendar"; the mvProdLabel rule), so an off calendar's snapshot is the one it was before.
       ...(mvNumberShootDays ? {mvNumberShootDays: true} : {}),
+      // 21 Oct 2026 (MONTH-ORDER-PLAN.md §5): the month view's phase order, top to bottom. ⛔ PERMANENT key.
+      // Date order, the default, is an ABSENT key, so a calendar that never reorders saves byte for byte as before.
+      ...(mvPhaseOrder.length ? {mvPhaseOrder: mvPhaseOrder.slice()} : {}),
+      // ...and where the waterfall's lines sit on their day (a day's own note carries its own `top`). ⛔ PERMANENT key,
+      // written only while it holds something.
+      ...(Object.keys(mvWfNotePlace).length ? {mvWfNotePlace: JSON.parse(JSON.stringify(mvWfNotePlace))} : {}),
       // ⚠️ FOUR sizing keys, not two. colWidths is the ACTIVE layout's set and colWidthsAlt the
       // other; rowHeights stays for files opened by an older build, while rowHeightsByWeek is the
       // truth this build reads. Dropping either legacy key would make a calendar saved here open
@@ -25867,6 +26224,8 @@ export function initLegacyApp() {
       if(text){
         const entry = {text, lane:(lane!=null?lane:null), color:pendingColor || (idx>=0 ? list[idx].color : null) || null};
         if(entry.color && entry.color.toUpperCase() === MILESTONE_COLOR.toUpperCase()) entry.color = null;
+        // A note dragged above the bars stays there when its text is edited (MONTH-ORDER-PLAN.md §3.2).
+        if(idx >= 0 && list[idx] && list[idx].top === true) entry.top = true;
         if(idx >= 0) list[idx] = entry; else list.push(entry);
       } else if(idx >= 0){
         list.splice(idx, 1);   // deleting all text removes the note (and its colour with it)
@@ -26079,6 +26438,212 @@ export function initLegacyApp() {
     e.stopPropagation();
     openMvNoteEditor(hit, hit.dataset.noteWeek, hit.dataset.noteDay, hit.dataset.noteKind || 'day');
   });
+
+  // ---------- Drag a note up or down in its day (MONTH-ORDER-PLAN.md §3.2, ruling R2) ----------
+  // A note has no drag of its own (a click edits it), so the note itself is the handle: press and move more than
+  // a few pixels and it lifts (the moving copy, mvDragGhost); a press that does not move is the click it always
+  // was. The copy moves up and down in the note's own day. As its middle passes another item in that day's
+  // column, the day's notes are re-arranged and the calendar redraws live (ruling R3):
+  //  - above every bar in the column is the 'top' group (a bar crossing the day drops a line that week);
+  //  - anywhere else is 'below', among that group's notes.
+  // What it writes is the place mvDayNoteBlocks() reads (an own note's `top` and array order, a waterfall line's
+  // mvWfNotePlace), never the text, the colour or the day. ZERO FROZEN EDITS here; E2 is what draws the result.
+  // ⚠️ Not while the note editor is open: a press then is the editor's (commit, or open another), as it was.
+  (function installMonthNoteDrag(){
+    const wrap = document.getElementById('table-wrap');
+    if(!wrap) return;
+    const SLOP = 4;                     // px of travel before a press becomes a drag rather than a click
+    let press = null, drag = null, swallowClick = false;
+    const sched = ()=> currentSchedule || {};
+    // The note's element in the CURRENT grid (each redraw replaces it), found by what it is, not by node.
+    function noteEl(id){
+      const els = wrap.querySelectorAll('.mv-note-block[data-note-day="' + id.iso + '"][data-note-kind="' + id.kind + '"]');
+      for(const el of els){
+        if(id.kind === 'day' ? el.getAttribute('data-note-index') === String(id.index) : el.textContent === id.text) return el;
+      }
+      return null;
+    }
+    const sameId = (b, id)=> b.kind === id.kind && (b.kind === 'day' ? b.index === id.index : b.text === id.text);
+    wrap.addEventListener('mousedown', e=>{
+      if(viewMode !== 'month' || e.button !== 0 || isMacCtrlClick(e) || activeMvNote) return;
+      const el = e.target.closest && e.target.closest('.mv-note-block.mv-note-click');
+      if(!el || !wrap.contains(el)) return;
+      const iso = el.getAttribute('data-note-day'), kind = el.getAttribute('data-note-kind');
+      if(!iso || (kind !== 'day' && kind !== 'wf')) return;
+      const id = kind === 'day' ? {kind, iso, index: parseInt(el.getAttribute('data-note-index'), 10)}
+                                : {kind, iso, text: el.textContent};
+      if(kind === 'day' && !Number.isInteger(id.index)) return;
+      press = {el, id, x0: e.clientX, y0: e.clientY};
+    });
+    function begin(){
+      const p = press;
+      press = null;
+      const r = p.el.getBoundingClientRect();
+      const wi = Array.prototype.indexOf.call(wrap.querySelectorAll('.mv-week'), p.el.closest('.mv-week'));
+      const col = mvBarColumns(p.el)[0];
+      if(wi < 0 || col == null) return;
+      // Flush what came before into its own step (the body drag's rule), then lift the note.
+      pushUndoSnapshot();
+      const shield = document.createElement('div');
+      shield.className = 'mv-drag-shield';
+      document.body.appendChild(shield);
+      const sel = window.getSelection && window.getSelection();
+      if(sel) sel.removeAllRanges();
+      const list = dayNotes[p.id.iso];
+      drag = {id: p.id, wi, col, y0: p.y0, top0: r.top, h: r.height, ghost: mvDragGhost(p.el), shield,
+              wasList: list, wasListJson: JSON.stringify(list === undefined ? null : list),
+              wasPlace: mvWfNotePlace, wasPlaceJson: JSON.stringify(mvWfNotePlace), redrawn: false};
+    }
+    // Where the copy's middle says the note goes: {group, k}, k its place among that group's notes.
+    function target(mid){
+      const d = drag;
+      const week = wrap.querySelectorAll('.mv-week')[d.wi];
+      if(!week) return null;
+      const me = noteEl(d.id);
+      const items = Array.from(week.querySelectorAll('.mv-bar:not(.mv-note-add)'))
+        .filter(b=> b !== me && mvBarColumns(b).indexOf(d.col) >= 0)
+        .map(b=>{
+          const r = b.getBoundingClientRect(), isNote = b.classList.contains('mv-note-block');
+          return {isNote, top: isNote && isTopNote(b), mid: (r.top + r.bottom) / 2};
+        })
+        .sort((a, b)=> a.mid - b.mid);
+      const p = items.filter(it=> it.mid <= mid).length;     // `<=`: the out-and-back tie, as the phase grip's
+      const before = items.slice(0, p);
+      const hasBar = items.some(it=> !it.isNote);
+      // Above every bar in the column is the top group. A column with no bar has nothing to be above, so the
+      // note keeps its group there and only moves among that group's notes.
+      const group = hasBar ? (before.some(it=> !it.isNote) ? 'below' : 'top') : currentGroup(d.id);
+      return {group, k: before.filter(it=> it.isNote && (it.top === (group === 'top'))).length};
+    }
+    function isTopNote(el){
+      const iso = el.getAttribute('data-note-day');
+      if(el.getAttribute('data-note-kind') === 'day'){
+        const e = dayNoteList(iso)[parseInt(el.getAttribute('data-note-index'), 10)];
+        return !!(e && e.top === true);
+      }
+      const p = mvWfPlaceOf(el.textContent);
+      return !!(p && p.top === true);
+    }
+    function currentGroup(id){
+      return mvDayNoteBlocks(sched(), parseDateUTC(id.iso), 'top').some(b=> sameId(b, id)) ? 'top' : 'below';
+    }
+    // Re-arrange the day's notes so the dragged one is k-th in `group`, and write what that means: the own
+    // notes' array order and `top`, and every waterfall line's {top, at} on this day. Returns false, writing
+    // nothing, when the day would draw exactly as it does.
+    function arrange(t){
+      const d = drag, day = parseDateUTC(d.id.iso);
+      const seq = {top: mvDayNoteBlocks(sched(), day, 'top'), below: mvDayNoteBlocks(sched(), day, 'below')};
+      // A block's identity that survives the re-arrangement: an own note by its index BEFORE it, a line by its text.
+      const tag = b=> b.kind === 'day' ? 'd' + b.index : 'w' + b.text;
+      const sigOf = q=> q.top.map(tag).join('\u0001') + '\u0002' + q.below.map(tag).join('\u0001');
+      const sig0 = sigOf(seq);
+      let moving = null;
+      ['top', 'below'].forEach(g=>{
+        seq[g] = seq[g].filter(b=>{ if(sameId(b, d.id)){ moving = b; return false; } return true; });
+      });
+      if(!moving) return false;
+      const into = seq[t.group];
+      into.splice(Math.min(t.k, into.length), 0, moving);
+      if(sigOf(seq) === sig0) return false;
+      const list = [], wasIndex = [], place = Object.assign({}, mvWfNotePlace);
+      let movedTo = null;
+      ['top', 'below'].forEach(g=>{
+        let own = 0;
+        seq[g].forEach(b=>{
+          if(b.kind === 'day'){
+            const e = Object.assign({}, b.entry);
+            if(g === 'top') e.top = true; else delete e.top;
+            if(b === moving) movedTo = list.length;
+            wasIndex.push(b.index);
+            list.push(e);
+            own++;
+            return;
+          }
+          const key = mvWfNoteKey(b.text);
+          if(MV_UNSAFE_KEY.test(key)) return;
+          const v = {};
+          if(g === 'top') v.top = true;
+          if(own > 0) v.at = own;
+          if(Object.keys(v).length) place[key] = v; else delete place[key];
+        });
+      });
+      const keepList = dayNotes[d.id.iso], keepPlace = mvWfNotePlace;
+      if(list.length) dayNotes[d.id.iso] = list;
+      mvWfNotePlace = place;
+      // What the day now DRAWS, named as before. Two waterfall lines with the same `at` keep their natural order
+      // (mvDayNoteBlocks), so a drop that only swaps two of them is one this store cannot say: put it back.
+      const now = {top: mvDayNoteBlocks(sched(), day, 'top'), below: mvDayNoteBlocks(sched(), day, 'below')};
+      const drawn = ['top', 'below'].map(g=> now[g].map(b=> b.kind === 'day' ? 'd' + wasIndex[b.index] : 'w' + b.text).join('\u0001')).join('\u0002');
+      if(drawn === sig0){
+        if(keepList === undefined) delete dayNotes[d.id.iso]; else dayNotes[d.id.iso] = keepList;
+        mvWfNotePlace = keepPlace;
+        return false;
+      }
+      if(d.id.kind === 'day' && movedTo != null) d.id = Object.assign({}, d.id, {index: movedTo});
+      return true;
+    }
+    window.addEventListener('mousemove', e=>{
+      if(press && !drag){
+        if(!(e.buttons & 1)){ press = null; return; }
+        if(Math.abs(e.clientY - press.y0) < SLOP && Math.abs(e.clientX - press.x0) < SLOP) return;
+        begin();
+        if(!drag) return;
+      }
+      if(!drag) return;
+      if(!(e.buttons & 1)){ end(); return; }
+      const dy = e.clientY - drag.y0;
+      drag.ghost.moveBy(0, dy);
+      const t = target(drag.top0 + dy + drag.h / 2);
+      if(t && arrange(t)){
+        drag.redrawn = true;
+        render(currentSchedule);
+        markDirty();
+        // ⛔ markDirty() armed the undo debounce. Kill it: the gesture banks its own ONE step, in end().
+        cancelPendingUndoPush();
+      }
+    });
+    window.addEventListener('mouseup', ()=>{
+      press = null;
+      if(drag){ end(); swallowClick = true; setTimeout(()=>{ swallowClick = false; }, 0); }
+    });
+    // The click that ends a drag is not an edit.
+    window.addEventListener('click', e=>{
+      if(!swallowClick) return;
+      swallowClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+    // Escape puts back exactly what was there and banks nothing (MONTH-9's rule).
+    document.addEventListener('keydown', e=>{
+      if(!drag || e.key !== 'Escape') return;
+      e.preventDefault();
+      restore();
+      end();
+    }, true);
+    function restore(){
+      const d = drag;
+      if(d.wasList === undefined) delete dayNotes[d.id.iso]; else dayNotes[d.id.iso] = d.wasList;
+      mvWfNotePlace = d.wasPlace;
+    }
+    function end(){
+      const d = drag;
+      if(!d) return;
+      const now = dayNotes[d.id.iso];
+      const same = JSON.stringify(now === undefined ? null : now) === d.wasListJson && JSON.stringify(mvWfNotePlace) === d.wasPlaceJson;
+      if(same) restore();
+      drag = null;
+      d.ghost.remove();
+      d.shield.remove();
+      if(same){
+        // Out and back, or Escape: exactly what was there (the very objects), and no step.
+        if(d.redrawn){ render(currentSchedule); cancelPendingUndoPush(); }
+        return;
+      }
+      // ⛔ THE TRAILING PUSH IS THE STEP, as every month drag's.
+      pushUndoSnapshot();
+      markDirty();
+    }
+  })();
   // Clicking anywhere else commits, matching the waterfall editor's behaviour.
   document.addEventListener('click', e=>{
     if(!activeMvNote) return;
@@ -26649,6 +27214,8 @@ export function initLegacyApp() {
         // eight-digit value the month note palette writes. Nothing else new reaches the style attribute.
         if(o.color != null && !isHexColor(o.color) && !isMvNoFill(o.color)){ bad.n++; o.color = null; }
         if(o.lane != null && !Number.isInteger(o.lane)){ bad.n++; o.lane = null; }
+        // Above the bars (MONTH-ORDER-PLAN.md §5): only `true` is ever written.
+        if('top' in o && o.top !== true){ bad.n++; delete o.top; }
         return o;
       };
       if(Array.isArray(v)) return v.map(one).filter(Boolean);
@@ -26715,6 +27282,28 @@ export function initLegacyApp() {
       if(sb && sb.boxes.length) s.sideBoxes = sb; else delete s.sideBoxes;
     }
     if('mvNumberShootDays' in s && s.mvNumberShootDays !== true){ bad.n++; delete s.mvNumberShootDays; }
+    // Where the waterfall's lines sit on their day (MONTH-ORDER-PLAN.md §5): keyed by a line's text without its date,
+    // so a key is any short single-line string a note could start with; a value is {top: true} and/or a small `at`.
+    setMap('mvWfNotePlace', v=>{
+      if(!isPlainObj(v)) return undefined;
+      const o = {};
+      if(v.top === true) o.top = true;
+      if(Number.isInteger(v.at) && v.at > 0 && v.at <= 100) o.at = v.at;
+      return Object.keys(o).length ? o : undefined;
+    }, /^(?!(?:__proto__|constructor|prototype)$)[^\u0000-\u001f]{1,200}$/);
+    if(isPlainObj(s.mvWfNotePlace) && Object.keys(s.mvWfNotePlace).length > 2000){ bad.n++; delete s.mvWfNotePlace; }
+    // The month view's phase order (MONTH-ORDER-PLAN.md §5): phase keys only, in an array, at most one entry per
+    // key. A key this build has no phase for is KEPT (mvLaneOrder simply never meets it), so a round trip loses nothing.
+    if('mvPhaseOrder' in s){
+      if(!Array.isArray(s.mvPhaseOrder)){ bad.n++; delete s.mvPhaseOrder; }
+      else {
+        const seen = new Set();
+        s.mvPhaseOrder = s.mvPhaseOrder.filter(k=>{
+          if(typeof k === 'string' && SNAP_ID.test(k) && !seen.has(k) && seen.size < 500){ seen.add(k); return true; }
+          bad.n++; return false;
+        });
+      }
+    }
     if('sidebarTab' in s && !(typeof s.sidebarTab === 'string' && /^[a-z-]{1,24}$/.test(s.sidebarTab))){ bad.n++; delete s.sidebarTab; }
     ['customPhaseCounter', 'episodeCounter', 'blockCounter'].forEach(k=>{
       if(k in s && !(Number.isInteger(s[k]) && s[k] >= 0)){ bad.n++; delete s[k]; }
@@ -27080,6 +27669,20 @@ export function initLegacyApp() {
     // open file had.
     mvNumberShootDays = snap.mvNumberShootDays === true;
     reflectMvNumberShootDays();
+    // ⛔ UNCONDITIONAL (MONTH-ORDER-PLAN.md §5): a file with no key is in date order -- never the previously
+    // open calendar's order. A copy, so a reorder can never reach back into a snapshot the undo stack holds.
+    mvPhaseOrder = Array.isArray(snap.mvPhaseOrder) ? snap.mvPhaseOrder.filter(k=> typeof k === 'string') : [];
+    // ⛔ UNCONDITIONAL as well: no key, every waterfall line in its old spot. Rebuilt entry by entry, so a key no
+    // object should carry can never reach the store's prototype.
+    mvWfNotePlace = {};
+    if(isPlainObj(snap.mvWfNotePlace)) Object.keys(snap.mvWfNotePlace).forEach(k=>{
+      const v = snap.mvWfNotePlace[k];
+      if(MV_UNSAFE_KEY.test(k) || !isPlainObj(v)) return;
+      const o = {};
+      if(v.top === true) o.top = true;
+      if(Number.isInteger(v.at) && v.at > 0) o.at = v.at;
+      if(Object.keys(o).length) mvWfNotePlace[k] = o;
+    });
     // ⛔ UNCONDITIONAL, both (COLUMN-REUSE-PLAN.md §5): a file with no key places phases the old way and
     // has no hand moves -- never the previously open calendar's.
     colReuse = snap.colReuse === true;

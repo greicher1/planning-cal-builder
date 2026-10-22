@@ -67,6 +67,36 @@ chose to change the phases: *"go for the darker outline for phases"*.
   shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
   0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
 
+### Unreleased — drag bars and notes up and down in the month view, and see what you drag (21 Oct 2026)
+
+The owner: *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+view"*, then *"we actually need to see the phases/notes visibly dragged animation when we drag either for the
+purpose of reordering them top to bottom or for changing a phases timing"*. Planned and ruled in
+[`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) (R1–R4, by picker).
+- **Phase order.** Hover a phase bar in the month view and a six-dot grip appears inside its left end, beside the start
+  grip (it covers the label's first letter while you hover; the owner's call). Drag it up
+  or down: the phase takes that place in every week where it overlaps another, on screen and in the month PDF.
+  Dragging the bar's middle still moves its dates. The bar's right-click menu gets **Back to date order**.
+- **Note order.** Drag a note itself up or down within its day: among that day's notes, or above the bars to the
+  top of the day (a bar crossing that day sits one line lower for that week). A click that does not move still
+  opens the note. An auto-note's place follows it when its phase moves ("Start Principal Photography" stays on top).
+- **The moving copy.** Every move in the month view (a reorder, a note, a phase's body drag, a hiatus band's move)
+  now shows a lifted copy of what you hold following the pointer, while the calendar underneath redraws live to
+  show where it lands. The start and end grips are a resize and still step with their edge.
+- ⛔ **Two frozen edits, owner-approved (R4):** E1, `renderMonthView`'s lane order comes from `mvLaneOrder()`; E2, its
+  notes loop asks `mvDayNoteBlocks()` and runs twice ('top' before the bands, 'below' where it was). Both return the
+  old order when nothing is set, so every saved calendar draws and prints as before. The month-PDF writer re-packs
+  in document order, so it follows with no edit.
+- **Save format:** three new keys, none bumping `SNAPSHOT_VERSION`: `mvPhaseOrder` (absent = date order), `top: true`
+  on a day note, `mvWfNotePlace` (a waterfall line's place, keyed by its text without its date). An older build
+  ignores them and shows date order. All three are sanitized (a `__proto__` key is refused).
+- **Verified:** new CDP leg `mvorder` 20/20 on the build, in `gate.sh` (the order on screen, in the saved file and in
+  the written month PDF; Back to date order; out-and-back and Escape bank nothing; notes on top, among themselves,
+  following an auto-note; a click still edits; a hostile file). A mutant without E1 and E2 turns 9 cases red.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13 unchanged. Full gate on the branch with v1.7.0 merged in
+  (`21c5444`): 2,648 PASS, 1 FAIL (`winansi`, ExcelJS's CDN load timed out at 03:35; 7/7 alone). Gate 10 (every
+  month print document) and gate 13 (every written month PDF, byte for byte) green: E1 and E2 are inert without an order.
+
 ### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
 
 The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should

@@ -2159,6 +2159,31 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPE
 
+# ---- mvorder: drag bars and notes up and down in the month view, and the moving copy ---------------------
+# ⭐ ADDED 21 Oct 2026 (MONTH-ORDER-PLAN.md, owner rulings R1-R4). pilldrag's sibling, for the same reason a Node
+# script: trusted CDP input, the reorder grip pressed where elementsFromPoint has it topmost. On mvorder.sptcal (and
+# mvorder-notes, mvorder-hostile): a phase's grip reorders it in every week (O2) with ONE undo (O3); Save writes
+# mvPhaseOrder (O4); ⭐ the WRITTEN month PDF stacks the bars in that order (O5, text y read out of the PDF); Back to
+# date order (O6); out-and-back and Escape bank nothing (O7, O8). Notes: on top of the bars (N1), among the day's notes
+# (N2), a waterfall line on top (N3), and its place follows the line when Production moves (N4); a click still edits
+# (N5); editing keeps a note on top (N6); Escape (N7). A hostile file's values are ignored and no prototype is touched
+# (H1). The moving copy on a body drag (G1). Run on a mutant without frozen edits E1 and E2: O2, O3, O5, O7, O8, N1,
+# N3, N4 and N6 red. ⛔ Gates 10 and 13 are what prove the two edits INERT on every calendar without an order.
+node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile)" <<'PYMO' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMO
+
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
 # reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
