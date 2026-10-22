@@ -4,6 +4,38 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
+
+- **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
+  exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
+- **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
+  `#union-place`. ⛔ **`#union-place` is still THE Region** (its id is the save key, and the "Continue?" handler is
+  bound to it). The new one is `select.region-mirror`: a PLAIN `<select>` with NO id inside `Input.Wrapper
+  labelElement="div"` (label only) with `aria-label`. ⛔ Never make it a NativeSelect: Mantine mints an id when given
+  none (UI-CONVENTIONS §8.3), and `collectFieldValues()` would sweep a re-rolled second Region key into every file
+  and the undo stack. Both selects share one option list, `REGION_OPTIONS` in `Sidebar.jsx` (values are save format:
+  append only).
+- **How they stay in step (app.js):** a delegated `change` listener (in the IIFE that binds `#union-place`) copies
+  the mirror's value to `#union-place` and dispatches a bubbling `change` on it, so the question, its hold and Cancel
+  run exactly as from Settings. `reflectRegionUI()` writes `#union-place`'s value back to every `.region-mirror`;
+  every path that sets the Region ends there (a pick, the hold, Cancel, `syncRegionTracking()` from
+  `refreshAfterRestore()`, Reset All's block). A new path that sets `#union-place` without reaching
+  `reflectRegionUI()` would leave the copy stale; `regionmirror` M3/M5/M8 catch that.
+- **Look:** `legacy.css` `select.region-mirror` draws Mantine's own ComboboxChevron path (up/down, 14px, gray-6,
+  centred in the 28px right section), checked against Season and Schedule by in a 2× screenshot. The toolbar
+  popovers' `.tools-menu select` (a down arrow) is a different look and was left alone. Help's "Schedule effect"
+  paragraph now says Show info first, Settings ▸ Region second.
+- **Proof:** new leg **`regionmirror`** M0–M8, 9/9 on the build, added to `gate.sh`'s audit loop on its own line;
+  mutants: no write-back → M3/M5/M6/M8 red, the copy bypassing the question → M6/M7 red; source restored and
+  `cmp`-checked. Gate 5 by hand: `restore`'s `fields.byId` 76 keys and values identical to the baseline, grid and
+  bytes identical. `regionlock` 14, `regioncaveat` 13, `settingswin` 19, `sharecopy2`, `hostile (xss-mixed)` 13,
+  `noresetall` 5, `dlgkeys` 16, `wrapdate` all green; `npm run check` 40/40 (build `7d525ad4…`). Full gate NOT run.
+  The in-app browser could not be used (all five server slots held by other chats); the screenshot is headless.
+- ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
+  the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
+  owner-approved.
+- ⏭ **Next:** the owner's picker on committing and pushing. On the tracker as `region-in-show-info`.
+
 ### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
 
 - **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
