@@ -54,7 +54,7 @@ export function ZoomControl() {
     <div className="cal-zoom" role="group" aria-label="Calendar zoom">
       <ActionIcon variant="subtle" color="gray" size="sm" radius="xl" onClick={out}
         disabled={pct <= MIN * 100} aria-label="Zoom out" title="Zoom out">
-        <IconMinus width={14} height={14} />
+        <IconMinus width={12} height={12} />
       </ActionIcon>
       <Slider className="cal-zoom-slider" min={0} max={100} step={0.5} size="xs" color="dark"
         value={toPos(st.zoom)} onChange={(p) => send(tidy(fromPos(p)))}
@@ -62,7 +62,7 @@ export function ZoomControl() {
         thumbLabel="Calendar zoom" thumbValueText={(p) => Math.round(tidy(fromPos(p)) * 100) + '%'} />
       <ActionIcon variant="subtle" color="gray" size="sm" radius="xl" onClick={inn}
         disabled={pct >= MAX * 100} aria-label="Zoom in" title="Zoom in">
-        <IconPlus width={14} height={14} />
+        <IconPlus width={12} height={12} />
       </ActionIcon>
       <UnstyledButton className="cal-zoom-pct" onClick={() => send(1)} title={resetTitle}>
         {pct}%

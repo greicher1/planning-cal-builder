@@ -18715,6 +18715,12 @@ export function initLegacyApp() {
     const res = document.getElementById('union-resolves');
     const loc = document.getElementById('union-locals');
     const cav = document.getElementById('union-caveat');
+    // The Show info card's copy of the Region (select.region-mirror, owner 21 Oct 2026) shows what
+    // #union-place holds. Every path that sets the Region ends here -- a pick, the "Continue?"
+    // question's hold and its Cancel, Load, undo, crash recovery (syncRegionTracking), Reset All --
+    // so this one line is what keeps the two selects agreeing. The copy has no id, so no save,
+    // snapshot or undo step ever reads it.
+    document.querySelectorAll('select.region-mirror').forEach(m=>{ if(m.value !== el.value) m.value = el.value; });
     if(res) res.textContent = p ? (p.label + ' \u2192 ' + p.region) : '';
     if(loc) loc.textContent = p ? p.locals : '';
     if(cav){
@@ -19721,6 +19727,18 @@ export function initLegacyApp() {
       normalizeRegionSelection();
       lastPlace = el.value;
       update();
+    });
+    // The Show info card's copy (select.region-mirror): a pick there IS a pick here. It is forwarded
+    // as the same bubbling change event a user's pick raises, so the question above, its hold and
+    // every listener see exactly what they would from the Settings window. reflectRegionUI() writes
+    // the outcome back to the copy, including the old Region on Cancel.
+    // ⛔ Never give the copy its own handler that calls update(): the Region would then change
+    // without the question, and nothing would hold it while a dialog is up.
+    document.addEventListener('change', e=>{
+      const m = e.target;
+      if(!m || !m.classList || !m.classList.contains('region-mirror')) return;
+      el.value = m.value;
+      el.dispatchEvent(new Event('change', {bubbles: true}));
     });
   })();
   // One holiday's two kinds of switch, once each: the holiday list's boxes below and the month day

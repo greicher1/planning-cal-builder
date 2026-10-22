@@ -343,7 +343,9 @@
     .form-panel section.card{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
 
-  .preview-panel{flex:1; min-width:0; padding:20px 28px;}
+  /* The 44px at the bottom is the room the fixed help button and zoom pill sit in (the bottom strip,
+     #help-fab below): stacked, the page scrolls, so at its end the last of the preview clears them. */
+  .preview-panel{flex:1; min-width:0; padding:20px 28px 44px;}
 
   /* ---------- The app shell: the WINDOW never scrolls (owner, 22 Sep 2026) ----------
      "Make the app behave like a standard app window." Above the 960px stack point the window is a
@@ -386,7 +388,12 @@
     body > *{ flex:none; }
     body > .layout{ flex:1 1 0; min-height:0; align-items:stretch; }
     .form-panel{ align-self:stretch; min-height:0; max-height:none; }
-    .preview-panel{ min-height:0; overflow:auto; }
+    /* ⭐ The bottom strip (#help-fab) is a MARGIN here, not padding: padding sits inside the panel's
+       scroll box, so the month view, which scrolls in .preview-panel, would still pass under the help
+       button and the zoom pill. A margin ends the scroller 44px up, so nothing scrolls into the strip.
+       The waterfall needs nothing more: the grid fit (app.js, "THE APP SHELL'S GRID FIT") measures the
+       panel's clientHeight, so the grid simply ends 44px up as well. */
+    .preview-panel{ min-height:0; overflow:auto; padding-bottom:0; margin-bottom:44px; }
   }
 
   /* ---------- Side boxes (SIDE-BOXES-PLAN.md, owner ruling 7, 20 Oct 2026) ----------
@@ -1202,6 +1209,17 @@
     background-repeat:no-repeat; background-position:right 8px center; background-size:14px 14px;
     padding-right:28px;
   }
+  /* The Show info card's copy of the Production Region (Sidebar.jsx, owner 21 Oct 2026). A plain select,
+     because a NativeSelect mints an id the save sweep would pick up, so it draws NativeSelect's own
+     look by hand, to sit under the card's Season and Schedule by selects: Mantine's ComboboxChevron path
+     (the up/down one, not the tool popovers' down arrow) at its xs size (14px) in gray-6, centred in
+     the 28px right section an xs input reserves (1px border + 6px + 7px = 14px from the edge). */
+  select.region-mirror{
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 15 15' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Cpath d='M4.93179 5.43179C4.75605 5.60753 4.75605 5.89245 4.93179 6.06819C5.10753 6.24392 5.39245 6.24392 5.56819 6.06819L7.49999 4.13638L9.43179 6.06819C9.60753 6.24392 9.89245 6.24392 10.0682 6.06819C10.2439 5.89245 10.2439 5.60753 10.0682 5.43179L7.81819 3.18179C7.73379 3.0974 7.61933 3.04999 7.49999 3.04999C7.38064 3.04999 7.26618 3.0974 7.18179 3.18179L4.93179 5.43179ZM10.0682 9.56819C10.2439 9.39245 10.2439 9.10753 10.0682 8.93179C9.89245 8.75606 9.60753 8.75606 9.43179 8.93179L7.49999 10.8636L5.56819 8.93179C5.39245 8.75606 5.10753 8.75606 4.93179 8.93179C4.75605 9.10753 4.75605 9.39245 4.93179 9.56819L7.18179 11.8182C7.35753 11.9939 7.64245 11.9939 7.81819 11.8182L10.0682 9.56819Z' fill='%23726F68' fill-rule='evenodd' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 6px center; background-size:14px 14px;
+    padding-right:28px;
+  }
   /* Number inputs joined the one family (29 Aug 2026): the mono face kept digits aligned down a
      column, but the owner flagged the mixed faces inside phase blocks as the thing that read
      broken, and consistency won. */
@@ -1480,6 +1498,23 @@
   .tools-btn{display:inline-flex; align-items:center; gap:5px; padding:6px 10px !important;}
   .tools-btn .caret{color:var(--text-faint); font-size:9px;}
   .tools-btn[aria-expanded="true"]{background:var(--bg);}
+  /* The four SHIFTING tools wear the app's accent tint (owner, 21 Oct 2026: "right now all the buttons
+     look exactly the same"), so Shift All to Rebuild From read as one family, apart from Side Boxes, the
+     Header button and undo/redo. It is UI-CONVENTIONS §3b's primary-action tint, which suits the
+     toolbar's most-used controls. Tokens, never hex. The tint is on each part of Shift All, not on its
+     group, so a hover there composites exactly as it does on the other three. These rules are
+     unlayered, so they outrank Mantine's layered Button colours without !important; that is also why
+     the hover and open states are spelled out here, since Mantine's own hover is layered too. */
+  .shift-group, .tools-wrap > .tools-btn{ border-color:var(--mantine-color-navy-2); }
+  .shift-btn, .tools-wrap > .tools-btn{
+    background:var(--mantine-primary-color-light); color:var(--mantine-primary-color-light-color);
+  }
+  .shift-btn + .shift-btn{ border-left-color:var(--mantine-color-navy-2); }
+  .shift-btn:hover, .shift-main[aria-expanded="true"],
+  .tools-wrap > .tools-btn:hover, .tools-wrap > .tools-btn[aria-expanded="true"]{
+    background:var(--mantine-primary-color-light-hover); color:var(--mantine-primary-color-light-color);
+  }
+  .tools-wrap > .tools-btn .caret{ color:inherit; }
   /* The Header button (#tb-hdr-mode-btn): Template and Manual are STATES, not actions, so they read
      as the edit-accent chip the in-grid button used (#hdr-mode-btn.is-manual). Unlayered, so it
      outranks Mantine's layered Button background without !important. */
@@ -2940,31 +2975,38 @@
   footer.assumptions{margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:12px; color:var(--text-faint); line-height:1.6;}
   footer.assumptions strong{color:var(--text-muted);}
 
-  /* Help button + modal */
+  /* Help button + modal.
+     ⭐ The help button and the zoom pill share THE BOTTOM STRIP (owner, 21 Oct 2026: the zoom control
+     covered the grid's last rows and its horizontal scrollbar; "add a little more space at the bottom
+     of the app to give it room", and the help button, which covered the grid's corner the same way,
+     shrunk into the strip with it). Both are centred 22px up: the button is 28 tall at bottom 8, so
+     its top is 36px up, 8px under the 44px strip (.preview-panel's margin-bottom, the app shell
+     above). Its right edge lines up with the grid's (.preview-panel's 28px side padding). */
   #help-fab{
-    position:fixed; right:22px; bottom:22px; z-index:60;
-    width:46px; height:46px; border-radius:50%;
+    position:fixed; right:28px; bottom:8px; z-index:60;
+    width:28px; height:28px; border-radius:50%;
     border:1px solid var(--border-strong); background:var(--accent); color:#fff;
-    font-size:22px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
-    box-shadow:0 3px 10px rgba(0,0,0,.22); transition:transform .12s ease, background .12s ease;
+    font-size:15px; font-weight:600; font-family:inherit; line-height:1; cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.2); transition:transform .12s ease, background .12s ease;
   }
   #help-fab:hover{ background:var(--accent-hover); transform:translateY(-1px); }
   #help-fab:active{ transform:translateY(0); }
 
   /* ---------- Calendar zoom (owner, 20 Oct 2026; src/chrome/ZoomControl.jsx, app.js "CALENDAR ZOOM") ----------
-     A pill just left of the help button, its centre on the button's centre (22 + 46/2 = 45px up; the
-     pill is 32 tall, so 29px), 10px clear of it. Fixed, so it stays in the corner while the month view
-     scrolls under it. The zoom itself is CSS `zoom` on #table-wrap, written by the engine. */
+     A pill just left of the help button, in the bottom strip with it (see #help-fab above), its centre
+     on the button's centre (22px up; the pill is 26 tall, so 9px), 8px clear of it (28 + 28 + 8 = 64).
+     Fixed, so it stays in the corner. The zoom itself is CSS `zoom` on #table-wrap, written by the
+     engine. Made compact the same day (it was 32 tall and 229 wide). */
   .cal-zoom{
-    position:fixed; right:78px; bottom:29px; z-index:60;
-    display:flex; align-items:center; gap:2px; height:32px; padding:0 4px;
+    position:fixed; right:64px; bottom:9px; z-index:60;
+    display:flex; align-items:center; gap:1px; height:26px; padding:0 2px;
     background:var(--panel); border:1px solid var(--border-strong); border-radius:999px;
-    box-shadow:0 2px 8px rgba(0,0,0,.14);
+    box-shadow:0 1px 5px rgba(0,0,0,.12);
   }
-  .cal-zoom .cal-zoom-slider{ width:110px; margin:0 6px; }
+  .cal-zoom .cal-zoom-slider{ width:80px; margin:0 5px; }
   .cal-zoom .cal-zoom-pct{
-    min-width:42px; padding:3px 6px; border-radius:6px; text-align:center;
-    font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
+    min-width:36px; padding:2px 4px; border-radius:6px; text-align:center;
+    font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text);
   }
   .cal-zoom .cal-zoom-pct:hover{ background:var(--bg); }
   /* ⛔ While zoomed, the waterfall's resize handles are hidden. Frozen installGridResizers places them,

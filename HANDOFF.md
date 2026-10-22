@@ -46,6 +46,219 @@
   HANDOFF.md and README.md (newest entries at the top). Landing it means merging both in, a rebuild and a full gate on
   the combined build, then the merge picker; the push is a separate picker.
 
+### 📝 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — PLANNED in [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) and RULED; build starting on branch `month-order`
+
+- **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+  view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
+  either for the purpose of reordering them top to bottom or for changing a phases timing"*.
+- **Found while mapping (frozen `renderMonthView`):** the order is fixed: all-phase hiatus bands, then phases BY START
+  DATE (`laneSegs`), then Sim Post, then notes (waterfall lines, then the day's own in array order), each first-fit
+  (`takeLane`). ⭐ The month-PDF writer re-packs in DOCUMENT order (`mvlPackLanes`), so it follows any change to the
+  placement order with no writer edit. ⚠️ A bar can't be its own reorder handle: dragging it already moves its dates
+  (one row = a week). ⚠️ A day note's stored `lane` (written by the "+" it was added from) is never read by the
+  renderer; the comment "a note can be added on the exact line it will occupy" overstates it.
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 a ⋮⋮ grip on hover reorders a bar (the body still moves dates); R2 a note
+  CAN go above the bars (bars crossing its day drop a line that week); R3 the calendar redraws live under the moving
+  copy; R4 the frozen edits approved with the gate (gates 10 and 13 byte-identical on every baseline, plus a new
+  `mvorder` leg proving the writer stacks in the user's order).
+- **Two frozen edits, both "the rule lives outside":** E1 `laneSegs` from `mvLaneOrder(segs)`; E2 the notes loop asks
+  `mvDayNoteBlocks()` for `'top'` (before the hiatus bands) and `'below'`. Three new save keys, none bumping
+  `SNAPSHOT_VERSION`: `mvPhaseOrder`, `top: true` on a `dayNotes` entry, `mvWfNotePlace` (keyed by the line's text
+  without its date, so a place follows an auto-note when its phase moves). Defaults D1–D8 in the plan's §4.
+- ⚠️ **Overlap:** the `phase-outline` branch also edits `renderMonthView` and the writer near the pill `place()` calls.
+- ⏭ **Next:** build in the plan's §8 order on `month-order`. On the tracker as `month-reorder` and
+  `month-drag-preview` (planned).
+
+### 📝 21 Oct 2026 (late): PAPER SIZE — PLANNED in [`PAPER-SIZE-PLAN.md`](PAPER-SIZE-PLAN.md) and RULED; nothing built
+
+- **Asked:** what happens when the waterfall is printed on Legal, and whether that needs a paper setting or a system
+  print dialog; then *"Yes, write up a plan for a paper-size setting, with the rulings I need to make."*
+- **Answer given:** every output is laid out for Letter (`SHEET_PAPER_PT`, `exportExcel`'s `paperSize: 1`, the month
+  writer's `MVL_GEOMETRY`, both print rollbacks). On Legal it prints whole and the same size, with blank paper. A print
+  dialog cannot fix that, because the orientation, the fit and Single Column's widths are decided from the paper before
+  any dialog opens. It needs a setting.
+- ⚠️ **Learned while mapping:** Single Column's fill (`sheetColumnWidths`) reads `SHEET_PAPER_PT.portrait`, so the paper
+  shapes **on-screen** column widths in that mode. That is why R2 now recommends saving the paper with the calendar,
+  which reverses the first answer's lean towards keeping it on each computer.
+- ⚠️ **Also found:** Help's *Exporting* paragraph still says the month export opens the print dialog (stale since
+  2 Oct 2026, `MV_PDF_MODE = 'direct'`).
+- ✅ **Ruled by picker, 21 Oct 2026:** R1 Legal and Tabloid (no A4); R2 saved with the calendar (`paperSize`, absent =
+  Letter); R3 Single Column follows the paper; R4 the month PDF stays Letter for now.
+- **Second ask, the same evening:** an **Export PDF dialog** (waterfall only) that confirms or changes the paper and the
+  grid lines, plus a Portrait/Landscape choice with one marked *Recommended* by the existing rule. Planned in §5a. The
+  paper setting stays in Settings ▸ Preferences ("the regular setting tab"). The orientation choice is frozen edit P4:
+  one helper, `chosenOrientation()`, in both writers.
+- ⚠️ **Learned:** about 25 gate legs click `#export-wf-pdf-btn` (twenty through `T.captureExport` in `t/lib.js`,
+  the rest directly), and a dialog would stall every one of them. The plan teaches `captureExport` to press Export at
+  the defaults rather than adding a skip switch, so the whole gate proves that the defaults give today's PDF.
+- ⚠️ **The dialog's sizes come from frozen `sheetPageOrientation()`, which is synchronous,** under a paper probe that
+  is set and cleared in one call. They do not come from `buildWaterfallPdf` (which awaits), because a probe held across
+  an await could leak into a Single Column render.
+- ✅ **D1–D3 ruled by picker, each (a):** the orientation is remembered with the calendar (`pageOrientation`, written
+  only when it differs from the recommended one) and Excel follows it; *Recommended* is today's rule; the dialog is
+  for the PDF only.
+- ⏭ **Next:** on the owner's go-ahead, build in the plan's §8 order on a branch.
+  Letter, and the dialog's defaults, must stay byte-identical in the full gate. On the tracker as `paper-size`
+  (planned).
+
+### 🔨 21 Oct 2026 (late): THE PRODUCTION REGION IN SHOW INFO TOO — built in the MAIN checkout (no branch, no worktree), from `main` at `b5ca7cf`; UNCOMMITTED, not pushed
+
+- **Asked:** *"i want the region selector to be below the version number box in the Show Iinfo tab. It should also
+  exist as a duplicate setting in the settings tab where it already appears, but now it appears in both places"*.
+- **Built:** Show info gets a "Production Region" select right after `#show-version`; Settings ▸ Region keeps
+  `#union-place`. ⛔ **`#union-place` is still THE Region** (its id is the save key, and the "Continue?" handler is
+  bound to it). The new one is `select.region-mirror`: a PLAIN `<select>` with NO id inside `Input.Wrapper
+  labelElement="div"` (label only) with `aria-label`. ⛔ Never make it a NativeSelect: Mantine mints an id when given
+  none (UI-CONVENTIONS §8.3), and `collectFieldValues()` would sweep a re-rolled second Region key into every file
+  and the undo stack. Both selects share one option list, `REGION_OPTIONS` in `Sidebar.jsx` (values are save format:
+  append only).
+- **How they stay in step (app.js):** a delegated `change` listener (in the IIFE that binds `#union-place`) copies
+  the mirror's value to `#union-place` and dispatches a bubbling `change` on it, so the question, its hold and Cancel
+  run exactly as from Settings. `reflectRegionUI()` writes `#union-place`'s value back to every `.region-mirror`;
+  every path that sets the Region ends there (a pick, the hold, Cancel, `syncRegionTracking()` from
+  `refreshAfterRestore()`, Reset All's block). A new path that sets `#union-place` without reaching
+  `reflectRegionUI()` would leave the copy stale; `regionmirror` M3/M5/M8 catch that.
+- **Look:** `legacy.css` `select.region-mirror` draws Mantine's own ComboboxChevron path (up/down, 14px, gray-6,
+  centred in the 28px right section), checked against Season and Schedule by in a 2× screenshot. The toolbar
+  popovers' `.tools-menu select` (a down arrow) is a different look and was left alone. Help's "Schedule effect"
+  paragraph now says Show info first, Settings ▸ Region second.
+- **Proof:** new leg **`regionmirror`** M0–M8, 9/9 on the build, added to `gate.sh`'s audit loop on its own line;
+  mutants: no write-back → M3/M5/M6/M8 red, the copy bypassing the question → M6/M7 red; source restored and
+  `cmp`-checked. Gate 5 by hand: `restore`'s `fields.byId` 76 keys and values identical to the baseline, grid and
+  bytes identical. `regionlock` 14, `regioncaveat` 13, `settingswin` 19, `sharecopy2`, `hostile (xss-mixed)` 13,
+  `noresetall` 5, `dlgkeys` 16, `wrapdate` all green; `npm run check` 40/40 (build `7d525ad4…`). Full gate NOT run.
+  The in-app browser could not be used (all five server slots held by other chats); the screenshot is headless.
+- ⚠️ CLAUDE.md's Conventions bullet still says the Region model is "ONE `<select>`, `#union-place`". Still true for
+  the save format; the visible copy is not mentioned there. Left for the owner, since CLAUDE.md lines have been
+  owner-approved.
+- **Owner, by picker:** *"Commit it"* (committed as `3f974af` on local `main`, only this change's files; the two
+  fixture files someone else left changed in this checkout were NOT included) and, for the push, *"Full gate, then
+  push"*. The gate was queued behind five other sessions' gates on `HARNESS_PORT=9627`.
+- ⏭ **Next:** when the full gate passes, check that `main` holds nothing beyond `3f974af` that the owner has not
+  approved, push once, and verify the live URL. If it fails, report and do not push. On the tracker as
+  `region-in-show-info`.
+
+### 🔨 21 Oct 2026 (night): THE SHIFTING TOOLS WEAR THE NAVY TINT; "SIDE BOXES" — branch `toolbar-center` (worktree `.claude/worktrees/toolbar-center`), from `main` at `e06ccc9`; **LIVE at `b332e5c`** (verified byte-identical, `999bd95e`; no full gate, the owner's call; no version cut)
+
+- **Asked** (screenshot of the toolbar at about 1650 px): *"center the shifting controls … evenly between the right
+  edge of the "Month" button and the left edge of the "Side boxes" button - also capitalize the b in boxes"*. Then,
+  mid-turn: *"ok maybe we dont need to move them. we just need to maybe put these controls in a different color?
+  right now all the buttons look exactly the same"*.
+- **Centring was built, then reverted** at that word. For the record, it worked as: `.preview-tools` `flex:1 1 auto`,
+  the four tools in a `.shift-tools` wrapper with `margin-inline:auto` and `padding-inline:16px` (the 16 px floor
+  being the owner's 30 Sep 2026 separation). Measured first: at 1440 px the two gaps were already 32 / 26 px, and at
+  the owner's ~1650 px about 240 / 26, since `space-between` gives all the slack to the left. Nothing in the engine
+  depends on the toolbar's nesting (click-away is `closest('.tools-wrap')` / `closest('.shift-group')`); `hdrcontrols`
+  T0 only asks that the Header button stays inside `.preview-tools`.
+- **Built** (`legacy.css`, after `.tools-btn[aria-expanded]`): `.shift-btn` and `.tools-wrap > .tools-btn` take
+  `--mantine-primary-color-light` (resolves to navy-1 `#D3DAE1`, the active Show tab's ground) on
+  `-light-color`, with a navy-2 hairline on `.shift-group` and the three buttons; hover and `[aria-expanded]` take
+  `-light-hover`. ⚠️ The tint is on each part of Shift All, NOT on `.shift-group`, so hover composites the same on all
+  four. ⚠️ The rules are unlayered, so they beat Mantine's layered Button colours, which also means Mantine's own hover
+  is beaten: the hover rule has to be spelled out. `.tools-wrap > .tools-btn` matches exactly the three popover tools;
+  Side Boxes and the Header button are `.tools-btn` too but not inside a `.tools-wrap`. The label: `PreviewToolbar.jsx`
+  "Side Boxes" (the only user-facing copy of it; Help never names the button).
+- **Proof so far:** `npm run check` 40/40; `hdrcontrols` 12/12 and `sideboxes` 58/58 (`HARNESS_PAGE=/dist/index.html`);
+  a 2× headless screenshot at 1650 px. Full gate not run.
+- **Owner, by picker:** *"Keep this tint"*, *"Commit it"*, and of the full gate *"do we really need a full gate just to
+  change the color of some buttons?"*. Answered: no, the gate rule covers the grid, the exports and the save path,
+  and these rules match only four toolbar buttons, which both print paths hide and the shareable copy empties.
+  Then *"Push now"*, without the gate.
+- ✅ **PUSHED AND LIVE.** `main` fast-forwarded to `b332e5c` (it carried `e06ccc9`, a HANDOFF-only commit). ONE `git push
+  origin main` at 17:24:20 (`ec8c788..b332e5c`). Deploy run 39699488118: success. At 17:25:14 the live `index.html`,
+  fetched with a cache-buster, was **byte-identical to the local build** (sha256 `999bd95e23a33a0b…`, `cmp`);
+  `version.json` still 1.6.0, so installed copies pick it up silently.
+- ⚠️ **OWNER, right after it went live:** *"now it looks like those buttons are all selected since the blue color is the
+  same as the selected button color on the left side bar. come up with a few mockups"*. True: navy-1 is the app's
+  SELECTED ground (`.side-tab-btn.active`), so a resting fill of it reads as "on". Four mockups shown as real 2×
+  screenshots (each a copy of the build plus one `<style>`, fixture `carry-rich`, 1650 px; the page and shots are in
+  that session's scratchpad, not the repo): **A** navy outline (white fill, navy-6 border and text, navy-0 hover);
+  **B** shifting tools back to plain white, Side Boxes / Header (when not Manual) / undo-redo borderless grey;
+  **C** solid navy-6 with white text, like Export PDF; **D** = A + B, recommended. ⛔ Lesson: in this app a light
+  accent FILL means selected; colour a resting control with its border or ink, or a solid fill, never the tint.
+- ⏭ **Next:** the owner picks A–D; build it here and ask before pushing. On the tracker as `toolbar-shift-restyle`,
+  requested. The worktree `.claude/worktrees/toolbar-center` stays until then.
+
+### 🔨 21 Oct 2026 (evening): THE ZOOM PILL AND THE ? BUTTON MOVED INTO A STRIP UNDER THE CALENDAR — branch `zoom-compact` (worktree `.claude/worktrees/zoom-compact`), from `main` at `da1142a`; GATED (2,595 / 3 contention flakes, both legs green alone); **LIVE at `ec8c788`** (verified byte-identical, `f62b9bc8`; no version cut)
+
+- **Asked** (with a screenshot of the pill over red hiatus cells): *"can we make this smaller so it doesnt overlap the
+  viewport"*, then mid-turn *"or add a little more space at the bottom of the app to give it room?"* Measured at
+  1440×900: the grid box ran to 20px above the window bottom, and the pill (839–871) and the 46px **?** (832–878)
+  sat wholly on it, over the last rows AND the horizontal scrollbar.
+- **Ruled by picker:** *"Both in the strip"*: the **?** button shrinks with the pill rather than staying 46px over
+  the grid's corner.
+- **Built** (`legacy.css` only, plus 12px icons in `ZoomControl.jsx`): `#help-fab` 28px at `right:28px;
+  bottom:8px` (its right edge on the grid's); `.cal-zoom` 26px tall, centred on it, `right:64px`, slider 80px, 11px
+  percentage. Shell (> 960px): `.preview-panel{padding-bottom:0; margin-bottom:44px}`. ⛔ **Margin, not padding:**
+  the month view scrolls INSIDE the panel, so padding would still let it pass under the controls; a margin ends the
+  scroller. The grid fit (app.js) measures `panel.clientHeight`, so the waterfall follows with no JS change. Stacked
+  (≤ 960px): `padding-bottom:44px` in the base rule, so the page's end clears them. UI-CONVENTIONS §7's app-shell
+  table has a "bottom strip" row.
+- ⚠️ **In headless Chrome the panel ends 93px up, not 44px:** the harness's own `PRE#R` result element sits in
+  `<body>`'s flex column under `.layout` (49px). A harness artifact, not the app; the app's browser measures 44.
+- **Proof so far:** `calzoom` 24/24 with the new Z5 (month view's scroll box 8px above both controls) and W1b (the
+  grid box likewise); `npm run check` 40/40; by hand at 1440×900, 1024×768 (both views, 90% and 100%) and stacked
+  900×700. ✅ **Full gate on build `f62b9bc8…` (HARNESS_PORT 9343, 16:36–17:01): 2,595 PASS, 3 FAIL**, all three the
+  contention flakes already on record (other sessions' harness runs were going beside it): `pilllabel (month-dense60)`
+  C1 + C3 (its `'block'` case showed the previous file's label) and `monthexport (blocks)` X6 (the timed dialog case).
+  **Both legs re-run alone on the same build: green** (pilllabel's C, all four labels, want = got, rows OK; monthexport
+  9/9 cases). `calzoom` 24/24 with Z5 and W1b; 0 clipped; 76 ids; gates 10 and 13 byte-identical.
+- ✅ **PUSHED AND LIVE.** Owner, by picker: *"Push to the live site"*. Committed as `6efa291`, merged with local `main`
+  (`fa8b55c`, two TEXT-STYLE-BAR-PLAN docs commits; HANDOFF conflicted only on both top entries, kept both) as
+  `ec8c788`, rebuilt: `f62b9bc8…`, the gated build byte for byte; `main` fast-forwarded. ONE `git push origin main` at
+  17:05:38 (`70d7485..ec8c788`, 7 commits, the other 5 docs only). Deploy run 39697565639: Build and check, Deploy to
+  Pages, both success. At 17:06:42 the live `index.html`, fetched with a cache-buster, was **byte-identical to the
+  gated build** (sha256 `f62b9bc8b854e08d…`, `cmp`); `version.json` still 1.6.0, so installed copies pick it up
+  silently.
+- ⚠️ **For the `header-zoom` session ("Header ends where the calendar ends", building, uncommitted when this landed):**
+  this changed `.preview-panel`'s bottom (margin, not padding, above 960px) and moved `#help-fab` / `.cal-zoom`. Merge
+  `main` before gating.
+- ⏭ **Next:** nothing. The worktree `.claude/worktrees/zoom-compact` can be removed on the owner's word.
+
+### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
+
+- **Asked:** the header's styling bar moved *"above and outside the viewport of the calendar … permanently there"*,
+  under the Waterfall / Month toggle and the shift buttons, able to *"individually style any and all text throughout
+  the entire waterfall calendar"*, with a determination of the cost of letting users change the size of any text
+  (*"I'm the most worried about the impacts of this change"*).
+- ⭐ **The determination (plan §4), measured with a read-only probe on the build, fixture `carry-rich`:** a waterfall
+  row leaves 15 px for text (20 px minus padding and rule), and a line is 1.35 × the size, so **11 px fits, 12 px just
+  fits, and at 13 px and up every row holding the text grows on screen or the text is cut** (47 of 50 rows grew with
+  phase labels at 13; at 16, 48 of 90 labels lost letters; at 22, all 50 dates). A grown screen row no longer matches
+  Excel and the PDF, which draw stored heights. **Bold and italic alone cut nothing** (bold is 6–7 % wider, absorbed by
+  `COL_PAD_CHARS`). Bigger grid text must widen a whole year's phase columns and grow a row shared by every year block,
+  and the PDF and Excel then print the whole page smaller (estimated: one phase's labels at 16 px takes `carry-rich`'s
+  page scale from 0.89 to about 0.74).
+- ⚠️ **Found on the way, not changed:** the note editor's Size list offers 14 and 16, and a size above 12 in a standard
+  row is already cut today. `carry-rich`'s hiatus band at 13 has 18 px of text in a 15 px box (cut by 3 px).
+- ⭐ **OWNER RULINGS, picker, 21 Oct 2026** (verbatim in plan §1):
+  - **D1: "6–12, grid never moves"** — grid text sizes 6–12, so no style ever changes the grid's size; bold, italic,
+    colour and alignment for every kind; header lines and side boxes keep their sizes. Larger grid text could come
+    later (D1 C) without a file-format change.
+  - **D2, in the owner's own words:** *"You can higlight any any all text in the spreadsheet (header is seperate) and
+    style all that text based on selections from the styling menu. just like excel"*. So Excel's highlight (click,
+    drag, Shift-click, ⌘-click, ⌘A) over every kind of grid cell; no kind-wide styles. Plan §2a. ⛔ `gridSel` keeps its
+    phase-only meaning (fill-across, swap and move read it); the other kinds go in a separate set.
+  - **D3: "Every mode"** — header lines are styled from the bar in Auto, Manual and Template, replacing the styling
+    half of the 10 Sep 2026 Template ruling (Template text is still edited only in the header editor).
+  - **D5 (raised by D2), the owner's words:** *"double-click (or Enter, or typing) opens a note or hiatus band's
+    editor; a single click highlights it, like Excel."* Settled in the plan with it: ⛔ **Enter opens an editor only
+    when the active cell is a note or band** — Enter on phase cells is `batchFill` and stays so; a typed key is ADDED at
+    the end of the note, never replacing it; custom column headings follow the same rule; tooltips and Help say
+    "Double-click to edit".
+  - **D4: "Style the month header"** — in the month view the bar stays and styles the month header's lines; the
+    month header's in-calendar strip retires too. Month notes stay the separate "Note styles" request.
+- **Facts the build will need:** the header's strip is emitted INSIDE `#table-wrap` by frozen `renderSpreadsheetView`,
+  Manual mode only, with handlers delegated on `#table-wrap`; the side boxes have a second copy (`buildSideFmt`,
+  body-level). `cellTextFit`'s auto path ignores `basePx` (it always starts at 11), so a chosen size is only honoured
+  through `manual: true`, which clips. `wrapLineCount` measures regular weight only (frozen edit F4 for bold notes).
+  The new bar must be class-only (no Mantine Select: generated ids reach `fields.byId`) and sit inside
+  `.view-toggle-row`, keeping `.view-toggle-row` → `#table-wrap` the sibling pair.
+- ⏭ **Next:** nothing waits on the owner. Plan step 2 (the bar for header and side-box lines, no frozen edit) can
+  start once "Header ends where the calendar ends" (branch `header-zoom`, building, uncommitted)
+  lands, since both change the header strip. On the tracker as `text-style-bar`, planned. Plan size: L, about three
+  sessions.
+
 ### 🔨 21 Oct 2026: THE ZOOM SLIDER AND "SHOOT Ep. 101" EPISODE NAMES LANDED TOGETHER — branch `land-zoom-epnames` (worktree `.claude/worktrees/phase-collapse`), GATED 2,596 / 0, **LIVE at `70d7485`** (verified byte-identical, `7ba96b19`; no version cut)
 
 - ⏭ **RESUME HERE for the push.** Owner, 21 Oct 2026: *"Yes: merge the zoom slider and the episode-names branch into

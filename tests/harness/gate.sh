@@ -1686,6 +1686,11 @@ done
 # unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
 # folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
 # Its own line, mid-list, so sessions appending at the end never conflict with it.
+# regionmirror guards the Production Region's second select (owner, 21 Oct 2026), under Version in Show info: the
+# id-less select.region-mirror, right after #show-version, offering #union-place's exact options; a pick there goes
+# through #union-place's own change handler (no dialog with nothing to misplace; with a note, the "Continue?" question,
+# both selects holding the old Region while it asks, Cancel and Continue), fields.byId gains no key, and undo and Load
+# write both. Two mutants, each red: no write-back (M3/M5/M6/M8), the copy bypassing the question (M6/M7). Own line.
 for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               interfonts:-:60 monthlayout:-:150 monthlayout:colswap-simpost-refuse:150 \
               loadcarry:-:90 hiatusblank:hiatus-blank:90 hostile:xss-mixed:240 sharecopy2:-:90 loadfail:-:1500 \
@@ -1701,6 +1706,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               numclamp:v1.4.0-saved:150 cmdprint:v1.4.0-saved:150 \
               noresetall:-:120 hdrcontrols:carry-rich:170 noswapbtns:colswap-gesture:60 \
               hdrrow:-:400 \
+              regionmirror:-:150 \
               phasefold:-:300 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
