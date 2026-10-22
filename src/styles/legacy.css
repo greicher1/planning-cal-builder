@@ -2610,6 +2610,53 @@
     flex:none;
   }
 
+  /* ---------- The text style bar (TEXT-STYLE-BAR-PLAN.md, owner rulings 21 Oct 2026) ----------
+     One bar under the preview toolbar, outside the calendar, for every text in the waterfall (and the month
+     header, D4). Its controls reuse the strip's .hf-* look. Chrome, never grid content: no .sheet-* rule. */
+  /* A full-width second line of the toolbar row (which wraps), so it always sits under the toggle and tools. */
+  .view-toggle-row > .style-bar-host{ flex:1 1 100%; min-width:0; }
+  .style-bar{
+    display:flex; align-items:center; gap:3px; flex-wrap:nowrap; box-sizing:border-box; padding:5px 8px;
+    min-width:0;
+    background:var(--mantine-color-gray-0); border:1px solid var(--mantine-color-gray-3);
+    border-radius:var(--mantine-radius-sm);
+  }
+  .style-bar::before{
+    content:'Text'; flex:none; margin-right:var(--mantine-spacing-xs);
+    font-size:var(--mantine-font-size-xxs); font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--mantine-color-gray-6);
+  }
+  /* Nothing picked: dimmed and inert, and it says why (the strip's empty-state rule, 21 Sep 2026). */
+  .style-bar:not(.has-target) .hf-ctl{ opacity:.45; pointer-events:none; }
+  /* The one item that may shrink: in a narrow window the hint ends in "…" rather than widening the toolbar row past
+     the window (UI-CONVENTIONS §7). ⛔ Not overflow:hidden on the bar: that would clip the alignment menu, which hangs
+     below it. */
+  .style-bar:not(.has-target)::after{
+    content:'Highlight any text in the calendar to style it'; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+    font-size:var(--mantine-font-size-xxs); color:var(--text-faint); white-space:nowrap; margin-left:var(--mantine-spacing-xs);
+  }
+  .style-bar .hf-swatch[hidden]{ display:none; }
+  /* A highlight that is part one look and part another: outlined in the accent, not filled. */
+  .style-bar .hf-btn.is-mixed:not(.is-on){ border-color:var(--edit-accent); color:var(--edit-accent); }
+  /* The in-calendar header strips retire: the bar above does their job (TEXT-STYLE-BAR-PLAN.md §2). Scoped to
+     #table-wrap, so the header editor's own copy of the controls is untouched. .hdr-tools collapses to
+     nothing, as it always has outside Manual mode. */
+  #table-wrap .hdr-fmt{ display:none; }
+  /* A header line picked for the bar in Auto or Template mode, where there is no caret to show it. An outline
+     takes no room, so the header never moves. */
+  #table-wrap .hdr-line.is-style-target{ outline:2px solid var(--edit-accent); outline-offset:1px; border-radius:2px; }
+  /* The highlight over the grid (D2): the gridSel layer's place and rules -- a sibling inside .sheet-grid-wrap,
+     z-index 1 under the sticky heading row, clipped, no pointer events. Headings get a STICKY strip of their
+     own at the wrap's top, so their boxes stay on the heading row while the body scrolls under it; z-index 3
+     puts them over that row (z 2). Both hidden while a resize drag moves the grid live, as gridSel's is. */
+  .text-sel-layer{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .text-sel-head{ position:sticky; top:0; height:0; z-index:3; pointer-events:none; }
+  .text-sel-cell{ position:absolute; box-sizing:border-box; border:1px solid rgba(112,48,160,.75);
+    background:rgba(112,48,160,.10); }
+  .text-sel-cell.is-active{ border-width:2px; }
+  .text-sel-marquee{ position:absolute; border:1px dashed rgba(112,48,160,.7); background:rgba(112,48,160,.05); }
+  body.grid-resizing .text-sel-layer, body.grid-resizing .text-sel-head{ display:none; }
+
   /* The two slots added 31 Aug 2026 (l2 "middle left", c4 "middle bottom"). .hdr-line carries
      min-height:14px, so leaving these visible-but-empty would add 28px to every header and shift
      the layout for people who never use them. Hidden until they hold text OR the header is in
@@ -3489,3 +3536,30 @@
 .hiatus-grip:hover::before{ opacity:.9; }
 .hiatus-drag-shield{ position:fixed; inset:0; z-index:300; cursor:ns-resize; }
 .hiatus-drag-shield.is-move{ cursor:grabbing; }
+
+/* ---- The month view's reorder grip and moving copy (MONTH-ORDER-PLAN.md, 21 Oct 2026) -------------
+   Body-level chrome on the edge grips' terms (above): nothing inside #table-wrap, no `.mv-*` rule, and
+   nothing the print path can reach (it hides every direct child of <body> but #print-root). The grip sits
+   inside a bar's left end, right of the start grip, on the bar's own fill in its own text colour (both set
+   by installMonthOrderDrag), so it covers the label's first letter cleanly while hovered: six dots, the
+   sidebar rows' "drag me" mark, so it reads as "move this up or down" rather than as an edge. */
+.mv-order-grip{
+  position:fixed; z-index:50; width:12px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; user-select:none; border-radius:3px;
+}
+.mv-order-grip[hidden]{ display:none; }
+.mv-order-grip::before{
+  content:''; width:7px; height:11px; opacity:.6;
+  background-image:radial-gradient(circle, currentColor 1.15px, transparent 1.45px);
+  background-size:3.5px 3.67px; background-position:0 0;
+}
+.mv-order-grip:hover::before{ opacity:.95; }
+/* The copy in the hand: lifted (a soft shadow, a touch see-through) so it never passes for the bar it
+   came from, which the live redraw keeps drawing where it will land. pointer-events:none, so it never
+   hides from hit-testing what is under it. Above the shield, which owns the cursor. */
+.mv-drag-ghost{
+  position:fixed; z-index:301; pointer-events:none; opacity:.9;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.28)); will-change:transform;
+}
+.mv-drag-shield{ position:fixed; inset:0; z-index:300; cursor:grabbing; }

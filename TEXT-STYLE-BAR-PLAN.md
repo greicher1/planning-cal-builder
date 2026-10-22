@@ -6,7 +6,8 @@ outside the viewport of the calendar and is permanently there … This menu shou
 and all text throughout the entire waterfall calendar"*, with a determination of *"the cost/impact of allowing a user
 to edit the text size of any and all text as I'm the most worried about the impacts of this change."*
 
-**All five decisions ruled by the owner (21 Oct 2026). No code written.** §1 holds the owner's
+**All five decisions ruled by the owner (21 Oct 2026), and the frozen edits F1–F4 signed off the same day. Building on
+branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`).** §1 holds the owner's
 decisions, §2 the choices this plan makes unless the owner overrules them, §3 what exists today, **§4 the font-size
 determination**, and §5 onwards how it would be built.
 
@@ -92,6 +93,10 @@ What that means in detail, settled here unless the owner says otherwise:
   double-click, Enter or typing.
 - Every editor's tooltip changes from "Click to edit this note" to "Double-click to edit this note", and the same for
   bands and headings; the Help's paragraphs on notes say it too.
+- ✅ **A band inside one phase's column, RULED by the owner's picker, 21 Oct 2026: "Double-click edits".** Its
+  double-click used to fill it across the empty columns beside it (1 Sep 2026), like a phase cell. Now it opens the
+  band's editor, as every other note does. Widening a band still works by dragging its edge, or by selecting it with
+  phase cells (⌘-click) and double-clicking a phase cell.
 
 Today a single click on a note or a hiatus band opens its editor. In Excel a click highlights and a **double-click**
 edits, and D2 makes a click highlight.
@@ -111,8 +116,10 @@ edits, and D2 makes a click highlight.
 - **The controls are the header bar's, in the same order:** Size, **B**, *I*, text colour, alignment, clear. Highlight
   shows only when a header line or a side-box line is picked (grid cells already have a fill, set where it is set today).
   No underline, no font choice: the grid's typeface (Carlito) is what the width model measures (CLAUDE.md, "Two fonts").
-- **It says what it is styling** ("12 cells", "Header: Centre 1"), and when nothing is highlighted it is greyed with
-  *"Highlight any text to style it"*, as the header strip is today. Its controls show the highlight's current look, and
+- **It names nothing.** ⚠️ Corrected while building: an earlier draft had it say "12 cells" or "Header: Centre 1", but
+  the owner had exactly that readout removed from the header strip on 31 Aug 2026 (the highlight or the caret already
+  shows what is picked). It keeps only the empty state: greyed, with *"Highlight any text in the calendar to style
+  it"*. Its controls show the highlight's current look, and
   a mixed one (some bold, some not) shows the control half-lit; pressing B then makes them all bold, as Excel does.
 - **One bar, everywhere.** The header's strip inside the calendar and the side boxes' floating bar both retire; this bar
   does both of their jobs through the code they use today (`applyHdrFmt`, `applySideFmt`), so header and box styles are
@@ -247,6 +254,10 @@ writers drawing bold, italic, colour and alignment for every kind of grid text.
 
 ## 6. Frozen edits (each needs the owner's sign-off, with the measurement named)
 
+✅ **SIGNED OFF, owner's picker, 21 Oct 2026: "Yes, F1–F4 as planned"**, with this acceptance: every byte gate unchanged
+on all existing calendars (waterfall PDF, every Excel part, month PDFs), the layout fence unchanged, and 0 clipped cells
+on a test calendar with every kind of text at 12 px and bold.
+
 Each is written so that **with no style set it runs exactly today's code**, which the byte gates prove.
 
 - **F1 · `renderSpreadsheetView`:** append each text's style after its own inline style (the 31 Aug 2026 `hline`
@@ -266,6 +277,9 @@ Each is written so that **with no style set it runs exactly today's code**, whic
 
 ## 7. Not frozen
 
+- **Template header lines open their editor on a double-click** (they opened it on a click). A click now picks the
+  line for the bar (D3), and a click that opened a modal editor over the bar would leave no way to reach it. This is
+  D5's rule applied to the header; settled here unless the owner overrules it.
 - **The bar:** a host inside `.view-toggle-row` (so `.view-toggle-row` → `#table-wrap` stays the sibling pair the
   contracts need), filled by the engine with class-only controls, built once; in `buildSavedHtml()`'s emptied hosts;
   hidden in print.

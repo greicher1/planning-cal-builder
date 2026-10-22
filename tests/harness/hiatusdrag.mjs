@@ -56,6 +56,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { NO_BUNDLE_CLONE, removeProfileOnExit } from './chrome-profile.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
@@ -64,6 +65,7 @@ const PAGE = arg('page', process.env.HARNESS_PAGE || '/dist/index.html');
 const PORT = Number(arg('port', process.env.HARNESS_PORT || 8233));
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PROFILE = `/tmp/tc${PORT !== 8233 ? PORT : ''}-hiatusdrag`;
+removeProfileOnExit(PROFILE);   // the profile, its socket dir: gone on every exit (chrome-profile.mjs)
 const OUT = path.join(HERE, 'hiatusdrag.json');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -86,7 +88,7 @@ try {
   srv = spawn('node', [path.join(HERE, 'srv.js'), String(PORT), ROOT, path.join(HERE, 't')], { stdio: 'ignore' });
   await sleep(1500);
   fs.rmSync(PROFILE, { recursive: true, force: true });
-  chrome = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-sandbox', `--user-data-dir=${PROFILE}`,
+  chrome = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-sandbox', NO_BUNDLE_CLONE, `--user-data-dir=${PROFILE}`,
     '--window-size=1600,1200', '--remote-debugging-port=0', 'about:blank'], { stdio: 'ignore' });
   let devPort = 0;
   for (let i = 0; i < 100 && !devPort; i++) {

@@ -57,7 +57,11 @@ and `mvlPackLanes` re-packs every week in DOCUMENT order, which is placement ord
 ### 3.1 Phase order (R1)
 
 - Hover any phase bar that carries `data-ph` (phases, Production's episode bars, prep bars) and a **⋮⋮ grip** appears
-  inside its left end, just right of the start grip where there is one. Sim Post and hiatus bands get none.
+  inside its **left** end, just right of the start grip's 10 px, on the bar's own fill, so it covers the label's
+  first letter while hovered. ⚠️ It was first built at the right end to spare that letter; the owner moved it back
+  the same evening: *"Move the reorder grip to the left end, beside the start grip, even though it covers the first
+  letter of the label while hovering."* Sim Post and hiatus bands get none. Bars under 46 px get no grip rather than
+  one over the start grip.
 - Drag the grip **up or down**. A copy of the bar lifts and follows the pointer vertically (§3.3). As it passes the
   middle of another phase's bar in that week, the order changes and the calendar redraws live: the real bar is
   always where it will land.
@@ -95,8 +99,10 @@ and `mvlPackLanes` re-packs every week in DOCUMENT order, which is placement ord
   drag (default D5). The copy is lifted: a shadow, the item's own fill, text and size, slightly see-through.
 - The calendar underneath keeps redrawing live (R3). The copy is what your hand holds; the redrawn bar is where it
   lands.
-- The start and end grips already follow their edge as the calendar redraws. They will glide with the pointer between
-  days instead of jumping (default D6), so all drags feel the same.
+- ⚠️ **D6 dropped while building:** the start and end grips (phases, Production, prep, a hiatus's first and last
+  week) keep stepping with their edge a day (or week) at a time. That is how a resize normally feels, the edge and
+  its grip stay together, and `pilldrag`/`phaseedge` read a grip's position mid-gesture. The moving copy is for
+  MOVES: a reorder, a note, a phase's body drag, a hiatus band's move.
 - **The copy is body-level chrome, never inside `#table-wrap`** ("anchored to, never injected into"). It is built at
   the press from the item's measured box and computed style, because the live redraw destroys the element it came
   from. It reads the box with `getBoundingClientRect()`, which already includes the calendar zoom, and scales its
@@ -113,7 +119,7 @@ and `mvlPackLanes` re-packs every week in DOCUMENT order, which is placement ord
 | D3 | A note's place travels with the note (own notes in their entry; waterfall lines by text) | An auto-note on top should stay on top when its phase moves |
 | D4 | Notes move up and down within their day only | The ask was up and down |
 | D5 | The hiatus body drag gets the moving copy too | "all drags feel the same" |
-| D6 | Start/end grips glide between days | Same |
+| D6 | ~~Start/end grips glide between days~~ **Dropped** (§3.3): a resize keeps its grip on its edge | — |
 | D7 | A phase added after you reorder goes in by date: right after the ordered phase that comes before it by start date (top if none) | Keeps a new phase near where date order would put it |
 | D8 | Deleting a custom phase removes its key from the order | No dead keys in the file |
 

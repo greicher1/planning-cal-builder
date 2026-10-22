@@ -97,7 +97,249 @@
   `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a script whose name has no "gate.sh", with
   a random 45–90 s pause before starting so two queues don't start together.
 
-### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, MERGED INTO LOCAL main, PUSH BLOCKED (permission)
+### 🔨 21–22 Oct 2026: "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`, then live `origin/main` (`34c873f`, v1.7.0 + header-zoom) merged in; first build GATED (2,619 / 7, all 7 explained); NOT merged into `main`, NOT pushed
+
+- **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
+  app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
+- **Built:** a **Hide from Exports** tab under each box (shown on hover/focus; stays shown and filled while on; the
+  box's frame turns dashed grey). A hidden box stays on screen and is left out of the workbook and the waterfall
+  PDF, the other boxes closing up. Saved as the box's `noExport: true`, only ever `true`. SIDE-BOXES-PLAN.md §14
+  has the detail; README has the changelog entry.
+- ⭐ **No frozen line changed** (sanctioned pattern 1): the writers' `sideBoxLayoutSafe(schedule)` now means the
+  PRINTED layout; the screen's two callers pass `SIDE_SCREEN`.
+- ⛔ **MERGE HAZARD with `sidebox-free-pos`** (building, not merged): it adds four screen-side
+  `sideBoxLayoutSafe(currentSchedule)` calls and a `sideBoxLayout(currentSchedule, {boxes, lead})` for the drop
+  plan. Git will NOT flag them, but after a merge each must get the screen layout (`SIDE_SCREEN`, or `screen: true`
+  in the opts), or a hidden box vanishes from the screen and its drag breaks. `sideBoxLayout` gains `opts` on both
+  branches: merge the two into one. `sbnoexport` H1/N1 go red on exactly this. `sidebox-zoom` touches neither.
+- **Proof:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
+  `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2× headless screenshot (the in-app browser had no free
+  server slot). ✅ **Full gate on build `ffbe9371…` (HARNESS_PORT 9391, 22 Oct 04:30–04:56): 2,619 PASS, 7 FAIL.**
+  The waterfall PDF, every Excel part, the restore and all month-print documents byte-identical to the baselines;
+  0 clipped; 76 ids; `sideboxes` + `sbnoexport` 86/86. The 7: `filekeys (v1.4.2-saved)` K10/K11/K13/K14/E0, green
+  16/16 alone on the same build (contention, as recorded before); and `hdrversion` (the left-column check and E0),
+  which is **a bug in that leg, red on every build on 22 Oct 2026** — see the next bullet. 17/17 after the fix.
+- ⛔ **`hdrversion`'s PDF reader trimmed every trailing space/CR/LF off a compressed stream** before inflating it.
+  A deflate stream's last byte is its Adler-32 checksum's, which depends on the page's text, the header's date
+  included. On 22 Oct the content stream with "v3" ends in 0x20 (a probe read `[215,158,1,32]`, then the writer's
+  `\n`), so the trim cut a real byte. This session fixed it (`cd46aa5`) and found the live branch had fixed it the
+  same night (`6547512` / `58e6b6a`, read by `/Length`, also in `prefs`, `stintexport`, `papersize`, `pdfdialog`);
+  the merge took the live version. ⚠️ **Four legs still trim with no `/Length` read:** `calrange`, `hdrrow`,
+  `hdrtemplate`, `onecol` (grep `=== 32)) en`). Each can go red on a day whose date ends one of its PDFs' streams
+  in 0x0A/0x0D/0x20.
+- **The v1.7.0 merge brought one new caller, `pageFitFor()`** (the Export PDF dialog's recommended orientation and
+  fit): it calls `sideBoxLayoutSafe(schedule)` with no opts, so it measures the PRINTED page, hidden boxes left
+  out. That is right: the dialog describes the page the PDF will print.
+- ⚠️ **Gate queues:** a wait loop must count only REAL gates (`ps -axww -o command= | grep -cE
+  '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`) and live in a script whose name lacks "gate.sh"; `pgrep -f gate\.sh` matches
+  its own wrapper and never starts (another session's, found 21 Oct). And when checking whether your own queue is
+  alive, never `grep -v grep`: the wrapper's command line contains "grep", so it hides the very process you are
+  looking for (this session concluded its live queue had died, and briefly queued a second gate).
+- ⚠️ CLAUDE.md's State model row for `sideBoxes` does not mention `noExport`. Left for the owner (owner-approved
+  lines).
+- ⏭ **Next:** the gate on the merged build, then the owner's picker on merging into `main` and, separately,
+  pushing. Then, if wanted, the `/Length` reader in the four legs above. On the tracker as `side-box-screen-only`.
+
+### ✅ 22 Oct 2026: MONTH REORDER + DRAG PREVIEW AND THE HARNESS CLEANUP LANDED IN LOCAL `main`, ON TOP OF v1.8.0; GATED; NOT PUSHED (branch `land-ready-1022`, worktree `.claude/worktrees/prep-skip-switch-7e4b7d`)
+
+- Owner, 22 Oct 2026: *"any features that are done and ready please merge into main"*. Ready meant gated green on its
+  branch and not yet in `main` (the feature board's `ready` cards, checked against git). Four branches qualified:
+  - `month-order` (drag bars and notes up and down in the month view, and see what you drag), gated 2,666 / 0 at `b6a6af9`.
+  - `claude/cool-brattain-388fa6` (the harness deletes its Chrome profiles and stops the bundle clone), 2,619 / 6, none
+    from the change.
+  - `sidebox-free-pos` and `sidebox-noexport` (side boxes anywhere; Hide from Exports). ⚠️ **Left to their own
+    session:** while this merge was being resolved (09:43), the `sidebox-free-pos` session merged `sidebox-noexport`
+    into its branch itself (`b25029d`, with land-five's three fixes). This merge was abandoned (a copy of its diff is
+    in this session's scratchpad), so the two did not collide. Its gate and landing are that session's.
+- **Merges on `land-ready-1022`** (from `main` `1f4ae2c`): `month-order` as `ce21902` (README only conflicted: both
+  sides added entries); the harness branch as `4010a82` (HANDOFF and README; the harness branch carried a STALE copy of
+  the month-order heading, "FULL GATE QUEUED", which was dropped for `main`'s current one); `main` again twice as it
+  moved: the text style bar (`7d3f0e6`, no conflicts) and the v1.8.0 cut (README: this branch's two entries moved
+  above `## v1.8.0`, as Unreleased). Also `d5404af`: a line number in the toolbar-center entry, which `check-refs.py`
+  flagged on `main` itself.
+- **Gates on the combined build** (port 8953):
+  - Build `e670a248…` (before the text style bar): 2,666 PASS, 1 FAIL (`monthexport` X5, a soft-hyphen note; green
+    alone twice, 9/9). Then `main` moved.
+  - Build `c61b7f40…` (with the text style bar), first run 11:02, STOPPED at 12:32: the machine reached a load average
+    of 65–85 (a Time Machine backup, Finder and FSEvents over a large file deletion), and every timed CDP leg hit its
+    deadline (`pilldrag`, `phaseedge`, `mvorder`); the PASS count had not moved in 40 minutes.
+  - ✅ **Same build, re-run 15:21–15:48 once the load was under 12: 2,717 PASS, 1 FAIL.** 0 clipped; the waterfall PDF
+    and every Excel part identical; 76 ids; gate 10's 11 print documents and gate 13's 22 written PDFs identical;
+    `mvorder` 20, `pilldrag` 30, `phaseedge` 23 all PASS. The FAIL: `offweek` R8, a Load that took over 10 s. Alone
+    through gate.sh's own evaluator: LIVE 6/6, RESTORE 44/44. (A second alone run overlapped the text-style-bar
+    session's next gate, started 15:48:40, and timed out the same way in R12.) The "Gate performance optimization"
+    session also reported a second gate of its beside this one, 15:25:38–15:26:51, stopped by it; nothing failed then.
+  - **The landed build `e1604211…` differs from the gated `c61b7f40…` in 43 bytes, two places: the version literal
+    (`1.7.0` → `1.8.0`) and that script's CSP hash** (byte diff), the v1.8.0 cut's own change. `npm run check` 40/40,
+    `check-refs.py` CLEAN.
+- ⚠️ **Learned: the gate needs a quiet machine, not just no second gate.** Timed legs (the CDP scripts' 300–480 s
+  deadlines, `offweek`'s 10 s Load wait) fail under system load from things outside the harness. The waiter used here
+  also waits for a 1-minute load under 12 (`sysctl -n vm.loadavg`).
+- **The owner's order:** asked whether to wait for the combined gate, the owner chose *"Wait for the gate"*. Asked
+  later whether these should land after v1.8.0 or into it, *"Now, into v1.8.0"*. But v1.8.0 had already been pushed
+  and tagged (`origin/main` = `cfd18e9`), so they landed on top of it, unreleased.
+- **Not pushed.** A push needs its own picker. The feature board's three cards are moved to `merged`.
+
+### ✅ 21–22 Oct 2026: v1.8.0 IS LIVE at `cfd18e9` (verified byte-identical, `82a85b67`): THE TEXT STYLE BAR, released with the month view's phase outline — branch `text-style-bar` (worktree `.claude/worktrees/text-style-bar`)
+
+- ✅ **v1.8.0 IS LIVE (22 Oct 2026).** Owner, by picker, when asked about the push: *"Cut v1.8.0, then push"*.
+  - **The cut** (`cfd18e9`): `APP_VERSION`, `version.json` and `package.json` = 1.8.0; README `## v1.8.0` over the
+    four entries since v1.7.0 (header-zoom and the side-box zoom fix, both already live; this bar and the month view's
+    phase outline, new); `releases/v1.8.0.html` = dist (`82a85b67…`, 1,711,456 bytes, `cmp`);
+    `tests/fixtures/v1.8.0-saved.sptcal`, a real Save from the cut build (43 keys, 76 ids, the same fields as v1.7.0's
+    synthetic one). `npm run check` 40/40. The root `index.html` untouched.
+  - **Release gate on `82a85b67…`** (port 9595, 12:42:13–15:21:15): **2,626 PASS, 4 FAIL**, and all four were legs
+    that wrote NO RESULT at all (`hdrversion`, `hdrtemplate`, `hdrpreset`, `pdfdialog`), not a failed check. It took
+    2 h 39 min where this branch's gate alone took 25 min that morning; the land-ready entry above records load
+    averages of 65–85 that afternoon (a Time Machine backup), the likely cause, not checked for this run. Every byte
+    comparison held: the waterfall PDF and every Excel part identical, 76 ids, gate 10's printed month documents,
+    gate 13's written month PDFs (22/22), 0 clipped cells anywhere, `textstyle` 51/51.
+  - **The four re-run alone** through `gate.sh`'s own judges on the same build (15:48:40–15:49:04): **72 PASS,
+    0 FAIL** (`hdrversion` 17, `hdrtemplate` 25, `hdrpreset` 19, `pdfdialog` 11).
+  - ✅ **PUSHED AND LIVE.** Tag `v1.8.0` (annotated) on `cfd18e9`; ONE `git push origin HEAD:main v1.8.0` from the
+    worktree at 15:49:43 (`17136a7..cfd18e9`, plus the tag); deploy run 39867726799 succeeded. At 15:50:38 the live
+    `version.json` read 1.8.0 and the live `index.html` (with a cache-buster) was **byte-identical to
+    `releases/v1.8.0.html`** (sha256 `82a85b67…`, `cmp`). Local `main` was then fast-forwarded to `cfd18e9`; the main
+    checkout's two fixture items were left as they were. (Local `main` has since moved on: the land-ready entry above.)
+  - ⏭ **Next:** nothing is owed on this feature. Installed copies will offer the 1.8.0 update. The owner's own check:
+    style some text in the installed app, then open the workbook and the PDF. The worktree can go on the owner's word
+    (its preview server on port 9601 still serves the local link).
+- **Before the cut:** Owner, 22 Oct 2026, after trying the branch build on localhost: *"merge text-style-bar
+  into local main (no push), check the build there is the gated one, then ask me separately about pushing."* Done:
+  main's one new commit (`8814000`, HANDOFF only) merged into the branch (`555acc0`; no src or test file changed), then
+  local `main` FAST-FORWARDED to it, so `main` = `555acc0` = the branch. ✅ A clean scratch build of `main`'s tree
+  (`git archive main`) is **byte-identical to the gated build** (`c7b70156…`, `cmp`); `npm run check` 40/40. The main
+  checkout's two pre-existing fixture items (`stintswap-reshape.sptcal` modified, "Reshape Fixture 2026-09-29.sptcal"
+  untracked) were left as they were.
+- **Earlier:** Owner, 22 Oct 2026: *"merge current main into text-style-bar, resolve the conflicts (take main's
+  /Length stream reads and convert the other five legs to match), rebuild, and run the full gate. Don't merge into main
+  or push."* Done as `e12b10b` (main at `1f4ae2c`: v1.7.0 paper size + Export PDF dialog, header-zoom, phase outline,
+  one-chip, toolbar-center, sidebox-zoom, Production Region in Show info). Conflicts: CLAUDE.md (both state rows:
+  `textStyle`, then main's `paperSize`), README (this entry first, then main's), gate.sh (main's `hdrfit` block, then
+  `textstyle`), and hdrversion/prefs/stintexport (main's `/Length` read taken whole). Then `3c7a702`: calrange, hdrrow,
+  hdrtemplate, onecol and textstyle converted to that same `/Length` read, replacing this branch's interim one-EOL strip
+  (`c8fd87a`), so all eight legs read a stream one way. Auto-merged and checked by hand: app.js (all F1–F4 marks and the
+  bar's section present; OVER_PANEL unchanged), legacy.css (header-zoom caps `.hdr-tools`, the CONTAINER, so hiding the
+  `.hdr-fmt` strip inside it moves nothing `hdrfit` measures), PreviewToolbar.jsx (host still last), lib.js (main's
+  Export PDF dialog auto-answer and `openCell` both in), sideboxes.js, index.html, UI-CONVENTIONS.
+- **After the merge:** `npm run check` 40/40; build `c7b70156…`. Quick run alone through the gate's evaluators
+  (09:40, port 9595): `hdrfit` (both states), `sideboxes`, `hdrcontrols`, `noswapbtns` all PASS; `textstyle` 50/51:
+  ⚠️ **G9 waited for the phase selection's chip, which main's one-chip ruling now shows only when the cells can
+  expand** ("Double click to expand cells"), and the leg's two cells had no room. G9 now judges the selection by its
+  OUTLINE (`.grid-sel-cell`, drawn for any phase selection), `9053a77`: **`textstyle` 51/51** on the merged build.
+- ✅ **Full gate on the merged build `c7b70156…` (port 9595, 09:43–10:08:49, alone): 2,695 PASS, 3 FAIL, every
+  byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13). The 3 were `hdrfile`'s "fresh id"
+  and its two refusal counts.
+  - ⚠️ **CORRECTION: not a flake, as this entry called it below after last night's gate.** Alone on the merged build it
+    failed the same 3 twice running, while `main`'s build (`1f4ae2c`, scratch) passed twice under the same load. The
+    leg read the preset list after a FIXED `T.sleep(900)`; under the harness's virtual clock that sleep can expire
+    before the import's off-thread file read lands, so it saw the old list (count 1, freshId false) and the import
+    landing a moment later made both refusal counts one too many. The import itself completes on both builds. Why this
+    build loses the race and main's does not was NOT found (it depends on what else the page has pending).
+  - **Fixed in the leg (`4686ed3`):** it waits for the preset count to move (`T.until`), the harness's own "wait for the
+    thing" rule. Merged build: **14/14 twice**; `main`'s build with the fixed leg: passes. So the gate's three are
+    accounted for, and nothing else failed.
+
+- **Asked:** Owner, 21 Oct 2026: *"ok start building"*, after ruling D1–D5 (the entry below) and, by picker the
+  same day, two more: a band inside one phase's column **"Double-click edits"** (its 1 Sep fill-across double-click
+  goes), and the frozen edits **"Yes, F1–F4 as planned"** (acceptance: every byte gate unchanged on existing
+  calendars, the fence unchanged, 0 clipped cells with every kind at 12 px and bold).
+- **What exists** (app.js "THE TEXT STYLE BAR", just before the header template editor; legacy.css "The text style
+  bar"; PreviewToolbar.jsx's empty `.style-bar-host`):
+  - **The bar**, built once by the engine into a host React renders last inside `.view-toggle-row` (so
+    `.view-toggle-row` → `#table-wrap` stays the sibling pair): Size, B, I, text colour, highlight (header and box lines
+    only), alignment, clear. Class-only controls (no id: `collectFieldValues`). Greyed with "Highlight any text in
+    the calendar to style it" when nothing is picked. **It names nothing** (the owner's 31 Aug removal of the strip's
+    readout). 34 px tall at 1600×1200.
+  - **Targets:** `'grid'` (the highlight), `'hdr'` (`hdrFmtTarget`, set by focus in Manual and by a CLICK in any mode
+    and either view: D3, D4) and `'side'` (`sideFmtTarget`). Header and box styles go through their OWN code
+    (`applyHdrFmt` / new `clearHdrFmt`, `applySideFmt`), so they are stored exactly as before. The in-calendar header
+    strip is hidden by CSS (`#table-wrap .hdr-fmt`); the boxes' floating `.sb-fmt` is never shown (`showSideFmt`
+    arms the bar instead).
+  - **The highlight** (`textSel`, keys `'<kind>:<key>'` = the store's own): click, sweep, ⌘-click, Shift-click
+    rectangle, ⌘A (only while a highlight exists), Escape. Overlay `.text-sel-layer` beside `.grid-sel-layer`, plus a
+    STICKY `.text-sel-head` strip for the sticky heading row. ⛔ Separate from `gridSel`, which keeps its phase-only
+    meaning (fill-across, swap, move); a plain press OFF a phase cell retires `gridSel`, so one selection shows.
+  - **D5:** the note opener no longer opens on click (a click on the cell being edited keeps editing); a capture
+    `dblclick` opens notes and bands (`openNoteCellEditor`, the old switch-cells logic), Enter opens the active
+    note/band (never over phase cells), typing ADDS the key at the end. The batch fill's dblclick skips bands.
+    Custom headings and Template header lines open their editors on dblclick. Tooltips and Help say double-click.
+  - **Save format:** `textStyles` (see CLAUDE.md's state table), absent when empty, sanitized
+    (`cleanTextStyles`), restored unconditionally, cleared by New / Reset notes (notes) / Reset hiatus bands (bands),
+    moved by `shiftCalendar` (notes `isPinnedWeek`, bands and phase weeks `hiatusKeyStays`, Sim Post with
+    Production). A note's style goes with its text.
+  - **Frozen edits, each inert with no style:** F1 `renderSpreadsheetView` (styles appended; a one-line size caps its
+    line-height so a row cannot stretch; titles say "Double-click"), F2 `exportExcel` (`xlTextStyle`), F3
+    `buildWaterfallPdf` (`drawStyled`: Carlito Bold/Regular, the header's 0.21 slant, colour, left/right inset;
+    `wrapLines` bold-aware), F4 `wrapLineCount` / `cellTextFit` (bold measure; the auto scan starts at the chosen
+    size and never floors above it — `top = basePx/11` is exactly 1 for every older caller).
+  - **The note editor's Size row is gone** (plan §2): the bar sets size, 6–12; a note saved at 14/16 keeps it.
+- **Proof so far:** `npm run check` 40/40. **`textstyle` 51/51** (fixture `carry-rich`, Sim Post switched on): the
+  bar's place and empty state; click / sweep (22 cells) / ⌘-click / Shift-click / ⌘A (210) / Escape; one selection;
+  one of every kind styled at once — bold, italic, red, left, 12 px on screen, **no row changed height, nothing new
+  cut**; one undo step per press; the workbook (ExcelJS read-back: masters only italic, 6 of 6); the PDF (`/F2`, the
+  0.21 slant, `1.0000 0.0000 0.0000 rg`); the save key and no new `fields.byId` id (100); a file without the key opens
+  unstyled; a hand-edited file's bad kinds, keys and sizes dropped (exactly 5 counted) and not re-saved; Shift All
+  carries a phase week's, a note's and a band's styles and leaves a date's on its date; D5 (click opens nothing;
+  dblclick, Enter, typing "x" → "CARRY-NOTEx"); header lines in both views.
+  Wired into `gate.sh` after `calzoom`. Legs that opened editors with a click now double-click (`T.openCell` in
+  lib.js: conflict, hdrrow, hiatuslabel, launchopen, notewrap, offweek, phiatusnum, typeUserNote); `hdrcontrols`
+  T1/T5 and `sideboxes` G8 now check the bar instead of the retired strips. Run alone on the build (port 9594):
+  `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35, `sideboxes` 58/58.
+- **Mutants, all ten caught** (scratch copy, rebuilt per mutant, `textstyle` run on each): the Excel writer ignoring
+  styles (X1–X3 red); the PDF writer ignoring a note's (P1, P3); no line-height cap at 12 px (S3: a row grows); a phase
+  week's style left behind by a shift (T1); the sanitizer letting a size of 20 through (F7, F7b, F8); an id on the
+  bar's select (B1; F3 compares two saves, so it guards ids that appear only after styling); restore only when the
+  key is present (F5); a click opening the note again (D1 and eight more); typing replacing the note (D4); a plain
+  press keeping the phase selection (G9). ⚠️ M5's first run timed out on a Load under three other sessions' runs; alone
+  it was red where expected.
+- **Older builds:** a styled calendar opened in `releases/v1.6.0.html` (scratch probe through the real Load path):
+  everything loads, the styles are ignored, no error or warning. No `SNAPSHOT_VERSION` bump needed, as planned.
+- ⚠️ **Learned while building:**
+  - On `carry-rich`, rows after the first measure **20.84 px on screen, not 20**, in the live build too, before any
+    styling (pre-existing; a check must compare against the unstyled baseline, never against 20).
+  - The app **renders once more shortly after `appReady()`**: a probe that captures cells straight away holds
+    detached nodes (the first screenshot's ⌘-clicks "missed"). Re-query after each action, or settle ~3 s first.
+  - A text that matches its kind's default bold is stored as nothing, so dates and headings stay at their CSS 600
+    when "bold" (drawn with the same bold face).
+  - ExcelJS reports a merged range's other cells with the master's style: count masters only.
+- **Full gate, build `84684945…` (port 9595, ended 06:19:48 on 22 Oct after queuing behind four other sessions):
+  2,615 PASS, 8 FAIL, every byte-compared gate identical** (waterfall PDF, every Excel part, gates 10 and 13): that is
+  F1–F4's acceptance, unstyled calendars untouched. The 8 FAILs, by leg: `hdrtemplate` (it single-clicked a Template
+  header line, which now opens its editor on a DOUBLE-click; leg updated), `offweek` R1 (it compared a band's tooltip
+  word for word, now "Double-click to rename…"; leg updated), `mvmenu` X (it opened a waterfall band with a single
+  click, an opener the first sweep missed; leg updated), `hdrfile` (3: a fixed 900 ms wait after Import, so a late
+  import fails "fresh id" and then both refusal counts; untouched code) and `hdrversion` (2).
+  - **Re-checked alone through the gate's own evaluators** (06:47, between other sessions' gates): `hdrtemplate` 25/25,
+    `offweek` 50/50, `mvmenu (halfdays)` 89/89, `hdrfile` 14/14 (so the gate's three were the timing flake), and
+    `hdrversion` 15/17 — **failing identically on `main`'s live build** (`f62b9bc8`, scratch build of `e06ccc9`).
+  - ⭐ **`hdrversion`'s cause, and a harness fix for eight legs:** the PDF writers frame every stream as
+    `stream\n<data>\nendstream`, but eight legs (calrange, hdrrow, hdrtemplate, hdrversion, onecol, prefs, stintexport,
+    textstyle) stripped EVERY trailing 10/13/32 byte before inflating, which chops real compressed data whose last byte
+    is one of those (~1 stream in 85; content-dependent, so date-dependent: today's "10.22.26" header did it). Now
+    exactly one EOL is stripped (`c8fd87a`). ⚠️ **Every branch cut from `main` before this fix will fail `hdrversion`'s
+    two PDF checks today**; it is the leg, not the app.
+- ⚠️ **Gate queues on this machine (learned the hard way, 21 Oct):** a queue loop that runs INLINE in a Bash wrapper and
+  waits on `pgrep -f 'gate\.sh'` matches its OWN wrapper (`zsh -c "… ./gate.sh …"`) and every other waiting wrapper, so
+  it never starts. Four sessions' queues (this one's first, sidebox-free-pos, sidebox-zoom, phase-outline) were stuck
+  that way at once. Count only real gates, `ps -ax -o command= | grep -cE '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`, from a
+  script file whose name does not contain "gate.sh", with a random 45–90 s settle. All four were told and fixed it.
+- ✅ **The eight fixed legs, re-run alone through the gate's evaluators (07:16, port 9595): 182 PASS, 0 FAIL** —
+  calrange 18, hdrrow 35, hdrtemplate 25, hdrversion 17, onecol 17, prefs 13, stintexport 6 (its lines read
+  "export: …"), textstyle 51. So every one of the full gate's 8 failures is accounted for, and the byte gates were
+  identical throughout.
+- ⚠️ **`main` moved 52 commits while this branch gated** (v1.7.0 cut; header-zoom LIVE at `34c873f`; phase-outline in
+  local main). 13 files changed on both sides (app.js, legacy.css, PreviewToolbar.jsx, index.html, gate.sh, lib.js,
+  the docs, and hdrversion/prefs/stintexport). ⭐ `main` already fixed the PDF-stream bug in hdrversion, prefs and
+  stintexport, better (by `/Length`, `58e6b6a`, from header-zoom): on the merge take main's three and convert this
+  branch's other five (calrange, hdrrow, hdrtemplate, onecol, textstyle) to the same `/Length` read.
+- **Not done:** merging `main` into this branch (the header strip this branch hides is the one header-zoom capped:
+  expect a legacy.css conflict there) and a full gate on the merged build, mutants, the owner's look at it in
+  the app, the header-zoom merge (that branch is committed at `3785258`, not merged; it caps the header strip this
+  branch hides — expect a small `legacy.css` conflict). Then the owner's merge picker, then a push picker.
+
+
+### 🔨 21 Oct 2026: THE ZOOM SLIDER NO LONGER RESIZES THE SIDE BOXES — branch `sidebox-zoom` (worktree `.claude/worktrees/sidebox-zoom`), from `main` at `da1142a`; GATED, **LIVE at `17136a7`** (verified byte-identical, `7a8473cd`; no version cut then, versioned in v1.8.0 at `cfd18e9`)
 
 - **Asked:** *"the side boxes should not change size with the viewport slider"*. `applyCalZoom()` put CSS `zoom` on
   `.side-col` as well as `#table-wrap`, so the colour keys and text boxes scaled with the grid.
@@ -140,17 +382,20 @@
   went live, so the branch was merged with `origin/main` `34c873f` instead (`058d52d`, build `7a8473cd…`: tree =
   origin/main + this fix's three files). On that build, through gate.sh's own evaluators: `hdrversion` 17/17,
   `launchopen` 16/16, `hdrfit` 8/8 on both fixtures, `sideboxes` 59/59, `calzoom` 24/24, `npm run check` 40/40.
-- ⛔ **The push was BLOCKED by this session's auto-mode permission check** ("Production Deploy"), 22 Oct, even with
-  the owner's picker answer. Nothing went out. The push is `git push origin sidebox-zoom:main` (a fast-forward of
-  `34c873f` carrying only this branch's commits), for the owner to run or allow. ⚠️ It must NOT be a push of local
-  `main`: that also carries the phase-outline work, whose push the owner has not approved here.
+- ✅ **PUSHED AND LIVE.** The first push was blocked by the session's auto-mode check ("Production Deploy"); the owner
+  then asked in chat: *"Push sidebox-zoom to main now (git push origin sidebox-zoom:main), no version cut, then verify
+  the live file matches the build."* ONE `git push origin sidebox-zoom:main` at 09:38:12 on 22 Oct (`34c873f..17136a7`,
+  this branch's commits only: local `main`'s unpushed phase-outline work did NOT go). Deploy run 39815630935: Build
+  and check, Deploy to Pages, both success. At 09:46:05 the live `index.html`, fetched with a cache-buster, was
+  **byte-identical to the build** (sha256 `7a8473cdf095a49e…`, 1,690,267 bytes, `cmp`); `version.json` still 1.7.0,
+  so installed copies pick it up silently.
 - ✅ **Merged into local `main`** (owner: "Merge once gate passes"), on top of the phase-outline merge `de83170`; code
   merged clean, docs kept both sides.
-- ⏭ **Next:** the push above, then verify the live file is byte-identical to `7a8473cd…` (sidebox-zoom's build).
-  ⚠️ `sidebox-free-pos` (another side-box branch, gating 22 Oct) will meet this change in `applyCalZoom()` /
-  `.side-col` CSS when it merges.
+- ⏭ **Next:** nothing on this fix. The worktree `.claude/worktrees/sidebox-zoom` can be removed on the owner's word.
+  ⚠️ `sidebox-free-pos` (another side-box branch) will meet this change in `applyCalZoom()` / `.side-col` CSS when it
+  merges: the side boxes are no longer zoomed, and their cap multiplies by `--cal-zoom`.
 
-### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; BUILT, NOT GATED, NOT MERGED
+### 🔨 21 Oct 2026: PHASES RINGED IN THEIR OWN DARKER COLOUR (month view) — branch `phase-outline` (worktree `.claude/worktrees/phase-outline`), cut from local `main` at `da1142a`; GATED, MERGED, **LIVE in v1.8.0 at `cfd18e9`**
 
 - ⏭ **RESUME HERE.** Owner, 21 Oct 2026, choosing between changing notes and changing phases (SPAN-NOTES-PLAN.md §1
   D1, both mocked in chat): *"go for the darker outline for phases"*. README's Unreleased entry says what a user gets.
@@ -212,50 +457,11 @@
   in as `d322e4e` (no code; the rebuild is still `3fc04ff4…`), then local `main` fast-forwarded to this branch. It
   holds `origin/main` (`34c873f`) too. **NOT PUSHED:** a push needs its own picker, and month-order (its third gate
   green on `b6a6af9`) must now merge `main`, which carries this frozen CSS edit and gate 13's re-cut baselines.
+- ✅ **LIVE in v1.8.0 at `cfd18e9`** (22 Oct 2026): pushed with the text style bar on the owner's picker *"Cut v1.8.0,
+  then push"*, verified byte-identical (`82a85b67`); the text style bar's entry has the release gate. Month-order has
+  since merged `main` (the land-ready entry at the top).
 
-### 🔨 21–22 Oct 2026: "HIDE FROM EXPORTS" ON A SIDE BOX — branch `sidebox-noexport` (worktree `.claude/worktrees/sidebox-noexport`), from `origin/main` at `6ac6e9a`, then live `origin/main` (`34c873f`, v1.7.0 + header-zoom) merged in; first build GATED (2,619 / 7, all 7 explained); NOT merged into `main`, NOT pushed
-
-- **Asked:** *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
-  app"*. **Ruled by picker:** per box (not one switch for all), and *"button should just say "Hide from Exports""*.
-- **Built:** a **Hide from Exports** tab under each box (shown on hover/focus; stays shown and filled while on; the
-  box's frame turns dashed grey). A hidden box stays on screen and is left out of the workbook and the waterfall
-  PDF, the other boxes closing up. Saved as the box's `noExport: true`, only ever `true`. SIDE-BOXES-PLAN.md §14
-  has the detail; README has the changelog entry.
-- ⭐ **No frozen line changed** (sanctioned pattern 1): the writers' `sideBoxLayoutSafe(schedule)` now means the
-  PRINTED layout; the screen's two callers pass `SIDE_SCREEN`.
-- ⛔ **MERGE HAZARD with `sidebox-free-pos`** (building, not merged): it adds four screen-side
-  `sideBoxLayoutSafe(currentSchedule)` calls and a `sideBoxLayout(currentSchedule, {boxes, lead})` for the drop
-  plan. Git will NOT flag them, but after a merge each must get the screen layout (`SIDE_SCREEN`, or `screen: true`
-  in the opts), or a hidden box vanishes from the screen and its drag breaks. `sideBoxLayout` gains `opts` on both
-  branches: merge the two into one. `sbnoexport` H1/N1 go red on exactly this. `sidebox-zoom` touches neither.
-- **Proof:** `sbnoexport` 28/28 on build `ffbe9371…`, red on the pre-change build and on a mutant without
-  `SIDE_SCREEN`; `sideboxes` 58/58; `npm run check` 40/40; a 2× headless screenshot (the in-app browser had no free
-  server slot). ✅ **Full gate on build `ffbe9371…` (HARNESS_PORT 9391, 22 Oct 04:30–04:56): 2,619 PASS, 7 FAIL.**
-  The waterfall PDF, every Excel part, the restore and all month-print documents byte-identical to the baselines;
-  0 clipped; 76 ids; `sideboxes` + `sbnoexport` 86/86. The 7: `filekeys (v1.4.2-saved)` K10/K11/K13/K14/E0, green
-  16/16 alone on the same build (contention, as recorded before); and `hdrversion` (the left-column check and E0),
-  which is **a bug in that leg, red on every build on 22 Oct 2026** — see the next bullet. 17/17 after the fix.
-- ⛔ **`hdrversion`'s PDF reader trimmed every trailing space/CR/LF off a compressed stream** before inflating it.
-  A deflate stream's last byte is its Adler-32 checksum's, which depends on the page's text, the header's date
-  included. On 22 Oct the content stream with "v3" ends in 0x20 (a probe read `[215,158,1,32]`, then the writer's
-  `\n`), so the trim cut a real byte. This session fixed it (`cd46aa5`) and found the live branch had fixed it the
-  same night (`6547512` / `58e6b6a`, read by `/Length`, also in `prefs`, `stintexport`, `papersize`, `pdfdialog`);
-  the merge took the live version. ⚠️ **Four legs still trim with no `/Length` read:** `calrange`, `hdrrow`,
-  `hdrtemplate`, `onecol` (grep `=== 32)) en`). Each can go red on a day whose date ends one of its PDFs' streams
-  in 0x0A/0x0D/0x20.
-- **The v1.7.0 merge brought one new caller, `pageFitFor()`** (the Export PDF dialog's recommended orientation and
-  fit): it calls `sideBoxLayoutSafe(schedule)` with no opts, so it measures the PRINTED page, hidden boxes left
-  out. That is right: the dialog describes the page the PDF will print.
-- ⚠️ **Gate queues:** a wait loop must count only REAL gates (`ps -axww -o command= | grep -cE
-  '^(/bin/)?zsh [^ ]*gate\.sh( |$)'`) and live in a script whose name lacks "gate.sh"; `pgrep -f gate\.sh` matches
-  its own wrapper and never starts (another session's, found 21 Oct). And when checking whether your own queue is
-  alive, never `grep -v grep`: the wrapper's command line contains "grep", so it hides the very process you are
-  looking for (this session concluded its live queue had died, and briefly queued a second gate).
-- ⚠️ CLAUDE.md's State model row for `sideBoxes` does not mention `noExport`. Left for the owner (owner-approved
-  lines).
-- ⏭ **Next:** the gate on the merged build, then the owner's picker on merging into `main` and, separately,
-  pushing. Then, if wanted, the `/Length` reader in the four legs above. On the tracker as `side-box-screen-only`.
-### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); local `main` NOT updated
+### 🔨 21 Oct 2026: THE WATERFALL'S HEADER ENDS WHERE THE CALENDAR ENDS — branch `header-zoom` (worktree `.claude/worktrees/header-zoom`), from `main` at `da1142a`; COMMITTED (`3785258`), GATED, PUSHED from `header-zoom` onto `origin/main` (22 Oct, after v1.7.0); since merged into local `main`, and versioned in v1.8.0 (`cfd18e9`)
 
 - **Asked** (with a screenshot of a zoomed-out waterfall, header running ~700 px past the last column): *"header should
   scale with the length of the cal when you adjust the window zoom"*. **Ruled by picker: "At every zoom"**, 100%
@@ -409,7 +615,75 @@
 - ⏭ **Next:** nothing on this feature. CLAUDE.md's "ONE `<select>`" Region line is the owner's to update or not.
   The clean worktree was removed; the local branch `region-show-info` (= `24f1537`) can be deleted on the owner's word.
 
+### 🧹 21–22 Oct 2026: THE HARNESS CLEANS UP AFTER ITSELF (`harness-disk`) — branch `claude/cool-brattain-388fa6` (worktree `.claude/worktrees/cool-brattain-388fa6`), from `main` at `6ca9993`; test tooling only; FULL GATE 2,619 PASS / 6 FAIL, none from this change (below); not merged, not pushed
+
+- **Asked** (by the session that ran the 21 Oct disk cleanup, for the owner's *"delete extra files that we dont
+  need"*): make the harness stop filling the disk. Every leg left `/tmp/tc<port>-<leg>` (about 8 MB), one full gate
+  about 110 of them, and 2,010 (15.5 GB) had piled up with 1.4 GB free.
+- **Built:**
+  - `run.sh`: a zsh `EXIT` trap (`cleanup`), with HUP/INT/TERM turned into exits so it runs. It kills the profile's
+    Chrome, waits until no process of that profile is left, then deletes the socket directory and the profile and
+    stops the server. A pass, a FAIL, the wall-clock cap, Ctrl-C and a killed `gate.sh` all go through it; only a
+    SIGKILL of `run.sh` escapes, and the next run of that leg still clears the profile first, as before.
+  - `tests/harness/chrome-profile.mjs`, the node copy for the six CDP scripts (`cspproof`, `hiatusdrag`,
+    `phaseedge`, `pilldrag`, `printpaper`, `rtleg`): `removeProfileOnExit(PROFILE)` plus `NO_BUNDLE_CLONE` in the spawn
+    args. ⛔ **A new CDP script must call it** (the harness README's file table says so too).
+  - Every launch passes `--disable-features=MacAppCodeSignClone`, and every kill/wait uses the anchored pattern
+    `user-data-dir=<profile>( |$)` (the old `pkill` prefix would match `colswapgate` from `colswap`).
+- **Checked: no leg relies on a profile surviving.** Every launcher already deleted its profile before it started
+  (`run.sh`'s `rm -rf "$PROFILE"`, each script's `fs.rmSync(PROFILE)`), and nothing in `gate.sh`, `parse.js`,
+  `srv.js` or `t/*.js` reads a profile or its IndexedDB.
+- ⭐ **Learned, two more leaks of the same kind:**
+  1. **`$TMPDIR/com.google.Chrome.XXXXXX/`** holds Chrome's `SingletonSocket` and a `SingletonCookie` link; the
+     profile holds only a symlink to it, so deleting the profile alone orphans it. **19,679** had piled up (about
+     18 MB, but 62,917 entries in `$TMPDIR`: a bare `ls $TMPDIR/com.google.Chrome.*` fails "argument list too long").
+     The cleanup reads the symlink first and deletes that directory only while it holds nothing but those two names.
+  2. **The `code_sign_clone` copies (HANDOFF 19 Oct) come from the harness**, one per launch: Chrome on macOS clones
+     its whole bundle into `$TMPDIR/../X/com.google.Chrome.code_sign_clone/` at launch and removes it only on a clean
+     exit. SIGKILL leaves it, and so does SIGTERM (tested). `--disable-features=MacAppCodeSignClone` stops it being
+     made: on interleaved launches, every one without it added a clone and every one with it added none (the only
+     exception ran while another session's Chrome started). 456 were there on 21 Oct.
+- **Verified (21 Oct, private port 8771):** `base` and `colswap` through `run.sh`; `run.sh` stopped by SIGTERM with
+  Chrome alive (`hdrtemplate`) and during its parse (`prefs`), both exit 143; a fake Chrome that never dumps (the
+  wall-clock cap, exit 1); `cspproof.mjs` 15/15 and `printpaper.mjs` 4/4; the node module on a normal exit, a throw
+  and SIGTERM. Each left no profile, no socket directory, no Chrome process and no server, in 3–6 s.
+- ⚠️ **Not done, deliberately:**
+  - **What is already on disk stays** (other sessions' `/tmp/tc*`, about 19,700 socket directories, 456+ clones):
+    clearing it is the owner's call, as before. ⛔ Never delete the clone the owner's own Chrome uses (`ps` shows it
+    as the long-lived Chrome started without `--headless`).
+  - **Other worktrees keep leaking until they have this `run.sh`**: each session runs the harness from its own
+    worktree, so a branch cut before this merge still runs the old one.
+  - `tools/make-icon.py` and `tools/probe-file-handling.mjs` launch Chrome too, outside `tests/harness`. Both already
+    delete their profile on a normal run; neither passes the no-clone switch. Rarely run.
+- **Full gate (22 Oct, 07:46–08:12, `HARNESS_PORT=8771`, build of `6ca9993`'s `src/`, queued behind the `paper-size`,
+  `month-order` and `phase-outline` gates): 2,619 PASS, 6 FAIL. Every baseline held** (the waterfall PDF, every Excel
+  part, `fields.byId`, gate 10, gate 13's written month PDFs byte for byte). **What it left:** `/tmp/tc8771-*` 0 before,
+  0 after; the `code_sign_clone` folder 587 before, 587 after, across 110+ launches. Another session's single legs
+  on port 9563 ran beside it; the gate check (`/bin/zsh ./gate.sh`) cannot see those.
+  - `stintexport` "timed out waiting for the .xlsx blob": contention (it ran while port 9563's legs did). Alone, with
+    the gate's own check: 6/6.
+  - `hdrversion` (2), `papersize` P3, `pdfdialog` D3 + E0: **a bug in the LEGS' PDF reader, not in the app or this
+    change.** Shown on `papersize`: 11/12 alone with this `run.sh` AND with `main`'s; 12/12 once its reader trims only
+    the writer's single `\n`. See Learned 3.
+- ⭐ **Learned 3: the legs' in-page PDF reader trims real bytes, so a gate can go red on a date.** The writer frames
+  every stream as `<data>\nendstream` (`app.js`, four `put('\nendstream\n')`). The readers instead strip EVERY trailing
+  0x0A / 0x0D (most also 0x20) before inflating. The last four bytes of a zlib stream are its Adler-32 checksum, so
+  when the last byte happens to be one of those (about 1 in 85 for three values), the reader cuts it off. The inflate
+  then fails with "Compressed input was truncated", the content stream is never found, and the loop goes on to
+  inflate font streams, whose rejected `write()` promises surface as console errors (the E0 FAILs). The header's
+  date is in the content stream, so on 22 Oct 2026 ("10.22.26") `main`'s Tabloid page and `hdrversion`'s PDF tripped
+  it, while the `month-order` build (different bytes) passed the same day. ✅ **Already fixed on local `main` for
+  all five** (found when checking the merge): `28cdf6e` (`papersize`, `pdfdialog`) and `58e6b6a` (`hdrversion`,
+  `prefs`, `stintexport`) read each stream by its `/Length`. This branch predates them, so its gate still ran the old
+  readers; merging brings the fix. ⚠️ **Eleven legs on `main` still trim without `/Length`:** `autonotekinds`,
+  `calrange`, `hdrrow`, `hdrtemplate`, `hiatuslabel`, `notewrap`, `onecol`, `phasecolors`, `phiatusnum`, `prodspan`,
+  `winansi` (`grep -l "\[[a-z]* *- *1\] === 10 ||" t/*.js`, minus those that also match `/Length`). Proposed as its
+  own session.
+- ⏭ **Next:** the owner's call on merging `claude/cool-brattain-388fa6` into `main` (asked by picker), then on the push.
+  On the tracker as `harness-disk`.
+
 ### 🔨 21 Oct 2026 (late): DRAG BARS AND NOTES UP AND DOWN IN THE MONTH VIEW, AND SEE WHAT YOU DRAG — [`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md), RULED, BUILT on branch `month-order` (worktree `.claude/worktrees/month-order`, from `main` at `73943df`, `main` (v1.7.0) merged in as `21c5444`, live `origin/main` (header-zoom, `34c873f`) as `b6a6af9`); gates 2,619 / 3 and 2,648 / 1, every FAIL green alone; ✅ THIRD gate on `b6a6af9` **2,666 PASS / 0 FAIL, GATE PASSED**; not merged into `main`, not pushed
+
 
 - **Asked:** *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
   view"*, then mid-turn: *"I think we actually need to see the phases/notes visibly dragged animation when we drag
@@ -699,7 +973,7 @@
   the same 151,823-byte JPEG as mockup A's. Build sha256 `c2b79814…`.
 - **Owner, by picker:** *"Commit it"*, *"Push now"*.
 - ⚠️ **Local `main` could NOT be fast-forwarded:** another session has uncommitted edits in the main checkout,
-  `src/styles/legacy.css` among them (its hunk is near line 1205; this one is near 1493, so no conflict), and git
+  `src/styles/legacy.css` among them (its hunk and this one are far apart in the file, so no conflict), and git
   refuses a fast-forward over a dirty file it would change. So the push went from this branch
   (`git push origin toolbar-center:main`), and local `main` is BEHIND `origin/main`. Whoever owns the main
   checkout: commit, then `git merge origin/main` (or `toolbar-center`) before pushing.
@@ -742,7 +1016,7 @@
   `main` before gating.
 - ⏭ **Next:** nothing. The worktree `.claude/worktrees/zoom-compact` can be removed on the owner's word.
 
-### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED, ALL FIVE DECISIONS RULED, NO CODE ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
+### 📝 21 Oct 2026: ONE PERMANENT STYLING BAR FOR ALL WATERFALL TEXT — PLANNED AND RULED (built: the entry above) ([`TEXT-STYLE-BAR-PLAN.md`](TEXT-STYLE-BAR-PLAN.md))
 
 - **Asked:** the header's styling bar moved *"above and outside the viewport of the calendar … permanently there"*,
   under the Waterfall / Month toggle and the shift buttons, able to *"individually style any and all text throughout

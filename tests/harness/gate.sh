@@ -943,7 +943,7 @@ chk(a.get('tplIsTemplate'), f"hdrtemplate: the third mode reads 'Header: Templat
 chk(a.get('tplLockedHere'),
     f"hdrtemplate: ⭐ Template mode is READ-ONLY on the calendar and the styling bar is gone -- owner, 10 Sep (contenteditable={a.get('tplEditableAttr')!r}, toolbar gone={a.get('tplToolbarGone')}, spacer={a.get('tplSpacerInstead')})")
 chk(a.get('clickOpensEditor') and a.get('clickSelectsThatLine'),
-    f"hdrtemplate: ...and clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
+    f"hdrtemplate: ...and double-clicking a header line opens the EDITOR at that line, so the affordance is not dead (cursor={a.get('tplCursor')!r})")
 chk(a.get('resolvesOnScreen'), f"hdrtemplate: tokens resolve on screen ({a.get('c4Resolved')!r})")
 chk(a.get('unknownSurvives'), f"hdrtemplate: an unknown token and an escape survive as typed ({a.get('c2Resolved')!r})")
 chk(a.get('groupsWork'),
@@ -2159,6 +2159,31 @@ for c in cases:
 sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
 PYPE
 
+# ---- mvorder: drag bars and notes up and down in the month view, and the moving copy ---------------------
+# ⭐ ADDED 21 Oct 2026 (MONTH-ORDER-PLAN.md, owner rulings R1-R4). pilldrag's sibling, for the same reason a Node
+# script: trusted CDP input, the reorder grip pressed where elementsFromPoint has it topmost. On mvorder.sptcal (and
+# mvorder-notes, mvorder-hostile): a phase's grip reorders it in every week (O2) with ONE undo (O3); Save writes
+# mvPhaseOrder (O4); ⭐ the WRITTEN month PDF stacks the bars in that order (O5, text y read out of the PDF); Back to
+# date order (O6); out-and-back and Escape bank nothing (O7, O8). Notes: on top of the bars (N1), among the day's notes
+# (N2), a waterfall line on top (N3), and its place follows the line when Production moves (N4); a click still edits
+# (N5); editing keeps a note on top (N6); Escape (N7). A hostile file's values are ignored and no prototype is touched
+# (H1). The moving copy on a body drag (G1). Run on a mutant without frozen edits E1 and E2: O2, O3, O5, O7, O8, N1,
+# N3, N4 and N6 red. ⛔ Gates 10 and 13 are what prove the two edits INERT on every calendar without an order.
+node "$HERE/mvorder.mjs" --page "$PAGE" >/dev/null 2>&1
+python3 - "$HERE/mvorder.json" "mvorder (mvorder, mvorder-notes, mvorder-hostile)" <<'PYMO' || FAIL=1
+import json,sys
+path, label = sys.argv[1], sys.argv[2]
+try: a=json.load(open(path))
+except Exception as e:
+    print('  FAIL  '+label+' produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  '+label+' threw: '+str(a['EX'])[:200]); sys.exit(1)
+cases = a.get('cases') or []
+for c in cases:
+    print(('  PASS  ' if c.get('pass') is True else '  FAIL  ')+label+' '+str(c.get('id'))+': '+str(c.get('title',''))[:110])
+sys.exit(0 if cases and all(c.get('pass') is True for c in cases) else 1)
+PYMO
+
 # ---- hiatusdrag: move a hiatus, or change its first or last week, in the month view -----------------
 # ⭐ ADDED 19 Oct 2026 (HIATUS-DRAG-PLAN.md, owner rulings 1-4). phaseedge's sibling, for the same
 # reason a Node script: trusted CDP input, and a hiatus band is click-through, so every press is made
@@ -2528,6 +2553,26 @@ for c in a.get('checks') or []:
 sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
 PYHF
 done
+# ---- textstyle: the text style bar (TEXT-STYLE-BAR-PLAN.md; owner rulings D1-D5 + F1-F4, 21 Oct 2026) -----------
+# One bar under the toolbar styles any waterfall text: Excel's highlight over the grid (click, sweep, Cmd/Shift-click,
+# Cmd+A), header lines in any mode or view, side-box lines. Sizes 6-12 in the grid (D1), so no row may grow and nothing
+# new may be cut. The leg holds the bar's place and empty state, every kind styled on screen, in the workbook (read back
+# by ExcelJS) and in the PDF (bold program, slant, colour), one undo step per press, the save key (absent when nothing
+# is styled, no new fields.byId id), restore-unconditionally, and D5: a click opens nothing, double-click / Enter /
+# typing open a note (typing ADDS at the end). The byte gates above are the proof that an unstyled calendar is untouched.
+rm -f "$HERE/textstyle.json"
+HARNESS_PAGE="$PAGE" HARNESS_STATE=carry-rich "$HERE/run.sh" textstyle 400 >/dev/null 2>&1
+python3 - "$HERE/textstyle.json" <<'PYTS' || FAIL=1
+import json,sys
+try: a=json.load(open(sys.argv[1]))
+except Exception as e:
+    print('  FAIL  textstyle produced no result: '+str(e)); sys.exit(1)
+if a.get('EX'):
+    print('  FAIL  textstyle threw: '+str(a['EX'])[:200])
+for c in a.get('checks') or []:
+    print(('  PASS  ' if c.get('ok') else '  FAIL  ')+'textstyle: '+str(c.get('what'))[:170])
+sys.exit(0 if a.get('pass') is True and a.get('checks') else 1)
+PYTS
 
 # ---- epnames: an episode's default name is its month-bar text ("Shoot Ep. 101"; owner, 20 Oct 2026) -------------
 # Replaced barprefix (v1.6.0's separate prefix and the day menu's Prefix…, retired the same evening). A new calendar

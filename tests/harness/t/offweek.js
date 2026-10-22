@@ -309,7 +309,8 @@ window.addEventListener('load', function () { (async function () {
               'R1 the all-phase hiatus of 8/23 is still its own full-width band');
         var td = document.querySelector('#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2027-08-30"][data-pkey="production"]');
         out.r1band = td ? {bg: td.style.background, tip: td.title, def: td.getAttribute('data-default-label')} : null;
-        check(!!td && td.title === 'Click to rename or recolor this hiatus' && td.getAttribute('data-default-label') === 'Production Hiatus',
+        // "Double-click" since 21 Oct 2026 (TEXT-STYLE-BAR-PLAN.md D5): a click highlights, a double-click edits.
+        check(!!td && td.title === 'Double-click to rename or recolor this hiatus' && td.getAttribute('data-default-label') === 'Production Hiatus',
               'R1 an off-week band is the own-hiatus cell exactly: the same tip and default label');
       });
 
@@ -386,7 +387,7 @@ window.addEventListener('load', function () { (async function () {
         var sel = '#table-wrap td.sheet-hiatus-cell.sheet-phase-cell[data-week="2027-08-30"][data-pkey="production"]';
         var td = document.querySelector(sel);
         if(!td) throw new Error('no band cell for 8/30');
-        td.click();
+        T.openCell(td);   // a double-click since D5 (TEXT-STYLE-BAR-PLAN.md)
         await T.until(function () { return !!document.querySelector('.note-editor textarea'); }, 'the band editor', 50, 100);
         var ta = document.querySelector('.note-editor textarea');
         ta.value = 'Crew Rest';

@@ -66,44 +66,6 @@ predetermined locking positions … this should reflect in the pdf writer and th
   the lowest, Alt+Down swap and step, a hostile row dropped. `npm run check` 40/40. The PDF rendered and looked at;
   headless screenshots of the wide and narrow layouts. Full gate: see HANDOFF.
 
-### Unreleased — the zoom slider no longer resizes the side boxes (21 Oct 2026)
-
-The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
-used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
-the grid.
-- **Now only the grid zooms.** The boxes keep their 100% size at every zoom: width, row heights, text size, and the
-  grip, × and width handle around them.
-- **Their height cap still matches the grid box on screen.** The cap is a copy of the frozen `.sheet-scroll`
-  max-height, and the grid fit solves that value in the zoomed grid's own pixels, so the copy now multiplies by the
-  zoom (`--cal-zoom`, set on `.side-col` by `applyCalZoom()`, absent at 100%). At 100% the expression is unchanged.
-- The width drag and the drop line no longer scale by the zoom, since the boxes are never zoomed.
-- No frozen code, no saved-file change, nothing the exports read.
-- **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
-  size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
-  after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
-  moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
-  when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
-
-### Unreleased — phases ringed in their own darker colour in the month view (21 Oct 2026)
-
-The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
-chose to change the phases: *"go for the darker outline for phases"*.
-- **What you see:** every month-view phase bar, episode bar and Simultaneous Post bar has a 1.5 px outline in the dark
-  shade of its own colour (the colour its text is already in), on screen, in the month PDF and in the print fallback.
-  Notes and hiatus bands keep their faint edge, so a filled note can no longer pass for a phase, even a pale blue note
-  beside a pale blue phase.
-- **Nothing moves.** The border stays 1 px wide and only changes colour; the other half pixel is an inset shadow,
-  which takes no space. No bar changes size, no label is cut shorter, and no row grows. The waterfall, Excel and the
-  waterfall PDF are untouched.
-- ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
-  month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
-  so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
-- **Verified:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a note.
-  All nineteen of gate 13's month PDFs classified line by line: only ring paint changed (every text run, position,
-  fill, clip, font and page identical), plus the per-slice ring re-draws a pill no longer needs over a half day's
-  shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
-  0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
-
 ### Unreleased — Hide from Exports, per side box (21 Oct 2026)
 
 The owner: *"add feature to be able to hide side boxes from the export but still keep them on the screen in the
@@ -125,7 +87,140 @@ app"*. By picker: per box, and the button *"should just say "Hide from Exports""
 - The gate's two `hdrversion` failures were a bug in that leg (its PDF reader trimmed a stream's last byte when
   the date made it a space); the live branch fixed it the same night, and the merge took that fix.
 
-### Unreleased — the waterfall's header ends where the calendar ends (21 Oct 2026)
+### Unreleased — drag bars and notes up and down in the month view, and see what you drag (21 Oct 2026)
+
+The owner: *"we need the ability to drag and reorder how phases and notes are sorted up and down on the month
+view"*, then *"we actually need to see the phases/notes visibly dragged animation when we drag either for the
+purpose of reordering them top to bottom or for changing a phases timing"*. Planned and ruled in
+[`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) (R1–R4, by picker).
+- **Phase order.** Hover a phase bar in the month view and a six-dot grip appears inside its left end, beside the start
+  grip (it covers the label's first letter while you hover; the owner's call). Drag it up
+  or down: the phase takes that place in every week where it overlaps another, on screen and in the month PDF.
+  Dragging the bar's middle still moves its dates. The bar's right-click menu gets **Back to date order**.
+- **Note order.** Drag a note itself up or down within its day: among that day's notes, or above the bars to the
+  top of the day (a bar crossing that day sits one line lower for that week). A click that does not move still
+  opens the note. An auto-note's place follows it when its phase moves ("Start Principal Photography" stays on top).
+- **The moving copy.** Every move in the month view (a reorder, a note, a phase's body drag, a hiatus band's move)
+  now shows a lifted copy of what you hold following the pointer, while the calendar underneath redraws live to
+  show where it lands. The start and end grips are a resize and still step with their edge.
+- ⛔ **Two frozen edits, owner-approved (R4):** E1, `renderMonthView`'s lane order comes from `mvLaneOrder()`; E2, its
+  notes loop asks `mvDayNoteBlocks()` and runs twice ('top' before the bands, 'below' where it was). Both return the
+  old order when nothing is set, so every saved calendar draws and prints as before. The month-PDF writer re-packs
+  in document order, so it follows with no edit.
+- **Save format:** three new keys, none bumping `SNAPSHOT_VERSION`: `mvPhaseOrder` (absent = date order), `top: true`
+  on a day note, `mvWfNotePlace` (a waterfall line's place, keyed by its text without its date). An older build
+  ignores them and shows date order. All three are sanitized (a `__proto__` key is refused).
+- **Verified:** new CDP leg `mvorder` 20/20 on the build, in `gate.sh` (the order on screen, in the saved file and in
+  the written month PDF; Back to date order; out-and-back and Escape bank nothing; notes on top, among themselves,
+  following an auto-note; a click still edits; a hostile file). A mutant without E1 and E2 turns 9 cases red.
+  `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13 unchanged. Full gate on the branch with v1.7.0 merged in
+  (`21c5444`): 2,648 PASS, 1 FAIL (`winansi`, ExcelJS's CDN load timed out at 03:35; 7/7 alone). Gate 10 (every
+  month print document) and gate 13 (every written month PDF, byte for byte) green: E1 and E2 are inert without an order.
+
+### Unreleased — the test harness cleans up after itself (21 Oct 2026)
+
+Test tooling only: nothing in `src/`, the grid, the exports or the save format changed. The disk had gone down to
+1.4 GB free with **2,010 headless-Chrome profiles in `/tmp` (15.5 GB)**, because every harness run left its
+`/tmp/tc<port>-<leg>` behind (about 8 MB; one full `gate.sh` left about 110).
+- **`run.sh` deletes its profile on every exit**: a pass, a FAIL, the wall-clock cap, Ctrl-C or a killed `gate.sh`
+  (a zsh `EXIT` trap, with HUP/INT/TERM turned into exits so the trap runs). It also stops the server on every exit,
+  which an interrupted run used to leave listening.
+- **The six CDP scripts do the same** (`cspproof`, `hiatusdrag`, `phaseedge`, `pilldrag`, `printpaper`, `rtleg`)
+  through one new module, `tests/harness/chrome-profile.mjs`: `process.on('exit')` plus signal handlers. Before
+  this, a signal ended node with Chrome still running.
+- **Two smaller leaks go with the profile.** The `$TMPDIR/com.google.Chrome.*` directory that holds Chrome's
+  SingletonSocket (the profile only links to it; 19,679 had piled up) is deleted with it. And every launch now passes
+  `--disable-features=MacAppCodeSignClone`: Chrome on macOS clones its whole app bundle at launch and deletes the clone
+  only on a clean exit, which a hard-killed Chrome never has, so each run left one (456 on 21 Oct, 1,430 on 19 Oct).
+  Measured on interleaved launches: one new clone per launch without the switch, none with it.
+- The kill and the wait now use an anchored pattern (`user-data-dir=<profile>( |$)`), so leg `colswap`'s cleanup can
+  never match leg `colswapgate`'s Chrome.
+- **No leg relied on a profile surviving**: every launcher already deleted its profile before it started, and nothing
+  in `gate.sh`, `parse.js` or the legs reads one.
+- **Verified:** `base` and `colswap` through `run.sh`, and `cspproof.mjs` (15/15) and `printpaper.mjs` (4/4), on a
+  private port, each leaving no profile, no socket directory, no Chrome process and no server. The same for `run.sh`
+  stopped by SIGTERM (`hdrtemplate` with Chrome still running, `prefs` during its parse; exit 143 both), and for a fake
+  Chrome that never dumps (the wall-clock cap). The node module also on a normal exit, a thrown error and SIGTERM.
+  **Full gate: 2,619 PASS, 6 FAIL, none from this change**, every baseline identical. It left no profile for its port
+  (0 before, 0 after) and no new bundle clone (587 before and after). One FAIL was contention (green alone). Five come
+  from the legs' PDF reader, which strips trailing newline bytes that can be the stream's own checksum, so a date in
+  the header can trip it; it fails the same with `main`'s `run.sh`, and local `main` already reads those five legs'
+  streams by `/Length` (`28cdf6e`, `58e6b6a`), which this branch predates (`HANDOFF.md`, 22 Oct).
+
+## v1.8.0 — style any text in the waterfall, and phases ringed in the month view (22 Oct 2026)
+
+Four changes since v1.7.0, from 21–22 Oct 2026. Two were already live before this cut (the waterfall's header ends
+where the calendar ends, and the zoom slider no longer resizes the side boxes); this version is how installed copies
+hear about them, since `version.json` moves with `APP_VERSION`. New with this push: the **text style bar** (highlight
+any text in the waterfall, Excel-style, and set its size, bold, italic, colour and alignment) and **phases ringed in
+their own darker colour** in the month view and both month PDFs. Release gate on the cut build (`82a85b67`): 2,626
+PASS with every byte comparison identical; the four legs that wrote no result under load passed alone, 72/72.
+
+### the text style bar: style any text in the waterfall, Excel-style (21 Oct 2026)
+
+The owner asked for the header's styling bar to sit permanently above the calendar and style *"any and all text
+throughout the entire waterfall calendar"*, and for the cost of letting users change text size (TEXT-STYLE-BAR-PLAN.md;
+rulings D1–D5 and the frozen-edit sign-off, all 21 Oct 2026).
+- **A Text bar under the toolbar**, always there: size, bold, italic, text colour, alignment, clear (and highlight
+  for header and side-box lines). It replaces the header's in-calendar strip and the side boxes' floating bar, and
+  writes through their own code, so header and box styles are stored as before.
+- **Highlight any text in the grid, as in Excel** (D2): click, drag, Shift-click, ⌘-click, ⌘A, Escape. Dates, column
+  headings, phase weeks, Sim Post, hiatus bands and notes, in any mix. The header is picked on its own, in every
+  header mode (D3) and in the month view too (D4).
+- **Sizes 6 to 12 in the grid** (D1, "grid never moves"): measured, a row holds 11–12 px text and anything larger
+  grows rows or is cut, and widens columns so the printed page shrinks. So no style ever changes a column, a row or
+  the print scale. The note editor's own Size row (which offered 14 and 16) is gone; a note saved at those keeps it.
+- **A click now highlights a note or band; double-click, Enter or typing opens it** (D5; typing adds at the end).
+  Bands inside one phase's column open on double-click too (owner's picker), and so do custom column headings and
+  Template header lines.
+- **Saved** as `textStyles` (absent when nothing is styled), drawn the same on screen, in Excel and in the waterfall
+  PDF (frozen edits F1–F4, each running today's exact code when no style is set). Shifts move a style with what it
+  styles.
+- **Verified:** new leg `textstyle` 51/51 (every kind on screen, in the workbook and in the PDF; no row grows, nothing
+  new is cut; undo; save and load; D5); the legs that changed `hdrcontrols` 12/12, `notewrap` 16/16, `hdrrow` 35/35,
+  `sideboxes` 58/58; `npm run check` 40/40. Merged with main (v1.7.0 and the 21 Oct features) as `e12b10b`: full gate
+  on build `c7b70156` 2,695 PASS, 3 FAIL, every byte comparison identical; the three were `hdrfile`'s fixed 900 ms wait
+  racing its own import, fixed in the leg (it now waits for the import), 14/14 twice.
+
+### the zoom slider no longer resizes the side boxes (21 Oct 2026)
+
+The owner: *"the side boxes should not change size with the viewport slider"*. The calendar zoom (entry below)
+used to put CSS `zoom` on the side boxes as well as on `#table-wrap`, so a colour key or text box grew and shrank with
+the grid.
+- **Now only the grid zooms.** The boxes keep their 100% size at every zoom: width, row heights, text size, and the
+  grip, × and width handle around them.
+- **Their height cap still matches the grid box on screen.** The cap is a copy of the frozen `.sheet-scroll`
+  max-height, and the grid fit solves that value in the zoomed grid's own pixels, so the copy now multiplies by the
+  zoom (`--cal-zoom`, set on `.side-col` by `applyCalZoom()`, absent at 100%). At 100% the expression is unchanged.
+- The width drag and the drop line no longer scale by the zoom, since the boxes are never zoomed.
+- No frozen code, no saved-file change, nothing the exports read.
+- **Verified:** new check S12 in the `sideboxes` leg (at 50% and 200%: the grid zoomed, the boxes at their 100%
+  size, the cap equal to the grid box's screen height, no panel scroll), red on the build before this change and green
+  after, 59/59; `calzoom` 22/22; `npm run check` 40/40; by hand at 25–200%, including a width drag at 200% that
+  moved the edge exactly with the pointer. Full gate: 2,593 PASS, 4 FAIL, all month-view timing flakes that pass
+  when re-run alone (`pilllabel` blocks and carry-rich, `monthexport` mvheaderlegacy).
+
+### phases ringed in their own darker colour in the month view (21 Oct 2026)
+
+The owner asked how to keep notes from being mistaken for phases (SPAN-NOTES-PLAN.md §1 D1). Shown both routes, they
+chose to change the phases: *"go for the darker outline for phases"*.
+- **What you see:** every month-view phase bar, episode bar and Simultaneous Post bar has a 1.5 px outline in the dark
+  shade of its own colour (the colour its text is already in), on screen, in the month PDF and in the print fallback.
+  Notes and hiatus bands keep their faint edge, so a filled note can no longer pass for a phase, even a pale blue note
+  beside a pale blue phase.
+- **Nothing moves.** The border stays 1 px wide and only changes colour; the other half pixel is an inset shadow,
+  which takes no space. No bar changes size, no label is cut shorter, and no row grows. The waterfall, Excel and the
+  waterfall PDF are untouched.
+- ⛔ **A frozen edit, approved by the owner in chat:** one rule in the Month view CSS block (`.mv-pill`), and the
+  month PDF writer paints the same ring (`mvlPaintBar`, `MVL_PAINT.bar.pillRim`). Every calendar's month PDF changes,
+  so gate 13's baselines are re-cut only after the owner signs off on before-and-after sheets.
+- **Verified:** `npm run check` 40/40; on screen, the computed ring on a phase bar and the unchanged rim on a note.
+  All nineteen of gate 13's month PDFs classified line by line: only ring paint changed (every text run, position,
+  fill, clip, font and page identical), plus the per-slice ring re-draws a pill no longer needs over a half day's
+  shade. Contact sheets shown to the owner, who signed off the re-cut. The full gate on build `591820ac…`: 2,596 PASS,
+  0 FAIL, gate 13 byte-identical to the new baselines and gate 10's printed document unchanged.
+
+### the waterfall's header ends where the calendar ends (21 Oct 2026)
 
 The owner, with a screenshot of a zoomed-out waterfall whose header ran on far past the last column: *"header should
 scale with the length of the cal when you adjust the window zoom"*. Ruled by picker: **at every zoom**, 100% included.
