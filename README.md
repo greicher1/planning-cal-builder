@@ -29,7 +29,7 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
-### Unreleased — Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026)
+### Unreleased — Compare scenarios: no empty phases, Only differences, pushed / pulled, holidays counted (23 Oct 2026; live at `93836f5`)
 
 These are the owner's notes on the Compare window, made after Scenarios went live
 ([`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md) §2). Each change is in the window, the Excel export, the PDF export and

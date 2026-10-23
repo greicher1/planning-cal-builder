@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
+### 🔨 23 Oct 2026 (latest): COMPARE SCENARIOS, THE OWNER'S FOUR NOTES — built on branch `scenarios` (worktree `.claude/worktrees/scenarios`) on top of live `ada0018`; ✅ **LIVE at `93836f5`**; targeted legs green; COMMITTED and PUSH APPROVED by the owner's pickers (*"Commit"*, *"Push and deploy"*), no full gate (none needed: nothing frozen, saved or printed by the calendar changed)
 
 - **Asked** (owner, after Scenarios went live), four notes on the Compare window. On the tracker as
   `compare-refinements`.
@@ -38,7 +38,9 @@
   - the written PDF (rendered) and the workbook's strings.
   - No full gate. Nothing frozen, saved or printed by the calendar changed: the Compare exports are new code with no
     baseline.
-- ⏭ **Next:** nothing owed. Check that the live page serves this build (the session that pushed records it below).
+- ✅ **LIVE at `93836f5`.** ONE `git push origin main` at 16:48:17 (`ada0018..93836f5`). The deploy succeeded at
+  16:49:22. The live `index.html` has the same sha256 as the tested `dist/index.html` (`cc1e3ee7…`). No version cut.
+- ⏭ **Next:** nothing owed.
 
 ### ✅ 23 Oct 2026: THE WATERFALL RIGHT-CLICK MENU, CUT DOWN BY THE OWNER, BUILT AND LIVE — branch `claude/goofy-austin-fa2c05` (worktree `.claude/worktrees/goofy-austin-fa2c05`), from `main` at `8cc8357`; plan `96f7aad`, build `d4e5654`; FULL GATE 2,976 / 2 alone; then LANDED WITH HEADER: OFF FOR THE MONTH VIEW and the live month-drag work (`ade4231`, `31f7599`), COMBINED FULL GATE 3,010 / 2 (build `75968ba8…`), both fails load timeouts green alone; PUSH APPROVED (owner, by picker: *"Push what was gated"*); ✅ **LIVE at `d25eaf6`** (verified byte-identical, `75968ba8`; no version cut); MERGED INTO LOCAL `main` beside Scenarios ([`WATERFALL-CONTEXT-MENU-PLAN.md`](WATERFALL-CONTEXT-MENU-PLAN.md))
 
