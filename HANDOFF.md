@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24`; NOT IN `main`, NOT PUSHED
+### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; NOT IN `main`, NOT PUSHED
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
   locking positions. When you add a new box, it should have the same locking feature where it goes above or below
@@ -95,9 +95,13 @@
   `textStyles`. The text style bar styles side-box lines through `applySideFmt` (untouched here) and merged clean.
   Docs: this branch's two unreleased entries moved above `main`'s unreleased entries and v1.8.0.
 - **Proof on `dfc8b24` (build `bc270785…`):** `sideboxes` 74/74, `sbnoexport` 28/28, `calzoom` 24/24, `textstyle`
-  51/51, `npm run check` 40/40. Full gate queued.
-- ⏭ **Next:** the full gate's result, then the owner's merge and push pickers. Expect `offweek` to need a re-run
-  alone if it flakes. `sidebox-noexport` is inside this branch, so landing this lands both.
+  51/51, `npm run check` 40/40.
+- ✅ **Full gate on build `bc270785…` (at `4ff90ec`; `src`/`tests` unchanged since `dfc8b24`), port 9563, 22 Oct
+  17:07:22–17:33:58, alone: 2,761 PASS, 0 FAIL, GATE PASSED.** 0 clipped; waterfall PDF and every Excel part
+  identical to the baselines; 76 ids. `offweek` green this time. `main` (`c6cec93`) is inside this branch, so
+  merging it into `main` is a fast-forward; `origin/main` is `ff128dd`, so a push would ship free positions, Hide
+  from Exports and `main`'s one HANDOFF commit.
+- ⏭ **Next:** the owner's merge and push pickers. `sidebox-noexport` is inside this branch, so landing this lands both.
 - ⚠️ **Trap: a gate queue that greps `ps` for "gate.sh" never starts.** Piped `ps` prints FULL command lines, and every
   session's waiting wrapper is a `/bin/zsh -c "… ./gate.sh …"`, so each waiter sees the others as running gates
   (this branch's first queue waited 1.5 h, found by the "Calendar text styling bar" session). Count only real gates,
