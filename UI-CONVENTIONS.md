@@ -1296,6 +1296,13 @@ Nothing in this document ships without all of these, every stage:
     without it; every box hidden gives the PDF content and the grid of a calendar with no box; and
     `noExport` is only ever written as `true`. ⛔ It is also what catches a new screen-side caller of
     `sideBoxLayoutSafe()` that forgets `SIDE_SCREEN` (H1/N1 go red: the hidden box vanishes).
+16. **NEW — a hidden Notes column leaves every output the same way** (22 Oct 2026, HIDE-NOTES-PLAN.md).
+    `gate.sh`'s `notescols` leg: the screen draws a strip with one cell per row (⛔ never a rowspan,
+    which would shift `applyCellFitLive`'s and the span handles' column walk), its resize handle
+    hidden, and 0 clipped cells; the workbook keeps the column HIDDEN with its width and notes, its
+    right rule and hiatus band ending at the last phase column; the PDF draws no heading or note for
+    it; and the print fallback never carries the strip. Items 2 and 3 are the other half: with nothing
+    hidden, every frozen edit it took (W1–W2, R1–R5, X1, E1–E3, P1–P3) is byte for byte inert.
 
 ---
 

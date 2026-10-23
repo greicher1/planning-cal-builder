@@ -1,8 +1,9 @@
 # HIDE-NOTES-PLAN.md: hide a year's Notes column in the waterfall
 
-**Status: PLANNED AND SIGNED OFF, 22 Oct 2026. Nothing built.** The owner's picker the same day: *"Sign off all"*,
-which approves every frozen edit in §6, including the on-screen strip, with §6's gate. Build on its own branch
-(`hide-notes`), in the order of §8. Nothing is merged or pushed without asking.
+**Status: BUILT on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`), 22 Oct 2026.** The owner's picker
+the same day: *"Sign off all"*, which approves every frozen edit in §6, including the on-screen strip, with §6's gate.
+Then *"build it"*. The `notescols` leg passes 48/48 and is red on the pre-change build. §9 records what changed in
+the build from the plan. Nothing is merged or pushed without asking.
 
 Owner, 22 Oct 2026:
 
@@ -139,7 +140,7 @@ so it is in.
 | | Edit | Inert when |
 |---|---|---|
 | **E1** | `ws.getColumn(notesCol).hidden = true` for a hidden block. The column keeps its width (`widths.notes`) and its notes, so unhiding it in Excel brings both back (D2). Nothing else about the column changes, so every column after it keeps its letter, and the date formula chain, the side boxes' columns and the print area are untouched | Nothing is hidden |
-| **E2** | The all-phase hiatus band's text fit adds `widths.notes` to `hAvail` only for a shown column. The band stays merged across the hidden column, but only the visible width shows, so it must fit that | Nothing is hidden |
+| **E2** | The all-phase hiatus band **merges only to the last phase column** for a hidden block (`bandEnd`), and its text fit adds `widths.notes` to `hAvail` only for a shown column. ⚠️ Changed while building: the plan had the band stay merged across the hidden column, but Excel draws a merged range's edges from its edge cells, so the band would have lost the block's right rule (§9) | Nothing is hidden: `bandEnd` is `notesCol` |
 | **E3** | **The block's right rule.** Excel draws it on the Notes column's cells (`right:thin`), which a hidden column doesn't show. After a hidden block is written, one pass adds `right:thin` to the cells in `labelColEnd`, header row included, merging into their existing borders | Nothing is hidden |
 
 The workbook's page orientation already comes from `sheetGridMetrics()`, so it follows W1 and stays the PDF's.
@@ -201,3 +202,25 @@ so they follow W1 with no edit.
    `blockHasNotes` and the dot, the Settings row with its pills, `textCellKey`, and `pdfUnprintablePlaces`.
 5. **The rest:** the whole `notescols` leg, the `hostile` cases, the Help text (the waterfall's paragraph on
    headings), the README changelog, HANDOFF, CLAUDE.md's state table (one new key), then the full gate.
+
+## 9. As built (22 Oct 2026): what differs from the plan above
+
+- **E2 merges the band to the last phase column** instead of across the hidden one (the row in §6 says why).
+  `notescols` X5 and X5b check both the merge and the rule.
+- **The print fallback's test route** is `waterfallPdfMode()`, the twin of `monthPdfMode()`. The waterfall PDF
+  button asks it instead of reading `WF_PDF_MODE` directly. Users can't reach it.
+- **The strip's label is `::after` text**, and its first cell carries the dot, so every frozen reader that skips an
+  empty cell (`applyCellFitLive`, `clippedCells`, `textCellKey`) skips the strip. The label overflows the first
+  cell (`position:relative; overflow:visible` on strip cells only) and runs down the strip.
+- **The strip's hover** is one body-level ring (`.wf-notes-ring`) over its whole column, like `.hdrrow-ring`. It
+  joined `buildSavedHtml()`'s strip list.
+- **The panel and the heading editor share `placeHeadingPop()`**, factored out of `openHeaderRowPop()`. The editor's
+  three buttons now bind with `.hdrrow-btn[data-act]`, so the Hide button (`.wf-notes-hide`) is not mistaken for one.
+- **The Settings row is React** (`HiddenNotesRow` in `Sidebar.jsx`, bridge key `hiddenNotes`), fed after every
+  grid rebuild by a `#table-wrap` childList observer (sanctioned pattern 3). Its × and Show all carry
+  `data-shownotes`, which the engine catches on document, as it does on the strip. It uses no new Mantine
+  component (`CloseButton` and `Button` were already loaded), so `main.jsx`'s CSS import order is untouched.
+- **Owner, mid-build:** *"remove the custom column headings toggle in settings and just make it editable all the
+  time"*. That is a separate change (tracker `headings-always-editable`), ruled the same day: untouched calendars
+  keep Date | year | Notes. It will make the headings-off Notes panel redundant, since every heading would open the
+  heading editor, which already carries Hide column.

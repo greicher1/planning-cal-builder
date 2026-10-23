@@ -29,6 +29,38 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — hide a year's Notes column (22 Oct 2026)
+
+The owner: *"we need an option to be able to hide unused notes collumns"*. They chose hiding each column by hand
+(option B) from two mockups, then: *"just flag that a collumn contains notes ... keep things clean and elegant and in
+mantine style"*. Plan and rulings: [`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md).
+- **Double-click a year's Notes heading** to open its panel, then **Hide column**. With Custom Column Headings on,
+  the heading editor carries the same button ("Hide Notes column" when the heading also covers a phase column).
+  There is no confirmation: the notes stay saved, and the hide is one undo step.
+- **A violet dot flags a column that holds notes**, as a "Has notes" badge in the panel, on the hidden column's strip
+  and on its pill in Settings. It never shows a count or the note text.
+- **On screen a hidden column is a 14 px strip** with an eye-off icon and a vertical "Notes". Click it to show the
+  column again.
+- **In Excel the column is HIDDEN, not deleted.** It keeps its width and its notes, so unhiding it in Excel brings
+  them back, and every other column keeps its letter. The block's right rule and any all-phase hiatus band end at
+  the last phase column. **In the PDF the column is gone**: no "Notes" heading, no notes, and the year spans the rest.
+- **Settings › Preferences › Waterfall** lists the hidden years as pills, each with an × to show it again, plus
+  **Show all** once two or more are hidden.
+- **Saved in the calendar** as `hiddenNotesCols` (column keys such as `y2031:notes`), written only while something
+  is hidden. There is no version bump: an older build shows every column. Single Column Mode hides its one column
+  under the first year's key, and the remaining columns fill the page.
+- **Frozen edits, signed off by the owner** (plan §6): W1–W2 (`sheetColumnWidths`), R1–R5
+  (`renderSpreadsheetView`), X1 (`exportWaterfallPdf`, which keeps the strip off paper), E1–E3 (`exportExcel`) and
+  P1–P3 (`buildWaterfallPdf`). Each one is inert when nothing is hidden. A localhost-only route,
+  `sptcal.wfPdfTest = 'print'`, now reaches the waterfall's print fallback from a leg, as `sptcal.mvPdfTest` does
+  for the month PDF.
+- **Verified:** the new `notescols` leg passed 48/48 and is red on the pre-change build (no panel opens). It covers
+  the panel, the strip (one cell per row, no rowspan, its resize handle hidden), the right edge, 0 clipped cells, the
+  workbook's hidden columns, rules and band merges, the PDF's headings and notes, the print fallback, Custom Column
+  Headings, Single Column Mode, and the file key (Load, hostile values, New). `npm run check` passed 40/40. In the
+  browser pane, a real double-click opened the panel and Hide drew the strip; the Settings row, undo and redo, and
+  Show all all worked.
+
 ### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
 
 The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your

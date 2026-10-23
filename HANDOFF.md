@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 📝 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — PLANNED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md)); NOTHING BUILT; FROZEN EDITS SIGNED OFF
+### 🔨 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — BUILT on branch `hide-notes` (worktree `.claude/worktrees/hide-notes`, from `main` at `fc818b8`); FROZEN EDITS SIGNED OFF; `notescols` 48/48; FULL GATE QUEUED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md))
 
 - **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
   switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
@@ -20,8 +20,22 @@
   strip), E1–E3 `exportExcel`, P1–P3 `buildWaterfallPdf`. Each is inert with nothing hidden, and §6's gate binds. One
   new snapshot key, `hiddenNotesCols`, with no version bump.
 - ⚠️ **Relaxes ruling 2's "A Notes column stays on every year"**, only where someone hides one. Not §2c (held).
-- ⏭ Next: build on branch `hide-notes` (from local `main`) in the plan's §8 order. The plan was committed to local
-  `main` and not pushed (the owner's picker).
+- **Built (owner: *"build it"*), commit `48bbf88` on `hide-notes`.** Every frozen edit is commented
+  `⛔ FROZEN EDIT <id> (owner sign-off, 22 Oct 2026, HIDE-NOTES-PLAN.md §6)`; grep for it. The differences from the
+  plan are in its §9. The main one: E2 merges the hiatus band only to the last phase column, because Excel draws a
+  merge's edges from its edge cells. Also `waterfallPdfMode()` (localhost `sptcal.wfPdfTest`), the first test route
+  into the waterfall's print fallback.
+- **Proof so far:** `notescols` 48/48 (new, in `gate.sh`), red on the pre-change build (built from `main` with
+  `git archive`), and `npm run check` 40/40. In the pane, a real double-click opened the panel, Hide drew the strip,
+  and the Settings pills, undo and redo, and Show all worked. ⏭ **The full gate is queued** behind another session's
+  gate (two at once stall each other). Its result goes here.
+- ⚠️ **Mid-build the owner asked for a second change:** *"remove the custom column headings toggle in settings and
+  just make it editable all the time"*. Ruled by picker: untouched calendars keep Date | year | Notes, and calendars
+  saved with the switch on keep the year over Date. On the tracker as `headings-always-editable`. NOT started: it
+  edits the same frozen heading code (R1, P1, the Excel header), so it waits for this branch. It will make the
+  headings-off Notes panel (`openNotesColPop`) redundant.
+- The plan was committed to local `main` as `fc818b8` and not pushed (the owner's picker). Nothing here is merged
+  or pushed.
 
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
