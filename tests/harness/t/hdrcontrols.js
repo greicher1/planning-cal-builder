@@ -28,11 +28,13 @@
 //   T1  Manual: the strip above the header is RETIRED (owner, 21 Oct 2026, TEXT-STYLE-BAR-PLAN.md): it is
 //       in the page but hidden, and the text style bar under the toolbar carries the editor-toolbar look
 //       (grey fill, a "Text" label) and spans the toolbar row
-//   T2  the button opens the mode menu UNDER IT (aria-expanded true), a second click closes it; a
+//   T2  the button opens the mode menu UNDER IT (aria-expanded true), each of its four rows its name
+//       alone (the descriptions were deleted, owner, 23 Oct 2026), a second click closes it; a
 //       click on the hidden original opens the same menu under the toolbar button, not at 0,0; the
 //       menu holds no id (UI-CONVENTIONS §10 gate 9)
 //   T3  Auto (chosen from the toolbar menu): the label follows, and NOTHING sits above the header
-//   T4  Template: the label follows, and still nothing above the header
+//   T4  Template: the label follows, and still nothing above the header; the menu's Manual warning (shown only
+//       in Template) wraps inside the 170 px menu
 //   T5  the Month view: the button follows the MONTH header (Manual here, whatever the waterfall is);
 //       the month strip is retired the same way (hidden); Auto from the toolbar leaves nothing above
 //       the month header; back in the Waterfall the label is the waterfall's again
@@ -61,6 +63,16 @@ window.addEventListener('load', function () { (async function () {
   }
   function resetBtn(){ return byId('tb-notes-reset-btn'); }
   function pop(){ return document.querySelector('.hdr-mode-pop'); }
+  // The menu's width, and whether any line in it runs past its row (the owner asked for a tighter menu once the
+  // descriptions went, 23 Oct 2026; 170 px, so a long line has to wrap, never spill).
+  function popFit(){
+    var p = pop(); if(!p) return null;
+    var spill = [].filter.call(p.querySelectorAll('.hdr-mode-choice'), function (r) {
+      var rr = r.getBoundingClientRect();
+      return r.scrollWidth > r.clientWidth + 1 || [].some.call(r.children, function (c) { return c.getBoundingClientRect().right > rr.right - 1; });
+    }).map(function (r) { return (r.querySelector('.hdr-mode-name') || r).textContent; });
+    return {width: Math.round(p.getBoundingClientRect().width), spill: spill};
+  }
   async function choose(mode){
     var b = tbBtn(); if(!b) throw new Error('no toolbar Header button');
     if(!pop()) b.click();
@@ -138,8 +150,11 @@ window.addEventListener('load', function () { (async function () {
     b0.click();
     await T.until(function () { return !!pop(); }, 'the mode menu', 40, 100);
     var br = b0.getBoundingClientRect(), pr = pop().getBoundingClientRect();
+    // Each row is its name alone: the owner deleted the line of description under each, 23 Oct 2026.
     var t2 = {popTop: Math.round(pr.top), btnBottom: Math.round(br.bottom), popLeft: Math.round(pr.left), btnLeft: Math.round(br.left),
-              expanded: b0.getAttribute('aria-expanded'), ids: pop().querySelectorAll('[id]').length};
+              expanded: b0.getAttribute('aria-expanded'), ids: pop().querySelectorAll('[id]').length,
+              rows: [].map.call(pop().querySelectorAll('.hdr-mode-choice'), function (r) { return (r.textContent || '').trim(); }),
+              descs: pop().querySelectorAll('.hdr-mode-desc').length, fit: popFit()};
     b0.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
     b0.click();
     await T.sleep(400);
@@ -155,8 +170,10 @@ window.addEventListener('load', function () { (async function () {
     document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
     await T.sleep(300);
     t2.closedByOutside = !pop();
-    add('T2', 'the button opens the mode menu under it; a second click closes it; a hidden original opens it under the button too; no id in the menu',
+    add('T2', 'the button opens the mode menu under it, its four rows names alone (no description), the menu at most 180 px wide with nothing spilling out of a row; a second click closes it; a hidden original opens it under the button too; no id in the menu',
       Math.abs(t2.popTop - (t2.btnBottom + 5)) <= 2 && t2.popLeft <= t2.btnLeft + 2 && t2.expanded === 'true' && t2.ids === 0
+        && t2.descs === 0 && t2.rows.length === 4 && t2.rows[0] === 'Auto' && t2.rows[2] === 'Manual' && t2.rows[3] === 'Off'
+        && /^Template/.test(t2.rows[1]) && t2.fit.width <= 180 && t2.fit.spill.length === 0
         && t2.closedBySecondClick && t2.expandedAfter === 'false'
         && Math.abs(t2.fromOriginalTop - (t2.btnBottom + 5)) <= 2 && t2.fromOriginalLeft > 50 && t2.closedByOutside,
       t2, 'menu top = button bottom + 5; toggles; the original anchors to the button; 0 ids');
@@ -173,9 +190,17 @@ window.addEventListener('load', function () { (async function () {
     await choose('Template');
     var t4 = {label: tbLabel(), isManual: tbBtn().classList.contains('is-manual'), tools: Math.round(document.querySelector('#table-wrap .hdr-tools').getBoundingClientRect().height),
               gap: gapAbove('#table-wrap .sheet-scroll', '#table-wrap .cal-header-bar')};
-    add('T4', 'Template: the label follows, and still nothing sits above the header',
-      t4.label === 'Header: Template ▾' && t4.isManual && t4.tools === 0 && t4.gap !== null && t4.gap <= 0.5,
-      t4, 'Header: Template ▾ (the accent look); 0 px');
+    // In Template the Manual row carries its red warning, the longest line the menu ever holds: it wraps inside 170 px.
+    tbBtn().click();
+    await T.until(function () { return !!pop(); }, 'the mode menu in Template', 40, 100);
+    t4.warn = !!pop().querySelector('.hdr-mode-warn'); t4.fit = popFit();
+    await T.sleep(150);
+    document.body.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true}));
+    await T.sleep(300);
+    add('T4', 'Template: the label follows, and still nothing sits above the header; the menu\'s Manual warning wraps inside the narrow menu',
+      t4.label === 'Header: Template ▾' && t4.isManual && t4.tools === 0 && t4.gap !== null && t4.gap <= 0.5
+        && t4.warn && t4.fit.width <= 180 && t4.fit.spill.length === 0 && !pop(),
+      t4, 'Header: Template ▾ (the accent look); 0 px; warning shown, nothing spills');
 
     // ---- T5 ------------------------------------------------------------------------------------
     await view('month');

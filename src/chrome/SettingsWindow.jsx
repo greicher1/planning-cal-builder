@@ -8,15 +8,24 @@
 // tab (saved in the calendar's file) beside Preferences (kept on this computer, localStorage, never in
 // captureSnapshot()). The owner merged the two, 20 Oct 2026: *"Lets combine settings under preferences
 // and Calendar to be just under "Preferences". Delete the calendar tab. this should apply to both the
-// waterfall and month view"*. So Preferences holds both kinds now, like Presets always has, and each
-// tab's opening line says which part is which: Region's that it all travels with the file, Presets'
-// and Preferences' which part stays on this computer. Preferences' line is per VIEW, because what it
-// has to name differs: Grid Lines in the waterfall, the grey-text switches in the month view.
-// Nothing moved between a file and this computer -- every control keeps its id and its store.
+// waterfall and month view"*. So Preferences holds both kinds now, like Presets always has. Nothing
+// moved between a file and this computer -- every control keeps its id and its store.
+// Each tab used to open on a line saying which part is which ("Saved in this calendar's file, so they
+// travel with it -- except ..."). The owner deleted all of them, 23 Oct 2026, so a tab opens on its
+// first card. Only the Headers card's ⓘ and the Help page's presets paragraph still say what stays on
+// this computer.
+//
+// ⭐ IT OPENS UNDER THE RAIL, NOT OVER IT (owner, 23 Oct 2026): *"it should not cover the
+// Show/phases/settings bar. Instead it should appear right below it with the preferences/region/presets
+// menu below"*. So the rail stays visible and live while the window is open: its Settings button
+// takes the selected look, and a click on Show or Phases closes the window and goes there, as a tab
+// would. The window's own "Settings ×" head went with it, since it repeated the button right above it
+// (Escape and the Settings button close it). And it no longer slides in: the same day, *"can we just
+// have the menu already there rather than still sliding in"*, so it is simply shown (legacy.css).
 //
 // ⛔ WHERE IT LIVES, AND WHY. React portals this into #settings-host, a static host INSIDE
-// aside.form-panel (src/index.html), and CSS lays it over the whole sidebar (legacy.css, "The
-// Settings window"). Three things decided that, and each is a trap if moved:
+// aside.form-panel (src/index.html), and CSS lays it over the sidebar below the rail (legacy.css,
+// "The Settings window"). Three things decided that, and each is a trap if moved:
 //   1. fields.byId is built in DOCUMENT order. The host sits exactly where the Region and Holidays
 //      cards used to, so #union-place, #custom-hol-name and #custom-hol-date keep their places among
 //      the swept ids and every saved calendar's byId keys come out in the same order as before.
@@ -35,8 +44,7 @@
 // holds ONLY because nothing here mounts from an effect: no Popover, no Transition, no Collapse, and
 // Tabs with keepMountedMode="display-none" -- see the comment on <Tabs>.
 import { useState, useLayoutEffect, useEffect, useRef } from 'react'
-import { Tabs, CloseButton, Text } from '@mantine/core'
-import { IconSliders, IconFile, IconMonitor } from './icons.jsx'
+import { Tabs } from '@mantine/core'
 import { installChrome } from './bridge.js'
 import {
   RegionCard, HolidaysCard, AppCard, HeadersCard, AutoNotesCard, WaterfallCard, MonthViewCard,
@@ -58,18 +66,6 @@ const TABS = [
 // names it) and sent to where its cards went, so `{ tab: 'calendar' }` opens Preferences, not nothing.
 const TAB_ALIASES = { calendar: 'prefs' }
 
-// The line each saved-or-not tab opens on. Text, not an ⓘ: it is the one fact about the tab, and a
-// hover hides it from exactly the person who needs it. `className` takes .pref-view-sheet /
-// .pref-view-month, for a line that only holds in one view (legacy.css hides the other).
-function ScopeLine({ icon: Icon, className, children }) {
-  return (
-    <div className={'sw-scope' + (className ? ' ' + className : '')}>
-      <Icon className="sw-scope-ic" />
-      <Text size="xs" c="dimmed" component="span">{children}</Text>
-    </div>
-  )
-}
-
 // ⛔ THE PANELS' CONTENTS ARE BUILT ONCE, HERE, AND THAT IS A CORRECTNESS REQUIREMENT. Mantine's Switch
 // is controlled INSIDE itself (useUncontrolled, then <input checked={state}>), so the engine's `.checked`
 // writes -- reflectSingleColumn(), refreshPrepUI(), reflectMonthTagPrefs(), on every undo, Load and New --
@@ -88,16 +84,9 @@ function ScopeLine({ icon: Icon, className, children }) {
 // reason: a new card with a SWEPT id here would land before #union-place in every saved file.
 //
 // Preferences = the old Calendar tab's cards and the old Preferences tab's, merged by view (owner, 20 Oct
-// 2026; see Sidebar.jsx, WaterfallCard / MonthViewCard). Most of what is here is saved with the calendar,
-// so the opening line says that and names the exception, view by view.
+// 2026; see Sidebar.jsx, WaterfallCard / MonthViewCard).
 const PREFS_PANEL = (
   <>
-    <ScopeLine icon={IconFile} className="pref-view-sheet">
-      Saved in this calendar’s file, so they travel with it — except Grid Lines in Exports, which stays on this computer.
-    </ScopeLine>
-    <ScopeLine icon={IconFile} className="pref-view-month">
-      Saved in this calendar’s file, so they travel with it — except the grey-text switches, which stay on this computer.
-    </ScopeLine>
     <WaterfallCard />
     <MonthViewCard />
     {/* Automatic notes (ruling 9) reach both views, so it is no .pref-view-* card. No id in it. */}
@@ -107,7 +96,6 @@ const PREFS_PANEL = (
 )
 const REGION_PANEL = (
   <>
-    <ScopeLine icon={IconFile}>Saved in this calendar’s file, so they travel with it.</ScopeLine>
     <RegionCard />
     <HolidaysCard />
   </>
@@ -117,7 +105,6 @@ const REGION_PANEL = (
 // since presets are per machine.
 const PRESETS_PANEL = (
   <>
-    <ScopeLine icon={IconMonitor}>Presets stay on this computer. The header you apply is saved with the calendar.</ScopeLine>
     <HeadersCard />
   </>
 )
@@ -143,25 +130,47 @@ export function SettingsWindow() {
   }, [])
 
   // The Settings button is STATIC markup (the rail is engine-wired skeleton), so it is reached by
-  // delegation on its class -- never captured.
+  // delegation on its class -- never captured. So are Show and Phases: with the rail left uncovered,
+  // picking either one is leaving Settings, so it closes the window (the engine's own rail handler
+  // switches the tab). ⛔ Only on the user's click or arrow key, never from setSidebarTab(), which
+  // every undo and Load replays (see revealSidebarTab() in app.js).
   useEffect(() => {
     const onClick = (e) => {
-      const b = e.target && e.target.closest && e.target.closest('.side-settings-btn')
-      if (!b) return
-      returnFocus.current = b
-      setOpen((o) => !o)
+      const t = e.target && e.target.closest ? e.target : null
+      if (!t) return
+      const b = t.closest('.side-settings-btn')
+      if (b) {
+        returnFocus.current = b
+        setOpen((o) => !o)
+      } else if (t.closest('.side-tab-btn')) {
+        setOpen(false)
+      }
+    }
+    // The rail's tablist moves between Show and Phases on the arrow keys, Home and End (app.js).
+    const onKey = (e) => {
+      if (!/^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(e.key)) return
+      const t = e.target && e.target.closest ? e.target : null
+      if (t && t.closest('.side-tab-btn')) setOpen(false)
     }
     document.addEventListener('click', onClick)
-    return () => document.removeEventListener('click', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [])
 
   // The open state reaches outside React: the sidebar's own scroll, the button's aria-expanded, and
-  // `inert` on what the window covers, so Tab cannot walk into controls hidden behind it.
+  // `inert` on what the window covers, so Tab cannot walk into controls hidden behind it. The rail
+  // is not covered, so it is never inert.
   // ⚠️ THE SCROLL OFFSET. aside.form-panel is the sidebar's scroll box AND the window's containing
   // block, and an absolutely positioned child of a scroll box scrolls with its content: with the
   // sidebar scrolled down, `top:0` would be off the top of the window. So `top` follows scrollTop,
   // and the sidebar cannot scroll underneath while the window is open (.settings-open, overflow
   // hidden). Below 960px the window is in flow (legacy.css) and `top` does nothing.
+  // ⚠️ THE RAIL'S HEIGHT is measured, never assumed: `top` adds it, and --sw-rail-h takes it off the
+  // window's height in legacy.css. It is measured from the rail's bottom edge on screen, so it holds
+  // with the sticky rail pinned over a scrolled sidebar, and a ResizeObserver re-measures it.
   useLayoutEffect(() => {
     const root = rootRef.current
     const aside = root && root.closest('.form-panel')
@@ -170,15 +179,23 @@ export function SettingsWindow() {
     if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false')
     aside.classList.toggle('settings-open', open)
     const host = root.parentElement
-    const covered = [aside.querySelector('.side-tabs')]
-      .concat(host && host.parentElement ? Array.from(host.parentElement.children).filter((el) => el !== host) : [])
-      .filter(Boolean)
+    const covered = (host && host.parentElement ? Array.from(host.parentElement.children).filter((el) => el !== host) : [])
     covered.forEach((el) => { if (open) el.setAttribute('inert', ''); else el.removeAttribute('inert') })
     if (!open) return
-    const follow = () => { root.style.top = aside.scrollTop + 'px' }
+    const rail = aside.querySelector('.side-tabs')
+    const follow = () => {
+      const below = rail ? Math.max(0, rail.getBoundingClientRect().bottom - aside.getBoundingClientRect().top - aside.clientTop) : 0
+      root.style.setProperty('--sw-rail-h', below + 'px')
+      root.style.top = (aside.scrollTop + below) + 'px'
+    }
     follow()
     aside.addEventListener('scroll', follow)
-    return () => aside.removeEventListener('scroll', follow)
+    const ro = rail && typeof ResizeObserver === 'function' ? new ResizeObserver(follow) : null
+    if (ro) ro.observe(rail)
+    return () => {
+      aside.removeEventListener('scroll', follow)
+      if (ro) ro.disconnect()
+    }
   }, [open])
 
   // Focus moves in on open (to the selected tab, which is how a tablist is entered) and back out on
@@ -206,13 +223,8 @@ export function SettingsWindow() {
 
   return (
     <div ref={rootRef} id="settings-window" className={'settings-window' + (open ? ' is-open' : '')}
-         role="dialog" aria-modal="false" aria-labelledby="settings-window-title" onKeyDown={onKeyDown}>
-      <div className="sw-head">
-        <IconSliders className="sw-head-ic" />
-        <h2 id="settings-window-title" className="sw-title">Settings</h2>
-        <CloseButton className="sw-close" size="md" aria-label="Close settings"
-                     onClick={() => setOpen(false)} />
-      </div>
+         role="dialog" aria-modal="false" aria-label="Settings" onKeyDown={onKeyDown}>
+      {/* No head of its own: the rail's Settings button sits right above, selected (see the top). */}
       {/* ⛔ keepMountedMode="display-none" IS A CORRECTNESS REQUIREMENT, NOT A STYLE CHOICE.
           Mantine 9's Tabs keeps inactive panels mounted by default, but through React's <Activity
           mode="hidden"> (keepMountedMode defaults to "activity", @mantine/core 9.5.2). A hidden

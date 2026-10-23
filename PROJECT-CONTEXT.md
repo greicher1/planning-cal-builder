@@ -427,7 +427,9 @@ Two tabs: **Show** and **Phases** (`setSidebarTab()`. Sections are
 `<section class="card" data-tab="...">`), and a **Settings** button beside them. Until 20 Oct 2026
 Settings was a third tab; owner ruling 12 made it the **Settings window**
 (`src/chrome/SettingsWindow.jsx`), a tabbed panel that slides in over the sidebar and leaves the
-waterfall visible. Its tabs: **Calendar** (saved in the file: Single Column Mode, Label Production by,
+waterfall visible. Since 23 Oct 2026 it opens BELOW the rail (owner: "it should not cover the
+Show/phases/settings bar"): the rail stays live, Settings shows as selected, and Show or Phases
+closes the window. Its tabs: **Calendar** (saved in the file: Single Column Mode, Label Production by,
 Pause prep, Export App With Data), **Region** (Production Region and Holidays, which were once split
 across two sidebar tabs, which made the region undiscoverable), **Presets** (header presets; the
 side-box presets will join them) and **Preferences** (this computer only). An old file's
