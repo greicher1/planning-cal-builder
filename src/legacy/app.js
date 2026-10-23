@@ -28781,6 +28781,7 @@ export function initLegacyApp() {
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
     const SLOP = 4;                     // px of travel before a press becomes a drag rather than a click
+    const OFF_GRID = 24;                // px past the calendar's edge where a drop means "put it back"
     let press = null, drag = null, swallowClick = false;
     const sched = ()=> currentSchedule || {};
     const deep = o=> JSON.parse(JSON.stringify(o === undefined ? null : o));
@@ -28854,7 +28855,15 @@ export function initLegacyApp() {
     // Where the pointer (x, y) and the copy's middle say the note goes: {iso, seq, key}. `seq` is that day's bars and
     // notes top to bottom with the note in its new place; `key` names the place, so an unchanged one is not redrawn.
     function target(x, y, mid){
-      const d = drag, at = dayAt(x, y);
+      const d = drag;
+      // Well off the calendar (more than OFF_GRID px past its edge), the note goes back where it was: letting go
+      // there puts nothing anywhere, rather than on whichever edge day is nearest.
+      const rs = rows();
+      if(rs.length){
+        const a = rs[0].el.getBoundingClientRect(), z = rs[rs.length - 1].el.getBoundingClientRect();
+        if(x < a.left - OFF_GRID || x > a.right + OFF_GRID || y < a.top - OFF_GRID || y > z.bottom + OFF_GRID) return {key: d.key0};
+      }
+      const at = dayAt(x, y);
       if(!at) return null;
       const iso = isoOf(addDays(at.row.start, at.col));
       const items = column(at.row, at.col, meEl());

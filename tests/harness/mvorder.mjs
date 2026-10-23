@@ -50,6 +50,7 @@
 //   D7  a holiday stays on its day
 //   D8  to another day and back in one gesture: nothing changes and no step is banked
 //   D9  an untouched calendar draws no data-note-anchor
+//   D10 a note let go well off the calendar goes back where it was
 // A hostile file:
 //   H1  a non-array mvPhaseOrder, a "__proto__" key in mvWfNotePlace, `top: "yes"` and a string `top` on a note: the
 //       file loads, each is ignored, and Object.prototype is untouched
@@ -493,6 +494,14 @@ try {
     mid8d.includes('Mon 9') && JSON.stringify(s8b.dayNotes) === JSON.stringify(fx8.dayNotes) && JSON.stringify(s8b.userNotes) === JSON.stringify(fx8.userNotes)
       && !('mvWfNotePlace' in s8b) && undoOff8 === true,
     { mid: mid8d, undoOff: undoOff8, after: s8b.dayNotes['2026-03-09'] });
+  // D10: let go well off the calendar (over the sidebar): the note is back where it was and nothing is banked, rather
+  // than landing on the nearest edge day.
+  await load('mvdrag', 'March 2026');
+  n = await box(NOTE_T('Mon 9'));
+  await gesture(n.x, n.y, 12 - n.x, 0);
+  const on9 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-03-09"]')).map(e => e.textContent)`);
+  const undoOff10 = await ev(`!!(document.getElementById('undo-btn') || {}).disabled`);
+  kase('D10', 'a note let go over the sidebar, off the calendar, is back on its own day and Undo stays off', on9.includes('Mon 9') && undoOff10 === true, { on9, undoOff: undoOff10 });
   // D9: a calendar with no order and no place draws no data-note-anchor (it is the old layout, line for line).
   const anc9 = await ev(`document.querySelectorAll('#table-wrap [data-note-anchor]').length`);
   kase('D9', 'an untouched calendar carries no data-note-anchor', anc9 === 0, { anchors: anc9 });
