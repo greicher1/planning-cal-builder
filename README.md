@@ -29,6 +29,29 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
+
+The owner asked to delete four pieces of explanatory text, then: *"make the header dropdown tighter (less wide) now
+that we dont need all the subtext"*.
+- **What users see:**
+  - The Settings tabs open straight on their first card. Three lines are gone:
+    - Preferences' "Saved in this calendar’s file, so they travel with it — except …" line (the Waterfall
+      version and its Month view twin);
+    - Region's "Saved in this calendar’s file, so they travel with it.";
+    - Presets' "Presets stay on this computer. The header you apply is saved with the calendar."
+  - The Header menu lists Auto, Template, Manual and Off with no description under any of them. Template keeps
+    its "Open the template editor…" link. Manual keeps the warning it shows when you are in Template, since that
+    switch throws the tokens away.
+  - The Header menu is 170 px wide, down from 290. Manual's warning wraps onto two lines.
+- **How:** chrome only. `ScopeLine` and its two icons are gone from `SettingsWindow.jsx` / `icons.jsx`. `.sw-panel`
+  takes the top padding the line used to give, the same as the sidebar's. `HDR_MODE_CHOICES` drops its `desc`
+  strings (app.js), `.hdr-mode-desc` goes from legacy.css, and `.hdr-mode-pop` is 170 px. No saved key, id or
+  frozen code is touched.
+- **Verified:** `settingswin` 21/21, with W13 now requiring no scope line in any tab and no "travel with it" /
+  "on this computer" text in the window. `hdrcontrols` 12/12: T2 now requires four bare rows and a menu at most
+  180 px wide with nothing spilling out of a row, and T4 requires the same while in Template, with the warning
+  showing. `npm run check` 40/40.
+
 ### Unreleased — Settings appears at once instead of sliding in (23 Oct 2026)
 
 The owner: *"can we just have the menu already there rather than still sliding in"*.

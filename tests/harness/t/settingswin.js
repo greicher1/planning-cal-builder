@@ -396,13 +396,18 @@ window.addEventListener('load', function () { (async function () {
     var wfCards = [].filter.call(document.querySelectorAll('#settings-window section.card'), function (c) { return /Waterfall/.test((c.querySelector('h2') || c).textContent); });
     out.w13 = {sheet: l13s, gridShown: gridShown, oneShown: oneShown, month: l13m, monthShown: l13mShown,
                noHdrSwitch: !el('wf-hdr-custom') && wfCards.length === 1 && !/Custom Column Headings/i.test(wfCards[0].textContent)};
-    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines, and no Custom Column Headings switch), Automatic notes, App and a line naming Grid Lines; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes, App and a line naming the grey-text switches',
+    // The tabs' opening lines ("Saved in this calendar's file, so they travel with it ...") were deleted by the owner,
+    // 23 Oct 2026, in all three tabs. A tab opens on its first card.
+    var scopeAll = document.querySelectorAll('#settings-window .sw-scope').length;
+    var scopeText = /travel with it|stays? on this computer/.test(el('settings-window').textContent);
+    out.w13.noScope = {nodes: scopeAll, text: scopeText};
+    add('W13', 'Preferences, by view: in the waterfall ONE Waterfall card (the old Calendar tab\'s waterfall settings and Grid Lines, and no Custom Column Headings switch), Automatic notes and App; in the month view ONE Month view card (Label Production by, the grey-text switches, Pause prep, Number Production Days), Automatic notes and App; and no tab opens on a "saved in this file / stays on this computer" line',
       eq(l13s.heads, ['Waterfall', 'Automatic notes', 'App']) && l13s.wf && gridShown && oneShown && out.w13.noHdrSwitch
-        && l13s.scope.length === 1 && /Grid Lines in Exports, which stays on this computer/.test(l13s.scope[0])
+        && l13s.scope.length === 0
         && eq(l13m.heads, ['Month view', 'Automatic notes', 'App']) && l13m.mv
-        && l13m.scope.length === 1 && /grey-text switches, which stay on this computer/.test(l13m.scope[0])
+        && l13m.scope.length === 0 && scopeAll === 0 && !scopeText
         && l13mShown.label && l13mShown.pause && l13mShown.days && mvRows.length >= 1,
-      out.w13, 'one card per view, its own line');
+      out.w13, 'one card per view, no scope line in any tab');
 
     // ---- W14: the rail stays live while the window is open (owner, 23 Oct 2026) --------------------------------
     // "it should not cover the Show/phases/settings bar. Instead it should appear right below it with the

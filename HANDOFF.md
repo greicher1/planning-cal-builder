@@ -4,6 +4,51 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🟡 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner): *"Delete the following: Saved in this calendar’s file, so they travel with it — except Grid
+  Lines in Exports, which stays on this computer. / Saved in this calendar’s file, so they travel with it. /
+  Presets stay on this computer. The header you apply is saved with the calendar. / All the subtext for all 4
+  options in the Header Selector"*. On the tracker as `remove-settings-header-subtext`.
+- **Built** (chrome only; no frozen code, no saved key, no id):
+  - `SettingsWindow.jsx`: `ScopeLine` and all four of its uses are gone, so every tab opens on its first card.
+    `IconFile` / `IconMonitor` (icons.jsx) had no other user and went too. `.sw-scope*` is gone from legacy.css, and
+    `.sw-panel` takes `padding-top: sm` (the sidebar's `.side-content` value) so the first card does not butt
+    against the tabs.
+  - app.js `HDR_MODE_CHOICES`: no `desc` strings, and `openHeaderModePop()` builds the name only. `.hdr-mode-desc`
+    is gone from legacy.css.
+  - ⚠️ **Decisions made without a picker:** (1) the MONTH view's twin of the Preferences line ("… except the
+    grey-text switches …") went too. The owner listed only the Waterfall one, which is the one they could see.
+    (2) Kept in the Header menu: Template's "Open the template editor…" link (an action, not a description) and
+    Manual's red "Freezes today’s values and removes the tokens." (shown only while in Template; the header plan
+    requires that warning before the click). Each is one block to restore or remove.
+  - Now nothing on screen says which settings stay on this computer, apart from the Headers card's ⓘ and the Help
+    page's presets paragraph. The Help page explains Auto, Template and Manual but has never covered Header: Off.
+  - **Then, mid-turn** (owner): *"make the header dropdown tighter (less wide) now that we dont need all the
+    subtext"*. `.hdr-mode-pop` is `width:170px`, down from 290. Its widest line is Template's "Open the template
+    editor…" link (~125 px, measured), so the menu needs ~153 px with its padding. Manual's warning, shown only in
+    Template, wraps onto two lines. A fixed width rather than `max-content` on purpose: `max-content` would let that
+    warning stretch the menu to ~260 px in Template.
+- **Legs:** `settingswin` W13 now requires no `.sw-scope` and no "travel with it" / "on this computer" text in the
+  window. `hdrcontrols` T2 requires the four rows to be names alone (Template's carrying its link) and the menu at most
+  180 px with nothing spilling out of a row (`popFit()`). T4 opens the menu in Template and requires the same, with
+  Manual's warning shown.
+- **Proof:** build `3ff90ce4…` (the deletions): `settingswin` 21/21, `hdrcontrols (carry-rich)` 12/12, `npm run
+  check` 40/40. Final build `ca14dbe6…` (plus the 170 px menu, which `settingswin` never opens):
+  `hdrcontrols (carry-rich)` 12/12 (T2 and T4 both measure 170 px with no spill), `npm run check` 40/40. In the
+  browser pane: Preferences, Region and Presets each open on their first card. The Header menu reads Auto /
+  Template (with its link) / Manual / Off at 170 px, and in Template, Manual's warning wraps onto two lines inside
+  it.
+  - ⚠️ **Harness trap seen here:** `run.sh` on its default port 8231 `pkill`s whatever `srv.js 8231` is running, so
+    two sessions on the default port kill each other's server. Pass `HARNESS_PORT=<free port>`. And run.sh's stdout
+    is only a 4 KB preview: read `tests/harness/<leg>.json` for the cases.
+- No full gate: chrome only, which neither print path nor any writer can see.
+- The owner's answer on the Month line (same picker): *"delete it too, but also add "Off" for the month view
+  header"*. So the Month view's line stays deleted, and **Header: Off for the Month view is a new request**
+  (tracker `mv-header-off`), not part of this commit.
+- ⏭ **Next:** Header: Off for the Month view. The month header is drawn by frozen `renderMonthView`, and both month
+  PDFs read it, so scope that before building.
+
 ### ✅ 23 Oct 2026 (later): SETTINGS APPEARS AT ONCE, NO SLIDE — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
 - **Asked** (owner, right after the entry below went live): *"can we just have the menu already there rather than
