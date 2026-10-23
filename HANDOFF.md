@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; ✅ FULL GATE 2,970 / 1 (build `95bf3fd4`; the 1 a `loadcarry` load-timing flake, green alone twice); NOT MERGED, NOT PUSHED ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
+### ✅ 23 Oct 2026: MONTH VIEW — UNTOUCHED NOTES KEEP THEIR BAR, NOTES BETWEEN PHASES, DRAG A NOTE TO ANOTHER DAY — branch `month-drag-fix` (worktree `.claude/worktrees/month-drag-fix`), from `main` at `8cc8357`; TWO FROZEN EDITS (E3, E4), OWNER-APPROVED BY PICKER; COMBINED FULL GATE 2,974 / 0 (`d34f917a`); ✅ **LIVE at `2c6a822`** (verified byte-identical); ⚠️ NOT in local `main`, which has the unpushed `1af8782` (Header: Off for the Month view) and must merge `origin/main` before its push ([`MONTH-ORDER-PLAN.md`](MONTH-ORDER-PLAN.md) §9)
 
 - **Asked:** *"you need to really refine and debug the month view drag to resort order of phases/notes. its buggy and
   sometimes when you move one phase or note it moves others in adjacent days. obviously when you drag a multi week
@@ -54,7 +54,27 @@
   for a legacy `.html` to Load. Alone on the same build, twice: 6/6, no errors. A Load-timing flake (the `offweek` R8
   kind), not this change, which does not touch the Load path or that leg's views.
 - `gate.sh`'s `mvorder` comment and label now name M1–M10 and `mvdrag` (comment only; edited after the gate).
-- ⏭ **Next:** the owner's picker on merging into `main` and, separately, on pushing.
+- **Landing (owner's pickers):** *"Merge into local main"* and *"Push after the combined gate"*. `main` had moved (three
+  live Settings changes, `06c8770`..`5a3d5da`), so it was merged into the branch as `2c6a822` (HANDOFF / README top
+  entries both kept). `npm run check` 40/40. ✅ **Combined full gate on `d34f917a…`** (1,761,781 bytes; port 9807,
+  14:24:57–14:53:30, after the main checkout's own gate): **2,974 PASS, 0 FAIL, GATE PASSED**; all 90 month-PDF lines
+  identical to the baselines, `mvorder` 30/30.
+- ⚠️ **Then local `main` moved AGAIN** during that gate: another session committed `1af8782` "Header: Off for the Month
+  view" (app.js, the month header, gate.sh, a new `mvhdroff` leg), UNPUSHED, and started its own gate. A fast-forward
+  of local `main` was impossible, and merging would have put an ungated combination into the `main` that session was
+  about to push. Asked by picker; the owner chose *"Push mine now"*: push exactly the gated build, leave local `main` to
+  the Header: Off session, and tell it.
+- ✅ **PUSHED AND LIVE:** ONE `git push origin HEAD:main` from the worktree at 14:55:12 (`01793cf..2c6a822`, 7 commits:
+  the Settings session's HANDOFF note `5a3d5da` plus this work). Deploy run 40030164760 succeeded; at 14:56:24 the live
+  `index.html`, fetched with a cache-buster, was **byte-identical to the gated build** (`cmp`; sha256 `d34f917ab0549815…`).
+  The "Calendar header selector subtext" session was messaged: local `main` must `git merge origin/main` and gate the
+  combination before Header: Off is pushed. ⚠️ **Local `main` does NOT contain this work yet**; that merge brings it.
+- No version cut: `version.json` still 1.8.0, so installed copies pick this up without an update notice.
+- ⭐ **Learned: on a busy day, local `main` can move twice during one landing.** Check `git log main -1` right before the
+  fast-forward, not only before the gate. And a branch head that contains `origin/main` can be pushed straight to
+  `origin/main` (`git push origin HEAD:main`) without touching local `main` or the main checkout, which another
+  session may be gating.
+- ⏭ **Next:** nothing on this feature. The Header: Off session merges `origin/main` into local `main`.
 
 ### ✅ 23 Oct 2026 (later still): SETTINGS SCOPE LINES AND HEADER-MENU DESCRIPTIONS DELETED, HEADER MENU NARROWED — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 

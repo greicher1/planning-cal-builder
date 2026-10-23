@@ -54,8 +54,9 @@ MONTH-ORDER-PLAN.md §9.
 - **Verified:** `mvorder` 30/30 with ten new cases (M1–M10, on the new synthetic `mvdrag.sptcal`), including the
   written month PDF stacking a between-phases note between its bars; M1–M6 and M8 fail on the live build `d2ac914e`.
   `pilldrag` 30/30, `phaseedge` 23/23, `hiatusdrag` 13/13, `npm run check` 40/40. Full gate on `95bf3fd4…`: 2,970
-  PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Not
-  merged, not pushed.
+  PASS, 1 FAIL (a `loadcarry` Load-timing flake, 6/6 alone twice); every month PDF identical to its baseline. Then,
+  with `main`'s three Settings changes merged in, 2,974 PASS / 0 FAIL on `d34f917a…`. **Live at `2c6a822`**, verified
+  byte-identical; no version cut.
 
 ### Unreleased — the Settings tabs' opening lines and the Header menu's descriptions are gone, and the menu is narrower (23 Oct 2026)
 
