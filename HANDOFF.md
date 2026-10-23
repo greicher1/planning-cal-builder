@@ -4,6 +4,25 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 📝 22 Oct 2026: HIDE A YEAR'S NOTES COLUMN — PLANNED ([`HIDE-NOTES-PLAN.md`](HIDE-NOTES-PLAN.md)); NOTHING BUILT; FROZEN EDITS SIGNED OFF
+
+- **Asked:** *"we need an option to be able to hide unused notes collumns"*. Four options were offered (an automatic
+  switch, hide by hand, exports only, hide all). The owner picked **B, hide each year's Notes column by hand**, from a
+  clickable mockup in chat, then ruled on v2: *"you can just flag that a collumn contains notes, you dont need to
+  specificy. we want to keep things clean and elegant and in mantine style."* On the tracker as `hide-notes-columns`.
+- **The design (plan §2):** **Hide column** in the Notes heading's panel, with no confirmation. A violet dot flags a
+  column with notes, with no counts or text. On screen a hidden column is a 14 px strip, and clicking it brings the
+  column back. It is gone from Excel (hidden there, notes kept) and from the PDF. Settings › Preferences › Waterfall
+  lists the hidden years as pills. **D1: the panel opens on DOUBLE-click** (the mockup showed a single click), per the
+  text style bar's rule that a click picks text and a double-click edits.
+- **Frozen edits SIGNED OFF by the owner's picker, 22 Oct 2026 ("Sign off all", strip included; plan §6):** W1–W2
+  `sheetColumnWidths`, R1–R5 `renderSpreadsheetView`, X1 `exportWaterfallPdf` (a print flag, the cost of the on-screen
+  strip), E1–E3 `exportExcel`, P1–P3 `buildWaterfallPdf`. Each is inert with nothing hidden, and §6's gate binds. One
+  new snapshot key, `hiddenNotesCols`, with no version bump.
+- ⚠️ **Relaxes ruling 2's "A Notes column stays on every year"**, only where someone hides one. Not §2c (held).
+- ⏭ Next: build on branch `hide-notes` (from local `main`) in the plan's §8 order. The plan was committed to local
+  `main` and not pushed (the owner's picker).
+
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
 - **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
