@@ -13309,10 +13309,7 @@ export function initLegacyApp() {
       textVal = (weekKey in hiatusTexts) ? hiatusTexts[weekKey] : hiatusDefaultLabel;
       curColor = hiatusColorFor(weekKey);
     } else {
-      autoNotes = (currentSchedule.notesByIdx && currentSchedule.weeks) ? (() => {
-        const idx = currentSchedule.weeks.findIndex(w=>w.date.toISOString().slice(0,10)===weekKey);
-        return idx>=0 ? autoNotesForView(currentSchedule.notesByIdx[idx]||[], 'sheet') : [];
-      })() : [];
+      autoNotes = sheetAutoNotesFor(weekKey);
       // Prefill with whatever the cell currently shows (user override if present, else the
       // inline auto-note text) so pre-filled comments can be edited or cleared.
       textVal = effectiveNoteText(weekKey, autoNotes);
@@ -13431,6 +13428,16 @@ export function initLegacyApp() {
         }
       });
     });
+  }
+
+  // The automatic notes the waterfall shows for a week, which is what decides whether a cleared note is stored
+  // as an explicit clear (saveNoteEdit). One lookup for the note editor and for the keys, copy, paste and drag
+  // (WATERFALL-KEYS-PLAN.md), so they can never disagree about what a week's automatic note is.
+  function sheetAutoNotesFor(weekKey){
+    const sch = currentSchedule;
+    if(!sch || !sch.notesByIdx || !sch.weeks) return [];
+    const idx = sch.weeks.findIndex(w=>w.date.toISOString().slice(0,10)===weekKey);
+    return idx>=0 ? autoNotesForView(sch.notesByIdx[idx]||[], 'sheet') : [];
   }
 
   // Persist an edit. An override is only stored when the committed text actually DIFFERS
@@ -17145,6 +17152,12 @@ export function initLegacyApp() {
   let textSel = new Set();
   let textSelAnchor = null;    // the key a Shift-click extends from
   let textSelActive = null;    // the key Enter or typing opens (D5): the last cell clicked
+  // The keyboard's half (WATERFALL-KEYS-PLAN.md, 22 Oct 2026). textSelFocus is the far corner Shift+arrow moves
+  // (Excel's: the anchor stays, the corner travels); navCursor is the slot the last arrow landed on inside its
+  // cell, so crossing a wide cell comes back out in the column it went in by. wfNoteDrag is a note being dragged.
+  let textSelFocus = null;
+  let navCursor = null;
+  let wfNoteDrag = null;
   function splitTextKey(k){ const i = k.indexOf(':'); return [k.slice(0, i), k.slice(i + 1)]; }
   // The week a row of one year block shows: the first data-week after that block's date cell. A row's
   // cells carry it (phase cells, bands, the note cell) except the date cell itself and Sim Post.
@@ -17237,6 +17250,7 @@ export function initLegacyApp() {
     textSel = new Set([...textSel].filter(k => idx.has(k)));
     if(textSelAnchor && !idx.has(textSelAnchor)) textSelAnchor = null;
     if(textSelActive && !idx.has(textSelActive)) textSelActive = null;
+    if(textSelFocus && !idx.has(textSelFocus)) textSelFocus = null;
     const L = ensureTextSelLayers();
     if(!L){ if(styleTarget === 'grid' && !textSel.size) setStyleTarget(null); return; }
     L.body.textContent = ''; L.head.textContent = '';
@@ -17266,11 +17280,12 @@ export function initLegacyApp() {
       m.style.height = (marquee.b - marquee.t) / z + 'px';
       L.body.appendChild(m);
     }
+    drawWfNoteOverlay(L, idx, wr, z);
     if(styleTarget === 'grid' && !textSel.size) setStyleTarget(null); else syncStyleBar();
   }
   function clearTextSel(){
     if(!textSel.size && !textSelAnchor && !textSelActive) return;
-    textSel.clear(); textSelAnchor = null; textSelActive = null;
+    textSel.clear(); textSelAnchor = null; textSelActive = null; textSelFocus = null; navCursor = null;
     const L = ensureTextSelLayers();
     if(L){ L.body.textContent = ''; L.head.textContent = ''; }
   }
@@ -17328,13 +17343,25 @@ export function initLegacyApp() {
     const shiftKey = e.shiftKey, metaKey = e.metaKey || e.ctrlKey;
     const base = (shiftKey || metaKey) ? new Set(textSel) : new Set();
     let sweeping = false;
+    // A press on a note that is ALREADY highlighted, and shows text, drags it to another week (WATERFALL-KEYS-PLAN
+    // §1) once it moves past the sweep's own thresholds; a press on anything else sweeps exactly as before. So
+    // the highlight is never re-picked by the drag, and a click on it (no movement) still re-picks just it.
+    const dragNotes = !shiftKey && !metaKey && !activeNoteEditor && !!startKey && splitTextKey(startKey)[0] === 'note' &&
+                      textSel.has(startKey) && cell.classList.contains('has-note');
+    let dragging = false;
     const onMove = ev=>{
       if(ev.buttons === 0){ onUp(ev); return; }
+      if(dragging){ wfNoteDragMove(ev.clientX, ev.clientY); return; }
       if(!sweeping){
         // gridSel's thresholds, so one press never sweeps in one set and clicks in the other.
         const dist = Math.hypot(ev.clientX - x0, ev.clientY - y0);
         if(dist < 10) return;
         if(dist < 24 && hitTextCell(ev.clientX, ev.clientY) === cell) return;
+        if(dragNotes && wfNoteDragBegin(cell, startKey, x0, y0)){
+          dragging = true;
+          wfNoteDragMove(ev.clientX, ev.clientY);
+          return;
+        }
         sweeping = true;
       }
       const rect = { l:Math.min(x0, ev.clientX), r:Math.max(x0, ev.clientX), t:Math.min(y0, ev.clientY), b:Math.max(y0, ev.clientY) };
@@ -17343,11 +17370,16 @@ export function initLegacyApp() {
       textSelAnchor = startKey; textSelActive = startKey;
       redrawTextSel(rect);
     };
-    const onUp = ()=>{
+    const onUp = ev=>{
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
       document.removeEventListener('selectstart', killSel, true);
+      if(dragging){ wfNoteDragEnd(!ev || ev.type === 'pointercancel'); return; }
+      // The far corner Shift+arrow moves next: where a sweep ended, or the cell pressed.
+      const endCell = (sweeping && ev && ev.clientX !== undefined) ? hitTextCell(ev.clientX, ev.clientY) : null;
+      textSelFocus = (endCell && textCellKey(endCell)) || startKey;
+      navCursor = null;
       if(!sweeping){
         if(shiftKey && textSelAnchor){
           const a = textCellIndex().get(textSelAnchor);
@@ -17412,7 +17444,8 @@ export function initLegacyApp() {
   // batch fill's Enter. Only with focus on <body> (the gridSel keyboard rule: a focused control owns its
   // keys) and never with ⌘, Ctrl or Alt held, which belong to the shortcuts and the column swap.
   document.addEventListener('keydown', e=>{
-    if(viewMode !== 'sheet' || !textSel.size || activeNoteEditor) return;
+    // (A note being dragged takes Escape for itself: it cancels the drag and keeps the highlight.)
+    if(viewMode !== 'sheet' || !textSel.size || activeNoteEditor || wfNoteDrag) return;
     const a = document.activeElement;
     if(a && a !== document.body) return;
     if(e.metaKey || e.ctrlKey || e.altKey) return;
@@ -17447,6 +17480,527 @@ export function initLegacyApp() {
     e.preventDefault();
     textSel = new Set(textCellIndex().keys());
     redrawTextSel(null);
+  });
+
+  // ---------- EXCEL'S EDITING KEYS (WATERFALL-KEYS-PLAN.md; owner rulings Q1–Q4, 22 Oct 2026) ----------
+  // Items 2 and 3 of the owner's "what Excel features are we missing" list: the arrow keys, Tab and Delete on the
+  // highlight; copy, cut and paste notes; and drag a note to another week. All of it acts on the highlight above
+  // (textSel), writes only the stores the note editor writes, through its own saveNoteEdit(), and then calls
+  // frozen render(). Nothing here draws in a cell: a pasted or moved note is drawn exactly as the same note typed,
+  // which is the freeze's line (what a cell looks like, how much text fits in it).
+  // ⛔ No setting, no snapshot key, no id (collectFieldValues sweeps ids). The drop outlines and the one message
+  // are drawn on the highlight's own layer, which neither print path has.
+  // ⭐ FOR THE WATERFALL'S RIGHT-CLICK MENU (mocked up 22 Oct 2026, not built): wfNotesCopy / wfNotesCut /
+  // wfNotesPaste / wfNotesClear do the whole job and the listeners below only call them. A menu's Copy or Cut can
+  // hand `.text` of what they return to navigator.clipboard.writeText(); its Paste can hand
+  // navigator.clipboard.readText()'s text to wfNotesPaste(text), and wfNoteClip brings the look back with it.
+
+  // ---- The grid as Excel sees it ----
+  // Every slot (row, column) of the live table, heading row first, mapped to the keyed text cell covering it, or
+  // null for a blank gap or a padding row; and each key's slot range. Built from rowSpan/colSpan, so a band across
+  // four columns, or a cell dragged across the empty ones beside it, is ONE cell, as a merged cell is in Excel.
+  // Read off the DOM after every render, like textCellIndex(): it is the frozen table's own shape.
+  function textSelMatrix(){
+    const table = document.querySelector('#table-wrap table.sheet-table');
+    if(!table) return null;
+    const grid = [], pos = new Map();
+    let nc = 0;
+    Array.from(table.rows).forEach((tr, r)=>{
+      const row = grid[r] || (grid[r] = []);
+      let c = 0;
+      for(const cell of tr.cells){
+        while(row[c] !== undefined) c++;
+        const rs = Math.max(1, cell.rowSpan || 1), cs = Math.max(1, cell.colSpan || 1);
+        const k = textCellKey(cell);
+        for(let dr = 0; dr < rs; dr++){
+          const g = grid[r + dr] || (grid[r + dr] = []);
+          for(let dc = 0; dc < cs; dc++) g[c + dc] = k;     // null still marks the slot as taken
+        }
+        if(k && !pos.has(k)) pos.set(k, { r0: r, r1: r + rs - 1, c0: c, c1: c + cs - 1 });
+        c += cs;
+        nc = Math.max(nc, c);
+      }
+    });
+    return { grid, pos, nr: grid.length, nc };
+  }
+  // One step from `key` toward `dir`. A blank gap is stepped over (it can hold no highlight), and so is the cell
+  // itself where it spans rows or columns. ⭐ An EMPTY Notes cell is a stop, not a gap: it is keyed, and it is
+  // where a new note gets typed. Starts from the slot the keyboard last stood on inside the cell (navCursor), so
+  // a move down through a band comes out in the column it went in by. Null at the grid's edge.
+  function textSelStep(M, key, dir){
+    const p = M.pos.get(key);
+    if(!p) return null;
+    const cur = (navCursor && navCursor.key === key) ? navCursor : { r: p.r0, c: p.c0 };
+    const dr = dir === 'down' ? 1 : dir === 'up' ? -1 : 0;
+    const dc = dir === 'right' ? 1 : dir === 'left' ? -1 : 0;
+    let r = dr > 0 ? p.r1 + 1 : dr < 0 ? p.r0 - 1 : cur.r;
+    let c = dc > 0 ? p.c1 + 1 : dc < 0 ? p.c0 - 1 : cur.c;
+    while(r >= 0 && r < M.nr && c >= 0 && c < M.nc){
+      const k = (M.grid[r] || [])[c];
+      if(k && k !== key) return { key: k, r, c };
+      r += dr; c += dc;
+    }
+    return null;
+  }
+  // Every keyed cell touching the rectangle that spans two cells' slots (Shift+arrow's highlight).
+  function textSelRectKeys(M, a, b){
+    const pa = M.pos.get(a), pb = M.pos.get(b);
+    if(!pa || !pb) return [];
+    const r0 = Math.min(pa.r0, pb.r0), r1 = Math.max(pa.r1, pb.r1);
+    const c0 = Math.min(pa.c0, pb.c0), c1 = Math.max(pa.c1, pb.c1);
+    const out = [];
+    M.pos.forEach((p, k)=>{ if(p.r1 >= r0 && p.r0 <= r1 && p.c1 >= c0 && p.c0 <= c1) out.push(k); });
+    return out;
+  }
+  // The bottom of the heading row as it is DRAWN. ⛔ Read off a heading cell, never the <thead>: the sticky rule is
+  // on the cells (frozen `.sheet-table th`), so once the pane scrolls the <thead> box itself has gone off the top and
+  // its rect says the heading takes no room (found by the leg: rows parked under the heading on the way back up).
+  function sheetHeadBottom(sc){
+    const th = sc.querySelector('table.sheet-table thead th');
+    return th ? th.getBoundingClientRect().bottom : sc.getBoundingClientRect().top;
+  }
+  // Scroll the grid's own pane so a cell is in view, below the sticky heading row. ⛔ Not scrollIntoView(): that
+  // also scrolls every overflow:hidden ancestor, and the app shell's window must never scroll (UI-CONVENTIONS §7).
+  function scrollTextCellIntoView(cell){
+    const sc = cell && cell.closest('.sheet-scroll');
+    if(!sc) return;
+    const z = sc.currentCSSZoom || 1;
+    const s = sc.getBoundingClientRect(), r = cell.getBoundingClientRect();
+    const top = cell.tagName === 'TH' ? s.top : Math.max(s.top, sheetHeadBottom(sc));
+    const bottom = s.top + sc.clientHeight * z, right = s.left + sc.clientWidth * z;
+    if(r.top < top) sc.scrollTop -= (top - r.top) / z;
+    else if(r.bottom > bottom) sc.scrollTop += (r.bottom - bottom) / z;
+    if(r.left < s.left) sc.scrollLeft -= (s.left - r.left) / z;
+    else if(r.right > right) sc.scrollLeft += (r.right - right) / z;
+  }
+  // The arrow keys and Tab. A plain move takes the highlight to the one cell next to the active one; Shift keeps
+  // the anchor and moves the far corner, highlighting the rectangle between them, as Excel does.
+  function moveTextSel(dir, extend){
+    const M = textSelMatrix();
+    if(!M) return false;
+    const live = k => !!k && M.pos.has(k);
+    const active = live(textSelActive) ? textSelActive : [...textSel].find(live);
+    if(!active) return false;
+    if(!extend){
+      const s = textSelStep(M, active, dir);
+      if(!s) return false;
+      textSel = new Set([s.key]);
+      textSelAnchor = textSelActive = textSelFocus = s.key;
+      navCursor = s;
+    } else {
+      const anchor = live(textSelAnchor) ? textSelAnchor : active;
+      const s = textSelStep(M, live(textSelFocus) ? textSelFocus : active, dir);
+      if(!s) return false;
+      textSelAnchor = anchor;
+      textSelFocus = s.key;
+      navCursor = s;
+      textSel = new Set(textSelRectKeys(M, anchor, s.key));
+      if(!textSel.has(textSelActive)) textSelActive = anchor;
+    }
+    // One selection on screen (the pointer gesture's rule): a key move leaves the phase selection behind.
+    if(gridSel.size || gridSelAnchor){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); }
+    setStyleTarget('grid');
+    redrawTextSel(null);
+    scrollTextCellIntoView(textCellIndex().get(extend ? textSelFocus : textSelActive));
+    return true;
+  }
+
+  // ---- The notes in the highlight ----
+  // Weeks of the highlighted Notes cells, oldest first ('YYYY-MM-DD' sorts as dates do).
+  function wfSelNoteWeeks(keys){
+    const out = new Set();
+    (keys || [...textSel]).forEach(k=>{ const [kind, wk] = splitTextKey(k); if(kind === 'note' && wk) out.add(wk); });
+    return [...out].sort();
+  }
+  // The Notes cells on screen, in week order: what "the next week down" means for a paste and a drop. An
+  // all-phase hiatus row has no Notes cell (its band runs across the column), so it is not in here and is stepped
+  // over; and with a calendar range set, only the weeks the waterfall shows are.
+  function wfNoteSeq(){
+    return Array.from(document.querySelectorAll('#table-wrap table.sheet-table td.sheet-note-cell[data-week]'), td => td.dataset.week).sort();
+  }
+  function wfNoteShows(wk){ return !!effectiveNoteText(wk, sheetAutoNotesFor(wk)); }
+  // Ruling Q1 ("Empty the Notes cells"): the cell goes blank whatever it showed. An automatic note is stored as
+  // the note editor's explicit clear (text:''), so it stays blank until typed in or undone; the note's highlight,
+  // size and style go with it, the editor's own rule for a note left empty (commitActiveNoteEditor).
+  function wfClearNote(wk){
+    saveNoteEdit(wk, '', sheetAutoNotesFor(wk), '');
+    delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk];
+  }
+  // A note as it travels: its text as the cell shows it and (ruling Q2, "Text and its look") its highlight, size
+  // and style-bar style. A note pinned to a day (the editor's Day picker) keeps its weekday, `dow`; `stamp` is the
+  // date the picker wrote at the end of its text, re-stamped where the note lands.
+  function wfNoteItem(wk){
+    const text = effectiveNoteText(wk, sheetAutoNotesFor(wk));
+    const it = { text };
+    if(!text) return it;
+    const u = userNotes[wk];
+    const d = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
+    const w = parseDateUTC(wk);
+    if(d && w){
+      const dow = Math.round((d - w) / DAY_MS);
+      if(dow >= 0 && dow <= 6){ it.dow = dow; if(text.endsWith(fmtShort(d))) it.stamp = fmtShort(d); }
+    }
+    if(noteColors[wk]) it.color = noteColors[wk];
+    if(noteFontSize[wk] !== undefined) it.size = noteFontSize[wk];
+    if(textStyle.note[wk]) it.style = Object.assign({}, textStyle.note[wk]);
+    return it;
+  }
+  // Write one travelling note into a week. `look` (an item copied inside SPTCal) replaces the week's look with
+  // the note's own; text from anywhere else lands in the look the cell already has, as typing into it would.
+  // Through saveNoteEdit(), so a note equal to its week's automatic text goes back to automatic, and an empty one
+  // is the explicit clear (ruling Q3: a blank line in a paste empties its week, as Delete does).
+  function wfPutNote(wk, it, look){
+    const auto = sheetAutoNotesFor(wk);
+    let text = it.text, date = '';
+    const w = parseDateUTC(wk);
+    if(text && it.dow !== undefined && w){
+      const d = addDays(w, it.dow);
+      date = isoOf(d);
+      if(it.stamp && text.endsWith(it.stamp)) text = text.slice(0, text.length - it.stamp.length) + fmtShort(d);
+    }
+    saveNoteEdit(wk, text, auto, date);
+    if(look){
+      if(it.color && it.color.toUpperCase() !== MILESTONE_COLOR.toUpperCase()) noteColors[wk] = it.color; else delete noteColors[wk];
+      if(it.size !== undefined && it.size !== 11) noteFontSize[wk] = it.size; else delete noteFontSize[wk];
+      if(it.style) textStyle.note[wk] = Object.assign({}, it.style); else delete textStyle.note[wk];
+    }
+    if(!effectiveNoteText(wk, auto)){ delete noteColors[wk]; delete noteFontSize[wk]; delete textStyle.note[wk]; }
+  }
+  // ⛔ ONE GESTURE, ONE UNDO STEP (the month note drag's pattern): flush whatever came before into its own step,
+  // change the stores, render, and bank this step now, so a Delete and a paste a moment later can never merge in
+  // the 500 ms debounce. Returns false, changing nothing and dirtying nothing, when the stores did not move.
+  function wfNoteStep(fn){
+    const sig = ()=> JSON.stringify([userNotes, noteColors, noteFontSize, textStyle.note]);
+    const before = sig();
+    pushUndoSnapshot();
+    fn();
+    if(sig() === before) return false;
+    render(currentSchedule);
+    pushUndoSnapshot();
+    markDirty();
+    return true;
+  }
+  // The highlight after a paste or a drop: the cells written, the first active (Excel selects what it pasted).
+  function wfHighlightWeeks(weeks, activeWk){
+    if(!weeks.length) return;
+    textSel = new Set(weeks.map(w => 'note:' + w));
+    textSelAnchor = textSelActive = 'note:' + (activeWk || weeks[0]);
+    textSelFocus = 'note:' + weeks[weeks.length - 1];
+    navCursor = null;
+    setStyleTarget('grid');
+    redrawTextSel(null);
+  }
+
+  // ---- Clear, copy, cut, paste (the right-click menu's entry points too) ----
+  function wfNotesClear(keys){
+    const weeks = wfSelNoteWeeks(keys);
+    return weeks.length ? wfNoteStep(()=> weeks.forEach(wfClearNote)) : false;
+  }
+  // The last copy, so pasting the same text back carries the look (Q2) even through navigator.clipboard, which
+  // only reads plain text. Session UI: never saved.
+  let wfNoteClip = null;
+  const WF_CLIP_TYPE = 'application/x-sptcal-notes';
+  // Excel's text form: every cell's line ENDS in a line break (so an empty last week survives the trip), and a
+  // cell holding a line break (or a tab) is in double quotes with its quotes doubled, so a two-line note pastes
+  // back into ONE week -- here, or in Excel.
+  function tsvCell(s){ return /[\t\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function wfNotesCopy(keys){
+    const weeks = wfSelNoteWeeks(keys);
+    if(!weeks.length) return null;
+    const items = weeks.map(wfNoteItem);
+    wfNoteClip = { text: items.map(it => tsvCell(it.text) + '\n').join(''), items };
+    return wfNoteClip;
+  }
+  // Cut is Copy, then Delete (Q1): the cells empty now, and the notes travel on the clipboard.
+  function wfNotesCut(keys){
+    const clip = wfNotesCopy(keys);
+    if(clip) wfNotesClear(keys);
+    return clip;
+  }
+  // Clipboard text as this file compares it: one line ending, and Excel's trailing line break dropped.
+  function wfClipNormal(text){
+    const s = String(text || '').replace(/\r\n?/g, '\n');
+    return s.endsWith('\n') ? s.slice(0, -1) : s;
+  }
+  // Plain text into one note per line. A field that opens with a quote and closes cleanly (a quote, then a tab,
+  // a line break or the end) is Excel's quoted cell; any other quote is just a character. Several cells on one
+  // line (a row copied from Excel) become one note, joined by spaces. Characters XML forbids are removed, as for
+  // anything typed or pasted into the app (stripXmlIllegal's reason: the workbook would not open).
+  function parseClipText(s){
+    if(!s) return [];
+    const rows = [];
+    let row = [], i = 0;
+    const n = s.length;
+    for(;;){
+      let field;
+      if(s[i] === '"'){
+        let j = i + 1, buf = '', ok = false;
+        while(j < n){
+          if(s[j] === '"'){
+            if(s[j + 1] === '"'){ buf += '"'; j += 2; continue; }
+            ok = j + 1 === n || s[j + 1] === '\t' || s[j + 1] === '\n';
+            break;
+          }
+          buf += s[j++];
+        }
+        if(ok){ field = buf; i = j + 1; }
+      }
+      if(field === undefined){
+        let j = i;
+        while(j < n && s[j] !== '\t' && s[j] !== '\n') j++;
+        field = s.slice(i, j);
+        i = j;
+      }
+      row.push(field);
+      if(i >= n){ rows.push(row); break; }
+      if(s[i] === '\n'){ rows.push(row); row = []; }
+      i++;
+    }
+    return rows.map(r => stripXmlIllegal(r.map(c => c.trim()).filter(Boolean).join(' '), '\n'));
+  }
+  // A travelling note read back from the clipboard's own SPTCal data, which another window (or anything that can
+  // write a clipboard) may have written: held to what a saved file may hold (sanitizeSnapshot's rules).
+  function wfCleanClipItem(it){
+    if(!isPlainObj(it) || typeof it.text !== 'string') return null;
+    const out = { text: stripXmlIllegal(it.text, '\n') };
+    if(Number.isInteger(it.dow) && it.dow >= 0 && it.dow <= 6) out.dow = it.dow;
+    if(typeof it.stamp === 'string' && /^\d{1,2}\/\d{1,2}\/\d{2}$/.test(it.stamp)) out.stamp = it.stamp;
+    if(isHexColor(it.color)) out.color = it.color;
+    const size = finiteNum(it.size);
+    if(size !== null && size >= 1 && size <= 400) out.size = size;
+    if(it.style !== undefined){ const f = cleanTextStyleEntry('note', it.style, { n: 0 }); if(f) out.style = f; }
+    return out;
+  }
+  // Paste into the Notes column from the earliest highlighted Notes cell down, one Notes cell per line; one line
+  // over several highlighted Notes cells fills each of them (Excel). Ruling Q3: it replaces what is there. Lines
+  // past the last week shown are not pasted, and the grid says so.
+  function wfNotesPaste(text, rich, keys){
+    const weeks = wfSelNoteWeeks(keys);
+    if(!weeks.length){ flashTextSel('Paste goes into the Notes column'); return false; }
+    const norm = wfClipNormal(text);
+    const own = (rich && typeof rich.text === 'string' && wfClipNormal(rich.text) === norm) ? rich
+              : (wfNoteClip && wfClipNormal(wfNoteClip.text) === norm ? wfNoteClip : null);
+    let items = (own && Array.isArray(own.items) && own.items.length) ? own.items.map(wfCleanClipItem) : null;
+    if(items && items.some(it => !it)) items = null;
+    const look = !!items;
+    if(!items) items = parseClipText(norm).map(t => ({ text: t }));
+    if(!items.length) return false;
+    const seq = wfNoteSeq();
+    let pairs = [], dropped = 0;
+    if(items.length === 1 && weeks.length > 1) pairs = weeks.map(w => [w, items[0]]);
+    else {
+      const s = seq.indexOf(weeks[0]);
+      items.forEach((it, i)=>{ if(s >= 0 && s + i < seq.length) pairs.push([seq[s + i], it]); else dropped++; });
+    }
+    if(!pairs.length) return false;
+    wfNoteStep(()=> pairs.forEach(([w, it]) => wfPutNote(w, it, look)));
+    wfHighlightWeeks(pairs.map(p => p[0]));
+    if(dropped) flashTextSel(dropped === 1 ? '1 line did not fit after the last week' : dropped + ' lines did not fit after the last week');
+    return true;
+  }
+
+  // ---- The one message: why a paste or a drop did not do everything ----
+  // A move that works says nothing (the swap chip's rule, owner 21 Oct 2026); only a refusal speaks. Drawn by
+  // redrawTextSel on the highlight's layer, above the active cell, so the next render cannot orphan it.
+  let textSelFlash = '';
+  let _textSelFlashTimer = 0;
+  function flashTextSel(msg, ms){
+    if(_textSelFlashTimer) clearTimeout(_textSelFlashTimer);
+    textSelFlash = msg || '';
+    _textSelFlashTimer = textSelFlash ? setTimeout(()=>{ _textSelFlashTimer = 0; textSelFlash = ''; redrawTextSel(null); }, ms || 4200) : 0;
+    redrawTextSel(null);
+  }
+  // Drawn into the highlight's layer after its boxes: where a dragged note would land, and the message.
+  function drawWfNoteOverlay(L, idx, wr, z){
+    const box = (c, cls)=>{
+      const r = c.getBoundingClientRect(), d = document.createElement('div');
+      d.className = cls;
+      d.style.left = (r.left - wr.left) / z + 'px';
+      d.style.top = (r.top - wr.top) / z + 'px';
+      d.style.width = Math.max(1, r.width / z) + 'px';
+      d.style.height = Math.max(1, r.height / z) + 'px';
+      L.body.appendChild(d);
+      return r;
+    };
+    const drop = wfNoteDrag && wfNoteDrag.drop;
+    if(drop && drop.ok && drop.off){
+      drop.to.forEach(w=>{ const c = idx.get('note:' + w); if(c) box(c, 'text-sel-drop'); });
+    }
+    if(!textSelFlash) return;
+    const at = idx.get(textSelActive) || idx.get([...textSel][0]);
+    if(!at) return;
+    const r = at.getBoundingClientRect();
+    const chip = document.createElement('div');
+    chip.className = 'text-sel-chip';
+    chip.textContent = textSelFlash;
+    chip.style.left = Math.max(0, (r.left - wr.left) / z) + 'px';
+    L.body.appendChild(chip);
+    const h = chip.offsetHeight;
+    const top = (r.top - wr.top) / z - h - 4;
+    chip.style.top = (top >= 2 ? top : (r.bottom - wr.top) / z + 4) + 'px';
+  }
+
+  // ---- Dragging notes to another week ----
+  // Begun by the highlight's own pointer gesture (above) on a highlighted note that shows text. Every
+  // highlighted note with text moves, by the same number of Notes cells, so a block keeps its spacing. A shield
+  // owns the cursor (the month drag's), and the copy in the hand is the month drag's ghost.
+  function wfNoteDragBegin(cell, startKey, x, y){
+    const grab = splitTextKey(startKey)[1];
+    const weeks = wfSelNoteWeeks().filter(wfNoteShows);
+    if(!weeks.includes(grab)) return false;
+    const shield = document.createElement('div');
+    shield.className = 'mv-drag-shield';
+    document.body.appendChild(shield);
+    const sel = window.getSelection && window.getSelection();
+    if(sel) sel.removeAllRanges();
+    wfNoteDrag = { weeks, grab, x0: x, y0: y, x, y, ghost: mvDragGhost(cell), shield, drop: null, raf: 0 };
+    return true;
+  }
+  // Where the notes would land with the pointer here: only on a Notes cell, every note on a week shown.
+  function wfDropAt(x, y){
+    const d = wfNoteDrag;
+    const cell = hitTextCell(x, y);
+    if(!d || !cell || !cell.matches('td.sheet-note-cell[data-week]')) return null;
+    const seq = wfNoteSeq(), off = seq.indexOf(cell.dataset.week) - seq.indexOf(d.grab);
+    const to = d.weeks.map(w => seq[seq.indexOf(w) + off]);
+    return { off, to, ok: to.every(Boolean) };
+  }
+  function wfNoteDragMove(x, y){
+    const d = wfNoteDrag;
+    if(!d) return;
+    d.x = x; d.y = y;
+    d.ghost.moveBy(x - d.x0, y - d.y0);
+    d.drop = wfDropAt(x, y);
+    redrawTextSel(null);
+    wfDragAutoScroll();
+  }
+  // Held near the top or bottom of the grid's pane, the pane scrolls, faster the further past the edge (the
+  // shield takes the wheel, so this is how a note reaches a week out of sight). One frame at a time.
+  function wfDragAutoScroll(){
+    const d = wfNoteDrag;
+    if(!d || d.raf) return;
+    const tick = ()=>{
+      d.raf = 0;
+      if(wfNoteDrag !== d) return;
+      const sc = document.querySelector('#table-wrap .sheet-scroll');
+      if(!sc) return;
+      const s = sc.getBoundingClientRect(), z = sc.currentCSSZoom || 1;
+      const top = Math.max(s.top, sheetHeadBottom(sc));
+      const bottom = s.top + sc.clientHeight * z, EDGE = 28;
+      const v = d.y < top + EDGE ? -Math.min(24, Math.ceil((top + EDGE - d.y) / 3))
+              : d.y > bottom - EDGE ? Math.min(24, Math.ceil((d.y - bottom + EDGE) / 3)) : 0;
+      if(!v) return;
+      const was = sc.scrollTop;
+      sc.scrollTop += v / z;
+      if(sc.scrollTop === was) return;
+      d.drop = wfDropAt(d.x, d.y);
+      redrawTextSel(null);
+      d.raf = requestAnimationFrame(tick);
+    };
+    d.raf = requestAnimationFrame(tick);
+  }
+  // Let go: the notes move, one undo step. Ruling Q4 ("Ask before replacing"): weeks that already show a note,
+  // other than the moving notes' own, are named in ONE question first; Cancel leaves everything as it was. A drop
+  // off the Notes column, on the notes' own place, or with Escape (`cancel`) changes nothing and banks nothing.
+  async function wfNoteDragEnd(cancel){
+    const d = wfNoteDrag;
+    if(!d) return;
+    wfNoteDrag = null;
+    if(d.raf) cancelAnimationFrame(d.raf);
+    d.ghost.remove();
+    d.shield.remove();
+    const drop = cancel ? null : d.drop;
+    redrawTextSel(null);
+    if(!drop || !drop.off) return;
+    if(!drop.ok){ flashTextSel('Not enough weeks below for all of those notes'); return; }
+    const from = d.weeks, to = drop.to, items = from.map(wfNoteItem);
+    const leaving = new Set(from);
+    const hit = to.filter(w => !leaving.has(w) && wfNoteShows(w));
+    if(hit.length){
+      const ok = await uiConfirm(hit.length === 1 ? 'That week already has a note. Replace it?'
+                                 : hit.length + ' of those weeks already have a note. Replace them?',
+                                 { title: 'Replace notes?', confirmLabel: 'Replace' });
+      // Under the question the calendar can change (an undo is held off, but a Load is not): move only onto
+      // weeks still shown, and only notes still as they were when the drag began.
+      if(!ok) return;
+      const seq = new Set(wfNoteSeq());
+      if(!to.every(w => seq.has(w)) || from.some((w, i) => wfNoteItem(w).text !== items[i].text)) return;
+    }
+    wfNoteStep(()=>{
+      from.forEach(wfClearNote);
+      to.forEach((w, i) => wfPutNote(w, items[i], true));
+    });
+    wfHighlightWeeks(to, to[from.indexOf(d.grab)]);
+  }
+
+  // ---- The keys ----
+  // Focus on <body> only (the gridSel keyboard rule: a focused control owns its keys), the note editor closed, no
+  // dialog up, and never with ⌘, Ctrl or Alt held: ⌘/Ctrl+arrow belongs to the browser, Alt+arrow to the column
+  // swap. Capture, beside the Enter/typing listener above, which never claims these keys.
+  document.addEventListener('keydown', e=>{
+    if(wfNoteDrag && e.key === 'Escape'){ e.preventDefault(); wfNoteDragEnd(true); return; }
+    if(viewMode !== 'sheet' || !textSel.size || activeNoteEditor || wfNoteDrag) return;
+    const a = document.activeElement;
+    if(a && a !== document.body) return;
+    if(e.metaKey || e.ctrlKey || e.altKey || appDialogOpen()) return;
+    const ARROWS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+    if(ARROWS[e.key] || e.key === 'Tab'){
+      // ⛔ Tab is claimed while something is highlighted, at the grid's edge too, so it never jumps focus out to
+      // the toolbar mid-move. Escape clears the highlight and gives Tab back to the page.
+      e.preventDefault();
+      if(e.key === 'Tab') moveTextSel(e.shiftKey ? 'left' : 'right', false);
+      else moveTextSel(ARROWS[e.key], e.shiftKey);
+      return;
+    }
+    if(e.key === 'Delete' || e.key === 'Backspace'){
+      if(!wfSelNoteWeeks().length) return;
+      e.preventDefault();
+      wfNotesClear();
+    }
+  }, true);
+
+  // ---- The clipboard ----
+  // Through the browser's own copy / cut / paste events, which need no permission prompt (navigator.clipboard's
+  // read does). Only while the highlight would take them: the waterfall showing, focus on the page itself, the
+  // note editor closed, no dialog up, and no text selected anywhere (text selected in the app copies as it always
+  // has).
+  function wfClipReady(){
+    if(viewMode !== 'sheet' || !textSel.size || activeNoteEditor || wfNoteDrag || appDialogOpen()) return false;
+    const a = document.activeElement;
+    if(a && a !== document.body) return false;
+    const s = window.getSelection && window.getSelection();
+    return !(s && !s.isCollapsed && String(s).trim());
+  }
+  // The "before" events: how a page says it takes Copy / Cut / Paste with nothing selected and nothing editable,
+  // which is what makes Chrome call those commands ENABLED. ⚠️ MEASURED NOT NEEDED FOR THE KEYS: Chrome runs a key
+  // binding's Copy, Cut and Paste even while they are disabled, precisely so the clipboard events fire
+  // (wfkeysreal.mjs passes, trusted ⌘C / ⌘X / ⌘V, with these three removed). Kept as insurance for what reads the
+  // ENABLED state -- the installed app's native Edit menu, NOT measured (headless Chrome has no menus) -- and
+  // cancelled exactly when the event after it would be handled.
+  document.addEventListener('beforecopy', e=>{ if(wfClipReady() && wfSelNoteWeeks().length) e.preventDefault(); });
+  document.addEventListener('beforecut', e=>{ if(wfClipReady() && wfSelNoteWeeks().length) e.preventDefault(); });
+  document.addEventListener('beforepaste', e=>{ if(wfClipReady()) e.preventDefault(); });
+  function wfClipWrite(e, clip){
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', clip.text);
+    try { e.clipboardData.setData(WF_CLIP_TYPE, JSON.stringify(clip)); } catch(_){}
+  }
+  document.addEventListener('copy', e=>{
+    if(!wfClipReady() || !e.clipboardData) return;
+    const clip = wfNotesCopy();
+    if(clip) wfClipWrite(e, clip);
+  });
+  document.addEventListener('cut', e=>{
+    if(!wfClipReady() || !e.clipboardData) return;
+    const clip = wfNotesCut();
+    if(clip) wfClipWrite(e, clip);
+  });
+  document.addEventListener('paste', e=>{
+    if(!wfClipReady() || !e.clipboardData) return;
+    e.preventDefault();
+    let rich = null;
+    try { rich = JSON.parse(e.clipboardData.getData(WF_CLIP_TYPE) || 'null'); } catch(_){ rich = null; }
+    wfNotesPaste(e.clipboardData.getData('text/plain'), isPlainObj(rich) ? rich : null);
   });
 
   // ---- Header lines as a target (D3: every mode; D4: the month header too) ----

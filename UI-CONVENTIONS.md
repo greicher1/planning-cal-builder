@@ -668,6 +668,15 @@ Four rules that are not obvious from that table:
   `td.sheet-hiatus-cell`.** A new document **bubble** click listener is therefore silently deaf to
   note cells and per-phase hiatus bands — the failure that reads as "the gesture doesn't work on
   hiatus cells only".
+- **A press on a Notes cell that is already highlighted, and shows text, is a note DRAG** (22 Oct 2026,
+  WATERFALL-KEYS-PLAN.md), decided inside the text style bar's own pointerdown, at the same thresholds its sweep
+  uses (10 px, and 24 px or out of the cell). Any other press on a note sweeps as before, and a press that never
+  moves still re-picks the cell. No preventDefault on the press (the rule above); a body-level `.mv-drag-shield`
+  owns the cursor once the drag starts, and `hitTextCell()` reads through it. ⚠️ The drop target is read off the
+  frozen table's Notes cells only, and an all-phase hiatus row has none (its band covers the column).
+- **The heading row's drawn bottom is a `thead th`'s, never the `<thead>`'s.** The sticky rule is on the cells
+  (frozen `.sheet-table th`), so once the pane scrolls the `<thead>` box has gone off the top and its rect says the
+  heading takes no room. `sheetHeadBottom()` reads a cell; a check that read the `<thead>` parked rows under it.
 - **`.sheet-phase-cell` is not proof the drag contract is present.** A per-phase hiatus band carries
   the class unconditionally and the `data-own/lmin/rmax/a/b/nphases` set conditionally. Test
   `Number.isFinite(+td.dataset.own)`.
@@ -1316,6 +1325,14 @@ Nothing in this document ships without all of these, every stage:
     right rule and hiatus band ending at the last phase column; the PDF draws no heading or note for
     it; and the print fallback never carries the strip. Items 2 and 3 are the other half: with nothing
     hidden, every frozen edit it took (W1–W2, R1–R5, X1, E1–E3, P1–P3) is byte for byte inert.
+17. **NEW — Excel's editing keys act on notes only, one undo step each** (22 Oct 2026, WATERFALL-KEYS-PLAN.md).
+    `gate.sh`'s `wfkeys` leg (`wfkeys.sptcal`): the arrows, Shift+arrows and Tab move the highlight over the frozen
+    table's own shape (blank gaps stepped over, empty Notes cells and bands as stops, scrolled below the sticky
+    heading row); Delete, cut, paste and a drop change only `userNotes`, `noteColors`, `noteFontSize` and
+    `textStyle.note`, each as ONE undo step, never a date, a phase or a band; a paste is held to a saved file's rules
+    (hostile clipboard data, XML-illegal characters); no new `fields.byId` id and no new snapshot key. Its sibling
+    `wfkeysreal.mjs` sends trusted ⌘C / ⌘X / ⌘V as Chrome's own editing commands, which no dispatched event can stand
+    in for.
 
 ---
 

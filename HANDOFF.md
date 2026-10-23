@@ -289,6 +289,79 @@
   `tools` is empty), so the gated build `f85c9814…` stands. Then `main` was fast-forwarded. ⛔ **NOT PUSHED.** A push
   of local `main` would now also ship the right-click menu and Scenarios docs commits.
 
+### 🔨 22 Oct 2026: EXCEL'S EDITING KEYS IN THE WATERFALL (ARROWS, TAB, DELETE, ⌘C / ⌘X / ⌘V, DRAG A NOTE) — branch `wf-keys-paste` (worktree `.claude/worktrees/wf-keys-paste`), from `main` at `4b95581`; [`WATERFALL-KEYS-PLAN.md`](WATERFALL-KEYS-PLAN.md); RULED; BUILT; FULL GATE 2,854 / 1 (the 1 red on `main`'s own build too); COMMITTED on the branch by the owner's picker (22 Oct: *"Commit on the branch"*, merge *"Not yet"*, push *"No push"*); NOT merged, NOT pushed
+
+- ✅ **Full gate on build `4c74bde6…` (port 9623, 22 Oct 20:54:57–21:21:55, alone): 2,854 PASS, 1 FAIL.** 0 clipped;
+  the waterfall PDF and every Excel part identical to the baselines; 76 ids; `wfkeys` 84/84 and `wfkeysreal` 6/6
+  inside it. **The one FAIL is `sideboxes` R16** (a box carried to the bottom of its column must scroll that column;
+  it read `{"left":0,"grid":120,"gridWas":120}`, the column not scrolled at all). ⚠️ **It is red on `main`'s own build
+  too:** run alone four times right after, twice on this build and twice on a clean build of `4b95581` (this branch's
+  base, the live code), 77/78 every time with the same R16. `sidebox-own-scroll` gated it 78/78 that afternoon, so it
+  is either the rAF-in-headless trap that entry names, gone from "a little" to "none", or a real regression in the
+  live column auto-scroll. Not investigated here (not this work).
+- **Owner ruling relayed by the parent session, 22 Oct 2026 (a right-click-menu question): *"Clear can remove an
+  automatic note"*,** stored as the explicit clear (`{text:''}`) so it stays empty when dates move, and Reset Notes
+  brings it back. That is Q1 as built: Delete stores exactly that (D4 reads it from the saved file), and
+  `resetWaterfallNotes()` deletes every `userNotes` entry, so Reset Notes brings it back. The menu's clipboard row
+  (Cut · Copy · Paste · Clear) will call `wfNotesCut` / `wfNotesCopy` / `wfNotesPaste` / `wfNotesClear`.
+
+- **Asked** (relayed by the session that started this one, the owner's picks from its "Excel features SPTCal lacks"
+  list): item 2, *"arrow keys, Tab and Delete on the selection"*, and item 3, *"copy, cut and paste notes, and drag a
+  note to another week"*. **Ruled by picker, 22 Oct 2026, each the recommended answer** (plan §6): Q1 Delete empties
+  the Notes cells, automatic notes too, nothing else touched; Q2 a copied note carries its look; Q3 a paste replaces;
+  Q4 a drag onto a note asks before replacing. Tracker cards `waterfall-keyboard`, `waterfall-copy-paste-notes`.
+- **Where:** `src/legacy/app.js` "EXCEL'S EDITING KEYS", right after the text style bar's ⌘A handler. Small hooks in
+  that bar's own code (not frozen): `textSelFocus` / `navCursor` / `wfNoteDrag`, the pointerdown gesture (a press on
+  a HIGHLIGHTED note with text becomes a drag at the sweep's own thresholds; every gesture records its far corner),
+  `redrawTextSel` (draws the drop outlines and the one message via `drawWfNoteOverlay`), and the Enter/typing
+  handler's guard (Escape during a drag is the drag's). `openNoteEditor` now reads `sheetAutoNotesFor()`, the same
+  lookup, factored out so the keys and the editor cannot disagree about a week's automatic note. Help paragraph
+  "Moving around, and moving notes" in `src/index.html`; two classes in legacy.css (`.text-sel-drop`,
+  `.text-sel-chip`).
+- **How it works.** `textSelMatrix()` reads the frozen table's own shape (rowSpan/colSpan) into slots; arrows step
+  over blank gaps (they can hold no highlight) and stop on every keyed cell, empty Notes cells and bands included
+  (`navCursor` keeps the column across a wide cell). Delete / cut / paste / drop write `userNotes`, `noteColors`,
+  `noteFontSize`, `textStyle.note` through `saveNoteEdit()` and call frozen `render()`; `wfNoteStep()` makes each ONE
+  undo step (flush, change, render, bank now, the month note drag's pattern). Copy is Excel's text form (every line
+  ends in `\n`, a multi-line note quoted) plus SPTCal's own clipboard type `application/x-sptcal-notes` carrying
+  the look; `wfNoteClip` remembers the last copy so a paste of the same text brings the look back even without that
+  type. Paste goes down the Notes cells on screen (`wfNoteSeq()`), so hiatus rows are stepped over; clipboard data
+  is held to a saved file's rules (`wfCleanClipItem`, `stripXmlIllegal`).
+- ⭐ **For the right-click menu** (the parent session's mockup): `wfNotesCopy()`, `wfNotesCut()`,
+  `wfNotesPaste(text, rich)`, `wfNotesClear()` are the whole job, and the listeners only call them. A menu's Paste has
+  no clipboard event, so it would read `navigator.clipboard.readText()` (a permission prompt in Chrome) and pass the
+  text; `wfNoteClip` brings the look back.
+- **No frozen code, no setting, no snapshot key, no id, no version bump.** Stays out of `undo-keys`' way: neither the
+  ⌘Z handler nor the undo section is touched (only `pushUndoSnapshot()` / `markDirty()` are called), so the two
+  branches should merge clean.
+- **Proof:** `wfkeys` leg 84/84 (new fixture `wfkeys.sptcal`), **red on the pre-change build (52 of 84)** and on four
+  mutants (an automatic note deleted instead of cleared → D4, G17; paste never carrying the look → C4, C6, C14, C15,
+  C18; the drag never asking → G7, G8; no column memory → K15, K18–K21). `wfkeysreal.mjs` 6/6 with TRUSTED CDP input,
+  0 of 6 on the pre-change build. Both wired into `gate.sh` after `textstyle`. `npm run check` 40/40,
+  `check-refs.py` CLEAN. In the app pane (port 9620, real clicks and keys): arrows and Shift+arrows, a real drag moving
+  "Table read" with its look, the question on a drop onto "Blocker" (Cancel kept both), Delete, ⌘Z twice back to an
+  empty undo stack.
+- ⚠️ **Learned, measured:**
+  - **Chrome runs a key binding's Copy / Cut / Paste even while they are disabled**, so the clipboard events fire
+    with nothing selected and nothing editable: `wfkeysreal` passes with the app's `beforecopy` / `beforecut` /
+    `beforepaste` listeners REMOVED. They stay, as insurance for the native Edit menu, which no headless leg can
+    reach. (This session first wrote the opposite into a comment; the mutant corrected it.)
+  - **The heading row's drawn bottom is a `thead th`'s, never the `<thead>`'s**: the sticky rule is on the cells, so
+    a scrolled pane's `<thead>` rect says the heading takes no room (rows were parked under it; `sheetHeadBottom()`).
+  - **In a leg, `scrollIntoView({block:'nearest'})` parks a row UNDER the sticky heading**, and the click lands on the
+    heading. Centre it.
+  - **A plain click never makes a phase selection** (`gridSel`): only a sweep, ⌘-click or Shift-click does.
+  - **The pane's `computer` keys cannot fire Chrome's own Copy / Paste**, as they could not fire native undo
+    (`undo-keys`). Only CDP's `commands` can, so a physical ⌘C in the installed app window is NOT verified.
+- ⚠️ **Possible side effect:** this session first ran its legs on HARNESS_PORT 9711, which is `sidebox-own-scroll`'s
+  preview port in the shared launch list, and `run.sh` stops any `srv.js` on its port. Nothing was listening there
+  afterwards; whether that preview had been running before is unknown. The legs moved to 9623. This session's preview
+  is `wf-keys-9620`, added to the main checkout's `.claude/launch.json`.
+- **Known limit, not changed:** the keys work with focus on the page itself (the gridSel keyboard rule), so after a
+  click on a toolbar button (Undo, say), click a cell first. The style bar's buttons keep focus on the page.
+- ⏭ **Next:** merging into `main` and pushing are the owner's, each asked separately; the owner held both (22 Oct),
+  perhaps to land with `undo-keys`. `sideboxes` R16 wants its own look (above; proposed as its own session).
+
 ### ✅ 22 Oct 2026 (LIVE at `f77c353`, verified byte-identical, `57056dcb`; no version cut): THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
 
 - **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
