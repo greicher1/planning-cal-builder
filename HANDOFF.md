@@ -4,6 +4,31 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### 🔨 22 Oct 2026: THE SIDE BOXES AND THE WATERFALL SCROLL SEPARATELY — branch `sidebox-own-scroll` (worktree `.claude/worktrees/sidebox-own-scroll`), from `main` at `55a9c61`; COMMITTED on the owner's word, and a fast-forward into local `main` plus ONE push approved by picker (22 Oct): *"Commit on the branch"*, *"Merge into local main"*, *"Push and verify live"*
+
+- **Asked:** *"right now when you scroll up and down in the viewer, it also scrolls the right side bar where the side
+  boxes live up and down. instead it should only scroll the viewport or only scroll the sidebar with the boxes
+  dependent on where your cursor is"*. Not ruled further.
+- ⛔ **This reverses free positions' "the side columns scroll with the grid"** (the entry below, a choice made in
+  that session). `syncSideScroll()` and its capturing `scroll` listener are GONE: do not put a scroll link back.
+  The wheel scrolls whatever is under the pointer, so a colour key stays in view while the grid scrolls.
+- **What did not change:** a box is still drawn level with its sheet row in its own column (`sideRowMap`), so the
+  two line up whenever scrolled alike; a drop reads the row off the column as drawn. Writers, layout, save format:
+  untouched. No frozen code.
+- **Two things made to fit:** (1) a column that has only just appeared opens level with the grid
+  (`sideLevelWithGrid`, called from `renderSideBoxes` when there was no old stack), so a box dropped on an empty
+  side shows where it was let go; (2) the drag's auto-scroll (`beginSideDrag`'s `tick`) scrolls the column the box
+  is over, and the grid only over an empty side.
+- **Proof (build from this branch):** `sideboxes` 78/78 (R6/R7 rewritten, R15–R18 new), **red on the pre-change
+  build** at R6, R7, R16; `sbnoexport` 28/28; `calzoom` 24/24; `textstyle` 51/51; `npm run check` 40/40. In the
+  in-app browser with a real mouse wheel (1024 px wide): grid 300 px with both columns at 0; right column to its
+  end with the grid and the page unmoved; a drop with the two scrolled differently landed where let go; a drop on
+  the emptied left side opened that column level with the grid. Full gate NOT run: screen-only chrome change,
+  nothing in `#table-wrap`, the writers or the save path (memory: chrome changes get targeted legs).
+- ⚠️ **Headless trap, new:** headless Chrome runs few animation frames in a leg, so a rAF-driven auto-scroll moves
+  ~10 px in 400 ms. R16 asserts "the column scrolled at all, the grid not at all", never a distance.
+- ⏭ **Next:** the push and the live check; a HANDOFF commit after it records the result. The approval covered that one push only.
+
 ### 🔨 21 Oct 2026: SIDE BOXES GO ANYWHERE UP AND DOWN EITHER SIDE — branch `sidebox-free-pos` (worktree `.claude/worktrees/sidebox-free-pos`), from `main` at `da1142a`; COMMITTED `cb6baa5`, LOCAL `main` (`1f4ae2c`, v1.7.0 + sidebox-zoom) MERGED IN as `7fae3d4`; FULL GATE 2,662 / 0; THEN `sidebox-noexport` MERGED IN as `b25029d`, FULL GATE 2,688 / 1 (a flaky `offweek` load wait the pre-merge gated build shares); THEN LOCAL `main` (`ff128dd`, v1.8.0 + month reorder) MERGED IN as `dfc8b24` (+ `4ff90ec`, HANDOFF only); FULL GATE 2,761 / 0; **LIVE at `7f68d88`** (verified byte-identical, `bc270785`; no version cut), WITH HIDE FROM EXPORTS
 
 - **Asked:** *"Allow you to be able to position the side boxes anywhere along either side, not just in predetermined
@@ -29,7 +54,8 @@
   `sideRowMap()` turns a row into the side stack's own px (wide: level with the grid with both scrolled to the top;
   narrow, under 960 px: from the column's top). Boxes are absolutely positioned in `.sb-stack`, a `.sb-sizer` gives it
   at least the grid's scroll length, and `syncSideScroll()` keeps the columns and the grid scrolled together (a side
-  taller than the grid may scroll on past the grid's end). Line heights are the grid's real rows: ⚠️ **on screen a
+  taller than the grid may scroll on past the grid's end). ⚠️ **Superseded 22 Oct 2026** (the entry above): the
+  columns scroll on their own again and `syncSideScroll()` is gone. Line heights are the grid's real rows: ⚠️ **on screen a
   grid row is ~20.84 px, not 20** (the heading 21.34), so the old `rows × 20px` drifted a row every ~25 rows.
   Re-placed on every grid render (the `#table-wrap` observer now also watches its `style`, for the zoom), on resize,
   and by a ResizeObserver on the `.sheet-scroll`'s children (a wrapping header bar moves every row).

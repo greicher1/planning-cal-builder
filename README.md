@@ -29,6 +29,25 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — the side boxes and the waterfall scroll separately (22 Oct 2026)
+
+The owner: *"it should only scroll the viewport or only scroll the sidebar with the boxes dependent on where your
+cursor is"*.
+- **The mouse wheel scrolls whatever is under the pointer.** Over the waterfall, only the waterfall moves, so a
+  colour key or a text box stays in view while you scroll through the calendar. Over a side column, only that
+  column moves. The two sides scroll separately too.
+- This reverses the entry below, where the side columns scrolled with the grid. Each box is still drawn level with
+  the sheet row it prints beside, so a box lines up with its week whenever the column and the grid are scrolled
+  alike (both at the top, for instance). A box dragged within a column lands on the row as drawn in that column.
+- **Dragging:** near the top or bottom of a column, it is the column under the box that scrolls, not the grid. A box
+  dropped on an empty side opens that side's column level with the grid, so it shows where it was let go.
+- Nothing changes in Excel, the PDF or a saved file: this is the screen only (`syncSideScroll` removed;
+  `sideLevelWithGrid` added; the drag's auto-scroll aims at the column).
+- **Verified:** `sideboxes` leg 78/78 (R6, R7 rewritten; R15–R18 new), red on the pre-change build at R6, R7 and
+  R16; `sbnoexport` 28/28, `calzoom` 24/24, `textstyle` 51/51, `npm run check` 40/40. In the browser with a real
+  mouse wheel: the grid scrolled 300 px with both columns at 0; the right column scrolled to its end with the grid
+  unmoved and nothing else scrolling; a box dropped with the two scrolled differently landed where it was let go.
+
 ### Unreleased — Side boxes go anywhere up and down either side (21 Oct 2026)
 
 The owner: *"Allow you to be able to position the side boxes anywhere along either side, not just in
