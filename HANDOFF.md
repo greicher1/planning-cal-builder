@@ -4,6 +4,23 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
+### ✅ 23 Oct 2026 (later): SETTINGS APPEARS AT ONCE, NO SLIDE — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
+
+- **Asked** (owner, right after the entry below went live): *"can we just have the menu already there rather than
+  still sliding in"*. On the tracker as `settings-no-slide`.
+- **Built:** `.settings-window` loses `transform:translateX(-100%)`, its 180 ms transition (with `display …
+  allow-discrete` for the way out) and the `@starting-style` rule, so open is displayed and closed is not. The
+  reduced-motion rule and the ≤960 px `transform:none; transition:none` went with them. legacy.css's comment says
+  not to bring an animation back without asking.
+- **Legs:** `settingswin` W15 (new): with the leg's own transition switch-off removed, the stylesheet gives no
+  transition and no transform, nothing animates, it is under the rail as soon as React marks it open, and gone as
+  soon as it closes. `lib.js` still switches transitions off (a no-op now; kept for older builds).
+- **Proof:** build `9b37b6e6…`: `settingswin` 21/21; `mvnotes` 30 + 14; `mvmenu (halfdays)` 89; `offweek (offweek)`
+  44; `npm run check` 40/40. On the live build `5804869a…` (untracked `dist-pre/`, since removed) only W15 fails:
+  `0.18s, 0.18s`, `matrix(1, 0, 0, 1, -383, 0)`, and still `display:flex` after closing. In the browser pane, wide
+  (1400 px) and narrow: no transform, no animation, in place on the first frame.
+- ⏭ **Next:** nothing. The live check after the push is recorded in the commit after this one.
+
 ### ✅ 23 Oct 2026: SETTINGS OPENS BELOW THE SHOW / PHASES / SETTINGS RAIL — built in the main checkout, COMMITTED on `main` and PUSHED on the owner's picker (*"Commit, push, verify live"*); no version cut
 
 - **Asked** (owner): *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it

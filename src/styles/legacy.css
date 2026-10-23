@@ -636,25 +636,22 @@
      ⛔ CLOSED IS display:none, NEVER UNMOUNTED. collectFieldValues() and readState() read the
      window's controls by id on every save and every update; display:none is what `.tab-hidden` did to
      these same cards whenever the sidebar showed another tab, so the engine has always coped with it.
-     The slide is a transform: @starting-style gives the way in, and `display ... allow-discrete` keeps
-     it displayed for the way out (Chrome/Edge are the targets, CLAUDE.md).
+     ⭐ NO SLIDE (owner, 23 Oct 2026: "can we just have the menu already there rather than still sliding
+     in"). It slid in from the left for 180 ms (a transform with @starting-style, and `display ...
+     allow-discrete` for the way out); now open is simply displayed and closed simply not. Do not bring
+     an animation back without asking.
      ⚠️ CONTAINING BLOCK = THE SIDEBAR'S SCROLL BOX. .form-panel is position:sticky, so it holds the
      window -- and an absolute child of a scroll box scrolls with its content. SettingsWindow.jsx sets
      `top` to the sidebar's scrollTop, and .settings-open stops the sidebar scrolling underneath; the
      window scrolls inside its own tab panel instead.
      z-index 110: above the sticky .side-tabs (100) in the sidebar's own stacking context (sticky
-     makes one), so the slide passes under nothing, and below every body-level popover (300) and the
-     help modal (200). */
+     makes one), and below every body-level popover (300) and the help modal (200). */
   .settings-window{
     display:none; flex-direction:column;
     position:absolute; left:0; top:0; width:100%; height:calc(100% - var(--sw-rail-h, 0px)); z-index:110;
     background:var(--mantine-color-white);
-    transform:translateX(-100%);
-    transition:transform 180ms ease, display 180ms allow-discrete;
   }
-  .settings-window.is-open{ display:flex; transform:none; }
-  @starting-style{ .settings-window.is-open{ transform:translateX(-100%); } }
-  @media (prefers-reduced-motion:reduce){ .settings-window{ transition:none; } }
+  .settings-window.is-open{ display:flex; }
   .form-panel.settings-open{ overflow:hidden; }
   /* Open, the rail says where you are: Settings takes the selected tab's look and Show / Phases give
      it up (the engine's .active stays on the sidebar tab underneath, which is where a click on either
@@ -685,7 +682,7 @@
   /* Stacked (960 px and below) the sidebar is not a scroll box and the page scrolls, so the window
      goes IN FLOW and takes the sidebar's place instead of lying over it. */
   @media (max-width:960px){
-    .settings-window{ position:static; width:auto; height:auto; transform:none; transition:none; }
+    .settings-window{ position:static; width:auto; height:auto; }
     /* flex:none, or the zero basis that sizes them inside the fixed-height window collapses them to
        nothing here, where the window's height is its content's, and they paint over the preview. */
     .settings-window .sw-tabs, .settings-window .sw-panel{ flex:none; }

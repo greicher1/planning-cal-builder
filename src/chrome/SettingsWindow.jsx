@@ -19,7 +19,8 @@
 // menu below"*. So the rail stays visible and live while the window is open: its Settings button
 // takes the selected look, and a click on Show or Phases closes the window and goes there, as a tab
 // would. The window's own "Settings ×" head went with it, since it repeated the button right above it
-// (Escape and the Settings button close it).
+// (Escape and the Settings button close it). And it no longer slides in: the same day, *"can we just
+// have the menu already there rather than still sliding in"*, so it is simply shown (legacy.css).
 //
 // ⛔ WHERE IT LIVES, AND WHY. React portals this into #settings-host, a static host INSIDE
 // aside.form-panel (src/index.html), and CSS lays it over the sidebar below the rail (legacy.css,

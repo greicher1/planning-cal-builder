@@ -29,6 +29,17 @@ way a user would notice or a future session would need to return to. See
 
 <!-- Newest first. Add new entries directly under this line. -->
 
+### Unreleased — Settings appears at once instead of sliding in (23 Oct 2026)
+
+The owner: *"can we just have the menu already there rather than still sliding in"*.
+- **What users see:** clicking Settings shows the window at once, under the Show / Phases / Settings bar. It no
+  longer slides in from the left over 0.18 s, and closing it is instant too.
+- **How:** the transform, the transition and the `@starting-style` rule are gone from `.settings-window`
+  (legacy.css). Chrome only.
+- **Verified:** `settingswin` 21/21 with a new W15 (no transition, no transform, nothing animating, in place the
+  moment it opens, gone the moment it closes). W15 fails on the build that was live, `5804869a…`. Also green:
+  `mvnotes` 30 and 14, `mvmenu (halfdays)` 89, `offweek (offweek)` 44. `npm run check` 40/40.
+
 ### Unreleased — Settings opens below the Show / Phases / Settings bar (23 Oct 2026)
 
 The owner: *"when you open the settings menu, it should not cover the Show/phases/settings bar. Instead it should

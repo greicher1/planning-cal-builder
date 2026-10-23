@@ -518,6 +518,8 @@ window.__T = (function(){
     // frames (the same reason requestAnimationFrame never fires here), so the window would sit at
     // translateX(-100%) forever -- and, closing, `display ... allow-discrete` would keep it displayed
     // forever. Switched off on the element, test-only; what the window shows and stores is unchanged.
+    // (Since 23 Oct 2026 the build has no slide at all -- owner: "just have the menu already there" -- so
+    // this does nothing there. It stays for an older build, a rollback or a leg on an older branch.)
     win.style.transition = 'none';
     if(!win.classList.contains('is-open')){
       var b = document.querySelector('.side-settings-btn');

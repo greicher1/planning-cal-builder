@@ -44,6 +44,9 @@
 //       the rail; the Settings button takes the selected look and the sidebar tab gives it up; a hit-tested click
 //       on Phases or Show closes it and goes there, as does an arrow key on the rail; the Settings button closes
 //       it again; an undo of a change made in it leaves it open
+//   W15 no slide (owner, 23 Oct 2026: "just have the menu already there rather than still sliding in"): with the
+//       leg's own transition switch-off removed, the stylesheet gives it no transition and no transform, nothing
+//       animates, and it is in place under the rail at once; closing takes it away at once
 window.__T.memoryIDB();
 window.addEventListener('load', function () { (async function () {
   var T = window.__T, cases = [], out = {};
@@ -464,6 +467,25 @@ window.addEventListener('load', function () { (async function () {
         && !o14.toggled.open && o14.toggled.settingsBg !== selBg && o14.toggled.showBg === selBg
         && o14.undo.open && o14.undo.back,
       out.w14, 'as described');
+
+    // ---- W15: no slide --------------------------------------------------------------------------------------------
+    // The leg switched the transition off on the element at boot (see T.openSettings); put the stylesheet back in
+    // charge, so what is read is what a user gets.
+    win.style.transition = '';
+    hitClick(btn, 'the Settings button');
+    // React applies the click on its next commit; read the window the moment it says open, with no settling.
+    await T.until(function () { return isOpen(); }, 'the window to open', 30, 10);
+    var cs15 = getComputedStyle(win), r15 = win.getBoundingClientRect(), rail15 = document.querySelector('.side-tabs').getBoundingClientRect();
+    out.w15 = {open: isOpen(), duration: cs15.transitionDuration, transform: cs15.transform, animations: win.getAnimations().length,
+               top: r15.top, railBottom: rail15.bottom};
+    hitClick(btn, 'the Settings button');
+    await T.until(function () { return !isOpen(); }, 'the window to close', 30, 10);
+    out.w15.closed = {open: isOpen(), display: getComputedStyle(win).display, animations: win.getAnimations().length};
+    win.style.transition = 'none';
+    add('W15', 'No slide: the stylesheet gives the window no transition and no transform, nothing animates, it is in place under the rail the moment it opens, and gone the moment it closes',
+      out.w15.open && /^0s(, 0s)*$/.test(out.w15.duration) && out.w15.transform === 'none' && out.w15.animations === 0 && near(out.w15.top, out.w15.railBottom)
+        && !out.w15.closed.open && out.w15.closed.display === 'none' && out.w15.closed.animations === 0,
+      out.w15, 'no transition, in place, gone at once');
   } catch (e) { out.EX = String(e && e.stack || e); add('EX', 'the leg ran to the end', false, out.EX, 'no exception'); }
   out.errors = (window.__ERR || []).slice(0, 10);
   add('E0', '0 console errors', out.errors.length === 0, out.errors, []);
