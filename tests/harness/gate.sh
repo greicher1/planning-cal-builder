@@ -1646,6 +1646,13 @@ done
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
 # halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
+# wfmenu guards the waterfall's right-click menu (WATERFALL-CONTEXT-MENU-PLAN.md, rulings R1-R7, 22-23 Oct 2026), the
+# same engine as mvmenu's, on halfdays.sptcal. LEAN BY RULING (owner, 23 Oct 2026: no Swap column, no Add note), so
+# every cell kind's EXACT item list is asserted: a phase week (Start / End <phase> this week, a greyed pair when
+# refused; Add 1-week phase here; Add hiatus), a Notes cell (Cut / Copy / Paste / Clear, Back to automatic text), a
+# band (Remove hiatus…), a date or empty cell, a highlight of several; an item that cannot act is left out (R6), Size
+# only after a hand resize. Each item one undo step; Show this day / week in the month view banks none and rings the
+# day. Cut keeps the note when the clipboard refuses. Red on the pre-change build. mvmenu G3 now expects it too.
 # mvnotes guards bundle A of the 20 Oct 2026 gap list (MONTH-NOTES-PLAN.md, the owner's rulings by picker): the day-note
 # editor's palette, No fill and remembered colour (P), one month each side and the custom holidays drawn there (E),
 # notes on every hiatus day (H), Paste notes… (V) and one-day custom pills that wrap (W). LIVE builds the synthetic
@@ -1726,7 +1733,7 @@ for AFSPEC in pwagate:-:120 pwagatelogic:-:120 settingswin:-:240 \
               filekeys:v1.4.2-saved:150 dlgkeys:-:240 undokeys:-:240 \
               launchopen:-:240 halfdays:-:150 halfmarks:dayoverrides-onhalf:150 \
               monthlayout:halfdays:150 monthlayout:halfmarks:150 \
-              mvmenu:halfdays:150 \
+              mvmenu:halfdays:150 wfmenu:halfdays:400 \
               mvnotes:-:600 mvnotes:mvnotes:600 labelsetup:halfdays:600 \
               phiatusnum:-:300 autonotekinds:-:300 phasecolors:-:300 calrange:-:300; do
   AFLEG="${AFSPEC%%:*}"; AFREST="${AFSPEC#*:}"; AFSTATE="${AFREST%%:*}"; AFSECS="${AFREST#*:}"

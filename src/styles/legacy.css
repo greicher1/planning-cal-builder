@@ -2949,6 +2949,10 @@
     box-shadow:var(--mantine-shadow-md);
     font-size:var(--mantine-font-size-sm); line-height:18px; color:var(--mantine-color-black);
     user-select:none; outline:none;
+    /* Capped at the window's height, and it scrolls inside (WATERFALL-CONTEXT-MENU-PLAN.md §4): the close-on-
+       scroll listener skips a scroll inside the menu, and `contain` keeps the wheel from scrolling the grid
+       behind it (which would close it) at either end. */
+    max-height:calc(100vh - 16px); overflow-y:auto; overscroll-behavior:contain;
   }
   .day-menu-head{ padding:7px 10px 6px; }
   .day-menu-date{ font-weight:600; }
@@ -3008,6 +3012,20 @@
     box-shadow:inset 0 0 0 2px var(--edit-accent);
     background:color-mix(in srgb, var(--edit-accent) 6%, transparent);
   }
+  /* The waterfall menu's "Show this day / week in the month view" (ruling R4): the day, or the week's days, ringed
+     for a moment over the month grid, then gone (the engine removes them at 1.7 s; this only fades them). */
+  .day-menu-ring.is-flash{ animation:day-menu-flash 1.6s ease-out forwards; }
+  @keyframes day-menu-flash{ 0%, 60%{ opacity:1; } 100%{ opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .day-menu-ring.is-flash{ animation:none; } }
+  /* The waterfall menu's clipboard row (ruling R1, Excel's Paste Options row): four buttons side by side, the
+     icon over the word. A refusal's reason is the .day-menu-notice line under the row. */
+  .day-menu-strip{ display:grid; grid-template-columns:repeat(4, 1fr); gap:2px; }
+  .day-menu-strip .day-menu-item{
+    flex-direction:column; gap:3px; min-height:0; padding:6px 4px 5px;
+    justify-content:center; text-align:center;
+  }
+  .day-menu-strip .day-menu-text{ flex:none; font-size:var(--mantine-font-size-xs); line-height:14px; }
+  .day-menu-strip + .day-menu-notice{ padding-left:10px; }
 
   .note-day-row{ display:flex; align-items:center; margin-top:var(--mantine-spacing-xs); }
   .note-day-row label{ display:flex; align-items:center; gap:var(--mantine-spacing-sm);

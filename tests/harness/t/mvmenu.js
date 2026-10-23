@@ -860,9 +860,15 @@ window.addEventListener('load', function () { (async function () {
     add('I7', 'Show this week in the waterfall from Sun 12 Jul switches to the waterfall with the week of Mon 6 Jul\'s note cell inside the scroll box',
       sheetActive() && !!note7 && nc.top >= port.t && nc.bottom <= port.b && nc.left >= port.l - 1 && nc.right <= port.r + 1,
       {sheet: sheetActive(), cell: !!note7, port: port, row: nc && [nc.left, nc.top, nc.right, nc.bottom]}, '7/6 note cell in view');
-    // G3: in the waterfall the browser keeps its menu.
-    var g3 = nc ? rclickAt(Math.round(nc.left + 5), Math.round(nc.top + nc.height / 2)) : {prevented: true};
-    add('G3', 'In the waterfall a right-click is left to the browser', !g3.prevented && !menuEl(), {prevented: g3.prevented}, 'not prevented');
+    // G3: in the waterfall a right-click is the WATERFALL's menu (WATERFALL-CONTEXT-MENU-PLAN.md, 23 Oct 2026), never
+    // this day menu. Until then the browser kept its own menu there, which is what G3 asserted. The waterfall menu
+    // carries data-view="sheet" and no data-day; the wfmenu leg holds what is in it.
+    var g3 = nc ? rclickAt(Math.round(nc.left + 5), Math.round(nc.top + nc.height / 2)) : {prevented: false};
+    var g3m = menuEl(), g3v = g3m && {view: g3m.getAttribute('data-view'), day: g3m.getAttribute('data-day'), week: g3m.getAttribute('data-week')};
+    if(g3m) key('Escape');
+    add('G3', 'In the waterfall a right-click opens the waterfall\'s own menu for the week of 7/6, never the month\'s day menu',
+      g3.prevented && !!g3v && g3v.view === 'sheet' && g3v.day === null && g3v.week === '2026-07-06' && !menuEl(),
+      {prevented: g3.prevented, menu: g3v}, 'the waterfall menu');
     await T.sleep(700);
     await undo();                                          // the item banks nothing (see K2u)
     var i7u = {sheet: sheetActive(), diff: sigDiff(s7, sig())}, i7went = !eq(sig(), s7);

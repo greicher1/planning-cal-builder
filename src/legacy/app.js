@@ -1131,6 +1131,9 @@ export function initLegacyApp() {
     // selection instead of scrolling -- and there is no touch-action rule anywhere in this app to
     // lean on (adding one to a td would be new frozen .sheet-* CSS).
     if(e.pointerType === 'touch') return;
+    // A Mac Ctrl+click is the right-click that opens the cell menu (WATERFALL-CONTEXT-MENU-PLAN.md §4), never a
+    // ⌘-click toggling a phase cell in or out of the selection under it.
+    if(isMacCtrlClick(e)) return;
     if(e.target.closest && e.target.closest('.grid-resize')) return;   // handles own their band
     // ...and the overlay's own grips own theirs. Ordered exactly as UI-CONVENTIONS records it:
     // .grid-resize first, then the overlay layers, then the cell.
@@ -9602,6 +9605,15 @@ export function initLegacyApp() {
   // ⛔ ONE ITEM IS ONE UNDO STEP (plan §7), banked deterministically -- pushUndoSnapshot() before and
   // after, setOverride's idiom -- rather than left to markDirty()'s 500 ms debounce, which can fold
   // the step into whatever is typed next. The leading push files what came before as its own step.
+  //
+  // ⭐ AND THE WATERFALL'S CELL MENU (WATERFALL-CONTEXT-MENU-PLAN.md, 23 Oct 2026), on the same engine: the
+  // panel, its look, the submenu, the keys and the close rules are this block's, and the waterfall adds its own
+  // context reader (wfContextAt) and sections (wfMenuSections). ⛔ LEAN BY RULING (owner, 23 Oct 2026: "think very
+  // carefully about which buttons we actually need ... we really dont need the swap collumn feature ... We dont need
+  // an add notes button at all"). An item is there only if it is what you reach for on THAT cell and the cell has
+  // no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). And an item
+  // that cannot act on the cell is LEFT OUT, not greyed (ruling R6), except Start / End, a pair. Before adding an
+  // item here, read plan §1.1 and §1.2: most of what a menu could hold was cut on purpose.
   (function installMonthDayMenu(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
@@ -9626,6 +9638,15 @@ export function initLegacyApp() {
       check: 'M5 12.5l4.5 4.5L19 7.5',
       trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
       order: 'M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4',
+      // The waterfall's (WATERFALL-CONTEXT-MENU-PLAN.md): the clipboard row, Size, the way out, back to automatic.
+      cut:   'M6 7a3 3 0 1 0 0-.01M6 17a3 3 0 1 0 0 .01M8.5 8.5L20 19M8.5 15.5L20 5',
+      copy:  'M9 9h11v11H9zM5 15H4V4h11v1',
+      paste: 'M9 4h6v3H9zM7 5H5v15h14V5h-2M9 12h6M9 16h4',
+      clear: 'M20 7H9l-5 5 5 5h11zM12 10l4 4M16 10l-4 4',
+      rows:  'M4 6h16M4 12h16M4 18h16',
+      cols:  'M6 4v16M12 4v16M18 4v16',
+      cal:   'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+      undo:  'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3',
     };
     const icon = k=> '<svg class="day-menu-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
       + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -9657,6 +9678,34 @@ export function initLegacyApp() {
       if(pill && !wrap.contains(pill)) pill = null;
       const key = (handle && handle.getAttribute('data-ph')) || (pill && pill.getAttribute('data-ph')) || null;
       return {iso, date, key, target: t, pill};
+    }
+
+    // ---- The waterfall (WATERFALL-CONTEXT-MENU-PLAN.md §4) ----
+    // The cell under a contextmenu event in the waterfall, or null for "leave the browser its own menu". A BODY
+    // cell of the live table only: a heading (double-click edits it), the title block, a padding row with no week,
+    // and anything outside #table-wrap get the browser's menu. hitTextCell() walks past the resize handles and stops
+    // at any body-level panel (the note editor over a cell keeps its own menu, with spellcheck). The week is the
+    // cell's own data-week, or its block row's (blockRowWeek) for a date, an empty cell and Sim Post.
+    // ⛔ Reads the frozen table only: classes, data-week / data-pkey, the row's data-row.
+    function wfContextAt(e){
+      if(viewMode !== 'sheet' || e.shiftKey) return null;
+      const t = e.target;
+      if(!t || !t.closest || !wrap.contains(t)) return null;
+      const td = hitTextCell(e.clientX, e.clientY);
+      if(!td || td.tagName !== 'TD' || !wrap.contains(td)) return null;
+      const tr = td.parentElement;
+      const c = td.classList;
+      let kind, key = null, week;
+      if(c.contains('sheet-hiatus-cell')){ kind = 'band'; key = td.dataset.pkey || null; week = td.dataset.week; }
+      else if(c.contains('sheet-note-cell')){ kind = 'note'; week = td.dataset.week; }
+      else if(c.contains('sheet-phase-cell') && hasSpanContract(td) && td.dataset.pkey){ kind = 'phase'; key = td.dataset.pkey; week = td.dataset.week; }
+      else if(c.contains('sheet-date')){ kind = 'date'; week = blockRowWeek(td); }
+      else { kind = isSimPostTd(td) ? 'simpost' : 'empty'; week = blockRowWeek(td); }
+      week = week && splitWeekKey(week).iso;
+      const date = week && parseDateUTC(week);
+      if(!date) return null;
+      return {view: 'sheet', iso: week, date, kind, key, td, row: tr ? +tr.dataset.row : NaN, textKey: textCellKey(td),
+              x: e.clientX, y: e.clientY};
     }
 
     // What the header says is on the day, all from the schedule: the shoot day, each bar drawn on it
@@ -9896,12 +9945,16 @@ export function initLegacyApp() {
     // ✅ Ruling Q2: on a phase that already has its own hiatus the item MOVES it here, keeping its
     // length. A phase has exactly one. Already starting this week, the move would change nothing, so
     // it is greyed out with that reason rather than banking an empty undo step.
+    // ⭐ The waterfall asks about a WEEK (ctx.span 7): there a phase runs when it overlaps the Monday-to-Sunday span,
+    // the scheduler's own row test (computeSchedule, audit H-3), so a phase starting on the Wednesday is offered on
+    // its first row. The month view asks about one day, by the test above, unchanged.
     function hiatusSections(ctx){
       const d = ctx.date, wk = mondayOf(d), from = 'Week of ' + dayMonth(wk);
       const weeksText = n=> n + (n === 1 ? ' week' : ' weeks');
       const phases = [], seen = new Set();
+      const runs = ctx.span > 1 ? (seg=> seg.start < addDays(d, ctx.span) && seg.end > d) : (seg=> d >= seg.start && d < seg.end);
       ((currentSchedule || {}).segments || []).forEach(seg=>{
-        if(seen.has(seg.key) || !(d >= seg.start && d < seg.end)) return;
+        if(seen.has(seg.key) || !runs(seg)) return;
         if(!document.getElementById('phiatus-en-' + seg.key)) return;
         seen.add(seg.key);
         // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
@@ -10199,6 +10252,354 @@ export function initLegacyApp() {
       else if(c.right > R) box.scrollLeft += (c.right - R) / z;
     }
 
+    // ---- The waterfall's sections (WATERFALL-CONTEXT-MENU-PLAN.md §2, §3) ----
+    // In this order, each only where it can act (ruling R6):
+    //   the clipboard row   on a Notes cell, or inside a highlight holding one (the wf-keys actions act on notes only)
+    //   the cell's own      a phase week: Start / End <phase> this week (a pair, greyed when refused), then the week's
+    //                       two adds (ruling R5); a date, an empty cell or Sim Post: the two adds; a Notes cell: Back
+    //                       to automatic text; a band: Remove hiatus…. None of these inside a highlight of several.
+    //   Size                only after a hand resize of a row or column the cell (or the highlight) covers
+    //   the way out         Show this day / week in the month view (ruling R4), a view switch: NO undo step.
+    function wfMenuSections(ctx){
+      const out = [];
+      const noteWeeks = wfSelNoteWeeks(ctx.keys);
+      if(noteWeeks.length){
+        const shows = noteWeeks.some(wfNoteShows);
+        const why = noteWeeks.length > 1 ? 'The notes are empty' : 'The note is empty';
+        out.push({id: 'clip', strip: true, notice: shows ? '' : why, items: [
+          {id: 'cut', icon: 'cut', text: 'Cut', disabled: !shows, run: ()=> wfCutHere(ctx)},
+          {id: 'copy', icon: 'copy', text: 'Copy', disabled: !shows, run: ()=> wfCopyHere(ctx)},
+          {id: 'paste', icon: 'paste', text: 'Paste', run: ()=> wfPasteHere(ctx)},
+          {id: 'clear', icon: 'clear', text: 'Clear', disabled: !shows, run: ()=> wfNotesClear(ctx.keys)},
+        ]});
+      }
+      if(!ctx.many){
+        const weekCtx = {iso: ctx.iso, date: ctx.date, span: 7};
+        const adds = [
+          {id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · week of ' + dayMonth(ctx.date),
+           run: ()=> addPhaseHere(weekCtx, 'week')},
+          {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(weekCtx)},
+        ];
+        if(ctx.kind === 'phase') out.push({id: 'phase', items: wfPhaseItems(ctx).concat(adds)});
+        else if(ctx.kind === 'date' || ctx.kind === 'empty' || ctx.kind === 'simpost') out.push({id: 'week', items: adds});
+        else if(ctx.kind === 'note'){ const s = wfNoteSection(ctx); if(s) out.push(s); }
+        else if(ctx.kind === 'band'){ const s = wfBandSection(ctx); if(s) out.push(s); }
+      }
+      const size = wfSizeSection(ctx);
+      if(size) out.push(size);
+      const day = wfShowDay(ctx);
+      out.push({id: 'out', items: [day
+        ? {id: 'month', icon: 'cal', text: 'Show this day in the month view', note: dayMonth(day) + ' ' + day.getUTCFullYear(),
+           run: ()=> showInMonthView([isoOf(day)])}
+        : {id: 'month', icon: 'cal', text: 'Show this week in the month view', note: 'Week of ' + dayMonth(ctx.date),
+           run: ()=> showInMonthView(Array.from({length: 7}, (_, i)=> isoOf(addDays(ctx.date, i))))},
+      ]});
+      return out;
+    }
+
+    // A phase's weeks in the whole calendar, oldest first: the rows it is WORKED in ('phase' cells), never the ones it
+    // is paused in ('phaseHiatus') or an all-phase hiatus row. wholeCalendar(), so a calendar range cannot hide them.
+    function wfPhaseWeeks(key){
+      const out = [];
+      ((wholeCalendar(currentSchedule) || {}).weeks || []).forEach(w=>{
+        if(w.cells.some(c=> c.type === 'phase' && c.key === key)) out.push(isoOf(w.date));
+      });
+      return out;
+    }
+    // The phase's display name, as the month menu names a bar (prodWeekLabel()'s rule for a trailing "wk N").
+    function wfPhaseName(key){
+      const seg = phaseSegOf(key);
+      return ((seg && (seg.name || seg.label)) || phaseLabelFor(key)).replace(/\s*wk\s*\d+\s*$/i, '');
+    }
+    // Start / End <phase> this week (plan §3.1, §3.2): offered on the phase's own cells, so Start moves it LATER (or
+    // nowhere) and End SHORTENS it (or does nothing), the month menu's shape. A pair: greyed with the reason when one
+    // is refused, never left out (ruling R6).
+    function wfPhaseItems(ctx){
+      const key = ctx.key, name = wfPhaseName(key), weeks = wfPhaseWeeks(key);
+      const items = [];
+      const startEl = document.getElementById('start-' + key);
+      items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' this week', note: 'Moves it. Its length stays',
+        disabled: !startEl || !weeks.length || weeks[0] === ctx.iso,
+        why: weeks[0] === ctx.iso ? 'It already starts this week' : 'It can’t move from here',
+        run: ()=> wfStartPhase(ctx)});
+      const end = wfEndPlan(ctx, weeks);
+      items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' this week', note: 'Keeps its start. Changes its length',
+        disabled: !end.ok, why: end.why, run: ()=> wfEndPhase(ctx)});
+      return items;
+    }
+    // ⛔ A MOVER, by whole weeks: the phase's first worked week becomes this one, its weekday and its length kept.
+    // Through setPhaseStart(), the one writer, so a Dates phase's end moves with it; inside asShootDayMove() (owner
+    // ruling R2), so Production's day marks travel by shoot-day number; and an edited auto-note follows its date (R5),
+    // as the month menu's Start here does. Snap to Mon is left as it is: the weekday does not change.
+    function wfStartPhase(ctx){
+      const key = ctx.key, startEl = document.getElementById('start-' + key);
+      const weeks = wfPhaseWeeks(key), was = startEl && parseDateUTC(startEl.value);
+      if(!was || !weeks.length || weeks[0] === ctx.iso) return;
+      const shift = Math.round((parseDateUTC(ctx.iso) - parseDateUTC(weeks[0])) / DAY_MS);
+      const notesBase = autoNoteBaseline();
+      pushUndoSnapshot();
+      asShootDayMove(()=>{
+        setPhaseStart(key, isoOf(addDays(was, shift)));
+        update();
+        reapplyAutoNoteBaseline(notesBase);
+      });
+      syncCustomUnitFallback(key);
+      pushUndoSnapshot();
+    }
+    // What End this week would write, or why not. Production's end comes from the shoot days (month ruling Q3). A
+    // WEEKS phase keeps its unit and gets a new count: a waterfall row is a whole week, so no switch to Dates is needed
+    // (the month menu switches only because a DAY is not a whole number of weeks). The count drops by the worked rows
+    // after this one, so a paused week inside the phase is stepped over as the scheduler steps over it. A DAYS or
+    // DATES phase takes the end handle's own rule (phaseEdgePlan), aimed at the LAST day of this week it can be drawn on.
+    function wfEndPlan(ctx, weeks){
+      const key = ctx.key;
+      if(key === 'production') return {ok: false, why: 'Its end comes from the shoot days'};
+      if(!weeks.length || !phaseHasEdgeUnit(key)) return {ok: false, why: 'It can’t end here'};
+      if(weeks[weeks.length - 1] === ctx.iso) return {ok: false, why: 'It already ends this week'};
+      if(customPhaseUnit(key) === 'weeks'){
+        const el = document.getElementById('weeks-' + key), n = el ? parseInt(el.value, 10) : NaN;
+        const to = n - weeks.filter(w=> w > ctx.iso).length;
+        if(!(n > 0)) return {ok: false, why: 'It can’t end here'};
+        if(!(to >= 1)) return {ok: false, why: 'It can’t be shorter than one week'};
+        return {ok: true, weeks: to, el, was: el.value};
+      }
+      const plan = phaseEdgePlan(key, 'end');
+      if(!plan) return {ok: false, why: 'It can’t end here'};
+      for(let i = 6; i >= 0; i--){
+        const x = addDays(ctx.date, i), iso = isoOf(x);
+        if(iso >= plan.ends.first && plan.lands(x)) return iso === plan.edge0 ? {ok: false, why: 'It already ends this week'} : {ok: true, plan, D: iso};
+      }
+      return {ok: false, why: 'It can’t end here'};
+    }
+    // One undo step. Then the scheduler's own verdict: the phase's last worked week must be this one, or the fields go
+    // back (phaseEdgeLanded's reason: a silent wrong date in someone's plan is the outcome to refuse).
+    function wfEndPhase(ctx){
+      const key = ctx.key, end = wfEndPlan(ctx, wfPhaseWeeks(key));
+      if(!end.ok) return;
+      const notesBase = autoNoteBaseline();
+      pushUndoSnapshot();
+      if(end.plan){
+        phaseEdgeWrite(end.plan, end.D);
+        update();
+        reapplyAutoNoteBaseline(notesBase);
+        if(!phaseEdgeLanded(end.plan, end.D)){ phaseEdgeWrite(end.plan, end.plan.edge0); update(); reapplyAutoNoteBaseline(notesBase); }
+      } else {
+        end.el.value = String(end.weeks);
+        update();
+        reapplyAutoNoteBaseline(notesBase);
+        const w = wfPhaseWeeks(key);
+        if(w[w.length - 1] !== ctx.iso){ end.el.value = end.was; update(); reapplyAutoNoteBaseline(notesBase); }
+      }
+      syncCustomUnitFallback(key);
+      pushUndoSnapshot();
+    }
+
+    // Back to automatic text (plan §3.6): only on a week whose automatic note the user has edited or cleared (an
+    // override is stored, and there is an automatic text to go back to). Text only; one step through wfNoteStep. Its
+    // second line is the automatic text it brings back.
+    function wfNoteSection(ctx){
+      const wk = ctx.iso, auto = sheetAutoNotesFor(wk);
+      if(!auto.length || userNotes[wk] === undefined) return null;
+      const t = autoNotesText(auto).trim().replace(/\s*\n\s*/g, ' · ');
+      return {id: 'note', items: [
+        {id: 'note-auto', icon: 'undo', text: 'Back to automatic text', note: t.length > 40 ? t.slice(0, 39) + '…' : t,
+         run: ()=> wfNoteStep(()=>{ delete userNotes[wk]; })},
+      ]};
+    }
+
+    // Remove hiatus… (plan §3.7). An all-phase band: each #hiatus-list row covering the week (two over one week get an
+    // item each, named by their dates), through the month menu's removeHiatusHere (the row's question first, month
+    // ruling Q4). A phase's own band: its toggle off, no question, as in the sidebar. A Production week with no shoot
+    // days reads as a band too (an off week), and has no hiatus to remove.
+    function wfBandSection(ctx){
+      const d = ctx.date, items = [];
+      if(!ctx.key){
+        Array.prototype.forEach.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), (row, j)=>{
+          const sp = bandSpan(row);
+          if(!sp || !(d >= sp.start && d < sp.end)) return;
+          const name = ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL;
+          items.push({id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true,
+            note: name + ' · ' + dm(sp.start) + ' – ' + dm(addDays(sp.end, -1)), run: ()=> removeHiatusHere(row)});
+        });
+      } else {
+        const seg = phaseSegOf(ctx.key), ph = seg && seg.phaseHiatus;
+        const en = document.getElementById('phiatus-en-' + ctx.key);
+        if(ph && en && en.checked && d >= mondayOf(ph.start) && d < ph.end)
+          items.push({id: 'phi-remove-' + ctx.key, icon: 'trash', text: 'Remove ' + wfPhaseName(ctx.key) + '’s hiatus', danger: true,
+            note: dm(mondayOf(ph.start)) + ' – ' + dm(addDays(ph.end, -1)), run: ()=> removePhaseHiatusHere(ctx.key)});
+      }
+      return items.length ? {id: 'band', items} : null;
+    }
+
+    // Size (plan §3.8, ruling R3, shown only after a hand resize, R6): exactly what a double-click on the frozen
+    // resize handle does (installGridResizers' dblclick), from outside -- delete the override and render. The rows
+    // and columns are the cell's, or every one the highlight covers. One undo step.
+    function wfSizeTargets(ctx){
+      const idx = textCellIndex();
+      const cells = ctx.many ? ctx.keys.map(k=> idx.get(k)).filter(Boolean) : [ctx.td];
+      const table = wrap.querySelector('table.sheet-table');
+      const cols = table ? table.querySelectorAll('colgroup col') : [];
+      const rows = new Set(), ckeys = new Set();
+      cells.forEach(cell=>{
+        if(!cell.isConnected) return;
+        const r = cell.tagName === 'TD' && cell.parentElement ? +cell.parentElement.dataset.row : NaN;
+        if(Number.isInteger(r) && rowHeights[r] !== undefined) rows.add(r);
+        const s = tdFlatStart(cell);
+        for(let i = s; s >= 0 && i < s + (cell.colSpan || 1); i++){
+          const k = cols[i] && cols[i].dataset.ckey;
+          if(k && colWidths[k] !== undefined) ckeys.add(k);
+        }
+      });
+      return {rows: [...rows], ckeys: [...ckeys]};
+    }
+    function wfSizeSection(ctx){
+      const t = wfSizeTargets(ctx), items = [];
+      if(t.rows.length) items.push({id: 'size-row', icon: 'rows', text: t.rows.length > 1 ? 'Reset row heights' : 'Reset row height',
+        run: ()=> wfResetSize(t.rows, [])});
+      if(t.ckeys.length) items.push({id: 'size-col', icon: 'cols', text: t.ckeys.length > 1 ? 'Reset column widths' : 'Reset column width',
+        run: ()=> wfResetSize([], t.ckeys)});
+      return items.length ? {id: 'size', label: 'Size', items} : null;
+    }
+    function wfResetSize(rows, ckeys){
+      pushUndoSnapshot();
+      rows.forEach(r=>{
+        delete rowHeights[r];
+        // ⛔ And from the persisted store, or syncRowHeights() puts it straight back (the handle's own reason).
+        const wk = currentSchedule && currentSchedule.weeks && currentSchedule.weeks[r];
+        if(wk) delete rowHeightsByWeek[isoOf(wk.date)];
+      });
+      ckeys.forEach(k=>{ delete colWidths[k]; });
+      render(currentSchedule);
+      pushUndoSnapshot();
+      markDirty();
+    }
+
+    // The clipboard row (plan §3.5): the wf-keys actions on the highlight as it stood when the menu opened. A menu has
+    // no clipboard event, so it goes through navigator.clipboard, which can be refused. ⚠️ So Cut writes FIRST and
+    // clears only once the write landed: wfNotesCut() clears first, which is right for ⌘X (the clipboard event cannot
+    // fail that way) and would lose the note here. A paste reads plain text; wfNoteClip brings the look back.
+    function wfClipWriteText(text){
+      if(!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') return Promise.reject(new Error('no clipboard'));
+      return navigator.clipboard.writeText(text);
+    }
+    async function wfCopyHere(ctx){
+      const clip = wfNotesCopy(ctx.keys);
+      if(!clip) return;
+      try { await wfClipWriteText(clip.text); } catch(err){ flashTextSel('Couldn’t reach the clipboard'); }
+    }
+    async function wfCutHere(ctx){
+      const clip = wfNotesCopy(ctx.keys);
+      if(!clip) return;
+      try { await wfClipWriteText(clip.text); } catch(err){ flashTextSel('Couldn’t reach the clipboard, so nothing was cut'); return; }
+      wfNotesClear(ctx.keys);
+    }
+    async function wfPasteHere(ctx){
+      let text;
+      try {
+        if(!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') throw new Error('no clipboard');
+        text = await navigator.clipboard.readText();
+      } catch(err){
+        const mac = /^mac/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '');
+        flashTextSel('Paste needs clipboard access: press ' + (mac ? '⌘V' : 'Ctrl+V') + ' instead');
+        return;
+      }
+      wfNotesPaste(text, null, ctx.keys);
+    }
+
+    // The day a Notes cell names (ruling R4): the first line of what the cell shows whose trailing date falls inside
+    // the note's week -- the rule notesForWaterfallDate() places a line on its day by -- else the note's pinned day. A
+    // holiday line ("Thanksgiving 11/26/26") is such a line. Null everywhere else, and inside a highlight of several.
+    function wfShowDay(ctx){
+      if(ctx.many || ctx.kind !== 'note') return null;
+      const wk = ctx.iso, end = addDays(ctx.date, 7);
+      const text = effectiveNoteText(wk, sheetAutoNotesFor(wk)) || '';
+      for(const line of text.split('\n')){
+        const m = line.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s*$/);
+        if(!m) continue;
+        const d = new Date(Date.UTC(2000 + parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10)));
+        if(d >= ctx.date && d < end) return d;
+      }
+      const u = userNotes[wk], pin = (u && typeof u === 'object' && typeof u.date === 'string') ? parseDateUTC(u.date) : null;
+      return (text && pin && pin >= ctx.date && pin < end) ? pin : null;
+    }
+
+    // ⛔ A VIEW SWITCH, so NO undo step (the undo-keys rule, 22 Oct 2026): not bracketed at all. The month holding the
+    // first day, then the day (or the week's days) ringed for a moment by rings LAID OVER the cells, body-level, the
+    // class the open menu rings its day with -- never written into the frozen month grid. monthCursor is session UI.
+    let flash = null;   // {isos: Set, rings: [], timer}
+    function showInMonthView(isos){
+      const first = parseDateUTC(isos[0]);
+      if(!first) return;
+      monthCursor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1));
+      setViewMode('month');
+      clearFlash();
+      const cells = monthCellsFor(new Set(isos));
+      if(!cells.length) return;
+      revealMonthCell(cells[0]);
+      flash = {isos: new Set(isos), rings: [], timer: setTimeout(clearFlash, 1700)};
+      placeFlash();
+    }
+    function monthCellsFor(set){
+      return Array.prototype.filter.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+        c=>{ const loc = cellDate(c); return !!loc && set.has(isoOf(loc.date)); });
+    }
+    // Into view inside whatever scrolls it, without moving the window (the app shell never scrolls).
+    function revealMonthCell(cell){
+      for(let a = cell.parentElement; a && a !== document.body; a = a.parentElement){
+        const cs = getComputedStyle(a);
+        if(!/(auto|scroll)/.test(cs.overflowY) || a.scrollHeight <= a.clientHeight) continue;
+        const z = gridZoom(a), b = a.getBoundingClientRect(), r = cell.getBoundingClientRect();
+        const top = b.top + a.clientTop * z, bottom = top + a.clientHeight * z;
+        if(r.top < top || r.bottom > bottom) a.scrollTop += ((r.top + r.height / 2) - (top + bottom) / 2) / z;
+        return;
+      }
+    }
+    // One ring per row of the month grid (the week runs Monday to Sunday; the month view's rows run Sunday first).
+    // Re-placed on every scroll, resize and render from the days, so they follow the cells; gone when they are.
+    function placeFlash(){
+      if(!flash) return;
+      flash.rings.forEach(r=> r.remove());
+      flash.rings = [];
+      if(viewMode !== 'month'){ clearFlash(); return; }
+      const byRow = new Map();
+      monthCellsFor(flash.isos).forEach(c=>{ const v = visibleRect(c); if(!v) return; const g = byRow.get(c.parentNode) || []; g.push(v); byRow.set(c.parentNode, g); });
+      byRow.forEach(vs=>{
+        const ring = document.createElement('div');
+        ring.className = 'day-menu-ring is-flash';
+        ring.setAttribute('aria-hidden', 'true');
+        const l = Math.min(...vs.map(v=> v.left)), t = Math.min(...vs.map(v=> v.top));
+        ring.style.left = l + 'px';
+        ring.style.top = t + 'px';
+        ring.style.width = (Math.max(...vs.map(v=> v.right)) - l) + 'px';
+        ring.style.height = (Math.max(...vs.map(v=> v.bottom)) - t) + 'px';
+        document.body.appendChild(ring);
+        flash.rings.push(ring);
+      });
+    }
+    function clearFlash(){
+      if(!flash) return;
+      clearTimeout(flash.timer);
+      flash.rings.forEach(r=> r.remove());
+      flash = null;
+    }
+
+    // The header's second line for one waterfall cell: what its block row shows, read off the cells (they ARE the
+    // labels): each phase week, a band, Sim Post, then the note, quoted and cut short.
+    function wfRowFacts(td){
+      let d = td;
+      while(d && !(d.classList && d.classList.contains('sheet-date'))) d = d.previousElementSibling;
+      const facts = [];
+      let note = '';
+      for(let c = d ? d.nextElementSibling : null; c && !c.classList.contains('sheet-date'); c = c.nextElementSibling){
+        const t = (c.textContent || '').replace(/\s+/g, ' ').trim();
+        if(!t) continue;
+        if(c.classList.contains('sheet-note-cell')){ if(c.classList.contains('has-note')) note = t; }
+        else facts.push(t);
+      }
+      if(note) facts.push('“' + (note.length > 34 ? note.slice(0, 33) + '…' : note) + '”');
+      return facts.length ? facts.join(' · ') : 'Nothing scheduled';
+    }
+
     // ---- The panel ----
 
     function closeMenu(restoreFocus){
@@ -10268,11 +10669,15 @@ export function initLegacyApp() {
         if(sec.label) html += '<div class="day-menu-label">'
           + (sec.swatch ? '<span class="day-menu-swatch" style="background:' + escHtml(sec.swatch) + '"></span>' : '')
           + escHtml(sec.label) + '</div>';
+        // The waterfall's clipboard row (strip: true): four buttons side by side, Excel's Paste Options row (ruling
+        // R1). No second line in a button: a refusal's reason is the section's notice line under the row.
+        if(sec.strip) html += '<div class="day-menu-strip">';
         sec.items.forEach(it=>{
           const i = items.length;
           items.push(it);
+          if(sec.strip) it.strip = true;
           const warn = !it.disabled && !!it.warn;
-          const second = it.disabled ? it.why : (it.warn || it.note || '');
+          const second = it.strip ? '' : it.disabled ? it.why : (it.warn || it.note || '');
           const toggle = it.radio || it.check;
           const ico = toggle ? (it.checked ? 'check' : '') : it.icon;
           html += '<button type="button" class="day-menu-item' + (it.disabled ? ' is-disabled' : '') + (it.danger ? ' is-danger' : '') + '"'
@@ -10285,6 +10690,7 @@ export function initLegacyApp() {
                 + (second ? '<small' + (warn ? ' class="day-menu-warn"' : '') + '>' + escHtml(second) + '</small>' : '') + '</span>'
                 + (it.sub ? icon('chev').replace('day-menu-ico', 'day-menu-chev') : '') + '</button>';
         });
+        if(sec.strip) html += '</div>';
         if(sec.notice) html += '<div class="day-menu-notice">' + escHtml(sec.notice) + '</div>';
         html += '</div>';
       });
@@ -10397,23 +10803,36 @@ export function initLegacyApp() {
       if(activeMvNote) commitMvNoteEditor();
       observer.takeRecords();
 
-      const sections = menuSections(ctx);
+      // The waterfall's menu (plan §2) has its own sections and header, and no footer: nothing in the grid needs the
+      // browser's menu, and Shift + right-click still opens it, unadvertised. The highlight marks its cells, so it
+      // needs no ring either.
+      const wf = ctx.view === 'sheet';
+      const sections = wf ? wfMenuSections(ctx) : menuSections(ctx);
       const built = panelHtml(sections, true);
       // The popover's hint moves to the footer, on a day with a shoot-day section (plan §3.9).
-      const foot = (sections.some(s=> s.id === 'shoot') ? ['Double-click a marked day to clear it'] : [])
+      const foot = wf ? [] : (sections.some(s=> s.id === 'shoot') ? ['Double-click a marked day to clear it'] : [])
         .concat('Shift + right-click opens the browser’s own menu');
-      const html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()) + '</div>'
-               + '<div class="day-menu-ctx">' + escHtml(dayFacts(ctx.date).join(' · ')) + '</div></div>'
+      const title = !wf ? dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()
+                  : ctx.many ? ctx.keys.length + ' cells highlighted'
+                  : 'Week of ' + dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear();
+      const facts = !wf ? dayFacts(ctx.date).join(' · ') : ctx.many ? wfHighlightWeeksText(ctx.keys) : wfRowFacts(ctx.td);
+      const html = '<div class="day-menu-head"><div class="day-menu-date">' + escHtml(title) + '</div>'
+               + (facts ? '<div class="day-menu-ctx">' + escHtml(facts) + '</div>' : '') + '</div>'
                + built.html
-               + '<div class="day-menu-foot">' + foot.map(t=> '<div>' + escHtml(t) + '</div>').join('') + '</div>';
+               + (foot.length ? '<div class="day-menu-foot">' + foot.map(t=> '<div>' + escHtml(t) + '</div>').join('') + '</div>' : '');
 
       const el = document.createElement('div');
       el.className = 'day-menu';
       el.setAttribute('role', 'menu');
-      el.setAttribute('aria-label', 'Menu for ' + dayMonth(ctx.date));
+      el.setAttribute('aria-label', wf ? 'Menu for the week of ' + dayMonth(ctx.date) : 'Menu for ' + dayMonth(ctx.date));
       el.tabIndex = -1;
-      // Which day and which bar, for the steps that add sections, and for the mvmenu leg.
-      el.setAttribute('data-day', ctx.iso);
+      // Which day and which bar, for the steps that add sections, and for the mvmenu leg. The waterfall's: which
+      // week, which kind of cell, which phase (the wfmenu leg reads them).
+      if(wf){
+        el.setAttribute('data-view', 'sheet');
+        el.setAttribute('data-week', ctx.iso);
+        el.setAttribute('data-kind', ctx.many ? 'many' : ctx.kind);
+      } else el.setAttribute('data-day', ctx.iso);
       if(ctx.key) el.setAttribute('data-ph', ctx.key);
       el.innerHTML = html;
       document.body.appendChild(el);
@@ -10421,7 +10840,7 @@ export function initLegacyApp() {
       // The day the menu is for stays marked while it is open: a ring LAID OVER its cell, body-level
       // like the edge handles, never a class written into the grid. Clipped to what is on screen.
       let ring = null;
-      const cell = Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
+      const cell = !wf && Array.prototype.find.call(wrap.querySelectorAll('.mv-body > .mv-week > .mv-daygrid > .mv-daycell'),
         c=>{ const loc = cellDate(c); return !!loc && isoOf(loc.date) === ctx.iso; });
       const v = cell && visibleRect(cell);
       if(v){
@@ -10466,16 +10885,67 @@ export function initLegacyApp() {
       }
 
       const root = {el, items: built.items, btns: Array.prototype.slice.call(el.querySelectorAll('.day-menu-item')), active: -1, owner: -1};
-      menu = {el, ring, iso: ctx.iso, back: document.activeElement, root, sub: null};
+      menu = {el, ring, iso: ctx.iso, view: wf ? 'sheet' : 'month', back: document.activeElement, root, sub: null,
+              scrolls: scrollBoxes(wf ? ctx.td : (cell || at.anchor || wrap))};
       wirePanel(root);
-      // Focus moves into the menu, on its first item (§6), and goes back when Escape closes it.
-      setActive(root, nextEnabled(root, -1, 1));
+      // Focus moves into the menu, on its first item (§6), and goes back when Escape closes it. The waterfall's opens
+      // on the first line BELOW its clipboard row, so Enter on a fresh menu never cuts or clears (plan §5).
+      const firstOff = root.items.findIndex(it=> !it.strip && !it.disabled);
+      setActive(root, firstOff >= 0 ? firstOff : nextEnabled(root, -1, 1));
+    }
+
+    // The weeks a highlight of several cells covers, for its header: "Week of …" or "Weeks of … – …".
+    function wfHighlightWeeksText(keys){
+      const weeks = [...new Set(keys.map(k=>{ const w = splitWeekKey(splitTextKey(k)[1]).iso; return /^\d{4}-\d\d-\d\d$/.test(w) ? w : null; }).filter(Boolean))].sort();
+      if(!weeks.length) return '';
+      const a = parseDateUTC(weeks[0]), b = parseDateUTC(weeks[weeks.length - 1]);
+      return weeks.length === 1 ? 'Week of ' + dayMonth(a) : 'Weeks of ' + dayMonth(a) + ' – ' + dayMonth(b);
+    }
+
+    // The waterfall's half (plan §4), before the panel opens. A right-click fires no `click`, so an open note or
+    // heading editor would not close on its own; its rule is that an outside click COMMITS, so it commits -- which
+    // renders, so the cell is found again at the same point. Then the highlight: outside it, the cell becomes the
+    // highlight (as a plain click makes it, retiring the phase selection as a plain press does); inside it, it stays
+    // and the menu acts on all of it; an empty cell has no text of its own, so the highlight is cleared.
+    function wfPrepare(e, ctx){
+      if(activeNoteEditor || activeHdrRowPop){
+        if(activeNoteEditor) commitActiveNoteEditor();
+        if(activeHdrRowPop) commitHeaderRowEdit('text');
+        ctx = wfContextAt(e);
+        if(!ctx) return null;
+      }
+      const k = ctx.textKey;
+      if(!(k && textSel.has(k))){
+        const onPhase = ctx.kind === 'phase' && gridSel.has(SEL_KEY(ctx.td));
+        if(!onPhase && (gridSel.size || gridSelAnchor)){ gridSel.clear(); gridSelAnchor = null; redrawGridOverlay(null); }
+        if(k){
+          textSel = new Set([k]);
+          textSelAnchor = textSelActive = textSelFocus = k;
+          navCursor = null;
+          setStyleTarget('grid');
+          redrawTextSel(null);
+        } else {
+          clearTextSel();
+          if(styleTarget === 'grid') setStyleTarget(null);
+        }
+      }
+      ctx.keys = [...textSel];
+      ctx.many = !!k && textSel.has(k) && textSel.size > 1;
+      return ctx;
     }
 
     // ⛔ Bubble phase, and preventDefault on THIS event only (plan §5). Never stopPropagation.
     document.addEventListener('contextmenu', e=>{
-      const ctx = dayContextAt(e);
-      if(!ctx) return;              // the browser's own menu
+      let ctx = dayContextAt(e);
+      if(!ctx){
+        ctx = wfContextAt(e);
+        if(!ctx) return;            // the browser's own menu
+        e.preventDefault();
+        ctx = wfPrepare(e, ctx);
+        if(!ctx) return;
+        openMenu(ctx, {x: e.clientX, y: e.clientY});
+        return;
+      }
       e.preventDefault();
       openMenu(ctx, {x: e.clientX, y: e.clientY});
     });
@@ -10532,6 +11002,21 @@ export function initLegacyApp() {
       const k = e.key;
       const p = (menu.sub && menu.sub.el.contains(document.activeElement)) ? menu.sub : menu.root;
       // Escape and ← close the submenu first, with focus back on its item; Escape on the root closes all.
+      // The waterfall's clipboard row (plan §5): ← → move along it, ↓ leaves it for the line below.
+      const onStrip = p.active >= 0 && !!p.items[p.active].strip;
+      if(onStrip && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowDown')){
+        e.preventDefault();
+        if(k === 'ArrowDown'){
+          const i = p.items.findIndex((it, j)=> j > p.active && !it.strip && !it.disabled);
+          if(i >= 0) moveTo(p, i);
+          return;
+        }
+        const dir = k === 'ArrowRight' ? 1 : -1;
+        for(let j = p.active + dir; j >= 0 && j < p.items.length && p.items[j].strip; j += dir){
+          if(!p.items[j].disabled){ moveTo(p, j); break; }
+        }
+        return;
+      }
       if(k === 'Escape'){ e.preventDefault(); if(menu.sub) closeSub(true); else closeMenu(true); }
       else if(k === 'Tab') closeMenu(true);
       else if(k === 'ArrowLeft'){ if(menu.sub){ e.preventDefault(); closeSub(true); } }
@@ -10552,14 +11037,43 @@ export function initLegacyApp() {
       }
       else if(k === 'Enter' || k === ' '){ e.preventDefault(); if(p.active >= 0) choose(p, p.active); }
     }, true);
+    // A scroll inside the menu (it is capped at the window's height and scrolls, legacy.css) is the menu's own.
+    // ⚠️ The menu closes when its CELL moves: a scroll of a box around it (the grid's pane, the panels holding it, the
+    // page), and only one that actually moved. Measured (wfmenu leg, 23 Oct 2026): Chrome can deliver a scroll event
+    // late, after the menu opened, either for the grid's box standing exactly where it was at the right-click, or for
+    // the SIDEBAR settling after an earlier edit; each closed the menu under the pointer. A sidebar scroll does not
+    // move the cell the menu is for, and an unmoved box moves nothing. So the open menu remembers where every box
+    // around its cell stood (scrollBoxes), and only a change to one of those closes it. ⚠️ The WATERFALL menu's rule
+    // only, for now: the month menu keeps "any scroll outside it" (its mvmenu C1 holds that), until the month menu's
+    // own trim (tracker card month-menu-trim) is the place to change a live menu.
     window.addEventListener('scroll', e=>{
-      if(menu && !inMenu(e.target)) closeMenu(false);
+      if(menu && !inMenu(e.target) && (menu.view !== 'sheet' || movedSinceOpen(e.target))) closeMenu(false);
+      if(flash) placeFlash();
     }, true);
-    window.addEventListener('resize', ()=> closeMenu(false));
+    function scrollBoxes(el){
+      const at = new Map(), doc = document.scrollingElement || document.documentElement;
+      for(let a = el && el.parentElement; a; a = a.parentElement) at.set(a, [a.scrollTop, a.scrollLeft]);
+      at.set(doc, [doc.scrollTop, doc.scrollLeft]);
+      return at;
+    }
+    function movedSinceOpen(t){
+      const el = (t === document || t === window) ? (document.scrollingElement || document.documentElement) : t;
+      const was = menu && menu.scrolls && menu.scrolls.get(el);
+      return !!was && (el.scrollTop !== was[0] || el.scrollLeft !== was[1]);
+    }
+    window.addEventListener('resize', ()=>{ closeMenu(false); if(flash) placeFlash(); });
     window.addEventListener('blur', ()=> closeMenu(false));
     // Any re-render of #table-wrap closes it: the day under it may have changed, so it never
     // re-anchors. Observing mutates nothing (CLAUDE.md, sanctioned pattern 3).
-    const observer = new MutationObserver(()=>{ if(menu) closeMenu(false); });
+    // ⛔ In the WATERFALL only a render counts, a DIRECT child change of #table-wrap: the highlight, the phase
+    // selection and the swap verdicts paint their layers inside .sheet-grid-wrap at any moment (a flash message's
+    // timer, a debounced verdict), and must not close the menu under the pointer. Every waterfall observer follows
+    // the same rule (childList only). The month view keeps its subtree rule. Show this day's rings follow a render.
+    const observer = new MutationObserver(recs=>{
+      const rendered = recs.some(r=> r.target === wrap);
+      if(menu && (menu.view !== 'sheet' || rendered)) closeMenu(false);
+      if(flash && rendered) placeFlash();
+    });
     observer.observe(wrap, {childList: true, subtree: true});
   })();
 
@@ -17340,6 +17854,9 @@ export function initLegacyApp() {
   // the same pointer. ⛔ No preventDefault, for gridSel's reason (it would suppress click and dblclick).
   document.addEventListener('pointerdown', e=>{
     if(e.button !== 0 || viewMode !== 'sheet' || e.pointerType === 'touch') return;
+    // A Mac Ctrl+click is the right-click that opens the cell menu (WATERFALL-CONTEXT-MENU-PLAN.md §4), not a
+    // ⌘-click: as one, it would toggle the cell OUT of the highlight under the menu that then opens.
+    if(isMacCtrlClick(e)) return;
     if(e.target.closest && e.target.closest('.grid-resize, .grid-sel-layer, .grid-swap-layer')) return;
     const cell = hitTextCell(e.clientX, e.clientY);
     if(!cell) return;
