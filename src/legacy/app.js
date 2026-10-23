@@ -6309,8 +6309,8 @@ export function initLegacyApp() {
     return idx >= 0 ? idx : 0;
   }
   // ⭐ ONE WRITER of a phase's colour (MONTH-CONTEXT-MENU-PLAN §3.6, plan step 3, 19 Oct 2026): the
-  // three swatches' pickers (a built-in phase, a custom phase, the Prep row) and the day menu's Colour…
-  // all call this. Their bodies were written inline, one each, and are moved here unchanged: a built-in
+  // three swatches' pickers (a built-in phase, a custom phase, the Prep row) all call this (the day menu's
+  // Colour… did too, until the owner's trim of 23 Oct 2026, MONTH-CONTEXT-MENU-PLAN §13). Their bodies were written inline, one each, and are moved here unchanged: a built-in
   // phase keeps its pick in phaseColorOverride, a custom phase in its own colorIndex, prep in
   // phaseColorOverride.episodePrep. Then the sidebar swatch is repainted and update() runs.
   // ⛔ `i` indexes PHASE_COLOR_OPTIONS, whose ORDER IS FILE FORMAT (CLAUDE.md). This only stores it.
@@ -9590,8 +9590,8 @@ export function initLegacyApp() {
   // holiday sections (bandSections, holidaySections).
   //
   // ⭐ ZERO FROZEN EDITS (plan §4). The month view's DOM is read only for WHERE things are: the day
-  // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), the day's own "+" that the note editor
-  // opens on, and the day cell's box for the ring. Every fact the menu states comes from the schedule
+  // under the pointer (dayAtPoint), the bar (.mv-pill[data-ph]), and the day cell's box for the ring (and,
+  // until the §13 trim took Add note out, the day's own "+" that the note editor opened on). Every fact the menu states comes from the schedule
   // the renderer drew from: a hiatus band is never a pointer target (.mv-bars is pointer-events:none)
   // and a holiday has no DOM marker at all.
   //
@@ -9614,6 +9614,13 @@ export function initLegacyApp() {
   // no one-gesture way to do it already (a double-click edits or expands, Delete clears, ⌥← swaps). And an item
   // that cannot act on the cell is LEFT OUT, not greyed (ruling R6), except Start / End, a pair. Before adding an
   // item here, read plan §1.1 and §1.2: most of what a menu could hold was cut on purpose.
+  //
+  // ⛔ THE MONTH MENU WAS CUT THE SAME WAY (MONTH-CONTEXT-MENU-PLAN.md §13, owner rulings T1–T4, 23 Oct 2026): Add
+  // note, Colour… on a bar, both Show in Phases card items, Lock in place, Number weeks and the "Shift + right-click"
+  // footer line are gone (each has a one-gesture way already: the day's "+", the sidebar row and its boxes); the
+  // owner's own items stay (both Add … phase here, Remove <phase>…, a hiatus's Colour…, the holiday section); an item
+  // that cannot act on the day is left out (T3, the waterfall's R6), Start / End a greyed pair and ruling 1's greyed
+  // Work this day inside a hiatus excepted; and the menu closes only when a box around its day scrolls (T4).
   (function installMonthDayMenu(){
     const wrap = document.getElementById('table-wrap');
     if(!wrap) return;
@@ -9626,7 +9633,6 @@ export function initLegacyApp() {
     const dayMonth = d=> DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()];
     // Stroke-only line icons, so they take the item's own colour (and its greyed-out one).
     const ICON = {
-      note:  'M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
       plus:  'M12 5v14M5 12h14',
       table: 'M4 5h16v14H4zM4 10h16M10 5v14',
       pause: 'M6 5h4v14H6zM14 5h4v14h-4z',
@@ -9634,7 +9640,6 @@ export function initLegacyApp() {
       start: 'M14 12H4M10 8l4 4-4 4M20 4v16',
       end:   'M10 12h10M14 8l-4 4 4 4M4 4v16',
       palette: 'M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-1.5a1.5 1.5 0 0 0-1 2.6A1.5 1.5 0 0 1 12 21zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01',
-      sidebar: 'M4 5h16v14H4zM9 5v14',
       check: 'M5 12.5l4.5 4.5L19 7.5',
       trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
       order: 'M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4',
@@ -9741,47 +9746,28 @@ export function initLegacyApp() {
       return facts;
     }
 
-    // The day's own "+", which is what the note editor opens on: it takes the new note's line from
-    // the anchor's grid-row. The "+" right-clicked if that is what was under the pointer, else the
-    // day's first free line, else the full day's "+" (.mv-note-add-full, whose note takes any line).
-    // A hiatus day has none: the renderer draws no "+" there.
-    function noteAnchor(ctx){
-      const own = ctx.target && ctx.target.closest && ctx.target.closest('.mv-note-add');
-      if(own && wrap.contains(own) && own.dataset.noteDay === ctx.iso) return own;
-      const adds = Array.prototype.slice.call(wrap.querySelectorAll('.mv-note-add[data-note-day="' + ctx.iso + '"]'));
-      return adds.find(a=> !a.classList.contains('mv-note-add-full')) || adds[0] || null;
-    }
-
     // The menu, as sections in their fixed order (plan §2): This day, the bar's, the shoot day's, each
-    // hiatus's, each holiday's, the way out. "This day" always comes first, so the two Add … phase items are always the second and
-    // third lines; ruling L1 kept that order on a left-click too, so Full day/Off sit below them. A
-    // choice the app refuses is greyed out WITH ITS REASON, never hidden (the standing rule; owner
-    // ruling 1, 18 Sep 2026).
+    // hiatus's, each holiday's, the way out. "This day" always comes first, so the two Add … phase items are always
+    // its first lines; ruling L1 kept that order on a left-click too, so Full day/Off sit below them.
+    // ⛔ TRIMMED (plan §13): no Add note -- the day's own "+" is one click (owner, 23 Oct 2026: "We dont need an add
+    // notes button at all") -- and an item that cannot act on the day is LEFT OUT, not greyed (ruling T3, the
+    // waterfall's R6), so the Add 1-day phase item is not offered where it could not be drawn.
     function menuSections(ctx){
       const d = ctx.date, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
       const hiatus = isHiatusDate(currentSchedule || {}, d);
-      const anchor = noteAnchor(ctx);
       const week = mondayOf(d);
-      return [
-        {id: 'day', items: [
-          {id: 'note', icon: 'note', text: 'Add note',
-           // A hiatus day has its "+" lanes since 20 Oct 2026 (MONTH-NOTES-PLAN.md §4), so it is no longer a reason.
-           disabled: !anchor, why: 'This day has no note line to open',
-           run: ()=> addNote(ctx, anchor)},
-          // ⛔ Greyed out where it could not be drawn: segCoversDate never draws a non-Production phase
-          // on a Saturday or Sunday, and pillRunsForWeek draws nothing inside a hiatus, so the phase
-          // would exist in the sidebar and show nothing on the day clicked. A weekday holiday is
-          // offered: a Dates phase is drawn there.
-          {id: 'phase-day', icon: 'plus', text: 'Add 1-day phase here', note: 'Custom phase · ' + dayMonth(d) + ' only',
-           disabled: weekend || hiatus,
-           why: weekend ? 'A phase can’t be drawn on a weekend' : 'A phase can’t be drawn inside a hiatus',
-           run: ()=> addPhaseHere(ctx, 'day')},
-          {id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · from ' + dayMonth(d),
-           run: ()=> addPhaseHere(ctx, 'week')},
-          // Built when it opens, not with the menu: nothing in it is needed until then.
-          {id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)},
-        ]},
-      ].concat(phaseSection(ctx) || [], dayOverrideUI.section(d) || [], bandSections(ctx), holidaySections(ctx), [
+      const day = [];
+      // ⛔ Left out where it could not be drawn: segCoversDate never draws a non-Production phase on a Saturday or
+      // Sunday, and pillRunsForWeek draws nothing inside a hiatus, so the phase would exist in the sidebar and show
+      // nothing on the day clicked. A weekday holiday is offered: a Dates phase is drawn there.
+      if(!weekend && !hiatus)
+        day.push({id: 'phase-day', icon: 'plus', text: 'Add 1-day phase here', note: 'Custom phase · ' + dayMonth(d) + ' only',
+          run: ()=> addPhaseHere(ctx, 'day')});
+      day.push({id: 'phase-week', icon: 'plus', text: 'Add 1-week phase here', note: 'Custom phase · from ' + dayMonth(d),
+        run: ()=> addPhaseHere(ctx, 'week')});
+      // Built when it opens, not with the menu: nothing in it is needed until then.
+      day.push({id: 'hiatus', icon: 'pause', text: 'Add hiatus', sub: ()=> hiatusSections(ctx)});
+      return [{id: 'day', items: day}].concat(phaseSection(ctx) || [], dayOverrideUI.section(d) || [], bandSections(ctx), holidaySections(ctx), [
         // A Sunday belongs to the week of the Monday BEFORE it, although the month view draws Sunday
         // first in its row; the second line says which week that is.
         {id: 'out', items: [
@@ -9795,12 +9781,13 @@ export function initLegacyApp() {
     // name and colour. A phase's bar, a custom phase's, or a Prep pill; the sim-post bar names no phase.
     //   Start <phase> here  a MOVER, the same as dragging the bar to this day (installMonthPillDrag).
     //   End <phase> here    the end handle's own rule (phaseEdgePlan). Production: greyed out, ruling Q3.
-    //   Colour…             the swatch's own picker, beside the bar (setPhaseColor).
-    //   Show in Phases card the phase's row, scrolled into view.
+    //   Back to date order  while a reorder is set (MONTH-ORDER-PLAN.md §3.1): the only way back from one.
     //   Remove <phase>…     a CUSTOM phase only, the row's own × with its question (step 4, removePhaseHere).
-    // Prep is worked out from each episode's first shoot day, so it has no start or end of its own to
-    // move: both are greyed out with that reason (owner ruling 1, 18 Sep 2026), and its colour and row work.
-    // An item that would change nothing is greyed out with that reason rather than banking an empty step.
+    // Start / End are a PAIR, greyed with the reason when one is refused rather than banking an empty step (the
+    // waterfall's R6 exception: one missing from the pair would read as a bug). ⛔ TRIMMED (plan §13, ruling T1):
+    // Colour… and Show in Phases card are gone, the phase row's swatch and the row itself, and on a PREP bar so is
+    // the pair -- Prep is worked out from each episode's first shoot day, so neither could ever act there. A section
+    // with no item left is not shown.
     function phaseSection(ctx){
       const key = ctx.key;
       if(!key) return null;
@@ -9811,11 +9798,7 @@ export function initLegacyApp() {
       // The bar's own name, with prodWeekLabel()'s rule for a trailing "wk N".
       const name = (seg.name || seg.label || phaseLabelFor(key)).replace(/\s*wk\s*\d+\s*$/i, '');
       const items = [];
-      if(isPrep){
-        const why = 'Prep is worked out from each episode’s first shoot day';
-        items.push({id: 'phase-start', icon: 'start', text: 'Start ' + name + ' here', disabled: true, why});
-        items.push({id: 'phase-end', icon: 'end', text: 'End ' + name + ' here', disabled: true, why});
-      } else {
+      if(!isPrep){
         const startEl = document.getElementById('start-' + key);
         const snapEl = customPhaseUnit(key) === 'weeks' ? document.getElementById('snap-' + key) : null;
         const noMove = !!startEl && startEl.value === ctx.iso && !(snapEl && snapEl.checked && ctx.date.getUTCDay() !== 1);
@@ -9832,22 +9815,20 @@ export function initLegacyApp() {
             run: ()=> endPhaseHere(ctx, key)});
         }
       }
-      items.push({id: 'phase-colour', icon: 'palette', text: 'Colour…', run: ()=> phaseColourHere(ctx, key)});
-      items.push({id: 'phase-show', icon: 'sidebar', text: 'Show in Phases card', run: ()=> showPhaseRow(key)});
-      // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set. Greyed out when the
-      // order set happens to BE date order (dragged back), rather than banking an empty step.
+      // MONTH-ORDER-PLAN.md §3.1: the way back from a reorder, shown only while one is set, and LEFT OUT when the
+      // order set happens to BE date order (dragged back), where it could change nothing (ruling T3).
       if(mvPhaseOrder.length){
         const segs = (currentSchedule && currentSchedule.segments) || [];
         const same = mvLaneOrder(segs).map(s=> s.key).join('|') === segs.slice().sort((a,b)=> a.start - b.start).map(s=> s.key).join('|');
-        items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
-          disabled: same, why: 'The bars are already in date order', run: resetMvPhaseOrder});
+        if(!same) items.push({id: 'phase-date-order', icon: 'order', text: 'Back to date order', note: 'Bars stack by start date again',
+          run: resetMvPhaseOrder});
       }
-      // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4). Last,
-      // as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
+      // A CUSTOM phase can be removed from its bar (owner, 19 Oct 2026, by picker, added to step 4; kept by ruling
+      // T2). Last, as a destructive item, and in red. A built-in phase cannot be removed anywhere, so its bar has no
       // such item.
       if(customPhaseDefs.some(cp=> cp.key === key))
         items.push({id: 'phase-remove', icon: 'trash', text: 'Remove ' + name + '…', danger: true, run: ()=> removePhaseHere(key)});
-      return [{id: 'phase', label: name, swatch: seg.color, items}];
+      return items.length ? [{id: 'phase', label: name, swatch: seg.color, items}] : null;
     }
 
     // ⛔ A MOVER (owner ruling R2): Production's day marks travel with it by shoot-day number, so it runs
@@ -9886,19 +9867,6 @@ export function initLegacyApp() {
       pushUndoSnapshot();
     }
 
-    // The swatch's own picker, under the bar the menu was opened on. Opening it changes nothing; a pick
-    // is one undo step. Its click-away listeners attach after a tick, so the click that chose the item
-    // cannot close it.
-    function phaseColourHere(ctx, key){
-      const anchor = (ctx.pill && document.body.contains(ctx.pill)) ? ctx.pill : document.getElementById('swatch-' + key);
-      if(!anchor) return;
-      openPhaseColorPop(anchor, phaseColorIndexOf(key), i=>{
-        pushUndoSnapshot();
-        setPhaseColor(key, i);
-        pushUndoSnapshot();
-      });
-    }
-
     // Exactly the row's own ×: its question first (the same words, only when there is something to
     // lose), then its removal, which is ONE undo step banked AFTER the answer (plan §7: the bracket is
     // synchronous, so an item that asks awaits first). Cancel changes nothing and banks nothing. The
@@ -9922,17 +9890,6 @@ export function initLegacyApp() {
       pushUndoSnapshot();
     }
 
-    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Add phase's is.
-    function showPhaseRow(key){
-      const sw = document.getElementById('swatch-' + key);
-      const row = sw && sw.closest('.phase-row');
-      pushUndoSnapshot();
-      revealSidebarTab('phases');
-      pushUndoSnapshot();
-      setPhaseCollapsed(key, false);   // a folded card would show only its name
-      if(row) row.scrollIntoView({block: 'center', inline: 'nearest'});
-    }
-
     // Add hiatus ▸ (plan §3.3): one for everything, then one for each phase running on the day.
     // ⭐ A hiatus is a start and a number of weeks, and computeSchedule snaps the start to its Monday,
     // so it always covers whole Monday-to-Sunday weeks. The second line says "Week of Mon 6 Jul", and
@@ -9944,7 +9901,8 @@ export function initLegacyApp() {
     // phase row has and the prep row does not.
     // ✅ Ruling Q2: on a phase that already has its own hiatus the item MOVES it here, keeping its
     // length. A phase has exactly one. Already starting this week, the move would change nothing, so
-    // it is greyed out with that reason rather than banking an empty undo step.
+    // it is LEFT OUT (month ruling T3, the waterfall's R6: both menus share this submenu) rather than
+    // banking an empty undo step.
     // ⭐ The waterfall asks about a WEEK (ctx.span 7): there a phase runs when it overlaps the Monday-to-Sunday span,
     // the scheduler's own row test (computeSchedule, audit H-3), so a phase starting on the Wednesday is offered on
     // its first row. The month view asks about one day, by the test above, unchanged.
@@ -9961,10 +9919,10 @@ export function initLegacyApp() {
         const name = (seg.name || seg.label || phaseLabelFor(seg.key)).replace(/\s*wk\s*\d+\s*$/i, '');
         const own = seg.phaseHiatus;
         if(own){
+          if(isoOf(mondayOf(own.start)) === isoOf(wk)) return;
           const n = parseInt((document.getElementById('phiatus-weeks-' + seg.key) || {}).value, 10);
           phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: 'Move ' + name + '’s hiatus here',
             note: from + (n > 0 ? ' · ' + weeksText(n) : ''),
-            disabled: isoOf(mondayOf(own.start)) === isoOf(wk), why: 'Its hiatus already starts this week',
             run: ()=> setPhaseHiatusHere(ctx, seg.key, true)});
         } else {
           phases.push({id: 'hiatus-' + seg.key, icon: 'pause', text: name + ' only', note: from + ' · ' + weeksText(2),
@@ -10017,25 +9975,18 @@ export function initLegacyApp() {
     // Each hiatus on the day gets a section of its own (plan §3.10). Bands can never be a pointer target,
     // so the rows come from the sidebar: #hiatus-list's own rows, which line up with schedule.hiatuses.
     // Two on one day are told apart by their dates, which every label carries. Then each phase's OWN
-    // hiatus on the day: Remove only, because Lock does not apply (a phase's hiatus always travels with
-    // its phase), and with no question, because unticking it in the sidebar asks none either.
+    // hiatus on the day: Remove only, with no question, because unticking it in the sidebar asks none either.
+    // ⛔ TRIMMED (plan §13, ruling T1): Lock in place, Number weeks and Show in Phases card are gone -- the hiatus
+    // row's own two boxes and the row itself. Colour… stays (T2: the owner's "Recolour from day menu", the only way
+    // to colour a whole hiatus at once), and so does Remove hiatus…, the waterfall band menu's one item.
     function bandSections(ctx){
       const d = ctx.date, out = [];
       Array.prototype.forEach.call(document.querySelectorAll('#hiatus-list .hiatus-entry'), (row, j)=>{
         const sp = bandSpan(row);
         if(!sp || !(d >= sp.start && d < sp.end)) return;
         const name = ((row.querySelector('.hiatus-name') || {}).value || '').trim() || HIATUS_DEFAULT_LABEL;
-        const lock = row.querySelector('.hiatus-locked'), locked = !!(lock && lock.checked);
-        const num = row.querySelector('.hiatus-num'), numbered = !!(num && num.checked);
         out.push({id: 'hiatus', label: name + ' · ' + dm(sp.start) + ' – ' + dm(addDays(sp.end, -1)), items: [
-          {id: 'band-lock-' + j, check: true, checked: locked, text: 'Lock in place',
-           note: locked ? 'Stays on these dates when the calendar shifts' : 'Moves when the calendar shifts',
-           run: ()=> lockHiatusHere(row)},
-          // Item 9 (owner, 20 Oct 2026): the row's own "Number weeks" box, and a colour for its bands.
-          {id: 'band-num-' + j, check: true, checked: numbered, text: 'Number weeks',
-           note: 'Labels its weeks ' + name + ' wk 1, 2…', run: ()=> numberHiatusHere(row)},
           {id: 'band-colour-' + j, icon: 'palette', text: 'Colour…', run: ()=> hiatusColourHere(ctx, row)},
-          {id: 'band-show-' + j, icon: 'sidebar', text: 'Show in Phases card', run: ()=> showHiatusRow(row)},
           {id: 'band-remove-' + j, icon: 'trash', text: 'Remove hiatus…', danger: true, run: ()=> removeHiatusHere(row)},
         ]});
       });
@@ -10053,24 +10004,6 @@ export function initLegacyApp() {
         ]});
       });
       return out;
-    }
-    // Lock in place: the row's own box, plus the input event its own listener runs update() on.
-    function lockHiatusHere(row){
-      const lock = row.isConnected && row.querySelector('.hiatus-locked');
-      if(!lock) return;
-      pushUndoSnapshot();
-      lock.checked = !lock.checked;
-      lock.dispatchEvent(new Event('input', {bubbles: true}));
-      pushUndoSnapshot();
-    }
-    // Number weeks: the row's own box, plus the input event its own listener runs update() on -- Lock's shape.
-    function numberHiatusHere(row){
-      const box = row.isConnected && row.querySelector('.hiatus-num');
-      if(!box) return;
-      pushUndoSnapshot();
-      box.checked = !box.checked;
-      box.dispatchEvent(new Event('input', {bubbles: true}));
-      pushUndoSnapshot();
     }
     // ✅ Colour… (owner, 20 Oct 2026, item 9: "Recolour from day menu"; supersedes MONTH-CONTEXT-MENU-PLAN
     // §3.10's "not offered"). The phase picker's popover, given the waterfall band editor's palette, under the
@@ -10102,13 +10035,6 @@ export function initLegacyApp() {
       }, palette);
     }
 
-    // The tab switch is saved state (sidebarTab), so it is bracketed as one step, as Show in Phases card is.
-    function showHiatusRow(row){
-      pushUndoSnapshot();
-      revealSidebarTab('phases');
-      pushUndoSnapshot();
-      if(row.isConnected) row.scrollIntoView({block: 'center', inline: 'nearest'});
-    }
     // Exactly the row's own ×: its question first (ruling Q4), then its removal, ONE undo step banked
     // after the answer. Cancel changes nothing and banks nothing.
     async function removeHiatusHere(row){
@@ -10135,24 +10061,23 @@ export function initLegacyApp() {
     //   Enabled             asks confirmHolidayRecompute() first, as the list's box does. Its second line
     //                       says what it means for the shoot: on a weekday inside the shoot, off means
     //                       Production shoots that day; on a weekend it costs no shoot day either way.
-    //   Show in month view  display only, and greyed out while the holiday is off, as the list's are.
-    //   Show in waterfall
+    //   Show in month view  display only, and only while the holiday is on: off, it is drawn nowhere, so the two
+    //   Show in waterfall   cannot act and are LEFT OUT (plan §13, ruling T3), keeping their stored ticks.
+    // The section itself stays (ruling Q6, kept by T2).
     function holidaySections(ctx){
       const d = ctx.date, iso = ctx.iso, dow = d.getUTCDay(), weekend = dow === 0 || dow === 6;
       const info = (currentSchedule || {}).productionInfo, days = (info && info.shootDays) || [];
       const inShoot = days.length > 0 && iso >= days[0] && iso <= days[days.length - 1];
       return fullHolidayList(effectiveRegionKey()).filter(h=> h.date === iso).map((h, j)=>{
-        const on = h.enabled !== false, why = 'The holiday is off';
+        const on = h.enabled !== false;
         const note = weekend ? 'On a weekend: its (Observed) day is the one that counts'
                    : inShoot ? (on ? 'Off means Production shoots this day' : 'Off: Production shoots this day')
                    : '';
         const view = (v, text, k)=> ({id: 'hol-' + k + '-' + j, check: true, checked: holidayVisibleIn(h.hid, v), text,
-          disabled: !on, why, run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
-        return {id: 'holiday', label: 'Holiday · ' + h.name, items: [
-          {id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)},
-          view('month', 'Show in month view', 'month'),
-          view('sheet', 'Show in waterfall', 'sheet'),
-        ]};
+          run: ()=> holidayViewHere(h.hid, v, !holidayVisibleIn(h.hid, v))});
+        const items = [{id: 'hol-en-' + j, check: true, checked: on, text: 'Enabled', note, run: ()=> holidayEnabledHere(h.hid, !on)}];
+        if(on) items.push(view('month', 'Show in month view', 'month'), view('sheet', 'Show in waterfall', 'sheet'));
+        return {id: 'holiday', label: 'Holiday · ' + h.name, items};
       });
     }
     // The question first (the list's box asks the same one), then ONE undo step after the answer.
@@ -10168,17 +10093,7 @@ export function initLegacyApp() {
       pushUndoSnapshot();
     }
 
-    // ---- The four items ----
-
-    // ⭐ Exactly what a click on the day's "+" does. Nothing is written until the editor commits, by
-    // its own path, so the bracket only files what came before.
-    function addNote(ctx, anchor){
-      if(!anchor || !document.body.contains(anchor)) anchor = noteAnchor(ctx);
-      if(!anchor) return;
-      pushUndoSnapshot();
-      openMvNoteEditor(anchor, anchor.dataset.noteWeek, ctx.iso, 'day');
-      pushUndoSnapshot();
-    }
+    // ---- This day's items, and the way out ----
 
     // The owner's item (plan §3.2, ruling Q1: both a one-day and a one-week phase, flat items).
     // ⛔ The row is exactly what + Add phase builds, so fields.byId gains only what that button adds.
@@ -10657,7 +10572,7 @@ export function initLegacyApp() {
     // submenu carries a chevron and aria-haspopup.
     // Step 4's shoot rows are RADIO items (radio: true): role menuitemradio, aria-checked, a tick in
     // place of an icon on the checked one (the popover's tick), and data-ov="<value>", the attribute
-    // the legs read. Step 5's switches (Lock in place, a holiday's three boxes) are CHECKBOX items
+    // the legs read. Step 5's switches (a holiday's three boxes; Lock in place until the §13 trim) are CHECKBOX items
     // (check: true): menuitemcheckbox, the same tick. A row's warning ("Overrides Independence Day") is its second line, in the
     // popover's warning ink.
     function panelHtml(sections, head){
@@ -10809,9 +10724,10 @@ export function initLegacyApp() {
       const wf = ctx.view === 'sheet';
       const sections = wf ? wfMenuSections(ctx) : menuSections(ctx);
       const built = panelHtml(sections, true);
-      // The popover's hint moves to the footer, on a day with a shoot-day section (plan §3.9).
-      const foot = wf ? [] : (sections.some(s=> s.id === 'shoot') ? ['Double-click a marked day to clear it'] : [])
-        .concat('Shift + right-click opens the browser’s own menu');
+      // The popover's hint moves to the footer (plan §3.9) -- since the §13 trim only on a day whose shoot-day section
+      // shows and that HOLDS a mark, the one place a double-click can clear one. The "Shift + right-click opens the
+      // browser's own menu" line is gone, as the waterfall dropped it (ruling T1); Shift + right-click still opens it.
+      const foot = !wf && sections.some(s=> s.id === 'shoot') && dayOverrides[ctx.iso] ? ['Double-click a marked day to clear it'] : [];
       const title = !wf ? dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear()
                   : ctx.many ? ctx.keys.length + ' cells highlighted'
                   : 'Week of ' + dayMonth(ctx.date) + ' ' + ctx.date.getUTCFullYear();
@@ -10858,7 +10774,7 @@ export function initLegacyApp() {
       if(at.anchor){
         // Under the day's number, by the retired popover's own place() rule: 4 px below the anchor,
         // pulled in from the right edge, and flipped above it when it would run off the bottom. The
-        // menu closes on any scroll, so it is placed once and never follows.
+        // menu closes when its day scrolls (ruling T4), so it is placed once and never follows.
         // ⚠️ One case that rule never met: the menu is far taller than the popover was, so on a short
         // window it can fit on NEITHER side of the number. Held inside the window there, it would
         // cover the number -- and the second click of a double-click would land on an item instead
@@ -11043,11 +10959,12 @@ export function initLegacyApp() {
     // late, after the menu opened, either for the grid's box standing exactly where it was at the right-click, or for
     // the SIDEBAR settling after an earlier edit; each closed the menu under the pointer. A sidebar scroll does not
     // move the cell the menu is for, and an unmoved box moves nothing. So the open menu remembers where every box
-    // around its cell stood (scrollBoxes), and only a change to one of those closes it. ⚠️ The WATERFALL menu's rule
-    // only, for now: the month menu keeps "any scroll outside it" (its mvmenu C1 holds that), until the month menu's
-    // own trim (tracker card month-menu-trim) is the place to change a live menu.
+    // around its cell stood (scrollBoxes), and only a change to one of those closes it. ✅ The MONTH menu too, since its
+    // trim (MONTH-CONTEXT-MENU-PLAN.md §13, owner ruling T4, 23 Oct 2026: "Only when the calendar scrolls"): one rule
+    // for both menus. A scroll of the panel holding the month moves the day and closes it; scrolling the sidebar does
+    // not. Its boxes are taken from the day's cell (or, opened from a left-click, its number).
     window.addEventListener('scroll', e=>{
-      if(menu && !inMenu(e.target) && (menu.view !== 'sheet' || movedSinceOpen(e.target))) closeMenu(false);
+      if(menu && !inMenu(e.target) && movedSinceOpen(e.target)) closeMenu(false);
       if(flash) placeFlash();
     }, true);
     function scrollBoxes(el){

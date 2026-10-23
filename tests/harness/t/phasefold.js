@@ -213,12 +213,17 @@ window.addEventListener('load', function () { (async function () {
       el.dispatchEvent(new MouseEvent('mousedown', base));
       el.dispatchEvent(new MouseEvent('contextmenu', base));
       el.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, base, { buttons: 0 })));
-      await T.until(function () { return !!document.querySelector('.day-menu [data-item="phase-show"]'); }, 'the day menu\'s Show in Phases card', 40, 100);
-      document.querySelector('.day-menu [data-item="phase-show"]').click();
+      // ⛔ CHANGED 23 Oct 2026: the day menu's "Show in Phases card", which unfolded the card it showed, was CUT by the
+      // owner's trim (MONTH-CONTEXT-MENU-PLAN.md §13, ruling T1: the phase row itself is one click away). F8 now holds
+      // that it is gone from the bar's menu and that opening and closing the menu leaves the folded card as it was.
+      await T.until(function () { return !!document.querySelector('.day-menu[data-ph="production"]'); }, 'the day menu on Production\'s bar', 40, 100);
+      var items8 = Array.from(document.querySelectorAll('.day-menu .day-menu-item')).map(function (b) { return b.getAttribute('data-item'); });
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
       await settle();
-      kase('F8', 'the month view\'s "Show in Phases card" unfolds a folded Production card',
-           f0 && !folded('production') && caretOf('production').getAttribute('aria-expanded') === 'true' &&
-           getComputedStyle($('ep-panel')).display !== 'none', { f0: f0, after: folded('production') });
+      kase('F8', 'the month view\'s day menu on a folded Production card\'s bar offers no "Show in Phases card" (cut, T1), and opening and closing it leaves the card folded',
+           f0 && items8.length > 0 && items8.indexOf('phase-show') < 0 && !document.querySelector('.day-menu') && folded('production') &&
+           caretOf('production').getAttribute('aria-expanded') === 'false', { f0: f0, items: items8, after: folded('production') });
+      await clickCaret('production');                       // unfolded again, as F8 used to leave it
       await view('sheet');
     });
 

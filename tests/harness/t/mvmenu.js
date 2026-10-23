@@ -10,6 +10,14 @@
 // sections -- Lock in place, Show in Phases card and Remove hiatus… (asks first, ruling Q4); a phase's own
 // hiatus; a holiday's Enabled (asks the recompute question first) and its two Show boxes (ruling Q6).
 //
+// ⛔ THE TRIM (plan §13, owner rulings T1–T4, 23 Oct 2026). Add note, Colour… on a bar, both Show in Phases card
+// items, Lock in place, Number weeks and the "Shift + right-click" footer line are gone; an item that cannot act is
+// LEFT OUT (T3), Start / End a greyed pair and ruling 1's greyed Work this day inside a hiatus excepted; the menu
+// closes only when a scroll moves its day (T4). So every menu the leg checks is checked against its EXACT item list
+// (H1s, H2, H3, H4, H5, L1s, P1, R1, V1), T1 watches every month menu the leg opens for a cut item or a stray
+// greyed one, and C4 holds the scroll rule. The cases of the cut items (I2a's and I2b's greyed clicks, I2c, I6,
+// I6u, P5, P5u, P6, P6u, V2, V3) are gone or repurposed; P6w moved to Add 1-week phase here.
+//
 //   HARNESS_PAGE=/dist/index.html HARNESS_STATE=halfdays ./run.sh mvmenu 150
 //
 // Owner, 19 Oct 2026: "One i know i want is to right click to add a custom phase starting on the day
@@ -95,8 +103,9 @@ window.addEventListener('load', function () { (async function () {
     });
     return days.sort();
   }
-  // Bring a node into the preview panel's view, then let the scroll event land BEFORE anything opens: the
-  // menu closes on a capture-phase scroll, and a scroll still in flight would close it under the leg.
+  // Bring a node into the preview panel's view, then let the scroll event land BEFORE anything opens. (The menu
+  // closed on ANY capture-phase scroll until ruling T4; since then only one that moved its day closes it, so a
+  // late event no longer can. The wait stays: it costs nothing and keeps the point measured after the scroll.)
   async function bringIntoView(el){
     var pp = document.querySelector('.preview-panel');
     var r = el.getBoundingClientRect(), q = pp ? pp.getBoundingClientRect() : {top: 0, bottom: innerHeight, height: innerHeight};
@@ -172,11 +181,28 @@ window.addEventListener('load', function () { (async function () {
     var rows = document.querySelectorAll('#custom-phase-rows .phase-row');
     return rows.length ? rows[rows.length - 1].dataset.key : null;
   }
-  var CANT_WEEKEND = 'A phase can’t be drawn on a weekend', CANT_HIATUS = 'A phase can’t be drawn inside a hiatus';
-  // ⚠️ Retired 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): a hiatus day has "+" lanes now, so
-  // Add note is offered there (H4, H5, I2c). Kept so the record of what the item used to say stays readable.
-  var NO_LANES = 'A hiatus day has no note lanes';
-  var ITEMS = ['note', 'phase-day', 'phase-week', 'hiatus', 'waterfall'];
+  // ⛔ The trim (T1): no Add note ('note'). Add 1-day phase here is LEFT OUT where it cannot be drawn (T3), so the
+  // greyed reasons it gave ("A phase can’t be drawn on a weekend / inside a hiatus") are never shown now.
+  var ITEMS = ['phase-day', 'phase-week', 'hiatus', 'waterfall'];
+  // T1's cut, as item ids: none may appear in any month menu (case T1).
+  var CUT = /^(note|phase-colour|phase-show|band-lock-\d+|band-num-\d+|band-show-\d+)$/;
+  // T3: the only items a month menu may grey out -- the Start / End pair, and Work this day inside a hiatus (ruling 1).
+  var MAY_GREY = /^(phase-start|phase-end|ov-on)$/;
+  // Every month menu (and submenu) the leg opens, as it was built: the waterfall's menu (data-view="sheet") is wfmenu's.
+  var seenMenus = [];
+  var menuObs = new MutationObserver(function (recs) {
+    recs.forEach(function (r) {
+      [].forEach.call(r.addedNodes, function (m) {
+        if(m.nodeType !== 1 || !m.classList.contains('day-menu') || m.getAttribute('data-view') === 'sheet') return;
+        seenMenus.push({day: m.getAttribute('data-day') || ('sub:' + m.getAttribute('data-parent')),
+          items: [].map.call(m.querySelectorAll('.day-menu-item'), function (b) { return b.getAttribute('data-item'); }),
+          greyed: [].filter.call(m.querySelectorAll('.day-menu-item'), function (b) { return b.getAttribute('aria-disabled') === 'true'; })
+            .map(function (b) { return b.getAttribute('data-item'); }),
+          foot: txt(m.querySelector('.day-menu-foot'))});
+      });
+    });
+  });
+  menuObs.observe(document.body, {childList: true});
 
   try {
     await T.appReady();
@@ -204,34 +230,35 @@ window.addEventListener('load', function () { (async function () {
     // shoot day step 4's shoot-day section (the retired popover's Full day / Off) follows it.
     // No Prefix…: it was retired the evening it shipped, when "Shoot" moved into the episode's name (owner, 20 Oct
     // 2026; epnames tests the names).
-    var ITEMS_BAR = ITEMS.slice(0, 4).concat(['phase-start', 'phase-end', 'phase-colour', 'phase-show'], ['ov-auto', 'ov-off'], ITEMS.slice(4));
-    add('H1s', 'The sections are This day, Production\'s own (step 3), the shoot day\'s (step 4) and the way out, in that order; the items are step 1\'s four, step 2\'s Add hiatus, step 3\'s four and Full day / Off, only End Production here greyed out on a shoot day; focus is on the first',
+    // ⛔ The trim (T1): 11 lines here before it, 8 after -- no Add note, no Colour…, no Show in Phases card, no footer.
+    var ITEMS_BAR = ITEMS.slice(0, 3).concat(['phase-start', 'phase-end'], ['ov-auto', 'ov-off'], ITEMS.slice(3));
+    add('H1s', '⭐ The trimmed menu (T1): sections This day, Production\'s own, the shoot day\'s and the way out; EXACTLY Add 1-day / 1-week phase here, Add hiatus, Start / End Production here, Full day / Off and Show this week in the waterfall, only End Production here greyed out; no footer on an unmarked day; focus on the first',
       i1 && eq(i1.sections, ['day', 'phase', 'shoot', 'out']) && eq(i1.items.map(function (x) { return x.id; }), ITEMS_BAR)
-        && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'note',
-      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus}, 'day, phase, shoot, out; ' + ITEMS_BAR.join(', '));
+        && i1.items.every(function (x) { return x.disabled === (x.id === 'phase-end'); }) && i1.focus === 'phase-day' && eq(footLines(), []),
+      i1 && {sections: i1.sections, items: i1.items, focus: i1.focus, foot: footLines()}, 'day, phase, shoot, out; ' + ITEMS_BAR.join(', '));
     key('Escape');
     add('S1', 'Opening and closing the menu leaves fields.byId exactly as it was, and Escape leaves no panel or ring behind',
       eq(sig(), s0) && !menuEl() && !document.querySelector('.day-menu-ring'), sigDiff(s0, sig()), 'no change');
 
     var h2 = await rclick('2026-07-03', 'num');
     var i2 = menuInfo();
-    add('H2', 'Fri 3 Jul, a weekday holiday inside the shoot (on its day number): no bar, the holiday named, not a shoot day, and Add 1-day phase here OFFERED (a Dates phase is drawn on a weekday holiday)',
+    var ITEMS_3JUL = ITEMS.slice(0, 3).concat(['ov-auto', 'ov-on', 'hol-en-0', 'hol-month-0', 'hol-sheet-0'], ITEMS.slice(3));
+    add('H2', 'Fri 3 Jul, a weekday holiday inside the shoot (on its day number): no bar, the holiday named, not a shoot day, and EXACTLY This day (Add 1-day phase here OFFERED: a Dates phase is drawn on a weekday holiday), the shoot rows, the holiday\'s three (ruling Q6, kept by T2) and the way out, none greyed',
       h2.inBody && h2.prevented && i2 && i2.day === '2026-07-03' && i2.ph === null && /Independence Day/.test(i2.ctx) && !/Shoot day/.test(i2.ctx)
-        && !item(i2, 'phase-day').disabled && !item(i2, 'note').disabled && item(i2, 'phase-day').second === 'Custom phase · Fri 3 Jul only',
-      i2, '3 Jul, holiday, 1-day offered');
+        && eq(i2.items.map(function (x) { return x.id; }), ITEMS_3JUL) && i2.items.every(function (x) { return !x.disabled; })
+        && item(i2, 'phase-day').second === 'Custom phase · Fri 3 Jul only',
+      i2, ITEMS_3JUL.join(', '));
     key('Escape');
 
     var h3 = await rclick('2026-07-12', 'mid');
     var i3 = menuInfo();
-    add('H3', 'Sun 12 Jul, a weekend inside the shoot: Add 1-day phase here greyed out WITH ITS REASON; Add note and Add 1-week phase here offered; the header says Weekend',
-      h3.inBody && h3.prevented && i3 && i3.day === '2026-07-12' && item(i3, 'phase-day').disabled && item(i3, 'phase-day').second === CANT_WEEKEND
-        && !item(i3, 'note').disabled && !item(i3, 'phase-week').disabled && i3.ctx === 'Weekend' && item(i3, 'waterfall').second === 'Week of Mon 6 Jul',
-      i3, '1-day greyed: ' + CANT_WEEKEND);
-    // A greyed item does nothing, and the menu stays open.
-    var rows0 = customRows();
-    choose('phase-day');
-    add('I2a', 'Clicking the greyed-out Add 1-day phase here on 12 Jul adds nothing and leaves the menu open',
-      customRows() === rows0 && !!menuEl(), {rows: customRows(), open: !!menuEl()}, 'no row, menu open');
+    var ITEMS_12JUL = ['phase-week', 'hiatus', 'ov-auto', 'ov-on', 'waterfall'];
+    add('H3', '⭐ Sun 12 Jul, a weekend inside the shoot: Add 1-day phase here is LEFT OUT (ruling T3: a phase cannot be drawn on a weekend), so EXACTLY Add 1-week phase here, Add hiatus, Weekend — not shot / Work this day and the way out; the header says Weekend',
+      h3.inBody && h3.prevented && i3 && i3.day === '2026-07-12' && eq(i3.items.map(function (x) { return x.id; }), ITEMS_12JUL)
+        && i3.ctx === 'Weekend' && item(i3, 'waterfall').second === 'Week of Mon 6 Jul',
+      i3, ITEMS_12JUL.join(', '));
+    add('I2a', 'Nothing on 12 Jul\'s menu is greyed out: an item that cannot act is left out (T3), and focus starts on Add 1-week phase here',
+      !!i3 && i3.items.every(function (x) { return !x.disabled; }) && i3.focus === 'phase-week', i3 && {items: i3.items, focus: i3.focus}, 'none greyed');
     key('Escape');
 
     // ---- G: where the browser keeps its own menu ----
@@ -253,9 +280,28 @@ window.addEventListener('load', function () { (async function () {
     c.insideKept = !!menuEl();
     document.querySelector('.form-panel').dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, button: 0}));
     c.outside = !menuEl();
+    // ⭐ Ruling T4 (23 Oct 2026): a scroll that MOVES the day closes it. The panel holding the month is scrolled for
+    // real, then its event sent (headless Chrome may deliver its own late), and put back once the menu is gone.
+    // ⚠️ At the harness's 1600 x 1200 window July fits, so the panel cannot scroll (measured: scrollHeight =
+    // clientHeight), and the sidebar on the Show tab fits too. A tall spacer appended to the panel (chrome, outside
+    // #table-wrap, so the menu's render rule never sees it) makes room, and comes out again after.
+    function spacerIn(el){
+      var d = document.createElement('div');
+      d.style.cssText = 'height:2000px;flex:none;';
+      el.appendChild(d);
+      return d;
+    }
+    var ppC = document.querySelector('.preview-panel'), yC = ppC.scrollTop, spC = spacerIn(ppC);
     await openOn('2026-07-09');
-    document.querySelector('.preview-panel').dispatchEvent(new Event('scroll'));
+    yC = ppC.scrollTop;
+    ppC.scrollTop = yC + 40;
+    if(ppC.scrollTop === yC) ppC.scrollTop = yC - 40;
+    c.moved = ppC.scrollTop !== yC;
+    ppC.dispatchEvent(new Event('scroll'));
     c.scroll = !menuEl();
+    spC.remove();
+    ppC.scrollTop = yC;
+    await T.sleep(250);
     await openOn('2026-07-09');
     window.dispatchEvent(new Event('resize'));
     c.resize = !menuEl();
@@ -267,8 +313,35 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(50);
     c.render = !menuEl();
     await settle();
-    add('C1', 'The menu closes on an outside press (not one inside it), a scroll, a resize, a window blur, and a re-render of #table-wrap',
-      c.inside && c.insideKept && c.outside && c.scroll && c.resize && c.blur && c.render, c, 'all true');
+    add('C1', 'The menu closes on an outside press (not one inside it), a scroll that moves its day (ruling T4), a resize, a window blur, and a re-render of #table-wrap',
+      c.inside && c.insideKept && c.outside && c.moved && c.scroll && c.resize && c.blur && c.render, c, 'all true');
+
+    // C4: ⭐ ruling T4 -- what does NOT close it now. Until the trim ANY scroll outside the menu did (C1 sent an unmoved
+    // event and expected a close). The waterfall menu's rule: an event for a box that has not moved, and a scroll of
+    // the SIDEBAR (it holds no day), leave the menu open. The sidebar's scroller is found, not named: the first box in
+    // the form panel that scrolls (overflow auto or scroll), given a spacer as C1's panel is, since it fits here too.
+    function sidebarScroller(){
+      var fp = document.querySelector('.form-panel');
+      var all = fp ? [fp].concat([].slice.call(fp.querySelectorAll('*'))) : [];
+      return all.find(function (e) { var oy = getComputedStyle(e).overflowY; return (oy === 'auto' || oy === 'scroll') && e.offsetParent !== null && e.clientHeight > 200; }) || null;
+    }
+    var side = sidebarScroller(), spS = side && spacerIn(side);
+    var c4 = {opened: await openOn('2026-07-09')};
+    ppC.dispatchEvent(new Event('scroll'));
+    c4.unmoved = !!menuEl();
+    var sy = side ? side.scrollTop : 0;
+    if(side){ side.scrollTop = sy + 60; if(side.scrollTop === sy) side.scrollTop = sy - 60; side.dispatchEvent(new Event('scroll')); }
+    c4.sideMoved = !!side && side.scrollTop !== sy;
+    await T.sleep(200);                                   // and Chrome's own scroll events land
+    c4.sidebar = !!menuEl() && menuInfo().day === '2026-07-09';
+    c4.scroller = side ? (side.className || side.tagName) : null;
+    if(side) side.scrollTop = sy;
+    await T.sleep(200);
+    c4.afterRestore = !!menuEl();
+    key('Escape');
+    if(spS) spS.remove();
+    add('C4', '⭐ Ruling T4: a scroll event for a box that did not move, and a real scroll of the sidebar (it holds no day), leave the menu open; only a scroll that moves the day closes it (C1)',
+      c4.opened && c4.unmoved && c4.sideMoved && c4.sidebar && c4.afterRestore, c4, 'open throughout');
 
     // ⭐ FLIPPED at plan step 4. Until then a left-click on 8 Jul's number opened the Full day/Off popover,
     // and this case held that a right-click closed it. The popover is retired: the same click opens the
@@ -344,7 +417,9 @@ window.addEventListener('load', function () { (async function () {
               left: Math.abs(m.left - Math.min(nr.left, innerWidth - m.width - 8)) < 1.5, inside: m.left >= 0 && m.top >= 0 && m.right <= innerWidth && m.bottom <= innerHeight,
               num: [Math.round(nr.left), Math.round(nr.top), Math.round(nr.bottom)], menu: [Math.round(m.left), Math.round(m.top), Math.round(m.bottom)]};
     }
-    var FOOT_SHOOT = ['Double-click a marked day to clear it', 'Shift + right-click opens the browser’s own menu'];
+    // ⛔ The trim: the hint shows only on a day that HOLDS a mark, where a double-click can clear one, and the
+    // "Shift + right-click opens the browser’s own menu" line is gone (T1). An unmarked day's menu has no footer.
+    var FOOT_SHOOT = ['Double-click a marked day to clear it'];
     // The retired popover must never come back: watched from here to the end of the L-cases.
     var popSeen = false;
     var popObs = new MutationObserver(function () { if(document.querySelector('.day-ov-pop')) popSeen = true; });
@@ -359,12 +434,12 @@ window.addEventListener('load', function () { (async function () {
         && !!rrL && Math.abs(rrL.left - crL.left) < 1.5 && Math.abs(rrL.width - crL.width) < 1.5 && !document.querySelector('.day-ov-pop'),
       {hit: l1.el && l1.el.className, info: li1 && {day: li1.day, ph: li1.ph, ids: li1.ids}, placement: pl1, ring: rrL && [rrL.left, rrL.width], cell: [crL.left, crL.width]},
       'the menu for 2026-07-08 under its number');
-    var LITEMS = ITEMS.slice(0, 4).concat(['ov-auto', 'ov-off'], ITEMS.slice(4));
+    var LITEMS = ITEMS.slice(0, 3).concat(['ov-auto', 'ov-off'], ITEMS.slice(3));
     var sr1 = shootRows();
-    add('L1s', 'Its sections are This day, "Shoot day 7" and the way out; Full day (checked) and Off are menuitemradio rows carrying data-ov "" and "off", after Add hiatus; the footer carries "Double-click a marked day to clear it"; focus is on Add note',
+    add('L1s', 'Its sections are This day, "Shoot day 7" and the way out, EXACTLY ' + LITEMS.join(', ') + '; Full day (checked) and Off are menuitemradio rows carrying data-ov "" and "off", after Add hiatus; no footer, as 8 Jul holds no mark (T1); focus is on Add 1-day phase here',
       !!li1 && eq(li1.sections, ['day', 'shoot', 'out']) && eq(li1.items.map(function (x) { return x.id; }), LITEMS) && shootLabel() === 'Shoot day 7'
         && eq(sr1.map(function (r) { return [r.ov, r.role, r.checked, r.text, r.disabled]; }), [['', 'menuitemradio', 'true', 'Full day', false], ['off', 'menuitemradio', 'false', 'Off', false]])
-        && eq(footLines(), FOOT_SHOOT) && li1.focus === 'note',
+        && eq(footLines(), []) && li1.focus === 'phase-day',
       {sections: li1 && li1.sections, items: li1 && li1.items.map(function (x) { return x.id; }), label: shootLabel(), rows: sr1, foot: footLines(), focus: li1 && li1.focus},
       'day, shoot (Full day ✓, Off), out');
     key('Escape');
@@ -382,8 +457,8 @@ window.addEventListener('load', function () { (async function () {
         && l2h.day === '2026-07-03' && l2h.label === 'Not a shoot day'
         && eq(l2h.rows.map(function (r) { return [r.ov, r.text, r.checked, r.second, r.warn]; }),
               [['', 'Holiday — not shot', 'true', '', false], ['on', 'Work this day', 'false', 'Overrides Independence Day (Observed)', true]])
-        && eq(l2h.foot, FOOT_SHOOT),
-      {weekend: l2w, holiday: l2h}, 'the popover\'s weekend and holiday rows');
+        && eq(l2h.foot, []),
+      {weekend: l2w, holiday: l2h}, 'the popover\'s weekend and holiday rows; no footer (no mark)');
 
     // L3: a day OUTSIDE the shoot, where a left-click opened nothing before (the popover's `if(!sit) return`).
     // Sun 28 Jun is the day before the first shoot day, drawn greyed out at the start of July's grid.
@@ -394,17 +469,17 @@ window.addEventListener('load', function () { (async function () {
     // is still outside: Fri 26 Jun, a weekday, which the weekend stops at.
     var l3 = await lclick('2026-06-28', 'num');
     var li3 = menuInfo();
-    add('L3', '⭐ Sun 28 Jun, the day before the shoot (an out-of-month day in July\'s grid) and the weekend just before it (item 5): a left-click opens the menu with a shoot-day section, "Not a shoot day": Weekend — not shot (checked) · Work this day (data-ov "lead"), and the double-click line in its footer',
+    add('L3', '⭐ Sun 28 Jun, the day before the shoot (an out-of-month day in July\'s grid) and the weekend just before it (item 5): a left-click opens the menu with a shoot-day section, "Not a shoot day": Weekend — not shot (checked) · Work this day (data-ov "lead"), and no footer (no mark)',
       l3.inCell && !!li3 && li3.day === '2026-06-28' && eq(li3.sections, ['day', 'shoot', 'out']) && shootLabel() === 'Not a shoot day'
         && eq(shootRows().map(function (r) { return [r.ov, r.text, r.checked]; }), [['', 'Weekend — not shot', 'true'], ['lead', 'Work this day', 'false']])
-        && eq(footLines(), FOOT_SHOOT),
+        && eq(footLines(), []),
       {hit: l3.el && l3.el.className, info: li3 && {day: li3.day, sections: li3.sections}, label: shootLabel(), rows: shootRows(), foot: footLines()}, 'day, shoot (lead), out');
     key('Escape');
     await toMonth('June 2026');
     var l3b = await lclick('2026-06-26', 'num');
     var li3b = menuInfo();
-    add('L3b', 'Fri 26 Jun, a weekday before that weekend: a left-click opens the menu with no shoot-day section and only the Shift + right-click line in its footer',
-      l3b.inCell && !!li3b && li3b.day === '2026-06-26' && eq(li3b.sections, ['day', 'out']) && shootRows().length === 0 && eq(footLines(), FOOT_SHOOT.slice(1)),
+    add('L3b', 'Fri 26 Jun, a weekday before that weekend: a left-click opens the menu with no shoot-day section and no footer (the Shift + right-click line is gone, T1)',
+      l3b.inCell && !!li3b && li3b.day === '2026-06-26' && eq(li3b.sections, ['day', 'out']) && shootRows().length === 0 && eq(footLines(), []),
       {hit: l3b.el && l3b.el.className, info: li3b && {day: li3b.day, sections: li3b.sections}, foot: footLines()}, 'day, out');
     key('Escape');
     await toMonth('July 2026');
@@ -548,23 +623,21 @@ window.addEventListener('load', function () { (async function () {
     add('I1u', 'It is exactly ONE undo step: one undo removes the phase and goes back to the Show tab while keeping the title typed just before; redo puts it all back',
       ok1 && ok1r, {undo: sigDiff(a.before, undone1), redo: sigDiff(after1, redone1), tab: activeTab()}, 'undo = before, redo = after');
 
-    // I2b: greyed out on 22 Dec too (12 Jul is H3/I2a).
+    // 22 Dec, inside the hiatus (12 Jul is H3/I2a).
     await toMonth('December 2026');
     var h4 = await rclick('2026-12-22', 'mid');
     var i4 = menuInfo();
-    // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): Add note is OFFERED inside a hiatus,
-    // because the frozen renderer now draws a hiatus day's "+" lanes. It was greyed out ("A hiatus day has no note
-    // lanes") until then. Add 1-day phase here stays greyed: a phase still cannot be drawn there.
-    add('H4', 'Tue 22 Dec, inside the hiatus: Add note OFFERED (a hiatus day has note lanes since 20 Oct 2026) and Add 1-day phase here greyed out ("' + CANT_HIATUS + '"); Add 1-week phase here and Add hiatus offered',
-      h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && !item(i4, 'note').disabled
-        && item(i4, 'phase-day').disabled && item(i4, 'phase-day').second === CANT_HIATUS && !item(i4, 'phase-week').disabled
-        && !item(i4, 'hiatus').disabled && /Hiatus/.test(i4.ctx),
-      i4, 'note offered, 1-day greyed');
-    rows0 = customRows();
-    choose('phase-day');
-    add('I2b', 'Clicking the greyed-out Add 1-day phase here on 22 Dec does nothing: no row, no note editor, the menu still open',
-      customRows() === rows0 && !document.getElementById('mv-note-pop') && !!menuEl(), {rows: customRows(), editor: !!document.getElementById('mv-note-pop')}, 'nothing');
-    // K: the keyboard, here where one item is greyed out (it was two until 20 Oct 2026, Add note among them).
+    // ⚠️ REVISED 20 Oct 2026 (MONTH-NOTES-PLAN.md §4, owner: "Every hiatus day"): Add note was OFFERED inside a hiatus
+    // from then. ⛔ REVISED AGAIN 23 Oct 2026 by the trim: Add note is gone everywhere (T1), and Add 1-day phase here,
+    // greyed here until then ("A phase can’t be drawn inside a hiatus"), is LEFT OUT (T3). The hiatus section is
+    // Colour… and Remove hiatus… only (Lock in place, Number weeks and Show in Phases card cut, T1).
+    var ITEMS_22DEC = ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'waterfall'];
+    add('H4', '⭐ Tue 22 Dec, inside the hiatus: EXACTLY Add 1-week phase here, Add hiatus, the hiatus\'s Colour… and Remove hiatus…, and the way out (no Add note, T1; no Add 1-day phase here, T3), none greyed',
+      h4.inBody && h4.prevented && i4 && i4.day === '2026-12-22' && eq(i4.items.map(function (x) { return x.id; }), ITEMS_22DEC)
+        && i4.items.every(function (x) { return !x.disabled; }) && /Hiatus/.test(i4.ctx),
+      i4, ITEMS_22DEC.join(', '));
+    // K: the keyboard. Nothing on this menu is greyed out now (it held one greyed item until the trim, two before 20
+    // Oct 2026), so this walks every item and wraps.
     var kf = [menuInfo().focus];
     key('ArrowDown'); kf.push(menuInfo().focus);
     key('ArrowDown'); kf.push(menuInfo().focus);
@@ -572,29 +645,19 @@ window.addEventListener('load', function () { (async function () {
     key('ArrowUp'); kf.push(menuInfo().focus);
     key('Home'); kf.push(menuInfo().focus);
     key('End'); kf.push(menuInfo().focus);
-    add('K1', 'Arrow keys, Home and End move focus through the items that are not greyed out (into the hiatus section, step 5), wrapping',
-      eq(kf, ['note', 'phase-week', 'hiatus', 'band-lock-0', 'hiatus', 'note', 'waterfall']), kf, 'note, phase-week, hiatus, band-lock-0 (step 5\'s hiatus section), hiatus, note, waterfall');
+    key('ArrowDown'); kf.push(menuInfo().focus);
+    add('K1', 'Arrow keys, Home and End move focus through the items (into the hiatus section), and ↓ from the last wraps to the first',
+      eq(kf, ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'band-colour-0', 'phase-week', 'waterfall', 'phase-week']), kf,
+      'phase-week, hiatus, band-colour-0, band-remove-0, band-colour-0, phase-week, waterfall, phase-week');
     var s4 = sig();
     key('Escape');
-    // I2c (20 Oct 2026, MONTH-NOTES-PLAN.md §4): Add note on a hiatus day opens the month note editor for THAT day, as
-    // its own "+" does. Escape closes it, nothing stored.
-    await rclick('2026-12-22', 'mid');
-    choose('note');
-    await T.sleep(300);
-    var ed22 = document.getElementById('mv-note-pop');
-    var ed22day = ed22 ? (ed22.querySelector('.mv-note-pop-day') || {}).textContent : null;
-    var ed22hint = ed22 ? (ed22.querySelector('.mv-note-pop-hint') || {}).textContent : '';
-    if(ed22) ed22.querySelector('textarea').dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
-    await T.sleep(200);
-    add('I2c', 'Add note on Tue 22 Dec, inside the hiatus, opens the month note editor for 12/22/26 (a day note), and Escape leaves nothing behind',
-      !!ed22 && ed22day === '12/22/26' && /Month view only/.test(ed22hint) && !document.getElementById('mv-note-pop') && eq(sig(), s4),
-      {editor: !!ed22, day: ed22day, hint: ed22hint}, 'the editor for 12/22/26');
     var h5 = await rclick('2026-12-25', 'mid');
     var i5 = menuInfo();
-    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; as on 22 Dec, Add note offered and Add 1-day phase here greyed out',
+    var ITEMS_25DEC = ['phase-week', 'hiatus', 'band-colour-0', 'band-remove-0', 'hol-en-0', 'hol-month-0', 'hol-sheet-0', 'waterfall'];
+    add('H5', 'Fri 25 Dec, the hiatus and Christmas Day: both named in the header; EXACTLY 22 Dec\'s items with Christmas Day\'s three (ruling Q6, kept by T2) before the way out: 13 lines before the trim, 8 after',
       h5.inBody && h5.prevented && i5 && i5.day === '2026-12-25' && /Hiatus/.test(i5.ctx) && /Christmas Day/.test(i5.ctx)
-        && !item(i5, 'note').disabled && item(i5, 'phase-day').disabled && !item(i5, 'phase-week').disabled,
-      i5, 'hiatus + Christmas Day');
+        && eq(i5.items.map(function (x) { return x.id; }), ITEMS_25DEC) && i5.items.every(function (x) { return !x.disabled; }),
+      i5, ITEMS_25DEC.join(', '));
     // K2: Enter chooses. Show this week in the waterfall from a hiatus week: its row is a band, not a note cell.
     key('End');
     key('Enter');
@@ -657,24 +720,8 @@ window.addEventListener('load', function () { (async function () {
     await T.sleep(700);
     await undo();
 
-    // I6: Add note on Wed 8 Jul opens the note editor there, exactly as the day's "+" does.
-    a = await primeThenOpen('2026-07-08', 'bar:production');
-    choose('note');
-    var pop = document.getElementById('mv-note-pop');
-    var popDay = txt(pop && pop.querySelector('.mv-note-pop-day'));
-    var focused = document.activeElement && document.activeElement.tagName;
-    add('I6', 'Add note on 8 Jul opens the month note editor on 7/8/26 with the cursor in it, and the click that chose it does not close it',
-      !!pop && popDay === '7/8/26' && focused === 'TEXTAREA' && !menuEl(), {pop: !!pop, day: popDay, focus: focused}, 'editor on 7/8/26');
-    var ta6 = pop && pop.querySelector('textarea');
-    if(ta6){ ta6.value = 'Day menu note'; ta6.dispatchEvent(new Event('input', {bubbles: true})); }
-    ta6 && ta6.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true, cancelable: true}));
-    await settle();
-    var note6 = [].some.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-07-08"]'), function (b) { return /Day menu note/.test(b.textContent); });
-    await T.sleep(700);
-    await undo();
-    var note6u = [].some.call(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-07-08"]'), function (b) { return /Day menu note/.test(b.textContent); });
-    add('I6u', 'The note is written on 8 Jul when the editor commits, and one undo removes just the note (the title typed before stays)',
-      note6 && !note6u && (document.getElementById('show-title') || {}).value === 'Menu step 4', {written: note6, afterUndo: note6u, title: (document.getElementById('show-title') || {}).value}, 'written, then undone');
+    // I6 / I6u (Add note opening the editor, one step) went with the item (T1, owner, 23 Oct 2026: "We dont need an
+    // add notes button at all"). The day's own "+" opening the editor is L4's; that no menu offers it is T1's.
 
     // ---- A: Add hiatus ▸ (plan step 2, §3.3) ----
     // On halfdays only Production runs on 8 Jul (Writer's Rm and the preps end before the shoot, Post starts
@@ -758,7 +805,7 @@ window.addEventListener('load', function () { (async function () {
     function kstate(){ return (menuInfo() ? menuInfo().focus : 'closed') + (subEl() ? '+sub' : ''); }
     // Reached from the top, so the walk holds whatever sections follow This day (step 3 adds the bar's).
     key('Home'); kk.push(kstate());
-    key('ArrowDown'); key('ArrowDown'); key('ArrowDown'); kk.push(kstate());
+    key('ArrowDown'); key('ArrowDown'); kk.push(kstate());
     key('ArrowRight'); kk.push(kstate());
     key('ArrowDown'); kk.push(kstate());
     key('ArrowLeft'); kk.push(kstate());
@@ -766,8 +813,8 @@ window.addEventListener('load', function () { (async function () {
     key('Escape'); kk.push(kstate());
     key('Escape'); kk.push(menuEl() ? 'open' : 'closed');
     add('A3', 'Keys: → opens the submenu on its first item, ↓ moves in it, ← closes it back onto Add hiatus, Enter opens it, Escape closes the submenu first and then the menu',
-      eq(kk, ['note', 'hiatus', 'hiatus-all+sub', 'hiatus-production+sub', 'hiatus', 'hiatus-all+sub', 'hiatus', 'closed']), kk,
-      'note, hiatus, hiatus-all+sub, hiatus-production+sub, hiatus, hiatus-all+sub, hiatus, closed');
+      eq(kk, ['phase-day', 'hiatus', 'hiatus-all+sub', 'hiatus-production+sub', 'hiatus', 'hiatus-all+sub', 'hiatus', 'closed']), kk,
+      'phase-day, hiatus, hiatus-all+sub, hiatus-production+sub, hiatus, hiatus-all+sub, hiatus, closed');
     await rclick('2026-07-08', 'bar:production');
     hoverItem(rootBtn('hiatus'));
     var ap = {opened: !!subEl()};
@@ -827,15 +874,17 @@ window.addEventListener('load', function () { (async function () {
         && phi6.en === true && phi6.start === '2026-07-20' && phi6.weeks === '3' && eq(d6.changed, ['phiatus-start-production']) && d6.added.length === 0,
       {item: mv, after: phi6, diff: d6}, 'start 2026-07-20, 3 weeks kept');
     await T.sleep(700);
-    // Inside the week it now starts, the move would change nothing: greyed out with its reason, and inert.
+    // Inside the week it now starts, the move would change nothing: LEFT OUT (ruling T3; it was greyed with "Its hiatus
+    // already starts this week" until the trim). Production is the only phase running on 21 Jul, so the submenu is
+    // All phases alone, with no "One phase only" section. The waterfall's Add hiatus ▸ shares this submenu.
+    var s7m = sig();
     await rclick('2026-07-21', 'num');
     rootBtn('hiatus').click();
-    var a7 = subInfo(), mv7 = a7 && a7.items.find(function (x) { return x.id === 'hiatus-production'; });
-    var s7m = sig();
-    subEl().querySelector('[data-item="hiatus-production"]').click();
-    add('A7', 'On Tue 21 Jul, the week its hiatus already starts, "Move Production’s hiatus here" is greyed out ("Its hiatus already starts this week") and clicking it changes nothing and leaves the menu open',
-      !!mv7 && mv7.disabled && mv7.second === 'Its hiatus already starts this week' && eq(sig(), s7m) && !!subEl() && !!menuEl(),
-      {item: mv7, diff: sigDiff(s7m, sig()), open: [!!menuEl(), !!subEl()]}, 'greyed, inert');
+    var a7 = subInfo();
+    add('A7', '⭐ On Tue 21 Jul, the week its hiatus already starts, "Move Production’s hiatus here" is LEFT OUT (T3): the submenu is All phases alone, nothing greyed, and opening it changed nothing',
+      !!a7 && eq(a7.items.map(function (x) { return x.id; }), ['hiatus-all']) && a7.label === '' && a7.items.every(function (x) { return !x.disabled; })
+        && eq(sig(), s7m) && !!subEl() && !!menuEl(),
+      {sub: a7, open: [!!menuEl(), !!subEl()]}, 'All phases alone');
     key('Escape'); key('Escape');
     await undo();
     var u6 = phi();
@@ -963,10 +1012,14 @@ window.addEventListener('load', function () { (async function () {
 
     await rclick('2026-11-11', 'bar:post');
     var p1 = menuInfo();
-    add('P1', 'Right-click on Post\'s bar on Wed 11 Nov: This day, then Post\'s own section headed "Post" with its colour, then the way out; Start, End, Colour… and Show in Phases card, none greyed out',
+    // ⛔ The trim (T1): Colour… and Show in Phases card are gone (the phase row's swatch and the row itself). 9 lines
+    // before it, 6 after.
+    var ITEMS_POST = ITEMS.slice(0, 3).concat(['phase-start', 'phase-end'], ITEMS.slice(3));
+    add('P1', '⭐ Right-click on Post\'s bar on Wed 11 Nov: This day, then Post\'s own section headed "Post" with its colour, then the way out; EXACTLY ' + ITEMS_POST.join(', ') + ', Start and End not greyed (no Colour…, no Show in Phases card, T1)',
       !!p1 && eq(p1.sections, ['day', 'phase', 'out']) && phaseLabel() === 'Post' && !!menuEl().querySelector('[data-section="phase"] .day-menu-swatch')
-        && eq(p1.items.filter(function (x) { return /^phase-(start|end|colour|show)$/.test(x.id); }).map(function (x) { return [x.id, x.disabled, x.second]; }),
-              [['phase-start', false, 'Moves it. Its length stays'], ['phase-end', false, 'Keeps its start. Changes its length'], ['phase-colour', false, ''], ['phase-show', false, '']]),
+        && eq(p1.items.map(function (x) { return x.id; }), ITEMS_POST) && p1.items.every(function (x) { return !x.disabled; })
+        && eq(p1.items.filter(function (x) { return /^phase-/.test(x.id) && /^phase-(start|end)$/.test(x.id); }).map(function (x) { return [x.id, x.second]; }),
+              [['phase-start', 'Moves it. Its length stays'], ['phase-end', 'Keeps its start. Changes its length']]),
       p1 && {sections: p1.sections, label: phaseLabel(), items: p1.items}, 'day, phase (Post), out');
     key('Escape');
 
@@ -1019,70 +1072,28 @@ window.addEventListener('load', function () { (async function () {
     add('P4u', 'On the day it now ends, End Post here is greyed out ("It already ends on this day"); one undo puts Post back in Weeks with the title typed before kept',
       p4g.disabled && p4g.second === 'It already ends on this day' && eq(sig(), a.before) && fv('unit-post') === 'weeks', {greyed: p4g, diff: sigDiff(a.before, sig())}, 'greyed, then one step back');
 
-    // P5: Colour… opens the swatch's own picker under the bar; a pick is one step.
-    // The bar is read BEFORE the right-click: the menu opens at the pointer, so its corner covers that point.
-    function barAt(q){ var el = document.elementFromPoint(q.x, q.y); return el && el.closest && el.closest('.mv-pill[data-ph="post"]'); }
-    T.set('show-title', 'Menu step ' + (++n));
-    a = {before: sig()};
-    var q5 = await pointOn('2026-11-04', 'bar:post');
-    var bar5 = barAt(q5);
-    var bg0 = bar5 && getComputedStyle(bar5).backgroundColor, sw0 = document.getElementById('swatch-post').style.background;
-    rclickAt(q5.x, q5.y);
-    choose('phase-colour');
-    await T.sleep(50);                                   // its click-away listeners attach after a tick
-    var pop5 = document.querySelector('.phase-color-pop');
-    var pr5 = pop5 && pop5.getBoundingClientRect(), br5 = bar5 && bar5.getBoundingClientRect();
-    var sel0 = pop5 ? [].findIndex.call(pop5.children, function (c) { return c.classList.contains('selected'); }) : -1;
-    var pick = sel0 === 6 ? 7 : 6;
-    var p5open = !!pop5 && !menuEl() && Math.abs(pr5.left - br5.left) < 2 && pr5.top >= br5.bottom && pr5.top - br5.bottom < 12 && sel0 >= 0;
-    if(pop5) pop5.children[pick].click();
-    await settle();
-    var bar5b = barAt(await pointOn('2026-11-04', 'bar:post'));
-    var p5 = {open: p5open, selected: sel0, picked: pick, pill: bar5b && getComputedStyle(bar5b).backgroundColor, was: bg0,
-              swatch: document.getElementById('swatch-post').style.background, swatchWas: sw0, popGone: !document.querySelector('.phase-color-pop')};
-    add('P5', 'Colour… on Post\'s bar opens the colour picker just under the bar, on Post\'s current colour; a pick repaints the bars and the sidebar swatch',
-      p5.open && p5.popGone && p5.pill !== p5.was && p5.swatch !== p5.swatchWas && p5.pill === p5.swatch, p5, 'picker under the bar; bars and swatch repainted');
-    await T.sleep(700);
-    await undo();
-    var bar5c = barAt(await pointOn('2026-11-04', 'bar:post'));
-    add('P5u', 'One undo puts Post\'s colour back, keeping the title typed before',
-      !!bar5c && getComputedStyle(bar5c).backgroundColor === bg0 && document.getElementById('swatch-post').style.background === sw0
-        && (document.getElementById('show-title') || {}).value === 'Menu step ' + n,
-      {pill: bar5c && getComputedStyle(bar5c).backgroundColor, swatch: document.getElementById('swatch-post').style.background}, 'the old colour');
-
-    // P6: Show in Phases card.
+    // P5 / P5u (Colour… on a bar) and P6 / P6u (Show in Phases card) went with their items (T1): the phase row's own
+    // swatch and the row itself do both. P6w, the Settings window closing when an item reveals the sidebar, moved to
+    // the one item that still does: Add 1-week phase here, at the start of the R-cases.
     var showTab = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
     if(showTab) showTab.click();
     await T.sleep(700);
-    // ⭐ With the Settings window OPEN (owner ruling 12, 20 Oct 2026): it lies over the whole sidebar, so
-    // revealSidebarTab() must close it or the row being shown is hidden behind it. Opening it is session
-    // UI, no undo step, so P6u's single step is unchanged.
-    await T.openSettings('prefs');
-    var winOpen6 = document.getElementById('settings-window').classList.contains('is-open');
-    a = await primeThenOpen('2026-11-04', 'bar:post');   // a title typed just before: the step must not fold it in
-    choose('phase-show');
-    await T.sleep(100);
-    var win6 = document.getElementById('settings-window');
-    add('P6w', 'With the Settings window open, Show in Phases card closes it (it covers the whole sidebar), and the sidebar is clickable again',
-      winOpen6 && !win6.classList.contains('is-open') && !document.querySelector('.form-panel.settings-open') && !document.querySelector('[inert]')
-        && document.querySelector('.side-settings-btn').getAttribute('aria-expanded') === 'false',
-      {before: winOpen6, after: win6.className, inert: document.querySelectorAll('[inert]').length}, 'open, then closed with no inert left');
-    var row6 = document.getElementById('swatch-post').closest('.phase-row'), fp = document.querySelector('.form-panel');
-    var rr6 = row6.getBoundingClientRect(), fr6 = fp.getBoundingClientRect();
-    var p6 = {tab: activeTab(), row: [Math.round(rr6.top), Math.round(rr6.bottom)], panel: [Math.round(fr6.top), Math.round(fr6.bottom)]};
-    add('P6', 'Show in Phases card switches the sidebar to Phases with Post\'s row in view',
-      p6.tab === 'phases' && rr6.top >= fr6.top - 1 && rr6.top < fr6.bottom && !menuEl(), p6, 'phases, row in view');
-    await T.sleep(700);
-    await undo();
-    add('P6u', 'Exactly one undo step: it goes back to the Show tab and keeps the title typed just before',
-      activeTab() === 'show' && eq(sig(), a.before) && (document.getElementById('show-title') || {}).value === 'Menu step ' + n,
-      {tab: activeTab(), diff: sigDiff(a.before, sig())}, 'show, title kept');
 
     // ---- R: Remove <phase>… (owner, 19 Oct 2026, by picker: added to step 4) ----
     // A custom phase made here through the menu's own Add 1-week phase here, from Wed 11 Nov over Post, and named.
     // The item is the sidebar row's × (its question, then its removal), banked as ONE undo step after the answer.
+    // ⭐ P6w, with the Settings window OPEN (owner ruling 12, 20 Oct 2026): it lies over the whole sidebar, so
+    // revealSidebarTab() must close it or the new row is hidden behind it. Opening it is session UI, no undo step.
+    await T.openSettings('prefs');
+    var winOpen6 = document.getElementById('settings-window').classList.contains('is-open');
     await rclick('2026-11-11', 'num');
     choose('phase-week');
+    await T.sleep(100);
+    var win6 = document.getElementById('settings-window');
+    add('P6w', 'With the Settings window open, Add 1-week phase here closes it (it covers the whole sidebar, where the new row is), and the sidebar is clickable again',
+      winOpen6 && !win6.classList.contains('is-open') && !document.querySelector('.form-panel.settings-open') && !document.querySelector('[inert]')
+        && document.querySelector('.side-settings-btn').getAttribute('aria-expanded') === 'false' && activeTab() === 'phases',
+      {before: winOpen6, after: win6.className, inert: document.querySelectorAll('[inert]').length, tab: activeTab()}, 'open, then closed with no inert left');
     await settle();
     var kR = lastCustomKey();
     T.set('name-' + kR, 'Edit Bay');
@@ -1095,13 +1106,13 @@ window.addEventListener('load', function () { (async function () {
       return b ? {text: txt(b.querySelector('.day-menu-text')), danger: b.classList.contains('is-danger'), disabled: b.getAttribute('aria-disabled') === 'true', role: b.getAttribute('role')} : null;
     }
     await rclick('2026-11-12', 'bar:' + kR);
-    var r1 = {ph: menuInfo().ph, items: menuInfo().items.filter(function (x) { return /^phase-(start|end|colour|show|remove)$/.test(x.id); }).map(function (x) { return x.id; }), remove: removeItem()};
+    var r1 = {ph: menuInfo().ph, items: menuInfo().items.filter(function (x) { return /^phase-/.test(x.id) && !/^phase-(day|week)$/.test(x.id); }).map(function (x) { return x.id; }), remove: removeItem()};
     key('Escape');
     await rclick('2026-11-12', 'bar:post');
     r1.post = {ph: menuInfo().ph, remove: removeItem()};
     key('Escape');
-    add('R1', 'On the custom phase "Edit Bay"\'s bar its section ends with "Remove Edit Bay…", a red item that is not greyed out; Post\'s bar (a built-in phase) has no such item',
-      !!kR && r1.ph === kR && eq(r1.items, ['phase-start', 'phase-end', 'phase-colour', 'phase-show', 'phase-remove']) && !!r1.remove && r1.remove.text === 'Remove Edit Bay…'
+    add('R1', 'On the custom phase "Edit Bay"\'s bar its section is EXACTLY Start, End and "Remove Edit Bay…" (kept by T2), a red item that is not greyed out; Post\'s bar (a built-in phase) has no such item',
+      !!kR && r1.ph === kR && eq(r1.items, ['phase-start', 'phase-end', 'phase-remove']) && !!r1.remove && r1.remove.text === 'Remove Edit Bay…'
         && r1.remove.danger && !r1.remove.disabled && r1.remove.role === 'menuitem' && r1.post.ph === 'post' && r1.post.remove === null && daysR.length > 0,
       {key: kR, days: daysR, r1: r1}, 'Remove Edit Bay… on its bar, none on Post');
     // A title typed just before the item, with the bar already in view, so nothing waits between the two.
@@ -1149,7 +1160,8 @@ window.addEventListener('load', function () { (async function () {
       {undo: u3, redo: re3, diff: sigDiff(a.before, sig())}, 'one step');
     // ⚠️ Back to the Show tab, where the cases after these began before them. Add 1-week phase here left the
     // sidebar on Phases, scrolled to the new row, and the sidebar's scroll then landed during S2's export and
-    // closed the menu S2 holds open (a scroll outside the menu closes it).
+    // closed the menu S2 holds open (a scroll outside the menu closed it until ruling T4; a sidebar scroll no
+    // longer can, but the cases after these still expect the Show tab).
     var showTabR = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
     if(showTabR) showTabR.click();
     await T.sleep(700);
@@ -1249,53 +1261,15 @@ window.addEventListener('load', function () { (async function () {
     await rclick('2026-12-22', 'mid');
     var v1 = {sections: sections(), band: secInfo('hiatus')};
     key('Escape');
-    // Since 20 Oct 2026 (LABELS-SETUP-PLAN.md item 9) the section also carries Number weeks (the row's own new
-    // box, unticked) and Colour… after Lock; the labelsetup leg drives both.
-    add('V1', 'Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with Lock in place (a checked menuitemcheckbox, "Stays on these dates when the calendar shifts"), Number weeks (unchecked), Colour…, Show in Phases card, and a red Remove hiatus…',
+    // ⛔ The trim (T1): Lock in place, Number weeks (both the hiatus row's own boxes) and Show in Phases card are
+    // gone. Colour… stays (T2, the owner's "Recolour from day menu"; the labelsetup leg drives it), and so does
+    // Remove hiatus…. V2 (Lock in place) and V3 (Show in Phases card) went with their items.
+    add('V1', '⭐ Tue 22 Dec, inside the hiatus: a hiatus section after This day, "' + BAND + '", with EXACTLY Colour… and a red Remove hiatus… (no Lock in place, Number weeks or Show in Phases card, T1)',
       eq(v1.sections, ['day', 'hiatus', 'out']) && v1.band.length === 1 && v1.band[0].label === BAND
-        && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger]; }),
-              [['band-lock', 'menuitemcheckbox', 'true', 'Lock in place', 'Stays on these dates when the calendar shifts', false],
-               ['band-num', 'menuitemcheckbox', 'false', 'Number weeks', 'Labels its weeks Hiatus wk 1, 2…', false],
-               ['band-colour', 'menuitem', null, 'Colour…', '', false],
-               ['band-show', 'menuitem', null, 'Show in Phases card', '', false],
-               ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true]]),
-      v1, 'day, hiatus (' + BAND + '), out');
-
-    // V2: Lock in place, one undo step.
-    a = await primeThenOpen('2026-12-22', 'mid');
-    chooseIf(itemId('hiatus', /^band-lock-/));
-    await settle();
-    var v2 = {row: band0(), menu: !!menuEl()};
-    await rclick('2026-12-22', 'mid');
-    v2.after = (secInfo('hiatus')[0] || {items: []}).items[0];
-    key('Escape');
-    await T.sleep(700);
-    await undo();
-    v2.undone = {row: band0(), title: (document.getElementById('show-title') || {}).value};
-    await redo();
-    v2.redone = band0();
-    await undo();
-    add('V2', 'Lock in place unticks the row\'s own Lock box (the menu then shows it unchecked, "Moves when the calendar shifts"); one undo locks it again with the title typed before kept, and redo unlocks it',
-      !v2.menu && v2.row.locked === false && v2.after.checked === 'false' && v2.after.second === 'Moves when the calendar shifts'
-        && v2.undone.row.locked === true && v2.undone.title === 'Menu step ' + n && v2.redone.locked === false && band0().locked === true,
-      v2, 'unlocked; one step');
-
-    // V3: Show in Phases card, one undo step.
-    var showTabV = [].find.call(document.querySelectorAll('.side-tab-btn'), function (b) { return b.dataset.tab === 'show'; });
-    if(showTabV) showTabV.click();
-    await T.sleep(700);
-    a = await primeThenOpen('2026-12-22', 'mid');
-    chooseIf(itemId('hiatus', /^band-show-/));
-    await T.sleep(100);
-    var rowV = document.querySelector('#hiatus-list .hiatus-entry'), fpV = document.querySelector('.form-panel');
-    var rrV = rowV.getBoundingClientRect(), frV = fpV.getBoundingClientRect();
-    var v3 = {tab: activeTab(), row: [Math.round(rrV.top), Math.round(rrV.bottom)], panel: [Math.round(frV.top), Math.round(frV.bottom)]};
-    await T.sleep(700);
-    await undo();
-    v3.undone = {tab: activeTab(), title: (document.getElementById('show-title') || {}).value};
-    add('V3', 'Show in Phases card switches the sidebar to Phases with the 21 Dec hiatus row in view; one undo goes back to Show with the title typed before kept',
-      v3.tab === 'phases' && rrV.top >= frV.top - 1 && rrV.top < frV.bottom && v3.undone.tab === 'show' && v3.undone.title === 'Menu step ' + n,
-      v3, 'phases, row in view; one step');
+        && eq(v1.band[0].items.map(function (x) { return [x.id.replace(/-\d+$/, ''), x.role, x.checked, x.text, x.second, x.danger, x.disabled]; }),
+              [['band-colour', 'menuitem', null, 'Colour…', '', false, false],
+               ['band-remove', 'menuitem', null, 'Remove hiatus…', '', true, false]]),
+      v1, 'day, hiatus (' + BAND + ': Colour…, Remove hiatus…), out');
 
     // V4: Remove hiatus… asks the sidebar's own question first (ruling Q4); Cancel keeps it; Remove is one step.
     var rowsV = bandRows();
@@ -1374,12 +1348,12 @@ window.addEventListener('load', function () { (async function () {
     await rclick('2026-07-03', 'num');
     v6.undone = {ctx: menuInfo().ctx, list: listBox('Independence Day', 'en'), title: (document.getElementById('show-title') || {}).value};
     key('Escape');
-    add('V6', '3 Jul: "Holiday · Independence Day (Observed)" after the shoot section, Enabled checked, "Off means Production shoots this day". Unticking asks the holiday list\'s question first; Cancel changes nothing; Continue makes 3 Jul shoot day 5, unticks the list\'s box and greys out the two Show items ("The holiday is off"); one undo puts it back, the title kept',
+    add('V6', '3 Jul: "Holiday · Independence Day (Observed)" after the shoot section, Enabled checked, "Off means Production shoots this day". Unticking asks the holiday list\'s question first; Cancel changes nothing; Continue makes 3 Jul shoot day 5, unticks the list\'s box and LEAVES OUT the two Show items (T3: an off holiday is drawn nowhere; greyed "The holiday is off" until the trim); one undo puts it back, the title kept',
       eq(v6a.sections, ['day', 'shoot', 'holiday', 'out']) && v6a.hol.label === 'Holiday · Independence Day (Observed)' && v6a.hol.items[0].checked === 'true'
         && v6a.hol.items[0].second === 'Off means Production shoots this day'
         && /Recompute the schedule\?/.test(q6) && v6.cancel.list === 'true' && v6.cancel.same && !!q6b
         && /^Shoot day 5 /.test(v6.off.ctx) && v6.off.list === 'false' && v6.off.hol.items[0].checked === 'false' && v6.off.hol.items[0].second === 'Off: Production shoots this day'
-        && v6.off.hol.items[1].disabled && v6.off.hol.items[1].second === 'The holiday is off' && v6.off.hol.items[2].disabled
+        && v6.off.hol.items.length === 1 && v6.off.hol.items[0].id === 'hol-en-0'
         && !/Shoot day/.test(v6.undone.ctx) && v6.undone.list === 'true' && v6.undone.title === 'Menu step ' + n,
       {before: v6a, flow: v6}, 'asked; off is shoot day 5; one step');
 
@@ -1495,8 +1469,23 @@ window.addEventListener('load', function () { (async function () {
     var ids9 = [].concat.apply([], v9.bands.map(function (b) { return b[1]; }));
     add('V9', 'Two hiatuses on Tue 22 Dec (halfdays\' 21 Dec – 3 Jan and a new 21 Dec – 27 Dec) get a section each, labelled by their dates, with no item id repeated',
       eq(v9.sections, ['day', 'hiatus', 'hiatus', 'out']) && eq(v9.bands.map(function (b) { return b[0]; }), ['Hiatus · 21 Dec – 3 Jan', 'Hiatus · 21 Dec – 27 Dec'])
-        && ids9.length === 10 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
+        && ids9.length === 4 && ids9.every(function (id, i) { return ids9.indexOf(id) === i; }),
       v9, 'two sections, by dates');
+
+    // T1: ⛔ the owner's cut, over EVERY month menu and submenu the leg opened (recorded as each was built). No cut item
+    // in any, no "Shift + right-click" footer line, and nothing greyed but the Start / End pair and Work this day
+    // inside a hiatus (T3). A build that brings one back anywhere turns this red, whichever case opened the menu.
+    menuObs.disconnect();
+    var t1 = {menus: seenMenus.length, days: seenMenus.filter(function (m) { return !/^sub:/.test(m.day); }).length, cut: [], greyed: [], shift: [], foot: 0};
+    seenMenus.forEach(function (m) {
+      m.items.forEach(function (id) { if(CUT.test(id)) t1.cut.push(m.day + ':' + id); });
+      m.greyed.forEach(function (id) { if(!MAY_GREY.test(id)) t1.greyed.push(m.day + ':' + id); });
+      if(/Shift/.test(m.foot)) t1.shift.push(m.day);
+      if(m.foot) t1.foot++;
+    });
+    add('T1', '⭐ The owner\'s cut holds in every month menu the leg opened: no Add note, Colour… on a bar, Show in Phases card, Lock in place or Number weeks; no "Shift + right-click" footer line; nothing greyed but the Start / End pair and Work this day inside a hiatus',
+      t1.days >= 40 && t1.menus > t1.days && t1.cut.length === 0 && t1.greyed.length === 0 && t1.shift.length === 0 && t1.foot >= 1,
+      t1, 'none, over 40+ menus');
 
     out.health = T.appHealth();
     add('E1', 'No uncaught page errors', !(out.health.errors || []).length, out.health.errors, '[]');

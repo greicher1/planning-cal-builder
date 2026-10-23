@@ -481,9 +481,17 @@ window.addEventListener('load', function () { (async function () {
     // A title typed just before, and not yet banked (the 500 ms debounce): the item's LEADING undo push must
     // file it as its own step, so one undo takes back the item and keeps the title (mvmenu's idiom).
     T.set('show-title', 'C Typed 1');
+    // ⛔ The day menu's Number weeks was CUT by the owner's trim (MONTH-CONTEXT-MENU-PLAN.md §13, ruling T1, 23 Oct
+    // 2026): the hiatus row's own box, beside Lock in place, is the one way to tick it now (the owner's Q4 here was
+    // "Per hiatus row"). So C1 reads the menu only to prove the item is gone, then clicks the row's box, after the
+    // title has banked: the sidebar's own 500 ms debounce, unlike the menu's explicit step, would fold the two.
     await rclick('2026-12-22', 'mid');
     var c1m = hiatusItems();
-    var numbered = chooseIf('[data-section="hiatus"] [data-item^="band-num-"]');
+    closeMenu();
+    await T.sleep(700);
+    var numBox = document.querySelector('#hiatus-list .hiatus-entry .hiatus-num');
+    if(numBox) numBox.click();
+    var numbered = !!numBox && c1m.length > 0 && !c1m.some(function (x) { return /^band-num-/.test(x.id); });
     await settle(); await T.sleep(300);
     var c1month = monthBands();
     await T.sleep(700);
@@ -493,7 +501,7 @@ window.addEventListener('load', function () { (async function () {
     await toSheet();
     var c1 = [sheetHiatus('2026-12-21'), sheetHiatus('2026-12-28')];
     // "wk N", as a phase's own weeks read (owner, 20 Oct 2026: "It should be 'wk' not 'Week' for consistency with all the other phases").
-    add('C1', '⭐ Number weeks, from the day menu on 22 Dec, ticks the row\'s box and labels its bands "Hiatus wk 1" and "Hiatus wk 2" in the month view and the waterfall',
+    add('C1', '⭐ Number weeks, from the hiatus row\'s own box (22 Dec\'s day menu offers it no more, T1), labels its bands "Hiatus wk 1" and "Hiatus wk 2" in the month view and the waterfall',
       numbered && c0[0].text === 'Hiatus' && c1[0].text === 'Hiatus wk 1' && c1[1].text === 'Hiatus wk 2'
         && document.querySelector('#hiatus-list .hiatus-entry .hiatus-num').checked
         && eq(c1month.map(function (b) { return b[0]; }), ['Hiatus wk 1', 'Hiatus wk 2']),

@@ -1645,7 +1645,11 @@ done
 # (dispatched on elementFromPoint). It grows with each plan step. Since step 4 (ruling L1) also the LEFT-click on a
 # day's number, which retired the Full day/Off popover: the shoot-day section, the toggle that keeps
 # double-click-to-clear working, and where it opens under the number; and Remove <phase>… on a custom phase's bar.
-# halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's.
+# halfdays (D5) and halfworked read that section's data-ov rows where they read the popover's. ⛔ TRIMMED BY THE OWNER,
+# 23 Oct 2026 (plan §13, rulings T1-T4): every menu it checks is held to its EXACT item list, its T1 case watches all
+# 75 month menus it opens for a cut item (Add note, Colour… on a bar, Show in Phases card, Lock in place, Number weeks),
+# the "Shift + right-click" line or a stray greyed item, and C1 / C4 hold the waterfall's close-on-scroll rule. Red
+# on the pre-trim build (21 cases).
 # wfmenu guards the waterfall's right-click menu (WATERFALL-CONTEXT-MENU-PLAN.md, rulings R1-R7, 22-23 Oct 2026), the
 # same engine as mvmenu's, on halfdays.sptcal. LEAN BY RULING (owner, 23 Oct 2026: no Swap column, no Add note), so
 # every cell kind's EXACT item list is asserted: a phase week (Start / End <phase> this week, a greyed pair when
@@ -1660,7 +1664,8 @@ done
 # labelsetup guards bundle B of 20 Oct 2026 (LABELS-SETUP-PLAN.md), 40 cases on halfdays and the fixtures it opens through
 # the real Load path: "Ep." only before numbers (E), Blocks without an episode count and the old-file rule on a REAL v1.5.0
 # Save (B, tests/fixtures/blocks-noeps-v1.5.0.sptcal), the weekend just before the first shoot day ('lead', L), the month
-# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… and Number weeks (C). Twenty
+# header's sizes 10-12 and the fixed-date token (H), France (F), and a hiatus band's Colour… (from the day menu) and Number
+# weeks (from the row's own box since the day menu's copy was cut, 23 Oct 2026) (C). Twenty
 # mutants of the build each turn their own cases red; on v1.5.0 only the controls pass.
 # phiatusnum (owner ruling 8, 20 Oct 2026) is a phase hiatus's "Number weeks": every output's band text (the
 # waterfall, Excel, the waterfall PDF, the month view and the WRITTEN month PDF, both PDFs read in the page), the
@@ -1701,7 +1706,8 @@ done
 # phasefold guards the caret on every phase card (owner, 20 Oct 2026): a hit-tested click folds a card to its colour
 # bar and name line, the name still editable; the fold is session UI (the calendar is not marked changed, the grid is
 # unchanged, a Save is byte-identical); Production's episode list folds too; undo and redo rebuild a folded custom row
-# folded; a new phase on an undone phase's key opens unfolded; Show in Phases card unfolds; Load and New unfold all.
+# folded; a new phase on an undone phase's key opens unfolded; the day menu's Show in Phases card is gone (the owner's
+# trim, 23 Oct 2026), so F8 holds that opening the menu leaves a folded card folded; Load and New unfold all.
 # Its own line, mid-list, so sessions appending at the end never conflict with it.
 # papersize guards the paper the waterfall PDF and the workbook are laid out for (owner, 21 Oct 2026; PAPER-SIZE-PLAN.md,
 # rulings R1-R4): the Paper select in Settings ▸ Preferences ▸ Waterfall, inert on Letter (no key, a Letter page box,
