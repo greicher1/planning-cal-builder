@@ -41,16 +41,16 @@
 //   G1  a phase's body drag: a copy follows the pointer mid-drag and the start moves a day as it always did; a plain
 //       press makes no copy; none after
 // §9 (owner, 23 Oct 2026): an untouched note keeps its bar, a note between phases, a note to another day (mvdrag.sptcal):
-//   D1  ⭐ a note dragged on top of Wed 3/11: the notes on the week's other days stay under the bars (the owner's bug)
-//   D2  ⭐ a phase reordered in one week: the notes of another week stay under the bars of their days (the owner's bug)
-//   D3  ⭐ a note dropped between two phases: it sits between them on screen, in the save (under) and in the month PDF
-//   D4  a month note dragged to another day takes that day's date; one undo puts it back
-//   D5  a waterfall line dragged into another week moves into that week's waterfall note, with its new date
-//   D6  an auto-note dragged a day: its date follows, as an edit of the waterfall note; the phase stays
-//   D7  a holiday stays on its day
-//   D8  to another day and back in one gesture: nothing changes and no step is banked
-//   D9  an untouched calendar draws no data-note-anchor
-//   D10 a note let go well off the calendar goes back where it was
+//   M1  ⭐ a note dragged on top of Wed 3/11: the notes on the week's other days stay under the bars (the owner's bug)
+//   M2  ⭐ a phase reordered in one week: the notes of another week stay under the bars of their days (the owner's bug)
+//   M3  ⭐ a note dropped between two phases: it sits between them on screen, in the save (under) and in the month PDF
+//   M4  a month note dragged to another day takes that day's date; one undo puts it back
+//   M5  a waterfall line dragged into another week moves into that week's waterfall note, with its new date
+//   M6  an auto-note dragged a day: its date follows, as an edit of the waterfall note; the phase stays
+//   M7  a holiday stays on its day
+//   M8  to another day and back in one gesture: nothing changes and no step is banked
+//   M9  an untouched calendar draws no data-note-anchor
+//   M10 a note let go well off the calendar goes back where it was
 // A hostile file:
 //   H1  a non-array mvPhaseOrder, a "__proto__" key in mvWfNotePlace, `top: "yes"` and a string `top` on a note: the
 //       file loads, each is ignored, and Object.prototype is untouched
@@ -385,27 +385,27 @@ try {
       return { k: b.getAttribute('data-ph') || (b.classList.contains('mv-note-block') ? 'note:' + b.textContent.trim() : 'band'),
                lane: gr ? +gr[1] - 1 : -1, col: gc ? +gc[1] - 1 : -1, end: gc ? +gc[2] - 2 : -1 }; }); })()`));
   const laneOf = (r, k) => { const b = r.find(x => x.k === k); return b ? b.lane : -1; };
-  // D1 (the owner's bug, 23 Oct 2026): a note dragged on top of Wed 3/11 pushes the week's bars down a line; the
+  // M1 (the owner's bug, 23 Oct 2026): a note dragged on top of Wed 3/11 pushes the week's bars down a line; the
   // notes on the week's other days stay under the bars instead of rising into the line that opened above them.
   await load('mvdrag', 'March 2026');
   const r1a = await rowFull(1);
   n = await box(NOTE_T('Wed 11 a'));
   await gesture(n.x, n.y, 0, -(n.h + 2) * 3.6);
   const r1b = await rowFull(1);
-  kase('D1', 'a note dragged on top of Wed 3/11: the bars drop a line and every note on Mon, Tue, Thu and Fri stays under the bars of its day',
+  kase('M1', 'a note dragged on top of Wed 3/11: the bars drop a line and every note on Mon, Tue, Thu and Fri stays under the bars of its day',
     underBars(r1a, [1, 2, 4, 5]) && laneOf(r1b, 'note:Wed 11 a') === 0 && laneOf(r1b, 'writersRoom') === 1 && underBars(r1b, [1, 2, 4, 5]),
     { before: r1a.map(b => b.k + '@' + b.lane), after: r1b.map(b => b.k + '@' + b.lane) });
-  // D2 (the owner's bug): Prod Prep's grip dragged to the top in the week of 3/15. The order is the whole calendar's,
+  // M2 (the owner's bug): Prod Prep's grip dragged to the top in the week of 3/15. The order is the whole calendar's,
   // so the week of 3/8 re-stacks too, and its notes stay under the bars there; "Thu 19" stays above Pre Prep.
   await load('mvdrag', 'March 2026');
   const g2 = await gripOf(2, 'prodPrep');
   await gesture(g2.grip.x, g2.grip.y, 0, -(g2.bar.h + 2) * 2.6);
   const r2w1 = await rowFull(1), r2w2 = await rowFull(2);
-  kase('D2', 'Prod Prep reordered to the top: the week of 3/8 re-stacks and every one of its notes stays under the bars of its day; "Thu 19" stays above Pre Prep',
+  kase('M2', 'Prod Prep reordered to the top: the week of 3/8 re-stacks and every one of its notes stays under the bars of its day; "Thu 19" stays above Pre Prep',
     laneOf(r2w1, 'prodPrep') === 0 && underBars(r2w1, [1, 2, 3, 4, 5])
       && laneOf(r2w2, 'note:Thu 19') >= 0 && laneOf(r2w2, 'note:Thu 19') < laneOf(r2w2, 'prePrep'),
     { w38: r2w1.map(b => b.k + '@' + b.lane), w315: r2w2.map(b => b.k + '@' + b.lane) });
-  // D3 (§9, "in or around phases"): "Fri 13" dropped between Writer's Rm and Pre Prep on its day. Pre Prep and Prod Prep
+  // M3 (§9, "in or around phases"): "Fri 13" dropped between Writer's Rm and Pre Prep on its day. Pre Prep and Prod Prep
   // drop a line that week; the other days' notes stay under their bars; Save writes under: "writersRoom" on it; and
   // the written month PDF puts it between the two bars too (the writer re-packs, so this is frozen edit E3's anchor).
   await load('mvdrag', 'March 2026');
@@ -431,12 +431,12 @@ try {
       pdf3 = { wr: y(lbl.wr), note: y('Fri 13'), pp: y(lbl.pp) };
     }
   } catch (e) { pdf3 = { error: String(e.message || e) }; }
-  kase('D3', '"Fri 13" dropped between Writer\'s Rm and Pre Prep: it sits between them (they drop a line that week), the other days\' notes stay under their bars, Save writes under: "writersRoom", and the month PDF stacks it between them too',
+  kase('M3', '"Fri 13" dropped between Writer\'s Rm and Pre Prep: it sits between them (they drop a line that week), the other days\' notes stay under their bars, Save writes under: "writersRoom", and the month PDF stacks it between them too',
     laneOf(r3, 'writersRoom') === 0 && laneOf(r3, 'note:Fri 13') === 1 && laneOf(r3, 'prePrep') === 2 && underBars(r3, [1, 2, 3, 4])
       && !!fri && fri.under === 'writersRoom' && !fri.top && !fri.bottom
       && !!pdf3 && pdf3.wr > pdf3.note && pdf3.note > pdf3.pp,
     { row: r3.map(b => b.k + '@' + b.lane), entry: fri, labels: lbl, pdf: pdf3 });
-  // D4 (owner, 23 Oct 2026: "drag notes from one day to another ... notes with dates, have the date auto adjust"): a
+  // M4 (owner, 23 Oct 2026: "drag notes from one day to another ... notes with dates, have the date auto adjust"): a
   // month note dragged from Tue 3/10 to Thu 3/12 moves to that day and its date says so; ONE undo puts it back.
   await load('mvdrag', 'March 2026');
   n = await box(NOTE_T('Fitting 3/10/26'));
@@ -447,10 +447,10 @@ try {
   const shown4 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-03-12"]')).map(e => e.textContent)`);
   await undo(); await sleep(700);
   const back4 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-03-10"]')).map(e => e.textContent)`);
-  kase('D4', 'a month note dragged from Tue 3/10 to Thu 3/12 is stored on 3/12 as "Fitting 3/12/26" and gone from 3/10; one undo puts it back',
+  kase('M4', 'a month note dragged from Tue 3/10 to Thu 3/12 is stored on 3/12 as "Fitting 3/12/26" and gone from 3/10; one undo puts it back',
     on12.includes('Fitting 3/12/26') && !on10.includes('Fitting 3/10/26') && shown4.includes('Fitting 3/12/26') && back4.includes('Fitting 3/10/26'),
     { on12, on10, shown4, back4 });
-  // D5: a waterfall line dragged into another week goes into that week's waterfall note, with its new date.
+  // M5: a waterfall line dragged into another week goes into that week's waterfall note, with its new date.
   await load('mvdrag', 'March 2026');
   n = await box(NOTE_T('Wardrobe 3/10/26'));
   c = await CELL(2, 3);
@@ -458,9 +458,9 @@ try {
   const s5d = await saved();
   const t5a = ((s5d.userNotes || {})['2026-03-09'] || {}).text, t5b = ((s5d.userNotes || {})['2026-03-16'] || {}).text;
   const shown5 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-03-18"][data-note-kind="wf"]')).map(e => e.textContent)`);
-  kase('D5', '"Wardrobe 3/10/26" dragged to Wed 3/18: the 3/9 week\'s waterfall note keeps only "Props 3/12/26", the 3/16 week\'s reads "Wardrobe 3/18/26", and the month view shows it on 3/18',
+  kase('M5', '"Wardrobe 3/10/26" dragged to Wed 3/18: the 3/9 week\'s waterfall note keeps only "Props 3/12/26", the 3/16 week\'s reads "Wardrobe 3/18/26", and the month view shows it on 3/18',
     t5a === 'Props 3/12/26' && t5b === 'Wardrobe 3/18/26' && shown5.includes('Wardrobe 3/18/26'), { w39: t5a, w316: t5b, shown5 });
-  // D6: an auto-note moved a day: its date follows, as an edit of its week's waterfall note; Production itself stays.
+  // M6: an auto-note moved a day: its date follows, as an edit of its week's waterfall note; Production itself stays.
   await load('mvdrag', 'June 2026');
   n = await box(NOTE_T('Start Principal Photography 6/29/26'));
   c = await CELL(4, 3);
@@ -468,15 +468,15 @@ try {
   const s6d = await saved();
   const t6 = ((s6d.userNotes || {})['2026-06-29'] || {}).text, st6 = await ev(`document.getElementById('start-production').value`);
   const shown6 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-07-01"]')).map(e => e.textContent)`);
-  kase('D6', 'the auto-note "Start Principal Photography 6/29/26" dragged to Wed 7/1 reads 7/1/26 there and in the 6/29 waterfall note; Production still starts 6/29',
+  kase('M6', 'the auto-note "Start Principal Photography 6/29/26" dragged to Wed 7/1 reads 7/1/26 there and in the 6/29 waterfall note; Production still starts 6/29',
     t6 === 'Start Principal Photography 7/1/26' && st6 === '2026-06-29' && shown6.includes('Start Principal Photography 7/1/26'), { text: t6, start: st6, shown6 });
-  // D7: a holiday stays on its day.
+  // M7: a holiday stays on its day.
   n = await box(NOTE_T('Independence Day 7/4/26'));
   c = await CELL(4, 2);
   await gesture(n.x, n.y, c.x - n.x, 0);
   const shown7 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-07-04"]')).map(e => e.textContent)`);
-  kase('D7', 'a holiday dragged sideways stays on its day', shown7.includes('Independence Day 7/4/26'), { shown7 });
-  // D8: to another day and back in ONE gesture: nothing changed, so the notes save exactly as the fixture holds them
+  kase('M7', 'a holiday dragged sideways stays on its day', shown7.includes('Independence Day 7/4/26'), { shown7 });
+  // M8: to another day and back in ONE gesture: nothing changed, so the notes save exactly as the fixture holds them
   // and no undo step is banked (the Undo button stays off on a page fresh from a load).
   await load('mvdrag', 'March 2026');
   const fx8 = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests/fixtures/mvdrag.sptcal'), 'utf8'));
@@ -490,21 +490,21 @@ try {
   await mouse('mouseReleased', n.x, n.y, 0); await sleep(500);
   const undoOff8 = await ev(`!!(document.getElementById('undo-btn') || {}).disabled`);
   const s8b = await saved();
-  kase('D8', 'to Wed 3/11 and back in one gesture: the note was on 3/11 mid-drag, ends where it was, the notes save exactly as the fixture holds them, and Undo stays off',
+  kase('M8', 'to Wed 3/11 and back in one gesture: the note was on 3/11 mid-drag, ends where it was, the notes save exactly as the fixture holds them, and Undo stays off',
     mid8d.includes('Mon 9') && JSON.stringify(s8b.dayNotes) === JSON.stringify(fx8.dayNotes) && JSON.stringify(s8b.userNotes) === JSON.stringify(fx8.userNotes)
       && !('mvWfNotePlace' in s8b) && undoOff8 === true,
     { mid: mid8d, undoOff: undoOff8, after: s8b.dayNotes['2026-03-09'] });
-  // D10: let go well off the calendar (over the sidebar): the note is back where it was and nothing is banked, rather
+  // M10: let go well off the calendar (over the sidebar): the note is back where it was and nothing is banked, rather
   // than landing on the nearest edge day.
   await load('mvdrag', 'March 2026');
   n = await box(NOTE_T('Mon 9'));
   await gesture(n.x, n.y, 12 - n.x, 0);
   const on9 = await ev(`Array.from(document.querySelectorAll('#table-wrap .mv-note-block[data-note-day="2026-03-09"]')).map(e => e.textContent)`);
   const undoOff10 = await ev(`!!(document.getElementById('undo-btn') || {}).disabled`);
-  kase('D10', 'a note let go over the sidebar, off the calendar, is back on its own day and Undo stays off', on9.includes('Mon 9') && undoOff10 === true, { on9, undoOff: undoOff10 });
-  // D9: a calendar with no order and no place draws no data-note-anchor (it is the old layout, line for line).
+  kase('M10', 'a note let go over the sidebar, off the calendar, is back on its own day and Undo stays off', on9.includes('Mon 9') && undoOff10 === true, { on9, undoOff: undoOff10 });
+  // M9: a calendar with no order and no place draws no data-note-anchor (it is the old layout, line for line).
   const anc9 = await ev(`document.querySelectorAll('#table-wrap [data-note-anchor]').length`);
-  kase('D9', 'an untouched calendar carries no data-note-anchor', anc9 === 0, { anchors: anc9 });
+  kase('M9', 'an untouched calendar carries no data-note-anchor', anc9 === 0, { anchors: anc9 });
 
   // ---- A hostile file ----
   await load('mvorder-hostile', 'March 2026');
