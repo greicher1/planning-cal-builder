@@ -4,7 +4,7 @@
 
 ## 🔴 START HERE — sessions of 18, 21 + 22 Sep 2026
 
-### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; NOT IN `main`, NOT PUSHED
+### 🔨 23 Oct 2026: SCENARIOS BUILT — branch `scenarios` (worktree `.claude/worktrees/scenarios`), from `main` at `8cc8357`; COMMITTED `4946882` + `9faf3da`; FULL GATE 2,981 / 1 (the 1 a known `loadfail` flake, green alone 3/3); MAIN MERGED IN TWICE (`2c2c68a`, then `78aa285` as `9905168`), QUICK CHECKS GREEN BOTH TIMES; **MERGED INTO LOCAL `main`** (fast-forward to `e3b0ab3`, owner's picker, 23 Oct 2026); NOT PUSHED, A FULL GATE OWED FIRST
 
 - ⏭ **RESUME HERE for scenarios.**
   - The plan is [`SCENARIOS-PLAN.md`](SCENARIOS-PLAN.md): rulings D1–D6, the 50 cap, no flip highlight, and the Compare
